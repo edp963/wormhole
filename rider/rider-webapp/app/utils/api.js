@@ -18,7 +18,7 @@
  * >>
  */
 
-const productionHost = ''
+const productionHost = 'http://localhost:8989'
 
 export default {
   login: `${productionHost}/login`,
