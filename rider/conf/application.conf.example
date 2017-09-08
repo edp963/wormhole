@@ -1,0 +1,61 @@
+
+wormholeServer {
+  host = "localhost"
+  port = 8989
+  token.timeout = 36000
+}
+
+mysql = {
+  driver = "slick.driver.MySQLDriver$"
+  db = {
+    driver = "com.mysql.jdbc.Driver"
+    user = "root"
+    url = "jdbc:mysql://localhost:3306/rider3"
+    password = "*******"
+    numThreads = 1
+  }
+}
+
+spark = {
+  wormholeServer.user = "app"
+  wormholeServer.ssh.port = 2222
+  spark.home = ""
+  queue.name = "default"
+  app.tags = ""
+  wormhole.hdfs.root.path = "hdfs://nn1/wormhole"
+  yarn.active.resourceManager.http.url = "localhost:8088"
+  wormhole.jar.path = ""
+  wormhole.kafka08.jar.path = ""
+  wormhole.kafka08.streams = ""
+  wormhole.client.log.root.path = ""
+}
+
+zookeeper.connection.url = "localhost:2181"
+
+kafka.brokers.url = "localhost:9092"
+kafka.brokers.feedback.topic = ""
+
+elasticSearch.http.url = "http://localhost:9200"
+
+grafana = {
+  url = "http://localhost:3000"
+  production.domain.url = "http://test.test.com"
+  admin = {
+    user = "admin"
+    token = "*******"
+  }
+  viewer = {
+    user = "viewer"
+    token = "******"
+  }
+}
+
+maintenance = {
+  mysql.feedback.remain.maxDays = 30
+  elasticSearch.feedback.remain.maxDays = 30
+}
+
+dbus.namespace.rest.api.url = ["http://localhost:8088/webservice/interface/search"]
+
+
+

@@ -1,0 +1,35 @@
+{
+  "protocol": {
+    "type": "directive_topic_unsubscribe"
+  },
+  "schema": {
+    "namespace": "",
+    "fields": [
+      {
+        "name": "directive_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "stream_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "ums_ts_",
+        "type": "datetime",
+        "nullable": false
+      },
+      {
+        "name": "topic_name",
+        "type": "string",
+        "nullable": false
+      }
+    ]
+  },
+  "payload": [
+    {
+      "tuple": [ 1,3,"2016-04-11 12:23:34.345123","testname"]
+    }
+  ]
+}

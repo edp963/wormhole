@@ -1,0 +1,26 @@
+.ri-datasystem-selector {
+  & > li {
+    width: 100px;
+    height: 40px;
+    margin: 3px;
+    border: 1px solid @ri-workbench-border-color;
+    border-radius: 2px;
+    font-size: 16px;
+    text-align: center;
+    line-height: 38px;
+    float: left;
+    cursor: pointer;
+    &.active {
+      background-color: @primary-color;
+      border-color: darken(@primary-color, 5%);
+      color: @white-text-color;
+    }
+    i {
+      font-size: 60px;
+    }
+  }
+}
+
+.dataSystem-style {
+  cursor: not-allowed !important;
+}

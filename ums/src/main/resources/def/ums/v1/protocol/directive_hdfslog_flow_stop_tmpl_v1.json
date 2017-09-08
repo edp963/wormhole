@@ -1,0 +1,36 @@
+// Rider delete the node from ZK, not to send directive message to wormhole
+{
+  "protocol": {
+    "type": "directive_hdfslog_flow_stop"
+  },
+  "schema": {
+    "namespace": "",
+    "fields": [
+      {
+        "name": "directive_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "namespace_rule",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "stream_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "ums_ts_",
+        "type": "datetime",
+        "nullable": false
+      }
+    ]
+  },
+  "payload": [
+    {
+      "tuple": [ 1, "oracle.oracle0.*.*.*.*.*",1,"2016-04-11 12:23:34.345123"]
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "protocol": {
+    "type": "directive_hdfslog_flow_start"
+  },
+  "schema": {
+    "namespace": "",
+    "fields": [
+      {
+        "name": "directive_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "stream_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "ums_ts_",
+        "type": "datetime",
+        "nullable": false
+      },
+      {
+        "name": "namespace_rule",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "hour_duration",
+        "type": "string",
+        "nullable": false
+      }
+    ]
+  },
+  "payload": [
+    {
+      "tuple": [ 1, 1,"2017-05-06 00:00:00","oracle.oracle0.*.*.*.*.*", "24"]
+    }
+  ]
+}

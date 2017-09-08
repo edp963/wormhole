@@ -1,0 +1,566 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>edp.wormhole</groupId>
+    <artifactId>wormhole-parent</artifactId>
+    <version>0.3.0-SNAPSHOTS</version>
+    <packaging>pom</packaging>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+
+    <modules>
+        <module>ums</module>
+        <module>rider/rider-server</module>
+        <module>rider/rider-assembly</module>
+        <!--<module>rider/rider-webapp</module>-->
+        <module>common/kafka08</module>
+        <module>common/kafka010</module>
+        <module>common/util</module>
+        <module>common/zookeeper</module>
+        <module>common/dbpool</module>
+        <module>common/hadoop</module>
+        <module>sparkx</module>
+    </modules>
+
+
+
+
+
+
+    <properties>
+        <main.basedir>${project.basedir}</main.basedir>
+        <ums.version>1.3</ums.version>
+        <project.version>0.3.0-SNAPSHOTS</project.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>1.8</java.version>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <scala.version>2.11.8</scala.version>
+        <scala.binary.version>2.11</scala.binary.version>
+        <scalatest.version>2.2.5</scalatest.version>
+        <akka.version>2.4.17</akka.version>
+        <akka-http.version>10.0.5</akka-http.version>
+        <akka-stream-kafka.version>0.15</akka-stream-kafka.version>
+        <akka-slf4j>2.4.17</akka-slf4j>
+        <logback-classic>1.1.3</logback-classic>
+        <slf4j.version>1.7.21</slf4j.version>
+        <slick.version>3.2.0</slick.version>
+        <swagger.version>0.9.1</swagger.version>
+        <jwt.version>0.12.1</jwt.version>
+        <kafka.version>0.10.0.0</kafka.version>
+        <hadoop.version>2.7.1</hadoop.version>
+        <hbase.version>1.1.2</hbase.version>
+        <hive.version>1.2.1</hive.version>
+        <spark.version>2.2.0</spark.version>
+        <flink.version>1.2.0</flink.version>
+        <zookeeper.version>3.4.6</zookeeper.version>
+        <jackson.version>2.6.5</jackson.version>
+        <json4s.version>3.2.11</json4s.version>
+
+        <guava.version>19.0</guava.version>
+        <sonar.core.codeCoveragePlugin>jacoco</sonar.core.codeCoveragePlugin>
+        <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
+        <sonar.jacoco.reportPath>target/jacoco.exec</sonar.jacoco.reportPath>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.encoding>UTF-8</maven.compiler.encoding>
+
+    </properties>
+
+    <distributionManagement>
+        <repository>
+            <id>dist-nexus</id>
+            <url>${release.url}</url>
+        </repository>
+    </distributionManagement>
+
+    <!-- common repositories -->
+    <repositories>
+        <repository>
+            <id>alimaven</id>
+            <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+        </repository>
+        <repository>
+            <id>hortonworks</id>
+            <url>http://repo.hortonworks.com/content/repositories/releases/</url>
+        </repository>
+        <repository>
+            <id>conjars</id>
+            <url>http://conjars.org/repo/</url>
+        </repository>
+        <repository>
+            <id>creditease</id>
+            <url>${public.url}</url>
+        </repository>
+    </repositories>
+
+    <!-- common pluginRepositories -->
+    <pluginRepositories>
+        <pluginRepository>
+            <id>central</id>
+            <url>https://repo1.maven.org/maven2</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+            <id>sonatype-oss-public</id>
+            <url>https://oss.sonatype.org/content/groups/public/</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>scala-tools.org</id>
+            <name>Scala-tools Maven2 Repository</name>
+            <url>http://scala-tools.org/repo-releases</url>
+        </pluginRepository>
+    </pluginRepositories>
+
+    <!-- common dependencies -->
+    <dependencies>
+        <!-- ================= scala ================= -->
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.binary.version}</artifactId>
+            <version>${scalatest.version}</version>
+            <scope>test</scope>
+            <!--<exclusions>-->
+                <!--<exclusion>-->
+                    <!--<groupId>org.scala-lang.modules</groupId>-->
+                    <!--<artifactId>scala-xml_2.11</artifactId>-->
+                <!--</exclusion>-->
+            <!--</exclusions>-->
+        </dependency>
+
+        <!-- ================= java ================= -->
+        <!--<dependency>-->
+        <!--<groupId>junit</groupId>-->
+        <!--<artifactId>junit</artifactId>-->
+        <!--<version>4.12</version>-->
+        <!--</dependency>-->
+
+        <!-- ================= util ================= -->
+        <!--logging-->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <!--<dependency>-->
+        <!--<groupId>org.slf4j</groupId>-->
+        <!--<artifactId>slf4j-log4j12</artifactId>-->
+        <!--<version>${slf4j.version}</version>-->
+        <!--</dependency>-->
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+        </dependency>
+    </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- ======= spark ========= -->
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-core_${scala.binary.version}</artifactId>
+                <version>${spark.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-streaming_${scala.binary.version}</artifactId>
+                <version>${spark.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-sql_${scala.binary.version}</artifactId>
+                <version>${spark.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-hive_${scala.binary.version}</artifactId>
+                <version>${spark.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-streaming-kafka-0-10_${scala.binary.version}</artifactId>
+                <version>${spark.version}</version>
+            </dependency>
+            <!--<dependency>-->
+            <!--<groupId>com.holdenkarau</groupId>-->
+            <!--<artifactId>spark-testing-base_2.11</artifactId>-->
+            <!--<version>2.0.0-preview_0.4.1-preview</version>-->
+            <!--</dependency>-->
+
+            <!-- ======= flink ========= -->
+            <dependency>
+                <groupId>org.apache.flink</groupId>
+                <artifactId>flink-core</artifactId>
+                <version>${flink.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <!-- ========================================================== -->
+            <!-- compile scala and java -->
+            <!-- ========================================================== -->
+            <!-- Mixed Java/Scala Projects -->
+            <!-- http://davidb.github.io/scala-maven-plugin/example_java.html -->
+            <!-- mvn clean package #clean, compile, test and package -->
+
+
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <!-- The scala-maven-plugin is used for compiling/testing/running/documenting scala code in maven -->
+                <version>3.2.2</version>
+                <configuration>
+                    <scalaVersion>${scala.version}</scalaVersion>
+                    <scalaCompatVersion>${scala.binary.version}</scalaCompatVersion>
+                    <recompileMode>incremental</recompileMode>
+                    <useZincServer>false</useZincServer>
+                    <args>
+                        <arg>-unchecked</arg>
+                        <arg>-deprecation</arg>
+                        <arg>-feature</arg>
+                    </args>
+                    <jvmArgs>
+                        <!--<jvmArg>-Xss2m</jvmArg>-->
+                        <jvmArg>-Xms512M</jvmArg>
+                        <jvmArg>-Xmx2048M</jvmArg>
+                        <jvmArg>-XX:MaxPermSize=2048M</jvmArg>
+                        <jvmArg>-XX:+CMSClassUnloadingEnabled</jvmArg>
+                    </jvmArgs>
+                    <javacArgs>
+                        <javacArg>-source</javacArg>
+                        <javacArg>${java.version}</javacArg>
+                        <javacArg>-target</javacArg>
+                        <javacArg>${java.version}</javacArg>
+                        <javacArg>-Xlint:all,-serial,-path</javacArg>
+                    </javacArgs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>scala-compile-first</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>scala-test-compile</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <!-- The Compiler Plugin is used to compile the sources of your project -->
+                <version>3.5.1</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <compilerVersion>${java.version}</compilerVersion>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <optimize>true</optimize>
+                    <maxmem>1024m</maxmem>
+                    <fork>true</fork>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-serial,-path</arg>
+                    </compilerArgs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- ========================================================== -->
+            <!-- test and report -->
+            <!-- ========================================================== -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <!-- The Surefire Plugin is used during the test phase of the build lifecycle to execute the unit tests of an application -->
+                <version>2.19.1</version>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest-maven-plugin</artifactId>
+                <!-- The ScalaTest Maven plugin allows you to run ScalaTest tests through Maven -->
+                <!-- To use the ScalaTest Maven plugin, you need to disable SureFire and enable ScalaTest -->
+                <version>1.0</version>
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                    <junitxml>.</junitxml>
+                    <filereports>EDPTestSuite.txt</filereports>
+                    <argLine>-Xms512M -Xmx2048M -XX:MaxPermSize=2048M -XX:+CMSClassUnloadingEnabled</argLine>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <!-- The JaCoCo Maven plug-in provides the JaCoCo runtime agent to your tests and allows basic report creation -->
+                <version>0.7.6.201602180812</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <excludes>
+                        <exclude>**/gen/**</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- ========================================================== -->
+            <!-- style and check -->
+            <!-- ========================================================== -->
+            <!--<plugin>-->
+            <!--<groupId>org.scalastyle</groupId>-->
+            <!--<artifactId>scalastyle-maven-plugin</artifactId>-->
+            <!--<version>0.8.0</version>-->
+            <!--<configuration>-->
+            <!--<verbose>false</verbose>-->
+            <!--<failOnViolation>true</failOnViolation>-->
+            <!--<includeTestSourceDirectory>false</includeTestSourceDirectory>-->
+            <!--<failOnWarning>false</failOnWarning>-->
+            <!--<sourceDirectory>${basedir}/src/main/scala</sourceDirectory>-->
+            <!--<testSourceDirectory>${basedir}/src/test/scala</testSourceDirectory>-->
+            <!--<configLocation>${main.basedir}/style-config-scala.xml</configLocation>-->
+            <!--<outputFile>${basedir}/target/style-output-scala.xml</outputFile>-->
+            <!--<inputEncoding>${project.build.sourceEncoding}</inputEncoding>-->
+            <!--<outputEncoding>${project.reporting.outputEncoding}</outputEncoding>-->
+            <!--</configuration>-->
+            <!--<executions>-->
+            <!--<execution>-->
+            <!--<goals>-->
+            <!--<goal>check</goal>-->
+            <!--</goals>-->
+            <!--</execution>-->
+            <!--</executions>-->
+            <!--</plugin>-->
+            <!--<plugin>-->
+            <!--<groupId>org.apache.maven.plugins</groupId>-->
+            <!--<artifactId>maven-checkstyle-plugin</artifactId>-->
+            <!--<version>2.17</version>-->
+            <!--<configuration>-->
+            <!--<failOnViolation>false</failOnViolation>-->
+            <!--<includeTestSourceDirectory>false</includeTestSourceDirectory>-->
+            <!--<sourceDirectory>${basedir}/src/main/java</sourceDirectory>-->
+            <!--<testSourceDirectory>${basedir}/src/test/java</testSourceDirectory>-->
+            <!--<configLocation>${main.basedir}/style-config-java.xml</configLocation>-->
+            <!--<outputFile>${basedir}/target/style-output-java.xml</outputFile>-->
+            <!--</configuration>-->
+            <!--<executions>-->
+            <!--<execution>-->
+            <!--<goals>-->
+            <!--<goal>check</goal>-->
+            <!--</goals>-->
+            <!--</execution>-->
+            <!--</executions>-->
+            <!--</plugin>-->
+
+            <!-- ========================================================== -->
+            <!-- resource and package and source -->
+            <!-- ========================================================== -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <!-- The Resources Plugin handles the copying of project resources to the output directory -->
+                <version>2.6</version>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/target/bin</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>bin/</directory>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <!-- The Assembly Plugin for Maven is primarily intended to allow users to aggregate the project output along with its dependencies, modules, site documentation, and other files into a single distributable archive -->
+                <version>2.4</version>
+                <configuration>
+                    <finalName>${project.name}-${project.version}</finalName>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <archive>
+                        <manifest>
+                            <mainClass/>
+                        </manifest>
+                    </archive>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>job</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- ========================================================== -->
+            <!-- license -->
+            <!-- ========================================================== -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>1.13</version>
+                <configuration>
+                    <!-- config for [mvn license:aggregate-add-third-party] -->
+                    <outputDirectory>${project.basedir}</outputDirectory>
+                    <thirdPartyFilename>LICENSE-3RD-PARTY</thirdPartyFilename>
+                    <fileTemplate>/org/codehaus/mojo/license/third-party-file-groupByLicense.ftl</fileTemplate>
+                    <useMissingFile>true</useMissingFile>
+                    <missingFile>${project.basedir}/LICENSE-3RD-PARTY.properties</missingFile>
+                    <aggregateMissingLicensesFile>${project.basedir}/LICENSE-3RD-PARTY.properties</aggregateMissingLicensesFile>
+                    <licenseMerges>
+                        <licenseMerge>Apache 2.0|ASL, version 2|http://www.apache.org/licenses/LICENSE-2.0.txt|http://asm.ow2.org/license.html|The Apache License, Version 2.0|Apache License|Apache License Version 2|Apache License Version 2.0|Apache Software License - Version 2.0|Apache 2.0 License|Apache License 2.0|ASL|Apache 2|Apache-2.0|the Apache License, ASL Version 2.0|The Apache Software License, Version 2.0|Apache License, Version 2.0|Apache Public License 2.0</licenseMerge>
+                        <licenseMerge>BSD|BSD-like|The BSD 3-Clause License|The BSD License|Modified BSD License|New BSD License|New BSD license|Two-clause BSD-style license|BSD licence|BSD New|The New BSD License|BSD 3-Clause|BSD 3-clause</licenseMerge>
+                        <licenseMerge>MIT|MIT License|The MIT License</licenseMerge>
+                        <licenseMerge>LGPL|LGPL, version 2.1|GNU Library or Lesser General Public License (LGPL) V2.1|GNU Lesser General Public License (LGPL), Version 2.1|GNU Lesser General Public License, Version 2.1|LGPL 2.1</licenseMerge>
+                        <licenseMerge>CDDL|CDDL+GPL|CDDL+GPL License|CDDL + GPLv2 with classpath exception|CDDL License|CDDL 1.0|CDDL 1.1|COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.0|Common Development and Distribution License (CDDL) v1.0</licenseMerge>
+                        <licenseMerge>EPL|Eclipse Public License - Version 1.0</licenseMerge>
+                        <licenseMerge>GPL|GPL2 w/ CPE|GPLv2+CE|GNU General Public Library</licenseMerge>
+                        <licenseMerge>MPL|MPL 1.1</licenseMerge>
+                        <licenseMerge>Public Domain</licenseMerge>
+                        <licenseMerge>Common Public License|Common Public License Version 1.0</licenseMerge>
+                        <licenseMerge>CC0|CC0 1.0 Universal|Public Domain, per Creative Commons CC0</licenseMerge>
+                        <licenseMerge>Unknown License|Unknown license</licenseMerge>
+                    </licenseMerges>
+
+                    <!-- config for [mvn license:aggregate-download-licenses] -->
+                    <aggregateDownloadLicenses.executeOnlyOnRootModule>true</aggregateDownloadLicenses.executeOnlyOnRootModule>
+                    <!--<licensesConfigFile>${main.basedir}/lic/config/licenses.xml</licensesConfigFile>-->
+                    <licensesOutputFile>${main.basedir}/dev/lic/licenses.xml</licensesOutputFile>
+                    <licensesOutputDirectory>${main.basedir}/dev/lic/licenses/</licensesOutputDirectory>
+
+                    <!-- config for [mvn license:update-file-header][mvn license:check-file-header][mvn license:remove-file-header] -->
+                    <licenseName>apache_v2</licenseName>
+                    <inceptionYear>2016</inceptionYear>
+                    <organizationName>EDP</organizationName>
+                    <projectName>wormhole</projectName>
+                    <roots>
+                        <root>src/main/java</root>
+                        <root>src/main/scala</root>
+                        <root>src/main/assembly</root>
+                        <root>src/test/java</root>
+                        <root>src/test/scala</root>
+                        <!--<root>${main.basedir}/rider/rider-webapp/app</root>-->
+                        <root>app</root>
+                    </roots>
+                    <includes>
+                        <include>**/*.java</include>
+                        <include>**/*.scala</include>
+                        <include>**/*.xml</include>
+                        <include>**/*.sh</include>
+                        <include>**/*.py</include>
+                        <include>**/*.properties</include>
+                        <include>**/*.sql</include>
+                        <include>**/*.html</include>
+                        <include>**/*.less</include>
+                        <include>**/*.css</include>
+                        <include>**/*.js</include>
+                        <include>**/*.json</include>
+                    </includes>
+                    <extraExtensions>
+                        <scala>java</scala>
+                    </extraExtensions>
+                    <canUpdateCopyright>true</canUpdateCopyright>
+                    <canUpdateDescription>true</canUpdateDescription>
+                    <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
+                    <emptyLineAfterHeader>true</emptyLineAfterHeader>
+                    <processStartTag>&lt;&lt;</processStartTag>
+                    <processEndTag>&gt;&gt;</processEndTag>
+                    <sectionDelimiter>==</sectionDelimiter>
+                    <encoding>UTF-8</encoding>
+
+                    <!-- config for [mvn license:update-project-license] -->
+                    <licenseFile>${main.basedir}/LICENSE</licenseFile>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <!-- config for [mvn notice:generate] -->
+                <groupId>org.jasig.maven</groupId>
+                <artifactId>maven-notice-plugin</artifactId>
+                <version>1.0.6.1</version>
+                <configuration>
+                    <generateChildNotices>false</generateChildNotices>
+                    <noticeTemplate>https://source.jasig.org/licenses/NOTICE.template</noticeTemplate>
+                    <licenseMapping>
+                        <param>https://source.jasig.org/licenses/license-mappings.xml</param>
+                        <param>${main.basedir}/dev/codecheck/license-mappings.xml</param>
+                    </licenseMapping>
+                </configuration>
+
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,54 @@
+swifts
+=====
+elastic search
+1. url example: jdbc:sql4es://localhost:9300/test?cluster.name=my-application
+2. support
+   COUNT, MIN, MAX, SUM, AVG
+   DISTINCT
+   WHERE (=, >, >=, <, <=, <>, IN, LIKE, AND, OR, IS NULL, IS NOT NULL, NOT [condition])
+   GROUP BY
+   HAVING
+   ORDER BY
+   LIMIT
+3. null can only be used as "is null" or "is not null" format. where (a = null), where a in (null) not support
+4. where (a, b) in ((a1,b1),(a2,b2)) is not supported. Should be converted in AND OR format.
+5. When using group by, project fields can only be fields after "group by" and others with aggregation function, like sum(t)
+=====
+cassandra
+1.url example: "jdbc:cassandra://localhost:9042/mydb"
+2 DO not support
+    join
+    group by
+    query with null
+3. Cannot query in "where (a = 1 and b = 2) or (a = 2 and b = 3)" format.
+   Should be in "where (a, b) in ((a1, b1), (a2, b2))" and a, b is clustering key
+
+   =====
+   hbase
+   1. url example:"jdbc:phoenix:localhost:2181"
+   2. support
+       in
+       count
+       sum
+       min
+       max
+       avg
+       group by
+       is null / is not null
+   3. do not support
+       distinct
+
+   =====
+   mongodb
+   1. url example:"jdbc:mongo://localhost:27017/wujinsheng"
+   2. support
+           in
+           count
+           sum
+           min
+           max
+           avg
+           group by
+           is null / is not null
+   3. do not support
+           distinct

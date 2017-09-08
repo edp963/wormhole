@@ -1,0 +1,43 @@
+{
+  "from": 0,
+  "size": 1,
+  "query": {
+    "bool": {
+      "must": {
+        "bool": {
+          "must": [
+            {
+              "match": {
+                "projectId": {
+                  "query": #PROJECT_ID#,
+                  "type": "phrase"
+                }
+              }
+            },
+            {
+              "match": {
+                "streamId": {
+                  "query": #STREAM_ID#,
+                  "type": "phrase"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "_source": {
+    "includes": [
+      "#COLUMN_NAME#"
+    ],
+    "excludes": []
+  },
+  "sort": [
+    {
+      "umsTs": {
+        "order": "desc"
+      }
+    }
+  ]
+}

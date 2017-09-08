@@ -1,0 +1,67 @@
+wormhole
+======
+how to package wormhole?
+------
+
+-- for linux terminal --
+mvn --non-recursive clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true; \
+cd common; mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true; cd ..; \
+cd ums; mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true; cd ..; \
+cd sparkx mvn clean package -U -Dmaven.test.skip=true;
+
+-- for windows idea2016 terminal --
+mvn --non-recursive clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true 
+cd common
+cd util
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd dbpool
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd zookeeper
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd hadoop
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd kafka08
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd kafka010
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd elasticsearch-hadoop
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../../
+cd ums
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd sparkx
+mvn clean package -U -Dmaven.test.skip=true
+cd ../
+
+
+
+
+how to check scala style?
+------
+mvn scalastyle:check
+
+
+
+how to unit test spark?
+------
+-Xms512M -Xmx2048M -XX:+CMSClassUnloadingEnabled
+
+
+
+maven settings.xml
+
+
+how to generate THIRD-PARTY.txt?
+------
+mvn clean install -DskipTests
+
+mvn license:aggregate-add-third-party
+
+

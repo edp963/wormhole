@@ -1,0 +1,20 @@
+{
+  "protocol": {
+    "type": "data_increment_termination"
+  },
+  "schema": {
+    "namespace": "oracle.oracle01.db.table.v2.dbpar01.tablepar01",
+    "fields": [
+      {
+        "name": "ums_ts_",
+        "type": "datetime",
+        "nullable": false
+      }
+    ]
+  },
+  "payload": [
+    {
+      "tuple": [ "2016-04-11 16:23:34.345123" ]
+    }
+  ]
+}

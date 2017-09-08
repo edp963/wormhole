@@ -1,0 +1,52 @@
+.login-container {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+
+  .login-bg {
+    z-index: @login-bg-index;
+  }
+
+  .login-panel {
+    width: 360px;
+    background-color: fade(#e0e0e0, 80);
+    padding: 20px;
+    border-radius: 5px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -75%);
+
+    .login-title {
+      padding-bottom: 20px;
+      font-size: 24px;
+      text-align: center;
+    }
+
+    .ant-input {
+      height: 40px;
+      background-color: #eee;
+      font-size: 14px;
+    }
+
+    .ant-form-item {
+      margin-bottom: 8px;
+    }
+
+    .ant-btn {
+      width: 100%;
+    /*  padding: 9px 15px 10px;*/
+      display: block;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .login-container {
+    .login-panel {
+      width: 90%;
+    }
+  }
+}

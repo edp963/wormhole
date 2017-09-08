@@ -1,0 +1,51 @@
+{
+  "protocol": {
+    "type": "data_batch_data"
+  },
+  "schema": {
+    "namespace": "oracle.oracle01.db.table.v2.dbpar01.tablepar01",
+    "fields": [
+      {
+        "name": "ums_id_",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "ums_ts_",
+        "type": "datetime",
+        "nullable": false
+      },
+      {
+        "name": "ums_op_",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "key",
+        "type": "int",
+        "nullable": false
+      },
+      {
+        "name": "value1",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "value2",
+        "type": "long",
+        "nullable": false
+      }
+    ]
+  },
+  "payload": [
+    {
+      "tuple": [ "1", "2016-04-11 12:23:34.345123", "i", "23", "aa", "45888" ]
+    },
+    {
+      "tuple": [ "2", "2016-04-11 15:23:34.345123", "u", "33", "_NULL_", "43222" ]
+    },
+    {
+      "tuple": [ "3", "2016-04-11 16:23:34.345123", "d", "53", "cc", "73897" ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "protocol": {
+    "type": "feedback_stream_topic_offset"
+  },
+  "schema": {
+    "namespace": "",
+    "fields": [
+      {
+        "name": "ums_ts_",
+        "type": "datetime",
+        "nullable": false
+      },
+      {
+        "name": "stream_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "topic_partition",
+        "type": "string",
+        "nullable": false
+      }
+    ]
+  },
+  "payload": [
+    {
+      "tuple": [ "2016-11-22 00:00:00",10, "topic1,1,1002"]
+    }
+  ]
+}

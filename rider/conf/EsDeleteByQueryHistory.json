@@ -1,0 +1,10 @@
+{
+  "query": {
+    "range": {
+      "rddTs": {
+        "from": #FROMDATE#,
+        "to": #TODATE#
+      }
+    }
+  }
+}

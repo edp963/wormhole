@@ -1,0 +1,45 @@
+{
+  "protocol": {
+    "type": "directive_topic_subscribe"
+  },
+  "schema": {
+    "namespace": "",
+    "fields": [
+      {
+        "name": "directive_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "stream_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "ums_ts_",
+        "type": "datetime",
+        "nullable": false
+      },
+      {
+        "name": "topic_name",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "topic_rate",
+        "type": "int",
+        "nullable": false
+      },
+      {
+        "name": "partitions_offset",//全量partition内容
+        "type": "string",
+        "nullable": false
+      }
+    ]
+  },
+  "payload": [
+    {
+      "tuple": [ 1,2,"2016-04-11 12:23:34.345123","testname", 100,"0:12,1:13,2:22" ]
+    }
+  ]
+}
