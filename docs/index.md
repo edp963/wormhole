@@ -3,7 +3,7 @@ Wormhole
 
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
-> 流式处理平台
+> 来自[宜信](https://www.creditease.cn/)[技术研发中心](http://crdc.creditease.cn/)的流式处理平台
 
 Wormhole是一个SPAAS（Stream Processing as a Service）平台解决方案。Wormhole面向大数据项目开发和管理人员，致力于简化和统一开发管理流程。尤其是针对流式实时和流式准实时数据处理场景，Wormhole提供了可视化的操作界面，极简的配置流程，基于SQL的业务开发方式，并屏蔽了大数据处理底层技术细节，极大的降低了开发管理门槛，使得大数据项目开发和管理变得更加轻量敏捷可控可靠。
 
