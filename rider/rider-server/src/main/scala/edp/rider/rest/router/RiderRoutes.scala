@@ -22,16 +22,16 @@
 package edp.rider.rest.router
 
 import akka.http.scaladsl.server.{Directives, Route}
-import edp.rider.common.RiderConfig
+import edp.rider.common.{RiderConfig, RiderLogger}
 
-class RiderRoutes extends Directives {
+class RiderRoutes extends Directives with RiderLogger {
 
   val indexRoute: Route = get {
     pathPrefix("") {
       pathEndOrSingleSlash {
-        getFromFile(s"${RiderConfig.riderConfPath}/rider-ui/index.html")
+        getFromFile(s"${RiderConfig.riderRootPath}/webapp/index.html")
       }
-    } ~ getFromDirectory(s"${RiderConfig.riderConfPath}/rider-ui")
+    } ~ getFromDirectory(s"${RiderConfig.riderRootPath}/webapp")
   }
 
 }

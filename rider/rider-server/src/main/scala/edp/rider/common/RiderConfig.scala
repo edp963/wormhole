@@ -93,7 +93,7 @@ case class RiderInfo(consumer: RiderKafka,
 
 object RiderConfig {
 
-  lazy val riderConfPath = s"${System.getenv("RIDER_HOME")}"
+  lazy val riderRootPath = s"${System.getenv("WORMHOLE_HOME")}"
 
   lazy val riderServer = RiderServer(config.getString("wormholeServer.host"), config.getInt("wormholeServer.port"))
 
@@ -129,14 +129,14 @@ object RiderConfig {
     if (config.hasPath("spark.app.tags")) config.getString("spark.app.tags") else "wormhole"
   lazy val wormholeClientLogPath =
     if (config.hasPath("spark.wormhole.client.log.root.path"))
-      config.getString("spark.wormhole.client.log.root.path")
-    else s"${RiderConfig.riderConfPath}/logs/streams"
+      config.getString("spark.wormhole.client.log.root.path").concat("/")
+    else s"${RiderConfig.riderRootPath}/logs/streams/"
   lazy val wormholeJarPath =
     if (config.hasPath("spark.wormhole.jar.path")) config.getString("spark.wormhole.jar.path")
-    else s"${RiderConfig.riderConfPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.3.0-SNAPSHOTS-jar-with-dependencies.jar"
+    else s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.3.0-SNAPSHOTS-jar-with-dependencies.jar"
   lazy val wormholeKafka08JarPath =
     if (config.hasPath("spark.wormhole.kafka08.jar.path")) config.getString("spark.wormhole.kafka08.jar.path")
-    else s"${RiderConfig.riderConfPath}/lib/wormhole-ums_1.3-spark_2.2.0-0.3.0-SNAPSHOTS-jar-with-dependencies-kafka08.jar"
+    else s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-spark_2.2.0-0.3.0-SNAPSHOTS-jar-with-dependencies-kafka08.jar"
   lazy val kafka08StreamNames =
     if (config.hasPath("spark.wormhole.kafka08.streams")) config.getString("spark.wormhole.kafka08.streams")
     else ""
@@ -162,7 +162,7 @@ object RiderConfig {
        |--files /app/yxh/log4j.properties \\
    """.stripMargin,
     wormholeClientLogPath,
-    s"${RiderConfig.riderConfPath}/conf/sparkx.log4j.properties",
+    s"${RiderConfig.riderRootPath}/conf/sparkx.log4j.properties",
     wormholeJarPath,
     wormholeKafka08JarPath,
     kafka08StreamNames, "wormhole_heartbeat", 2, 1, 6, 4, 2, 100,

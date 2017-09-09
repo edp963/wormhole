@@ -33,10 +33,10 @@ trait ConfigurationModule {
 
 trait ConfigurationModuleImpl extends ConfigurationModule {
   private lazy val internalConfig: Config = {
-    PropertyConfigurator.configure(s"${RiderConfig.riderConfPath}/conf/log4j.properties")
+    PropertyConfigurator.configure(s"${RiderConfig.riderRootPath}/conf/log4j.properties")
     val configDefaults = ConfigFactory.load(this.getClass.getClassLoader, "application.conf")
-    if (RiderConfig.riderConfPath != null) {
-      ConfigFactory.parseFile(new File(s"${RiderConfig.riderConfPath}/conf/application.conf")).withFallback(configDefaults)
+    if (RiderConfig.riderRootPath != null) {
+      ConfigFactory.parseFile(new File(s"${RiderConfig.riderRootPath}/conf/application.conf")).withFallback(configDefaults)
     } else {
       configDefaults
     }

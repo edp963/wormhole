@@ -70,7 +70,7 @@ case class DatabaseInstance(id: Long,
                             updateBy: Long)
 
 
-class NsDatabaseTable(_tableTag: Tag) extends BaseTable[NsDatabase](_tableTag, "database") {
+class NsDatabaseTable(_tableTag: Tag) extends BaseTable[NsDatabase](_tableTag, "ns_database") {
   def * = (id, nsDatabase, desc, nsInstanceId, permission, user, pwd, partitions, config, active, createTime, createBy, updateTime, updateBy) <>(NsDatabase.tupled, NsDatabase.unapply)
 
   /** Database column ns_database SqlType(VARCHAR), Length(200,true) */

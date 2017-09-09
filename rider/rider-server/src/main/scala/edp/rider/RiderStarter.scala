@@ -21,16 +21,23 @@
 
 package edp.rider
 
+import edp.rider.module.DbModule._
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.kafka.ConsumerManager
 import edp.rider.module._
 import edp.rider.monitor.CacheMap
+import edp.rider.rest.persistence.entities.User
 import edp.rider.rest.router.RoutesApi
 import edp.rider.schedule.Scheduler
+import edp.rider.rest.util.CommonUtils._
+import slick.jdbc.MySQLProfile.api._
+
+import scala.concurrent.Await
 
 object RiderStarter extends App with RiderLogger {
+
   lazy val modules = new ConfigurationModuleImpl
     with ActorModuleImpl
     with PersistenceModuleImpl
@@ -40,6 +47,11 @@ object RiderStarter extends App with RiderLogger {
   implicit val system = modules.system
   implicit val materializer = ActorMaterializer()
   implicit val ec = system.dispatcher
+
+  DbModule.createSchema
+
+  if (Await.result(modules.userDal.findByFilter(_.email === "admin"), minTimeOut).isEmpty)
+    Await.result(modules.userDal.insert(User(0, "admin", "admin", "admin", "admin", active = true, currentSec, 1, currentSec, 1)), minTimeOut)
 
   Http().bindAndHandle(new RoutesApi(modules).routes, RiderConfig.riderServer.host, RiderConfig.riderServer.port)
   riderLogger.info(s"RiderServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")

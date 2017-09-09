@@ -87,8 +87,8 @@ object SubmitSparkJob extends App with RiderLogger {
 
     val confList: Array[String] = sparkConfig.split(",") :+ s"spark.yarn.tags=${RiderConfig.spark.app_tags}"
     val logPath = getLogPath(streamName)
-//    val startShell = RiderConfig.spark.startShell.split("\\n")
-    val startShell = Source.fromFile(s"${RiderConfig.riderConfPath}/bin/startStream.sh").getLines()
+    val startShell = RiderConfig.spark.startShell.split("\\n")
+//    val startShell = Source.fromFile(s"${RiderConfig.riderConfPath}/bin/startStream.sh").getLines()
     val startCommand = startShell.map(l => {
       if (l.startsWith("--num-exe")) s" --num-executors " + executorsNum + " "
       else if (l.startsWith("--driver-mem")) s" --driver-memory " + driverMemory + s"g "

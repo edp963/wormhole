@@ -21,6 +21,7 @@
 
 package edp.rider.module
 
+import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.base._
 import edp.rider.rest.persistence.dal._
 import edp.rider.rest.persistence.entities._
@@ -28,11 +29,29 @@ import slick.basic.DatabaseConfig
 import slick.jdbc.JdbcProfile
 import slick.lifted.TableQuery
 
-object DbModule extends ConfigurationModuleImpl {
+import scala.io.Source
+
+object DbModule extends ConfigurationModuleImpl with RiderLogger {
   private lazy val dbConfig: DatabaseConfig[JdbcProfile] = DatabaseConfig.forConfig("mysql", config)
+
+  lazy val sqlSeq = Source.fromFile(s"${RiderConfig.riderRootPath}/conf/wormhole.sql").mkString.split(";")
 
   lazy val profile: JdbcProfile = dbConfig.profile
   lazy val db: JdbcProfile#Backend#Database = dbConfig.db
+
+
+  def createSchema: Unit = {
+    val session = db.createSession()
+    try {
+      sqlSeq.filter(_.toLowerCase().contains("create")).map(session.withPreparedStatement(_)(_.execute))
+    } catch {
+      case ex: Exception => riderLogger.warn("create table exception", ex)
+    }
+    finally {
+      session.close()
+    }
+  }
+
 }
 
 trait PersistenceModule {

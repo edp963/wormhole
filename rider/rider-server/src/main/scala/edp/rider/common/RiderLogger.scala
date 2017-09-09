@@ -53,7 +53,7 @@ trait RiderLogger {
     if (usingLog4j12) {
       val log4j12Initialized = LogManager.getRootLogger.getAllAppenders.hasMoreElements
       if (!log4j12Initialized) {
-        val defaultLogProps = s"${RiderConfig.riderConfPath}/conf/log4j.properties"
+        val defaultLogProps = s"${RiderConfig.riderRootPath}/conf/log4j.properties"
         Option(getClass.getClassLoader.getResource(defaultLogProps)) match {
           case Some(url) =>
             PropertyConfigurator.configure(url)
