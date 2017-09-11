@@ -43,7 +43,7 @@ object ReadJsonFile extends RiderLogger {
 
   def getMessageFromJson(JFType: JsonFileType): String = {
     var msg: String = ""
-    val dir: String = RiderConfig.riderConfPath + JsonFileType.getValue(JFType)
+    val dir: String = RiderConfig.riderRootPath + JsonFileType.getValue(JFType)
     try {
       val lines: Iterator[String] = scala.io.Source.fromFile(new File(dir)).getLines
       if (lines.nonEmpty) {
