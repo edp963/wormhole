@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,7 +29,6 @@ export class ProjectNSTable extends React.Component {
     super(props)
     this.state = {
       visible: false,
-      selectedRowKeys: [],
       originNameSpace: [],
       currentNameSpace: [],
 
@@ -81,10 +80,6 @@ export class ProjectNSTable extends React.Component {
     }
   }
 
-  onSelectChange = (selectedRowKeys) => {
-    this.setState({ selectedRowKeys })
-  }
-
   handleChange = (pagination, filters, sorter) => {
     this.setState({
       filteredInfo: filters,
@@ -119,8 +114,16 @@ export class ProjectNSTable extends React.Component {
     })
   }
 
+  onChangeAllSelect = () => {
+    this.props.onInitSwitch(this.state.currentNameSpace)
+  }
+
+  onSelectChange = (selectedRowKeys) => {
+    this.props.initSelectedRowKeys(selectedRowKeys)
+  }
+
   render () {
-    const { selectedRowKeys } = this.state
+    const { selectedRowKeys } = this.props
     const rowSelection = {
       selectedRowKeys,
       onChange: this.onSelectChange,
@@ -184,10 +187,16 @@ export class ProjectNSTable extends React.Component {
       onFilter: (value, record) => record.permission.includes(value)
     }]
 
+    const { selectIcon, selectType } = this.props
+
     return (
       <Table
         bordered
-        title={() => (<h3 className="required-style">Namespace 权限</h3>)}
+        title={() => (<div className="required-style"><span className="project-ns-h3">Namespace 权限</span>
+          <span className="project-ns-switch">
+            <Button icon={selectIcon} type={selectType} onClick={this.onChangeAllSelect} size="small">全选</Button>
+          </span>
+        </div>)}
         columns={columnsProject}
         dataSource={this.state.currentNameSpace}
         pagination={pagination}
@@ -203,6 +212,11 @@ ProjectNSTable.propTypes = {
   //   React.PropTypes.array,
   //   React.PropTypes.bool
   // ])
+  initSelectedRowKeys: React.PropTypes.func,
+  onInitSwitch: React.PropTypes.func,
+  selectedRowKeys: React.PropTypes.array,
+  selectType: React.PropTypes.string,
+  selectIcon: React.PropTypes.string
 }
 
 export default ProjectNSTable

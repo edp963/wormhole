@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -55,6 +55,10 @@ export class Project extends React.Component {
       projectUserId: '',
       projectNsId: '',
 
+      selectedRowKeys: [],
+      selectType: 'default',
+      selectIcon: 'minus',
+
       projectNsTableDataSource: [],
       projectUsersTableDataSource: []
     }
@@ -92,6 +96,54 @@ export class Project extends React.Component {
       this.setState({
         projectNameExited: true
       })
+    })
+  }
+
+  /**
+   *  project namespace table 全选
+   */
+  onInitSwitch = (nsData) => {
+    const { selectType } = this.state
+
+    if (selectType === 'default') {
+      this.setState({
+        selectType: 'primary',
+        selectIcon: 'check'
+      })
+      this.setState({
+        selectedRowKeys: nsData.map(n => n.id)
+      })
+    } else if (selectType === 'primary') {
+      this.setState({
+        selectType: 'default',
+        selectIcon: 'minus'
+      })
+      this.setState({
+        selectedRowKeys: []
+      })
+    }
+  }
+
+  /**
+   * project namespace table selectedRowKeys
+   */
+  initSelectedRowKeys = (selectedRowKeys) => {
+    this.setState({
+      selectedRowKeys: selectedRowKeys
+    }, () => {
+      const { selectedRowKeys, projectNsTableDataSource } = this.state
+
+      if (selectedRowKeys.length === projectNsTableDataSource.length) {
+        this.setState({
+          selectType: 'primary',
+          selectIcon: 'check'
+        })
+      } else {
+        this.setState({
+          selectType: 'default',
+          selectIcon: 'minus'
+        })
+      }
     })
   }
 
@@ -144,27 +196,47 @@ export class Project extends React.Component {
             resMemoryG: result.resMemoryG
           })
 
-          // 回显 project modal 所有的 namespaces & users
-          this.props.onLoadProjectNsAll((result) => {
-            this.setState({
-              projectNsTableDataSource: result
-            })
-          })
+          // 回显 project modal 所有的 users
           this.props.onLoadProjectUserAll((result) => {
             this.setState({
               projectUsersTableDataSource: result
             })
           })
 
-          // 回显 project modal 选中的 namespaces & users
-          this.props.onLoadSelectNamespaces(project.id, (selectNamespaces) => {
-            this.projectNSTable.setState({
-              selectedRowKeys: selectNamespaces.map(n => n.id)
-            })
-          })
+          // 回显 project modal 选中的 users
           this.props.onLoadSelectUsers(project.id, (selectUsers) => {
             this.projectUsersTable.setState({
               selectedRowKeys: selectUsers.map(n => n.id)
+            })
+          })
+
+          // 回显 project modal 所有的 namespaces & 选中的 namespaces
+          new Promise((resolve) => {
+            this.props.onLoadProjectNsAll((result) => {
+              resolve(result)
+              this.setState({
+                projectNsTableDataSource: result
+              })
+            })
+          }).then((result) => {
+            this.props.onLoadSelectNamespaces(project.id, (selectNamespaces) => {
+              this.setState({
+                selectedRowKeys: selectNamespaces.map(n => n.id)
+              }, () => {
+                const { selectedRowKeys } = this.state
+
+                if (selectedRowKeys.length === result.length) {
+                  this.setState({
+                    selectType: 'primary',
+                    selectIcon: 'check'
+                  })
+                } else {
+                  this.setState({
+                    selectType: 'default',
+                    selectIcon: 'minus'
+                  })
+                }
+              })
             })
           })
         })
@@ -173,28 +245,33 @@ export class Project extends React.Component {
 
   hideForm = () => {
     this.setState({
-      formVisible: false
+      formVisible: false,
+      selectType: 'default',
+      selectIcon: 'minus'
     })
     this.projectForm.resetFields()
-    this.projectNSTable.setState({
-      selectedRowKeys: ''
+    this.setState({
+      selectedRowKeys: []
     })
     this.projectUsersTable.setState({
-      selectedRowKeys: ''
+      selectedRowKeys: []
     })
   }
 
   onModalOk = () => {
     const { projectFormType, projectNameExited, projectResult } = this.state
 
-    const namespaceIds = this.projectNSTable.state.selectedRowKeys.join(',')
     const userIds = this.projectUsersTable.state.selectedRowKeys.join(',')
 
-    if (namespaceIds.length === 0) {
+    const { selectedRowKeys } = this.state
+
+    if (selectedRowKeys.length === 0) {
       message.warning('请选择源表！', 3)
     } else if (userIds.length === 0) {
       message.warning('请选择用户！', 3)
     } else {
+      const namespaceIds = selectedRowKeys.join(',')
+
       this.projectForm.validateFieldsAndScroll((err, values) => {
         if (!err) {
           values.desc = values.desc ? values.desc : ''
@@ -408,6 +485,11 @@ export class Project extends React.Component {
             <div className="ant-col-11">
               <ProjectNSTable
                 dataNameSpace={projectNsTableDataSource}
+                initSelectedRowKeys={this.initSelectedRowKeys}
+                onInitSwitch={this.onInitSwitch}
+                selectedRowKeys={this.state.selectedRowKeys}
+                selectType={this.state.selectType}
+                selectIcon={this.state.selectIcon}
                 ref={(f) => { this.projectNSTable = f }}
               />
             </div>
