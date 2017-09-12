@@ -75,10 +75,10 @@ export class Login extends React.PureComponent {
               {getFieldDecorator('userName', {
                 rules: [{
                   required: true,
-                  message: '邮箱不能为空'
+                  message: '用户名不能为空'
                 }]
               })(
-                <Input placeholder="邮箱" />
+                <Input placeholder="用户名" />
               )}
             </FormItem>
             <FormItem>

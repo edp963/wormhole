@@ -1,7 +1,7 @@
 /*
  * <<
  * wormhole
- * ==
+ * ==R
  * Copyright (C) 2016 - 2017 EDP
  * ==
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@
  * >>
  */
 
-const productionHost = 'http://localhost:8989'
+const productionHost = 'http://localhost:8989/api/v1'
 
 export default {
   login: `${productionHost}/login`,
