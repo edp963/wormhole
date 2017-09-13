@@ -32,11 +32,7 @@
   margin-right: 8px;
 }
 
-.flow-action-btn {
-  margin-left: 8px;
-}
-
-.rangeFilter {
+.flow-action-btn, .rangeFilter {
   margin-left: 8px;
 }
 
@@ -44,9 +40,11 @@
   .ant-form-item {
     margin-bottom: 0;
   }
+
   .ant-form-split {
     line-height: 28px;
   }
+
   input {
     width: 100%;
   }
@@ -65,7 +63,7 @@
 }
 
 .log-table-style, .sink-table-style, .error-table-style {
-  .ant-table-thead > tr > th {
+  .ant-table-thead > tr > th, .ant-table-tbody > tr:nth-child(even) > td {
     background-color: #e9e9e9 !important;
   }
 }
@@ -73,11 +71,5 @@
 .log-table-style, .sink-table-style, .error-table-style {
   .ant-table-tbody > tr:nth-child(odd) > td {
     background-color: #f7f7f7 !important;
-  }
-}
-
-.log-table-style, .sink-table-style, .error-table-style {
-  .ant-table-tbody > tr:nth-child(even) > td {
-    background-color: #e9e9e9 !important;
   }
 }

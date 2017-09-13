@@ -221,7 +221,7 @@ class Navigator extends React.Component {
     return (
       <header className="ri-header">
         <nav>
-          <div className="ri-logoHref" onClick={this.logoChange}><div className="ri-logo" ></div></div>
+          <div className="ri-logo-href" onClick={this.logoChange}><div className="ri-logo" ></div></div>
           {node}
           <div>
             <Tooltip title="修改密码">
