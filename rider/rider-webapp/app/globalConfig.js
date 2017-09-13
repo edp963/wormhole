@@ -1,7 +1,7 @@
 /*
  * <<
  * wormhole
- * ==R
+ * ==
  * Copyright (C) 2016 - 2017 EDP
  * ==
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,24 +18,10 @@
  * >>
  */
 
-import config, { env } from '../globalConfig'
-
-const host = config[env].host
+export const env = 'production'
 
 export default {
-  login: `${host}/login`,
-  changepwd: `${host}/changepwd`,
-  projectList: `${host}/admin/projects`,
-  projectUserList: `${host}/user/projects`,
-
-  instance: `${host}/admin/instances`,
-  database: `${host}/admin/databases`,
-  user: `${host}/admin/users`,
-  namespace: `${host}/admin/namespaces`,
-  flow: `${host}/admin/flows`,
-  stream: `${host}/admin/streams`,
-  riderInfo: `${host}/admin/riderInfo`,
-
-  projectAdminStream: `${host}/admin/projects`,
-  projectStream: `${host}/user/projects`
+  production: {
+    host: ''
+  }
 }
