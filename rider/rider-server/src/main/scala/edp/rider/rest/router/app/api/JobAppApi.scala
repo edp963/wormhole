@@ -97,10 +97,14 @@ class JobAppApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseAppApiImpl(j
                 if (job.isEmpty) {
                   riderLogger.error(s"user ${session.userId} request to stop project $projectId, job $jobId, but the job $jobId doesn't exist.")
                   complete(Forbidden, getHeader(403, s"job $jobId doesn't exist", null))
+                } else if (job.head.status == "starting") {
+                  riderLogger.warn(s"user ${session.userId} job $jobId status is ${job.head.status}, can't stop now.")
+                  complete(Forbidden, getHeader(403, s"job $jobId status is starting, can't stop now.", null))
+                } else {
+                  val status = killJob(jobId)
+                  riderLogger.info(s"user ${session.userId} stop job $jobId success.")
+                  complete(OK, ResponseJson[AppJobResponse](getHeader(200, null), AppJobResponse(jobId, status)))
                 }
-                val status = killJob(jobId)
-                riderLogger.info(s"user ${session.userId} stop job $jobId success.")
-                complete(OK, ResponseJson[AppJobResponse](getHeader(200, null), AppJobResponse(jobId, status)))
               } catch {
                 case ex: Exception =>
                   riderLogger.error(s"user ${session.userId} stop job $jobId failed", ex)

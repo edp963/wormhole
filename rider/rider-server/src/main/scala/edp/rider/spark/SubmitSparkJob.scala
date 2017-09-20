@@ -76,6 +76,7 @@ object SubmitSparkJob extends App with RiderLogger {
 
 
   def generateStreamStartSh(args: String, streamName: String, startConfig: StartConfig, sparkConfig: String, streamType: String): String = {
+    val submitPre = s"ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host} " + RiderConfig.spark.spark_home
     val executorsNum = startConfig.executorNums
     val driverMemory = startConfig.driverMemory
     val executorMemory = startConfig.perExecutorMemory
@@ -88,7 +89,7 @@ object SubmitSparkJob extends App with RiderLogger {
     val confList: Array[String] = sparkConfig.split(",") :+ s"spark.yarn.tags=${RiderConfig.spark.app_tags}"
     val logPath = getLogPath(streamName)
     val startShell = RiderConfig.spark.startShell.split("\\n")
-//    val startShell = Source.fromFile(s"${RiderConfig.riderConfPath}/bin/startStream.sh").getLines()
+    //    val startShell = Source.fromFile(s"${RiderConfig.riderConfPath}/bin/startStream.sh").getLines()
     val startCommand = startShell.map(l => {
       if (l.startsWith("--num-exe")) s" --num-executors " + executorsNum + " "
       else if (l.startsWith("--driver-mem")) s" --driver-memory " + driverMemory + s"g "
@@ -110,7 +111,8 @@ object SubmitSparkJob extends App with RiderLogger {
       }
       else l
     }).mkString("").stripMargin.replace("\\", "  ")
-    s"ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host} " + RiderConfig.spark.spark_home + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1"
+    submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1"
+
   }
 
 }

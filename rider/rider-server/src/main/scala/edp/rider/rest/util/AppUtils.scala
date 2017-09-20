@@ -106,7 +106,8 @@ object AppUtils extends RiderLogger {
       val jobSearch = Await.result(modules.jobDal.findByFilter(job => job.sourceNs === sourceNs && job.sinkNs === sinkNs), minTimeOut).headOption
       val job =
         if (jobSearch.nonEmpty) {
-          val startedTime = if (jobSearch.get.startedTime.getOrElse("") == "") Some(currentSec) else jobSearch.get.startedTime
+          val startedTime = Some(currentSec)
+//            if (jobSearch.get.startedTime.getOrElse("") == "") Some(currentSec) else jobSearch.get.startedTime
           val stoppedTime = if (jobSearch.get.stoppedTime.getOrElse("") == "") null else jobSearch.get.stoppedTime
           val sourceType = if (appJob.get.sourceType.getOrElse("") == "") jobSearch.get.sourceType else appJob.get.sourceType.get
           val consumedProtocol = if (appJob.get.consumedProtocol.getOrElse("") == "") jobSearch.get.consumedProtocol else appJob.get.consumedProtocol.get

@@ -24,7 +24,7 @@ package edp.rider.rest.router.user.api
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.RiderStarter.modules.config
-import edp.rider.common.RiderLogger
+import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.monitor.CacheMap
 import edp.rider.rest.persistence.dal.StreamDal
 import edp.rider.rest.persistence.entities._
@@ -37,7 +37,7 @@ import edp.wormhole.common.util.JsonUtils._
 import edp.rider.rest.router.JsonProtocol._
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.spark.SparkJobClientLog
-
+import edp.rider.kafka.KafkaUtils._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -142,7 +142,7 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
         val realReturns = allStreams.map(stream => stream._2)
         val realRes: Seq[StreamSeqTopicActions] = realReturns.map(returnStream => streamDal.getReturnRes(returnStream))
         riderLogger.info(s"user ${session.userId} updated streams after refresh the yarn/spark rest api or log success.")
-        complete(OK, ResponseSeqJson[StreamSeqTopicActions](getHeader(200, session), realRes))
+        //        complete(OK, ResponseSeqJson[StreamSeqTopicActions](getHeader(200, session), realRes))
         onComplete(streamDal.updateStreamsTable(seqStreams)) {
           case Success(success) =>
             riderLogger.info(s"user ${session.userId} updated streams after refresh the yarn/spark rest api or log success.")
@@ -173,7 +173,7 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
                   if (session.projectIdList.contains(id)) {
                     val startTime = if (streamTopic.startedTime.getOrElse("") == "") null else streamTopic.startedTime
                     val stopTime = if (streamTopic.stoppedTime.getOrElse("") == "") null else streamTopic.stoppedTime
-                    val stream = Stream(streamTopic.id, streamTopic.name, streamTopic.desc, streamTopic.projectId, streamTopic.instanceId, streamTopic.streamType, streamTopic.sparkConfig, streamTopic.startConfig, streamTopic.launchConfig, streamTopic.sparkAppid, streamTopic.logpath, streamTopic.status, startTime, stopTime, streamTopic.active, streamTopic.createTime, streamTopic.createBy, currentSec, session.userId)
+                    val stream = Stream(streamTopic.id, streamTopic.name, streamTopic.desc, streamTopic.projectId, streamTopic.instanceId, streamTopic.streamType, streamTopic.sparkConfig, streamTopic.startConfig, streamTopic.launchConfig, streamTopic.sparkAppid, streamTopic.logPath, streamTopic.status, startTime, stopTime, streamTopic.active, streamTopic.createTime, streamTopic.createBy, currentSec, session.userId)
                     val streamId = streamTopic.id
 
                     val zookeeperUrl = config.getString("zookeeper.connection.url")
@@ -215,8 +215,7 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
                                             riderLogger.info(s"user ${session.userId} deleted streamInTopics $deleteTopics where stream id is $streamId success.")
                                             if (streamTopic.topic.length != 0) {
                                               val listInsertTopic = insertTopics.map(topic => {
-                                                //                                                val topicOffset = getKafkaLatestOffset(brokers, topic._2)
-                                                val topicOffset = ""
+                                                val topicOffset = getKafkaLatestOffset(brokers, topic._2)
                                                 StreamInTopic(0, stream.id, stream.instanceId, topic._1, topicOffset, 100, zookeeperUrl, active = true, currentSec, session.userId, currentSec, session.userId)
                                               })
                                               onComplete(streamDal.insertIntoStreamInTopic(listInsertTopic).mapTo[Seq[Long]]) {
@@ -335,13 +334,13 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
                         simple.sparkConfig,
                         simple.startConfig,
                         simple.launchConfig,
-                        null,
+                        Some(""),
                         Some(""),
                         "new",
                         null,
                         null,
                         active = true, currentSec, session.userId, currentSec, session.userId)
-                      val zookeeperUrl = config.getString("zookeeper.connection.url")
+                      val zookeeperUrl = RiderConfig.zk
                       onComplete(streamDal.insertStreamReturnRes(Seq(insertStream)).map(_.head).mapTo[Stream]) {
                         case Success(base) =>
                           riderLogger.info(s"user ${
@@ -375,8 +374,8 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
                                           if (topicsInTable.keySet.contains(topic.toLong)) insertTopics += (topic.toLong -> topicsInTable(topic.toLong))
                                         )
                                         val listInsertTopic = insertTopics.map(topic => {
-                                          //                                          val topicOffset = getKafkaLatestOffset(brokers, topic._2)
-                                          val topicOffset = ""
+                                          val topicOffset = getKafkaLatestOffset(brokers, topic._2)
+                                          riderLogger.info(s"kafka topic latest offset $topicOffset")
                                           val defaultRate = 200
                                           StreamInTopic(0, base.id, base.instanceId, topic._1, topicOffset, defaultRate, zookeeperUrl, active = true, currentSec, session.userId, currentSec, session.userId)
                                         })
@@ -564,7 +563,7 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
                         val appId = stream.sparkAppid.get
                         if (appId == "" || appId == null)
                           complete(OK, ResponseJson[String](getHeader(200, session), "No application to stop"))
-                        val updateStream = Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, stream.sparkAppid, stream.logpath, "stopping", stream.startedTime, stream.stoppedTime, stream.active, stream.createTime, stream.createBy, currentSec, stream.updateBy)
+                        val updateStream = Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, stream.sparkAppid, stream.logPath, "stopping", stream.startedTime, stream.stoppedTime, stream.active, stream.createTime, stream.createBy, currentSec, stream.updateBy)
                         val cmdStr = "yarn application -kill " + appId
                         runShellCommand(cmdStr)
                         onComplete(streamDal.updateStreamTable(updateStream).mapTo[Int]) {
@@ -638,8 +637,8 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
                             val stopTime = if (stream.stoppedTime.getOrElse("") == "") null else stream.stoppedTime
                             val returnStartTime = if (stream.startedTime.getOrElse("") == "") Some("") else stream.startedTime
                             val returnStopTime = if (stream.stoppedTime.getOrElse("") == "") Some("") else stream.stoppedTime
-                            val updateStream = Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, stream.sparkAppid, stream.logpath, stream.status, startTime, stopTime, stream.active, stream.createTime, stream.createBy, currentSec, stream.updateBy)
-                            val returnStream = Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, stream.sparkAppid, stream.logpath, stream.status, returnStartTime, returnStopTime, stream.active, stream.createTime, stream.createBy, currentSec, stream.updateBy)
+                            val updateStream = Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, stream.sparkAppid, stream.logPath, stream.status, startTime, stopTime, stream.active, stream.createTime, stream.createBy, currentSec, stream.updateBy)
+                            val returnStream = Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, stream.sparkAppid, stream.logPath, stream.status, returnStartTime, returnStopTime, stream.active, stream.createTime, stream.createBy, currentSec, stream.updateBy)
                             val streamReturn = StreamSeqTopicActions(returnStream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "start,renew")
                             onComplete(streamDal.updateStreamTable(updateStream).mapTo[Int]) {
                               case Success(num) =>
@@ -717,8 +716,8 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
                                   val stopTime = if (stream.stoppedTime.getOrElse("") == "") null else stream.stoppedTime
                                   val returnStartTime = if (stream.startedTime.getOrElse("") == "") Some("") else stream.startedTime
                                   val returnStopTime = if (stream.stoppedTime.getOrElse("") == "") Some("") else stream.stoppedTime
-                                  val updateStream = Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, stream.sparkAppid, stream.logpath, "starting", startTime, stopTime, stream.active, stream.createTime, stream.createBy, currentSec, stream.updateBy)
-                                  val returnStream = Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, stream.sparkAppid, stream.logpath, "starting", returnStartTime, returnStopTime, stream.active, stream.createTime, stream.createBy, currentSec, stream.updateBy)
+                                  val updateStream = Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, stream.sparkAppid, stream.logPath, "starting", startTime, stopTime, stream.active, stream.createTime, stream.createBy, currentSec, stream.updateBy)
+                                  val returnStream = Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, stream.sparkAppid, stream.logPath, "starting", returnStartTime, returnStopTime, stream.active, stream.createTime, stream.createBy, currentSec, stream.updateBy)
                                   val streamReturn = StreamSeqTopicActions(returnStream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "start,stop,renew")
                                   onComplete(streamDal.updateStreamTable(updateStream).mapTo[Int]) {
                                     case Success(num) =>

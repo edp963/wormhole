@@ -100,7 +100,7 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
 
   def getSimpleTopicSeq(streamId: Long): Seq[SimpleTopic] =
     Await.result(db.run((streamInTopicTable.filter(_.active === true).filter(_.streamId === streamId) join nsDatabaseTable.filter(_.active === true) on (_.nsDatabaseId === _.id)).map {
-      case (inTopic, database) => (database.id, database.nsDatabase, inTopic.partitionOffsets, inTopic.rate, inTopic.zookeeper) <> (SimpleTopic.tupled, SimpleTopic.unapply)
+      case (inTopic, database) => (database.id, database.nsDatabase, inTopic.partitionOffsets, inTopic.rate) <> (SimpleTopic.tupled, SimpleTopic.unapply)
     }.result).mapTo[Seq[SimpleTopic]], minTimeOut)
 
   def getOffsetFromFeedback(streamId: Long): Seq[FeedbackOffsetInfo] = {
@@ -153,11 +153,11 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
       val stream = streamInfo._1.stream
       val returnStartTime = if (nextStatus.startedTime == "" || nextStatus.startedTime == null) Some("") else Some(nextStatus.startedTime)
       val returnStopTime = if (nextStatus.finishedTime == "" || nextStatus.finishedTime == null) Some("") else Some(nextStatus.finishedTime)
-      val returnStream = Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, Some(nextStatus.appId), stream.logpath, nextStatus.appState, returnStartTime, returnStopTime, stream.active, stream.createTime, stream.createBy, stream.updateTime, stream.updateBy)
+      val returnStream = Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, Some(nextStatus.appId), stream.logPath, nextStatus.appState, returnStartTime, returnStopTime, stream.active, stream.createTime, stream.createBy, stream.updateTime, stream.updateBy)
 
       val updateStartTime = if (nextStatus.startedTime == "") null else Some(nextStatus.startedTime)
       val updateStopTime = if (nextStatus.finishedTime == "") null else Some(nextStatus.finishedTime)
-      (Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, Some(nextStatus.appId), stream.logpath, nextStatus.appState, updateStartTime, updateStopTime, stream.active, stream.createTime, stream.createBy, stream.updateTime, stream.updateBy), StreamSeqTopic(returnStream, streamInfo._1.kafkaName, streamInfo._1.kafkaConnection, streamInfo._1.topicInfo))
+      (Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, Some(nextStatus.appId), stream.logPath, nextStatus.appState, updateStartTime, updateStopTime, stream.active, stream.createTime, stream.createBy, stream.updateTime, stream.updateBy), StreamSeqTopic(returnStream, streamInfo._1.kafkaName, streamInfo._1.kafkaConnection, streamInfo._1.topicInfo))
     })
     streamInfo
   }
@@ -204,7 +204,7 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
   def insertStreamReturnRes(insertStreams: Seq[Stream]): Future[Seq[Stream]] = {
     super.insert(insertStreams).map(streams => {
       streams.map(stream =>
-        Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, Some(stream.sparkAppid.getOrElse("")), Some(stream.logpath.getOrElse("")), stream.status, Some(stream.startedTime.getOrElse("")), Some(stream.stoppedTime.getOrElse("")), stream.active, stream.createTime, stream.createBy, stream.updateTime, stream.updateBy))
+        Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, Some(stream.sparkAppid.getOrElse("")), Some(stream.logPath.getOrElse("")), stream.status, Some(stream.startedTime.getOrElse("")), Some(stream.stoppedTime.getOrElse("")), stream.active, stream.createTime, stream.createBy, stream.updateTime, stream.updateBy))
     })
   }
 
@@ -385,7 +385,8 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
       topicDetails =>
         topicDetails.map(topicDetail => {
           var getFeedbackBoolean = true
-          if (topicDetail.partitionOffsets.length == 0) getFeedbackBoolean = false
+//          if (topicDetail.partitionOffsets.length == 0) getFeedbackBoolean = false
+          getFeedbackBoolean = false
           if (getFeedbackBoolean) {
             riderLogger.info(s"Refresh Feedback Offset start")
             val feedbackOffset: Seq[FeedbackOffsetInfo] = getOffsetFromFeedback(topicDetail.streamId)

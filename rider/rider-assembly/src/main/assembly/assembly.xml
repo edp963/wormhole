@@ -20,9 +20,10 @@
 
 
 <assembly>
-    <id>dist</id>
+    <id>release</id>
     <formats>
         <format>zip</format>
+        <format>tar.gz</format>
     </formats>
     <includeBaseDirectory>false</includeBaseDirectory>
 
@@ -34,21 +35,21 @@
         </fileSet>
         <fileSet>
             <directory>
-                ${project.parent.basedir}/conf
+                ${project.parent.basedir}/rider/conf
             </directory>
             <outputDirectory>conf</outputDirectory>
         </fileSet>
         <fileSet>
             <directory>
-                ${project.parent.basedir}/bin
+                ${project.parent.basedir}/rider/bin
             </directory>
             <outputDirectory>bin</outputDirectory>
         </fileSet>
         <fileSet>
         <directory>
-        ${project.parent.basedir}/webapp
+        ${project.parent.basedir}/rider/rider-webapp
         </directory>
-        <outputDirectory>bin</outputDirectory>
+        <outputDirectory>webapp-source</outputDirectory>
         </fileSet>
         <fileSet>
             <outputDirectory>logs</outputDirectory>

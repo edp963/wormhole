@@ -21,24 +21,27 @@
 
 package edp.rider.spark
 
-import edp.rider.RiderStarter.modules.config
+import com.alibaba.fastjson.JSON
+import edp.rider.common.SparkRiderStatus._
 import edp.rider.common._
 import edp.rider.rest.persistence.entities.Job
+import edp.rider.spark.SparkJobClientLog._
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.common.util.DtFormat
 import edp.wormhole.common.util.JsonUtils._
 import spray.json.JsonParser
-import edp.rider.common.SparkRiderStatus._
+
 import scala.collection.mutable.ListBuffer
-import scala.util.parsing.json.JSON
 import scalaj.http.{Http, HttpResponse}
-import edp.rider.spark.SparkJobClientLog._
 
 
 object SparkStatusQuery extends RiderLogger {
 
   def getSparkJobStatus(job: Job): AppInfo = {
-    val sparkList = if (job.startedTime.orNull.nonEmpty) getAllAppStatus(job.startedTime.get).sortBy(_.appId) else List()
+    val sparkList =
+      if (job.startedTime.getOrElse("") != "")
+        getAllAppStatus(job.startedTime.get).sortBy(_.appId)
+      else List()
     val startedTime = job.startedTime.orNull
     val stoppedTime = job.stoppedTime.orNull
     val appInfo = getAppStatusByRest(sparkList, job.name, job.status, startedTime, job.updateTime)
@@ -52,14 +55,14 @@ object SparkStatusQuery extends RiderLogger {
             case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
             case "KILLED" | "FINISHED" | "FAILED" => AppInfo(appInfo.appId, "failed", appInfo.startedTime, appInfo.finishedTime)
             case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
-            case "STARTING" | "WAITING" => AppInfo(null, status, startedTime, appInfo.finishedTime)
+            case "STARTING" | "WAITING" => AppInfo(appInfo.appId, status, startedTime, appInfo.finishedTime)
           }
-        } else AppInfo(null, status, startedTime, appInfo.finishedTime)
+        } else AppInfo("", status, startedTime, appInfo.finishedTime)
       case "waiting" =>
         appInfo.appState.toUpperCase match {
           case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
           case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
-          case "WAITING" => AppInfo(null, "waiting", startedTime, appInfo.finishedTime)
+          case "WAITING" => AppInfo(appInfo.appId, "waiting", startedTime, appInfo.finishedTime)
           case "KILLED" | "FINISHED" | "FAILED" => AppInfo(appInfo.appId, "failed", appInfo.startedTime, appInfo.finishedTime)
           case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
         }
@@ -71,11 +74,14 @@ object SparkStatusQuery extends RiderLogger {
         }
       case "stopping" =>
         appInfo.appState.toUpperCase match {
+          case "STOPPING" => AppInfo(appInfo.appId, "stopping", appInfo.startedTime, appInfo.finishedTime)
+          case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
           case "KILLED" | "FAILED" | "FINISHED" => AppInfo(appInfo.appId, "stopped", appInfo.startedTime, appInfo.finishedTime)
           case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
         }
       case "stopped" =>
         appInfo.appState.toUpperCase match {
+          case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
           case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
           case _ => AppInfo(job.sparkAppid.getOrElse(""), job.status, startedTime, stoppedTime)
         }
@@ -93,13 +99,14 @@ object SparkStatusQuery extends RiderLogger {
   }
 
   def getAppStatusByRest(appList: List[AppResult], appName: String, curStatus: String, startedTime: String, updateTime: String): AppInfo = {
-    var result = AppResult(null, appName, curStatus, startedTime, null, null)
+    var result = AppResult("", appName, curStatus, startedTime, null, null)
     appList.foreach {
       app =>
         if (app.appName == appName) {
+          //          app
           sparkRiderStatus(curStatus) match {
             case SparkRiderStatus.STARTING | SparkRiderStatus.WAITING =>
-              if (dt2long(app.startedTime) >= dt2long(updateTime)) result = app else result
+              if (dt2long(app.startedTime) >= dt2long(startedTime)) result = app else result
             case _ => result = app
           }
         } else {
@@ -113,29 +120,33 @@ object SparkStatusQuery extends RiderLogger {
       AppInfo(result.appId, result.appStatus, result.startedTime, result.finishedTime)
   }
 
-//  def getAllStandaloneAppStatus: List[AppResult] = {
-//    var resultList: List[AppResult] = Nil
-//    val host = config.getString("spark.mode.master.apps")
-//    val url = s"http://$host/json"
-//    try {
-//      val response = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
-//      resultList = queryAppListOnStandalone(response)
-//    } catch {
-//      case e: Exception =>
-//        riderLogger.error(s"request yarn rest api $url failed", e)
-//    }
-//    resultList
-//  }
+  //  def getAllStandaloneAppStatus: List[AppResult] = {
+  //    var resultList: List[AppResult] = Nil
+  //    val host = config.getString("spark.mode.master.apps")
+  //    val url = s"http://$host/json"
+  //    try {
+  //      val response = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
+  //      resultList = queryAppListOnStandalone(response)
+  //    } catch {
+  //      case e: Exception =>
+  //        riderLogger.error(s"request yarn rest api $url failed", e)
+  //    }
+  //    resultList
+  //  }
 
   def getAllYarnAppStatus(fromTime: String): List[AppResult] = {
     val fromTimeLong =
       if (fromTime == "") 0
       else if (fromTime.length > 19) dt2long(fromTime) / 1000
       else if (fromTime.length > 19) dt2long(fromTime)
-    val url = s"http://${RiderConfig.spark.rest_api}/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=$fromTimeLong&&applicationTags=${RiderConfig.spark.app_tags}&&applicationTypes=spark"
-    riderLogger.info(s"yarn url: $url")
-    val resultList = queryAppListOnYarn(url)
-    resultList
+    val rmUrl = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
+    riderLogger.info(s"active resourceManager: $rmUrl")
+    if(rmUrl != "")
+    {
+      val url = s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=$fromTimeLong&&applicationTags=${RiderConfig.spark.app_tags}&&applicationTypes=spark"
+      riderLogger.info(s"yarn url: $url")
+      queryAppListOnYarn(url)
+    } else List()
   }
 
   private def queryAppListOnYarn(url: String): List[AppResult] = {
@@ -156,7 +167,7 @@ object SparkStatusQuery extends RiderLogger {
     if (response.body.indexOf("apps") > 0) {
       val apps: String = json.fields("apps").toString()
       try {
-        val languages = JSON.parseFull(apps) match {
+        val languages = scala.util.parsing.json.JSON.parseFull(apps) match {
           case Some(x) =>
             val m = x.asInstanceOf[Map[String, List[Map[String, Any]]]]
             m("app") map {
@@ -191,6 +202,34 @@ object SparkStatusQuery extends RiderLogger {
     val masterStateResponse: MasterStateResponse = json2caseClass[MasterStateResponse](response.body)
     masterStateResponse.activeApps.foreach(m => resultList.append(AppResult(m.id, m.name, m.state, m.finalState, m.startTime.toString, m.duration.toString)))
     resultList.toList
+  }
+
+  def getActiveResourceManager(rm1: String, rm2: String): String = {
+    if (getResourceManagerHaState(rm1).toUpperCase == "ACTIVE")
+      rm1
+    else if (getResourceManagerHaState(rm2).toUpperCase == "ACTIVE")
+      rm2
+    else {
+      riderLogger.error(s"query yarn resourceManager haState failed caused by both resourceManager url is empty.")
+      ""
+    }
+  }
+
+  def getResourceManagerHaState(rm: String): String = {
+    val url = s"http://${rm.stripPrefix("http://").stripPrefix("/")}/ws/v1/cluster/info"
+    try {
+      if (rm != null && rm != "") {
+        val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
+        JSON.parseObject(response.body).getJSONObject("clusterInfo").getString("haState")
+      } else {
+        riderLogger.warn(s"query yarn resourceManager haState failed caused by one resourceManager url is empty.")
+        ""
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"query yarn resourceManager $url haState failed", ex)
+        ""
+    }
   }
 
 }
