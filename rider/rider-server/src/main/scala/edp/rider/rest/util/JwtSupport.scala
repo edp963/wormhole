@@ -30,7 +30,7 @@ object JwtSupport {
 
   private val typ = "JWT"
   private val secret = "iytr174395lclkb?lgj~8u;[=L:ljg"
-  private val timeout = RiderConfig.tokenTimeout
+  private val timeout = RiderConfig.tokenTimeout * 24 * 3600
   private val algorithm = JwtAlgorithm.HS256
   private val header = JwtHeader(algorithm, typ)
 

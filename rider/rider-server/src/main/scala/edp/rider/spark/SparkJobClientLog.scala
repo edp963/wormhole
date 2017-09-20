@@ -21,6 +21,8 @@
 
 package edp.rider.spark
 
+import java.io.File
+
 import edp.rider.common.SparkAppStatus._
 import edp.rider.common.{RiderLogger, SparkRiderStatus}
 import edp.rider.spark.SubmitSparkJob._
@@ -33,18 +35,24 @@ object SparkJobClientLog extends RiderLogger {
   def getLogByAppName(appName: String) = {
     assert(appName != "" || appName != null, "Refresh Spark Application log, app name couldn't be null or blank.")
     val logPath = getLogPath(appName)
-    val command = s"tail -500 $logPath"
-    riderLogger.debug(s"Refresh Spark Application $appName client log command: $command.")
-    try {
-      command !!
-    } catch {
-      case runTimeEx: java.lang.RuntimeException =>
-        riderLogger.warn(s"Refresh Spark Application $appName client log command failed", runTimeEx)
-        if (runTimeEx.getMessage.contains("Nonzero exit value: 1"))
-          "The stream doesn't have log file."
-        else runTimeEx.getMessage
-      case ex: Exception => ex.getMessage
+    if (new File(logPath).exists) {
+      val command = s"tail -500 $logPath"
+      riderLogger.debug(s"Refresh Spark Application $appName client log command: $command.")
+      try {
+        command !!
+      } catch {
+        case runTimeEx: java.lang.RuntimeException =>
+          riderLogger.warn(s"Refresh Spark Application $appName client log command failed", runTimeEx)
+          if (runTimeEx.getMessage.contains("Nonzero exit value: 1"))
+            "The stream doesn't have log file."
+          else runTimeEx.getMessage
+        case ex: Exception => ex.getMessage
+      }
+    } else {
+      riderLogger.warn(s"Spark Application $appName client log file $logPath doesn't exist.")
+      ""
     }
+
   }
 
   def getAppStatusByLog(appName: String, curStatus: String): String = {
@@ -64,7 +72,7 @@ object SparkJobClientLog extends RiderLogger {
     }
     catch {
       case ex: Exception =>
-        riderLogger.error(s"Refresh Spark Application status from client log failed.", ex)
+        riderLogger.warn(s"Refresh Spark Application status from client log failed.", ex)
         curStatus
     }
   }

@@ -37,4 +37,6 @@ object CommonUtils {
   def minTimeOut = 180.seconds
 
   def maxTimeOut = 600.seconds
+
+  def streamSubmitTimeout = 120.seconds
 }

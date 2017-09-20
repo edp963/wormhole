@@ -35,7 +35,7 @@ case class Stream(id: Long,
                   startConfig: String,
                   launchConfig: String,
                   sparkAppid: Option[String] = None,
-                  logpath: Option[String] = None,
+                  logPath: Option[String] = None,
                   status: String,
                   startedTime: Option[String] = None,
                   stoppedTime: Option[String] = None,
@@ -63,7 +63,7 @@ case class StreamTopic(id: Long,
                        startConfig: String,
                        launchConfig: String,
                        sparkAppid: Option[String] = None,
-                       logpath: Option[String] = None,
+                       logPath: Option[String] = None,
                        status: String,
                        startedTime: Option[String] = None,
                        stoppedTime: Option[String] = None,
@@ -101,8 +101,7 @@ case class StreamSeqTopicActions(stream: Stream,
 case class SimpleTopic(id: Long,
                        name: String,
                        partitionOffsets: String,
-                       rate: Int,
-                       zookeeper: String)
+                       rate: Int)
 
 case class FeedbackOffsetInfo(streamId: Long,
                               topicName: String,
@@ -173,16 +172,15 @@ case class StreamCacheMap(streamId: Long, streamName: String, projectId: Long)
 
 case class TopicOffset(topicName: String, partition: Int, offset: Long)
 
-case class StreamHealth(
-                         streamStatus: String,
-                         sparkApplicationId: String,
-                         latestSinkWaterMark: String,
-                         batchThreshold: Int,
-                         batchDurationSecond: Int,
-                         topics: Seq[TopicOffset])
+case class StreamHealth(streamStatus: String,
+                        sparkApplicationId: String,
+                        latestSinkWaterMark: String,
+                        batchThreshold: Int,
+                        batchDurationSecond: Int,
+                        topics: Seq[TopicOffset])
 
 class StreamTable(_tableTag: Tag) extends BaseTable[Stream](_tableTag, "stream") {
-  def * = (id, name, desc, projectId, instanceId, streamType, sparkConfig, startConfig, launchConfig, sparkAppid, logPath, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <>(Stream.tupled, Stream.unapply)
+  def * = (id, name, desc, projectId, instanceId, streamType, sparkConfig, startConfig, launchConfig, sparkAppid, logPath, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <> (Stream.tupled, Stream.unapply)
 
 
   val name: Rep[String] = column[String]("name", O.Length(200, varying = true))

@@ -11,13 +11,14 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>wormhole-rider-assembly_1.2</artifactId>
+    <artifactId>wormhole</artifactId>
+    <version>0.3.0</version>
     <packaging>pom</packaging>
 
     <properties>
         <sbt.project.name>assembly</sbt.project.name>
         <build.testJarPhase>none</build.testJarPhase>
-        <build.copyDependenciesPhase>package</build.copyDependenciesPhase>
+        <!--<build.copyDependenciesPhase>package</build.copyDependenciesPhase>-->
         <main.basedir>${project.parent.basedir}</main.basedir>
     </properties>
 
@@ -66,7 +67,7 @@
 
     <profiles>
         <profile>
-            <id>dist</id>
+            <id>release</id>
             <build>
                 <plugins>
                     <plugin>
@@ -75,7 +76,7 @@
                         <version>2.4</version>
                         <executions>
                             <execution>
-                                <id>dist</id>
+                                <id>release</id>
                                 <phase>package</phase>
                                 <goals>
                                     <goal>single</goal>
@@ -84,6 +85,7 @@
                                     <descriptors>
                                         <descriptor>src/main/assembly/assembly.xml</descriptor>
                                     </descriptors>
+                                    <appendAssemblyId>false</appendAssemblyId>
                                 </configuration>
                             </execution>
                         </executions>

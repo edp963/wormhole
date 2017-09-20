@@ -23,7 +23,7 @@ package edp.rider.rest.util
 
 import com.alibaba.fastjson.JSON
 import edp.rider.RiderStarter.modules
-import edp.rider.common.RiderLogger
+import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.entities.{Instance, Job, NsDatabase, StartConfig}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.FlowUtils._
@@ -60,7 +60,7 @@ object JobUtils extends RiderLogger {
     val maxRecord =
       if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("maxRecordPerPartitionProcessed"))
         JSON.parseObject(sinkConfig).getIntValue("maxRecordPerPartitionProcessed")
-      else modules.config.getInt("spark.config.job.default.sink.per.partition.max.record")
+      else RiderConfig.spark.jobMaxRecordPerPartitionProcessed
     val specialConfig =
       if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
         Some(base64byte2s(JSON.parseObject(sinkConfig).getString("sink_specific_config").trim.getBytes()))
@@ -108,7 +108,7 @@ object JobUtils extends RiderLogger {
   def getConnConfig(instance: Instance, db: NsDatabase, sourceType: String = null): ConnectionConfig = {
     val connUrl =
       if (sourceType == null || sourceType == "" || !sourceType.contains("hdfs")) getConnUrl(instance, db)
-      else modules.config.getString("spark.submit.stream.hdfs.address")
+      else RiderConfig.spark.hdfs_root
     if (db.config.getOrElse("") != "")
       ConnectionConfig(connUrl, db.user, db.pwd, json2caseClass[Option[Seq[KVConfig]]](db.config.get))
     else
@@ -117,12 +117,12 @@ object JobUtils extends RiderLogger {
 
   def startJob(job: Job) = {
     runShellCommand(generateStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name,
-      StartConfig(modules.config.getInt("spark.config.driver.cores"),
-        modules.config.getInt("spark.config.driver.memory"),
-        modules.config.getInt("spark.config.num.executors"),
-        modules.config.getInt("spark.config.per.executor.memory"),
-        modules.config.getInt("spark.config.per.executor.cores")),
-      Seq(modules.config.getString("spark.config.driver.conf"), modules.config.getString("spark.config.executor.conf")).mkString(","),
+      StartConfig(RiderConfig.spark.driverCores,
+        RiderConfig.spark.driverMemory,
+        RiderConfig.spark.executorNum,
+        RiderConfig.spark.executorMemory,
+        RiderConfig.spark.executorCores),
+      Seq(RiderConfig.spark.driverExtraConf, RiderConfig.spark.executorExtraConf).mkString(",").concat(RiderConfig.spark.sparkConfig),
       "job"
     ))
   }
@@ -147,7 +147,7 @@ object JobUtils extends RiderLogger {
       val job = refreshJob(id)
       try {
         if (job.status != "failed" && job.status != "stopped" && job.status != "done") {
-          runShellCommand(s"yarn application -kill ${job.sparkAppid}")
+          runShellCommand(s"yarn application -kill ${job.sparkAppid.get}")
           modules.jobDal.updateJobStatus(job.id, "stopping")
           "stopping"
         } else job.status

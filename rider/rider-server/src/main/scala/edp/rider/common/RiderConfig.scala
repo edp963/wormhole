@@ -20,6 +20,8 @@
 
 package edp.rider.common
 
+import java.util.concurrent.TimeUnit
+
 import edp.rider.RiderStarter.modules.config
 import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeserializer}
 
@@ -53,7 +55,8 @@ case class RiderSpark(user: String,
                       queue_name: String,
                       app_tags: String,
                       hdfs_root: String,
-                      rest_api: String,
+                      rm1Url: String,
+                      rm2Url: String,
                       startShell: String,
                       clientLogRootPath: String,
                       sparkLog4jPath: String,
@@ -67,9 +70,10 @@ case class RiderSpark(user: String,
                       executorMemory: Int,
                       executorCores: Int,
                       topicDefaultRate: Int,
+                      jobMaxRecordPerPartitionProcessed: Int,
                       driverExtraConf: String,
-                      executorExtraConf: String
-                     )
+                      executorExtraConf: String,
+                      sparkConfig: String)
 
 case class RiderEs(url: String,
                    wormholeIndex: String,
@@ -87,7 +91,6 @@ case class Maintenance(mysqlRemain: Int,
 
 case class RiderInfo(consumer: RiderKafka,
                      zk: String,
-                     db: RiderDatabase,
                      spark: RiderSpark,
                      monitor: RiderMonitor)
 
@@ -97,13 +100,26 @@ object RiderConfig {
 
   lazy val riderServer = RiderServer(config.getString("wormholeServer.host"), config.getInt("wormholeServer.port"))
 
-  lazy val tokenTimeout =
-    if (config.hasPath("wormholeServer.token.timeout")) config.getInt("wormholeServer.token.timeout")
-    else 36000
+  lazy val riderDomain = getStringConfig("wormholeServer.domain.url", "")
 
-  lazy val feedbackTopic =
-    if (config.hasPath("kafka.brokers.feedback.topic")) config.getString("kafka.brokers.feedback.topic")
-    else "wormhole_feedback"
+  lazy val tokenTimeout = getIntConfig("wormholeServer.token.timeout", 1)
+
+  lazy val feedbackTopic = getStringConfig("kafka.consumer.feedback.topic", "wormhole_feedback")
+
+  lazy val pollInterval = getFiniteDurationConfig("kafka.consumer.poll-interval", FiniteDuration(30, MILLISECONDS))
+
+  lazy val pollTimeout = getFiniteDurationConfig("kafka.consumer.poll-timeout", FiniteDuration(30, MILLISECONDS))
+
+  lazy val stopTimeout = getFiniteDurationConfig("kafka.consumer.stop-timeout", FiniteDuration(30, SECONDS))
+
+  lazy val closeTimeout = getFiniteDurationConfig("kafka.consumer.close-timeout", FiniteDuration(20, SECONDS))
+
+  lazy val commitTimeout = getFiniteDurationConfig("kafka.consumer.commit-timeout", FiniteDuration(15, SECONDS))
+
+  lazy val wakeupTimeout = getFiniteDurationConfig("kafka.consumer.wakeup-timeout", FiniteDuration(3, SECONDS))
+
+  lazy val maxWakeups = getIntConfig("kafka.consumer.max-wakeups", 10)
+
   lazy val consumer = RiderKafka(config.getString("kafka.brokers.url"),
     feedbackTopic,
     4,
@@ -111,43 +127,35 @@ object RiderConfig {
     "wormhole_rider_group_consumer1",
     false,
     new ByteArrayDeserializer, new StringDeserializer,
-    FiniteDuration(30, MICROSECONDS),
-    FiniteDuration(30, MICROSECONDS),
-    FiniteDuration(30, SECONDS),
-    FiniteDuration(20, SECONDS),
-    FiniteDuration(15, SECONDS),
-    FiniteDuration(3, SECONDS),
-    10,
+    pollInterval,
+    pollTimeout,
+    stopTimeout,
+    closeTimeout,
+    commitTimeout,
+    wakeupTimeout,
+    maxWakeups,
     "akka.kafka.default-dispatcher"
   )
 
   lazy val zk = config.getString("zookeeper.connection.url")
 
-  lazy val db = RiderDatabase(config.getString("mysql.db.url"), config.getString("mysql.db.user"), config.getString("mysql.db.password"))
+  lazy val appTags = getStringConfig("spark.app.tags", "wormhole")
+  lazy val wormholeClientLogPath = getStringConfig("spark.wormhole.client.log.root.path", s"${RiderConfig.riderRootPath}/logs/streams").concat("/")
+  lazy val wormholeJarPath = getStringConfig("spark.wormhole.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.3.0-SNAPSHOTS-jar-with-dependencies.jar")
+  lazy val wormholeKafka08JarPath = getStringConfig("spark.wormhole.kafka08.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.3.0-SNAPSHOTS-jar-with-dependencies-kafka08.jar")
+  lazy val kafka08StreamNames = getStringConfig("spark.wormhole.kafka08.streams", "")
+  lazy val wormholeUser = config.getString("spark.wormholeServer.user")
+  lazy val sshPort = config.getInt("spark.wormholeServer.ssh.port")
+  lazy val rm1Url = config.getString("spark.yarn.rm1.http.url")
+  lazy val rm2Url = getStringConfig("spark.yarn.rm2.http.url", "")
 
-  lazy val appTags =
-    if (config.hasPath("spark.app.tags")) config.getString("spark.app.tags") else "wormhole"
-  lazy val wormholeClientLogPath =
-    if (config.hasPath("spark.wormhole.client.log.root.path"))
-      config.getString("spark.wormhole.client.log.root.path").concat("/")
-    else s"${RiderConfig.riderRootPath}/logs/streams/"
-  lazy val wormholeJarPath =
-    if (config.hasPath("spark.wormhole.jar.path")) config.getString("spark.wormhole.jar.path")
-    else s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.3.0-SNAPSHOTS-jar-with-dependencies.jar"
-  lazy val wormholeKafka08JarPath =
-    if (config.hasPath("spark.wormhole.kafka08.jar.path")) config.getString("spark.wormhole.kafka08.jar.path")
-    else s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-spark_2.2.0-0.3.0-SNAPSHOTS-jar-with-dependencies-kafka08.jar"
-  lazy val kafka08StreamNames =
-    if (config.hasPath("spark.wormhole.kafka08.streams")) config.getString("spark.wormhole.kafka08.streams")
-    else ""
-  lazy val spark = RiderSpark(
-    config.getString("spark.wormholeServer.user"),
-    config.getInt("spark.wormholeServer.ssh.port"),
+  lazy val spark = RiderSpark(wormholeUser,
+    sshPort,
     config.getString("spark.spark.home"),
     config.getString("spark.queue.name"),
     appTags,
     config.getString("spark.wormhole.hdfs.root.path"),
-    config.getString("spark.yarn.active.resourceManager.http.url"),
+    rm1Url, rm2Url,
     s"""
        |--class edp.wormhole.WormholeStarter \\
        |--master yarn \\
@@ -165,21 +173,22 @@ object RiderConfig {
     s"${RiderConfig.riderRootPath}/conf/sparkx.log4j.properties",
     wormholeJarPath,
     wormholeKafka08JarPath,
-    kafka08StreamNames, "wormhole_heartbeat", 2, 1, 6, 4, 2, 100,
-    "spark.driver.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc/",
-    "spark.executor.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc"
+    kafka08StreamNames, "wormhole_heartbeat", 2, 1, 6, 4, 2, 100, 600,
+    "spark.driver.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc/",
+    "spark.executor.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc",
+    "spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3"
   )
 
   lazy val es = RiderEs(config.getString("elasticSearch.http.url"), "wormhole_feedback", "wormhole_stats_feedback")
 
-  lazy val domain =
+  lazy val grafanaDomain =
     if (config.hasPath("grafana.production.domain.url")) config.getString("grafana.production.domain.url")
     else config.getString("grafana.url")
 
   lazy val grafana =
     if (config.hasPath("grafana"))
       RiderMonitor(config.getString("grafana.url"),
-        domain,
+        grafanaDomain,
         config.getString("grafana.admin.user"),
         config.getString("grafana.admin.token"),
         config.getString("grafana.viewer.user"),
@@ -191,5 +200,30 @@ object RiderConfig {
 
   lazy val dbusUrl = config.getStringList("dbus.namespace.rest.api.url")
 
-  lazy val riderInfo = RiderInfo(consumer, zk, db, spark, grafana)
+  lazy val riderInfo = RiderInfo(consumer, zk, spark, grafana)
+
+  def getStringConfig(path: String, default: String): String = {
+    if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")
+      config.getString(path)
+    else default
+  }
+
+  def getIntConfig(path: String, default: Int): Int = {
+    if (config.hasPath(path) && !config.getIsNull(path))
+      config.getInt(path)
+    else default
+  }
+
+  def getFiniteDurationConfig(path: String, default: FiniteDuration): FiniteDuration = {
+    if (config.hasPath(path) && !config.getIsNull(path))
+      config.getDuration(path, TimeUnit.MILLISECONDS).millis
+    else default
+  }
+
+  def getBooleanConfig(path: String, default: Boolean): Boolean = {
+    if (config.hasPath(path) && !config.getIsNull(path))
+      config.getBoolean(path)
+    else default
+  }
+
 }
