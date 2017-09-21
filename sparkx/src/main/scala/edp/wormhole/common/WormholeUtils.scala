@@ -60,7 +60,6 @@ object WormholeUtils extends EdpLogging{
   }
 
   def sendTopicPartitionOffset(offsetInfo: ArrayBuffer[OffsetRange], feedbackTopicName: String, config: WormholeConfig): Unit = {
-//    val offsetPath = WormholeConstants.CheckpointRootPath + config.spark_config.stream_id + OffsetPersistenceManager.offsetRelativePath
     val topicConfigMap = mutable.HashMap.empty[String, ListBuffer[PartitionOffsetConfig]]
 
     offsetInfo.foreach { offsetRange =>
@@ -73,16 +72,10 @@ object WormholeUtils extends EdpLogging{
       topicConfigMap(topicName) += PartitionOffsetConfig(partition, offset)
     }
 
-    val tp: List[(String, Int, Long)] = topicConfigMap.flatMap(topicPartition=>{
-      val topicName = topicPartition._1
-      topicPartition._2.map(partition=>(topicName,partition.partition_num,partition.offset))
-    }).toList
+    val tp: Map[String, String] = topicConfigMap.map{case (topicName, partitionOffsetList) =>{
+      (topicName,partitionOffsetList.map(it=>it.partition_num + ":" +it.offset).mkString(","))
+    }}.toMap
     WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority2, WormholeUms.feedbackStreamTopicOffset(currentDateTime,config.spark_config.stream_id, tp), None, config.kafka_output.brokers)
-
-
-//    topicConfigMap.foreach(topic => {
-//      OffsetPersistenceManager.persistTopicPartition(topic._1, topic._2, offsetPath, config.zookeeper_path)
-//    })
   }
 
 //  def doOtherData(otherDataArray: Array[String], config: WormholeConfig,processedMap: Map[String, String]): Unit = {

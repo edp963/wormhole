@@ -40,24 +40,25 @@ object HbaseConnection extends Serializable with EdpLogging {
   val hBaseConfigurationMap: mutable.HashMap[(String, String), Configuration] = new mutable.HashMap[(String, String), Configuration]
   val hBaseConnectionMap: mutable.HashMap[(String, String), Connection] = new mutable.HashMap[(String, String), Connection]
 
-  def getZookeeperInfo(zookeeper: String): (String, String) = {
+  def getZookeeperInfo(zookeeper: String): (String, String, String) = {
     val zookeeperList = zookeeper.split(",")
     val zkList = zookeeperList.map(str => str.split(":").head).sorted
     val zookeeperPort = zookeeperList.head.split(":").last.split("/").head
-    (zkList.mkString(","), zookeeperPort)
+    val zkParent = if (zookeeperList.head.contains("/")) zookeeperList.head.substring(zookeeperList.head.indexOf("/")).trim else "/hbase"
+    (zkList.mkString(","), zookeeperPort,zkParent)
   }
 
   def initHbaseConfig(sinkNamespace: String, sinkConfig: SinkProcessConfig, connectionConfig: ConnectionConfig): Unit = {
     val kvConfig = connectionConfig.parameters
     if (sinkNamespace.toLowerCase.startsWith("hbase")) {
-      val hbaseConfig = json2caseClass[HbaseConfig](sinkConfig.specialConfig.get)
-      val (zkList, zkPort) = getZookeeperInfo(connectionConfig.connectionUrl)
+      //val hbaseConfig = json2caseClass[HbaseConfig](sinkConfig.specialConfig.get)
+      val (zkList, zkPort,zkParent) = getZookeeperInfo(connectionConfig.connectionUrl)
       if (!hBaseConfigurationMap.contains((zkList, zkPort))) {
         val hBaseConfiguration: Configuration = HBaseConfiguration.create()
         hBaseConfiguration.set("hbase.zookeeper.quorum", zkList)
         hBaseConfiguration.set("hbase.zookeeper.property.clientPort", zkPort)
         hBaseConfiguration.set("hbase.metrics.showTableName", "false")
-        hBaseConfiguration.set("zookeeper.znode.parent", hbaseConfig.`hbase.znParent.get`)
+        hBaseConfiguration.set("zookeeper.znode.parent", zkParent)
         if (kvConfig.isDefined) kvConfig.get.foreach(kv => hBaseConfiguration.set(kv.key, kv.value))
         hBaseConfigurationMap((zkList, zkPort)) = hBaseConfiguration
       }
