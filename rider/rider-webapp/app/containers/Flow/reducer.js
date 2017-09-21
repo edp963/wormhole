@@ -35,6 +35,7 @@ import {
   LOAD_TRANSINKTYPE_NAMESPACE_SUCCESS,
   LOAD_SOURCETOSINK_EXIST,
   LOAD_SOURCETOSINK_EXIST_SUCCESS,
+  LOAD_SOURCETOSINK_EXIST_ERROR,
   ADD_FLOWS,
   ADD_FLOWS_SUCCESS,
   OPERATE_USER_FLOW,
@@ -78,7 +79,8 @@ import { fromJS } from 'immutable'
 const initialState = fromJS({
   flows: false,
   error: false,
-  flowSubmitLoading: false
+  flowSubmitLoading: false,
+  sourceToSinkExited: false
 })
 
 function flowReducer (state = initialState, { type, payload }) {
@@ -120,10 +122,13 @@ function flowReducer (state = initialState, { type, payload }) {
       payload.resolve(payload.result)
       return state
     case LOAD_SOURCETOSINK_EXIST:
-      return state
+      return state.set('sourceToSinkExited', false)
     case LOAD_SOURCETOSINK_EXIST_SUCCESS:
-      payload.resolve(payload.result)
-      return state
+      payload.resolve()
+      return state.set('sourceToSinkExited', false)
+    case LOAD_SOURCETOSINK_EXIST_ERROR:
+      payload.reject()
+      return state.set('sourceToSinkExited', true)
     case ADD_FLOWS:
       return state.set('flowSubmitLoading', true)
     case ADD_FLOWS_SUCCESS:

@@ -38,7 +38,16 @@ export class DBForm extends React.Component {
     super(props)
     this.state = {
       databaseDSValue: '',
-      permissionValue: ''
+      permissionValue: '',
+      currentDatabaseUrlValue: []
+    }
+  }
+
+  componentWillReceiveProps (props) {
+    if (props.databaseUrlValue) {
+      this.setState({
+        currentDatabaseUrlValue: props.databaseUrlValue
+      })
     }
   }
 
@@ -63,7 +72,7 @@ export class DBForm extends React.Component {
 
   // 选择不同的 connection url 显示不同的 instance
   onHandleChangeUrl = (e) => {
-    const selUrl = this.props.databaseUrlValue.find(s => s.id === Number(e))
+    const selUrl = this.state.currentDatabaseUrlValue.find(s => s.id === Number(e))
     this.props.form.setFieldsValue({
       instance: selUrl.nsInstance
     })
@@ -90,8 +99,8 @@ export class DBForm extends React.Component {
 
   render () {
     const { getFieldDecorator } = this.props.form
-    const { databaseFormType, databaseUrlValue } = this.props
-    const { databaseDSValue } = this.state
+    const { databaseFormType } = this.props
+    const { databaseDSValue, currentDatabaseUrlValue } = this.state
 
     const itemStyle = {
       labelCol: { span: 6 },
@@ -141,7 +150,7 @@ export class DBForm extends React.Component {
     }
 
     const databaseDSLabel = databaseDSValue === 'kafka' ? 'Topic Name' : 'Database Name'
-    const diffPlacehodler = databaseDSValue === 'oracle' ? 'Oracle 时，Config 必须包含"service_name"字段' : 'Config'
+    const diffPlacehodler = databaseDSValue === 'oracle' ? 'Oracle时, Config为包含"service_name"字段的JSON对象' : 'Config'
 
     // edit 时，不能修改部分元素
     let disabledOrNot = false
@@ -151,7 +160,7 @@ export class DBForm extends React.Component {
       disabledOrNot = true
     }
 
-    const urlOptions = databaseUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.connUrl}</Option>))
+    const urlOptions = currentDatabaseUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.connUrl}</Option>))
 
     return (
       <Form>
@@ -338,7 +347,6 @@ DBForm.propTypes = {
   form: React.PropTypes.any,
   type: React.PropTypes.string,
   databaseFormType: React.PropTypes.string,
-  databaseUrlValue: React.PropTypes.array,
   onInitDatabaseInputValue: React.PropTypes.func,
   onInitDatabaseConfigValue: React.PropTypes.func,
   onInitDatabaseUrlValue: React.PropTypes.func

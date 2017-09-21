@@ -38,7 +38,7 @@ import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
 import { loadAdminAllUsers, loadUserUsers, addUser, editUser, loadEmailInputValue, loadSelectUsers } from './action'
-import { selectUsers, selectError, selectModalLoading } from './selectors'
+import { selectUsers, selectError, selectModalLoading, selectEmailExited } from './selectors'
 
 export class User extends React.PureComponent {
   constructor (props) {
@@ -74,13 +74,8 @@ export class User extends React.PureComponent {
       updateEndTimeText: '',
       filterDropdownVisibleUpdateTime: false,
 
-      UserHideClassName: '',
-      UserShowClassName: 'hide',
-
       editUsersMsgData: {},
-      editUsersPswData: {},
-
-      emailExited: false
+      editUsersPswData: {}
     }
   }
 
@@ -187,8 +182,8 @@ export class User extends React.PureComponent {
   }
 
   onModalOk = () => {
-    const { formType, emailExited, editUsersMsgData, editUsersPswData } = this.state
-    const { onAddUser, onEditUser } = this.props
+    const { formType, editUsersMsgData, editUsersPswData } = this.state
+    const { onAddUser, onEditUser, emailExited } = this.props
 
     this.userForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -225,19 +220,12 @@ export class User extends React.PureComponent {
    * 新增时，判断email是否已存在
    * */
   onInitEmailInputValue = (value) => {
-    this.props.onLoadEmailInputValue(value, () => {
-      this.setState({
-        emailExited: false
-      })
-    }, () => {
+    this.props.onLoadEmailInputValue(value, () => {}, () => {
       this.userForm.setFields({
         email: {
           value: value,
           errors: [new Error('该 Email 已存在')]
         }
-      })
-      this.setState({
-        emailExited: true
       })
     })
   }
@@ -537,7 +525,6 @@ export class User extends React.PureComponent {
       }, {
         title: 'Action',
         key: 'action',
-        width: 250,
         className: `text-align-center ${userClassHide}`,
         render: (text, record) => (
           <span className="ant-table-action-column">
@@ -645,6 +632,7 @@ User.propTypes = {
   // ]),
   // error: React.PropTypes.bool,
   modalLoading: React.PropTypes.bool,
+  emailExited: React.PropTypes.bool,
   projectIdGeted: React.PropTypes.string,
   userClassHide: React.PropTypes.string,
   onLoadAdminAllUsers: React.PropTypes.func,
@@ -669,7 +657,8 @@ export function mapDispatchToProps (dispatch) {
 const mapStateToProps = createStructuredSelector({
   users: selectUsers(),
   error: selectError(),
-  modalLoading: selectModalLoading()
+  modalLoading: selectModalLoading(),
+  emailExited: selectEmailExited()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(User)

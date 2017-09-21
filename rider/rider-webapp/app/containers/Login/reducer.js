@@ -31,6 +31,7 @@ export function loginReducer (state = initialState, { type, payload }) {
       return state.set('error', false)
     case LOGIN_SUCCESS:
       // trigger LOCATION_CHANGE action, should async
+      // 存储数据到 localStorage 对象里
       localStorage.setItem('loginCreateBy', payload.result.createBy)
       localStorage.setItem('loginCreateTime', payload.result.createTime)
       localStorage.setItem('loginEmail', payload.result.email)
@@ -38,7 +39,6 @@ export function loginReducer (state = initialState, { type, payload }) {
       localStorage.setItem('loginName', payload.result.name)
       localStorage.setItem('loginPassword', payload.result.password)
       localStorage.setItem('loginRoleType', payload.result.roleType)
-      localStorage.setItem('loginTitle', payload.result.title)
       localStorage.setItem('loginUpdateBy', payload.result.updateBy)
       localStorage.setItem('loginUpdateTime', payload.result.updateTime)
 

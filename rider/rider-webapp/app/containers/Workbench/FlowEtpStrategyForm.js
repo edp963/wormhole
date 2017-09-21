@@ -34,7 +34,6 @@ export class FlowEtpConfigForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      checkRuleValue: '',
       ruleModeValue: '',
       againstActionValue: ''
     }

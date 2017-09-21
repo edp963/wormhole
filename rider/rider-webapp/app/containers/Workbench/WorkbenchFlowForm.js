@@ -47,17 +47,7 @@ export class WorkbenchFlowForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      sourceNamespaceHierarchy: [],
-      sinkNamespaceHierarchy: [],
-      transformNamespaceHierarchy: [],
-      streamFilter: [],
-      flowMode: '',
-
-      etpStrategyColor: '',
-      configIcon: 'minus-circle-o',
-      sinkConfigModalVisible: false,
-      etpStrategyModalVisible: false,
-      transformModalVisible: false
+      flowMode: ''
     }
   }
 
@@ -310,7 +300,6 @@ export class WorkbenchFlowForm extends React.Component {
     }, {
       title: 'Action',
       key: 'action',
-      width: 250,
       render: (text, record) => {
         const transformUpHide = record.order === 1 ? 'hide' : ''
         const transformDownHide = record.order === transformTableSource.length ? 'hide' : ''

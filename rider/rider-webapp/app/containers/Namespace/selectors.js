@@ -42,10 +42,16 @@ const selectModalLoading = () => createSelector(
   (namespaceState) => namespaceState.get('modalLoading')
 )
 
+const selectTableNameExited = () => createSelector(
+  selectNamespace(),
+  (namespaceState) => namespaceState.get('tableNameExited')
+)
+
 export {
   selectNamespace,
   selectNamespaces,
   selectProjectNamespaces,
   selectError,
-  selectModalLoading
+  selectModalLoading,
+  selectTableNameExited
 }

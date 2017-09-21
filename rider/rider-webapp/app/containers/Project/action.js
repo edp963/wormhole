@@ -31,6 +31,7 @@ import {
   EDIT_PROJECT_SUCCESS,
   LOAD_PROJECT_NAME_VALUE,
   LOAD_PROJECT_NAME_VALUE_SUCCESS,
+  LOAD_PROJECT_NAME_VALUE_ERROR,
   GET_ERROR
 } from './constants'
 
@@ -142,12 +143,21 @@ export function loadProjectNameInputValue (value, resolve, reject) {
   }
 }
 
-export function projectNameInputValueLoaded (result, resolve, reject) {
+export function projectNameInputValueLoaded (result, resolve) {
   return {
     type: LOAD_PROJECT_NAME_VALUE_SUCCESS,
     payload: {
       result,
-      resolve,
+      resolve
+    }
+  }
+}
+
+export function projectNameInputValueErrorLoaded (result, reject) {
+  return {
+    type: LOAD_PROJECT_NAME_VALUE_ERROR,
+    payload: {
+      result,
       reject
     }
   }

@@ -36,6 +36,7 @@ import {
   LOAD_TRANSINKTYPE_NAMESPACE_SUCCESS,
   LOAD_SOURCETOSINK_EXIST,
   LOAD_SOURCETOSINK_EXIST_SUCCESS,
+  LOAD_SOURCETOSINK_EXIST_ERROR,
   ADD_FLOWS,
   ADD_FLOWS_SUCCESS,
   OPERATE_USER_FLOW,
@@ -236,12 +237,21 @@ export function loadSourceToSinkExist (projectId, sourceNs, sinkNs, resolve, rej
   }
 }
 
-export function sourceToSinkExistLoaded (result, resolve, reject) {
+export function sourceToSinkExistLoaded (result, resolve) {
   return {
     type: LOAD_SOURCETOSINK_EXIST_SUCCESS,
     payload: {
       result,
-      resolve,
+      resolve
+    }
+  }
+}
+
+export function sourceToSinkExistErrorLoaded (result, reject) {
+  return {
+    type: LOAD_SOURCETOSINK_EXIST_ERROR,
+    payload: {
+      result,
       reject
     }
   }

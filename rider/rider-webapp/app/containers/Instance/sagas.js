@@ -32,6 +32,7 @@ import {
   instancesLoaded,
   instanceAdded,
   instanceInputValueLoaded,
+  instanceInputValueErrorLoaded,
   singleInstanceLoaded,
   instanceEdited,
   getError
@@ -117,7 +118,7 @@ export function* getInstanceInputValue ({ payload }) {
       url: `${api.instance}?type=${payload.value.type}&conn_url=${payload.value.conn_url}`
     })
     if (result.code === 409 || result.code === 400) {
-      yield put(instanceInputValueLoaded(result.msg, payload.reject))
+      yield put(instanceInputValueErrorLoaded(result.msg, payload.reject))
     } else {
       yield put(instanceInputValueLoaded(result.payload, payload.resolve))
     }

@@ -35,6 +35,7 @@ import {
   databaseEdited,
   databasesInstanceLoaded,
   nameExistLoaded,
+  nameExistErrorLoaded,
   getError
 } from './action'
 
@@ -133,7 +134,7 @@ export function* getName ({ payload }) {
     if (result.code === 200) {
       yield put(nameExistLoaded(result.msg, payload.resolve))
     } else {
-      yield put(nameExistLoaded(result.msg, payload.reject))
+      yield put(nameExistErrorLoaded(result.msg, payload.reject))
     }
   } catch (err) {
     yield put(getError(err))

@@ -33,13 +33,15 @@ import {
   EDIT_PROJECT_SUCCESS,
   LOAD_PROJECT_NAME_VALUE,
   LOAD_PROJECT_NAME_VALUE_SUCCESS,
+  LOAD_PROJECT_NAME_VALUE_ERROR,
   GET_ERROR
 } from './constants'
 
 const initialState = fromJS({
   projects: false,
   error: false,
-  modalLoading: false
+  modalLoading: false,
+  projectNameExited: false
 })
 
 export function projectReducer (state = initialState, { type, payload }) {
@@ -77,10 +79,13 @@ export function projectReducer (state = initialState, { type, payload }) {
         .set('projects', projects.slice())
         .set('modalLoading', false)
     case LOAD_PROJECT_NAME_VALUE:
-      return state
+      return state.set('projectNameExited', false)
     case LOAD_PROJECT_NAME_VALUE_SUCCESS:
       payload.resolve()
-      return state
+      return state.set('projectNameExited', false)
+    case LOAD_PROJECT_NAME_VALUE_ERROR:
+      payload.reject()
+      return state.set('projectNameExited', true)
     case GET_ERROR:
       payload.final && payload.final()
       return state

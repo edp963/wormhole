@@ -18,10 +18,10 @@
  * >>
  */
 
-export const env = 'production'
-
-export default {
-  production: {
-    host: ''
-  }
-}
+// export const env = 'production'
+//
+// export default {
+//   production: {
+//     host: window._RIDER_PRODUCTION_HOST
+//   }
+// }

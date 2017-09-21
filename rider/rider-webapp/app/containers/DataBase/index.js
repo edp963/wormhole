@@ -36,7 +36,7 @@ import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
 import { loadDatabases, addDatabase, editDatabase, loadDatabasesInstance, loadNameExist, loadSingleDatabase } from './action'
-import { selectDatabases, selectError, selectModalLoading } from './selectors'
+import { selectDatabases, selectError, selectModalLoading, selectDatabaseNameExited, selectDbUrlValue } from './selectors'
 
 export class DataBase extends React.PureComponent {
   constructor (props) {
@@ -70,9 +70,7 @@ export class DataBase extends React.PureComponent {
       filterDropdownVisibleUpdateTime: false,
 
       editDatabaseData: {},
-      databaseUrlValue: [],
-      databaseDSType: '',
-      databaseNameExited: false
+      databaseDSType: ''
     }
   }
 
@@ -168,7 +166,8 @@ export class DataBase extends React.PureComponent {
   resetModal = () => this.dBForm.resetFields()
 
   onModalOk = () => {
-    const { formType, databaseNameExited, editDatabaseData } = this.state
+    const { formType, editDatabaseData } = this.state
+    const { databaseNameExited } = this.props
 
     this.dBForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -184,7 +183,7 @@ export class DataBase extends React.PureComponent {
             if (values.config === undefined || (values.config.indexOf('service_name') < 0)) {
               this.dBForm.setFields({
                 config: {
-                  errors: [new Error('Oracle 时，Config 必须包含"service_name"字段')]
+                  errors: [new Error('Oracle 时, Config 为包含 "service_name" 字段的JSON对象')]
                 }
               })
             } else {
@@ -353,9 +352,8 @@ export class DataBase extends React.PureComponent {
    *  新增时，通过选择不同的 data system 显示不同的 Connection url内容
    * */
   onInitDatabaseUrlValue = (value) => {
-    this.props.onLoadDatabasesInstance(value, (result) => {
+    this.props.onLoadDatabasesInstance(value, () => {
       this.setState({
-        databaseUrlValue: result,
         databaseDSType: value
       })
       // dbForm 的 placeholder
@@ -364,10 +362,15 @@ export class DataBase extends React.PureComponent {
         instance: '',
         permission: '',
         nsDatabase: '',
+        user: '',
+        password: '',
         userRequired: '',
-        passwordRequired: ''
+        passwordRequired: '',
+        partition: '',
+        config: '',
+        description: ''
       })
-    }, () => {})
+    })
   }
 
   /***
@@ -381,19 +384,12 @@ export class DataBase extends React.PureComponent {
       nsDatabaseName: value,
       dsType: this.state.databaseDSType
     }
-    this.props.onLoadNameExist(requestValues, () => {
-      this.setState({
-        databaseNameExited: false
-      })
-    }, () => {
+    this.props.onLoadNameExist(requestValues, () => {}, () => {
       this.dBForm.setFields({
         nsDatabase: {
           value: value,
           errors: [new Error('该 Name 已存在')]
         }
-      })
-      this.setState({
-        databaseNameExited: true
       })
     })
   }
@@ -645,7 +641,6 @@ export class DataBase extends React.PureComponent {
     }, {
       title: 'Action',
       key: 'action',
-      width: 100,
       className: 'text-align-center',
       render: (text, record) => {
         const nsSysKafka = record.nsSys === 'kafka'
@@ -749,7 +744,7 @@ export class DataBase extends React.PureComponent {
           <DBForm
             databaseFormType={this.state.formType}
             onInitDatabaseUrlValue={this.onInitDatabaseUrlValue}
-            databaseUrlValue={this.state.databaseUrlValue}
+            databaseUrlValue={this.props.dbUrlValue}
             onInitDatabaseInputValue={this.onInitDatabaseInputValue}
             onInitDatabaseConfigValue={this.onInitDatabaseConfigValue}
             ref={(f) => { this.dBForm = f }}
@@ -762,6 +757,11 @@ export class DataBase extends React.PureComponent {
 
 DataBase.propTypes = {
   modalLoading: React.PropTypes.bool,
+  databaseNameExited: React.PropTypes.bool,
+  dbUrlValue: React.PropTypes.oneOfType([
+    React.PropTypes.bool,
+    React.PropTypes.array
+  ]),
   onLoadDatabases: React.PropTypes.func,
   onAddDatabase: React.PropTypes.func,
   onEditDatabase: React.PropTypes.func,
@@ -775,7 +775,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadDatabases: (resolve) => dispatch(loadDatabases(resolve)),
     onAddDatabase: (database, resolve) => dispatch(addDatabase(database, resolve)),
     onEditDatabase: (database, resolve) => dispatch(editDatabase(database, resolve)),
-    onLoadDatabasesInstance: (value, resolve, reject) => dispatch(loadDatabasesInstance(value, resolve, reject)),
+    onLoadDatabasesInstance: (value, resolve) => dispatch(loadDatabasesInstance(value, resolve)),
     onLoadNameExist: (value, resolve, reject) => dispatch(loadNameExist(value, resolve, reject)),
     onLoadSingleDatabase: (databaseId, resolve) => dispatch(loadSingleDatabase(databaseId, resolve))
   }
@@ -784,7 +784,9 @@ export function mapDispatchToProps (dispatch) {
 const mapStateToProps = createStructuredSelector({
   databases: selectDatabases(),
   error: selectError(),
-  modalLoading: selectModalLoading()
+  modalLoading: selectModalLoading(),
+  databaseNameExited: selectDatabaseNameExited(),
+  dbUrlValue: selectDbUrlValue()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(DataBase)

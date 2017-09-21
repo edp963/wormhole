@@ -54,6 +54,7 @@ import {
   sinkTypeNamespaceLoaded,
   tranSinkTypeNamespaceLoaded,
   sourceToSinkExistLoaded,
+  sourceToSinkExistErrorLoaded,
   flowAdded,
   userFlowOperated,
   operateFlowError,
@@ -138,7 +139,11 @@ export function* getSelectStreamKafkaTopicWatcher () {
 export function* getSourceTypeNamespace ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/streams/${payload.streamId}/namespaces?${payload.type}=${payload.value}`)
-    yield put(sourceSinkTypeNamespaceLoaded(result.payload, payload.resolve))
+    if (result.code) {
+      return
+    } else if (result.header.code || result.header.code === 200) {
+      yield put(sourceSinkTypeNamespaceLoaded(result.payload, payload.resolve))
+    }
   } catch (err) {
     notifySagasError(err, 'getSourceTypeNamespace')
   }
@@ -151,7 +156,11 @@ export function* getSourceTypeNamespaceWatcher () {
 export function* getSinkTypeNamespace ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/streams/${payload.streamId}/namespaces?${payload.type}=${payload.value}`)
-    yield put(sinkTypeNamespaceLoaded(result.payload, payload.resolve))
+    if (result.code) {
+      return
+    } else if (result.header.code || result.header.code === 200) {
+      yield put(sinkTypeNamespaceLoaded(result.payload, payload.resolve))
+    }
   } catch (err) {
     notifySagasError(err, 'getSinkTypeNamespace')
   }
@@ -164,7 +173,11 @@ export function* getSinkTypeNamespaceWatcher () {
 export function* getTranSinkTypeNamespace ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/streams/${payload.streamId}/namespaces?${payload.type}=${payload.value}`)
-    yield put(tranSinkTypeNamespaceLoaded(result.payload, payload.resolve))
+    if (result.code) {
+      return
+    } else if (result.header.code || result.header.code === 200) {
+      yield put(tranSinkTypeNamespaceLoaded(result.payload, payload.resolve))
+    }
   } catch (err) {
     notifySagasError(err, 'getTranSinkTypeNamespace')
   }
@@ -183,7 +196,7 @@ export function* getSourceToSink ({ payload }) {
     if (result.code === 200) {
       yield put(sourceToSinkExistLoaded(result.msg, payload.resolve))
     } else {
-      yield put(sourceToSinkExistLoaded(result.msg, payload.reject))
+      yield put(sourceToSinkExistErrorLoaded(result.msg, payload.reject))
     }
   } catch (err) {
     notifySagasError(err, 'getSourceToSink')

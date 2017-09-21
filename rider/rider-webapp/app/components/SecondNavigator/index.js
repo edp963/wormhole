@@ -28,7 +28,6 @@ import Icon from 'antd/lib/icon'
 const MenuItem = Menu.Item
 
 import { loadSingleProject } from '../../containers/Project/action'
-import { editroleTypeUserPsw } from '../../containers/User/action'
 import { selectCurrentProject } from '../../containers/App/selectors'
 import { setProject } from '../../containers/App/actions'
 
@@ -55,22 +54,24 @@ class SecondNavigator extends React.Component {
     if (props.currentProject !== props.params.projectId) {
       this.handleSecondNavState(props)
     }
+    this.secondNavLight()
   }
 
   // 默认高亮的二级菜单
   handleSecondNavState = (props) => {
     props.onSetProject(props.params.projectId || '')
-
-    const routes = props.router.routes
-    this.state.selectedKey = routes[routes.length - 1].name
+    this.secondNavLight()
   }
 
   secondNavClick = (e) => {
     const { router } = this.props
     router.push(`/project/${this.props.params.projectId}/${e.key}`)
+    this.secondNavLight()
+  }
 
-    // 二级菜单高亮
-    const routes = router.routes
+  // 二级菜单高亮
+  secondNavLight () {
+    const routes = this.props.router.routes
     this.state.selectedKey = routes[routes.length - 1].name
   }
 
@@ -89,7 +90,7 @@ class SecondNavigator extends React.Component {
           className="second-ri-menu"
           mode="horizontal"
           theme="dark"
-          selectedKeys={[this.state.selectedKey]}
+          selectedKeys={[selectedKey]}
           onClick={this.secondNavClick}>
 
           <MenuItem key="workbench" className={`ri-menu-item ri-menu-item-extra ${secondNavSelectedClass[0]}`}>
@@ -107,9 +108,7 @@ class SecondNavigator extends React.Component {
 export function mapDispatchToProps (dispatch) {
   return {
     onSetProject: (projectId) => dispatch(setProject(projectId)),
-    onLoadSingleProject: (id, resolve) => dispatch(loadSingleProject(id, resolve)),
-    onEditroleTypeUserPsw: (oldPassword, password, resolve) => dispatch(editroleTypeUserPsw(oldPassword, password, resolve))
-
+    onLoadSingleProject: (id, resolve) => dispatch(loadSingleProject(id, resolve))
   }
 }
 

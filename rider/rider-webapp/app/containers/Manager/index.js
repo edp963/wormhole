@@ -41,7 +41,7 @@ import message from 'antd/lib/message'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream, loadOffset, chuckAwayTopic, editTopics, loadLogsInfo, loadAdminLogsInfo} from './action'
+import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream, loadAdminOffset, loadOffset, chuckAwayTopic, editTopics, loadLogsInfo, loadAdminLogsInfo} from './action'
 import {selectStreams} from './selectors'
 
 export class Manager extends React.Component {
@@ -60,7 +60,6 @@ export class Manager extends React.Component {
       selectedRowKeys: [],
 
       editModalVisible: false,
-      editModalStatus: '',
       logsModalVisible: false,
       startModalVisible: false,
       showStreamOffset: [],
@@ -163,11 +162,20 @@ export class Manager extends React.Component {
       }, () => {
         // 频繁使用的组件，手动清除数据，避免出现闪现上一条数据
         this.props.onChuckAwayTopic()
-        this.props.onLoadOffset(this.props.projectIdGeted, stream.id, (result) => {
-          this.setState({
-            showStreamOffset: result
+
+        if (localStorage.getItem('loginRoleType') === 'admin') {
+          this.props.onLoadAdminOffset(stream.projectId, stream.id, (result) => {
+            this.setState({
+              showStreamOffset: result
+            })
           })
-        })
+        } else if (localStorage.getItem('loginRoleType') === 'user') {
+          this.props.onLoadOffset(stream.projectId, stream.id, (result) => {
+            this.setState({
+              showStreamOffset: result
+            })
+          })
+        }
       })
     }
   }
@@ -190,6 +198,7 @@ export class Manager extends React.Component {
     })
   }
 
+  // user role type
   loadOffsetData (record) {
     this.props.onLoadOffset(this.props.projectIdGeted, record.id, (result) => {
       this.setState({
@@ -785,28 +794,8 @@ export class Manager extends React.Component {
             strStop = strStopDisabled
           }
 
-          // s.id = uuid()
-          const topicDetail = this.state.showStreamOffset
-            ? this.state.showStreamOffset.map(s => (<li key={s.id}>
-              <strong>Topic Name：</strong>{s.name}<strong>；Offset：</strong>{s.partitionOffsets}</li>)
-            )
-            : null
-
           streamActionSelect = (
             <span>
-              <Tooltip title="查看 Topic">
-                <Popover
-                  placement="left"
-                  content={<div>{topicDetail}</div>}
-                  title={<h3>Topic</h3>}
-                  trigger="click"
-                  onVisibleChange={this.handleVisibleChange(stream)}>
-                  <Button shape="circle" type="ghost">
-                    <i className="iconfont icon-topiconresourcelist"></i>
-                  </Button>
-                </Popover>
-              </Tooltip>
-
               <Tooltip title="修改">
                 <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditStream(record)}></Button>
               </Tooltip>
@@ -824,12 +813,19 @@ export class Manager extends React.Component {
           )
         }
 
+        // s.id = uuid()
+        const topicDetail = this.state.showStreamOffset
+          ? this.state.showStreamOffset.map(s => (<li key={s.id}>
+            <strong>Topic Name：</strong>{s.name}<strong>；Offset：</strong>{s.partitionOffsets}</li>)
+          )
+          : null
+
         return (
           <span className="ant-table-action-column">
             <Tooltip title="查看详情">
               <Popover
                 placement="left"
-                content={<div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
+                content={<div className="stream-detail">
                   <p><strong>   Project Id：</strong>{record.projectId}</p>
                   <p><strong>   Description：</strong>{record.desc}</p>
                   <p><strong>   Kafka Connection：</strong>{record.kafkaConnection}</p>
@@ -845,6 +841,18 @@ export class Manager extends React.Component {
                 title={<h3>详情</h3>}
                 trigger="click">
                 <Button icon="file-text" shape="circle" type="ghost"></Button>
+              </Popover>
+            </Tooltip>
+            <Tooltip title="查看 Topic">
+              <Popover
+                placement="left"
+                content={<div>{topicDetail}</div>}
+                title={<h3>Topic</h3>}
+                trigger="click"
+                onVisibleChange={this.handleVisibleChange(stream)}>
+                <Button shape="circle" type="ghost">
+                  <i className="iconfont icon-topiconresourcelist"></i>
+                </Button>
               </Popover>
             </Tooltip>
             {streamActionSelect}
@@ -976,6 +984,7 @@ Manager.propTypes = {
   onShowAddStream: React.PropTypes.func,
   onOperateStream: React.PropTypes.func,
   onStartOrRenewStream: React.PropTypes.func,
+  onLoadAdminOffset: React.PropTypes.func,
   onLoadOffset: React.PropTypes.func,
   onChuckAwayTopic: React.PropTypes.func,
   onLoadLogsInfo: React.PropTypes.func,
@@ -991,6 +1000,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadAdminSingleStream: (projectId, resolve) => dispatch(loadAdminSingleStream(projectId, resolve)),
     onOperateStream: (projectId, id, action, resolve, reject) => dispatch(operateStream(projectId, id, action, resolve, reject)),
     onStartOrRenewStream: (projectId, id, topicResult, action, resolve, reject) => dispatch(startOrRenewStream(projectId, id, topicResult, action, resolve, reject)),
+    onLoadAdminOffset: (projectId, streamId, resolve) => dispatch(loadAdminOffset(projectId, streamId, resolve)),
     onLoadOffset: (projectId, streamId, resolve) => dispatch(loadOffset(projectId, streamId, resolve)),
     onChuckAwayTopic: () => dispatch(chuckAwayTopic()),
     onEditTopics: (projectId, streamId, values, resolve) => dispatch(editTopics(projectId, streamId, values, resolve)),

@@ -31,6 +31,7 @@ import {
   LOAD_NAMESPACE_DATABASE_SUCCESS,
   LOAD_TABLE_NAME_EXIST,
   LOAD_TABLE_NAME_EXIST_SUCCESS,
+  LOAD_TABLE_NAME_EXIST_ERROR,
   ADD_NAMESPACE,
   ADD_NAMESPACE_SUCCESS,
   LOAD_SINGLE_NAMESPACE,
@@ -46,7 +47,8 @@ import {
 const initialState = fromJS({
   namespaces: false,
   error: false,
-  modalLoading: false
+  modalLoading: false,
+  tableNameExited: false
 })
 
 export function namespaceReducer (state = initialState, { type, payload }) {
@@ -73,10 +75,13 @@ export function namespaceReducer (state = initialState, { type, payload }) {
       payload.resolve(payload.database)
       return state
     case LOAD_TABLE_NAME_EXIST:
-      return state
+      return state.set('tableNameExited', false)
     case LOAD_TABLE_NAME_EXIST_SUCCESS:
-      payload.resolve(payload.result)
-      return state
+      payload.resolve()
+      return state.set('tableNameExited', false)
+    case LOAD_TABLE_NAME_EXIST_ERROR:
+      payload.reject()
+      return state.set('tableNameExited', true)
     case ADD_NAMESPACE:
       return state
         .set('error', false)

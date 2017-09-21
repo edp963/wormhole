@@ -35,9 +35,10 @@ import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
 import { loadDatabasesInstance } from '../../containers/DataBase/action'
+import { selectDbUrlValue } from '../../containers/DataBase/selectors'
 import { loadSingleInstance } from '../../containers/Instance/action'
 import { loadAdminAllNamespaces, loadUserNamespaces, loadSelectNamespaces, loadNamespaceDatabase, addNamespace, editNamespace, loadTableNameExist, loadSingleNamespace } from './action'
-import { selectNamespaces, selectError, selectModalLoading } from './selectors'
+import { selectNamespaces, selectError, selectModalLoading, selectTableNameExited } from './selectors'
 
 export class Namespace extends React.PureComponent {
   constructor (props) {
@@ -76,12 +77,10 @@ export class Namespace extends React.PureComponent {
       updateEndTimeText: '',
       filterDropdownVisibleUpdateTime: false,
 
-      tableNameExited: false,
-      namespaceUrlValue: [],
       databaseSelectValue: [],
       deleteTableClass: 'hide',
       addTableClass: '',
-      addTableClassTable: '',
+      addTableClassTable: 'hide',
       addBtnDisabled: false,
       count: 0,
       namespaceTableSource: [],
@@ -217,7 +216,7 @@ export class Namespace extends React.PureComponent {
       formVisible: true,
       namespaceFormType: 'add',
       addTableClass: '',
-      addTableClassTable: '',
+      addTableClassTable: 'hide',
       addBtnDisabled: false
     })
   }
@@ -308,63 +307,110 @@ export class Namespace extends React.PureComponent {
     })
   }
 
+  nsErrorMsg = (msg) => {
+    this.namespaceForm.setFields({
+      nsTables: {
+        errors: [new Error(msg)]
+      }
+    })
+  }
+
+  nsAdd = (value) => {
+    this.props.onAddNamespace(value, () => {
+      this.hideForm()
+      message.success('Namespace 添加成功！', 3)
+    })
+  }
+
   onModalOk = () => {
-    const { namespaceTableSource, databaseSelectValue, namespaceFormType, tableNameExited, exitedNsTableValue, editNamespaceData } = this.state
+    const { namespaceTableSource, databaseSelectValue, namespaceFormType, exitedNsTableValue, editNamespaceData } = this.state
+    const { tableNameExited } = this.props
 
     this.namespaceForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        const selDatabase = databaseSelectValue.find(s => s.id === Number(values.nsDatabase))
+        if (tableNameExited === true) {
+          this.nsErrorMsg(`${exitedNsTableValue} 已存在`)
+        } else {
+          const selDatabase = databaseSelectValue.find(s => s.id === Number(values.nsDatabase))
+          const addTableValue = values.nsSingleTableName
+          const addKeyValue = values.nsSingleKeyValue
 
-        if (namespaceFormType === 'add') {
-          let requestNsTables = []
-          if (namespaceTableSource.length === 0) {
-            this.namespaceForm.setFields({
-              nsTables: {
-                errors: [new Error('Tables 暂无数据')]
-              }
-            })
-          } else if (tableNameExited === true) {
-            this.namespaceForm.setFields({
-              nsTables: {
-                errors: [new Error(`${exitedNsTableValue} 已存在`)]
-              }
-            })
-          } else {
-            namespaceTableSource.map(i => {
-              requestNsTables.push({
-                table: i.nsModalTable,
-                key: i.nsModalKey
-              })
-              return i
-            })
-
-            const addValues = {
+          if (namespaceFormType === 'add') {
+            let requestNsTables = []
+            let requestOthers = {
               nsDatabase: selDatabase.nsDatabase,
               nsDatabaseId: Number(values.nsDatabase),
               nsInstance: values.instance,
               nsInstanceId: Number(values.connectionUrl),
-              nsSys: values.dataBaseDataSystem,
-              nsTables: requestNsTables
+              nsSys: values.dataBaseDataSystem
             }
 
-            this.props.onAddNamespace(addValues, () => {
-              this.hideForm()
-              message.success('Namespace 添加成功！', 3)
-            })
-          }
-        } else if (namespaceFormType === 'edit') {
-          const editKeysValue = values.nsSingleKeyValue
-          if (editKeysValue === '') {
-            this.namespaceForm.setFields({
-              nsTables: {
-                errors: [new Error('请填写 Key')]
+            if (namespaceTableSource.length === 0) {
+              if (addTableValue === undefined || addTableValue === '') {
+                this.nsErrorMsg('请填写 Table')
+              } else if (addKeyValue === undefined || addKeyValue === '') {
+                this.nsErrorMsg('请填写 Key')
+              } else {
+                this.namespaceForm.setFields({
+                  nsTables: {
+                    errors: []
+                  }
+                })
+                requestNsTables = [{
+                  table: addTableValue,
+                  key: addKeyValue
+                }]
+
+                const addValues = Object.assign({}, requestOthers, { nsTables: requestNsTables })
+                this.nsAdd(addValues)
               }
-            })
-          } else {
-            this.props.onEditNamespace(Object.assign({}, editNamespaceData, { keys: editKeysValue }), () => {
-              this.hideForm()
-              message.success('Namespace 修改成功！', 3)
-            })
+            } else {
+              if ((addTableValue === '' && addKeyValue !== '') || (addTableValue !== '' && addKeyValue === '')) {
+                this.nsErrorMsg('Table & Key 填写同步')
+              } else if (addTableValue === '' && addKeyValue === '') {
+                namespaceTableSource.map(i => {
+                  requestNsTables.push({
+                    table: i.nsModalTable,
+                    key: i.nsModalKey
+                  })
+                  return i
+                })
+
+                const addValues = Object.assign({}, requestOthers, { nsTables: requestNsTables })
+                this.nsAdd(addValues)
+              } else if (addTableValue !== '' && addKeyValue !== '') {
+                namespaceTableSource.map(i => {
+                  requestNsTables.push({
+                    table: i.nsModalTable,
+                    key: i.nsModalKey
+                  })
+                  return i
+                })
+
+                requestNsTables.push({
+                  table: addTableValue,
+                  key: addKeyValue
+                })
+
+                if (namespaceTableSource.find(i => i.nsModalTable === addTableValue)) {
+                  this.nsErrorMsg('Table 重名')
+                } else {
+                  const addValues = Object.assign({}, requestOthers, { nsTables: requestNsTables })
+                  this.nsAdd(addValues)
+                }
+              }
+            }
+          } else if (namespaceFormType === 'edit') {
+            const editKeysValue = values.nsSingleKeyValue
+
+            if (editKeysValue === '') {
+              this.nsErrorMsg('请填写 Key')
+            } else {
+              this.props.onEditNamespace(Object.assign({}, editNamespaceData, { keys: editKeysValue }), () => {
+                this.hideForm()
+                message.success('Namespace 修改成功！', 3)
+              })
+            }
           }
         }
       }
@@ -377,7 +423,6 @@ export class Namespace extends React.PureComponent {
   onInitNamespaceUrlValue = (value) => {
     this.props.onLoadDatabasesInstance(value, (result) => {
       this.setState({
-        namespaceUrlValue: result,
         databaseSelectValue: []
       })
       // namespaceForm 的 placeholder
@@ -387,7 +432,7 @@ export class Namespace extends React.PureComponent {
         nsDatabase: undefined
       })
       this.cleanNsTableData()
-    }, () => {})
+    })
   }
 
   /***
@@ -412,44 +457,31 @@ export class Namespace extends React.PureComponent {
     namespaceTableSource.splice(index, 1)
     this.setState({
       namespaceTableSource: [...namespaceTableSource]
+    }, () => {
+      if (namespaceTableSource.length === 0) {
+        this.setState({
+          addTableClassTable: 'hide'
+        })
+      }
     })
   }
 
   onAddTable = () => {
-    const { count, namespaceTableSource, tableNameExited, exitedNsTableValue } = this.state
+    const { count, namespaceTableSource, exitedNsTableValue } = this.state
+    const { tableNameExited } = this.props
 
     const moadlTempVal = this.namespaceForm.getFieldsValue()
 
     if (moadlTempVal.dataBaseDataSystem === undefined || moadlTempVal.connectionUrl === undefined || moadlTempVal.instance === undefined || moadlTempVal.nsDatabase === undefined) {
-      this.namespaceForm.setFields({
-        nsTables: {
-          errors: [new Error('请先选择其他项')]
-        }
-      })
+      this.nsErrorMsg('请先选择其他项')
     } else if (moadlTempVal.nsSingleTableName === '' || moadlTempVal.nsSingleTableName === undefined) {
-      this.namespaceForm.setFields({
-        nsTables: {
-          errors: [new Error('请填写 Table')]
-        }
-      })
+      this.nsErrorMsg('请填写 Table')
     } else if (tableNameExited === true) {
-      this.namespaceForm.setFields({
-        nsTables: {
-          errors: [new Error(`${exitedNsTableValue} 已存在`)]
-        }
-      })
+      this.nsErrorMsg(`${exitedNsTableValue} 已存在`)
     } else if (namespaceTableSource.find(i => i.nsModalTable === moadlTempVal.nsSingleTableName)) {
-      this.namespaceForm.setFields({
-        nsTables: {
-          errors: [new Error('Table 重名')]
-        }
-      })
+      this.nsErrorMsg('Table 重名')
     } else if (moadlTempVal.nsSingleKeyValue === '' || moadlTempVal.nsSingleKeyValue === undefined) {
-      this.namespaceForm.setFields({
-        nsTables: {
-          errors: [new Error('请填写 Key')]
-        }
-      })
+      this.nsErrorMsg('请填写 Key')
     } else {
       const nsTableSourceTemp = {
         key: count,
@@ -460,7 +492,8 @@ export class Namespace extends React.PureComponent {
       this.setState({
         namespaceTableSource: [...namespaceTableSource, nsTableSourceTemp],
         count: count + 1,
-        deleteTableClass: ''
+        deleteTableClass: '',
+        addTableClassTable: ''
       }, () => {
         this.namespaceForm.setFieldsValue({
           nsSingleTableName: '',
@@ -486,25 +519,30 @@ export class Namespace extends React.PureComponent {
     }
 
     this.props.onLoadTableNameExist(requestValues, () => {
-      this.setState({
-        tableNameExited: false
-      })
       this.namespaceForm.setFields({
         nsTables: {
           errors: []
         }
       })
     }, () => {
-      this.namespaceForm.setFields({
-        nsTables: {
-          errors: [new Error(`${val} 已存在`)]
-        }
-      })
+      this.nsErrorMsg(`${val} 已存在`)
       this.setState({
-        tableNameExited: true,
         exitedNsTableValue: val
       })
     })
+  }
+
+  /**
+   * table key 不为空时
+   */
+  onInitNsKeyInputValue = (val) => {
+    if (val !== '') {
+      this.namespaceForm.setFields({
+        nsTables: {
+          errors: []
+        }
+      })
+    }
   }
 
   render () {
@@ -848,9 +886,10 @@ export class Namespace extends React.PureComponent {
           <NamespaceForm
             namespaceFormType={this.state.namespaceFormType}
             onInitNamespaceUrlValue={this.onInitNamespaceUrlValue}
-            namespaceUrlValue={this.state.namespaceUrlValue}
+            namespaceUrlValue={this.props.dbUrlValue}
             onInitDatabaseSelectValue={this.onInitDatabaseSelectValue}
             onInitNsNameInputValue={this.onInitNsNameInputValue}
+            onInitNsKeyInputValue={this.onInitNsKeyInputValue}
             databaseSelectValue={this.state.databaseSelectValue}
             namespaceTableSource={this.state.namespaceTableSource}
             deleteTableClass={this.state.deleteTableClass}
@@ -871,6 +910,11 @@ export class Namespace extends React.PureComponent {
 
 Namespace.propTypes = {
   modalLoading: React.PropTypes.bool,
+  tableNameExited: React.PropTypes.bool,
+  dbUrlValue: React.PropTypes.oneOfType([
+    React.PropTypes.bool,
+    React.PropTypes.array
+  ]),
   onLoadAdminAllNamespaces: React.PropTypes.func,
   onLoadUserNamespaces: React.PropTypes.func,
   projectIdGeted: React.PropTypes.string,
@@ -892,7 +936,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadSelectNamespaces: (projectId, resolve) => dispatch(loadSelectNamespaces(projectId, resolve)),
     onAddNamespace: (value, resolve) => dispatch(addNamespace(value, resolve)),
     onEditNamespace: (value, resolve) => dispatch(editNamespace(value, resolve)),
-    onLoadDatabasesInstance: (value, resolve, reject) => dispatch(loadDatabasesInstance(value, resolve, reject)),
+    onLoadDatabasesInstance: (value, resolve) => dispatch(loadDatabasesInstance(value, resolve)),
     onLoadNamespaceDatabase: (value, resolve) => dispatch(loadNamespaceDatabase(value, resolve)),
     onLoadTableNameExist: (value, resolve, reject) => dispatch(loadTableNameExist(value, resolve, reject)),
     onLoadSingleNamespace: (namespaceId, resolve) => dispatch(loadSingleNamespace(namespaceId, resolve)),
@@ -903,7 +947,9 @@ export function mapDispatchToProps (dispatch) {
 const mapStateToProps = createStructuredSelector({
   namespaces: selectNamespaces(),
   error: selectError(),
-  modalLoading: selectModalLoading()
+  modalLoading: selectModalLoading(),
+  tableNameExited: selectTableNameExited(),
+  dbUrlValue: selectDbUrlValue()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Namespace)

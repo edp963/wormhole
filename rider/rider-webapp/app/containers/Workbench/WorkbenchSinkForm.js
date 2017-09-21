@@ -33,10 +33,7 @@ export class WorkbenchSinkForm extends React.PureComponent {
   constructor (props) {
     super(props)
     this.state = {
-      configModalVisible: false,
-      sinkMode: '',
-      configColor: '',
-      configIcon: 'minus-circle-o'
+      sinkMode: ''
     }
   }
 

@@ -25,11 +25,14 @@ import {
   LOAD_ADMIN_ALL_STREAMS_SUCCESS,
   LOAD_ADMIN_SINGLE_STREAM,
   LOAD_ADMIN_SINGLE_STREAM_SUCCESS,
+  LOAD_ADMIN_OFFSET,
+  LOAD_ADMIN_OFFSET_SUCCESS,
   LOAD_OFFSET,
   LOAD_OFFSET_SUCCESS,
   CHUCKAWAY_TOPIC,
   LOAD_STREAM_NAME_VALUE,
   LOAD_STREAM_NAME_VALUE_SUCCESS,
+  LOAD_STREAM_NAME_VALUE_ERROR,
   LOAD_KAFKA,
   LOAD_KAFKA_SUCCESS,
   LOAD_STREAM_CONFIG_JVM,
@@ -58,7 +61,8 @@ import { fromJS } from 'immutable'
 
 const initialState = fromJS({
   streams: false,
-  streamSubmitLoading: false
+  streamSubmitLoading: false,
+  streamNameExited: false
 })
 
 function streamReducer (state = initialState, { type, payload }) {
@@ -79,6 +83,11 @@ function streamReducer (state = initialState, { type, payload }) {
     case LOAD_ADMIN_SINGLE_STREAM_SUCCESS:
       payload.resolve()
       return state.set('streams', payload.stream)
+    case LOAD_ADMIN_OFFSET:
+      return state
+    case LOAD_ADMIN_OFFSET_SUCCESS:
+      payload.resolve(payload.result)
+      return state
     case LOAD_OFFSET:
       return state
     case LOAD_OFFSET_SUCCESS:
@@ -88,10 +97,13 @@ function streamReducer (state = initialState, { type, payload }) {
       // payload.resolve(payload.result)
       return state
     case LOAD_STREAM_NAME_VALUE:
-      return state
+      return state.set('streamNameExited', false)
     case LOAD_STREAM_NAME_VALUE_SUCCESS:
-      payload.resolve(payload.result)
-      return state
+      payload.resolve()
+      return state.set('streamNameExited', false)
+    case LOAD_STREAM_NAME_VALUE_ERROR:
+      payload.reject()
+      return state.set('streamNameExited', true)
     case LOAD_KAFKA:
       return state
     case LOAD_KAFKA_SUCCESS:

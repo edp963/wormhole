@@ -25,11 +25,14 @@ import {
   LOAD_ADMIN_ALL_STREAMS_SUCCESS,
   LOAD_ADMIN_SINGLE_STREAM,
   LOAD_ADMIN_SINGLE_STREAM_SUCCESS,
+  LOAD_ADMIN_OFFSET,
+  LOAD_ADMIN_OFFSET_SUCCESS,
   LOAD_OFFSET,
   LOAD_OFFSET_SUCCESS,
   CHUCKAWAY_TOPIC,
   LOAD_STREAM_NAME_VALUE,
   LOAD_STREAM_NAME_VALUE_SUCCESS,
+  LOAD_STREAM_NAME_VALUE_ERROR,
   LOAD_KAFKA,
   LOAD_KAFKA_SUCCESS,
   LOAD_STREAM_CONFIG_JVM,
@@ -114,6 +117,27 @@ export function adminSingleStreamLoaded (stream, resolve) {
   }
 }
 
+export function loadAdminOffset (projectId, streamId, resolve) {
+  return {
+    type: LOAD_ADMIN_OFFSET,
+    payload: {
+      projectId,
+      streamId,
+      resolve
+    }
+  }
+}
+
+export function adminOffsetLoaded (result, resolve) {
+  return {
+    type: LOAD_ADMIN_OFFSET_SUCCESS,
+    payload: {
+      result,
+      resolve
+    }
+  }
+}
+
 export function loadOffset (projectId, streamId, resolve) {
   return {
     type: LOAD_OFFSET,
@@ -153,12 +177,21 @@ export function loadStreamNameValue (projectId, value, resolve, reject) {
   }
 }
 
-export function streamNameValueLoaded (result, resolve, reject) {
+export function streamNameValueLoaded (result, resolve) {
   return {
     type: LOAD_STREAM_NAME_VALUE_SUCCESS,
     payload: {
       result,
-      resolve,
+      resolve
+    }
+  }
+}
+
+export function streamNameValueErrorLoaded (result, reject) {
+  return {
+    type: LOAD_STREAM_NAME_VALUE_ERROR,
+    payload: {
+      result,
       reject
     }
   }

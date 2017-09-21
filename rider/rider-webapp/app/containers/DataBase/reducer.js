@@ -33,17 +33,21 @@ import {
   LOAD_DATABASES_INSTANCE_SUCCESS,
   LOAD_NAME_EXIST,
   LOAD_NAME_EXIST_SUCCESS,
+  LOAD_NAME_EXIST_ERROR,
   GET_ERROR
 } from './constants'
 
 const initialState = fromJS({
   databases: false,
   error: false,
-  modalLoading: false
+  modalLoading: false,
+  databaseNameExited: false,
+  dbUrlValue: false
 })
 
 export function databaseReducer (state = initialState, { type, payload }) {
   const databases = state.get('databases')
+
   switch (type) {
     case LOAD_DATABASES:
       return state.set('error', false)
@@ -76,13 +80,16 @@ export function databaseReducer (state = initialState, { type, payload }) {
     case LOAD_DATABASES_INSTANCE:
       return state
     case LOAD_DATABASES_INSTANCE_SUCCESS:
-      payload.resolve(payload.result)
-      return state
+      payload.resolve()
+      return state.set('dbUrlValue', payload.result)
     case LOAD_NAME_EXIST:
-      return state
+      return state.set('databaseNameExited', false)
     case LOAD_NAME_EXIST_SUCCESS:
-      payload.resolve(payload.result)
-      return state
+      payload.resolve()
+      return state.set('databaseNameExited', false)
+    case LOAD_NAME_EXIST_ERROR:
+      payload.reject()
+      return state.set('databaseNameExited', true)
     case GET_ERROR:
       return state.set('error', payload.error)
     default:

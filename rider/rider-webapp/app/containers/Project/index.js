@@ -36,7 +36,7 @@ import Tooltip from 'antd/lib/tooltip'
 import message from 'antd/lib/message'
 
 import { selectCurrentProject } from '../App/selectors'
-import { selectProjects, selectModalLoading } from './selectors'
+import { selectProjects, selectModalLoading, selectProjectNameExited } from './selectors'
 import { selectNamespaces } from '../Namespace/selectors'
 import { selectUsers } from '../User/selectors'
 
@@ -51,13 +51,8 @@ export class Project extends React.Component {
       formVisible: false,
       projectFormType: 'add',
       projectResult: {},
-      projectNameExited: false,
       projectUserId: '',
       projectNsId: '',
-
-      selectedRowKeys: [],
-      selectType: 'default',
-      selectIcon: 'minus',
 
       projectNsTableDataSource: [],
       projectUsersTableDataSource: []
@@ -82,68 +77,13 @@ export class Project extends React.Component {
    * 新增时，验证 project name 是否存在
    * */
   onInitProjectNameInputValue = (value) => {
-    this.props.onLoadProjectNameInputValue(value, () => {
-      this.setState({
-        projectNameExited: false
-      })
-    }, () => {
+    this.props.onLoadProjectNameInputValue(value, () => {}, () => {
       this.projectForm.setFields({
         name: {
           value: value,
           errors: [new Error('该 Project Name 已存在')]
         }
       })
-      this.setState({
-        projectNameExited: true
-      })
-    })
-  }
-
-  /**
-   *  project namespace table 全选
-   */
-  onInitSwitch = (nsData) => {
-    const { selectType } = this.state
-
-    if (selectType === 'default') {
-      this.setState({
-        selectType: 'primary',
-        selectIcon: 'check'
-      })
-      this.setState({
-        selectedRowKeys: nsData.map(n => n.id)
-      })
-    } else if (selectType === 'primary') {
-      this.setState({
-        selectType: 'default',
-        selectIcon: 'minus'
-      })
-      this.setState({
-        selectedRowKeys: []
-      })
-    }
-  }
-
-  /**
-   * project namespace table selectedRowKeys
-   */
-  initSelectedRowKeys = (selectedRowKeys) => {
-    this.setState({
-      selectedRowKeys: selectedRowKeys
-    }, () => {
-      const { selectedRowKeys, projectNsTableDataSource } = this.state
-
-      if (selectedRowKeys.length === projectNsTableDataSource.length) {
-        this.setState({
-          selectType: 'primary',
-          selectIcon: 'check'
-        })
-      } else {
-        this.setState({
-          selectType: 'default',
-          selectIcon: 'minus'
-        })
-      }
     })
   }
 
@@ -196,14 +136,13 @@ export class Project extends React.Component {
             resMemoryG: result.resMemoryG
           })
 
-          // 回显 project modal 所有的 users
+          // 回显 project modal 所有的 users & 选中的 users
           this.props.onLoadProjectUserAll((result) => {
             this.setState({
               projectUsersTableDataSource: result
             })
           })
 
-          // 回显 project modal 选中的 users
           this.props.onLoadSelectUsers(project.id, (selectUsers) => {
             this.projectUsersTable.setState({
               selectedRowKeys: selectUsers.map(n => n.id)
@@ -211,32 +150,15 @@ export class Project extends React.Component {
           })
 
           // 回显 project modal 所有的 namespaces & 选中的 namespaces
-          new Promise((resolve) => {
-            this.props.onLoadProjectNsAll((result) => {
-              resolve(result)
-              this.setState({
-                projectNsTableDataSource: result
-              })
+          this.props.onLoadProjectNsAll((result) => {
+            this.setState({
+              projectNsTableDataSource: result
             })
-          }).then((result) => {
-            this.props.onLoadSelectNamespaces(project.id, (selectNamespaces) => {
-              this.setState({
-                selectedRowKeys: selectNamespaces.map(n => n.id)
-              }, () => {
-                const { selectedRowKeys } = this.state
+          })
 
-                if (selectedRowKeys.length === result.length) {
-                  this.setState({
-                    selectType: 'primary',
-                    selectIcon: 'check'
-                  })
-                } else {
-                  this.setState({
-                    selectType: 'default',
-                    selectIcon: 'minus'
-                  })
-                }
-              })
+          this.props.onLoadSelectNamespaces(project.id, (selectNamespaces) => {
+            this.projectNSTable.setState({
+              selectedRowKeys: selectNamespaces.map(n => n.id)
             })
           })
         })
@@ -245,12 +167,10 @@ export class Project extends React.Component {
 
   hideForm = () => {
     this.setState({
-      formVisible: false,
-      selectType: 'default',
-      selectIcon: 'minus'
+      formVisible: false
     })
     this.projectForm.resetFields()
-    this.setState({
+    this.projectNSTable.setState({
       selectedRowKeys: []
     })
     this.projectUsersTable.setState({
@@ -259,11 +179,12 @@ export class Project extends React.Component {
   }
 
   onModalOk = () => {
-    const { projectFormType, projectNameExited, projectResult } = this.state
+    const { projectFormType, projectResult } = this.state
+    const { projectNameExited } = this.props
 
     const userIds = this.projectUsersTable.state.selectedRowKeys.join(',')
 
-    const { selectedRowKeys } = this.state
+    const { selectedRowKeys } = this.projectNSTable.state
 
     if (selectedRowKeys.length === 0) {
       message.warning('请选择源表！', 3)
@@ -485,11 +406,6 @@ export class Project extends React.Component {
             <div className="ant-col-11">
               <ProjectNSTable
                 dataNameSpace={projectNsTableDataSource}
-                initSelectedRowKeys={this.initSelectedRowKeys}
-                onInitSwitch={this.onInitSwitch}
-                selectedRowKeys={this.state.selectedRowKeys}
-                selectType={this.state.selectType}
-                selectIcon={this.state.selectIcon}
                 ref={(f) => { this.projectNSTable = f }}
               />
             </div>
@@ -514,6 +430,7 @@ Project.propTypes = {
     React.PropTypes.bool
   ]),
   modalLoading: React.PropTypes.bool,
+  projectNameExited: React.PropTypes.bool,
   onLoadProjects: React.PropTypes.func,
   onLoadUserProjects: React.PropTypes.func,
   onLoadSingleProject: React.PropTypes.func,
@@ -547,6 +464,7 @@ const mapStateToProps = createStructuredSelector({
   currentProject: selectCurrentProject(),
   projects: selectProjects(),
   modalLoading: selectModalLoading(),
+  projectNameExited: selectProjectNameExited(),
   namespaces: selectNamespaces(),
   users: selectUsers()
 })
