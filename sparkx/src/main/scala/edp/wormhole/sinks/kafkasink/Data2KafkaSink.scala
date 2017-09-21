@@ -42,7 +42,7 @@ class Data2KafkaSink extends SinkProcessor with EdpLogging {
     logInfo("In Data2KafkaSink")
     WormholeKafkaProducer.init(connectionConfig.connectionUrl,connectionConfig.parameters)
     val sinkSpecificConfig=json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get)
-    val kafkaTopic=sinkSpecificConfig.kafkaSinkTopic.get
+    val kafkaTopic=sinkNamespace.split("\\.")(2)
     val kafkaLimitNum=sinkSpecificConfig.limitNum
     val schemaList: Seq[(String, (Int, UmsFieldType, Boolean))] =schemaMap.toSeq.sortBy(_._2._1)
     val seqUmsField: Seq[UmsField] =schemaList.map(kv=>UmsField(kv._1,kv._2._2,Some(kv._2._3)))
