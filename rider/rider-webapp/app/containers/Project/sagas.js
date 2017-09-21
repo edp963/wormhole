@@ -35,6 +35,7 @@ import {
   projectAdded,
   projectEdited,
   projectNameInputValueLoaded,
+  projectNameInputValueErrorLoaded,
   getError
 } from './action'
 
@@ -137,7 +138,7 @@ export function* getProjectNameInputValue ({ payload }) {
       url: `${api.projectList}?name=${payload.value}`
     })
     if (result.code === 409) {
-      yield put(projectNameInputValueLoaded(result.msg, payload.reject))
+      yield put(projectNameInputValueErrorLoaded(result.msg, payload.reject))
     } else {
       yield put(projectNameInputValueLoaded(result.payload, payload.resolve))
     }

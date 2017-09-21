@@ -40,9 +40,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
   constructor (props) {
     super(props)
     this.state = {
-      streamMode: '',
-      configColor: '',
-      configIcon: 'minus-circle-o'
+      streamMode: ''
     }
   }
 
@@ -182,10 +180,10 @@ export class WorkbenchStreamForm extends React.PureComponent {
           <Col span={24}>
             <FormItem label="Topics" {...itemStyle}>
               {getFieldDecorator('topics', {
-                // rules: [{
-                //   required: true,
-                //   message: '请选择 Topic'
-                // }]
+                rules: [{
+                  required: true,
+                  message: '请选择 Topic'
+                }]
               })(
                 <Select
                   mode="multiple"

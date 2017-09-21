@@ -18,24 +18,22 @@
  * >>
  */
 
-import config, { env } from '../globalConfig'
-
-const host = config[env].host
+const productionHost = window._RIDER_PRODUCTION_HOST
 
 export default {
-  login: `${host}/login`,
-  changepwd: `${host}/changepwd`,
-  projectList: `${host}/admin/projects`,
-  projectUserList: `${host}/user/projects`,
+  login: `${productionHost}/login`,
+  changepwd: `${productionHost}/changepwd`,
+  projectList: `${productionHost}/admin/projects`,
+  projectUserList: `${productionHost}/user/projects`,
 
-  instance: `${host}/admin/instances`,
-  database: `${host}/admin/databases`,
-  user: `${host}/admin/users`,
-  namespace: `${host}/admin/namespaces`,
-  flow: `${host}/admin/flows`,
-  stream: `${host}/admin/streams`,
-  riderInfo: `${host}/admin/riderInfo`,
+  instance: `${productionHost}/admin/instances`,
+  database: `${productionHost}/admin/databases`,
+  user: `${productionHost}/admin/users`,
+  namespace: `${productionHost}/admin/namespaces`,
+  flow: `${productionHost}/admin/flows`,
+  stream: `${productionHost}/admin/streams`,
+  riderInfo: `${productionHost}/admin/riderInfo`,
 
-  projectAdminStream: `${host}/admin/projects`,
-  projectStream: `${host}/user/projects`
+  projectAdminStream: `${productionHost}/admin/projects`,
+  projectStream: `${productionHost}/user/projects`
 }

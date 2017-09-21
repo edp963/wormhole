@@ -25,6 +25,7 @@ import {
   ADD_INSTANCE_SUCCESS,
   LOAD_INSTANCES_INPUT_VALUE,
   LOAD_INSTANCES_INPUT_VALUE_SUCCESS,
+  LOAD_INSTANCES_INPUT_VALUE_ERROR,
   LOAD_SINGLE_INSTANCE,
   LOAD_SINGLE_INSTANCE_SUCCESS,
   EDIT_INSTANCE,
@@ -122,12 +123,21 @@ export function loadInstanceInputValue (value, resolve, reject) {
   }
 }
 
-export function instanceInputValueLoaded (result, resolve, reject) {
+export function instanceInputValueLoaded (result, resolve) {
   return {
     type: LOAD_INSTANCES_INPUT_VALUE_SUCCESS,
     payload: {
       result,
-      resolve,
+      resolve
+    }
+  }
+}
+
+export function instanceInputValueErrorLoaded (result, reject) {
+  return {
+    type: LOAD_INSTANCES_INPUT_VALUE_ERROR,
+    payload: {
+      result,
       reject
     }
   }

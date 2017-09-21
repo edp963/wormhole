@@ -29,6 +29,7 @@ import {
   LOAD_NAMESPACE_DATABASE_SUCCESS,
   LOAD_TABLE_NAME_EXIST,
   LOAD_TABLE_NAME_EXIST_SUCCESS,
+  LOAD_TABLE_NAME_EXIST_ERROR,
   ADD_NAMESPACE,
   ADD_NAMESPACE_SUCCESS,
   LOAD_SINGLE_NAMESPACE,
@@ -131,12 +132,21 @@ export function loadTableNameExist (value, resolve, reject) {
   }
 }
 
-export function tableNameExistLoaded (result, resolve, reject) {
+export function tableNameExistLoaded (result, resolve) {
   return {
     type: LOAD_TABLE_NAME_EXIST_SUCCESS,
     payload: {
       result,
-      resolve,
+      resolve
+    }
+  }
+}
+
+export function tableNameExistErrorLoaded (result, reject) {
+  return {
+    type: LOAD_TABLE_NAME_EXIST_ERROR,
+    payload: {
+      result,
       reject
     }
   }

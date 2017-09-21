@@ -36,7 +36,7 @@ import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
 import { loadInstances, addInstance, loadInstanceInputValue, loadSingleInstance, editInstance } from './action'
-import { selectInstances, selectError, selectModalLoading } from './selectors'
+import { selectInstances, selectError, selectModalLoading, selectConnectUrlExisted } from './selectors'
 
 export class Instance extends React.PureComponent {
   constructor (props) {
@@ -67,9 +67,7 @@ export class Instance extends React.PureComponent {
       updateEndTimeText: '',
       filterDropdownVisibleUpdateTime: false,
 
-      instanceTargetValue: '',
       editInstanceData: {},
-
       InstanceSourceDsVal: ''
     }
   }
@@ -149,14 +147,29 @@ export class Instance extends React.PureComponent {
   }
 
   onModalOk = () => {
+    const { instanceFormType } = this.state
+    const { connectUrlExisted } = this.props
+
     this.instanceForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        if (this.state.instanceFormType === 'add') {
-          this.props.onAddInstance(values, () => {
-            this.hideForm()
-            message.success('Instance 添加成功！', 3)
-          })
-        } else if (this.state.instanceFormType === 'edit') {
+        if (instanceFormType === 'add') {
+          if (connectUrlExisted === true) {
+            this.instanceForm.setFields({
+              connectionUrl: {
+                value: values.connectionUrl,
+                errors: [new Error('该 Connection URL 已存在')]
+              },
+              instance: {
+                value: ''
+              }
+            })
+          } else {
+            this.props.onAddInstance(values, () => {
+              this.hideForm()
+              message.success('Instance 添加成功！', 3)
+            })
+          }
+        } else if (instanceFormType === 'edit') {
           this.props.onEditInstance(Object.assign({}, this.state.editInstanceData, {desc: values.description}), () => {
             this.hideForm()
             message.success('Instance 修改成功！', 3)
@@ -442,7 +455,6 @@ export class Instance extends React.PureComponent {
       }, {
         title: 'Action',
         key: 'action',
-        width: 100,
         className: 'text-align-center',
         render: (text, record) => (
           <span className="ant-table-action-column">
@@ -543,6 +555,7 @@ export class Instance extends React.PureComponent {
 
 Instance.propTypes = {
   modalLoading: React.PropTypes.bool,
+  connectUrlExisted: React.PropTypes.bool,
   onLoadInstances: React.PropTypes.func,
   onAddInstance: React.PropTypes.func,
   onLoadInstanceInputValue: React.PropTypes.func,
@@ -563,7 +576,8 @@ export function mapDispatchToProps (dispatch) {
 const mapStateToProps = createStructuredSelector({
   instances: selectInstances(),
   error: selectError(),
-  modalLoading: selectModalLoading()
+  modalLoading: selectModalLoading(),
+  connectUrlExisted: selectConnectUrlExisted()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Instance)

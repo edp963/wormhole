@@ -31,8 +31,10 @@ import {
   EDIT_USER_SUCCESS,
   LOAD_EMAIL_INPUT_VALUE,
   LOAD_EMAIL_INPUT_VALUE_SUCCESS,
+  LOAD_EMAIL_INPUT_VALUE_ERROR,
   EDIT_ROLETYPE_USERPSW,
   EDIT_ROLETYPE_USERPSW_SUCCESS,
+  EDIT_ROLETYPE_USERPSW_ERROR,
 
   LOAD_PROJECT_USER_ALL,
   LOAD_PROJECT_USER_ALL_SUCCESS,
@@ -149,37 +151,53 @@ export function loadEmailInputValue (value, resolve, reject) {
   }
 }
 
-export function emailInputValueLoaded (result, resolve, reject) {
+export function emailInputValueLoaded (result, resolve) {
   return {
     type: LOAD_EMAIL_INPUT_VALUE_SUCCESS,
     payload: {
       result,
+      resolve
+    }
+  }
+}
+
+export function emailInputValueErrorLoaded (result, reject) {
+  return {
+    type: LOAD_EMAIL_INPUT_VALUE_ERROR,
+    payload: {
+      result,
+      reject
+    }
+  }
+}
+
+export function editroleTypeUserPsw (pwdValues, resolve, reject) {
+  return {
+    type: EDIT_ROLETYPE_USERPSW,
+    payload: {
+      pwdValues,
       resolve,
       reject
     }
   }
 }
 
-export function editroleTypeUserPsw (pwdValues, resolve, reject, final) {
-  return {
-    type: EDIT_ROLETYPE_USERPSW,
-    payload: {
-      pwdValues,
-      resolve,
-      reject,
-      final
-    }
-  }
-}
-
-export function roleTypeUserPswedited (result, resolve, reject, final) {
+export function roleTypeUserPswEdited (result, resolve) {
   return {
     type: EDIT_ROLETYPE_USERPSW_SUCCESS,
     payload: {
       result,
-      resolve,
-      reject,
-      final
+      resolve
+    }
+  }
+}
+
+export function roleTypeUserPswErrorEdited (result, reject) {
+  return {
+    type: EDIT_ROLETYPE_USERPSW_ERROR,
+    payload: {
+      result,
+      reject
     }
   }
 }

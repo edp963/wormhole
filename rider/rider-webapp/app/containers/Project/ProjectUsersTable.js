@@ -32,12 +32,14 @@ export class ProjectUsersTable extends React.Component {
       selectedRowKeys: [],
       originUsers: [],
       currentUsers: [],
-      filterDropdownVisibleEmail: false,
-      searchTextEmail: '',
-      filterDropdownVisibleName: false,
-      searchTextName: '',
+
       filteredInfo: null,
-      sortedInfo: null
+      sortedInfo: null,
+
+      searchTextEmail: '',
+      filterDropdownVisibleEmail: false,
+      searchTextName: '',
+      filterDropdownVisibleName: false
     }
   }
 

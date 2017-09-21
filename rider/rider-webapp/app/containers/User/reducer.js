@@ -33,8 +33,10 @@ import {
   EDIT_USER_SUCCESS,
   LOAD_EMAIL_INPUT_VALUE,
   LOAD_EMAIL_INPUT_VALUE_SUCCESS,
+  LOAD_EMAIL_INPUT_VALUE_ERROR,
   EDIT_ROLETYPE_USERPSW,
   EDIT_ROLETYPE_USERPSW_SUCCESS,
+  EDIT_ROLETYPE_USERPSW_ERROR,
 
   LOAD_PROJECT_USER_ALL,
   LOAD_PROJECT_USER_ALL_SUCCESS,
@@ -44,7 +46,8 @@ import {
 const initialState = fromJS({
   users: false,
   error: false,
-  modalLoading: false
+  modalLoading: false,
+  emailExited: false
 })
 
 export function userReducer (state = initialState, { type, payload }) {
@@ -86,18 +89,23 @@ export function userReducer (state = initialState, { type, payload }) {
         .set('users', users.slice())
         .set('modalLoading', false)
     case LOAD_EMAIL_INPUT_VALUE:
-      return state
+      return state.set('emailExited', false)
     case LOAD_EMAIL_INPUT_VALUE_SUCCESS:
       payload.resolve()
+      return state.set('emailExited', false)
+    case LOAD_EMAIL_INPUT_VALUE_ERROR:
       payload.reject()
-      return state
+      return state.set('emailExited', true)
     case EDIT_ROLETYPE_USERPSW:
-      return state.set('error', false)
-    case EDIT_ROLETYPE_USERPSW_SUCCESS:
-      payload.resolve(payload.result)
-      payload.reject(payload.result)
-      payload.final()
       return state
+        .set('error', false)
+        .set('modalLoading', true)
+    case EDIT_ROLETYPE_USERPSW_SUCCESS:
+      payload.resolve()
+      return state.set('modalLoading', false)
+    case EDIT_ROLETYPE_USERPSW_ERROR:
+      payload.reject(payload.result)
+      return state.set('modalLoading', false)
 
     case LOAD_PROJECT_USER_ALL:
       return state.set('error', false)

@@ -24,14 +24,6 @@ import Form from 'antd/lib/form'
 import Button from 'antd/lib/button'
 
 export class StreamLogs extends React.Component {
-  constructor (props) {
-    super(props)
-    this.state = {
-      leftDisabled: false,
-      rightDisabled: true
-    }
-  }
-
   refreshLogs = () => {
     this.props.onInitRefreshLogs(this.props.logsProjectId, this.props.logsStreamId)
   }

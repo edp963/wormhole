@@ -38,6 +38,7 @@ import {
   selectNamespacesLoaded,
   namespaceDatabaseLoaded,
   tableNameExistLoaded,
+  tableNameExistErrorLoaded,
   namespaceAdded,
   singleNamespaceLoaded,
   namespaceEdited,
@@ -110,7 +111,7 @@ export function* getNsTableName ({ payload }) {
     if (result.code === 200) {
       yield put(tableNameExistLoaded(result.msg, payload.resolve))
     } else {
-      yield put(tableNameExistLoaded(result.msg, payload.reject))
+      yield put(tableNameExistErrorLoaded(result.msg, payload.reject))
     }
   } catch (err) {
     yield put(getError(err))

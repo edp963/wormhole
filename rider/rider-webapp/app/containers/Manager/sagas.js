@@ -24,6 +24,7 @@ import {
   LOAD_USER_STREAMS,
   LOAD_ADMIN_ALL_STREAMS,
   LOAD_ADMIN_SINGLE_STREAM,
+  LOAD_ADMIN_OFFSET,
   LOAD_OFFSET,
   LOAD_STREAM_NAME_VALUE,
   LOAD_KAFKA,
@@ -43,8 +44,10 @@ import {
   userStreamsLoaded,
   adminAllStreamsLoaded,
   adminSingleStreamLoaded,
+  adminOffsetLoaded,
   offsetLoaded,
   streamNameValueLoaded,
+  streamNameValueErrorLoaded,
   kafkaLoaded,
   streamConfigJvmLoaded,
   topicsLoaded,
@@ -102,6 +105,22 @@ export function* getAdminSingleFlowWatcher () {
   yield fork(takeLatest, LOAD_ADMIN_SINGLE_STREAM, getAdminSingleStream)
 }
 
+export function* getAdminOffset ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'get',
+      url: `${api.projectAdminStream}/${payload.projectId}/streams/${payload.streamId}/intopics`
+    })
+    yield put(adminOffsetLoaded(result.payload, payload.resolve))
+  } catch (err) {
+    notifySagasError(err, 'getAdminOffset')
+  }
+}
+
+export function* getAdminOffsetWatcher () {
+  yield fork(takeLatest, LOAD_ADMIN_OFFSET, getAdminOffset)
+}
+
 export function* getOffset ({ payload }) {
   try {
     const result = yield call(request, {
@@ -125,7 +144,7 @@ export function* getStreamNameValue ({ payload }) {
       url: `${api.projectStream}/${payload.projectId}/streams?streamName=${payload.value}`
     })
     if (result.code === 409) {
-      yield put(streamNameValueLoaded(result.msg, payload.reject))
+      yield put(streamNameValueErrorLoaded(result.msg, payload.reject))
     } else {
       yield put(streamNameValueLoaded(result.payload, payload.resolve))
     }
@@ -338,6 +357,7 @@ export default [
   getUserStreamsWatcher,
   getAdminAllFlowsWatcher,
   getAdminSingleFlowWatcher,
+  getAdminOffsetWatcher,
   getOffsetWatcher,
   getStreamNameValueWatcher,
   getKafkaWatcher,

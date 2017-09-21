@@ -64,7 +64,7 @@ export class StreamStartForm extends React.Component {
                   {getFieldDecorator(`${i.id}_${index}`, {
                     rules: [{
                       required: true,
-                      message: '请填写Offset'
+                      message: '请填写 Offset'
                     }]
                   })(
                     <Input className="conform-table-input" />

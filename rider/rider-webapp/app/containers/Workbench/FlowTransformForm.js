@@ -33,15 +33,6 @@ const RadioButton = Radio.Button
 const RadioGroup = Radio.Group
 
 export class FlowTransformForm extends React.Component {
-  constructor (props) {
-    super(props)
-    this.state = {
-      transformNamespaceHierarchy: [],
-      sinkNamespaceHierarchy: [],
-      transformModalVisible: false
-    }
-  }
-
   onTransformTypeSelect = (e) => {
     // 调用上层函数
     this.props.onInitTransformValue(e.target.value)

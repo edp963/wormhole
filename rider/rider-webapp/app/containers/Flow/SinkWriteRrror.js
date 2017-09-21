@@ -38,10 +38,12 @@ export class SinkWriteRrror extends React.Component {
     super(props)
     this.state = {
       visible: false,
-      filterDropdownVisibleActionEventTime: false,
-      filterDropdownVisibleWhProcessedTime: false,
       originFlows: [],
       currentFlows: [],
+
+      filteredInfo: null,
+      sortedInfo: null,
+
       startTimeText: '',
       endTimeText: '',
       actionStartTimeText: '',
@@ -49,8 +51,8 @@ export class SinkWriteRrror extends React.Component {
       whProcessedStartTimeText: '',
       whProcessedEndTimeText: '',
       filterDatepickerShown: false,
-      filteredInfo: null,
-      sortedInfo: null
+      filterDropdownVisibleActionEventTime: false,
+      filterDropdownVisibleWhProcessedTime: false
     }
   }
 

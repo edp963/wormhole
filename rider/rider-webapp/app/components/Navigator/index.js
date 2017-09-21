@@ -33,7 +33,10 @@ const MenuItem = Menu.Item
 const SubMenu = Menu.SubMenu
 
 import { logOut } from '../../containers/Login/action'
+
 import { editroleTypeUserPsw } from '../../containers/User/action'
+import { selectModalLoading } from '../../containers/User/selectors'
+
 import { selectCurrentProject } from '../../containers/App/selectors'
 import { setProject } from '../../containers/App/actions'
 
@@ -44,8 +47,7 @@ class Navigator extends React.Component {
     super(props)
     this.state = {
       selectedKey: '',
-      formVisible: false,
-      modalLoading: false
+      formVisible: false
     }
   }
 
@@ -128,9 +130,6 @@ class Navigator extends React.Component {
   onModalOk = () => {
     this.userPswForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        this.setState({
-          modalLoading: true
-        })
         const requestValue = {
           id: Number(localStorage.getItem('loginId')),
           oldPass: values.oldPassword,
@@ -143,24 +142,22 @@ class Navigator extends React.Component {
           if (result === 'Wrong password') {
             message.error('旧密码错误！', 3)
           }
-        }, () => {
-          this.setState({
-            modalLoading: false
-          })
         })
       }
     })
   }
 
   render () {
+    const { selectedKey } = this.state
+
     // SubMenu 高亮
     let dataSystemSelectedClass = ''
     let projectSelectedClass = ''
-    if (this.state.selectedKey === 'instance' || this.state.selectedKey === 'database') {
+    if (selectedKey === 'instance' || selectedKey === 'database') {
       dataSystemSelectedClass = 'ant-menu-item-selected'
     }
     // 出现二级菜单时，一级菜单对应高亮
-    if (this.state.selectedKey === 'workbench' || this.state.selectedKey === 'performance') {
+    if (selectedKey === 'workbench' || selectedKey === 'performance') {
       projectSelectedClass = 'ant-menu-item-selected'
     }
 
@@ -171,7 +168,7 @@ class Navigator extends React.Component {
           className="ri-menu"
           mode="horizontal"
           theme="dark"
-          selectedKeys={[this.state.selectedKey]}
+          selectedKeys={[selectedKey]}
           onClick={this.navClick}
         >
           <MenuItem key="projects" className={`ri-menu-item ${projectSelectedClass}`}>
@@ -254,7 +251,7 @@ class Navigator extends React.Component {
                 key="submit"
                 size="large"
                 type="primary"
-                loading={this.state.modalLoading}
+                loading={this.props.modalLoading}
                 onClick={this.onModalOk}
               >
                 保存
@@ -277,16 +274,18 @@ export function mapDispatchToProps (dispatch) {
   return {
     onSetProject: (projectId) => dispatch(setProject(projectId)),
     onLogOut: () => dispatch(logOut()),
-    onEditroleTypeUserPsw: (pwdValues, resolve, reject, final) => dispatch(editroleTypeUserPsw(pwdValues, resolve, reject, final))
+    onEditroleTypeUserPsw: (pwdValues, resolve, reject) => dispatch(editroleTypeUserPsw(pwdValues, resolve, reject))
   }
 }
 
 const mapStateToProps = createStructuredSelector({
-  currentProject: selectCurrentProject()
+  currentProject: selectCurrentProject(),
+  modalLoading: selectModalLoading()
 })
 
 Navigator.propTypes = {
   currentProject: React.PropTypes.string,
+  modalLoading: React.PropTypes.bool,
   router: React.PropTypes.any,
   onLogOut: React.PropTypes.func,
   onEditroleTypeUserPsw: React.PropTypes.func

@@ -32,8 +32,14 @@ const selectStreamSubmitLoading = () => createSelector(
   (streamState) => streamState.get('streamSubmitLoading')
 )
 
+const selectStreamNameExited = () => createSelector(
+  selectStream(),
+  (streamState) => streamState.get('streamNameExited')
+)
+
 export {
   selectStream,
   selectStreams,
-  selectStreamSubmitLoading
+  selectStreamSubmitLoading,
+  selectStreamNameExited
 }

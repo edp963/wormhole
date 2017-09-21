@@ -38,7 +38,16 @@ export class NamespaceForm extends React.Component {
     super(props)
     this.state = {
       namespaceDSValue: '',
-      instanceIdGeted: 0
+      instanceIdGeted: 0,
+      currentNamespaceUrlValue: []
+    }
+  }
+
+  componentWillReceiveProps (props) {
+    if (props.namespaceUrlValue) {
+      this.setState({
+        currentNamespaceUrlValue: props.namespaceUrlValue
+      })
     }
   }
 
@@ -54,7 +63,7 @@ export class NamespaceForm extends React.Component {
 
   // 选择不同的 connection url 显示不同的 instance
   onHandleChangeUrl = (e) => {
-    const selUrl = this.props.namespaceUrlValue.find(s => s.id === Number(e))
+    const selUrl = this.state.currentNamespaceUrlValue.find(s => s.id === Number(e))
     this.props.form.setFieldsValue({
       instance: selUrl.nsInstance
     })
@@ -75,9 +84,14 @@ export class NamespaceForm extends React.Component {
     this.props.onInitNsNameInputValue(e.target.value)
   }
 
+  onHandleNsKey = (e) => {
+    this.props.onInitNsKeyInputValue(e.target.value)
+  }
+
   render () {
     const { getFieldDecorator } = this.props.form
-    const { namespaceFormType, namespaceUrlValue, databaseSelectValue } = this.props
+    const { currentNamespaceUrlValue } = this.state
+    const { namespaceFormType, databaseSelectValue } = this.props
     const { namespaceTableSource, onDeleteTable, onAddTable, deleteTableClass, addTableClass, addTableClassTable, addBtnDisabled } = this.props
 
     const itemStyle = {
@@ -104,18 +118,8 @@ export class NamespaceForm extends React.Component {
       disabledOrNot = true
     }
 
-    const urlOptions = namespaceUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.connUrl}</Option>))
+    const urlOptions = currentNamespaceUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.connUrl}</Option>))
     const databaseOptions = databaseSelectValue.map((s) => (<Option key={s.id} value={`${s.id}`}>{`${s.nsDatabase} (${s.permission})`}</Option>))
-
-    // const databaseOptions = databaseSelectValue.map((s, index) => {
-    //   let test = ''
-    //   if (databaseSelectValue[index].nsDatabase === databaseSelectValue[index + 1].nsDatabase) {
-    //     test = (<Option key={s.id} value={`${s.id}`}>{`${s.nsDatabase}（${s.permission}）`}</Option>)
-    //   } else {
-    //     test = (<Option key={s.id} value={`${s.id}`}>{`${s.nsDatabase}`}</Option>)
-    //   }
-    //   return test
-    // })
 
     const columns = [{
       title: 'Table',
@@ -267,7 +271,10 @@ export class NamespaceForm extends React.Component {
             <Col span={7}>
               <FormItem label="">
                 {getFieldDecorator('nsSingleKeyValue', {})(
-                  <Input placeholder="Key" />
+                  <Input
+                    placeholder="Key"
+                    onChange={this.onHandleNsKey}
+                  />
                 )}
               </FormItem>
             </Col>
@@ -301,7 +308,6 @@ export class NamespaceForm extends React.Component {
 NamespaceForm.propTypes = {
   form: React.PropTypes.any,
   namespaceFormType: React.PropTypes.string,
-  namespaceUrlValue: React.PropTypes.array,
   namespaceTableSource: React.PropTypes.array,
   databaseSelectValue: React.PropTypes.array,
   deleteTableClass: React.PropTypes.string,
@@ -313,7 +319,8 @@ NamespaceForm.propTypes = {
   onDeleteTable: React.PropTypes.func,
   onAddTable: React.PropTypes.func,
   cleanNsTableData: React.PropTypes.func,
-  onInitNsNameInputValue: React.PropTypes.func
+  onInitNsNameInputValue: React.PropTypes.func,
+  onInitNsKeyInputValue: React.PropTypes.func
 }
 
 export default Form.create({wrappedComponentRef: true})(NamespaceForm)

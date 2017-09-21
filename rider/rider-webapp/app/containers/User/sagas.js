@@ -38,7 +38,9 @@ import {
   userAdded,
   userEdited,
   emailInputValueLoaded,
-  roleTypeUserPswedited,
+  emailInputValueErrorLoaded,
+  roleTypeUserPswEdited,
+  roleTypeUserPswErrorEdited,
 
   projectUserAllLoaded,
   getError
@@ -128,7 +130,7 @@ export function* getEmailInputValue ({ payload }) {
       data: payload.value
     })
     if (result.code === 409) {
-      yield put(emailInputValueLoaded(result.msg, payload.reject))
+      yield put(emailInputValueErrorLoaded(result.msg, payload.reject))
     } else {
       yield put(emailInputValueLoaded(result.msg, payload.resolve))
     }
@@ -149,9 +151,9 @@ export function* editroleTypeUserPsw ({ payload }) {
       data: payload.pwdValues
     })
     if (result.code !== 200) {
-      yield put(roleTypeUserPswedited(result.msg, payload.reject, payload.final))
+      yield put(roleTypeUserPswErrorEdited(result.msg, payload.reject))
     } else {
-      yield put(roleTypeUserPswedited(result.msg, payload.resolve, payload.final))
+      yield put(roleTypeUserPswEdited(result.msg, payload.resolve))
     }
   } catch (err) {
     yield put(getError(err))
