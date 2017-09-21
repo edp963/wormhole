@@ -291,17 +291,17 @@ trait UmsProtocolUtils {
       resultDesc.toString))))))
 
   // feedback_stream_topic_offset
-  def feedbackStreamTopicOffset(timeNow: DateTime, streamID: Long,tp:Seq[(String,Int,Long)]) = toJsonCompact(Ums(
-    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET),
-    schema = UmsSchema(empty, Some(Seq(
-      UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
-      UmsField("stream_id", UmsFieldType.INT),
-      UmsField("topic_partition", UmsFieldType.STRING)
-    ))),
-    payload = Some(tp.map(tpo=>UmsTuple(Seq(
-      dt2string(timeNow, dtFormat),
-      streamID.toString,
-      tp.mkString ))))))
+  def feedbackStreamTopicOffset(timeNow: DateTime, streamID: Long,tp:Map[String, String]) = {
+    toJsonCompact(Ums(
+      protocol = UmsProtocol(UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET),
+      schema = UmsSchema(empty, Some(Seq(
+        UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
+        UmsField("stream_id", UmsFieldType.INT),
+        UmsField("topic_name", UmsFieldType.STRING),
+        UmsField("partition_offsets", UmsFieldType.STRING)
+      ))),
+      payload = Some(tp.map{case (topicName, partitionOffsets) => UmsTuple(Seq(dt2string(timeNow, dtFormat), streamID.toString, topicName, partitionOffsets))}.toSeq)))
+  }
 
 
 //  Seq(
