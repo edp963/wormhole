@@ -43,7 +43,7 @@ object ElasticSearch extends RiderLogger {
       s"${RiderConfig.es.url}/${RiderConfig.es.wormholeIndex}/${RiderConfig.es.wormholeType}/"
     } catch {
       case e: Exception =>
-        riderLogger.error(s"failed to get ES info from config ", e)
+        riderLogger.error(s"ES url config get from application.conf failed", e)
         ""
     }
   }
@@ -53,7 +53,7 @@ object ElasticSearch extends RiderLogger {
       s"${RiderConfig.es.url}/${RiderConfig.es.wormholeIndex}/"
     } catch {
       case e: Exception =>
-        riderLogger.error(s"failed to get ES info from config ", e)
+        riderLogger.error(s"ES index config get failed ", e)
         ""
     }
   }
@@ -62,7 +62,6 @@ object ElasticSearch extends RiderLogger {
   def insertFlowStatToES(stats: MonitorInfo) = {
     val url = getESUrl
     val postBody: String = JsonUtils.caseClass2json(stats)
-    riderLogger.debug(s"insertFlowStatToES url $url ")
     asyncToES(postBody, url, HttpMethods.POST)
   }
 
@@ -76,22 +75,22 @@ object ElasticSearch extends RiderLogger {
     val url = getESUrl + "_search"
     riderLogger.debug(s"queryESFlowMax url $url $postBody")
     val response = syncToES(postBody, url, HttpMethods.POST)
-    riderLogger.info(s"queryESFlowMax $response")
+//    riderLogger.info(s"queryESFlowMax $response")
     if (response._1 == true) {
       try {
         val maxColumn = JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits"), s"_source")
         //val maxColumn = JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), s"_source")
-        implicit var json4sFormats: Formats = DefaultFormats
+        implicit val json4sFormats: Formats = DefaultFormats
         maxValue = JsonUtils.getJValue(maxColumn, s"$columnName").extract[String]
       }
       catch {
         case e: Exception =>
-          riderLogger.error(s"Failed to get max value from ElasticSearch response", e)
+          riderLogger.error(s"Failed to get max flow value from ES response", e)
       }
     }
 
     else {
-      riderLogger.error(s"Failed to get max value from ElasticSearch response")
+      riderLogger.error(s"Failed to get max flow value from ES response")
     }
     (response._1, maxValue)
   }
@@ -106,18 +105,18 @@ object ElasticSearch extends RiderLogger {
     val url = getESUrl + "_search"
     riderLogger.debug(s"queryESStreamMax url $url $postBody")
     val response = syncToES(postBody, url, HttpMethods.POST)
-    riderLogger.info(s"queryESStreamMax $response")
+//    riderLogger.info(s"queryESStreamMax $response")
     if (response._1) {
       try {
         val maxColumn = JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits"), s"_source")
-        implicit var json4sFormats: Formats = DefaultFormats
+        implicit val json4sFormats: Formats = DefaultFormats
         maxValue = JsonUtils.getJValue(maxColumn, s"$columnName").extract[String]
       } catch {
         case e: Exception =>
-          riderLogger.error(s"Failed to get max value from ElasticSearch response", e)
+          riderLogger.error(s"Failed to get max stream value from ES response", e)
       }
     } else {
-      riderLogger.error(s"Failed to get max value from ElasticSearch response")
+      riderLogger.error(s"Failed to get max stream value from ES response")
     }
     (response._1, maxValue)
   }
@@ -128,18 +127,18 @@ object ElasticSearch extends RiderLogger {
       .replace("#FROMDATE#", s""""$fromDate"""")
       .replace("#TODATE#", s""""$endDate"""")
     val url = getESUrl + "_delete_by_query"
-    riderLogger.info(s"deleteEsHistory url $url $postBody")
+//    riderLogger.info(s"deleteEsHistory url $url $postBody")
     val response = syncToES(postBody, url, HttpMethods.POST)
-    riderLogger.info(s"deleteEsHistory response $response")
+//    riderLogger.info(s"deleteEsHistory response $response")
     if (response._1) {
       try {
         deleted = JsonUtils.jValue2json(JsonUtils.getJValue(response._2, "deleted")).toInt
       } catch {
         case e: Exception =>
-          riderLogger.error(s"Failed to parse the response", e)
+          riderLogger.error(s"Failed to parse the response from ES when delete history data", e)
       }
     } else {
-      riderLogger.error(s"Failed to delete history from elasticsearch")
+      riderLogger.error(s"Failed to delete history data from ES")
     }
     deleted
   }
@@ -148,9 +147,9 @@ object ElasticSearch extends RiderLogger {
     val body = ReadJsonFile.getMessageFromJson(JsonFileType.ESCREATEINDEX).replace("#ESINDEX#", s"${RiderConfig.es.wormholeType}")
     val url = getESIndexUrl
     val existsResponse = syncToES("", url, HttpMethods.GET)
-    riderLogger.info(s" query index exists response $existsResponse")
+//    riderLogger.info(s" query index exists response $existsResponse")
     if (existsResponse._1) {
-      riderLogger.info(s" index $url exists ")
+      riderLogger.info(s"ES index $url already exists")
     } else {
       riderLogger.info(s"createEsIndex url $url $body")
       asyncToES(body, url, HttpMethods.PUT)
@@ -204,27 +203,27 @@ object ElasticSearch extends RiderLogger {
       protocol = HttpProtocols.`HTTP/1.1`,
       entity = HttpEntity.apply(ContentTypes.`application/json`, ByteString(postBody))
     )
-    riderLogger.info(s"httpRequest ${
-      httpRequest.toString
-    }.")
+//    riderLogger.info(s"httpRequest ${
+//      httpRequest.toString
+//    }.")
     try {
       val response = Await.result(Http().singleRequest(httpRequest), Duration.Inf)
       response.status match {
         case StatusCodes.OK if (response.entity.contentType == ContentTypes.`application/json`) =>
-          riderLogger.info(s"response.entity ${
-            response.entity.toString
-          }.")
+//          riderLogger.info(s"response.entity ${
+//            response.entity.toString
+//          }.")
           Await.result(
             Unmarshal(response.entity).to[String].map {
               jsonString =>
-                riderLogger.info(s"== jsonString ${
-                  jsonString
-                }.")
+//                riderLogger.info(s"== jsonString ${
+//                  jsonString
+//                }.")
                 tc = true
                 responseJson = JsonUtils.json2jValue(jsonString)
             }, Duration.Inf)
         case StatusCodes.BadRequest => {
-          riderLogger.error(s"Incorrect Latitude and Longitude format")
+          riderLogger.error(s"syncToES failed caused by incorrect latitude and longitude format")
         }
         case _ => Unmarshal(response.entity).to[String].flatMap {
           entity =>
@@ -236,9 +235,9 @@ object ElasticSearch extends RiderLogger {
       }
     } catch {
       case e: Exception =>
-        riderLogger.error(s"failed to get the response", e)
+        riderLogger.error(s"Failed to get the response from ES when syncToES", e)
     }
-    riderLogger.info(s"====> syncToES return  $tc  $responseJson.")
+//    riderLogger.info(s"====> syncToES return  $tc  $responseJson.")
     (tc, responseJson)
   }
 }

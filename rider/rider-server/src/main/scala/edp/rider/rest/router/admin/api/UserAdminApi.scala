@@ -27,7 +27,7 @@ import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{RelProjectUserDal, UserDal}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+import edp.rider.rest.router.{LoginClass, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
@@ -82,7 +82,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
           }
       }
     }
-   
+
   }
 
   def postRoute(route: String): Route = path(route) {
@@ -119,7 +119,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
           }
       }
     }
-   
+
   }
 
 
@@ -152,7 +152,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
           }
       }
     }
-   
+
   }
 
   def getNormalUserRoute(route: String): Route = path(route / "users") {
@@ -175,7 +175,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
           }
       }
     }
-   
+
   }
 
   def getByProjectIdRoute(route: String): Route = path(route / LongNumber / "users") {
@@ -199,6 +199,5 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
             }
         }
       }
-     
   }
 }

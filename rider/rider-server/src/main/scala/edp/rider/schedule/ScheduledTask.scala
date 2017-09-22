@@ -49,11 +49,11 @@ object ScheduledTask extends RiderLogger {
       pastNdays = cal.getTime()
       val fromDate = "2017-01-01 00:00:00.000000"
       ElasticSearch.deleteEsHistory(fromDate, DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_MICROSEC))
-      riderLogger.info(s" delete the Elasticsearch history from $fromDate to ${DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_MICROSEC)}")
+      riderLogger.info(s"delete ES feedback history data from $fromDate to ${DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_MICROSEC)}")
 
     } catch {
       case e: Exception =>
-        riderLogger.error(s"failed to delete history logs", e.getStackTrace)
+        riderLogger.error(s"failed to delete feedback history data", e)
     }
   }
 }
