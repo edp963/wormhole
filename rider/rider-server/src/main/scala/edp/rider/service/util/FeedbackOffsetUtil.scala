@@ -16,11 +16,13 @@ object FeedbackOffsetUtil extends RiderLogger with ConfigurationModuleImpl with 
 
   def getPartitionNumber( partitionOffsets:String):Int =partitionOffsets.split(",").length
 
-  def getOffsetFromPartitionOffsets(partitionOffset:String, partitionId:Int ):Long={
-    var offset = -1
-    partitionOffset.split(",").foreach{e=>
-      if ( e.substring((e.indexOf(":")+1)).toLong == partitionId)
-        offset = e.substring(0,e.indexOf(":")-1).toInt
+  def getOffsetFromPartitionOffsets(partitionOffset:String, partitionId:Int ):Long= {
+    var offset: Long = 0L
+    partitionOffset.split(",").foreach { e =>
+      val index = e.indexOf(":")
+      if (index > 0) {
+        if (e.substring(0, index).toInt == partitionId) offset = e.substring((index + 1)).toLong
+      }
     }
     offset
   }
