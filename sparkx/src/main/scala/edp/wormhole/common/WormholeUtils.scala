@@ -73,7 +73,7 @@ object WormholeUtils extends EdpLogging{
     }
 
     val tp: Map[String, String] = topicConfigMap.map{case (topicName, partitionOffsetList) =>{
-      (topicName,partitionOffsetList.map(it=>it.partition_num + ":" +it.offset).mkString(","))
+      (topicName,partitionOffsetList.map(it=>it.partition_num + ":" +it.offset).sorted.mkString(","))
     }}.toMap
     WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority2, WormholeUms.feedbackStreamTopicOffset(currentDateTime,config.spark_config.stream_id, tp), None, config.kafka_output.brokers)
   }
