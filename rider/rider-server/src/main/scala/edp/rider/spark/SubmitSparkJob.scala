@@ -20,11 +20,9 @@
 
 package edp.rider.spark
 
-import edp.rider.RiderStarter.modules.config
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.entities.{LaunchConfig, StartConfig}
 
-import scala.io.Source
 import scala.sys.process.Process
 
 object SubmitSparkJob extends App with RiderLogger {
@@ -60,7 +58,7 @@ object SubmitSparkJob extends App with RiderLogger {
 
   def runShellCommand(command: String) = {
     //    val remoteCommand = "ssh -p%s %s@%s %s ".format(sshPort, username, hostname, command)
-    riderLogger.info(s"start or stop spark-streaming command: $command")
+    riderLogger.info(s"start stream or start job command: $command")
     assert(!command.trim.isEmpty, "start or stop spark application command can't be empty")
     Process(command).run()
   }

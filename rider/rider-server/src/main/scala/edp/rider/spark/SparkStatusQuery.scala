@@ -87,7 +87,7 @@ object SparkStatusQuery extends RiderLogger {
         }
       case _ => AppInfo(job.sparkAppid.getOrElse(""), job.status, startedTime, stoppedTime)
     }
-    riderLogger.info(s"job get status: $result")
+//    riderLogger.info(s"job get status: $result")
     result
   }
 
@@ -140,11 +140,11 @@ object SparkStatusQuery extends RiderLogger {
       else if (fromTime.length > 19) dt2long(fromTime) / 1000
       else if (fromTime.length > 19) dt2long(fromTime)
     val rmUrl = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
-    riderLogger.info(s"active resourceManager: $rmUrl")
+//    riderLogger.info(s"active resourceManager: $rmUrl")
     if(rmUrl != "")
     {
       val url = s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=$fromTimeLong&&applicationTags=${RiderConfig.spark.app_tags}&&applicationTypes=spark"
-      riderLogger.info(s"yarn url: $url")
+      riderLogger.info(s"Spark Application refresh yarn rest url: $url")
       queryAppListOnYarn(url)
     } else List()
   }
@@ -156,7 +156,7 @@ object SparkStatusQuery extends RiderLogger {
       resultList = this.queryAppOnYarn(response)
     } catch {
       case e: Exception =>
-        riderLogger.error(s"request yarn rest api $url failed", e)
+        riderLogger.error(s"Spark Application refresh yarn rest url $url failed", e)
     }
     resultList
   }
@@ -182,7 +182,7 @@ object SparkStatusQuery extends RiderLogger {
       }
       catch {
         case e: Exception =>
-          riderLogger.error(s"parse yarn rest api response failed", e)
+          riderLogger.error(s"Spark Application refresh yarn rest api response failed", e)
           resultList
       }
     } else {

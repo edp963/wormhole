@@ -44,13 +44,13 @@ object SparkJobClientLog extends RiderLogger {
         case runTimeEx: java.lang.RuntimeException =>
           riderLogger.warn(s"Refresh Spark Application $appName client log command failed", runTimeEx)
           if (runTimeEx.getMessage.contains("Nonzero exit value: 1"))
-            "The stream doesn't have log file."
+            "The stream log file doesn't exist."
           else runTimeEx.getMessage
         case ex: Exception => ex.getMessage
       }
     } else {
       riderLogger.warn(s"Spark Application $appName client log file $logPath doesn't exist.")
-      ""
+      "The stream log file doesn't exist."
     }
 
   }
@@ -72,7 +72,7 @@ object SparkJobClientLog extends RiderLogger {
     }
     catch {
       case ex: Exception =>
-        riderLogger.warn(s"Refresh Spark Application status from client log failed.", ex)
+        riderLogger.warn(s"Refresh Spark Application status from client log failed", ex)
         curStatus
     }
   }

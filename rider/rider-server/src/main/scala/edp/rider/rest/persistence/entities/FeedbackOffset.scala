@@ -47,6 +47,6 @@ class FeedbackOffsetTable(_tableTag: Tag) extends BaseTable[FeedbackOffset](_tab
   val partitionOffset: Rep[String] = column[String]("partition_offsets")
   val feedbackTime: Rep[String] = column[String]("feedback_time")
 
-  val index1 = index("groupUnique", (streamId, topicName, partitionNum))
+  val index1 = index("streamUnique", streamId)
   val index2 = index("feedbackTimeUnique", feedbackTime)
 }

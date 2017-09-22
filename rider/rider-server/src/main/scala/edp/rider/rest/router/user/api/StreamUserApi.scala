@@ -23,28 +23,29 @@ package edp.rider.rest.router.user.api
 
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
-import edp.rider.RiderStarter.modules.config
-import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.rest.persistence.dal.StreamDal
+import edp.rider.common.RiderLogger
+import edp.rider.kafka.KafkaUtils._
+import edp.rider.rest.persistence.dal.{FlowDal, StreamDal}
 import edp.rider.rest.persistence.entities._
+import edp.rider.rest.router.JsonProtocol._
 import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
+import edp.rider.rest.util.StreamUtils._
 import edp.rider.service.util.CacheMap
+import edp.rider.spark.SparkJobClientLog
 import edp.rider.spark.SubmitSparkJob.{generateStreamStartSh, getConfig, runShellCommand}
 import edp.wormhole.common.util.JsonUtils._
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.util.StreamUtils._
-import edp.rider.spark.SparkJobClientLog
-import edp.rider.kafka.KafkaUtils._
+import slick.jdbc.MySQLProfile.api._
+
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
 
-class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) with RiderLogger {
+class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal) extends BaseUserApiImpl(streamDal) with RiderLogger {
 
   override def getByAllRoute(route: String): Route = path(route / LongNumber / "streams") {
     projectId =>
@@ -175,8 +176,6 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
                     val stopTime = if (streamTopic.stoppedTime.getOrElse("") == "") null else streamTopic.stoppedTime
                     val stream = Stream(streamTopic.id, streamTopic.name, streamTopic.desc, streamTopic.projectId, streamTopic.instanceId, streamTopic.streamType, streamTopic.sparkConfig, streamTopic.startConfig, streamTopic.launchConfig, streamTopic.sparkAppid, streamTopic.logPath, streamTopic.status, startTime, stopTime, streamTopic.active, streamTopic.createTime, streamTopic.createBy, currentSec, session.userId)
                     val streamId = streamTopic.id
-
-                    val zookeeperUrl = config.getString("zookeeper.connection.url")
                     onComplete(streamDal.getStreamById(streamId).mapTo[Option[StreamWithBrokers]]) {
                       case Success(opStreamWithBrokers) =>
                         riderLogger.info(s"user ${session.userId} select stream where id is $streamId success.")
@@ -216,7 +215,7 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
                                             if (streamTopic.topic.length != 0) {
                                               val listInsertTopic = insertTopics.map(topic => {
                                                 val topicOffset = getKafkaLatestOffset(brokers, topic._2)
-                                                StreamInTopic(0, stream.id, stream.instanceId, topic._1, topicOffset, 100, zookeeperUrl, active = true, currentSec, session.userId, currentSec, session.userId)
+                                                StreamInTopic(0, stream.id, stream.instanceId, topic._1, topicOffset, 100, active = true, currentSec, session.userId, currentSec, session.userId)
                                               })
                                               onComplete(streamDal.insertIntoStreamInTopic(listInsertTopic).mapTo[Seq[Long]]) {
                                                 case Success(seqLong) =>
@@ -283,7 +282,7 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
                   if (session.projectIdList.contains(id)) {
                     streamInTopic.map(intopic =>
                       StreamInTopic(intopic.id, intopic.streamId, intopic.nsInstanceId, intopic.nsDatabaseId, intopic.partitionOffsets, intopic.rate,
-                        intopic.zookeeper, intopic.active, intopic.createTime, intopic.createBy, currentSec, session.userId))
+                        intopic.active, intopic.createTime, intopic.createBy, currentSec, session.userId))
                     onComplete(streamDal.updateStreamInTopicTable(streamInTopic).mapTo[Unit]) {
                       case Success(result) =>
                         riderLogger.info(s"user ${session.userId} updated streamInTopics $streamInTopic success.")
@@ -340,7 +339,6 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
                         null,
                         null,
                         active = true, currentSec, session.userId, currentSec, session.userId)
-                      val zookeeperUrl = RiderConfig.zk
                       onComplete(streamDal.insertStreamReturnRes(Seq(insertStream)).map(_.head).mapTo[Stream]) {
                         case Success(base) =>
                           riderLogger.info(s"user ${
@@ -377,7 +375,7 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
                                           val topicOffset = getKafkaLatestOffset(brokers, topic._2)
                                           riderLogger.info(s"kafka topic latest offset $topicOffset")
                                           val defaultRate = 200
-                                          StreamInTopic(0, base.id, base.instanceId, topic._1, topicOffset, defaultRate, zookeeperUrl, active = true, currentSec, session.userId, currentSec, session.userId)
+                                          StreamInTopic(0, base.id, base.instanceId, topic._1, topicOffset, defaultRate, active = true, currentSec, session.userId, currentSec, session.userId)
                                         })
                                         onComplete(streamDal.insertIntoStreamInTopic(listInsertTopic).mapTo[Seq[Long]]) {
                                           case Success(seqLong) =>
@@ -721,7 +719,7 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
                                   val streamReturn = StreamSeqTopicActions(returnStream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "start,stop,renew")
                                   onComplete(streamDal.updateStreamTable(updateStream).mapTo[Int]) {
                                     case Success(num) =>
-                                      riderLogger.info(s"user ${session.userId} start stream $streamId.")
+                                      //                                      riderLogger.info(s"user ${session.userId} start stream $streamId.")
                                       riderLogger.info(s"user ${session.userId} updated stream $updateStream after start action success.")
                                       complete(OK, ResponseJson[StreamSeqTopicActions](getHeader(200, session), streamReturn))
                                     case Failure(ex) =>
@@ -750,6 +748,43 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
         }
       }
   }
+
+  def deleteStream(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "delete") {
+    (projectId, streamId) =>
+      put {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "user") {
+              riderLogger.warn(s"${
+                session.userId
+              } has no permission to access it.")
+              complete(Forbidden, getHeader(403, session))
+            }
+            if (session.projectIdList.contains(projectId)) {
+              try {
+                val flows = Await.result(flowDal.findByFilter(_.streamId === streamId), minTimeOut)
+                if (flows.size > 0){
+                  riderLogger.info(s"user ${session.userId} can't delete stream $streamId now, please delete flow ${flows.map(_.id).mkString(",")} first")
+                  complete(PreconditionFailed, getHeader(412, s"please delete flow ${flows.map(_.id).mkString(",")} first", session))
+                } else {
+                  Await.result(streamDal.deleteById(streamId), minTimeOut)
+                  CacheMap.streamCacheMapRefresh
+                  riderLogger.info(s"user ${session.userId} delete stream $streamId success")
+                  complete(OK, getHeader(200, session))
+                }
+              } catch {
+                case ex: Exception =>
+                  riderLogger.error(s"delete stream $streamId failed", ex)
+                  throw ex
+              }
+            } else {
+              riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
+              complete(Forbidden, getHeader(403, session))
+            }
+        }
+      }
+  }
+
 
   def getTopicsByInstanceId(route: String): Route = path(route / LongNumber / "instances" / LongNumber / "databases") {
     (id, instanceId) =>
@@ -798,13 +833,14 @@ class StreamUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wit
             }
             else {
               if (session.projectIdList.contains(id)) {
-                onComplete(streamDal.refreshTopicByStreamId(streamId)) {
-                  case Success(topic) =>
-                    riderLogger.info(s"user ${
-                      session.userId
-                    } select topics where stream id is $streamId success.")
-                    complete(OK, ResponseSeqJson[TopicDetail](getHeader(200, session), topic))
-                  case Failure(ex) =>
+                try {
+                  val topics = streamDal.refreshTopicByStreamId(streamId, session.userId)
+                  riderLogger.info(s"user ${
+                    session.userId
+                  } select topics where stream id is $streamId success.")
+                  complete(OK, ResponseSeqJson[TopicDetail](getHeader(200, session), topics))
+                } catch {
+                  case ex: Exception =>
                     riderLogger.error(s"user ${
                       session.userId
                     } select topics where stream id is $streamId failed", ex)

@@ -51,7 +51,7 @@ object ReadJsonFile extends RiderLogger {
       }
     } catch {
       case e: Exception =>
-        riderLogger.error(s"Failed to get the message of grafana dashboard from appointed file", e)
+        riderLogger.error(s"Failed to get the message of Grafana dashboard from $dir", e)
     }
     msg
   }

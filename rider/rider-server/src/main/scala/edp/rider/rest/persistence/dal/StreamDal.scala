@@ -35,11 +35,12 @@ import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
-class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[ProjectTable], feedbackOffsetTable: TableQuery[FeedbackOffsetTable], instanceTable: TableQuery[InstanceTable], nsDatabaseTable: TableQuery[NsDatabaseTable], relProjectNsTable: TableQuery[RelProjectNsTable], streamInTopicTable: TableQuery[StreamInTopicTable], namespaceTable: TableQuery[NamespaceTable], dbusTable: TableQuery[DbusTable], directiveDal: BaseDal[DirectiveTable, Directive] ) extends BaseDalImpl[StreamTable, Stream](streamTable) with RiderLogger {
+class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[ProjectTable], feedbackOffsetTable: TableQuery[FeedbackOffsetTable], instanceTable: TableQuery[InstanceTable], nsDatabaseTable: TableQuery[NsDatabaseTable], relProjectNsTable: TableQuery[RelProjectNsTable], streamInTopicTable: TableQuery[StreamInTopicTable], namespaceTable: TableQuery[NamespaceTable], directiveDal: BaseDal[DirectiveTable, Directive]) extends BaseDalImpl[StreamTable, Stream](streamTable) with RiderLogger {
 
   def adminGetAll: Future[Seq[StreamAdmin]] = {
     try {
@@ -105,7 +106,43 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
       case (inTopic, database) => (database.id, database.nsDatabase, inTopic.partitionOffsets, inTopic.rate) <> (SimpleTopic.tupled, SimpleTopic.unapply)
     }.result).mapTo[Seq[SimpleTopic]], minTimeOut)
 
+  def updateOffsetFromFeedback(streamId: Long, userId: Long): Seq[TopicDetail] = {
+    try {
+      val topicSeq = Await.result(getTopicDetailByStreamId(streamId), minTimeOut)
+      if (topicSeq.size != 0) {
+        val topicFeedbackSeq = Await.result(db.run(feedbackOffsetTable.filter(_.streamId === streamId).sortBy(_.feedbackTime.desc).take(topicSeq.size).result).mapTo[Seq[FeedbackOffset]], minTimeOut)
+        //        val map = topicFeedbackSeq.map(topic => (topic.topicName, topic.partitionOffsets)).toMap
+        val updateSeq = new ArrayBuffer[StreamInTopic]
+        //        topicSeq.map(
+        //          topic => {
+        //            if (map.contains(topic.name)) {
+        //              updateSeq += StreamInTopic(topic.id, topic.streamId, topic.nsInstanceId, topic.nsDatabaseId,
+        //                map.get(topic.name).get, topic.rate, topic.active, topic.createTime, topic.createBy, currentSec, userId)
+        //              TopicDetail(topic.id, topic.streamId, topic.nsInstanceId, topic.nsDatabaseId, topic.partition,
+        //                map.get(topic.name).get, topic.rate, topic.active, topic.createTime, topic.createBy, currentSec, userId, topic.name)
+        //            }
+        //            else topic
+        //          }
+        //        )
+        //        if(updateSeq.size != 0)
+        //          updateSeq.map(topic => Await.result(db.run(streamInTopicTable.update(topic)), minTimeOut))
+      }
+      topicSeq
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"get stream $streamId latest offset from stream_feedback_offset table failed", ex)
+        throw ex
+    }
 
+    //    val feedbackOffsetInfo = feedbackOffsetTable.filter(_.streamId === streamId).sortBy(feedback => feedback.feedbackTime).groupBy(feedback => (feedback.topicName, feedback.partitionNum)).map { case (name, group) =>
+    //      (streamId, name._1, name._2, group.map(_.partitionOffset).max)
+    //    }
+    //
+    //    Await.result(db.run((streamInTopicTable.filter(_.active === true).filter(_.streamId === streamId) join nsDatabaseTable.filter(_.active === true) on (_.nsDatabaseId === _.id) join feedbackOffsetInfo on (_._2.nsDatabase === _._2)).map {
+    //      case ((intopic, database), feedback) =>
+    //        (feedback._1, feedback._2, feedback._3, feedback._4.get) <> (FeedbackOffsetInfo.tupled, FeedbackOffsetInfo.unapply)
+    //    }.result).mapTo[Seq[FeedbackOffsetInfo]], minTimeOut)
+  }
 
   def getResource(projectId: Long): Future[Resource] = {
     try {
@@ -128,7 +165,7 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
       Future(Resource(totalCores, totalMemory, totalCores - usedCores, totalMemory - usedMemory, streamResources))
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"get resource by project id $projectId failed", ex)
+        riderLogger.error(s"get stream resource information by project id $projectId failed", ex)
         throw ex
     }
   }
@@ -223,10 +260,10 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
       if (streams.nonEmpty && streams.exists(_._1.stream.startedTime.getOrElse("") != ""))
         streams.filter(_._1.stream.startedTime.getOrElse("") != "").map(_._1.stream.startedTime).min.getOrElse("")
       else ""
-    riderLogger.info(s"fromTime: $fromTime")
+    //    riderLogger.info(s"fromTime: $fromTime")
     val appInfoList: List[AppResult] =
       if (fromTime == "") List() else getAllYarnAppStatus(fromTime).sortWith(_.appId < _.appId)
-    riderLogger.info(s"app info size: ${appInfoList.size}")
+    //    riderLogger.info(s"app info size: ${appInfoList.size}")
     streams.map(
       streamAction => {
         val stream = streamAction._1.stream
@@ -242,11 +279,11 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
             val sparkStatus: AppInfo = action match {
               case "refresh_spark" =>
                 val s = getAppStatusByRest(appInfoList, stream.name, stream.status, startedTime, dbUpdateTime)
-                riderLogger.info(s"spark status: $s")
+                //                riderLogger.info(s"spark status: $s")
                 s
               case "refresh_log" =>
                 val status = SparkJobClientLog.getAppStatusByLog(stream.name, dbStatus)
-                riderLogger.info(s"log status: $status")
+                //                riderLogger.info(s"log status: $status")
                 status match {
                   case "running" =>
                     getAppStatusByRest(appInfoList, stream.name, status, startedTime, dbUpdateTime)
@@ -329,7 +366,6 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
         nsDatabase.partitions.getOrElse(0),
         streamInTopic.partitionOffsets,
         streamInTopic.rate,
-        streamInTopic.zookeeper,
         streamInTopic.active,
         streamInTopic.createTime,
         streamInTopic.createBy,
@@ -369,60 +405,12 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
 
   def getTopicDetailByStreamId(streamId: Long) = {
     db.run((streamTable.filter(_.active === true).filter(_.id === streamId) join streamInTopicTable.filter(_.active === true) on (_.id === _.streamId) join nsDatabaseTable.filter(_.active === true) on (_._2.nsDatabaseId === _.id)).map {
-      case (streamInTopic, database) => (streamInTopic._2.id, streamId, streamInTopic._2.nsInstanceId, database.id, database.partitions, streamInTopic._2.partitionOffsets, streamInTopic._2.rate, streamInTopic._2.zookeeper, streamInTopic._2.active, streamInTopic._2.createTime, streamInTopic._2.createBy, streamInTopic._2.updateTime, streamInTopic._2.updateBy, database.nsDatabase) <> (TopicDetail.tupled, TopicDetail.unapply)
+      case (streamInTopic, database) => (streamInTopic._2.id, streamId, streamInTopic._2.nsInstanceId, database.id, database.partitions, streamInTopic._2.partitionOffsets, streamInTopic._2.rate, streamInTopic._2.active, streamInTopic._2.createTime, streamInTopic._2.createBy, streamInTopic._2.updateTime, streamInTopic._2.updateBy, database.nsDatabase) <> (TopicDetail.tupled, TopicDetail.unapply)
     }.result).mapTo[Seq[TopicDetail]]
   }
 
-  def refreshTopicByStreamId(streamId: Long) = {
-    getTopicDetailByStreamId(streamId).map {
-      topicDetails =>
-        topicDetails.map(topicDetail => {
-          var getFeedbackBoolean = true
-//          if (topicDetail.partitionOffsets.length == 0) getFeedbackBoolean = false
-          getFeedbackBoolean = false
-          if (getFeedbackBoolean) {
-            riderLogger.info(s"Refresh Feedback Offset start")
-            val feedbackOffset: Seq[FeedbackOffsetInfo] = FeedbackOffsetUtil.getOffsetFromFeedback(topicDetail.streamId)
-            riderLogger.info(s"Refresh Feedback Offset finish")
-            var updateBoolean = false
-            val topicOffset: Array[((String, Int), String)] = topicDetail.partitionOffsets.split(",").map(t => {
-              val partitionInfo = t.split(":")
-              (topicDetail.name, partitionInfo(0).toInt) -> partitionInfo(1)
-            })
-
-            val newPartitionOffset = topicOffset.map(tf => {
-              if (feedbackOffset.map(fdo => (fdo.topicName, fdo.partitionId)).contains(tf._1)) {
-                val rightOne = feedbackOffset.find(right => (right.topicName, right.partitionId) == tf._1).get
-                if (tf._2.toLong < rightOne.offset) {
-                  updateBoolean = true
-                  tf._1._2.toString + ":" + rightOne.offset.toString
-                }
-                else tf._1._2.toString + ":" + tf._2
-              }
-              else tf._1._2.toString + ":" + tf._2
-            }).mkString(",")
-
-            if (updateBoolean) {
-              db.run(streamInTopicTable.filter(_.streamId === topicDetail.streamId).filter(_.nsDatabaseId === topicDetail.nsDatabaseId).map(intopic => (intopic.partitionOffsets, intopic.updateTime)).update(newPartitionOffset, currentSec))
-            }
-            TopicDetail(topicDetail.id,
-              topicDetail.streamId: Long,
-              topicDetail.nsInstanceId,
-              topicDetail.nsDatabaseId,
-              topicDetail.partition,
-              newPartitionOffset,
-              topicDetail.rate,
-              topicDetail.zookeeper,
-              topicDetail.active,
-              topicDetail.createTime,
-              topicDetail.createBy,
-              topicDetail.updateTime,
-              topicDetail.updateBy,
-              topicDetail.name)
-          }
-          else topicDetail
-        })
-    }
+  def refreshTopicByStreamId(streamId: Long, userId: Long) = {
+    updateOffsetFromFeedback(streamId, userId)
   }
 
   def getTopicByInstanceId(instanceId: Long) = {
@@ -459,5 +447,4 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
         })
     }
   }
-
 }
