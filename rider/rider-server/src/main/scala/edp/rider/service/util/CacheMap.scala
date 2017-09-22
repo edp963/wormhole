@@ -110,19 +110,65 @@ class CacheMap private {
 object CacheMap extends RiderLogger {
   val singleMap = new CacheMap
 
-  def getProjectId(stream_id: Long): Long = singleMap.getProjectId(stream_id)
-
-  def getStreamName(stream_id: Long): String = singleMap.getStreamName(stream_id)
-
   def setStreamIdProjectId(stream_id: Long, stream_name: String, project_id: Long) = singleMap.setStreamCacheMap(stream_id, stream_name, project_id)
-
-  def getFlowId(flowName: String): Long = singleMap.getFlowId(flowName)
 
   def setFlowCacheMap(flow_name: String, flow_id: Long) = singleMap.setFlowCacheMap(flow_name, flow_id)
 
-  def getOffsetValue(streamid:Long,topicName:String,partitionId:Int)= singleMap.getOffsetValue(streamid,topicName,partitionId)
-
   def setOffsetMap(streamid:Long,topicName:String,partitionId:Int, offset:Long)= singleMap.setOffsetMap(streamid,topicName,partitionId,offset)
+
+  def getProjectId(streamId: Long): Long =
+    try {
+      val pid = singleMap.getProjectId(streamId)
+      if(pid == 0) {
+        streamCacheMapRefresh
+        singleMap.getProjectId(streamId)
+      }else pid
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"stream cache map refresh failed", ex)
+        throw ex
+    }
+
+
+  def getStreamName(streamId: Long): String =
+  try {
+    val streamName = singleMap.getStreamName(streamId)
+    if(streamName == "default") {
+      streamCacheMapRefresh
+      singleMap.getStreamName(streamId)
+    }else streamName
+  } catch {
+    case ex: Exception =>
+      riderLogger.error(s"stream cache map refresh failed", ex)
+      throw ex
+  }
+
+  def getFlowId(flowName: String): Long =
+    try {
+      val pid = singleMap.getFlowId(flowName)
+      if(pid == 0) {
+        flowCacheMapRefresh
+        singleMap.getFlowId(flowName)
+      }else pid
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"stream cache map refresh failed", ex)
+        throw ex
+    }
+
+
+  def getOffsetValue(streamid:Long,topicName:String,partitionId:Int)=
+  try {
+    val offset = singleMap.getOffsetValue(streamid,topicName,partitionId)
+    if(offset == 0) {
+      flowCacheMapRefresh
+      singleMap.getOffsetValue(streamid,topicName,partitionId)
+    }else offset
+  } catch {
+    case ex: Exception =>
+      riderLogger.error(s"stream cache map refresh failed", ex)
+      throw ex
+  }
 
   def streamCacheMapRefresh: Unit =
     try {
@@ -178,5 +224,20 @@ object CacheMap extends RiderLogger {
     offsetMapRefresh
   }
 
+  def cacheMapPrint= {
+    Await.result(modules.streamDal.getAllActiveStream, minTimeOut).foreach { stream =>
+      FeedbackOffsetUtil.getOffsetFromFeedback(stream.streamId).foreach { e =>
+        riderLogger.info(s" OffsetMap ( ${e.streamId},${e.topicName},${e.partitionId} ) -> ${singleMap.getOffsetValue(e.streamId, e.topicName, e.partitionId)}")
+      }
+    }
+
+    Await.result(modules.streamDal.getAllActiveStream, minTimeOut).foreach { stream =>
+      riderLogger.info(s" StreamMap  ${stream.streamId} -> ( ${singleMap.getStreamName(stream.streamId)}, ${singleMap.getProjectId(stream.streamId)} )")
+    }
+
+    Await.result(modules.flowDal.adminGetAll(), minTimeOut).foreach{flow =>
+      riderLogger.info(s" FlowMap  ${flow.sourceNs}_${flow.sinkNs} -> ${flow.id}")
+    }
+  }
 
 }
