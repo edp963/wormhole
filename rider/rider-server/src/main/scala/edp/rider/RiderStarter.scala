@@ -27,11 +27,11 @@ import akka.stream.ActorMaterializer
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.kafka.ConsumerManager
 import edp.rider.module._
-import edp.rider.monitor.CacheMap
 import edp.rider.rest.persistence.entities.User
 import edp.rider.rest.router.RoutesApi
 import edp.rider.schedule.Scheduler
 import edp.rider.rest.util.CommonUtils._
+import edp.rider.service.util.CacheMap
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await
@@ -61,7 +61,6 @@ object RiderStarter extends App with RiderLogger {
   Scheduler.start
   riderLogger.info(s"Scheduler started")
 
-  CacheMap.streamCacheMapRefresh
-  CacheMap.flowCacheMapRefresh
+  CacheMap.cacheMapInit
   monitor.ElasticSearch.createEsIndex()
 }

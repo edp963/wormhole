@@ -25,13 +25,13 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.RiderStarter.modules.config
 import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.monitor.CacheMap
 import edp.rider.rest.persistence.dal.StreamDal
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
+import edp.rider.service.util.CacheMap
 import edp.rider.spark.SubmitSparkJob.{generateStreamStartSh, getConfig, runShellCommand}
 import edp.wormhole.common.util.JsonUtils._
 import edp.rider.rest.router.JsonProtocol._

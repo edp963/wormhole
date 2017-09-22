@@ -29,6 +29,7 @@ import akka.kafka.{ConsumerSettings, Subscriptions}
 import akka.stream.scaladsl.Source
 import edp.rider.RiderStarter.modules
 import edp.rider.common.{RiderConfig, RiderLogger}
+import edp.rider.service.util.FeedbackOffsetUtil
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeserializer}
@@ -61,29 +62,12 @@ object TopicSource extends RiderLogger {
     Consumer.committablePartitionedSource(consumerSettings, Subscriptions.topics(RiderConfig.consumer.topic))
   }
 
-  private def getTopicMap(topicName: String, partitions: Int): mutable.Map[TopicPartition, Long] = {
-    val topicMap = mutable.Map[TopicPartition, Long]()
-    riderLogger.info(s"Rider Feedback Topic: $topicName, partition num: $partitions")
-    var pid = 0
-    while (pid < partitions) {
-      try {
-        val offset: Long = Await.result(modules.feedbackOffsetDal.getLatestOffset(0L, topicName, pid), Duration.Inf).getOrElse(0)
-        if (offset >= 0) topicMap.put(new TopicPartition(topicName, pid), offset)
-      } catch {
-        case e: Exception =>
-          riderLogger.error(s"Failed to get latest offset", e)
-      }
-      pid += 1
-    }
-    riderLogger.info(s"Rider Consumer Topic: " + topicMap.toString)
-    topicMap
-  }
 
   def createFromOffset(groupId: String)(implicit system: ActorSystem): Source[CommittableMessage[Array[Byte], String], Control] = {
     val consumerSettings = ConsumerSettings(system, new ByteArrayDeserializer, new StringDeserializer)
       .withBootstrapServers(RiderConfig.consumer.brokers)
       .withGroupId(RiderConfig.consumer.group_id)
-    val topicMap: mutable.Map[TopicPartition, Long] = getTopicMap(RiderConfig.consumer.topic, RiderConfig.consumer.partitions)
+    val topicMap: mutable.Map[TopicPartition, Long] = FeedbackOffsetUtil.getTopicMapForDB(0,RiderConfig.consumer.topic, RiderConfig.consumer.partitions)
     if (topicMap == null || topicMap.isEmpty) {
       riderLogger.error(s"topicMap is empty")
     }

@@ -32,6 +32,7 @@ import edp.rider.rest.util.{AuthorizationProvider, StreamUtils}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.JobUtils._
 import edp.rider.rest.util.ResponseUtils._
+import edp.rider.service.util.FeedbackOffsetUtil
 import edp.wormhole.common.util.JsonUtils
 import edp.rider.rest.router.JsonProtocol._
 import edp.wormhole.common.util.DateUtils._
@@ -133,7 +134,9 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                                 val batchDuration = launchConfig.durations.toInt
                                 onComplete(streamDal.getStreamTopicPartition(streamId)) {
                                   case Success(topics) =>
-                                    val topicList = feedbackOffsetDal.getLatestTopicOffset(topics)
+                                    val topicList: Seq[TopicOffset] = FeedbackOffsetUtil.getLatestTopicOffset(topics).map{ case item =>
+                                      TopicOffset(item.topicName,item.partitionId,item.offset)
+                                    }
                                     riderLogger.info(s"user ${session.userId} request for stream $streamId health where project id is $projectId success")
                                     complete(OK, ResponseJson[StreamHealth](getHeader(200, null), StreamHealth(streamInfo.status, sparkApplicationId, formatWaterMark(sLatestWatermark), batchThreshold, batchDuration, topicList)))
                                   case Failure(ex) =>
