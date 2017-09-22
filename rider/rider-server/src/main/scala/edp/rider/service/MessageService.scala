@@ -198,7 +198,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
       })
     } catch {
       case e: Exception =>
-        riderLogger.error(s"Failed to process FeedbackStreamTopicOffset feedback message", e)
+        riderLogger.error(s"Failed to process FeedbackStreamTopicOffset feedback message ${message}", e)
     }
   }
 

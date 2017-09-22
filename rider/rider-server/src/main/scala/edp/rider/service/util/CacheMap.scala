@@ -24,10 +24,8 @@ package edp.rider.service.util
 import edp.rider.RiderStarter.modules
 import edp.rider.common.RiderLogger
 import edp.rider.rest.util.CommonUtils._
-
 import scala.collection.mutable
 import scala.concurrent.Await
-
 
 class CacheMap private {
   private case class StreamMapKey(streamId: Long)
@@ -201,7 +199,7 @@ object CacheMap extends RiderLogger {
       }
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"flow cache map refresh failed", ex)
+        riderLogger.error(s"offset cache map refresh failed", ex)
         throw ex
     }
   }
@@ -213,7 +211,7 @@ object CacheMap extends RiderLogger {
       }
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"flow cache map refresh failed", ex)
+        riderLogger.error(s"offset cache map refresh failed", ex)
         throw ex
     }
   }
@@ -222,14 +220,10 @@ object CacheMap extends RiderLogger {
     streamCacheMapRefresh
     flowCacheMapRefresh
     offsetMapRefresh
+    //cacheMapPrint
   }
 
   def cacheMapPrint= {
-    Await.result(modules.streamDal.getAllActiveStream, minTimeOut).foreach { stream =>
-      FeedbackOffsetUtil.getOffsetFromFeedback(stream.streamId).foreach { e =>
-        riderLogger.info(s" OffsetMap ( ${e.streamId},${e.topicName},${e.partitionId} ) -> ${singleMap.getOffsetValue(e.streamId, e.topicName, e.partitionId)}")
-      }
-    }
 
     Await.result(modules.streamDal.getAllActiveStream, minTimeOut).foreach { stream =>
       riderLogger.info(s" StreamMap  ${stream.streamId} -> ( ${singleMap.getStreamName(stream.streamId)}, ${singleMap.getProjectId(stream.streamId)} )")
@@ -237,6 +231,15 @@ object CacheMap extends RiderLogger {
 
     Await.result(modules.flowDal.adminGetAll(), minTimeOut).foreach{flow =>
       riderLogger.info(s" FlowMap  ${flow.sourceNs}_${flow.sinkNs} -> ${flow.id}")
+    }
+  }
+
+  Await.result(modules.streamDal.getAllActiveStream, minTimeOut).foreach { stream =>
+    val a = FeedbackOffsetUtil.getOffsetFromFeedback(stream.streamId)
+    riderLogger.info(s" offsetMap  $a")
+    a.foreach { e =>
+      val b = singleMap.getOffsetValue(e.streamId, e.topicName, e.partitionId)
+      riderLogger.info(s" OffsetMap ( ${e.streamId},${e.topicName},${e.partitionId} ) -> ${b}")
     }
   }
 

@@ -257,7 +257,7 @@ CREATE TABLE IF NOT EXISTS `feedback_stream_offset` (
   `stream_id` BIGINT NOT NULL,
   `topic_name` NVARCHAR(512) NOT NULL,
   `partition_num` INT NOT NULL,
-  `partition_offset` BIGINT NOT NULL,
+  `partition_offsets` VARCHAR(256) NOT NULL,
   `feedback_time` TIMESTAMP NOT NULL,
   PRIMARY KEY (`id`),
   KEY `unionIndex` (`stream_id`,`topic_name`(255),`partition_num`),

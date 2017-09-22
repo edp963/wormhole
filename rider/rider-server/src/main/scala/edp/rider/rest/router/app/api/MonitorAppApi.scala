@@ -132,7 +132,7 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                                 val launchConfig = JsonUtils.json2caseClass[LaunchConfig](stream.launchConfig)
                                 val batchThreshold = launchConfig.maxRecords.toInt
                                 val batchDuration = launchConfig.durations.toInt
-                                onComplete(streamDal.getStreamTopicPartition(streamId)) {
+                                onComplete(feedbackOffsetDal.getDistinctStreamTopicList(streamId)) {
                                   case Success(topics) =>
                                     val topicList: Seq[TopicOffset] = FeedbackOffsetUtil.getLatestTopicOffset(topics).map{ case item =>
                                       TopicOffset(item.topicName,item.partitionId,item.offset)
