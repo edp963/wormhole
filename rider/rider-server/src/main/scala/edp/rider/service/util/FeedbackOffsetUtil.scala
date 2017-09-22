@@ -2,7 +2,7 @@ package edp.rider.service.util
 
 import edp.rider.common.RiderLogger
 import edp.rider.module.{ConfigurationModuleImpl, PersistenceModuleImpl}
-import edp.rider.rest.persistence.entities.{StreamTopicPartition, FeedbackOffsetInfo}
+import edp.rider.rest.persistence.entities.{StreamTopicPartitionId, StreamTopicPartition, FeedbackOffsetInfo}
 import edp.rider.service.util.CacheMap._
 import org.apache.kafka.common.TopicPartition
 import scala.collection.mutable.ListBuffer
@@ -12,7 +12,10 @@ import scala.concurrent.duration.Duration
 object FeedbackOffsetUtil extends RiderLogger with ConfigurationModuleImpl with PersistenceModuleImpl
 {
 
-  def getOffsetFromFeedback(streamId: Long): Seq[FeedbackOffsetInfo] = getLatestTopicOffset( Await.result(feedbackOffsetDal.getDistinctStreamTopicList(streamId), Duration.Inf))
+  def getOffsetFromFeedback(streamId: Long): Seq[FeedbackOffsetInfo] ={
+    val a= Await.result(feedbackOffsetDal.getDistinctStreamTopicList(streamId), Duration.Inf)
+    getLatestTopicOffset(a )
+  }
 
   def getPartitionNumber( partitionOffsets:String):Int =partitionOffsets.split(",").length
 
@@ -27,23 +30,24 @@ object FeedbackOffsetUtil extends RiderLogger with ConfigurationModuleImpl with 
     offset
   }
 
-  def getLatestTopicOffset(topics: Seq[StreamTopicPartition]): Seq[FeedbackOffsetInfo] = {
+  def getLatestTopicOffset(topics: Seq[StreamTopicPartitionId]): Seq[FeedbackOffsetInfo] = {
     val topicList: ListBuffer[FeedbackOffsetInfo] = new ListBuffer()
-    topics.foreach{topic =>
-      val record = Await.result(feedbackOffsetDal.getLatestOffset(topic.streamId, topic.topicName), Duration.Inf)
-      var pid:Int = 0
-      while (pid < topic.partitions.getOrElse(1)) {
-        try {
+    try {
+      topics.foreach{ topic =>
+        val record = Await.result(feedbackOffsetDal.getLatestOffset(topic.streamId, topic.topicName), Duration.Inf)
+        var pid: Int = 0
+        while (pid < topic.partitionId) {
           val offset = getOffsetFromPartitionOffsets(record.partitionOffsets, pid)
-          if (offset >= 0) topicList.append(FeedbackOffsetInfo(topic.streamId,topic.topicName, pid, offset))
-        } catch {
-          case e: Exception =>
-            riderLogger.error(s"Failed to get latest offset", e)
+          if (offset >= 0) topicList.append(FeedbackOffsetInfo(topic.streamId, topic.topicName, pid, offset))
+          pid += 1
         }
-        pid += 1
       }
+    } catch {
+      case e: Exception =>
+      riderLogger.error(s"Failed to get latest offset", e)
     }
-    topicList
+    //riderLogger.info(s"getLatestTopicOffset $topicList")
+    topicList.toList
   }
 
   def getPartitionOffsetStrFromMap(streamId:Long,topicName:String,partitionNum:Int):String={
@@ -53,9 +57,9 @@ object FeedbackOffsetUtil extends RiderLogger with ConfigurationModuleImpl with 
       val offset = CacheMap.getOffsetValue(streamId,topicName,pid)
       if(offset>=0) {
         if(pid ==0 )
-          partitionOffsetStr = partitionOffsetStr + s"pid:$offset"
+          partitionOffsetStr = partitionOffsetStr + s"$pid:$offset"
         else
-          partitionOffsetStr = partitionOffsetStr + s",pid:$offset"
+          partitionOffsetStr = partitionOffsetStr + s",$pid:$offset"
       }
       pid+=1
     }

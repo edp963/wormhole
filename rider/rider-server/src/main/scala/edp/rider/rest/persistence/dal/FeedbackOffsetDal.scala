@@ -21,16 +21,14 @@
 
 package edp.rider.rest.persistence.dal
 
+import scala.concurrent.{Await, Future}
 import edp.rider.common.RiderLogger
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import slick.jdbc.MySQLProfile.api._
-import slick.lifted.TableQuery
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
+import slick.lifted.{CanBeQueryCondition, TableQuery}
 import scala.concurrent.{Await, Future}
-import scala.concurrent.duration.Duration
 
 class FeedbackOffsetDal(feedbackOffsetTable: TableQuery[FeedbackOffsetTable]) extends BaseDalImpl[FeedbackOffsetTable, FeedbackOffset](feedbackOffsetTable) with RiderLogger{
 
@@ -38,14 +36,15 @@ class FeedbackOffsetDal(feedbackOffsetTable: TableQuery[FeedbackOffsetTable]) ex
     db.run(feedbackOffsetTable.filter(str => str.streamId === streamId && str.topicName === topic ).sortBy(_.feedbackTime.desc).result.head)
   }
 
-  def getDistinctStreamTopicList(streamId: Long): Future[Seq[StreamTopicPartition]] ={
-    db.run(feedbackOffsetTable.filter(str => str.streamId === streamId).map{case(str)=>(str.streamId,str.topicName,str.partitionNum)}
-      .distinct.result).mapTo[Seq[StreamTopicPartition]]
+  def getDistinctStreamTopicList(streamId: Long): Future[Seq[StreamTopicPartitionId]] ={
+    db.run(feedbackOffsetTable.filter(str => str.streamId === streamId).
+      map{case(str)=>(str.streamId,str.topicName,str.partitionNum ) <> (StreamTopicPartitionId.tupled, StreamTopicPartitionId.unapply)
+      }.distinct.result).mapTo[Seq[StreamTopicPartitionId]]
   }
 
-  def getDistinctList: Future[Seq[StreamTopicPartition]] ={
-    db.run(feedbackOffsetTable.map{case(str)=>(str.id,str.streamId,str.topicName,str.partitionNum)}
-      .distinct.result).mapTo[Seq[StreamTopicPartition]]
+  def getDistinctList: Future[Seq[IdStreamTopicPartitionId]] ={
+    db.run(feedbackOffsetTable.map{case(str)=>(str.id,str.streamId,str.topicName,str.partitionNum) <> (IdStreamTopicPartitionId.tupled, IdStreamTopicPartitionId.unapply) }
+      .distinct.result).mapTo[Seq[IdStreamTopicPartitionId]]
   }
 
 
