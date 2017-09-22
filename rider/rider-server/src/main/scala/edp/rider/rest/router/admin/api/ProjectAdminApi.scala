@@ -24,7 +24,7 @@ package edp.rider.rest.router.admin.api
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
-import edp.rider.monitor.{CacheMap, Dashboard}
+import edp.rider.monitor.Dashboard
 import edp.rider.rest.persistence.dal.{ProjectDal, RelProjectNsDal, RelProjectUserDal}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.JsonProtocol._

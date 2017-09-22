@@ -105,7 +105,7 @@ case class SimpleTopic(id: Long,
 
 case class FeedbackOffsetInfo(streamId: Long,
                               topicName: String,
-                              partitionNum: Int,
+                              partitionId: Int,
                               offset: Long)
 
 
