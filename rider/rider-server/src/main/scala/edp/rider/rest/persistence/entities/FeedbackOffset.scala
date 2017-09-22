@@ -25,6 +25,8 @@ import edp.rider.rest.persistence.base.{BaseEntity, BaseTable}
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.Tag
 
+case class StreamTopicPartitionId(streamId: Long, topicName: String, partitionId: Int)
+case class IdStreamTopicPartitionId(id:Long,streamId: Long, topicName: String, partitionId: Int)
 case class FeedbackOffset(id: Long,
                           protocolType: String,
                           umsTs: String,
