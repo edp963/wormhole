@@ -44,8 +44,9 @@ object DbModule extends ConfigurationModuleImpl with RiderLogger {
     val session = db.createSession()
     try {
       sqlSeq.filter(_.toLowerCase().contains("create")).map(session.withPreparedStatement(_)(_.execute))
+      riderLogger.info("Initial rider database success")
     } catch {
-      case ex: Exception => riderLogger.warn("create table exception", ex)
+      case ex: Exception => riderLogger.error("Initial rider database failed", ex)
     }
     finally {
       session.close()
@@ -108,7 +109,7 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val namespaceDal = new NamespaceDal(namespaceQuery, databaseDal, instanceDal, dbusDal)
   override lazy val userDal = new UserDal(userQuery, relProjectUserDal)
   override lazy val relProjectUserDal = new RelProjectUserDal(userQuery, projectQuery, relProjectUserQuery)
-  override lazy val streamDal = new StreamDal(streamQuery, projectQuery, feedbackOffsetQuery, instanceQuery, databaseQuery, relProjectNsQuery, streamInTopicQuery, namespaceQuery, dbusQuery, directiveDal)
+  override lazy val streamDal = new StreamDal(streamQuery, projectQuery, feedbackOffsetQuery, instanceQuery, databaseQuery, relProjectNsQuery, streamInTopicQuery, namespaceQuery, directiveDal)
   override lazy val flowDal = new FlowDal(flowQuery, streamQuery, projectQuery, streamDal)
   override lazy val relProjectNsDal = new RelProjectNsDal(namespaceQuery, databaseQuery, instanceQuery, projectQuery, relProjectNsQuery, streamInTopicQuery)
   override lazy val projectDal = new ProjectDal(projectQuery, relProjectNsDal, relProjectUserDal)

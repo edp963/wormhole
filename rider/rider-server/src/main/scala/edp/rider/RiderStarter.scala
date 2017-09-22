@@ -50,16 +50,17 @@ object RiderStarter extends App with RiderLogger {
 
   DbModule.createSchema
 
-  if (Await.result(modules.userDal.findByFilter(_.email === "admin"), minTimeOut).isEmpty)
-    Await.result(modules.userDal.insert(User(0, "admin", "admin", "admin", "admin", active = true, currentSec, 1, currentSec, 1)), minTimeOut)
-
+  if (Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.adminUser), minTimeOut).isEmpty)
+    Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.adminUser, RiderConfig.riderServer.adminPwd, RiderConfig.riderServer.adminUser, "admin", active = true, currentSec, 1, currentSec, 1)), minTimeOut)
+  if(Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.normalUser), minTimeOut).isEmpty)
+    Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.normalUser, RiderConfig.riderServer.normalPwd, RiderConfig.riderServer.normalUser, "user", active = true, currentSec, 1, currentSec, 1)), minTimeOut)
   Http().bindAndHandle(new RoutesApi(modules).routes, RiderConfig.riderServer.host, RiderConfig.riderServer.port)
   riderLogger.info(s"RiderServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
 
   val manager = new ConsumerManager(modules)
-  riderLogger.info(s"Consumer started ")
+  riderLogger.info(s"Rider Consumer started")
   Scheduler.start
-  riderLogger.info(s"Scheduler started")
+  riderLogger.info(s"Rider Scheduler started")
 
   CacheMap.cacheMapInit
   monitor.ElasticSearch.createEsIndex()

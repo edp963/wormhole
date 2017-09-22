@@ -95,6 +95,5 @@ class UserAdminRoutes(modules: ConfigurationModule with PersistenceModule with B
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def putUserRoute: Route = modules.userAdminService.putRoute(basePath)
-
 }
 

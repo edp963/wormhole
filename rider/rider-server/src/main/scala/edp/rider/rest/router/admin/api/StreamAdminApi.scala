@@ -137,4 +137,34 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
         }
       }
   }
+
+  def getTopicsByStreamId(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "intopics") {
+    (id, streamId) =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"${
+                session.userId
+              } has no permission to access it.")
+              complete(Forbidden, getHeader(403, session))
+            }
+            else {
+              try {
+                val topics = streamDal.refreshTopicByStreamId(streamId, session.userId)
+                riderLogger.info(s"user ${
+                  session.userId
+                } select topics where stream id is $streamId success.")
+                complete(OK, ResponseSeqJson[TopicDetail](getHeader(200, session), topics))
+              } catch {
+                case ex: Exception =>
+                  riderLogger.error(s"user ${
+                    session.userId
+                  } select topics where stream id is $streamId failed", ex)
+                  complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+              }
+            }
+        }
+      }
+  }
 }

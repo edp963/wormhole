@@ -31,7 +31,6 @@ case class StreamInTopic(id: Long,
                          nsDatabaseId: Long,
                          partitionOffsets: String,
                          rate: Int,
-                         zookeeper: String,
                          active: Boolean,
                          createTime: String,
                          createBy: Long,
@@ -46,7 +45,6 @@ case class StreamInTopicName(id: Long,
                              partitions: Int,
                              partitionOffsets: String,
                              rate: Int,
-                             zookeeper: String,
                              active: Boolean,
                              createTime: String,
                              createBy: Long,
@@ -56,7 +54,7 @@ case class StreamInTopicName(id: Long,
 case class StreamTopicPartition(streamId: Long, topicName: String, partitions: Option[Int])
 
 class StreamInTopicTable(_tableTag: Tag) extends BaseTable[StreamInTopic](_tableTag, "rel_stream_intopic") {
-  def * = (id, streamId, nsInstanceId, nsDatabaseId, partitionOffsets, rate, zookeeper, active, createTime, createBy, updateTime, updateBy) <> (StreamInTopic.tupled, StreamInTopic.unapply)
+  def * = (id, streamId, nsInstanceId, nsDatabaseId, partitionOffsets, rate, active, createTime, createBy, updateTime, updateBy) <> (StreamInTopic.tupled, StreamInTopic.unapply)
 
   /** Database column stream_id SqlType(BIGINT) */
   val streamId: Rep[Long] = column[Long]("stream_id")
@@ -68,7 +66,5 @@ class StreamInTopicTable(_tableTag: Tag) extends BaseTable[StreamInTopic](_table
   val partitionOffsets: Rep[String] = column[String]("partition_offsets", O.Length(200, varying = true))
   /** Database column rate SqlType(INT) */
   val rate: Rep[Int] = column[Int]("rate")
-  /** Database column zookeeper SqlType(VARCHAR), Length(200,true) */
-  val zookeeper: Rep[String] = column[String]("zookeeper", O.Length(200, varying = true))
 
 }

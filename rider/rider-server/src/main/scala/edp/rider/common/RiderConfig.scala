@@ -27,9 +27,10 @@ import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeser
 
 import scala.concurrent.duration.{FiniteDuration, _}
 
-case class RiderServer(host: String, port: Int)
+case class RiderServer(host: String, port: Int, adminUser: String, adminPwd: String, normalUser: String, normalPwd: String)
 
 case class RiderKafka(brokers: String,
+                      zkUrl: String,
                       topic: String,
                       partitions: Int,
                       client_id: String,
@@ -89,16 +90,27 @@ case class RiderMonitor(url: String,
 case class Maintenance(mysqlRemain: Int,
                        esRemain: Int)
 
-case class RiderInfo(consumer: RiderKafka,
-                     zk: String,
-                     spark: RiderSpark,
-                     monitor: RiderMonitor)
+case class RiderInfo(zookeeper: String,
+                     kafka: String,
+                     feedback_topic: String,
+                     heartbeat_topic: String,
+                     hdfslog_root_path: String,
+                     spark_submit_user: String,
+                     spark_app_tags: String,
+                     yarn_rm1_http_url: String,
+                     yarn_rm2_http_url: String)
+
 
 object RiderConfig {
 
   lazy val riderRootPath = s"${System.getenv("WORMHOLE_HOME")}"
 
-  lazy val riderServer = RiderServer(config.getString("wormholeServer.host"), config.getInt("wormholeServer.port"))
+  lazy val riderServer = RiderServer(
+    config.getString("wormholeServer.host"), config.getInt("wormholeServer.port"),
+    getStringConfig("wormholeServer.admin.username", "admin"),
+    getStringConfig("wormholeServer.admin.password", "admin"),
+    getStringConfig("wormholeServer.normal.username", "normal"),
+    getStringConfig("wormholeServer.normal.password", "normal"))
 
   lazy val riderDomain = getStringConfig("wormholeServer.domain.url", "")
 
@@ -120,7 +132,7 @@ object RiderConfig {
 
   lazy val maxWakeups = getIntConfig("kafka.consumer.max-wakeups", 10)
 
-  lazy val consumer = RiderKafka(config.getString("kafka.brokers.url"),
+  lazy val consumer = RiderKafka(config.getString("kafka.brokers.url"), config.getString("kafka.zookeeper.url"),
     feedbackTopic,
     4,
     "wormhole_rider_group",
@@ -200,7 +212,8 @@ object RiderConfig {
 
   lazy val dbusUrl = config.getStringList("dbus.namespace.rest.api.url")
 
-  lazy val riderInfo = RiderInfo(consumer, zk, spark, grafana)
+  lazy val riderInfo = RiderInfo(zk, consumer.brokers, consumer.topic, spark.wormholeHeartBeatTopic, spark.hdfs_root,
+    spark.user, spark.app_tags, spark.rm1Url, spark.rm2Url)
 
   def getStringConfig(path: String, default: String): String = {
     if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")

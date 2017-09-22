@@ -21,14 +21,13 @@
 
 package edp.rider.rest.persistence.dal
 
-import scala.concurrent.{Await, Future}
 import edp.rider.common.RiderLogger
-import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import slick.jdbc.MySQLProfile.api._
-import slick.lifted.{CanBeQueryCondition, TableQuery}
-import scala.concurrent.{Await, Future}
+import slick.lifted.TableQuery
+import edp.rider.module.DbModule._
+import scala.concurrent.Future
 
 class FeedbackOffsetDal(feedbackOffsetTable: TableQuery[FeedbackOffsetTable]) extends BaseDalImpl[FeedbackOffsetTable, FeedbackOffset](feedbackOffsetTable) with RiderLogger{
 

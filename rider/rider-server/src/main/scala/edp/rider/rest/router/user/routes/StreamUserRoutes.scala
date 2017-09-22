@@ -35,7 +35,9 @@ import io.swagger.annotations.{ApiResponses, _}
 @Api(value = "/streams", consumes = "application/json", produces = "application/json")
 @Path("/user/projects")
 class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
-  lazy val routes: Route = getStreamByAllRoute ~ putStreamRoute ~ postStreamRoute ~ getKafkasByProjectId ~ getTopicsByStreamId ~ getTopicsByInstanceId ~ putStreamInTopicRoute ~ getStreamById ~ getStreamStart ~ getStreamStop ~ getStreamRenew ~ getLogByStreamId ~ getConf
+  lazy val routes: Route = getStreamByAllRoute ~ putStreamRoute ~ postStreamRoute ~ getKafkasByProjectId ~
+    getTopicsByStreamId ~ getTopicsByInstanceId ~ putStreamInTopicRoute ~ getStreamById ~ getStreamStart ~
+    getStreamStop ~ getStreamRenew ~ getLogByStreamId ~ getConf ~ deleteStream
 
   lazy val basePath = "projects"
 
@@ -121,7 +123,7 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
 
 
   @Path("/{id}/streams/{streamId}/intopics/")
-  @ApiOperation(value = "get one stream started by stream id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiOperation(value = "get one stream topics by stream id", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path")
@@ -185,7 +187,7 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
 
 
   @Path("/{id}/streams/{streamId}/start")
-  @ApiOperation(value = "get one stream started by id", notes = "", nickname = "", httpMethod = "PUT")
+  @ApiOperation(value = "start stream by id", notes = "", nickname = "", httpMethod = "PUT")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
@@ -202,7 +204,7 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
 
 
   @Path("/{id}/streams/{streamId}/stop")
-  @ApiOperation(value = "get one stream started by id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiOperation(value = "stop stream by id", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path")
@@ -217,7 +219,7 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
   def getStreamStop: Route = modules.streamUserService.getStreamStopped(basePath)
 
   @Path("/{id}/streams/{streamId}/renew")
-  @ApiOperation(value = "get one stream started by id", notes = "", nickname = "", httpMethod = "PUT")
+  @ApiOperation(value = "update topic directive to zk by stream id", notes = "", nickname = "", httpMethod = "PUT")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
@@ -231,6 +233,22 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getStreamRenew: Route = modules.streamUserService.getStreamRenew(basePath)
+
+  @Path("/{id}/streams/{streamId}/delete")
+  @ApiOperation(value = "delete stream by id", notes = "", nickname = "", httpMethod = "PUT")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 412, message = "can't delete stream now, please delete flow first"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def deleteStream: Route = modules.streamUserService.deleteStream(basePath)
 
   @Path("/streams/default/config")
   @ApiOperation(value = "get one stream started by id", notes = "", nickname = "", httpMethod = "GET")

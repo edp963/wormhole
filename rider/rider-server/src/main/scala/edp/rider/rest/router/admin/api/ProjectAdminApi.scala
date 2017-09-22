@@ -34,6 +34,7 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
 import slick.jdbc.MySQLProfile.api._
 
+import scala.collection.mutable.ArrayBuffer
 import scala.util.{Failure, Success}
 
 class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, relProjectUserDal: RelProjectUserDal) extends BaseAdminApiImpl(projectDal) with RiderLogger {
@@ -175,37 +176,58 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
               else {
                 val projectEntity = Project(entity.id, entity.name, Some(entity.desc.getOrElse("")), entity.pic, entity.resCores, entity.resMemoryG, entity.active, entity.createTime, entity.createBy, currentSec, session.userId)
                 onComplete(projectDal.update(projectEntity).mapTo[Int]) {
-                  case Success(project) =>
+                  case Success(_) =>
                     riderLogger.info(s"user ${session.userId} updated project $projectEntity success.")
                     val relNsEntity = entity.nsId.split(",").map(nsId => RelProjectNs(0, entity.id, nsId.toLong, active = true, currentSec, session.userId, currentSec, session.userId)).toSeq
                     val relUserEntity = entity.userId.split(",").map(userId => RelProjectUser(0, entity.id, userId.toLong, active = true, currentSec, session.userId, currentSec, session.userId)).toSeq
-                    onComplete(relProjectNsDal.deleteByFilter(_.projectId === entity.id).mapTo[Int]) {
-                      case Success(nsIds) =>
-                        riderLogger.info(s"user ${session.userId} deleted relProjectNs where project id is ${entity.id} success.")
-                        onComplete(relProjectNsDal.insert(relNsEntity).mapTo[Seq[RelProjectNs]]) {
-                          case Success(relProjectNss) =>
-                            riderLogger.info(s"user ${session.userId} inserted relProjectNs $relNsEntity success.")
-                            onComplete(relProjectUserDal.deleteByFilter(_.projectId === entity.id).mapTo[Int]) {
-                              case Success(userIds) =>
-                                riderLogger.info(s"user ${session.userId} deleted relProjectUser where project id is ${entity.id} success.")
-                                onComplete(relProjectUserDal.insert(relUserEntity).mapTo[Seq[RelProjectUser]]) {
-                                  case Success(relProjectUsers) =>
-                                    riderLogger.info(s"user ${session.userId} inserted relProjectUser $relUserEntity success.")
-                                    complete(OK, ResponseJson[Project](getHeader(200, session), projectEntity))
+                    onComplete(relProjectNsDal.findByFilter(_.projectId === entity.id).mapTo[Seq[RelProjectNs]]) {
+                      case Success(existRelNsSeq) =>
+                        riderLogger.info(s"user ${session.userId} select relProjectNs where project id is ${entity.id} success.")
+                        val existRelNsIds = existRelNsSeq.map(_.nsId)
+                        val putRelNsIds = relNsEntity.map(_.nsId)
+                        val deleteNsIds = existRelNsIds.filter(!putRelNsIds.contains(_))
+                        val insertNsSeq = relNsEntity.filter(relNs => !existRelNsIds.contains(relNs.nsId))
+                        onComplete(relProjectNsDal.deleteByFilter(relNs => relNs.projectId === entity.id && relNs.nsId.inSet(deleteNsIds)).mapTo[Int]) {
+                          case Success(_) =>
+                            riderLogger.info(s"user ${session.userId} deleted relProjectNs where project id is ${entity.id} and nsId in $deleteNsIds success")
+                            onComplete(relProjectNsDal.insert(insertNsSeq).mapTo[Seq[RelProjectNs]]) {
+                              case Success(_) =>
+                                riderLogger.info(s"user ${session.userId} inserted relProjectNs $relNsEntity success.")
+                                onComplete(relProjectUserDal.findByFilter(_.projectId === entity.id).mapTo[Seq[RelProjectUser]]) {
+                                  case Success(existRelUserSeq) =>
+                                    val existRelUserIds = existRelUserSeq.map(_.userId)
+                                    val putRelUserIds = relUserEntity.map(_.userId)
+                                    val deleteUserIds = existRelUserIds.filter(!putRelUserIds.contains(_))
+                                    val insertUserSeq = relUserEntity.filter(relUser => !existRelUserIds.contains(relUser.userId))
+                                    onComplete(relProjectUserDal.deleteByFilter(relUser => relUser.projectId === entity.id && relUser.userId.inSet(deleteUserIds)).mapTo[Int]) {
+                                      case Success(_) =>
+                                        riderLogger.info(s"user ${session.userId} deleted relProjectUser where project id is ${entity.id} and userId in $deleteUserIds success.")
+                                        onComplete(relProjectUserDal.insert(insertUserSeq).mapTo[Seq[RelProjectUser]]) {
+                                          case Success(_) =>
+                                            riderLogger.info(s"user ${session.userId} inserted relProjectUser $relUserEntity success.")
+                                            complete(OK, ResponseJson[Project](getHeader(200, session), projectEntity))
+                                          case Failure(ex) =>
+                                            riderLogger.error(s"user ${session.userId} inserted relProjectUser $relUserEntity failed", ex)
+                                            complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                        }
+                                      case Failure(ex) =>
+                                        riderLogger.error(s"user ${session.userId} deleted relProjectUser where project id is ${entity.id} and userId in $deleteUserIds failed", ex)
+                                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                    }
                                   case Failure(ex) =>
-                                    riderLogger.error(s"user ${session.userId} inserted relProjectUser $relUserEntity failed", ex)
+                                    riderLogger.error(s"user ${session.userId} select relProjectUser where project id is ${entity.id} failed", ex)
                                     complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                                 }
                               case Failure(ex) =>
-                                riderLogger.error(s"user ${session.userId} deleted relProjectUser where project id is ${entity.id} failed", ex)
+                                riderLogger.error(s"user ${session.userId} inserted relProjectNs $relNsEntity failed", ex)
                                 complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                             }
                           case Failure(ex) =>
-                            riderLogger.error(s"user ${session.userId} inserted relProjectNs $relNsEntity failed", ex)
+                            riderLogger.error(s"user ${session.userId} deleted relProjectNs where project id is ${entity.id} and nsId in $deleteNsIds failed", ex)
                             complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                         }
                       case Failure(ex) =>
-                        riderLogger.error(s"user ${session.userId} deleted relProjectNs where project id is ${entity.id} failed", ex)
+                        riderLogger.error(s"user ${session.userId} select relProjectNs where project id is ${entity.id} failed", ex)
                         complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                     }
                   case Failure(ex) =>
@@ -216,6 +238,5 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
           }
       }
     }
-
   }
 }

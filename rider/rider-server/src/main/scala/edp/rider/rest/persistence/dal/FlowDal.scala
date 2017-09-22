@@ -30,6 +30,8 @@ import edp.rider.rest.util.CommonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.{CanBeQueryCondition, TableQuery}
 import edp.rider.rest.util.FlowUtils._
+import edp.rider.service.util.CacheMap
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 
@@ -67,7 +69,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       }
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"get flow by id $flowId failed", ex)
+        riderLogger.error(s"Failed to get flow $flowId", ex)
         throw ex
     }
 
@@ -89,16 +91,16 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       }
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"admin get all flows failed", ex)
+        riderLogger.error(s"Failed to get all flows", ex)
         throw ex
     }
 
   }
 
   def updateFlowStatus(flowId: Long, flowNewStatus: String) = {
-    if(flowNewStatus == "failed")
+    if (flowNewStatus == "failed")
       Await.result(db.run(flowTable.filter(flow => flow.id === flowId && flow.status =!= "failed").map(c => (c.status, c.stoppedTime, c.updateTime)).update(flowNewStatus, Some(currentSec), currentSec)), minTimeOut)
-    else if ( flowNewStatus == "stopped")
+    else if (flowNewStatus == "stopped")
       Await.result(db.run(flowTable.filter(flow => flow.id === flowId && flow.status =!= "stopped").map(c => (c.status, c.stoppedTime, c.updateTime)).update(flowNewStatus, Some(currentSec), currentSec)), minTimeOut)
     else if (flowNewStatus == "running")
       Await.result(db.run(flowTable.filter(flow => flow.id === flowId && flow.status =!= "running").map(c => (c.status, c.startedTime, c.updateTime)).update(flowNewStatus, Some(currentSec), currentSec)), minTimeOut)
@@ -116,7 +118,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     try {
       val flowStatus = actionRule(flowStream, action)
 
-      val startedTime = if (action == "start") Some(currentSec) else if(flowStream.startedTime.getOrElse("") == "") null else flowStream.startedTime
+      val startedTime = if (action == "start") Some(currentSec) else if (flowStream.startedTime.getOrElse("") == "") null else flowStream.startedTime
       val stoppedTime = if (action == "stop" && flowStatus.flowStatus == "stopped") Some(currentSec) else if (flowStream.stoppedTime.getOrElse("") == "") null else flowStream.stoppedTime
       val newFlow = Flow(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig,
         flowStream.tranConfig, flowStatus.flowStatus, startedTime, stoppedTime, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime, flowStream.updateBy)
@@ -145,21 +147,29 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     try {
       val flowIdSeq = flowAction.flowIds.split(",").map(_.toLong)
       val flowSeq = Await.result(super.findByFilter(_.id inSet flowIdSeq), minTimeOut)
-      flowSeq.map(flow => {
-        Flow(flow.id, flow.projectId, flow.streamId, flow.sourceNs, flow.sinkNs, flow.consumedProtocol, flow.sinkConfig, flow.tranConfig,
-          flow.status, flow.startedTime, flow.stoppedTime, flow.active, flow.createTime, flow.createBy, currentSec, userId)
-      })
-      Await.result(super.update(flowSeq), minTimeOut)
-      val flowStreamSeq = defaultGetAll(_.id inSet flowIdSeq)
-      flowStreamSeq.map[Seq[FlowStream]] {
-        flowStreamSeq =>
-          flowStreamSeq.map {
-            flowStream => newFlowStream(flowStream, flowAction.action)
-          }
+      if (flowAction.action == "delete") {
+        flowSeq.map(flow => stopFlow(flow.streamId, flow.id, userId, "", flow.sourceNs, flow.sinkNs))
+        Await.result(super.deleteById(flowIdSeq), minTimeOut)
+        CacheMap.flowCacheMapRefresh
+        riderLogger.info(s"user $userId delete flow ${flowAction.flowIds} success")
+        Future(Seq())
+      } else {
+        flowSeq.map(flow => {
+          Flow(flow.id, flow.projectId, flow.streamId, flow.sourceNs, flow.sinkNs, flow.consumedProtocol, flow.sinkConfig, flow.tranConfig,
+            flow.status, flow.startedTime, flow.stoppedTime, flow.active, flow.createTime, flow.createBy, currentSec, userId)
+        })
+        Await.result(super.update(flowSeq), minTimeOut)
+        val flowStreamSeq = defaultGetAll(_.id inSet flowIdSeq)
+        flowStreamSeq.map[Seq[FlowStream]] {
+          flowStreamSeq =>
+            flowStreamSeq.map {
+              flowStream => newFlowStream(flowStream, flowAction.action)
+            }
+        }
       }
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"flow ${flowAction.flowIds} ${flowAction.action} failed", ex)
+        riderLogger.error(s"user $userId ${flowAction.action} flow ${flowAction.flowIds} failed", ex)
         throw ex
     }
   }

@@ -33,6 +33,7 @@ import edp.rider.rest.persistence.entities.FeedbackOffset
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.service.MessageService
 import edp.rider.service.util.{CacheMap, FeedbackOffsetUtil}
+import edp.wormhole.kafka.WormholeTopicCommand
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums._
 
@@ -48,6 +49,25 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
   implicit val materializer = ActorMaterializer()
 
   override def preStart(): Unit = {
+    try {
+      WormholeTopicCommand.createTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.topic, RiderConfig.consumer.partitions)
+      riderLogger.info(s"initial create ${RiderConfig.consumer.topic} topic success")
+    } catch {
+      case _: kafka.common.TopicExistsException =>
+        riderLogger.info(s"${RiderConfig.consumer.topic} topic already exists")
+      case ex: Exception =>
+        riderLogger.error(s"initial create ${RiderConfig.consumer.topic} topic failed", ex)
+    }
+    try {
+      WormholeTopicCommand.createTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic)
+      riderLogger.info(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic success")
+    } catch {
+      case _: kafka.common.TopicExistsException =>
+        riderLogger.info(s"${RiderConfig.spark.wormholeHeartBeatTopic} topic already exists")
+      case ex: Exception =>
+        riderLogger.error(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic failed", ex)
+    }
+
     super.preStart()
     self ! Start
   }
