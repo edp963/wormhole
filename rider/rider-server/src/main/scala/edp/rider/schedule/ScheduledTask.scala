@@ -26,6 +26,7 @@ import java.util.{Calendar, Date, GregorianCalendar}
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.module._
 import edp.rider.monitor.ElasticSearch
+import edp.rider.service.util.FeedbackOffsetUtil
 import edp.wormhole.common.util.{DateUtils, DtFormat}
 
 object ScheduledTask extends RiderLogger {
@@ -39,7 +40,8 @@ object ScheduledTask extends RiderLogger {
       cal.add(Calendar.DAY_OF_MONTH, (-1) * RiderConfig.maintenance.mysqlRemain)
       var pastNdays: Date = cal.getTime()
       modules.feedbackFlowErrDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
-      modules.feedbackOffsetDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
+      FeedbackOffsetUtil.deleteFeedbackOffsetHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
+      //modules.feedbackOffsetDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
       riderLogger.info(s" delete the feedback history past ${RiderConfig.maintenance.mysqlRemain} days")
 
       cal.setTime(new java.util.Date())

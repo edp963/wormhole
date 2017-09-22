@@ -32,6 +32,7 @@ import edp.rider.module._
 import edp.rider.rest.persistence.entities.FeedbackOffset
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.service.MessageService
+import edp.rider.service.util.{CacheMap, FeedbackOffsetUtil}
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums._
 
@@ -104,10 +105,11 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
     riderLogger.debug(s"Consumed: [topic,partition,offset](${msg.record.topic()}, ${msg.record.partition()}), ${msg.record.offset()}]")
     if (msg.record.key() != null)
       riderLogger.debug(s"Consumed key: ${msg.record.key().toString}")
-
     val curTs = currentMillSec
-    modules.feedbackOffsetDal.insert(FeedbackOffset(1, UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET.toString, curTs, 0,
-      msg.record.topic(), msg.record.partition(), msg.record.offset(), curTs))
+    val defaultStreamIdForRider = 0
+    CacheMap.setOffsetMap(defaultStreamIdForRider,msg.record.topic(),msg.record.partition(),msg.record.offset())
+    val partitionOffsetStr = FeedbackOffsetUtil.getPartitionOffsetStrFromMap(defaultStreamIdForRider,msg.record.topic(),RiderConfig.consumer.partitions)
+    modules.feedbackOffsetDal.insert(FeedbackOffset(1, UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET.toString, curTs, 0,msg.record.topic(), RiderConfig.consumer.partitions, partitionOffsetStr, curTs))
 
     if (msg.record.value() == null || msg.record.value() == "") {
       riderLogger.error(s"feedback message value is null: ${msg.toString}")

@@ -29,15 +29,17 @@ import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.spark.SparkJobClientLog
 import edp.rider.spark.SparkStatusQuery._
+import edp.rider.service.util._
 import edp.wormhole.common.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
-class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[ProjectTable], feedbackOffsetTable: TableQuery[FeedbackOffsetTable], instanceTable: TableQuery[InstanceTable], nsDatabaseTable: TableQuery[NsDatabaseTable], relProjectNsTable: TableQuery[RelProjectNsTable], streamInTopicTable: TableQuery[StreamInTopicTable], namespaceTable: TableQuery[NamespaceTable], dbusTable: TableQuery[DbusTable], directiveDal: BaseDal[DirectiveTable, Directive]) extends BaseDalImpl[StreamTable, Stream](streamTable) with RiderLogger {
+class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[ProjectTable], feedbackOffsetTable: TableQuery[FeedbackOffsetTable], instanceTable: TableQuery[InstanceTable], nsDatabaseTable: TableQuery[NsDatabaseTable], relProjectNsTable: TableQuery[RelProjectNsTable], streamInTopicTable: TableQuery[StreamInTopicTable], namespaceTable: TableQuery[NamespaceTable], dbusTable: TableQuery[DbusTable], directiveDal: BaseDal[DirectiveTable, Directive] ) extends BaseDalImpl[StreamTable, Stream](streamTable) with RiderLogger {
 
   def adminGetAll: Future[Seq[StreamAdmin]] = {
     try {
@@ -103,16 +105,7 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
       case (inTopic, database) => (database.id, database.nsDatabase, inTopic.partitionOffsets, inTopic.rate) <> (SimpleTopic.tupled, SimpleTopic.unapply)
     }.result).mapTo[Seq[SimpleTopic]], minTimeOut)
 
-  def getOffsetFromFeedback(streamId: Long): Seq[FeedbackOffsetInfo] = {
-    val feedbackOffsetInfo = feedbackOffsetTable.filter(_.streamId === streamId).sortBy(feedback => feedback.feedbackTime).groupBy(feedback => (feedback.topicName, feedback.partitionNum)).map { case (name, group) =>
-      (streamId, name._1, name._2, group.map(_.partitionOffset).max)
-    }
 
-    Await.result(db.run((streamInTopicTable.filter(_.active === true).filter(_.streamId === streamId) join nsDatabaseTable.filter(_.active === true) on (_.nsDatabaseId === _.id) join feedbackOffsetInfo on (_._2.nsDatabase === _._2)).map {
-      case ((intopic, database), feedback) =>
-        (feedback._1, feedback._2, feedback._3, feedback._4.get) <> (FeedbackOffsetInfo.tupled, FeedbackOffsetInfo.unapply)
-    }.result).mapTo[Seq[FeedbackOffsetInfo]], minTimeOut)
-  }
 
   def getResource(projectId: Long): Future[Resource] = {
     try {
@@ -389,7 +382,7 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
           getFeedbackBoolean = false
           if (getFeedbackBoolean) {
             riderLogger.info(s"Refresh Feedback Offset start")
-            val feedbackOffset: Seq[FeedbackOffsetInfo] = getOffsetFromFeedback(topicDetail.streamId)
+            val feedbackOffset: Seq[FeedbackOffsetInfo] = FeedbackOffsetUtil.getOffsetFromFeedback(topicDetail.streamId)
             riderLogger.info(s"Refresh Feedback Offset finish")
             var updateBoolean = false
             val topicOffset: Array[((String, Int), String)] = topicDetail.partitionOffsets.split(",").map(t => {
@@ -398,8 +391,8 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
             })
 
             val newPartitionOffset = topicOffset.map(tf => {
-              if (feedbackOffset.map(fdo => (fdo.topicName, fdo.partitionNum)).contains(tf._1)) {
-                val rightOne = feedbackOffset.find(right => (right.topicName, right.partitionNum) == tf._1).get
+              if (feedbackOffset.map(fdo => (fdo.topicName, fdo.partitionId)).contains(tf._1)) {
+                val rightOne = feedbackOffset.find(right => (right.topicName, right.partitionId) == tf._1).get
                 if (tf._2.toLong < rightOne.offset) {
                   updateBoolean = true
                   tf._1._2.toString + ":" + rightOne.offset.toString

@@ -24,9 +24,10 @@ package edp.rider.service
 import edp.rider.common.FlowStatus._
 import edp.rider.common.{RiderLogger, TopicPartitionOffset}
 import edp.rider.module.{ConfigurationModule, PersistenceModule}
-import edp.rider.monitor.{CacheMap, ElasticSearch}
+import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
+import edp.rider.service.util.{CacheMap, FeedbackOffsetUtil}
 import edp.wormhole.common.util.{DateUtils, DtFormat}
 import edp.wormhole.ums._
 
@@ -172,6 +173,8 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
     l.toList
   }
 
+
+
   def doFeedbackStreamTopicOffset(message: Ums) = {
     val protocolType = message.protocol.`type`.toString
     val fields = message.schema.fields_get
@@ -181,20 +184,17 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
       message.payload_get.foreach(tuple => {
         val umsTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").toString
         val streamId = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id").toString.toLong
-        val topicPartition = UmsFieldType.umsFieldValue(tuple.tuple, fields, "topic_partition").toString
-        val l = getTopicPartitionList(topicPartition)
-        l.foreach {
-          item =>
-            val future = modules.feedbackOffsetDal.insert(FeedbackOffset(1, protocolType.toString, umsTs, streamId,
-              item.topicName, item.partitionId, item.offset, curTs))
-            val result = Await.ready(future, Duration.Inf).value.get
-            result match {
-              case Failure(e) =>
-                riderLogger.error(s"FeedbackStreamTopicOffset inserted ${tuple.toString} failed", e)
-              case Success(t) => riderLogger.debug("FeedbackStreamTopicOffset inserted success.")
-            }
+        val topicName = UmsFieldType.umsFieldValue(tuple.tuple, fields, "topic_name").toString
+        val partitionOffset = UmsFieldType.umsFieldValue(tuple.tuple, fields, "partition_offsets").toString
+        val partitionNum: Int = FeedbackOffsetUtil.getPartitionNumber(partitionOffset)
+        val future = modules.feedbackOffsetDal.insert(FeedbackOffset(1, protocolType.toString, umsTs, streamId,
+          topicName, partitionNum, partitionOffset, curTs))
+        val result = Await.ready(future, Duration.Inf).value.get
+        result match {
+          case Failure(e) =>
+            riderLogger.error(s"FeedbackStreamTopicOffset inserted ${tuple.toString} failed", e)
+          case Success(t) => riderLogger.debug("FeedbackStreamTopicOffset inserted success.")
         }
-
       })
     } catch {
       case e: Exception =>

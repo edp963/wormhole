@@ -24,7 +24,6 @@ package edp.rider.rest.router.user.api
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
-import edp.rider.monitor.CacheMap
 import edp.rider.rest.persistence.dal.{FlowDal, StreamDal}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.JsonProtocol._
@@ -32,6 +31,7 @@ import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
+import edp.rider.service.util.CacheMap
 import slick.jdbc.MySQLProfile.api._
 
 import scala.util.{Failure, Success}
