@@ -49,14 +49,14 @@ object RiderStarter extends App with RiderLogger {
   implicit val ec = system.dispatcher
 
   DbModule.createSchema
-  CacheMap.cacheMapInit
+
 
   if (Await.result(modules.userDal.findByFilter(_.email === "admin"), minTimeOut).isEmpty)
     Await.result(modules.userDal.insert(User(0, "admin", "admin", "admin", "admin", active = true, currentSec, 1, currentSec, 1)), minTimeOut)
 
   Http().bindAndHandle(new RoutesApi(modules).routes, RiderConfig.riderServer.host, RiderConfig.riderServer.port)
   riderLogger.info(s"RiderServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
-
+  CacheMap.cacheMapInit
   val manager = new ConsumerManager(modules)
   riderLogger.info(s"Consumer started ")
   Scheduler.start
