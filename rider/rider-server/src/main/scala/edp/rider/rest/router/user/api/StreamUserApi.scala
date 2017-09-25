@@ -763,10 +763,16 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal) extends BaseUserApiI
             if (session.projectIdList.contains(projectId)) {
               try {
                 val flows = Await.result(flowDal.findByFilter(_.streamId === streamId), minTimeOut)
-                if (flows.size > 0){
+                if (flows.size > 0) {
                   riderLogger.info(s"user ${session.userId} can't delete stream $streamId now, please delete flow ${flows.map(_.id).mkString(",")} first")
                   complete(PreconditionFailed, getHeader(412, s"please delete flow ${flows.map(_.id).mkString(",")} first", session))
                 } else {
+                  removeStreamDirective(streamId, session.userId)
+                  val stream = Await.result(streamDal.findById(streamId), minTimeOut).get
+                  if (stream.sparkAppid.getOrElse("") != "") {
+                    runShellCommand("yarn application -kill " + stream.sparkAppid.get)
+                    riderLogger.info(s"user ${session.userId} stop stream $streamId success")
+                  }
                   Await.result(streamDal.deleteById(streamId), minTimeOut)
                   CacheMap.streamCacheMapRefresh
                   riderLogger.info(s"user ${session.userId} delete stream $streamId success")
