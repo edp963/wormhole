@@ -43,10 +43,10 @@ object Scheduler extends ConfigurationModuleImpl with RiderLogger {
     def receive = {
       case "databaseMaintenance" => {
         ScheduledTask.deleteHistory
-        riderLogger.info(s" timer ${new java.util.Date().toString}")
+        riderLogger.info(s"Rider delete feedback data timer scheduler ${new java.util.Date().toString} start")
       }
       case _ => {}
-        riderLogger.info(s" timer ${new java.util.Date().toString}")
+        riderLogger.info(s"timer ${new java.util.Date().toString}")
     }
   }
 

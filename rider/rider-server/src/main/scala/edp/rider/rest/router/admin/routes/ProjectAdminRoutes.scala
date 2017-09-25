@@ -37,7 +37,7 @@ class ProjectAdminRoutes(modules: ConfigurationModule with PersistenceModule wit
 
   lazy val routes: Route = getProjectByIdRoute ~ getProjectByFilterRoute ~ postProjectRoute ~ putProjectRoute ~
     getUserByProjectIdRoute ~ getUserByProjectRoute ~ getNsByProjectIdRoute ~ getNsByProjectRoute ~ getFlowByProjectIdRoute ~
-    getStreamByProjectIdRoute ~ getResourceByProjectIdRoute ~ getLogByStreamId ~ getMonitorDashboardRoute
+    getStreamByProjectIdRoute ~ getResourceByProjectIdRoute ~ getLogByStreamId ~ getMonitorDashboardRoute ~ getTopicsByStreamId
 
   lazy val basePath = "projects"
 
@@ -220,5 +220,20 @@ class ProjectAdminRoutes(modules: ConfigurationModule with PersistenceModule wit
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getMonitorDashboardRoute: Route = modules.monitorAdminService.getDashboardByProjectIdRoute(basePath)
+
+  @Path("/{id}/streams/{streamId}/intopics/")
+  @ApiOperation(value = "get one stream topics by stream id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getTopicsByStreamId: Route = modules.streamAdminService.getTopicsByStreamId(basePath)
 }
 

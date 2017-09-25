@@ -143,7 +143,7 @@ export class ProjectNSTable extends React.Component {
     } else if (selectIcon === 'check') {
       this.setState({
         selectIcon: 'close',
-        selectText: '不分页',
+        selectText: '全部',
         paginationOrNot: false
       })
     }

@@ -38,11 +38,11 @@ object Dashboard extends RiderLogger {
     try {
       val uri = Uri.apply(s"${RiderConfig.grafana.url}/api/dashboards/db")
       val userData: ByteString = ByteString(getCreateDashboardJson(projectName, projectId))
-      riderLogger.info(s"Create dashboard on grafana $userData")
+//      riderLogger.info(s"Grafna create dashboard $userData")
       grafanaPostData(RiderConfig.grafana.adminToken, uri, userData)
     } catch {
       case e: Exception =>
-        riderLogger.error(s"failed to createDashboard", e)
+        riderLogger.error(s"Grafana create dashboard data failed", e)
     }
   }
 
@@ -57,23 +57,22 @@ object Dashboard extends RiderLogger {
       protocol = HttpProtocols.`HTTP/1.1`,
       entity = HttpEntity.apply(ContentTypes.`application/json`, userData)
     )
-    riderLogger.info(s"httpRequest ${httpRequest.toString}.")
+//    riderLogger.info(s"httpRequest ${httpRequest.toString}.")
     try {
       val response: HttpResponse = Await.result(Http().singleRequest(httpRequest), Duration.Inf)
       if (response._1.isSuccess()) {
-        riderLogger.info(s"response success: ${response.entity.toString}.")
+//        riderLogger.info(s"response success: ${response.entity.toString}.")
+        riderLogger.info(s"Grafana post data response success.")
       }
       else {
-        riderLogger
-          .info(s"response failed value: ${response._1.value}.")
-        riderLogger.info(s"response failed message: ${response._1.defaultMessage}.")
-        riderLogger.info(s"response failed message: ${response._3.withContentType(ContentTypes.`application/json`).toString}.")
+        riderLogger.error(s"Grafana post data response failed value: ${response._1.value}.")
+        riderLogger.error(s"Grafana post data response failed message: ${response._1.defaultMessage}.")
+        riderLogger.error(s"Grafana post data response failed message: ${response._3.withContentType(ContentTypes.`application/json`).toString}.")
       }
     }
-
     catch {
       case e: Exception =>
-        riderLogger.error(s"failed to get the response", e)
+        riderLogger.error(s"Grafana post data failed to get response", e)
     }
   }
 
@@ -92,7 +91,7 @@ object Dashboard extends RiderLogger {
       url
     } catch {
       case e: Exception =>
-        riderLogger.error(s"failed to createDashboard", e)
+        riderLogger.error(s"Grafana failed to get project $project_id dashboard url", e)
         ""
     }
   }

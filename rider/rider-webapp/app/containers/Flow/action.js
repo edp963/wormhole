@@ -44,8 +44,6 @@ import {
   OPERATE_FLOW_ERROR,
   CHUCKAWAY_FLOW,
 
-  DELETE_FLOWS,
-  DELETE_FLOWS_SUCCESS,
   LOAD_SOURCELOG_DETAIL,
   LOAD_SOURCELOG_DETAIL_SUCCESS,
   LOAD_SOURCELOG_DETAIL_ERROR,
@@ -326,28 +324,6 @@ export function flowQueryed (result, resolve) {
     type: QUERY_FLOW_SUCCESS,
     payload: {
       result,
-      resolve
-    }
-  }
-}
-
-export function deleteFlow (projectId, flowsIds, resolve) {
-  return {
-    type: DELETE_FLOWS,
-    payload: {
-      projectId,
-      flowsIds,
-      resolve
-    }
-  }
-}
-
-export function flowDeleted (projectId, flowsIds, resolve) {
-  return {
-    type: DELETE_FLOWS_SUCCESS,
-    payload: {
-      projectId,
-      flowsIds,
       resolve
     }
   }

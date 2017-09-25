@@ -54,7 +54,7 @@ object AppForbidden extends AuthorizationError {
 
 object AuthorizationProvider extends ConfigurationModuleImpl with PersistenceModuleImpl with RiderLogger {
 
-  def createSessionClass(login: LoginClass): Future[Either[AuthorizationError, LoginResult]] = {
+  def createSessionClass(login: LoginClass, app: Boolean = false): Future[Either[AuthorizationError, LoginResult]] = {
     try {
       val user = findUser(login)
       user.flatMap {
@@ -63,7 +63,7 @@ object AuthorizationProvider extends ConfigurationModuleImpl with PersistenceMod
             relSeq =>
               val projectIdList = new ListBuffer[Long]
               if (relSeq.nonEmpty) relSeq.foreach(projectIdList += _.projectId)
-              if (user.roleType == "app") throw AppForbidden
+              if (user.roleType == "app" && !app) throw AppForbidden
               else LoginResult(user, SessionClass(user.id, projectIdList.toList, user.roleType))
           }
       }.map(Right(_)).recover {

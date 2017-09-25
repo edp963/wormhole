@@ -31,7 +31,7 @@ case class LoginResult(user: User, session: SessionClass)
 
 case class ChangeUserPwdClass(id: Long, oldPass: String, newPass: String)
 
-case class ActionClass(action: String, projectId: Long, streamId: Long, flowIds: String)
+case class ActionClass(action: String, flowIds: String)
 
 case class ResponseHeader(code: Int, msg: String, token: String = "")
 

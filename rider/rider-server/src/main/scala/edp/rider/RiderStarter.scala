@@ -50,7 +50,6 @@ object RiderStarter extends App with RiderLogger {
 
   DbModule.createSchema
 
-
   if (Await.result(modules.userDal.findByFilter(_.email === "admin"), minTimeOut).isEmpty)
     Await.result(modules.userDal.insert(User(0, "admin", "admin", "admin", "admin", active = true, currentSec, 1, currentSec, 1)), minTimeOut)
 
@@ -58,9 +57,9 @@ object RiderStarter extends App with RiderLogger {
   riderLogger.info(s"RiderServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
   CacheMap.cacheMapInit
   val manager = new ConsumerManager(modules)
-  riderLogger.info(s"Consumer started ")
+  riderLogger.info(s"Rider Consumer started")
   Scheduler.start
-  riderLogger.info(s"Scheduler started")
+  riderLogger.info(s"Rider Scheduler started")
 
   monitor.ElasticSearch.createEsIndex()
 }
