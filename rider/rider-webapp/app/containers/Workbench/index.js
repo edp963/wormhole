@@ -48,7 +48,7 @@ import Steps from 'antd/lib/steps'
 const Step = Steps.Step
 import message from 'antd/lib/message'
 
-import {loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic, loadSourceSinkTypeNamespace, loadSinkTypeNamespace, loadTranSinkTypeNamespace, loadSourceToSinkExist, addFlow, deleteFlow, editFlow, queryFlow} from '../Flow/action'
+import {loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic, loadSourceSinkTypeNamespace, loadSinkTypeNamespace, loadTranSinkTypeNamespace, loadSourceToSinkExist, addFlow, editFlow, queryFlow} from '../Flow/action'
 import {loadUserStreams, loadAdminSingleStream, loadStreamNameValue, loadKafka, loadTopics, loadStreamConfigJvm, addStream, loadSingleStream, editStream} from '../Manager/action'
 import {loadSelectNamespaces, loadUserNamespaces} from '../Namespace/action'
 import {loadUserUsers, loadSelectUsers} from '../User/action'
@@ -2360,8 +2360,6 @@ export function mapDispatchToProps (dispatch) {
     onLoadUserUsers: (projectId, resolve) => dispatch(loadUserUsers(projectId, resolve)),
     onLoadSelectUsers: (projectId, resolve) => dispatch(loadSelectUsers(projectId, resolve)),
     onLoadResources: (projectId, roleType) => dispatch(loadResources(projectId, roleType)),
-
-    onDeleteFlow: (id, resolve) => dispatch(deleteFlow(id, resolve)),
     onAddStream: (stream, resolve, reject) => dispatch(addStream(stream, resolve, reject)),
     onEditStream: (stream, resolve, reject) => dispatch(editStream(stream, resolve, reject)),
     onAddFlow: (values, resolve, final) => dispatch(addFlow(values, resolve, final)),
