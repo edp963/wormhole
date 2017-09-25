@@ -488,6 +488,7 @@ export class Manager extends React.Component {
             <Row>
               <Col span={9}>
                 <Input
+                  ref={ele => { this.searchInput = ele }}
                   placeholder="Start ID"
                   onChange={this.onInputChange('searchStartIdText')}
                 />
@@ -509,7 +510,9 @@ export class Manager extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleId,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleId: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleId: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Project',
       dataIndex: 'projectName',
@@ -526,6 +529,7 @@ export class Manager extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Project Name"
             value={this.state.searchTextStreamProject}
             onChange={this.onInputChange('searchTextStreamProject')}
@@ -537,7 +541,9 @@ export class Manager extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleStreamProject,
-      onFilterDropdownVisibleChange: visible => this.setState({filterDropdownVisibleStreamProject: visible})
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleStreamProject: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Name',
       dataIndex: 'name',
@@ -553,6 +559,7 @@ export class Manager extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Name"
             value={this.state.searchTextName}
             onChange={this.onInputChange('searchTextName')}
@@ -564,7 +571,9 @@ export class Manager extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleName,
-      onFilterDropdownVisibleChange: visible => this.setState({filterDropdownVisibleName: visible})
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleName: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'App Id',
       dataIndex: 'sparkAppid',
@@ -580,6 +589,7 @@ export class Manager extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="App Id"
             value={this.state.searchTextSparkAppid}
             onChange={this.onInputChange('searchTextSparkAppid')}
@@ -591,7 +601,9 @@ export class Manager extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleSparkAppid,
-      onFilterDropdownVisibleChange: visible => this.setState({filterDropdownVisibleSparkAppid: visible})
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleSparkAppid: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Status',
       dataIndex: 'status',
@@ -663,6 +675,7 @@ export class Manager extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Kafka"
             value={this.state.searchTextKafkaName}
             onChange={this.onInputChange('searchTextKafkaName')}
@@ -674,7 +687,9 @@ export class Manager extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleKafkaName,
-      onFilterDropdownVisibleChange: visible => this.setState({filterDropdownVisibleKafkaName: visible})
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleKafkaName: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Start Time',
       dataIndex: 'startedTime',

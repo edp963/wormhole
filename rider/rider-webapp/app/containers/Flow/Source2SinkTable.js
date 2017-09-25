@@ -196,6 +196,7 @@ export class Source2SinkTable extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Source Namespace"
             value={this.state.searchSourceNamespace}
             onChange={this.onInputChange('searchSourceNamespace')}
@@ -205,7 +206,9 @@ export class Source2SinkTable extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleSourceNamespace,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleSourceNamespace: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleSourceNamespace: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Sink Namespace',
       dataIndex: 'sinkNamespace',
@@ -221,6 +224,7 @@ export class Source2SinkTable extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Sink Namespace"
             value={this.state.searchSinkNamespace}
             onChange={this.onInputChange('searchSinkNamespace')}
@@ -230,7 +234,9 @@ export class Source2SinkTable extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleSinkNamespace,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleSinkNamespace: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleSinkNamespace: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Unique Key',
       dataIndex: 'uniqueKey',
@@ -246,6 +252,7 @@ export class Source2SinkTable extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Unique Key"
             value={this.state.searchUniqueKey}
             onChange={this.onInputChange('searchUniqueKey')}
@@ -255,7 +262,9 @@ export class Source2SinkTable extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleUniqueKey,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleUniqueKey: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleUniqueKey: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Recorded Time',
       dataIndex: 'recordedTime',
@@ -303,6 +312,7 @@ export class Source2SinkTable extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Diff Result Type"
             value={this.state.searchDiffResultType}
             onChange={this.onInputChange('searchDiffResultType')}
@@ -312,7 +322,9 @@ export class Source2SinkTable extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleDiffResultType,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleDiffResultType: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleDiffResultType: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Compare Scale',
       dataIndex: 'compareScale',
@@ -328,6 +340,7 @@ export class Source2SinkTable extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Compare Scale"
             value={this.state.searchCompareScale}
             onChange={this.onInputChange('searchCompareScale')}
@@ -337,7 +350,9 @@ export class Source2SinkTable extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleCompareScale,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleCompareScale: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleCompareScale: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Manage Status',
       dataIndex: 'manageStatus',

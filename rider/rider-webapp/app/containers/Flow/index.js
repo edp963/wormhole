@@ -467,6 +467,7 @@ export class Flow extends React.Component {
             <Row>
               <Col span={9}>
                 <Input
+                  ref={ele => { this.searchInput = ele }}
                   placeholder="Start ID"
                   onChange={this.onInputChange('searchStartIdText')}
                 />
@@ -488,7 +489,9 @@ export class Flow extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleId,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleId: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleId: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Project',
       dataIndex: 'projectName',
@@ -505,6 +508,7 @@ export class Flow extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Project Name"
             value={this.state.searchTextFlowProject}
             onChange={this.onInputChange('searchTextFlowProject')}
@@ -516,7 +520,9 @@ export class Flow extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleFlowProject,
-      onFilterDropdownVisibleChange: visible => this.setState({filterDropdownVisibleFlowProject: visible})
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleFlowProject: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Source Namespace',
       dataIndex: 'sourceNs',
@@ -532,6 +538,7 @@ export class Flow extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Source Namespace"
             value={this.state.searchTextSourceNs}
             onChange={this.onInputChange('searchTextSourceNs')}
@@ -543,7 +550,9 @@ export class Flow extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleSourceNs,
-      onFilterDropdownVisibleChange: visible => this.setState({filterDropdownVisibleSourceNs: visible})
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleSourceNs: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Sink Namespace',
       dataIndex: 'sinkNs',
@@ -559,6 +568,7 @@ export class Flow extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Sink Namespace"
             value={this.state.searchTextSinkNs}
             onChange={this.onInputChange('searchTextSinkNs')}
@@ -570,7 +580,9 @@ export class Flow extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleSinkNs,
-      onFilterDropdownVisibleChange: visible => this.setState({filterDropdownVisibleSinkNs: visible})
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleSinkNs: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Flow Status',
       dataIndex: 'status',

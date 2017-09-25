@@ -170,6 +170,7 @@ export class Resource extends React.Component {
         filterDropdown: (
           <div className="custom-filter-dropdown">
             <Input
+              ref={ele => { this.searchInput = ele }}
               placeholder="Stream Name"
               value={this.state.searchResourceName}
               onChange={this.onInputChange('searchResourceName')}
@@ -179,7 +180,9 @@ export class Resource extends React.Component {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleResourceName,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleResourceName: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleResourceName: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Driver Cores',
         dataIndex: 'driverCores',
@@ -193,6 +196,7 @@ export class Resource extends React.Component {
               <Row>
                 <Col span={9}>
                   <Input
+                    ref={ele => { this.searchInput = ele }}
                     placeholder="Start"
                     onChange={this.onInputChange('searchStartDCText')}
                   />
@@ -214,7 +218,9 @@ export class Resource extends React.Component {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleDC,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleDC: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleDC: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Driver Memory',
         dataIndex: 'driverMemory',
@@ -228,6 +234,7 @@ export class Resource extends React.Component {
               <Row>
                 <Col span={9}>
                   <Input
+                    ref={ele => { this.searchInput = ele }}
                     placeholder="Start"
                     onChange={this.onInputChange('searchStartDMText')}
                   />
@@ -249,7 +256,9 @@ export class Resource extends React.Component {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleDM,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleDM: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleDM: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Per Executor Cores',
         dataIndex: 'perExecutorCores',
@@ -263,6 +272,7 @@ export class Resource extends React.Component {
               <Row>
                 <Col span={9}>
                   <Input
+                    ref={ele => { this.searchInput = ele }}
                     placeholder="Start"
                     onChange={this.onInputChange('searchStartPECText')}
                   />
@@ -284,7 +294,9 @@ export class Resource extends React.Component {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisiblePEC,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisiblePEC: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisiblePEC: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Per Executor Memory',
         dataIndex: 'perExecutorMemory',
@@ -298,6 +310,7 @@ export class Resource extends React.Component {
               <Row>
                 <Col span={9}>
                   <Input
+                    ref={ele => { this.searchInput = ele }}
                     placeholder="Start"
                     onChange={this.onInputChange('searchStartPEMText')}
                   />
@@ -319,7 +332,9 @@ export class Resource extends React.Component {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisiblePEM,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisiblePEM: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisiblePEM: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Executor Numbers',
         dataIndex: 'executorNums',
@@ -333,6 +348,7 @@ export class Resource extends React.Component {
               <Row>
                 <Col span={9}>
                   <Input
+                    ref={ele => { this.searchInput = ele }}
                     placeholder="Start"
                     onChange={this.onInputChange('searchStartENText')}
                   />
@@ -354,7 +370,9 @@ export class Resource extends React.Component {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleEN,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleEN: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleEN: visible
+        }, () => this.searchInput.focus())
       }]
 
     const pagination = {

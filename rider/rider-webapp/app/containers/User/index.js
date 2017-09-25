@@ -344,6 +344,7 @@ export class User extends React.PureComponent {
               <Row>
                 <Col span={9}>
                   <Input
+                    ref={ele => { this.searchInput = ele }}
                     placeholder="Start ID"
                     onChange={this.onInputChange('searchStartIdText')}
                   />
@@ -365,7 +366,9 @@ export class User extends React.PureComponent {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleId,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleId: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleId: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Project',
         dataIndex: 'projectNames',
@@ -382,6 +385,7 @@ export class User extends React.PureComponent {
         filterDropdown: (
           <div className="custom-filter-dropdown">
             <Input
+              ref={ele => { this.searchInput = ele }}
               placeholder="Project Name"
               value={this.state.searchTextUserProject}
               onChange={this.onInputChange('searchTextUserProject')}
@@ -393,7 +397,9 @@ export class User extends React.PureComponent {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleUserProject,
-        onFilterDropdownVisibleChange: visible => this.setState({filterDropdownVisibleUserProject: visible})
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleUserProject: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Name',
         dataIndex: 'name',
@@ -409,6 +415,7 @@ export class User extends React.PureComponent {
         filterDropdown: (
           <div className="custom-filter-dropdown">
             <Input
+              ref={ele => { this.searchInput = ele }}
               placeholder="Name"
               value={this.state.searchName}
               onChange={this.onInputChange('searchName')}
@@ -418,7 +425,9 @@ export class User extends React.PureComponent {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleName,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleName: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleName: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Email',
         dataIndex: 'email',
@@ -434,6 +443,7 @@ export class User extends React.PureComponent {
         filterDropdown: (
           <div className="custom-filter-dropdown">
             <Input
+              ref={ele => { this.searchInput = ele }}
               placeholder="Email"
               value={this.state.searchEmail}
               onChange={this.onInputChange('searchEmail')}
@@ -443,7 +453,9 @@ export class User extends React.PureComponent {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleEmail,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleEmail: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleEmail: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Role Type',
         dataIndex: 'roleType',

@@ -200,6 +200,7 @@ export class SinkWriteRrror extends React.Component {
             <Row>
               <Col span={9}>
                 <Input
+                  ref={ele => { this.searchInput = ele }}
                   placeholder="Start ID"
                   onChange={this.onInputChange('searchStartIdText')}
                 />
@@ -221,7 +222,9 @@ export class SinkWriteRrror extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleId,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleId: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleId: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Source Namespace',
       dataIndex: 'sourceNamespace',
@@ -237,6 +240,7 @@ export class SinkWriteRrror extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Source Namespace"
             value={this.state.searchSourceNamespace}
             onChange={this.onInputChange('searchSourceNamespace')}
@@ -246,7 +250,9 @@ export class SinkWriteRrror extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleSourceNamespace,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleSourceNamespace: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleSourceNamespace: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Sink Namespace',
       dataIndex: 'sinkNamespace',
@@ -262,6 +268,7 @@ export class SinkWriteRrror extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Sink Namespace"
             value={this.state.searchSinkNamespace}
             onChange={this.onInputChange('searchSinkNamespace')}
@@ -271,7 +278,9 @@ export class SinkWriteRrror extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleSinkNamespace,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleSinkNamespace: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleSinkNamespace: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Sink Primary key',
       dataIndex: 'primaryKey',
@@ -287,6 +296,7 @@ export class SinkWriteRrror extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Sink Primary key"
             value={this.state.searchPrimaryKey}
             onChange={this.onInputChange('searchPrimaryKey')}
@@ -296,7 +306,9 @@ export class SinkWriteRrror extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisiblePrimaryKey,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisiblePrimaryKey: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisiblePrimaryKey: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'UMS ID',
       dataIndex: 'umsID',
@@ -312,6 +324,7 @@ export class SinkWriteRrror extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="UMS ID"
             value={this.state.searchUmsID}
             onChange={this.onInputChange('searchUmsID')}
@@ -321,7 +334,9 @@ export class SinkWriteRrror extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleUmsID,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleUmsID: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleUmsID: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'UMS Operation',
       dataIndex: 'umsOP',
@@ -337,6 +352,7 @@ export class SinkWriteRrror extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="UMS Operation"
             value={this.state.searchUmssearchUmsOperation}
             onChange={this.onInputChange('searchUmssearchUmsOperation')}
@@ -346,7 +362,9 @@ export class SinkWriteRrror extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleUmsOperation,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleUmsOperation: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleUmsOperation: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Event Time',
       dataIndex: 'actionEventTime',
@@ -426,6 +444,7 @@ export class SinkWriteRrror extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Already Auto Retry Times"
             value={this.state.searchAlreadyRetryTimes}
             onChange={this.onInputChange('searchAlreadyRetryTimes')}
@@ -435,7 +454,9 @@ export class SinkWriteRrror extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleAlreadyRetryTimes,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleAlreadyRetryTimes: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleAlreadyRetryTimes: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Manage Status',
       dataIndex: 'manageStatus',

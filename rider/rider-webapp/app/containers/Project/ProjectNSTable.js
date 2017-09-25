@@ -180,6 +180,7 @@ export class ProjectNSTable extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Namespace"
             value={this.state.searchTextProjectNs}
             onChange={this.onInputChange('searchTextProjectNs')}
@@ -189,7 +190,9 @@ export class ProjectNSTable extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleProjectNs,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleProjectNs: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleProjectNs: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Permission',
       dataIndex: 'permission',

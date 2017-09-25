@@ -353,6 +353,7 @@ export class Instance extends React.PureComponent {
         filterDropdown: (
           <div className="custom-filter-dropdown">
             <Input
+              ref={ele => { this.searchInput = ele }}
               placeholder="Instance"
               value={this.state.searchTextInstance}
               onChange={this.onInputChange('searchTextInstance')}
@@ -362,7 +363,9 @@ export class Instance extends React.PureComponent {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleInstance,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleInstance: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleInstance: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Connection URL',
         dataIndex: 'connUrl',
@@ -378,6 +381,7 @@ export class Instance extends React.PureComponent {
         filterDropdown: (
           <div className="custom-filter-dropdown">
             <Input
+              ref={ele => { this.searchInput = ele }}
               placeholder="URL"
               value={this.state.searchTextConnUrl}
               onChange={this.onInputChange('searchTextConnUrl')}
@@ -387,7 +391,9 @@ export class Instance extends React.PureComponent {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleConnUrl,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleConnUrl: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleConnUrl: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Create Time',
         dataIndex: 'createTime',
