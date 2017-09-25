@@ -41,7 +41,7 @@ import message from 'antd/lib/message'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream, loadAdminOffset, loadOffset, chuckAwayTopic, editTopics, loadLogsInfo, loadAdminLogsInfo} from './action'
+import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream, deleteStream, loadAdminOffset, loadOffset, chuckAwayTopic, editTopics, loadLogsInfo, loadAdminLogsInfo} from './action'
 import {selectStreams} from './selectors'
 
 export class Manager extends React.Component {
@@ -304,9 +304,19 @@ export class Manager extends React.Component {
     this.streamStartForm.resetFields()
   }
 
+  // stop
   stopStreamBtn = (record, action) => (e) => {
     this.props.onOperateStream(this.props.projectIdGeted, record.id, 'stop', () => {
       message.success('Stop 成功！', 3)
+    }, (result) => {
+      message.error(`操作失败：${result}`, 3)
+    })
+  }
+
+  // delete
+  deleteStreambtn = (record, action) => (e) => {
+    this.props.onDeleteStream(this.props.projectIdGeted, record.id, 'delete', () => {
+      message.success('Delete 成功！', 3)
     }, (result) => {
       message.error(`操作失败：${result}`, 3)
     })
@@ -809,6 +819,12 @@ export class Manager extends React.Component {
               <Tooltip title="生效">
                 <Button icon="check" shape="circle" type="ghost" onClick={this.updateStream(record, 'renew')} disabled={streamRenewDisabled}></Button>
               </Tooltip>
+
+              <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteStreambtn(record, 'delete')}>
+                <Tooltip title="删除">
+                  <Button icon="delete" shape="circle" type="ghost"></Button>
+                </Tooltip>
+              </Popconfirm>
             </span>
           )
         }
@@ -983,6 +999,7 @@ Manager.propTypes = {
   onLoadAdminAllStreams: React.PropTypes.func,
   onShowAddStream: React.PropTypes.func,
   onOperateStream: React.PropTypes.func,
+  onDeleteStream: React.PropTypes.func,
   onStartOrRenewStream: React.PropTypes.func,
   onLoadAdminOffset: React.PropTypes.func,
   onLoadOffset: React.PropTypes.func,
@@ -999,6 +1016,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadAdminAllStreams: (resolve) => dispatch(loadAdminAllStreams(resolve)),
     onLoadAdminSingleStream: (projectId, resolve) => dispatch(loadAdminSingleStream(projectId, resolve)),
     onOperateStream: (projectId, id, action, resolve, reject) => dispatch(operateStream(projectId, id, action, resolve, reject)),
+    onDeleteStream: (projectId, id, action, resolve, reject) => dispatch(deleteStream(projectId, id, action, resolve, reject)),
     onStartOrRenewStream: (projectId, id, topicResult, action, resolve, reject) => dispatch(startOrRenewStream(projectId, id, topicResult, action, resolve, reject)),
     onLoadAdminOffset: (projectId, streamId, resolve) => dispatch(loadAdminOffset(projectId, streamId, resolve)),
     onLoadOffset: (projectId, streamId, resolve) => dispatch(loadOffset(projectId, streamId, resolve)),

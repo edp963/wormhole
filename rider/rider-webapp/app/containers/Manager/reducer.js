@@ -53,6 +53,8 @@ import {
   EDIT_STREAM_SUCCESS,
   OPERATE_STREAMS,
   OPERATE_STREAMS_SUCCESS,
+  DELETE_STREAMS,
+  DELETE_STREAMS_SUCCESS,
   STARTORRENEW_STREAMS,
   STARTORRENEW_STREAMS_SUCCESS,
   OPERATE_STREAMS_ERROR
@@ -164,6 +166,11 @@ function streamReducer (state = initialState, { type, payload }) {
       payload.resolve()
       streams.splice(streams.indexOf(streams.find(p => p.stream.id === payload.result.stream.id)), 1, payload.result)
       return state.set('streams', streams.slice())
+    case DELETE_STREAMS:
+      return state
+    case DELETE_STREAMS_SUCCESS:
+      payload.resolve()
+      return state.set('streams', streams.filter(g => g.stream.id !== payload.result))
     case STARTORRENEW_STREAMS:
       return state
     case STARTORRENEW_STREAMS_SUCCESS:

@@ -37,6 +37,7 @@ import {
   LOAD_SINGLE_STREAM,
   EDIT_STREAM,
   OPERATE_STREAMS,
+  DELETE_STREAMS,
   STARTORRENEW_STREAMS
 } from './constants'
 
@@ -58,6 +59,7 @@ import {
   singleStreamLoaded,
   streamEdited,
   streamOperated,
+  streamDeleted,
   streamStartOrRenewed,
   streamOperatedError
 } from './action'
@@ -332,6 +334,26 @@ export function* operateStreamWathcer () {
   yield fork(takeEvery, OPERATE_STREAMS, operateStream)
 }
 
+export function* deleteStream ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'put',
+      url: `${api.projectStream}/${payload.projectId}/streams/${payload.id}/${payload.action}`
+    })
+    if (result.code && result.code !== 200) {
+      yield put(streamOperatedError(result.msg, payload.reject))
+    } else if (result.code && result.code === 200) {
+      yield put(streamDeleted(payload.id, payload.resolve))
+    }
+  } catch (err) {
+    notifySagasError(err, 'deleteStream')
+  }
+}
+
+export function* deleteStreamWathcer () {
+  yield fork(takeEvery, DELETE_STREAMS, deleteStream)
+}
+
 export function* startOrRenewStream ({ payload }) {
   try {
     const result = yield call(request, {
@@ -370,5 +392,6 @@ export default [
   getSingleStreamWatcher,
   editStreamWathcer,
   operateStreamWathcer,
+  deleteStreamWathcer,
   startOrRenewStreamWathcer
 ]

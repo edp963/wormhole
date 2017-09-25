@@ -44,7 +44,7 @@ import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
 import { selectFlows, selectError } from './selectors'
-import { loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, deleteFlow, editLogForm, saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail, loadSourceInput, chuckAwayFlow, operateFlow } from './action'
+import { loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm, saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail, loadSourceInput, chuckAwayFlow, operateFlow } from './action'
 
 export class Flow extends React.Component {
   constructor (props) {
@@ -148,44 +148,33 @@ export class Flow extends React.Component {
    */
   handleMenuClick = (selectedRowKeys) => (e) => {
     if (selectedRowKeys.length > 0) {
+      let menuAction = ''
+      let menuMsg = ''
+      if (e.key === 'menuStart') {
+        menuAction = 'start'
+        menuMsg = 'Start'
+      } else if (e.key === 'menuStop') {
+        menuAction = 'stop'
+        menuMsg = 'Stop'
+      } else if (e.key === 'menuDelete') {
+        menuAction = 'delete'
+        menuMsg = 'Delete'
+      }
+
       const requestValue = {
         projectId: Number(this.props.projectIdGeted),
-        streamId: 0,
-        flowIds: this.state.selectedRowKeys.join(',')
+        flowIds: this.state.selectedRowKeys.join(','),
+        action: menuAction
       }
-      if (e.key === 'menuStart') {
-        this.props.onOperateUserFlow(Object.assign({}, requestValue, { action: 'start' }), () => {
-          this.setState({
-            selectedRowKeys: []
-          })
-          message.success('Start 成功！', 3)
-        }, (result) => {
-          message.error(`操作失败：${result}`, 3)
+
+      this.props.onOperateUserFlow(requestValue, () => {
+        this.setState({
+          selectedRowKeys: []
         })
-      } else if (e.key === 'menuStop') {
-        this.props.onOperateUserFlow(Object.assign({}, requestValue, { action: 'stop' }), () => {
-          this.setState({
-            selectedRowKeys: []
-          })
-          message.success('Stop 成功！', 3)
-        }, (result) => {
-          message.error(`操作失败：${result}`, 3)
-        })
-      } else if (e.key === 'menuDelete') {
-        // const startedOrStarting = flowIds.split(',')
-        //   .map(id => this.props.flows.find(flow => flow.id === Number(id)))
-        //   .filter(flow => flow.status === 'started' || flow.status === 'starting')
-        //
-        // if (startedOrStarting.length) {
-        //   message.warning('Flow项已启动，不能删除！')
-        // } else {
-        //   this.props.onDeleteFlow(this.props.projectIdGeted, flowIds, () => {
-        //     this.setState({
-        //       selectedRowKeys: []
-        //     })
-        //   })
-        // }
-      }
+        message.success(`${menuMsg} 成功！`, 3)
+      }, (result) => {
+        message.error(`操作失败：${result}`, 3)
+      })
     } else {
       message.warning('请选择 Flow！', 3)
     }
@@ -206,7 +195,6 @@ export class Flow extends React.Component {
     const requestValue = {
       projectId: record.projectId,
       action: action,
-      streamId: record.streamId,
       flowIds: `${record.id}`
     }
     this.props.onOperateUserFlow(requestValue, () => {
@@ -237,12 +225,8 @@ export class Flow extends React.Component {
   }
 
   // delete
-  onSingleDeleteFlow = (record) => (e) => {
-    // if (record.status === 'started' || record.status === 'starting') {
-    //   message.warning('Flow项已启动，不能删除！')
-    // } else {
-    //   this.props.onDeleteFlow(this.props.projectIdGeted, `${record.id}`, () => {})
-    // }
+  onSingleDeleteFlow = (record, action) => (e) => {
+    this.singleOpreateFlow(record, action)
   }
 
   // backfill
@@ -870,6 +854,12 @@ export class Flow extends React.Component {
               {/* <Tooltip title="backfill" onClick={this.onShowBackfill(record)}>
                <Button icon="rollback" shape="circle" type="ghost" ></Button>
                </Tooltip> */}
+
+              <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.onSingleDeleteFlow(record, 'delete')}>
+                <Tooltip title="删除">
+                  <Button icon="delete" shape="circle" type="ghost"></Button>
+                </Tooltip>
+              </Popconfirm>
             </span>
           )
         }
@@ -898,11 +888,6 @@ export class Flow extends React.Component {
               </Popover>
             </Tooltip>
             {FlowActionSelect}
-            {/* <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.onSingleDeleteFlow(record)}>
-              <Tooltip title="删除">
-                <Button icon="delete" shape="circle" type="ghost"></Button>
-              </Tooltip>
-            </Popconfirm> */}
           </span>
         )
       }
@@ -942,7 +927,7 @@ export class Flow extends React.Component {
         <Menu.Item key="menuStart"><Icon type="caret-right" />  开始</Menu.Item>
         <Menu.Item key="menuStop">
           <i className="iconfont icon-8080pxtubiaokuozhan100" style={{ fontSize: '12px' }}></i>  停止</Menu.Item>
-        {/* <Menu.Item key="menuDelete"><Icon type="delete" />  删除</Menu.Item> */}
+        <Menu.Item key="menuDelete"><Icon type="delete" />  删除</Menu.Item>
       </Menu>
       )
 
@@ -1025,7 +1010,6 @@ Flow.propTypes = {
   //   React.PropTypes.bool
   // ]),
   className: React.PropTypes.string,
-  // onDeleteFlow: React.PropTypes.func,
   onShowAddFlow: React.PropTypes.func,
   onShowEditFlow: React.PropTypes.func,
   onShowCopyFlow: React.PropTypes.func,
@@ -1050,7 +1034,6 @@ Flow.propTypes = {
 
 export function mapDispatchToProps (dispatch) {
   return {
-    onDeleteFlow: (projectId, id, resolve) => dispatch(deleteFlow(projectId, id, resolve)),
     onLoadAdminAllFlows: (resolve) => dispatch(loadAdminAllFlows(resolve)),
     onLoadUserAllFlows: (projectId, resolve) => dispatch(loadUserAllFlows(projectId, resolve)),
     onLoadAdminSingleFlow: (projectId, resolve) => dispatch(loadAdminSingleFlow(projectId, resolve)),
