@@ -188,7 +188,12 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
   def getReturnRes(streamSeqTopic: StreamSeqTopic): StreamSeqTopicActions = {
     streamSeqTopic.stream.status match {
       case "new" => StreamSeqTopicActions(streamSeqTopic.stream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "renew,stop")
-      case "waiting" => StreamSeqTopicActions(streamSeqTopic.stream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "start,stop")
+      case "waiting" =>
+        val disableActions =
+          if (streamSeqTopic.stream.sparkAppid.getOrElse("") == "")
+            "start,stop"
+          else "start"
+        StreamSeqTopicActions(streamSeqTopic.stream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, disableActions)
       case "running" => StreamSeqTopicActions(streamSeqTopic.stream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "start")
       case "stopping" => StreamSeqTopicActions(streamSeqTopic.stream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "start,renew")
       case "stopped" => StreamSeqTopicActions(streamSeqTopic.stream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "stop,renew")
