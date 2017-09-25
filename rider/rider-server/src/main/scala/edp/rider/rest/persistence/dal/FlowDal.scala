@@ -119,7 +119,10 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       val flowStatus = actionRule(flowStream, action)
 
       val startedTime = if (action == "start") Some(currentSec) else if (flowStream.startedTime.getOrElse("") == "") null else flowStream.startedTime
-      val stoppedTime = if (action == "stop" && flowStatus.flowStatus == "stopped") Some(currentSec) else if (flowStream.stoppedTime.getOrElse("") == "") null else flowStream.stoppedTime
+      val stoppedTime =
+        if (action == "stop" && flowStatus.flowStatus == "stopped") Some(currentSec)
+        else if (action == "start") null
+        else if (flowStream.stoppedTime.getOrElse("") == "") null else flowStream.stoppedTime
       val newFlow = Flow(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig,
         flowStream.tranConfig, flowStatus.flowStatus, startedTime, stoppedTime, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime, flowStream.updateBy)
       Await.result(super.update(newFlow), minTimeOut)
