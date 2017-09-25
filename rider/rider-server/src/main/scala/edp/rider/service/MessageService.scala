@@ -46,17 +46,19 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
     val fields = message.schema.fields_get
     try {
       message.payload_get.foreach(tuple => {
-        val umsTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").toString
-        val streamId = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id").toString.toLong
-        val feedbackHeartbeat = FeedbackHeartbeat(1, protocolType.toString, streamId, srcNamespace, umsTs, curTs)
-        riderLogger.debug(s" FeedbackHeartbeat: $feedbackHeartbeat")
-        val future = modules.feedbackHeartbeatDal.insert(feedbackHeartbeat)
-        val result = Await.ready(future, minTimeOut).value.get
-        result match {
-          case Failure(e) =>
-            riderLogger.error(s"FeedbackHeartbeat inserted ${tuple.toString} failed", e)
-          case Success(t) => riderLogger.debug("FeedbackHeartbeat inserted success.")
-        }
+        val umsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
+        val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
+        if(umsTsValue != null && streamIdValue != null) {
+          val feedbackHeartbeat = FeedbackHeartbeat(1, protocolType.toString, streamIdValue.toString.toLong, srcNamespace, umsTsValue.toString, curTs)
+          riderLogger.debug(s" FeedbackHeartbeat: $feedbackHeartbeat")
+          val future = modules.feedbackHeartbeatDal.insert(feedbackHeartbeat)
+          val result = Await.ready(future, minTimeOut).value.get
+          result match {
+            case Failure(e) =>
+              riderLogger.error(s"FeedbackHeartbeat inserted ${tuple.toString} failed", e)
+            case Success(t) => riderLogger.debug("FeedbackHeartbeat inserted success.")
+          }
+        }else { riderLogger.error(s"FeedbackHeartbeat can't found the value", tuple)}
       })
     } catch {
       case e: Exception =>
@@ -71,36 +73,38 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
     riderLogger.debug("start process FeedbackDirective feedback")
     try {
       message.payload_get.foreach(tuple => {
-        val umsTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").toString
-        val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, fields, "directive_id").toString.toLong
-        val status = UmsFieldType.umsFieldValue(tuple.tuple, fields, "status").toString
-        val streamId = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id").toString.toLong
-        val resultDesc = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc").toString
-        val future = modules.feedbackDirectiveDal.insert(FeedbackDirective(1, protocolType.toString, umsTs, streamId, directiveId, status, resultDesc, curTs))
-        val result = Await.ready(future, minTimeOut).value.get
-        result match {
-          case Failure(e) =>
-            riderLogger.error(s"FeedbackDirective inserted ${tuple.toString} failed", e)
-          case Success(t) => riderLogger.debug("FeedbackDirective inserted success.")
-        }
-        Await.result(modules.directiveDal.findById(directiveId), minTimeOut) match {
-          case Some(records) =>
-            val pType: UmsProtocolType.Value = UmsProtocolType.umsProtocolType(records.protocolType.toString)
-            pType match {
-              case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_START =>
-                if (status == UmsFeedbackStatus.SUCCESS.toString) {
-                  modules.flowDal.updateFlowStatus(records.flowId, RUNNING.toString)
-                } else
-                  modules.flowDal.updateFlowStatus(records.flowId, FAILED.toString)
-              case UmsProtocolType.DIRECTIVE_FLOW_STOP =>
-                if (status == UmsFeedbackStatus.SUCCESS.toString)
-                  modules.flowDal.updateFlowStatus(records.flowId, STOPPED.toString)
-                else
-                  modules.flowDal.updateFlowStatus(records.flowId, FAILED.toString)
-              case _ => riderLogger.error(s"$pType not supported now.")
-            }
-          case None => riderLogger.warn(s"directive $directiveId doesn't exist.")
-        }
+        val umsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
+        val directiveIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "directive_id")
+        val statusValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "status")
+        val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
+        val resultDescValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc")
+        if( umsTsValue != null && directiveIdValue != null && statusValue != null && streamIdValue != null && resultDescValue != null) {
+          val future = modules.feedbackDirectiveDal.insert(FeedbackDirective(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, directiveIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs))
+          val result = Await.ready(future, minTimeOut).value.get
+          result match {
+            case Failure(e) =>
+              riderLogger.error(s"FeedbackDirective inserted ${tuple.toString} failed", e)
+            case Success(t) => riderLogger.debug("FeedbackDirective inserted success.")
+          }
+          Await.result(modules.directiveDal.findById(directiveIdValue.toString.toLong), minTimeOut) match {
+            case Some(records) =>
+              val pType: UmsProtocolType.Value = UmsProtocolType.umsProtocolType(records.protocolType.toString)
+              pType match {
+                case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_START =>
+                  if (statusValue.toString == UmsFeedbackStatus.SUCCESS.toString) {
+                    modules.flowDal.updateFlowStatus(records.flowId, RUNNING.toString)
+                  } else
+                    modules.flowDal.updateFlowStatus(records.flowId, FAILED.toString)
+                case UmsProtocolType.DIRECTIVE_FLOW_STOP =>
+                  if (statusValue.toString == UmsFeedbackStatus.SUCCESS.toString)
+                    modules.flowDal.updateFlowStatus(records.flowId, STOPPED.toString)
+                  else
+                    modules.flowDal.updateFlowStatus(records.flowId, FAILED.toString)
+                case _ => riderLogger.error(s"$pType not supported now.")
+              }
+            case None => riderLogger.warn(s"directive id doesn't exist.")
+          }
+        }else { riderLogger.error(s"FeedbackDirective can't found the value", tuple)}
       })
     } catch {
       case e: Exception =>
@@ -116,20 +120,22 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
     riderLogger.debug("start process FeedbackFlowError feedback")
     try {
       message.payload_get.foreach(tuple => {
-        val umsTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").toString
-        val streamId = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id").toString.toLong
-        val sinkNamespace = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace").toString
-        val errMaxWaterMarkTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_max_watermark_ts").toString
-        val errMinWaterMarkTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_min_watermark_ts").toString
-        val errorCount = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_count").toString.toInt
-        val errorInfo = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info").toString
-        val future = modules.feedbackFlowErrDal.insert(FeedbackFlowErr(1, protocolType.toString, umsTs, streamId, srcNamespace, sinkNamespace, errorCount, errMaxWaterMarkTs, errMinWaterMarkTs, errorInfo, curTs))
-        val result = Await.ready(future, minTimeOut).value.get
-        result match {
-          case Failure(e) =>
-            riderLogger.error(s"FeedbackFlowError inserted ${tuple.toString} failed", e)
-          case Success(t) => riderLogger.debug("FeedbackFlowError inserted success.")
-        }
+        val umsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
+        val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
+        val sinkNamespaceValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace")
+        val errMaxWaterMarkTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_max_watermark_ts")
+        val errMinWaterMarkTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_min_watermark_ts")
+        val errorCountValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_count")
+        val errorInfoValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info").toString
+        if(umsTsValue != null && streamIdValue != null && sinkNamespaceValue != null && errMaxWaterMarkTsValue != null && errMinWaterMarkTsValue != null && errorCountValue  != null && errorInfoValue != null){
+          val future = modules.feedbackFlowErrDal.insert(FeedbackFlowErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, srcNamespace, sinkNamespaceValue.toString, errorCountValue.toString.toInt, errMaxWaterMarkTsValue.toString, errMinWaterMarkTsValue.toString, errorInfoValue.toString, curTs))
+          val result = Await.ready(future, minTimeOut).value.get
+          result match {
+            case Failure(e) =>
+              riderLogger.error(s"FeedbackFlowError inserted ${tuple.toString} failed", e)
+            case Success(t) => riderLogger.debug("FeedbackFlowError inserted success.")
+          }
+        }else { riderLogger.error(s"FeedbackFlowError can't found the value", tuple)}
       })
     } catch {
       case e: Exception =>
@@ -144,17 +150,19 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
     riderLogger.debug("start process FeedbackStreamBatchError feedback")
     try {
       message.payload_get.foreach(tuple => {
-        val umsTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").toString
-        val streamId = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id").toString.toLong
-        val status = UmsFieldType.umsFieldValue(tuple.tuple, fields, "status").toString
-        val resultDesc = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc").toString
-        val future = modules.feedbackStreamErrDal.insert(FeedbackStreamErr(1, protocolType.toString, umsTs, streamId, status, resultDesc, curTs))
-        val result = Await.ready(future, Duration.Inf).value.get
-        result match {
-          case Failure(e) =>
-            riderLogger.error(s"FeedbackStreamBatchError inserted ${tuple.toString} failed", e)
-          case Success(t) => riderLogger.debug("FeedbackStreamBatchError inserted success.")
-        }
+        val umsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
+        val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
+        val statusValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "status")
+        val resultDescValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc")
+        if(umsTsValue != null && streamIdValue != null && statusValue != null && resultDescValue != null) {
+          val future = modules.feedbackStreamErrDal.insert(FeedbackStreamErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs))
+          val result = Await.ready(future, Duration.Inf).value.get
+          result match {
+            case Failure(e) =>
+              riderLogger.error(s"FeedbackStreamBatchError inserted ${tuple.toString} failed", e)
+            case Success(t) => riderLogger.debug("FeedbackStreamBatchError inserted success.")
+          }
+        }else { riderLogger.error(s"FeedbackStreamBatchError can't found the value", tuple)}
       })
     } catch {
       case e: Exception =>
@@ -182,19 +190,22 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
     riderLogger.debug("start process FeedbackStreamTopicOffset feedback")
     try {
       message.payload_get.foreach(tuple => {
-        val umsTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").toString
-        val streamId = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id").toString.toLong
-        val topicName = UmsFieldType.umsFieldValue(tuple.tuple, fields, "topic_name").toString
-        val partitionOffset = UmsFieldType.umsFieldValue(tuple.tuple, fields, "partition_offsets").toString
-        val partitionNum: Int = FeedbackOffsetUtil.getPartitionNumber(partitionOffset)
-        val future = modules.feedbackOffsetDal.insert(FeedbackOffset(1, protocolType.toString, umsTs, streamId,
-          topicName, partitionNum, partitionOffset, curTs))
-        val result = Await.ready(future, Duration.Inf).value.get
-        result match {
-          case Failure(e) =>
-            riderLogger.error(s"FeedbackStreamTopicOffset inserted ${tuple.toString} failed", e)
-          case Success(t) => riderLogger.debug("FeedbackStreamTopicOffset inserted success.")
-        }
+        val umsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
+        val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
+        val topicNameValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "topic_name")
+        val partitionOffsetValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "partition_offsets")
+        if(umsTsValue != null && streamIdValue != null && topicNameValue != null && partitionOffsetValue != null) {
+          val partitionOffset = partitionOffsetValue.toString
+          val partitionNum: Int = FeedbackOffsetUtil.getPartitionNumber(partitionOffset)
+          val future = modules.feedbackOffsetDal.insert(FeedbackOffset(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
+            topicNameValue.toString, partitionNum, partitionOffset, curTs))
+          val result = Await.ready(future, Duration.Inf).value.get
+          result match {
+            case Failure(e) =>
+              riderLogger.error(s"FeedbackStreamTopicOffset inserted ${tuple.toString} failed", e)
+            case Success(t) => riderLogger.debug("FeedbackStreamTopicOffset inserted success.")
+          }
+        }else { riderLogger.error(s"FeedbackStreamTopicOffset can't found the value", tuple)}
       })
     } catch {
       case e: Exception =>
@@ -215,44 +226,47 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
     riderLogger.debug("start process FeedbackFlowStats feedback")
     try {
       message.payload_get.foreach(tuple => {
-        val umsTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").toString
-        val streamId = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id").toString.toLong
-        val statsId = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stats_id").toString
-        val sinkNamespace = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace").toString
-        val riderSinkNamespace = if (sinkNamespace == "") riderNamespace else namespaceRiderString(sinkNamespace)
-        val flowName = s"${riderNamespace}_${riderSinkNamespace}"
-        val rddCount = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_count").toString.toInt
-        val cdcTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_genereated_ts").toString.toLong
-        val rddTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_generated_ts").toString.toLong
-        val directiveTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "directive_process_start_ts").toString.toLong
-        val mainDataTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_process_start_ts").toString.toLong
-        val swiftsTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "swifts_start_ts").toString.toLong
-        val sinkTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_start_ts").toString.toLong
-        val doneTs = UmsFieldType.umsFieldValue(tuple.tuple, fields, "done_ts").toString.toLong
-        val interval_data_process_dataums = (mainDataTs - cdcTs) / 1000
-        val interval_data_process_rdd = (mainDataTs - rddTs) / 1000
-        val interval_data_process_swifts = (mainDataTs - swiftsTs) / 1000
-        val interval_data_process_sink = (mainDataTs - sinkTs) / 1000
-        val interval_data_process_done = (mainDataTs - doneTs) / 1000
-        val interval_rdd_done: Long = (doneTs - rddTs) / 1000
-        val interval_data_swifts_sink = (swiftsTs - sinkTs) / 1000
-        val interval_data_sink_done = (sinkTs - doneTs) / 1000
+        val umsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
+        val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
+        val statsIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stats_id")
+        val sinkNamespaceValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace").toString
+        val rddCountValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_count").toString.toInt
+        val cdcTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_genereated_ts").toString.toLong
+        val rddTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_generated_ts").toString.toLong
+        val directiveTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "directive_process_start_ts").toString.toLong
+        val mainDataTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_process_start_ts").toString.toLong
+        val swiftsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "swifts_start_ts").toString.toLong
+        val sinkTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_start_ts").toString.toLong
+        val doneTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "done_ts").toString.toLong
+        if(umsTsValue != null && streamIdValue != null && statsIdValue != null && sinkNamespaceValue != null && rddCountValue != null && cdcTsValue != null && rddTsValue  != null &&
+          directiveTsValue != null && mainDataTsValue != null && swiftsTsValue != null && sinkTsValue != null && doneTsValue != null) {
+          val riderSinkNamespace = if (sinkNamespaceValue.toString == "") riderNamespace else namespaceRiderString(sinkNamespaceValue.toString)
+          val flowName = s"${riderNamespace}_${riderSinkNamespace}"
+          val interval_data_process_dataums = (mainDataTsValue.toString.toLong - cdcTsValue.toString.toLong) / 1000
+          val interval_data_process_rdd = (mainDataTsValue.toString.toLong - rddTsValue.toString.toLong) / 1000
+          val interval_data_process_swifts = (mainDataTsValue.toString.toLong - swiftsTsValue.toString.toLong) / 1000
+          val interval_data_process_sink = (mainDataTsValue.toString.toLong - sinkTsValue.toString.toLong) / 1000
+          val interval_data_process_done = (mainDataTsValue.toString.toLong - doneTsValue.toString.toLong) / 1000
+          val interval_rdd_done: Long = (doneTsValue.toString.toLong - rddTsValue.toString.toLong) / 1000
+          val interval_data_swifts_sink = (swiftsTsValue.toString.toLong - sinkTsValue.toString.toLong) / 1000
+          val interval_data_sink_done = (sinkTsValue.toString.toLong - doneTsValue.toString.toLong) / 1000
 
-        if (interval_rdd_done == 0L) {
-          throughput = rddCount
-        } else throughput = rddCount / interval_rdd_done
+          if (interval_rdd_done == 0L) {
+            throughput = rddCountValue.toString.toInt
+          } else throughput = rddCountValue.toString.toInt / interval_rdd_done
 
-        val monitorInfo = MonitorInfo(statsId, umsTs, CacheMap.getProjectId(streamId), streamId, CacheMap.getStreamName(streamId), CacheMap.getFlowId(flowName), flowName, rddCount, throughput,
-          DateUtils.dt2string(cdcTs * 1000, DtFormat.TS_DASH_MICROSEC),
-          DateUtils.dt2string(rddTs * 1000, DtFormat.TS_DASH_MICROSEC),
-          DateUtils.dt2string(directiveTs * 1000, DtFormat.TS_DASH_MICROSEC),
-          DateUtils.dt2string(mainDataTs * 1000, DtFormat.TS_DASH_MICROSEC),
-          DateUtils.dt2string(swiftsTs * 1000, DtFormat.TS_DASH_MICROSEC),
-          DateUtils.dt2string(sinkTs * 1000, DtFormat.TS_DASH_MICROSEC),
-          DateUtils.dt2string(doneTs * 1000, DtFormat.TS_DASH_MICROSEC),
-          interval_data_process_dataums, interval_data_process_rdd, interval_data_process_swifts, interval_data_process_sink, interval_data_process_done,
-          interval_data_process_done, interval_data_swifts_sink, interval_data_sink_done)
-        ElasticSearch.insertFlowStatToES(monitorInfo)
+          val monitorInfo = MonitorInfo(statsIdValue.toString, umsTsValue.toString, CacheMap.getProjectId(streamIdValue.toString.toLong), streamIdValue.toString.toLong, CacheMap.getStreamName(streamIdValue.toString.toLong), CacheMap.getFlowId(flowName), flowName, rddCountValue.toString.toInt, throughput,
+            DateUtils.dt2string(cdcTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+            DateUtils.dt2string(rddTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+            DateUtils.dt2string(directiveTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+            DateUtils.dt2string(mainDataTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+            DateUtils.dt2string(swiftsTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+            DateUtils.dt2string(sinkTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+            DateUtils.dt2string(doneTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+            interval_data_process_dataums, interval_data_process_rdd, interval_data_process_swifts, interval_data_process_sink, interval_data_process_done,
+            interval_data_process_done, interval_data_swifts_sink, interval_data_sink_done)
+          ElasticSearch.insertFlowStatToES(monitorInfo)
+        }else {riderLogger.error(s"Failed to get value from FeedbackFlowStats", tuple)}
       })
     } catch {
       case e: Exception =>

@@ -49,6 +49,7 @@ object RiderStarter extends App with RiderLogger {
   implicit val ec = system.dispatcher
 
   DbModule.createSchema
+  CacheMap.cacheMapInit
 
   if (Await.result(modules.userDal.findByFilter(_.email === "admin"), minTimeOut).isEmpty)
     Await.result(modules.userDal.insert(User(0, "admin", "admin", "admin", "admin", active = true, currentSec, 1, currentSec, 1)), minTimeOut)
@@ -61,6 +62,5 @@ object RiderStarter extends App with RiderLogger {
   Scheduler.start
   riderLogger.info(s"Scheduler started")
 
-  CacheMap.cacheMapInit
   monitor.ElasticSearch.createEsIndex()
 }
