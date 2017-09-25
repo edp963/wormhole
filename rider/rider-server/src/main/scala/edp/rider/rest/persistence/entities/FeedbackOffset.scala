@@ -37,14 +37,14 @@ case class FeedbackOffset(id: Long,
                           feedbackTime: String) extends BaseEntity
 
 class FeedbackOffsetTable(_tableTag: Tag) extends BaseTable[FeedbackOffset](_tableTag, "feedback_stream_offset") {
-  def * = (id, projectType, umsTs, streamId, topicName, partitionNum, partitionOffset, feedbackTime) <> (FeedbackOffset.tupled, FeedbackOffset.unapply)
+  def * = (id, projectType, umsTs, streamId, topicName, partitionNum, partitionOffsets, feedbackTime) <> (FeedbackOffset.tupled, FeedbackOffset.unapply)
 
   val projectType: Rep[String] = column[String]("protocol_type", O.Length(200, varying = true))
   val umsTs: Rep[String] = column[String]("ums_ts")
   val streamId: Rep[Long] = column[Long]("stream_id")
   val topicName: Rep[String] = column[String]("topic_name", O.Length(5000, varying = true))
   val partitionNum: Rep[Int] = column[Int]("partition_num")
-  val partitionOffset: Rep[String] = column[String]("partition_offsets")
+  val partitionOffsets: Rep[String] = column[String]("partition_offsets")
   val feedbackTime: Rep[String] = column[String]("feedback_time")
 
   val index1 = index("streamUnique", streamId)

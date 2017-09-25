@@ -109,23 +109,25 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
   def updateOffsetFromFeedback(streamId: Long, userId: Long): Seq[TopicDetail] = {
     try {
       val topicSeq = Await.result(getTopicDetailByStreamId(streamId), minTimeOut)
+      riderLogger.error(s"topic seq: $topicSeq")
       if (topicSeq.size != 0) {
-        val topicFeedbackSeq = Await.result(db.run(feedbackOffsetTable.filter(_.streamId === streamId).sortBy(_.feedbackTime.desc).take(topicSeq.size).result).mapTo[Seq[FeedbackOffset]], minTimeOut)
-        //        val map = topicFeedbackSeq.map(topic => (topic.topicName, topic.partitionOffsets)).toMap
+        val topicFeedbackSeq = Await.result(db.run(feedbackOffsetTable.filter(_.streamId === streamId).sortBy(_.feedbackTime.desc).take(topicSeq.size + 1).result).mapTo[Seq[FeedbackOffset]], minTimeOut)
+        riderLogger.error(s"topic feedback seq: $topicSeq")
+        val map = topicFeedbackSeq.map(topic => (topic.topicName, topic.partitionOffsets)).toMap
         val updateSeq = new ArrayBuffer[StreamInTopic]
-        //        topicSeq.map(
-        //          topic => {
-        //            if (map.contains(topic.name)) {
-        //              updateSeq += StreamInTopic(topic.id, topic.streamId, topic.nsInstanceId, topic.nsDatabaseId,
-        //                map.get(topic.name).get, topic.rate, topic.active, topic.createTime, topic.createBy, currentSec, userId)
-        //              TopicDetail(topic.id, topic.streamId, topic.nsInstanceId, topic.nsDatabaseId, topic.partition,
-        //                map.get(topic.name).get, topic.rate, topic.active, topic.createTime, topic.createBy, currentSec, userId, topic.name)
-        //            }
-        //            else topic
-        //          }
-        //        )
-        //        if(updateSeq.size != 0)
-        //          updateSeq.map(topic => Await.result(db.run(streamInTopicTable.update(topic)), minTimeOut))
+        topicSeq.map(
+          topic => {
+            if (map.contains(topic.name)) {
+              updateSeq += StreamInTopic(topic.id, topic.streamId, topic.nsInstanceId, topic.nsDatabaseId,
+                map.get(topic.name).get, topic.rate, topic.active, topic.createTime, topic.createBy, currentSec, userId)
+              TopicDetail(topic.id, topic.streamId, topic.nsInstanceId, topic.nsDatabaseId, topic.partition,
+                map.get(topic.name).get, topic.rate, topic.active, topic.createTime, topic.createBy, currentSec, userId, topic.name)
+            }
+            else topic
+          }
+        )
+        if (updateSeq.size != 0)
+          updateSeq.map(topic => Await.result(db.run(streamInTopicTable.filter(_.id === topic.id).update(topic)), minTimeOut))
       }
       topicSeq
     } catch {
@@ -133,15 +135,6 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
         riderLogger.error(s"get stream $streamId latest offset from stream_feedback_offset table failed", ex)
         throw ex
     }
-
-    //    val feedbackOffsetInfo = feedbackOffsetTable.filter(_.streamId === streamId).sortBy(feedback => feedback.feedbackTime).groupBy(feedback => (feedback.topicName, feedback.partitionNum)).map { case (name, group) =>
-    //      (streamId, name._1, name._2, group.map(_.partitionOffset).max)
-    //    }
-    //
-    //    Await.result(db.run((streamInTopicTable.filter(_.active === true).filter(_.streamId === streamId) join nsDatabaseTable.filter(_.active === true) on (_.nsDatabaseId === _.id) join feedbackOffsetInfo on (_._2.nsDatabase === _._2)).map {
-    //      case ((intopic, database), feedback) =>
-    //        (feedback._1, feedback._2, feedback._3, feedback._4.get) <> (FeedbackOffsetInfo.tupled, FeedbackOffsetInfo.unapply)
-    //    }.result).mapTo[Seq[FeedbackOffsetInfo]], minTimeOut)
   }
 
   def getResource(projectId: Long): Future[Resource] = {
@@ -295,7 +288,6 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
                 }
               case _ => AppInfo("", stream.status, null, null)
             }
-            riderLogger.warn(s"dbStatus: $dbStatus")
             if (sparkStatus == null) AppInfo(stream.sparkAppid.getOrElse(""), "failed", startedTime, stoppedTime)
             else {
               val resStatus = dbStatus match {
