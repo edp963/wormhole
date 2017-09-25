@@ -703,7 +703,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal) extends BaseUserApiI
                                   val stream = streamSeqTopic.stream
                                   val streamName = streamSeqTopic.stream.name
                                   val brokers = streamSeqTopic.kafkaConnection
-                                  val sparkConfig = streamSeqTopic.stream.sparkConfig.get //--conf reltive
+                                  val sparkConfig = streamSeqTopic.stream.sparkConfig.get //--conf relative
                                   //mem cores
                                   val launchConfig = json2caseClass[LaunchConfig](streamSeqTopic.stream.launchConfig)
                                   val streamType = streamSeqTopic.stream.streamType //config relative
@@ -762,15 +762,25 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal) extends BaseUserApiI
             }
             if (session.projectIdList.contains(projectId)) {
               try {
-                val flows = Await.result(flowDal.findByFilter(_.streamId === streamId), minTimeOut)
-                if (flows.size > 0){
-                  riderLogger.info(s"user ${session.userId} can't delete stream $streamId now, please delete flow ${flows.map(_.id).mkString(",")} first")
-                  complete(PreconditionFailed, getHeader(412, s"please delete flow ${flows.map(_.id).mkString(",")} first", session))
-                } else {
-                  Await.result(streamDal.deleteById(streamId), minTimeOut)
-                  CacheMap.streamCacheMapRefresh
-                  riderLogger.info(s"user ${session.userId} delete stream $streamId success")
-                  complete(OK, getHeader(200, session))
+                val streamOpt = Await.result(streamDal.findById(streamId), minTimeOut)
+                streamOpt match {
+                  case Some(stream) =>
+                    val flows = Await.result(flowDal.findByFilter(_.streamId === streamId), minTimeOut)
+                    if (flows.size > 0) {
+                      riderLogger.info(s"user ${session.userId} can't delete stream $streamId now, please delete flow ${flows.map(_.id).mkString(",")} first")
+                      complete(PreconditionFailed, getHeader(412, s"please delete flow ${flows.map(_.id).mkString(",")} first", session))
+                    } else {
+                      removeStreamDirective(streamId, session.userId)
+                      if (stream.sparkAppid.getOrElse("") != "") {
+                        runShellCommand("yarn application -kill " + stream.sparkAppid.get)
+                        riderLogger.info(s"user ${session.userId} stop stream $streamId success")
+                      }
+                      Await.result(streamDal.deleteById(streamId), minTimeOut)
+                      CacheMap.streamCacheMapRefresh
+                      riderLogger.info(s"user ${session.userId} delete stream $streamId success")
+                      complete(OK, getHeader(200, session))
+                    }
+                  case None => complete(OK, getHeader(200, session))
                 }
               } catch {
                 case ex: Exception =>
