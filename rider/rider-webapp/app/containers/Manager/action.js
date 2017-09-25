@@ -53,6 +53,8 @@ import {
   EDIT_STREAM_SUCCESS,
   OPERATE_STREAMS,
   OPERATE_STREAMS_SUCCESS,
+  DELETE_STREAMS,
+  DELETE_STREAMS_SUCCESS,
   STARTORRENEW_STREAMS,
   STARTORRENEW_STREAMS_SUCCESS,
   OPERATE_STREAMS_ERROR
@@ -402,6 +404,30 @@ export function operateStream (projectId, id, action, resolve, reject) {
 export function streamOperated (result, resolve, reject) {
   return {
     type: OPERATE_STREAMS_SUCCESS,
+    payload: {
+      result,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function deleteStream (projectId, id, action, resolve, reject) {
+  return {
+    type: DELETE_STREAMS,
+    payload: {
+      projectId,
+      id,
+      action,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function streamDeleted (result, resolve, reject) {
+  return {
+    type: DELETE_STREAMS_SUCCESS,
     payload: {
       result,
       resolve,
