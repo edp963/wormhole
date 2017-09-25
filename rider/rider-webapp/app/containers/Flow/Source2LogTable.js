@@ -190,6 +190,7 @@ export class Source2LogTable extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Namespace"
             value={this.state.searchNamespace}
             onChange={this.onInputChange('searchNamespace')}
@@ -199,7 +200,9 @@ export class Source2LogTable extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleNamespace,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleNamespace: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleNamespace: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Primary Key',
       dataIndex: 'primaryKey',
@@ -215,6 +218,7 @@ export class Source2LogTable extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Primary Key"
             value={this.state.searchPrimaryKey}
             onChange={this.onInputChange('searchPrimaryKey')}
@@ -224,7 +228,9 @@ export class Source2LogTable extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisiblePrimaryKey,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisiblePrimaryKey: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisiblePrimaryKey: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Diff Result Type',
       dataIndex: 'diffResultType',
@@ -240,6 +246,7 @@ export class Source2LogTable extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Diff Result Type"
             value={this.state.searchDiffResultType}
             onChange={this.onInputChange('searchDiffResultType')}
@@ -249,7 +256,9 @@ export class Source2LogTable extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleDiffResultType,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleDiffResultType: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleDiffResultType: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Compare Scale',
       dataIndex: 'compareScale',
@@ -265,6 +274,7 @@ export class Source2LogTable extends React.Component {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Compare Scale"
             value={this.state.searchCompareScale}
             onChange={this.onInputChange('searchCompareScale')}
@@ -274,7 +284,9 @@ export class Source2LogTable extends React.Component {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleCompareScale,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleCompareScale: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleCompareScale: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Recorded Time',
       dataIndex: 'recordedTime',

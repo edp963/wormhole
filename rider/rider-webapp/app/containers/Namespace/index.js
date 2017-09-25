@@ -570,6 +570,7 @@ export class Namespace extends React.PureComponent {
         filterDropdown: (
           <div className="custom-filter-dropdown">
             <Input
+              ref={ele => { this.searchInput = ele }}
               placeholder="Project Name"
               value={this.state.searchTextNsProject}
               onChange={this.onInputChange('searchTextNsProject')}
@@ -579,7 +580,9 @@ export class Namespace extends React.PureComponent {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleNsProject,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleNsProject: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleNsProject: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Data System',
         dataIndex: 'nsSys',
@@ -613,6 +616,7 @@ export class Namespace extends React.PureComponent {
         filterDropdown: (
           <div className="custom-filter-dropdown">
             <Input
+              ref={ele => { this.searchInput = ele }}
               placeholder="Instance"
               value={this.state.searchNsInstance}
               onChange={this.onInputChange('searchNsInstance')}
@@ -622,7 +626,9 @@ export class Namespace extends React.PureComponent {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleNsInstance,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleNsInstance: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleNsInstance: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Database',
         dataIndex: 'nsDatabase',
@@ -638,6 +644,7 @@ export class Namespace extends React.PureComponent {
         filterDropdown: (
           <div className="custom-filter-dropdown">
             <Input
+              ref={ele => { this.searchInput = ele }}
               placeholder="Database"
               value={this.state.searchNsDatabase}
               onChange={this.onInputChange('searchNsDatabase')}
@@ -647,7 +654,9 @@ export class Namespace extends React.PureComponent {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleNsDatabase,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleNsDatabase: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleNsDatabase: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Table',
         dataIndex: 'nsTable',
@@ -663,6 +672,7 @@ export class Namespace extends React.PureComponent {
         filterDropdown: (
           <div className="custom-filter-dropdown">
             <Input
+              ref={ele => { this.searchInput = ele }}
               placeholder="Table"
               value={this.state.searchNsTable}
               onChange={this.onInputChange('searchNsTable')}
@@ -672,7 +682,9 @@ export class Namespace extends React.PureComponent {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleNsTable,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleNsTable: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleNsTable: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Key',
         dataIndex: 'keys',
@@ -688,6 +700,7 @@ export class Namespace extends React.PureComponent {
         filterDropdown: (
           <div className="custom-filter-dropdown">
             <Input
+              ref={ele => { this.searchInput = ele }}
               placeholder="Key"
               value={this.state.searchNsKey}
               onChange={this.onInputChange('searchNsKey')}
@@ -697,7 +710,9 @@ export class Namespace extends React.PureComponent {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleNsKey,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleNsKey: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleNsKey: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Permission',
         dataIndex: 'permission',
@@ -731,6 +746,7 @@ export class Namespace extends React.PureComponent {
         filterDropdown: (
           <div className="custom-filter-dropdown">
             <Input
+              ref={ele => { this.searchInput = ele }}
               placeholder="Topic"
               value={this.state.searchNstopic}
               onChange={this.onInputChange('searchNstopic')}
@@ -740,7 +756,9 @@ export class Namespace extends React.PureComponent {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleNsTopic,
-        onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleNsTopic: visible })
+        onFilterDropdownVisibleChange: visible => this.setState({
+          filterDropdownVisibleNsTopic: visible
+        }, () => this.searchInput.focus())
       }, {
         title: 'Create Time',
         dataIndex: 'createTime',

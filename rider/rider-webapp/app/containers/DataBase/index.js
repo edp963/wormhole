@@ -496,6 +496,7 @@ export class DataBase extends React.PureComponent {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Instance"
             value={this.state.searchTextDBInstance}
             onChange={this.onInputChange('searchTextDBInstance')}
@@ -505,7 +506,9 @@ export class DataBase extends React.PureComponent {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleDBInstance,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleDBInstance: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleDBInstance: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Database',
       dataIndex: 'nsDatabase',
@@ -521,6 +524,7 @@ export class DataBase extends React.PureComponent {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="Database"
             value={this.state.searchTextDatabase}
             onChange={this.onInputChange('searchTextDatabase')}
@@ -530,7 +534,9 @@ export class DataBase extends React.PureComponent {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleDatabase,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleDatabase: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleDatabase: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Permission',
       dataIndex: 'permission',
@@ -564,6 +570,7 @@ export class DataBase extends React.PureComponent {
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
+            ref={ele => { this.searchInput = ele }}
             placeholder="URL"
             value={this.state.searchTextConnUrl}
             onChange={this.onInputChange('searchTextConnUrl')}
@@ -573,7 +580,9 @@ export class DataBase extends React.PureComponent {
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleConnUrl,
-      onFilterDropdownVisibleChange: visible => this.setState({ filterDropdownVisibleConnUrl: visible })
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleConnUrl: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Create Time',
       dataIndex: 'createTime',
