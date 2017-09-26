@@ -220,7 +220,7 @@ object CacheMap extends RiderLogger {
     streamCacheMapRefresh
     flowCacheMapRefresh
     offsetMapRefresh
-    //cacheMapPrint
+    cacheMapPrint
   }
 
   def cacheMapPrint= {
@@ -229,17 +229,16 @@ object CacheMap extends RiderLogger {
       riderLogger.info(s" StreamMap  ${stream.streamId} -> ( ${singleMap.getStreamName(stream.streamId)}, ${singleMap.getProjectId(stream.streamId)} )")
     }
 
-    Await.result(modules.flowDal.adminGetAll(), minTimeOut).foreach{flow =>
+    Await.result(modules.flowDal.adminGetAll(), minTimeOut).foreach { flow =>
       riderLogger.info(s" FlowMap  ${flow.sourceNs}_${flow.sinkNs} -> ${flow.id}")
     }
-  }
 
-  Await.result(modules.streamDal.getAllActiveStream, minTimeOut).foreach { stream =>
-    val a = FeedbackOffsetUtil.getOffsetFromFeedback(stream.streamId)
-    riderLogger.info(s" offsetMap  $a")
-    a.foreach { e =>
-      val b = singleMap.getOffsetValue(e.streamId, e.topicName, e.partitionId)
-      riderLogger.info(s" OffsetMap ( ${e.streamId},${e.topicName},${e.partitionId} ) -> ${b}")
+    Await.result(modules.streamDal.getAllActiveStream, minTimeOut).foreach { stream =>
+      val a = FeedbackOffsetUtil.getOffsetFromFeedback(stream.streamId)
+      a.foreach { e =>
+        val b = singleMap.getOffsetValue(e.streamId, e.topicName, e.partitionId)
+        riderLogger.info(s" OffsetMap ( ${e.streamId},${e.topicName},${e.partitionId} ) -> ${b}")
+      }
     }
   }
 
