@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -126,7 +126,7 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
     while (i < length) {
       val url = randomUrl(urlArray)
       try {
-        Http(url).asString
+        doHttp(url,cc.username,cc.password,"")
         availableUrl = url
         i = length
       } catch {
@@ -188,9 +188,18 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
       val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl.trim + namespace.database + "/" + namespace.table + "/_bulk"
       else connectionConfig.connectionUrl.trim + "/" + namespace.database + "/" + namespace.table + "/_bulk"
       logInfo("doBatch url:" + url)
-      val responseContent = Http(url).postData(requestContent).asString.body
-      checkResponseSuccess(responseContent)
+      val responseContent = doHttp(connectionConfig.connectionUrl,connectionConfig.username,connectionConfig.password,requestContent)
+      val responseJson: JValue = json2jValue(responseContent)
+      checkResponseSuccess(responseJson)
     } else true
+  }
+
+  private def doHttp(url:String,username: Option[String],passwd:Option[String],requestContent:String):String={
+    if(username.nonEmpty&&passwd.nonEmpty){
+      Http(url).auth(username.get,passwd.get).postData(requestContent).asString.body
+    }else{
+      Http(url).postData(requestContent).asString.body
+    }
   }
 
   private def doBatchUpdate(updateId2JsonMap: mutable.HashMap[String, String],
@@ -207,15 +216,15 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
       val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl.trim + namespace.database + "/" + namespace.table + "/_bulk"
       else connectionConfig.connectionUrl.trim + "/" + namespace.database + "/" + namespace.table + "/_bulk"
       logInfo("doBatch url:" + url)
-      val responseContent = Http(url).postData(requestContent).asString.body
-      checkResponseSuccess(responseContent)
+      val responseContent = doHttp(connectionConfig.connectionUrl,connectionConfig.username,connectionConfig.password,requestContent)
+      val responseJson: JValue = json2jValue(responseContent)
+      checkResponseSuccess(responseJson)
     } else true
   }
 
-  private def checkResponseSuccess(responseContent: String): Boolean = {
-    val responseJson: JValue = json2jValue(responseContent)
+  private def checkResponseSuccess(responseJson: JValue): Boolean = {
     val result = (!containsName(responseJson, "error") || !getBoolean(responseJson, "error")) && (!containsName(responseJson, "errors") || !getBoolean(responseJson, "errors"))
-    if (!result) logError("batch operation has error:" + responseContent)
+    if (!result) logError("batch operation has error:" + responseJson)
     result
   }
 
@@ -229,9 +238,9 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
     val requestContent = """{"docs":[{"_id":"""" + esids.mkString("\",\"_source\":\"" + UmsSysField.ID.toString + "\"},{\"_id\":\"") + "\",\"_source\":\"" + UmsSysField.ID.toString + "\"}]}"
     val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl + namespace.database + "/" + namespace.table + "/_mget"
     else connectionConfig.connectionUrl + "/" + namespace.database + "/" + namespace.table + "/_mget"
-    val responseContent = Http(url).postData(requestContent).asString.body
-    val responseJson = json2jValue(responseContent)
-    if ((containsName(responseJson, "error") && getBoolean(responseJson, "error")) || (containsName(responseJson, "errors") && getBoolean(responseJson, "errors"))) {
+    val responseContent = doHttp(url,connectionConfig.username,connectionConfig.password,requestContent)
+    val responseJson: JValue = json2jValue(responseContent)
+    if(checkResponseSuccess(responseJson)){
       logError("queryVersionByEsid error :" + responseContent)
       queryResult = false
     } else {
