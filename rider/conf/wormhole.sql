@@ -18,14 +18,15 @@ CREATE TABLE IF NOT EXISTS `instance` (
   `ns_instance` VARCHAR(200) NOT NULL,
   `desc` VARCHAR(1000) NULL,
   `ns_sys` VARCHAR(30) NOT NULL,
-  `conn_url` VARCHAR(1000) NOT NULL,
+  `conn_url` VARCHAR(200) NOT NULL,
   `active` TINYINT(1) NOT NULL,
   `create_time` TIMESTAMP NOT NULL,
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL,
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `instance_UNIQUE` (`ns_instance` ASC, `ns_sys` ASC))
+  UNIQUE INDEX `instance_UNIQUE` (`ns_instance` ASC, `ns_sys` ASC),
+  UNIQUE INDEX `connUrl_UNIQUE` (`conn_url` ASC))
 ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS `ns_database` (

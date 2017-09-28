@@ -164,7 +164,7 @@ object RiderConfig {
   lazy val spark = RiderSpark(wormholeUser,
     sshPort,
     config.getString("spark.spark.home"),
-    config.getString("spark.queue.name"),
+    config.getString("spark.yarn.queue.name"),
     appTags,
     config.getString("spark.wormhole.hdfs.root.path"),
     rm1Url, rm2Url,

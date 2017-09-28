@@ -99,7 +99,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                 val user = User(0, simple.email, simple.password, simple.name, simple.roleType, active = true, currentSec, session.userId, currentSec, session.userId)
                 onComplete(userDal.insert(user).mapTo[User]) {
                   case Success(row) =>
-                    riderLogger.info(s"user ${session.userId} inserted user $row success.")
+                    riderLogger.info(s"user ${session.userId} insert user success.")
                     onComplete(userDal.getUserProject(_.id === row.id).mapTo[Seq[UserProject]]) {
                       case Success(userProject) =>
                         riderLogger.info(s"user ${session.userId} select user where id is ${row.id} success.")
@@ -109,7 +109,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                         complete(UnavailableForLegalReasons, getHeader(451, ex.toString, session))
                     }
                   case Failure(ex) =>
-                    riderLogger.error(s"user ${session.userId} inserted user $user failed", ex)
+                    riderLogger.error(s"user ${session.userId} insert user failed", ex)
                     if (ex.toString.contains("Duplicate entry"))
                       complete(Conflict, getHeader(409, s"${simple.email} already exists", session))
                     else
@@ -135,7 +135,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                 val userEntity = User(user.id, user.email, user.password, user.name, user.roleType, user.active, user.createTime, user.createBy, currentSec, session.userId)
                 onComplete(userDal.update(userEntity)) {
                   case Success(result) =>
-                    riderLogger.info(s"user ${session.userId} updated user $userEntity success.")
+                    riderLogger.info(s"user ${session.userId} update user success.")
                     onComplete(userDal.getUserProject(_.id === userEntity.id).mapTo[Seq[UserProject]]) {
                       case Success(userProject) =>
                         riderLogger.info(s"user ${session.userId} select user where id is ${userEntity.id} success.")
@@ -145,7 +145,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                         complete(UnavailableForLegalReasons, getHeader(451, ex.toString, session))
                     }
                   case Failure(ex) =>
-                    riderLogger.error(s"user ${session.userId} updated user $userEntity failed", ex)
+                    riderLogger.error(s"user ${session.userId} update user failed", ex)
                     complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                 }
               }

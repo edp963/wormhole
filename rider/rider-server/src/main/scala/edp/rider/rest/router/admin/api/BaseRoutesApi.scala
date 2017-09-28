@@ -141,15 +141,15 @@ class BaseAdminApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A
       val entity = generateEntity(simple, session).asInstanceOf[A]
       onComplete(baseDal.insert(entity).mapTo[BaseEntity]) {
         case Success(base) =>
-          riderLogger.info(s"user ${session.userId} inserted $base success.")
+          riderLogger.info(s"user ${session.userId} insert success.")
           complete(OK, ResponseJson[BaseEntity](getHeader(200, session), base))
         case Failure(ex) =>
           if (ex.toString.contains("Duplicate entry")) {
-            riderLogger.error(s"user ${session.userId} inserted $entity failed", ex)
+            riderLogger.error(s"user ${session.userId} insert failed", ex)
             complete(Conflict, getHeader(409, tip, session))
           }
           else {
-            riderLogger.error(s"user ${session.userId} inserted $entity failed", ex)
+            riderLogger.error(s"user ${session.userId} insert failed", ex)
             complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
           }
       }
@@ -168,15 +168,15 @@ class BaseAdminApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A
       onComplete(baseDal.update(entity)) {
         case Success(result) =>
           if (result != 0) {
-            riderLogger.info(s"user ${session.userId} updated $entity success.")
+            riderLogger.info(s"user ${session.userId} update success.")
             complete(OK, ResponseJson[BaseEntity](getHeader(200, session), base))
           }
           else {
-            riderLogger.warn(s"user ${session.userId} updated $entity failed because it doesn't exist.")
+            riderLogger.warn(s"user ${session.userId} update failed because it doesn't exist.")
             complete(NotFound, ResponseJson[String](getHeader(404, session), ""))
           }
         case Failure(ex) =>
-          riderLogger.error(s"user ${session.userId} updated $entity failed", ex)
+          riderLogger.error(s"user ${session.userId} update failed", ex)
           complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
       }
     }

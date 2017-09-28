@@ -172,7 +172,7 @@ object FlowUtils extends RiderLogger {
         val base64Tuple = Seq(streamId, currentMicroSec, sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
           base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))
         val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, tuple.mkString(","), RiderConfig.zk, currentSec, userId)), minTimeOut)
-//        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_START.toString} success.")
+        //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_START.toString} success.")
         val flow_start_ums =
           s"""
              |{
@@ -228,11 +228,11 @@ object FlowUtils extends RiderLogger {
         """.stripMargin.replaceAll("\n", "")
         riderLogger.info(s"user ${directive.createBy} send flow $flowId start directive: $flow_start_ums")
         PushDirective.sendFlowStartDirective(streamId, sourceNs, sinkNs, flow_start_ums)
-//        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
+        //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
       } else if (streamType == "hdfslog") {
         val tuple = Seq(streamId, currentMillSec, sourceNs, "24")
         val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, tuple.mkString(","), RiderConfig.zk, currentSec, userId)), minTimeOut)
-//        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
+        //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
         val flow_start_ums =
           s"""
              |{
@@ -278,7 +278,7 @@ object FlowUtils extends RiderLogger {
         """.stripMargin.replaceAll("\n", "")
         riderLogger.info(s"user ${directive.createBy} send flow $flowId start directive: $flow_start_ums")
         PushDirective.sendHdfsLogFlowStartDirective(streamId, sourceNs, flow_start_ums)
-//        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
+        //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
       }
       true
     } catch {
@@ -294,7 +294,7 @@ object FlowUtils extends RiderLogger {
       if (streamType == "default") {
         val tuple = Seq(streamId, currentMicroSec, sourceNs).mkString(",")
         val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_FLOW_STOP.toString, streamId, flowId, tuple, RiderConfig.zk, currentSec, userId)), minTimeOut)
-//        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_STOP.toString} success.")
+        //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_STOP.toString} success.")
         riderLogger.info(s"user ${directive.createBy} send flow $flowId stop directive")
         PushDirective.sendFlowStopDirective(streamId, sourceNs, sinkNs)
       } else if (streamType == "hdfslog") {
@@ -330,4 +330,27 @@ object FlowUtils extends RiderLogger {
     }
   }
 
+  def flowMatch(projectId: Long, streamId: Long, sourceNs: String): Seq[String] = {
+    val nsSplit = sourceNs.split("\\.")
+    if (nsSplit(1).trim == "*") {
+      val nsSelect = Await.result(modules.relProjectNsDal.getSourceNamespaceByProjectId(projectId, streamId, nsSplit(0)), minTimeOut)
+      nsSelect.map(ns => NamespaceUtils.generateStandardNs(ns))
+    } else if (nsSplit(2).trim == "*") {
+      val nsSelect = Await.result(modules.relProjectNsDal.getSourceNamespaceByProjectId(projectId, streamId, nsSplit(0)), minTimeOut)
+      nsSelect.filter(ns => ns.nsInstance == nsSplit(1)).map(ns => NamespaceUtils.generateStandardNs(ns))
+    } else if (nsSplit(3).trim == "*") {
+      val nsSelect = Await.result(modules.relProjectNsDal.getSourceNamespaceByProjectId(projectId, streamId, nsSplit(0)), minTimeOut)
+      nsSelect.filter(ns => ns.nsInstance == nsSplit(1) && ns.nsDatabase == nsSplit(2)).map(ns => NamespaceUtils.generateStandardNs(ns))
+
+    } else Seq(sourceNs)
+  }
+
+  def checkConfigFormat(sinkConfig: String, tranConfig: String) = {
+    (isJson(sinkConfig), isJson(tranConfig)) match {
+      case (true, true) => (true, "success")
+      case (true, false) => (false, s"tranConfig $tranConfig is not json type")
+      case (false, true) => (false, s"sinkConfig $sinkConfig is not json type")
+      case (false, false) => (false, s"sinkConfig $sinkConfig, tranConfig $tranConfig both are not json type")
+    }
+  }
 }

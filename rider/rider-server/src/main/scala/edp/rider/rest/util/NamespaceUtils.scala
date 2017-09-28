@@ -30,25 +30,33 @@ object NamespaceUtils extends RiderLogger {
   def generateStandardNs(ns: Namespace) = Seq(ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar).mkString(".")
 
   def getConnUrl(instance: Instance, db: NsDatabase) = {
-
-      instance.nsSys match {
-        case "mysql" => s"jdbc:mysql://${instance.connUrl}/${db.nsDatabase}"
-        case "oracle" =>
-          val hostPort = instance.connUrl.split(":")
-          val serviceName = db.config match {
-            case Some(conf) =>
-              if (conf != "") {
-                if (JSON.parseObject(conf).containsKey("service_name"))
-                  JSON.parseObject(conf).getString("service_name")
-                else if (JSON.parseObject(conf).containsKey("SERVICE_NAME"))
-                  JSON.parseObject(conf).getString("SERVICE_NAME")
-                else ""
-              } else ""
-            case None => ""
-          }
-          s"jdbc:oracle:thin:@(DESCRIPTION=(FAILOVER = yes)(ADDRESS = (PROTOCOL = TCP)(HOST =${hostPort(0)})(PORT = ${hostPort(1)}))(CONNECT_DATA =(SERVER = DEDICATED)(SERVICE_NAME = $serviceName)))"
-        case _ => instance.connUrl
-      }
+    instance.nsSys match {
+      case "mysql" =>
+        db.config match {
+          case Some(conf) =>
+            if(conf != ""){
+              val config = JSON.parseObject(conf).keySet().toArray.map(
+                key => s"$key=${JSON.parseObject(conf).get(key).toString}").mkString("&")
+              s"jdbc:mysql://${instance.connUrl}/${db.nsDatabase}?$config"
+            } else s"jdbc:mysql://${instance.connUrl}/${db.nsDatabase}"
+          case None => s"jdbc:mysql://${instance.connUrl}/${db.nsDatabase}"
+        }
+      case "oracle" =>
+        val hostPort = instance.connUrl.split(":")
+        val serviceName = db.config match {
+          case Some(conf) =>
+            if (conf != "") {
+              if (JSON.parseObject(conf).containsKey("service_name"))
+                JSON.parseObject(conf).getString("service_name")
+              else if (JSON.parseObject(conf).containsKey("SERVICE_NAME"))
+                JSON.parseObject(conf).getString("SERVICE_NAME")
+              else ""
+            } else ""
+          case None => ""
+        }
+        s"jdbc:oracle:thin:@(DESCRIPTION=(FAILOVER = yes)(ADDRESS = (PROTOCOL = TCP)(HOST =${hostPort(0)})(PORT = ${hostPort(1)}))(CONNECT_DATA =(SERVER = DEDICATED)(SERVICE_NAME = $serviceName)))"
+      case _ => instance.connUrl
+    }
 
   }
 }

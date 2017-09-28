@@ -140,7 +140,7 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
   def getResource(projectId: Long): Future[Resource] = {
     try {
       val project = Await.result(db.run(projectTable.filter(_.id === projectId).result.head).mapTo[Project], minTimeOut)
-      val streamSeq = super.findByFilter(stream => stream.projectId === projectId && (stream.status === "running" || stream.status === "waiting" || stream.status === "starting")).mapTo[Seq[Stream]]
+      val streamSeq = super.findByFilter(stream => stream.projectId === projectId && (stream.status === "running" || stream.status === "waiting" || stream.status === "starting" || stream.status === "stopping")).mapTo[Seq[Stream]]
       val totalCores = project.resCores
       val totalMemory = project.resMemoryG
       var usedCores = 0

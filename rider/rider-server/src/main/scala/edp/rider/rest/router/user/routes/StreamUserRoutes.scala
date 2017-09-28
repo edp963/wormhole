@@ -83,6 +83,7 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "put success"),
+    new ApiResponse(code = 400, message = "config is not the right format"),
     new ApiResponse(code = 403, message = "user is not normal"),
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 451, message = "request process failed"),
@@ -98,6 +99,7 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "post success"),
+    new ApiResponse(code = 400, message = "config is not the right format"),
     new ApiResponse(code = 403, message = "user is not normal"),
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 451, message = "request process failed"),
