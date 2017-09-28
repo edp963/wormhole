@@ -26,6 +26,7 @@ import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.ActionClass
+import edp.rider.rest.util.CommonUtils
 import edp.rider.rest.util.CommonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.{CanBeQueryCondition, TableQuery}
@@ -173,6 +174,23 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     } catch {
       case ex: Exception =>
         riderLogger.error(s"user $userId ${flowAction.action} flow ${flowAction.flowIds} failed", ex)
+        throw ex
+    }
+  }
+
+  def insertOrAbort(flows: Seq[Flow]): Seq[Flow] = {
+    try {
+      flows.map(
+        flow => {
+          val search = Await.result(super.findByFilter(row => row.sourceNs === flow.sourceNs && row.sinkNs === flow.sinkNs), minTimeOut)
+          if (search.isEmpty)
+            Await.result(insert(flow), CommonUtils.minTimeOut)
+          else search.head
+        }
+      )
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"flow insert or abort failed", ex)
         throw ex
     }
   }

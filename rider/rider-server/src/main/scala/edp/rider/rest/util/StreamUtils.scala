@@ -36,9 +36,7 @@ import scala.util.parsing.json.JSONObject
 object StreamUtils extends RiderLogger {
   def sendTopicDirective(streamId: Long, topicSeq: Seq[SimpleTopic], userId: Long) = {
     try {
-      riderLogger.info("send topic start")
       val directiveSeq = new ArrayBuffer[Directive]
-      riderLogger.info(s"topicSeq: $topicSeq")
       val zkConURL: String = RiderConfig.zk
       topicSeq.foreach({
         topic =>
@@ -50,13 +48,10 @@ object StreamUtils extends RiderLogger {
         Await.result(modules.directiveDal.insert(directiveSeq), minTimeOut)
       }
       val blankTopic = Directive(0, null, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, "0:0").mkString("#"), zkConURL, currentSec, userId)
-      riderLogger.info(s"user $userId insert ${DIRECTIVE_TOPIC_SUBSCRIBE.toString} success.")
       val directiveNew = directives.to[mutable.ArrayBuffer] += blankTopic
       val topicUms = directiveNew.map({
         directive =>
           val topicInfo = directive.directive.split("#")
-          riderLogger.error(s"topic directive: ${directive.directive}")
-
           s"""
              |{
              |"protocol": {
@@ -150,10 +145,23 @@ object StreamUtils extends RiderLogger {
   }
 
   def getDuration(launchConfig: String): Int = {
-    if(launchConfig != null && launchConfig != ""){
-      if(JSON.parseObject(launchConfig).containsKey("durations"))
+    if (launchConfig != null && launchConfig != "") {
+      if (JSON.parseObject(launchConfig).containsKey("durations"))
         JSON.parseObject(launchConfig).getIntValue("durations")
       else 10
     } else 10
+  }
+
+  def checkConfigFormat(startConfig: String, launchConfig: String, sparkConfig: String) = {
+    (isJson(startConfig), isJson(launchConfig), isKeyEqualValue(sparkConfig)) match {
+      case (true, true, true) => (true, "success")
+      case (true, true, false) => (false, s"sparkConfig $sparkConfig doesn't meet key=value,key1=value1 format")
+      case (true, false, true) => (false, s"launchConfig $launchConfig is not json type")
+      case (true, false, false) => (false, s"launchConfig $launchConfig is not json type, sparkConfig $sparkConfig doesn't meet key=value,key1=value1 format")
+      case (false, true, true) => (false, s"startConfig $startConfig is not json type")
+      case (false, true, false) => (false, s"startConfig $startConfig is not json type, sparkConfig $sparkConfig doesn't meet key=value,key1=value1 format")
+      case (false, false, true) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type")
+      case (false, false, false) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type, sparkConfig $sparkConfig doesn't meet key=value,key1=value1 format")
+    }
   }
 }

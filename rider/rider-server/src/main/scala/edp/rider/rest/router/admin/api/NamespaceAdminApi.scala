@@ -145,15 +145,15 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                                 case Success(rows) =>
                                   val tables = rows.map(ns => ns.nsTable)
                                   val conflictTables = tables.filter(simple.nsTables.contains(_))
-                                  riderLogger.error(s"user ${session.userId} inserted namespace ${conflictTables.mkString(",")} table failed", ex)
+                                  riderLogger.error(s"user ${session.userId} inser namespace ${conflictTables.mkString(",")} table failed", ex)
                                   complete(Conflict, getHeader(409, s"${conflictTables.mkString(",")} already exists", session))
                                 case Failure(e) =>
-                                  riderLogger.error(s"user ${session.userId} inserted namespace $nsSeq failed", e)
+                                  riderLogger.error(s"user ${session.userId} insert namespace failed", e)
                                   complete(UnavailableForLegalReasons, getHeader(451, e.getMessage, session))
                               }
                             }
                             else {
-                              riderLogger.error(s"user ${session.userId} inserted namespace $nsSeq failed", ex)
+                              riderLogger.error(s"user ${session.userId} insert namespace failed", ex)
                               complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                             }
                         }
@@ -187,7 +187,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                   ns.permission, ns.keys, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, currentSec, session.userId)
                 onComplete(namespaceDal.update(namespace).mapTo[Int]) {
                   case Success(num) =>
-                    riderLogger.info(s"user ${session.userId} updated namespace $namespace success.")
+                    riderLogger.info(s"user ${session.userId} update namespace success.")
                     onComplete(relProjectNsDal.getNamespaceAdmin(_.id === ns.id).mapTo[Seq[NamespaceAdmin]]) {
                       case Success(nsProject) =>
                         riderLogger.info(s"user ${session.userId} select $route where id is ${ns.id} success.")
@@ -197,7 +197,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                         complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                     }
                   case Failure(ex) =>
-                    riderLogger.error(s"user ${session.userId} updated namespace $namespace failed", ex)
+                    riderLogger.error(s"user ${session.userId} update namespace failed", ex)
                     complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                 }
               }

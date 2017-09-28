@@ -118,27 +118,32 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                 complete(Forbidden, getHeader(403, session))
               }
               else {
-                val database = NsDatabase(0, simple.nsDatabase.toLowerCase, Some(simple.desc.getOrElse("")), simple.nsInstanceId, simple.permission, Some(simple.user.getOrElse("")), Some(simple.pwd.getOrElse("")), simple.partitions, Some(simple.config.getOrElse("")), active = true, currentSec, session.userId, currentSec, session.userId)
-                onComplete(databaseDal.insert(database).mapTo[NsDatabase]) {
-                  case Success(db) =>
-                    riderLogger.info(s"user ${session.userId} inserted database $db success.")
-                    onComplete(databaseDal.getDs(visible = false, Some(db.id)).mapTo[Seq[DatabaseInstance]]) {
-                      case Success(dsSeq) =>
-                        riderLogger.info(s"user ${session.userId} select database where id is ${db.id} success.")
-                        complete(OK, ResponseJson[DatabaseInstance](getHeader(200, session), dsSeq.head))
-                      case Failure(ex) =>
-                        riderLogger.error(s"user ${session.userId} select database where id is ${db.id} failed", ex)
+                if (isJson(simple.config.getOrElse(""))) {
+                  val database = NsDatabase(0, simple.nsDatabase.toLowerCase, Some(simple.desc.getOrElse("")), simple.nsInstanceId, simple.permission, Some(simple.user.getOrElse("")), Some(simple.pwd.getOrElse("")), simple.partitions, Some(simple.config.getOrElse("")), active = true, currentSec, session.userId, currentSec, session.userId)
+                  onComplete(databaseDal.insert(database).mapTo[NsDatabase]) {
+                    case Success(db) =>
+                      riderLogger.info(s"user ${session.userId} insert database success.")
+                      onComplete(databaseDal.getDs(visible = false, Some(db.id)).mapTo[Seq[DatabaseInstance]]) {
+                        case Success(dsSeq) =>
+                          riderLogger.info(s"user ${session.userId} select database where id is ${db.id} success.")
+                          complete(OK, ResponseJson[DatabaseInstance](getHeader(200, session), dsSeq.head))
+                        case Failure(ex) =>
+                          riderLogger.error(s"user ${session.userId} select database where id is ${db.id} failed", ex)
+                          complete(UnavailableForLegalReasons, getHeader(451, ex.toString, session))
+                      }
+                    case Failure(ex) =>
+                      if (ex.toString.contains("Duplicate entry")) {
+                        riderLogger.error(s"user ${session.userId} insert database failed", ex)
+                        complete(Conflict, getHeader(409, s"${simple.permission} permission ${simple.nsInstanceId} instance ${simple.nsDatabase} database or topic already exists", session))
+                      }
+                      else {
+                        riderLogger.error(s"user ${session.userId} insert database failed", ex)
                         complete(UnavailableForLegalReasons, getHeader(451, ex.toString, session))
-                    }
-                  case Failure(ex) =>
-                    if (ex.toString.contains("Duplicate entry")) {
-                      riderLogger.error(s"user ${session.userId} inserted database $database failed", ex)
-                      complete(Conflict, getHeader(409, s"${simple.permission} permission ${simple.nsInstanceId} instance ${simple.nsDatabase} database or topic already exists", session))
-                    }
-                    else {
-                      riderLogger.error(s"user ${session.userId} inserted database $database failed", ex)
-                      complete(UnavailableForLegalReasons, getHeader(451, ex.toString, session))
-                    }
+                      }
+                  }
+                } else {
+                  riderLogger.error(s"user ${session.userId} insert database failed caused by config ${simple.config.get} is not json type")
+                  complete(BadRequest, getHeader(400, s"${simple.config.get} is not json type", session))
                 }
               }
           }
@@ -159,21 +164,26 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                 complete(Forbidden, getHeader(403, session))
               }
               else {
-                val db = NsDatabase(database.id, database.nsDatabase, Some(database.desc.getOrElse("")), database.nsInstanceId, database.permission, Some(database.user.getOrElse("")), Some(database.pwd.getOrElse("")), database.partitions, Some(database.config.getOrElse("")), database.active, database.createTime, database.createBy, currentSec, session.userId)
-                onComplete(databaseDal.update(db)) {
-                  case Success(result) =>
-                    riderLogger.info(s"user ${session.userId} updated database $db success.")
-                    onComplete(databaseDal.getDs(visible = false, Some(db.id)).mapTo[Seq[DatabaseInstance]]) {
-                      case Success(dsSeq) =>
-                        riderLogger.info(s"user ${session.userId} select database where id is ${db.id} success.")
-                        complete(OK, ResponseJson[DatabaseInstance](getHeader(200, session), dsSeq.head))
-                      case Failure(ex) =>
-                        riderLogger.error(s"user ${session.userId} select database where id is ${db.id} failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
-                    }
-                  case Failure(ex) =>
-                    riderLogger.error(s"user ${session.userId} updated database $db failed", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                if (isJson(database.config.getOrElse(""))) {
+                  val db = NsDatabase(database.id, database.nsDatabase, Some(database.desc.getOrElse("")), database.nsInstanceId, database.permission, Some(database.user.getOrElse("")), Some(database.pwd.getOrElse("")), database.partitions, Some(database.config.getOrElse("")), database.active, database.createTime, database.createBy, currentSec, session.userId)
+                  onComplete(databaseDal.update(db)) {
+                    case Success(result) =>
+                      riderLogger.info(s"user ${session.userId} update database success.")
+                      onComplete(databaseDal.getDs(visible = false, Some(db.id)).mapTo[Seq[DatabaseInstance]]) {
+                        case Success(dsSeq) =>
+                          riderLogger.info(s"user ${session.userId} select database where id is ${db.id} success.")
+                          complete(OK, ResponseJson[DatabaseInstance](getHeader(200, session), dsSeq.head))
+                        case Failure(ex) =>
+                          riderLogger.error(s"user ${session.userId} select database where id is ${db.id} failed", ex)
+                          complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                      }
+                    case Failure(ex) =>
+                      riderLogger.error(s"user ${session.userId} update database failed", ex)
+                      complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                  }
+                } else{
+                  riderLogger.error(s"user ${session.userId} update database failed caused by config ${database.config.get} is not json type")
+                  complete(BadRequest, getHeader(400, s"${database.config.get} is not json type", session))
                 }
               }
           }

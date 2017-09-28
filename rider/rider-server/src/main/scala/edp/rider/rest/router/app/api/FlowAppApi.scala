@@ -48,7 +48,7 @@ class FlowAppApi(flowDal: FlowDal, streamDal: StreamDal, projectDal: ProjectDal)
               session =>
                 if (session.roleType != "app") {
                   riderLogger.warn(s"${session.userId} has no permission to access it.")
-                  complete(Forbidden, getHeader(403, null))
+                  complete(OK, getHeader(403, null))
                 } else {
                   try {
                     prepare(None, Some(appFlow), session, projectId, Some(streamId)) match {
@@ -63,21 +63,20 @@ class FlowAppApi(flowDal: FlowDal, streamDal: StreamDal, projectDal: ProjectDal)
                           } else {
                             riderLogger.error(s"user ${session.userId} send flow ${flow.id} start directive failed")
                             flowDal.updateFlowStatus(flow.id, "failed")
-                            complete(UnavailableForLegalReasons, getHeader(451, null))
+                            complete(OK, getHeader(451, null))
                           }
                         } catch {
                           case ex: Exception =>
                             riderLogger.error(s"user ${session.userId} start flow ${flow.id} failed", ex)
                             flowDal.updateFlowStatus(flow.id, "failed")
-                            complete(UnavailableForLegalReasons, getHeader(451, null))
+                            complete(OK, getHeader(451, null))
                         }
-                      case Left(response) =>
-                        complete(Forbidden, response)
+                      case Left(response) => complete(OK, response)
                     }
                   } catch {
                     case ex: Exception =>
                       riderLogger.error(s"user ${session.userId} start flow $appFlow failed", ex)
-                      complete(UnavailableForLegalReasons, getHeader(451, null))
+                      complete(OK, getHeader(451, null))
                   }
                 }
 

@@ -116,7 +116,7 @@ object JobUtils extends RiderLogger {
   }
 
   def startJob(job: Job) = {
-    runShellCommand(generateStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name,
+    val command = generateStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name,
       StartConfig(RiderConfig.spark.driverCores,
         RiderConfig.spark.driverMemory,
         RiderConfig.spark.executorNum,
@@ -124,7 +124,9 @@ object JobUtils extends RiderLogger {
         RiderConfig.spark.executorCores),
       Seq(RiderConfig.spark.driverExtraConf, RiderConfig.spark.executorExtraConf).mkString(",").concat(RiderConfig.spark.sparkConfig),
       "job"
-    ))
+    )
+    riderLogger.info(s"start job command: $command")
+    runShellCommand(command)
   }
 
   def genJobName(projectId: Long, sourceNs: String, sinkNs: String) = {
@@ -147,7 +149,9 @@ object JobUtils extends RiderLogger {
       val job = refreshJob(id)
       try {
         if (job.status != "failed" && job.status != "stopped" && job.status != "done") {
-          runShellCommand(s"yarn application -kill ${job.sparkAppid.get}")
+          val command = s"yarn application -kill ${job.sparkAppid.get}"
+          riderLogger.info(s"stop job command: $command")
+          runShellCommand(command)
           modules.jobDal.updateJobStatus(job.id, "stopping")
           "stopping"
         } else job.status

@@ -92,7 +92,7 @@ object JsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val formatSimpleJob: RootJsonFormat[AppJob] = jsonFormat15(AppJob)
   implicit val formatJobHealth: RootJsonFormat[JobHealth] = jsonFormat2(JobHealth)
   implicit val formatFlowHealth: RootJsonFormat[FlowHealth] = jsonFormat6(FlowHealth)
-  implicit val formatTopicOffset: RootJsonFormat[TopicOffset] = jsonFormat3(TopicOffset)
+  implicit val formatTopicOffset: RootJsonFormat[TopicOffset] = jsonFormat2(TopicOffset)
   implicit val formatStreamHealth: RootJsonFormat[StreamHealth] = jsonFormat6(StreamHealth)
   implicit val formatAppFlow: RootJsonFormat[AppFlow] = jsonFormat11(AppFlow)
   implicit val formatAppFlowResponse: RootJsonFormat[AppFlowResponse] = jsonFormat2(AppFlowResponse)

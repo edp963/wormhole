@@ -129,27 +129,27 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
                 val projectEntity = Project(0, simple.name, Some(simple.desc.getOrElse("")), simple.pic, simple.resCores, simple.resMemoryG, active = true, currentSec, session.userId, currentSec, session.userId)
                 onComplete(projectDal.insert(projectEntity).mapTo[Project]) {
                   case Success(project) =>
-                    riderLogger.info(s"user ${session.userId} inserted project $project success.")
+                    riderLogger.info(s"user ${session.userId} insert project success.")
                     val relNsEntity = simple.nsId.split(",").map(nsId => RelProjectNs(0, project.id, nsId.toLong, active = true, currentSec, session.userId, currentSec, session.userId)).toSeq
                     val relUserEntity = simple.userId.split(",").map(userId => RelProjectUser(0, project.id, userId.toLong, active = true, currentSec, session.userId, currentSec, session.userId)).toSeq
                     onComplete(relProjectNsDal.insert(relNsEntity).mapTo[Seq[RelProjectNs]]) {
                       case Success(relProjectNss) =>
-                        riderLogger.info(s"user ${session.userId} inserted relProjectNs $relProjectNss success.")
+                        riderLogger.info(s"user ${session.userId} insert relProjectNs success.")
                         onComplete(relProjectUserDal.insert(relUserEntity).mapTo[Seq[RelProjectUser]]) {
                           case Success(relProjectUsers) =>
-                            riderLogger.info(s"user ${session.userId} inserted relProjectUser $relProjectUsers success.")
+                            riderLogger.info(s"user ${session.userId} insert relProjectUser success.")
                             Dashboard.createDashboard(project.id, simple.name)
                             complete(OK, ResponseJson[Project](getHeader(200, session), project))
                           case Failure(ex) =>
-                            riderLogger.error(s"user ${session.userId} inserted relProjectUser $relUserEntity failed", ex)
+                            riderLogger.error(s"user ${session.userId} insert relProjectUser failed", ex)
                             complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                         }
                       case Failure(ex) =>
-                        riderLogger.error(s"user ${session.userId} inserted relProjectNs $relNsEntity failed", ex)
+                        riderLogger.error(s"user ${session.userId} insert relProjectNs failed", ex)
                         complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                     }
                   case Failure(ex) =>
-                    riderLogger.error(s"user ${session.userId} inserted project $projectEntity failed", ex)
+                    riderLogger.error(s"user ${session.userId} insert project failed", ex)
                     if (ex.toString.contains("Duplicate entry"))
                       complete(Conflict, getHeader(409, s"${simple.name} project already exists", session))
                     else
@@ -177,7 +177,7 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
                 val projectEntity = Project(entity.id, entity.name, Some(entity.desc.getOrElse("")), entity.pic, entity.resCores, entity.resMemoryG, entity.active, entity.createTime, entity.createBy, currentSec, session.userId)
                 onComplete(projectDal.update(projectEntity).mapTo[Int]) {
                   case Success(_) =>
-                    riderLogger.info(s"user ${session.userId} updated project $projectEntity success.")
+                    riderLogger.info(s"user ${session.userId} updated project success.")
                     val relNsEntity = entity.nsId.split(",").map(nsId => RelProjectNs(0, entity.id, nsId.toLong, active = true, currentSec, session.userId, currentSec, session.userId)).toSeq
                     val relUserEntity = entity.userId.split(",").map(userId => RelProjectUser(0, entity.id, userId.toLong, active = true, currentSec, session.userId, currentSec, session.userId)).toSeq
                     onComplete(relProjectNsDal.findByFilter(_.projectId === entity.id).mapTo[Seq[RelProjectNs]]) {
@@ -189,10 +189,10 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
                         val insertNsSeq = relNsEntity.filter(relNs => !existRelNsIds.contains(relNs.nsId))
                         onComplete(relProjectNsDal.deleteByFilter(relNs => relNs.projectId === entity.id && relNs.nsId.inSet(deleteNsIds)).mapTo[Int]) {
                           case Success(_) =>
-                            riderLogger.info(s"user ${session.userId} deleted relProjectNs where project id is ${entity.id} and nsId in $deleteNsIds success")
+                            riderLogger.info(s"user ${session.userId} delete relProjectNs where project id is ${entity.id} and nsId in $deleteNsIds success")
                             onComplete(relProjectNsDal.insert(insertNsSeq).mapTo[Seq[RelProjectNs]]) {
                               case Success(_) =>
-                                riderLogger.info(s"user ${session.userId} inserted relProjectNs $relNsEntity success.")
+                                riderLogger.info(s"user ${session.userId} insert relProjectNs success.")
                                 onComplete(relProjectUserDal.findByFilter(_.projectId === entity.id).mapTo[Seq[RelProjectUser]]) {
                                   case Success(existRelUserSeq) =>
                                     val existRelUserIds = existRelUserSeq.map(_.userId)
@@ -201,17 +201,17 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
                                     val insertUserSeq = relUserEntity.filter(relUser => !existRelUserIds.contains(relUser.userId))
                                     onComplete(relProjectUserDal.deleteByFilter(relUser => relUser.projectId === entity.id && relUser.userId.inSet(deleteUserIds)).mapTo[Int]) {
                                       case Success(_) =>
-                                        riderLogger.info(s"user ${session.userId} deleted relProjectUser where project id is ${entity.id} and userId in $deleteUserIds success.")
+                                        riderLogger.info(s"user ${session.userId} delete relProjectUser where project id is ${entity.id} and userId in $deleteUserIds success.")
                                         onComplete(relProjectUserDal.insert(insertUserSeq).mapTo[Seq[RelProjectUser]]) {
                                           case Success(_) =>
-                                            riderLogger.info(s"user ${session.userId} inserted relProjectUser $relUserEntity success.")
+                                            riderLogger.info(s"user ${session.userId} insert relProjectUser success.")
                                             complete(OK, ResponseJson[Project](getHeader(200, session), projectEntity))
                                           case Failure(ex) =>
-                                            riderLogger.error(s"user ${session.userId} inserted relProjectUser $relUserEntity failed", ex)
+                                            riderLogger.error(s"user ${session.userId} insert relProjectUser failed", ex)
                                             complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                                         }
                                       case Failure(ex) =>
-                                        riderLogger.error(s"user ${session.userId} deleted relProjectUser where project id is ${entity.id} and userId in $deleteUserIds failed", ex)
+                                        riderLogger.error(s"user ${session.userId} delete relProjectUser where project id is ${entity.id} and userId in $deleteUserIds failed", ex)
                                         complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                                     }
                                   case Failure(ex) =>
@@ -219,11 +219,11 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
                                     complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                                 }
                               case Failure(ex) =>
-                                riderLogger.error(s"user ${session.userId} inserted relProjectNs $relNsEntity failed", ex)
+                                riderLogger.error(s"user ${session.userId} insert relProjectNs failed", ex)
                                 complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                             }
                           case Failure(ex) =>
-                            riderLogger.error(s"user ${session.userId} deleted relProjectNs where project id is ${entity.id} and nsId in $deleteNsIds failed", ex)
+                            riderLogger.error(s"user ${session.userId} delete relProjectNs where project id is ${entity.id} and nsId in $deleteNsIds failed", ex)
                             complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                         }
                       case Failure(ex) =>
@@ -231,7 +231,7 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
                         complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                     }
                   case Failure(ex) =>
-                    riderLogger.error(s"user ${session.userId} updated project $projectEntity failed", ex)
+                    riderLogger.error(s"user ${session.userId} update project failed", ex)
                     complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                 }
               }
