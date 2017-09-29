@@ -28,6 +28,7 @@ import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
 import Icon from 'antd/lib/icon'
 import Tooltip from 'antd/lib/tooltip'
+import Popover from 'antd/lib/popover'
 import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import Form from 'antd/lib/form'
@@ -370,37 +371,6 @@ export class User extends React.PureComponent {
           filterDropdownVisibleId: visible
         }, () => this.searchInput.focus())
       }, {
-        title: 'Project',
-        dataIndex: 'projectNames',
-        key: 'projectNames',
-        className: `${userClassHide}`,
-        sorter: (a, b) => {
-          if (typeof a.projectNames === 'object') {
-            return a.projectNamesOrigin < b.projectNamesOrigin ? -1 : 1
-          } else {
-            return a.projectNames < b.projectNames ? -1 : 1
-          }
-        },
-        sortOrder: sortedInfo.columnKey === 'projectNames' && sortedInfo.order,
-        filterDropdown: (
-          <div className="custom-filter-dropdown">
-            <Input
-              ref={ele => { this.searchInput = ele }}
-              placeholder="Project Name"
-              value={this.state.searchTextUserProject}
-              onChange={this.onInputChange('searchTextUserProject')}
-              onPressEnter={this.onSearch('projectNames', 'searchTextUserProject', 'filterDropdownVisibleUserProject')}
-            />
-            <Button
-              type="primary"
-              onClick={this.onSearch('projectNames', 'searchTextUserProject', 'filterDropdownVisibleUserProject')}>Search</Button>
-          </div>
-        ),
-        filterDropdownVisible: this.state.filterDropdownVisibleUserProject,
-        onFilterDropdownVisibleChange: visible => this.setState({
-          filterDropdownVisibleUserProject: visible
-        }, () => this.searchInput.focus())
-      }, {
         title: 'Name',
         dataIndex: 'name',
         key: 'name',
@@ -540,6 +510,15 @@ export class User extends React.PureComponent {
         className: `text-align-center ${userClassHide}`,
         render: (text, record) => (
           <span className="ant-table-action-column">
+            <Popover
+              placement="left"
+              content={<div className="project-name-detail">
+                <p><strong>   Project Names：</strong>{record.projectNames}</p>
+              </div>}
+              title={<h3>详情</h3>}
+              trigger="click">
+              <Button icon="file-text" shape="circle" type="ghost"></Button>
+            </Popover>
             <Tooltip title="修改用户信息">
               <Button icon="user" shape="circle" type="ghost" onClick={this.showDetail(record)} />
             </Tooltip>

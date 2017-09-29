@@ -29,6 +29,7 @@ import Icon from 'antd/lib/icon'
 import Input from 'antd/lib/input'
 import Button from 'antd/lib/button'
 import Tooltip from 'antd/lib/tooltip'
+import Popover from 'antd/lib/popover'
 import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import DatePicker from 'antd/lib/date-picker'
@@ -55,8 +56,6 @@ export class Namespace extends React.PureComponent {
       filteredInfo: null,
       sortedInfo: null,
 
-      searchTextNsProject: '',
-      filterDropdownVisibleNsProject: false,
       searchNsInstance: '',
       filterDropdownVisibleNsInstance: false,
       searchNsDatabase: '',
@@ -549,41 +548,11 @@ export class Namespace extends React.PureComponent {
     const { refreshNsLoading, refreshNsText } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
-    let { namespaceClassHide } = this.props
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
 
     const columns = [
       {
-        title: 'Project',
-        dataIndex: 'projectName',
-        key: 'projectName',
-        className: `${namespaceClassHide}`,
-        sorter: (a, b) => {
-          if (typeof a.projectName === 'object') {
-            return a.projectNameOrigin < b.projectNameOrigin ? -1 : 1
-          } else {
-            return a.projectName < b.projectName ? -1 : 1
-          }
-        },
-        sortOrder: sortedInfo.columnKey === 'projectName' && sortedInfo.order,
-        filterDropdown: (
-          <div className="custom-filter-dropdown">
-            <Input
-              ref={ele => { this.searchInput = ele }}
-              placeholder="Project Name"
-              value={this.state.searchTextNsProject}
-              onChange={this.onInputChange('searchTextNsProject')}
-              onPressEnter={this.onSearch('projectName', 'searchTextNsProject', 'filterDropdownVisibleNsProject')}
-            />
-            <Button type="primary" onClick={this.onSearch('projectName', 'searchTextNsProject', 'filterDropdownVisibleNsProject')}>Search</Button>
-          </div>
-        ),
-        filterDropdownVisible: this.state.filterDropdownVisibleNsProject,
-        onFilterDropdownVisibleChange: visible => this.setState({
-          filterDropdownVisibleNsProject: visible
-        }, () => this.searchInput.focus())
-      }, {
         title: 'Data System',
         dataIndex: 'nsSys',
         key: 'nsSys',
@@ -828,9 +797,22 @@ export class Namespace extends React.PureComponent {
         key: 'action',
         className: `text-align-center ${this.props.namespaceClassHide}`,
         render: (text, record) => (
-          <Tooltip title="修改">
-            <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditNamespace(record)}></Button>
-          </Tooltip>
+          <span className="ant-table-action-column">
+            <Tooltip title="查看详情">
+              <Popover
+                placement="left"
+                content={<div className="project-name-detail">
+                  <p><strong>   Project Names：</strong>{record.projectName}</p>
+                </div>}
+                title={<h3>详情</h3>}
+                trigger="click">
+                <Button icon="file-text" shape="circle" type="ghost"></Button>
+              </Popover>
+            </Tooltip>
+            <Tooltip title="修改">
+              <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditNamespace(record)}></Button>
+            </Tooltip>
+          </span>
         )
       }]
 
