@@ -75,7 +75,7 @@ object UmsDataSystem extends Enumeration {
   val POSTGRESQL = Value("postgresql")
   val H2 = Value("h2")
   val HBASE = Value("hbase")
-  val ES = Value("elasticsearch")
+  val ES = Value("es")
   val HDFS = Value("hdfs")
   //val SWIFTS = Value("swifts")
   val MONGODB = Value("mongodb")
