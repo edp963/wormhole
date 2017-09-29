@@ -169,7 +169,9 @@ case class StreamKafkaTopic(id: Long,
 
 case class StreamCacheMap(streamId: Long, streamName: String, projectId: Long)
 
-case class TopicOffset(topicName: String, partition: Int, offset: Long)
+case class TopicOffset(topicName: String, partitionOffsets: String)
+
+case class StreamTopicOffset(streamId: Long, topicName: String, partitionOffsets: String)
 
 case class StreamHealth(streamStatus: String,
                         sparkApplicationId: String,

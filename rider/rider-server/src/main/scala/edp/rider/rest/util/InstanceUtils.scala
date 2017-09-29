@@ -20,6 +20,7 @@
 
 
 package edp.rider.rest.util
+
 import scala.util.hashing.MurmurHash3._
 
 object InstanceUtils {
@@ -28,15 +29,19 @@ object InstanceUtils {
 
   val tcp_url_host_pattern = "(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])\\:\\d+(,(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])\\:\\d+)*$".r.pattern
 
-
   val http_url_ip_pattern = "http(s)?://(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\:\\d+)?$".r.pattern
 
   val http_host_ip_pattern = "http(s)?://(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])(\\:\\d+)?$".r.pattern
 
+  val zk_node_ip_pattern = "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\:\\d+(\\/(.)+)*(,(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\:\\d+(\\/(.)+)*)*$".r.pattern
+
+  val zk_node_host_pattern = "(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])\\:\\d+(\\/(.)+)*(,(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])\\:\\d+(\\/(.)+)*)*$".r.pattern
+
   def checkFormat(nsSys: String, url: String): Boolean = {
     nsSys.toLowerCase match {
-      case "mysql" | "oracle" | "kafka" | "hbase" => tcp_url_ip_pattern.matcher(url).matches() || tcp_url_host_pattern.matcher(url).matches()
+      case "mysql" | "oracle" | "kafka" => tcp_url_ip_pattern.matcher(url).matches() || tcp_url_host_pattern.matcher(url).matches()
       case "es" => http_url_ip_pattern.matcher(url).matches() || http_host_ip_pattern.matcher(url).matches()
+      case "hbase" => zk_node_ip_pattern.matcher(url).matches() || zk_node_host_pattern.matcher(url).matches()
       case _ => tcp_url_ip_pattern.matcher(url).matches() || tcp_url_host_pattern.matcher(url).matches()
     }
   }
@@ -50,5 +55,5 @@ object InstanceUtils {
     }
   }
 
-  def generateNsInstance(connUrl: String) : String = stringHash(connUrl).toString
+  def generateNsInstance(connUrl: String): String = stringHash(connUrl).toString
 }

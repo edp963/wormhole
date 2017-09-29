@@ -39,8 +39,8 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
 
   def getByFilterRoute(route: String): Route = path(route) {
     get {
-      parameter('visible.as[Boolean].?, 'type.as[String].?, 'conn_url.as[String].?) {
-        (visible, nsSys, conn_url) =>
+      parameter('visible.as[Boolean].?, 'type.as[String].?, 'conn_url.as[String].?, 'nsInstance.as[String].?) {
+        (visible, nsSys, conn_url, nsInstance) =>
           authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
             session =>
               if (session.roleType != "admin") {
@@ -48,8 +48,8 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
                 complete(Forbidden, getHeader(403, session))
               }
               else {
-                (visible, nsSys, conn_url) match {
-                  case (None, Some(sys), None) =>
+                (visible, nsSys, conn_url, nsInstance) match {
+                  case (None, Some(sys), None, None) =>
                     onComplete(instanceDal.findByFilter(instance => instance.nsSys === sys.toLowerCase && instance.active === true).mapTo[Seq[Instance]]) {
                       case Success(instances) =>
                         riderLogger.info(s"user ${session.userId} select $route success where nsSys is $sys.")
@@ -58,9 +58,9 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
                         riderLogger.error(s"user ${session.userId} select $route failed where nsSys is $sys", ex)
                         complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                     }
-                  case (None, Some(sys), Some(url)) =>
+                  case (None, Some(sys), Some(url), None) =>
                     val nsInstance = generateNsInstance(url)
-                    onComplete(instanceDal.findByFilter(_.nsInstance === nsInstance).mapTo[Seq[Instance]]) {
+                    onComplete(instanceDal.findByFilter(_.connUrl === conn_url).mapTo[Seq[Instance]]) {
                       case Success(instances) =>
                         if (instances.isEmpty) {
                           if (checkFormat(sys, url)) {
@@ -80,7 +80,23 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
                         riderLogger.error(s"user ${session.userId} check instance url $url does exist failed", ex)
                         complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                     }
-                  case (_, None, None) =>
+                  case (None, Some(sys), None, Some(nsInstanceInput)) =>
+                    //                    val nsInstance = generateNsInstance(url)
+                    onComplete(instanceDal.findByFilter(instance => instance.nsInstance === nsInstanceInput && instance.nsSys === sys).mapTo[Seq[Instance]]) {
+                      case Success(instances) =>
+                        if (instances.isEmpty) {
+                          riderLogger.info(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput doesn't exist")
+                          complete(OK, ResponseJson[String](getHeader(200, session), nsInstanceInput))
+                        }
+                        else {
+                          riderLogger.info(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput already exists.")
+                          complete(Conflict, getHeader(409, s"$nsInstanceInput instance already exists", session))
+                        }
+                      case Failure(ex) =>
+                        riderLogger.error(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput does exist failed", ex)
+                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    }
+                  case (_, None, None, None) =>
                     val future = if (visible.getOrElse(true)) instanceDal.findByFilter(_.active === true) else instanceDal.findAll
                     onComplete(future.mapTo[Seq[Instance]]) {
                       case Success(instances) =>
@@ -90,7 +106,7 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
                         riderLogger.info(s"user ${session.userId} select all $route where active is ${visible.getOrElse(true)} failed", ex)
                         complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                     }
-                  case (_, _, _) =>
+                  case (_, _, _, _) =>
                     riderLogger.error(s"user ${session.userId} request url is not supported.")
                     complete(NotImplemented, getHeader(501, session))
                 }
@@ -120,18 +136,56 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
                       complete(OK, ResponseJson[Instance](getHeader(200, session), row))
                     case Failure(ex) =>
                       if (ex.toString.contains("Duplicate entry")) {
-                        riderLogger.error(s"user ${session.userId} inserted instance $instance failed", ex)
+                        riderLogger.error(s"user ${session.userId} insert nstance failed", ex)
                         complete(Conflict, getHeader(409, s"${simple.nsSys} system ${simple.connUrl} instance already exists", session))
                       }
                       else {
-                        riderLogger.error(s"user ${session.userId} inserted instance $instance failed", ex)
+                        riderLogger.error(s"user ${session.userId} insert instance failed", ex)
                         complete(UnavailableForLegalReasons, getHeader(451, ex.toString, session))
                       }
                   }
                 }
                 else {
-                  riderLogger.error(s"user ${session.userId} inserted new instance failed, ${simple.connUrl} format is wrong.")
+                  riderLogger.error(s"user ${session.userId} insert instance failed, ${simple.connUrl} format is wrong.")
                   complete(BadRequest, getHeader(400, getTip(simple.nsSys, simple.connUrl), session))
+                }
+              }
+          }
+      }
+    }
+  }
+
+  def putRoute(route: String): Route = path(route) {
+    put {
+      entity(as[Instance]) {
+        instance =>
+          authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+            session =>
+              if (session.roleType != "admin") {
+                riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+                complete(Forbidden, getHeader(403, session))
+              }
+              else {
+                if (checkFormat(instance.nsSys, instance.connUrl)) {
+                  val instanceUpdate = Instance(instance.id, instance.nsInstance, instance.desc, instance.nsSys, instance.connUrl, instance.active, instance.createTime, instance.createBy, currentSec, session.userId)
+                  onComplete(instanceDal.update(instanceUpdate).mapTo[Int]) {
+                    case Success(_) =>
+                      riderLogger.info(s"user ${session.userId} update instance success.")
+                      complete(OK, ResponseJson[Instance](getHeader(200, session), instanceUpdate))
+                    case Failure(ex) =>
+                      if (ex.toString.contains("Duplicate entry")) {
+                        riderLogger.error(s"user ${session.userId} update instance failed", ex)
+                        complete(Conflict, getHeader(409, s"${instance.nsSys} system ${instance.connUrl} instance already exists", session))
+                      }
+                      else {
+                        riderLogger.error(s"user ${session.userId} update instance failed", ex)
+                        complete(UnavailableForLegalReasons, getHeader(451, ex.toString, session))
+                      }
+                  }
+                }
+                else {
+                  riderLogger.error(s"user ${session.userId} updated instance failed, ${instance.connUrl} format is wrong.")
+                  complete(BadRequest, getHeader(400, getTip(instance.nsSys, instance.connUrl), session))
                 }
               }
           }

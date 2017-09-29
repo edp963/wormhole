@@ -21,12 +21,14 @@
 
 package edp.rider.rest.util
 
+import com.alibaba.fastjson.JSON
+import edp.rider.common.RiderLogger
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.common.util.DtFormat
 
 import scala.concurrent.duration._
 
-object CommonUtils {
+object CommonUtils extends RiderLogger {
 
   def currentSec = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_SEC)
 
@@ -39,4 +41,32 @@ object CommonUtils {
   def maxTimeOut = 600.seconds
 
   def streamSubmitTimeout = 120.seconds
+
+  def isJson(str: String): Boolean = {
+    try {
+      if (str == "" || str == null)
+        true
+      else {
+        JSON.parseObject(str)
+        true
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"$str is not json type", ex)
+        false
+    }
+  }
+
+  def isKeyEqualValue(str: String): Boolean = {
+    if (str == "" || str == null)
+      return true
+    val seq = str.split(",")
+    val keyEqualValuePattern = "(.)+=(.)+".r.pattern
+    seq.foreach(
+      str =>
+        if (!keyEqualValuePattern.matcher(str).matches())
+          return false
+    )
+    true
+  }
 }

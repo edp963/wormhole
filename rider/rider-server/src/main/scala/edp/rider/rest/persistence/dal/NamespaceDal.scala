@@ -55,17 +55,19 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
       val simpleDbusSeq = new ArrayBuffer[SimpleDbus]
       dbusServices.map {
         service => {
-          val response = Await.result(Http().singleRequest(HttpRequest(uri = service)), minTimeOut)
-          response match {
-            case HttpResponse(StatusCodes.OK, headers, entity, _) =>
-              Await.result(entity.dataBytes.runFold(ByteString(""))(_ ++ _).map {
-                riderLogger.info(s"synchronize dbus namespaces $service success.")
-                body => simpleDbusSeq ++= json2caseClass[Seq[SimpleDbus]](body.utf8String)
-              }, 5.second)
-            case resp@HttpResponse(code, _, _, _) =>
-              riderLogger.error(s"synchronize dbus namespaces $service failed, ${code.reason}.")
-              "parse failed"
-          }
+          if (service != null && service != "") {
+            val response = Await.result(Http().singleRequest(HttpRequest(uri = service)), minTimeOut)
+            response match {
+              case HttpResponse(StatusCodes.OK, headers, entity, _) =>
+                Await.result(entity.dataBytes.runFold(ByteString(""))(_ ++ _).map {
+                  riderLogger.info(s"synchronize dbus namespaces $service success.")
+                  body => simpleDbusSeq ++= json2caseClass[Seq[SimpleDbus]](body.utf8String)
+                }, 5.second)
+              case resp@HttpResponse(code, _, _, _) =>
+                riderLogger.error(s"synchronize dbus namespaces $service failed, ${code.reason}.")
+                "parse failed"
+            }
+          } else riderLogger.debug(s"dbus namespace service is not config")
         }
       }
       simpleDbusSeq
@@ -145,7 +147,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
   def generateNamespaceSeqByDbus(dbusSeq: Seq[Dbus], session: SessionClass): Seq[Namespace] = {
     dbusSeq.map(dbus => {
-      val nsSplit = dbus.namespace.split("\\.")
+      val nsSplit: Array[String] = dbus.namespace.split("\\.")
       Namespace(0, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
         READONLY.toString, Some(""), dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
     })

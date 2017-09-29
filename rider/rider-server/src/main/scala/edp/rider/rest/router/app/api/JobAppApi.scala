@@ -47,13 +47,12 @@ class JobAppApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseAppApiImpl(j
               session =>
                 if (session.roleType != "app") {
                   riderLogger.warn(s"${session.userId} has no permission to access it.")
-                  complete(Forbidden, getHeader(403, null))
+                  complete(OK, getHeader(403, null))
                 } else {
                   try {
                     prepare(Some(appJob), None, session, projectId) match {
                       case Right(tuple) =>
                         val job = tuple._1.get
-                        riderLogger.info(s"job start: $job")
                         try {
                           startJob(job)
                           riderLogger.info(s"user ${session.userId} start job ${job.id} success.")
@@ -62,15 +61,14 @@ class JobAppApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseAppApiImpl(j
                           case ex: Exception =>
                             riderLogger.error(s"user ${session.userId} start job ${job.id} failed", ex)
                             jobDal.updateJobStatus(job.id, AppInfo(null, "failed", job.startedTime.get, currentSec))
-                            complete(UnavailableForLegalReasons, getHeader(451, null))
+                            complete(OK, getHeader(451, null))
                         }
-                      case Left(response) =>
-                        complete(Forbidden, response)
+                      case Left(response) => complete(OK, response)
                     }
                   } catch {
                     case ex: Exception =>
                       riderLogger.error(s"user ${session.userId} start job $appJob failed", ex)
-                      complete(UnavailableForLegalReasons, getHeader(451, null))
+                      complete(OK, getHeader(451, null))
                   }
                 }
             }

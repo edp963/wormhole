@@ -35,7 +35,7 @@ import edp.rider.rest.util.ResponseUtils._
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.service.util.CacheMap
 import edp.rider.spark.SparkJobClientLog
-import edp.rider.spark.SubmitSparkJob.{generateStreamStartSh, getConfig, runShellCommand}
+import edp.rider.spark.SubmitSparkJob.{generateStreamStartSh, getConfig, riderLogger, runShellCommand}
 import edp.wormhole.common.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 
@@ -142,14 +142,14 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal) extends BaseUserApiI
         val seqStreams = allStreams.map(stream => stream._1)
         val realReturns = allStreams.map(stream => stream._2)
         val realRes: Seq[StreamSeqTopicActions] = realReturns.map(returnStream => streamDal.getReturnRes(returnStream))
-        riderLogger.info(s"user ${session.userId} updated streams after refresh the yarn/spark rest api or log success.")
+        riderLogger.info(s"user ${session.userId} update streams after refresh the yarn/spark rest api or log success.")
         //        complete(OK, ResponseSeqJson[StreamSeqTopicActions](getHeader(200, session), realRes))
         onComplete(streamDal.updateStreamsTable(seqStreams)) {
           case Success(success) =>
-            riderLogger.info(s"user ${session.userId} updated streams after refresh the yarn/spark rest api or log success.")
+            riderLogger.info(s"user ${session.userId} update streams after refresh the yarn/spark rest api or log success.")
             complete(OK, ResponseSeqJson[StreamSeqTopicActions](getHeader(200, session), realRes.sortBy(_.stream.id)))
           case Failure(ex) =>
-            riderLogger.error(s"user ${session.userId} updated streams after refresh the yarn/spark rest api or log failed", ex)
+            riderLogger.error(s"user ${session.userId} update streams after refresh the yarn/spark rest api or log failed", ex)
             complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
         }
       case Failure(ex) =>
@@ -172,89 +172,95 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal) extends BaseUserApiI
                 }
                 else {
                   if (session.projectIdList.contains(id)) {
-                    val startTime = if (streamTopic.startedTime.getOrElse("") == "") null else streamTopic.startedTime
-                    val stopTime = if (streamTopic.stoppedTime.getOrElse("") == "") null else streamTopic.stoppedTime
-                    val stream = Stream(streamTopic.id, streamTopic.name, streamTopic.desc, streamTopic.projectId, streamTopic.instanceId, streamTopic.streamType, streamTopic.sparkConfig, streamTopic.startConfig, streamTopic.launchConfig, streamTopic.sparkAppid, streamTopic.logPath, streamTopic.status, startTime, stopTime, streamTopic.active, streamTopic.createTime, streamTopic.createBy, currentSec, session.userId)
-                    val streamId = streamTopic.id
-                    onComplete(streamDal.getStreamById(streamId).mapTo[Option[StreamWithBrokers]]) {
-                      case Success(opStreamWithBrokers) =>
-                        riderLogger.info(s"user ${session.userId} select stream where id is $streamId success.")
-                        opStreamWithBrokers match {
-                          case Some(streamWithBrokers) =>
-                            val brokers = streamWithBrokers.brokers
-                            onComplete(streamDal.updateStreamTable(stream).mapTo[Int]) {
-                              case Success(result) =>
-                                riderLogger.info(s"user ${session.userId} updated stream $stream success.")
-                                onComplete(streamDal.getTopicByInstanceId(streamTopic.instanceId).mapTo[Seq[TopicSimple]]) {
-                                  case Success(simpleTopics) =>
-                                    riderLogger.info(s"user ${session.userId} select streamInTopics where instance id is ${streamTopic.instanceId} success.")
-                                    val topicsInInstance = simpleTopics.map(topic => (topic.id, topic.name)).toMap
-                                    onComplete(streamDal.getStreamInTopicByStreamId(streamId).mapTo[Seq[StreamInTopicName]]) {
-                                      case Success(streamInTopics) =>
-                                        riderLogger.info(s"user ${session.userId} select streamInTopics where stream id is $streamId success.")
-                                        val topicsInTable: Map[Long, String] = streamInTopics.map(topic => (topic.nsDatabaseId, topic.nsDatabase)).toMap
-                                        var deleteTopics = ArrayBuffer[Long]()
-                                        var insertTopics = ArrayBuffer[(Long, String)]()
-                                        if (streamTopic.topic.length == 0) {
-                                          topicsInTable.keySet.foreach(topic => deleteTopics += topic)
-                                        }
-                                        else {
-                                          val inputTopics = streamTopic.topic.split(",").map(topic => topic.toLong)
-                                          inputTopics.foreach(topic =>
-                                            if (!topicsInTable.contains(topic)) {
-                                              insertTopics += (topic -> topicsInInstance(topic))
-                                            }
-                                          )
-                                          topicsInTable.keySet.foreach(topic =>
-                                            if (!inputTopics.contains(topic)) deleteTopics += topic
-                                          )
-                                        }
-                                        onComplete(streamDal.deleteStreamInTopicByStreamId(deleteTopics).mapTo[Int]) {
-                                          case Success(num) =>
-                                            riderLogger.info(s"user ${session.userId} deleted streamInTopics $deleteTopics where stream id is $streamId success.")
-                                            if (streamTopic.topic.length != 0) {
-                                              val listInsertTopic = insertTopics.map(topic => {
-                                                val topicOffset = getKafkaLatestOffset(brokers, topic._2)
-                                                StreamInTopic(0, stream.id, stream.instanceId, topic._1, topicOffset, 100, active = true, currentSec, session.userId, currentSec, session.userId)
-                                              })
-                                              onComplete(streamDal.insertIntoStreamInTopic(listInsertTopic).mapTo[Seq[Long]]) {
-                                                case Success(seqLong) =>
-                                                  riderLogger.info(s"user ${session.userId} inserted streamInTopics $seqLong where stream id is $streamId success.")
-                                                  returnStreamRes(stream.projectId, Some(stream.id), session)
-                                                case Failure(ex) =>
-                                                  riderLogger.error(s"user ${session.userId} inserted streamInTopics $listInsertTopic where stream id is $streamId failed", ex)
-                                                  if (ex.getMessage.contains("Duplicate entry"))
-                                                    complete(Conflict, getHeader(409, s"duplicate stream id and topic id insert", session))
-                                                  else
-                                                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    val formatCheck = checkConfigFormat(streamTopic.startConfig, streamTopic.launchConfig, streamTopic.sparkConfig.getOrElse(""))
+                    if (formatCheck._1) {
+                      val startTime = if (streamTopic.startedTime.getOrElse("") == "") null else streamTopic.startedTime
+                      val stopTime = if (streamTopic.stoppedTime.getOrElse("") == "") null else streamTopic.stoppedTime
+                      val stream = Stream(streamTopic.id, streamTopic.name, streamTopic.desc, streamTopic.projectId, streamTopic.instanceId, streamTopic.streamType, streamTopic.sparkConfig, streamTopic.startConfig, streamTopic.launchConfig, streamTopic.sparkAppid, streamTopic.logPath, streamTopic.status, startTime, stopTime, streamTopic.active, streamTopic.createTime, streamTopic.createBy, currentSec, session.userId)
+                      val streamId = streamTopic.id
+                      onComplete(streamDal.getStreamById(streamId).mapTo[Option[StreamWithBrokers]]) {
+                        case Success(opStreamWithBrokers) =>
+                          riderLogger.info(s"user ${session.userId} select stream where id is $streamId success.")
+                          opStreamWithBrokers match {
+                            case Some(streamWithBrokers) =>
+                              val brokers = streamWithBrokers.brokers
+                              onComplete(streamDal.updateStreamTable(stream).mapTo[Int]) {
+                                case Success(result) =>
+                                  riderLogger.info(s"user ${session.userId} update stream success.")
+                                  onComplete(streamDal.getTopicByInstanceId(streamTopic.instanceId).mapTo[Seq[TopicSimple]]) {
+                                    case Success(simpleTopics) =>
+                                      riderLogger.info(s"user ${session.userId} select streamInTopics where instance id is ${streamTopic.instanceId} success.")
+                                      val topicsInInstance = simpleTopics.map(topic => (topic.id, topic.name)).toMap
+                                      onComplete(streamDal.getStreamInTopicByStreamId(streamId).mapTo[Seq[StreamInTopicName]]) {
+                                        case Success(streamInTopics) =>
+                                          riderLogger.info(s"user ${session.userId} select streamInTopics where stream id is $streamId success.")
+                                          val topicsInTable: Map[Long, String] = streamInTopics.map(topic => (topic.nsDatabaseId, topic.nsDatabase)).toMap
+                                          var deleteTopics = ArrayBuffer[Long]()
+                                          var insertTopics = ArrayBuffer[(Long, String)]()
+                                          if (streamTopic.topic.length == 0) {
+                                            topicsInTable.keySet.foreach(topic => deleteTopics += topic)
+                                          }
+                                          else {
+                                            val inputTopics = streamTopic.topic.split(",").map(topic => topic.toLong)
+                                            inputTopics.foreach(topic =>
+                                              if (!topicsInTable.contains(topic)) {
+                                                insertTopics += (topic -> topicsInInstance(topic))
                                               }
-                                            }
-                                            else {
-                                              returnStreamRes(stream.projectId, Some(stream.id), session)
-                                            }
-                                          case Failure(ex) =>
-                                            riderLogger.error(s"user ${session.userId} deleted streamInTopics $deleteTopics where stream id is $streamId failed", ex)
-                                            complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
-                                        }
-                                      case Failure(ex) =>
-                                        riderLogger.error(s"user ${session.userId} select streamInTopics where stream id is $streamId failed", ex)
-                                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
-                                    }
-                                  case Failure(ex) =>
-                                    riderLogger.error(s"user ${session.userId} select streamInTopics where instance id is ${streamTopic.instanceId} failed", ex)
-                                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
-                                }
-                              case Failure(ex) =>
-                                riderLogger.error(s"user ${session.userId} updated stream $stream failed", ex)
-                                complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
-                            }
-                          case None =>
-                            riderLogger.info(s"user ${session.userId} select stream where id is $streamId success.")
-                            complete(OK, ResponseJson[String](getHeader(200, session), ""))
-                        }
-                      case Failure(ex) =>
-                        riderLogger.error(s"user ${session.userId} select stream where id is $streamId failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                            )
+                                            topicsInTable.keySet.foreach(topic =>
+                                              if (!inputTopics.contains(topic)) deleteTopics += topic
+                                            )
+                                          }
+                                          onComplete(streamDal.deleteStreamInTopicByStreamId(deleteTopics).mapTo[Int]) {
+                                            case Success(num) =>
+                                              riderLogger.info(s"user ${session.userId} delete streamInTopics where stream id is $streamId success.")
+                                              if (streamTopic.topic.length != 0) {
+                                                val listInsertTopic = insertTopics.map(topic => {
+                                                  val topicOffset = getKafkaLatestOffset(brokers, topic._2)
+                                                  StreamInTopic(0, stream.id, stream.instanceId, topic._1, topicOffset, 100, active = true, currentSec, session.userId, currentSec, session.userId)
+                                                })
+                                                onComplete(streamDal.insertIntoStreamInTopic(listInsertTopic).mapTo[Seq[Long]]) {
+                                                  case Success(seqLong) =>
+                                                    riderLogger.info(s"user ${session.userId} insert streamInTopics where stream id is $streamId success.")
+                                                    returnStreamRes(stream.projectId, Some(stream.id), session)
+                                                  case Failure(ex) =>
+                                                    riderLogger.error(s"user ${session.userId} insert streamInTopics where stream id is $streamId failed", ex)
+                                                    if (ex.getMessage.contains("Duplicate entry"))
+                                                      complete(Conflict, getHeader(409, s"duplicate stream id and topic id insert", session))
+                                                    else
+                                                      complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                                }
+                                              }
+                                              else {
+                                                returnStreamRes(stream.projectId, Some(stream.id), session)
+                                              }
+                                            case Failure(ex) =>
+                                              riderLogger.error(s"user ${session.userId} delete streamInTopics where stream id is $streamId failed", ex)
+                                              complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                          }
+                                        case Failure(ex) =>
+                                          riderLogger.error(s"user ${session.userId} select streamInTopics where stream id is $streamId failed", ex)
+                                          complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                      }
+                                    case Failure(ex) =>
+                                      riderLogger.error(s"user ${session.userId} select streamInTopics where instance id is ${streamTopic.instanceId} failed", ex)
+                                      complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                  }
+                                case Failure(ex) =>
+                                  riderLogger.error(s"user ${session.userId} update stream failed", ex)
+                                  complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                              }
+                            case None =>
+                              riderLogger.info(s"user ${session.userId} select stream where id is $streamId success.")
+                              complete(OK, ResponseJson[String](getHeader(200, session), ""))
+                          }
+                        case Failure(ex) =>
+                          riderLogger.error(s"user ${session.userId} select stream where id is $streamId failed", ex)
+                          complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                      }
+                    } else {
+                      riderLogger.error(s"user ${session.userId} update stream failed caused by ${formatCheck._2}")
+                      complete(BadRequest, getHeader(400, formatCheck._2, session))
                     }
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
@@ -285,15 +291,15 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal) extends BaseUserApiI
                         intopic.active, intopic.createTime, intopic.createBy, currentSec, session.userId))
                     onComplete(streamDal.updateStreamInTopicTable(streamInTopic).mapTo[Unit]) {
                       case Success(result) =>
-                        riderLogger.info(s"user ${session.userId} updated streamInTopics $streamInTopic success.")
+                        riderLogger.info(s"user ${session.userId} update streamInTopics success.")
                         onComplete(streamDal.getTopicDetailByStreamId(streamId)) {
                           case Success(topics) => complete(OK, ResponseSeqJson[TopicDetail](getHeader(200, session), topics))
                           case Failure(ex) =>
-                            riderLogger.error(s"user ${session.userId} updated streamInTopics $streamInTopic failed", ex)
+                            riderLogger.error(s"user ${session.userId} update streamInTopics failed", ex)
                             complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                         }
                       case Failure(ex) =>
-                        riderLogger.error(s"user ${session.userId} updated streamInTopics $streamInTopic failed", ex)
+                        riderLogger.error(s"user ${session.userId} update streamInTopics failed", ex)
                         complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                     }
                   } else {
@@ -325,105 +331,110 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal) extends BaseUserApiI
                 else {
                   if (session.projectIdList.contains(id)) {
                     try {
-                      val projectName = Await.result(streamDal.getProjectNameById(simple.projectId), minTimeOut).name
-                      val streamName = streamDal.generateStreamNameByProject(projectName, simple.name)
-                      val insertStream = Stream(0, streamName, simple.desc, simple.projectId,
-                        simple.instanceId,
-                        simple.streamType,
-                        simple.sparkConfig,
-                        simple.startConfig,
-                        simple.launchConfig,
-                        Some(""),
-                        Some(""),
-                        "new",
-                        null,
-                        null,
-                        active = true, currentSec, session.userId, currentSec, session.userId)
-                      onComplete(streamDal.insertStreamReturnRes(Seq(insertStream)).map(_.head).mapTo[Stream]) {
-                        case Success(base) =>
-                          riderLogger.info(s"user ${
-                            session.userId
-                          } inserted stream $base success.")
-                          if (simple.topics == "" || simple.topics == null) {
-                            CacheMap.streamCacheMapRefresh
-                            returnStreamRes(simple.projectId, Some(base.id), session)
-                          }
-                          else {
-                            val streamId = base.id
-                            onComplete(streamDal.getStreamById(streamId).mapTo[Option[StreamWithBrokers]]) {
-                              case Success(opStreamWithBrokers) =>
-                                riderLogger.info(s"user ${
-                                  session.userId
-                                } select stream where id is $streamId success.")
-                                opStreamWithBrokers match {
-                                  case Some(streamWithBrokers) =>
-                                    val brokers = streamWithBrokers.brokers
-                                    //                    val topics = simple.topics.split(",").map(topic => topic.toLong)
-                                    onComplete(streamDal.getTopicByInstanceId(simple.instanceId).mapTo[Seq[TopicSimple]]) {
-                                      case Success(simpleTopics) =>
-                                        riderLogger.info(s"user ${
-                                          session.userId
-                                        } select streamInTopics where instance id is ${
-                                          simple.instanceId
-                                        } success.")
-                                        val topicsInTable = simpleTopics.map(topic => (topic.id, topic.name)).toMap
-                                        var insertTopics = ArrayBuffer[(Long, String)]()
-                                        simple.topics.split(",").foreach(topic =>
-                                          if (topicsInTable.keySet.contains(topic.toLong)) insertTopics += (topic.toLong -> topicsInTable(topic.toLong))
-                                        )
-                                        val listInsertTopic = insertTopics.map(topic => {
-                                          val topicOffset = getKafkaLatestOffset(brokers, topic._2)
-                                          riderLogger.info(s"kafka topic latest offset $topicOffset")
-                                          val defaultRate = 200
-                                          StreamInTopic(0, base.id, base.instanceId, topic._1, topicOffset, defaultRate, active = true, currentSec, session.userId, currentSec, session.userId)
-                                        })
-                                        onComplete(streamDal.insertIntoStreamInTopic(listInsertTopic).mapTo[Seq[Long]]) {
-                                          case Success(seqLong) =>
-                                            riderLogger.info(s"user ${
-                                              session.userId
-                                            } inserted streamInTopics $seqLong where stream id is $streamId success.")
-                                            CacheMap.flowCacheMapRefresh
-                                            returnStreamRes(simple.projectId, Some(base.id), session)
-                                          case Failure(ex) =>
-                                            riderLogger.error(s"user ${
-                                              session.userId
-                                            } inserted streamInTopics $listInsertTopic where stream id is $streamId failed", ex)
-                                            if (ex.getMessage.contains("Duplicate entry"))
-                                              complete(Conflict, getHeader(409, "duplicate stream id and topic id", session))
-                                            else
-                                              complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
-                                        }
-                                      case Failure(ex) =>
-                                        riderLogger.error(s"user ${
-                                          session.userId
-                                        } select streamInTopics where instance id is ${
-                                          simple.instanceId
-                                        } failed", ex)
-                                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
-                                    }
-                                  case None =>
-                                    riderLogger.info(s"user ${
-                                      session.userId
-                                    } select stream where id is $streamId success.")
-                                    complete(OK, ResponseJson[String](getHeader(200, session), ""))
-                                }
-                              case Failure(ex) =>
-                                riderLogger.error(s"user ${
-                                  session.userId
-                                } select stream where id is $streamId failed", ex)
-                                complete(InternalServerError, getHeader(500, ex.getMessage, session))
+                      val formatCheck = checkConfigFormat(simple.startConfig, simple.launchConfig, simple.sparkConfig.getOrElse(""))
+                      if (formatCheck._1) {
+                        val projectName = Await.result(streamDal.getProjectNameById(simple.projectId), minTimeOut).name
+                        val streamName = streamDal.generateStreamNameByProject(projectName, simple.name)
+                        val insertStream = Stream(0, streamName, simple.desc, simple.projectId,
+                          simple.instanceId,
+                          simple.streamType,
+                          simple.sparkConfig,
+                          simple.startConfig,
+                          simple.launchConfig,
+                          Some(""),
+                          Some(""),
+                          "new",
+                          null,
+                          null,
+                          active = true, currentSec, session.userId, currentSec, session.userId)
+                        onComplete(streamDal.insertStreamReturnRes(Seq(insertStream)).map(_.head).mapTo[Stream]) {
+                          case Success(base) =>
+                            riderLogger.info(s"user ${
+                              session.userId
+                            } inserted stream $base success.")
+                            if (simple.topics == "" || simple.topics == null) {
+                              CacheMap.streamCacheMapRefresh
+                              returnStreamRes(simple.projectId, Some(base.id), session)
                             }
-                          }
-                        case Failure(ex) =>
-                          riderLogger.error(s"user ${
-                            session.userId
-                          } inserted stream $insertStream failed", ex)
-                          if (ex.getMessage.contains("Duplicate entry"))
-                            complete(Conflict, getHeader(409, s"${
-                              insertStream.name
-                            } already exists", session))
-                          else
-                            complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                            else {
+                              val streamId = base.id
+                              onComplete(streamDal.getStreamById(streamId).mapTo[Option[StreamWithBrokers]]) {
+                                case Success(opStreamWithBrokers) =>
+                                  riderLogger.info(s"user ${
+                                    session.userId
+                                  } select stream where id is $streamId success.")
+                                  opStreamWithBrokers match {
+                                    case Some(streamWithBrokers) =>
+                                      val brokers = streamWithBrokers.brokers
+                                      //                    val topics = simple.topics.split(",").map(topic => topic.toLong)
+                                      onComplete(streamDal.getTopicByInstanceId(simple.instanceId).mapTo[Seq[TopicSimple]]) {
+                                        case Success(simpleTopics) =>
+                                          riderLogger.info(s"user ${
+                                            session.userId
+                                          } select streamInTopics where instance id is ${
+                                            simple.instanceId
+                                          } success.")
+                                          val topicsInTable = simpleTopics.map(topic => (topic.id, topic.name)).toMap
+                                          var insertTopics = ArrayBuffer[(Long, String)]()
+                                          simple.topics.split(",").foreach(topic =>
+                                            if (topicsInTable.keySet.contains(topic.toLong)) insertTopics += (topic.toLong -> topicsInTable(topic.toLong))
+                                          )
+                                          val listInsertTopic = insertTopics.map(topic => {
+                                            val topicOffset = getKafkaLatestOffset(brokers, topic._2)
+                                            val defaultRate = 200
+                                            StreamInTopic(0, base.id, base.instanceId, topic._1, topicOffset, defaultRate, active = true, currentSec, session.userId, currentSec, session.userId)
+                                          })
+                                          onComplete(streamDal.insertIntoStreamInTopic(listInsertTopic).mapTo[Seq[Long]]) {
+                                            case Success(seqLong) =>
+                                              riderLogger.info(s"user ${
+                                                session.userId
+                                              } insert streamInTopics where stream id is $streamId success.")
+                                              CacheMap.flowCacheMapRefresh
+                                              returnStreamRes(simple.projectId, Some(base.id), session)
+                                            case Failure(ex) =>
+                                              riderLogger.error(s"user ${
+                                                session.userId
+                                              } insert streamInTopics where stream id is $streamId failed", ex)
+                                              if (ex.getMessage.contains("Duplicate entry"))
+                                                complete(Conflict, getHeader(409, "duplicate stream id and topic id", session))
+                                              else
+                                                complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                          }
+                                        case Failure(ex) =>
+                                          riderLogger.error(s"user ${
+                                            session.userId
+                                          } select streamInTopics where instance id is ${
+                                            simple.instanceId
+                                          } failed", ex)
+                                          complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                      }
+                                    case None =>
+                                      riderLogger.info(s"user ${
+                                        session.userId
+                                      } select stream where id is $streamId success.")
+                                      complete(OK, ResponseJson[String](getHeader(200, session), ""))
+                                  }
+                                case Failure(ex) =>
+                                  riderLogger.error(s"user ${
+                                    session.userId
+                                  } select stream where id is $streamId failed", ex)
+                                  complete(InternalServerError, getHeader(500, ex.getMessage, session))
+                              }
+                            }
+                          case Failure(ex) =>
+                            riderLogger.error(s"user ${
+                              session.userId
+                            } insert stream failed", ex)
+                            if (ex.getMessage.contains("Duplicate entry"))
+                              complete(Conflict, getHeader(409, s"${
+                                insertStream.name
+                              } already exists", session))
+                            else
+                              complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        }
+                      } else {
+                        riderLogger.error(s"user ${session.userId} insert stream failed caused by ${formatCheck._2}")
+                        complete(BadRequest, getHeader(400, formatCheck._2, session))
                       }
                     } catch {
                       case ex: Exception =>
@@ -563,20 +574,21 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal) extends BaseUserApiI
                           complete(OK, ResponseJson[String](getHeader(200, session), "No application to stop"))
                         val updateStream = Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, stream.sparkAppid, stream.logPath, "stopping", stream.startedTime, stream.stoppedTime, stream.active, stream.createTime, stream.createBy, currentSec, stream.updateBy)
                         val cmdStr = "yarn application -kill " + appId
+                        riderLogger.info(s"stop stream command: $cmdStr")
                         runShellCommand(cmdStr)
+                        riderLogger.info(s"user ${
+                          session.userId
+                        } stop stream ${stream.id} success.")
                         onComplete(streamDal.updateStreamTable(updateStream).mapTo[Int]) {
                           case Success(num) =>
                             riderLogger.info(s"user ${
                               session.userId
-                            } start stream $updateStream.")
-                            riderLogger.info(s"user ${
-                              session.userId
-                            } updated stream $updateStream after stop action success.")
+                            } update stream after stop action success.")
                             returnStreamRes(projectId, Some(streamId), session)
                           case Failure(ex) =>
                             riderLogger.error(s"user ${
                               session.userId
-                            } updated stream $updateStream after stop action failed")
+                            } updated stream after stop action failed")
                             complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                         }
                       case None =>
@@ -640,10 +652,10 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal) extends BaseUserApiI
                             val streamReturn = StreamSeqTopicActions(returnStream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "start,renew")
                             onComplete(streamDal.updateStreamTable(updateStream).mapTo[Int]) {
                               case Success(num) =>
-                                riderLogger.info(s"user ${session.userId} updated stream $updateStream after renew action success.")
+                                riderLogger.info(s"user ${session.userId} update stream after renew action success.")
                                 complete(OK, ResponseJson[StreamSeqTopicActions](getHeader(200, session), streamReturn))
                               case Failure(ex) =>
-                                riderLogger.error(s"user ${session.userId} updated stream $updateStream after renew action failed", ex)
+                                riderLogger.error(s"user ${session.userId} update stream after renew action failed", ex)
                                 complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                             }
                           case None =>
@@ -709,6 +721,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal) extends BaseUserApiI
                                   val streamType = streamSeqTopic.stream.streamType //config relative
                                   val args = getConfig(streamId, streamName, brokers, launchConfig)
                                   val commandSh = generateStreamStartSh(args, streamName, startConfig, sparkConfig, streamType)
+                                  riderLogger.info(s"start stream command: $commandSh")
                                   runShellCommand(commandSh)
                                   val startTime = if (stream.startedTime.getOrElse("") == "") null else stream.startedTime
                                   val stopTime = if (stream.stoppedTime.getOrElse("") == "") null else stream.stoppedTime
@@ -720,10 +733,10 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal) extends BaseUserApiI
                                   onComplete(streamDal.updateStreamTable(updateStream).mapTo[Int]) {
                                     case Success(num) =>
                                       //                                      riderLogger.info(s"user ${session.userId} start stream $streamId.")
-                                      riderLogger.info(s"user ${session.userId} updated stream $updateStream after start action success.")
+                                      riderLogger.info(s"user ${session.userId} update stream after start action success.")
                                       complete(OK, ResponseJson[StreamSeqTopicActions](getHeader(200, session), streamReturn))
                                     case Failure(ex) =>
-                                      riderLogger.error(s"user ${session.userId} updated stream $updateStream after start action failed", ex)
+                                      riderLogger.error(s"user ${session.userId} update stream after start action failed", ex)
                                       complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
                                   }
                                 }

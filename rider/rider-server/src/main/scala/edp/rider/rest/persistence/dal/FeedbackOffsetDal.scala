@@ -31,8 +31,8 @@ import scala.concurrent.Future
 
 class FeedbackOffsetDal(feedbackOffsetTable: TableQuery[FeedbackOffsetTable]) extends BaseDalImpl[FeedbackOffsetTable, FeedbackOffset](feedbackOffsetTable) with RiderLogger{
 
-  def getLatestOffset(streamId: Long, topic: String): Future[FeedbackOffset] = {
-    db.run(feedbackOffsetTable.filter(str => str.streamId === streamId && str.topicName === topic ).sortBy(_.feedbackTime.desc).result.head)
+  def getLatestOffset(streamId: Long, topic: String): Future[Option[FeedbackOffset]] = {
+    db.run(feedbackOffsetTable.filter(str => str.streamId === streamId && str.topicName === topic ).sortBy(_.feedbackTime.desc).result.headOption)
   }
 
   def getDistinctStreamTopicList(streamId: Long): Future[Seq[StreamTopicPartitionId]] ={

@@ -59,7 +59,8 @@ class InstanceAdminRoutes(modules: ConfigurationModule with PersistenceModule wi
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "visible", value = "true or false", required = false, dataType = "boolean", paramType = "query"),
     new ApiImplicitParam(name = "type", value = "instance type", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "conn_url", value = "instance conn_url", required = false, dataType = "string", paramType = "query")
+    new ApiImplicitParam(name = "conn_url", value = "instance conn_url", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "nsInstance", value = "nsInstance input", required = false, dataType = "string", paramType = "query")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),
@@ -67,7 +68,7 @@ class InstanceAdminRoutes(modules: ConfigurationModule with PersistenceModule wi
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not admin"),
     new ApiResponse(code = 501, message = "the request url is not supported"),
-    new ApiResponse(code = 409, message = "conn_url already exists"),
+    new ApiResponse(code = 409, message = "conn_url or nsInstance already exists"),
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
@@ -83,7 +84,7 @@ class InstanceAdminRoutes(modules: ConfigurationModule with PersistenceModule wi
     new ApiResponse(code = 400, message = "conn_url format is wrong, please alter it as http://ip:port"),
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not admin"),
-    new ApiResponse(code = 409, message = "conn_url already exists"),
+    new ApiResponse(code = 409, message = "conn_url or instance already exists"),
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
@@ -96,8 +97,10 @@ class InstanceAdminRoutes(modules: ConfigurationModule with PersistenceModule wi
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "put success"),
+    new ApiResponse(code = 400, message = "conn_url format is wrong, please alter it as http://ip:port"),
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not admin"),
+    new ApiResponse(code = 409, message = "conn_url or instance already exists"),
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))

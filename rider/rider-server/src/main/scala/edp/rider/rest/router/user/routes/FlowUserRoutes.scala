@@ -80,6 +80,7 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 400, message = "config is not json type"),
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not normal user"),
     new ApiResponse(code = 409, message = "this source namespace to sink namespace already exists"),
@@ -98,6 +99,7 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 400, message = "config is not json type"),
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not normal user"),
     new ApiResponse(code = 451, message = "request process failed"),

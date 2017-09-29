@@ -22,6 +22,7 @@
 package edp.rider.spark
 
 import com.alibaba.fastjson.JSON
+import edp.rider.common
 import edp.rider.common.SparkRiderStatus._
 import edp.rider.common._
 import edp.rider.rest.persistence.entities.Job
@@ -87,7 +88,7 @@ object SparkStatusQuery extends RiderLogger {
         }
       case _ => AppInfo(job.sparkAppid.getOrElse(""), job.status, startedTime, stoppedTime)
     }
-//    riderLogger.info(s"job get status: $result")
+    //    riderLogger.info(s"job get status: $result")
     result
   }
 
@@ -138,11 +139,10 @@ object SparkStatusQuery extends RiderLogger {
     val fromTimeLong =
       if (fromTime == "") 0
       else if (fromTime.length > 19) dt2long(fromTime) / 1000
-      else if (fromTime.length > 19) dt2long(fromTime)
+      else if (fromTime.length < 19) dt2long(fromTime)
     val rmUrl = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
-//    riderLogger.info(s"active resourceManager: $rmUrl")
-    if(rmUrl != "")
-    {
+    //    riderLogger.info(s"active resourceManager: $rmUrl")
+    if (rmUrl != "") {
       val url = s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=$fromTimeLong&&applicationTags=${RiderConfig.spark.app_tags}&&applicationTypes=spark"
       riderLogger.info(s"Spark Application refresh yarn rest url: $url")
       queryAppListOnYarn(url)
@@ -162,38 +162,65 @@ object SparkStatusQuery extends RiderLogger {
   }
 
   private def queryAppOnYarn(response: HttpResponse[String]): List[AppResult] = {
-    val resultList: List[AppResult] = List()
-    val json = JsonParser.apply(response.body).asJsObject
-    if (response.body.indexOf("apps") > 0) {
-      val apps: String = json.fields("apps").toString()
-      try {
-        val languages = scala.util.parsing.json.JSON.parseFull(apps) match {
-          case Some(x) =>
-            val m = x.asInstanceOf[Map[String, List[Map[String, Any]]]]
-            m("app") map {
-              appList =>
-                AppResult(appList("id").toString, appList("name").toString, appList("state").toString, appList("finalStatus").toString, dt2string(dt2date(BigDecimal(appList("startedTime").toString).toLong * 1000), DtFormat.TS_DASH_SEC).toString,
-                  if (BigDecimal(appList("finishedTime").toString).toLong == 0) null
-                  else dt2string(dt2date(BigDecimal(appList("finishedTime").toString).toLong * 1000), DtFormat.TS_DASH_SEC).toString)
-            }
-          case None => Nil
+    val resultList = new ListBuffer[AppResult]
+    try {
+      val json = JsonParser.apply(response.body).toString()
+      if (JSON.parseObject(json).containsKey("apps")) {
+        val app = JSON.parseObject(json).getString("apps")
+        if (JSON.parseObject(app).containsKey("app")) {
+          val appSeq = JSON.parseObject(app).getJSONArray("app")
+          for (i <- 0 until appSeq.size()) {
+            val info = appSeq.getString(i)
+            val stopTime =
+              if (JSON.parseObject(info).getLong("finishedTime") == 0) null
+              else dt2string(dt2date(JSON.parseObject(info).getLong("finishedTime") * 1000), DtFormat.TS_DASH_SEC)
+            resultList += AppResult(JSON.parseObject(info).getString("id"),
+              JSON.parseObject(info).getString("name"),
+              JSON.parseObject(info).getString("state"),
+              JSON.parseObject(info).getString("finalStatus"),
+              dt2string(dt2date(JSON.parseObject(info).getLong("startedTime") * 1000), DtFormat.TS_DASH_SEC),
+              stopTime
+            )
+          }
         }
-        languages
       }
-      catch {
-        case e: Exception =>
-          riderLogger.error(s"Spark Application refresh yarn rest api response failed", e)
-          resultList
-      }
-    } else {
-      val id = json.fields("app").asJsObject.fields("id").toString()
-      val name = json.fields("app").asJsObject.fields("name").toString()
-      val state = json.fields("app").asJsObject.fields("state").toString()
-      val finalState = json.fields("app").asJsObject.fields("finalStatus").toString()
-      val startedTime = yyyyMMddHHmmss(json.fields("app").asJsObject.fields("startedTime").toString().toLong).toString
-      val finishedTime = yyyyMMddHHmmss(json.fields("app").asJsObject.fields("finishedTime").toString().toLong).toString
-      resultList.::(AppResult(id, name, state, finalState, startedTime, finishedTime))
+      resultList.toList
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"Spark Application refresh yarn rest api response failed", ex)
+        resultList.toList
     }
+
+    //      try {
+    //        println(s"yan response: $apps")
+    //        val languages = scala.util.parsing.json.JSON.parseFull(apps) match {
+    //          case Some(x) =>
+    //            println(s"yarn response parse: $x")
+    //            val m = x.asInstanceOf[Map[String, List[Map[String, Any]]]]
+    //            m("app") map {
+    //              appList =>
+    //                AppResult(appList("id").toString, appList("name").toString, appList("state").toString, appList("finalStatus").toString, dt2string(dt2date(BigDecimal(appList("startedTime").toString).toLong * 1000), DtFormat.TS_DASH_SEC).toString,
+    //                  if (BigDecimal(appList("finishedTime").toString).toLong == 0) null
+    //                  else dt2string(dt2date(BigDecimal(appList("finishedTime").toString).toLong * 1000), DtFormat.TS_DASH_SEC).toString)
+    //            }
+    //          case None => Nil
+    //        }
+    //        languages
+    //      }
+    //      catch {
+    //        case e: Exception =>
+    //          riderLogger.error(s"Spark Application refresh yarn rest api response failed", e)
+    //          resultList
+    //      }
+    //    } else {
+    //      val id = json.fields("app").asJsObject.fields("id").toString()
+    //      val name = json.fields("app").asJsObject.fields("name").toString()
+    //      val state = json.fields("app").asJsObject.fields("state").toString()
+    //      val finalState = json.fields("app").asJsObject.fields("finalStatus").toString()
+    //      val startedTime = yyyyMMddHHmmss(json.fields("app").asJsObject.fields("startedTime").toString().toLong).toString
+    //      val finishedTime = yyyyMMddHHmmss(json.fields("app").asJsObject.fields("finishedTime").toString().toLong).toString
+    //      resultList.::(AppResult(id, name, state, finalState, startedTime, finishedTime))
+    //    }
   }
 
 

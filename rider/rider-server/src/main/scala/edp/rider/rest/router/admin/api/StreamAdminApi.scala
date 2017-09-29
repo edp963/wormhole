@@ -47,7 +47,6 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
               else {
                 onComplete(streamDal.adminGetAll.mapTo[Seq[StreamAdmin]]) {
                   case Success(streamAdmins) =>
-                    riderLogger.info(s"stream admin response data size: ${streamAdmins.size}")
                     riderLogger.info(s"user ${session.userId} select all $route success.")
                     complete(OK, ResponseSeqJson[StreamAdmin](getHeader(200, session), streamAdmins.sortBy(_.stream.id)))
                   case Failure(ex) =>
@@ -85,7 +84,7 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
         val allStreams: Seq[(Stream, StreamSeqTopic)] = streamDal.getUpdateStream(streams)
         val realReturns = allStreams.map(stream => stream._2)
         val realRes = realReturns.map(returnStream => streamDal.getReturnRes(returnStream))
-        riderLogger.info(s"user ${session.userId} updated streams after refresh the yarn/spark rest api or log success.")
+        riderLogger.info(s"user ${session.userId} update streams after refresh the yarn/spark rest api or log success.")
         complete(OK, ResponseSeqJson[StreamSeqTopicActions](getHeader(200, session), realRes.sortBy(_.stream.id)))
       case Failure(ex) => complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
     }

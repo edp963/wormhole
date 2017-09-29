@@ -49,17 +49,17 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
           session =>
             if (session.roleType != "app") {
               riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, null))
+              complete(OK, getHeader(403, null))
             } else {
               val project = Await.result(projectDal.findById(projectId), minTimeOut)
               if (project.isEmpty) {
                 riderLogger.error(s"user ${session.userId} request to get project $projectId, stream $streamId, flow $flowId health information, but the project $projectId doesn't exist.")
-                complete(Forbidden, getHeader(403, s"project $projectId doesn't exist", null))
+                complete(OK, getHeader(403, s"project $projectId doesn't exist", null))
               }
               val streamInfo = streamDal.refreshStreamsByProjectId(Some(projectId), Some(streamId))
               if (streamInfo.isEmpty) {
                 riderLogger.error(s"user ${session.userId} request to get flow $flowId health information, but the stream $streamId doesn't exist")
-                complete(Forbidden, getHeader(403, s"stream $streamId doesn't exist", null))
+                complete(OK, getHeader(403, s"stream $streamId doesn't exist", null))
               }
               //              Await.result(streamDal.getStreamsByProjectId(Some(projectId), Some(streamId)), minTimeOut)
               onComplete(flowDal.getById(projectId, flowId).mapTo[Option[FlowStreamInfo]]) {
@@ -80,7 +80,7 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                           else {
                             val hdfsStream = Await.result(streamDal.findById(hdfsFlow.head.streamId), minTimeOut)
                             val streamDuration =
-                              if(hdfsStream.nonEmpty) StreamUtils.getDuration(hdfsStream.head.launchConfig)
+                              if (hdfsStream.nonEmpty) StreamUtils.getDuration(hdfsStream.head.launchConfig)
                               else 10
                             val esFlowTs = ElasticSearch.queryESFlowMax(projectId, hdfsFlow.head.streamId, hdfsFlow.head.id, "dataGeneratedTs")._2
                             yyyyMMddHHmmss(dt2long(esFlowTs) - streamDuration * 1000 * 1000)
@@ -95,13 +95,13 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                       } catch {
                         case ex: Exception =>
                           riderLogger.error(s"user ${session.userId} request for flow $flowId health where project id is $projectId failed", ex)
-                          complete(UnavailableForLegalReasons, getHeader(451, null))
+                          complete(OK, getHeader(451, null))
                       }
-                    case None => complete(NotFound, getHeader(404, "this flow doesn't exist", null))
+                    case None => complete(OK, getHeader(404, "this flow doesn't exist", null))
                   }
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} request for flow $flowId health where project id is $projectId failed", ex)
-                  complete(UnavailableForLegalReasons, getHeader(451, null))
+                  complete(OK, getHeader(451, null))
               }
             }
         }
@@ -115,7 +115,7 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
           session =>
             if (session.roleType != "app") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, null))
+              complete(OK, getHeader(403, null))
             } else {
               onComplete(streamDal.findById(streamId).mapTo[Option[Stream]]) {
                 case Success(streamOpt) =>
@@ -134,35 +134,35 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                                 val batchDuration = launchConfig.durations.toInt
                                 onComplete(feedbackOffsetDal.getDistinctStreamTopicList(streamId)) {
                                   case Success(topics) =>
-                                    val topicList: Seq[TopicOffset] = FeedbackOffsetUtil.getLatestTopicOffset(topics).map{ case item =>
-                                      TopicOffset(item.topicName,item.partitionId,item.offset)
-                                    }
+                                    val topicList: Seq[TopicOffset] = FeedbackOffsetUtil.getLatestTopicOffset(topics).map(
+                                      topic => TopicOffset(topic.topicName, topic.partitionOffsets)
+                                    )
                                     riderLogger.info(s"user ${session.userId} request for stream $streamId health where project id is $projectId success")
                                     complete(OK, ResponseJson[StreamHealth](getHeader(200, null), StreamHealth(streamInfo.status, sparkApplicationId, formatWaterMark(sLatestWatermark), batchThreshold, batchDuration, topicList)))
                                   case Failure(ex) =>
-                                    riderLogger.info(s"user ${session.userId} request for stream $streamId health where project id is $projectId success")
-                                    complete(OK, ResponseJson[StreamHealth](getHeader(200, null), StreamHealth(streamInfo.status, sparkApplicationId, formatWaterMark(sLatestWatermark), batchThreshold, batchDuration, Seq(TopicOffset("", 0, 0)))))
+                                    riderLogger.error(s"user ${session.userId} request for stream $streamId health where project id is $projectId failed", ex)
+                                    complete(OK, ResponseJson[StreamHealth](getHeader(200, null), StreamHealth(streamInfo.status, sparkApplicationId, formatWaterMark(sLatestWatermark), batchThreshold, batchDuration, Seq(TopicOffset("", "")))))
                                 }
                               } catch {
                                 case ex: Exception =>
                                   riderLogger.error(s"user ${session.userId} request for stream $streamId health where project id is $projectId failed", ex)
-                                  complete(UnavailableForLegalReasons, getHeader(451, null))
+                                  complete(OK, getHeader(451, null))
                               }
                             case None =>
                               riderLogger.error(s"user ${session.userId} request for stream $streamId health where project id is $projectId failed, project doesn't exist")
-                              complete(NotFound, getHeader(404, s"this project doesn't exist", null))
+                              complete(OK, getHeader(404, s"this project doesn't exist", null))
                           }
                         case Failure(ex) =>
                           riderLogger.error(s"user ${session.userId} select project where project id is $projectId failed", ex)
-                          complete(UnavailableForLegalReasons, getHeader(451, null))
+                          complete(OK, getHeader(451, null))
                       }
                     case None =>
                       riderLogger.error(s"user ${session.userId} request for stream $streamId health where project id is $projectId failed, stream doesn't exist")
-                      complete(NotFound, getHeader(404, "this stream doesn't exist", null))
+                      complete(OK, getHeader(404, "this stream doesn't exist", null))
                   }
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} request for stream $streamId health where project id is $projectId failed", ex)
-                  complete(UnavailableForLegalReasons, getHeader(451, null))
+                  complete(OK, getHeader(451, null))
               }
             }
         }
@@ -176,12 +176,12 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
           session =>
             if (session.roleType != "app") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, null))
+              complete(OK, getHeader(403, null))
             } else {
               val project = Await.result(projectDal.findById(projectId), minTimeOut)
               if (project.isEmpty) {
                 riderLogger.error(s"user ${session.userId} request to get project $projectId, job $jobId health information, but the project $projectId doesn't exist.")
-                complete(Forbidden, getHeader(403, s"project $projectId doesn't exist", null))
+                complete(OK, getHeader(403, s"project $projectId doesn't exist", null))
               }
               onComplete(jobDal.findById(jobId).mapTo[Option[Job]]) {
                 case Success(jobOpt) => jobOpt match {
@@ -191,11 +191,11 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                     complete(OK, ResponseJson[JobHealth](getHeader(200, null), JobHealth(job.status, job.sparkAppid.getOrElse(""))))
                   case None =>
                     riderLogger.error(s"user ${session.userId} request for job $jobId where project id is $projectId failed, job doesn't exist")
-                    complete(NotFound, getHeader(404, "this job doesn't exist", null))
+                    complete(OK, getHeader(404, "this job doesn't exist", null))
                 }
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} request for job $jobId where project id is $projectId failed", ex)
-                  complete(UnavailableForLegalReasons, getHeader(451, null))
+                  complete(OK, getHeader(451, null))
               }
             }
         }
@@ -203,6 +203,6 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
   }
 
   def formatWaterMark(waterMark: String) = {
-    if(waterMark == "") "" else yyyyMMddHHmmss(waterMark)
+    if (waterMark == "") "" else yyyyMMddHHmmss(waterMark)
   }
 }
