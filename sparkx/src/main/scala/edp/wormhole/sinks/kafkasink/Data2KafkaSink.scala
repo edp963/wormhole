@@ -54,7 +54,7 @@ class Data2KafkaSink extends SinkProcessor with EdpLogging {
         val kafkaLimitNum = sinkSpecificConfig.limitNum
         ums2Kafka(tupleList, kafkaLimitNum, protocol, schema, protocolType, sinkNamespace, kafkaTopic, connectionConfig)
       case "flattenJson" =>
-        val hasSystemField = hasSystemField
+        val hasSystemField = sinkSpecificConfig.hasSystemField
         if (hasSystemField) flattenJson2KafkaWithSystemValue(tupleList, schemaList, sinkNamespace, kafkaTopic, connectionConfig,protocol.`type`.toString)
         else flattenJson2KafkaWithoutSystemValue(tupleList, schemaList, sinkNamespace, kafkaTopic, connectionConfig)
       case "userDefinedJson" =>
