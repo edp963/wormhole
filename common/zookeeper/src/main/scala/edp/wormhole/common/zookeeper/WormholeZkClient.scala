@@ -157,7 +157,6 @@ object WormholeZkClient {
 
 
   def delete(zkAddress: String, path: String): Unit = {
-    println("delete path:" + path)
     if (checkExist(zkAddress, path)) {
       getZkClient(zkAddress).delete().deletingChildrenIfNeeded().forPath(path)
     }

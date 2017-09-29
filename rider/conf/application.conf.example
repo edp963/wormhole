@@ -1,8 +1,11 @@
 
 wormholeServer {
-  host = "localhost"
+  host = "127.0.0.1"
   port = 8989
-  token.timeout = 36000
+  domain.url = "http://test.test.com"
+  token.timeout = 7
+  admin.username = "admin"
+  admin.password = "admin"
 }
 
 mysql = {
@@ -10,30 +13,39 @@ mysql = {
   db = {
     driver = "com.mysql.jdbc.Driver"
     user = "root"
-    url = "jdbc:mysql://localhost:3306/rider3"
+    url = "jdbc:mysql://localhost:3306/wormhole"
     password = "*******"
-    numThreads = 1
+    numThreads = 4
   }
 }
 
 spark = {
-  wormholeServer.user = "app"
-  wormholeServer.ssh.port = 2222
-  spark.home = ""
-  queue.name = "default"
-  app.tags = ""
+  wormholeServer.user = "wormhole"
+  wormholeServer.ssh.port = 22
+  spark.home = "/usr/local/spark"
+  yarn.queue.name = "default"
   wormhole.hdfs.root.path = "hdfs://nn1/wormhole"
-  yarn.active.resourceManager.http.url = "localhost:8088"
-  wormhole.jar.path = ""
-  wormhole.kafka08.jar.path = ""
-  wormhole.kafka08.streams = ""
-  wormhole.client.log.root.path = ""
+  yarn.rm1.http.url = "localhost:8088"
+  yarn.rm2.http.url = "localhost2:8088"
 }
 
 zookeeper.connection.url = "localhost:2181"
 
-kafka.brokers.url = "localhost:9092"
-kafka.brokers.feedback.topic = ""
+kafka = {
+  brokers.url = "locahost:9092"
+  zookeeper.url = "localhost:2181"
+  consumer = {
+    feedback.topic = "wormhole_feedback"
+    poll-interval = 30ms
+    poll-timeout = 30ms
+    stop-timeout = 30s
+    close-timeout = 20s
+    commit-timeout = 15s
+    wakeup-timeout = 3
+    max-wakeups = 10
+  }
+}
+
 
 elasticSearch.http.url = "http://localhost:9200"
 
@@ -51,11 +63,11 @@ grafana = {
 }
 
 maintenance = {
-  mysql.feedback.remain.maxDays = 30
-  elasticSearch.feedback.remain.maxDays = 30
+  mysql.feedback.remain.maxDays = 5
+  elasticSearch.feedback.remain.maxDays = 5
 }
 
-dbus.namespace.rest.api.url = ["http://localhost:8088/webservice/interface/search"]
+dbus.namespace.rest.api.url = ["http://127.0.0.1:8088/webservice/interface/search"]
 
 
 
