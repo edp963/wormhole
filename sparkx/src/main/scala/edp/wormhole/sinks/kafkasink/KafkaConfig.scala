@@ -22,7 +22,10 @@
 package edp.wormhole.sinks.kafkasink
 
 
-case class KafkaConfig(kafkaSinkTopic:Option[String],
-                      payloadLimitNum:Option[Int]) {
- lazy val limitNum=payloadLimitNum.getOrElse(50)
+case class KafkaConfig(format: Option[String],
+                       preserveSystemField: Option[Boolean],
+                       payloadLimitNum: Option[Int]) {
+  lazy val messageFormat = format.getOrElse("ums")
+  lazy val limitNum = payloadLimitNum.getOrElse(50)
+  lazy val hasSystemField = preserveSystemField.getOrElse(false)
 }
