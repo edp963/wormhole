@@ -433,6 +433,13 @@ export class Flow extends React.Component {
   }
 
   onRangeIdSearch = (columnName, startText, endText, visible) => () => {
+    let infoFinal = ''
+    if (columnName === 'id') {
+      infoFinal = this.state[startText] || this.state[endText] ? { id: [0] } : { id: [] }
+    } else if (columnName === 'streamId') {
+      infoFinal = this.state[startText] || this.state[endText] ? { streamId: [0] } : { streamId: [] }
+    }
+
     this.setState({
       [visible]: false,
       currentFlows: this.state.originFlows.map((record) => {
@@ -442,7 +449,7 @@ export class Flow extends React.Component {
         }
         return record
       }).filter(record => !!record),
-      filteredInfo: this.state[startText] || this.state[endText] ? { id: [0] } : { id: [] }
+      filteredInfo: infoFinal
     })
   }
 
@@ -669,6 +676,44 @@ export class Flow extends React.Component {
         )
       }
     }, {
+      title: 'Stream ID',
+      dataIndex: 'streamId',
+      key: 'streamId',
+      sorter: (a, b) => a.streamId - b.streamId,
+      sortOrder: sortedInfo.columnKey === 'streamId' && sortedInfo.order,
+      filteredValue: filteredInfo.streamId,
+      filterDropdown: (
+        <div className="custom-filter-dropdown custom-filter-dropdown-ps">
+          <Form>
+            <Row>
+              <Col span={9}>
+                <Input
+                  ref={ele => { this.searchInput = ele }}
+                  placeholder="Start ID"
+                  onChange={this.onInputChange('searchStartStreamIdText')}
+                />
+              </Col>
+              <Col span={1}>
+                <p className="ant-form-split">-</p>
+              </Col>
+              <Col span={9}>
+                <Input
+                  placeholder="End ID"
+                  onChange={this.onInputChange('searchEndStreamIdText')}
+                />
+              </Col>
+              <Col span={5} className="text-align-center">
+                <Button type="primary" onClick={this.onRangeIdSearch('streamId', 'searchStartStreamIdText', 'searchEndStreamIdText', 'filterDropdownVisibleStreamId')}>Search</Button>
+              </Col>
+            </Row>
+          </Form>
+        </div>
+      ),
+      filterDropdownVisible: this.state.filterDropdownVisibleStreamId,
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleStreamId: visible
+      }, () => this.searchInput.focus())
+    }, {
       title: 'Stream Type',
       dataIndex: 'streamType',
       key: 'streamType',
@@ -682,20 +727,6 @@ export class Flow extends React.Component {
       ],
       filteredValue: filteredInfo.streamType,
       onFilter: (value, record) => record.streamType.includes(value)
-    }, {
-      title: 'Protocol',
-      dataIndex: 'consumedProtocol',
-      key: 'consumedProtocol',
-      className: 'text-align-center',
-      sorter: (a, b) => a.consumedProtocol < b.consumedProtocol ? -1 : 1,
-      sortOrder: sortedInfo.columnKey === 'consumedProtocol' && sortedInfo.order,
-      filters: [
-        {text: 'all', value: 'all'},
-        {text: 'increment', value: 'increment'},
-        {text: 'initial', value: 'initial'}
-      ],
-      filteredValue: filteredInfo.consumedProtocol,
-      onFilter: (value, record) => record.consumedProtocol.includes(value)
     }, {
       title: 'Start Time',
       dataIndex: 'startedTime',
@@ -883,7 +914,7 @@ export class Flow extends React.Component {
                 placement="left"
                 content={<div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
                   <p><strong>   Project Id：</strong>{record.projectId}</p>
-                  <p><strong>   Stream Id：</strong>{record.streamId}</p>
+                  <p><strong>   Protocol：</strong>{record.consumedProtocol}</p>
                   <p><strong>   Stream Name：</strong>{record.streamName}</p>
                   <p><strong>   Create Time：</strong>{record.createTime}</p>
                   <p><strong>   Update Time：</strong>{record.updateTime}</p>
