@@ -50,7 +50,7 @@ object HbaseConnection extends Serializable with EdpLogging {
 
   def initHbaseConfig(sinkNamespace: String, sinkConfig: SinkProcessConfig, connectionConfig: ConnectionConfig): Unit = {
     val kvConfig = connectionConfig.parameters
-    if (sinkNamespace.toLowerCase.startsWith("hbase")) {
+  //  if (sinkNamespace.toLowerCase.startsWith("hbase")) {
       //val hbaseConfig = json2caseClass[HbaseConfig](sinkConfig.specialConfig.get)
       val (zkList, zkPort,zkParent) = getZookeeperInfo(connectionConfig.connectionUrl)
       if (!hBaseConfigurationMap.contains((zkList, zkPort))) {
@@ -62,7 +62,7 @@ object HbaseConnection extends Serializable with EdpLogging {
         if (kvConfig.isDefined) kvConfig.get.foreach(kv => hBaseConfiguration.set(kv.key, kv.value))
         hBaseConfigurationMap((zkList, zkPort)) = hBaseConfiguration
       }
-    }
+   // }
   }
 
   def getConnection(zkList: String, port: String): Connection = {
@@ -77,8 +77,10 @@ object HbaseConnection extends Serializable with EdpLogging {
     hBaseConnectionMap((zkList, port))
   }
 
-  def getTable(hbaseTableName: String, zkList: String, zkPort: String): Table =
+  def getTable(hbaseTableName: String, zkList: String, zkPort: String): Table = {
+    //getConnection(zkList, zkPort).getTable(TableName.valueOf(hbaseTableName.getBytes))
     getConnection(zkList, zkPort).getTable(TableName.valueOf(hbaseTableName))
+  }
 
   def dataPut(hbaseTable: String, dataPuts: Seq[Put], zkList: String, zkPort: String): Unit = {
     val table = getTable(hbaseTable, zkList, zkPort)
