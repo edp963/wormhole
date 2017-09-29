@@ -50,6 +50,7 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
     HbaseConnection.initHbaseConfig(sinkNamespace, sinkProcessConfig, connectionConfig)
+
     def rowkey(rowkeyConfig: Seq[RowkeyInfo], recordValue: Seq[String]): String = rowkeyConfig.map(rowkey => {
       val rkName = rowkey.name.toLowerCase
       if (!schemaMap.contains(rkName)) {
@@ -63,14 +64,12 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
         val rkGet = rkHash(rkValue)
         if (rkGet == null) null else rkGet.toString
       } else if (rkPattern == REVERSE.toString) rkReverse(rkValue)
-      else if(rkPattern.startsWith(MD5.toString)) rkMod(rkValue,rkPattern)
+      else if (rkPattern.startsWith(MD5.toString)) rkMod(rkValue, rkPattern)
       else {
         val rkGet = rkHash(rkReverse(rkValue))
         if (rkGet == null) null else rkGet.toString
       }
     }).mkString("_")
-
-
 
 
     def gerneratePuts(rkConfig: Seq[RowkeyInfo], columnFamily: String, saveAsString: Boolean, versionColumn: String, filterRowkey2idTuples: Seq[(String, Long, Seq[String])]): ListBuffer[Put] = {
@@ -87,9 +86,9 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
             val valueString = tuple._3(index)
             if (OP.toString != column) {
               put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), versionValue, s2hbaseValue(fieldType, valueString))
-              if (saveAsString && !(ID.toString == column||TS.toString == column||UID.toString == column)) put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), versionValue, s2hbaseStringValue(fieldType, valueString, column))
+              if (saveAsString && !(ID.toString == column || TS.toString == column || UID.toString == column)) put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), versionValue, s2hbaseStringValue(fieldType, valueString, column))
               else put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), versionValue, s2hbaseValue(fieldType, valueString))
-            }else put.addColumn(Bytes.toBytes(columnFamily), activeColBytes, versionValue, if (DELETE.toString == umsOpValue.toLowerCase) inactiveBytes else activeBytes)
+            } else put.addColumn(Bytes.toBytes(columnFamily), activeColBytes, versionValue, if (DELETE.toString == umsOpValue.toLowerCase) inactiveBytes else activeBytes)
           }
           puts += put
         } catch {
@@ -104,17 +103,17 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
     val zk = HbaseConnection.getZookeeperInfo(connectionConfig.connectionUrl)
     val rowkeyConfig: Seq[RowkeyInfo] = hbaseConfig.`hbase.rowKey`
 
-//    logInfo("before format:" + tupleList.size)
+    //    logInfo("before format:" + tupleList.size)
     val rowkey2IdTuples: Seq[(String, Long, Seq[String])] = tupleList.map(tuple => {
       (rowkey(rowkeyConfig, tuple), tuple(schemaMap(ID.toString)._1).toLong, tuple)
     })
 
     val filterRowkey2idTuples = SourceMutationType.sourceMutationType(hbaseConfig.`hbase.mutation.type.get`) match {
-      case SourceMutationType.I_U_D  =>
+      case SourceMutationType.I_U_D =>
         logInfo("hbase iud:")
         logInfo("before select:" + rowkey2IdTuples.size)
         val columnList = List((ID.toString, LONG.toString))
-        val rowkey2IdMap: Map[String, Map[String, Any]] = HbaseConnection.getDatasFromHbase(namespace.table, hbaseConfig.`hbase.columnFamily.get`, rowkey2IdTuples.map(_._1), columnList, zk._1, zk._2)
+        val rowkey2IdMap: Map[String, Map[String, Any]] = HbaseConnection.getDatasFromHbase(namespace.database + ":" + namespace.table, hbaseConfig.`hbase.columnFamily.get`, rowkey2IdTuples.map(_._1), columnList, zk._1, zk._2)
         logInfo("before filter:" + rowkey2IdMap.size)
         if (rowkey2IdMap.nonEmpty) {
           rowkey2IdTuples.filter(row => {
@@ -126,13 +125,13 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
         rowkey2IdTuples
     }
 
-//    logInfo("before generate puts:" + filterRowkey2idTuples.size)
+    //    logInfo("before generate puts:" + filterRowkey2idTuples.size)
     val puts = gerneratePuts(rowkeyConfig, hbaseConfig.`hbase.columnFamily.get`, hbaseConfig.`hbase.valueType.get`, hbaseConfig.`hbase.version.column.get`, filterRowkey2idTuples)
-//    logInfo("before put:" + puts.size)
+    //    logInfo("before put:" + puts.size)
     if (puts.nonEmpty) {
-        HbaseConnection.dataPut(namespace.table, puts, zk._1, zk._2)
+      HbaseConnection.dataPut(namespace.database + ":" + namespace.table, puts, zk._1, zk._2)
       puts.clear()
-//      logInfo("after put:" + puts.size)
+      //      logInfo("after put:" + puts.size)
     } else logInfo("there is nothing to insert")
   }
 }
