@@ -20,7 +20,7 @@
 
 
 <assembly>
-    <id>release</id>
+    <id>wormhole</id>
     <formats>
         <format>zip</format>
         <format>tar.gz</format>
@@ -46,18 +46,33 @@
             <outputDirectory>bin</outputDirectory>
         </fileSet>
         <fileSet>
-        <directory>
-        ${project.parent.basedir}/rider/rider-webapp
-        </directory>
-        <outputDirectory>webapp-source</outputDirectory>
+            <directory>
+                ${project.parent.basedir}/rider/webapp
+            </directory>
+            <outputDirectory>webapp</outputDirectory>
         </fileSet>
         <fileSet>
+            <directory>
+                ${project.parent.basedir}/rider/swagger-ui
+            </directory>
+            <outputDirectory>swagger-ui</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>
+                ${project.parent.basedir}/rider/logs
+            </directory>
             <outputDirectory>logs</outputDirectory>
-            <excludes>
-                <exclude>**/*</exclude>
-            </excludes>
         </fileSet>
     </fileSets>
+
+    <files>
+        <file>
+            <source>
+                ${project.parent.basedir}/sparkx/target/wormhole-ums_1.3-sparkx_2.2.0-0.3.0-SNAPSHOTS-jar-with-dependencies.jar
+            </source>
+            <outputDirectory>lib</outputDirectory>
+        </file>
+    </files>
 
     <dependencySets>
         <dependencySet>
