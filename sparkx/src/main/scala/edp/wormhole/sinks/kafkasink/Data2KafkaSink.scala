@@ -86,7 +86,7 @@ class Data2KafkaSink extends SinkProcessor with EdpLogging {
       var index = 0
       tuple.foreach(t => {
         if (!schemaList(index)._1.startsWith("ums_")) {
-          flattenJson.put(schemaList(index)._1, UmsFieldType.umsFieldValue(t, schemaList(index)._2._2))
+          flattenJson.put(schemaList(index)._1,UmsFieldType.umsFieldValue(t,  schemaList(index)._2._2))
         }
         index += 1
       })
