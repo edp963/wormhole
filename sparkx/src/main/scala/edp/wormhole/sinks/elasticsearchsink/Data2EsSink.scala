@@ -195,7 +195,7 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
   }
 
   private def doHttp(url:String,username: Option[String],passwd:Option[String],requestContent:String):String={
-    if(username.nonEmpty&&passwd.nonEmpty){
+    if(username.nonEmpty&&username.get.nonEmpty&&passwd.nonEmpty&&passwd.get.nonEmpty){
       Http(url).auth(username.get,passwd.get).postData(requestContent).asString.body
     }else{
       Http(url).postData(requestContent).asString.body
@@ -240,7 +240,7 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
     else connectionConfig.connectionUrl + "/" + namespace.database + "/" + namespace.table + "/_mget"
     val responseContent = doHttp(url,connectionConfig.username,connectionConfig.password,requestContent)
     val responseJson: JValue = json2jValue(responseContent)
-    if(checkResponseSuccess(responseJson)){
+    if(!checkResponseSuccess(responseJson)){
       logError("queryVersionByEsid error :" + responseContent)
       queryResult = false
     } else {

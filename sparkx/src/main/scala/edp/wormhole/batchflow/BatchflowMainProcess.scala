@@ -628,7 +628,7 @@ object BatchflowMainProcess extends EdpLogging {
   }
 
   private def getProjectionSchemaMap(swiftsProcessConfig: Option[SwiftsProcessConfig],
-                                     originalSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
+                                     filterUmsUidSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                                      sinkNamespace: String): collection.Map[String, (Int, UmsFieldType, Boolean)]
 
   = {
@@ -637,13 +637,13 @@ object BatchflowMainProcess extends EdpLogging {
       val newSchemaMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
       var index = 0
       swiftsProcessConfig.get.projection.split(",").foreach(column => {
-        if (column != UmsSysField.UID.toString || UmsNamespace(sinkNamespace).dataSys == UmsDataSystem.KAFKA) {
-          newSchemaMap(column) = (index, originalSchemaMap(column)._2, originalSchemaMap(column)._3)
+       // if (column != UmsSysField.UID.toString || UmsNamespace(sinkNamespace).dataSys == UmsDataSystem.KAFKA) {
+          newSchemaMap(column) = (index, filterUmsUidSchemaMap(column)._2, filterUmsUidSchemaMap(column)._3)
           index += 1
-        }
+       // }
       })
       newSchemaMap
-    } else originalSchemaMap
+    } else filterUmsUidSchemaMap
   }
 
   private def checkLackColumn(swiftsProcessConfig: Option[SwiftsProcessConfig],
@@ -691,11 +691,12 @@ object BatchflowMainProcess extends EdpLogging {
     val sendList = ListBuffer.empty[Seq[String]]
     val saveList = ListBuffer.empty[String]
     var projectionSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)] = originalSchemaMap
+    val filterUmsUidSchemaMap = originalSchemaMap.filterKeys(_ != UmsSysField.UID.toString)
     if (swiftsProcessConfig.nonEmpty) {
       //has swifts process
       val lackColumn = checkLackColumn(swiftsProcessConfig, originalSchemaMap, sourceNamespace, sinkNamespace)
       if (!lackColumn) {
-        projectionSchemaMap = getProjectionSchemaMap(swiftsProcessConfig, originalSchemaMap, sinkNamespace)
+        projectionSchemaMap = getProjectionSchemaMap(swiftsProcessConfig, filterUmsUidSchemaMap, sinkNamespace)
         //has swifts process and not lack column
         if (swiftsProcessConfig.get.validityConfig.nonEmpty) {
           //has swifts process and not lack column and need validity
@@ -735,9 +736,9 @@ object BatchflowMainProcess extends EdpLogging {
           uid
         })
       }
-    } else sendList ++= dataSeq.map(row => SparkUtils.getRowData(row, originalSchemaMap)) //not swifts process
+    } else sendList ++= dataSeq.map(row => SparkUtils.getRowData(row, filterUmsUidSchemaMap)) //not swifts process
     logInfo(sourceNamespace + ":" + sinkNamespace + ",sendList.size=" + sendList.size + ",saveList.size=" + saveList.size)
-    (projectionSchemaMap, sendList, saveList)
+    (filterUmsUidSchemaMap, sendList, saveList)
   }
 
   //  private def getRowData(row: Row, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): ArrayBuffer[String] = {

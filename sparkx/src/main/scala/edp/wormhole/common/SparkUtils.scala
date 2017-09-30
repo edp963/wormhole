@@ -23,7 +23,7 @@ package edp.wormhole.common
 
 import edp.wormhole.common.SparkSchemaUtils.ss2sparkTuple
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.ums.{UmsField, UmsFieldType}
+import edp.wormhole.ums.{UmsField, UmsFieldType, UmsSysField}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
@@ -67,6 +67,11 @@ object SparkUtils extends EdpLogging{
         schemaMap(field.name.toLowerCase) = (index, SparkSchemaUtils.spark2umsType(field.dataType), field.nullable)
       }
     })
+    if (schemaMap.contains(UmsSysField.UID.toString)) {
+      val swapFieldName = schemaMap.filter(_._2._1 == schemaMap.size - 1).head._1 // to delete ums_uid_, move ums_uid to the last one
+      schemaMap(swapFieldName) = (schemaMap(UmsSysField.UID.toString)._1, schemaMap(swapFieldName)._2, schemaMap(swapFieldName)._3)
+      schemaMap(UmsSysField.UID.toString) = (schemaMap.size - 1, schemaMap(UmsSysField.UID.toString)._2, schemaMap(UmsSysField.UID.toString)._3)
+    }
     schemaMap.toMap
   }
 
