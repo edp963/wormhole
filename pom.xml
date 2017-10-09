@@ -20,8 +20,6 @@
 
     <modules>
         <module>ums</module>
-        <module>rider/rider-server</module>
-        <module>rider/rider-assembly</module>
         <module>common/kafka08</module>
         <module>common/kafka010</module>
         <module>common/util</module>
@@ -29,6 +27,8 @@
         <module>common/dbpool</module>
         <module>common/hadoop</module>
         <module>sparkx</module>
+        <module>rider/rider-server</module>
+        <module>rider/rider-assembly</module>
     </modules>
 
     <properties>
