@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -188,7 +188,7 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
       val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl.trim + namespace.database + "/" + namespace.table + "/_bulk"
       else connectionConfig.connectionUrl.trim + "/" + namespace.database + "/" + namespace.table + "/_bulk"
       logInfo("doBatch url:" + url)
-      val responseContent = doHttp(connectionConfig.connectionUrl,connectionConfig.username,connectionConfig.password,requestContent)
+      val responseContent = doHttp(url,connectionConfig.username,connectionConfig.password,requestContent)
       val responseJson: JValue = json2jValue(responseContent)
       checkResponseSuccess(responseJson)
     } else true
@@ -216,7 +216,7 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
       val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl.trim + namespace.database + "/" + namespace.table + "/_bulk"
       else connectionConfig.connectionUrl.trim + "/" + namespace.database + "/" + namespace.table + "/_bulk"
       logInfo("doBatch url:" + url)
-      val responseContent = doHttp(connectionConfig.connectionUrl,connectionConfig.username,connectionConfig.password,requestContent)
+      val responseContent = doHttp(url,connectionConfig.username,connectionConfig.password,requestContent)
       val responseJson: JValue = json2jValue(responseContent)
       checkResponseSuccess(responseJson)
     } else true
