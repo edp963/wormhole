@@ -28,17 +28,24 @@ import scala.collection.mutable
 import scala.concurrent.Await
 
 class CacheMap private {
+
   private case class StreamMapKey(streamId: Long)
-  private case class StreamMapValue(streamName: String, projectId:Long)
-  private val streamCacheMap = new scala.collection.mutable.HashMap[StreamMapKey,StreamMapValue]()
+
+  private case class StreamMapValue(streamName: String, projectId: Long)
+
+  private val streamCacheMap = new scala.collection.mutable.HashMap[StreamMapKey, StreamMapValue]()
 
   private case class FlowMapKey(flowName: String)
-  private case class FlowMapValue(flowId: Long)
-  private val flowCacheMap = new scala.collection.mutable.HashMap[FlowMapKey,FlowMapValue]()
 
-  private case class OffsetMapkey(streamid:Long,topicName:String,partitionId:Int)
+  private case class FlowMapValue(flowId: Long)
+
+  private val flowCacheMap = new scala.collection.mutable.HashMap[FlowMapKey, FlowMapValue]()
+
+  private case class OffsetMapkey(streamid: Long, topicName: String, partitionId: Int)
+
   private case class OffsetMapValue(offset: Long)
-  private val topicLatestOffsetMap = new mutable.HashMap[OffsetMapkey,OffsetMapValue]()
+
+  private val topicLatestOffsetMap = new mutable.HashMap[OffsetMapkey, OffsetMapValue]()
 
   private def getProjectId(stream_id: Long): Long = {
     var pid: Long = 0L
@@ -86,9 +93,9 @@ class CacheMap private {
     }
   }
 
-  private def getOffsetValue(streamid:Long,topicName:String,partitionId:Int): Long = {
+  private def getOffsetValue(streamid: Long, topicName: String, partitionId: Int): Long = {
     var offset: Long = -1L
-    topicLatestOffsetMap.get(OffsetMapkey(streamid,topicName,partitionId)) match {
+    topicLatestOffsetMap.get(OffsetMapkey(streamid, topicName, partitionId)) match {
       case Some(x) =>
         offset = x.offset
       case None =>
@@ -96,11 +103,11 @@ class CacheMap private {
     offset
   }
 
-  private def setOffsetMap(streamid:Long,topicName:String,partitionId:Int, offset:Long) = {
-    if (topicLatestOffsetMap.contains(OffsetMapkey(streamid,topicName,partitionId))) {
-      topicLatestOffsetMap.update(OffsetMapkey(streamid,topicName,partitionId), OffsetMapValue(offset))
+  private def setOffsetMap(streamid: Long, topicName: String, partitionId: Int, offset: Long) = {
+    if (topicLatestOffsetMap.contains(OffsetMapkey(streamid, topicName, partitionId))) {
+      topicLatestOffsetMap.update(OffsetMapkey(streamid, topicName, partitionId), OffsetMapValue(offset))
     } else {
-      topicLatestOffsetMap.put(OffsetMapkey(streamid,topicName,partitionId), OffsetMapValue(offset))
+      topicLatestOffsetMap.put(OffsetMapkey(streamid, topicName, partitionId), OffsetMapValue(offset))
     }
   }
 }
@@ -112,15 +119,15 @@ object CacheMap extends RiderLogger {
 
   def setFlowCacheMap(flow_name: String, flow_id: Long) = singleMap.setFlowCacheMap(flow_name, flow_id)
 
-  def setOffsetMap(streamid:Long,topicName:String,partitionId:Int, offset:Long)= singleMap.setOffsetMap(streamid,topicName,partitionId,offset)
+  def setOffsetMap(streamid: Long, topicName: String, partitionId: Int, offset: Long) = singleMap.setOffsetMap(streamid, topicName, partitionId, offset)
 
   def getProjectId(streamId: Long): Long =
     try {
       val pid = singleMap.getProjectId(streamId)
-      if(pid == 0) {
+      if (pid == 0) {
         streamCacheMapRefresh
         singleMap.getProjectId(streamId)
-      }else pid
+      } else pid
     } catch {
       case ex: Exception =>
         riderLogger.error(s"stream cache map refresh failed", ex)
@@ -129,25 +136,25 @@ object CacheMap extends RiderLogger {
 
 
   def getStreamName(streamId: Long): String =
-  try {
-    val streamName = singleMap.getStreamName(streamId)
-    if(streamName == "default") {
-      streamCacheMapRefresh
-      singleMap.getStreamName(streamId)
-    }else streamName
-  } catch {
-    case ex: Exception =>
-      riderLogger.error(s"stream cache map refresh failed", ex)
-      throw ex
-  }
+    try {
+      val streamName = singleMap.getStreamName(streamId)
+      if (streamName == "default") {
+        streamCacheMapRefresh
+        singleMap.getStreamName(streamId)
+      } else streamName
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"stream cache map refresh failed", ex)
+        throw ex
+    }
 
   def getFlowId(flowName: String): Long =
     try {
       val pid = singleMap.getFlowId(flowName)
-      if(pid == 0) {
+      if (pid == 0) {
         flowCacheMapRefresh
         singleMap.getFlowId(flowName)
-      }else pid
+      } else pid
     } catch {
       case ex: Exception =>
         riderLogger.error(s"stream cache map refresh failed", ex)
@@ -155,18 +162,18 @@ object CacheMap extends RiderLogger {
     }
 
 
-  def getOffsetValue(streamid:Long,topicName:String,partitionId:Int)=
-  try {
-    val offset = singleMap.getOffsetValue(streamid,topicName,partitionId)
-    if(offset == 0) {
-      flowCacheMapRefresh
-      singleMap.getOffsetValue(streamid,topicName,partitionId)
-    }else offset
-  } catch {
-    case ex: Exception =>
-      riderLogger.error(s"stream cache map refresh failed", ex)
-      throw ex
-  }
+  def getOffsetValue(streamid: Long, topicName: String, partitionId: Int) =
+    try {
+      val offset = singleMap.getOffsetValue(streamid, topicName, partitionId)
+      if (offset == 0) {
+        flowCacheMapRefresh
+        singleMap.getOffsetValue(streamid, topicName, partitionId)
+      } else offset
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"stream cache map refresh failed", ex)
+        throw ex
+    }
 
   def streamCacheMapRefresh: Unit =
     try {
@@ -190,7 +197,7 @@ object CacheMap extends RiderLogger {
     }
 
 
-  def offsetMapRefresh:Unit ={
+  def offsetMapRefresh: Unit = {
     try {
       Await.result(modules.streamDal.getAllActiveStream, minTimeOut).foreach { stream =>
         FeedbackOffsetUtil.getOffsetFromFeedback(stream.streamId).foreach { e =>
@@ -204,10 +211,10 @@ object CacheMap extends RiderLogger {
     }
   }
 
-  def offsetMapRefreshByStreamId(streamId:Long) ={
+  def offsetMapRefreshByStreamId(streamId: Long) = {
     try {
-      FeedbackOffsetUtil.getOffsetFromFeedback(streamId).foreach{e =>
-        singleMap.setOffsetMap(e.streamId,e.topicName,e.partitionId,e.offset)
+      FeedbackOffsetUtil.getOffsetFromFeedback(streamId).foreach { e =>
+        singleMap.setOffsetMap(e.streamId, e.topicName, e.partitionId, e.offset)
       }
     } catch {
       case ex: Exception =>
@@ -216,28 +223,28 @@ object CacheMap extends RiderLogger {
     }
   }
 
-  def cacheMapInit ={
+  def cacheMapInit = {
     streamCacheMapRefresh
     flowCacheMapRefresh
     offsetMapRefresh
     cacheMapPrint
   }
 
-  def cacheMapPrint= {
+  def cacheMapPrint = {
 
     Await.result(modules.streamDal.getAllActiveStream, minTimeOut).foreach { stream =>
-      riderLogger.info(s" StreamMap  ${stream.streamId} -> ( ${singleMap.getStreamName(stream.streamId)}, ${singleMap.getProjectId(stream.streamId)} )")
+      //      riderLogger.info(s" StreamMap  ${stream.streamId} -> ( ${singleMap.getStreamName(stream.streamId)}, ${singleMap.getProjectId(stream.streamId)} )")
     }
 
     Await.result(modules.flowDal.adminGetAll(), minTimeOut).foreach { flow =>
-      riderLogger.info(s" FlowMap  ${flow.sourceNs}_${flow.sinkNs} -> ${flow.id}")
+      //      riderLogger.info(s" FlowMap  ${flow.sourceNs}_${flow.sinkNs} -> ${flow.id}")
     }
 
     Await.result(modules.streamDal.getAllActiveStream, minTimeOut).foreach { stream =>
       val a = FeedbackOffsetUtil.getOffsetFromFeedback(stream.streamId)
       a.foreach { e =>
-        val b = singleMap.getOffsetValue(e.streamId, e.topicName, e.partitionId)
-        riderLogger.info(s" OffsetMap ( ${e.streamId},${e.topicName},${e.partitionId} ) -> ${b}")
+        singleMap.getOffsetValue(e.streamId, e.topicName, e.partitionId)
+        //        riderLogger.info(s" OffsetMap ( ${e.streamId},${e.topicName},${e.partitionId} ) -> ${b}")
       }
     }
   }
