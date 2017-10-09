@@ -55,25 +55,30 @@ object SparkJobClientLog extends RiderLogger {
 
   }
 
-  def getAppStatusByLog(appName: String, curStatus: String): String = {
+  def getAppStatusByLog(appName: String, curStatus: String): (String, String) = {
     assert(appName != "" && appName != null, "Refresh Spark Application log, app name couldn't be null or blank.")
+    val appIdPattern = "application_([0-9]){13}_([0-9]){4}".r
     try {
       val fileLines = getLogByAppName(appName).split("\\n")
+      val appIdList = appIdPattern.findAllIn(fileLines.mkString("\\n")).toList
+      val appId = if (appIdList.nonEmpty) appIdList.last else ""
       riderLogger.debug(s"Refresh Spark Application status from client log success.")
       val hasException = fileLines.count(s => s contains "Exception") + fileLines.count(s => s contains "Error")
       val isRunning = fileLines.count(s => s contains s"(state: $RUNNING)")
       val isAccepted = fileLines.count(s => s contains s"(state: $ACCEPTED)")
       val isFinished = fileLines.count(s => s contains s"((state: $FINISHED))")
-      if (hasException == 0 && isRunning > 0) SparkRiderStatus.RUNNING.toString
+
+      val status = if (hasException == 0 && isRunning > 0) SparkRiderStatus.RUNNING.toString
       else if (hasException > 0) SparkRiderStatus.FAILED.toString
       else if (isAccepted > 0) SparkRiderStatus.WAITING.toString
       else if (isFinished > 0) SparkRiderStatus.FINISHED.toString
       else curStatus
+      (appId, status)
     }
     catch {
       case ex: Exception =>
         riderLogger.warn(s"Refresh Spark Application status from client log failed", ex)
-        curStatus
+        ("", curStatus)
     }
   }
 }

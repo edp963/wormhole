@@ -91,7 +91,7 @@ class JobAppApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseAppApiImpl(j
                   riderLogger.error(s"user ${session.userId} request to stop project $projectId, job $jobId, but the project $projectId doesn't exist.")
                   complete(Forbidden, getHeader(403, s"project $projectId doesn't exist", null))
                 }
-                val job = Await.result(jobDal.findById(projectId), minTimeOut)
+                val job = Await.result(jobDal.findById(jobId), minTimeOut)
                 if (job.isEmpty) {
                   riderLogger.error(s"user ${session.userId} request to stop project $projectId, job $jobId, but the job $jobId doesn't exist.")
                   complete(Forbidden, getHeader(403, s"job $jobId doesn't exist", null))
