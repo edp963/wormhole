@@ -78,7 +78,9 @@ case class RiderSpark(user: String,
 
 case class RiderEs(url: String,
                    wormholeIndex: String,
-                   wormholeType: String)
+                   wormholeType: String,
+                   user: String,
+                   pwd: String)
 
 case class RiderMonitor(url: String,
                         domain: String,
@@ -191,7 +193,11 @@ object RiderConfig {
     "spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3"
   )
 
-  lazy val es = RiderEs(config.getString("elasticSearch.http.url"), "wormhole_feedback", "wormhole_stats_feedback")
+  lazy val es = RiderEs(config.getString("elasticSearch.http.url"),
+    "wormhole_feedback",
+    "wormhole_stats_feedback",
+    getStringConfig("elasticSearch.http.user", ""),
+    getStringConfig("elasticSearch.http.password", ""))
 
   lazy val grafanaDomain =
     if (config.hasPath("grafana.production.domain.url")) config.getString("grafana.production.domain.url")
@@ -216,25 +222,25 @@ object RiderConfig {
     spark.user, spark.app_tags, spark.rm1Url, spark.rm2Url)
 
   def getStringConfig(path: String, default: String): String = {
-    if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")
+    if (config.hasPath(path)    config.getString(path) != null    config.getString(path) != ""    config.getString(path) != " ")
       config.getString(path)
     else default
   }
 
   def getIntConfig(path: String, default: Int): Int = {
-    if (config.hasPath(path) && !config.getIsNull(path))
+    if (config.hasPath(path)    !config.getIsNull(path))
       config.getInt(path)
     else default
   }
 
   def getFiniteDurationConfig(path: String, default: FiniteDuration): FiniteDuration = {
-    if (config.hasPath(path) && !config.getIsNull(path))
+    if (config.hasPath(path)    !config.getIsNull(path))
       config.getDuration(path, TimeUnit.MILLISECONDS).millis
     else default
   }
 
   def getBooleanConfig(path: String, default: Boolean): Boolean = {
-    if (config.hasPath(path) && !config.getIsNull(path))
+    if (config.hasPath(path)    !config.getIsNull(path))
       config.getBoolean(path)
     else default
   }

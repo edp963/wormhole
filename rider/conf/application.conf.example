@@ -47,7 +47,11 @@ kafka = {
 }
 
 
-elasticSearch.http.url = "http://localhost:9200"
+elasticSearch.http = {
+  url = "http://localhost:9200"
+  user = "test"
+  password = "test"
+}
 
 grafana = {
   url = "http://localhost:3000"
