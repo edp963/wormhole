@@ -25,6 +25,7 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.kafka.KafkaUtils._
+import edp.rider.rest.persistence.base.BaseDal
 import edp.rider.rest.persistence.dal.{FlowDal, StreamDal}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.JsonProtocol._
@@ -45,7 +46,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
 
-class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal) extends BaseUserApiImpl(streamDal) with RiderLogger {
+class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[StreamInTopicTable, StreamInTopic]) extends BaseUserApiImpl(streamDal) with RiderLogger {
 
   override def getByAllRoute(route: String): Route = path(route / LongNumber / "streams") {
     projectId =>
@@ -789,6 +790,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal) extends BaseUserApiI
                         riderLogger.info(s"user ${session.userId} stop stream $streamId success")
                       }
                       Await.result(streamDal.deleteById(streamId), minTimeOut)
+                      Await.result(inTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
                       CacheMap.streamCacheMapRefresh
                       riderLogger.info(s"user ${session.userId} delete stream $streamId success")
                       complete(OK, getHeader(200, session))

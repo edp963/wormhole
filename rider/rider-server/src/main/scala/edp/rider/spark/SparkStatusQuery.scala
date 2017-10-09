@@ -45,20 +45,21 @@ object SparkStatusQuery extends RiderLogger {
       else List()
     val startedTime = job.startedTime.orNull
     val stoppedTime = job.stoppedTime.orNull
-    val appInfo = getAppStatusByRest(sparkList, job.name, job.status, startedTime, job.updateTime)
+    val appInfo = getAppStatusByRest(sparkList, job.name, job.status, startedTime, stoppedTime)
     val result = job.status match {
       case "starting" =>
-        val status = getAppStatusByLog(job.name, job.status)
-        riderLogger.info(s"job log status: $status")
-        if (status.toUpperCase == "WAITING" || status.toUpperCase == "RUNNING" || status.toUpperCase == "STARTING") {
+        val logInfo = getAppStatusByLog(job.name, job.status)
+        riderLogger.info(s"job log status: $logInfo._2")
+        if (logInfo._2.toUpperCase == "WAITING" || logInfo._2.toUpperCase == "RUNNING" || logInfo._2.toUpperCase == "STARTING") {
           appInfo.appState.toUpperCase match {
             case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
             case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
             case "KILLED" | "FINISHED" | "FAILED" => AppInfo(appInfo.appId, "failed", appInfo.startedTime, appInfo.finishedTime)
             case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
-            case "STARTING" | "WAITING" => AppInfo(appInfo.appId, status, startedTime, appInfo.finishedTime)
+            case "STARTING" => AppInfo(logInfo._1, logInfo._2, startedTime, appInfo.finishedTime)
+            case "WAITING" => AppInfo(appInfo.appId, logInfo._2, startedTime, appInfo.finishedTime)
           }
-        } else AppInfo("", status, startedTime, appInfo.finishedTime)
+        } else AppInfo(logInfo._1, logInfo._2, startedTime, appInfo.finishedTime)
       case "waiting" =>
         appInfo.appState.toUpperCase match {
           case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
@@ -70,6 +71,7 @@ object SparkStatusQuery extends RiderLogger {
       case "running" =>
         appInfo.appState.toUpperCase match {
           case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
+          case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
           case "KILLED" | "FAILED" | "FINISHED" => AppInfo(appInfo.appId, "failed", appInfo.startedTime, appInfo.finishedTime)
           case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
         }
@@ -77,6 +79,7 @@ object SparkStatusQuery extends RiderLogger {
         appInfo.appState.toUpperCase match {
           case "STOPPING" => AppInfo(appInfo.appId, "stopping", appInfo.startedTime, appInfo.finishedTime)
           case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
+          case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
           case "KILLED" | "FAILED" | "FINISHED" => AppInfo(appInfo.appId, "stopped", appInfo.startedTime, appInfo.finishedTime)
           case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
         }
@@ -99,20 +102,15 @@ object SparkStatusQuery extends RiderLogger {
     getAllYarnAppStatus(fromTime)
   }
 
-  def getAppStatusByRest(appList: List[AppResult], appName: String, curStatus: String, startedTime: String, updateTime: String): AppInfo = {
-    var result = AppResult("", appName, curStatus, startedTime, null, null)
+  def getAppStatusByRest(appList: List[AppResult], appName: String, curStatus: String, startedTime: String, stoppedTime: String): AppInfo = {
+    var result = AppResult("", appName, curStatus, "", startedTime, stoppedTime)
     appList.foreach {
       app =>
         if (app.appName == appName) {
-          //          app
-          sparkRiderStatus(curStatus) match {
-            case SparkRiderStatus.STARTING | SparkRiderStatus.WAITING =>
-              if (dt2long(app.startedTime) >= dt2long(startedTime)) result = app else result
-            case _ => result = app
-          }
+          if (yyyyMMddHHmmss(app.startedTime) >= yyyyMMddHHmmss(result.startedTime))
+            result = app
         } else {
           riderLogger.debug("refresh spark/yarn api response is null")
-          result
         }
     }
     if (result.finalStatus != null && result.finalStatus == SparkAppStatus.SUCCEEDED.toString)

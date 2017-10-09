@@ -275,22 +275,19 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
           else {
             val sparkStatus: AppInfo = action match {
               case "refresh_spark" =>
-                val s = getAppStatusByRest(appInfoList, stream.name, stream.status, startedTime, dbUpdateTime)
-                //                riderLogger.info(s"spark status: $s")
-                s
+                getAppStatusByRest(appInfoList, stream.name, stream.status, startedTime, stoppedTime)
               case "refresh_log" =>
-                val status = SparkJobClientLog.getAppStatusByLog(stream.name, dbStatus)
-                //                riderLogger.info(s"log status: $status")
-                status match {
+                val logInfo = SparkJobClientLog.getAppStatusByLog(stream.name, dbStatus)
+                logInfo._2 match {
                   case "running" =>
-                    getAppStatusByRest(appInfoList, stream.name, status, startedTime, dbUpdateTime)
+                    getAppStatusByRest(appInfoList, stream.name, logInfo._2, startedTime, stoppedTime)
                   case "waiting" =>
-                    val curInfo = getAppStatusByRest(appInfoList, stream.name, status, startedTime, dbUpdateTime)
+                    val curInfo = getAppStatusByRest(appInfoList, stream.name, logInfo._2, startedTime, stoppedTime)
                     AppInfo(curInfo.appId, curInfo.appState, startedTime, curInfo.finishedTime)
-                  case "starting" => getAppStatusByRest(appInfoList, stream.name, status, startedTime, dbUpdateTime)
-                  case "failed" => AppInfo("", "failed", null, null)
+                  case "starting" => getAppStatusByRest(appInfoList, stream.name, logInfo._2, startedTime, stoppedTime)
+                  case "failed" => AppInfo(logInfo._1, "failed", startedTime, currentSec)
                 }
-              case _ => AppInfo("", stream.status, null, null)
+              case _ => AppInfo("", stream.status, startedTime, null)
             }
             if (sparkStatus == null) AppInfo(stream.sparkAppid.getOrElse(""), "failed", startedTime, stoppedTime)
             else {
@@ -300,32 +297,32 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
                     case "RUNNING" => AppInfo(sparkStatus.appId, "running", sparkStatus.startedTime, sparkStatus.finishedTime)
                     case "ACCEPTED" => AppInfo(sparkStatus.appId, "waiting", sparkStatus.startedTime, sparkStatus.finishedTime)
                     case "KILLED" | "FINISHED" | "FAILED" => AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
-                    case _ => AppInfo(stream.sparkAppid.getOrElse(""), "starting", startedTime, stoppedTime)
+                    case _ => AppInfo(sparkStatus.appId, "starting", startedTime, stoppedTime)
                   }
                 case "waiting" => sparkStatus.appState.toUpperCase match {
                   case "RUNNING" => AppInfo(sparkStatus.appId, "running", sparkStatus.startedTime, sparkStatus.finishedTime)
                   case "ACCEPTED" => AppInfo(sparkStatus.appId, "waiting", sparkStatus.startedTime, sparkStatus.finishedTime)
                   case "KILLED" | "FINISHED" | "FAILED" => AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
-                  case _ => AppInfo(stream.sparkAppid.getOrElse(""), "waiting", startedTime, stoppedTime)
+                  case _ => AppInfo(sparkStatus.appId, "waiting", startedTime, stoppedTime)
                 }
                 case "running" =>
                   if (List("FAILED", "KILLED", "FINISHED").contains(sparkStatus.appState.toUpperCase)) {
                     AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
                   }
                   else {
-                    AppInfo(stream.sparkAppid.getOrElse(""), "running", startedTime, stoppedTime)
+                    AppInfo(sparkStatus.appId, "running", startedTime, stoppedTime)
                   }
                 case "stopping" =>
                   if (sparkStatus.appState == "KILLED") {
                     AppInfo(sparkStatus.appId, "stopped", sparkStatus.startedTime, sparkStatus.finishedTime)
                   }
                   else {
-                    AppInfo(stream.sparkAppid.getOrElse(""), "stopping", startedTime, stoppedTime)
+                    AppInfo(sparkStatus.appId, "stopping", startedTime, stoppedTime)
                   }
                 case "new" =>
-                  AppInfo(stream.sparkAppid.getOrElse(""), "new", startedTime, stoppedTime)
+                  AppInfo("", "new", startedTime, stoppedTime)
                 case "stopped" =>
-                  AppInfo(stream.sparkAppid.getOrElse(""), "stopped", startedTime, stoppedTime)
+                  AppInfo(sparkStatus.appId, "stopped", startedTime, stoppedTime)
                 case "failed" =>
                   sparkStatus.appState.toUpperCase match {
                     case "RUNNING" => AppInfo(sparkStatus.appId, "running", sparkStatus.startedTime, sparkStatus.finishedTime)
@@ -333,7 +330,7 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
                     case "KILLED" | "FINISHED" | "FAILED" | _ => AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
 
                   }
-                case _ => AppInfo(stream.sparkAppid.getOrElse(""), dbStatus, startedTime, stoppedTime)
+                case _ => AppInfo(sparkStatus.appId, dbStatus, startedTime, stoppedTime)
               }
               resStatus
             }
