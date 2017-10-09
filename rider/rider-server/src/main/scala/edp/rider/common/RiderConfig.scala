@@ -84,10 +84,11 @@ case class RiderEs(url: String,
 
 case class RiderMonitor(url: String,
                         domain: String,
-                        adminUser: String,
-                        adminToken: String,
-                        viewUser: String,
-                        viewToken: String)
+                        //                        adminUser: String,
+                        adminToken: String)
+
+//                        viewUser: String,
+//                        viewToken: String)
 
 case class Maintenance(mysqlRemain: Int,
                        esRemain: Int)
@@ -207,10 +208,7 @@ object RiderConfig {
     if (config.hasPath("grafana"))
       RiderMonitor(config.getString("grafana.url"),
         grafanaDomain,
-        config.getString("grafana.admin.user"),
-        config.getString("grafana.admin.token"),
-        config.getString("grafana.viewer.user"),
-        config.getString("grafana.viewer.token"))
+        config.getString("grafana.admin.token"))
     else null
 
   lazy val maintenance = Maintenance(config.getInt("maintenance.mysql.feedback.remain.maxDays"),
