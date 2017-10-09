@@ -109,13 +109,11 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
   def updateOffsetFromFeedback(streamId: Long, userId: Long): Seq[TopicDetail] = {
     try {
       val topicSeq = Await.result(getTopicDetailByStreamId(streamId), minTimeOut)
-      riderLogger.error(s"topic seq: $topicSeq")
       if (topicSeq.size != 0) {
         val topicFeedbackSeq = Await.result(db.run(feedbackOffsetTable.filter(_.streamId === streamId).sortBy(_.feedbackTime.desc).take(topicSeq.size + 1).result).mapTo[Seq[FeedbackOffset]], minTimeOut)
-        riderLogger.error(s"topic feedback seq: $topicSeq")
         val map = topicFeedbackSeq.map(topic => (topic.topicName, topic.partitionOffsets)).toMap
         val updateSeq = new ArrayBuffer[StreamInTopic]
-        topicSeq.map(
+        val latestOffset = topicSeq.map(
           topic => {
             if (map.contains(topic.name)) {
               updateSeq += StreamInTopic(topic.id, topic.streamId, topic.nsInstanceId, topic.nsDatabaseId,
@@ -128,8 +126,9 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
         )
         if (updateSeq.size != 0)
           updateSeq.map(topic => Await.result(db.run(streamInTopicTable.filter(_.id === topic.id).update(topic)), minTimeOut))
+        latestOffset
       }
-      topicSeq
+      else topicSeq
     } catch {
       case ex: Exception =>
         riderLogger.error(s"get stream $streamId latest offset from stream_feedback_offset table failed", ex)

@@ -151,8 +151,10 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     try {
       val flowIdSeq = flowAction.flowIds.split(",").map(_.toLong)
       val flowSeq = Await.result(super.findByFilter(_.id inSet flowIdSeq), minTimeOut)
+      val streamMap = Await.result(streamDal.findByFilter(_.id inSet flowSeq.map(_.streamId)), minTimeOut).map(
+        stream =>(stream.id, stream.streamType)).toMap
       if (flowAction.action == "delete") {
-        flowSeq.map(flow => stopFlow(flow.streamId, flow.id, userId, "", flow.sourceNs, flow.sinkNs))
+        flowSeq.map(flow => stopFlow(flow.streamId, flow.id, userId, streamMap(flow.streamId), flow.sourceNs, flow.sinkNs))
         Await.result(super.deleteById(flowIdSeq), minTimeOut)
         CacheMap.flowCacheMapRefresh
         riderLogger.info(s"user $userId delete flow ${flowAction.flowIds} success")

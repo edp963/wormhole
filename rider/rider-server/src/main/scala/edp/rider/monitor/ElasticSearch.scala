@@ -24,6 +24,7 @@ package edp.rider.monitor
 import java.io.IOException
 
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.headers.BasicHttpCredentials
 import akka.http.scaladsl.model.{HttpMethods, HttpRequest, Uri, _}
 import akka.http.scaladsl.unmarshalling._
 import akka.util.ByteString
@@ -166,7 +167,7 @@ object ElasticSearch extends RiderLogger {
       headers = List(b),
       protocol = HttpProtocols.`HTTP/1.1`,
       entity = HttpEntity.apply(ContentTypes.`application/json`, ByteString(postBody))
-    )
+    ).addCredentials(BasicHttpCredentials(RiderConfig.es.user, RiderConfig.es.pwd))
     riderLogger.debug(s"httpRequest ${
       httpRequest.toString
     }.")
@@ -202,7 +203,7 @@ object ElasticSearch extends RiderLogger {
       headers = List(b),
       protocol = HttpProtocols.`HTTP/1.1`,
       entity = HttpEntity.apply(ContentTypes.`application/json`, ByteString(postBody))
-    )
+    ).addCredentials(BasicHttpCredentials(RiderConfig.es.user, RiderConfig.es.pwd))
 //    riderLogger.info(s"httpRequest ${
 //      httpRequest.toString
 //    }.")
