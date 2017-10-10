@@ -55,6 +55,8 @@ object NamespaceUtils extends RiderLogger {
           case None => ""
         }
         s"jdbc:oracle:thin:@(DESCRIPTION=(FAILOVER = yes)(ADDRESS = (PROTOCOL = TCP)(HOST =${hostPort(0)})(PORT = ${hostPort(1)}))(CONNECT_DATA =(SERVER = DEDICATED)(SERVICE_NAME = $serviceName)))"
+      case "phoenix" => s"jdbc:phoenix:${instance.connUrl}"
+      case "postgresql" | "cassandra" => s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}"
       case _ => instance.connUrl
     }
 

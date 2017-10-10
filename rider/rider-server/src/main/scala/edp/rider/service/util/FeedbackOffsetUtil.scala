@@ -95,7 +95,6 @@ object FeedbackOffsetUtil extends RiderLogger with ConfigurationModuleImpl with 
       }
       pid += 1
     }
-    riderLogger.info(s"Rider Consumer Topic: " + topicMap.toString)
     topicMap
   }
 
