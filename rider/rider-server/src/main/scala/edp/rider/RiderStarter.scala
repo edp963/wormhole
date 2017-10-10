@@ -21,7 +21,6 @@
 
 package edp.rider
 
-import edp.rider.module.DbModule._
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import edp.rider.common.{RiderConfig, RiderLogger}
@@ -29,8 +28,8 @@ import edp.rider.kafka.ConsumerManager
 import edp.rider.module._
 import edp.rider.rest.persistence.entities.User
 import edp.rider.rest.router.RoutesApi
-import edp.rider.schedule.Scheduler
 import edp.rider.rest.util.CommonUtils._
+import edp.rider.schedule.Scheduler
 import edp.rider.service.util.CacheMap
 import slick.jdbc.MySQLProfile.api._
 
@@ -52,15 +51,26 @@ object RiderStarter extends App with RiderLogger {
 
   if (Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.adminUser), minTimeOut).isEmpty)
     Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.adminUser, RiderConfig.riderServer.adminPwd, RiderConfig.riderServer.adminUser, "admin", active = true, currentSec, 1, currentSec, 1)), minTimeOut)
-//  if(Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.normalUser), minTimeOut).isEmpty)
-//    Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.normalUser, RiderConfig.riderServer.normalPwd, RiderConfig.riderServer.normalUser, "user", active = true, currentSec, 1, currentSec, 1)), minTimeOut)
+  //  if(Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.normalUser), minTimeOut).isEmpty)
+  //    Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.normalUser, RiderConfig.riderServer.normalPwd, RiderConfig.riderServer.normalUser, "user", active = true, currentSec, 1, currentSec, 1)), minTimeOut)
   Http().bindAndHandle(new RoutesApi(modules).routes, RiderConfig.riderServer.host, RiderConfig.riderServer.port)
   riderLogger.info(s"RiderServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
+
   CacheMap.cacheMapInit
+
+  monitor.ElasticSearch.createEsIndex()
+  monitor.GrafanaApi.createOrUpdateDataSource(RiderConfig.grafana.url,
+    RiderConfig.grafana.adminToken,
+    RiderConfig.grafana.esDataSourceName,
+    RiderConfig.es.url,
+    RiderConfig.es.wormholeIndex,
+    RiderConfig.es.user,
+    RiderConfig.es.pwd)
+
   val manager = new ConsumerManager(modules)
   riderLogger.info(s"Rider Consumer started")
   Scheduler.start
   riderLogger.info(s"Rider Scheduler started")
 
-  monitor.ElasticSearch.createEsIndex()
+
 }

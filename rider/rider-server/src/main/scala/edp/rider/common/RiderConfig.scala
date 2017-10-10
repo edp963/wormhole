@@ -84,7 +84,7 @@ case class RiderEs(url: String,
 
 case class RiderMonitor(url: String,
                         domain: String,
-                        //                        adminUser: String,
+                        esDataSourceName: String,
                         adminToken: String)
 
 //                        viewUser: String,
@@ -207,7 +207,7 @@ object RiderConfig {
   lazy val grafana =
     if (config.hasPath("grafana"))
       RiderMonitor(config.getString("grafana.url"),
-        grafanaDomain,
+        grafanaDomain, "edp_flows_stats",
         config.getString("grafana.admin.token"))
     else null
 

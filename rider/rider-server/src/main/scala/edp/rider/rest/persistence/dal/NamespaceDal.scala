@@ -62,7 +62,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
                 Await.result(entity.dataBytes.runFold(ByteString(""))(_ ++ _).map {
                   riderLogger.info(s"synchronize dbus namespaces $service success.")
                   body => simpleDbusSeq ++= json2caseClass[Seq[SimpleDbus]](body.utf8String)
-                }, 5.second)
+                }, minTimeOut)
               case resp@HttpResponse(code, _, _, _) =>
                 riderLogger.error(s"synchronize dbus namespaces $service failed, ${code.reason}.")
                 "parse failed"

@@ -81,7 +81,7 @@ object JsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val formatTopicDetailUser: RootJsonFormat[TopicDetail] = jsonFormat13(TopicDetail)
   implicit val formatStreamAdmin: RootJsonFormat[StreamAdmin] = jsonFormat6(StreamAdmin)
   implicit val formatRiderDatabase: RootJsonFormat[RiderDatabase] = jsonFormat3(RiderDatabase)
-  implicit val formatRiderMonitor: RootJsonFormat[RiderMonitor] = jsonFormat3(RiderMonitor)
+  implicit val formatRiderMonitor: RootJsonFormat[RiderMonitor] = jsonFormat4(RiderMonitor)
   implicit val formatRiderInfo: RootJsonFormat[RiderInfo] = jsonFormat9(RiderInfo)
   implicit val formatGrafanaConnectionInfo: RootJsonFormat[GrafanaConnectionInfo] = jsonFormat1(GrafanaConnectionInfo)
   implicit val formatStreamResource: RootJsonFormat[StreamResource] = jsonFormat6(StreamResource)
