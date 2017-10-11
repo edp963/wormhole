@@ -32,6 +32,7 @@ import Col from 'antd/lib/col'
 import Icon from 'antd/lib/icon'
 import Button from 'antd/lib/button'
 import Modal from 'antd/lib/modal'
+import Popconfirm from 'antd/lib/popconfirm'
 import Tooltip from 'antd/lib/tooltip'
 import message from 'antd/lib/message'
 
@@ -40,7 +41,7 @@ import { selectProjects, selectModalLoading, selectProjectNameExited } from './s
 import { selectNamespaces } from '../Namespace/selectors'
 import { selectUsers } from '../User/selectors'
 
-import { loadProjects, loadUserProjects, addProject, editProject, loadProjectNameInputValue, loadSingleProject } from './action'
+import { loadProjects, loadUserProjects, addProject, editProject, loadProjectNameInputValue, loadSingleProject, deleteSingleProject } from './action'
 import { loadSelectNamespaces, loadProjectNsAll } from '../Namespace/action'
 import { loadSelectUsers, loadProjectUserAll } from '../User/action'
 
@@ -264,6 +265,15 @@ export class Project extends React.Component {
       })
   }
 
+  // 阻止事件的传播，避免点击后进入项目内
+  deletePro = (e) => {
+    e.stopPropagation()
+  }
+
+  deleteAdminProject = (p) => (e) => {
+    this.props.onDeleteSingleProject(p.id, () => {})
+  }
+
   render () {
     const { projects } = this.props
 
@@ -293,6 +303,11 @@ export class Project extends React.Component {
                 <Button icon="edit" shape="circle" type="ghost" onClick={this.showDetail(p)} />
               </Tooltip>
               {showOrHideBtn}
+              <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteAdminProject(p)}>
+                <Tooltip title="删除" onClick={this.deletePro}>
+                  <Button icon="delete" shape="circle" type="ghost"></Button>
+                </Tooltip>
+              </Popconfirm>
             </div>
           )
         } else if (localStorage.getItem('loginRoleType') === 'user') {
@@ -439,6 +454,7 @@ Project.propTypes = {
   onAddProject: React.PropTypes.func,
   onEditProject: React.PropTypes.func,
   onLoadProjectNameInputValue: React.PropTypes.func,
+  onDeleteSingleProject: React.PropTypes.func,
 
   onLoadProjectNsAll: React.PropTypes.func,
   onLoadProjectUserAll: React.PropTypes.func
@@ -454,6 +470,7 @@ export function mapDispatchToProps (dispatch) {
     onAddProject: (project, resolve, final) => dispatch(addProject(project, resolve, final)),
     onEditProject: (project, resolve, final) => dispatch(editProject(project, resolve, final)),
     onLoadProjectNameInputValue: (value, resolve, reject) => dispatch(loadProjectNameInputValue(value, resolve, reject)),
+    onDeleteSingleProject: (projectId, resolve) => dispatch(deleteSingleProject(projectId, resolve)),
 
     onLoadProjectNsAll: (resolve) => dispatch(loadProjectNsAll(resolve)),
     onLoadProjectUserAll: (resolve) => dispatch(loadProjectUserAll(resolve))

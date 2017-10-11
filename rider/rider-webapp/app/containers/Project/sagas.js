@@ -26,7 +26,8 @@ import {
   LOAD_SINGLE_PROJECT,
   ADD_PROJECT,
   EDIT_PROJECT,
-  LOAD_PROJECT_NAME_VALUE
+  LOAD_PROJECT_NAME_VALUE,
+  DELETE_SINGLE_PROJECT
 } from './constants'
 import {
   projectsLoaded,
@@ -36,6 +37,7 @@ import {
   projectEdited,
   projectNameInputValueLoaded,
   projectNameInputValueErrorLoaded,
+  singleProjectDeleted,
   getError
 } from './action'
 
@@ -151,11 +153,28 @@ export function* getProjectNameInputValueWatcher () {
   yield fork(throttle, 500, LOAD_PROJECT_NAME_VALUE, getProjectNameInputValue)
 }
 
+export function* deleteSinglePro ({ payload }) {
+  try {
+    yield call(request, {
+      method: 'delete',
+      url: `${api.projectList}/${payload.projectId}`
+    })
+    yield put(singleProjectDeleted(payload.projectId, payload.resolve))
+  } catch (err) {
+    yield put(getError(err))
+  }
+}
+
+export function* deleteSingleProWatcher () {
+  yield fork(takeEvery, DELETE_SINGLE_PROJECT, deleteSinglePro)
+}
+
 export default [
   getProjectsWatcher,
   getUserProjectsWatcher,
   getSingleProjectWatcher,
   addProjectWatcher,
   editProjectWatcher,
-  getProjectNameInputValueWatcher
+  getProjectNameInputValueWatcher,
+  deleteSingleProWatcher
 ]

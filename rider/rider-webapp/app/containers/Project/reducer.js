@@ -34,6 +34,8 @@ import {
   LOAD_PROJECT_NAME_VALUE,
   LOAD_PROJECT_NAME_VALUE_SUCCESS,
   LOAD_PROJECT_NAME_VALUE_ERROR,
+  DELETE_SINGLE_PROJECT,
+  DELETE_SINGLE_PROJECT_SUCCESS,
   GET_ERROR
 } from './constants'
 
@@ -86,6 +88,11 @@ export function projectReducer (state = initialState, { type, payload }) {
     case LOAD_PROJECT_NAME_VALUE_ERROR:
       payload.reject()
       return state.set('projectNameExited', true)
+    case DELETE_SINGLE_PROJECT:
+      return state
+    case DELETE_SINGLE_PROJECT_SUCCESS:
+      payload.resolve()
+      return state.set('projects', projects.filter(g => g.id !== payload.result))
     case GET_ERROR:
       payload.final && payload.final()
       return state
