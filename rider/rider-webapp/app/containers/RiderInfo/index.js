@@ -29,34 +29,34 @@ import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 const FormItem = Form.Item
 
-// import { loadRiderInfos } from './action'
+import { loadRiderInfos } from './action'
 import { selectRiderInfos } from './selectors'
 
 export class RiderInfo extends React.Component {
   componentWillMount () {
-    // this.props.onLoadRiderInfos()
+    this.props.onLoadRiderInfos()
   }
 
   render () {
     const { riderInfos } = this.props
 
-    let infoMonitor = {}
-    let infoConsumer = {}
-    let infoZk = {}
-    let infoDb = {}
-    let infoSpark = {}
-    if (typeof (riderInfos) === 'object') {
-      infoMonitor = riderInfos.monitor
-      infoConsumer = riderInfos.consumer
-      infoZk = riderInfos.zk
-      infoDb = riderInfos.db
-      infoSpark = riderInfos.spark
-    }
+    // let infoMonitor = {}
+    // let infoConsumer = {}
+    // let infoZk = {}
+    // let infoDb = {}
+    // let infoSpark = {}
+    // if (typeof (riderInfos) === 'object') {
+    //   infoMonitor = riderInfos.monitor
+    //   infoConsumer = riderInfos.consumer
+    //   infoZk = riderInfos.zk
+    //   infoDb = riderInfos.db
+    //   infoSpark = riderInfos.spark
+    // }
 
-    const itemStyle = {
-      labelCol: { span: 3 },
-      wrapperCol: { span: 21 }
-    }
+    // const itemStyle = {
+    //   labelCol: { span: 11 },
+    //   wrapperCol: { span: 12 }
+    // }
 
     return (
       <div className={`ri-workbench-table ri-common-block`}>
@@ -65,7 +65,24 @@ export class RiderInfo extends React.Component {
           <Icon type="bars" /> Rider Info 列表
         </h3>
         <Form className="rider-info-class">
-          <Row gutter={8}>
+          <Row>
+            <Col span={6}></Col>
+            <Col span={12}>
+              <FormItem label="">
+                <pre>"zookeeper":"{riderInfos.zookeeper}"</pre>
+                <pre>"kafka":"{riderInfos.kafka}"</pre>
+                <pre>"feedback_topic":"{riderInfos.feedback_topic}"</pre>
+                <pre>"heartbeat_topic":"{riderInfos.heartbeat_topic}"</pre>
+                <pre>"hdfslog_root_path":"{riderInfos.hdfslog_root_path}"</pre>
+                <pre>"spark_submit_user":"{riderInfos.spark_submit_user}"</pre>
+                <pre>"spark_app_tags":"{riderInfos.spark_app_tags}"</pre>
+                <pre>"yarn_rm1_http_url":"{riderInfos.yarn_rm1_http_url}"</pre>
+                <pre>"yarn_rm2_http_url":"{riderInfos.yarn_rm2_http_url}"</pre>
+              </FormItem>
+            </Col>
+            <Col span={6}></Col>
+          </Row>
+          {/* <Row gutter={8}>
             <Col span={12}>
               <FormItem label="Monitor" {...itemStyle}>
                 <pre>"grafana_host":"{infoMonitor.grafana_host}"</pre>
@@ -116,7 +133,7 @@ export class RiderInfo extends React.Component {
                 <pre>"log_path":"{infoSpark.log_path}"</pre>
               </FormItem>
             </Col>
-          </Row>
+          </Row> */}
         </Form>
 
       </div>
@@ -125,7 +142,7 @@ export class RiderInfo extends React.Component {
 }
 
 RiderInfo.propTypes = {
-  // onLoadRiderInfos: React.PropTypes.func,
+  onLoadRiderInfos: React.PropTypes.func,
   riderInfos: React.PropTypes.oneOfType([
     React.PropTypes.object,
     React.PropTypes.bool
@@ -134,7 +151,7 @@ RiderInfo.propTypes = {
 
 export function mapDispatchToProps (dispatch) {
   return {
-    // onLoadRiderInfos: () => dispatch(loadRiderInfos())
+    onLoadRiderInfos: () => dispatch(loadRiderInfos())
   }
 }
 

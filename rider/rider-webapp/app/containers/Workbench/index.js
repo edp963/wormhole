@@ -376,18 +376,20 @@ export class Workbench extends React.Component {
    * 生成 step1 的 Hdfslog Source/Sink Namespace Cascader 所需数据源
    */
   generateHdfslogNamespaceHierarchy = (system, result) => {
-    const snsHierarchy = [{
-      value: '*',
-      label: '*',
-      children: [{
+    const snsHierarchy = result.length === 0
+      ? []
+      : [{
         value: '*',
         label: '*',
         children: [{
           value: '*',
-          label: '*'
+          label: '*',
+          children: [{
+            value: '*',
+            label: '*'
+          }]
         }]
       }]
-    }]
 
     result.forEach(item => {
       if (item.nsSys === system) {
@@ -1154,6 +1156,31 @@ export class Workbench extends React.Component {
     })
   }
 
+  /**
+   *  JSON 格式校验
+   *  如果JSON.parse能转换成功；并且字符串中包含 { 时，那么该字符串就是JSON格式的字符串。
+   *  另：sink config 可为空
+   */
+  isJSON (str) {
+    if (typeof str === 'string') {
+      if (str === '') {
+        return true
+      } else {
+        try {
+          JSON.parse(str)
+          if (str.indexOf('{') > -1) {
+            return true
+          } else {
+            return false
+          }
+        } catch (e) {
+          return false
+        }
+      }
+    }
+    return false
+  }
+
   forwardStep = () => {
     if (this.state.streamDiffType === 'default') {
       this.handleForwardDefault()
@@ -1190,6 +1217,13 @@ export class Workbench extends React.Component {
         switch (this.state.formStep) {
           case 0:
             const values = this.workbenchFlowForm.getFieldsValue()
+
+            if (values.sinkConfig !== undefined) {
+              if (this.isJSON(values.sinkConfig) === false) {
+                message.error('Sink Config 应为 JSON格式！', 3)
+                return
+              }
+            }
 
             if (flowMode === 'add' || flowMode === 'copy') {
               // 新增flow时验证source to sink 是否存在
@@ -1463,9 +1497,11 @@ export class Workbench extends React.Component {
         message.error('Source to Sink 已存在！', 3)
       } else {
         new Promise((resolve) => {
-          this.props.onAddFlow(submitFlowData, () => {
-            resolve()
-            if (flowMode === 'add') {
+          this.props.onAddFlow(submitFlowData, (result) => {
+            resolve(result)
+            if (result.length === 0) {
+              message.success('该 Flow 已被创建！', 3)
+            } else if (flowMode === 'add') {
               message.success('Flow 添加成功！', 3)
             } else if (flowMode === 'copy') {
               message.success('Flow 复制成功！', 3)

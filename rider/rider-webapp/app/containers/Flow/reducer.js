@@ -130,8 +130,11 @@ function flowReducer (state = initialState, { type, payload }) {
     case ADD_FLOWS:
       return state.set('flowSubmitLoading', true)
     case ADD_FLOWS_SUCCESS:
-      payload.resolve()
-      flows.unshift(payload.result)
+      payload.resolve(payload.result)
+
+      for (let i = 0; i < payload.result.length; i++) {
+        flows.unshift(payload.result[i])
+      }
       payload.final()
       return state
         .set('flows', flows.slice())
