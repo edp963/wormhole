@@ -54,7 +54,7 @@ class RiderInfoAdminRoutes(modules: ConfigurationModule with PersistenceModule w
         session =>
           if (session.roleType != "admin") {
             riderLogger.warn(s"${session.userId} has no permission to access it.")
-            complete(Forbidden, getHeader(403, session))
+            complete(OK, getHeader(403, session))
           }
           else {
             complete(OK, ResponseJson[RiderInfo](getHeader(200, session), RiderConfig.riderInfo))

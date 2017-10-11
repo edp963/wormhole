@@ -40,7 +40,7 @@ class MonitorUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wi
           session =>
             if (session.roleType != "user") {
               riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               if (session.projectIdList.contains(id)) {
@@ -49,7 +49,7 @@ class MonitorUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wi
               }
               else {
                 riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
             }
         }

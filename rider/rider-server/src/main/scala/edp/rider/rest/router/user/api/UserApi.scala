@@ -42,7 +42,7 @@ class UserApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) extends Ba
           session =>
             if (session.roleType != "user") {
               riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               if (session.projectIdList.contains(id)) {
@@ -52,11 +52,11 @@ class UserApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) extends Ba
                     complete(OK, ResponseSeqJson[User](getHeader(200, session), users.sortBy(_.id)))
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} select users where project id is $id failed", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
               } else {
                 riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
             }
         }

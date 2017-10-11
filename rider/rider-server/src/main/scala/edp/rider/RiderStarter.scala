@@ -54,23 +54,14 @@ object RiderStarter extends App with RiderLogger {
   //  if(Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.normalUser), minTimeOut).isEmpty)
   //    Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.normalUser, RiderConfig.riderServer.normalPwd, RiderConfig.riderServer.normalUser, "user", active = true, currentSec, 1, currentSec, 1)), minTimeOut)
   Http().bindAndHandle(new RoutesApi(modules).routes, RiderConfig.riderServer.host, RiderConfig.riderServer.port)
-  riderLogger.info(s"RiderServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
+  riderLogger.info(s"WormholeServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
 
   CacheMap.cacheMapInit
 
-  monitor.ElasticSearch.createEsIndex()
-  monitor.GrafanaApi.createOrUpdateDataSource(RiderConfig.grafana.url,
-    RiderConfig.grafana.adminToken,
-    RiderConfig.grafana.esDataSourceName,
-    RiderConfig.es.url,
-    RiderConfig.es.wormholeIndex,
-    RiderConfig.es.user,
-    RiderConfig.es.pwd)
-
   val manager = new ConsumerManager(modules)
-  riderLogger.info(s"Rider Consumer started")
+  riderLogger.info(s"WormholeServer Consumer started")
   Scheduler.start
-  riderLogger.info(s"Rider Scheduler started")
+  riderLogger.info(s"Wormhole Scheduler started")
 
 
 }

@@ -42,6 +42,8 @@ object CommonUtils extends RiderLogger {
 
   def streamSubmitTimeout = 120.seconds
 
+  def keyEqualValuePattern = "(.)+=(.)+(&(.)+=(.)+)+".r.pattern
+
   def isJson(str: String): Boolean = {
     try {
       if (str == "" || str == null)
@@ -61,7 +63,6 @@ object CommonUtils extends RiderLogger {
     if (str == "" || str == null)
       return true
     val seq = str.split(",")
-    val keyEqualValuePattern = "(.)+=(.)+".r.pattern
     seq.foreach(
       str =>
         if (!keyEqualValuePattern.matcher(str).matches())

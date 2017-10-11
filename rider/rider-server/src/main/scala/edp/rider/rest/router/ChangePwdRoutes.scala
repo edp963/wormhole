@@ -67,7 +67,7 @@ class ChangePwdRoutes(modules: ConfigurationModule with PersistenceModule with B
                         complete(OK, getHeader(200, session))
                       case Failure(ex) =>
                         riderLogger.error(s"${session.userId} change password failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   } else {
                     riderLogger.warn(s"${session.userId} change password failed, the old password is wrong.")
@@ -75,9 +75,9 @@ class ChangePwdRoutes(modules: ConfigurationModule with PersistenceModule with B
                   }
                 case None =>
                   riderLogger.warn(s"${session.userId} change password failed, the user doesn't exist.")
-                  complete(UserNotFound.statusCode, getHeader(UserNotFound.statusCode.intValue, session))
+                  complete(OK, getHeader(UserNotFound.statusCode.intValue, session))
               }
-              case Failure(ex) => complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+              case Failure(ex) => complete(OK, getHeader(451, ex.getMessage, session))
             }
         }
       }

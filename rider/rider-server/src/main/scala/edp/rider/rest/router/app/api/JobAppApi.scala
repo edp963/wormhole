@@ -83,21 +83,21 @@ class JobAppApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseAppApiImpl(j
           session =>
             if (session.roleType != "app") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, null))
+              complete(OK, getHeader(403, null))
             } else {
               try {
                 val project = Await.result(projectDal.findById(projectId), minTimeOut)
                 if (project.isEmpty) {
                   riderLogger.error(s"user ${session.userId} request to stop project $projectId, job $jobId, but the project $projectId doesn't exist.")
-                  complete(Forbidden, getHeader(403, s"project $projectId doesn't exist", null))
+                  complete(OK, getHeader(403, s"project $projectId doesn't exist", null))
                 }
                 val job = Await.result(jobDal.findById(jobId), minTimeOut)
                 if (job.isEmpty) {
                   riderLogger.error(s"user ${session.userId} request to stop project $projectId, job $jobId, but the job $jobId doesn't exist.")
-                  complete(Forbidden, getHeader(403, s"job $jobId doesn't exist", null))
+                  complete(OK, getHeader(403, s"job $jobId doesn't exist", null))
                 } else if (job.head.status == "starting") {
                   riderLogger.warn(s"user ${session.userId} job $jobId status is ${job.head.status}, can't stop now.")
-                  complete(Forbidden, getHeader(403, s"job $jobId status is starting, can't stop now.", null))
+                  complete(OK, getHeader(403, s"job $jobId status is starting, can't stop now.", null))
                 } else {
                   val status = killJob(jobId)
                   riderLogger.info(s"user ${session.userId} stop job $jobId success.")
@@ -106,7 +106,7 @@ class JobAppApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseAppApiImpl(j
               } catch {
                 case ex: Exception =>
                   riderLogger.error(s"user ${session.userId} stop job $jobId failed", ex)
-                  complete(UnavailableForLegalReasons, getHeader(451, null))
+                  complete(OK, getHeader(451, null))
               }
             }
         }

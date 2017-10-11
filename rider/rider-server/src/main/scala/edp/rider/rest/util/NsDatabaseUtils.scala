@@ -24,6 +24,9 @@ package edp.rider.rest.util
 
 object NsDatabaseUtils {
 
+  def checkFormat(config: String) = {
+
+  }
 
 }
 

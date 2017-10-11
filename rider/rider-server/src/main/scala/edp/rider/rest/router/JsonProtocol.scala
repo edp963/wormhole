@@ -40,7 +40,7 @@ object JsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
   implicit def formatResponseSeqJson[A: JsonFormat]: RootJsonFormat[ResponseSeqJson[A]] = jsonFormat2(ResponseSeqJson.apply[A])
 
   implicit val formatInstance: RootJsonFormat[Instance] = jsonFormat10(Instance)
-  implicit val formatSimpleInstance: RootJsonFormat[SimpleInstance] = jsonFormat3(SimpleInstance)
+  implicit val formatSimpleInstance: RootJsonFormat[SimpleInstance] = jsonFormat4(SimpleInstance)
   implicit val formatDatabase: RootJsonFormat[NsDatabase] = jsonFormat14(NsDatabase)
   implicit val formatSimpleDatabase: RootJsonFormat[SimpleNsDatabase] = jsonFormat8(SimpleNsDatabase)
   implicit val formatDatabaseInstance: RootJsonFormat[DatabaseInstance] = jsonFormat17(DatabaseInstance)

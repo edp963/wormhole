@@ -42,7 +42,7 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
             session =>
               if (session.roleType != "admin") {
                 riderLogger.warn(s"${session.userId} has no permission to access it.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
               else {
                 onComplete(streamDal.adminGetAll.mapTo[Seq[StreamAdmin]]) {
@@ -51,7 +51,7 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
                     complete(OK, ResponseSeqJson[StreamAdmin](getHeader(200, session), streamAdmins.sortBy(_.stream.id)))
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} select all $route failed", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
               }
           }
@@ -68,7 +68,7 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
           session =>
             if (session.roleType != "admin") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               returnStreamRes(id, None, session)
@@ -86,7 +86,7 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
         val realRes = realReturns.map(returnStream => streamDal.getReturnRes(returnStream))
         riderLogger.info(s"user ${session.userId} update streams after refresh the yarn/spark rest api or log success.")
         complete(OK, ResponseSeqJson[StreamSeqTopicActions](getHeader(200, session), realRes.sortBy(_.stream.id)))
-      case Failure(ex) => complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+      case Failure(ex) => complete(OK, getHeader(451, ex.getMessage, session))
     }
   }
 
@@ -97,7 +97,7 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
           session =>
             if (session.roleType != "admin") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               onComplete(streamDal.getResource(id).mapTo[Resource]) {
@@ -106,7 +106,7 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
                   complete(OK, ResponseJson[Resource](getHeader(200, session), resources))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} select all resources failed where project id is $id", ex)
-                  complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                  complete(OK, getHeader(451, ex.getMessage, session))
               }
             }
         }
@@ -120,7 +120,7 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
           session =>
             if (session.roleType != "admin") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               onComplete(streamDal.getStreamNameByStreamID(streamId).mapTo[Stream]) {
@@ -130,7 +130,7 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
                   complete(OK, ResponseJson[String](getHeader(200, session), log))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} refresh stream log where stream id is $streamId failed", ex)
-                  complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                  complete(OK, getHeader(451, ex.getMessage, session))
               }
             }
         }
@@ -146,7 +146,7 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
               riderLogger.warn(s"${
                 session.userId
               } has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               try {
@@ -160,7 +160,7 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
                   riderLogger.error(s"user ${
                     session.userId
                   } select topics where stream id is $streamId failed", ex)
-                  complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                  complete(OK, getHeader(451, ex.getMessage, session))
               }
             }
         }

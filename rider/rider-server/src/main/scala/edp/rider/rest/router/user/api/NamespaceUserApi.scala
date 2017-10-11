@@ -46,7 +46,7 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
               session =>
                 if (session.roleType != "user") {
                   riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-                  complete(Forbidden, getHeader(403, session))
+                  complete(OK, getHeader(403, session))
                 }
                 else {
                   if (session.projectIdList.contains(id)) {
@@ -56,12 +56,12 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
                         complete(OK, ResponseSeqJson[NamespaceTopic](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} select namespaces where project id is $id failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   }
                   else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
-                    complete(NotImplemented, getHeader(501, session))
+                    complete(OK, getHeader(501, session))
                   }
                 }
             }
@@ -78,7 +78,7 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
               session =>
                 if (session.roleType != "user") {
                   riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-                  complete(Forbidden, getHeader(403, session))
+                  complete(OK, getHeader(403, session))
                 }
                 else {
                   if (session.projectIdList.contains(projectId)) {
@@ -90,7 +90,7 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
                             complete(OK, ResponseSeqJson[Namespace](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
                           case Failure(ex) =>
                             riderLogger.error(s"user ${session.userId} select namespaces where project id is $projectId and nsSys is $source failed", ex)
-                            complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                            complete(OK, getHeader(451, ex.getMessage, session))
                         }
                       case (None, Some(sink), None) =>
                         onComplete(relProjectNsDal.getSinkNamespaceByProjectId(projectId, sink).mapTo[Seq[Namespace]]) {
@@ -99,7 +99,7 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
                             complete(OK, ResponseSeqJson[Namespace](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
                           case Failure(ex) =>
                             riderLogger.error(s"user ${session.userId} select namespaces where project id is $projectId and nsSys is $sink failed", ex)
-                            complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                            complete(OK, getHeader(451, ex.getMessage, session))
                         }
                       case (None, None, Some(trans)) =>
                         onComplete(relProjectNsDal.getTransNamespaceByProjectId(projectId, trans).mapTo[Seq[TransNamespace]]) {
@@ -108,15 +108,15 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
                             complete(OK, ResponseSeqJson[TransNamespace](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase))))
                           case Failure(ex) =>
                             riderLogger.error(s"user ${session.userId} select namespaces where project id is $projectId and nsSys is $trans failed", ex)
-                            complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                            complete(OK, getHeader(451, ex.getMessage, session))
                         }
                       case (_, _, _) =>
                         riderLogger.error(s"user ${session.userId} request url is not supported.")
-                        complete(NotFound, getHeader(404, session))
+                        complete(OK, getHeader(404, session))
                     }
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
-                    complete(NotImplemented, getHeader(501, session))
+                    complete(OK, getHeader(501, session))
                   }
                 }
             }

@@ -42,7 +42,7 @@ class ProjectUserApi(projectDal: ProjectDal, relProjectUserDal: RelProjectUserDa
           session =>
             if (session.roleType != "user") {
               riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               if (session.projectIdList.contains(id)) {
@@ -57,11 +57,11 @@ class ProjectUserApi(projectDal: ProjectDal, relProjectUserDal: RelProjectUserDa
                   }
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} select $route by $id failed", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
               } else {
                 riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
             }
         }
@@ -76,7 +76,7 @@ class ProjectUserApi(projectDal: ProjectDal, relProjectUserDal: RelProjectUserDa
         session =>
           if (session.roleType != "user") {
             riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-            complete(Forbidden, getHeader(403, session))
+            complete(OK, getHeader(403, session))
           }
           else {
             onComplete(relProjectUserDal.getProjectByUserId(session.userId).mapTo[Seq[Project]]) {
@@ -85,7 +85,7 @@ class ProjectUserApi(projectDal: ProjectDal, relProjectUserDal: RelProjectUserDa
                 complete(OK, ResponseSeqJson[Project](getHeader(200, session), projects.sortBy(_.name)))
               case Failure(ex) =>
                 riderLogger.info(s"user ${session.userId} select $route where user id is ${session.userId} failed", ex)
-                complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                complete(OK, getHeader(451, ex.getMessage, session))
             }
           }
       }

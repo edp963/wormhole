@@ -57,7 +57,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
               session =>
                 if (session.roleType != "user") {
                   riderLogger.warn(s"${session.userId} has no permission to access it.")
-                  complete(Forbidden, getHeader(403, session))
+                  complete(OK, getHeader(403, session))
                 }
                 else {
                   if (session.projectIdList.contains(projectId)) {
@@ -74,11 +74,11 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                               }
                               else {
                                 riderLogger.warn(s"user ${session.userId} check stream name $name already exists success.")
-                                complete(Conflict, getHeader(409, s"$streamName  already exists", session))
+                                complete(OK, getHeader(409, s"$streamName  already exists", session))
                               }
                             case Failure(ex) =>
                               riderLogger.error(s"user ${session.userId} check stream name $name does exist failed", ex)
-                              complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                              complete(OK, getHeader(451, ex.getMessage, session))
                           }
                         case (None, Some(streamType)) =>
                           onComplete(streamDal.getStreamKafkaTopic(projectId, streamTypeOpt = Some(streamType)).mapTo[Seq[StreamKafkaTopic]]) {
@@ -87,22 +87,22 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                               complete(OK, ResponseSeqJson[StreamKafkaTopic](getHeader(200, session), streams))
                             case Failure(ex) =>
                               riderLogger.error(s"user ${session.userId} select streams where streamType is $streamType failed", ex)
-                              complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                              complete(OK, getHeader(451, ex.getMessage, session))
                           }
                         case (None, None) => returnStreamRes(projectId, None, session)
                         case (_, _) =>
                           riderLogger.error(s"user ${session.userId} request url is not supported.")
-                          complete(NotImplemented, getHeader(501, session))
+                          complete(OK, getHeader(501, session))
                       }
                     } catch {
                       case ex: Exception =>
                         riderLogger.error(s"user ${session.userId} refresh all streams failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
 
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
-                    complete(Forbidden, getHeader(403, session))
+                    complete(OK, getHeader(403, session))
                   }
                 }
             }
@@ -119,14 +119,14 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
           session =>
             if (session.roleType != "user") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               if (session.projectIdList.contains(projectId)) {
                 returnStreamRes(projectId, Some(streamId), session)
               } else {
                 riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
             }
         }
@@ -151,11 +151,11 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
             complete(OK, ResponseSeqJson[StreamSeqTopicActions](getHeader(200, session), realRes.sortBy(_.stream.id)))
           case Failure(ex) =>
             riderLogger.error(s"user ${session.userId} update streams after refresh the yarn/spark rest api or log failed", ex)
-            complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+            complete(OK, getHeader(451, ex.getMessage, session))
         }
       case Failure(ex) =>
         riderLogger.error(s"user ${session.userId} select streams where project id is $projectId and stream id is $streamId failed", ex)
-        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+        complete(OK, getHeader(451, ex.getMessage, session))
     }
   }
 
@@ -169,7 +169,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
               session => {
                 if (session.roleType != "user") {
                   riderLogger.warn(s"${session.userId} has no permission to access it.")
-                  complete(Forbidden, getHeader(403, session))
+                  complete(OK, getHeader(403, session))
                 }
                 else {
                   if (session.projectIdList.contains(id)) {
@@ -227,9 +227,9 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                                                   case Failure(ex) =>
                                                     riderLogger.error(s"user ${session.userId} insert streamInTopics where stream id is $streamId failed", ex)
                                                     if (ex.getMessage.contains("Duplicate entry"))
-                                                      complete(Conflict, getHeader(409, s"duplicate stream id and topic id insert", session))
+                                                      complete(OK, getHeader(409, s"duplicate stream id and topic id insert", session))
                                                     else
-                                                      complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                                      complete(OK, getHeader(451, ex.getMessage, session))
                                                 }
                                               }
                                               else {
@@ -237,19 +237,19 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                                               }
                                             case Failure(ex) =>
                                               riderLogger.error(s"user ${session.userId} delete streamInTopics where stream id is $streamId failed", ex)
-                                              complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                              complete(OK, getHeader(451, ex.getMessage, session))
                                           }
                                         case Failure(ex) =>
                                           riderLogger.error(s"user ${session.userId} select streamInTopics where stream id is $streamId failed", ex)
-                                          complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                          complete(OK, getHeader(451, ex.getMessage, session))
                                       }
                                     case Failure(ex) =>
                                       riderLogger.error(s"user ${session.userId} select streamInTopics where instance id is ${streamTopic.instanceId} failed", ex)
-                                      complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                      complete(OK, getHeader(451, ex.getMessage, session))
                                   }
                                 case Failure(ex) =>
                                   riderLogger.error(s"user ${session.userId} update stream failed", ex)
-                                  complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                  complete(OK, getHeader(451, ex.getMessage, session))
                               }
                             case None =>
                               riderLogger.info(s"user ${session.userId} select stream where id is $streamId success.")
@@ -257,15 +257,15 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                           }
                         case Failure(ex) =>
                           riderLogger.error(s"user ${session.userId} select stream where id is $streamId failed", ex)
-                          complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                          complete(OK, getHeader(451, ex.getMessage, session))
                       }
                     } else {
                       riderLogger.error(s"user ${session.userId} update stream failed caused by ${formatCheck._2}")
-                      complete(BadRequest, getHeader(400, formatCheck._2, session))
+                      complete(OK, getHeader(400, formatCheck._2, session))
                     }
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
-                    complete(Forbidden, getHeader(403, session))
+                    complete(OK, getHeader(403, session))
                   }
                 }
               }
@@ -283,7 +283,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
               session => {
                 if (session.roleType != "user") {
                   riderLogger.warn(s"${session.userId} has no permission to access it.")
-                  complete(Forbidden, getHeader(403, session))
+                  complete(OK, getHeader(403, session))
                 }
                 else {
                   if (session.projectIdList.contains(id)) {
@@ -297,15 +297,15 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                           case Success(topics) => complete(OK, ResponseSeqJson[TopicDetail](getHeader(200, session), topics))
                           case Failure(ex) =>
                             riderLogger.error(s"user ${session.userId} update streamInTopics failed", ex)
-                            complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                            complete(OK, getHeader(451, ex.getMessage, session))
                         }
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} update streamInTopics failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
-                    complete(Forbidden, getHeader(403, session))
+                    complete(OK, getHeader(403, session))
                   }
                 }
               }
@@ -327,7 +327,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                   riderLogger.warn(s"${
                     session.userId
                   } has no permission to access it.")
-                  complete(Forbidden, getHeader(403, session))
+                  complete(OK, getHeader(403, session))
                 }
                 else {
                   if (session.projectIdList.contains(id)) {
@@ -397,9 +397,9 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                                                 session.userId
                                               } insert streamInTopics where stream id is $streamId failed", ex)
                                               if (ex.getMessage.contains("Duplicate entry"))
-                                                complete(Conflict, getHeader(409, "duplicate stream id and topic id", session))
+                                                complete(OK, getHeader(409, "duplicate stream id and topic id", session))
                                               else
-                                                complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                                complete(OK, getHeader(451, ex.getMessage, session))
                                           }
                                         case Failure(ex) =>
                                           riderLogger.error(s"user ${
@@ -407,7 +407,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                                           } select streamInTopics where instance id is ${
                                             simple.instanceId
                                           } failed", ex)
-                                          complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                          complete(OK, getHeader(451, ex.getMessage, session))
                                       }
                                     case None =>
                                       riderLogger.info(s"user ${
@@ -427,29 +427,29 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                               session.userId
                             } insert stream failed", ex)
                             if (ex.getMessage.contains("Duplicate entry"))
-                              complete(Conflict, getHeader(409, s"${
+                              complete(OK, getHeader(409, s"${
                                 insertStream.name
                               } already exists", session))
                             else
-                              complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                              complete(OK, getHeader(451, ex.getMessage, session))
                         }
                       } else {
                         riderLogger.error(s"user ${session.userId} insert stream failed caused by ${formatCheck._2}")
-                        complete(BadRequest, getHeader(400, formatCheck._2, session))
+                        complete(OK, getHeader(400, formatCheck._2, session))
                       }
                     } catch {
                       case ex: Exception =>
                         riderLogger.error(s"user ${
                           session.userId
                         } insert stream failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
 
                   } else {
                     riderLogger.error(s"user ${
                       session.userId
                     } doesn't have permission to access the project $id.")
-                    complete(Forbidden, getHeader(403, session))
+                    complete(OK, getHeader(403, session))
                   }
                 }
               }
@@ -467,7 +467,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
               riderLogger.warn(s"${
                 session.userId
               } has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               if (session.projectIdList.contains(projectId)) {
@@ -481,13 +481,13 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                     riderLogger.error(s"user ${
                       session.userId
                     } select instances where project id is $projectId and nsSys is kafka failed", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
               } else {
                 riderLogger.error(s"user ${
                   session.userId
                 } doesn't have permission to access the project $projectId.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
             }
         }
@@ -502,7 +502,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
           riderLogger.warn(s"${
             session.userId
           } has no permission to access it.")
-          complete(Forbidden, getHeader(403, session))
+          complete(OK, getHeader(403, session))
         }
         else {
           val defaultConf = streamDal.getConfList
@@ -521,7 +521,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
               riderLogger.warn(s"${
                 session.userId
               } has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               if (session.projectIdList.contains(id)) {
@@ -536,13 +536,13 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                     riderLogger.error(s"user ${
                       session.userId
                     } refresh stream log where stream id is $streamId failed", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
               } else {
                 riderLogger.error(s"user ${
                   session.userId
                 } doesn't have permission to access the project $id.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
             }
         }
@@ -558,7 +558,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
               riderLogger.warn(s"${
                 session.userId
               } has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               if (session.projectIdList.contains(projectId)) {
@@ -590,7 +590,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                             riderLogger.error(s"user ${
                               session.userId
                             } updated stream after stop action failed")
-                            complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                            complete(OK, getHeader(451, ex.getMessage, session))
                         }
                       case None =>
                         riderLogger.info(s"user ${
@@ -603,13 +603,13 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                     riderLogger.error(s"user ${
                       session.userId
                     } select stream log where stream id is $streamId failed", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
               } else {
                 riderLogger.error(s"user ${
                   session.userId
                 } doesn't have permission to access the project $projectId.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
             }
         }
@@ -627,7 +627,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                   riderLogger.warn(s"${
                     session.userId
                   } has no permission to access it.")
-                  complete(Forbidden, getHeader(403, session))
+                  complete(OK, getHeader(403, session))
                 }
                 else {
                   if (session.projectIdList.contains(projectId)) {
@@ -657,7 +657,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                                 complete(OK, ResponseJson[StreamSeqTopicActions](getHeader(200, session), streamReturn))
                               case Failure(ex) =>
                                 riderLogger.error(s"user ${session.userId} update stream after renew action failed", ex)
-                                complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                complete(OK, getHeader(451, ex.getMessage, session))
                             }
                           case None =>
                             riderLogger.info(s"user ${session.userId} select stream where stream id is $streamId success.")
@@ -665,11 +665,11 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                         }
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} select stream where stream id is $streamId failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
-                    complete(Forbidden, getHeader(403, session))
+                    complete(OK, getHeader(403, session))
                   }
                 }
             }
@@ -687,7 +687,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
               session =>
                 if (session.roleType != "user") {
                   riderLogger.warn(s"${session.userId} has no permission to access it.")
-                  complete(Forbidden, getHeader(403, session))
+                  complete(OK, getHeader(403, session))
                 }
                 else {
                   if (session.projectIdList.contains(projectId)) {
@@ -708,7 +708,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                                 val startMemory = startConfig.driverMemory + startConfig.executorNums * startConfig.perExecutorMemory
                                 if (remainCores < startCores || remainMemory < startMemory) {
                                   riderLogger.warn(s"user ${session.userId}")
-                                  complete(InsufficientStorage, getHeader(507, "start operation is refused because resource is not enough.", session))
+                                  complete(OK, getHeader(507, "start operation is refused because resource is not enough.", session))
                                 }
                                 else {
                                   removeStreamDirective(streamId, session.userId)
@@ -738,12 +738,12 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                                       complete(OK, ResponseJson[StreamSeqTopicActions](getHeader(200, session), streamReturn))
                                     case Failure(ex) =>
                                       riderLogger.error(s"user ${session.userId} update stream after start action failed", ex)
-                                      complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                      complete(OK, getHeader(451, ex.getMessage, session))
                                   }
                                 }
                               case Failure(ex) =>
                                 riderLogger.error(s"user ${session.userId} select project resources where project id is $projectId failed", ex)
-                                complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                complete(OK, getHeader(451, ex.getMessage, session))
                             }
                           case None =>
                             riderLogger.info(s"user ${session.userId} select stream where stream id is $streamId success.")
@@ -751,11 +751,11 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                         }
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} select stream where stream id is $streamId failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
-                    complete(Forbidden, getHeader(403, session))
+                    complete(OK, getHeader(403, session))
                   }
                 }
             }
@@ -772,7 +772,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
               riderLogger.warn(s"${
                 session.userId
               } has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             if (session.projectIdList.contains(projectId)) {
               try {
@@ -780,9 +780,9 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                 streamOpt match {
                   case Some(stream) =>
                     val flows = Await.result(flowDal.findByFilter(_.streamId === streamId), minTimeOut)
-                    if (flows.size > 0) {
+                    if (flows.nonEmpty) {
                       riderLogger.info(s"user ${session.userId} can't delete stream $streamId now, please delete flow ${flows.map(_.id).mkString(",")} first")
-                      complete(PreconditionFailed, getHeader(412, s"please delete flow ${flows.map(_.id).mkString(",")} first", session))
+                      complete(OK, getHeader(412, s"please delete flow ${flows.map(_.id).mkString(",")} first", session))
                     } else {
                       removeStreamDirective(streamId, session.userId)
                       if (stream.sparkAppid.getOrElse("") != "") {
@@ -804,7 +804,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
               }
             } else {
               riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
         }
       }
@@ -818,7 +818,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
           session =>
             if (session.roleType != "user") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               if (session.projectIdList.contains(id)) {
@@ -832,13 +832,13 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                     riderLogger.error(s"user ${
                       session.userId
                     } select databases where instance id is $instanceId failed", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
               } else {
                 riderLogger.error(s"user ${
                   session.userId
                 } doesn't have permission to access the project $id.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
             }
         }
@@ -854,7 +854,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
               riderLogger.warn(s"${
                 session.userId
               } has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               if (session.projectIdList.contains(id)) {
@@ -869,13 +869,13 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                     riderLogger.error(s"user ${
                       session.userId
                     } select topics where stream id is $streamId failed", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
               } else {
                 riderLogger.error(s"user ${
                   session.userId
                 } doesn't have permission to access the project $id.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
             }
         }
@@ -892,7 +892,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
               riderLogger.warn(s"${
                 session.userId
               } has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               if (session.projectIdList.contains(id)) {
@@ -906,13 +906,13 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                     riderLogger.error(s"user ${
                       session.userId
                     } select all resources failed where project id is $id", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
               } else {
                 riderLogger.error(s"user ${
                   session.userId
                 } doesn't have permission to access the project $id.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
             }
         }
