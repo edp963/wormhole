@@ -44,7 +44,7 @@ class ActionUserApi(streamDal: StreamDal, flowDal: FlowDal) extends Directives w
               session =>
                 if (session.roleType != "user") {
                   riderLogger.warn(s"${session.userId} has no permission to access it.")
-                  complete(Forbidden, getHeader(403, session))
+                  complete(OK, getHeader(403, session))
                 }
                 else {
                   if (session.projectIdList.contains(id)) {
@@ -64,7 +64,7 @@ class ActionUserApi(streamDal: StreamDal, flowDal: FlowDal) extends Directives w
                           complete(OK, ResponseSeqJson[FlowStream](getHeader(200, session), flowStreams))
                         case Failure(ex) =>
                           riderLogger.error(s"user ${session.userId} ${actionClass.action} ${actionClass.flowIds} failed", ex)
-                          complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                          complete(OK, getHeader(451, ex.getMessage, session))
                       }
 
                     } else {
@@ -73,7 +73,7 @@ class ActionUserApi(streamDal: StreamDal, flowDal: FlowDal) extends Directives w
                     }
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
-                    complete(Forbidden, getHeader(403, session))
+                    complete(OK, getHeader(403, session))
                   }
                 }
             }

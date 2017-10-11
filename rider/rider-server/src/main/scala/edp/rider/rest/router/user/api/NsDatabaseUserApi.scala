@@ -44,7 +44,7 @@ class NsDatabaseUserApi(dbDal: NsDatabaseDal)
           session =>
             if (session.roleType != "user") {
               riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               if (session.projectIdList.contains(id)) {
@@ -54,11 +54,11 @@ class NsDatabaseUserApi(dbDal: NsDatabaseDal)
                     complete(OK, ResponseSeqJson[NsDatabase](getHeader(200, session), dbs.sortBy(_.nsDatabase)))
                   case Failure(ex) =>
                     riderLogger.info(s"user ${session.userId} select databases where instance id is $instanceId failed", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
               } else {
                 riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
             }
         }

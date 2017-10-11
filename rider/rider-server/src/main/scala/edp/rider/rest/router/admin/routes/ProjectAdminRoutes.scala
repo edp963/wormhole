@@ -37,7 +37,8 @@ class ProjectAdminRoutes(modules: ConfigurationModule with PersistenceModule wit
 
   lazy val routes: Route = getProjectByIdRoute ~ getProjectByFilterRoute ~ postProjectRoute ~ putProjectRoute ~
     getUserByProjectIdRoute ~ getUserByProjectRoute ~ getNsByProjectIdRoute ~ getNsByProjectRoute ~ getFlowByProjectIdRoute ~
-    getStreamByProjectIdRoute ~ getResourceByProjectIdRoute ~ getLogByStreamId ~ getMonitorDashboardRoute ~ getTopicsByStreamId
+    getStreamByProjectIdRoute ~ getResourceByProjectIdRoute ~ getLogByStreamId ~ getMonitorDashboardRoute ~ getTopicsByStreamId ~
+    deleteProjectByIdRoute
 
   lazy val basePath = "projects"
 
@@ -235,5 +236,20 @@ class ProjectAdminRoutes(modules: ConfigurationModule with PersistenceModule wit
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getTopicsByStreamId: Route = modules.streamAdminService.getTopicsByStreamId(basePath)
+
+  @Path("/{id}/")
+  @ApiOperation(value = "delete one project from system by id", notes = "", nickname = "", httpMethod = "DELETE")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not admin user"),
+    new ApiResponse(code = 412, message = "project still has some streams"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def deleteProjectByIdRoute: Route = modules.projectAdminService.deleteRoute(basePath)
 }
 

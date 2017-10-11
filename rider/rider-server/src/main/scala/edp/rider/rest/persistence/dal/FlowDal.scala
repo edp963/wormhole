@@ -33,6 +33,7 @@ import slick.lifted.{CanBeQueryCondition, TableQuery}
 import edp.rider.rest.util.FlowUtils._
 import edp.rider.service.util.CacheMap
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 
@@ -182,14 +183,15 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
 
   def insertOrAbort(flows: Seq[Flow]): Seq[Flow] = {
     try {
-      flows.map(
+      val flowInsertSeq = new ListBuffer[Flow]
+      flows.foreach(
         flow => {
           val search = Await.result(super.findByFilter(row => row.sourceNs === flow.sourceNs && row.sinkNs === flow.sinkNs), minTimeOut)
           if (search.isEmpty)
-            Await.result(insert(flow), CommonUtils.minTimeOut)
-          else search.head
+            flowInsertSeq += Await.result(insert(flow), CommonUtils.minTimeOut)
         }
       )
+      flowInsertSeq
     } catch {
       case ex: Exception =>
         riderLogger.error(s"flow insert or abort failed", ex)

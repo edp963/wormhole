@@ -61,7 +61,7 @@ class LoginRoutes(modules: ConfigurationModule with PersistenceModule with Busin
               sessionEither.fold(
                 authorizationError => {
                   riderLogger.error(s"${login.email} login rejected, ${authorizationError.getMessage}.")
-                  complete(authorizationError.statusCode, getHeader(authorizationError.statusCode.intValue, null))
+                  complete(OK, getHeader(authorizationError.statusCode.intValue, null))
                 },
                 result => {
                   riderLogger.info(s"${login.email} login success.")
@@ -70,7 +70,7 @@ class LoginRoutes(modules: ConfigurationModule with PersistenceModule with Busin
               )
             case Failure(ex) =>
               riderLogger.error(s"${login.email} login failed", ex)
-              complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, null))
+              complete(OK, getHeader(451, ex.getMessage, null))
           }
       }
     }

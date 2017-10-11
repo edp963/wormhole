@@ -45,7 +45,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
           session =>
             if (session.roleType != "admin") {
               riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               onComplete(relProjectNsDal.getNamespaceAdmin(_.id === id).mapTo[Seq[NamespaceAdmin]]) {
@@ -56,7 +56,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                     complete(OK, ResponseJson[String](getHeader(200, session), ""))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} select namespace by $id failed", ex)
-                  complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                  complete(OK, getHeader(451, ex.getMessage, session))
               }
             }
         }
@@ -71,7 +71,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
             session =>
               if (session.roleType != "admin") {
                 riderLogger.warn(s"${session.userId} has no permission to access it.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
               else {
                 (visible, instanceIdOpt, databaseIdOpt, tableNamesOpt) match {
@@ -80,23 +80,23 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                       case Success(nsSeq) =>
                         val tableNameSeq = tableNames.split(",")
                         val tables = nsSeq.map(ns => ns.nsTable)
-                        val conflictTables = tables.filter(tableNameSeq.contains(_))
-                        if (conflictTables.isEmpty) {
+                        val OKTables = tables.filter(tableNameSeq.contains(_))
+                        if (OKTables.isEmpty) {
                           riderLogger.info(s"user ${session.userId} check table name $tableNames doesn't exist success.")
                           complete(OK, getHeader(200, session))
                         }
                         else {
-                          riderLogger.error(s"user ${session.userId} check table name $conflictTables already exists success.")
-                          complete(Conflict, getHeader(409, s"${conflictTables.mkString(",")} already exists", session))
+                          riderLogger.error(s"user ${session.userId} check table name $OKTables already exists success.")
+                          complete(OK, getHeader(409, s"${OKTables.mkString(",")} already exists", session))
                         }
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} check table name $tableNames does exist failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   case (_, None, None, None) => synchronizeNs(session, visible.getOrElse(true))
                   case (_, _, _, _) =>
                     riderLogger.error(s"user ${session.userId} request url is not supported.")
-                    complete(NotImplemented, getHeader(501, session))
+                    complete(OK, getHeader(501, session))
                 }
               }
           }
@@ -112,7 +112,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
             session =>
               if (session.roleType != "admin") {
                 riderLogger.warn(s"${session.userId} has no permission to access it.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
               else {
                 onComplete(databaseDal.findById(simple.nsDatabaseId).mapTo[Option[NsDatabase]]) {
@@ -137,33 +137,33 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                                 complete(OK, ResponseSeqJson[NamespaceAdmin](getHeader(200, session), nsProject))
                               case Failure(ex) =>
                                 riderLogger.error(s"user ${session.userId} select $route where id in $ids failed", ex)
-                                complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                                complete(OK, getHeader(451, ex.getMessage, session))
                             }
                           case Failure(ex) =>
                             if (ex.getMessage.contains("Duplicate entry")) {
                               onComplete(namespaceDal.findByFilter(ns => ns.nsInstanceId === simple.nsInstanceId && ns.nsDatabaseId === simple.nsDatabaseId).mapTo[Seq[Namespace]]) {
                                 case Success(rows) =>
                                   val tables = rows.map(ns => ns.nsTable)
-                                  val conflictTables = tables.filter(simple.nsTables.contains(_))
-                                  riderLogger.error(s"user ${session.userId} inser namespace ${conflictTables.mkString(",")} table failed", ex)
-                                  complete(Conflict, getHeader(409, s"${conflictTables.mkString(",")} already exists", session))
+                                  val OKTables = tables.filter(simple.nsTables.contains(_))
+                                  riderLogger.error(s"user ${session.userId} inser namespace ${OKTables.mkString(",")} table failed", ex)
+                                  complete(OK, getHeader(409, s"${OKTables.mkString(",")} already exists", session))
                                 case Failure(e) =>
                                   riderLogger.error(s"user ${session.userId} insert namespace failed", e)
-                                  complete(UnavailableForLegalReasons, getHeader(451, e.getMessage, session))
+                                  complete(OK, getHeader(451, e.getMessage, session))
                               }
                             }
                             else {
                               riderLogger.error(s"user ${session.userId} insert namespace failed", ex)
-                              complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                              complete(OK, getHeader(451, ex.getMessage, session))
                             }
                         }
                       case None =>
                         riderLogger.info(s"user ${session.userId} select databases where id is ${simple.nsDatabaseId} failed, it doesn't exist.")
-                        complete(UnavailableForLegalReasons, getHeader(451, s"${simple.nsDatabaseId} doesn't exist, please reselect", session))
+                        complete(OK, getHeader(451, s"${simple.nsDatabaseId} doesn't exist, please reselect", session))
                     }
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} select database where id is ${simple.nsDatabaseId} failed", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
               }
           }
@@ -180,7 +180,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
             session =>
               if (session.roleType != "admin") {
                 riderLogger.warn(s"${session.userId} has no permission to access it.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
               else {
                 val namespace = Namespace(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar,
@@ -194,11 +194,11 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                         complete(OK, ResponseJson[NamespaceAdmin](getHeader(200, session), nsProject.head))
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} select $route where id is ${ns.id} failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} update namespace failed", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
               }
           }
@@ -214,7 +214,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
           session =>
             if (session.roleType != "admin") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               onComplete(relProjectNsDal.getNsByProjectId(Some(id)).mapTo[Seq[NamespaceTopic]]) {
@@ -223,7 +223,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                   complete(OK, ResponseSeqJson[NamespaceTopic](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} select all namespaces where project id $id failed", ex)
-                  complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                  complete(OK, getHeader(451, ex.getMessage, session))
               }
             }
         }
@@ -236,7 +236,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
       authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
         session =>
           if (session.roleType != "admin")
-            complete(Forbidden, getHeader(403, session))
+            complete(OK, getHeader(403, session))
           else {
             getNsRoute(session, true)
           }
@@ -253,7 +253,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
         complete(OK, ResponseSeqJson[NamespaceAdmin](getHeader(200, session), res))
       case Failure(ex) =>
         riderLogger.error(s"user ${session.userId} select all namespaces failed", ex)
-        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+        complete(OK, getHeader(451, ex.getMessage, session))
     }
 
   }

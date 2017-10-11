@@ -38,7 +38,7 @@ object Dashboard extends RiderLogger {
     try {
       val uri = Uri.apply(s"${RiderConfig.grafana.url}/api/dashboards/db")
       val userData: ByteString = ByteString(getCreateDashboardJson(projectName, projectId))
-//      riderLogger.info(s"Grafna create dashboard $userData")
+      //      riderLogger.info(s"Grafna create dashboard $userData")
       grafanaPostData(RiderConfig.grafana.adminToken, uri, userData)
     } catch {
       case e: Exception =>
@@ -57,11 +57,11 @@ object Dashboard extends RiderLogger {
       protocol = HttpProtocols.`HTTP/1.1`,
       entity = HttpEntity.apply(ContentTypes.`application/json`, userData)
     )
-//    riderLogger.info(s"httpRequest ${httpRequest.toString}.")
+    //    riderLogger.info(s"httpRequest ${httpRequest.toString}.")
     try {
       val response: HttpResponse = Await.result(Http().singleRequest(httpRequest), Duration.Inf)
       if (response._1.isSuccess()) {
-//        riderLogger.info(s"response success: ${response.entity.toString}.")
+        //        riderLogger.info(s"response success: ${response.entity.toString}.")
         riderLogger.info(s"Grafana post data response success.")
       }
       else {
@@ -77,11 +77,14 @@ object Dashboard extends RiderLogger {
   }
 
   def getAdminDashboardInfo(project_id: Long): GrafanaConnectionInfo = {
-    GrafanaConnectionInfo(getDashboardURI(project_id))
+    if (RiderConfig.grafana != null)
+      GrafanaConnectionInfo(getDashboardURI(project_id))
+    else
+      GrafanaConnectionInfo("")
   }
 
   def getViewerDashboardInfo(project_id: Long): GrafanaConnectionInfo = {
-    GrafanaConnectionInfo(getDashboardURI(project_id))
+    getAdminDashboardInfo(project_id)
   }
 
   def getDashboardURI(project_id: Long): String = {

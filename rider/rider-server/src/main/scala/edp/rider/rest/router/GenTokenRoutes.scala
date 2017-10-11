@@ -63,7 +63,7 @@ class GenTokenRoutes(modules: ConfigurationModule with PersistenceModule with Bu
               sessionEither.fold(
                 authorizationError => {
                   riderLogger.error(s"${login.email} request for token rejected, ${authorizationError.getMessage}.")
-                  complete(authorizationError.statusCode, getHeader(authorizationError.statusCode.intValue, null))
+                  complete(OK, getHeader(authorizationError.statusCode.intValue, null))
                 },
                 result => {
                   riderLogger.info(s"${login.email} request for token success.")
@@ -72,7 +72,7 @@ class GenTokenRoutes(modules: ConfigurationModule with PersistenceModule with Bu
               )
             case Failure(ex) =>
               riderLogger.error(s"${login.email} request for token failed", ex)
-              complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, null))
+              complete(OK, getHeader(451, ex.getMessage, null))
           }
       }
     }

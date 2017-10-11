@@ -50,7 +50,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
 
   override def preStart(): Unit = {
     try {
-      WormholeTopicCommand.createTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.topic, RiderConfig.consumer.partitions)
+      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.topic, RiderConfig.consumer.partitions)
       riderLogger.info(s"initial create ${RiderConfig.consumer.topic} topic success")
     } catch {
       case _: kafka.common.TopicExistsException =>
@@ -59,7 +59,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
         riderLogger.error(s"initial create ${RiderConfig.consumer.topic} topic failed", ex)
     }
     try {
-      WormholeTopicCommand.createTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic)
+      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic)
       riderLogger.info(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic success")
     } catch {
       case _: kafka.common.TopicExistsException =>
@@ -127,9 +127,9 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
       riderLogger.debug(s"Consumed key: ${msg.record.key().toString}")
     val curTs = currentMillSec
     val defaultStreamIdForRider = 0
-    CacheMap.setOffsetMap(defaultStreamIdForRider,msg.record.topic(),msg.record.partition(),msg.record.offset())
-    val partitionOffsetStr = FeedbackOffsetUtil.getPartitionOffsetStrFromMap(defaultStreamIdForRider,msg.record.topic(),RiderConfig.consumer.partitions)
-    modules.feedbackOffsetDal.insert(FeedbackOffset(1, UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET.toString, curTs, 0,msg.record.topic(), RiderConfig.consumer.partitions, partitionOffsetStr, curTs))
+    CacheMap.setOffsetMap(defaultStreamIdForRider, msg.record.topic(), msg.record.partition(), msg.record.offset())
+    val partitionOffsetStr = FeedbackOffsetUtil.getPartitionOffsetStrFromMap(defaultStreamIdForRider, msg.record.topic(), RiderConfig.consumer.partitions)
+    modules.feedbackOffsetDal.insert(FeedbackOffset(1, UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET.toString, curTs, 0, msg.record.topic(), RiderConfig.consumer.partitions, partitionOffsetStr, curTs))
 
     if (msg.record.value() == null || msg.record.value() == "") {
       riderLogger.error(s"feedback message value is null: ${msg.toString}")
@@ -150,7 +150,8 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
           case FEEDBACK_FLOW_ERROR =>
             messageService.doFeedbackFlowError(ums)
           case FEEDBACK_FLOW_STATS =>
-            messageService.doFeedbackFlowStats(ums)
+            if (RiderConfig.es != null)
+              messageService.doFeedbackFlowStats(ums)
           case FEEDBACK_STREAM_BATCH_ERROR =>
             messageService.doFeedbackStreamBatchError(ums)
           case FEEDBACK_STREAM_TOPIC_OFFSET =>

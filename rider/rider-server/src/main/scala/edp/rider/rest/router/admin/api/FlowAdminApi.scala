@@ -44,7 +44,7 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
             session =>
               if (session.roleType != "admin") {
                 riderLogger.warn(s"${session.userId} has no permission to access it.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
               else {
                 streamDal.refreshStreamsByProjectId()
@@ -55,7 +55,7 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
                     complete(OK, ResponseSeqJson[FlowStreamAdmin](getHeader(200, session), flowStreams.sortBy(_.id)))
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} select all $route failed", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
               }
           }
@@ -72,7 +72,7 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
           session =>
             if (session.roleType != "admin") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               streamDal.refreshStreamsByProjectId(Some(id))
@@ -83,7 +83,7 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
                   complete(OK, ResponseSeqJson[FlowStream](getHeader(200, session), flowStreams.sortBy(_.id)))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} select all flows failed where project id is $id", ex)
-                  complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                  complete(OK, getHeader(451, ex.getMessage, session))
               }
             }
         }
