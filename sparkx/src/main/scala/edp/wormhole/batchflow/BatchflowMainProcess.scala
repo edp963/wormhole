@@ -30,7 +30,7 @@ import edp.wormhole.common._
 import edp.wormhole.common.hadoop.HdfsUtils
 import edp.wormhole.common.util.DateUtils
 import edp.wormhole.common.util.DateUtils._
-import edp.wormhole.core.{InputDataRequirement, WormholeConfig}
+import edp.wormhole.core.{InputDataRequirement, UdfDirective, WormholeConfig}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.sinks.{SinkProcessConfig, SourceMutationType}
@@ -82,6 +82,7 @@ object BatchflowMainProcess extends EdpLogging {
         val mainDataTs = System.currentTimeMillis
         //val dt1 =  dt2dateTime(currentyyyyMMddHHmmss)
         val dataRepartitionRdd: RDD[(String, String)] = if (config.rdd_partition_number != -1) streamRdd.map(row => (row.key, row.value)).repartition(config.rdd_partition_number) else streamRdd.map(row => (row.key, row.value))
+        UdfDirective.registerUdfProcess(config.kafka_output.feedback_topic_name,config.kafka_output.brokers, session)
         //        dataRepartitionRdd.cache()
         //        dataRepartitionRdd.count()
         //        val dt2: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
