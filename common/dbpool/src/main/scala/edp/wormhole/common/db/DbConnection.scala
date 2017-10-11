@@ -59,6 +59,9 @@ object DbConnection extends Serializable {
     } else if (tmpJdbcUrl.indexOf("oracle") > -1) {
       println("oracle")
       config.setDriverClassName("oracle.jdbc.driver.OracleDriver")
+    } else if (tmpJdbcUrl.indexOf("postgresql") > -1) {
+      println("postgresql")
+      config.setDriverClassName("org.postgresql.Driver")
     } else if (tmpJdbcUrl.indexOf("sqlserver") > -1) {
       println("sqlserver")
       config.setDriverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver")

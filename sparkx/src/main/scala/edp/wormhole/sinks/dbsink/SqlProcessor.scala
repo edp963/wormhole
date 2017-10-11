@@ -66,6 +66,13 @@ class SqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.M
         }).mkString(s" OR ($keysString) IN ")
     }
 
+    def selectPostgresSql(tupleCount: Int): String = {
+      val keysString = tableKeyNames.map(tk =>s"""$tk""").mkString(",")
+      val keyQuestionMarks = (1 to tableKeyNames.size).map(_ => "?").mkString("(", ",", ")")
+      s"SELECT $keysString, $metaIdName FROM $tableName WHERE ($keysString) IN " +
+        (1 to tupleCount).map(_ => keyQuestionMarks).mkString("(", ",", ")")
+    }
+
     def selectOtherSql(tupleCount: Int): String = {
       val keysString = tableKeyNames.mkString(",")
       val keyQuestionMarks: String = (1 to tableKeyNames.size).map(_ => "?").mkString("(", ",", ")")
@@ -119,6 +126,7 @@ class SqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.M
       val sql = namespace.dataSys match {
         case UmsDataSystem.MYSQL => selectMysqlSql(tupleList.size)
         case UmsDataSystem.ORACLE => selectOracleSql(tupleList.size)
+        case UmsDataSystem.POSTGRESQL =>selectPostgresSql(tupleList.size)
         case _ => selectOtherSql(tupleList.size)
       }
       logInfo("select sql:" + sql)
