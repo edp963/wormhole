@@ -25,7 +25,7 @@ import edp.wormhole.common.KVConfig
 
 case class WormholeConfig(kafka_input: KafkaInputBaseConfig,
                           kafka_output: KafkaOutputConfig,
-                          udf: Option[Seq[String]],
+//                          udf: Option[Seq[String]],
                           spark_config: SparkConfig,
                           rdd_partition_number: Int, //-1 do not repartition
                           zookeeper_path: String,

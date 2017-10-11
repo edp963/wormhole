@@ -180,6 +180,8 @@ object UmsProtocolType extends Enumeration {
   val FEEDBACK_STREAM_BATCH_ERROR = Value("feedback_stream_batch_error")
   val FEEDBACK_STREAM_TOPIC_OFFSET = Value("feedback_stream_topic_offset")
 
+  val DIRECTIVE_UDF_ADD = Value("directive_udf_add")
+
   def umsProtocolType(s: String) = UmsProtocolType.withName(s.toLowerCase)
 }
 
