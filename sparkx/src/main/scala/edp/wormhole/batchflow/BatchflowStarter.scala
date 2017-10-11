@@ -29,10 +29,10 @@ import edp.wormhole.core.{DirectiveFlowWatch, KafkaInputConfig, WormholeConfig}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.OffsetPersistenceManager
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.udf.UdfRegister
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
+import edp.wormhole.udf.UdfWatch
 
 object BatchflowStarter extends App with EdpLogging {
   SparkContextUtils.setLoggerLevel()
@@ -54,16 +54,18 @@ object BatchflowStarter extends App with EdpLogging {
   val session: SparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
   val ssc: StreamingContext = new StreamingContext(sparkContext, Seconds(config.kafka_input.batch_duration_seconds))
 
-  if (config.udf.isDefined) {
-    import collection.JavaConversions._
-    new UdfRegister().udfRegister(config.udf.get, session.sqlContext)
-  }
+  UdfWatch.initUdf(config, appId,session)
+
+//  if (config.udf.isDefined) {
+//    import collection.JavaConversions._
+//    new UdfRegister().udfRegister(config.udf.get, session.sqlContext)
+//  }
 
   DirectiveFlowWatch.initFlow(config, appId)
 
   val kafkaInput: KafkaInputConfig = OffsetPersistenceManager.initOffset(config, appId)
   val kafkaStream = createKafkaStream(ssc, kafkaInput)
-  BatchflowMainProcess.process(kafkaStream, config,session)
+  BatchflowMainProcess.process(kafkaStream, config, session)
 
   SparkContextUtils.checkSparkRestart(config.zookeeper_path, config.spark_config.stream_id, appId)
   SparkContextUtils.deleteZookeeperOldAppidPath(appId, config.zookeeper_path, config.spark_config.stream_id)
