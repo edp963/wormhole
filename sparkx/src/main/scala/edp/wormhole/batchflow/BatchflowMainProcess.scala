@@ -542,7 +542,7 @@ object BatchflowMainProcess extends EdpLogging {
     val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
 
     val dataSysType = UmsDataSystem.dataSystem(sinkNamespace.split("\\.")(0))
-    val repartitionDf = if (dataSysType == UmsDataSystem.MYSQL || dataSysType == UmsDataSystem.ORACLE) {
+    val repartitionDf = if (dataSysType == UmsDataSystem.MYSQL || dataSysType == UmsDataSystem.ORACLE||dataSysType == UmsDataSystem.POSTGRESQL) {
       val specialConfigJson: JSONObject = if (sinkProcessConfig.specialConfig.isDefined) JSON.parseObject(sinkProcessConfig.specialConfig.get) else new JSONObject()
 
       if (specialConfigJson.containsKey("db.mutation.type") && specialConfigJson.getString("db.mutation.type").nonEmpty) {
