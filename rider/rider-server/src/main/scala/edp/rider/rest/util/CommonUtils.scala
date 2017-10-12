@@ -42,7 +42,7 @@ object CommonUtils extends RiderLogger {
 
   def streamSubmitTimeout = 120.seconds
 
-  def keyEqualValuePattern = "(.)+=(.)+(&(.)+=(.)+)+".r.pattern
+  val keyEqualValuePattern = "([a-zA-Z]+([a-zA-Z0-9]*|([\\_\\-\\.]*[a-zA-Z0-9]+)*)*)*=([a-zA-Z]+([a-zA-Z0-9]*|([\\_\\-\\.]*[a-zA-Z0-9]+)*)*)*(&([a-zA-Z]+([a-zA-Z0-9]*|([\\_\\-\\.]*[a-zA-Z0-9]+)*)*)*=([a-zA-Z]+([a-zA-Z0-9]*|([\\_\\-\\.]*[a-zA-Z0-9]+)*)*)*)*".r.pattern
 
   def isJson(str: String): Boolean = {
     try {
