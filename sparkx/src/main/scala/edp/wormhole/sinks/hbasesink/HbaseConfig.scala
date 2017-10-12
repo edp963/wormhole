@@ -37,7 +37,7 @@ case class HbaseConfig(`hbase.columnFamily`: Option[String],
  // lazy val `hbase.znParent.get` = `hbase.znParent`.getOrElse("/hbase")
   lazy val `hbase.valueType.get` = `hbase.saveAsString`.getOrElse(false)
   lazy val `hbase.mutation.type.get` = `hbase.mutation.type`.getOrElse(SourceMutationType.I_U_D.toString)
-  lazy val `hbase.version.column.get` = `hbase.version.column`.getOrElse(UmsSysField.ID.toString)
+  lazy val `hbase.version.column.get` = `hbase.version.column`.getOrElse(UmsSysField.TS.toString)
 }
 
 case class RowkeyInfo(name: String, pattern: String)
