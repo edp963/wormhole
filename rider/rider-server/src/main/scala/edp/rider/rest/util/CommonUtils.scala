@@ -62,12 +62,6 @@ object CommonUtils extends RiderLogger {
   def isKeyEqualValue(str: String): Boolean = {
     if (str == "" || str == null)
       return true
-    val seq = str.split(",")
-    seq.foreach(
-      str =>
-        if (!keyEqualValuePattern.matcher(str).matches())
-          return false
-    )
-    true
+    keyEqualValuePattern.matcher(str.split(",").mkString("&")).matches()
   }
 }
