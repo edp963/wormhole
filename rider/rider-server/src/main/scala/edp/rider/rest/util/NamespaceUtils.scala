@@ -39,7 +39,7 @@ object NamespaceUtils extends RiderLogger {
               val confStr =
                 if (isJson(conf))
                   JSON.parseObject(conf).keySet().toArray.map(key => s"$key=${JSON.parseObject(conf).get(key).toString}").mkString("&")
-                else (keyEqualValuePattern.toString.r findAllIn conf).toList.mkString("&")
+                else (keyEqualValuePattern.toString.r findAllIn conf.split(",").mkString("&")).toList.mkString("&")
               s"jdbc:mysql://${instance.connUrl}/${db.nsDatabase}?$confStr"
             } else s"jdbc:mysql://${instance.connUrl}/${db.nsDatabase}"
           case None => s"jdbc:mysql://${instance.connUrl}/${db.nsDatabase}"
