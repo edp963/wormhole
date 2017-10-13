@@ -143,7 +143,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                   }
                 } else {
                   riderLogger.error(s"user ${session.userId} insert database failed caused by config ${simple.config.get} is not json type")
-                  complete(OK, getHeader(400, s"${simple.config.get} is not key=vlaue type", session))
+                  complete(OK, getHeader(400, s"${simple.config.get} is not key=value type", session))
                 }
               }
           }
