@@ -31,8 +31,10 @@ import {
 import {
   databasesLoaded,
   databaseAdded,
+  databaseAddedError,
   singleDatabaseLoaded,
   databaseEdited,
+  databaseEditedError,
   databasesInstanceLoaded,
   nameExistLoaded,
   nameExistErrorLoaded,
@@ -65,7 +67,11 @@ export function* addDatabase ({ payload }) {
       url: api.database,
       data: payload.database
     })
-    yield put(databaseAdded(result.payload, payload.resolve))
+    if (result.code && result.code === 400) {
+      yield put(databaseAddedError('Config 格式错误！', payload.reject))
+    } else if (result.header.code && result.header.code === 200) {
+      yield put(databaseAdded(result.payload, payload.resolve))
+    }
   } catch (err) {
     yield put(getError(err))
   }
@@ -98,7 +104,11 @@ export function* editDatabase ({ payload }) {
       url: api.database,
       data: payload.database
     })
-    yield put(databaseEdited(result.payload, payload.resolve))
+    if (result.code && result.code === 400) {
+      yield put(databaseEditedError('Config 格式错误！', payload.reject))
+    } else if (result.header.code && result.header.code === 200) {
+      yield put(databaseEdited(result.payload, payload.resolve))
+    }
   } catch (err) {
     yield put(getError(err))
   }

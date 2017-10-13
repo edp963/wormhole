@@ -63,6 +63,9 @@ function checkStatus (response) {
     case 503:
       message.error('服务器异常，请稍后重试！', 3)
       break
+    case 504:
+      message.error('服务器异常，请稍后重试！', 3)
+      break
     default:
       break
   }

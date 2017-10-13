@@ -38,6 +38,7 @@ import {
   projectNameInputValueLoaded,
   projectNameInputValueErrorLoaded,
   singleProjectDeleted,
+  singleProjectDeletedError,
   getError
 } from './action'
 
@@ -155,11 +156,15 @@ export function* getProjectNameInputValueWatcher () {
 
 export function* deleteSinglePro ({ payload }) {
   try {
-    yield call(request, {
+    const result = yield call(request, {
       method: 'delete',
       url: `${api.projectList}/${payload.projectId}`
     })
-    yield put(singleProjectDeleted(payload.projectId, payload.resolve))
+    if (result.code === 200) {
+      yield put(singleProjectDeleted(payload.projectId, payload.resolve))
+    } else if (result.code === 412) {
+      yield put(singleProjectDeletedError(result.msg, payload.reject))
+    }
   } catch (err) {
     yield put(getError(err))
   }

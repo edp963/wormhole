@@ -29,9 +29,12 @@ const FormItem = Form.Item
 
 export class InstanceForm extends React.Component {
 
-  // 根据connection url 自动显示instance
   onUrlInputChange = (e) => {
     this.props.onInitInstanceInputValue(e.target.value)
+  }
+
+  onInstanceInputChange = (e) => {
+    this.props.onInitInstanceExited(e.target.value)
   }
 
   onSourceDataSystemItemSelect = (e) => {
@@ -55,7 +58,8 @@ export class InstanceForm extends React.Component {
       { value: 'phoenix', text: 'Phoenix' },
       { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
       { value: 'log', text: 'Log' },
-      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} }
+      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
+      { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} }
     ]
 
     // edit 时，不能修改部分元素
@@ -94,6 +98,22 @@ export class InstanceForm extends React.Component {
           </Col>
 
           <Col span={24}>
+            <FormItem label="Instance" {...itemStyle}>
+              {getFieldDecorator('instance', {
+                rules: [{
+                  required: true,
+                  message: '请填写 Instance'
+                }]
+              })(
+                <Input
+                  placeholder="Instance"
+                  onChange={this.onInstanceInputChange}
+                />
+              )}
+            </FormItem>
+          </Col>
+
+          <Col span={24}>
             <FormItem label="Connection URL" {...itemStyle}>
               {getFieldDecorator('connectionUrl', {
                 rules: [{
@@ -103,22 +123,8 @@ export class InstanceForm extends React.Component {
               })(
                 <Input
                   placeholder="Connection URL"
-                  disabled={disabledOrNot}
                   onChange={this.onUrlInputChange}
                 />
-              )}
-            </FormItem>
-          </Col>
-
-          <Col span={24}>
-            <FormItem label="Instance" {...itemStyle}>
-              {getFieldDecorator('instance', {
-                rules: [{
-                  required: true,
-                  message: 'Instance 不能为空，请填写正确的 Connection URL'
-                }]
-              })(
-                <Input placeholder="Instance" disabled />
               )}
             </FormItem>
           </Col>
@@ -142,6 +148,7 @@ InstanceForm.propTypes = {
   type: React.PropTypes.string,
   instanceFormType: React.PropTypes.string,
   onInitInstanceInputValue: React.PropTypes.func,
+  onInitInstanceExited: React.PropTypes.func,
   onInitInstanceSourceDs: React.PropTypes.func
 }
 
