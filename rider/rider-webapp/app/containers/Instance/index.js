@@ -68,9 +68,8 @@ export class Instance extends React.PureComponent {
       filterDropdownVisibleUpdateTime: false,
 
       editInstanceData: {},
-      InstanceSourceDsVal: '',
-
-      connUrlResult: ''
+      eidtConnUrl: '',
+      InstanceSourceDsVal: ''
     }
   }
 
@@ -119,9 +118,9 @@ export class Instance extends React.PureComponent {
       this.setState({
         formVisible: true,
         instanceFormType: 'edit',
+        eidtConnUrl: result.connUrl,
         editInstanceData: {
           active: result.active,
-          connUrl: result.connUrl,
           createBy: result.createBy,
           createTime: result.createTime,
           id: result.id,
@@ -169,7 +168,10 @@ export class Instance extends React.PureComponent {
             })
           }
         } else if (instanceFormType === 'edit') {
-          this.props.onEditInstance(Object.assign({}, this.state.editInstanceData, {desc: values.description}), () => {
+          this.props.onEditInstance(Object.assign({}, this.state.editInstanceData, {
+            desc: values.description,
+            connUrl: values.connectionUrl
+          }), () => {
             this.hideForm()
             message.success('Instance 修改成功！', 3)
           })
@@ -228,18 +230,15 @@ export class Instance extends React.PureComponent {
    * 新增时，验证 Connection Url 是否存在
    * */
   onInitInstanceInputValue = (value) => {
-    const { editInstanceData } = this.state
+    const { eidtConnUrl } = this.state
 
-    if (editInstanceData.connUrl !== value) {
+    if (eidtConnUrl !== value) {
       const requestVal = {
         type: this.state.InstanceSourceDsVal,
         conn_url: value
       }
 
       this.props.onLoadInstanceInputValue(requestVal, () => {}, (result) => {
-        this.setState({
-          connUrlResult: result
-        })
         this.loadResult(value, result)
       })
     }
