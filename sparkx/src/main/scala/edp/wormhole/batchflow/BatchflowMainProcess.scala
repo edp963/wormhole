@@ -36,7 +36,6 @@ import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.sinks.{SinkProcessConfig, SourceMutationType}
 
 //import scala.collection.mutable
-//import edp.wormhole.sinks.hbasesink.HbaseConnection
 import edp.wormhole.sinks.utils.SinkCommonUtils
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.swifts.parse.SwiftsProcessConfig
