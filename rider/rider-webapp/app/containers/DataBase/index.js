@@ -210,6 +210,37 @@ export class DataBase extends React.PureComponent {
     return false
   }
 
+  /**
+   * Config 格式校验
+   * key=value&key=value一行或多行（多行时用 & 连接） 或 key=value 多行（用 , 连接）
+   */
+  onConfigValue (val) {
+    let configVal = ''
+    if (val.indexOf('&') > -1) {
+      // key=value&key=value
+      if (val.indexOf('=') > -1) {
+        configVal = val.replace(/\n/g, '&')
+      } else {
+        configVal = val
+      }
+    } else {
+      if (val.indexOf('=') > -1) {
+        // 多行输入 key=value
+        const conTempStr = val.trim()
+        const numArr = (conTempStr.split('=')).length - 1
+
+        if (numArr === 1) {
+          configVal = val
+        } else {
+          configVal = val.replace(/\n/g, ',')
+        }
+      } else {
+        configVal = val
+      }
+    }
+    return configVal
+  }
+
   onModalOk = () => {
     const { formType, editDatabaseData } = this.state
     const { databaseNameExited } = this.props
@@ -233,29 +264,6 @@ export class DataBase extends React.PureComponent {
                 }
               })
             } else {
-              let configVal = ''
-              if (values.config.indexOf('&') > -1) {
-                // key=value&key=value
-                if (values.config.indexOf('=') > -1) {
-                  configVal = values.config.replace(/\n/g, '&')
-                } else {
-                  configVal = values.config
-                }
-              } else {
-                if (values.config.indexOf('=') > -1) {
-                  // 多行输入 key=value
-                  const conTempStr = values.config.trim()
-                  const numArr = (conTempStr.split('=')).length - 1
-
-                  if (numArr === 1) {
-                    configVal = values.config
-                  } else {
-                    configVal = values.config.replace(/\n/g, ',')
-                  }
-                } else {
-                  configVal = values.config
-                }
-              }
               const addValues = {
                 nsDatabase: values.nsDatabase,
                 desc: values.description === undefined ? '' : values.description,
@@ -264,7 +272,7 @@ export class DataBase extends React.PureComponent {
                 user: values.userRequired,
                 pwd: values.passwordRequired,
                 partitions: 0,
-                config: configVal
+                config: this.onConfigValue(values.config)
               }
               this.props.onAddDatabase(addValues, () => {
                 this.hideForm()
@@ -299,34 +307,6 @@ export class DataBase extends React.PureComponent {
               }
             }
 
-            let configVal = ''
-            if (valuesConfig === '') {
-              configVal = ''
-            } else {
-              if (valuesConfig.indexOf('&') > -1) {
-                // key=value&key=value
-                if (valuesConfig.indexOf('=') > -1) {
-                  configVal = valuesConfig.replace(/\n/g, '&')
-                } else {
-                  configVal = valuesConfig
-                }
-              } else {
-                if (valuesConfig.indexOf('=') > -1) {
-                  // 多行输入 key=value
-                  const conTempStr = valuesConfig.trim()
-                  const numArr = (conTempStr.split('=')).length - 1
-
-                  if (numArr === 1) {
-                    configVal = valuesConfig
-                  } else {
-                    configVal = valuesConfig.replace(/\n/g, ',')
-                  }
-                } else {
-                  configVal = valuesConfig
-                }
-              }
-            }
-
             const addValues = {
               nsDatabase: values.nsDatabase,
               desc: values.description === undefined ? '' : values.description,
@@ -335,7 +315,7 @@ export class DataBase extends React.PureComponent {
               user: valuesUser,
               pwd: valuesPwd,
               partitions: values.dataBaseDataSystem === 'kafka' ? Number(values.partition) : 0,
-              config: configVal
+              config: valuesConfig === '' ? '' : this.onConfigValue(valuesConfig)
             }
 
             this.props.onAddDatabase(addValues, () => {
@@ -355,39 +335,11 @@ export class DataBase extends React.PureComponent {
                 }
               })
             } else {
-              let configEditVal = ''
-
-              if (this.isJSON('oracle', values.config) === true) {
-                configEditVal = values.config
-              } else {
-                if (values.config.indexOf('&') > -1) {
-                  // key=value&key=value
-                  if (values.config.indexOf('=') > -1) {
-                    configEditVal = values.config.replace(/\n/g, '&')
-                  } else {
-                    configEditVal = values.config
-                  }
-                } else {
-                  if (values.config.indexOf('=') > -1) {
-                    // 多行输入 key=value
-                    const conTempStr = values.config.trim()
-                    const numArr = (conTempStr.split('=')).length - 1
-
-                    if (numArr === 1) {
-                      configEditVal = values.config
-                    } else {
-                      configEditVal = values.config.replace(/\n/g, ',')
-                    }
-                  } else {
-                    configEditVal = values.config
-                  }
-                }
-              }
               const editValues = {
                 permission: values.permission,
                 user: values.userRequired,
                 pwd: values.passwordRequired,
-                config: configEditVal,
+                config: this.isJSON('oracle', values.config) === true ? values.config : this.onConfigValue(values.config),
                 desc: values.description,
                 nsDatabase: values.nsDatabase,
                 partitions: 0
@@ -414,39 +366,11 @@ export class DataBase extends React.PureComponent {
               editPwd = values.password
             }
 
-            let configEditVal = ''
-            if (this.isJSON('others', values.config) === true) {
-              configEditVal = values.config
-            } else {
-              if (values.config.indexOf('&') > -1) {
-                // key=value&key=value
-                if (values.config.indexOf('=') > -1) {
-                  configEditVal = values.config.replace(/\n/g, '&')
-                } else {
-                  configEditVal = values.config
-                }
-              } else {
-                if (values.config.indexOf('=') > -1) {
-                  // 多行输入 key=value
-                  const conTempStr = values.config.trim()
-                  const numArr = (conTempStr.split('=')).length - 1
-
-                  if (numArr === 1) {
-                    configEditVal = values.config
-                  } else {
-                    configEditVal = values.config.replace(/\n/g, ',')
-                  }
-                } else {
-                  configEditVal = values.config
-                }
-              }
-            }
-
             const editValues = {
               permission: values.dataBaseDataSystem === 'kafka' ? 'ReadWrite' : values.permission,
               user: editUser,
               pwd: editPwd,
-              config: configEditVal,
+              config: this.isJSON('others', values.config) === true ? values.config : this.onConfigValue(values.config),
               desc: values.description,
               nsDatabase: values.nsDatabase,
               partitions: values.dataBaseDataSystem === 'kafka' ? values.partition : 0

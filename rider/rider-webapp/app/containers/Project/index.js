@@ -301,7 +301,7 @@ export class Project extends React.Component {
         if (localStorage.getItem('loginRoleType') === 'admin') {
           projectAction = (
             <div className="ri-project-item-tools">
-              <Tooltip title="修改">
+              <Tooltip title="修改 & 授权">
                 <Button icon="edit" shape="circle" type="ghost" onClick={this.showDetail(p)} />
               </Tooltip>
               {showOrHideBtn}
