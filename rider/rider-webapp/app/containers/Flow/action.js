@@ -288,13 +288,12 @@ export function operateUserFlow (values, resolve, reject) {
   }
 }
 
-export function userFlowOperated (result, resolve, reject) {
+export function userFlowOperated (result, resolve) {
   return {
     type: OPERATE_USER_FLOW_SUCCESS,
     payload: {
       result,
-      resolve,
-      reject
+      resolve
     }
   }
 }

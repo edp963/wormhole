@@ -143,7 +143,7 @@ function flowReducer (state = initialState, { type, payload }) {
       return state.set('error', false)
     case OPERATE_USER_FLOW_SUCCESS:
       if (typeof (payload.result) === 'string') {
-        payload.resolve()
+        payload.resolve(payload.result)
         return state.set('flows', flows.filter(g => payload.result.split(',').indexOf(`${g.id}`) < 0))
       } else {
         if (payload.result.length === undefined) {
@@ -153,7 +153,7 @@ function flowReducer (state = initialState, { type, payload }) {
             flows.splice(flows.indexOf(flows.find(g => g.id === payload.result[i].id)), 1, payload.result[i])
           }
         }
-        payload.resolve()
+        payload.resolve(payload.result)
         return state.set('flows', flows.slice())
       }
     case OPERATE_FLOW_ERROR:
