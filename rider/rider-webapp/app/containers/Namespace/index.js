@@ -566,7 +566,8 @@ export class Namespace extends React.PureComponent {
           {text: 'phoenix', value: 'phoenix'},
           {text: 'cassandra', value: 'cassandra'},
           {text: 'log', value: 'log'},
-          {text: 'kafka', value: 'kafka'}
+          {text: 'kafka', value: 'kafka'},
+          {text: 'postgresql', value: 'postgresql'}
         ],
         filteredValue: filteredInfo.nsSys,
         onFilter: (value, record) => record.nsSys.includes(value)

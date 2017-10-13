@@ -34,6 +34,7 @@ import {
   LOAD_PROJECT_NAME_VALUE_ERROR,
   DELETE_SINGLE_PROJECT,
   DELETE_SINGLE_PROJECT_SUCCESS,
+  DELETE_SINGLE_PROJECT_ERROR,
   GET_ERROR
 } from './constants'
 
@@ -165,12 +166,13 @@ export function projectNameInputValueErrorLoaded (result, reject) {
   }
 }
 
-export function deleteSingleProject (projectId, resolve) {
+export function deleteSingleProject (projectId, resolve, reject) {
   return {
     type: DELETE_SINGLE_PROJECT,
     payload: {
       projectId,
-      resolve
+      resolve,
+      reject
     }
   }
 }
@@ -181,6 +183,16 @@ export function singleProjectDeleted (result, resolve) {
     payload: {
       result,
       resolve
+    }
+  }
+}
+
+export function singleProjectDeletedError (result, reject) {
+  return {
+    type: DELETE_SINGLE_PROJECT_ERROR,
+    payload: {
+      result,
+      reject
     }
   }
 }

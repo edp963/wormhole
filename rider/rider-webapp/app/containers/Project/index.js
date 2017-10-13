@@ -271,7 +271,9 @@ export class Project extends React.Component {
   }
 
   deleteAdminProject = (p) => (e) => {
-    this.props.onDeleteSingleProject(p.id, () => {})
+    this.props.onDeleteSingleProject(p.id, () => {}, (result) => {
+      message.warning(`不能删除：${result}`, 5)
+    })
   }
 
   render () {
@@ -470,7 +472,7 @@ export function mapDispatchToProps (dispatch) {
     onAddProject: (project, resolve, final) => dispatch(addProject(project, resolve, final)),
     onEditProject: (project, resolve, final) => dispatch(editProject(project, resolve, final)),
     onLoadProjectNameInputValue: (value, resolve, reject) => dispatch(loadProjectNameInputValue(value, resolve, reject)),
-    onDeleteSingleProject: (projectId, resolve) => dispatch(deleteSingleProject(projectId, resolve)),
+    onDeleteSingleProject: (projectId, resolve, reject) => dispatch(deleteSingleProject(projectId, resolve, reject)),
 
     onLoadProjectNsAll: (resolve) => dispatch(loadProjectNsAll(resolve)),
     onLoadProjectUserAll: (resolve) => dispatch(loadProjectUserAll(resolve))

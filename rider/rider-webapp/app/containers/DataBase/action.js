@@ -23,8 +23,10 @@ import {
   LOAD_DATABASES_SUCCESS,
   ADD_DATABASE,
   ADD_DATABASE_SUCCESS,
+  ADD_DATABASE_ERROR,
   EDIT_DATABASE,
   EDIT_DATABASE_SUCCESS,
+  EDIT_DATABASE_ERROR,
   LOAD_DATABASES_INSTANCE,
   LOAD_DATABASES_INSTANCE_SUCCESS,
   LOAD_NAME_EXIST,
@@ -54,12 +56,13 @@ export function databasesLoaded (databases, resolve) {
   }
 }
 
-export function addDatabase (database, resolve) {
+export function addDatabase (database, resolve, reject) {
   return {
     type: ADD_DATABASE,
     payload: {
       database,
-      resolve
+      resolve,
+      reject
     }
   }
 }
@@ -74,12 +77,23 @@ export function databaseAdded (result, resolve) {
   }
 }
 
-export function editDatabase (database, resolve) {
+export function databaseAddedError (result, reject) {
+  return {
+    type: ADD_DATABASE_ERROR,
+    payload: {
+      result,
+      reject
+    }
+  }
+}
+
+export function editDatabase (database, resolve, reject) {
   return {
     type: EDIT_DATABASE,
     payload: {
       database,
-      resolve
+      resolve,
+      reject
     }
   }
 }
@@ -90,6 +104,16 @@ export function databaseEdited (result, resolve) {
     payload: {
       result,
       resolve
+    }
+  }
+}
+
+export function databaseEditedError (result, reject) {
+  return {
+    type: EDIT_DATABASE_ERROR,
+    payload: {
+      result,
+      reject
     }
   }
 }

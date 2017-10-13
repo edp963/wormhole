@@ -66,8 +66,8 @@ export class RiderInfo extends React.Component {
         </h3>
         <Form className="rider-info-class">
           <Row>
-            <Col span={6}></Col>
-            <Col span={12}>
+            <Col span={2}></Col>
+            <Col span={16}>
               <FormItem label="">
                 <pre>"zookeeper":"{riderInfos.zookeeper}"</pre>
                 <pre>"kafka":"{riderInfos.kafka}"</pre>

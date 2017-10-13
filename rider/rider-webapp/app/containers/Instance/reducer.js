@@ -32,6 +32,9 @@ import {
   LOAD_INSTANCES_INPUT_VALUE,
   LOAD_INSTANCES_INPUT_VALUE_SUCCESS,
   LOAD_INSTANCES_INPUT_VALUE_ERROR,
+  LOAD_INSTANCES_EXIT,
+  LOAD_INSTANCES_EXIT_SUCCESS,
+  LOAD_INSTANCES_EXIT_ERROR,
   GET_ERROR
 } from './constants'
 
@@ -39,7 +42,8 @@ const initialState = fromJS({
   instances: false,
   error: false,
   modalLoading: false,
-  connectUrlExisted: false
+  connectUrlExisted: false,
+  instanceExisted: false
 })
 
 export function instanceReducer (state = initialState, { type, payload }) {
@@ -79,11 +83,19 @@ export function instanceReducer (state = initialState, { type, payload }) {
     case LOAD_INSTANCES_INPUT_VALUE:
       return state.set('connectUrlExisted', false)
     case LOAD_INSTANCES_INPUT_VALUE_SUCCESS:
-      payload.resolve(payload.result)
+      payload.resolve()
       return state.set('connectUrlExisted', false)
     case LOAD_INSTANCES_INPUT_VALUE_ERROR:
       payload.reject(payload.result)
       return state.set('connectUrlExisted', true)
+    case LOAD_INSTANCES_EXIT:
+      return state.set('instanceExisted', false)
+    case LOAD_INSTANCES_EXIT_SUCCESS:
+      payload.resolve()
+      return state.set('instanceExisted', false)
+    case LOAD_INSTANCES_EXIT_ERROR:
+      payload.reject(payload.result)
+      return state.set('instanceExisted', true)
     case GET_ERROR:
       return state.set('error', payload.error)
     default:
