@@ -261,10 +261,10 @@ export class Manager extends React.Component {
             let actionTypeMsg = ''
             if (actionType === 'start') {
               actionTypeRequest = 'start'
-              actionTypeMsg = 'Start'
+              actionTypeMsg = '启动成功！'
             } else if (actionType === 'renew') {
               actionTypeRequest = 'renew'
-              actionTypeMsg = 'Renew'
+              actionTypeMsg = '生效！'
             }
 
             const requestVal = []
@@ -285,7 +285,7 @@ export class Manager extends React.Component {
                 streamStartFormData: [],
                 modalLoading: false
               })
-              message.success(`${actionTypeMsg} 成功！`, 3)
+              message.success(actionTypeMsg, 3)
             }, (result) => {
               message.error(`操作失败：${result}`, 3)
               this.setState({
@@ -307,7 +307,7 @@ export class Manager extends React.Component {
   // stop
   stopStreamBtn = (record, action) => (e) => {
     this.props.onOperateStream(this.props.projectIdGeted, record.id, 'stop', () => {
-      message.success('Stop 成功！', 3)
+      message.success('停止成功！', 3)
     }, (result) => {
       message.error(`操作失败：${result}`, 3)
     })
@@ -316,7 +316,7 @@ export class Manager extends React.Component {
   // delete
   deleteStreambtn = (record, action) => (e) => {
     this.props.onDeleteStream(this.props.projectIdGeted, record.id, 'delete', () => {
-      message.success('Delete 成功！', 3)
+      message.success('删除成功！', 3)
     }, (result) => {
       message.error(`操作失败：${result}`, 3)
     })

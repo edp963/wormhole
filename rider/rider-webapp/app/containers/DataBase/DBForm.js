@@ -166,7 +166,7 @@ export class DBForm extends React.Component {
     // oracle config 显示必填
     const onlyOracleClass = databaseDSValue === 'oracle' ? 'only-oracle-class' : ''
 
-    const urlOptions = currentDatabaseUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.nsInstance}</Option>))
+    const instanceOptions = currentDatabaseUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.nsInstance}</Option>))
 
     return (
       <Form>
@@ -206,10 +206,10 @@ export class DBForm extends React.Component {
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
                   onChange={this.onHandleChangeInstance}
-                  placeholder="Select a Instance"
+                  placeholder="Select an Instance"
                   disabled={disabledOrNot}
                 >
-                  {urlOptions}
+                  {instanceOptions}
                 </Select>
               )}
             </FormItem>
@@ -276,7 +276,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('password', {
                 hidden: userPwdHiddens
               })(
-                <Input type="password" placeholder="Password" />
+                <Input placeholder="Password" />
               )}
             </FormItem>
           </Col>
