@@ -78,7 +78,7 @@ object FlowUtils extends RiderLogger {
   def getSinkProcessClass(nsSys: String) =
     nsSys match {
       case "cassandra" => "edp.wormhole.sinks.cassandrasink.Data2CassandraSink"
-      case "mysql" | "oracle" => "edp.wormhole.sinks.dbsink.Data2DbSink"
+      case "mysql" | "oracle" | "postgresql" => "edp.wormhole.sinks.dbsink.Data2DbSink"
       case "es" => "edp.wormhole.sinks.elasticsearchsink.Data2EsSink"
       case "hbase" => "edp.wormhole.sinks.hbasesink.Data2HbaseSink"
       case "kafka" => "edp.wormhole.sinks.kafkasink.Data2KafkaSink"
@@ -129,9 +129,9 @@ object FlowUtils extends RiderLogger {
 
       case ("new" | "starting" | "waiting" | "failed" | "stopped" | "stopping", "new" | "stopped" | "failed", "start") =>
         if (startFlow(flowStream.streamId, flowStream.streamType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.updateBy))
-          FlowInfo(flowStream.id, "starting", "start", "renew is processing")
+          FlowInfo(flowStream.id, "starting", "start", "start is processing")
         else
-          FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, "renew failed")
+          FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, "start failed")
 
       case ("running", "starting" | "updating" | "stopping" | "suspending" | "running" | "failed", "stop") =>
         if (stopFlow(flowStream.streamId, flowStream.id, flowStream.updateBy, flowStream.streamType, flowStream.sourceNs, flowStream.sinkNs))

@@ -2,8 +2,8 @@
   "dashboard": {
     "__inputs": [
       {
-        "name": "edp_flows_stats",
-        "label": "edp_flows_stats",
+        "name": "wormhole_stats",
+        "label": "wormhole_stats",
         "description": "",
         "type": "datasource",
         "pluginId": "elasticsearch",
@@ -50,10 +50,10 @@
             "bars": false,
             "dashLength": 10,
             "dashes": false,
-            "datasource": "edp_flows_stats",
+            "datasource": "wormhole_stats",
             "fill": 1,
             "id": 1,
-            "interval": ">120s",
+            "interval": "",
             "legend": {
               "avg": true,
               "current": false,
@@ -81,7 +81,7 @@
                 "bucketAggs": [
                   {
                     "fake": true,
-                    "field": "streamId",
+                    "field": "streamName",
                     "id": "3",
                     "settings": {
                       "min_doc_count": 1,
@@ -170,10 +170,10 @@
             "bars": false,
             "dashLength": 10,
             "dashes": false,
-            "datasource": "edp_flows_stats",
+            "datasource": "wormhole_stats",
             "fill": 1,
             "id": 7,
-            "interval": ">120s",
+            "interval": "",
             "legend": {
               "avg": true,
               "current": true,
@@ -202,7 +202,7 @@
                 "bucketAggs": [
                   {
                     "fake": true,
-                    "field": "streamId",
+                    "field": "streamName",
                     "id": "3",
                     "settings": {
                       "min_doc_count": 1,
@@ -291,10 +291,10 @@
             "bars": false,
             "dashLength": 10,
             "dashes": false,
-            "datasource": "edp_flows_stats",
+            "datasource": "wormhole_stats",
             "fill": 1,
             "id": 3,
-            "interval": ">120s",
+            "interval": "",
             "legend": {
               "avg": false,
               "current": false,
@@ -319,11 +319,11 @@
             "steppedLine": false,
             "targets": [
               {
-                "alias": "ReceivedDelay",
+                "alias": "{{streamName}}-ReceivedDelay",
                 "bucketAggs": [
                   {
                     "fake": true,
-                    "field": "streamId",
+                    "field": "streamName",
                     "id": "3",
                     "settings": {
                       "min_doc_count": 1,
@@ -347,7 +347,7 @@
                 "dsType": "elasticsearch",
                 "metrics": [
                   {
-                    "field": "intervalDataProcessToDataums",
+                    "field": "{{streamName}}-intervalDataProcessToDataums",
                     "id": "1",
                     "meta": {},
                     "settings": {},
@@ -363,7 +363,7 @@
                 "bucketAggs": [
                   {
                     "fake": true,
-                    "field": "streamId",
+                    "field": "streamName",
                     "id": "3",
                     "settings": {
                       "min_doc_count": 1,
@@ -399,11 +399,11 @@
                 "timeField": "rddTs"
               },
               {
-                "alias": "SwiftsDelay",
+                "alias": "{{streamName}}-SwiftsDelay",
                 "bucketAggs": [
                   {
                     "fake": true,
-                    "field": "streamId",
+                    "field": "streamName",
                     "id": "3",
                     "settings": {
                       "min_doc_count": 1,
@@ -439,11 +439,11 @@
                 "timeField": "rddTs"
               },
               {
-                "alias": "WriteSinkDelay",
+                "alias": "{{streamName}}-WriteSinkDelay",
                 "bucketAggs": [
                   {
                     "fake": true,
-                    "field": "streamId",
+                    "field": "streamName",
                     "id": "3",
                     "settings": {
                       "min_doc_count": 1,
@@ -479,11 +479,11 @@
                 "timeField": "rddTs"
               },
               {
-                "alias": "WormholeDelay",
+                "alias": "{{streamName}}-WormholeDelay",
                 "bucketAggs": [
                   {
                     "fake": true,
-                    "field": "streamId",
+                    "field": "streamName",
                     "id": "3",
                     "settings": {
                       "min_doc_count": 1,
@@ -572,10 +572,10 @@
             "bars": false,
             "dashLength": 10,
             "dashes": false,
-            "datasource": "edp_flows_stats",
+            "datasource": "wormhole_stats",
             "fill": 1,
             "id": 4,
-            "interval": ">120s",
+            "interval": "",
             "legend": {
               "avg": false,
               "current": false,
@@ -604,7 +604,7 @@
                 "bucketAggs": [
                   {
                     "fake": true,
-                    "field": "flowId",
+                    "field": "flowNamespace",
                     "id": "3",
                     "settings": {
                       "min_doc_count": 1,
@@ -693,10 +693,10 @@
             "bars": false,
             "dashLength": 10,
             "dashes": false,
-            "datasource": "edp_flows_stats",
+            "datasource": "wormhole_stats",
             "fill": 1,
             "id": 5,
-            "interval": ">120s",
+            "interval": "",
             "legend": {
               "avg": false,
               "current": false,
@@ -724,7 +724,7 @@
                 "bucketAggs": [
                   {
                     "fake": true,
-                    "field": "flowId",
+                    "field": "flowNamespace",
                     "id": "3",
                     "settings": {
                       "min_doc_count": 1,
@@ -813,10 +813,10 @@
             "bars": false,
             "dashLength": 10,
             "dashes": false,
-            "datasource": "edp_flows_stats",
+            "datasource": "wormhole_stats",
             "fill": 1,
             "id": 6,
-            "interval": ">120s",
+            "interval": "",
             "legend": {
               "avg": false,
               "current": false,
@@ -841,11 +841,11 @@
             "steppedLine": false,
             "targets": [
               {
-                "alias": "ReceivedDelay",
+                "alias": "{{flowNamespace}}-ReceivedDelay",
                 "bucketAggs": [
                   {
                     "fake": true,
-                    "field": "flowId",
+                    "field": "flowNamespace",
                     "id": "3",
                     "settings": {
                       "min_doc_count": 1,
@@ -881,11 +881,11 @@
                 "timeField": "rddTs"
               },
               {
-                "alias": "PreprocessDelay",
+                "alias": "{{flowNamespace}}-PreprocessDelay",
                 "bucketAggs": [
                   {
                     "fake": true,
-                    "field": "flowId",
+                    "field": "flowNamespace",
                     "id": "3",
                     "settings": {
                       "min_doc_count": 1,
@@ -921,11 +921,11 @@
                 "timeField": "rddTs"
               },
               {
-                "alias": "SwiftsDelay",
+                "alias": "{{flowNamespace}}-SwiftsDelay",
                 "bucketAggs": [
                   {
                     "fake": true,
-                    "field": "flowId",
+                    "field": "flowNamespace",
                     "id": "3",
                     "settings": {
                       "min_doc_count": 1,
@@ -961,11 +961,11 @@
                 "timeField": "rddTs"
               },
               {
-                "alias": "WriteSinkDelay",
+                "alias": "{{flowNamespace}}-WriteSinkDelay",
                 "bucketAggs": [
                   {
                     "fake": true,
-                    "field": "flowId",
+                    "field": "flowNamespace",
                     "id": "3",
                     "settings": {
                       "min_doc_count": 1,
@@ -1001,11 +1001,11 @@
                 "timeField": "rddTs"
               },
               {
-                "alias": "WormholeDelay",
+                "alias": "{{flowNamespace}}-WormholeDelay",
                 "bucketAggs": [
                   {
                     "fake": true,
-                    "field": "flowId",
+                    "field": "flowNamespace",
                     "id": "3",
                     "settings": {
                       "min_doc_count": 1,
@@ -1094,34 +1094,14 @@
         {
           "allValue": null,
           "current": {},
-          "datasource": "edp_flows_stats",
-          "hide": 0,
-          "includeAll": true,
-          "label": null,
-          "multi": true,
-          "name": "flow_name",
-          "options": [],
-          "query": "{\"find\": \"terms\", \"field\": \"flowNamespace\"}",
-          "refresh": 2,
-          "regex": "",
-          "sort": 0,
-          "tagValuesQuery": "",
-          "tags": [],
-          "tagsQuery": "",
-          "type": "query",
-          "useTags": false
-        },
-        {
-          "allValue": null,
-          "current": {},
-          "datasource": "edp_flows_stats",
+          "datasource": "wormhole_stats",
           "hide": 2,
           "includeAll": false,
           "label": null,
           "multi": false,
           "name": "project_id",
           "options": [],
-          "query": "{\"find\": \"terms\", \"field\": \"projectId\"}",
+          "query": "{\"find\": \"terms\", \"field\": \"projectId\",\"query\":\"projectId:8\"}",
           "refresh": 2,
           "regex": "",
           "sort": 0,
@@ -1134,14 +1114,34 @@
         {
           "allValue": null,
           "current": {},
-          "datasource": "edp_flows_stats",
+          "datasource": "wormhole_stats",
           "hide": 0,
           "includeAll": true,
           "label": "stream_name",
           "multi": true,
           "name": "stream_name",
           "options": [],
-          "query": "{\"find\": \"terms\", \"field\": \"streamName\"}",
+          "query": "{\"find\": \"terms\", \"field\": \"streamName\", \"query\": \"projectId:#PROJECT_ID#\"}",
+          "refresh": 2,
+          "regex": "",
+          "sort": 0,
+          "tagValuesQuery": "",
+          "tags": [],
+          "tagsQuery": "",
+          "type": "query",
+          "useTags": false
+        },
+        {
+          "allValue": null,
+          "current": {},
+          "datasource": "wormhole_stats",
+          "hide": 0,
+          "includeAll": true,
+          "label": null,
+          "multi": true,
+          "name": "flow_name",
+          "options": [],
+          "query": "{\"find\": \"terms\", \"field\": \"flowNamespace\",\"query\": \"streamName:$stream_name\"}",
           "refresh": 2,
           "regex": "",
           "sort": 0,
@@ -1154,8 +1154,8 @@
       ]
     },
     "time": {
-      "from": "now/d",
-      "to": "now/d"
+      "from": "now-3h",
+      "to": "now"
     },
     "timepicker": {
       "refresh_intervals": [
@@ -1189,8 +1189,8 @@
   "overwrite": false,
   "inputs": [
     {
-      "name": "edp_flows_stats",
-      "label": "edp_flows_stats",
+      "name": "wormhole_stats",
+      "label": "wormhole_stats",
       "description": "",
       "type": "datasource",
       "pluginId": "elasticsearch",

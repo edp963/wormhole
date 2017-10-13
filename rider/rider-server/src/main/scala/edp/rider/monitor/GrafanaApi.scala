@@ -65,7 +65,7 @@ object GrafanaApi extends RiderLogger {
 
   private def createDataSource(grafanaUrl: String, token: String, name: String, esUrl: String, esIndex: String, user: String, pwd: String): Boolean = {
     try {
-      val jsonData = Some(DataSourceJsonData(5, "rddTs", "\u003e30"))
+      val jsonData = Some(DataSourceJsonData(5, "rddTs", ""))
       val postData =
         if (user == "" || user == null)
           GrafanaDataSource(None, name, "elasticsearch", esUrl.stripSuffix("/"), "proxy", esIndex, false, jsonData = jsonData)

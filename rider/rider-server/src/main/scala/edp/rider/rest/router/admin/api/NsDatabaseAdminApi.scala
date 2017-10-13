@@ -118,7 +118,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                 complete(OK, getHeader(403, session))
               }
               else {
-                if (isJson(simple.config.getOrElse("")) || isKeyEqualValue(simple.config.getOrElse(""))) {
+                if (isKeyEqualValue(simple.config.getOrElse(""))) {
                   val database = NsDatabase(0, simple.nsDatabase.toLowerCase, Some(simple.desc.getOrElse("")), simple.nsInstanceId, simple.permission, Some(simple.user.getOrElse("")), Some(simple.pwd.getOrElse("")), simple.partitions, Some(simple.config.getOrElse("")), active = true, currentSec, session.userId, currentSec, session.userId)
                   onComplete(databaseDal.insert(database).mapTo[NsDatabase]) {
                     case Success(db) =>
@@ -143,7 +143,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                   }
                 } else {
                   riderLogger.error(s"user ${session.userId} insert database failed caused by config ${simple.config.get} is not json type")
-                  complete(OK, getHeader(400, s"${simple.config.get} is not json type", session))
+                  complete(OK, getHeader(400, s"${simple.config.get} is not key=value type", session))
                 }
               }
           }
@@ -183,7 +183,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                   }
                 } else {
                   riderLogger.error(s"user ${session.userId} update database failed caused by config ${database.config.get} is not json type")
-                  complete(OK, getHeader(400, s"${database.config.get} is not json type", session))
+                  complete(OK, getHeader(400, s"${database.config.get} is not key=value type", session))
                 }
               }
           }
