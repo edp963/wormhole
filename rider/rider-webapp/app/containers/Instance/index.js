@@ -35,8 +35,8 @@ import Popover from 'antd/lib/popover'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { loadInstances, addInstance, loadInstanceInputValue, loadSingleInstance, editInstance } from './action'
-import { selectInstances, selectError, selectModalLoading, selectConnectUrlExisted } from './selectors'
+import { loadInstances, addInstance, loadInstanceInputValue, loadInstanceExit, loadSingleInstance, editInstance } from './action'
+import { selectInstances, selectError, selectModalLoading, selectConnectUrlExisted, selectInstanceExisted } from './selectors'
 
 export class Instance extends React.PureComponent {
   constructor (props) {
@@ -68,6 +68,7 @@ export class Instance extends React.PureComponent {
       filterDropdownVisibleUpdateTime: false,
 
       editInstanceData: {},
+      eidtConnUrl: '',
       InstanceSourceDsVal: ''
     }
   }
@@ -117,9 +118,9 @@ export class Instance extends React.PureComponent {
       this.setState({
         formVisible: true,
         instanceFormType: 'edit',
+        eidtConnUrl: result.connUrl,
         editInstanceData: {
           active: result.active,
-          connUrl: result.connUrl,
           createBy: result.createBy,
           createTime: result.createTime,
           id: result.id,
@@ -148,19 +149,16 @@ export class Instance extends React.PureComponent {
 
   onModalOk = () => {
     const { instanceFormType } = this.state
-    const { connectUrlExisted } = this.props
+    const { instanceExisted } = this.props
 
     this.instanceForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (instanceFormType === 'add') {
-          if (connectUrlExisted === true) {
+          if (instanceExisted === true) {
             this.instanceForm.setFields({
-              connectionUrl: {
-                value: values.connectionUrl,
-                errors: [new Error('该 Connection URL 已存在')]
-              },
               instance: {
-                value: ''
+                value: values.instance,
+                errors: [new Error('该 Instance 已存在')]
               }
             })
           } else {
@@ -170,7 +168,10 @@ export class Instance extends React.PureComponent {
             })
           }
         } else if (instanceFormType === 'edit') {
-          this.props.onEditInstance(Object.assign({}, this.state.editInstanceData, {desc: values.description}), () => {
+          this.props.onEditInstance(Object.assign({}, this.state.editInstanceData, {
+            desc: values.description,
+            connUrl: values.connectionUrl
+          }), () => {
             this.hideForm()
             message.success('Instance 修改成功！', 3)
           })
@@ -226,40 +227,94 @@ export class Instance extends React.PureComponent {
   }
 
   /***
-   * 新增时，通过Connection Url 自动显示Instance的值
+   * 新增时，验证 Connection Url 是否存在
    * */
   onInitInstanceInputValue = (value) => {
-    if (value === '') {
-      this.instanceForm.setFieldsValue({
-        instance: ''
-      })
-    } else {
+    const { eidtConnUrl } = this.state
+
+    if (eidtConnUrl !== value) {
       const requestVal = {
         type: this.state.InstanceSourceDsVal,
         conn_url: value
       }
 
-      this.props.onLoadInstanceInputValue(requestVal, (result) => {
-        if (this.instanceForm.getFieldValue('connectionUrl')) {
-          this.instanceForm.setFieldsValue({
-            instance: result
-          })
-        }
-      }, (result) => {
-        const errMsg = result.indexOf('exists') > 0
-          ? '该 Connection URL 已存在'
-          : '必须是 "ip:port" 或 "hostname:port" 格式'
-        this.instanceForm.setFields({
-          connectionUrl: {
-            value: value,
-            errors: [new Error(`${errMsg}`)]
-          },
-          instance: {
-            value: ''
-          }
-        })
+      this.props.onLoadInstanceInputValue(requestVal, () => {}, (result) => {
+        this.loadResult(value, result)
       })
     }
+  }
+
+  loadResult (value, result) {
+    const { instanceFormType } = this.state
+    let errMsg = ''
+    if (result.indexOf('exists') > 0) {
+      errMsg = `该 Connection URL 已存在，确定${instanceFormType === 'add' ? '新建' : '修改'}吗？`
+    } else {
+      errMsg = this.state.InstanceSourceDsVal === 'es'
+        ? '必须是 "http(s)://ip:port"或"http(s)://hostname:port" 格式'
+        : '必须是 "ip:port"或"hostname:port" 格式, 多条时用逗号隔开'
+    }
+
+    this.instanceForm.setFields({
+      connectionUrl: {
+        value: value,
+        errors: [new Error(`${errMsg}`)]
+      }
+    })
+  }
+  /***
+   * 新增时，根据 Connection Url 获得 Instance
+   * */
+  // onInitInstanceInputValue = (value) => {
+  //   if (value === '') {
+  //     this.instanceForm.setFieldsValue({
+  //       instance: ''
+  //     })
+  //   } else {
+  //     const requestVal = {
+  //       type: this.state.InstanceSourceDsVal,
+  //       conn_url: value
+  //     }
+  //
+  //     this.props.onLoadInstanceInputValue(requestVal, (result) => {
+  //       if (this.instanceForm.getFieldValue('connectionUrl')) {
+  //         this.instanceForm.setFieldsValue({
+  //           instance: result
+  //         })
+  //       }
+  //     }, (result) => {
+  //       const errMsg = result.indexOf('exists') > 0
+  //         ? '该 Connection URL 已存在'
+  //         : '必须是 "ip:port" 或 "hostname:port" 格式'
+  //       this.instanceForm.setFields({
+  //         connectionUrl: {
+  //           value: value,
+  //           errors: [new Error(`${errMsg}`)]
+  //         },
+  //         instance: {
+  //           value: ''
+  //         }
+  //       })
+  //     })
+  //   }
+  // }
+
+  /***
+   * 新增时，验证 Instance 是否存在
+   * */
+  onInitInstanceExited = (value) => {
+    const requestVal = {
+      type: this.state.InstanceSourceDsVal,
+      nsInstance: value
+    }
+    this.props.onLoadInstanceExit(requestVal, () => {}, (result) => {
+      this.instanceForm.setFields({
+        instance: {
+          value: value,
+          errors: [new Error('该 Instance 已存在')]
+        }
+      })
+    })
   }
 
   handleEndOpenChange = (status) => {
@@ -334,7 +389,8 @@ export class Instance extends React.PureComponent {
           {text: 'phoenix', value: 'phoenix'},
           {text: 'cassandra', value: 'cassandra'},
           {text: 'log', value: 'log'},
-          {text: 'kafka', value: 'kafka'}
+          {text: 'kafka', value: 'kafka'},
+          {text: 'postgresql', value: 'postgresql'}
         ],
         filteredValue: filteredInfo.nsSys,
         onFilter: (value, record) => record.nsSys.includes(value)
@@ -550,6 +606,7 @@ export class Instance extends React.PureComponent {
           <InstanceForm
             instanceFormType={instanceFormType}
             onInitInstanceInputValue={this.onInitInstanceInputValue}
+            onInitInstanceExited={this.onInitInstanceExited}
             onInitInstanceSourceDs={this.onInitInstanceSourceDs}
             ref={(f) => { this.instanceForm = f }}
           />
@@ -561,10 +618,11 @@ export class Instance extends React.PureComponent {
 
 Instance.propTypes = {
   modalLoading: React.PropTypes.bool,
-  connectUrlExisted: React.PropTypes.bool,
+  instanceExisted: React.PropTypes.bool,
   onLoadInstances: React.PropTypes.func,
   onAddInstance: React.PropTypes.func,
   onLoadInstanceInputValue: React.PropTypes.func,
+  onLoadInstanceExit: React.PropTypes.func,
   onLoadSingleInstance: React.PropTypes.func,
   onEditInstance: React.PropTypes.func
 }
@@ -574,6 +632,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadInstances: (resolve) => dispatch(loadInstances(resolve)),
     onAddInstance: (instance, resolve) => dispatch(addInstance(instance, resolve)),
     onLoadInstanceInputValue: (value, resolve, reject) => dispatch(loadInstanceInputValue(value, resolve, reject)),
+    onLoadInstanceExit: (value, resolve, reject) => dispatch(loadInstanceExit(value, resolve, reject)),
     onLoadSingleInstance: (instanceId, resolve) => dispatch(loadSingleInstance(instanceId, resolve)),
     onEditInstance: (value, resolve) => dispatch(editInstance(value, resolve))
   }
@@ -583,7 +642,8 @@ const mapStateToProps = createStructuredSelector({
   instances: selectInstances(),
   error: selectError(),
   modalLoading: selectModalLoading(),
-  connectUrlExisted: selectConnectUrlExisted()
+  connectUrlExisted: selectConnectUrlExisted(),
+  instanceExisted: selectInstanceExisted()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Instance)

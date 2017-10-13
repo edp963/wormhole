@@ -340,7 +340,7 @@ export class Namespace extends React.PureComponent {
               nsDatabase: selDatabase.nsDatabase,
               nsDatabaseId: Number(values.nsDatabase),
               nsInstance: values.instance,
-              nsInstanceId: Number(values.connectionUrl),
+              nsInstanceId: Number(values.instance),
               nsSys: values.dataBaseDataSystem
             }
 
@@ -426,8 +426,8 @@ export class Namespace extends React.PureComponent {
       })
       // namespaceForm 的 placeholder
       this.namespaceForm.setFieldsValue({
-        connectionUrl: undefined,
-        instance: '',
+        connectionUrl: '',
+        instance: undefined,
         nsDatabase: undefined
       })
       this.cleanNsTableData()
@@ -512,7 +512,7 @@ export class Namespace extends React.PureComponent {
     const formValues = this.namespaceForm.getFieldsValue()
 
     const requestValues = {
-      instanceId: Number(formValues.connectionUrl),
+      instanceId: Number(formValues.instance),
       databaseId: Number(formValues.nsDatabase),
       tableNames: val
     }
@@ -566,7 +566,8 @@ export class Namespace extends React.PureComponent {
           {text: 'phoenix', value: 'phoenix'},
           {text: 'cassandra', value: 'cassandra'},
           {text: 'log', value: 'log'},
-          {text: 'kafka', value: 'kafka'}
+          {text: 'kafka', value: 'kafka'},
+          {text: 'postgresql', value: 'postgresql'}
         ],
         filteredValue: filteredInfo.nsSys,
         onFilter: (value, record) => record.nsSys.includes(value)

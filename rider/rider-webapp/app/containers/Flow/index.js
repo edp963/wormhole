@@ -152,13 +152,13 @@ export class Flow extends React.Component {
       let menuMsg = ''
       if (e.key === 'menuStart') {
         menuAction = 'start'
-        menuMsg = 'Start'
+        menuMsg = '启动'
       } else if (e.key === 'menuStop') {
         menuAction = 'stop'
-        menuMsg = 'Stop'
+        menuMsg = '停止'
       } else if (e.key === 'menuDelete') {
         menuAction = 'delete'
-        menuMsg = 'Delete'
+        menuMsg = '删除'
       }
 
       const requestValue = {
@@ -167,11 +167,23 @@ export class Flow extends React.Component {
         action: menuAction
       }
 
-      this.props.onOperateUserFlow(requestValue, () => {
+      this.props.onOperateUserFlow(requestValue, (result) => {
         this.setState({
           selectedRowKeys: []
         })
-        message.success(`${menuMsg} 成功！`, 3)
+
+        if (typeof (result) === 'object') {
+          const resultFailed = result.filter(i => i.msg.indexOf('failed') > -1)
+          if (resultFailed.length > 0) {
+            const resultFailedIdArr = resultFailed.map(i => i.id)
+            const resultFailedIdStr = resultFailedIdArr.join('、')
+            message.error(`Flow ID ${resultFailedIdStr} ${menuMsg}失败！`, 5)
+          } else {
+            message.success(`${menuMsg}成功！`, 3)
+          }
+        } else {
+          message.success(`${menuMsg}成功！`, 3)
+        }
       }, (result) => {
         message.error(`操作失败：${result}`, 3)
       })
@@ -197,12 +209,29 @@ export class Flow extends React.Component {
       action: action,
       flowIds: `${record.id}`
     }
-    this.props.onOperateUserFlow(requestValue, () => {
-      const actionToUpper = `${action.substring(0, 1).toUpperCase()}${action.substring(1)}`
-      if (action === 'renew') {
-        message.success('生效！', 3)
+
+    let singleMsg = ''
+    if (action === 'start') {
+      singleMsg = '启动'
+    } else if (action === 'stop') {
+      singleMsg = '停止'
+    } else if (action === 'delete') {
+      singleMsg = '删除'
+    }
+
+    this.props.onOperateUserFlow(requestValue, (result) => {
+      if (action === 'delete') {
+        message.success(`${singleMsg}成功！`, 3)
       } else {
-        message.success(`${actionToUpper} 成功！`, 3)
+        if (result.msg.indexOf('failed') > -1) {
+          message.error(`Flow ID ${result.id} ${singleMsg}失败！`, 3)
+        } else {
+          if (action === 'renew') {
+            message.success('生效！', 3)
+          } else {
+            message.success(`${singleMsg}成功！`, 3)
+          }
+        }
       }
     }, (result) => {
       message.error(`操作失败：${result}`, 3)

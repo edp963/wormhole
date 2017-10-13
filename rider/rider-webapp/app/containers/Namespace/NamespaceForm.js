@@ -61,11 +61,11 @@ export class NamespaceForm extends React.Component {
     }
   }
 
-  // 选择不同的 connection url 显示不同的 instance
-  onHandleChangeUrl = (e) => {
+  // 选择 instance 显示不同的 connection url
+  onHandleChangeInstance = (e) => {
     const selUrl = this.state.currentNamespaceUrlValue.find(s => s.id === Number(e))
     this.props.form.setFieldsValue({
-      instance: selUrl.nsInstance
+      connectionUrl: selUrl.connUrl
     })
     this.props.cleanNsTableData()
     this.setState({
@@ -107,7 +107,8 @@ export class NamespaceForm extends React.Component {
       { value: 'phoenix', text: 'Phoenix' },
       { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
       { value: 'log', text: 'Log' },
-      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} }
+      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
+      { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} }
     ]
 
     // edit 时，不能修改部分元素
@@ -118,7 +119,7 @@ export class NamespaceForm extends React.Component {
       disabledOrNot = true
     }
 
-    const urlOptions = currentNamespaceUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.connUrl}</Option>))
+    const instanceOptions = currentNamespaceUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.nsInstance}</Option>))
     const databaseOptions = databaseSelectValue.map((s) => (<Option key={s.id} value={`${s.id}`}>{`${s.nsDatabase} (${s.permission})`}</Option>))
 
     const columns = [{
@@ -191,25 +192,6 @@ export class NamespaceForm extends React.Component {
               )}
             </FormItem>
           </Col>
-          <Col span={24}>
-            <FormItem label="Connection URL" {...itemStyle}>
-              {getFieldDecorator('connectionUrl', {
-                rules: [{
-                  required: true,
-                  message: '请选择 Connection URL'
-                }]
-              })(
-                <Select
-                  dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
-                  onChange={this.onHandleChangeUrl}
-                  placeholder="Select a Connection URL"
-                  disabled={disabledOrNot}
-                >
-                  {urlOptions}
-                </Select>
-              )}
-            </FormItem>
-          </Col>
 
           <Col span={24}>
             <FormItem label="Instance" {...itemStyle}>
@@ -219,10 +201,31 @@ export class NamespaceForm extends React.Component {
                   message: '请填写 Instance'
                 }]
               })(
-                <Input placeholder="Instance" disabled />
+                <Select
+                  dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
+                  onChange={this.onHandleChangeInstance}
+                  placeholder="Select an Instance"
+                  disabled={disabledOrNot}
+                >
+                  {instanceOptions}
+                </Select>
               )}
             </FormItem>
           </Col>
+
+          <Col span={24}>
+            <FormItem label="Connection URL" {...itemStyle}>
+              {getFieldDecorator('connectionUrl', {
+                rules: [{
+                  required: true,
+                  message: '请选择 Connection URL'
+                }]
+              })(
+                <Input placeholder="Connection URL" disabled />
+              )}
+            </FormItem>
+          </Col>
+
           <Col span={24}>
             <FormItem label="Database" {...itemStyle}>
               {getFieldDecorator('nsDatabase', {

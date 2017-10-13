@@ -114,7 +114,7 @@ export class ProjectForm extends React.Component {
 
           <Col span={12}>
             <Card title="项目资源" className="project-form-card-style project-form-card-style-right">
-              <FormItem label="CPU上限 (GB)" {...itemStyle}>
+              <FormItem label="CPU上限 (VCores)" {...itemStyle}>
                 {getFieldDecorator('resCores', {
                   rules: [{
                     required: true,

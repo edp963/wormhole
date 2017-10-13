@@ -60,7 +60,7 @@ export class DBForm extends React.Component {
     })
   }
 
-  // 显示 connection url 下拉框的内容
+  // 显示 instance 下拉框的内容
   onDatabaseDataSystemItemSelect = (value) => {
     this.setState({
       databaseDSValue: value
@@ -70,11 +70,11 @@ export class DBForm extends React.Component {
     }
   }
 
-  // 选择不同的 connection url 显示不同的 instance
-  onHandleChangeUrl = (e) => {
+  // 选择不同的 instance 显示不同的 connection url
+  onHandleChangeInstance = (e) => {
     const selUrl = this.state.currentDatabaseUrlValue.find(s => s.id === Number(e))
     this.props.form.setFieldsValue({
-      instance: selUrl.nsInstance
+      connectionUrl: selUrl.connUrl
     })
   }
 
@@ -115,7 +115,8 @@ export class DBForm extends React.Component {
       { value: 'phoenix', text: 'Phoenix' },
       { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
       { value: 'log', text: 'Log' },
-      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} }
+      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
+      { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} }
     ]
 
     // kafka 独立样式hide/show
@@ -131,7 +132,7 @@ export class DBForm extends React.Component {
     // user/password 样式/实际数据的 hide/show
     let uerPwdRequiredClass = ''
     let userPwdHiddensRequired = false
-    if (databaseDSValue === 'oracle' || databaseDSValue === 'mysql') {
+    if (databaseDSValue === 'oracle' || databaseDSValue === 'mysql' || databaseDSValue === 'postgresql') {
       uerPwdRequiredClass = ''
       userPwdHiddensRequired = false
     } else {
@@ -141,7 +142,7 @@ export class DBForm extends React.Component {
 
     let uerPwdClass = ''
     let userPwdHiddens = false
-    if (databaseDSValue === 'oracle' || databaseDSValue === 'mysql' || databaseDSValue === 'kafka') {
+    if (databaseDSValue === 'oracle' || databaseDSValue === 'mysql' || databaseDSValue === 'postgresql' || databaseDSValue === 'kafka') {
       uerPwdClass = 'hide'
       userPwdHiddens = true
     } else {
@@ -150,7 +151,9 @@ export class DBForm extends React.Component {
     }
 
     const databaseDSLabel = databaseDSValue === 'kafka' ? 'Topic Name' : 'Database Name'
-    const diffPlacehodler = databaseDSValue === 'oracle' ? 'Oracle时, Config为包含"service_name"字段的JSON对象' : 'Config'
+    const diffPlacehodler = databaseDSValue === 'oracle'
+      ? '格式为: 多行key=value 或 一行key=value&key=value。Oracle时, 必须包含"service_name"字段'
+      : '格式为: 多行key=value 或 一行key=value&key=value'
 
     // edit 时，不能修改部分元素
     let disabledOrNot = false
@@ -160,7 +163,10 @@ export class DBForm extends React.Component {
       disabledOrNot = true
     }
 
-    const urlOptions = currentDatabaseUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.connUrl}</Option>))
+    // oracle config 显示必填
+    const onlyOracleClass = databaseDSValue === 'oracle' ? 'only-oracle-class' : ''
+
+    const instanceOptions = currentDatabaseUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.nsInstance}</Option>))
 
     return (
       <Form>
@@ -188,25 +194,6 @@ export class DBForm extends React.Component {
               )}
             </FormItem>
           </Col>
-          <Col span={24}>
-            <FormItem label="Connection URL" {...itemStyle}>
-              {getFieldDecorator('connectionUrl', {
-                rules: [{
-                  required: true,
-                  message: '请选择 Connection URL'
-                }]
-              })(
-                <Select
-                  dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
-                  onChange={this.onHandleChangeUrl}
-                  placeholder="Select a Connection URL"
-                  disabled={disabledOrNot}
-                >
-                  {urlOptions}
-                </Select>
-              )}
-            </FormItem>
-          </Col>
 
           <Col span={24}>
             <FormItem label="Instance" {...itemStyle}>
@@ -216,7 +203,27 @@ export class DBForm extends React.Component {
                   message: '请填写 Instance'
                 }]
               })(
-                <Input placeholder="Instance" disabled />
+                <Select
+                  dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
+                  onChange={this.onHandleChangeInstance}
+                  placeholder="Select an Instance"
+                  disabled={disabledOrNot}
+                >
+                  {instanceOptions}
+                </Select>
+              )}
+            </FormItem>
+          </Col>
+
+          <Col span={24}>
+            <FormItem label="Connection URL" {...itemStyle}>
+              {getFieldDecorator('connectionUrl', {
+                rules: [{
+                  required: true,
+                  message: '请选择 Connection URL'
+                }]
+              })(
+                <Input placeholder="Connection URL" disabled />
               )}
             </FormItem>
           </Col>
@@ -296,7 +303,7 @@ export class DBForm extends React.Component {
                 }],
                 hidden: userPwdHiddensRequired
               })(
-                <Input placeholder="Password" />
+                <Input type="password" placeholder="Password" />
               )}
             </FormItem>
           </Col>
@@ -312,18 +319,18 @@ export class DBForm extends React.Component {
                 }],
                 hidden: kafkaTypeHiddens[0]
               })(
-                <InputNumber min={1} step={1} placeholder="Partition" disabled={disabledOrNot} style={{ width: '100%' }} />
+                <InputNumber min={1} step={1} placeholder="Partition" tyle={{ width: '100%' }} />
               )}
             </FormItem>
           </Col>
 
-          <Col span={24}>
+          <Col span={24} className={onlyOracleClass}>
             <FormItem label="Config" {...itemStyle}>
               {getFieldDecorator('config', {})(
                 <Input
                   type="textarea"
                   placeholder={diffPlacehodler}
-                  autosize={{ minRows: 2, maxRows: 8 }}
+                  autosize={{ minRows: 3, maxRows: 8 }}
                   onChange={this.onConfigValChange}
                 />
               )}

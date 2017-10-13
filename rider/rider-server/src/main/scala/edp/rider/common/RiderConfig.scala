@@ -207,7 +207,7 @@ object RiderConfig {
   lazy val grafana =
     if (config.hasPath("grafana") && config.getString("grafana.url").nonEmpty && config.getString("grafana.admin.token").nonEmpty)
       RiderMonitor(config.getString("grafana.url"),
-        grafanaDomain, "edp_flows_stats",
+        grafanaDomain, "wormhole_stats",
         config.getString("grafana.admin.token"))
     else null
 
