@@ -38,7 +38,8 @@ import scala.collection.mutable
 object BatchflowDirective extends Directive {
 
   private def registerFlowStartDirective(sourceNamespace: String, fullsinkNamespace: String, streamId: Long, directiveId: Long,
-                                         swiftsStr: String, sinksStr: String, feedbackTopicName: String, brokers: String, consumptionDataStr: String): Unit = {
+                                         swiftsStr: String, sinksStr: String, feedbackTopicName: String, brokers: String,
+                                         consumptionDataStr: String, dataType: String, dataParseStr: String): Unit = {
     val consumptionDataMap = mutable.HashMap.empty[String, Boolean]
     val consumption = JSON.parseObject(consumptionDataStr)
     val initial = consumption.getString(InputDataRequirement.INITIAL.toString).trim.toLowerCase.toBoolean
@@ -75,17 +76,8 @@ object BatchflowDirective extends Directive {
         else Some(false)
         val dataframe_show_num: Option[Int] = if (swifts.containsKey("dataframe_show_num"))
           Some(swifts.getInteger("dataframe_show_num")) else Some(20)
-        //      val specialConfig: JSONObject = if (swifts.containsKey("swifts_specific_config")) Some(swifts.getJSONObject("swifts_specific_config")) else None
         val specialConfigMap = mutable.HashMap.empty[String, String]
-        //      if (specialConfig != null) {
-        //        val initial = specialConfig.getString(InputDataRequirement.INITIAL.toString).trim.toLowerCase
-        //        val increment = specialConfig.getString(InputDataRequirement.INCREMENT.toString).trim.toLowerCase
-        //        val batch = specialConfig.getString(InputDataRequirement.BATCH.toString).trim.toLowerCase
-        //        specialConfigMap(InputDataRequirement.INITIAL.toString) = initial
-        //        specialConfigMap(InputDataRequirement.INCREMENT.toString) = increment
-        //        specialConfigMap(InputDataRequirement.BATCH.toString) = batch
-        //      }
-        val pushdown_connection = if (swifts.containsKey("pushdown_connection") && swifts.getString("pushdown_connection").trim.nonEmpty && swifts.getJSONArray("pushdown_connection").size>0) swifts.getJSONArray("pushdown_connection") else null
+        val pushdown_connection = if (swifts.containsKey("pushdown_connection") && swifts.getString("pushdown_connection").trim.nonEmpty && swifts.getJSONArray("pushdown_connection").size > 0) swifts.getJSONArray("pushdown_connection") else null
         if (pushdown_connection != null) {
           val connectionListSize = pushdown_connection.size()
           for (i <- 0 until connectionListSize) {
@@ -161,10 +153,11 @@ object BatchflowDirective extends Directive {
         val sinksStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(UmsFieldType.umsFieldValue(tuple.tuple, schemas, "sinks").toString))
         logInfo("sinksStr:" + sinksStr)
         val fullSinkNamespace = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "sink_namespace").toString.toLowerCase
-
-        val consumptionDataStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(UmsFieldType.umsFieldValue(tuple.tuple, schemas, "consumption_data_type").toString))
-
-        registerFlowStartDirective(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, feedbackTopicName, brokers, consumptionDataStr)
+        val consumptionDataStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(UmsFieldType.umsFieldValue(tuple.tuple, schemas, "consumption_protocol").toString))
+        val dataType = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_type").toString.toLowerCase
+        val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
+        val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
+        registerFlowStartDirective(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, feedbackTopicName, brokers, consumptionDataStr, dataType, dataParseStr)
       } catch {
         case e: Throwable =>
           logAlert("registerFlowStartDirective,sourceNamespace:" + sourceNamespace, e)
