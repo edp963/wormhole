@@ -30,8 +30,9 @@ import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.swifts.parse.{ParseSwiftsSql, SwiftsProcessConfig}
 import edp.wormhole.swifts.validity.ValidityConfig
+import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
-import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType, UmsSysField}
+import edp.wormhole.ums._
 
 import scala.collection.mutable
 
@@ -131,8 +132,13 @@ object BatchflowDirective extends Directive {
     val sinkProcessConfig = SinkProcessConfig(sink_table_keys, sink_specific_config, sink_process_class_fullname, sink_retry_times, sink_retry_seconds)
     val swiftsStrCache = if (swiftsStr == null) "" else swiftsStr
 
+
     ConfMemoryStorage.registerStreamLookupNamespaceMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig)
     ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap)
+    if (dataType != "ums") {
+      val parseResult: RegularJsonSchema = BatchSourceConf.parse(dataParseStr)
+      ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace,parseResult.schemaField, parseResult.schemaMap,parseResult.TimeField)
+    }
     ConfMemoryStorage.registerDataStoreConnectionsMap(fullsinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
     WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
 

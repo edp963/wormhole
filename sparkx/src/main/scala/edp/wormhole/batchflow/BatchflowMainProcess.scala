@@ -87,19 +87,20 @@ object BatchflowMainProcess extends EdpLogging {
         //        val dt2: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
         //        println("repartition dataRepartitionRdd duration:   " + dt2 + " - "+ dt1 +" = " + (Seconds.secondsBetween(dt1, dt2).getSeconds() % 60 + " seconds."))
         logInfo("start create classifyRdd")
-        val classifyRdd: RDD[(ListBuffer[((String, String), Ums)], ListBuffer[((String, String), Ums)], ListBuffer[String])] = getClassifyRdd(dataRepartitionRdd).cache()
+        val classifyRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])] = getClassifyRdd(dataRepartitionRdd).cache()
+        val distinctSchema: Map[(UmsProtocolType, String), Seq[UmsField]] = getDistinctSchema(classifyRdd)
         //        classifyRdd.count
         //        val dt3: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
         //        println("get classifyRdd duration:   " + dt3 + " - "+ dt2 +" = " + (Seconds.secondsBetween(dt2, dt3).getSeconds() % 60 + " seconds."))
         logInfo("start doStreamLookupData")
         //        val streamMergeTs = System.currentTimeMillis
-        doStreamLookupData(session, classifyRdd, config)
+        doStreamLookupData(session, classifyRdd, config, distinctSchema)
         //               val dt4: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
         //               println("get doStreamLookupData duration:   " + dt4 + " - "+ dt3 +" = " + (Seconds.secondsBetween(dt3, dt4).getSeconds() % 60 + " seconds."))
         logInfo("start doMainData")
 
         //   val dt5: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
-        val processedSourceNamespace = doMainData(session, classifyRdd, config, statsId, rddTs, directiveTs, mainDataTs)
+        val processedSourceNamespace = doMainData(session, classifyRdd, config, statsId, rddTs, directiveTs, mainDataTs, distinctSchema)
         //        val dt6: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
         //        println("get doMainData duration:   " + dt6 + " - "+ dt5 +" = " + (Seconds.secondsBetween(dt5, dt6).getSeconds() % 60 + "seconds"))
         //
@@ -123,27 +124,39 @@ object BatchflowMainProcess extends EdpLogging {
     )
   }
 
-  private def getClassifyRdd(dataRepartitionRdd: RDD[(String, String)]): RDD[(ListBuffer[((String, String), Ums)], ListBuffer[((String, String), Ums)], ListBuffer[String])] = {
+  private def getClassifyRdd(dataRepartitionRdd: RDD[(String, String)]): RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])] = {
     val streamLookupNamespaceSet = ConfMemoryStorage.getAllLookupNamespaceSet
     val mainNamespaceSet = ConfMemoryStorage.getAllMainNamespaceSet
+    val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Map[String, Any], String)] = ConfMemoryStorage.getAllSourceParseMap
     dataRepartitionRdd.mapPartitions(partition => {
-
-      val mainDataList = ListBuffer.empty[((String, String), Ums)]
-      val lookupDataList = ListBuffer.empty[((String, String), Ums)]
+      val mainDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
+      val lookupDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
       val otherList = ListBuffer.empty[String]
+      val nsSchemaMap = mutable.HashMap.empty[(UmsProtocolType, String), Seq[UmsField]]
       partition.foreach(row => {
         try {
           val (protocolType, namespace) = WormholeUtils.getTypeNamespaceFromKafkaKey(row._1)
           if (protocolType == UmsProtocolType.DATA_INCREMENT_DATA.toString || protocolType == UmsProtocolType.DATA_BATCH_DATA.toString || protocolType == UmsProtocolType.DATA_INITIAL_DATA.toString) {
-            if (ConfMemoryStorage.existSourceNamespace(mainNamespaceSet, namespace)) mainDataList += (((protocolType, namespace), WormholeUtils.json2Ums(row._2)))
-            else if (ConfMemoryStorage.existLookupNamespace(streamLookupNamespaceSet, namespace)) lookupDataList += (((protocolType, namespace), WormholeUtils.json2Ums(row._2)))
-          } else if (checkOtherData(protocolType)) otherList += row._2
+            val (existSourceNs, matchSourceNs) = ConfMemoryStorage.existNamespace(mainNamespaceSet, namespace)
+            if (existSourceNs) {
+              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap, matchSourceNs, "source")
+              if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
+              mainDataList += (((protocolType, namespace), schemaValueTuple._2))
+            }
+            val (existLookupNs, matchLookupNs) = ConfMemoryStorage.existNamespace(streamLookupNamespaceSet, namespace)
+            if (existLookupNs) {
+              //todo change else if to if
+              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap, matchLookupNs, "lookup")
+              if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
+              lookupDataList += (((protocolType, namespace), schemaValueTuple._2))
+            }
+          } else if (checkOtherData(protocolType.toString)) otherList += row._2
           else logDebug("namespace:" + namespace + ", do not config")
         } catch {
           case e1: Throwable => logAlert("do classifyRdd,one data has error,row:" + row, e1)
         }
       })
-      List((mainDataList, lookupDataList, otherList)).toIterator
+      List((mainDataList, lookupDataList, otherList, nsSchemaMap.toArray)).toIterator
     })
   }
 
@@ -158,16 +171,17 @@ object BatchflowMainProcess extends EdpLogging {
   }
 
 
-  private def getMinMaxTsAndCount(protocolType: UmsProtocolType, sourceNamespace: String, umsRdd: RDD[(UmsProtocolType, String, Seq[UmsField], ArrayBuffer[Seq[String]])]): (String, String, Int) = {
+  private def getMinMaxTsAndCount(protocolType: UmsProtocolType, sourceNamespace: String, umsRdd: RDD[(UmsProtocolType, String, ArrayBuffer[Seq[String]])], fields: Seq[UmsField]): (String, String, Int) = {
+    val umsTsIndex = if (ConfMemoryStorage.existJsonSourceParseMap(protocolType, sourceNamespace)) fields.map(_.name).indexOf(ConfMemoryStorage.getJsonSourceTsName(protocolType, sourceNamespace))
+    else fields.map(_.name).indexOf(UmsSysField.TS.toString)
     val minMaxCountArray: Array[(String, String, Int)] = umsRdd.mapPartitions(partition => {
       var minTs = ""
       var maxTs = ""
       var count = 0
       partition.foreach(umsRow => {
         if (umsRow._1 == protocolType && umsRow._2 == sourceNamespace) {
-          count += umsRow._4.length
-          val umsTsIndex = umsRow._3.map(_.name).indexOf(UmsSysField.TS.toString)
-          umsRow._4.foreach(tuple => {
+          count += umsRow._3.length
+          umsRow._3.foreach(tuple => {
             val dataTs = tuple(umsTsIndex)
             if (minTs.isEmpty || !SinkCommonUtils.firstTimeAfterSecond(dataTs, minTs)) minTs = dataTs
             if (SinkCommonUtils.firstTimeAfterSecond(dataTs, maxTs)) maxTs = dataTs
@@ -191,21 +205,21 @@ object BatchflowMainProcess extends EdpLogging {
   }
 
 
-  private def doStreamLookupData(session: SparkSession, allDataRdd: RDD[(ListBuffer[((String, String), Ums)], ListBuffer[((String, String), Ums)], ListBuffer[String])], config: WormholeConfig) = {
+  private def doStreamLookupData(session: SparkSession, allDataRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])], config: WormholeConfig, distinctSchema: Map[(UmsProtocolType, String), Seq[UmsField]]) = {
     try { // join in streaming, file name： sourcenamespace 4 fields _ sinknamespace_lookup namespace 4 fields
-      val umsRdd: RDD[(UmsProtocolType, String, Seq[UmsField], ArrayBuffer[Seq[String]])] = formatRdd(allDataRdd, "lookup")
-      val schemaArray = getDistinctSchema(umsRdd)
-      schemaArray.foreach(schema => {
-        val protocolType: UmsProtocolType = schema._1
-        val namespace = schema._2
-        val matchLookupNamespace = ConfMemoryStorage.getMatchLookupNamespaceRule(schema._2)
-        val lookupDf = createSourceDf(session, namespace, schema._3, protocolType, umsRdd)
+      val umsRdd: RDD[(UmsProtocolType, String, ArrayBuffer[Seq[String]])] = formatRdd(allDataRdd, "lookup")
+      //val schemaArray = getDistinctSchema(umsRdd)
+      distinctSchema.foreach(schema => {
+        val protocolType: UmsProtocolType = schema._1._1
+        val namespace = schema._1._2
+        val matchLookupNamespace = ConfMemoryStorage.getMatchLookupNamespaceRule(namespace)
+        val lookupDf = createSourceDf(session, namespace, schema._2, protocolType, umsRdd)
 
-        val filterDf = lookupDf.filter("ums_op_ != 'b'")
+        //val filterDf = lookupDf.filter("ums_op_ != 'b'")
         ConfMemoryStorage.getSourceAndSinkByStreamLookupNamespace(matchLookupNamespace).foreach {
           case (sourceNs, sinkNs) =>
-            val path = config.stream_hdfs_address.get +"/" + "swiftsparquet"+ "/" + config.spark_config.stream_id + "/" + sourceNs.replaceAll("\\*", "-") + "/" + sinkNs + "/streamLookupNamespace" + "/" + matchLookupNamespace.replaceAll("\\*", "-")
-            filterDf.write.mode(SaveMode.Append).parquet(path) //if not exists will have "WARN: delete very recently?" it is ok.
+            val path = config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/" + config.spark_config.stream_id + "/" + sourceNs.replaceAll("\\*", "-") + "/" + sinkNs + "/streamLookupNamespace" + "/" + matchLookupNamespace.replaceAll("\\*", "-")
+            lookupDf.write.mode(SaveMode.Append).parquet(path) //if not exists will have "WARN: delete very recently?" it is ok.
         }
       })
     } catch {
@@ -214,87 +228,83 @@ object BatchflowMainProcess extends EdpLogging {
   }
 
   private def doMainData(session: SparkSession,
-                         mainDataRdd: RDD[(ListBuffer[((String, String), Ums)], ListBuffer[((String, String), Ums)], ListBuffer[String])],
+                         mainDataRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])],
                          config: WormholeConfig,
                          statsId: String,
                          rddTs: Long,
                          directiveTs: Long,
-                         mainDataTs: Long): Set[String] = {
+                         mainDataTs: Long,
+                         distinctSchema: Map[(UmsProtocolType, String), Seq[UmsField]]): Set[String] = {
     val processedsourceNamespace = mutable.HashSet.empty[String]
     // val dt1: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
-    val umsRdd: RDD[(UmsProtocolType, String, Seq[UmsField], ArrayBuffer[Seq[String]])] = formatRdd(mainDataRdd, "main").cache
+    val umsRdd: RDD[(UmsProtocolType, String, ArrayBuffer[Seq[String]])] = formatRdd(mainDataRdd, "main").cache
     // umsRdd.count()
     // val dt2: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
     // println("In doMainData, get umsRdd duration:   " + dt2 + " - "+ dt1 +" = " + (Seconds.secondsBetween(dt1, dt2).getSeconds() % 60 + " 秒."))
 
-    val schemaArray: Array[(UmsProtocolType, String, Seq[UmsField])] = getDistinctSchema(umsRdd)
+    //val schemaArray: Array[(UmsProtocolType, String, Seq[UmsField])] = getDistinctSchema(umsRdd)
     // val dt3: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
     // println("In doMainData, get schemaArray duration:   " + dt3 + " - "+ dt2 +" = " + (Seconds.secondsBetween(dt2, dt3).getSeconds() % 60 + " 秒."))
-    schemaArray.foreach(schema => {
-        val uuid = UUID.randomUUID().toString
-        val protocolType: UmsProtocolType = schema._1
-        val sourceNamespace: String = schema._2
-        logInfo(uuid + ",schema loop,sourceNamespace:" + sourceNamespace)
-        val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
-        val sourceDf = createSourceDf(session, sourceNamespace, schema._3, protocolType, umsRdd)
-        //.filter("ums_op_ != 'b'")
-        //.cache //.filter(UmsSysField.OP.toString +" <> "+ UmsOpType.BEFORE_UPDATE.toString).cache()
-        //println("sourceDf.count:" + sourceDf.count)
-        //  sourceDf.count
-        //  val dt4: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
-        // println("In doMainData, createSourceDf duration:   " + dt4 + " - "+ dt3 +" = " + (Seconds.secondsBetween(dt3, dt4).getSeconds() % 60 + " seconds."))
-        val (minTs, maxTs, count) = getMinMaxTsAndCount(protocolType, sourceNamespace, umsRdd)
-        logInfo(uuid + "sourceNamespace:" + sourceNamespace + ",minTs:" + minTs + ",maxTs:" + maxTs + ",sourceDf.count:" + count)
-        if (count > 0) {
-          val flowConfigMap = ConfMemoryStorage.getFlowConfigMap(matchSourceNamespace)
-          flowConfigMap.foreach(flow => {
-            val isProcessed = protocolType match {
-              case UmsProtocolType.DATA_INCREMENT_DATA =>
-                flow._2._6(InputDataRequirement.INCREMENT.toString)
-              case UmsProtocolType.DATA_INITIAL_DATA =>
-                flow._2._6(InputDataRequirement.INITIAL.toString)
-              case UmsProtocolType.DATA_BATCH_DATA =>
-                flow._2._6(InputDataRequirement.BATCH.toString)
-            }
-            if (isProcessed) {
-              val sinkNamespace = flow._1
-              logInfo(uuid + ",do flow,matchSourceNamespace:" + matchSourceNamespace + ",sinkNamepace:" + sinkNamespace)
-              val swiftsTs = System.currentTimeMillis
-              ConfMemoryStorage.setEventTs(matchSourceNamespace, sinkNamespace, minTs)
-              val (swiftsProcessConfig: Option[SwiftsProcessConfig], sinkProcessConfig, _, _, _, _) = flow._2
-              logInfo(uuid + ",start swiftsProcess")
+    distinctSchema.foreach(schema => {
+      val uuid = UUID.randomUUID().toString
+      val protocolType: UmsProtocolType = schema._1._1
+      val sourceNamespace: String = schema._1._2
+      logInfo(uuid + ",schema loop,sourceNamespace:" + sourceNamespace)
+      val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
+      val sourceDf = createSourceDf(session, sourceNamespace, schema._2, protocolType, umsRdd)
 
-              val afterUnionDf = unionParquetNonTimeoutDf(swiftsProcessConfig, uuid, session, sourceDf, config, sourceNamespace, sinkNamespace).cache
-              println("sourceNamespace=" + sourceNamespace + ",afterUnionDf.count" + afterUnionDf.count)
-              val swiftsDf = swiftsProcess(swiftsProcessConfig, uuid, session, afterUnionDf, config, sourceNamespace, sinkNamespace, minTs, maxTs, count)
-
-
-              val sinkTs = System.currentTimeMillis
-              if (swiftsDf != null) {
-                try {
-                  validityAndSinkProcess(protocolType, sourceNamespace, sinkNamespace, session, swiftsDf, afterUnionDf, swiftsProcessConfig, sinkProcessConfig, config, minTs, maxTs, uuid)
-                } catch {
-                  case e: Throwable =>
-                    logAlert("sink,sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + ",count=" + count, e)
-                    WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(sourceNamespace, config.spark_config.stream_id, currentDateTime, sinkNamespace, UmsWatermark(maxTs), UmsWatermark(minTs), count, ""), None, config.kafka_output.brokers)
-                }
-                swiftsDf.unpersist
-              } else logWarning("sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + "there is nothing to sinkProcess")
-              afterUnionDf.unpersist
-
-              val doneTs = System.currentTimeMillis
-              processedsourceNamespace.add(sourceNamespace)
-              WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-                UmsProtocolUtils.feedbackFlowStats(sourceNamespace, protocolType.toString, currentDateTime, config.spark_config.stream_id, statsId, sinkNamespace,
-                  count, DateUtils.dt2date(maxTs).getTime, rddTs, directiveTs, mainDataTs, swiftsTs, sinkTs, doneTs), None, config.kafka_output.brokers)
-            }
+      val (minTs, maxTs, count) = getMinMaxTsAndCount(protocolType, sourceNamespace, umsRdd, schema._2)
+      logInfo(uuid + "sourceNamespace:" + sourceNamespace + ",minTs:" + minTs + ",maxTs:" + maxTs + ",sourceDf.count:" + count)
+      if (count > 0) {
+        val flowConfigMap = ConfMemoryStorage.getFlowConfigMap(matchSourceNamespace)
+        flowConfigMap.foreach(flow => {
+          val isProcessed = protocolType match {
+            case UmsProtocolType.DATA_INCREMENT_DATA =>
+              flow._2._6(InputDataRequirement.INCREMENT.toString)
+            case UmsProtocolType.DATA_INITIAL_DATA =>
+              flow._2._6(InputDataRequirement.INITIAL.toString)
+            case UmsProtocolType.DATA_BATCH_DATA =>
+              flow._2._6(InputDataRequirement.BATCH.toString)
           }
-          )
-          //sourceDf.unpersist()
+          if (isProcessed) {
+            val sinkNamespace = flow._1
+            logInfo(uuid + ",do flow,matchSourceNamespace:" + matchSourceNamespace + ",sinkNamepace:" + sinkNamespace)
+            val swiftsTs = System.currentTimeMillis
+            ConfMemoryStorage.setEventTs(matchSourceNamespace, sinkNamespace, minTs)
+            val (swiftsProcessConfig: Option[SwiftsProcessConfig], sinkProcessConfig, _, _, _, _) = flow._2
+            logInfo(uuid + ",start swiftsProcess")
+
+            val afterUnionDf = unionParquetNonTimeoutDf(swiftsProcessConfig, uuid, session, sourceDf, config, sourceNamespace, sinkNamespace).cache
+            println("sourceNamespace=" + sourceNamespace + ",afterUnionDf.count" + afterUnionDf.count)
+            val swiftsDf = swiftsProcess(swiftsProcessConfig, uuid, session, afterUnionDf, config, sourceNamespace, sinkNamespace, minTs, maxTs, count)
+
+
+            val sinkTs = System.currentTimeMillis
+            if (swiftsDf != null) {
+              try {
+                validityAndSinkProcess(protocolType, sourceNamespace, sinkNamespace, session, swiftsDf, afterUnionDf, swiftsProcessConfig, sinkProcessConfig, config, minTs, maxTs, uuid)
+              } catch {
+                case e: Throwable =>
+                  logAlert("sink,sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + ",count=" + count, e)
+                  WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(sourceNamespace, config.spark_config.stream_id, currentDateTime, sinkNamespace, UmsWatermark(maxTs), UmsWatermark(minTs), count, ""), None, config.kafka_output.brokers)
+              }
+              swiftsDf.unpersist
+            } else logWarning("sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + "there is nothing to sinkProcess")
+            afterUnionDf.unpersist
+
+            val doneTs = System.currentTimeMillis
+            processedsourceNamespace.add(sourceNamespace)
+            WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
+              UmsProtocolUtils.feedbackFlowStats(sourceNamespace, protocolType.toString, currentDateTime, config.spark_config.stream_id, statsId, sinkNamespace,
+                count, DateUtils.dt2date(maxTs).getTime, rddTs, directiveTs, mainDataTs, swiftsTs, sinkTs, doneTs), None, config.kafka_output.brokers)
+          }
         }
-      })
-      umsRdd.unpersist()
-      processedsourceNamespace.toSet
+        )
+        //sourceDf.unpersist()
+      }
+    })
+    umsRdd.unpersist()
+    processedsourceNamespace.toSet
   }
 
   private def unionParquetNonTimeoutDf(swiftsProcessConfig: Option[SwiftsProcessConfig],
@@ -307,7 +317,7 @@ object BatchflowMainProcess extends EdpLogging {
                                       ): DataFrame = {
     if (swiftsProcessConfig.nonEmpty) {
       if (swiftsProcessConfig.get.validityConfig.isDefined) {
-        val parquetAddr = config.stream_hdfs_address.get +"/" + "swiftsparquet"+ "/" + config.spark_config.stream_id + "/" + sourceNamespace + "/" + sinkNamespace + "/mainNamespace"
+        val parquetAddr = config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/" + config.spark_config.stream_id + "/" + sourceNamespace + "/" + sinkNamespace + "/mainNamespace"
         val configuration = new Configuration()
         if (HdfsUtils.isParquetPathReady(configuration, parquetAddr)) {
           logInfo(uuid + ",swiftsProcessConfig.nonEmpty,and readMainParquetDf")
@@ -355,66 +365,42 @@ object BatchflowMainProcess extends EdpLogging {
     }
   }
 
-  //    private def readMainParquetDf(session: SparkSession, sourceNamespace: String, sinkNamespace: String, config: WormholeConfig): DataFrame = {
-  //      val parquetAddr = config.stream_hdfs_address.get + "/" + config.spark_config.stream_id + "/" + sourceNamespace + "/" + sinkNamespace + "/mainNamespace"
-  //      val configuration = new Configuration()
-  //      if (HdfsUtils.isParquetPathReady(configuration, parquetAddr)) {
-  //        session.read.parquet(parquetAddr)
-  //      }
-  //      else {
-  //        null.asInstanceOf[DataFrame]
-  //      }
-  //    }
 
   private def createSourceDf(session: SparkSession, sourceNamespace: String, fields: Seq[UmsField], protocolType: UmsProtocolType,
-                             umsRdd: RDD[(UmsProtocolType, String, Seq[UmsField], ArrayBuffer[Seq[String]])]) = {
+                             umsRdd: RDD[(UmsProtocolType, String, ArrayBuffer[Seq[String]])]) = {
     val sourceRdd: RDD[Seq[String]] = umsRdd.filter(row => {
       row._1 == protocolType && row._2 == sourceNamespace
-    }).flatMap(_._4)
+    }).flatMap(_._3)
     val rowRdd: RDD[Row] = sourceRdd.flatMap(row => SparkUtils.umsToSparkRowWrapper(sourceNamespace, fields, row))
     createDf(session, fields, rowRdd)
   }
 
-  private def getDistinctSchema(umsRdd: RDD[(UmsProtocolType, String, Seq[UmsField], ArrayBuffer[Seq[String]])]): Array[(UmsProtocolType, String, Seq[UmsField])] = {
-    val schemaArray = umsRdd.mapPartitions(partition => {
-      val schemaMap = mutable.HashMap.empty[(UmsProtocolType, String), (UmsProtocolType, String, Seq[UmsField])]
-      partition.foreach(row => {
-        if (!schemaMap.contains((row._1, row._2))) {
-          schemaMap((row._1, row._2)) = (row._1, row._2, row._3)
-        }
-      })
-      schemaMap.values.toIterator
-    }).collect()
-
-    val schemaMap = mutable.HashMap.empty[(UmsProtocolType, String), (UmsProtocolType, String, Seq[UmsField])]
-    schemaArray.foreach(schema => {
-      if (!schemaMap.contains((schema._1, schema._2))) {
-        schemaMap((schema._1, schema._2)) = (schema._1, schema._2, schema._3)
-      }
+  private def getDistinctSchema(umsRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])]): Map[(UmsProtocolType, String), Seq[UmsField]] = {
+    val schemaMap = mutable.HashMap.empty[(UmsProtocolType, String), Seq[UmsField]]
+    umsRdd.map(_._4).collect().foreach(_.foreach { case ((protocol, ns), schema) =>
+      if (!schemaMap.contains((protocol, ns))) schemaMap((protocol, ns)) = schema
     })
-
-    schemaMap.values.toArray
+    schemaMap.toMap
   }
 
-  private def formatRdd(allDataRdd: RDD[(ListBuffer[((String, String), Ums)], ListBuffer[((String, String), Ums)], ListBuffer[String])], dataType: String): RDD[(UmsProtocolType, String, Seq[UmsField], ArrayBuffer[Seq[String]])] = {
+  private def formatRdd(allDataRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])], dataType: String): RDD[(UmsProtocolType, String, ArrayBuffer[Seq[String]])] = {
     allDataRdd.mapPartitions(par => {
-      val namespace2umsMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], ArrayBuffer[Seq[String]])] //[(protocoltype,namespace),(seq[umsfield],array[seq[string]]
+      val namespace2ValueMap = mutable.HashMap.empty[(UmsProtocolType, String), ArrayBuffer[Seq[String]]] //[(protocoltype,namespace),(seq[umsfield],array[seq[string]]
 
       par.foreach(allList => {
-        val formatList: mutable.Seq[((String, String), Ums)] = if (dataType == "main") allList._1 else allList._2
+        val formatList: mutable.Seq[((UmsProtocolType, String), Seq[UmsTuple])] = if (dataType == "main") allList._1 else allList._2
         formatList.foreach(row => {
-          val ums: Ums = row._2
-          if (namespace2umsMap.contains((ums.protocol.`type`, ums.schema.namespace))) {
-            namespace2umsMap((ums.protocol.`type`, ums.schema.namespace))._2 ++= ums.payload_get.map(_.tuple)
+          if (namespace2ValueMap.contains((row._1._1, row._1._2))) {
+            namespace2ValueMap((row._1._1, row._1._2)) ++= row._2.map(_.tuple)
           } else {
             val tuple = ArrayBuffer.empty[Seq[String]]
-            tuple ++= ums.payload_get.map(_.tuple)
-            namespace2umsMap += (ums.protocol.`type`, ums.schema.namespace) -> (ums.schema.fields_get, tuple)
+            tuple ++= row._2.map(_.tuple)
+            namespace2ValueMap((row._1._1, row._1._2)) = tuple
           }
         })
       })
-      namespace2umsMap.map(ele => {
-        (ele._1._1, ele._1._2, ele._2._1, ele._2._2)
+      namespace2ValueMap.map(ele => {
+        (ele._1._1, ele._1._2, ele._2)
       }).toIterator
     })
   }
@@ -452,7 +438,7 @@ object BatchflowMainProcess extends EdpLogging {
     val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
 
     val dataSysType = UmsDataSystem.dataSystem(sinkNamespace.split("\\.")(0))
-    val repartitionDf = if (dataSysType == UmsDataSystem.MYSQL || dataSysType == UmsDataSystem.ORACLE||dataSysType == UmsDataSystem.POSTGRESQL) {
+    val repartitionDf = if (dataSysType == UmsDataSystem.MYSQL || dataSysType == UmsDataSystem.ORACLE || dataSysType == UmsDataSystem.POSTGRESQL) {
       val specialConfigJson: JSONObject = if (sinkProcessConfig.specialConfig.isDefined) JSON.parseObject(sinkProcessConfig.specialConfig.get) else new JSONObject()
 
       if (specialConfigJson.containsKey("db.mutation.type") && specialConfigJson.getString("db.mutation.type").nonEmpty) {
@@ -547,10 +533,10 @@ object BatchflowMainProcess extends EdpLogging {
       val newSchemaMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
       var index = 0
       swiftsProcessConfig.get.projection.split(",").foreach(column => {
-       // if (column != UmsSysField.UID.toString || UmsNamespace(sinkNamespace).dataSys == UmsDataSystem.KAFKA) {
-          newSchemaMap(column) = (index, filterUmsUidSchemaMap(column)._2, filterUmsUidSchemaMap(column)._3)
-          index += 1
-       // }
+        // if (column != UmsSysField.UID.toString || UmsNamespace(sinkNamespace).dataSys == UmsDataSystem.KAFKA) {
+        newSchemaMap(column) = (index, filterUmsUidSchemaMap(column)._2, filterUmsUidSchemaMap(column)._3)
+        index += 1
+        // }
       })
       newSchemaMap
     } else filterUmsUidSchemaMap
@@ -651,33 +637,6 @@ object BatchflowMainProcess extends EdpLogging {
     (filterUmsUidSchemaMap, sendList, saveList)
   }
 
-  //  private def getRowData(row: Row, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): ArrayBuffer[String] = {
-  //    val dataArray = ArrayBuffer.fill(schemaMap.size) {
-  //      ""
-  //    }
-  //    schemaMap.foreach(column => {
-  //      val nameToIndex = row.asInstanceOf[GenericRowWithSchema].schema.fields.map(_.name.toLowerCase).zipWithIndex.toMap
-  //      val data = row.get(nameToIndex(column._1))
-  //      if (column._2._2 == UmsFieldType.BINARY) {
-  //        dataArray(column._2._1) = if (null != data) {
-  //          if (data != null) new String(data.asInstanceOf[Array[Byte]]) else null.asInstanceOf[String]
-  //        } else null.asInstanceOf[String]
-  //      } else dataArray(column._2._1) = if (data != null) data.toString else null.asInstanceOf[String]
-  //    })
-  //    dataArray
-  //  }
-
-  //  private def getSchemaMap(schema: StructType): Map[String, (Int, UmsFieldType, Boolean)] = {
-  //    var index = -1
-  //    val schemaMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
-  //    schema.fields.foreach(field => {
-  //      if (!schemaMap.contains(field.name.toLowerCase)) {
-  //        index += 1
-  //        schemaMap(field.name.toLowerCase) = (index, SparkSchemaUtils.spark2umsType(field.dataType), field.nullable)
-  //      }
-  //    })
-  //    schemaMap.toMap
-  //  }
 
   private def streamJoinTimeoutProcess(matchSourceNamespace: String,
                                        sinkNamespace: String,
@@ -688,7 +647,7 @@ object BatchflowMainProcess extends EdpLogging {
   = {
     ConfMemoryStorage.getStreamLookupNamespaceAndTimeout(matchSourceNamespace, sinkNamespace).foreach {
       case (lookupNamespace, timeout) =>
-        val parquetAddr = config.stream_hdfs_address.get +"/" + "swiftsparquet"+ "/" + config.spark_config.stream_id + "/" + matchSourceNamespace.replaceAll("\\*", "-") + "/" + sinkNamespace + "/streamLookupNamespace" + "/" + lookupNamespace.replaceAll("\\*", "-")
+        val parquetAddr = config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/" + config.spark_config.stream_id + "/" + matchSourceNamespace.replaceAll("\\*", "-") + "/" + sinkNamespace + "/streamLookupNamespace" + "/" + lookupNamespace.replaceAll("\\*", "-")
         val configuration = new Configuration()
         configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
         if (HdfsUtils.isParquetPathReady(configuration, parquetAddr)) {
@@ -711,7 +670,7 @@ object BatchflowMainProcess extends EdpLogging {
 
   = {
     val configuration = new Configuration()
-    val parquetAddr = config.stream_hdfs_address.get +"/" + "swiftsparquet"+ "/" + config.spark_config.stream_id + "/" + sourceNamespace + "/" + sinkNamespace + "/mainNamespace"
+    val parquetAddr = config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/" + config.spark_config.stream_id + "/" + sourceNamespace + "/" + sinkNamespace + "/mainNamespace"
     if (uidArray.nonEmpty) {
       val uids = uidArray.map(t => "\'" + t + "\'").mkString(",")
       val condition: String = UmsSysField.UID.toString + " in (" + uids + ")"
