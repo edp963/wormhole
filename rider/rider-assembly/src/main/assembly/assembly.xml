@@ -63,6 +63,12 @@
             </directory>
             <outputDirectory>logs</outputDirectory>
         </fileSet>
+        <fileSet>
+            <directory>
+                ${project.parent.basedir}/rider/logs/streams
+            </directory>
+            <outputDirectory>logs/streams</outputDirectory>
+        </fileSet>
     </fileSets>
 
     <files>
