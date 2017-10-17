@@ -165,7 +165,7 @@ object SparkStatusQuery extends RiderLogger {
       val json = JsonParser.apply(response.body).toString()
       if (JSON.parseObject(json).containsKey("apps")) {
         val app = JSON.parseObject(json).getString("apps")
-        if (JSON.parseObject(app).containsKey("app")) {
+        if (app != "" && app != null && JSON.parseObject(app).containsKey("app")) {
           val appSeq = JSON.parseObject(app).getJSONArray("app")
           for (i <- 0 until appSeq.size()) {
             val info = appSeq.getString(i)

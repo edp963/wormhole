@@ -51,12 +51,14 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
   def getDbusFromRest: Seq[SimpleDbus] = {
     try {
-      val dbusServices = RiderConfig.dbusUrl.toList
+      val dbusServices =
+        if(RiderConfig.dbusUrl != null) RiderConfig.dbusUrl.toList
+        else List()
       val simpleDbusSeq = new ArrayBuffer[SimpleDbus]
       dbusServices.map {
         service => {
           if (service != null && service != "") {
-            val response = Await.result(Http().singleRequest(HttpRequest(uri = service)), minTimeOut)
+            val response = Await.result(Http().singleRequest(HttpRequest(uri = service)), 5.seconds)
             response match {
               case HttpResponse(StatusCodes.OK, headers, entity, _) =>
                 Await.result(entity.dataBytes.runFold(ByteString(""))(_ ++ _).map {
@@ -74,7 +76,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
     } catch {
       case ex: Exception =>
         riderLogger.error(s"synchronize dbus namespace failed", ex)
-        throw ex
+        Seq()
     }
 
   }
@@ -140,7 +142,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
     } catch {
       case ex: Exception =>
         riderLogger.error(s"insert or update dbus namespaces failed", ex)
-        throw ex
+        Future(Seq())
     }
   }
 
