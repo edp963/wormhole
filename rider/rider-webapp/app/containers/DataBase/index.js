@@ -449,7 +449,7 @@ export class DataBase extends React.PureComponent {
         connectionUrl: '',
         instance: undefined,
         permission: '',
-        nsDatabase: '',
+        nsDatabase: (value === 'hbase' || value === 'phoenix') ? 'default' : '',
         user: '',
         password: '',
         userRequired: '',

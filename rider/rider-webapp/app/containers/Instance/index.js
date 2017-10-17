@@ -245,20 +245,31 @@ export class Instance extends React.PureComponent {
   }
 
   loadResult (value, result) {
-    const { instanceFormType } = this.state
+    const { instanceFormType, InstanceSourceDsVal } = this.state
     let errMsg = ''
     if (result.indexOf('exists') > 0) {
       errMsg = `该 Connection URL 已存在，确定${instanceFormType === 'add' ? '新建' : '修改'}吗？`
     } else {
-      errMsg = this.state.InstanceSourceDsVal === 'es'
-        ? '必须是 "http(s)://ip:port"或"http(s)://hostname:port" 格式'
-        : '必须是 "ip:port"或"hostname:port" 格式, 多条时用逗号隔开'
+      // errMsg = this.state.InstanceSourceDsVal === 'es'
+      //   ? '必须是 "http(s)://ip:port"或"http(s)://hostname:port" 格式'
+      //   : '必须是 "ip:port"或"hostname:port" 格式, 多条时用逗号隔开'
+      if (InstanceSourceDsVal === 'es') {
+        errMsg = [new Error('http(s)://ip:port 格式')]
+      } else if (InstanceSourceDsVal === 'oracle' || InstanceSourceDsVal === 'mysql' || InstanceSourceDsVal === 'postgresql' || InstanceSourceDsVal === 'cassandra') {
+        errMsg = [new Error('ip:port 格式, 多条用逗号隔开')]
+      } else if (InstanceSourceDsVal === 'hbase' || InstanceSourceDsVal === 'phoenix') {
+        errMsg = [new Error('zookeeper url list, 如localhost:2181/hbase, 多条用逗号隔开')]
+      } else if (InstanceSourceDsVal === 'kafka') {
+        errMsg = [new Error('borker list, localhost:9092, 多条用逗号隔开')]
+      } else if (InstanceSourceDsVal === 'log') {
+        errMsg = ''
+      }
     }
 
     this.instanceForm.setFields({
       connectionUrl: {
         value: value,
-        errors: [new Error(`${errMsg}`)]
+        errors: errMsg
       }
     })
   }

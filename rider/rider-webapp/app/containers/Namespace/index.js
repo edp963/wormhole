@@ -85,7 +85,9 @@ export class Namespace extends React.PureComponent {
       namespaceTableSource: [],
 
       editNamespaceData: {},
-      exitedNsTableValue: ''
+      exitedNsTableValue: '',
+
+      nsDsVal: ''
     }
   }
 
@@ -321,6 +323,46 @@ export class Namespace extends React.PureComponent {
     })
   }
 
+  nsKeyAdd (addTableValue, addKeyValue, requestOthers) {
+    const requestNsTables = [{
+      table: addTableValue,
+      key: addKeyValue
+    }]
+    const addValues = Object.assign({}, requestOthers, { nsTables: requestNsTables })
+    this.nsAdd(addValues)
+  }
+
+  nsTableInputAdd (requestNsTables, requestOthers) {
+    const { namespaceTableSource } = this.state
+
+    namespaceTableSource.map(i => {
+      requestNsTables.push({
+        table: i.nsModalTable,
+        key: i.nsModalKey
+      })
+      return i
+    })
+
+    const addValues = Object.assign({}, requestOthers, { nsTables: requestNsTables })
+    this.nsAdd(addValues)
+  }
+
+  nsTableAdd (requestNsTables, addTableValue, addKeyValue, requestOthers) {
+    const { namespaceTableSource } = this.state
+
+    requestNsTables.push({
+      table: addTableValue,
+      key: addKeyValue
+    })
+
+    if (namespaceTableSource.find(i => i.nsModalTable === addTableValue)) {
+      this.nsErrorMsg('Table 重名')
+    } else {
+      const addValues = Object.assign({}, requestOthers, { nsTables: requestNsTables })
+      this.nsAdd(addValues)
+    }
+  }
+
   onModalOk = () => {
     const { namespaceTableSource, databaseSelectValue, namespaceFormType, exitedNsTableValue, editNamespaceData } = this.state
     const { tableNameExited } = this.props
@@ -347,68 +389,70 @@ export class Namespace extends React.PureComponent {
             if (namespaceTableSource.length === 0) {
               if (addTableValue === undefined || addTableValue === '') {
                 this.nsErrorMsg('请填写 Table')
-              } else if (addKeyValue === undefined || addKeyValue === '') {
-                this.nsErrorMsg('请填写 Key')
               } else {
-                this.namespaceForm.setFields({
-                  nsTables: {
-                    errors: []
+                if (values.dataBaseDataSystem === 'hbase') {
+                  this.namespaceForm.setFields({
+                    nsTables: {
+                      errors: []
+                    }
+                  })
+                  this.nsKeyAdd(addTableValue, addKeyValue, requestOthers)
+                } else {
+                  if (addKeyValue === undefined || addKeyValue === '') {
+                    this.nsErrorMsg('请填写 Key')
+                  } else {
+                    this.nsKeyAdd(addTableValue, addKeyValue, requestOthers)
                   }
-                })
-                requestNsTables = [{
-                  table: addTableValue,
-                  key: addKeyValue
-                }]
-
-                const addValues = Object.assign({}, requestOthers, { nsTables: requestNsTables })
-                this.nsAdd(addValues)
+                }
               }
             } else {
-              if ((addTableValue === '' && addKeyValue !== '') || (addTableValue !== '' && addKeyValue === '')) {
-                this.nsErrorMsg('Table & Key 填写同步')
-              } else if (addTableValue === '' && addKeyValue === '') {
-                namespaceTableSource.map(i => {
-                  requestNsTables.push({
-                    table: i.nsModalTable,
-                    key: i.nsModalKey
-                  })
-                  return i
-                })
-
-                const addValues = Object.assign({}, requestOthers, { nsTables: requestNsTables })
-                this.nsAdd(addValues)
-              } else if (addTableValue !== '' && addKeyValue !== '') {
-                namespaceTableSource.map(i => {
-                  requestNsTables.push({
-                    table: i.nsModalTable,
-                    key: i.nsModalKey
-                  })
-                  return i
-                })
-
-                requestNsTables.push({
-                  table: addTableValue,
-                  key: addKeyValue
-                })
-
-                if (namespaceTableSource.find(i => i.nsModalTable === addTableValue)) {
-                  this.nsErrorMsg('Table 重名')
+              if (values.dataBaseDataSystem === 'hbase') {
+                if (addTableValue === '' && addKeyValue === '') { // 当tables表格有数据时，table input 和 key input 可以为空
+                  this.nsTableInputAdd(requestNsTables, requestOthers)
                 } else {
-                  const addValues = Object.assign({}, requestOthers, { nsTables: requestNsTables })
-                  this.nsAdd(addValues)
+                  namespaceTableSource.map(i => {
+                    requestNsTables.push({
+                      table: i.nsModalTable,
+                      key: ''
+                    })
+                    return i
+                  })
+                  this.nsTableAdd(requestNsTables, addTableValue, addKeyValue, requestOthers)
+                }
+              } else {
+                if ((addTableValue === '' && addKeyValue !== '') || (addTableValue !== '' && addKeyValue === '')) {
+                  this.nsErrorMsg('Table & Key 填写同步')
+                } else if (addTableValue === '' && addKeyValue === '') {
+                  this.nsTableInputAdd(requestNsTables, requestOthers)
+                } else if (addTableValue !== '' && addKeyValue !== '') {
+                  namespaceTableSource.map(i => {
+                    requestNsTables.push({
+                      table: i.nsModalTable,
+                      key: i.nsModalKey
+                    })
+                    return i
+                  })
+                  this.nsTableAdd(requestNsTables, addTableValue, addKeyValue, requestOthers)
                 }
               }
             }
           } else if (namespaceFormType === 'edit') {
             const editKeysValue = values.nsSingleKeyValue
 
-            if (editKeysValue === '') {
-              this.nsErrorMsg('请填写 Key')
-            } else {
-              this.props.onEditNamespace(Object.assign({}, editNamespaceData, { keys: editKeysValue }), () => {
+            if (values.dataBaseDataSystem === 'hbase') {
+              this.props.onEditNamespace(Object.assign({}, editNamespaceData, { keys: '' }), () => {
                 this.hideForm()
                 message.success('Namespace 修改成功！', 3)
               })
+            } else {
+              if (editKeysValue === '') {
+                this.nsErrorMsg('请填写 Key')
+              } else {
+                this.props.onEditNamespace(Object.assign({}, editNamespaceData, { keys: editKeysValue }), () => {
+                  this.hideForm()
+                  message.success('Namespace 修改成功！', 3)
+                })
+              }
             }
           }
         }
@@ -422,7 +466,8 @@ export class Namespace extends React.PureComponent {
   onInitNamespaceUrlValue = (value) => {
     this.props.onLoadDatabasesInstance(value, (result) => {
       this.setState({
-        databaseSelectValue: []
+        databaseSelectValue: [],
+        nsDsVal: value
       })
       // namespaceForm 的 placeholder
       this.namespaceForm.setFieldsValue({
@@ -466,7 +511,7 @@ export class Namespace extends React.PureComponent {
   }
 
   onAddTable = () => {
-    const { count, namespaceTableSource, exitedNsTableValue } = this.state
+    const { namespaceTableSource, exitedNsTableValue, nsDsVal } = this.state
     const { tableNameExited } = this.props
 
     const moadlTempVal = this.namespaceForm.getFieldsValue()
@@ -479,30 +524,43 @@ export class Namespace extends React.PureComponent {
       this.nsErrorMsg(`${exitedNsTableValue} 已存在`)
     } else if (namespaceTableSource.find(i => i.nsModalTable === moadlTempVal.nsSingleTableName)) {
       this.nsErrorMsg('Table 重名')
-    } else if (moadlTempVal.nsSingleKeyValue === '' || moadlTempVal.nsSingleKeyValue === undefined) {
-      this.nsErrorMsg('请填写 Key')
     } else {
-      const nsTableSourceTemp = {
-        key: count,
-        nsModalTable: moadlTempVal.nsSingleTableName,
-        nsModalKey: moadlTempVal.nsSingleKeyValue === undefined ? '' : moadlTempVal.nsSingleKeyValue
+      if (nsDsVal === 'hbase') {
+        this.addTableTemp('')
+      } else {
+        if (moadlTempVal.nsSingleKeyValue === '' || moadlTempVal.nsSingleKeyValue === undefined) {
+          this.nsErrorMsg('请填写 Key')
+        } else {
+          this.addTableTemp(moadlTempVal.nsSingleKeyValue)
+        }
       }
-
-      this.setState({
-        namespaceTableSource: [...namespaceTableSource, nsTableSourceTemp],
-        count: count + 1,
-        deleteTableClass: '',
-        addTableClassTable: ''
-      }, () => {
-        this.namespaceForm.setFieldsValue({
-          nsSingleTableName: '',
-          nsSingleKeyValue: '',
-          nsTables: {
-            errors: []
-          }
-        })
-      })
     }
+  }
+
+  addTableTemp (val) {
+    const { count, namespaceTableSource } = this.state
+    const moadlTempVal = this.namespaceForm.getFieldsValue()
+
+    const nsTableSourceTemp = {
+      key: count,
+      nsModalTable: moadlTempVal.nsSingleTableName,
+      nsModalKey: val
+    }
+
+    this.setState({
+      namespaceTableSource: [...namespaceTableSource, nsTableSourceTemp],
+      count: count + 1,
+      deleteTableClass: '',
+      addTableClassTable: ''
+    }, () => {
+      this.namespaceForm.setFieldsValue({
+        nsSingleTableName: '',
+        nsSingleKeyValue: '',
+        nsTables: {
+          errors: []
+        }
+      })
+    })
   }
 
   /***
