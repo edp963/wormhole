@@ -138,16 +138,14 @@ object BatchflowMainProcess extends EdpLogging {
         try {
           val (protocolType, namespace) = WormholeUtils.getTypeNamespaceFromKafkaKey(row._1)
           if (protocolType == UmsProtocolType.DATA_INCREMENT_DATA || protocolType == UmsProtocolType.DATA_BATCH_DATA || protocolType == UmsProtocolType.DATA_INITIAL_DATA) {
-            val (existSourceNs, matchSourceNs) = ConfMemoryStorage.existNamespace(mainNamespaceSet, namespace)
-            if (existSourceNs) {
-              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap, matchSourceNs, "source")
+            if (ConfMemoryStorage.existNamespace(mainNamespaceSet, namespace)) {
+              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
               if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
               mainDataList += (((protocolType, namespace), schemaValueTuple._2))
             }
-            val (existLookupNs, matchLookupNs) = ConfMemoryStorage.existNamespace(streamLookupNamespaceSet, namespace)
-            if (existLookupNs) {
+            if (ConfMemoryStorage.existNamespace(streamLookupNamespaceSet, namespace)) {
               //todo change else if to if
-              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap, matchLookupNs, "lookup")
+              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
               if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
               lookupDataList += (((protocolType, namespace), schemaValueTuple._2))
             }

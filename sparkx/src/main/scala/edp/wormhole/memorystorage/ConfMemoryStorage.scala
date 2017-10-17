@@ -272,17 +272,17 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   //    flowConfigMap.contains(namespace)
   //  }
 
-  def existNamespace(namespaceSet: Set[String], realNamespace: String): (Boolean,String) = {
-    var matchNs:String = null
+  def existNamespace(namespaceSet: Set[String], realNamespace: String): Boolean = {
+    //var matchNs:String = null
     var hitCount = 0
     namespaceSet.foreach(k => {
       if (matchNameSpace(k, realNamespace)) {
         hitCount += 1
-        matchNs = k
+      //  matchNs = k
       }
     })
-    if (hitCount == 0) (false,matchNs)
-    else if (hitCount == 1) (true,matchNs)
+    if (hitCount == 0) false
+    else if (hitCount == 1) true
     else throw new Exception("you register namespace more than 1")
   }
 
