@@ -82,6 +82,7 @@ object BatchflowMainProcess extends EdpLogging {
         //val dt1 =  dt2dateTime(currentyyyyMMddHHmmss)
         val dataRepartitionRdd: RDD[(String, String)] = if (config.rdd_partition_number != -1) streamRdd.map(row => (row.key, row.value)).repartition(config.rdd_partition_number) else streamRdd.map(row => (row.key, row.value))
         UdfDirective.registerUdfProcess(config.kafka_output.feedback_topic_name,config.kafka_output.brokers, session)
+        UdfDirective.registerUdfProcess(config.kafka_output.feedback_topic_name,config.kafka_output.brokers, session)
         //        dataRepartitionRdd.cache()
         //        dataRepartitionRdd.count()
         //        val dt2: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
@@ -136,7 +137,7 @@ object BatchflowMainProcess extends EdpLogging {
       partition.foreach(row => {
         try {
           val (protocolType, namespace) = WormholeUtils.getTypeNamespaceFromKafkaKey(row._1)
-          if (protocolType == UmsProtocolType.DATA_INCREMENT_DATA.toString || protocolType == UmsProtocolType.DATA_BATCH_DATA.toString || protocolType == UmsProtocolType.DATA_INITIAL_DATA.toString) {
+          if (protocolType == UmsProtocolType.DATA_INCREMENT_DATA || protocolType == UmsProtocolType.DATA_BATCH_DATA || protocolType == UmsProtocolType.DATA_INITIAL_DATA) {
             val (existSourceNs, matchSourceNs) = ConfMemoryStorage.existNamespace(mainNamespaceSet, namespace)
             if (existSourceNs) {
               val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap, matchSourceNs, "source")
@@ -216,10 +217,12 @@ object BatchflowMainProcess extends EdpLogging {
         val lookupDf = createSourceDf(session, namespace, schema._2, protocolType, umsRdd)
 
         //val filterDf = lookupDf.filter("ums_op_ != 'b'")
-        ConfMemoryStorage.getSourceAndSinkByStreamLookupNamespace(matchLookupNamespace).foreach {
-          case (sourceNs, sinkNs) =>
-            val path = config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/" + config.spark_config.stream_id + "/" + sourceNs.replaceAll("\\*", "-") + "/" + sinkNs + "/streamLookupNamespace" + "/" + matchLookupNamespace.replaceAll("\\*", "-")
-            lookupDf.write.mode(SaveMode.Append).parquet(path) //if not exists will have "WARN: delete very recently?" it is ok.
+        if (matchLookupNamespace != null) {
+          ConfMemoryStorage.getSourceAndSinkByStreamLookupNamespace(matchLookupNamespace).foreach {
+            case (sourceNs, sinkNs) =>
+              val path = config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/" + config.spark_config.stream_id + "/" + sourceNs.replaceAll("\\*", "-") + "/" + sinkNs + "/streamLookupNamespace" + "/" + matchLookupNamespace.replaceAll("\\*", "-")
+              lookupDf.write.mode(SaveMode.Append).parquet(path) //if not exists will have "WARN: delete very recently?" it is ok.
+          }
         }
       })
     } catch {
