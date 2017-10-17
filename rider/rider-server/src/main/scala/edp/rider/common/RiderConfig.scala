@@ -214,7 +214,10 @@ object RiderConfig {
   lazy val maintenance = Maintenance(config.getInt("maintenance.mysql.feedback.remain.maxDays"),
     config.getInt("maintenance.elasticSearch.feedback.remain.maxDays"))
 
-  lazy val dbusUrl = config.getStringList("dbus.namespace.rest.api.url")
+  lazy val dbusUrl =
+    if (config.hasPath("dbus.namespace.rest.api.url"))
+      config.getStringList("dbus.namespace.rest.api.url")
+    else null
 
   lazy val riderInfo = RiderInfo(zk, consumer.brokers, consumer.topic, spark.wormholeHeartBeatTopic, spark.hdfs_root,
     spark.user, spark.app_tags, spark.rm1Url, spark.rm2Url)
