@@ -72,7 +72,7 @@ export class NamespaceForm extends React.Component {
     this.setState({
       instanceIdGeted: selUrl.id
     }, () => {
-      // 通过 instance id 显示 database 下拉框内容
+      // 通过 instance id 显示 database 下拉框
       this.props.onInitDatabaseSelectValue(this.state.instanceIdGeted)
     })
   }
