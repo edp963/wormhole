@@ -153,7 +153,7 @@ object StreamUtils extends RiderLogger {
   }
 
   def checkConfigFormat(startConfig: String, launchConfig: String, sparkConfig: String) = {
-    (isJson(startConfig), isJson(launchConfig), isKeyEqualValue(sparkConfig)) match {
+    (isJson(startConfig), isJson(launchConfig), isStreamSparkConfig(sparkConfig)) match {
       case (true, true, true) => (true, "success")
       case (true, true, false) => (false, s"sparkConfig $sparkConfig doesn't meet key=value,key1=value1 format")
       case (true, false, true) => (false, s"launchConfig $launchConfig is not json type")

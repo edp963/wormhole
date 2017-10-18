@@ -39,6 +39,7 @@ case class Instance(id: Long,
 
 case class SimpleInstance(desc: Option[String] = None,
                           nsSys: String,
+                          nsInstance: String,
                           connUrl: String) extends SimpleBaseEntity
 
 class InstanceTable(_tableTag: Tag) extends BaseTable[Instance](_tableTag, "instance") {
@@ -55,5 +56,4 @@ class InstanceTable(_tableTag: Tag) extends BaseTable[Instance](_tableTag, "inst
 
   /** Uniqueness Index over (nsInstance,nsSys) (database name instance_UNIQUE) */
   val index1 = index("instance_UNIQUE", (nsInstance, nsSys), unique = true)
-  val index2 = index("connUrl_UNIQUE", connUrl, unique = true)
 }

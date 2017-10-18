@@ -45,7 +45,7 @@ class InstanceUserApi(relProjectNsDal: RelProjectNsDal)
               session =>
                 if (session.roleType != "user") {
                   riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-                  complete(Forbidden, getHeader(403, session))
+                  complete(OK, getHeader(403, session))
                 }
                 else {
                   if (session.projectIdList.contains(id)) {
@@ -55,11 +55,11 @@ class InstanceUserApi(relProjectNsDal: RelProjectNsDal)
                         complete(OK, ResponseSeqJson[Instance](getHeader(200, session), instances.sortBy(_.nsInstance)))
                       case Failure(ex) =>
                         riderLogger.info(s"user ${session.userId} select instances where nsSys is kafka and project id is $id failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
-                    complete(Forbidden, getHeader(403, session))
+                    complete(OK, getHeader(403, session))
                   }
                 }
             }

@@ -24,6 +24,7 @@ package edp.rider.rest.util
 import com.alibaba.fastjson.JSON
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.entities.{Instance, Namespace, NsDatabase}
+import edp.rider.rest.util.CommonUtils._
 
 object NamespaceUtils extends RiderLogger {
 
@@ -31,15 +32,17 @@ object NamespaceUtils extends RiderLogger {
 
   def getConnUrl(instance: Instance, db: NsDatabase) = {
     instance.nsSys match {
-      case "mysql" =>
+      case "mysql" | "postgresql" | "phoenix" =>
         db.config match {
           case Some(conf) =>
-            if(conf != ""){
-              val config = JSON.parseObject(conf).keySet().toArray.map(
-                key => s"$key=${JSON.parseObject(conf).get(key).toString}").mkString("&")
-              s"jdbc:mysql://${instance.connUrl}/${db.nsDatabase}?$config"
-            } else s"jdbc:mysql://${instance.connUrl}/${db.nsDatabase}"
-          case None => s"jdbc:mysql://${instance.connUrl}/${db.nsDatabase}"
+            if (conf != "") {
+              val confStr =
+                if (isJson(conf))
+                  JSON.parseObject(conf).keySet().toArray.map(key => s"$key=${JSON.parseObject(conf).get(key).toString}").mkString("&")
+                else (keyEqualValuePattern.toString.r findAllIn conf.split(",").mkString("&")).toList.mkString("&")
+              s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}?$confStr"
+            } else s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}"
+          case None => s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}"
         }
       case "oracle" =>
         val hostPort = instance.connUrl.split(":")
@@ -55,10 +58,9 @@ object NamespaceUtils extends RiderLogger {
           case None => ""
         }
         s"jdbc:oracle:thin:@(DESCRIPTION=(FAILOVER = yes)(ADDRESS = (PROTOCOL = TCP)(HOST =${hostPort(0)})(PORT = ${hostPort(1)}))(CONNECT_DATA =(SERVER = DEDICATED)(SERVICE_NAME = $serviceName)))"
-      case "phoenix" => s"jdbc:phoenix:${instance.connUrl}"
-      case "postgresql" | "cassandra" => s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}"
       case _ => instance.connUrl
     }
 
   }
+
 }

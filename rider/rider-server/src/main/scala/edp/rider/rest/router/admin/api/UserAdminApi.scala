@@ -46,7 +46,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
             session =>
               if (session.roleType != "admin") {
                 riderLogger.warn(s"${session.userId} has no permission to access it.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
               else {
                 (visible, email) match {
@@ -59,11 +59,11 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                         }
                         else {
                           riderLogger.warn(s"user ${session.userId} check email $userEmail already exists.")
-                          complete(Conflict, getHeader(409, s"$email already exists", session))
+                          complete(OK, getHeader(409, s"$email already exists", session))
                         }
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} check email $userEmail does exist failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   case (_, None) =>
                     onComplete(userDal.getUserProject(_.active === visible.getOrElse(true)).mapTo[Seq[UserProject]]) {
@@ -72,11 +72,11 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                         complete(OK, ResponseSeqJson[UserProject](getHeader(200, session), userProjects))
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} select all $route failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   case (_, _) =>
                     riderLogger.error(s"user ${session.userId} request url is not supported.")
-                    complete(NotImplemented, getHeader(501, session))
+                    complete(OK, getHeader(501, session))
                 }
               }
           }
@@ -93,7 +93,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
             session =>
               if (session.roleType != "admin") {
                 riderLogger.warn(s"${session.userId} has no permission to access it.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
               else {
                 val user = User(0, simple.email, simple.password, simple.name, simple.roleType, active = true, currentSec, session.userId, currentSec, session.userId)
@@ -106,14 +106,14 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                         complete(OK, ResponseJson[UserProject](getHeader(200, session), userProject.head))
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} select user where id is ${row.id} failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.toString, session))
+                        complete(OK, getHeader(451, ex.toString, session))
                     }
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} insert user failed", ex)
                     if (ex.toString.contains("Duplicate entry"))
-                      complete(Conflict, getHeader(409, s"${simple.email} already exists", session))
+                      complete(OK, getHeader(409, s"${simple.email} already exists", session))
                     else
-                      complete(UnavailableForLegalReasons, getHeader(451, ex.toString, session))
+                      complete(OK, getHeader(451, ex.toString, session))
                 }
               }
           }
@@ -130,7 +130,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
           authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
             session =>
               if (session.roleType != "admin")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               else {
                 val userEntity = User(user.id, user.email, user.password, user.name, user.roleType, user.active, user.createTime, user.createBy, currentSec, session.userId)
                 onComplete(userDal.update(userEntity)) {
@@ -142,11 +142,11 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                         complete(OK, ResponseJson[UserProject](getHeader(200, session), userProject.head))
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} select user where id is ${userEntity.id} failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.toString, session))
+                        complete(OK, getHeader(451, ex.toString, session))
                     }
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} update user failed", ex)
-                    complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
               }
           }
@@ -161,7 +161,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
         session =>
           if (session.roleType != "admin") {
             riderLogger.warn(s"${session.userId} has no permission to access it.")
-            complete(Forbidden, getHeader(403, session))
+            complete(OK, getHeader(403, session))
           }
           else {
             onComplete(userDal.findByFilter(user => user.active === true && user.roleType =!= "admin").mapTo[Seq[User]]) {
@@ -170,7 +170,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                 complete(OK, ResponseSeqJson[User](getHeader(200, session), users.sortBy(_.email)))
               case Failure(ex) =>
                 riderLogger.error(s"user ${session.userId} select users where active is true and roleType is user failed", ex)
-                complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                complete(OK, getHeader(451, ex.getMessage, session))
             }
           }
       }
@@ -185,7 +185,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
           session =>
             if (session.roleType != "admin") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               onComplete(relProjectUserDal.getUserByProjectId(id).mapTo[Seq[User]]) {
@@ -194,7 +194,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                   complete(OK, ResponseSeqJson[User](getHeader(200, session), users.sortBy(_.email)))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} select all users where project id is $id failed", ex)
-                  complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                  complete(OK, getHeader(451, ex.getMessage, session))
               }
             }
         }

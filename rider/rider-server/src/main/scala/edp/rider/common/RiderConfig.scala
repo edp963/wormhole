@@ -87,9 +87,6 @@ case class RiderMonitor(url: String,
                         esDataSourceName: String,
                         adminToken: String)
 
-//                        viewUser: String,
-//                        viewToken: String)
-
 case class Maintenance(mysqlRemain: Int,
                        esRemain: Int)
 
@@ -194,20 +191,23 @@ object RiderConfig {
     "spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3"
   )
 
-  lazy val es = RiderEs(config.getString("elasticSearch.http.url"),
-    "wormhole_feedback",
-    "wormhole_stats_feedback",
-    getStringConfig("elasticSearch.http.user", ""),
-    getStringConfig("elasticSearch.http.password", ""))
+  lazy val es =
+    if (config.hasPath("elasticSearch") && config.getString("elasticSearch.http.url").nonEmpty) {
+      RiderEs(config.getString("elasticSearch.http.url"),
+        "wormhole_feedback",
+        "wormhole_stats_feedback",
+        getStringConfig("elasticSearch.http.user", ""),
+        getStringConfig("elasticSearch.http.password", ""))
+    } else null
 
   lazy val grafanaDomain =
     if (config.hasPath("grafana.production.domain.url")) config.getString("grafana.production.domain.url")
     else config.getString("grafana.url")
 
   lazy val grafana =
-    if (config.hasPath("grafana"))
+    if (config.hasPath("grafana") && config.getString("grafana.url").nonEmpty && config.getString("grafana.admin.token").nonEmpty)
       RiderMonitor(config.getString("grafana.url"),
-        grafanaDomain, "edp_flows_stats",
+        grafanaDomain, "wormhole_stats",
         config.getString("grafana.admin.token"))
     else null
 

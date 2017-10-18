@@ -42,6 +42,10 @@ object CommonUtils extends RiderLogger {
 
   def streamSubmitTimeout = 120.seconds
 
+  val keyEqualValuePattern = "([a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*=[a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*(&[a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*=[a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*)*)".r.pattern
+
+  val streamSparkConfigPattern = "(.+=.+(,.+.+)*)".r.pattern
+
   def isJson(str: String): Boolean = {
     try {
       if (str == "" || str == null)
@@ -60,13 +64,12 @@ object CommonUtils extends RiderLogger {
   def isKeyEqualValue(str: String): Boolean = {
     if (str == "" || str == null)
       return true
-    val seq = str.split(",")
-    val keyEqualValuePattern = "(.)+=(.)+".r.pattern
-    seq.foreach(
-      str =>
-        if (!keyEqualValuePattern.matcher(str).matches())
-          return false
-    )
-    true
+    keyEqualValuePattern.matcher(str.split(",").mkString("&")).matches()
+  }
+
+  def isStreamSparkConfig(str: String): Boolean = {
+    if (str == "" || str == null)
+      return true
+    streamSparkConfigPattern.matcher(str).matches()
   }
 }

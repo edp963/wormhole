@@ -112,7 +112,7 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val streamDal = new StreamDal(streamQuery, projectQuery, feedbackOffsetQuery, instanceQuery, databaseQuery, relProjectNsQuery, streamInTopicQuery, namespaceQuery, directiveDal)
   override lazy val flowDal = new FlowDal(flowQuery, streamQuery, projectQuery, streamDal)
   override lazy val relProjectNsDal = new RelProjectNsDal(namespaceQuery, databaseQuery, instanceQuery, projectQuery, relProjectNsQuery, streamInTopicQuery)
-  override lazy val projectDal = new ProjectDal(projectQuery, relProjectNsDal, relProjectUserDal)
+  override lazy val projectDal = new ProjectDal(projectQuery, relProjectNsDal, relProjectUserDal, streamDal)
   override lazy val dbusDal = new BaseDalImpl[DbusTable, Dbus](dbusQuery)
   override lazy val directiveDal = new BaseDalImpl[DirectiveTable, Directive](directiveQuery)
   override lazy val inTopicDal = new BaseDalImpl[StreamInTopicTable, StreamInTopic](streamInTopicQuery)

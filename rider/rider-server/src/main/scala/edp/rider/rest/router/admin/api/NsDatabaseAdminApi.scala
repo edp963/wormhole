@@ -45,7 +45,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
           session =>
             if (session.roleType != "admin") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               onComplete(databaseDal.getDs(visible = false, Some(id)).mapTo[Seq[DatabaseInstance]]) {
@@ -54,7 +54,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                   complete(OK, ResponseJson[DatabaseInstance](getHeader(200, session), dsSeq.head))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} select database where id is $id failed", ex)
-                  complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                  complete(OK, getHeader(451, ex.getMessage, session))
               }
             }
         }
@@ -69,7 +69,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
           authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
             session =>
               if (session.roleType != "admin")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               else {
                 (visible, nsInstanceId, nsDatabaseName, permission) match {
                   case (None, Some(id), Some(name), Some(perm)) =>
@@ -81,11 +81,11 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                         }
                         else {
                           riderLogger.warn(s"user ${session.userId} check instance $id permission $perm database $name already exists.")
-                          complete(Conflict, getHeader(409, s"$perm permission $id instance $name database or topic already exists", session))
+                          complete(OK, getHeader(409, s"$perm permission $id instance $name database or topic already exists", session))
                         }
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} check instance $id permission $perm database $name does exist failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   case (_, None, None, None) =>
                     onComplete(databaseDal.getDs(visible.getOrElse(true)).mapTo[Seq[DatabaseInstance]]) {
@@ -94,11 +94,11 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                         complete(OK, ResponseSeqJson[DatabaseInstance](getHeader(200, session), dsSeq))
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} select all $route where active is ${visible.getOrElse(true)} failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   case (_, _, _, _) =>
                     riderLogger.error(s"user ${session.userId} request url is not supported.")
-                    complete(NotImplemented, getHeader(501, session))
+                    complete(OK, getHeader(501, session))
                 }
               }
           }
@@ -115,10 +115,10 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
             session =>
               if (session.roleType != "admin") {
                 riderLogger.warn(s"${session.userId} has no permission to access it.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
               else {
-                if (isJson(simple.config.getOrElse(""))) {
+                if (isKeyEqualValue(simple.config.getOrElse(""))) {
                   val database = NsDatabase(0, simple.nsDatabase.toLowerCase, Some(simple.desc.getOrElse("")), simple.nsInstanceId, simple.permission, Some(simple.user.getOrElse("")), Some(simple.pwd.getOrElse("")), simple.partitions, Some(simple.config.getOrElse("")), active = true, currentSec, session.userId, currentSec, session.userId)
                   onComplete(databaseDal.insert(database).mapTo[NsDatabase]) {
                     case Success(db) =>
@@ -129,21 +129,21 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                           complete(OK, ResponseJson[DatabaseInstance](getHeader(200, session), dsSeq.head))
                         case Failure(ex) =>
                           riderLogger.error(s"user ${session.userId} select database where id is ${db.id} failed", ex)
-                          complete(UnavailableForLegalReasons, getHeader(451, ex.toString, session))
+                          complete(OK, getHeader(451, ex.toString, session))
                       }
                     case Failure(ex) =>
                       if (ex.toString.contains("Duplicate entry")) {
                         riderLogger.error(s"user ${session.userId} insert database failed", ex)
-                        complete(Conflict, getHeader(409, s"${simple.permission} permission ${simple.nsInstanceId} instance ${simple.nsDatabase} database or topic already exists", session))
+                        complete(OK, getHeader(409, s"${simple.permission} permission ${simple.nsInstanceId} instance ${simple.nsDatabase} database or topic already exists", session))
                       }
                       else {
                         riderLogger.error(s"user ${session.userId} insert database failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.toString, session))
+                        complete(OK, getHeader(451, ex.toString, session))
                       }
                   }
                 } else {
                   riderLogger.error(s"user ${session.userId} insert database failed caused by config ${simple.config.get} is not json type")
-                  complete(BadRequest, getHeader(400, s"${simple.config.get} is not json type", session))
+                  complete(OK, getHeader(400, s"${simple.config.get} is not key=value type", session))
                 }
               }
           }
@@ -161,10 +161,10 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
             session =>
               if (session.roleType != "admin") {
                 riderLogger.warn(s"${session.userId} has no permission to access it.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
               else {
-                if (isJson(database.config.getOrElse(""))) {
+                if (isJson(database.config.getOrElse("")) || isKeyEqualValue(database.config.getOrElse(""))) {
                   val db = NsDatabase(database.id, database.nsDatabase, Some(database.desc.getOrElse("")), database.nsInstanceId, database.permission, Some(database.user.getOrElse("")), Some(database.pwd.getOrElse("")), database.partitions, Some(database.config.getOrElse("")), database.active, database.createTime, database.createBy, currentSec, session.userId)
                   onComplete(databaseDal.update(db)) {
                     case Success(result) =>
@@ -175,15 +175,15 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                           complete(OK, ResponseJson[DatabaseInstance](getHeader(200, session), dsSeq.head))
                         case Failure(ex) =>
                           riderLogger.error(s"user ${session.userId} select database where id is ${db.id} failed", ex)
-                          complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                          complete(OK, getHeader(451, ex.getMessage, session))
                       }
                     case Failure(ex) =>
                       riderLogger.error(s"user ${session.userId} update database failed", ex)
-                      complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                      complete(OK, getHeader(451, ex.getMessage, session))
                   }
-                } else{
+                } else {
                   riderLogger.error(s"user ${session.userId} update database failed caused by config ${database.config.get} is not json type")
-                  complete(BadRequest, getHeader(400, s"${database.config.get} is not json type", session))
+                  complete(OK, getHeader(400, s"${database.config.get} is not key=value type", session))
                 }
               }
           }
@@ -199,7 +199,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
           session =>
             if (session.roleType != "admin") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               onComplete(databaseDal.findByFilter(db => db.active === true && db.nsInstanceId === id).mapTo[Seq[NsDatabase]]) {
@@ -208,7 +208,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                   complete(OK, ResponseSeqJson[NsDatabase](getHeader(200, session), dsSeq.sortBy(_.nsDatabase)))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} select databases where active is true and instance id is $id failed", ex)
-                  complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                  complete(OK, getHeader(451, ex.getMessage, session))
               }
             }
         }

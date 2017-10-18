@@ -29,7 +29,7 @@ import akka.http.scaladsl.model.{HttpMethods, HttpRequest, Uri, _}
 import akka.http.scaladsl.unmarshalling._
 import akka.util.ByteString
 import edp.rider.RiderStarter._
-import edp.rider.common.{RiderConfig, RiderLogger}
+import edp.rider.common.{RiderConfig, RiderEs, RiderLogger, RiderMonitor}
 import edp.rider.rest.persistence.entities.MonitorInfo
 import edp.wormhole.common.util.JsonUtils
 import org.json4s.JsonAST.JNull
@@ -39,6 +39,25 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 object ElasticSearch extends RiderLogger {
+
+  def initial(es: RiderEs, grafana: RiderMonitor): Unit = {
+    if (es != null)
+      createEsIndex()
+    else
+      riderLogger.warn(s"application.conf didn't config elasticsearch, so won't initial elasticsearch index, store wormhole stream and flow feedback_stats data")
+    if (grafana != null)
+      GrafanaApi.createOrUpdateDataSource(RiderConfig.grafana.url,
+        RiderConfig.grafana.adminToken,
+        RiderConfig.grafana.esDataSourceName,
+        RiderConfig.es.url,
+        RiderConfig.es.wormholeIndex,
+        RiderConfig.es.user,
+        RiderConfig.es.pwd)
+    else
+      riderLogger.warn(s"application.conf didn't config grafana, so won't initial grafana datasource, wormhole project performance will display nothing")
+
+  }
+
   private def getESUrl: String = {
     try {
       s"${RiderConfig.es.url}/${RiderConfig.es.wormholeIndex}/${RiderConfig.es.wormholeType}/"
@@ -67,59 +86,63 @@ object ElasticSearch extends RiderLogger {
   }
 
   def queryESFlowMax(projectId: Long, streamId: Long, flowId: Long, columnName: String): (Boolean, String) = {
-    var maxValue = ""
-    val postBody = ReadJsonFile.getMessageFromJson(JsonFileType.ESMAXFLOW)
-      .replace("#PROJECT_ID#", projectId.toString)
-      .replace("#STREAM_ID#", streamId.toString)
-      .replace("#FLOW_ID#", flowId.toString)
-      .replace("#COLUMN_NAME#", columnName)
-    val url = getESUrl + "_search"
-    riderLogger.debug(s"queryESFlowMax url $url $postBody")
-    val response = syncToES(postBody, url, HttpMethods.POST)
-//    riderLogger.info(s"queryESFlowMax $response")
-    if (response._1 == true) {
-      try {
-        val maxColumn = JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits"), s"_source")
-        //val maxColumn = JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), s"_source")
-        implicit val json4sFormats: Formats = DefaultFormats
-        maxValue = JsonUtils.getJValue(maxColumn, s"$columnName").extract[String]
+    if (RiderConfig.es != null) {
+      var maxValue = ""
+      val postBody = ReadJsonFile.getMessageFromJson(JsonFileType.ESMAXFLOW)
+        .replace("#PROJECT_ID#", projectId.toString)
+        .replace("#STREAM_ID#", streamId.toString)
+        .replace("#FLOW_ID#", flowId.toString)
+        .replace("#COLUMN_NAME#", columnName)
+      val url = getESUrl + "_search"
+      riderLogger.debug(s"queryESFlowMax url $url $postBody")
+      val response = syncToES(postBody, url, HttpMethods.POST)
+      //    riderLogger.info(s"queryESFlowMax $response")
+      if (response._1 == true) {
+        try {
+          val maxColumn = JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits"), s"_source")
+          //val maxColumn = JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), s"_source")
+          implicit val json4sFormats: Formats = DefaultFormats
+          maxValue = JsonUtils.getJValue(maxColumn, s"$columnName").extract[String]
+        }
+        catch {
+          case e: Exception =>
+            riderLogger.error(s"Failed to get max flow value from ES response", e)
+        }
       }
-      catch {
-        case e: Exception =>
-          riderLogger.error(s"Failed to get max flow value from ES response", e)
-      }
-    }
 
-    else {
-      riderLogger.error(s"Failed to get max flow value from ES response")
-    }
-    (response._1, maxValue)
+      else {
+        riderLogger.error(s"Failed to get max flow value from ES response")
+      }
+      (response._1, maxValue)
+    } else (false, "")
   }
 
 
   def queryESStreamMax(projectId: Long, streamId: Long, columnName: String): (Boolean, String) = {
-    var maxValue = ""
-    val postBody = ReadJsonFile.getMessageFromJson(JsonFileType.ESMAXSTREAM)
-      .replace("#PROJECT_ID#", projectId.toString)
-      .replace("#STREAM_ID#", streamId.toString)
-      .replace("#COLUMN_NAME#", columnName)
-    val url = getESUrl + "_search"
-    riderLogger.debug(s"queryESStreamMax url $url $postBody")
-    val response = syncToES(postBody, url, HttpMethods.POST)
-//    riderLogger.info(s"queryESStreamMax $response")
-    if (response._1) {
-      try {
-        val maxColumn = JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits"), s"_source")
-        implicit val json4sFormats: Formats = DefaultFormats
-        maxValue = JsonUtils.getJValue(maxColumn, s"$columnName").extract[String]
-      } catch {
-        case e: Exception =>
-          riderLogger.error(s"Failed to get max stream value from ES response", e)
+    if (RiderConfig.es != null) {
+      var maxValue = ""
+      val postBody = ReadJsonFile.getMessageFromJson(JsonFileType.ESMAXSTREAM)
+        .replace("#PROJECT_ID#", projectId.toString)
+        .replace("#STREAM_ID#", streamId.toString)
+        .replace("#COLUMN_NAME#", columnName)
+      val url = getESUrl + "_search"
+      riderLogger.debug(s"queryESStreamMax url $url $postBody")
+      val response = syncToES(postBody, url, HttpMethods.POST)
+      //    riderLogger.info(s"queryESStreamMax $response")
+      if (response._1) {
+        try {
+          val maxColumn = JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits"), s"_source")
+          implicit val json4sFormats: Formats = DefaultFormats
+          maxValue = JsonUtils.getJValue(maxColumn, s"$columnName").extract[String]
+        } catch {
+          case e: Exception =>
+            riderLogger.error(s"Failed to get max stream value from ES response", e)
+        }
+      } else {
+        riderLogger.error(s"Failed to get max stream value from ES response")
       }
-    } else {
-      riderLogger.error(s"Failed to get max stream value from ES response")
-    }
-    (response._1, maxValue)
+      (response._1, maxValue)
+    } else (false, "")
   }
 
   def deleteEsHistory(fromDate: String, endDate: String): Int = {
@@ -128,9 +151,9 @@ object ElasticSearch extends RiderLogger {
       .replace("#FROMDATE#", s""""$fromDate"""")
       .replace("#TODATE#", s""""$endDate"""")
     val url = getESUrl + "_delete_by_query"
-//    riderLogger.info(s"deleteEsHistory url $url $postBody")
+    //    riderLogger.info(s"deleteEsHistory url $url $postBody")
     val response = syncToES(postBody, url, HttpMethods.POST)
-//    riderLogger.info(s"deleteEsHistory response $response")
+    //    riderLogger.info(s"deleteEsHistory response $response")
     if (response._1) {
       try {
         deleted = JsonUtils.jValue2json(JsonUtils.getJValue(response._2, "deleted")).toInt
@@ -148,7 +171,7 @@ object ElasticSearch extends RiderLogger {
     val body = ReadJsonFile.getMessageFromJson(JsonFileType.ESCREATEINDEX).replace("#ESINDEX#", s"${RiderConfig.es.wormholeType}")
     val url = getESIndexUrl
     val existsResponse = syncToES("", url, HttpMethods.GET)
-//    riderLogger.info(s" query index exists response $existsResponse")
+    //    riderLogger.info(s" query index exists response $existsResponse")
     if (existsResponse._1) {
       riderLogger.info(s"ES index $url already exists")
     } else {
@@ -204,22 +227,22 @@ object ElasticSearch extends RiderLogger {
       protocol = HttpProtocols.`HTTP/1.1`,
       entity = HttpEntity.apply(ContentTypes.`application/json`, ByteString(postBody))
     ).addCredentials(BasicHttpCredentials(RiderConfig.es.user, RiderConfig.es.pwd))
-//    riderLogger.info(s"httpRequest ${
-//      httpRequest.toString
-//    }.")
+    //    riderLogger.info(s"httpRequest ${
+    //      httpRequest.toString
+    //    }.")
     try {
       val response = Await.result(Http().singleRequest(httpRequest), Duration.Inf)
       response.status match {
         case StatusCodes.OK if (response.entity.contentType == ContentTypes.`application/json`) =>
-//          riderLogger.info(s"response.entity ${
-//            response.entity.toString
-//          }.")
+          //          riderLogger.info(s"response.entity ${
+          //            response.entity.toString
+          //          }.")
           Await.result(
             Unmarshal(response.entity).to[String].map {
               jsonString =>
-//                riderLogger.info(s"== jsonString ${
-//                  jsonString
-//                }.")
+                //                riderLogger.info(s"== jsonString ${
+                //                  jsonString
+                //                }.")
                 tc = true
                 responseJson = JsonUtils.json2jValue(jsonString)
             }, Duration.Inf)
@@ -238,7 +261,7 @@ object ElasticSearch extends RiderLogger {
       case e: Exception =>
         riderLogger.error(s"Failed to get the response from ES when syncToES", e)
     }
-//    riderLogger.info(s"====> syncToES return  $tc  $responseJson.")
+    //    riderLogger.info(s"====> syncToES return  $tc  $responseJson.")
     (tc, responseJson)
   }
 }

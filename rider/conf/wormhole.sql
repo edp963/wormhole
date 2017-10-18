@@ -25,9 +25,10 @@ CREATE TABLE IF NOT EXISTS `instance` (
   `update_time` TIMESTAMP NOT NULL,
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `instance_UNIQUE` (`ns_instance` ASC, `ns_sys` ASC),
-  UNIQUE INDEX `connUrl_UNIQUE` (`conn_url` ASC))
+  UNIQUE INDEX `instance_UNIQUE` (`ns_instance` ASC, `ns_sys` ASC))
 ENGINE = InnoDB;
+
+drop index `conn_url` on `instance`;
 
 CREATE TABLE IF NOT EXISTS `ns_database` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,

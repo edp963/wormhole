@@ -40,7 +40,7 @@ class MonitorAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) 
           session =>
             if (session.roleType != "admin") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(Forbidden, getHeader(403, session))
+              complete(OK, getHeader(403, session))
             }
             else {
               riderLogger.info(s"user ${session.userId} get monitor info where project id is $id success.")
@@ -48,7 +48,6 @@ class MonitorAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) 
             }
         }
       }
-
   }
 }
 

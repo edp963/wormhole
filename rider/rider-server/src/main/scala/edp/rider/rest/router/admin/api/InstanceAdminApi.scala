@@ -45,7 +45,7 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
             session =>
               if (session.roleType != "admin") {
                 riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
               else {
                 (visible, nsSys, conn_url, nsInstance) match {
@@ -56,7 +56,7 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
                         complete(OK, ResponseSeqJson[Instance](getHeader(200, session), instances.sortBy(_.connUrl)))
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} select $route failed where nsSys is $sys", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   case (None, Some(sys), Some(url), None) =>
                     val nsInstance = generateNsInstance(url)
@@ -69,16 +69,16 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
                           }
                           else {
                             riderLogger.info(s"user ${session.userId} check instance url $url doesn't exist, but doesn't fit the url format.")
-                            complete(BadRequest, getHeader(400, getTip(sys, url), session))
+                            complete(OK, getHeader(400, getTip(sys, url), session))
                           }
                         }
                         else {
                           riderLogger.info(s"user ${session.userId} check instance url $url already exists.")
-                          complete(Conflict, getHeader(409, s"$url instance already exists", session))
+                          complete(OK, getHeader(409, s"$url already exists, are you sure to create it again", session))
                         }
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} check instance url $url does exist failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   case (None, Some(sys), None, Some(nsInstanceInput)) =>
                     //                    val nsInstance = generateNsInstance(url)
@@ -90,11 +90,11 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
                         }
                         else {
                           riderLogger.info(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput already exists.")
-                          complete(Conflict, getHeader(409, s"$nsInstanceInput instance already exists", session))
+                          complete(OK, getHeader(409, s"$nsInstanceInput instance already exists", session))
                         }
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput does exist failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   case (_, None, None, None) =>
                     val future = if (visible.getOrElse(true)) instanceDal.findByFilter(_.active === true) else instanceDal.findAll
@@ -104,11 +104,11 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
                         complete(OK, ResponseSeqJson[Instance](getHeader(200, session), instances.sortBy(instance => (instance.nsSys, instance.nsInstance))))
                       case Failure(ex) =>
                         riderLogger.info(s"user ${session.userId} select all $route where active is ${visible.getOrElse(true)} failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.getMessage, session))
+                        complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   case (_, _, _, _) =>
                     riderLogger.error(s"user ${session.userId} request url is not supported.")
-                    complete(NotImplemented, getHeader(501, session))
+                    complete(OK, getHeader(501, session))
                 }
               }
           }
@@ -125,29 +125,29 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
             session =>
               if (session.roleType != "admin") {
                 riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
               else {
                 if (checkFormat(simple.nsSys, simple.connUrl)) {
-                  val instance = Instance(0, generateNsInstance(simple.connUrl), simple.desc, simple.nsSys, simple.connUrl, active = true, currentSec, session.userId, currentSec, session.userId)
+                  val instance = Instance(0, simple.nsInstance, simple.desc, simple.nsSys, simple.connUrl, active = true, currentSec, session.userId, currentSec, session.userId)
                   onComplete(instanceDal.insert(instance).mapTo[Instance]) {
                     case Success(row) =>
                       riderLogger.info(s"user ${session.userId} inserted instance $row success.")
                       complete(OK, ResponseJson[Instance](getHeader(200, session), row))
                     case Failure(ex) =>
                       if (ex.toString.contains("Duplicate entry")) {
-                        riderLogger.error(s"user ${session.userId} insert nstance failed", ex)
-                        complete(Conflict, getHeader(409, s"${simple.nsSys} system ${simple.connUrl} instance already exists", session))
+                        riderLogger.error(s"user ${session.userId} insert instance failed", ex)
+                        complete(OK, getHeader(409, s"${simple.nsSys} system ${simple.nsInstance} instance already exists", session))
                       }
                       else {
                         riderLogger.error(s"user ${session.userId} insert instance failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.toString, session))
+                        complete(OK, getHeader(451, ex.toString, session))
                       }
                   }
                 }
                 else {
                   riderLogger.error(s"user ${session.userId} insert instance failed, ${simple.connUrl} format is wrong.")
-                  complete(BadRequest, getHeader(400, getTip(simple.nsSys, simple.connUrl), session))
+                  complete(OK, getHeader(400, getTip(simple.nsSys, simple.connUrl), session))
                 }
               }
           }
@@ -163,7 +163,7 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
             session =>
               if (session.roleType != "admin") {
                 riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-                complete(Forbidden, getHeader(403, session))
+                complete(OK, getHeader(403, session))
               }
               else {
                 if (checkFormat(instance.nsSys, instance.connUrl)) {
@@ -175,17 +175,17 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
                     case Failure(ex) =>
                       if (ex.toString.contains("Duplicate entry")) {
                         riderLogger.error(s"user ${session.userId} update instance failed", ex)
-                        complete(Conflict, getHeader(409, s"${instance.nsSys} system ${instance.connUrl} instance already exists", session))
+                        complete(OK, getHeader(409, s"${instance.nsSys} system ${instance.connUrl} instance already exists", session))
                       }
                       else {
                         riderLogger.error(s"user ${session.userId} update instance failed", ex)
-                        complete(UnavailableForLegalReasons, getHeader(451, ex.toString, session))
+                        complete(OK, getHeader(451, ex.toString, session))
                       }
                   }
                 }
                 else {
                   riderLogger.error(s"user ${session.userId} updated instance failed, ${instance.connUrl} format is wrong.")
-                  complete(BadRequest, getHeader(400, getTip(instance.nsSys, instance.connUrl), session))
+                  complete(OK, getHeader(400, getTip(instance.nsSys, instance.connUrl), session))
                 }
               }
           }
