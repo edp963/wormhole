@@ -1260,9 +1260,9 @@ export class Workbench extends React.Component {
           case 0:
             const values = this.workbenchFlowForm.getFieldsValue()
             if (values.sinkConfig === undefined || values.sinkConfig === '') {
-              // 是否是 hbase
-              if (values.sinkDataSystem === 'hbase') {
-                message.error('Data System 为 Hbase 时，Sink Config 不能为空！', 3)
+              // 是否是 hbase/mysql/oracle.postgresql
+              if (values.sinkDataSystem === 'hbase' || values.sinkDataSystem === 'mysql' || values.sinkDataSystem === 'oracle' || values.sinkDataSystem === 'postgresql') {
+                message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
               } else {
                 this.loadSTSExit(values)
               }

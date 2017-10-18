@@ -388,7 +388,7 @@ export class Namespace extends React.PureComponent {
 
             if (namespaceTableSource.length === 0) {
               if (addTableValue === undefined || addTableValue === '') {
-                this.nsErrorMsg('请填写 Table')
+                this.nsErrorMsg(values.dataBaseDataSystem === 'es' ? '请填写 Type' : '请填写 Table')
               } else {
                 if (values.dataBaseDataSystem === 'hbase') {
                   this.namespaceForm.setFields({
@@ -421,7 +421,7 @@ export class Namespace extends React.PureComponent {
                 }
               } else {
                 if ((addTableValue === '' && addKeyValue !== '') || (addTableValue !== '' && addKeyValue === '')) {
-                  this.nsErrorMsg('Table & Key 填写同步')
+                  this.nsErrorMsg(values.dataBaseDataSystem === 'es' ? 'Type & Key 填写同步' : 'Table & Key 填写同步')
                 } else if (addTableValue === '' && addKeyValue === '') {
                   this.nsTableInputAdd(requestNsTables, requestOthers)
                 } else if (addTableValue !== '' && addKeyValue !== '') {
@@ -519,7 +519,7 @@ export class Namespace extends React.PureComponent {
     if (moadlTempVal.dataBaseDataSystem === undefined || moadlTempVal.connectionUrl === undefined || moadlTempVal.instance === undefined || moadlTempVal.nsDatabase === undefined) {
       this.nsErrorMsg('请先选择其他项')
     } else if (moadlTempVal.nsSingleTableName === '' || moadlTempVal.nsSingleTableName === undefined) {
-      this.nsErrorMsg('请填写 Table')
+      this.nsErrorMsg(nsDsVal === 'es' ? '请填写 Type' : '请填写 Table')
     } else if (tableNameExited === true) {
       this.nsErrorMsg(`${exitedNsTableValue} 已存在`)
     } else if (namespaceTableSource.find(i => i.nsModalTable === moadlTempVal.nsSingleTableName)) {
@@ -623,7 +623,7 @@ export class Namespace extends React.PureComponent {
           {text: 'hbase', value: 'hbase'},
           {text: 'phoenix', value: 'phoenix'},
           {text: 'cassandra', value: 'cassandra'},
-          {text: 'log', value: 'log'},
+          // {text: 'log', value: 'log'},
           {text: 'kafka', value: 'kafka'},
           {text: 'postgresql', value: 'postgresql'}
         ],

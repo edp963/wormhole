@@ -52,14 +52,14 @@ export class DBForm extends React.Component {
   }
 
   onChangeDBROOrRW = (e) => {
-    const { databaseDSValue } = this.state
+    // const { databaseDSValue } = this.state
     this.setState({
       permissionValue: e.target.value
     })
 
-    this.props.form.setFieldsValue({
-      nsDatabase: (databaseDSValue === 'hbase' || databaseDSValue === 'phoenix') ? 'default' : ''
-    })
+    // this.props.form.setFieldsValue({
+    //   nsDatabase: databaseDSValue === 'hbase' ? 'default' : ''
+    // })
   }
 
   // 显示 instance 下拉框的内容
@@ -110,14 +110,14 @@ export class DBForm extends React.Component {
     }
 
     const DBDataSystemData = [
+      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
       { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
       { value: 'mysql', icon: 'icon-mysql' },
       { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
       { value: 'hbase', icon: 'icon-hbase1' },
       { value: 'phoenix', text: 'Phoenix' },
       { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
-      { value: 'log', text: 'Log' },
-      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
+      // { value: 'log', text: 'Log' },
       { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} }
     ]
 
@@ -154,14 +154,19 @@ export class DBForm extends React.Component {
 
     // const databaseDSLabel = databaseDSValue === 'kafka' ? 'Topic Name' : 'Database Name'
     let databaseDSLabel = ''
+    let databaseDSPlace = ''
     if (databaseDSValue === 'kafka') {
       databaseDSLabel = 'Topic Name'
+      databaseDSPlace = 'Topic Name'
     } else if (databaseDSValue === 'es') {
       databaseDSLabel = 'Index Name'
-    } else if (databaseDSValue === 'hbase' || databaseDSValue === 'phoenix') {
+      databaseDSPlace = 'Index Name'
+    } else if (databaseDSValue === 'hbase') {
       databaseDSLabel = 'Namespace Name'
+      databaseDSPlace = 'Namespace Name（若无, 填写 default）'
     } else {
       databaseDSLabel = 'Database Name'
+      databaseDSPlace = 'Database Name'
     }
 
     const diffPlacehodler = databaseDSValue === 'oracle'
@@ -267,7 +272,7 @@ export class DBForm extends React.Component {
                 }]
               })(
                 <Input
-                  placeholder={databaseDSLabel}
+                  placeholder={databaseDSPlace}
                   disabled={disabledOrNot}
                   onChange={this.onNameInputChange}
                 />

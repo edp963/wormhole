@@ -746,7 +746,7 @@ export class Flow extends React.Component {
       title: 'Stream Type',
       dataIndex: 'streamType',
       key: 'streamType',
-      className: 'text-align-center',
+      // className: 'text-align-center',
       sorter: (a, b) => a.streamType < b.streamType ? -1 : 1,
       sortOrder: sortedInfo.columnKey === 'streamType' && sortedInfo.order,
       filters: [

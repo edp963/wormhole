@@ -114,7 +114,7 @@ export class ProjectForm extends React.Component {
 
           <Col span={12}>
             <Card title="项目资源" className="project-form-card-style project-form-card-style-right">
-              <FormItem label="CPU上限 (VCores)" {...itemStyle}>
+              <FormItem label="CPU上限" {...itemStyle}>
                 {getFieldDecorator('resCores', {
                   rules: [{
                     required: true,
@@ -123,10 +123,10 @@ export class ProjectForm extends React.Component {
                     validator: this.forceCheckRes
                   }]
                 })(
-                  <InputNumber min={1} step={1} placeholder="CPU 是 Yarn 分配的 VCores 个数" />
+                  <InputNumber min={1} step={1} placeholder="VCores 个数" />
                 )}
               </FormItem>
-              <FormItem label="内存上限 (GB)" {...itemStyle}>
+              <FormItem label="内存上限" {...itemStyle}>
                 {getFieldDecorator('resMemoryG', {
                   rules: [{
                     required: true,
@@ -135,7 +135,7 @@ export class ProjectForm extends React.Component {
                     validator: this.forceCheckRes
                   }]
                 })(
-                  <InputNumber min={1} step={1} placeholder="内存上限" />
+                  <InputNumber min={1} step={1} placeholder="GB" />
                 )}
               </FormItem>
             </Card>
