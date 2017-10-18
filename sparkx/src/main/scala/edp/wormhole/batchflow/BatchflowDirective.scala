@@ -92,28 +92,11 @@ object BatchflowDirective extends Directive {
           }
         }
 
-        val output = if (swifts.containsKey("output") && swifts.getString("output").trim.nonEmpty) {
-          var tmpOutput = swifts.getString("output").trim.toLowerCase.split(",").map(_.trim).mkString(",")
-          if (tmpOutput.nonEmpty && tmpOutput.indexOf(UmsSysField.TS.toString) < 0) {
-            tmpOutput = tmpOutput + "," + UmsSysField.TS.toString
-          }
-          if (tmpOutput.nonEmpty && tmpOutput.indexOf(UmsSysField.ID.toString) < 0) {
-            tmpOutput = tmpOutput + "," + UmsSysField.ID.toString
-          }
-          if (tmpOutput.nonEmpty && tmpOutput.indexOf(UmsSysField.OP.toString) < 0) {
-            tmpOutput = tmpOutput + "," + UmsSysField.OP.toString
-          }
-          if (tmpOutput.nonEmpty && validity != null && tmpOutput.indexOf(UmsSysField.UID.toString) < 0) {
-            tmpOutput = tmpOutput + "," + UmsSysField.UID.toString
-          }
-          tmpOutput
-        } else ""
         val SwiftsSqlArr = if (action != null) {
           val sqlStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(action))
           ParseSwiftsSql.parse(sqlStr, sourceNamespace, fullsinkNamespace, if (validity == null) false else true)
         } else None
-        //      val SwiftsSqlArr = ParseSwiftsSql.parse(sqlStr, sourceNamespace, fullsinkNamespace, if (validity == null) false else true)
-        Some(SwiftsProcessConfig(output, SwiftsSqlArr, validityConfig, dataframe_show, dataframe_show_num, Some(specialConfigMap.toMap)))
+        Some(SwiftsProcessConfig(SwiftsSqlArr, validityConfig, dataframe_show, dataframe_show_num, Some(specialConfigMap.toMap)))
       } else {
         None
       }
@@ -129,7 +112,24 @@ object BatchflowDirective extends Directive {
     val sink_process_class_fullname = sinks.getString("sink_process_class_fullname").trim
     val sink_retry_times = sinks.getString("sink_retry_times").trim.toLowerCase.toInt
     val sink_retry_seconds = sinks.getString("sink_retry_seconds").trim.toLowerCase.toInt
-    val sinkProcessConfig = SinkProcessConfig(sink_table_keys, sink_specific_config, sink_process_class_fullname, sink_retry_times, sink_retry_seconds)
+    val sink_output = if (sinks.containsKey("sink_output") && sinks.getString("sink_output").trim.nonEmpty) {
+      var tmpOutput = sinks.getString("sink_output").trim.toLowerCase.split(",").map(_.trim).mkString(",")
+      if (dataType == "ums" && tmpOutput.nonEmpty && tmpOutput.indexOf(UmsSysField.TS.toString) < 0) {
+        tmpOutput = tmpOutput + "," + UmsSysField.TS.toString
+      }
+      if (dataType == "ums" && tmpOutput.nonEmpty && tmpOutput.indexOf(UmsSysField.ID.toString) < 0) {
+        tmpOutput = tmpOutput + "," + UmsSysField.ID.toString
+      }
+      if (dataType == "ums" && tmpOutput.nonEmpty && tmpOutput.indexOf(UmsSysField.OP.toString) < 0) {
+        tmpOutput = tmpOutput + "," + UmsSysField.OP.toString
+      }
+      tmpOutput
+    } else ""
+
+
+    val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_process_class_fullname, sink_retry_times, sink_retry_seconds)
+
+
     val swiftsStrCache = if (swiftsStr == null) "" else swiftsStr
 
 
