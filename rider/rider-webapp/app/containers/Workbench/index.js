@@ -157,7 +157,9 @@ export class Workbench extends React.Component {
       hdfslogSinkNsValue: '',
 
       flowKafkaInstanceValue: '',
-      flowKafkaTopicValue: ''
+      flowKafkaTopicValue: '',
+
+      sinkConfigMsg: ''
     }
   }
 
@@ -293,8 +295,22 @@ export class Workbench extends React.Component {
   onInitSinkTypeNamespace = (projectId, value, type) => {
     const { flowMode, pipelineStreamId } = this.state
 
+    let sinkConfigMsgTemp = ''
+    if (value === 'hbase') {
+      sinkConfigMsgTemp = 'For example: {"sink_specific_config":{"hbase.columnFamily":"cf","hbase.saveAsString": true, "hbase.rowKey":[{"name":"id","pattern":"mod_64_2"}, {"name":"name","pattern":"value"}, {"name":"address","pattern":"hash"}, {"name": "name", "pattern": "reverse"}]}}'
+    } else if (value === 'mysql' || value === 'oracle' || value === 'postgresql') {
+      sinkConfigMsgTemp = 'For example: {"sink_specific_config":{"db.mutation_type":"iud","db.sql_batch_size": 100}}'
+    } else if (value === 'es') {
+      sinkConfigMsgTemp = 'For example: {"sink_specific_config":{"es.mutation_type":"iud"}}'
+    } else if (value === 'phoenix') {
+      sinkConfigMsgTemp = 'For example: {"sink_specific_config":{"db.sql_batch_size": 100}}'
+    } else {
+      sinkConfigMsgTemp = ''
+    }
+
     this.setState({
-      sinkTypeNamespaceData: []
+      sinkTypeNamespaceData: [],
+      sinkConfigMsg: sinkConfigMsgTemp
     })
     if (pipelineStreamId !== 0) {
       this.props.onLoadSinkTypeNamespace(projectId, pipelineStreamId, value, type, (result) => {
@@ -1189,8 +1205,34 @@ export class Workbench extends React.Component {
     }
   }
 
+  // 验证 source to sink 存在性
+  loadSTSExit (values) {
+    const { flowMode } = this.state
+    if (flowMode === 'add' || flowMode === 'copy') {
+      // 新增flow时验证source to sink 是否存在
+      const sourceInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
+      const sinkInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
+
+      this.props.onLoadSourceToSinkExist(this.state.projectId, sourceInfo, sinkInfo, () => {
+        this.setState({
+          formStep: this.state.formStep + 1,
+          step2SourceNamespace: [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.'),
+          step2SinkNamespace: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
+        })
+      }, () => {
+        message.error('Source to Sink 已存在！', 3)
+      })
+    } else if (flowMode === 'edit') {
+      this.setState({
+        formStep: this.state.formStep + 1,
+        step2SourceNamespace: [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.'),
+        step2SinkNamespace: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
+      })
+    }
+  }
+
   handleForwardDefault () {
-    const { flowMode, flowFormTransformTableSource, streamDiffType } = this.state
+    const { flowFormTransformTableSource, streamDiffType } = this.state
 
     let transformRequestTempArr = []
     flowFormTransformTableSource.map(i => transformRequestTempArr.push(i.transformConfigInfoRequest))
@@ -1217,34 +1259,21 @@ export class Workbench extends React.Component {
         switch (this.state.formStep) {
           case 0:
             const values = this.workbenchFlowForm.getFieldsValue()
-
-            if (values.sinkConfig !== undefined) {
+            if (values.sinkConfig === undefined || values.sinkConfig === '') {
+              // 是否是 hbase
+              if (values.sinkDataSystem === 'hbase') {
+                message.error('Data System 为 Hbase 时，Sink Config 不能为空！', 3)
+              } else {
+                this.loadSTSExit(values)
+              }
+            } else {
+              // json 校验
               if (this.isJSON(values.sinkConfig) === false) {
                 message.error('Sink Config 应为 JSON格式！', 3)
                 return
+              } else {
+                this.loadSTSExit(values)
               }
-            }
-
-            if (flowMode === 'add' || flowMode === 'copy') {
-              // 新增flow时验证source to sink 是否存在
-              const sourceInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
-              const sinkInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
-
-              this.props.onLoadSourceToSinkExist(this.state.projectId, sourceInfo, sinkInfo, () => {
-                this.setState({
-                  formStep: this.state.formStep + 1,
-                  step2SourceNamespace: [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.'),
-                  step2SinkNamespace: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
-                })
-              }, () => {
-                message.error('Source to Sink 已存在！', 3)
-              })
-            } else if (flowMode === 'edit') {
-              this.setState({
-                formStep: this.state.formStep + 1,
-                step2SourceNamespace: [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.'),
-                step2SinkNamespace: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
-              })
             }
             break
           case 1:
@@ -2201,12 +2230,16 @@ export class Workbench extends React.Component {
                     visible={this.state.sinkConfigModalVisible}
                     onOk={this.onSinkConfigModalOk}
                     onCancel={this.hideSinkConfigModal}>
-                    <textarea
-                      ref={(f) => { this.sinkConfigInput = f }}
-                      placeholder="Paste your Sink Config JSON here"
-                      className="ant-input"
-                      rows="5">
-                    </textarea>
+                    <div>
+                      <h4 className="sink-config-modal-class">{this.state.sinkConfigMsg}</h4>
+                      <textarea
+                        ref={(f) => { this.sinkConfigInput = f }}
+                        placeholder="Paste your Sink Config JSON here"
+                        className="ant-input ant-input-extra"
+                        rows="5">
+                      </textarea>
+                    </div>
+
                   </Modal>
                   {/* ETP Strategy Modal */}
                   <Modal

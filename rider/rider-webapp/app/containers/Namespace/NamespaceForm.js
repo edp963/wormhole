@@ -29,6 +29,7 @@ import Input from 'antd/lib/input'
 import Tooltip from 'antd/lib/tooltip'
 import Button from 'antd/lib/button'
 import Popconfirm from 'antd/lib/popconfirm'
+import message from 'antd/lib/message'
 const FormItem = Form.Item
 import Select from 'antd/lib/select'
 const Option = Select.Option
@@ -71,12 +72,13 @@ export class NamespaceForm extends React.Component {
     this.setState({
       instanceIdGeted: selUrl.id
     }, () => {
-      // 通过 instance id 显示 database 下拉框内容
+      // 通过 instance id 显示 database 下拉框
       this.props.onInitDatabaseSelectValue(this.state.instanceIdGeted)
     })
   }
 
   onHandleChangeDatabase = (e) => {
+    message.warning('Kafka 时，Table 为 ums schema.namespace 中的第四层，如: ums schema.namespace 为 kafka.test.test1.test2.*.*.*, table为test2', 5)
     this.props.cleanNsTableData()
   }
 
@@ -90,7 +92,7 @@ export class NamespaceForm extends React.Component {
 
   render () {
     const { getFieldDecorator } = this.props.form
-    const { currentNamespaceUrlValue } = this.state
+    const { currentNamespaceUrlValue, namespaceDSValue } = this.state
     const { namespaceFormType, databaseSelectValue } = this.props
     const { namespaceTableSource, onDeleteTable, onAddTable, deleteTableClass, addTableClass, addTableClassTable, addBtnDisabled } = this.props
 
@@ -121,6 +123,21 @@ export class NamespaceForm extends React.Component {
 
     const instanceOptions = currentNamespaceUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.nsInstance}</Option>))
     const databaseOptions = databaseSelectValue.map((s) => (<Option key={s.id} value={`${s.id}`}>{`${s.nsDatabase} (${s.permission})`}</Option>))
+
+    let namespaceDBLabel = ''
+    if (namespaceDSValue === 'es') {
+      namespaceDBLabel = 'Index'
+    } else if (namespaceDSValue === 'hbase') {
+      namespaceDBLabel = 'Namespace'
+    } else if (namespaceDSValue === 'kafka') {
+      namespaceDBLabel = 'Topic'
+    } else {
+      namespaceDBLabel = 'Database'
+    }
+
+    const namespaceTableLabel = namespaceDSValue === 'es' ? 'Types' : 'Tables'
+    const disabledKeyOrNot = namespaceDSValue === 'hbase'
+    const namespaceKeyPlaceholder = namespaceDSValue === 'kafka' ? '多个数据主键用逗号隔开' : '多个业务主键用逗号隔开'
 
     const columns = [{
       title: 'Table',
@@ -227,11 +244,11 @@ export class NamespaceForm extends React.Component {
           </Col>
 
           <Col span={24}>
-            <FormItem label="Database" {...itemStyle}>
+            <FormItem label={namespaceDBLabel} {...itemStyle}>
               {getFieldDecorator('nsDatabase', {
                 rules: [{
                   required: true,
-                  message: '请选择 Database'
+                  message: `请选择 ${namespaceDBLabel}`
                 }]
               })(
                 <Select
@@ -248,7 +265,7 @@ export class NamespaceForm extends React.Component {
 
           <span>
             <Col span={6} className="ns-add-table-label-class">
-              <FormItem label="Tables" style={{ marginRight: '-2px' }}>
+              <FormItem label={namespaceTableLabel} style={{ marginRight: '-2px' }}>
                 {getFieldDecorator('nsTables', {
                   // rules: [{
                   //   required: true,
@@ -275,8 +292,9 @@ export class NamespaceForm extends React.Component {
               <FormItem label="">
                 {getFieldDecorator('nsSingleKeyValue', {})(
                   <Input
-                    placeholder="Key"
+                    placeholder={namespaceKeyPlaceholder}
                     onChange={this.onHandleNsKey}
+                    disabled={disabledKeyOrNot}
                   />
                 )}
               </FormItem>
@@ -297,7 +315,7 @@ export class NamespaceForm extends React.Component {
               className={`${addTableClassTable} ns-add-table`}
               dataSource={namespaceTableSource}
               columns={columns}
-              showHeader={false}
+              // showHeader={false}
               pagination={pagination}
               bordered
             />
