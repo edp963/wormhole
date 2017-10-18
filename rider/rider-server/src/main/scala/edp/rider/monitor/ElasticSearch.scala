@@ -183,11 +183,9 @@ object ElasticSearch extends RiderLogger {
   private def asyncToES(postBody: String, url: String, method: HttpMethod): Boolean = {
     var tc = false
     val uri = Uri.apply(url)
-    val b = headers.Accept.apply(MediaTypes.`application/json`)
     val httpRequest: HttpRequest = HttpRequest(
       method,
       uri,
-      headers = List(b),
       protocol = HttpProtocols.`HTTP/1.1`,
       entity = HttpEntity.apply(ContentTypes.`application/json`, ByteString(postBody))
     ).addCredentials(BasicHttpCredentials(RiderConfig.es.user, RiderConfig.es.pwd))
