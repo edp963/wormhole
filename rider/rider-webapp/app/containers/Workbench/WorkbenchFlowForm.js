@@ -47,7 +47,8 @@ export class WorkbenchFlowForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      flowMode: ''
+      flowMode: '',
+      sinkConfigClass: ''
     }
   }
 
@@ -97,6 +98,9 @@ export class WorkbenchFlowForm extends React.Component {
   // 通过不同的 Sink Data System 显示不同的 Sink Namespace 的内容
   onSinkDataSystemItemSelect = (val) => {
     this.props.onInitSinkTypeNamespace(this.props.projectIdGeted, val, 'sinkType')
+    this.setState({
+      sinkConfigClass: val === 'hbase' ? 'sink-config-class' : ''
+    })
   }
 
   onStreamJoinSqlConfigTypeSelect = (val) => {
@@ -122,7 +126,7 @@ export class WorkbenchFlowForm extends React.Component {
     const { transformTableSource, onDeleteSingleTransform, onAddTransform, onEditTransform, onUpTransform, onDownTransform } = this.props
     const { step2SourceNamespace, step2SinkNamespace, etpStrategyCheck, transformTagClassName, transformTableClassName, transConnectClass } = this.props
     const { selectStreamKafkaTopicValue, sourceTypeNamespaceData, hdfslogNsData, sinkTypeNamespaceData } = this.props
-    const { flowMode } = this.state
+    const { flowMode, sinkConfigClass } = this.state
 
     // edit 时，不能修改部分元素
     let flowDisabledOrNot = false
@@ -565,7 +569,7 @@ export class WorkbenchFlowForm extends React.Component {
             </Col>
             <Col span={24} className={streamTypeClass[0]} style={{marginBottom: '8px'}}>
               <div className="ant-col-6 ant-form-item-label">
-                <label htmlFor="#">Sink Config</label>
+                <label htmlFor="#" className={sinkConfigClass}>Sink Config</label>
               </div>
               <div className="ant-col-17">
                 <div className="ant-form-item-control">

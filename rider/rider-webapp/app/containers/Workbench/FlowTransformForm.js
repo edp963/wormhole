@@ -107,7 +107,7 @@ export class FlowTransformForm extends React.Component {
       { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
       { value: 'hbase', icon: 'icon-hbase1' },
       { value: 'phoenix', text: 'Phoenix' },
-      { value: 'kafka', text: 'Kafka' },
+      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
       { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} }
     ]
 
@@ -185,7 +185,7 @@ export class FlowTransformForm extends React.Component {
             </FormItem>
           </Col>
           <Col span={24} className={transformTypeClassNames[0]}>
-            <FormItem label="Namespace" {...itemStyle}>
+            <FormItem label="Database" {...itemStyle}>
               {getFieldDecorator('transformSinkNamespace', {
                 rules: [{
                   required: true,
@@ -220,7 +220,10 @@ export class FlowTransformForm extends React.Component {
                 }],
                 hidden: transformTypeHiddens[0]
               })(
-                <Input type="textarea" placeholder="Lookup SQL" autosize={{ minRows: 5, maxRows: 8 }} />
+                <Input
+                  type="textarea"
+                  placeholder="若 where 条件含有 source 数据中某字段值, table 为 source namespace, for example: source namespace 为kafka.test.test.test.*.*.*, 含有字段 id,name, look up时选择source namespace 中的 id 和 name, SQL 语句为 select * from look_up_table where (id,name) in (kafka.test.test.test.*.*.*.id, kafka.test.test.test.*.*.*.name);"
+                  autosize={{ minRows: 5, maxRows: 8 }} />
               )}
             </FormItem>
           </Col>
@@ -235,7 +238,10 @@ export class FlowTransformForm extends React.Component {
                 }],
                 hidden: transformTypeHiddens[1]
               })(
-                <Input type="textarea" placeholder="Spark SQL" autosize={{ minRows: 5, maxRows: 8 }} />
+                <Input
+                  type="textarea"
+                  placeholder="sql 语句中的 table 为 source namespace 中第四层，for example: source namespace 为kafka.test.test1.test2.*.*.*, sql 语句为 select * from test2;"
+                  autosize={{ minRows: 5, maxRows: 8 }} />
               )}
             </FormItem>
           </Col>

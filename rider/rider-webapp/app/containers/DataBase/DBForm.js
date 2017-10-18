@@ -52,11 +52,13 @@ export class DBForm extends React.Component {
   }
 
   onChangeDBROOrRW = (e) => {
+    const { databaseDSValue } = this.state
     this.setState({
       permissionValue: e.target.value
     })
+
     this.props.form.setFieldsValue({
-      nsDatabase: ''
+      nsDatabase: (databaseDSValue === 'hbase' || databaseDSValue === 'phoenix') ? 'default' : ''
     })
   }
 
@@ -150,7 +152,18 @@ export class DBForm extends React.Component {
       userPwdHiddens = false
     }
 
-    const databaseDSLabel = databaseDSValue === 'kafka' ? 'Topic Name' : 'Database Name'
+    // const databaseDSLabel = databaseDSValue === 'kafka' ? 'Topic Name' : 'Database Name'
+    let databaseDSLabel = ''
+    if (databaseDSValue === 'kafka') {
+      databaseDSLabel = 'Topic Name'
+    } else if (databaseDSValue === 'es') {
+      databaseDSLabel = 'Index Name'
+    } else if (databaseDSValue === 'hbase' || databaseDSValue === 'phoenix') {
+      databaseDSLabel = 'Namespace Name'
+    } else {
+      databaseDSLabel = 'Database Name'
+    }
+
     const diffPlacehodler = databaseDSValue === 'oracle'
       ? '格式为: 多行key=value 或 一行key=value&key=value。Oracle时, 必须包含"service_name"字段'
       : '格式为: 多行key=value 或 一行key=value&key=value'
