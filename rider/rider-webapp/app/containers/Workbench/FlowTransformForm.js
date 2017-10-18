@@ -189,12 +189,12 @@ export class FlowTransformForm extends React.Component {
               {getFieldDecorator('transformSinkNamespace', {
                 rules: [{
                   required: true,
-                  message: '请选择 Namespace'
+                  message: '请选择 Database'
                 }],
                 hidden: transformTypeHiddens[0]
               })(
                 <Cascader
-                  placeholder="Select a Namespace"
+                  placeholder="Select a Database"
                   popupClassName="ri-workbench-select-dropdown"
                   options={transformSinkTypeNamespaceData}
                   expandTrigger="hover"
