@@ -131,7 +131,7 @@ export class NamespaceForm extends React.Component {
       namespaceDBPlace = 'select an Index'
     } else if (namespaceDSValue === 'hbase') {
       namespaceDBLabel = 'Namespace'
-      namespaceDBPlace = 'select a Namespace'
+      namespaceDBPlace = 'select a Hbase Namespace'
     } else if (namespaceDSValue === 'kafka') {
       namespaceDBLabel = 'Topic'
       namespaceDBPlace = 'select a Topic'
