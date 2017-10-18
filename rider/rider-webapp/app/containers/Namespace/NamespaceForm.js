@@ -102,14 +102,14 @@ export class NamespaceForm extends React.Component {
     }
 
     const DBDataSystemData = [
+      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
       { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
       { value: 'mysql', icon: 'icon-mysql' },
       { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
       { value: 'hbase', icon: 'icon-hbase1' },
       { value: 'phoenix', text: 'Phoenix' },
       { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
-      { value: 'log', text: 'Log' },
-      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
+      // { value: 'log', text: 'Log' },
       { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} }
     ]
 
@@ -125,17 +125,23 @@ export class NamespaceForm extends React.Component {
     const databaseOptions = databaseSelectValue.map((s) => (<Option key={s.id} value={`${s.id}`}>{`${s.nsDatabase} (${s.permission})`}</Option>))
 
     let namespaceDBLabel = ''
+    let namespaceDBPlace = ''
     if (namespaceDSValue === 'es') {
       namespaceDBLabel = 'Index'
+      namespaceDBPlace = 'select an Index'
     } else if (namespaceDSValue === 'hbase') {
       namespaceDBLabel = 'Namespace'
+      namespaceDBPlace = 'select a Namespace'
     } else if (namespaceDSValue === 'kafka') {
       namespaceDBLabel = 'Topic'
+      namespaceDBPlace = 'select a Topic'
     } else {
       namespaceDBLabel = 'Database'
+      namespaceDBPlace = 'select a Database'
     }
 
     const namespaceTableLabel = namespaceDSValue === 'es' ? 'Types' : 'Tables'
+    const namespaceTablePlace = namespaceDSValue === 'es' ? 'Type' : 'Table'
     const disabledKeyOrNot = namespaceDSValue === 'hbase'
     const namespaceKeyPlaceholder = namespaceDSValue === 'kafka' ? '多个数据主键用逗号隔开' : '多个业务主键用逗号隔开'
 
@@ -254,7 +260,7 @@ export class NamespaceForm extends React.Component {
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
                   onChange={this.onHandleChangeDatabase}
-                  placeholder="Select a Database"
+                  placeholder={namespaceDBPlace}
                   disabled={disabledOrNot}
                 >
                   {databaseOptions}
@@ -281,7 +287,7 @@ export class NamespaceForm extends React.Component {
               <FormItem label="" style={{ marginLeft: '2px' }}>
                 {getFieldDecorator('nsSingleTableName', {})(
                   <Input
-                    placeholder="Table"
+                    placeholder={namespaceTablePlace}
                     onChange={this.onHandleNsTableName}
                     disabled={disabledOrNot}
                   />

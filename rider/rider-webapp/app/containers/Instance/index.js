@@ -256,14 +256,15 @@ export class Instance extends React.PureComponent {
       if (InstanceSourceDsVal === 'es') {
         errMsg = [new Error('http(s)://ip:port 格式')]
       } else if (InstanceSourceDsVal === 'oracle' || InstanceSourceDsVal === 'mysql' || InstanceSourceDsVal === 'postgresql' || InstanceSourceDsVal === 'cassandra') {
-        errMsg = [new Error('ip:port 格式, 多条用逗号隔开')]
+        errMsg = [new Error('ip:port 格式')]
       } else if (InstanceSourceDsVal === 'hbase' || InstanceSourceDsVal === 'phoenix') {
         errMsg = [new Error('zookeeper url list, 如localhost:2181/hbase, 多条用逗号隔开')]
       } else if (InstanceSourceDsVal === 'kafka') {
         errMsg = [new Error('borker list, localhost:9092, 多条用逗号隔开')]
-      } else if (InstanceSourceDsVal === 'log') {
-        errMsg = ''
       }
+      // else if (InstanceSourceDsVal === 'log') {
+      //   errMsg = ''
+      // }
     }
 
     this.instanceForm.setFields({
@@ -399,7 +400,7 @@ export class Instance extends React.PureComponent {
           {text: 'hbase', value: 'hbase'},
           {text: 'phoenix', value: 'phoenix'},
           {text: 'cassandra', value: 'cassandra'},
-          {text: 'log', value: 'log'},
+          // {text: 'log', value: 'log'},
           {text: 'kafka', value: 'kafka'},
           {text: 'postgresql', value: 'postgresql'}
         ],

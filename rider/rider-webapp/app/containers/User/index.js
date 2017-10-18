@@ -430,7 +430,7 @@ export class User extends React.PureComponent {
         title: 'Role Type',
         dataIndex: 'roleType',
         key: 'roleType',
-        className: 'text-align-center',
+        // className: 'text-align-center',
         sorter: (a, b) => a.roleType < b.roleType ? -1 : 1,
         sortOrder: sortedInfo.columnKey === 'roleType' && sortedInfo.order,
         filters: [

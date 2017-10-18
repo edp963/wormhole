@@ -449,7 +449,7 @@ export class DataBase extends React.PureComponent {
         connectionUrl: '',
         instance: undefined,
         permission: '',
-        nsDatabase: (value === 'hbase' || value === 'phoenix') ? 'default' : '',
+        nsDatabase: value === 'hbase' ? 'default' : '',
         user: '',
         password: '',
         userRequired: '',
@@ -564,7 +564,7 @@ export class DataBase extends React.PureComponent {
         {text: 'hbase', value: 'hbase'},
         {text: 'phoenix', value: 'phoenix'},
         {text: 'cassandra', value: 'cassandra'},
-        {text: 'log', value: 'log'},
+        // {text: 'log', value: 'log'},
         {text: 'kafka', value: 'kafka'},
         {text: 'postgresql', value: 'postgresql'}
       ],

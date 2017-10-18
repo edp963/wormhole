@@ -99,7 +99,7 @@ export class WorkbenchFlowForm extends React.Component {
   onSinkDataSystemItemSelect = (val) => {
     this.props.onInitSinkTypeNamespace(this.props.projectIdGeted, val, 'sinkType')
     this.setState({
-      sinkConfigClass: val === 'hbase' ? 'sink-config-class' : ''
+      sinkConfigClass: (val === 'hbase' || val === 'mysql' || val === 'oracle' || val === 'postgresql') ? 'sink-config-class' : ''
     })
   }
 
@@ -174,11 +174,11 @@ export class WorkbenchFlowForm extends React.Component {
     }
 
     const sourceDataSystemData = [
+      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
       { value: 'log', text: 'Log' },
       { value: 'file', text: 'File' },
       { value: 'app', text: 'App' },
       { value: 'presto', text: 'Presto' },
-      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
       { value: 'mysql', icon: 'icon-mysql' },
       { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} }
@@ -285,13 +285,15 @@ export class WorkbenchFlowForm extends React.Component {
       )
 
     const columns = [{
-      title: 'Order',
+      title: 'Num',
       dataIndex: 'order',
-      key: 'order'
+      key: 'order',
+      width: '12%'
     }, {
       title: 'Config Info',
       dataIndex: 'transformConfigInfo',
-      key: 'transformConfigInfo'
+      key: 'transformConfigInfo',
+      width: '65%'
     }, {
       title: 'Transform Config Info Request',
       dataIndex: 'transformConfigInfoRequest',
@@ -305,6 +307,7 @@ export class WorkbenchFlowForm extends React.Component {
     }, {
       title: 'Action',
       key: 'action',
+      // width: '23%',
       render: (text, record) => {
         const transformUpHide = record.order === 1 ? 'hide' : ''
         const transformDownHide = record.order === transformTableSource.length ? 'hide' : ''

@@ -389,7 +389,7 @@ export class Project extends React.Component {
           {projectContent}
         </div>
         <Modal
-          title={`${projectFormType === 'add' ? '新建' : '修改'}项目`}
+          title={`${projectFormType === 'add' ? '新建' : '修改'} & 授权`}
           okText="保存"
           wrapClassName="ant-modal-small ant-modal-xlarge project-modal"
           visible={formVisible}
