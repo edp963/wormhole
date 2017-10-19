@@ -691,6 +691,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                 }
                 else {
                   if (session.projectIdList.contains(projectId)) {
+                    Await.result(streamDal.updateTopicOffset(simpleTopics), minTimeOut)
                     onComplete(streamDal.getStreamsByProjectId(Some(projectId), Some(streamId)).mapTo[Seq[StreamSeqTopic]]) {
                       case Success(streams) =>
                         riderLogger.info(s"user ${session.userId} select stream where stream id is $streamId success.")
@@ -720,8 +721,8 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                                   //mem cores
                                   val launchConfig = json2caseClass[LaunchConfig](streamSeqTopic.stream.launchConfig)
                                   val streamType = streamSeqTopic.stream.streamType //config relative
-                                  val args = getConfig(streamId, streamName, brokers, launchConfig)
-                                  val commandSh = generateStreamStartSh(args, streamName, startConfig, sparkConfig, streamType)
+                                  val args = getBatchFlowConfig(streamId, streamName, brokers, "yarn-cluster", launchConfig)
+                                  val commandSh = generateStreamStartSh(s"'''$args'''", streamName, startConfig, sparkConfig, streamType)
                                   riderLogger.info(s"start stream command: $commandSh")
                                   runShellCommand(commandSh)
                                   val startTime = if (stream.startedTime.getOrElse("") == "") null else stream.startedTime
