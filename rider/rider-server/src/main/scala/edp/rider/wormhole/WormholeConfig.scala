@@ -21,7 +21,7 @@
 
 package edp.rider.wormhole
 
-import edp.wormhole.common.ConnectionConfig
+import edp.wormhole.common.{ConnectionConfig, KVConfig}
 
 case class BatchJobConfig(sourceConfig: SourceConfig,
                           transformationConfig: Option[TransformationConfig],
@@ -36,12 +36,12 @@ case class SourceConfig(startTime: String,
                         specialConfig: Option[String])
 
 case class TransformationConfig(action: Option[String],
-                                projection:Option[String],
+                                projection: Option[String],
                                 specialConfig: Option[String])
 
 case class SinkConfig(sinkNamespace: String,
                       connectionConfig: ConnectionConfig,
-                      maxRecordPerPartitionProcessed:Int,
+                      maxRecordPerPartitionProcessed: Int,
                       classFullName: Option[String],
                       specialConfig: Option[String],
                       tableKeys: Option[String])
@@ -49,3 +49,42 @@ case class SinkConfig(sinkNamespace: String,
 case class JobConfig(appName: String,
                      master: String,
                      `spark.sql.shuffle.partitions`: Option[Int])
+
+
+case class BatchFlowConfig(kafka_input: KafkaInputBaseConfig,
+                           kafka_output: KafkaOutputConfig,
+                           spark_config: SparkConfig,
+                           rdd_partition_number: Int, //-1 do not repartition
+                           zookeeper_path: String,
+                           kafka_persistence_config_isvalid: Boolean,
+                           stream_hdfs_address: Option[String])
+
+//for parquet，data is main namespace or join namespace
+
+case class SparkConfig(stream_id: Long,
+                       stream_name: String,
+                       master: String,
+                       `spark.sql.shuffle.partitions`: Int)
+
+case class KafkaOutputConfig(feedback_topic_name: String, brokers: String, config: Option[Seq[KVConfig]] = None)
+
+case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,
+                            kafka_topics: Seq[KafkaTopicConfig],
+                            inWatch: Boolean)
+
+case class KafkaInputBaseConfig(group_id: String,
+                                batch_duration_seconds: Int,
+                                brokers: String,
+                                `max.partition.fetch.bytes`: Int = 10485760,
+                                `key.deserializer`: String = "org.apache.kafka.common.serialization.StringDeserializer",
+                                `value.deserializer`: String = "org.apache.kafka.common.serialization.StringDeserializer",
+                                `session.timeout.ms`: Int = 30000
+                               )
+
+
+case class KafkaTopicConfig(topic_name: String,
+                            topic_rate: Int,
+                            topic_partition: Seq[PartitionOffsetConfig])
+
+case class PartitionOffsetConfig(partition_num: Int, offset: Long)
+

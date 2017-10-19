@@ -21,19 +21,30 @@
 
 package edp.rider.rest.util
 
+import com.alibaba.fastjson.JSON
 import edp.rider.RiderStarter.modules
 import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.rest.persistence.entities.{Directive, SimpleTopic}
+import edp.rider.rest.persistence.entities.{Directive, LaunchConfig, SimpleTopic}
 import edp.rider.rest.util.CommonUtils._
+import edp.rider.wormhole.{BatchFlowConfig, KafkaInputBaseConfig, KafkaOutputConfig, SparkConfig}
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.ums.UmsProtocolType._
-import com.alibaba.fastjson.JSON
+import edp.wormhole.common.util.JsonUtils.caseClass2json
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Await
-import scala.util.parsing.json.JSONObject
 
 object StreamUtils extends RiderLogger {
+
+  def getBatchFlowConfig(streamId: Long, streamName: String, brokers: String, master: String, launchConfig: LaunchConfig) = {
+    val config = BatchFlowConfig(KafkaInputBaseConfig(streamName, launchConfig.durations.toInt, brokers, launchConfig.maxRecords.toInt),
+      KafkaOutputConfig(RiderConfig.consumer.topic, RiderConfig.consumer.brokers),
+      SparkConfig(streamId, streamName, master, launchConfig.partitions.toInt),
+      launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfs_root))
+    caseClass2json[BatchFlowConfig](config)
+  }
+
+
   def sendTopicDirective(streamId: Long, topicSeq: Seq[SimpleTopic], userId: Long) = {
     try {
       val directiveSeq = new ArrayBuffer[Directive]
