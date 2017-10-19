@@ -355,7 +355,11 @@ object BatchflowMainProcess extends EdpLogging {
       val nameIndex: Array[(String, Int, String)] = resultSchema.fieldNames.map(name => (name, resultSchema.fieldIndex(name), resultSchema.apply(resultSchema.fieldIndex(name)).dataType.toString)).sortBy(_._2)
       import session.implicits._
       val umsFields: Seq[UmsField] = nameIndex.map(t => UmsField(t._1, SparkUtils.sparkSqlType2UmsFieldType(t._3), Some(true))).toSeq
-      val tuples: RDD[Seq[String]] = swiftsDf.map { row => nameIndex.map { case (_, index, _) => row.get(index).toString }.toSeq }.rdd
+      val tuples: RDD[Seq[String]] = swiftsDf.map { row =>
+        nameIndex.map { case (_, index, _) =>
+          val value = row.get(index)
+          if (value == null) null else value.toString
+        }.toSeq }.rdd
       (umsFields, tuples, afterUnionDf)
     } catch {
       case e: Throwable =>
