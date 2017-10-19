@@ -85,7 +85,6 @@ object BatchflowMainProcess extends EdpLogging {
         //val dt1 =  dt2dateTime(currentyyyyMMddHHmmss)
         val dataRepartitionRdd: RDD[(String, String)] = if (config.rdd_partition_number != -1) streamRdd.map(row => (row.key, row.value)).repartition(config.rdd_partition_number) else streamRdd.map(row => (row.key, row.value))
         UdfDirective.registerUdfProcess(config.kafka_output.feedback_topic_name, config.kafka_output.brokers, session)
-        //     UdfDirective.registerUdfProcess(config.kafka_output.feedback_topic_name,config.kafka_output.brokers, session)
         //        dataRepartitionRdd.cache()
         //        dataRepartitionRdd.count()
         //        val dt2: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
@@ -145,9 +144,8 @@ object BatchflowMainProcess extends EdpLogging {
               val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
               if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
               mainDataList += (((protocolType, namespace), schemaValueTuple._2))
-            }
-            if (ConfMemoryStorage.existNamespace(streamLookupNamespaceSet, namespace)) {
-              //todo change else if to if
+            } else if (ConfMemoryStorage.existNamespace(streamLookupNamespaceSet, namespace)) {
+              //todo change  if back to if, efficiency
               val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
               if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
               lookupDataList += (((protocolType, namespace), schemaValueTuple._2))
@@ -207,15 +205,13 @@ object BatchflowMainProcess extends EdpLogging {
     try { // join in streaming, file name： sourcenamespace 4 fields _ sinknamespace_lookup namespace 4 fields
       val umsRdd: RDD[(UmsProtocolType, String, ArrayBuffer[Seq[String]])] = formatRdd(allDataRdd, "lookup")
       distinctSchema.foreach(schema => {
-        val protocolType: UmsProtocolType = schema._1._1
         val namespace = schema._1._2
         val matchLookupNamespace = ConfMemoryStorage.getMatchLookupNamespaceRule(namespace)
-        val lookupDf = createSourceDf(session, namespace, schema._2, umsRdd.filter(row => {
-          row._1 == protocolType && row._2 == namespace
-        }).flatMap(_._3))
-
-        //val filterDf = lookupDf.filter("ums_op_ != 'b'")
         if (matchLookupNamespace != null) {
+          val protocolType: UmsProtocolType = schema._1._1
+          val lookupDf = createSourceDf(session, namespace, schema._2, umsRdd.filter(row => {
+            row._1 == protocolType && row._2 == namespace
+          }).flatMap(_._3))
           ConfMemoryStorage.getSourceAndSinkByStreamLookupNamespace(matchLookupNamespace).foreach {
             case (sourceNs, sinkNs) =>
               val path = config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/" + config.spark_config.stream_id + "/" + sourceNs.replaceAll("\\*", "-") + "/" + sinkNs + "/streamLookupNamespace" + "/" + matchLookupNamespace.replaceAll("\\*", "-")
@@ -239,13 +235,13 @@ object BatchflowMainProcess extends EdpLogging {
     val processedsourceNamespace = mutable.HashSet.empty[String]
     // val dt1: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
     val umsRdd: RDD[(UmsProtocolType, String, ArrayBuffer[Seq[String]])] = formatRdd(mainDataRdd, "main").cache
-      distinctSchema.foreach(schema => {
+    distinctSchema.foreach(schema => {
       val uuid = UUID.randomUUID().toString
       val protocolType: UmsProtocolType = schema._1._1
       val sourceNamespace: String = schema._1._2
       logInfo(uuid + ",schema loop,sourceNamespace:" + sourceNamespace)
       val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
-      var sourceTupleRDD: RDD[Seq[String]] = umsRdd.filter(row => {
+      val sourceTupleRDD: RDD[Seq[String]] = umsRdd.filter(row => {
         row._1 == protocolType && row._2 == sourceNamespace
       }).flatMap(_._3).cache
 
@@ -291,6 +287,7 @@ object BatchflowMainProcess extends EdpLogging {
               }
             } else logWarning("sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + "there is nothing to sinkProcess")
 
+            if (afterUnionDf != null) afterUnionDf.unpersist()
             val doneTs = System.currentTimeMillis
             processedsourceNamespace.add(sourceNamespace)
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
@@ -300,7 +297,7 @@ object BatchflowMainProcess extends EdpLogging {
         }
         )
       }
-        sourceTupleRDD.unpersist()
+      sourceTupleRDD.unpersist()
     })
     umsRdd.unpersist()
     processedsourceNamespace.toSet
@@ -359,7 +356,8 @@ object BatchflowMainProcess extends EdpLogging {
         nameIndex.map { case (_, index, _) =>
           val value = row.get(index)
           if (value == null) null else value.toString
-        }.toSeq }.rdd
+        }.toSeq
+      }.rdd
       (umsFields, tuples, afterUnionDf)
     } catch {
       case e: Throwable =>
