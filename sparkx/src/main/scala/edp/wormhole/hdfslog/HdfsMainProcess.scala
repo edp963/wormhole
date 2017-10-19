@@ -75,7 +75,7 @@ object HdfsMainProcess extends EdpLogging {
 
         val streamTransformedRdd: RDD[(String, (String, String))] = streamRdd.map(message => {
           val (protocol, namespace) = WormholeUtils.getTypeNamespaceFromKafkaKey(message.key)
-          (namespace, (protocol, message.value))
+          (namespace, (protocol.toString, message.value))
         })
 
         val dataParRdd = if (config.rdd_partition_number != -1) {

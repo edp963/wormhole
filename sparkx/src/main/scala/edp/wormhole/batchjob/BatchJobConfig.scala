@@ -44,7 +44,8 @@ case class SinkConfig(sinkNamespace: String,
                       maxRecordPerPartitionProcessed:Int,
                       classFullName: Option[String],
                       specialConfig: Option[String],
-                      tableKeys: Option[String])
+                      tableKeys: Option[String],
+                      projection:Option[String])
 
 case class JobConfig(appName: String,
                      master: String,

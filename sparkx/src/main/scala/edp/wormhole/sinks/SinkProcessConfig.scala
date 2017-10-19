@@ -22,7 +22,8 @@
 package edp.wormhole.sinks
 
 import edp.wormhole.sinks.utils.SinkDefault._
-case class SinkProcessConfig(tableKeys: Option[String],
+case class SinkProcessConfig(sinkOutput:String,
+                              tableKeys: Option[String],
                              specialConfig: Option[String],
                              classFullname: String,
                              retryTimes: Int,
