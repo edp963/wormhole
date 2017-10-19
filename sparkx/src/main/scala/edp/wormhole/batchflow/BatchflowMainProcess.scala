@@ -533,16 +533,9 @@ object BatchflowMainProcess extends EdpLogging {
   = {
     val sendList = ListBuffer.empty[Seq[String]]
     val saveList = ListBuffer.empty[String]
-    // var projectionSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)] = resultSchemaMap
-    //val filterUmsUidSchemaMap = resultSchemaMap.filterKeys(_ != UmsSysField.UID.toString)
     if (swiftsProcessConfig.nonEmpty) {
       //has swifts process
-      //      val lackColumn = checkLackColumn(swiftsProcessConfig, resultSchemaMap, sourceNamespace, sinkNamespace)
-      //      if (!lackColumn) {
-      // projectionSchemaMap = getProjectionSchemaMap(swiftsProcessConfig, filterUmsUidSchemaMap, sinkNamespace)
-      //has swifts process and not lack column
       if (swiftsProcessConfig.get.validityConfig.nonEmpty) {
-        //has swifts process and not lack column and need validity
         val validityConfig: ValidityConfig = swiftsProcessConfig.get.validityConfig.get
         dataSeq.foreach(row => {
           val originalDataArray = SparkUtils.getRowData(row, originalSchemaMap, originalSchemaMap, renameMap)
@@ -550,8 +543,8 @@ object BatchflowMainProcess extends EdpLogging {
           if (ifValidity) sendList += SparkUtils.getRowData(row, resultSchemaMap, originalSchemaMap, renameMap)
           else {
             val reduceTime = yyyyMMddHHmmss(dt2dateTime(minTs).minusSeconds(validityConfig.ruleParams.toInt))
-            val dataUmsts = yyyyMMddHHmmss(dt2dateTime(originalDataArray(resultSchemaMap(UmsSysField.TS.toString)._1)))
-            val uid = originalDataArray(resultSchemaMap(UmsSysField.UID.toString)._1)
+            val dataUmsts = yyyyMMddHHmmss(dt2dateTime(originalDataArray(originalSchemaMap(UmsSysField.TS.toString)._1)))
+            val uid = originalDataArray(originalSchemaMap(UmsSysField.UID.toString)._1)
             if (SinkCommonUtils.firstTimeAfterSecond(reduceTime, dataUmsts)) {
               //timeout
               ValidityAgainstAction.toValidityAgainstAction(validityConfig.againstAction) match {
@@ -571,14 +564,6 @@ object BatchflowMainProcess extends EdpLogging {
           }
         })
       } else sendList ++= dataSeq.map(row => SparkUtils.getRowData(row, resultSchemaMap, originalSchemaMap, renameMap)) //has swifts process and not lack column and not need validity
-      //      } else {//todo already delete lack column check
-      //        //has swifts process and lack column
-      //        saveList ++= dataSeq.map(row => {
-      //          val originalDataArray = SparkUtils.getRowData(row, resultSchemaMap)
-      //          val uid = originalDataArray(resultSchemaMap(UmsSysField.UID.toString)._1)
-      //          uid
-      //        })
-      //      }
     } else sendList ++= dataSeq.map(row => SparkUtils.getRowData(row, resultSchemaMap, originalSchemaMap, renameMap)) //not swifts process
     logInfo(sourceNamespace + ":" + sinkNamespace + ",sendList.size=" + sendList.size + ",saveList.size=" + saveList.size)
     (sendList, saveList)
