@@ -1,0 +1,44 @@
+{
+  "protocol": {
+    "type": "directive_udf_add"
+  },
+  "schema": {
+    "namespace": "",
+    "fields": [
+      {
+        "name": "directive_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "stream_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "ums_ts_",
+        "type": "datetime",
+        "nullable": false
+      },
+      {
+        "name": "udf_name",
+        "type": "string",
+        "nullable": false
+      },{
+        "name": "udf_class_fullname",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "udf_jar_path",
+        "type": "string",
+        "nullable": true
+      }
+    ]
+  },
+  "payload": [
+    {
+      "tuple": [ 3,1,"2016-04-11 12:23:34.345123", "add1","edp.udf.TestUdf",  "hdfs://edp/udf/jars/test.jar" ]
+    }
+  ]
+}
