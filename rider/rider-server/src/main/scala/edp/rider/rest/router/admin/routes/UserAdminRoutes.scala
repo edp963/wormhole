@@ -61,14 +61,13 @@ class UserAdminRoutes(modules: ConfigurationModule with PersistenceModule with B
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not admin"),
     new ApiResponse(code = 501, message = "the request url is not supported"),
-    new ApiResponse(code = 409, message = "user already exists"),
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getUserByFilterRoute: Route = modules.userAdminService.getByFilterRoute(basePath)
 
 
-  @ApiOperation(value = "synchronize users to the system", notes = "", nickname = "", httpMethod = "POST")
+  @ApiOperation(value = "post user to the system", notes = "", nickname = "", httpMethod = "POST")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "user", value = "User object to be added", required = true, dataType = "edp.rider.rest.persistence.entities.SimpleUser", paramType = "body")
   ))

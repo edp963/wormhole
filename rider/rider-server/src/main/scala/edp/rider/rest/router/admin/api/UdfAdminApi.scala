@@ -1,0 +1,192 @@
+/*-
+ * <<
+ * wormhole
+ * ==
+ * Copyright (C) 2016 - 2017 EDP
+ * ==
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * >>
+ */
+
+
+package edp.rider.rest.router.admin.api
+
+import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.server.Route
+import edp.rider.common.RiderLogger
+import edp.rider.rest.persistence.base.BaseDal
+import edp.rider.rest.persistence.entities._
+import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+import edp.rider.rest.util.AuthorizationProvider
+import edp.rider.rest.util.CommonUtils._
+import edp.rider.rest.util.ResponseUtils._
+import edp.rider.rest.util.UdfUtils._
+import slick.jdbc.MySQLProfile.api._
+
+import scala.concurrent.Await
+import scala.util.{Failure, Success}
+
+
+class UdfAdminApi(udfDal: BaseDal[UdfTable, Udf]) extends BaseAdminApiImpl(udfDal) with RiderLogger {
+
+  def postRoute(route: String): Route = path(route) {
+    post {
+      entity(as[SimpleUdf]) {
+        simpleUdf =>
+          authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+            session =>
+              if (session.roleType != "admin") {
+                riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+                complete(OK, getHeader(403, session))
+              } else {
+                postResponse(simpleUdf, session)
+              }
+          }
+      }
+    }
+  }
+
+  def putRoute(route: String): Route = path(route) {
+    put {
+      entity(as[Udf]) {
+        udf =>
+          authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+            session =>
+              if (session.roleType != "admin") {
+                riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+                complete(OK, getHeader(403, session))
+              } else {
+                putResponse(udf, session)
+              }
+          }
+      }
+    }
+  }
+
+  override def deleteRoute(route: String): Route = path(route / LongNumber) {
+    id =>
+      delete {
+        authenticateOAuth2Async("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.error(s"user ${session.userId} has no permission to access it")
+              complete(OK, getHeader(403, session))
+            } else {
+              deleteResponse(id, session)
+            }
+        }
+      }
+  }
+
+  def getNonPublicUdfRoute(route: String): Route = path(route / "udfs") {
+    get {
+      authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+        session =>
+          if (session.roleType != "admin")
+            complete(OK, getHeader(403, session))
+          else {
+            getNonPublicUdfResponse(session)
+          }
+      }
+    }
+
+  }
+
+  private def postResponse(simpleUdf: SimpleUdf, session: SessionClass): Route = {
+    if (!checkHdfsPathExist(simpleUdf.jarName)) {
+      riderLogger.warn(s"user ${session.userId} insert udf, but jar ${simpleUdf.jarName} doesn't exist in hdfs")
+      complete(OK, getHeader(412, s"jar ${simpleUdf.jarName} doesn't exist in hdfs", session))
+    } else {
+      val function = Await.result(udfDal.findByFilter(_.functionName === simpleUdf.functionName).mapTo[Seq[Udf]], minTimeOut)
+      val fullClass = Await.result(udfDal.findByFilter(_.fullClassName === simpleUdf.fullClassName).mapTo[Seq[Udf]], minTimeOut)
+      val msg =
+        if (function.nonEmpty && fullClass.nonEmpty)
+          s"function_name ${simpleUdf.functionName} and full_class_name ${simpleUdf.fullClassName} already exists"
+        else if (function.nonEmpty && fullClass.isEmpty)
+          s"function_name ${simpleUdf.functionName} already exists"
+        else if (function.isEmpty && fullClass.nonEmpty)
+          s"full_class_name ${simpleUdf.fullClassName} already exists"
+        else ""
+      if (msg != "") {
+        riderLogger.warn(msg)
+        complete(OK, getHeader(409, msg, session))
+      } else {
+        val udfInsert = Udf(0, simpleUdf.functionName, simpleUdf.fullClassName, simpleUdf.jarName, Some(simpleUdf.desc.getOrElse("")), simpleUdf.public, currentSec, session.userId, currentSec, session.userId)
+        onComplete(udfDal.insert(udfInsert).mapTo[Udf]) {
+          case Success(udf) =>
+            riderLogger.info(s"user ${session.userId} insert udf success")
+            complete(OK, ResponseJson[Udf](getHeader(200, session), udf))
+          case Failure(ex) =>
+            riderLogger.error(s"user ${session.userId} insert udf failed", ex)
+            if (ex.toString.contains("Duplicate entry"))
+              complete(OK, getHeader(409, s"udf already exists", session))
+            else
+              complete(OK, getHeader(451, ex.toString, session))
+        }
+      }
+    }
+  }
+
+  private def putResponse(udf: Udf, session: SessionClass): Route = {
+    if (!checkHdfsPathExist(udf.jarName)) {
+      riderLogger.warn(s"user ${session.userId} update udf, but jar ${udf.jarName} doesn't exist in hdfs")
+      complete(OK, getHeader(412, s"jar ${udf.jarName} doesn't exist in hdfs", session))
+    } else {
+      val updateUdf = Udf(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic, udf.createTime, udf.createBy, currentSec, session.userId)
+      onComplete(udfDal.update(updateUdf).mapTo[Int]) {
+        case Success(_) =>
+          riderLogger.info(s"user ${session.userId} update udf success")
+          complete(OK, ResponseJson[Udf](getHeader(200, session), updateUdf))
+        case Failure(ex) =>
+          riderLogger.error(s"user ${session.userId} update udf failed")
+          if (ex.toString.contains("Duplicate entry")) {
+            if (ex.toString.contains("function_name_UNIQUE"))
+              complete(OK, getHeader(409, s"function_name ${udf.functionName} already exists", session))
+            else
+              complete(OK, getHeader(409, s"full_class_name ${udf.functionName} already exists", session))
+          }
+          else
+            complete(OK, getHeader(451, ex.toString, session))
+      }
+    }
+  }
+
+  private def deleteResponse(id: Long, session: SessionClass): Route = {
+    try {
+      onComplete(udfDal.deleteById(id).mapTo[Int]) {
+        case Success(_) =>
+          riderLogger.info(s"user ${session.userId} delete udf $id success")
+          complete(OK, getHeader(200, session))
+        case Failure(ex) =>
+          riderLogger.info(s"user ${session.userId} delete udf $id failed", ex)
+          complete(OK, getHeader(451, session))
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"user ${session.userId} delete udf $id failed", ex)
+        complete(OK, getHeader(451, session))
+    }
+  }
+
+  private def getNonPublicUdfResponse(session: SessionClass): Route = {
+    onComplete(udfDal.findByFilter(_.public === false).mapTo[Seq[Udf]]) {
+      case Success(udfs) =>
+        riderLogger.info(s"user ${session.userId} find all non public udfs success")
+        complete(OK, ResponseSeqJson(getHeader(200, session), udfs))
+      case Failure(ex) =>
+        riderLogger.error(s"user ${session.userId} find all non public udfs failed", ex)
+        complete(OK, getHeader(451, session))
+    }
+  }
+}

@@ -112,6 +112,8 @@ object RiderConfig {
     getStringConfig("wormholeServer.normal.username", "normal"),
     getStringConfig("wormholeServer.normal.password", "normal"))
 
+  lazy val udfRootPath = s"${spark.hdfs_root.stripSuffix("/")}/udfjar"
+
   lazy val riderDomain = getStringConfig("wormholeServer.domain.url", "")
 
   lazy val tokenTimeout = getIntConfig("wormholeServer.token.timeout", 1)

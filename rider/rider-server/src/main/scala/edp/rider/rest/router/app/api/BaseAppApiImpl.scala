@@ -170,6 +170,28 @@ class BaseAppApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A])
 
   }
 
+  override def deleteRoute(route: String): Route = path(route / LongNumber) {
+    id =>
+      delete {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "app") {
+              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            } else {
+              onComplete(baseDal.deleteById(id).mapTo[Int]) {
+                case Success(result) =>
+                  riderLogger.info(s"user ${session.userId} delete $route $id success")
+                  complete(OK, getHeader(200, session))
+                case Failure(ex) =>
+                  riderLogger.error(s"user ${session.userId} delete $route $id failed", ex)
+                  complete(OK, getHeader(451, session))
+              }
+            }
+        }
+      }
+  }
+
 
   private def generateEntity(simple: SimpleBaseEntity, session: SessionClass): BaseEntity = {
     simple match {

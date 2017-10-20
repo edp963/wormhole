@@ -136,6 +136,7 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
     }
   }
 
+
   def getResource(projectId: Long): Future[Resource] = {
     try {
       val project = Await.result(db.run(projectTable.filter(_.id === projectId).result.head).mapTo[Project], minTimeOut)
@@ -379,6 +380,12 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
 
   def updateStreamInTopicTable(streamInTopics: Seq[StreamInTopic]) = {
     db.run(DBIO.seq(streamInTopics.map(streamInTopic => streamInTopicTable.filter(_.id === streamInTopic.id).update(streamInTopic)): _*))
+  }
+
+  def updateTopicOffset(simpleTopic: Seq[SimpleTopic]): Future[Unit] = {
+    db.run(DBIO.seq(simpleTopic.map(topic =>
+      streamInTopicTable.filter(_.id === topic.id)
+        .map(topic => (topic.partitionOffsets, topic.rate)).update(topic.partitionOffsets, topic.rate)): _*))
   }
 
   def updateStreamsTable(streams: Seq[Stream]) = {

@@ -55,7 +55,8 @@ class SwaggerRoutes extends SwaggerHttpService with HasActorSystem {
     typeOf[ActionUserRoutes],
     typeOf[RiderInfoAdminRoutes],
     typeOf[FlowAppRoutes],
-    typeOf[JobAppRoutes]
+    typeOf[JobAppRoutes],
+    typeOf[UdfAdminRoutes]
   )
 
   override val host =

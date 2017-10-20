@@ -54,10 +54,11 @@ object StreamUtils extends RiderLogger {
           val tuple = Seq(streamId, currentMicroSec, topic.name, topic.rate, topic.partitionOffsets).mkString("#")
           directiveSeq += Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, tuple, zkConURL, currentSec, userId)
       })
-      val directives: Seq[Directive] = if (directiveSeq.isEmpty) directiveSeq
-      else {
-        Await.result(modules.directiveDal.insert(directiveSeq), minTimeOut)
-      }
+      val directives: Seq[Directive] =
+        if (directiveSeq.isEmpty) directiveSeq
+        else {
+          Await.result(modules.directiveDal.insert(directiveSeq), minTimeOut)
+        }
       val blankTopic = Directive(0, null, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, "0:0").mkString("#"), zkConURL, currentSec, userId)
       val directiveNew = directives.to[mutable.ArrayBuffer] += blankTopic
       val topicUms = directiveNew.map({
