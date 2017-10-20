@@ -36,7 +36,7 @@ import edp.rider.rest.util.ResponseUtils._
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.service.util.CacheMap
 import edp.rider.spark.SparkJobClientLog
-import edp.rider.spark.SubmitSparkJob.{generateStreamStartSh, getConfig, riderLogger, runShellCommand}
+import edp.rider.spark.SubmitSparkJob.{generateStreamStartSh, runShellCommand}
 import edp.wormhole.common.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 

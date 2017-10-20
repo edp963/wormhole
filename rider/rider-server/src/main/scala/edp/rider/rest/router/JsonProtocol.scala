@@ -88,6 +88,9 @@ object JsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val formatResource: RootJsonFormat[Resource] = jsonFormat5(Resource)
   implicit val formatStreamTopicActions: RootJsonFormat[StreamSeqTopicActions] = jsonFormat5(StreamSeqTopicActions)
 
+
+  implicit val formatUdf: RootJsonFormat[Udf] = jsonFormat10(Udf)
+  implicit val formatSimpleUdf: RootJsonFormat[SimpleUdf] = jsonFormat5(SimpleUdf)
   //app api
   implicit val formatSimpleJob: RootJsonFormat[AppJob] = jsonFormat15(AppJob)
   implicit val formatJobHealth: RootJsonFormat[JobHealth] = jsonFormat2(JobHealth)
@@ -98,6 +101,7 @@ object JsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val formatAppFlowResponse: RootJsonFormat[AppFlowResponse] = jsonFormat2(AppFlowResponse)
   implicit val formatAppJobResponse: RootJsonFormat[AppJobResponse] = jsonFormat2(AppJobResponse)
 
+
   implicit object formatBaseEntity extends RootJsonFormat[BaseEntity] {
 
     def write(obj: BaseEntity): JsValue = obj match {
@@ -107,6 +111,7 @@ object JsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
       case flow: Flow => flow.toJson
       case user: User => user.toJson
       case project: Project => project.toJson
+      case udf: Udf => udf.toJson
       case unknown@_ => serializationError(s"Marshalling issue with $unknown.")
     }
 

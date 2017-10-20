@@ -241,7 +241,7 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
     }
   }
 
-  def deleteRoute(route: String): Route = path(route / LongNumber) {
+ override def deleteRoute(route: String): Route = path(route / LongNumber) {
     id =>
       delete {
         authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {

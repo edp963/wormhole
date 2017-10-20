@@ -71,6 +71,7 @@ trait PersistenceModule {
   val inTopicDal: BaseDal[StreamInTopicTable, StreamInTopic]
 
   val jobDal: JobDal
+  val udfDal: BaseDal[UdfTable, Udf]
 
   val feedbackHeartbeatDal: BaseDal[FeedbackHeartbeatTable, FeedbackHeartbeat]
   val feedbackOffsetDal: FeedbackOffsetDal
@@ -92,6 +93,7 @@ trait PersistenceModule {
   val streamInTopicQuery = TableQuery[StreamInTopicTable]
 
   val jobQuery = TableQuery[JobTable]
+  val udfQuery = TableQuery[UdfTable]
 
   val feedbackHeartBeatQuery = TableQuery[FeedbackHeartbeatTable]
   val feedbackOffsetQuery = TableQuery[FeedbackOffsetTable]
@@ -118,6 +120,7 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val inTopicDal = new BaseDalImpl[StreamInTopicTable, StreamInTopic](streamInTopicQuery)
 
   override lazy val jobDal = new JobDal(jobQuery)
+  override lazy val udfDal = new BaseDalImpl[UdfTable, Udf](udfQuery)
 
   override lazy val feedbackHeartbeatDal = new BaseDalImpl[FeedbackHeartbeatTable, FeedbackHeartbeat](feedbackHeartBeatQuery)
   override lazy val feedbackOffsetDal = new FeedbackOffsetDal(feedbackOffsetQuery)

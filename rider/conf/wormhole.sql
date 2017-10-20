@@ -241,6 +241,22 @@ CREATE TABLE IF NOT EXISTS `job` (
   UNIQUE INDEX `job_UNIQUE` (`source_ns` ASC, `sink_ns` ASC))
 ENGINE = InnoDB;
 
+CREATE TABLE IF NOT EXISTS `udf` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `function_name` VARCHAR(200) NOT NULL,
+  `full_class_name` VARCHAR(200) NOT NULL,
+  `jar_name` VARCHAR(200) NOT NULL,
+  `desc` VARCHAR(200) NULL,
+  `public` TINYINT(1) NOT NULL,
+  `create_time` TIMESTAMP NOT NULL,
+  `create_by` BIGINT NOT NULL,
+  `update_time` TIMESTAMP NOT NULL,
+  `update_by` BIGINT NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `function_name_UNIQUE` (`function_name` ASC),
+  UNIQUE INDEX `full_class_name_UNIQUE` (`full_class_name` ASC))
+ENGINE = InnoDB;
+
 CREATE TABLE IF NOT EXISTS `feedback_heartbeat` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `protocol_type` VARCHAR(200) NOT NULL,

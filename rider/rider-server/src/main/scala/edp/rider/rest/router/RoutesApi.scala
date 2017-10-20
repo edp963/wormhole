@@ -42,6 +42,7 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
   lazy val userAdmin = new UserAdminRoutes(modules)
   lazy val projectAdmin = new ProjectAdminRoutes(modules)
   lazy val riderInfoAdmin = new RiderInfoAdminRoutes(modules)
+  lazy val udfAdmin = new UdfAdminRoutes(modules)
   lazy val riderUI = new RiderRoutes
 
   lazy val projectUser = new ProjectUserRoutes(modules)
@@ -70,7 +71,8 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
               crossDomainHandler(flowAdmin.routes) ~
               crossDomainHandler(userAdmin.routes) ~
               crossDomainHandler(projectAdmin.routes) ~
-              crossDomainHandler(riderInfoAdmin.routes)
+              crossDomainHandler(riderInfoAdmin.routes) ~
+              crossDomainHandler(udfAdmin.routes)
           } ~
           pathPrefix("user") {
             crossDomainHandler(projectUser.routes) ~

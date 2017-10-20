@@ -63,7 +63,6 @@ class NsDatabaseAdminRoutes(modules: ConfigurationModule with PersistenceModule 
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not admin"),
     new ApiResponse(code = 501, message = "the request url is not supported"),
-    new ApiResponse(code = 409, message = "database already exists"),
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))

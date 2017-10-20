@@ -37,6 +37,8 @@ trait RoutesModuleImpl {
   lazy val userAdminService = new UserAdminApi(userDal, relProjectUserDal)
   lazy val projectAdminService = new ProjectAdminApi(projectDal, relProjectNsDal, relProjectUserDal)
   lazy val monitorAdminService = new MonitorAdminApi(streamDal)
+  lazy val udfAdminService = new UdfAdminApi(udfDal)
+
 
   lazy val userService = new UserApi(userDal, relProjectUserDal)
   lazy val projectUserService = new ProjectUserApi(projectDal, relProjectUserDal)
@@ -51,6 +53,8 @@ trait RoutesModuleImpl {
   lazy val jobAppService = new JobAppApi(jobDal, projectDal)
   lazy val flowAppService = new FlowAppApi(flowDal, streamDal, projectDal)
   lazy val monitorAppService = new MonitorAppApi(flowDal, projectDal, streamDal, jobDal, feedbackFlowErrDal, feedbackOffsetDal)
+
+
 }
 
 
