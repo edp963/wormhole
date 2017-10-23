@@ -54,7 +54,7 @@ class RelProjectUdfDal(udfTable: TableQuery[UdfTable],
   def getUdfProjectName: Future[mutable.HashMap[Long, ArrayBuffer[String]]] = {
     val udfProjectSeq = db.run((projectTable join relProjectUdfTable on (_.id === _.projectId))
       .map {
-        case (project, rel) => (rel.udfId, project.name) <> (UserProjectName.tupled, UserProjectName.unapply)
+        case (project, rel) => (rel.udfId, project.name) <> (UdfProjectName.tupled, UdfProjectName.unapply)
       }.result).mapTo[Seq[UdfProjectName]]
     udfProjectSeq.map[mutable.HashMap[Long, ArrayBuffer[String]]] {
       val udfProjectMap = mutable.HashMap.empty[Long, ArrayBuffer[String]]
