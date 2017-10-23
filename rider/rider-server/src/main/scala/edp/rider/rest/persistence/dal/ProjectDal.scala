@@ -32,17 +32,18 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import slick.jdbc.MySQLProfile.api._
 
-class ProjectDal(projectTable: TableQuery[ProjectTable], relProjectNsDal: RelProjectNsDal, relProjectUserDal: RelProjectUserDal, streamDal: StreamDal) extends BaseDalImpl[ProjectTable, Project](projectTable) with RiderLogger {
-  def getById(id: Long): Future[Option[ProjectUserNs]] = {
+class ProjectDal(projectTable: TableQuery[ProjectTable], relProjectNsDal: RelProjectNsDal, relProjectUserDal: RelProjectUserDal, relProjectUdfDal: RelProjectUdfDal, streamDal: StreamDal) extends BaseDalImpl[ProjectTable, Project](projectTable) with RiderLogger {
+  def getById(id: Long): Future[Option[ProjectUserNsUdf]] = {
     val projectOpt = super.findById(id)
-    projectOpt.map[Option[ProjectUserNs]] {
+    projectOpt.map[Option[ProjectUserNsUdf]] {
       projectOpt => {
         projectOpt match {
           case Some(project) =>
-            val userIds = Await.result(relProjectUserDal.getUserIdsByProjectId(id), 5.second)
-            val nsIds = Await.result(relProjectNsDal.getNsIdsByProjectId(id), 5.second)
-            Some(ProjectUserNs(project.id, project.name, project.desc, project.pic, project.resCores, project.resMemoryG, project.active,
-              project.createTime, project.createBy, project.updateTime, project.updateBy, nsIds, userIds))
+            val userIds = Await.result(relProjectUserDal.getUserIdsByProjectId(id), minTimeOut)
+            val nsIds = Await.result(relProjectNsDal.getNsIdsByProjectId(id), minTimeOut)
+            val udfIds = Await.result(relProjectUdfDal.getUdfIdsByProjectId(id), minTimeOut)
+            Some(ProjectUserNsUdf(project.id, project.name, project.desc, project.pic, project.resCores, project.resMemoryG, project.active,
+              project.createTime, project.createBy, project.updateTime, project.updateBy, nsIds, userIds, udfIds))
           case None => None
         }
       }
@@ -58,6 +59,7 @@ class ProjectDal(projectTable: TableQuery[ProjectTable], relProjectNsDal: RelPro
       } else {
         Await.result(relProjectNsDal.deleteByFilter(_.projectId === id), minTimeOut)
         Await.result(relProjectUserDal.deleteByFilter(_.projectId === id), minTimeOut)
+        Await.result(relProjectUdfDal.deleteByFilter(_.projectId === id), minTimeOut)
         Await.result(super.deleteById(id), minTimeOut)
         (true, "success")
       }

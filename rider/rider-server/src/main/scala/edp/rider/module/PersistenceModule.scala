@@ -71,7 +71,8 @@ trait PersistenceModule {
   val inTopicDal: BaseDal[StreamInTopicTable, StreamInTopic]
 
   val jobDal: JobDal
-  val udfDal: BaseDal[UdfTable, Udf]
+  val udfDal: UdfDal
+  val relProjectUdfDal: RelProjectUdfDal
 
   val feedbackHeartbeatDal: BaseDal[FeedbackHeartbeatTable, FeedbackHeartbeat]
   val feedbackOffsetDal: FeedbackOffsetDal
@@ -94,6 +95,8 @@ trait PersistenceModule {
 
   val jobQuery = TableQuery[JobTable]
   val udfQuery = TableQuery[UdfTable]
+  val relProjectUdfQuery = TableQuery[RelProjectUdfTable]
+
 
   val feedbackHeartBeatQuery = TableQuery[FeedbackHeartbeatTable]
   val feedbackOffsetQuery = TableQuery[FeedbackOffsetTable]
@@ -114,13 +117,14 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val streamDal = new StreamDal(streamQuery, projectQuery, feedbackOffsetQuery, instanceQuery, databaseQuery, relProjectNsQuery, streamInTopicQuery, namespaceQuery, directiveDal)
   override lazy val flowDal = new FlowDal(flowQuery, streamQuery, projectQuery, streamDal)
   override lazy val relProjectNsDal = new RelProjectNsDal(namespaceQuery, databaseQuery, instanceQuery, projectQuery, relProjectNsQuery, streamInTopicQuery)
-  override lazy val projectDal = new ProjectDal(projectQuery, relProjectNsDal, relProjectUserDal, streamDal)
+  override lazy val projectDal = new ProjectDal(projectQuery, relProjectNsDal, relProjectUserDal, relProjectUdfDal, streamDal)
   override lazy val dbusDal = new BaseDalImpl[DbusTable, Dbus](dbusQuery)
   override lazy val directiveDal = new BaseDalImpl[DirectiveTable, Directive](directiveQuery)
   override lazy val inTopicDal = new BaseDalImpl[StreamInTopicTable, StreamInTopic](streamInTopicQuery)
 
   override lazy val jobDal = new JobDal(jobQuery)
-  override lazy val udfDal = new BaseDalImpl[UdfTable, Udf](udfQuery)
+  override lazy val udfDal = new UdfDal(udfQuery, relProjectUdfDal)
+  override lazy val relProjectUdfDal = new RelProjectUdfDal(udfQuery, projectQuery, relProjectUdfQuery)
 
   override lazy val feedbackHeartbeatDal = new BaseDalImpl[FeedbackHeartbeatTable, FeedbackHeartbeat](feedbackHeartBeatQuery)
   override lazy val feedbackOffsetDal = new FeedbackOffsetDal(feedbackOffsetQuery)
