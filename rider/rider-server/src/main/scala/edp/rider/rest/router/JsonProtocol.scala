@@ -65,8 +65,8 @@ object JsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val formatFlowStream: RootJsonFormat[FlowStream] = jsonFormat21(FlowStream)
   implicit val formatFlowStreamAdmin: RootJsonFormat[FlowStreamAdmin] = jsonFormat22(FlowStreamAdmin)
 
-  implicit val formatSimpleProjectRel: RootJsonFormat[SimpleProjectRel] = jsonFormat7(SimpleProjectRel)
-  implicit val formatProjectUserNs: RootJsonFormat[ProjectUserNs] = jsonFormat13(ProjectUserNs)
+  implicit val formatSimpleProjectRel: RootJsonFormat[SimpleProjectRel] = jsonFormat8(SimpleProjectRel)
+  implicit val formatProjectUserNsUdf: RootJsonFormat[ProjectUserNsUdf] = jsonFormat14(ProjectUserNsUdf)
   implicit val formatStreamProject: RootJsonFormat[StreamProject] = jsonFormat2(StreamProject)
 
   implicit val formatSimpleStream: RootJsonFormat[SimpleStream] = jsonFormat9(SimpleStream)
@@ -90,6 +90,7 @@ object JsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
 
 
   implicit val formatUdf: RootJsonFormat[Udf] = jsonFormat10(Udf)
+  implicit val formatUdfProject: RootJsonFormat[UdfProject] = jsonFormat11(UdfProject)
   implicit val formatSimpleUdf: RootJsonFormat[SimpleUdf] = jsonFormat5(SimpleUdf)
   //app api
   implicit val formatSimpleJob: RootJsonFormat[AppJob] = jsonFormat15(AppJob)

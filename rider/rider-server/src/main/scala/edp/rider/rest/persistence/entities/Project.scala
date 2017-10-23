@@ -38,7 +38,7 @@ final case class Project(id: Long,
                          updateTime: String,
                          updateBy: Long) extends BaseEntity
 
-case class ProjectUserNs(id: Long,
+case class ProjectUserNsUdf(id: Long,
                          name: String,
                          desc: Option[String] = None,
                          pic: Int,
@@ -50,7 +50,8 @@ case class ProjectUserNs(id: Long,
                          updateTime: String,
                          updateBy: Long,
                          nsId: String,
-                         userId: String)
+                         userId: String,
+                         udfId: String)
 
 case class SimpleProjectRel(name: String,
                             desc: Option[String] = None,
@@ -58,7 +59,8 @@ case class SimpleProjectRel(name: String,
                             resCores: Int,
                             resMemoryG: Int,
                             nsId: String,
-                            userId: String)
+                            userId: String,
+                            udfId: String)
 
 case class SimpleProject(name: String,
                          desc: Option[String] = None,

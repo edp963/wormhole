@@ -32,7 +32,7 @@ import io.swagger.annotations._
 class ProjectUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
   lazy val routes: Route = getProjectByIdRoute ~ getProjectByAllRoute ~ getResourceByProjectIdRoute ~
-    getNsByProjectIdRoute ~ getUserByProjectIdRoute ~ getMonitorDashboardRoute
+    getNsByProjectIdRoute ~ getUserByProjectIdRoute ~ getMonitorDashboardRoute ~ getUdfByProjectIdRoute
 
   lazy val basePath = "projects"
 
@@ -101,6 +101,21 @@ class ProjectUserRoutes(modules: ConfigurationModule with PersistenceModule with
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getUserByProjectIdRoute: Route = modules.userService.getUserByProjectId("projects")
+
+  @Path("/{id}/udfs")
+  @ApiOperation(value = "get udfs of the project", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getUdfByProjectIdRoute: Route = modules.udfUserService.getUdfByProjectId("projects")
+
 
   @Path("/{id}/monitors")
   @ApiOperation(value = "get one project's resource information from system by id", notes = "", nickname = "", httpMethod = "GET")
