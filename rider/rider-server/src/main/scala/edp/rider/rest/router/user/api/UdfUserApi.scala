@@ -24,7 +24,7 @@ package edp.rider.rest.router.user.api
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
-import edp.rider.rest.persistence.dal.{RelProjectUdfDal, RelProjectUserDal, UdfDal, UserDal}
+import edp.rider.rest.persistence.dal.{RelProjectUdfDal, UdfDal}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
@@ -60,7 +60,29 @@ class UdfUserApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Bas
             }
         }
       }
-     
   }
 
+  //  def registerUdfRoute(route: String): Route = path(route / LongNumber / "udfs" / LongNumber / "register") {
+  //    (projectId, udfId) =>
+  //      put {
+  //        authenticateOAuth2Async("rider", AuthorizationProvider.authorize) {
+  //          session =>
+  //            if (session.roleType != "user") {
+  //              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+  //              complete(OK, getHeader(403, session))
+  //            } else {
+  //              registerUdfResponse(projectId, udfId, session)
+  //            }
+  //        }
+  //      }
+  //  }
+  //
+  //  private def registerUdfResponse(projectId: Long, udfId: Long, session: SessionClass): Route = {
+  //    if (session.projectIdList.contains(projectId)) {
+  //
+  //    } else {
+  //      riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
+  //      complete(OK, getHeader(403, session))
+  //    }
+  //  }
 }
