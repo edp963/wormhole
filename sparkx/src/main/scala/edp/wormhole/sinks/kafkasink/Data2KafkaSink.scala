@@ -95,6 +95,7 @@ class Data2KafkaSink extends SinkProcessor with EdpLogging {
     )
   }
 
+
   private def ums2Kafka(tupleList: Seq[Seq[String]], kafkaLimitNum: Int, protocol: UmsProtocol, schema: UmsSchema, protocolType: UmsProtocolType, sinkNamespace: String, kafkaTopic: String, connectionConfig: ConnectionConfig): Unit = {
     tupleList.sliding(kafkaLimitNum, kafkaLimitNum).foreach(tuple => {
       val seqUmsTuple: Seq[UmsTuple] = tuple.map(payload => UmsTuple(payload))
