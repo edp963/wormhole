@@ -36,6 +36,7 @@ import scala.util.control.NonFatal
 import org.apache.spark.sql.functions._
 import java.sql.Timestamp
 
+import edp.wormhole.batchflow.umsSysRename
 import edp.wormhole.core.{PartitionOffsetConfig, WormholeConfig}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
@@ -61,7 +62,7 @@ object WormholeUtils extends EdpLogging {
     }
   }
 
-  def jsonGetValue(namespace: String, protocolType: UmsProtocolType, json: String, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Map[String, Any], String)]): (Seq[UmsField], Seq[UmsTuple]) = {
+  def jsonGetValue(namespace: String, protocolType: UmsProtocolType, json: String, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Map[String, Any], umsSysRename)]): (Seq[UmsField], Seq[UmsTuple]) = {
     if (jsonSourceParseMap.contains((protocolType, namespace))) {
       //todo here@
       val b: Seq[UmsTuple] = null
