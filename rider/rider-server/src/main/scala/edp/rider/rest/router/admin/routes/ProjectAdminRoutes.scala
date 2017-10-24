@@ -84,7 +84,8 @@ class ProjectAdminRoutes(modules: ConfigurationModule with PersistenceModule wit
   @Path("/{id}/udfs")
   @ApiOperation(value = "get one project's udfs selected information from system by id", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path")
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "public", value = "false", required = false, dataType = "boolean", paramType = "query")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),
