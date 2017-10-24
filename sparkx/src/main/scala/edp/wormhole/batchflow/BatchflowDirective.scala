@@ -140,7 +140,7 @@ object BatchflowDirective extends Directive {
 
     if (dataType != "ums") {
       val parseResult: RegularJsonSchema = BatchSourceConf.parse(dataParseStr)
-      ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.schemaMap, parseResult.umsSysRename)
+      ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo,parseResult.twoFieldsArr, parseResult.umsSysRename)
     }
 
     ConfMemoryStorage.registerDataStoreConnectionsMap(fullsinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)

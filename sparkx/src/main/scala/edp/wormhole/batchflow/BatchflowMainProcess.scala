@@ -130,7 +130,7 @@ object BatchflowMainProcess extends EdpLogging {
   private def getClassifyRdd(dataRepartitionRdd: RDD[(String, String)]): RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])] = {
     val streamLookupNamespaceSet = ConfMemoryStorage.getAllLookupNamespaceSet
     val mainNamespaceSet = ConfMemoryStorage.getAllMainNamespaceSet
-    val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Map[String, Any], umsSysRename)] = ConfMemoryStorage.getAllSourceParseMap
+    val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)], UmsSysRename)] = ConfMemoryStorage.getAllSourceParseMap
     dataRepartitionRdd.mapPartitions(partition => {
       val mainDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
       val lookupDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
@@ -244,7 +244,7 @@ object BatchflowMainProcess extends EdpLogging {
       val sourceTupleRDD: RDD[Seq[String]] = umsRdd.filter(row => {
         row._1 == protocolType && row._2 == sourceNamespace
       }).flatMap(_._3).cache
-      val jsonUmsSysFields: umsSysRename = if (ConfMemoryStorage.existJsonSourceParseMap(protocolType,sourceNamespace)) ConfMemoryStorage.getJsonUmsFieldsName(protocolType,sourceNamespace) else null
+      val jsonUmsSysFields: UmsSysRename = if (ConfMemoryStorage.existJsonSourceParseMap(protocolType,sourceNamespace)) ConfMemoryStorage.getJsonUmsFieldsName(protocolType,sourceNamespace) else null
       val (minTs, maxTs, count) = getMinMaxTsAndCount(protocolType, sourceNamespace, sourceTupleRDD, schema._2)
       logInfo(uuid + "sourceNamespace:" + sourceNamespace + ",minTs:" + minTs + ",maxTs:" + maxTs + ",sourceDf.count:" + count)
       if (count > 0) {
@@ -431,7 +431,7 @@ object BatchflowMainProcess extends EdpLogging {
                                      minTs: String,
                                      maxTs: String,
                                      uuid: String,
-                                     jsonUmsSysFields:umsSysRename) = {
+                                     jsonUmsSysFields:UmsSysRename) = {
     val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(sinkNamespace)
     val (resultSchemaMap, originalSchemaMap, renameMap) = SparkUtils.getSchemaMap(sinkFields, sinkProcessConfig.sinkOutput)
     logInfo(uuid + ",schemaMap:" + resultSchemaMap)
@@ -528,7 +528,7 @@ object BatchflowMainProcess extends EdpLogging {
                                    minTs: String,
                                    sourceNamespace: String,
                                    sinkNamespace: String,
-                                   jsonUmsSysFields:umsSysRename): (mutable.ListBuffer[Seq[String]], mutable.ListBuffer[String])
+                                   jsonUmsSysFields:UmsSysRename): (mutable.ListBuffer[Seq[String]], mutable.ListBuffer[String])
 
   = {
     val sendList = ListBuffer.empty[Seq[String]]
@@ -575,7 +575,7 @@ object BatchflowMainProcess extends EdpLogging {
                                        config: WormholeConfig,
                                        minTs: String,
                                        session: SparkSession,
-                                       jsonUmsSysFields:umsSysRename)
+                                       jsonUmsSysFields:UmsSysRename)
 
   = {
     ConfMemoryStorage.getStreamLookupNamespaceAndTimeout(matchSourceNamespace, sinkNamespace).foreach {
@@ -603,7 +603,7 @@ object BatchflowMainProcess extends EdpLogging {
                                           uidArray: Array[String],
                                           sourceDf: DataFrame,
                                           config: WormholeConfig,
-                                          jsonUmsSysFields:umsSysRename)
+                                          jsonUmsSysFields:UmsSysRename)
 
   = {
     val configuration = new Configuration()

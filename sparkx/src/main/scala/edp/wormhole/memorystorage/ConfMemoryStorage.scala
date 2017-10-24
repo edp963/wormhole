@@ -28,7 +28,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 import scala.collection.mutable
 import java.lang.reflect.Method
 
-import edp.wormhole.batchflow.umsSysRename
+import edp.wormhole.batchflow.{FieldInfo, UmsSysRename}
 import edp.wormhole.common.{ConnectionConfig, KVConfig}
 import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils.firstTimeAfterSecond
@@ -36,7 +36,7 @@ import edp.wormhole.ums.UmsField
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType._
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 object ConfMemoryStorage extends Serializable with EdpLogging {
 
@@ -52,7 +52,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   //sourceNamespace,sinkNamespace,minTs
   val eventTsMap = mutable.HashMap.empty[(String, String), String]
 
-  val JsonSourceParseMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], Map[String, Any], umsSysRename)]
+  val JsonSourceParseMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField],  Seq[FieldInfo],  ArrayBuffer[(String, String)], UmsSysRename)]
 
   //[className, (object, method)]
   private val swiftsTransformReflectMap = mutable.HashMap.empty[String, (Any, Method)]
@@ -64,9 +64,9 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
     JsonSourceParseMap.contains((protocol, namespace))
   }
 
-  def getJsonUmsFieldsName(protocol: UmsProtocolType, namespace: String): umsSysRename = {
+  def getJsonUmsFieldsName(protocol: UmsProtocolType, namespace: String): UmsSysRename = {
     if (JsonSourceParseMap.contains((protocol, namespace)))
-      JsonSourceParseMap((protocol, namespace))._3
+      JsonSourceParseMap((protocol, namespace))._4
     else
       throw new Exception("get Json Source Ts Name failed")
   }
@@ -80,8 +80,8 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
     namespaceArray1(0) == namespaceArray2(0) && namespaceArray1(1) == namespaceArray2(1) && namespaceArray1(2) == namespaceArray2(2) && namespaceArray1(3) == namespaceArray2(3)
   }
 
-  def registerJsonSourceParseMap(protocolType: UmsProtocolType, namespace: String, umsField: Seq[UmsField], schemaMap: Map[String, Any], umsSysRename:umsSysRename) = {
-    JsonSourceParseMap((protocolType, namespace)) = (umsField, schemaMap,umsSysRename)
+  def registerJsonSourceParseMap(protocolType: UmsProtocolType, namespace: String, umsField: Seq[UmsField], fieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)], umsSysRename:UmsSysRename) = {
+    JsonSourceParseMap((protocolType, namespace)) = (umsField, fieldsInfo,twoFieldsArr,umsSysRename)
   }
 
   def getMatchSourceNamespaceRule(namespace: String): String = {
