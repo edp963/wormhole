@@ -21,7 +21,6 @@
 package edp.wormhole.redis
 
 import redis.clients.jedis.{JedisCluster, ShardedJedisPool}
-
 import scala.collection.mutable
 
 object JedisConnection extends Serializable {
@@ -38,12 +37,10 @@ object JedisConnection extends Serializable {
       })
     }
     if (mode == "cluster") {
-      //      if (!clusterPoolMap.contains(url))
       synchronized {
         if (!clusterPoolMap.contains(url)) clusterPoolMap(url) = JedisClusterConnection.createPool(hosts, password)
       }
     } else {
-      //      if (!shardedPoolMap.contains(url))
       synchronized {
         if (!shardedPoolMap.contains(url)) shardedPoolMap(url) = SharedJedisConnection.createPool(hosts, password)
       }
