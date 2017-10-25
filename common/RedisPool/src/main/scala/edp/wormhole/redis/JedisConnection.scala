@@ -21,14 +21,13 @@
 package edp.wormhole.redis
 
 import redis.clients.jedis.{JedisCluster, ShardedJedisPool}
-
 import scala.collection.mutable
 
 object JedisConnection extends Serializable {
 
-  @volatile val shardedPoolMap: mutable.HashMap[String, ShardedJedisPool] = new mutable.HashMap[String, ShardedJedisPool]
+  val shardedPoolMap: mutable.HashMap[String, ShardedJedisPool] = new mutable.HashMap[String, ShardedJedisPool]
 
-  @volatile val clusterPoolMap: mutable.HashMap[String, JedisCluster] = new mutable.HashMap[String, JedisCluster]
+  val clusterPoolMap: mutable.HashMap[String, JedisCluster] = new mutable.HashMap[String, JedisCluster]
 
   private def createJedisPool(url: String, password: Option[String], mode: String): Unit = {
     val hosts: Array[(String, Int)] = {
@@ -38,12 +37,10 @@ object JedisConnection extends Serializable {
       })
     }
     if (mode == "cluster") {
-      //      if (!clusterPoolMap.contains(url))
       synchronized {
         if (!clusterPoolMap.contains(url)) clusterPoolMap(url) = JedisClusterConnection.createPool(hosts, password)
       }
     } else {
-      //      if (!shardedPoolMap.contains(url))
       synchronized {
         if (!shardedPoolMap.contains(url)) shardedPoolMap(url) = SharedJedisConnection.createPool(hosts, password)
       }
