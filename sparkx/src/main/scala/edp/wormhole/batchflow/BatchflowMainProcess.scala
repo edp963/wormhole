@@ -144,7 +144,8 @@ object BatchflowMainProcess extends EdpLogging {
               val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
               if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
               mainDataList += (((protocolType, namespace), schemaValueTuple._2))
-            } else if (ConfMemoryStorage.existNamespace(streamLookupNamespaceSet, namespace)) {
+            }
+            if (ConfMemoryStorage.existNamespace(streamLookupNamespaceSet, namespace)) {
               //todo change  if back to if, efficiency
               val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
               if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
@@ -171,8 +172,8 @@ object BatchflowMainProcess extends EdpLogging {
   }
 
 
-  private def getMinMaxTsAndCount(protocolType: UmsProtocolType, sourceNamespace: String, umsRdd: RDD[Seq[String]], fields: Seq[UmsField]): (String, String, Int) = {
-    val umsTsIndex = if (ConfMemoryStorage.existJsonSourceParseMap(protocolType, sourceNamespace)) fields.map(_.name).indexOf(ConfMemoryStorage.getJsonUmsFieldsName(protocolType, sourceNamespace).umsSysTs)
+  private def getMinMaxTsAndCount(protocolType: UmsProtocolType, sourceNamespace: String, umsRdd: RDD[Seq[String]], fields: Seq[UmsField],jsonUmsSysFields: UmsSysRename): (String, String, Int) = {
+    val umsTsIndex = if (jsonUmsSysFields != null) fields.map(_.name).indexOf(jsonUmsSysFields.umsSysTs)
     else fields.map(_.name).indexOf(UmsSysField.TS.toString)
     val minMaxCountArray: Array[(String, String, Int)] = umsRdd.mapPartitions(partition => {
       var minTs = ""
@@ -245,7 +246,7 @@ object BatchflowMainProcess extends EdpLogging {
         row._1 == protocolType && row._2 == sourceNamespace
       }).flatMap(_._3).cache
       val jsonUmsSysFields: UmsSysRename = if (ConfMemoryStorage.existJsonSourceParseMap(protocolType,sourceNamespace)) ConfMemoryStorage.getJsonUmsFieldsName(protocolType,sourceNamespace) else null
-      val (minTs, maxTs, count) = getMinMaxTsAndCount(protocolType, sourceNamespace, sourceTupleRDD, schema._2)
+      val (minTs, maxTs, count) = getMinMaxTsAndCount(protocolType, sourceNamespace, sourceTupleRDD, schema._2,jsonUmsSysFields)
       logInfo(uuid + "sourceNamespace:" + sourceNamespace + ",minTs:" + minTs + ",maxTs:" + maxTs + ",sourceDf.count:" + count)
       if (count > 0) {
         val flowConfigMap = ConfMemoryStorage.getFlowConfigMap(matchSourceNamespace)
