@@ -25,7 +25,8 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
-import edp.wormhole.common.{FeedbackPriority, SparkUtils, WormholeConstants, WormholeUtils}
+import edp.wormhole.common.WormholeUtils.dataParse
+import edp.wormhole.common._
 import edp.wormhole.common.util.DateUtils
 import edp.wormhole.core.WormholeConfig
 import edp.wormhole.kafka.WormholeKafkaProducer
@@ -54,6 +55,7 @@ object HdfsMainProcess extends EdpLogging {
   val namespace2FileStore = mutable.HashMap.empty[String, mutable.HashMap[String, (String, Int, String)]]
   // Map[namespace(accurate to table), HashMap["right", (filename, size,metaContent)]]
   val directiveNamespaceRule = mutable.HashMap.empty[String, Int] //[namespace, hour]
+  val jsonSourceMap = mutable.HashMap.empty[String, (Seq[FieldInfo], ArrayBuffer[(String, String)], UmsSysRename, Seq[UmsField])]
 
   val fileMaxSize = 128
   val metadata = "metadata_"
@@ -167,36 +169,46 @@ object HdfsMainProcess extends EdpLogging {
     val dataName = if (minTs == null) filePrefixShardingSlash + "wrong" + "/" + incrementalId else filePrefixShardingSlash + "right" + "/" + incrementalId
     createPath(configuration, metaName)
     createPath(configuration, dataName)
-    //    println("++++++++++++++++++++++++++++++")
-    //    println(metaContent + " " + metaName)
     writeString(metaContent, metaName)
-    //    println("++++++++++++++++++++++++++++++++")
-    //    inputMeta.write(metaContent.getBytes(StandardCharsets.UTF_8))
-    //    val bytes = inputMeta.toByteArray
-    //    val in = new ByteArrayInputStream(bytes)
-    //    appendToFile(configuration, metaName, in)
-    //    inputMeta.reset()
     (metaContent, dataName)
   }
 
-  private def getMinMaxTs(message: String) = {
-    val ums = toUms(message)
-    var umsTsIndex: Int = -1
-    ums.schema.fields.get.foreach(f => {
-      if (f.name.toLowerCase == TS.toString) umsTsIndex = ums.schema.fields.get.indexOf(f)
-    })
+  private def getMinMaxTs(message: String, namespace: String) = {
     var currentUmsTsMin: String = ""
     var currentUmsTsMax: String = ""
-    ums.payload_get.foreach(tuple => {
-      val umsTs = tuple.tuple(umsTsIndex)
-      if (currentUmsTsMin == "") {
-        currentUmsTsMin = umsTs
-        currentUmsTsMax = umsTs
-      } else {
-        currentUmsTsMax = if (firstTimeAfterSecond(umsTs, currentUmsTsMax)) umsTs else currentUmsTsMax
-        currentUmsTsMin = if (firstTimeAfterSecond(currentUmsTsMin, umsTs)) umsTs else currentUmsTsMin
-      }
-    })
+    if (jsonSourceMap.contains(namespace)) {
+      val mapValue = jsonSourceMap(namespace)
+      val value: Seq[UmsTuple] = dataParse(message, mapValue._1, mapValue._2)
+      val schema = mapValue._4
+      val umsTsIndex = schema.map(_.name).indexOf(mapValue._3.umsSysTs)
+      value.foreach(tuple => {
+        val umsTs = tuple.tuple(umsTsIndex)
+        if (currentUmsTsMin == "") {
+          currentUmsTsMin = umsTs
+          currentUmsTsMax = umsTs
+        } else {
+          currentUmsTsMax = if (firstTimeAfterSecond(umsTs, currentUmsTsMax)) umsTs else currentUmsTsMax
+          currentUmsTsMin = if (firstTimeAfterSecond(currentUmsTsMin, umsTs)) umsTs else currentUmsTsMin
+        }
+      })
+    } else {
+      val ums = toUms(message)
+      var umsTsIndex: Int = -1
+      ums.schema.fields.get.foreach(f => {
+        if (f.name.toLowerCase == TS.toString) umsTsIndex = ums.schema.fields.get.indexOf(f)
+      })
+
+      ums.payload_get.foreach(tuple => {
+        val umsTs = tuple.tuple(umsTsIndex)
+        if (currentUmsTsMin == "") {
+          currentUmsTsMin = umsTs
+          currentUmsTsMax = umsTs
+        } else {
+          currentUmsTsMax = if (firstTimeAfterSecond(umsTs, currentUmsTsMax)) umsTs else currentUmsTsMax
+          currentUmsTsMin = if (firstTimeAfterSecond(currentUmsTsMin, umsTs)) umsTs else currentUmsTsMin
+        }
+      })
+    }
     (yyyyMMddHHmmssmls(currentUmsTsMin), yyyyMMddHHmmssmls(currentUmsTsMax))
   }
 
@@ -260,7 +272,7 @@ object HdfsMainProcess extends EdpLogging {
         var minTs: String = null
         var maxTs: String = null
         try {
-          val timePair = getMinMaxTs(message)
+          val timePair = getMinMaxTs(message, namespace)
           minTs = timePair._1
           maxTs = timePair._2
         } catch {
@@ -372,8 +384,6 @@ object HdfsMainProcess extends EdpLogging {
           inputError.close()
         if (inputCorrect != null)
           inputCorrect.close()
-        //        if (inputMeta != null)
-        //          inputMeta.close()
       } catch {
         case e: Throwable =>
           logWarning("close", e)
@@ -391,21 +401,10 @@ object HdfsMainProcess extends EdpLogging {
     } else {
       newMetaContent = splitCurrentMetaContent(0) + "_1_" + splitCurrentMetaContent(2) + "_" + currentyyyyMMddHHmmssmls
     }
-
     writeString(newMetaContent, metaName)
-    //    inputMeta.write(newMetaContent.getBytes(StandardCharsets.UTF_8))
-    //    val bytes = inputMeta.toByteArray
-    //    val in = new ByteArrayInputStream(bytes)
-    //    overwriteFile(configuration, metaName, in)
-    //    inputMeta.reset()
   }
 
   def updateMeta(metaName: String, metaContent: String, configuration: Configuration): Unit = {
-    //    inputMeta.write(metaContent.getBytes(StandardCharsets.UTF_8))
-    //    val bytes = inputMeta.toByteArray
-    //    val in = new ByteArrayInputStream(bytes)
-    //    overwriteFile(configuration, metaName, in)
-    //    inputMeta.reset()
     writeString(metaContent, metaName)
   }
 

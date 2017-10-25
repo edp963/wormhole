@@ -1,12 +1,11 @@
-package edp.wormhole.batchflow
+package edp.wormhole.common
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.ums.{UmsField, UmsFieldType, UmsProtocolType}
+import edp.wormhole.ums.{UmsField, UmsFieldType}
 
-import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-object BatchSourceConf {
+object JsonSourceConf {
   def parse(dataSchema: String): RegularJsonSchema = {
 
 

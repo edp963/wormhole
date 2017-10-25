@@ -23,7 +23,7 @@ package edp.wormhole.batchflow
 
 import com.alibaba.fastjson.JSON
 import edp.wormhole.common.util.{DateUtils, JsonUtils}
-import edp.wormhole.common.{FeedbackPriority, KVConfig}
+import edp.wormhole.common.{FeedbackPriority, JsonSourceConf, KVConfig, RegularJsonSchema}
 import edp.wormhole.core._
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
@@ -139,7 +139,7 @@ object BatchflowDirective extends Directive {
     ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap)
 
     if (dataType != "ums") {
-      val parseResult: RegularJsonSchema = BatchSourceConf.parse(dataParseStr)
+      val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
       ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo,parseResult.twoFieldsArr, parseResult.umsSysRename)
     }
 

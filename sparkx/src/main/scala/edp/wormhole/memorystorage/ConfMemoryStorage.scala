@@ -28,8 +28,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 import scala.collection.mutable
 import java.lang.reflect.Method
 
-import edp.wormhole.batchflow.{FieldInfo, UmsSysRename}
-import edp.wormhole.common.{ConnectionConfig, KVConfig}
+import edp.wormhole.common.{ConnectionConfig, FieldInfo, KVConfig, UmsSysRename}
 import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils.firstTimeAfterSecond
 import edp.wormhole.ums.UmsField

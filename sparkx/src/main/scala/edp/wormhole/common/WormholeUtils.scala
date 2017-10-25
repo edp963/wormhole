@@ -37,7 +37,6 @@ import org.apache.spark.sql.functions._
 import java.sql.Timestamp
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.batchflow.{FieldInfo, UmsSysRename}
 import edp.wormhole.core.{PartitionOffsetConfig, WormholeConfig}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.common.util.DateUtils.dt2dateTime
