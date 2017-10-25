@@ -25,10 +25,21 @@
         "type": "string",
         "nullable": false
       },{
-        "name": "consumption_data_type",
+        "name": "consumption_protocol",
         "type": "string",
         "nullable": false
       },
+      {
+        "name": "data_type",
+        "type": "string",
+        "nullable": false
+      },
+      {
+        "name": "data_parse",
+        "type": "string",
+        "nullable": true
+      },
+
       {
         "name": "swifts",
         "type": "string",
@@ -44,7 +55,7 @@
   "payload": [
     {
       "tuple": [ 3,1,"2016-04-11 12:23:34.345123", "oracle.oracle02.db.table.v2.dbpar01.tablepar01","base64的json字符串",
-        "base64的json字符串","base64的json字符串" ]
+        "ums/json","base64的schema","base64的json字符串","base64的json字符串" ]
     }
   ]
 }

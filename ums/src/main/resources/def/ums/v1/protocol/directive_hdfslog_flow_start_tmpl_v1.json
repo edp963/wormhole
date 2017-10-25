@@ -29,12 +29,17 @@
         "name": "hour_duration",
         "type": "string",
         "nullable": false
+      },
+      {
+        "name": "data_parse",
+        "type": "string",
+        "nullable": true
       }
     ]
   },
   "payload": [
     {
-      "tuple": [ 1, 1,"2017-05-06 00:00:00","oracle.oracle0.*.*.*.*.*", "24"]
+      "tuple": [ 1, 1,"2017-05-06 00:00:00","oracle.oracle0.*.*.*.*.*", "24","base64"]
     }
   ]
 }

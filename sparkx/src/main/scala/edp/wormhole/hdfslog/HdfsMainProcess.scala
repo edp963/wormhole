@@ -86,6 +86,7 @@ object HdfsMainProcess extends EdpLogging {
 
         val namespace2FileMap: Map[String, mutable.HashMap[String, (String, Int, String)]] = namespace2FileStore.toMap
         val validNameSpaceMap: Map[String, Int] = directiveNamespaceRule.toMap //validNamespaceMap is NOT real namespace, has *
+        val jsonInfoMap: Map[String, (Seq[FieldInfo], ArrayBuffer[(String, String)], UmsSysRename, Seq[UmsField])] = jsonSourceMap.toMap
         val mainDataTs = System.currentTimeMillis
         val partitionResultRdd = dataParRdd.mapPartitions(partition => {
           // partition: namespace, (protocol, message.value)
@@ -111,7 +112,7 @@ object HdfsMainProcess extends EdpLogging {
             var tmpCount = 0
             try {
               if (namespaceDataList.nonEmpty) {
-                val tmpResult: (Boolean, String, Int, String, String, Int, String, String, String, String, Int) = doMainData(namespace, namespaceDataList, config, hour, namespace2FileMap, zookeeperPath)
+                val tmpResult: (Boolean, String, Int, String, String, Int, String, String, String, String, Int) = doMainData(namespace, namespaceDataList, config, hour, namespace2FileMap, zookeeperPath,jsonInfoMap)
                 tmpMinTs = tmpResult._9
                 tmpMaxTs = tmpResult._10
                 tmpCount = tmpResult._11
@@ -173,11 +174,11 @@ object HdfsMainProcess extends EdpLogging {
     (metaContent, dataName)
   }
 
-  private def getMinMaxTs(message: String, namespace: String) = {
+  private def getMinMaxTs(message: String, namespace: String,jsonInfoMap:Map[String, (Seq[FieldInfo], ArrayBuffer[(String, String)], UmsSysRename, Seq[UmsField])]) = {
     var currentUmsTsMin: String = ""
     var currentUmsTsMax: String = ""
-    if (jsonSourceMap.contains(namespace)) {
-      val mapValue = jsonSourceMap(namespace)
+    if (jsonInfoMap.contains(namespace)) {
+      val mapValue = jsonInfoMap(namespace)
       val value: Seq[UmsTuple] = dataParse(message, mapValue._1, mapValue._2)
       val schema = mapValue._4
       val umsTsIndex = schema.map(_.name).indexOf(mapValue._3.umsSysTs)
@@ -233,7 +234,7 @@ object HdfsMainProcess extends EdpLogging {
     (newFileName, newMeta, currentSize)
   }
 
-  private def doMainData(namespace: String, dataList: Seq[(String, String)], config: WormholeConfig, hour: Int, namespace2FileMap: Map[String, mutable.HashMap[String, (String, Int, String)]], zookeeperPath: String) = {
+  private def doMainData(namespace: String, dataList: Seq[(String, String)], config: WormholeConfig, hour: Int, namespace2FileMap: Map[String, mutable.HashMap[String, (String, Int, String)]], zookeeperPath: String,jsonInfoMap: Map[String, (Seq[FieldInfo], ArrayBuffer[(String, String)], UmsSysRename, Seq[UmsField])]) = {
     var valid = true
     val namespaceSplit = namespace.split("\\.")
     val namespaceDb = namespaceSplit.slice(0, 3).mkString(".")
@@ -255,7 +256,6 @@ object HdfsMainProcess extends EdpLogging {
     val count = dataList.size
     val inputCorrect = new ByteArrayOutputStream()
     val inputError = new ByteArrayOutputStream()
-    //  val inputMeta = new ByteArrayOutputStream()
     try {
       val configuration = new Configuration()
       val hdfsPath = config.stream_hdfs_address.get
@@ -272,7 +272,7 @@ object HdfsMainProcess extends EdpLogging {
         var minTs: String = null
         var maxTs: String = null
         try {
-          val timePair = getMinMaxTs(message, namespace)
+          val timePair = getMinMaxTs(message, namespace,jsonInfoMap)
           minTs = timePair._1
           maxTs = timePair._2
         } catch {
