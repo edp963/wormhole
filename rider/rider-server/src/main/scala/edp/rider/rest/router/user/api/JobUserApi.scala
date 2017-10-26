@@ -30,8 +30,8 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseUserApiImpl
                   complete(OK, getHeader(403, session))
                 } else {
                   if (session.projectIdList.contains(projectId)) {
-                    val jobInsert = Job(0, simple.name, simple.projectId, simple.sourceNs, simple.sinkNs, simple.sourceType, simple.consumedProtocol, simple.eventTsStart, simple.eventTsEnd,
-                      simple.sourceConfig, simple.sinkConfig, simple.tranConfig, simple.jobConfig, "new", Some(""), Some(""), null, null, currentSec, session.userId, currentSec, session.userId)
+                    val jobInsert = Job(0, simple.name, projectId, simple.sourceNs, simple.sinkNs, simple.sourceType, simple.sparkConfig, simple.startConfig,  simple.eventTsStart, simple.eventTsEnd,
+                      simple.sourceConfig, simple.sinkConfig, simple.tranConfig, "new", Some(""), Some(""), null, null, currentSec, session.userId, currentSec, session.userId)
                     try {
                       onComplete(jobDal.insert(jobInsert)) {
                         case Success(job) =>

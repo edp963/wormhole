@@ -65,7 +65,7 @@ object JsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val formatFlowStream: RootJsonFormat[FlowStream] = jsonFormat21(FlowStream)
   implicit val formatFlowStreamAdmin: RootJsonFormat[FlowStreamAdmin] = jsonFormat22(FlowStreamAdmin)
   implicit val formatJobUser: RootJsonFormat[Job] = jsonFormat22(Job)
-  implicit val formatSimpleJobUser: RootJsonFormat[SimpleJob] = jsonFormat12(SimpleJob)
+  implicit val formatSimpleJobUser: RootJsonFormat[SimpleJob] = jsonFormat11(SimpleJob)
 
   implicit val formatSimpleProjectRel: RootJsonFormat[SimpleProjectRel] = jsonFormat7(SimpleProjectRel)
   implicit val formatProjectUserNs: RootJsonFormat[ProjectUserNs] = jsonFormat13(ProjectUserNs)

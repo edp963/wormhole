@@ -41,16 +41,16 @@ import scala.concurrent.Await
 object JobUtils extends RiderLogger {
 
   def getBatchJobConfigConfig(job: Job) =
-    BatchJobConfig(getSourceConfig(job.sourceNs, job.eventTsStart, job.eventTsEnd, job.sourceType, job.consumedProtocol),
+    BatchJobConfig(getSourceConfig(job.sourceNs, job.eventTsStart, job.eventTsEnd, job.sourceType, job.sourceConfig),
       getTranConfig(job.tranConfig.getOrElse("")),
       getSinkConfig(job.sinkNs, job.sinkConfig.getOrElse("")),
-      getJobConfig(job.name, job.jobConfig.getOrElse("")))
+      getJobConfig(job.name, job.startConfig))
 
-  def getSourceConfig(sourceNs: String, eventTsStart: String = null, eventTsEnd: String = null, sourceType: String = null, consumptionProtocol: String = null) = {
+  def getSourceConfig(sourceNs: String, eventTsStart: String = null, eventTsEnd: String = null, sourceType: String = null, sourceConfig: Option[String]) = {
     val eventTsStartFinal = if (eventTsStart != null && eventTsStart != "") eventTsStart else "19700101000000"
     val eventTsEndFinal = if (eventTsEnd != null && eventTsEnd != "") eventTsEnd else "30000101000000"
     val sourceTypeFinal = if (sourceType != null && sourceType != "") sourceType else "hdfs_txt"
-    val specialConfig = if (consumptionProtocol != null && consumptionProtocol != "") Some(base64byte2s(getConsumptionProtocol(consumptionProtocol).trim.getBytes())) else None
+    val specialConfig = if (sourceConfig.isDefined && sourceConfig.get != "") Some(base64byte2s(getConsumptionProtocol(sourceConfig.get).trim.getBytes())) else None
     val (instance, db, _) = modules.namespaceDal.getNsDetail(sourceNs)
     SourceConfig(eventTsStartFinal, eventTsEndFinal, sourceNs, getConnConfig(instance, db, sourceType), getSourceProcessClass(sourceTypeFinal), specialConfig)
   }
@@ -77,11 +77,11 @@ object JobUtils extends RiderLogger {
     else None
   }
 
-  def getJobConfig(name: String, jobConfig: String) = {
+  def getJobConfig(name: String, startConfig: String) = {
     val sqlShufflePartition =
-      if (jobConfig != "" && jobConfig != null) {
-        if (JSON.parseObject(jobConfig).containsKey("spark.sql.shuffle.partitions"))
-          Some(JSON.parseObject(jobConfig).getIntValue("spark.sql.shuffle.partitions"))
+      if (startConfig != "" && startConfig != null) {
+        if (JSON.parseObject(startConfig).containsKey("spark.sql.shuffle.partitions"))
+          Some(JSON.parseObject(startConfig).getIntValue("spark.sql.shuffle.partitions"))
         else None
       } else None
     JobConfig(name, "yarn-cluster", sqlShufflePartition)
@@ -140,8 +140,8 @@ object JobUtils extends RiderLogger {
     modules.jobDal.updateJobStatus(job.id, appInfo)
     val startedTime = if(appInfo.startedTime != null) Some(appInfo.startedTime) else Some("")
     val stoppedTime = if(appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
-    Job(job.id, job.name, job.projectId, job.sourceType, job.sinkNs, job.sourceType, job.consumedProtocol, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
-      job.sinkConfig, job.tranConfig, job.jobConfig, appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.createTime, job.createBy, job.updateTime, job.updateBy)
+    Job(job.id, job.name, job.projectId, job.sourceType, job.sinkNs, job.sourceType, job.sparkConfig,job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
+      job.sinkConfig, job.tranConfig,  appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.createTime, job.createBy, job.updateTime, job.updateBy)
   }
 
   def killJob(id: Long): String = {
