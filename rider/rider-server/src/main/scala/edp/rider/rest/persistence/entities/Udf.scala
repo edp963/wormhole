@@ -43,6 +43,20 @@ case class SimpleUdf(functionName: String,
                      desc: Option[String],
                      public: Boolean) extends SimpleBaseEntity
 
+case class UdfProjectName(udfId: Long,
+                          name: String)
+
+case class UdfProject(id: Long,
+                      functionName: String,
+                      fullClassName: String,
+                      jarName: String,
+                      desc: Option[String],
+                      pubic: Boolean,
+                      createTime: String,
+                      createBy: Long,
+                      updateTime: String,
+                      updateBy: Long,
+                      projectNames: String)
 
 class UdfTable(_tableTag: Tag) extends BaseTable[Udf](_tableTag, "udf") {
   def * = (id, functionName, fullClassName, jarName, desc, public, createTime, createBy, updateTime, updateBy) <> (Udf.tupled, Udf.unapply)
