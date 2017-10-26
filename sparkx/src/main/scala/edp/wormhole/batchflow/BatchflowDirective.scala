@@ -23,7 +23,7 @@ package edp.wormhole.batchflow
 
 import com.alibaba.fastjson.JSON
 import edp.wormhole.common.util.{DateUtils, JsonUtils}
-import edp.wormhole.common.{FeedbackPriority, KVConfig}
+import edp.wormhole.common.{FeedbackPriority, JsonSourceConf, KVConfig, RegularJsonSchema}
 import edp.wormhole.core._
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
@@ -114,14 +114,16 @@ object BatchflowDirective extends Directive {
     val sink_retry_seconds = sinks.getString("sink_retry_seconds").trim.toLowerCase.toInt
     val sink_output = if (sinks.containsKey("sink_output") && sinks.getString("sink_output").trim.nonEmpty) {
       var tmpOutput = sinks.getString("sink_output").trim.toLowerCase.split(",").map(_.trim).mkString(",")
-      if (dataType == "ums" && tmpOutput.nonEmpty && tmpOutput.indexOf(UmsSysField.TS.toString) < 0) {
-        tmpOutput = tmpOutput + "," + UmsSysField.TS.toString
-      }
-      if (dataType == "ums" && tmpOutput.nonEmpty && tmpOutput.indexOf(UmsSysField.ID.toString) < 0) {
-        tmpOutput = tmpOutput + "," + UmsSysField.ID.toString
-      }
-      if (dataType == "ums" && tmpOutput.nonEmpty && tmpOutput.indexOf(UmsSysField.OP.toString) < 0) {
-        tmpOutput = tmpOutput + "," + UmsSysField.OP.toString
+      if (dataType == "ums" && tmpOutput.nonEmpty) {
+        if (tmpOutput.indexOf(UmsSysField.TS.toString) < 0) {
+          tmpOutput = tmpOutput + "," + UmsSysField.TS.toString
+        }
+        if (tmpOutput.indexOf(UmsSysField.ID.toString) < 0) {
+          tmpOutput = tmpOutput + "," + UmsSysField.ID.toString
+        }
+        if (tmpOutput.indexOf(UmsSysField.OP.toString) < 0) {
+          tmpOutput = tmpOutput + "," + UmsSysField.OP.toString
+        }
       }
       tmpOutput
     } else ""
@@ -135,10 +137,12 @@ object BatchflowDirective extends Directive {
 
     ConfMemoryStorage.registerStreamLookupNamespaceMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig)
     ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap)
+
     if (dataType != "ums") {
-      val parseResult: RegularJsonSchema = BatchSourceConf.parse(dataParseStr)
-      ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.schemaMap, parseResult.TimeField)
+      val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
+      ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo,parseResult.twoFieldsArr, parseResult.umsSysRename)
     }
+
     ConfMemoryStorage.registerDataStoreConnectionsMap(fullsinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
     WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
 

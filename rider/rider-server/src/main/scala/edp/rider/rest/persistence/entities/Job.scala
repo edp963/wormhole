@@ -21,18 +21,18 @@
 
 package edp.rider.rest.persistence.entities
 
-import edp.rider.rest.persistence.base.{BaseEntity, BaseTable}
+import edp.rider.rest.persistence.base.{BaseEntity, BaseTable, SimpleBaseEntity}
 import slick.lifted.{Rep, Tag}
 import slick.jdbc.MySQLProfile.api._
 
 case class Job(id: Long,
-               name: String,
-               projectId: Long,
-               sourceNs: String,
-               sinkNs: String,
-               sourceType: String,
-               consumedProtocol: String,
-               eventTsStart: String,
+               name: String,  // 1
+               projectId: Long, // 1
+               sourceNs: String, // 1
+               sinkNs: String, // 1
+               sourceType: String,//1
+               consumedProtocol: String,// 1
+               eventTsStart: String,// 1
                eventTsEnd: String,
                sourceConfig: Option[String],
                sinkConfig: Option[String],
@@ -47,6 +47,19 @@ case class Job(id: Long,
                createBy: Long,
                updateTime: String,
                updateBy: Long) extends BaseEntity
+
+case class SimpleJob(name: String,
+                     projectId: Long,
+                     sourceNs: String,
+                     sinkNs: String,
+                     sourceType: String,
+                     consumedProtocol: String,
+                     eventTsStart: String,
+                     eventTsEnd: String,
+                     sourceConfig: Option[String],
+                     sinkConfig: Option[String],
+                     tranConfig: Option[String],
+                     jobConfig: Option[String]) extends SimpleBaseEntity
 
 class JobTable(_tableTag: Tag) extends BaseTable[Job](_tableTag, "job") {
   def * = (id, name, projectId, sourceNs, sinkNs, sourceType, consumedProtocol, eventTsStart, eventTsEnd, sourceConfig, sinkConfig, tranConfig, jobConfig, status, sparkAppid, logPath, startedTime, stoppedTime, createTime, createBy, updateTime, updateBy) <> (Job.tupled, Job.unapply)
