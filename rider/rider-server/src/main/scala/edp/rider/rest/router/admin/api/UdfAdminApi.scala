@@ -25,6 +25,7 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.base.BaseDal
+import edp.rider.rest.persistence.dal.{RelProjectUdfDal, UdfDal}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.JsonProtocol._
 import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
@@ -38,7 +39,31 @@ import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
 
-class UdfAdminApi(udfDal: BaseDal[UdfTable, Udf]) extends BaseAdminApiImpl(udfDal) with RiderLogger {
+class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends BaseAdminApiImpl(udfDal) with RiderLogger {
+
+  override def getByAllRoute(route: String): Route = path(route) {
+    get {
+      authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+        session =>
+          if (session.roleType != "admin") {
+            riderLogger.warn(s"${session.userId} has no permission to access it.")
+            complete(OK, getHeader(403, session))
+          }
+          else {
+            onComplete(udfDal.getUdfProject.mapTo[Seq[UdfProject]]) {
+              case Success(udfProjects) =>
+                riderLogger.info(s"user ${session.userId} select all $route success.")
+                complete(OK, ResponseSeqJson[UdfProject](getHeader(200, session), udfProjects))
+              case Failure(ex) =>
+                riderLogger.error(s"user ${session.userId} select all $route failed", ex)
+                complete(OK, getHeader(451, ex.getMessage, session))
+            }
+
+          }
+      }
+    }
+
+  }
 
   def postRoute(route: String): Route = path(route) {
     post {
@@ -47,7 +72,9 @@ class UdfAdminApi(udfDal: BaseDal[UdfTable, Udf]) extends BaseAdminApiImpl(udfDa
           authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
             session =>
               if (session.roleType != "admin") {
-                riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+                riderLogger.warn(s"user ${
+                  session.userId
+                } has no permission to access it.")
                 complete(OK, getHeader(403, session))
               } else {
                 postResponse(simpleUdf, session)
@@ -64,7 +91,9 @@ class UdfAdminApi(udfDal: BaseDal[UdfTable, Udf]) extends BaseAdminApiImpl(udfDa
           authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
             session =>
               if (session.roleType != "admin") {
-                riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+                riderLogger.warn(s"user ${
+                  session.userId
+                } has no permission to access it.")
                 complete(OK, getHeader(403, session))
               } else {
                 putResponse(udf, session)
@@ -74,13 +103,17 @@ class UdfAdminApi(udfDal: BaseDal[UdfTable, Udf]) extends BaseAdminApiImpl(udfDa
     }
   }
 
-  override def deleteRoute(route: String): Route = path(route / LongNumber) {
+  override def deleteRoute(route: String): Route
+
+  = path(route / LongNumber) {
     id =>
       delete {
         authenticateOAuth2Async("rider", AuthorizationProvider.authorize) {
           session =>
             if (session.roleType != "admin") {
-              riderLogger.error(s"user ${session.userId} has no permission to access it")
+              riderLogger.error(s"user ${
+                session.userId
+              } has no permission to access it")
               complete(OK, getHeader(403, session))
             } else {
               deleteResponse(id, session)
@@ -103,20 +136,36 @@ class UdfAdminApi(udfDal: BaseDal[UdfTable, Udf]) extends BaseAdminApiImpl(udfDa
 
   }
 
-  private def postResponse(simpleUdf: SimpleUdf, session: SessionClass): Route = {
+  private def postResponse(simpleUdf: SimpleUdf, session: SessionClass): Route
+
+  = {
     if (!checkHdfsPathExist(simpleUdf.jarName)) {
-      riderLogger.warn(s"user ${session.userId} insert udf, but jar ${simpleUdf.jarName} doesn't exist in hdfs")
-      complete(OK, getHeader(412, s"jar ${simpleUdf.jarName} doesn't exist in hdfs", session))
+      riderLogger.warn(s"user ${
+        session.userId
+      } insert udf, but jar ${
+        simpleUdf.jarName
+      } doesn't exist in hdfs")
+      complete(OK, getHeader(412, s"jar ${
+        simpleUdf.jarName
+      } doesn't exist in hdfs", session))
     } else {
       val function = Await.result(udfDal.findByFilter(_.functionName === simpleUdf.functionName).mapTo[Seq[Udf]], minTimeOut)
       val fullClass = Await.result(udfDal.findByFilter(_.fullClassName === simpleUdf.fullClassName).mapTo[Seq[Udf]], minTimeOut)
       val msg =
         if (function.nonEmpty && fullClass.nonEmpty)
-          s"function_name ${simpleUdf.functionName} and full_class_name ${simpleUdf.fullClassName} already exists"
+          s"function_name ${
+            simpleUdf.functionName
+          } and full_class_name ${
+            simpleUdf.fullClassName
+          } already exists"
         else if (function.nonEmpty && fullClass.isEmpty)
-          s"function_name ${simpleUdf.functionName} already exists"
+          s"function_name ${
+            simpleUdf.functionName
+          } already exists"
         else if (function.isEmpty && fullClass.nonEmpty)
-          s"full_class_name ${simpleUdf.fullClassName} already exists"
+          s"full_class_name ${
+            simpleUdf.fullClassName
+          } already exists"
         else ""
       if (msg != "") {
         riderLogger.warn(msg)
@@ -125,10 +174,14 @@ class UdfAdminApi(udfDal: BaseDal[UdfTable, Udf]) extends BaseAdminApiImpl(udfDa
         val udfInsert = Udf(0, simpleUdf.functionName, simpleUdf.fullClassName, simpleUdf.jarName, Some(simpleUdf.desc.getOrElse("")), simpleUdf.public, currentSec, session.userId, currentSec, session.userId)
         onComplete(udfDal.insert(udfInsert).mapTo[Udf]) {
           case Success(udf) =>
-            riderLogger.info(s"user ${session.userId} insert udf success")
+            riderLogger.info(s"user ${
+              session.userId
+            } insert udf success")
             complete(OK, ResponseJson[Udf](getHeader(200, session), udf))
           case Failure(ex) =>
-            riderLogger.error(s"user ${session.userId} insert udf failed", ex)
+            riderLogger.error(s"user ${
+              session.userId
+            } insert udf failed", ex)
             if (ex.toString.contains("Duplicate entry"))
               complete(OK, getHeader(409, s"udf already exists", session))
             else
@@ -138,23 +191,39 @@ class UdfAdminApi(udfDal: BaseDal[UdfTable, Udf]) extends BaseAdminApiImpl(udfDa
     }
   }
 
-  private def putResponse(udf: Udf, session: SessionClass): Route = {
+  private def putResponse(udf: Udf, session: SessionClass): Route
+
+  = {
     if (!checkHdfsPathExist(udf.jarName)) {
-      riderLogger.warn(s"user ${session.userId} update udf, but jar ${udf.jarName} doesn't exist in hdfs")
-      complete(OK, getHeader(412, s"jar ${udf.jarName} doesn't exist in hdfs", session))
+      riderLogger.warn(s"user ${
+        session.userId
+      } update udf, but jar ${
+        udf.jarName
+      } doesn't exist in hdfs")
+      complete(OK, getHeader(412, s"jar ${
+        udf.jarName
+      } doesn't exist in hdfs", session))
     } else {
       val updateUdf = Udf(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic, udf.createTime, udf.createBy, currentSec, session.userId)
       onComplete(udfDal.update(updateUdf).mapTo[Int]) {
         case Success(_) =>
-          riderLogger.info(s"user ${session.userId} update udf success")
+          riderLogger.info(s"user ${
+            session.userId
+          } update udf success")
           complete(OK, ResponseJson[Udf](getHeader(200, session), updateUdf))
         case Failure(ex) =>
-          riderLogger.error(s"user ${session.userId} update udf failed")
+          riderLogger.error(s"user ${
+            session.userId
+          } update udf failed")
           if (ex.toString.contains("Duplicate entry")) {
             if (ex.toString.contains("function_name_UNIQUE"))
-              complete(OK, getHeader(409, s"function_name ${udf.functionName} already exists", session))
+              complete(OK, getHeader(409, s"function_name ${
+                udf.functionName
+              } already exists", session))
             else
-              complete(OK, getHeader(409, s"full_class_name ${udf.functionName} already exists", session))
+              complete(OK, getHeader(409, s"full_class_name ${
+                udf.functionName
+              } already exists", session))
           }
           else
             complete(OK, getHeader(451, ex.toString, session))
@@ -162,31 +231,74 @@ class UdfAdminApi(udfDal: BaseDal[UdfTable, Udf]) extends BaseAdminApiImpl(udfDa
     }
   }
 
-  private def deleteResponse(id: Long, session: SessionClass): Route = {
+  private def deleteResponse(id: Long, session: SessionClass): Route
+
+  = {
     try {
       onComplete(udfDal.deleteById(id).mapTo[Int]) {
         case Success(_) =>
-          riderLogger.info(s"user ${session.userId} delete udf $id success")
+          riderLogger.info(s"user ${
+            session.userId
+          } delete udf $id success")
           complete(OK, getHeader(200, session))
         case Failure(ex) =>
-          riderLogger.info(s"user ${session.userId} delete udf $id failed", ex)
+          riderLogger.info(s"user ${
+            session.userId
+          } delete udf $id failed", ex)
           complete(OK, getHeader(451, session))
       }
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"user ${session.userId} delete udf $id failed", ex)
+        riderLogger.error(s"user ${
+          session.userId
+        } delete udf $id failed", ex)
         complete(OK, getHeader(451, session))
     }
   }
 
-  private def getNonPublicUdfResponse(session: SessionClass): Route = {
+  private def getNonPublicUdfResponse(session: SessionClass): Route
+
+  = {
     onComplete(udfDal.findByFilter(_.public === false).mapTo[Seq[Udf]]) {
       case Success(udfs) =>
-        riderLogger.info(s"user ${session.userId} find all non public udfs success")
+        riderLogger.info(s"user ${
+          session.userId
+        } find all non public udfs success")
         complete(OK, ResponseSeqJson(getHeader(200, session), udfs))
       case Failure(ex) =>
-        riderLogger.error(s"user ${session.userId} find all non public udfs failed", ex)
+        riderLogger.error(s"user ${
+          session.userId
+        } find all non public udfs failed", ex)
         complete(OK, getHeader(451, session))
     }
+  }
+
+  def getByProjectIdRoute(route: String): Route = path(route / LongNumber / "udfs") {
+    id =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"${
+                session.userId
+              } has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              onComplete(relProjectUdfDal.getUdfByProjectId(id).mapTo[Seq[Udf]]) {
+                case Success(udfs) =>
+                  riderLogger.info(s"user ${
+                    session.userId
+                  } select all udfs where project id is $id success.")
+                  complete(OK, ResponseSeqJson[Udf](getHeader(200, session), udfs.sortBy(_.functionName)))
+                case Failure(ex) =>
+                  riderLogger.error(s"user ${
+                    session.userId
+                  } select all udfs where project id is $id failed", ex)
+                  complete(OK, getHeader(451, ex.getMessage, session))
+              }
+            }
+        }
+      }
   }
 }

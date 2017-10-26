@@ -25,10 +25,6 @@ import javax.ws.rs.Path
 
 import akka.http.scaladsl.server.{Directives, Route}
 import edp.rider.module._
-import edp.rider.rest.persistence.entities.{ProjectUserNs, SimpleProjectRel}
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.SessionClass
-import edp.rider.rest.util.AuthorizationProvider
 import io.swagger.annotations._
 
 @Api(value = "/projects", consumes = "application/json", produces = "application/json")
@@ -38,7 +34,7 @@ class ProjectAdminRoutes(modules: ConfigurationModule with PersistenceModule wit
   lazy val routes: Route = getProjectByIdRoute ~ getProjectByFilterRoute ~ postProjectRoute ~ putProjectRoute ~
     getUserByProjectIdRoute ~ getUserByProjectRoute ~ getNsByProjectIdRoute ~ getNsByProjectRoute ~ getFlowByProjectIdRoute ~
     getStreamByProjectIdRoute ~ getResourceByProjectIdRoute ~ getLogByStreamId ~ getMonitorDashboardRoute ~ getTopicsByStreamId ~
-    deleteProjectByIdRoute ~ getNonPublicUdfByProjectRoute
+    deleteProjectByIdRoute ~ getNonPublicUdfByProjectRoute ~ getUdfByProjectIdRoute
 
   lazy val basePath = "projects"
 
@@ -84,6 +80,20 @@ class ProjectAdminRoutes(modules: ConfigurationModule with PersistenceModule wit
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getUserByProjectIdRoute: Route = modules.userAdminService.getByProjectIdRoute(basePath)
+
+  @Path("/{id}/udfs")
+  @ApiOperation(value = "get one project's udfs selected information from system by id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not admin"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getUdfByProjectIdRoute: Route = modules.udfAdminService.getByProjectIdRoute(basePath)
 
   @Path("/users")
   @ApiOperation(value = "get all users", notes = "", nickname = "", httpMethod = "GET")
@@ -207,7 +217,7 @@ class ProjectAdminRoutes(modules: ConfigurationModule with PersistenceModule wit
 
   @ApiOperation(value = "update project in the system", notes = "", nickname = "", httpMethod = "PUT")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "project", value = "Project object to be updated", required = true, dataType = "edp.rider.rest.persistence.entities.ProjectUserNs", paramType = "body")
+    new ApiImplicitParam(name = "project", value = "Project object to be updated", required = true, dataType = "edp.rider.rest.persistence.entities.ProjectUserNsUdf", paramType = "body")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "put success"),
