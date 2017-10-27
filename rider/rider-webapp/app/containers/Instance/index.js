@@ -276,42 +276,6 @@ export class Instance extends React.PureComponent {
       }
     })
   }
-  /***
-   * 新增时，根据 Connection Url 获得 Instance
-   * */
-  // onInitInstanceInputValue = (value) => {
-  //   if (value === '') {
-  //     this.instanceForm.setFieldsValue({
-  //       instance: ''
-  //     })
-  //   } else {
-  //     const requestVal = {
-  //       type: this.state.InstanceSourceDsVal,
-  //       conn_url: value
-  //     }
-  //
-  //     this.props.onLoadInstanceInputValue(requestVal, (result) => {
-  //       if (this.instanceForm.getFieldValue('connectionUrl')) {
-  //         this.instanceForm.setFieldsValue({
-  //           instance: result
-  //         })
-  //       }
-  //     }, (result) => {
-  //       const errMsg = result.indexOf('exists') > 0
-  //         ? '该 Connection URL 已存在'
-  //         : '必须是 "ip:port" 或 "hostname:port" 格式'
-  //       this.instanceForm.setFields({
-  //         connectionUrl: {
-  //           value: value,
-  //           errors: [new Error(`${errMsg}`)]
-  //         },
-  //         instance: {
-  //           value: ''
-  //         }
-  //       })
-  //     })
-  //   }
-  // }
 
   /***
    * 新增时，验证 Instance 是否存在

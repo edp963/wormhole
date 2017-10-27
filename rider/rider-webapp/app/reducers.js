@@ -36,6 +36,7 @@ import flowReducer from 'containers/Flow/reducer'
 import streamReducer from 'containers/Manager/reducer'
 import namespaceReducer from 'containers/Namespace/reducer'
 import userReducer from 'containers/User/reducer'
+import udfReducer from 'containers/Udf/reducer'
 import riderInfoReducer from 'containers/RiderInfo/reducer'
 
 import instanceReducer from 'containers/Instance/reducer'
@@ -92,6 +93,7 @@ export default function createReducer (asyncReducers) {
       stream: streamReducer,
       namespace: namespaceReducer,
       user: userReducer,
+      udf: udfReducer,
       riderInfo: riderInfoReducer,
 
       instance: instanceReducer,

@@ -25,11 +25,10 @@ import {
   LOAD_ADMIN_ALL_STREAMS_SUCCESS,
   LOAD_ADMIN_SINGLE_STREAM,
   LOAD_ADMIN_SINGLE_STREAM_SUCCESS,
-  LOAD_ADMIN_OFFSET,
-  LOAD_ADMIN_OFFSET_SUCCESS,
+  LOAD_STREAM_DETAIL,
+  LOAD_STREAM_DETAIL_SUCCESS,
   LOAD_OFFSET,
   LOAD_OFFSET_SUCCESS,
-  CHUCKAWAY_TOPIC,
   LOAD_STREAM_NAME_VALUE,
   LOAD_STREAM_NAME_VALUE_SUCCESS,
   LOAD_STREAM_NAME_VALUE_ERROR,
@@ -119,20 +118,21 @@ export function adminSingleStreamLoaded (stream, resolve) {
   }
 }
 
-export function loadAdminOffset (projectId, streamId, resolve) {
+export function loadStreamDetail (projectId, streamId, roleType, resolve) {
   return {
-    type: LOAD_ADMIN_OFFSET,
+    type: LOAD_STREAM_DETAIL,
     payload: {
       projectId,
       streamId,
+      roleType,
       resolve
     }
   }
 }
 
-export function adminOffsetLoaded (result, resolve) {
+export function streamDetailLoaded (result, resolve) {
   return {
-    type: LOAD_ADMIN_OFFSET_SUCCESS,
+    type: LOAD_STREAM_DETAIL_SUCCESS,
     payload: {
       result,
       resolve
@@ -158,12 +158,6 @@ export function offsetLoaded (result, resolve) {
       result,
       resolve
     }
-  }
-}
-
-export function chuckAwayTopic () {
-  return {
-    type: CHUCKAWAY_TOPIC
   }
 }
 

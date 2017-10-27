@@ -25,11 +25,10 @@ import {
   LOAD_ADMIN_ALL_STREAMS_SUCCESS,
   LOAD_ADMIN_SINGLE_STREAM,
   LOAD_ADMIN_SINGLE_STREAM_SUCCESS,
-  LOAD_ADMIN_OFFSET,
-  LOAD_ADMIN_OFFSET_SUCCESS,
+  LOAD_STREAM_DETAIL,
+  LOAD_STREAM_DETAIL_SUCCESS,
   LOAD_OFFSET,
   LOAD_OFFSET_SUCCESS,
-  CHUCKAWAY_TOPIC,
   LOAD_STREAM_NAME_VALUE,
   LOAD_STREAM_NAME_VALUE_SUCCESS,
   LOAD_STREAM_NAME_VALUE_ERROR,
@@ -85,18 +84,15 @@ function streamReducer (state = initialState, { type, payload }) {
     case LOAD_ADMIN_SINGLE_STREAM_SUCCESS:
       payload.resolve()
       return state.set('streams', payload.stream)
-    case LOAD_ADMIN_OFFSET:
+    case LOAD_STREAM_DETAIL:
       return state
-    case LOAD_ADMIN_OFFSET_SUCCESS:
+    case LOAD_STREAM_DETAIL_SUCCESS:
       payload.resolve(payload.result)
       return state
     case LOAD_OFFSET:
       return state
     case LOAD_OFFSET_SUCCESS:
       payload.resolve(payload.result)
-      return state
-    case CHUCKAWAY_TOPIC:
-      // payload.resolve(payload.result)
       return state
     case LOAD_STREAM_NAME_VALUE:
       return state.set('streamNameExited', false)

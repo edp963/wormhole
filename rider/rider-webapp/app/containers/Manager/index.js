@@ -40,8 +40,9 @@ import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
+import { uuid } from '../../utils/util'
 
-import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream, deleteStream, loadAdminOffset, loadOffset, chuckAwayTopic, editTopics, loadLogsInfo, loadAdminLogsInfo} from './action'
+import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream, deleteStream, loadStreamDetail, loadOffset, editTopics, loadLogsInfo, loadAdminLogsInfo} from './action'
 import {selectStreams} from './selectors'
 
 export class Manager extends React.Component {
@@ -62,9 +63,11 @@ export class Manager extends React.Component {
       editModalVisible: false,
       logsModalVisible: false,
       startModalVisible: false,
-      showStreamOffset: [],
+      // showStreamOffset: [],
+      showStreamdetails: null,
       streamStartFormData: [],
       streamIdGeted: 0,
+      actionType: '',
 
       filteredInfo: null,
       sortedInfo: null,
@@ -78,9 +81,8 @@ export class Manager extends React.Component {
       filterDropdownVisibleName: false,
       searchTextSparkAppid: '',
       filterDropdownVisibleSparkAppid: false,
-      searchTextKafkaName: '',
-      filterDropdownVisibleKafkaName: false,
-
+      searchTextInstance: '',
+      filterDropdownVisibleInstance: false,
       filterDatepickerShown: false,
       startTimeText: '',
       endTimeText: '',
@@ -93,9 +95,7 @@ export class Manager extends React.Component {
 
       logsContent: '',
       logsProjectId: 0,
-      logsStreamId: 0,
-
-      actionType: ''
+      logsStreamId: 0
     }
   }
 
@@ -108,14 +108,28 @@ export class Manager extends React.Component {
       let originStreams = []
       if (props.streamClassHide === undefined) {
         originStreams = props.streams.map(s => {
-          const responseOriginStream = Object.assign({}, { kafkaConnection: s.kafkaConnection }, { kafkaName: s.kafkaName }, {disableActions: s.disableActions}, {projectName: s.projectName}, s.stream, {topicInfo: s.topicInfo})
+          const responseOriginStream = Object.assign({}, s.stream, {
+            kafkaConnection: s.kafkaConnection,
+            kafkaName: s.kafkaName,
+            disableActions: s.disableActions,
+            projectName: s.projectName,
+            topicInfo: s.topicInfo
+          })
           responseOriginStream.key = responseOriginStream.id
           responseOriginStream.visible = false
           return responseOriginStream
         })
       } else if (props.streamClassHide === 'hide') {
         originStreams = props.streams.map(s => {
-          const responseOriginStream = Object.assign({}, { kafkaConnection: s.kafkaConnection }, { kafkaName: s.kafkaName }, {disableActions: s.disableActions}, s.stream, {topicInfo: s.topicInfo})
+          const responseOriginStream = Object.assign({}, s.stream, {
+            disableActions: s.disableActions,
+            topicInfo: s.topicInfo,
+            instance: s.KafkaInfo.instance,
+            connUrl: s.KafkaInfo.connUrl,
+            projectName: s.projectName,
+            currentUdf: s.currentUdf,
+            usingUdf: s.usingUdf
+          })
           responseOriginStream.key = responseOriginStream.id
           responseOriginStream.visible = false
           return responseOriginStream
@@ -155,27 +169,23 @@ export class Manager extends React.Component {
   }
 
   handleVisibleChange = (stream) => (visible) => {
-    // visible=true时，调接口，获取 topic 最新数据
+    // visible=true时，调接口，获取最新详情
     if (visible) {
       this.setState({
         visible
       }, () => {
-        // 频繁使用的组件，手动清除数据，避免出现闪现上一条数据
-        this.props.onChuckAwayTopic()
-
+        let roleType = ''
         if (localStorage.getItem('loginRoleType') === 'admin') {
-          this.props.onLoadAdminOffset(stream.projectId, stream.id, (result) => {
-            this.setState({
-              showStreamOffset: result
-            })
-          })
+          roleType = 'admin'
         } else if (localStorage.getItem('loginRoleType') === 'user') {
-          this.props.onLoadOffset(stream.projectId, stream.id, (result) => {
-            this.setState({
-              showStreamOffset: result
-            })
-          })
+          roleType = 'user'
         }
+
+        this.props.onLoadStreamDetail(stream.projectId, stream.id, roleType, (result) => {
+          this.setState({
+            showStreamdetails: result
+          })
+        })
       })
     }
   }
@@ -463,7 +473,7 @@ export class Manager extends React.Component {
   }
 
   render () {
-    const { refreshStreamLoading, refreshStreamText } = this.state
+    const { refreshStreamLoading, refreshStreamText, showStreamdetails } = this.state
     const { className, onShowAddStream, onShowEditStream, streamClassHide } = this.props
 
     let {
@@ -662,33 +672,33 @@ export class Manager extends React.Component {
       onFilter: (value, record) => record.streamType.includes(value)
     }, {
       title: 'Kafka',
-      dataIndex: 'kafkaName',
-      key: 'kafkaName',
+      dataIndex: 'instance',
+      key: 'instance',
       sorter: (a, b) => {
-        if (typeof a.kafkaName === 'object') {
-          return a.kafkaNameOrigin < b.kafkaNameOrigin ? -1 : 1
+        if (typeof a.instance === 'object') {
+          return a.instanceOrigin < b.instanceOrigin ? -1 : 1
         } else {
-          return a.kafkaName < b.kafkaName ? -1 : 1
+          return a.instance < b.instance ? -1 : 1
         }
       },
-      sortOrder: sortedInfo.columnKey === 'kafkaName' && sortedInfo.order,
+      sortOrder: sortedInfo.columnKey === 'instance' && sortedInfo.order,
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
             ref={ele => { this.searchInput = ele }}
             placeholder="Kafka"
-            value={this.state.searchTextKafkaName}
-            onChange={this.onInputChange('searchTextKafkaName')}
-            onPressEnter={this.onSearch('kafkaName', 'searchTextKafkaName', 'filterDropdownVisibleKafkaName')}
+            value={this.state.searchTextInstance}
+            onChange={this.onInputChange('searchTextInstance')}
+            onPressEnter={this.onSearch('instance', 'searchTextInstance', 'filterDropdownVisibleInstance')}
           />
           <Button
             type="primary"
-            onClick={this.onSearch('kafkaName', 'searchTextKafkaName', 'filterDropdownVisibleKafkaName')}>Search</Button>
+            onClick={this.onSearch('instance', 'searchTextInstance', 'filterDropdownVisibleInstance')}>Search</Button>
         </div>
       ),
-      filterDropdownVisible: this.state.filterDropdownVisibleKafkaName,
+      filterDropdownVisible: this.state.filterDropdownVisibleInstance,
       onFilterDropdownVisibleChange: visible => this.setState({
-        filterDropdownVisibleKafkaName: visible
+        filterDropdownVisibleInstance: visible
       }, () => this.searchInput.focus())
     }, {
       title: 'Start Time',
@@ -844,46 +854,72 @@ export class Manager extends React.Component {
           )
         }
 
-        // s.id = uuid()
-        const topicDetail = this.state.showStreamOffset
-          ? this.state.showStreamOffset.map(s => (<li key={s.id}>
-            <strong>Topic Name：</strong>{s.name}<strong>；Offset：</strong>{s.partitionOffsets}</li>)
+        let streamDetailContent = ''
+        if (showStreamdetails) {
+          const detailTemp = showStreamdetails.stream
+
+          const topicTemp = showStreamdetails.topicInfo
+          const topicFinal = topicTemp.map(s => (
+            <li key={s.id}>
+              <strong>Topic Name：</strong>{s.name}
+              <strong>；Partition Offsets：</strong>{s.partitionOffsets}
+              <strong>；Rate：</strong>{s.rate}
+            </li>
+          ))
+
+          const currentudfTemp = showStreamdetails.currentUdf
+          const currentUdfFinal = currentudfTemp.length !== 0
+            ? currentudfTemp.map(s => (
+              <li key={s.id}>
+                <strong>Function Name：</strong>{s.functionName}
+                <strong>；Full Class Name：</strong>{s.fullClassName}
+                <strong>；Jar Name：</strong>{s.jarName}
+              </li>
+              ))
+            : null
+
+          const usingUdfTemp = showStreamdetails.usingUdf
+          const usingUdfTempFinal = usingUdfTemp.length !== 0
+            ? usingUdfTemp.map(s => (
+              <li key={uuid()}>
+                <strong>Function Name：</strong>{s.functionName}
+                <strong>；Full Class Name：</strong>strong>{s.fullClassName}
+                <strong>；Jar Name：</strong>{s.jarName}
+              </li>
+            ))
+            : null
+
+          streamDetailContent = (
+            <div className="stream-detail">
+              <p><strong>   Project Id：</strong>{detailTemp.projectId}</p>
+              <p><strong>   Topic Info：</strong>{topicFinal}</p>
+              <p><strong>   Current Udf：</strong>{currentUdfFinal}</p>
+              <p><strong>   Using Udf：</strong>{usingUdfTempFinal}</p>
+
+              <p><strong>   Disable Actions：</strong>{showStreamdetails.disableActions}</p>
+
+              <p><strong>   Create Time：</strong>{detailTemp.createTime}</p>
+              <p><strong>   Create By：</strong>{detailTemp.createBy}</p>
+              <p><strong>   Update Time：</strong>{detailTemp.updateTime}</p>
+              <p><strong>   Update By：</strong>{detailTemp.updateBy}</p>
+
+              <p><strong>   Launch Config：</strong>{detailTemp.launchConfig}</p>
+              <p><strong>   spark Config：</strong>{detailTemp.sparkConfig}</p>
+              <p><strong>   start Config：</strong>{detailTemp.startConfig}</p>
+            </div>
           )
-          : null
+        }
 
         return (
           <span className="ant-table-action-column">
             <Tooltip title="查看详情">
               <Popover
                 placement="left"
-                content={<div className="stream-detail">
-                  <p><strong>   Project Id：</strong>{record.projectId}</p>
-                  <p><strong>   Description：</strong>{record.desc}</p>
-                  <p><strong>   Kafka Connection：</strong>{record.kafkaConnection}</p>
-                  <p><strong>   Create Time：</strong>{record.createTime}</p>
-                  <p><strong>   Create By：</strong>{record.createBy}</p>
-                  <p><strong>   Update Time：</strong>{record.updateTime}</p>
-                  <p><strong>   Update By：</strong>{record.updateBy}</p>
-                  <p><strong>   Disable Actions：</strong>{record.disableActions}</p>
-                  <p><strong>   Launch Config：</strong>{record.launchConfig}</p>
-                  <p><strong>   spark Config：</strong>{record.sparkConfig}</p>
-                  <p><strong>   start Config：</strong>{record.startConfig}</p>
-                </div>}
+                content={streamDetailContent}
                 title={<h3>详情</h3>}
-                trigger="click">
-                <Button icon="file-text" shape="circle" type="ghost"></Button>
-              </Popover>
-            </Tooltip>
-            <Tooltip title="查看 Topic">
-              <Popover
-                placement="left"
-                content={<div>{topicDetail}</div>}
-                title={<h3>Topic</h3>}
                 trigger="click"
                 onVisibleChange={this.handleVisibleChange(stream)}>
-                <Button shape="circle" type="ghost">
-                  <i className="iconfont icon-topiconresourcelist"></i>
-                </Button>
+                <Button icon="file-text" shape="circle" type="ghost"></Button>
               </Popover>
             </Tooltip>
             {streamActionSelect}
@@ -1016,9 +1052,8 @@ Manager.propTypes = {
   onOperateStream: React.PropTypes.func,
   onDeleteStream: React.PropTypes.func,
   onStartOrRenewStream: React.PropTypes.func,
-  onLoadAdminOffset: React.PropTypes.func,
+  onLoadStreamDetail: React.PropTypes.func,
   onLoadOffset: React.PropTypes.func,
-  onChuckAwayTopic: React.PropTypes.func,
   onLoadLogsInfo: React.PropTypes.func,
   onLoadAdminLogsInfo: React.PropTypes.func,
   onShowEditStream: React.PropTypes.func,
@@ -1033,9 +1068,8 @@ export function mapDispatchToProps (dispatch) {
     onOperateStream: (projectId, id, action, resolve, reject) => dispatch(operateStream(projectId, id, action, resolve, reject)),
     onDeleteStream: (projectId, id, action, resolve, reject) => dispatch(deleteStream(projectId, id, action, resolve, reject)),
     onStartOrRenewStream: (projectId, id, topicResult, action, resolve, reject) => dispatch(startOrRenewStream(projectId, id, topicResult, action, resolve, reject)),
-    onLoadAdminOffset: (projectId, streamId, resolve) => dispatch(loadAdminOffset(projectId, streamId, resolve)),
+    onLoadStreamDetail: (projectId, streamId, roleType, resolve) => dispatch(loadStreamDetail(projectId, streamId, roleType, resolve)),
     onLoadOffset: (projectId, streamId, resolve) => dispatch(loadOffset(projectId, streamId, resolve)),
-    onChuckAwayTopic: () => dispatch(chuckAwayTopic()),
     onEditTopics: (projectId, streamId, values, resolve) => dispatch(editTopics(projectId, streamId, values, resolve)),
     onLoadLogsInfo: (projectId, streamId, resolve) => dispatch(loadLogsInfo(projectId, streamId, resolve)),
     onLoadAdminLogsInfo: (projectId, streamId, resolve) => dispatch(loadAdminLogsInfo(projectId, streamId, resolve))

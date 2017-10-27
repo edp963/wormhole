@@ -43,9 +43,7 @@ export class WorkbenchSinkForm extends React.PureComponent {
     })
   }
 
-  onSinkTypeSelect = (val) => {
-    this.props.onSinkTypeSelect(val)
-  }
+  onSinkTypeSelect = (val) => this.props.onSinkTypeSelect(val)
 
   render () {
     const { getFieldDecorator } = this.props.form

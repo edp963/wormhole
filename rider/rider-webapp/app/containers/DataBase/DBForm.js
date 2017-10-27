@@ -56,7 +56,6 @@ export class DBForm extends React.Component {
     this.setState({
       permissionValue: e.target.value
     })
-
     // this.props.form.setFieldsValue({
     //   nsDatabase: databaseDSValue === 'hbase' ? 'default' : ''
     // })
@@ -81,14 +80,10 @@ export class DBForm extends React.Component {
   }
 
   // 验证 name 是否存在
-  onNameInputChange = (e) => {
-    this.props.onInitDatabaseInputValue(e.target.value)
-  }
+  onNameInputChange = (e) => this.props.onInitDatabaseInputValue(e.target.value)
 
   // config 是否包含必须的字段
-  onConfigValChange = (e) => {
-    this.props.onInitDatabaseConfigValue(e.target.value)
-  }
+  onConfigValChange = (e) => this.props.onInitDatabaseConfigValue(e.target.value)
 
   forceCheckNumSave = (rule, value, callback) => {
     const reg = /^\d+$/

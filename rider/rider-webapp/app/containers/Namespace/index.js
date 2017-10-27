@@ -464,6 +464,10 @@ export class Namespace extends React.PureComponent {
    *  新增时，通过选择不同的 data system 显示不同的 Connection url内容
    * */
   onInitNamespaceUrlValue = (value) => {
+    this.setState({
+      addTableClassTable: 'hide'
+    })
+
     this.props.onLoadDatabasesInstance(value, (result) => {
       this.setState({
         databaseSelectValue: [],

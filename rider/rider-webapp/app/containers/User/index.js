@@ -310,6 +310,8 @@ export class User extends React.PureComponent {
         if ((match < startSearchTime) || (match > endSearchTime)) {
           return null
         }
+        console.log('fff', record[columnName])
+        console.log('ggg', this.state.startTimeText)
         return {
           ...record,
           [columnName]: (

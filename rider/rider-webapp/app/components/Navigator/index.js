@@ -95,6 +95,9 @@ class Navigator extends React.Component {
       case 'users':
         router.push('/users')
         break
+      case 'udf':
+        router.push('/udf')
+        break
       case 'riderInfo':
         router.push('/riderInfo')
         break
@@ -180,18 +183,18 @@ class Navigator extends React.Component {
           <MenuItem key="streams" className="ri-menu-item">
             <i className="iconfont icon-318stream-copy"></i>Stream
           </MenuItem>
-          <MenuItem key="namespaces" className="ri-menu-item">
-            <Icon type="menu-unfold" />Namespace
-          </MenuItem>
 
           <SubMenu
             key="dataSystem"
             className={`ri-menu-item ${dataSystemSelectedClass}`}
             title={
               <span>
-                <i className="iconfont icon-system-copy"></i>Data System<Icon type="down" className="arrow" />
+                <i className="iconfont icon-system-copy"></i>Namespace<Icon type="down" className="arrow" />
               </span>
             }>
+            <MenuItem key="namespaces">
+              <Icon type="menu-unfold" />Namespace
+            </MenuItem>
             <MenuItem key="instance">
               <i className="iconfont icon-instanceobjgcroot"></i>Instance
             </MenuItem>
@@ -202,6 +205,10 @@ class Navigator extends React.Component {
 
           <MenuItem key="users" className="ri-menu-item">
             <Icon type="solution" />User
+          </MenuItem>
+
+          <MenuItem key="udf" className="ri-menu-item">
+            <i className="iconfont icon-function" style={{ marginRight: '6px' }}></i>UDF
           </MenuItem>
 
           <MenuItem key="riderInfo" className="ri-menu-item">

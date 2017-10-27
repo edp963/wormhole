@@ -24,6 +24,9 @@ import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 import Card from 'antd/lib/card'
+import Select from 'antd/lib/select'
+import Button from 'antd/lib/button'
+import Tooltip from 'antd/lib/tooltip'
 import Input from 'antd/lib/input'
 import InputNumber from 'antd/lib/input-number'
 const FormItem = Form.Item
@@ -43,7 +46,7 @@ export class StreamStartForm extends React.Component {
     const { getFieldDecorator } = form
 
     const itemStyle = {
-      labelCol: { span: 12 },
+      labelCol: { span: 11 },
       wrapperCol: { span: 12 }
     }
 
@@ -78,8 +81,8 @@ export class StreamStartForm extends React.Component {
         const partitionOffsetsArr = i.partitionOffsets.split(',')
         parOffInput = partitionOffsetsArr.map((g, index) => (
           <Row key={`${i.id}_${index}`}>
-            <Col span={12} className="partition-content">{g.substring(0, g.indexOf(':'))}</Col>
-            <Col span={12} className="offset-content">
+            <Col span={11} className="partition-content">{g.substring(0, g.indexOf(':'))}</Col>
+            <Col span={11} className="offset-content">
               <FormItem>
                 <ol key={g}>
                   {getFieldDecorator(`${i.id}_${index}`, {
@@ -95,6 +98,13 @@ export class StreamStartForm extends React.Component {
                   )}
                 </ol>
               </FormItem>
+            </Col>
+            <Col span={2}>
+              <Tooltip title="查看最新 Offset">
+                <Button shape="circle" type="ghost">
+                  <i className="iconfont icon-topiconresourcelist"></i>
+                </Button>
+              </Tooltip>
             </Col>
           </Row>
         ))
@@ -123,8 +133,9 @@ export class StreamStartForm extends React.Component {
 
       const cardContent = (
         <Row key={i.id}>
-          <Col span={12} className="card-content">Partition</Col>
-          <Col span={12} className="card-content required-offset">Offset</Col>
+          <Col span={11} className="card-content">Partition</Col>
+          <Col span={11} className="card-content required-offset">Offset</Col>
+          <Col span={2} className="card-content">Action</Col>
           {parOffInput}
         </Row>
       )
@@ -138,8 +149,37 @@ export class StreamStartForm extends React.Component {
       )
     })
 
+    const itemStyleUdf = {
+      // labelCol: { span:  },
+      wrapperCol: { span: 24 }
+    }
+
+    // const udfChildren = []
+    // for (let i = 0; i < topicsValues.length; i++) {
+    //   topicChildren.push(<Option key={topicsValues[i].id} value={`${topicsValues[i].id}`}>{topicsValues[i].name}</Option>)
+    // }
+
+    // const udfChildren = topicsValues.map(i => (<Option key={i.id} value={`${i.id}`}>{i.name}</Option>))
+
     return (
       <Form>
+        <Row>
+          <Card title="UDFS：" className="stream-start-form-udf-style">
+            <Col span={24} className="stream-udf">
+              <FormItem label="" {...itemStyleUdf}>
+                {getFieldDecorator('udfs', {})(
+                  <Select
+                    mode="multiple"
+                    placeholder="Select UDFS"
+                    // onChange={this.handleUdfsChange}
+                  >
+                    {/* {udfChildren} */}
+                  </Select>
+                )}
+              </FormItem>
+            </Col>
+          </Card>
+        </Row>
         {cardStartItem}
       </Form>
     )
