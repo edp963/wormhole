@@ -44,7 +44,7 @@ object JobUtils extends RiderLogger {
     BatchJobConfig(getSourceConfig(job.sourceNs, job.eventTsStart, job.eventTsEnd, job.sourceType, job.sourceConfig),
       getTranConfig(job.tranConfig.getOrElse("")),
       getSinkConfig(job.sinkNs, job.sinkConfig.getOrElse("")),
-      getJobConfig(job.name, job.startConfig))
+      getJobConfig(job.name, job.sparkConfig))
 
   def getSourceConfig(sourceNs: String, eventTsStart: String = null, eventTsEnd: String = null, sourceType: String = null, sourceConfig: Option[String]) = {
     val eventTsStartFinal = if (eventTsStart != null && eventTsStart != "") eventTsStart else "19700101000000"
@@ -70,20 +70,41 @@ object JobUtils extends RiderLogger {
 
   def getTranConfig(tranConfig: String) = {
     if (tranConfig != "" && tranConfig != null) {
-      val tranClass = json2caseClass[TransformationConfig](tranConfig)
-      val action = if (tranClass.action.nonEmpty) Some(base64byte2s(tranClass.action.get.trim.getBytes)) else None
-      Some(TransformationConfig(action, tranClass.projection, tranClass.specialConfig))
+      val tranClass = JSON.parseObject(tranConfig)
+      val action = if (tranClass.containsKey("action") && tranClass.getString("action").nonEmpty) Some(base64byte2s(tranClass.getString("action").trim.getBytes)) else None
+      val specialConfig = if (tranClass.containsKey("specialConfig") && tranClass.getString("specialConfig").nonEmpty) {
+        Some(base64byte2s(tranClass.getJSONObject("specialConfig").toString.trim.getBytes))
+      } else {
+        None
+      }
+      val projection = if (tranClass.containsKey("projection") && tranClass.getString("projection").nonEmpty) {
+        Some(tranClass.getString("projection"))
+      } else {
+        None
+      }
+      Some(TransformationConfig(action, projection, specialConfig))
     }
     else None
   }
 
-  def getJobConfig(name: String, startConfig: String) = {
+  def getJobConfig(name: String, sparkConfig: Option[String]) = {
     val sqlShufflePartition =
-      if (startConfig != "" && startConfig != null) {
-        if (JSON.parseObject(startConfig).containsKey("spark.sql.shuffle.partitions"))
-          Some(JSON.parseObject(startConfig).getIntValue("spark.sql.shuffle.partitions"))
-        else None
-      } else None
+      if (sparkConfig != null && sparkConfig.isDefined && sparkConfig.get != "") {
+        val index = sparkConfig.get.indexOf("spark.sql.shuffle.partitions=")
+        if (index >= 0) {
+          riderLogger.info("getJobConfig contains spark.sql.shuffle.partitions=")
+          val length = "spark.sql.shuffle.partitions=".size
+          val lastPart = sparkConfig.get.indexOf(",", index + length)
+          val endIndex = if (lastPart < 0) sparkConfig.get.length else lastPart
+          Some(sparkConfig.get.substring(index + length, endIndex).toInt)
+        } else {
+          riderLogger.info("getJobConfig DO NOT contains spark.sql.shuffle.partitions=")
+          None
+        }
+      } else {
+        riderLogger.info("getJobConfig is none. Do not contains spark.sql.shuffle.partitions=")
+        None
+      }
     JobConfig(name, "yarn-cluster", sqlShufflePartition)
   }
 
@@ -109,24 +130,18 @@ object JobUtils extends RiderLogger {
     val connUrl =
       if (sourceType == null || sourceType == "" || !sourceType.contains("hdfs")) getConnUrl(instance, db)
       else RiderConfig.spark.hdfs_root
-    if (db.config.getOrElse("") != "")
-      ConnectionConfig(connUrl, db.user, db.pwd, json2caseClass[Option[Seq[KVConfig]]](db.config.get))
-    else
-      ConnectionConfig(connUrl, db.user, db.pwd, None)
+    ConnectionConfig(connUrl, db.user, db.pwd, None)
   }
 
   def startJob(job: Job) = {
+    val startConfig: StartConfig = if (job.startConfig.isEmpty) null else json2caseClass[StartConfig](job.startConfig)
     val command = generateStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name,
-      StartConfig(RiderConfig.spark.driverCores,
-        RiderConfig.spark.driverMemory,
-        RiderConfig.spark.executorNum,
-        RiderConfig.spark.executorMemory,
-        RiderConfig.spark.executorCores),
-      Seq(RiderConfig.spark.driverExtraConf, RiderConfig.spark.executorExtraConf).mkString(",").concat(RiderConfig.spark.sparkConfig),
+      if (startConfig != null) startConfig else StartConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum, RiderConfig.spark.executorMemory, RiderConfig.spark.executorCores),
+      if (job.sparkConfig.isDefined && !job.sparkConfig.get.isEmpty) job.sparkConfig.get else Seq(RiderConfig.spark.driverExtraConf, RiderConfig.spark.executorExtraConf).mkString(",").concat(RiderConfig.spark.sparkConfig),
       "job"
     )
     riderLogger.info(s"start job command: $command")
-    runShellCommand(command)
+   // runShellCommand(command)
   }
 
   def genJobName(projectId: Long, sourceNs: String, sinkNs: String) = {
@@ -138,10 +153,10 @@ object JobUtils extends RiderLogger {
     val job = Await.result(modules.jobDal.findById(id), minTimeOut).head
     val appInfo = getSparkJobStatus(job)
     modules.jobDal.updateJobStatus(job.id, appInfo)
-    val startedTime = if(appInfo.startedTime != null) Some(appInfo.startedTime) else Some("")
-    val stoppedTime = if(appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
-    Job(job.id, job.name, job.projectId, job.sourceType, job.sinkNs, job.sourceType, job.sparkConfig,job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
-      job.sinkConfig, job.tranConfig,  appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.createTime, job.createBy, job.updateTime, job.updateBy)
+    val startedTime = if (appInfo.startedTime != null) Some(appInfo.startedTime) else Some("")
+    val stoppedTime = if (appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
+    Job(job.id, job.name, job.projectId, job.sourceType, job.sinkNs, job.sourceType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
+      job.sinkConfig, job.tranConfig, appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.createTime, job.createBy, job.updateTime, job.updateBy)
   }
 
   def killJob(id: Long): String = {

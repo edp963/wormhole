@@ -122,7 +122,7 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val directiveDal = new BaseDalImpl[DirectiveTable, Directive](directiveQuery)
   override lazy val inTopicDal = new BaseDalImpl[StreamInTopicTable, StreamInTopic](streamInTopicQuery)
 
-  override lazy val jobDal = new JobDal(jobQuery)
+  override lazy val jobDal = new JobDal(jobQuery,projectQuery)
   override lazy val udfDal = new UdfDal(udfQuery, relProjectUdfDal)
   override lazy val relProjectUdfDal = new RelProjectUdfDal(udfQuery, projectQuery, relProjectUdfQuery)
 
