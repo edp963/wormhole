@@ -25,6 +25,7 @@ import Helmet from 'react-helmet'
 
 import ProjectForm from './ProjectForm'
 import ProjectNSTable from './ProjectNSTable'
+import ProjectUdfTable from './ProjectUdfTable'
 import ProjectUsersTable from './ProjectUsersTable'
 
 import Row from 'antd/lib/row'
@@ -44,6 +45,7 @@ import { selectUsers } from '../User/selectors'
 import { loadProjects, loadUserProjects, addProject, editProject, loadProjectNameInputValue, loadSingleProject, deleteSingleProject } from './action'
 import { loadSelectNamespaces, loadProjectNsAll } from '../Namespace/action'
 import { loadSelectUsers, loadProjectUserAll } from '../User/action'
+import { loadSingleUdf, loadProjectUdfs } from '../Udf/action'
 
 export class Project extends React.Component {
   constructor (props) {
@@ -56,7 +58,8 @@ export class Project extends React.Component {
       projectNsId: '',
 
       projectNsTableDataSource: [],
-      projectUsersTableDataSource: []
+      projectUsersTableDataSource: [],
+      projectUdfTableDataSource: []
     }
   }
 
@@ -93,7 +96,7 @@ export class Project extends React.Component {
       formVisible: true,
       projectFormType: 'add'
     })
-    // 显示 project modal 所有的 namespaces & users
+    // 显示 project modal 所有的 namespaces & users & udfs
     this.props.onLoadProjectNsAll((result) => {
       this.setState({
         projectNsTableDataSource: result
@@ -102,6 +105,12 @@ export class Project extends React.Component {
     this.props.onLoadProjectUserAll((result) => {
       this.setState({
         projectUsersTableDataSource: result
+      })
+    })
+
+    this.props.onLoadProjectUdfs((result) => {
+      this.setState({
+        projectUdfTableDataSource: result
       })
     })
   }
@@ -163,6 +172,19 @@ export class Project extends React.Component {
             })
           })
         })
+
+        // 回显 project modal 所有的 udfs & 选中的 udfs
+        this.props.onLoadProjectUdfs((result) => {
+          this.setState({
+            projectUdfTableDataSource: result
+          })
+        })
+
+        this.props.onLoadSingleUdf(project.id, 'adminSelect', (result) => {
+          this.projectUdfTable.setState({
+            selectedRowKeys: result.map(n => n.id)
+          })
+        })
       })
   }
 
@@ -184,6 +206,7 @@ export class Project extends React.Component {
     const { projectNameExited } = this.props
 
     const userIds = this.projectUsersTable.state.selectedRowKeys.join(',')
+    const udfIds = this.projectUdfTable.state.selectedRowKeys.join(',')
 
     const { selectedRowKeys } = this.projectNSTable.state
 
@@ -191,6 +214,8 @@ export class Project extends React.Component {
       message.warning('请选择源表！', 3)
     } else if (userIds.length === 0) {
       message.warning('请选择用户！', 3)
+    } else if (udfIds.length === 0) {
+      message.warning('请选择 UDF！', 3)
     } else {
       const namespaceIds = selectedRowKeys.join(',')
 
@@ -212,6 +237,7 @@ export class Project extends React.Component {
               this.props.onAddProject(Object.assign({}, values, {
                 nsId: namespaceIds,
                 userId: userIds,
+                udfId: udfIds,
                 pic: Math.ceil(Math.random() * 20)
               }), () => {
                 this.hideForm()
@@ -222,7 +248,8 @@ export class Project extends React.Component {
           } else if (projectFormType === 'edit') {
             this.props.onEditProject(Object.assign({}, values, {
               nsId: namespaceIds,
-              userId: userIds
+              userId: userIds,
+              udfId: udfIds
             }, projectResult), () => {
               this.hideForm()
             }, () => {
@@ -380,7 +407,7 @@ export class Project extends React.Component {
       )
       : projectLoading
 
-    const { projectFormType, formVisible, projectNsTableDataSource, projectUsersTableDataSource } = this.state
+    const { projectFormType, formVisible, projectNsTableDataSource, projectUsersTableDataSource, projectUdfTableDataSource } = this.state
 
     return (
       <div>
@@ -414,20 +441,32 @@ export class Project extends React.Component {
             </Button>
           ]}
         >
-          <ProjectForm
-            projectFormType={projectFormType}
-            onInitProjectNameInputValue={this.onInitProjectNameInputValue}
-            ref={(f) => { this.projectForm = f }}
-          />
           <Row className="project-table-style">
             <div className="ant-col-11">
+              <ProjectForm
+                projectFormType={projectFormType}
+                onInitProjectNameInputValue={this.onInitProjectNameInputValue}
+                ref={(f) => { this.projectForm = f }}
+              />
+            </div>
+            <div className="ant-col-1"></div>
+            <div className="ant-col-11 pro-table-class">
+              <ProjectUdfTable
+                dataUdf={projectUdfTableDataSource}
+                ref={(f) => { this.projectUdfTable = f }}
+              />
+            </div>
+          </Row>
+
+          <Row className="project-table-style">
+            <div className="ant-col-11 pro-table-class">
               <ProjectNSTable
                 dataNameSpace={projectNsTableDataSource}
                 ref={(f) => { this.projectNSTable = f }}
               />
             </div>
             <div className="ant-col-1"></div>
-            <div className="ant-col-11">
+            <div className="ant-col-11 pro-table-class">
               <ProjectUsersTable
                 dataUsers={projectUsersTableDataSource}
                 ref={(f) => { this.projectUsersTable = f }}
@@ -453,13 +492,15 @@ Project.propTypes = {
   onLoadSingleProject: React.PropTypes.func,
   onLoadSelectNamespaces: React.PropTypes.func,
   onLoadSelectUsers: React.PropTypes.func,
+  onLoadSingleUdf: React.PropTypes.func,
   onAddProject: React.PropTypes.func,
   onEditProject: React.PropTypes.func,
   onLoadProjectNameInputValue: React.PropTypes.func,
   onDeleteSingleProject: React.PropTypes.func,
 
   onLoadProjectNsAll: React.PropTypes.func,
-  onLoadProjectUserAll: React.PropTypes.func
+  onLoadProjectUserAll: React.PropTypes.func,
+  onLoadProjectUdfs: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -469,13 +510,15 @@ export function mapDispatchToProps (dispatch) {
     onLoadSingleProject: (id, resolve) => dispatch(loadSingleProject(id, resolve)),
     onLoadSelectNamespaces: (projectId, resolve) => dispatch(loadSelectNamespaces(projectId, resolve)),
     onLoadSelectUsers: (projectId, resolve) => dispatch(loadSelectUsers(projectId, resolve)),
+    onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
     onAddProject: (project, resolve, final) => dispatch(addProject(project, resolve, final)),
     onEditProject: (project, resolve, final) => dispatch(editProject(project, resolve, final)),
     onLoadProjectNameInputValue: (value, resolve, reject) => dispatch(loadProjectNameInputValue(value, resolve, reject)),
     onDeleteSingleProject: (projectId, resolve, reject) => dispatch(deleteSingleProject(projectId, resolve, reject)),
 
     onLoadProjectNsAll: (resolve) => dispatch(loadProjectNsAll(resolve)),
-    onLoadProjectUserAll: (resolve) => dispatch(loadProjectUserAll(resolve))
+    onLoadProjectUserAll: (resolve) => dispatch(loadProjectUserAll(resolve)),
+    onLoadProjectUdfs: (resolve) => dispatch(loadProjectUdfs(resolve))
   }
 }
 

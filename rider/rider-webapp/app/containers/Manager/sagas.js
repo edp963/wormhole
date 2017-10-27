@@ -24,7 +24,7 @@ import {
   LOAD_USER_STREAMS,
   LOAD_ADMIN_ALL_STREAMS,
   LOAD_ADMIN_SINGLE_STREAM,
-  LOAD_ADMIN_OFFSET,
+  LOAD_STREAM_DETAIL,
   LOAD_OFFSET,
   LOAD_STREAM_NAME_VALUE,
   LOAD_KAFKA,
@@ -45,7 +45,7 @@ import {
   userStreamsLoaded,
   adminAllStreamsLoaded,
   adminSingleStreamLoaded,
-  adminOffsetLoaded,
+  streamDetailLoaded,
   offsetLoaded,
   streamNameValueLoaded,
   streamNameValueErrorLoaded,
@@ -70,7 +70,7 @@ import { notifySagasError } from '../../utils/util'
 
 export function* getUserStreams ({ payload }) {
   try {
-    const streams = yield call(request, `${api.projectStream}/${payload.projectId}/streams`)
+    const streams = yield call(request, `${api.projectStreamTest}/${payload.projectId}/streams`)
     yield put(userStreamsLoaded(streams.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'getUserStreams')
@@ -107,20 +107,23 @@ export function* getAdminSingleFlowWatcher () {
   yield fork(takeLatest, LOAD_ADMIN_SINGLE_STREAM, getAdminSingleStream)
 }
 
-export function* getAdminOffset ({ payload }) {
+export function* getStreamDetail ({ payload }) {
+  const apiFinal = payload.roleType === 'admin'
+    ? `${api.projectAdminStream}`
+    : `${api.projectStreamTest}`
   try {
     const result = yield call(request, {
       method: 'get',
-      url: `${api.projectAdminStream}/${payload.projectId}/streams/${payload.streamId}/intopics`
+      url: `${apiFinal}/${payload.projectId}/streams/${payload.streamId}`
     })
-    yield put(adminOffsetLoaded(result.payload, payload.resolve))
+    yield put(streamDetailLoaded(result.payload, payload.resolve))
   } catch (err) {
-    notifySagasError(err, 'getAdminOffset')
+    notifySagasError(err, 'getStreamDetail')
   }
 }
 
-export function* getAdminOffsetWatcher () {
-  yield fork(takeLatest, LOAD_ADMIN_OFFSET, getAdminOffset)
+export function* getStreamDetailWatcher () {
+  yield fork(takeLatest, LOAD_STREAM_DETAIL, getStreamDetail)
 }
 
 export function* getOffset ({ payload }) {
@@ -379,7 +382,7 @@ export default [
   getUserStreamsWatcher,
   getAdminAllFlowsWatcher,
   getAdminSingleFlowWatcher,
-  getAdminOffsetWatcher,
+  getStreamDetailWatcher,
   getOffsetWatcher,
   getStreamNameValueWatcher,
   getKafkaWatcher,

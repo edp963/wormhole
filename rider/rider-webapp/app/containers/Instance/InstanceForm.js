@@ -24,10 +24,19 @@ import DataSystemSelector from '../../components/DataSystemSelector'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
+import Tooltip from 'antd/lib/tooltip'
+import Popover from 'antd/lib/popover'
+import Icon from 'antd/lib/icon'
 import Input from 'antd/lib/input'
 const FormItem = Form.Item
 
 export class InstanceForm extends React.Component {
+  constructor (props) {
+    super(props)
+    this.state = {
+      instanceDSValue: ''
+    }
+  }
 
   onUrlInputChange = (e) => {
     this.props.onInitInstanceInputValue(e.target.value)
@@ -38,12 +47,16 @@ export class InstanceForm extends React.Component {
   }
 
   onSourceDataSystemItemSelect = (e) => {
+    this.setState({
+      instanceDSValue: e
+    })
     this.props.onInitInstanceSourceDs(e)
   }
 
   render () {
     const { getFieldDecorator } = this.props.form
     const { instanceFormType } = this.props
+    const { instanceDSValue } = this.state
 
     const itemStyle = {
       labelCol: { span: 6 },
@@ -69,6 +82,39 @@ export class InstanceForm extends React.Component {
     } else if (instanceFormType === 'edit') {
       disabledOrNot = true
     }
+
+    // help
+    let questionDS = ''
+    if (instanceDSValue === 'oracle' || instanceDSValue === 'mysql' || instanceDSValue === 'postgresql' || instanceDSValue === 'cassandra') {
+      questionDS = `${instanceDSValue.substring(0, 1).toUpperCase()}${instanceDSValue.substring(1)} 时, 为 ip:port 格式`
+    } else if (instanceDSValue === 'es') {
+      questionDS = 'Elastic 时, 为 http(s)://ip:port 格式'
+    } else if (instanceDSValue === 'hbase') {
+      questionDS = 'Hbase 时, 为 zookeeper url list, 如localhost:2181/hbase, 多条用逗号隔开'
+    } else if (instanceDSValue === 'phoenix') {
+      questionDS = 'Phoenix 时, 为 zookeeper url, 如localhost:2181'
+    } else if (instanceDSValue === 'kafka') {
+      questionDS = 'Kafka 时, 为 borker list, localhost:9092, 多条用逗号隔开'
+    } else {
+      questionDS = '请选择 Data System'
+    }
+
+    const connectionURLMsg = (
+      <span>
+        Connection URL
+        <Tooltip title="帮助">
+          <Popover
+            placement="top"
+            content={<div style={{ width: '260px', height: '32px' }}>
+              <p>{questionDS}</p>
+            </div>}
+            title={<h3>帮助</h3>}
+            trigger="click">
+            <Icon type="question-circle-o" className="question-class" />
+          </Popover>
+        </Tooltip>
+      </span>
+    )
 
     return (
       <Form>
@@ -114,7 +160,7 @@ export class InstanceForm extends React.Component {
           </Col>
 
           <Col span={24}>
-            <FormItem label="Connection URL" {...itemStyle}>
+            <FormItem label={connectionURLMsg} {...itemStyle}>
               {getFieldDecorator('connectionUrl', {
                 rules: [{
                   required: true,

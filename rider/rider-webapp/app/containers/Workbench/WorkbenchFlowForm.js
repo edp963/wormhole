@@ -53,22 +53,16 @@ export class WorkbenchFlowForm extends React.Component {
   }
 
   componentWillReceiveProps (props) {
-    this.setState({
-      flowMode: props.flowMode
-    })
+    this.setState({ flowMode: props.flowMode })
   }
 
   onSelectProtocol = (e) => {
     // console.log('e-protocol', e.target.value)
   }
 
-  onAllOrNotSelect = (e) => {
-    this.props.initResultFieldClass(e)
-  }
+  onAllOrNotSelect = (e) => this.props.initResultFieldClass(e)
 
-  onShowDataFrame = (e) => {
-    this.props.initDataShowClass(e)
-  }
+  onShowDataFrame = (e) => this.props.initDataShowClass(e)
 
   forceCheckDataframeNum = (rule, value, callback) => {
     const reg = /^[0-9]+$/
@@ -81,10 +75,11 @@ export class WorkbenchFlowForm extends React.Component {
 
   // 通过不同的 Source Data System 显示不同的 Source Namespace 的内容
   onSourceDataSystemItemSelect = (val) => {
-    if (this.props.streamDiffType === 'default') {
+    const { streamDiffType, flowMode } = this.props
+
+    if (streamDiffType === 'default') {
       this.props.onInitSourceTypeNamespace(this.props.projectIdGeted, val, 'sourceType')
-    } else if (this.props.streamDiffType === 'hdfslog') {
-      const { flowMode } = this.props
+    } else if (streamDiffType === 'hdfslog') {
       // placeholder 和单条数据回显
       if (flowMode === 'add' || flowMode === 'copy') {
         this.props.form.setFieldsValue({
@@ -103,21 +98,13 @@ export class WorkbenchFlowForm extends React.Component {
     })
   }
 
-  onStreamJoinSqlConfigTypeSelect = (val) => {
-    this.props.onStreamJoinSqlConfigTypeSelect(val)
-  }
+  onStreamJoinSqlConfigTypeSelect = (val) => this.props.onStreamJoinSqlConfigTypeSelect(val)
 
-  onHandleChangeStreamType = (e) => {
-    this.props.onInitStreamTypeSelect(e.target.value)
-  }
+  onHandleChangeStreamType = (e) => this.props.onInitStreamTypeSelect(e.target.value)
 
-  onHandleChangeStreamName = (val) => {
-    this.props.onInitStreamNameSelect(val)
-  }
+  onHandleChangeStreamName = (val) => this.props.onInitStreamNameSelect(val)
 
-  onHandleHdfslogCascader = (value) => {
-    this.props.initialHdfslogCascader(value)
-  }
+  onHandleHdfslogCascader = (value) => this.props.initialHdfslogCascader(value)
 
   render () {
     const { step, form, fieldSelected, dataframeShowSelected, streamDiffType, hdfslogSinkDataSysValue, hdfslogSinkNsValue, transformTableConfirmValue } = this.props
@@ -165,12 +152,12 @@ export class WorkbenchFlowForm extends React.Component {
 
     const itemStyleDFS = {
       labelCol: { span: 9 },
-      wrapperCol: { span: 10 }
+      wrapperCol: { span: 9 }
     }
 
     const itemStyleDFSN = {
-      labelCol: { span: 12 },
-      wrapperCol: { span: 9 }
+      labelCol: { span: 14 },
+      wrapperCol: { span: 10 }
     }
 
     const sourceDataSystemData = [
@@ -369,7 +356,7 @@ export class WorkbenchFlowForm extends React.Component {
       ? undefined
       : selectStreamKafkaTopicValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.name}</Option>))
 
-    const { etpStrategyConfirmValue, resultFieldsValue, flowKafkaTopicValue, flowKafkaInstanceValue } = this.props
+    const { etpStrategyConfirmValue, resultFieldsValue, flowKafkaInstanceValue } = this.props
 
     return (
       <Form className="ri-workbench-form workbench-flow-form">
@@ -428,13 +415,13 @@ export class WorkbenchFlowForm extends React.Component {
                 )}
               </FormItem>
             </Col>
-            <Col span={24} className="ri-input-text">
+            {/* <Col span={24} className="ri-input-text">
               <FormItem label="Kafka Topic" {...itemStyle}>
                 {getFieldDecorator('kafkaTopic', {})(
                   <p className="value-font-style">{flowKafkaTopicValue}</p>
                 )}
               </FormItem>
-            </Col>
+            </Col> */}
           </Card>
           <Card title="Source" className="ri-workbench-form-card-style source-card">
             <Col span={24}>
@@ -630,7 +617,7 @@ export class WorkbenchFlowForm extends React.Component {
             </FormItem>
           </Col>
 
-          <Col span={24}>
+          <Col span={24} className="result-field-class">
             <FormItem label="Result Fields" {...itemStyle}>
               {getFieldDecorator('resultFields', {
                 rules: [{
@@ -670,7 +657,7 @@ export class WorkbenchFlowForm extends React.Component {
           </Col>
 
           <Col span={6}></Col>
-          <Col span={17} className={transformTableClassName}>
+          <Col span={18} className={transformTableClassName}>
             <Table
               // rowKey={transformTableSource.order}
               dataSource={transformTableSource}
@@ -713,7 +700,7 @@ export class WorkbenchFlowForm extends React.Component {
               )}
             </FormItem>
           </Col>
-          <Col span={8} className={`ds-class ${dataframeShowSelected}`}>
+          <Col span={7} className={`ds-class ${dataframeShowSelected}`}>
             <FormItem label="Number" {...itemStyleDFSN}>
               {getFieldDecorator('dataframeShowNum', {
                 rules: [{
@@ -757,7 +744,7 @@ export class WorkbenchFlowForm extends React.Component {
               </Row>
             </div>
           </Col>
-          <Col span={24}>
+          {/* <Col span={24}>
             <div className="ant-row ant-form-item">
               <Row>
                 <Col span={8} className="ant-form-item-label">
@@ -770,7 +757,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
               </Row>
             </div>
-          </Col>
+          </Col> */}
           {step3ConfirmDSNS}
           <Col span={24} className={streamTypeClass[0]}>
             <div className="ant-row ant-form-item">
@@ -933,7 +920,7 @@ WorkbenchFlowForm.propTypes = {
   initDataShowClass: React.PropTypes.func,
   onInitStreamTypeSelect: React.PropTypes.func,
   initialHdfslogCascader: React.PropTypes.func,
-  flowKafkaTopicValue: React.PropTypes.string,
+  // flowKafkaTopicValue: React.PropTypes.string,
   flowKafkaInstanceValue: React.PropTypes.string
 }
 

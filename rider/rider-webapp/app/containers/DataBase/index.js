@@ -164,11 +164,7 @@ export class DataBase extends React.PureComponent {
   }
 
   // 点击遮罩层或右上角叉或取消按钮的回调
-  hideForm = () => {
-    this.setState({
-      formVisible: false
-    })
-  }
+  hideForm = () => this.setState({ formVisible: false })
 
   // Modal 完全关闭后的回调
   resetModal = () => this.dBForm.resetFields()

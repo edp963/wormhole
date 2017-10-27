@@ -40,7 +40,8 @@ export class WorkbenchStreamForm extends React.PureComponent {
   constructor (props) {
     super(props)
     this.state = {
-      streamMode: ''
+      streamMode: '',
+      topicChildren1111: 0
     }
   }
 
@@ -51,17 +52,13 @@ export class WorkbenchStreamForm extends React.PureComponent {
   }
 
   // 验证 stream name 是否存在
-  onNameInputChange = (e) => {
-    this.props.onInitStreamNameValue(e.target.value)
-  }
+  onNameInputChange = (e) => this.props.onInitStreamNameValue(e.target.value)
 
   onStreamTypeSelect = (e) => {
     // console.log('val', e.target.value)
   }
 
-  onKafkaTypeSelect = (val) => {
-    this.props.onKafkaTypeSelect(val)
-  }
+  onKafkaTypeSelect = (val) => this.props.onKafkaTypeSelect(val)
 
   forceCheckSave = (rule, value, callback) => {
     const reg = /^\w+$/
@@ -73,7 +70,23 @@ export class WorkbenchStreamForm extends React.PureComponent {
   }
 
   handleTopicsChange = (value) => {
-    // console.log('value', value)
+    console.log('value', value)
+    // const { topicsValues } = this.props
+    // if (value === '全选') {
+    //   this.setState({
+    //     topicChildren: ['全选']
+    //   })
+    // } else {
+    //   for (let i = 0; i < topicsValues.length; i++) {
+    //     this.setState({
+    //       topicChildren: this.state.topicChildren.push(<Option key={topicsValues[i].id} value={`${topicsValues[i].id}`}>{topicsValues[i].name}</Option>)
+    //     })
+    //   }
+    // }
+  }
+
+  selectTopic = (value) => {
+    console.log('va', value)
   }
 
   render () {
@@ -93,10 +106,12 @@ export class WorkbenchStreamForm extends React.PureComponent {
       disabledOrNot = true
     }
 
-    const children = []
-    for (let i = 0; i < topicsValues.length; i++) {
-      children.push(<Option key={topicsValues[i].id} value={`${topicsValues[i].id}`}>{topicsValues[i].name}</Option>)
-    }
+    // const topicChildren = []
+    // for (let i = 0; i < topicsValues.length; i++) {
+    //   topicChildren.push(<Option key={topicsValues[i].id} value={`${topicsValues[i].id}`}>{topicsValues[i].name}</Option>)
+    // }
+
+    const topicChildren = topicsValues.map(i => (<Option key={i.id} value={`${i.id}`}>{i.name}</Option>))
 
     const kafkaOptions = kafkaValues.map(s => (<Option key={s.id} value={`${s.id}`}>{s.name}</Option>))
 
@@ -186,11 +201,14 @@ export class WorkbenchStreamForm extends React.PureComponent {
                 }]
               })(
                 <Select
-                  mode="multiple"
+                  tags
+                  // mode="multiple"
                   placeholder="Select Topics"
+                  searchPlaceholder="标签模式"
                   onChange={this.handleTopicsChange}
+                  onSelect={this.selectTopic}
                 >
-                  {children}
+                  {topicChildren}
                 </Select>
               )}
             </FormItem>

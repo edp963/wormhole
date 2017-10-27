@@ -25,6 +25,7 @@ import FlowSagas from './containers/Flow/sagas'
 import StreamSagas from './containers/Manager/sagas'
 import NamespaceSagas from './containers/Namespace/sagas'
 import UserSagas from './containers/User/sagas'
+import UdfSagas from './containers/Udf/sagas'
 import RiderInfoSagas from './containers/RiderInfo/sagas'
 
 import InstanceSagas from './containers/Instance/sagas'
@@ -42,6 +43,7 @@ export default [
   ...StreamSagas,
   ...NamespaceSagas,
   ...UserSagas,
+  ...UdfSagas,
   ...RiderInfoSagas,
 
   ...InstanceSagas,
