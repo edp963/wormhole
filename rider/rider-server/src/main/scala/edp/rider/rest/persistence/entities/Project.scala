@@ -39,19 +39,19 @@ final case class Project(id: Long,
                          updateBy: Long) extends BaseEntity
 
 case class ProjectUserNsUdf(id: Long,
-                         name: String,
-                         desc: Option[String] = None,
-                         pic: Int,
-                         resCores: Int,
-                         resMemoryG: Int,
-                         active: Boolean,
-                         createTime: String,
-                         createBy: Long,
-                         updateTime: String,
-                         updateBy: Long,
-                         nsId: String,
-                         userId: String,
-                         udfId: String)
+                            name: String,
+                            desc: Option[String] = None,
+                            pic: Int,
+                            resCores: Int,
+                            resMemoryG: Int,
+                            active: Boolean,
+                            createTime: String,
+                            createBy: Long,
+                            updateTime: String,
+                            updateBy: Long,
+                            nsId: String,
+                            userId: String,
+                            udfId: String)
 
 case class SimpleProjectRel(name: String,
                             desc: Option[String] = None,
@@ -68,9 +68,22 @@ case class SimpleProject(name: String,
                          resCores: Int,
                          resMemoryG: Int) extends SimpleBaseEntity
 
+case class AppResource(name: String,
+                       driverCores: Int,
+                       driverMemory: Int,
+                       executorNums: Int,
+                       perExecutorMemory: Int,
+                       perExecutorCores: Int)
+
+case class Resource(totalCores: Int,
+                    totalMemory: Int,
+                    remainCores: Int,
+                    remainMemory: Int,
+                    stream: Seq[AppResource])
+
 
 class ProjectTable(_tableTag: Tag) extends BaseTable[Project](_tableTag, "project") {
-  def * = (id, name, desc, pic, resCores, resMemoryG, active, createTime, createBy, updateTime, updateBy) <>(Project.tupled, Project.unapply)
+  def * = (id, name, desc, pic, resCores, resMemoryG, active, createTime, createBy, updateTime, updateBy) <> (Project.tupled, Project.unapply)
 
   val name: Rep[String] = column[String]("name", O.Length(200, varying = true))
   /** Database column desc SqlType(VARCHAR), Length(1000,true), Default(None) */

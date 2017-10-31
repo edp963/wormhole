@@ -23,7 +23,7 @@ package edp.rider.spark
 
 import com.alibaba.fastjson.JSON
 import edp.rider.common
-import edp.rider.common.SparkRiderStatus._
+import edp.rider.common.StreamStatus._
 import edp.rider.common._
 import edp.rider.rest.persistence.entities.Job
 import edp.rider.spark.SparkJobClientLog._
@@ -114,7 +114,7 @@ object SparkStatusQuery extends RiderLogger {
         }
     }
     if (result.finalStatus != null && result.finalStatus == SparkAppStatus.SUCCEEDED.toString)
-      AppInfo(result.appId, SparkRiderStatus.DONE.toString, result.startedTime, result.finishedTime)
+      AppInfo(result.appId, StreamStatus.DONE.toString, result.startedTime, result.finishedTime)
     else
       AppInfo(result.appId, result.appStatus, result.startedTime, result.finishedTime)
   }

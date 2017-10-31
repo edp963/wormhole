@@ -40,7 +40,7 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
                       instanceTable: TableQuery[InstanceTable],
                       projectTable: TableQuery[ProjectTable],
                       relProjectNsTable: TableQuery[RelProjectNsTable],
-                      streamTopicTable: TableQuery[StreamInTopicTable]) extends BaseDalImpl[RelProjectNsTable, RelProjectNs](relProjectNsTable) with RiderLogger {
+                      streamTable: TableQuery[StreamTable]) extends BaseDalImpl[RelProjectNsTable, RelProjectNs](relProjectNsTable) with RiderLogger {
 
   def getNsProjectName: Future[mutable.HashMap[Long, ArrayBuffer[String]]] = {
     val nsProjectSeq = db.run((projectTable join relProjectNsTable on (_.id === _.projectId))
@@ -94,7 +94,7 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
   def getSourceNamespaceByProjectId(projectId: Long, streamId: Long, nsSys: String) =
     db.run(((namespaceTable.filter(ns => ns.nsSys === nsSys && ns.active === true) join
       relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) on (_.id === _.nsId))
-      join streamTopicTable.filter(_.streamId === streamId) on (_._1.nsDatabaseId === _.nsDatabaseId))
+      join streamTable.filter(_.id === streamId) on (_._1.nsInstanceId === _.instanceId))
       .map {
         case ((ns, rel), topic) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
           ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy) <> (Namespace.tupled, Namespace.unapply)

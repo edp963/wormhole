@@ -49,7 +49,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
             }
             else {
               if (session.projectIdList.contains(projectId)) {
-                streamDal.refreshStreamsByProjectId(Some(projectId), Some(streamId))
+                streamDal.getStreamDetail(Some(projectId), Some(streamId))
                 riderLogger.info(s"user ${session.userId} refresh streams.")
                 onComplete(flowDal.getById(projectId, flowId).mapTo[Option[FlowStreamInfo]]) {
                   case Success(flowStreamOpt) =>
@@ -69,7 +69,6 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
             }
         }
       }
-    //
   }
 
   def getByFilterRoute(route: String): Route = path(route / LongNumber / "flows") {
@@ -102,7 +101,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                             complete(OK, getHeader(451, ex.getMessage, session))
                         }
                       case (_, None, None) =>
-                        streamDal.refreshStreamsByProjectId(Some(projectId))
+                        streamDal.getStreamDetail(Some(projectId))
                         riderLogger.info(s"user ${session.userId} refresh project $projectId all streams.")
                         val future = if (visible.getOrElse(true)) flowDal.defaultGetAll(flow => flow.active === true && flow.projectId === projectId)
                         else flowDal.defaultGetAll(_.projectId === projectId)
@@ -144,7 +143,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                 else {
                   if (session.projectIdList.contains(projectId)) {
                     val flowInsertSeq =
-                      if (streamDal.refreshStreamsByProjectId(Some(projectId), Some(streamId)).head.stream.streamType != "hdfslog")
+                      if (streamDal.getStreamDetail(Some(projectId), Some(streamId)).head.stream.streamType != "hdfslog")
                         Seq(Flow(0, simple.projectId, simple.streamId, simple.sourceNs, simple.sinkNs, simple.consumedProtocol, simple.sinkConfig,
                           simple.tranConfig, "new", null, null, active = true, currentSec, session.userId, currentSec, session.userId))
                       else
@@ -194,7 +193,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                 if (session.roleType != "user")
                   complete(OK, getHeader(403, session))
                 else {
-                  streamDal.refreshStreamsByProjectId(Some(projectId), Some(streamId))
+                  streamDal.getStreamDetail(Some(projectId), Some(streamId))
                   riderLogger.info(s"user ${session.userId} refresh streams.")
                   if (session.projectIdList.contains(projectId)) {
                     val updateFlow = Flow(flow.id, flow.projectId, flow.streamId, flow.sourceNs, flow.sinkNs, flow.consumedProtocol, flow.sinkConfig,
