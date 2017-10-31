@@ -46,6 +46,17 @@ object CommonUtils extends RiderLogger {
 
   val streamSparkConfigPattern = "(.+=.+(,.+.+)*)".r.pattern
 
+  def formatResponseTimestamp(time: Option[String]): Option[String] = {
+    if (time.getOrElse("") == "") Some("")
+    else time
+  }
+
+  def formatRequestTimestamp(time: Option[String]): Option[String] = {
+    if (time.getOrElse("") == "")
+      null
+    else time
+  }
+
   def isJson(str: String): Boolean = {
     try {
       if (str == "" || str == null)

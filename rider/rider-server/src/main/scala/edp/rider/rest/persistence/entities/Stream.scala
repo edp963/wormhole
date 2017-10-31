@@ -21,6 +21,7 @@
 
 package edp.rider.rest.persistence.entities
 
+import edp.rider.common.AppInfo
 import edp.rider.rest.persistence.base.{BaseEntity, BaseTable, SimpleBaseEntity}
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.{Rep, Tag}
@@ -43,62 +44,44 @@ case class Stream(id: Long,
                   createTime: String,
                   createBy: Long,
                   updateTime: String,
-                  updateBy: Long) extends BaseEntity
+                  updateBy: Long) extends BaseEntity {
+  def updateFromSpark(appInfo: AppInfo) = {
+    Stream(this.id, this.name, this.desc, this.projectId, this.instanceId, this.streamType, this.sparkConfig, this.startConfig,
+      this.launchConfig, Option(appInfo.appId), this.logPath, appInfo.appState, Option(appInfo.startedTime), Option(appInfo.finishedTime),
+      this.active, this.createTime, this.createBy, this.updateTime, this.updateBy)
+  }
+}
 
-
-case class StreamAdmin(stream: Stream,
-                       disableActions: String,
-                       projectName: String,
-                       kafkaName: String,
-                       kafkaConnection: String,
-                       topicInfo: Seq[SimpleTopic])
-
-case class StreamTopic(id: Long,
-                       name: String,
-                       desc: Option[String] = None,
-                       projectId: Long,
-                       instanceId: Long,
-                       streamType: String,
-                       sparkConfig: Option[String] = None,
-                       startConfig: String,
-                       launchConfig: String,
-                       sparkAppid: Option[String] = None,
-                       logPath: Option[String] = None,
-                       status: String,
-                       startedTime: Option[String] = None,
-                       stoppedTime: Option[String] = None,
-                       active: Boolean,
-                       createTime: String,
-                       createBy: Long,
-                       updateTime: String,
-                       updateBy: Long,
-                       topic: String) extends BaseEntity
-
-case class StreamReturn(stream: Stream,
+case class StreamDetail(stream: Stream,
+                        projectName: String,
+                        kafkaInfo: StreamKafka,
+                        topicInfo: Seq[StreamTopic],
+                        currentUdf: Seq[StreamUdf],
+                        usingUdf: Seq[StreamZkUdf],
                         disableActions: String)
 
-case class StreamWithBrokers(stream: Stream,
-                             brokers: String)
 
-case class StreamProject(stream: Stream,
-                         projectName: String)
+case class StreamKafka(instance: String, connUrl: String)
 
-case class StreamTopicTem(stream: Stream,
-                          kafkaName: String,
-                          kafkaConnection: String)
+case class StreamUdfTemp(id: Long, streamId: Long, functionName: String, fullClassName: String, jarName: String)
 
-case class StreamSeqTopic(stream: Stream,
-                          kafkaName: String,
-                          kafkaConnection: String,
-                          topicInfo: Seq[SimpleTopic])
+case class StreamUdf(id: Long, functionName: String, fullClassName: String, jarName: String)
 
-case class StreamSeqTopicActions(stream: Stream,
-                                 kafkaName: String,
-                                 kafkaConnection: String,
-                                 topicInfo: Seq[SimpleTopic],
-                                 disableActions: String)
+case class StreamZkUdfTemp(streamId: Long, functionName: String, fullClassName: String, jarName: String)
 
-case class SimpleTopic(id: Long,
+case class StreamZkUdf(functionName: String, fullClassName: String, jarName: String)
+
+case class PutStreamTopic(id: Long, partitionOffsets: String, rate: Int)
+
+case class StreamDirective(udfInfo: Option[Seq[Long]], topicInfo: Option[Seq[PutStreamTopic]])
+
+case class StreamTopicTemp(id: Long,
+                           streamId: Long,
+                           name: String,
+                           partitionOffsets: String,
+                           rate: Int)
+
+case class StreamTopic(id: Long,
                        name: String,
                        partitionOffsets: String,
                        rate: Int)
@@ -111,31 +94,17 @@ case class FeedbackOffsetInfo(streamId: Long,
 
 case class SimpleStream(name: String,
                         desc: Option[String] = None,
-                        projectId: Long,
                         instanceId: Long,
                         streamType: String,
                         sparkConfig: Option[String] = None,
                         startConfig: String,
-                        launchConfig: String,
-                        topics: String) extends SimpleBaseEntity
+                        launchConfig: String) extends SimpleBaseEntity
 
-case class Kafka(id: Long, name: String)
-
-case class TopicSimple(id: Long, name: String, partitions: Int)
-
-case class TopicDetail(id: Long,
-                       streamId: Long,
-                       nsInstanceId: Long,
-                       nsDatabaseId: Long,
-                       partition: Option[Int],
-                       partitionOffsets: String,
-                       rate: Int,
-                       active: Boolean,
-                       createTime: String,
-                       createBy: Long,
-                       updateTime: String,
-                       updateBy: Long,
-                       name: String)
+case class PutStream(id: Long,
+                     desc: Option[String] = None,
+                     sparkConfig: Option[String] = None,
+                     startConfig: String,
+                     launchConfig: String)
 
 case class StartConfig(driverCores: Int,
                        driverMemory: Int,
@@ -143,29 +112,10 @@ case class StartConfig(driverCores: Int,
                        perExecutorMemory: Int,
                        perExecutorCores: Int)
 
-case class StreamResource(name: String,
-                          driverCores: Int,
-                          driverMemory: Int,
-                          executorNums: Int,
-                          perExecutorMemory: Int,
-                          perExecutorCores: Int)
-
-case class Resource(totalCores: Int,
-                    totalMemory: Int,
-                    remainCores: Int,
-                    remainMemory: Int,
-                    stream: Seq[StreamResource])
 
 case class LaunchConfig(maxRecords: String,
                         partitions: String,
                         durations: String)
-
-
-case class StreamKafkaTopic(id: Long,
-                            name: String,
-                            streamType: String,
-                            kafka: String,
-                            topics: String)
 
 case class StreamCacheMap(streamId: Long, streamName: String, projectId: Long)
 

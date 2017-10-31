@@ -31,7 +31,7 @@ import io.swagger.annotations._
 @Path("/user/projects")
 class NamespaceUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
-  lazy val routes: Route = FilterNsByProjectIdRoute
+  lazy val routes: Route = FilterNsByProjectIdRoute ~ getNsByProjectIdRoute
 
   lazy val basePath = "projects"
 
@@ -53,6 +53,20 @@ class NamespaceUserRoutes(modules: ConfigurationModule with PersistenceModule wi
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def FilterNsByProjectIdRoute: Route = modules.namespaceUserService.FilterNsByProjectId(basePath)
+
+  @Path("/{id}/namespaces")
+  @ApiOperation(value = "get namespaces of the project", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getNsByProjectIdRoute: Route = modules.namespaceUserService.getNsByProjectId(basePath)
 
 }
 

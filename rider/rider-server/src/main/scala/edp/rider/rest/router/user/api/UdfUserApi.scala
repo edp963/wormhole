@@ -48,7 +48,7 @@ class UdfUserApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Bas
                 onComplete(relProjectUdfDal.getUdfByProjectId(id).mapTo[Seq[Udf]]) {
                   case Success(udfs) =>
                     riderLogger.info(s"user ${session.userId} select udfs where project id is $id success.")
-                    complete(OK, ResponseSeqJson[Udf](getHeader(200, session), udfs.sortBy(_.functionName)))
+                    complete(OK, ResponseSeqJson[Udf](getHeader(200, session), udfs.sortBy(_.pubic).reverse.sortBy(_.functionName)))
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} select udfs where project id is $id failed", ex)
                     complete(OK, getHeader(451, ex.getMessage, session))
