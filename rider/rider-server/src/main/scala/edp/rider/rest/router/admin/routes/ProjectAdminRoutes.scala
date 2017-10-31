@@ -75,6 +75,20 @@ class ProjectAdminRoutes(modules: ConfigurationModule with PersistenceModule wit
   ))
   def getUserByProjectRoute: Route = modules.userAdminService.getNormalUserRoute(basePath)
 
+  @Path("/{id}/namespaces")
+  @ApiOperation(value = "get one project's namespaces selected information from system by id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not admin"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getNsByProjectIdRoute: Route = modules.namespaceAdminService.getByProjectIdRoute(basePath)
+
   @Path("/namespaces")
   @ApiOperation(value = "get all namespaces", notes = "", nickname = "", httpMethod = "GET")
   @ApiResponses(Array(
@@ -96,6 +110,50 @@ class ProjectAdminRoutes(modules: ConfigurationModule with PersistenceModule wit
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getNonPublicUdfByProjectRoute: Route = modules.udfAdminService.getNonPublicUdfRoute(basePath)
+
+  @Path("/{id}/flows")
+  @ApiOperation(value = "get one project's flows from system by id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not admin"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getFlowByProjectIdRoute: Route = modules.flowAdminService.getByProjectIdRoute(basePath)
+
+  @Path("/{id}/streams")
+  @ApiOperation(value = "get one project's streams from system by id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not admin"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getStreamByProjectIdRoute: Route = modules.streamAdminService.getByProjectIdRoute(basePath)
+
+
+  @Path("/{id}/streams/{streamId}/logs/")
+  @ApiOperation(value = "get stream log by stream id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not admin"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getLogByStreamId: Route = modules.streamAdminService.getLogByStreamId(basePath)
 
 
   @ApiOperation(value = "Add new project to the system", notes = "", nickname = "", httpMethod = "POST")
