@@ -28,13 +28,14 @@ import edp.rider.module._
 import io.swagger.annotations._
 
 @Api(value = "/flows", consumes = "application/json", produces = "application/json")
-@Path("/admin/flows")
+@Path("/admin")
 class FlowAdminRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
-  lazy val routes: Route = getAll
+  lazy val routes: Route = getAll ~ getFlowByProjectIdRoute
 
   lazy val basePath = "flows"
 
+  @Path("/flows")
   @ApiOperation(value = "get all flows", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "visible", value = "true or false", required = false, dataType = "boolean", paramType = "query")
@@ -47,6 +48,20 @@ class FlowAdminRoutes(modules: ConfigurationModule with PersistenceModule with B
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getAll: Route = modules.flowAdminService.getByAllRoute(basePath)
+
+  @Path("/projects/{id}/flows")
+  @ApiOperation(value = "get one project's flows from system by id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not admin"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getFlowByProjectIdRoute: Route = modules.flowAdminService.getByProjectIdRoute("projects")
 
 }
 

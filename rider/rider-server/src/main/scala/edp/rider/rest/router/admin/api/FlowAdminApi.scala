@@ -47,7 +47,7 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
                 complete(OK, getHeader(403, session))
               }
               else {
-                streamDal.refreshStreamsByProjectId()
+                streamDal.getStreamDetail()
                 riderLogger.info(s"user ${session.userId} refresh streams.")
                 onComplete(flowDal.adminGetAll(visible.getOrElse(true)).mapTo[Seq[FlowStreamAdmin]]) {
                   case Success(flowStreams) =>
@@ -75,7 +75,7 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
               complete(OK, getHeader(403, session))
             }
             else {
-              streamDal.refreshStreamsByProjectId(Some(id))
+              streamDal.getStreamDetail(Some(id))
               riderLogger.info(s"user ${session.userId} refresh streams.")
               onComplete(flowDal.defaultGetAll(flow => flow.active === true && flow.projectId === id).mapTo[Seq[FlowStream]]) {
                 case Success(flowStreams) =>

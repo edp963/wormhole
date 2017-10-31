@@ -39,4 +39,15 @@ object KafkaUtils extends RiderLogger {
     }
   }
 
+  def getKafkaLatestOffset(brokers: String, topic: String, partition: Int): String = {
+    try {
+      val offsets = WormholeGetOffsetShell.getTopicOffsets(brokers, topic)
+      offsets.split(",")(partition).split(":")(1)
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"get kafka latest offset failed", ex)
+        ""
+    }
+  }
+
 }

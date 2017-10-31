@@ -39,7 +39,7 @@ class InstanceUserApi(relProjectNsDal: RelProjectNsDal)
   def getByFilterRoute(route: String): Route = path(route / LongNumber / "instances") {
     id =>
       get {
-        parameter('type.as[String]) {
+        parameter('nsSys.as[String]) {
           nsSys =>
             authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
               session =>

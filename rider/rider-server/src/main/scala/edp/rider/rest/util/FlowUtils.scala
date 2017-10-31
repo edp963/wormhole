@@ -280,6 +280,7 @@ object FlowUtils extends RiderLogger {
         PushDirective.sendHdfsLogFlowStartDirective(streamId, sourceNs, flow_start_ums)
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
       }
+      autoRegisterTopic(streamId, sourceNs, userId)
       true
     } catch {
       case ex: Exception =>
@@ -320,9 +321,8 @@ object FlowUtils extends RiderLogger {
         val database = Await.result(modules.databaseDal.findByFilter(_.id === ns.nsDatabaseId), minTimeOut).head
         val inTopicInsert = StreamInTopic(0, streamId, ns.nsInstanceId, ns.nsDatabaseId, KafkaUtils.getKafkaLatestOffset(instance.connUrl, database.nsDatabase), RiderConfig.spark.topicDefaultRate,
           active = true, currentSec, userId, currentSec, userId)
-        Await.result(modules.inTopicDal.insert(inTopicInsert), minTimeOut)
-        val simpleTopic = modules.streamDal.getSimpleTopicSeq(streamId)
-        sendTopicDirective(streamId, simpleTopic, userId)
+        val inTopic = Await.result(modules.inTopicDal.insert(inTopicInsert), minTimeOut)
+        sendTopicDirective(streamId, Seq(StreamTopicTemp(inTopic.id, streamId, database.nsDatabase, inTopic.partitionOffsets, inTopic.rate)), userId)
       }
     } catch {
       case ex: Exception =>
@@ -352,5 +352,14 @@ object FlowUtils extends RiderLogger {
       case (false, true) => (false, s"sinkConfig $sinkConfig is not json type")
       case (false, false) => (false, s"sinkConfig $sinkConfig, tranConfig $tranConfig both are not json type")
     }
+  }
+
+  def checkDeleteTopic(streamId: Long, flowId: Long, sourceNs: String) = {
+    val flows = Await.result(modules.flowDal.findByFilter(_.streamId === streamId), minTimeOut)
+    val ns = modules.namespaceDal.getNamespaceByNs(sourceNs)
+    val topicName = Await.result(modules.databaseDal.findById(ns.nsDatabaseId), minTimeOut).get.nsDatabase
+    val ids = flows.map(flow => modules.namespaceDal.getNamespaceByNs(flow.sourceNs)).filter(_.nsDatabaseId == ns.nsDatabaseId)
+    if (ids.size > 1) (false, ns.nsDatabaseId, topicName)
+    else (true, ns.nsDatabaseId, topicName)
   }
 }

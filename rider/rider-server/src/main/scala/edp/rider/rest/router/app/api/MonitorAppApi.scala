@@ -56,12 +56,11 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                 riderLogger.error(s"user ${session.userId} request to get project $projectId, stream $streamId, flow $flowId health information, but the project $projectId doesn't exist.")
                 complete(OK, getHeader(403, s"project $projectId doesn't exist", null))
               }
-              val streamInfo = streamDal.refreshStreamsByProjectId(Some(projectId), Some(streamId))
+              val streamInfo = streamDal.getStreamDetail(Some(projectId), Some(streamId))
               if (streamInfo.isEmpty) {
                 riderLogger.error(s"user ${session.userId} request to get flow $flowId health information, but the stream $streamId doesn't exist")
                 complete(OK, getHeader(403, s"stream $streamId doesn't exist", null))
               }
-              //              Await.result(streamDal.getStreamsByProjectId(Some(projectId), Some(streamId)), minTimeOut)
               onComplete(flowDal.getById(projectId, flowId).mapTo[Option[FlowStreamInfo]]) {
                 case Success(flowStreamOpt) =>
                   riderLogger.info(s"user ${session.userId} select flow where project id is $projectId and flow id is $flowId success.")
@@ -126,7 +125,7 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                           projectOpt match {
                             case Some(project) =>
                               try {
-                                val streamInfo = streamDal.refreshStreamsByProjectId(Some(projectId), Some(streamId)).head.stream
+                                val streamInfo = streamDal.getStreamDetail(Some(projectId), Some(streamId)).head.stream
                                 val sparkApplicationId = streamInfo.sparkAppid.get
                                 val sLatestWatermark = ElasticSearch.queryESStreamMax(projectId, streamId, "dataGeneratedTs")._2
                                 val launchConfig = JsonUtils.json2caseClass[LaunchConfig](stream.launchConfig)
