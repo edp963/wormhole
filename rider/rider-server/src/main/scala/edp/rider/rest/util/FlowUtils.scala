@@ -54,7 +54,8 @@ object FlowUtils extends RiderLogger {
         if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
           JSON.parseObject(sinkConfig).getString("sink_specific_config")
         else "{}"
-      val dbConfig = if (db.config.getOrElse("") == "") "\"\"" else db.config.get
+      val dbConfig = "\"\""
+//      val dbConfig = if (db.config.getOrElse("") == "") "\"\"" else db.config.get
       s"""
          |{
          |"sink_connection_url": "${getConnUrl(instance, db)}",
@@ -82,7 +83,7 @@ object FlowUtils extends RiderLogger {
       case "es" => "edp.wormhole.sinks.elasticsearchsink.Data2EsSink"
       case "hbase" => "edp.wormhole.sinks.hbasesink.Data2HbaseSink"
       case "kafka" => "edp.wormhole.sinks.kafkasink.Data2KafkaSink"
-      case "mongo" => "edp.wormhole.sinks.mongosink.Data2MongoSink"
+      case "mongodb" => "edp.wormhole.sinks.mongosink.Data2MongoSink"
       case "phoenix" => "edp.wormhole.sinks.phoenixsink.Data2PhoenixSink"
     }
 

@@ -35,7 +35,7 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.service.util.CacheMap
-import edp.rider.spark.SparkJobClientLog
+import edp.rider.spark.{SparkJobClientLog, SubmitSparkJob}
 import edp.rider.spark.SubmitSparkJob.{generateStreamStartSh, getConfig, riderLogger, runShellCommand}
 import edp.wormhole.common.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
@@ -722,6 +722,8 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                                   val streamType = streamSeqTopic.stream.streamType //config relative
                                   val args = getConfig(streamId, streamName, brokers, launchConfig)
                                   val commandSh = generateStreamStartSh(args, streamName, startConfig, sparkConfig, streamType)
+                                  runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(stream.name)}")
+
                                   riderLogger.info(s"start stream command: $commandSh")
                                   runShellCommand(commandSh)
                                   val startTime = if (stream.startedTime.getOrElse("") == "") null else stream.startedTime
