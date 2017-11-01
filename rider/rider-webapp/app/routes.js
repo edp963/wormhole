@@ -34,6 +34,7 @@ import Namespace from './containers/Namespace'
 import Instance from './containers/Instance'
 import DataBase from './containers/DataBase'
 import User from './containers/User'
+import Udf from './containers/Udf'
 import RiderInfo from './containers/RiderInfo'
 
 import Workbench from './containers/Workbench'
@@ -74,6 +75,10 @@ export default function createRoutes (store) {
       path: 'users',
       name: 'users',
       components: User
+    }, {
+      path: 'udf',
+      name: 'udf',
+      components: Udf
     }, {
       path: 'riderInfo',
       name: 'riderInfo',

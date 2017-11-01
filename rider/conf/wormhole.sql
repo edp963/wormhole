@@ -149,6 +149,18 @@ CREATE TABLE IF NOT EXISTS `rel_project_udf` (
   UNIQUE INDEX `rel_project_udf_UNIQUE` (`project_id` ASC, `udf_id` ASC))
 ENGINE = InnoDB;
 
+CREATE TABLE IF NOT EXISTS `rel_stream_udf` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `stream_id` BIGINT NOT NULL,
+  `udf_id` BIGINT NOT NULL,
+  `create_time` TIMESTAMP NOT NULL,
+  `create_by` BIGINT NOT NULL,
+  `update_time` TIMESTAMP NOT NULL,
+  `update_by` BIGINT NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `rel_stream_udf_UNIQUE` (`stream_id` ASC, `udf_id` ASC))
+ENGINE = InnoDB;
+
 CREATE TABLE IF NOT EXISTS `dbus_setting` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(200) NOT NULL,

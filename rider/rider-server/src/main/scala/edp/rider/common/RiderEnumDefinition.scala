@@ -36,16 +36,17 @@ object FlowStatus extends Enumeration {
   def flowStatus(s: String) = FlowStatus.withName(s.toLowerCase)
 }
 
-object FlowAction extends Enumeration {
-  type FlowAction = Value
+object Action extends Enumeration {
+  type Action = Value
 
   val REFRESH = Value("refresh")
   val START = Value("start")
   val STOP = Value("stop")
   val MODIFY = Value("modify")
   val RENEW = Value("renew")
+  val DELETE = Value("dele")
 
-  def flowAction(s: String) = FlowAction.withName(s.toLowerCase)
+  def action(s: String) = Action.withName(s.toLowerCase)
 }
 
 object StreamRefresh extends Enumeration {
@@ -57,8 +58,8 @@ object StreamRefresh extends Enumeration {
 
 }
 
-object SparkRiderStatus extends Enumeration {
-  type SparkRiderStatus = Value
+object StreamStatus extends Enumeration {
+  type StreamStatus = Value
 
   val NEW = Value("new")
   val STARTING = Value("starting")
@@ -70,7 +71,7 @@ object SparkRiderStatus extends Enumeration {
   val FINISHED = Value("finished")
   val DONE = Value("done")
 
-  def sparkRiderStatus(s: String) = SparkRiderStatus.withName(s.toLowerCase)
+  def streamStatus(s: String) = StreamStatus.withName(s.toLowerCase)
 }
 
 object DbPermission extends Enumeration {
@@ -93,5 +94,5 @@ object SparkAppStatus extends Enumeration {
   val FAILED = Value("failed")
   val FINISHED = Value("FINISHED")
 
-  def sparkAppStatus(s: String) = SparkRiderStatus.withName(s.toUpperCase)
+  def sparkAppStatus(s: String) = StreamStatus.withName(s.toUpperCase)
 }

@@ -35,9 +35,8 @@ import io.swagger.annotations.{ApiResponses, _}
 @Api(value = "/streams", consumes = "application/json", produces = "application/json")
 @Path("/user/projects")
 class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
-  lazy val routes: Route = getStreamByAllRoute ~ putStreamRoute ~ postStreamRoute ~ getKafkasByProjectId ~
-    getTopicsByStreamId ~ getTopicsByInstanceId ~ putStreamInTopicRoute ~ getStreamById ~ getStreamStart ~
-    getStreamStop ~ getStreamRenew ~ getLogByStreamId ~ getConf ~ deleteStream
+  lazy val routes: Route = getStreamByAllRoute ~ putStreamRoute ~ postStreamRoute ~ renewRoute ~
+    getStreamById ~ getLogByStreamId ~ stop ~ startRoute ~ deleteStream ~ getConf ~ getLatestOffset
 
   lazy val basePath = "projects"
 
@@ -56,7 +55,7 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
     new ApiResponse(code = 500, message = "internal server error"),
     new ApiResponse(code = 501, message = "the request url is not supported")
   ))
-  def getStreamByAllRoute: Route = modules.streamUserService.getByAllRoute(basePath)
+  def getStreamByAllRoute: Route = modules.streamUserService.getByFilterRoute(basePath)
 
 
   @Path("/{id}/streams/{streamId}/")
@@ -79,7 +78,7 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
   @ApiOperation(value = "update stream of the system", notes = "", nickname = "", httpMethod = "PUT")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "streamTopic", value = "Stream object to be updated", required = true, dataType = "edp.rider.rest.persistence.entities.StreamTopic", paramType = "body")
+    new ApiImplicitParam(name = "streamTopic", value = "Stream object to be updated", required = true, dataType = "edp.rider.rest.persistence.entities.PutStream", paramType = "body")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "put success"),
@@ -106,39 +105,7 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
     new ApiResponse(code = 500, message = "internal server error"),
     new ApiResponse(code = 409, message = "duplicate key")
   ))
-  def postStreamRoute: Route = modules.streamUserService.postStreamRoute(basePath)
-
-  @Path("/{id}/instances/kafka")
-  @ApiOperation(value = "get kafkas by project id", notes = "", nickname = "", httpMethod = "GET")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path")
-    //    new ApiImplicitParam(name = "type", value = "instance type", required = false, dataType = "string", paramType = "query", allowMultiple = true)
-  ))
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "OK"),
-    new ApiResponse(code = 401, message = "authorization error"),
-    new ApiResponse(code = 403, message = "user is not normal"),
-    new ApiResponse(code = 451, message = "request process failed"),
-    new ApiResponse(code = 500, message = "internal server error")
-  ))
-  def getKafkasByProjectId: Route = modules.streamUserService.getKafkasByProjectId(basePath)
-
-
-  @Path("/{id}/streams/{streamId}/intopics/")
-  @ApiOperation(value = "get one stream topics by stream id", notes = "", nickname = "", httpMethod = "GET")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path")
-  ))
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "OK"),
-    new ApiResponse(code = 401, message = "authorization error"),
-    new ApiResponse(code = 403, message = "user is not normal"),
-    new ApiResponse(code = 451, message = "request process failed"),
-    new ApiResponse(code = 500, message = "internal server error")
-  ))
-  def getTopicsByStreamId: Route = modules.streamUserService.getTopicsByStreamId(basePath)
-
+  def postStreamRoute: Route = modules.streamUserService.postRoute(basePath)
 
   @Path("/{id}/streams/{streamId}/logs/")
   @ApiOperation(value = "get stream log by stream id", notes = "", nickname = "", httpMethod = "GET")
@@ -155,58 +122,25 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
   ))
   def getLogByStreamId: Route = modules.streamUserService.getLogByStreamId(basePath)
 
-  @Path("/{id}/instances/{instanceId}/databases/")
-  @ApiOperation(value = "select topics for the stream", notes = "", nickname = "", httpMethod = "GET")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "instanceId", value = "instance id", required = true, dataType = "integer", paramType = "path")
-  ))
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "OK"),
-    new ApiResponse(code = 401, message = "authorization error"),
-    new ApiResponse(code = 403, message = "user is not normal"),
-    new ApiResponse(code = 451, message = "request process failed"),
-    new ApiResponse(code = 500, message = "internal server error")
-  ))
-  def getTopicsByInstanceId: Route = modules.streamUserService.getTopicsByInstanceId(basePath)
-
-
-  @Path("/{id}/streams/{streamId}/intopics/")
-  @ApiOperation(value = "update stream in topic in the system", notes = "", nickname = "", httpMethod = "PUT")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "streamIntopic", value = "Stream object to be added", required = true, dataType = "edp.rider.rest.persistence.entities.StreamInTopic", paramType = "body")
-  ))
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "put success"),
-    new ApiResponse(code = 403, message = "user is not normal"),
-    new ApiResponse(code = 401, message = "authorization error"),
-    new ApiResponse(code = 451, message = "request process failed"),
-    new ApiResponse(code = 500, message = "internal server error")
-  ))
-  def putStreamInTopicRoute: Route = modules.streamUserService.putStreamInTopicRoute(basePath)
-
-
   @Path("/{id}/streams/{streamId}/start")
   @ApiOperation(value = "start stream by id", notes = "", nickname = "", httpMethod = "PUT")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "simpleTopics", value = "topics information", required = true, dataType = "edp.rider.rest.persistence.entities.SimpleTopic", paramType = "body")
+    new ApiImplicitParam(name = "streamDirective", value = "topics offset and udfs information", required = false, dataType = "edp.rider.rest.persistence.entities.StreamDirective", paramType = "body")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "action is forbidden"),
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getStreamStart: Route = modules.streamUserService.getStreamStarted(basePath)
-
+  def startRoute: Route = modules.streamUserService.startRoute(basePath)
 
   @Path("/{id}/streams/{streamId}/stop")
-  @ApiOperation(value = "stop stream by id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiOperation(value = "stop stream by id", notes = "", nickname = "", httpMethod = "PUT")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path")
@@ -215,26 +149,28 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
     new ApiResponse(code = 200, message = "OK"),
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "action is forbidden"),
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getStreamStop: Route = modules.streamUserService.getStreamStopped(basePath)
+  def stop: Route = modules.streamUserService.stopRoute(basePath)
 
   @Path("/{id}/streams/{streamId}/renew")
-  @ApiOperation(value = "update topic directive to zk by stream id", notes = "", nickname = "", httpMethod = "PUT")
+  @ApiOperation(value = "update topic and add udf directive to zk by stream id", notes = "", nickname = "", httpMethod = "PUT")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "simpleTopics", value = "topics information", required = true, dataType = "edp.rider.rest.persistence.entities.SimpleTopic", paramType = "body")
+    new ApiImplicitParam(name = "streamDirective", value = "update topics offset and add udf information", required = true, dataType = "edp.rider.rest.persistence.entities.StreamDirective", paramType = "body")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "action is forbidden"),
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getStreamRenew: Route = modules.streamUserService.getStreamRenew(basePath)
+  def renewRoute: Route = modules.streamUserService.renewRoute(basePath)
 
   @Path("/{id}/streams/{streamId}/delete")
   @ApiOperation(value = "delete stream by id", notes = "", nickname = "", httpMethod = "PUT")
@@ -252,6 +188,7 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
   ))
   def deleteStream: Route = modules.streamUserService.deleteStream(basePath)
 
+
   @Path("/streams/default/config")
   @ApiOperation(value = "get one stream started by id", notes = "", nickname = "", httpMethod = "GET")
   @ApiResponses(Array(
@@ -263,5 +200,20 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
   ))
   def getConf: Route = modules.streamUserService.getConfList(basePath)
 
-
+  @Path("/{id}/streams/{streamId}/topics/{topicId}/offsets/latest")
+  @ApiOperation(value = "get topic latest offset", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "topicId", value = "topic id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "partition", value = "partition number", required = false, dataType = "integer", paramType = "query")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getLatestOffset: Route = modules.streamUserService.getLatestOffset(basePath)
 }

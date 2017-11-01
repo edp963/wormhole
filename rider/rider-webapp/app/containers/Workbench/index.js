@@ -30,6 +30,7 @@ import Flow from '../Flow'
 import Manager from '../Manager'
 import Namespace from '../Namespace'
 import User from '../User'
+import Udf from '../Udf'
 import Resource from '../Resource'
 
 import WorkbenchFlowForm from './WorkbenchFlowForm'
@@ -53,6 +54,7 @@ import {loadUserStreams, loadAdminSingleStream, loadStreamNameValue, loadKafka, 
 import {loadSelectNamespaces, loadUserNamespaces} from '../Namespace/action'
 import {loadUserUsers, loadSelectUsers} from '../User/action'
 import {loadResources} from '../Resource/action'
+import {loadSingleUdf} from '../Udf/action'
 
 import { selectFlows, selectFlowSubmitLoading, selectSourceToSinkExited } from '../Flow/selectors'
 import { selectStreams, selectStreamSubmitLoading, selectStreamNameExited } from '../Manager/selectors'
@@ -75,6 +77,7 @@ export class Workbench extends React.Component {
       namespaceClassHide: 'hide',
       flowClassHide: 'hide',
       streamClassHide: 'hide',
+      udfClassHide: 'hide',
 
       // Stream Form
       isWormhole: true,
@@ -157,7 +160,7 @@ export class Workbench extends React.Component {
       hdfslogSinkNsValue: '',
 
       flowKafkaInstanceValue: '',
-      flowKafkaTopicValue: '',
+      // flowKafkaTopicValue: '',
 
       sinkConfigMsg: ''
     }
@@ -184,7 +187,7 @@ export class Workbench extends React.Component {
   changeTag = (key) => {
     const { projectId } = this.state
     const { onLoadAdminSingleFlow, onLoadUserAllFlows, onLoadAdminSingleStream, onLoadUserStreams } = this.props
-    const { onLoadSelectNamespaces, onLoadUserNamespaces, onLoadSelectUsers, onLoadUserUsers, onLoadResources } = this.props
+    const { onLoadSelectNamespaces, onLoadUserNamespaces, onLoadSelectUsers, onLoadUserUsers, onLoadResources, onLoadSingleUdf } = this.props
     let roleTypeTemp = localStorage.getItem('loginRoleType')
 
     if (key === 'flow') {
@@ -217,6 +220,12 @@ export class Workbench extends React.Component {
       } else if (roleTypeTemp === 'user') {
         onLoadResources(projectId, 'user')
       }
+    } else if (key === 'udf') {
+      if (roleTypeTemp === 'admin') {
+        onLoadSingleUdf(projectId, 'admin', () => {})
+      } else if (roleTypeTemp === 'user') {
+        onLoadSingleUdf(projectId, 'user', () => {})
+      }
     }
   }
 
@@ -237,21 +246,15 @@ export class Workbench extends React.Component {
   /**
    * hdfslog namespace
    * */
-  initialHdfslogCascader = (value) => {
-    this.setState({
-      hdfslogSinkNsValue: value.join('.')
-    })
-  }
-
+  initialHdfslogCascader = (value) => this.setState({ hdfslogSinkNsValue: value.join('.') })
   /**
    * 新增Flow时，获取 default type source namespace 下拉框
    * */
   onInitSourceTypeNamespace = (projectId, value, type) => {
     const { flowMode, pipelineStreamId } = this.state
 
-    this.setState({
-      sourceTypeNamespaceData: []
-    })
+    this.setState({ sourceTypeNamespaceData: [] })
+
     if (pipelineStreamId !== 0) {
       this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, value, type, (result) => {
         this.setState({
@@ -333,9 +336,8 @@ export class Workbench extends React.Component {
   onInitTransformSinkTypeNamespace = (projectId, value, type) => {
     const { pipelineStreamId } = this.state
 
-    this.setState({
-      transformSinkTypeNamespaceData: []
-    })
+    this.setState({ transformSinkTypeNamespaceData: [] })
+
     if (pipelineStreamId !== 0) {
       this.props.onLoadTranSinkTypeNamespace(projectId, this.state.pipelineStreamId, value, type, (result) => {
         this.setState({
@@ -499,26 +501,18 @@ export class Workbench extends React.Component {
   // 控制 result field show／hide
   initResultFieldClass = (e) => {
     if (e.target.value === 'selected') {
-      this.setState({
-        fieldSelected: ''
-      })
+      this.setState({ fieldSelected: '' })
     } else if (e.target.value === 'all') {
-      this.setState({
-        fieldSelected: 'hide'
-      })
+      this.setState({ fieldSelected: 'hide' })
     }
   }
 
   // 控制 data frame number show／hide
   initDataShowClass = (e) => {
     if (e.target.value === 'true') {
-      this.setState({
-        dataframeShowSelected: ''
-      })
+      this.setState({ dataframeShowSelected: '' })
     } else {
-      this.setState({
-        dataframeShowSelected: 'hide'
-      })
+      this.setState({ dataframeShowSelected: 'hide' })
     }
   }
 
@@ -549,13 +543,9 @@ export class Workbench extends React.Component {
 
   onInitStreamTypeSelect = (val) => {
     if (val === 'default') {
-      this.setState({
-        streamDiffType: 'default'
-      })
+      this.setState({ streamDiffType: 'default' })
     } else if (val === 'hdfslog') {
-      this.setState({
-        streamDiffType: 'hdfslog'
-      })
+      this.setState({ streamDiffType: 'hdfslog' })
     }
 
     // 显示 Stream 信息
@@ -569,14 +559,14 @@ export class Workbench extends React.Component {
         message.warning('请先新建相应类型的 Stream！', 3)
         this.setState({
           pipelineStreamId: 0,
-          flowKafkaInstanceValue: '',
-          flowKafkaTopicValue: ''
+          flowKafkaInstanceValue: ''
+          // flowKafkaTopicValue: ''
         })
       } else {
         this.setState({
           pipelineStreamId: result[0].id,
-          flowKafkaInstanceValue: result[0].kafka,
-          flowKafkaTopicValue: result[0].topics
+          flowKafkaInstanceValue: result[0].kafka
+          // flowKafkaTopicValue: result[0].topics
         })
         this.workbenchFlowForm.setFieldsValue({
           flowStreamId: result[0].id,
@@ -596,8 +586,8 @@ export class Workbench extends React.Component {
     const selName = selectStreamKafkaTopicValue.find(s => s.id === Number(valId))
     this.setState({
       pipelineStreamId: Number(valId),
-      flowKafkaInstanceValue: selName.kafka,
-      flowKafkaTopicValue: selName.topics
+      flowKafkaInstanceValue: selName.kafka
+      // flowKafkaTopicValue: selName.topics
     })
 
     if (streamDiffType === 'default') {
@@ -621,17 +611,13 @@ export class Workbench extends React.Component {
   }
 
   showCopyFlowWorkbench = (flow) => {
-    this.setState({
-      flowMode: 'copy'
-    })
+    this.setState({ flowMode: 'copy' })
     this.workbenchFlowForm.resetFields()
     this.queryFlowInfo(flow)
   }
 
   showEditFlowWorkbench = (flow) => () => {
-    this.setState({
-      flowMode: 'edit'
-    })
+    this.setState({ flowMode: 'edit' })
 
     new Promise((resolve) => {
       resolve(flow)
@@ -678,7 +664,7 @@ export class Workbench extends React.Component {
           formStep: 0,
           pipelineStreamId: result.streamId,
           flowKafkaInstanceValue: result.kafka,
-          flowKafkaTopicValue: result.topics,
+          // flowKafkaTopicValue: result.topics,
           singleFlowResult: {
             id: result.id,
             projectId: result.projectId,
@@ -698,9 +684,7 @@ export class Workbench extends React.Component {
       .then((result) => {
         // stream name 下拉框内容
         this.props.onLoadSelectStreamKafkaTopic(this.state.projectId, result.streamType, (result) => {
-          this.setState({
-            selectStreamKafkaTopicValue: result
-          })
+          this.setState({ selectStreamKafkaTopicValue: result })
         })
 
         const sourceNsArr = result.sourceNs.split('.')
@@ -917,7 +901,7 @@ export class Workbench extends React.Component {
           pipelineStreamId: result.streamId,
           hdfslogSinkNsValue: this.state.flowMode === 'copy' ? '' : result.sinkNs,
           flowKafkaInstanceValue: result.kafka,
-          flowKafkaTopicValue: result.topics,
+          // flowKafkaTopicValue: result.topics,
           singleFlowResult: {
             id: result.id,
             projectId: result.projectId,
@@ -937,9 +921,7 @@ export class Workbench extends React.Component {
       .then((result) => {
         // stream name 下拉框内容
         this.props.onLoadSelectStreamKafkaTopic(this.state.projectId, result.streamType, (result) => {
-          this.setState({
-            selectStreamKafkaTopicValue: result
-          })
+          this.setState({ selectStreamKafkaTopicValue: result })
         })
         const sourceNsArr = result.sourceNs.split('.')
 
@@ -958,6 +940,10 @@ export class Workbench extends React.Component {
   onKafkaTypeSelect = (valId) => {
     // 根据所选的 Kafka 显示 Topics
     this.props.onLoadTopics(this.state.projectId, valId, (result) => {
+      result.unshift({
+        id: -1,
+        name: '全选'
+      })
       this.setState({
         kafkaInstanceId: valId,
         topicsValues: result
@@ -989,9 +975,7 @@ export class Workbench extends React.Component {
 
     // 显示 Kafka
     this.props.onLoadkafka(this.state.projectId, (result) => {
-      this.setState({
-        kafkaValues: result
-      })
+      this.setState({ kafkaValues: result })
     })
   }
 
@@ -1052,18 +1036,12 @@ export class Workbench extends React.Component {
       .then((result) => {
         // 回显全部的topics
         this.props.onLoadTopics(this.state.projectId, result[0].stream.instanceId, (topicsResult) => {
-          this.setState({
-            topicsValues: topicsResult
-          })
+          this.setState({ topicsValues: topicsResult })
         })
       })
   }
 
-  hideStreamWorkbench = () => {
-    this.setState({
-      streamMode: ''
-    })
-  }
+  hideStreamWorkbench = () => this.setState({ streamMode: '' })
 
   /**
    * Stream Config Modal
@@ -1118,11 +1096,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  hideConfigModal = () => {
-    this.setState({
-      streamConfigModalVisible: false
-    })
-  }
+  hideConfigModal = () => this.setState({ streamConfigModalVisible: false })
 
   onConfigModalOk = () => {
     this.streamConfigForm.validateFieldsAndScroll((err, values) => {
@@ -1166,11 +1140,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  hideFlowWorkbench = () => {
-    this.setState({
-      flowMode: ''
-    })
-  }
+  hideFlowWorkbench = () => this.setState({ flowMode: '' })
 
   /**
    *  JSON 格式校验
@@ -1208,6 +1178,7 @@ export class Workbench extends React.Component {
   // 验证 source to sink 存在性
   loadSTSExit (values) {
     const { flowMode } = this.state
+
     if (flowMode === 'add' || flowMode === 'copy') {
       // 新增flow时验证source to sink 是否存在
       const sourceInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
@@ -1329,16 +1300,12 @@ export class Workbench extends React.Component {
           const sourceInfo = [values.sourceDataSystem, values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2], '*', '*', '*'].join('.')
           const sinkInfo = sourceInfo
           this.props.onLoadSourceToSinkExist(projectId, sourceInfo, sinkInfo, () => {
-            this.setState({
-              formStep: this.state.formStep + 2
-            })
+            this.setState({ formStep: this.state.formStep + 2 })
           }, () => {
             message.error('Source to Sink 已存在！', 3)
           })
         } else if (flowMode === 'edit') {
-          this.setState({
-            formStep: this.state.formStep + 2
-          })
+          this.setState({ formStep: this.state.formStep + 2 })
         }
       }
     })
@@ -1347,13 +1314,9 @@ export class Workbench extends React.Component {
   backwardStep = () => {
     const { streamDiffType, formStep } = this.state
     if (streamDiffType === 'default') {
-      this.setState({
-        formStep: formStep - 1
-      })
+      this.setState({ formStep: formStep - 1 })
     } else if (streamDiffType === 'hdfslog') {
-      this.setState({
-        formStep: formStep - 2
-      })
+      this.setState({ formStep: formStep - 2 })
     }
   }
 
@@ -1465,8 +1428,8 @@ export class Workbench extends React.Component {
             // onchange 事件影响，Promise 解决
             this.workbenchFlowForm.resetFields()
             this.setState({
-              flowKafkaInstanceValue: '',
-              flowKafkaTopicValue: ''
+              flowKafkaInstanceValue: ''
+              // flowKafkaTopicValue: ''
             })
           })
       }
@@ -1497,8 +1460,8 @@ export class Workbench extends React.Component {
         .then(() => {
           this.workbenchFlowForm.resetFields()
           this.setState({
-            flowKafkaInstanceValue: '',
-            flowKafkaTopicValue: ''
+            flowKafkaInstanceValue: ''
+            // flowKafkaTopicValue: ''
           })
         })
     }
@@ -1564,11 +1527,7 @@ export class Workbench extends React.Component {
     }
   }
 
-  hideFlowSubmit = () => {
-    this.setState({
-      flowMode: ''
-    })
-  }
+  hideFlowSubmit = () => this.setState({ flowMode: '' })
 
   submitStreamForm = () => {
     const { projectId, streamMode, streamConfigValues, streamConfigCheck, streamQueryValues } = this.state
@@ -1618,9 +1577,7 @@ export class Workbench extends React.Component {
 
           this.props.onEditStream(requestEditValues, () => {
             message.success('Stream 修改成功！', 3)
-            this.setState({
-              streamMode: ''
-            })
+            this.setState({ streamMode: '' })
             this.hideStreamSubmit()
           }, (result) => {
             message.error(`操作错误：${result}`, 3)
@@ -1644,18 +1601,10 @@ export class Workbench extends React.Component {
   /**
    * Flow Transformation Modal
    * */
-  onShowTransformModal = () => {
-    this.setState({
-      transformModalVisible: true
-    })
-  }
+  onShowTransformModal = () => this.setState({ transformModalVisible: true })
 
   // 将 transformValue 放在上一级，来控制 transformatio type 显示不同的内容
-  onInitTransformValue = (value) => {
-    this.setState({
-      transformValue: value
-    })
-  }
+  onInitTransformValue = (value) => this.setState({ transformValue: value })
 
   onEditTransform = (record) => (e) => {
     // 加隐藏字段获得 record.transformType
@@ -1861,9 +1810,7 @@ export class Workbench extends React.Component {
                 tableSourceArr[i].order = tableSourceArr[i].order + 1
               }
               // 重新setState数组
-              this.setState({
-                flowFormTransformTableSource: tableSourceArr
-              })
+              this.setState({ flowFormTransformTableSource: tableSourceArr })
             }
             this.tranModalOkSuccess()
           }
@@ -1878,7 +1825,6 @@ export class Workbench extends React.Component {
       transformTableClassName: '',
       transConnectClass: ''
     })
-
     this.hideTransformModal()
   }
 
@@ -1911,9 +1857,7 @@ export class Workbench extends React.Component {
     for (let i = record.order - 1; i < tableSourceArr.length; i++) {
       tableSourceArr[i].order = tableSourceArr[i].order - 1
     }
-    this.setState({
-      flowFormTransformTableSource: tableSourceArr
-    })
+    this.setState({ flowFormTransformTableSource: tableSourceArr })
   }
 
   onUpTransform = (record) => (e) => {
@@ -1949,9 +1893,7 @@ export class Workbench extends React.Component {
 
     tableSourceArr.splice(record.order - 2, 2, beforeArr[0], currentInfo[0])
 
-    this.setState({
-      flowFormTransformTableSource: tableSourceArr
-    })
+    this.setState({ flowFormTransformTableSource: tableSourceArr })
   }
 
   onDownTransform = (record) => (e) => {
@@ -1987,9 +1929,7 @@ export class Workbench extends React.Component {
 
     tableSourceArr.splice(record.order - 1, 2, currentInfo[0], afterArr[0])
 
-    this.setState({
-      flowFormTransformTableSource: tableSourceArr
-    })
+    this.setState({ flowFormTransformTableSource: tableSourceArr })
   }
 
   /**
@@ -1997,6 +1937,7 @@ export class Workbench extends React.Component {
    * */
   onShowEtpStrategyModal = () => {
     const { etpStrategyCheck, etpStrategyResponseValue } = this.state
+
     this.setState({
       etpStrategyModalVisible: true
     }, () => {
@@ -2014,11 +1955,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  hideEtpStrategyModal = () => {
-    this.setState({
-      etpStrategyModalVisible: false
-    })
-  }
+  hideEtpStrategyModal = () => this.setState({ etpStrategyModalVisible: false })
 
   onEtpStrategyModalOk = () => {
     this.flowEtpStrategyForm.validateFieldsAndScroll((err, values) => {
@@ -2028,7 +1965,6 @@ export class Workbench extends React.Component {
           etpStrategyRequestValue: `"validity":{"check_columns":"${values.checkColumns}","check_rule":"${values.checkRule}","rule_mode":"${values.ruleMode}","rule_params":"${values.ruleParams}","against_action":"${values.againstAction}"}`,
           etpStrategyConfirmValue: `"check_columns":"${values.checkColumns}","check_rule":"${values.checkRule}","rule_mode":"${values.ruleMode}","rule_params":"${values.ruleParams}","against_action":"${values.againstAction}"`
         })
-
         this.hideEtpStrategyModal()
       }
     })
@@ -2055,11 +1991,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  hideSinkConfigModal = () => {
-    this.setState({
-      sinkConfigModalVisible: false
-    })
-  }
+  hideSinkConfigModal = () => this.setState({ sinkConfigModalVisible: false })
 
   onSinkConfigModalOk = () => {
     this.workbenchFlowForm.setFieldsValue({
@@ -2112,7 +2044,6 @@ export class Workbench extends React.Component {
     return (
       <div className="workbench-main-body">
         <Helmet title="Workbench" />
-
         <Tabs
           defaultActiveKey="flow"
           className="ri-tabs"
@@ -2359,7 +2290,15 @@ export class Workbench extends React.Component {
               <User
                 projectIdGeted={this.state.projectId}
                 userClassHide={this.state.userClassHide}
-
+              />
+            </div>
+          </TabPane>
+          {/* Udf Panel */}
+          <TabPane tab="UDF" key="udf" style={{height: `${paneHeight}px`}}>
+            <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
+              <Udf
+                projectIdGeted={this.state.projectId}
+                udfClassHide={this.state.udfClassHide}
               />
             </div>
           </TabPane>
@@ -2415,7 +2354,8 @@ Workbench.propTypes = {
   onLoadSelectNamespaces: React.PropTypes.func,
   onLoadUserUsers: React.PropTypes.func,
   onLoadSelectUsers: React.PropTypes.func,
-  onLoadResources: React.PropTypes.func
+  onLoadResources: React.PropTypes.func,
+  onLoadSingleUdf: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -2429,6 +2369,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadUserUsers: (projectId, resolve) => dispatch(loadUserUsers(projectId, resolve)),
     onLoadSelectUsers: (projectId, resolve) => dispatch(loadSelectUsers(projectId, resolve)),
     onLoadResources: (projectId, roleType) => dispatch(loadResources(projectId, roleType)),
+    onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
     onAddStream: (stream, resolve, reject) => dispatch(addStream(stream, resolve, reject)),
     onEditStream: (stream, resolve, reject) => dispatch(editStream(stream, resolve, reject)),
     onAddFlow: (values, resolve, final) => dispatch(addFlow(values, resolve, final)),
@@ -2444,7 +2385,6 @@ export function mapDispatchToProps (dispatch) {
     onLoadSourceSinkTypeNamespace: (projectId, streamId, value, type, resolve) => dispatch(loadSourceSinkTypeNamespace(projectId, streamId, value, type, resolve)),
     onLoadSinkTypeNamespace: (projectId, streamId, value, type, resolve) => dispatch(loadSinkTypeNamespace(projectId, streamId, value, type, resolve)),
     onLoadTranSinkTypeNamespace: (projectId, streamId, value, type, resolve) => dispatch(loadTranSinkTypeNamespace(projectId, streamId, value, type, resolve)),
-
     onLoadSourceToSinkExist: (projectId, sourceNs, sinkNs, resolve, reject) => dispatch(loadSourceToSinkExist(projectId, sourceNs, sinkNs, resolve, reject))
   }
 }

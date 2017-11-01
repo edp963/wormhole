@@ -121,6 +121,54 @@
   }
 }
 
+.stream-start-form-udf-style {
+  border: 0 !important;
+  background-color: @ri-block-color !important;
+  margin-bottom: 5px;
+
+  .ant-card-head {
+    background-color: rgba(31, 31, 31, 0.25) !important;
+    height: 40px !important;
+    line-height: 40px !important;
+    border: 0 !important;
+  }
+
+  .ant-card-head-title {
+    font-weight: 400;
+    font-size: 12px !important;
+  }
+
+  .ant-card-body {
+    background-color: @ri-bg-color;
+    //padding: 18px 24px !important;
+    padding-top: 15px !important;
+    padding-bottom: 0 !important;
+  }
+
+  .card-content {
+    font-weight: 500;
+  }
+
+  .partition-content {
+    line-height: 32px;
+  }
+
+  .offset-content {
+    height: 32px;
+  }
+
+  label {
+    float: left;
+  }
+
+  .modal-topic-name:after {
+    content: ":";
+    margin: 0 8px 0 2px;
+    position: relative;
+    top: -0.5px;
+  }
+}
+
 .required-offset:before {
   margin-right: 4px;
   content: "*";
@@ -140,4 +188,8 @@
   height: 260px;
   overflow-x: auto;
   word-break: break-all;
+
+  .li-class {
+    font-weight: 700;
+  }
 }
