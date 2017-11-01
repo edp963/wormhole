@@ -200,13 +200,11 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
   ))
   def getConf: Route = modules.streamUserService.getConfList(basePath)
 
-  @Path("/{id}/streams/{streamId}/topics/{topicId}/offsets/latest")
+  @Path("/{id}/streams/{streamId}/topics/offsets/latest")
   @ApiOperation(value = "get topic latest offset", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "topicId", value = "topic id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "partition", value = "partition number", required = false, dataType = "integer", paramType = "query")
+    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),

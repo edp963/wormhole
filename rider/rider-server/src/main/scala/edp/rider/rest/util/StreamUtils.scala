@@ -75,10 +75,10 @@ object StreamUtils extends RiderLogger {
           if (action == "start") AppInfo("", "starting", currentSec, null)
           else if (action == "stop") AppInfo("", "stopping", startedTime, stoppedTime)
           else {
-            //            val endAction =
-            //              if (dbStatus == STARTING.toString) "refresh_log"
-            //              else "refresh_spark"
-            val endAction = "refresh_spark"
+            val endAction =
+              if (dbStatus == STARTING.toString) "refresh_log"
+              else "refresh_spark"
+//            val endAction = "refresh_spark"
             val sparkStatus: AppInfo = endAction match {
               case "refresh_spark" =>
                 getAppStatusByRest(appInfoList, stream.name, stream.status, startedTime, stoppedTime)
@@ -299,7 +299,6 @@ object StreamUtils extends RiderLogger {
 
   def removeAndSendDirective(streamId: Long, topicSeq: Seq[StreamTopicTemp], userId: Long) = {
     try {
-      //      val topicSeq: Seq[SimpleTopic] = modules.streamDal.getSimpleTopicSeq(streamId)
       if (topicSeq.nonEmpty) {
         PushDirective.removeTopicDirective(streamId)
         riderLogger.info(s"user $userId remove topic directive success.")
@@ -383,7 +382,6 @@ object StreamUtils extends RiderLogger {
               case Some(payloadSeq) =>
                 seq ++= payloadSeq.map(
                   payload => {
-                    println("payload: " + payload)
                     StreamZkUdfTemp(payload.tuple(1).toLong, payload.tuple(3), payload.tuple(4), payload.tuple(5).split("/").last)
                   })
               case None =>
