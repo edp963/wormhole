@@ -71,6 +71,7 @@ object SubmitSparkJob extends App with RiderLogger {
 
     val confList: Array[String] = sparkConfig.split(",") :+ s"spark.yarn.tags=${RiderConfig.spark.app_tags}"
     val logPath = getLogPath(streamName)
+    runShellCommand(s"mkdir -p ${RiderConfig.spark.clientLogRootPath}")
     val startShell =
       if (local)
         RiderConfig.spark.startShell.split("\\n").filterNot(line => line.contains("master") || line.contains("deploy-mode"))
@@ -103,7 +104,5 @@ object SubmitSparkJob extends App with RiderLogger {
     println("final:" + submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1")
     println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1"
-
   }
-
 }

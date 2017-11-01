@@ -57,11 +57,13 @@ class SwaggerRoutes extends SwaggerHttpService with HasActorSystem {
     typeOf[FlowAppRoutes],
     typeOf[JobAppRoutes],
     typeOf[UdfAdminRoutes],
-    typeOf[JobUserRoutes]
+    typeOf[JobUserRoutes],
+    typeOf[InstanceUserRoutes],
+    typeOf[UdfUserRoutes]
   )
 
   override val host =
-    if(RiderConfig.riderDomain == null || RiderConfig.riderDomain == "") RiderConfig.riderServer.host + ":" + RiderConfig.riderServer.port
+    if (RiderConfig.riderDomain == null || RiderConfig.riderDomain == "") RiderConfig.riderServer.host + ":" + RiderConfig.riderServer.port
     else RiderConfig.riderDomain.trim.substring(7).stripSuffix("/")
   //the url of your api, not swagger's json endpoint
   override val basePath = "/api/v1"

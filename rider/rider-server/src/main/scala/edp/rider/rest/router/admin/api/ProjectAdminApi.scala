@@ -132,23 +132,28 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
                     riderLogger.info(s"user ${session.userId} insert project success.")
                     val relNsEntity = simple.nsId.split(",").map(nsId => RelProjectNs(0, project.id, nsId.toLong, active = true, currentSec, session.userId, currentSec, session.userId)).toSeq
                     val relUserEntity = simple.userId.split(",").map(userId => RelProjectUser(0, project.id, userId.toLong, active = true, currentSec, session.userId, currentSec, session.userId)).toSeq
-                    val relUdfEntity = simple.udfId.split(",").map(udfId => RelProjectUdf(0, project.id, udfId.toLong, currentSec, session.userId, currentSec, session.userId)).toSeq
+                    val relUdfEntity =
+                      if (simple.udfId != "" && simple.udfId != null)
+                        simple.udfId.split(",").map(udfId => RelProjectUdf(0, project.id, udfId.toLong, currentSec, session.userId, currentSec, session.userId)).toSeq
+                      else null
                     onComplete(relProjectNsDal.insert(relNsEntity).mapTo[Seq[RelProjectNs]]) {
                       case Success(_) =>
                         riderLogger.info(s"user ${session.userId} insert relProjectNs success.")
                         onComplete(relProjectUserDal.insert(relUserEntity).mapTo[Seq[RelProjectUser]]) {
                           case Success(_) =>
                             riderLogger.info(s"user ${session.userId} insert relProjectUser success.")
-                            onComplete(relProjectUdfDal.insert(relUdfEntity).mapTo[Seq[RelProjectUdf]]) {
-                              case Success(_) =>
-                                riderLogger.info(s"user ${session.userId} insert relProjectUdf success.")
-                                if (RiderConfig.grafana != null)
-                                  Dashboard.createDashboard(project.id, simple.name)
-                                complete(OK, ResponseJson[Project](getHeader(200, session), project))
-                              case Failure(ex) =>
-                                riderLogger.error(s"user ${session.userId} insert relProjectUdf failed", ex)
-                                complete(OK, getHeader(451, ex.getMessage, session))
-                            }
+                            if (relUdfEntity != null) {
+                              onComplete(relProjectUdfDal.insert(relUdfEntity).mapTo[Seq[RelProjectUdf]]) {
+                                case Success(_) =>
+                                  riderLogger.info(s"user ${session.userId} insert relProjectUdf success.")
+                                  if (RiderConfig.grafana != null)
+                                    Dashboard.createDashboard(project.id, simple.name)
+                                  complete(OK, ResponseJson[Project](getHeader(200, session), project))
+                                case Failure(ex) =>
+                                  riderLogger.error(s"user ${session.userId} insert relProjectUdf failed", ex)
+                                  complete(OK, getHeader(451, ex.getMessage, session))
+                              }
+                            } else complete(OK, ResponseJson[Project](getHeader(200, session), project))
                           case Failure(ex) =>
                             riderLogger.error(s"user ${session.userId} insert relProjectUdf failed", ex)
                             complete(OK, getHeader(451, ex.getMessage, session))

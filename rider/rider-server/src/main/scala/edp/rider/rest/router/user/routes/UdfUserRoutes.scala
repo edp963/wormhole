@@ -31,15 +31,14 @@ import io.swagger.annotations._
 @Path("/user/projects/")
 class UdfUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
-  lazy val routes: Route = registerUdfByIdRoute ~ removeUdfByIdRoute
+  lazy val routes: Route = getUdfByProjectIdRoute
 
   lazy val basePath = "projects"
 
-  @Path("/{projectId}/udfs/{udfId}/register")
-  @ApiOperation(value = "register udf to project streams", notes = "", nickname = "", httpMethod = "PUT")
+  @Path("/{id}/udfs")
+  @ApiOperation(value = "get udfs of the project", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "udfId", value = "udf id", required = true, dataType = "integer", paramType = "path")
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),
@@ -48,23 +47,6 @@ class UdfUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def registerUdfByIdRoute: Route = modules.flowUserService.getByIdRoute(basePath)
-
-  @Path("/{projectId}/udfs/{udfId}/remove")
-  @ApiOperation(value = "remove udf to project streams", notes = "", nickname = "", httpMethod = "PUT")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "udfId", value = "udf id", required = true, dataType = "integer", paramType = "path")
-  ))
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "OK"),
-    new ApiResponse(code = 401, message = "authorization error"),
-    new ApiResponse(code = 403, message = "user is not normal user"),
-    new ApiResponse(code = 451, message = "request process failed"),
-    new ApiResponse(code = 500, message = "internal server error")
-  ))
-  def removeUdfByIdRoute: Route = modules.flowUserService.getByIdRoute(basePath)
-
-
+  def getUdfByProjectIdRoute: Route = modules.udfUserService.getUdfByProjectId(basePath)
 }
 

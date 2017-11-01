@@ -2,7 +2,7 @@ package edp.rider.rest.util
 
 import edp.rider.RiderStarter.modules
 import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.rest.persistence.entities.{Directive, SimpleUdf}
+import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils.{currentMicroSec, currentSec, minTimeOut}
 import edp.rider.rest.util.StreamUtils.riderLogger
 import edp.rider.zookeeper.PushDirective
@@ -44,7 +44,7 @@ object UdfUtils extends RiderLogger {
     }
   }
 
-  def sendUdfDirective(streamId: Long, udfSeq: Seq[SimpleUdf], userId: Long) = {
+  def sendUdfDirective(streamId: Long, udfSeq: Seq[StreamUdfTemp], userId: Long) = {
     try {
       val directiveSeq = new ArrayBuffer[Directive]
       udfSeq.foreach({
@@ -54,61 +54,61 @@ object UdfUtils extends RiderLogger {
       })
       val directives: Seq[Directive] =
         if (directiveSeq.isEmpty) directiveSeq
-        else {
-          Await.result(modules.directiveDal.insert(directiveSeq), minTimeOut)
-        }
+        else Await.result(modules.directiveDal.insert(directiveSeq), minTimeOut)
+
       directives.foreach({
         directive =>
           val udfInfo = directive.directive.split("#")
           val msg =
-            """
-              |{
-              |  "protocol": {
-              |    "type": "${DIRECTIVE_UDF_ADD.toString}"
-              |  },
-              |  "schema": {
-              |    "namespace": "",
-              |    "fields": [
-              |      {
-              |        "name": "directive_id",
-              |        "type": "long",
-              |        "nullable": false
-              |      },
-              |      {
-              |        "name": "stream_id",
-              |        "type": "long",
-              |        "nullable": false
-              |      },
-              |      {
-              |        "name": "ums_ts_",
-              |        "type": "datetime",
-              |        "nullable": false
-              |      },
-              |      {
-              |        "name": "udf_name",
-              |        "type": "string",
-              |        "nullable": false
-              |      },{
-              |        "name": "udf_class_fullname",
-              |        "type": "string",
-              |        "nullable": false
-              |      },
-              |      {
-              |        "name": "udf_jar_path",
-              |        "type": "string",
-              |        "nullable": true
-              |      }
-              |    ]
-              |  },
-              |  "payload": [
-              |    {
-              |      "tuple": [${directive.id}, ${udfInfo(0)}, "${udfInfo(1)}", "${udfInfo(2)}", "${udfInfo(3)}", "${RiderConfig.udfRootPath}/{udfInfo(4)}"]
-              |    }
-              |  ]
-              |}
-              |
+            s"""
+               |{
+               |  "protocol": {
+               |    "type": "${DIRECTIVE_UDF_ADD.toString}"
+               |  },
+               |  "schema": {
+               |    "namespace": "",
+               |    "fields": [
+               |      {
+               |        "name": "directive_id",
+               |        "type": "long",
+               |        "nullable": false
+               |      },
+               |      {
+               |        "name": "stream_id",
+               |        "type": "long",
+               |        "nullable": false
+               |      },
+               |      {
+               |        "name": "ums_ts_",
+               |        "type": "datetime",
+               |        "nullable": false
+               |      },
+               |      {
+               |        "name": "udf_name",
+               |        "type": "string",
+               |        "nullable": false
+               |      },{
+               |        "name": "udf_class_fullname",
+               |        "type": "string",
+               |        "nullable": false
+               |      },
+               |      {
+               |        "name": "udf_jar_path",
+               |        "type": "string",
+               |        "nullable": true
+               |      }
+               |    ]
+               |  },
+               |  "payload": [
+               |    {
+               |      "tuple": [${directive.id}, ${udfInfo(0)}, "${udfInfo(1)}", "${udfInfo(2)}", "${udfInfo(3)}", "${RiderConfig.udfRootPath}/${udfInfo(4)}"]
+               |    }
+               |  ]
+               |}
+               |
           """.stripMargin.replaceAll("\\n", "")
-          PushDirective.sendUdfDirective(streamId, udfInfo(3), msg)
+          riderLogger.info(s"user $userId send ${DIRECTIVE_UDF_ADD.toString} directive $msg")
+          PushDirective.sendUdfDirective(streamId, udfInfo(2), msg)
       })
       riderLogger.info(s"user $userId send ${DIRECTIVE_UDF_ADD.toString} directives success.")
     } catch {
@@ -118,7 +118,7 @@ object UdfUtils extends RiderLogger {
     }
   }
 
-  def removeUdfDirective(streamId: Long, function: String, userId: Long) = {
+  def removeUdfDirective(streamId: Long, function: Option[String] = None, userId: Long) = {
     try {
       PushDirective.removeUdfDirective(streamId, function)
       riderLogger.info(s"user $userId remove udf directive success.")

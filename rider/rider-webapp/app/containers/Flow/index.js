@@ -138,9 +138,7 @@ export class Flow extends React.Component {
     })
   }
 
-  onSelectChange = (selectedRowKeys) => {
-    this.setState({ selectedRowKeys })
-  }
+  onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
 
   /**
    * 批量操作
@@ -239,37 +237,25 @@ export class Flow extends React.Component {
   }
 
   // start
-  onShowFlowStart = (record, action) => (e) => {
-    this.singleOpreateFlow(record, action)
-  }
+  onShowFlowStart = (record, action) => (e) => this.singleOpreateFlow(record, action)
 
   // stop
-  stopFlowBtn = (record, action) => (e) => {
-    this.singleOpreateFlow(record, action)
-  }
+  stopFlowBtn = (record, action) => (e) => this.singleOpreateFlow(record, action)
 
   // renew
-  updateFlow = (record, action) => (e) => {
-    this.singleOpreateFlow(record, action)
-  }
+  updateFlow = (record, action) => (e) => this.singleOpreateFlow(record, action)
 
   // delete
-  onSingleDeleteFlow = (record, action) => (e) => {
-    this.singleOpreateFlow(record, action)
-  }
+  onSingleDeleteFlow = (record, action) => (e) => this.singleOpreateFlow(record, action)
 
   // backfill
   onShowBackfill =(record) => (e) => {
     this.showTimeModal()
-    this.setState({
-      flowIdTemp: record.id
-    })
+    this.setState({ flowIdTemp: record.id })
   }
 
   // copy
-  onCopyFlow = (record) => (e) => {
-    this.props.onShowCopyFlow(record)
-  }
+  onCopyFlow = (record) => (e) => this.props.onShowCopyFlow(record)
 
   handleFlowChange = (pagination, filters, sorter) => {
     this.setState({
@@ -323,11 +309,7 @@ export class Flow extends React.Component {
     this.flowsDetail.onCancelCleanData()
   }
 
-  handleTimeCancel = (e) => {
-    this.setState({
-      timeModalVisible: false
-    })
-  }
+  handleTimeCancel = (e) => this.setState({ timeModalVisible: false })
 
   handleTimeOk = () => {
     if (this.flowsTime.state.startValue === null) {
@@ -417,11 +399,7 @@ export class Flow extends React.Component {
     }
   }
 
-  handleEndOpenChange = (status) => {
-    this.setState({
-      filterDatepickerShown: status
-    })
-  }
+  handleEndOpenChange = (status) => this.setState({ filterDatepickerShown: status })
 
   onRangeTimeChange = (value, dateString) => {
     this.setState({
@@ -825,7 +803,6 @@ export class Flow extends React.Component {
       key: 'action',
       className: 'text-align-center',
       render: (text, record) => {
-        // admin 用户除查看详情外，无其他action
         let flowRenewDisabled = false
 
         let flStart = ''

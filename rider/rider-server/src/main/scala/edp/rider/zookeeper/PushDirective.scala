@@ -21,9 +21,10 @@
 
 package edp.rider.zookeeper
 
-import edp.rider.common.{RiderConfig, RiderLogger}
+import edp.rider.common.{GetZookeeperDataException, RiderConfig, RiderLogger}
 import edp.wormhole.common.zookeeper.WormholeZkClient
 import edp.rider.RiderStarter.modules
+import kafka.utils.ZkUtils
 
 case class SendDirectiveException(message: String) extends Exception(message)
 
@@ -82,9 +83,32 @@ object PushDirective extends RiderLogger {
     setDataToPath(zkUrl, path, directive)
   }
 
-  def removeUdfDirective(streamId: Long, functionName: String, zkUrl: String = RiderConfig.zk): Unit = {
-    val path = s"$rootPath$streamId$udfDir/$functionName"
+  def removeUdfDirective(streamId: Long, functionName: Option[String], zkUrl: String = RiderConfig.zk): Unit = {
+    val path =
+      functionName match {
+        case Some(function) => s"$rootPath$streamId$udfDir/$function"
+        case None => s"$rootPath$streamId$udfDir"
+      }
     deleteData(zkUrl, path)
+  }
+
+  def getUdfDirective(streamId: Long, zkUrl: String = RiderConfig.zk): Seq[String] = {
+    val path = s"$rootPath$streamId$udfDir"
+    getData(zkUrl, path)
+  }
+
+  private def getData(zkUrl: String = RiderConfig.zk, path: String): Seq[String] = {
+    try {
+      if (WormholeZkClient.checkExist(zkUrl, path)) {
+        val childSeq = WormholeZkClient.getChildren(zkUrl, path)
+        childSeq.map(child => new String(WormholeZkClient.getData(zkUrl, s"$path/$child")))
+      }
+      else throw GetZookeeperDataException(s"zk path $path didn't exist")
+    } catch {
+      case e: Exception =>
+        riderLogger.error(s"get zk $zkUrl path $path data failed", e)
+        throw GetZookeeperDataException(e.getMessage, e.getCause)
+    }
   }
 
   private def deleteData(zkUrl: String = RiderConfig.zk, path: String): Unit = {

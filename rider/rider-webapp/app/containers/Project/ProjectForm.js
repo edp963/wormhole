@@ -72,7 +72,7 @@ export class ProjectForm extends React.Component {
     return (
       <Form>
         <Row gutter={8}>
-          <Col span={12}>
+          <Col span={24}>
             <Card title="项目信息" className="project-form-card-style project-form-card-style-left">
               <FormItem className="hide">
                 {getFieldDecorator('id', {
@@ -112,7 +112,7 @@ export class ProjectForm extends React.Component {
             </Card>
           </Col>
 
-          <Col span={12}>
+          <Col span={24}>
             <Card title="项目资源" className="project-form-card-style project-form-card-style-right">
               <FormItem label="CPU上限" {...itemStyle}>
                 {getFieldDecorator('resCores', {

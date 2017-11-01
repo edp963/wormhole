@@ -24,7 +24,7 @@ package edp.rider.rest.router.admin.api
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
-import edp.rider.rest.persistence.base.BaseDal
+import scala.language.postfixOps
 import edp.rider.rest.persistence.dal.{RelProjectUdfDal, UdfDal}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.JsonProtocol._
@@ -53,7 +53,7 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
             onComplete(udfDal.getUdfProject.mapTo[Seq[UdfProject]]) {
               case Success(udfProjects) =>
                 riderLogger.info(s"user ${session.userId} select all $route success.")
-                complete(OK, ResponseSeqJson[UdfProject](getHeader(200, session), udfProjects))
+                complete(OK, ResponseSeqJson[UdfProject](getHeader(200, session), udfProjects.sortBy(_.pubic).reverse.sortBy(_.functionName)))
               case Failure(ex) =>
                 riderLogger.error(s"user ${session.userId} select all $route failed", ex)
                 complete(OK, getHeader(451, ex.getMessage, session))
@@ -264,7 +264,7 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
         riderLogger.info(s"user ${
           session.userId
         } find all non public udfs success")
-        complete(OK, ResponseSeqJson(getHeader(200, session), udfs))
+        complete(OK, ResponseSeqJson(getHeader(200, session), udfs.sortBy(_.functionName)))
       case Failure(ex) =>
         riderLogger.error(s"user ${
           session.userId
@@ -276,29 +276,62 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
   def getByProjectIdRoute(route: String): Route = path(route / LongNumber / "udfs") {
     id =>
       get {
-        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
-          session =>
-            if (session.roleType != "admin") {
-              riderLogger.warn(s"${
-                session.userId
-              } has no permission to access it.")
-              complete(OK, getHeader(403, session))
-            }
-            else {
-              onComplete(relProjectUdfDal.getUdfByProjectId(id).mapTo[Seq[Udf]]) {
-                case Success(udfs) =>
-                  riderLogger.info(s"user ${
+        parameter('public.as[Boolean] ?) {
+          publicOpt =>
+            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+              session =>
+                if (session.roleType != "admin") {
+                  riderLogger.warn(s"${
                     session.userId
-                  } select all udfs where project id is $id success.")
-                  complete(OK, ResponseSeqJson[Udf](getHeader(200, session), udfs.sortBy(_.functionName)))
-                case Failure(ex) =>
-                  riderLogger.error(s"user ${
-                    session.userId
-                  } select all udfs where project id is $id failed", ex)
-                  complete(OK, getHeader(451, ex.getMessage, session))
-              }
+                  } has no permission to access it.")
+                  complete(OK, getHeader(403, session))
+                }
+                else {
+                  publicOpt match {
+                    case Some(false) =>
+                      onComplete(relProjectUdfDal.getNonPublicUdfByProjectId(id).mapTo[Seq[Udf]]) {
+                        case Success(udfs) =>
+                          riderLogger.info(s"user ${
+                            session.userId
+                          } select all udfs where project id is $id success.")
+                          complete(OK, ResponseSeqJson[Udf](getHeader(200, session), udfs.sortBy(_.functionName)))
+                        case Failure(ex) =>
+                          riderLogger.error(s"user ${
+                            session.userId
+                          } select all udfs where project id is $id failed", ex)
+                          complete(OK, getHeader(451, ex.getMessage, session))
+                      }
+                    case Some(true) =>
+                      onComplete(udfDal.findByFilter(_.public === true).mapTo[Seq[Udf]]) {
+                        case Success(udfs) =>
+                          riderLogger.info(s"user ${
+                            session.userId
+                          } select all udfs where project id is $id success.")
+                          complete(OK, ResponseSeqJson[Udf](getHeader(200, session), udfs.sortBy(_.functionName)))
+                        case Failure(ex) =>
+                          riderLogger.error(s"user ${
+                            session.userId
+                          } select all udfs where project id is $id failed", ex)
+                          complete(OK, getHeader(451, ex.getMessage, session))
+                      }
+                    case None =>
+                      onComplete(relProjectUdfDal.getUdfByProjectId(id).mapTo[Seq[Udf]]) {
+                        case Success(udfs) =>
+                          riderLogger.info(s"user ${
+                            session.userId
+                          } select all udfs where project id is $id success.")
+                          complete(OK, ResponseSeqJson[Udf](getHeader(200, session), udfs.sortBy(_.pubic).reverse.sortBy(_.functionName)))
+                        case Failure(ex) =>
+                          riderLogger.error(s"user ${
+                            session.userId
+                          } select all udfs where project id is $id failed", ex)
+                          complete(OK, getHeader(451, ex.getMessage, session))
+                      }
+                  }
+                }
             }
         }
       }
   }
+
 }

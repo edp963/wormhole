@@ -27,9 +27,10 @@ import Col from 'antd/lib/col'
 import Table from 'antd/lib/table'
 import Input from 'antd/lib/input'
 import Tooltip from 'antd/lib/tooltip'
+import Popover from 'antd/lib/popover'
+import Icon from 'antd/lib/icon'
 import Button from 'antd/lib/button'
 import Popconfirm from 'antd/lib/popconfirm'
-import message from 'antd/lib/message'
 const FormItem = Form.Item
 import Select from 'antd/lib/select'
 const Option = Select.Option
@@ -78,7 +79,6 @@ export class NamespaceForm extends React.Component {
   }
 
   onHandleChangeDatabase = (e) => {
-    message.warning('Kafka 时，Table 为 ums schema.namespace 中的第四层，如: ums schema.namespace 为 kafka.test.test1.test2.*.*.*, table为test2', 5)
     this.props.cleanNsTableData()
   }
 
@@ -144,6 +144,28 @@ export class NamespaceForm extends React.Component {
     const namespaceTablePlace = namespaceDSValue === 'es' ? 'Type' : 'Table'
     const disabledKeyOrNot = namespaceDSValue === 'hbase'
     const namespaceKeyPlaceholder = namespaceDSValue === 'kafka' ? '多个数据主键用逗号隔开' : '多个业务主键用逗号隔开'
+
+    const questionOrNot = namespaceDSValue === 'kafka'
+      ? (
+        <Tooltip title="帮助">
+          <Popover
+            placement="top"
+            content={<div style={{ width: '400px', height: '38px' }}>
+              <p>Kafka 时，Table 为 ums schema.namespace 中的第四层，如: ums schema.namespace 为 kafka.test.test1.test2.*.*.*， table 为 test2</p>
+            </div>}
+            title={<h3>帮助</h3>}
+            trigger="click">
+            <Icon type="question-circle-o" className="question-class" />
+          </Popover>
+        </Tooltip>)
+      : ''
+
+    const namespaceTableMsg = (
+      <span>
+        {namespaceTableLabel}
+        {questionOrNot}
+      </span>
+    )
 
     const columns = [{
       title: 'Table',
@@ -271,7 +293,7 @@ export class NamespaceForm extends React.Component {
 
           <span>
             <Col span={6} className="ns-add-table-label-class">
-              <FormItem label={namespaceTableLabel} style={{ marginRight: '-2px' }}>
+              <FormItem label={namespaceTableMsg} style={{ marginRight: '-2px' }}>
                 {getFieldDecorator('nsTables', {
                   // rules: [{
                   //   required: true,

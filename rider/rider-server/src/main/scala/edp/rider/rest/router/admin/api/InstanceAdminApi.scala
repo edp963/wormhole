@@ -23,19 +23,23 @@ package edp.rider.rest.router.admin.api
 
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
+import de.heikoseeberger.akkahttpjson4s.Json4sSupport.ShouldWritePretty
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.base.BaseDal
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+import org.json4s.DefaultFormats
+import org.json4s.jackson.Serialization
+//import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
 import slick.jdbc.MySQLProfile.api._
 import edp.rider.rest.util.InstanceUtils._
+
 import scala.util.{Failure, Success}
 
-class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends BaseAdminApiImpl(instanceDal) with RiderLogger {
+class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends BaseAdminApiImpl(instanceDal) with RiderLogger with JsonSerializer {
 
   def getByFilterRoute(route: String): Route = path(route) {
     get {
