@@ -43,30 +43,18 @@ class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTab
       .update(status, currentSec)), minTimeOut)
   }
 
+  def updateJobStatusList(appInfoSeq: Seq[(Int, AppInfo)]) = appInfoSeq.foreach { case (jobId, appInfo) => updateJobStatus(jobId, appInfo) }
+
 
   def adminGetRow(projectId: Long): String = {
     Await.result(db.run(projectTable.filter(_.id === projectId).result).mapTo[Seq[Project]], maxTimeOut).head.name
   }
 
-  //  def adminGetAll(visible: Boolean = true) = {
-  //    try {
-  //      defaultGetAll(_.active === true).map[Seq[FlowStreamAdmin]] {
-  //        flowStreams =>
-  //          flowStreams.map {
-  //            flowStream =>
-  //              val project = Await.result(db.run(projectTable.filter(_.id === flowStream.projectId).result).mapTo[Seq[Project]], maxTimeOut).head
-  //              val returnStartedTime = if (flowStream.startedTime.getOrElse("") == "") Some("") else flowStream.startedTime
-  //              val returnStoppedTime = if (flowStream.stoppedTime.getOrElse("") == "") Some("") else flowStream.stoppedTime
-  //              FlowStreamAdmin(flowStream.id, flowStream.projectId, project.name, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol,
-  //                flowStream.sinkConfig, flowStream.tranConfig, returnStartedTime, returnStoppedTime, flowStream.status, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
-  //                flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, flowStream.disableActions, flowStream.msg)
-  //          }
-  //      }
-  //    } catch {
-  //      case ex: Exception =>
-  //        riderLogger.error(s"Failed to get all flows", ex)
-  //        throw ex
-  //    }
-  //
-  //  }
+  def getAllJobs4Project(projectId: Long): Seq[Job] = {
+    Await.result(db.run(jobTable.filter(_.projectId === projectId).result), maxTimeOut)
+  }
+
+  def checkJobNameUnique(jobName: String) = {
+    db.run(jobTable.filter(_.name === jobName).result)
+  }
 }
