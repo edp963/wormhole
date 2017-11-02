@@ -11,7 +11,7 @@ import scala.collection.mutable.ListBuffer
 
 object WormholeGetOffsetShell {
 
-  def getTopicOffsets(brokerList: String, topic: String, time: Long = -1, maxWaitMs: Int = 10000) = {
+  def getTopicOffsets(brokerList: String, topic: String, time: Long = -1, maxWaitMs: Int = 10000): String = {
     try {
       val parser = new OptionParser
       val clientId = "GetOffsetShell"
@@ -31,10 +31,18 @@ object WormholeGetOffsetShell {
               metadata.leader match {
                 case Some(leader) =>
                   val consumer = new SimpleConsumer(leader.host, leader.port, 10000, 100000, clientId)
-                  val topicAndPartition = TopicAndPartition(topic, partitionId)
-                  val request = OffsetRequest(Map(topicAndPartition -> PartitionOffsetRequestInfo(time, 1)))
-                  val offsets = consumer.getOffsetsBefore(request).partitionErrorAndOffsets(topicAndPartition).offsets
-                  offsetSeq += partitionId + ":" + offsets.mkString("").trim
+                  try {
+                    val topicAndPartition = TopicAndPartition(topic, partitionId)
+                    val request = OffsetRequest(Map(topicAndPartition -> PartitionOffsetRequestInfo(time, 1)))
+                    val offsets = consumer.getOffsetsBefore(request).partitionErrorAndOffsets(topicAndPartition).offsets
+                    offsetSeq += partitionId + ":" + offsets.mkString("").trim
+                  } catch {
+                    case _: Exception =>
+                      throw new Exception(s"brokerList $brokerList topic $topic partition $partitionId doesn't have a leader, please verify it.")
+                      ""
+                  } finally {
+                    consumer.close()
+                  }
                 case None =>
                   throw new Exception(s"brokerList $brokerList topic $topic partition $partitionId doesn't have a leader, please verify it.")
                   ""
@@ -44,6 +52,7 @@ object WormholeGetOffsetShell {
               ""
           }
         }
+
         offsetSeq.reverse.mkString(",")
       }
     } catch {
