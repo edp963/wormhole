@@ -188,7 +188,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                               onComplete(streamDal.updateStreamTable(stream).mapTo[Int]) {
                                 case Success(result) =>
                                   riderLogger.info(s"user ${session.userId} update stream success.")
-                                  onComplete(streamDal.getTopicByInstanceId(streamTopic.instanceId).mapTo[Seq[TopicSimple]]) {
+                                  onComplete(streamDal.getTopicByInstanceId(id, streamTopic.instanceId).mapTo[Seq[TopicSimple]]) {
                                     case Success(simpleTopics) =>
                                       riderLogger.info(s"user ${session.userId} select streamInTopics where instance id is ${streamTopic.instanceId} success.")
                                       val topicsInInstance = simpleTopics.map(topic => (topic.id, topic.name)).toMap
@@ -368,7 +368,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
                                     case Some(streamWithBrokers) =>
                                       val brokers = streamWithBrokers.brokers
                                       //                    val topics = simple.topics.split(",").map(topic => topic.toLong)
-                                      onComplete(streamDal.getTopicByInstanceId(simple.instanceId).mapTo[Seq[TopicSimple]]) {
+                                      onComplete(streamDal.getTopicByInstanceId(id, simple.instanceId).mapTo[Seq[TopicSimple]]) {
                                         case Success(simpleTopics) =>
                                           riderLogger.info(s"user ${
                                             session.userId
@@ -824,7 +824,7 @@ class StreamUserApi(streamDal: StreamDal, flowDal: FlowDal, inTopicDal: BaseDal[
             }
             else {
               if (session.projectIdList.contains(id)) {
-                onComplete(streamDal.getTopicByInstanceId(instanceId).mapTo[Seq[TopicSimple]]) {
+                onComplete(streamDal.getTopicByInstanceId(id, instanceId).mapTo[Seq[TopicSimple]]) {
                   case Success(topic) =>
                     riderLogger.info(s"user ${
                       session.userId
