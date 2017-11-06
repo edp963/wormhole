@@ -29,9 +29,9 @@ import edp.rider.common.AppInfo
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 
-class JobDal(jobTable: TableQuery[JobTable]) extends BaseDalImpl[JobTable, Job](jobTable) {
+class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTable]) extends BaseDalImpl[JobTable, Job](jobTable) {
 
   def updateJobStatus(jobId: Long, appInfo: AppInfo) = {
     Await.result(db.run(jobTable.filter(_.id === jobId).map(c => (c.sparkAppid, c.status, c.startedTime, c.stoppedTime, c.updateTime))
@@ -39,7 +39,22 @@ class JobDal(jobTable: TableQuery[JobTable]) extends BaseDalImpl[JobTable, Job](
   }
 
   def updateJobStatus(jobId: Long, status: String) = {
-    Await.result(db.run(jobTable.filter(_.id === jobId).map(c => (c.status,c.updateTime))
+    Await.result(db.run(jobTable.filter(_.id === jobId).map(c => (c.status, c.updateTime))
       .update(status, currentSec)), minTimeOut)
+  }
+
+  def updateJobStatusList(appInfoSeq: Seq[(Int, AppInfo)]) = appInfoSeq.foreach { case (jobId, appInfo) => updateJobStatus(jobId, appInfo) }
+
+
+  def adminGetRow(projectId: Long): String = {
+    Await.result(db.run(projectTable.filter(_.id === projectId).result).mapTo[Seq[Project]], maxTimeOut).head.name
+  }
+
+  def getAllJobs4Project(projectId: Long): Seq[Job] = {
+    Await.result(db.run(jobTable.filter(_.projectId === projectId).result), maxTimeOut)
+  }
+
+  def checkJobNameUnique(jobName: String) = {
+    db.run(jobTable.filter(_.name === jobName).result)
   }
 }

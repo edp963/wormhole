@@ -107,26 +107,25 @@ object AppUtils extends RiderLogger {
       case Left(response) => Left(response)
     }
   }
-
+  //TODO change this function
   def insertOrUpdate(appJob: Option[AppJob], appFlow: Option[AppFlow], sourceNs: String, sinkNs: String, session: SessionClass, projectId: Long, streamId: Option[Long]): (Option[Job], Option[Flow]) = {
     if (appJob.nonEmpty) {
       val jobSearch = Await.result(modules.jobDal.findByFilter(job => job.sourceNs === sourceNs && job.sinkNs === sinkNs), minTimeOut).headOption
       val job =
         if (jobSearch.nonEmpty) {
           val startedTime = Some(currentSec)
-          //            if (jobSearch.get.startedTime.getOrElse("") == "") Some(currentSec) else jobSearch.get.startedTime
           val stoppedTime = if (jobSearch.get.stoppedTime.getOrElse("") == "") null else jobSearch.get.stoppedTime
           val sourceType = if (appJob.get.sourceType.getOrElse("") == "") jobSearch.get.sourceType else appJob.get.sourceType.get
-          val consumedProtocol = if (appJob.get.consumedProtocol.getOrElse("") == "") jobSearch.get.consumedProtocol else appJob.get.consumedProtocol.get
-          val jobUpdate = Job(jobSearch.get.id, genJobName(projectId, sourceNs, sinkNs), projectId, sourceNs, sinkNs, sourceType, consumedProtocol,
+         // val consumedProtocol = if (appJob.get.consumedProtocol.getOrElse("") == "") jobSearch.get.sourceConfig.get else appJob.get.consumedProtocol.get
+          val jobUpdate = Job(jobSearch.get.id, genJobName(projectId, sourceNs, sinkNs), projectId, sourceNs, sinkNs, sourceType, jobSearch.get.sparkConfig,jobSearch.get.startConfig,
             appJob.get.eventTsStart, appJob.get.eventTsEnd, jobSearch.get.sourceConfig, Some(appJob.get.sinkConfig), Some(genJobTranConfigByColumns(jobSearch.get.tranConfig.getOrElse(""), appJob.get.sinkColumns)),
-            jobSearch.get.jobConfig, "starting", Some(""), jobSearch.get.logPath, startedTime, stoppedTime, jobSearch.get.createTime, jobSearch.get.createBy, currentSec, session.userId)
+             "starting", Some(""), jobSearch.get.logPath, startedTime, stoppedTime, jobSearch.get.createTime, jobSearch.get.createBy, currentSec, session.userId)
           Await.result(modules.jobDal.update(jobUpdate), minTimeOut)
           riderLogger.info(s"user ${session.userId} project $projectId update job success.")
           jobUpdate
         } else {
-          val jobInsert = Job(0, genJobName(projectId, sourceNs, sinkNs), projectId, sourceNs, sinkNs, appJob.get.sourceType.getOrElse("hdfs_txt"), appJob.get.consumedProtocol.getOrElse("all"),
-            appJob.get.eventTsStart, appJob.get.eventTsEnd, Some(""), Some(appJob.get.sinkConfig), Some(genJobTranConfigByColumns(sinkColumns = appJob.get.sinkColumns)), Some(""), "starting", Some(""), Some(getLogPath(genJobName(projectId, sourceNs, sinkNs))), Some(currentSec), null, currentSec, session.userId, currentSec, session.userId)
+          val jobInsert = Job(0, genJobName(projectId, sourceNs, sinkNs), projectId, sourceNs, sinkNs, appJob.get.sourceType.getOrElse("hdfs_txt"), Some(""),"",
+            appJob.get.eventTsStart, appJob.get.eventTsEnd, Some(""), Some(appJob.get.sinkConfig), Some(genJobTranConfigByColumns(sinkColumns = appJob.get.sinkColumns)),  "starting", Some(""), Some(getLogPath(genJobName(projectId, sourceNs, sinkNs))), Some(currentSec), null, currentSec, session.userId, currentSec, session.userId)
           val result = Await.result(modules.jobDal.insert(jobInsert), minTimeOut)
           riderLogger.info(s"user ${session.userId} project $projectId insert job success.")
           result
