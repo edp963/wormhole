@@ -87,7 +87,8 @@ export class Namespace extends React.PureComponent {
       editNamespaceData: {},
       exitedNsTableValue: '',
 
-      nsDsVal: ''
+      nsDsVal: '',
+      nsInstanceVal: ''
     }
   }
 
@@ -364,7 +365,7 @@ export class Namespace extends React.PureComponent {
   }
 
   onModalOk = () => {
-    const { namespaceTableSource, databaseSelectValue, namespaceFormType, exitedNsTableValue, editNamespaceData } = this.state
+    const { namespaceTableSource, databaseSelectValue, namespaceFormType, exitedNsTableValue, editNamespaceData, nsInstanceVal } = this.state
     const { tableNameExited } = this.props
 
     this.namespaceForm.validateFieldsAndScroll((err, values) => {
@@ -377,11 +378,13 @@ export class Namespace extends React.PureComponent {
           const addKeyValue = values.nsSingleKeyValue
 
           if (namespaceFormType === 'add') {
+            const instanceTemp = nsInstanceVal.filter(i => i.id === Number(values.instance))
+
             let requestNsTables = []
             let requestOthers = {
               nsDatabase: selDatabase.nsDatabase,
               nsDatabaseId: Number(values.nsDatabase),
-              nsInstance: values.instance,
+              nsInstance: instanceTemp[0].nsInstance,
               nsInstanceId: Number(values.instance),
               nsSys: values.dataBaseDataSystem
             }
@@ -461,7 +464,7 @@ export class Namespace extends React.PureComponent {
   }
 
   /**
-   *  新增时，通过选择不同的 data system 显示不同的 Connection url内容
+   *  新增时，通过选择不同的 data system 显示不同的 Instance 内容
    * */
   onInitNamespaceUrlValue = (value) => {
     this.setState({
@@ -471,7 +474,8 @@ export class Namespace extends React.PureComponent {
     this.props.onLoadDatabasesInstance(value, (result) => {
       this.setState({
         databaseSelectValue: [],
-        nsDsVal: value
+        nsDsVal: value,
+        nsInstanceVal: result
       })
       // namespaceForm 的 placeholder
       this.namespaceForm.setFieldsValue({
@@ -483,9 +487,6 @@ export class Namespace extends React.PureComponent {
     })
   }
 
-  /***
-   * 新增时，通过 instance id 显示database下拉框内容
-   * */
   onInitDatabaseSelectValue = (value) => {
     this.props.onLoadNamespaceDatabase(value, (result) => {
       this.setState({
@@ -629,7 +630,8 @@ export class Namespace extends React.PureComponent {
           {text: 'cassandra', value: 'cassandra'},
           // {text: 'log', value: 'log'},
           {text: 'kafka', value: 'kafka'},
-          {text: 'postgresql', value: 'postgresql'}
+          {text: 'postgresql', value: 'postgresql'},
+          {text: 'mongodb', value: 'mongodb'}
         ],
         filteredValue: filteredInfo.nsSys,
         onFilter: (value, record) => record.nsSys.includes(value)

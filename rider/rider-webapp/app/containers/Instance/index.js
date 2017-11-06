@@ -255,7 +255,7 @@ export class Instance extends React.PureComponent {
       //   : '必须是 "ip:port"或"hostname:port" 格式, 多条时用逗号隔开'
       if (InstanceSourceDsVal === 'es') {
         errMsg = [new Error('http(s)://ip:port 格式')]
-      } else if (InstanceSourceDsVal === 'oracle' || InstanceSourceDsVal === 'mysql' || InstanceSourceDsVal === 'postgresql' || InstanceSourceDsVal === 'cassandra') {
+      } else if (InstanceSourceDsVal === 'oracle' || InstanceSourceDsVal === 'mysql' || InstanceSourceDsVal === 'postgresql' || InstanceSourceDsVal === 'cassandra' || InstanceSourceDsVal === 'mongodb') {
         errMsg = [new Error('ip:port 格式')]
       } else if (InstanceSourceDsVal === 'hbase') {
         errMsg = [new Error('zookeeper url list, 如localhost:2181/hbase, 多条用逗号隔开')]
@@ -368,7 +368,8 @@ export class Instance extends React.PureComponent {
           {text: 'cassandra', value: 'cassandra'},
           // {text: 'log', value: 'log'},
           {text: 'kafka', value: 'kafka'},
-          {text: 'postgresql', value: 'postgresql'}
+          {text: 'postgresql', value: 'postgresql'},
+          {text: 'mongodb', value: 'mongodb'}
         ],
         filteredValue: filteredInfo.nsSys,
         onFilter: (value, record) => record.nsSys.includes(value)

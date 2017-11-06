@@ -29,12 +29,9 @@ import {
   LOAD_STREAM_NAME_VALUE,
   LOAD_KAFKA,
   LOAD_STREAM_CONFIG_JVM,
-  LOAD_TOPICS,
-  EDIT_TOPICS,
   LOAD_LOGS_INFO,
   LOAD_ADMIN_LOGS_INFO,
   ADD_STREAMS,
-  LOAD_SINGLE_STREAM,
   EDIT_STREAM,
   OPERATE_STREAMS,
   DELETE_STREAMS,
@@ -51,12 +48,9 @@ import {
   streamNameValueErrorLoaded,
   kafkaLoaded,
   streamConfigJvmLoaded,
-  topicsLoaded,
-  topicsEdited,
   logsInfoLoaded,
   adminLogsInfoLoaded,
   streamAdded,
-  singleStreamLoaded,
   streamEdited,
   streamOperated,
   streamDeleted,
@@ -70,7 +64,7 @@ import { notifySagasError } from '../../utils/util'
 
 export function* getUserStreams ({ payload }) {
   try {
-    const streams = yield call(request, `${api.projectStreamTest}/${payload.projectId}/streams`)
+    const streams = yield call(request, `${api.projectStream}/${payload.projectId}/streams`)
     yield put(userStreamsLoaded(streams.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'getUserStreams')
@@ -110,7 +104,7 @@ export function* getAdminSingleFlowWatcher () {
 export function* getStreamDetail ({ payload }) {
   const apiFinal = payload.roleType === 'admin'
     ? `${api.projectAdminStream}`
-    : `${api.projectStreamTest}`
+    : `${api.projectStream}`
   try {
     const result = yield call(request, {
       method: 'get',
@@ -130,7 +124,7 @@ export function* getOffset ({ payload }) {
   try {
     const result = yield call(request, {
       method: 'get',
-      url: `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/intopics`
+      url: `${api.projectStream}/${payload.values.id}/streams/${payload.values.streamId}/topics/offsets/latest`
     })
     yield put(offsetLoaded(result.payload, payload.resolve))
   } catch (err) {
@@ -166,7 +160,7 @@ export function* getKafka ({ payload }) {
   try {
     const result = yield call(request, {
       method: 'get',
-      url: `${api.projectStream}/${payload.projectId}/instances/kafka`
+      url: `${api.projectStream}/${payload.projectId}/instances?nsSys=kafka`
     })
     yield put(kafkaLoaded(result.payload, payload.resolve))
   } catch (err) {
@@ -192,39 +186,6 @@ export function* getStreamConfigJvm ({ payload }) {
 
 export function* getStreamConfigJvmWatcher () {
   yield fork(takeLatest, LOAD_STREAM_CONFIG_JVM, getStreamConfigJvm)
-}
-
-export function* getTopics ({ payload }) {
-  try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectStream}/${payload.projectId}/instances/${payload.instanceId}/databases`
-    })
-    yield put(topicsLoaded(result.payload, payload.resolve))
-  } catch (err) {
-    notifySagasError(err, 'getTopics')
-  }
-}
-
-export function* getTopicsWatcher () {
-  yield fork(takeLatest, LOAD_TOPICS, getTopics)
-}
-
-export function* editTopics ({ payload }) {
-  try {
-    const result = yield call(request, {
-      method: 'put',
-      url: `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/intopics`,
-      data: payload.values
-    })
-    yield put(topicsEdited(result.payload, payload.resolve))
-  } catch (err) {
-    notifySagasError(err, 'editTopics')
-  }
-}
-
-export function* editTopicsWathcer () {
-  yield fork(takeEvery, EDIT_TOPICS, editTopics)
 }
 
 export function* getLogs ({ payload }) {
@@ -263,14 +224,10 @@ export function* addStream ({ payload }) {
   try {
     const result = yield call(request, {
       method: 'post',
-      url: `${api.projectUserList}/${payload.stream.projectId}/streams`,
+      url: `${api.projectUserList}/${payload.projectId}/streams`,
       data: payload.stream
     })
-    if (result.code && result.code !== 200) {
-      yield put(streamOperatedError(result.msg, payload.reject))
-    } else if (result.header.code && result.header.code === 200) {
-      yield put(streamAdded(result.payload, payload.resolve))
-    }
+    yield put(streamAdded(result.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'addStream')
   }
@@ -280,22 +237,6 @@ export function* addStreamWathcer () {
   yield fork(takeEvery, ADD_STREAMS, addStream)
 }
 
-export function* getSingleStream ({ payload }) {
-  try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}`
-    })
-    yield put(singleStreamLoaded(result.payload, payload.resolve))
-  } catch (err) {
-    notifySagasError(err, 'getSingleStream')
-  }
-}
-
-export function* getSingleStreamWatcher () {
-  yield fork(takeLatest, LOAD_SINGLE_STREAM, getSingleStream)
-}
-
 export function* editStream ({ payload }) {
   try {
     const result = yield call(request, {
@@ -303,11 +244,7 @@ export function* editStream ({ payload }) {
       url: `${api.projectStream}/${payload.stream.projectId}/streams`,
       data: payload.stream
     })
-    if (result.code && result.code !== 200) {
-      yield put(streamOperatedError(result.msg, payload.reject))
-    } else if (result.header.code && result.header.code === 200) {
-      yield put(streamEdited(result.payload, payload.resolve))
-    }
+    yield put(streamEdited(result.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'editStream')
   }
@@ -320,13 +257,13 @@ export function* editStreamWathcer () {
 export function* operateStream ({ payload }) {
   try {
     const result = yield call(request, {
-      method: 'get',
+      method: 'put',
       url: `${api.projectStream}/${payload.projectId}/streams/${payload.id}/${payload.action}`
     })
     if (result.code && result.code !== 200) {
       yield put(streamOperatedError(result.msg, payload.reject))
     } else if (result.header.code && result.header.code === 200) {
-      yield put(streamOperated(result.payload[0], payload.resolve))
+      yield put(streamOperated(result.payload, payload.resolve))
     }
   } catch (err) {
     notifySagasError(err, 'operateStream')
@@ -387,12 +324,9 @@ export default [
   getStreamNameValueWatcher,
   getKafkaWatcher,
   getStreamConfigJvmWatcher,
-  getTopicsWatcher,
-  editTopicsWathcer,
   getLogsWatcher,
   getAdminLogsWatcher,
   addStreamWathcer,
-  getSingleStreamWatcher,
   editStreamWathcer,
   operateStreamWathcer,
   deleteStreamWathcer,
