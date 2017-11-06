@@ -56,10 +56,6 @@ export class WorkbenchFlowForm extends React.Component {
     this.setState({ flowMode: props.flowMode })
   }
 
-  onSelectProtocol = (e) => {
-    // console.log('e-protocol', e.target.value)
-  }
-
   onAllOrNotSelect = (e) => this.props.initResultFieldClass(e)
 
   onShowDataFrame = (e) => this.props.initDataShowClass(e)
@@ -107,7 +103,7 @@ export class WorkbenchFlowForm extends React.Component {
   onHandleHdfslogCascader = (value) => this.props.initialHdfslogCascader(value)
 
   render () {
-    const { step, form, fieldSelected, dataframeShowSelected, streamDiffType, hdfslogSinkDataSysValue, hdfslogSinkNsValue, transformTableConfirmValue } = this.props
+    const { step, form, fieldSelected, dataframeShowSelected, streamDiffType, hdfslogSinkDataSysValue, hdfslogSinkNsValue, transformTableConfirmValue, flowKafkaTopicValue } = this.props
     const { getFieldDecorator } = form
     const { onShowTransformModal, onShowEtpStrategyModal, onShowSinkConfigModal } = this.props
     const { transformTableSource, onDeleteSingleTransform, onAddTransform, onEditTransform, onUpTransform, onDownTransform } = this.props
@@ -417,13 +413,13 @@ export class WorkbenchFlowForm extends React.Component {
                 )}
               </FormItem>
             </Col>
-            {/* <Col span={24} className="ri-input-text">
-              <FormItem label="Kafka Topic" {...itemStyle}>
+            <Col span={24} className="ri-input-text">
+              <FormItem label="Kafka Topics" {...itemStyle}>
                 {getFieldDecorator('kafkaTopic', {})(
                   <p className="value-font-style">{flowKafkaTopicValue}</p>
                 )}
               </FormItem>
-            </Col> */}
+            </Col>
           </Card>
           <Card title="Source" className="ri-workbench-form-card-style source-card">
             <Col span={24}>
@@ -502,7 +498,7 @@ export class WorkbenchFlowForm extends React.Component {
                   }],
                   hidden: streamTypeHiddens[0]
                 })(
-                  <RadioGroup className="radio-group-style" onChange={this.onSelectProtocol} size="default">
+                  <RadioGroup className="radio-group-style" size="default">
                     <RadioButton value="all" className="radio-btn-style radio-btn-extra">All</RadioButton>
                     <RadioButton value="increment" className="radio-btn-style radio-btn-extra">Increment</RadioButton>
                     <RadioButton value="initial" className="radio-btn-style radio-btn-extra">Initial</RadioButton>
@@ -746,11 +742,11 @@ export class WorkbenchFlowForm extends React.Component {
               </Row>
             </div>
           </Col>
-          {/* <Col span={24}>
+          <Col span={24}>
             <div className="ant-row ant-form-item">
               <Row>
                 <Col span={8} className="ant-form-item-label">
-                  <label htmlFor="#">Kafka Topic</label>
+                  <label htmlFor="#">Kafka Topics</label>
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
@@ -759,7 +755,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
               </Row>
             </div>
-          </Col> */}
+          </Col>
           {step3ConfirmDSNS}
           <Col span={24} className={streamTypeClass[0]}>
             <div className="ant-row ant-form-item">
@@ -922,7 +918,7 @@ WorkbenchFlowForm.propTypes = {
   initDataShowClass: React.PropTypes.func,
   onInitStreamTypeSelect: React.PropTypes.func,
   initialHdfslogCascader: React.PropTypes.func,
-  // flowKafkaTopicValue: React.PropTypes.string,
+  flowKafkaTopicValue: React.PropTypes.string,
   flowKafkaInstanceValue: React.PropTypes.string
 }
 

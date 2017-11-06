@@ -160,7 +160,7 @@ export class Workbench extends React.Component {
       hdfslogSinkNsValue: '',
 
       flowKafkaInstanceValue: '',
-      // flowKafkaTopicValue: '',
+      flowKafkaTopicValue: '',
 
       sinkConfigMsg: ''
     }
@@ -550,8 +550,22 @@ export class Workbench extends React.Component {
 
     // 显示 Stream 信息
     this.props.onLoadSelectStreamKafkaTopic(this.state.projectId, val, (result) => {
+      const resultFinal = result.map(s => {
+        const responseResult = Object.assign({}, s.stream, {
+          disableActions: s.disableActions,
+          topicInfo: s.topicInfo,
+          instance: s.kafkaInfo.instance,
+          connUrl: s.kafkaInfo.connUrl,
+          projectName: s.projectName,
+          currentUdf: s.currentUdf,
+          usingUdf: s.usingUdf
+        })
+        responseResult.key = responseResult.id
+        return responseResult
+      })
+
       this.setState({
-        selectStreamKafkaTopicValue: result,
+        selectStreamKafkaTopicValue: resultFinal,
         hdfslogSinkDataSysValue: '',
         hdfslogSinkNsValue: ''
       })
@@ -559,18 +573,20 @@ export class Workbench extends React.Component {
         message.warning('请先新建相应类型的 Stream！', 3)
         this.setState({
           pipelineStreamId: 0,
-          flowKafkaInstanceValue: ''
-          // flowKafkaTopicValue: ''
+          flowKafkaInstanceValue: '',
+          flowKafkaTopicValue: ''
         })
       } else {
+        const topicTemp = resultFinal[0].topicInfo
+
         this.setState({
-          pipelineStreamId: result[0].id,
-          flowKafkaInstanceValue: result[0].kafka
-          // flowKafkaTopicValue: result[0].topics
+          pipelineStreamId: resultFinal[0].id,
+          flowKafkaInstanceValue: resultFinal[0].instance,
+          flowKafkaTopicValue: topicTemp.map(j => j.name).join(',')
         })
         this.workbenchFlowForm.setFieldsValue({
-          flowStreamId: result[0].id,
-          streamName: result[0].name
+          flowStreamId: resultFinal[0].id,
+          streamName: resultFinal[0].name
         })
       }
     })
@@ -584,10 +600,11 @@ export class Workbench extends React.Component {
     const { streamDiffType, selectStreamKafkaTopicValue } = this.state
 
     const selName = selectStreamKafkaTopicValue.find(s => s.id === Number(valId))
+    const topicTemp = selName.topicInfo
     this.setState({
       pipelineStreamId: Number(valId),
-      flowKafkaInstanceValue: selName.kafka
-      // flowKafkaTopicValue: selName.topics
+      flowKafkaInstanceValue: selName.instance,
+      flowKafkaTopicValue: topicTemp.map(j => j.name).join(',')
     })
 
     if (streamDiffType === 'default') {
@@ -664,7 +681,7 @@ export class Workbench extends React.Component {
           formStep: 0,
           pipelineStreamId: result.streamId,
           flowKafkaInstanceValue: result.kafka,
-          // flowKafkaTopicValue: result.topics,
+          flowKafkaTopicValue: result.topics,
           singleFlowResult: {
             id: result.id,
             projectId: result.projectId,
@@ -682,11 +699,6 @@ export class Workbench extends React.Component {
       })
     })
       .then((result) => {
-        // stream name 下拉框内容
-        this.props.onLoadSelectStreamKafkaTopic(this.state.projectId, result.streamType, (result) => {
-          this.setState({ selectStreamKafkaTopicValue: result })
-        })
-
         const sourceNsArr = result.sourceNs.split('.')
         const sinkNsArr = result.sinkNs.split('.')
 
@@ -901,7 +913,7 @@ export class Workbench extends React.Component {
           pipelineStreamId: result.streamId,
           hdfslogSinkNsValue: this.state.flowMode === 'copy' ? '' : result.sinkNs,
           flowKafkaInstanceValue: result.kafka,
-          // flowKafkaTopicValue: result.topics,
+          flowKafkaTopicValue: result.topics,
           singleFlowResult: {
             id: result.id,
             projectId: result.projectId,
@@ -919,10 +931,6 @@ export class Workbench extends React.Component {
       })
     })
       .then((result) => {
-        // stream name 下拉框内容
-        this.props.onLoadSelectStreamKafkaTopic(this.state.projectId, result.streamType, (result) => {
-          this.setState({ selectStreamKafkaTopicValue: result })
-        })
         const sourceNsArr = result.sourceNs.split('.')
 
         this.workbenchFlowForm.setFieldsValue({
@@ -1389,8 +1397,8 @@ export class Workbench extends React.Component {
             // onchange 事件影响，Promise 解决
             this.workbenchFlowForm.resetFields()
             this.setState({
-              flowKafkaInstanceValue: ''
-              // flowKafkaTopicValue: ''
+              flowKafkaInstanceValue: '',
+              flowKafkaTopicValue: ''
             })
           })
       }
@@ -1421,8 +1429,8 @@ export class Workbench extends React.Component {
         .then(() => {
           this.workbenchFlowForm.resetFields()
           this.setState({
-            flowKafkaInstanceValue: ''
-            // flowKafkaTopicValue: ''
+            flowKafkaInstanceValue: '',
+            flowKafkaTopicValue: ''
           })
         })
     }
