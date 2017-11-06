@@ -201,12 +201,6 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     flowStream.foreach(flow => {
       stopFlow(flow.streamId, flow.id, userId, flow.streamType, flow.sourceNs, flow.sinkNs)
       CacheMap.flowCacheMapRefresh
-      val topicInfo = checkDeleteTopic(flow.streamId, flow.id, flow.sourceNs)
-      if (topicInfo._1) {
-        StreamUtils.sendUnsubscribeTopicDirective(flow.streamId, topicInfo._3, userId)
-        Await.result(inTopicDal.deleteByFilter(topic => topic.streamId === flow.streamId && topic.nsDatabaseId === topicInfo._2), minTimeOut)
-        riderLogger.info(s"drop topic ${topicInfo._3} directive")
-      }
       Await.result(super.deleteById(flow.id), minTimeOut)
     })
     riderLogger.info(s"user $userId delete flow ${flowSeq.map(_.id).mkString(",")} success")

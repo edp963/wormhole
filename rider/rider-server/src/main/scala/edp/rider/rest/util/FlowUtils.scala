@@ -291,8 +291,14 @@ object FlowUtils extends RiderLogger {
 
   }
 
-  def stopFlow(streamId: Long = 0, flowId: Long, userId: Long, streamType: String, sourceNs: String, sinkNs: String): Boolean = {
+  def stopFlow(streamId: Long, flowId: Long, userId: Long, streamType: String, sourceNs: String, sinkNs: String): Boolean = {
     try {
+      val topicInfo = checkDeleteTopic(streamId, flowId, sourceNs)
+      if (topicInfo._1) {
+        StreamUtils.sendUnsubscribeTopicDirective(streamId, topicInfo._3, userId)
+        Await.result(modules.inTopicDal.deleteByFilter(topic => topic.streamId === streamId && topic.nsDatabaseId === topicInfo._2), minTimeOut)
+        riderLogger.info(s"drop topic ${topicInfo._3} directive")
+      }
       if (streamType == "default") {
         val tuple = Seq(streamId, currentMicroSec, sourceNs).mkString(",")
         val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_FLOW_STOP.toString, streamId, flowId, tuple, RiderConfig.zk, currentSec, userId)), minTimeOut)
