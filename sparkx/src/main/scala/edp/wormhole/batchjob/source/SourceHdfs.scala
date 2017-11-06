@@ -37,7 +37,7 @@ import scala.collection.mutable.ListBuffer
 
 class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
   override def process(session: SparkSession, fromTime: String, toTime: String, sourceNamespace: String, connectionConfig: ConnectionConfig, specialConfig: Option[String]): DataFrame = {
-    val specialConfigStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(specialConfig.get.toString))
+    val specialConfigStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(specialConfig.get.toString.split(" ").mkString("")))
     val specialConfigObject = JSON.parseObject(specialConfigStr)
     val initial = specialConfigObject.getBoolean(InputDataRequirement.INITIAL.toString)
     val increment = specialConfigObject.getBoolean(InputDataRequirement.INCREMENT.toString)
