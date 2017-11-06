@@ -206,7 +206,10 @@ export class Project extends React.Component {
     const { projectNameExited } = this.props
 
     const userIds = this.projectUsersTable.state.selectedRowKeys.join(',')
-    const udfIds = this.projectUdfTable.state.selectedRowKeys.join(',')
+
+    const udfIds = this.projectUdfTable.state.selectedRowKeys === []
+      ? ''
+      : this.projectUdfTable.state.selectedRowKeys.join(',')
 
     const { selectedRowKeys } = this.projectNSTable.state
 
@@ -214,8 +217,6 @@ export class Project extends React.Component {
       message.warning('请选择源表！', 3)
     } else if (userIds.length === 0) {
       message.warning('请选择用户！', 3)
-    } else if (udfIds.length === 0) {
-      message.warning('请选择 UDF！', 3)
     } else {
       const namespaceIds = selectedRowKeys.join(',')
 

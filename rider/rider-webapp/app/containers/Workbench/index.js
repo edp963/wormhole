@@ -50,7 +50,7 @@ const Step = Steps.Step
 import message from 'antd/lib/message'
 
 import {loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic, loadSourceSinkTypeNamespace, loadSinkTypeNamespace, loadTranSinkTypeNamespace, loadSourceToSinkExist, addFlow, editFlow, queryFlow} from '../Flow/action'
-import {loadUserStreams, loadAdminSingleStream, loadStreamNameValue, loadKafka, loadTopics, loadStreamConfigJvm, addStream, loadSingleStream, editStream} from '../Manager/action'
+import {loadUserStreams, loadAdminSingleStream, loadStreamNameValue, loadKafka, loadStreamConfigJvm, addStream, loadStreamDetail, editStream} from '../Manager/action'
 import {loadSelectNamespaces, loadUserNamespaces} from '../Namespace/action'
 import {loadUserUsers, loadSelectUsers} from '../User/action'
 import {loadResources} from '../Resource/action'
@@ -937,23 +937,6 @@ export class Workbench extends React.Component {
       })
   }
 
-  onKafkaTypeSelect = (valId) => {
-    // 根据所选的 Kafka 显示 Topics
-    this.props.onLoadTopics(this.state.projectId, valId, (result) => {
-      result.unshift({
-        id: -1,
-        name: '全选'
-      })
-      this.setState({
-        kafkaInstanceId: valId,
-        topicsValues: result
-      })
-      this.workbenchStreamForm.setFieldsValue({
-        topics: undefined
-      })
-    })
-  }
-
   showAddStreamWorkbench = () => {
     this.workbenchStreamForm.resetFields()
     // 显示 jvm 数据，从而获得初始的 sparkConfig
@@ -974,7 +957,7 @@ export class Workbench extends React.Component {
     })
 
     // 显示 Kafka
-    this.props.onLoadkafka(this.state.projectId, (result) => {
+    this.props.onLoadkafka(this.state.projectId, 'kafka', (result) => {
       this.setState({ kafkaValues: result })
     })
   }
@@ -986,59 +969,37 @@ export class Workbench extends React.Component {
     })
     this.workbenchStreamForm.resetFields()
 
-    new Promise((resolve) => {
-      this.props.onLoadSingleStream(this.state.projectId, stream.id, (result) => {
-        resolve(result)
-        const resultVal = result[0].stream
+    this.props.onLoadStreamDetail(this.state.projectId, stream.id, 'user', (result) => {
+      const resultVal = Object.assign({}, result.stream, {
+        disableActions: result.disableActions,
+        topicInfo: result.topicInfo,
+        instance: result.kafkaInfo.instance,
+        connUrl: result.kafkaInfo.connUrl,
+        projectName: result.projectName,
+        currentUdf: result.currentUdf,
+        usingUdf: result.usingUdf
+      })
 
-        // 回显选中的 topic，必须有 id
-        let topicsSelectValue = []
-        for (let i = 0; i < result[0].topicInfo.length; i++) {
-          topicsSelectValue.push(`${result[0].topicInfo[i].id}`)
+      this.workbenchStreamForm.setFieldsValue({
+        streamName: resultVal.name,
+        type: resultVal.streamType,
+        desc: resultVal.desc,
+        kafka: resultVal.instance
+      })
+
+      this.setState({
+        streamConfigValues: {
+          sparkConfig: resultVal.sparkConfig,
+          startConfig: resultVal.startConfig,
+          launchConfig: resultVal.launchConfig
+        },
+
+        streamQueryValues: {
+          id: resultVal.id,
+          projectId: resultVal.projectId
         }
-
-        this.workbenchStreamForm.setFieldsValue({
-          streamName: resultVal.name,
-          type: resultVal.streamType,
-          desc: resultVal.desc,
-          kafka: result[0].kafkaName,
-          topics: topicsSelectValue
-        })
-
-        this.setState({
-          streamConfigValues: {
-            sparkConfig: resultVal.sparkConfig,
-            startConfig: resultVal.startConfig,
-            launchConfig: resultVal.launchConfig
-          },
-          responseTopicInfo: result[0].topicInfo,
-
-          streamQueryValues: {
-            id: resultVal.id,
-            name: resultVal.name,
-            projectId: resultVal.projectId,
-            instanceId: resultVal.instanceId,
-            streamType: resultVal.streamType,
-            sparkAppid: resultVal.sparkAppid,
-            logpath: resultVal.logpath,
-            status: resultVal.status,
-            startedTime: resultVal.startedTime,
-            stoppedTime: resultVal.stoppedTime,
-            active: resultVal.active,
-            createTime: resultVal.createTime,
-            createBy: resultVal.createBy,
-            updateTime: resultVal.updateTime,
-            updateBy: resultVal.updateBy
-          }
-        })
       })
     })
-      .then((result) => {
-        // 回显全部的topics
-        this.props.onLoadTopics(this.state.projectId, result[0].stream.instanceId, (topicsResult) => {
-          this.setState({ topicsValues: topicsResult })
-        })
-      })
   }
 
   hideStreamWorkbench = () => this.setState({ streamMode: '' })
@@ -1539,10 +1500,8 @@ export class Workbench extends React.Component {
           const requestValues = {
             name: values.streamName,
             desc: values.desc,
-            projectId: Number(projectId),
             instanceId: Number(values.kafka),
-            streamType: values.type,
-            topics: values.topics === undefined ? '' : values.topics.join(',')
+            streamType: values.type
           }
 
           if (streamNameExited === true) {
@@ -1554,7 +1513,7 @@ export class Workbench extends React.Component {
             })
             this.hideStreamSubmit()
           } else {
-            this.props.onAddStream(Object.assign({}, requestValues, streamConfigValues), () => {
+            this.props.onAddStream(projectId, Object.assign({}, requestValues, streamConfigValues), () => {
               message.success('Stream 添加成功！', 3)
               this.setState({
                 streamMode: ''
@@ -1564,14 +1523,11 @@ export class Workbench extends React.Component {
                 this.streamConfigForm.resetFields()
               }
               this.hideStreamSubmit()
-            }, (result) => {
-              message.error(`操作错误：${result}`, 3)
             })
           }
         } else if (streamMode === 'edit') {
           const editValues = {
-            desc: values.desc,
-            topic: values.topics === [] ? '' : values.topics.join(',')
+            desc: values.desc
           }
           const requestEditValues = Object.assign({}, editValues, streamQueryValues, streamConfigValues)
 
@@ -1579,8 +1535,6 @@ export class Workbench extends React.Component {
             message.success('Stream 修改成功！', 3)
             this.setState({ streamMode: '' })
             this.hideStreamSubmit()
-          }, (result) => {
-            message.error(`操作错误：${result}`, 3)
           })
         }
       }
@@ -2224,7 +2178,6 @@ export class Workbench extends React.Component {
                     streamMode={this.state.streamMode}
                     onInitStreamNameValue={this.onInitStreamNameValue}
                     kafkaValues={this.state.kafkaValues}
-                    onKafkaTypeSelect={this.onKafkaTypeSelect}
                     topicsValues={this.state.topicsValues}
 
                     onShowConfigModal={this.onShowConfigModal}
@@ -2336,10 +2289,9 @@ Workbench.propTypes = {
   onEditFlow: React.PropTypes.func,
   onQueryFlow: React.PropTypes.func,
   onLoadkafka: React.PropTypes.func,
-  onLoadTopics: React.PropTypes.func,
   onLoadStreamConfigJvm: React.PropTypes.func,
   onLoadStreamNameValue: React.PropTypes.func,
-  onLoadSingleStream: React.PropTypes.func,
+  onLoadStreamDetail: React.PropTypes.func,
   onLoadSelectStreamKafkaTopic: React.PropTypes.func,
   onLoadSourceSinkTypeNamespace: React.PropTypes.func,
   onLoadSinkTypeNamespace: React.PropTypes.func,
@@ -2370,16 +2322,15 @@ export function mapDispatchToProps (dispatch) {
     onLoadSelectUsers: (projectId, resolve) => dispatch(loadSelectUsers(projectId, resolve)),
     onLoadResources: (projectId, roleType) => dispatch(loadResources(projectId, roleType)),
     onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
-    onAddStream: (stream, resolve, reject) => dispatch(addStream(stream, resolve, reject)),
-    onEditStream: (stream, resolve, reject) => dispatch(editStream(stream, resolve, reject)),
+    onAddStream: (projectId, stream, resolve) => dispatch(addStream(projectId, stream, resolve)),
+    onEditStream: (stream, resolve) => dispatch(editStream(stream, resolve)),
     onAddFlow: (values, resolve, final) => dispatch(addFlow(values, resolve, final)),
     onEditFlow: (values, resolve, final) => dispatch(editFlow(values, resolve, final)),
     onQueryFlow: (values, resolve) => dispatch(queryFlow(values, resolve)),
-    onLoadkafka: (projectId, resolve) => dispatch(loadKafka(projectId, resolve)),
-    onLoadTopics: (projectId, instacneId, resolve) => dispatch(loadTopics(projectId, instacneId, resolve)),
+    onLoadkafka: (projectId, nsSys, resolve) => dispatch(loadKafka(projectId, nsSys, resolve)),
     onLoadStreamConfigJvm: (resolve) => dispatch(loadStreamConfigJvm(resolve)),
     onLoadStreamNameValue: (projectId, value, resolve, reject) => dispatch(loadStreamNameValue(projectId, value, resolve, reject)),
-    onLoadSingleStream: (projectId, streamId, resolve) => dispatch(loadSingleStream(projectId, streamId, resolve)),
+    onLoadStreamDetail: (projectId, streamId, roleType, resolve) => dispatch(loadStreamDetail(projectId, streamId, roleType, resolve)),
     onLoadSelectStreamKafkaTopic: (projectId, value, resolve) => dispatch(loadSelectStreamKafkaTopic(projectId, value, resolve)),
 
     onLoadSourceSinkTypeNamespace: (projectId, streamId, value, type, resolve) => dispatch(loadSourceSinkTypeNamespace(projectId, streamId, value, type, resolve)),

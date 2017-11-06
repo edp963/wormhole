@@ -130,7 +130,7 @@ export class DataBase extends React.PureComponent {
           updateTime: result.updateTime
         }
       }, () => {
-        if (result.nsSys === 'oracle' || result.nsSys === 'mysql' || result.nsSys === 'postgresql') {
+        if (result.nsSys === 'oracle' || result.nsSys === 'mysql' || result.nsSys === 'postgresql' || result.nsSys === 'mongodb') {
           this.dBForm.setFieldsValue({
             userRequired: result.user,
             passwordRequired: result.pwd
@@ -285,7 +285,7 @@ export class DataBase extends React.PureComponent {
               valuesUser = ''
               valuesPwd = ''
               valuesConfig = values.config
-            } else if (values.dataBaseDataSystem === 'mysql' || values.dataBaseDataSystem === 'postgresql') {
+            } else if (values.dataBaseDataSystem === 'mysql' || values.dataBaseDataSystem === 'postgresql' || values.dataBaseDataSystem === 'mongodb') {
               valuesUser = values.userRequired
               valuesPwd = values.passwordRequired
               valuesConfig = values.config
@@ -354,7 +354,7 @@ export class DataBase extends React.PureComponent {
             if (values.dataBaseDataSystem === 'kafka') {
               editUser = ''
               editPwd = ''
-            } else if (values.dataBaseDataSystem === 'mysql' || values.dataBaseDataSystem === 'postgresql') {
+            } else if (values.dataBaseDataSystem === 'mysql' || values.dataBaseDataSystem === 'postgresql' || values.dataBaseDataSystem === 'mongodb') {
               editUser = values.userRequired
               editPwd = values.passwordRequired
             } else {
@@ -563,7 +563,8 @@ export class DataBase extends React.PureComponent {
         {text: 'cassandra', value: 'cassandra'},
         // {text: 'log', value: 'log'},
         {text: 'kafka', value: 'kafka'},
-        {text: 'postgresql', value: 'postgresql'}
+        {text: 'postgresql', value: 'postgresql'},
+        {text: 'mongodb', value: 'mongodb'}
       ],
       filteredValue: filteredInfo.nsSys,
       onFilter: (value, record) => record.nsSys.includes(value)
