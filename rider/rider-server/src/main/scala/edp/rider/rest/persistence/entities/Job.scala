@@ -60,7 +60,7 @@ case class SimpleJob(name: String,
                      sinkConfig: Option[String],
                      tranConfig: Option[String]) extends SimpleBaseEntity
 
-case class FullJobInfo(job:Job, projectName:String)
+case class FullJobInfo(job:Job, projectName:String, disableActions:String)
 
 class JobTable(_tableTag: Tag) extends BaseTable[Job](_tableTag, "job") {
   def * = (id,

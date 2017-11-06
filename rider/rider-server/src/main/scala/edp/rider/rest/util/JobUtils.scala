@@ -23,7 +23,8 @@ package edp.rider.rest.util
 
 import com.alibaba.fastjson.JSON
 import edp.rider.RiderStarter.modules
-import edp.rider.common.{RiderConfig, RiderLogger}
+import edp.rider.common.JobStatus.JobStatus
+import edp.rider.common.{Action, JobStatus, RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.entities.{Instance, Job, NsDatabase, StartConfig}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.FlowUtils._
@@ -141,7 +142,7 @@ object JobUtils extends RiderLogger {
       "job"
     )
     riderLogger.info(s"start job command: $command")
-   // runShellCommand(command)
+    // runShellCommand(command)
   }
 
   def genJobName(projectId: Long, sourceNs: String, sinkNs: String) = {
@@ -181,5 +182,16 @@ object JobUtils extends RiderLogger {
         riderLogger.error(s"job $id kill failed", ex)
         throw ex
     }
+  }
+
+  def getDisableAction: PartialFunction[JobStatus, String] = {
+    case JobStatus.NEW => s"${Action.STOP}"
+    case JobStatus.STARTING => s"${Action.START},${Action.STOP},${Action.DELETE}"
+    case JobStatus.WAITING => s"${Action.START}"
+    case JobStatus.RUNNING =>  s"${Action.START}"
+    case JobStatus.STOPPING => s"${Action.START}"
+    case JobStatus.FAILED => ""
+    case JobStatus.STOPPED => s"${Action.STOP}"
+    case JobStatus.DONE => s"${Action.STOP}"
   }
 }
