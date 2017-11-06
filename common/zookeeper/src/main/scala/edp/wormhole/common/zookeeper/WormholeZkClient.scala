@@ -144,6 +144,7 @@ object WormholeZkClient {
   def getChildren(zkAddress: String, path: String): Seq[String] = {
     val list = getZkClient(zkAddress).getChildren.forPath(path)
     import scala.collection.JavaConverters._
+    println("children path: " + list.asScala)
     list.asScala
   }
 
