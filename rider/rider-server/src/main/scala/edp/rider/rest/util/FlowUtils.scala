@@ -54,7 +54,8 @@ object FlowUtils extends RiderLogger {
         if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
           JSON.parseObject(sinkConfig).getString("sink_specific_config")
         else "{}"
-      val dbConfig = if (db.config.getOrElse("") == "") "\"\"" else db.config.get
+      val dbConfig = "\"\""
+      //      val dbConfig = if (db.config.getOrElse("") == "") "\"\"" else db.config.get
       s"""
          |{
          |"sink_connection_url": "${getConnUrl(instance, db)}",
@@ -82,7 +83,7 @@ object FlowUtils extends RiderLogger {
       case "es" => "edp.wormhole.sinks.elasticsearchsink.Data2EsSink"
       case "hbase" => "edp.wormhole.sinks.hbasesink.Data2HbaseSink"
       case "kafka" => "edp.wormhole.sinks.kafkasink.Data2KafkaSink"
-      case "mongo" => "edp.wormhole.sinks.mongosink.Data2MongoSink"
+      case "mongodb" => "edp.wormhole.sinks.mongosink.Data2MongoSink"
       case "phoenix" => "edp.wormhole.sinks.phoenixsink.Data2PhoenixSink"
     }
 
@@ -290,8 +291,14 @@ object FlowUtils extends RiderLogger {
 
   }
 
-  def stopFlow(streamId: Long = 0, flowId: Long, userId: Long, streamType: String, sourceNs: String, sinkNs: String): Boolean = {
+  def stopFlow(streamId: Long, flowId: Long, userId: Long, streamType: String, sourceNs: String, sinkNs: String): Boolean = {
     try {
+      val topicInfo = checkDeleteTopic(streamId, flowId, sourceNs)
+      if (topicInfo._1) {
+        StreamUtils.sendUnsubscribeTopicDirective(streamId, topicInfo._3, userId)
+        Await.result(modules.inTopicDal.deleteByFilter(topic => topic.streamId === streamId && topic.nsDatabaseId === topicInfo._2), minTimeOut)
+        riderLogger.info(s"drop topic ${topicInfo._3} directive")
+      }
       if (streamType == "default") {
         val tuple = Seq(streamId, currentMicroSec, sourceNs).mkString(",")
         val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_FLOW_STOP.toString, streamId, flowId, tuple, RiderConfig.zk, currentSec, userId)), minTimeOut)
