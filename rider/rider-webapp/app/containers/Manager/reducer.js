@@ -36,18 +36,12 @@ import {
   LOAD_KAFKA_SUCCESS,
   LOAD_STREAM_CONFIG_JVM,
   LOAD_STREAM_CONFIG_JVM_SUCCESS,
-  LOAD_TOPICS,
-  LOAD_TOPICS_SUCCESS,
-  EDIT_TOPICS,
-  EDIT_TOPICS_SUCCESS,
   LOAD_LOGS_INFO,
   LOAD_LOGS_INFO_SUCCESS,
   LOAD_ADMIN_LOGS_INFO,
   LOAD_ADMIN_LOGS_INFO_SUCCESS,
   ADD_STREAMS,
   ADD_STREAMS_SUCCESS,
-  LOAD_SINGLE_STREAM,
-  LOAD_SINGLE_STREAM_SUCCESS,
   EDIT_STREAM,
   EDIT_STREAM_SUCCESS,
   OPERATE_STREAMS,
@@ -112,17 +106,6 @@ function streamReducer (state = initialState, { type, payload }) {
     case LOAD_STREAM_CONFIG_JVM_SUCCESS:
       payload.resolve(payload.result)
       return state
-    case LOAD_TOPICS:
-      return state
-    case LOAD_TOPICS_SUCCESS:
-      payload.resolve(payload.result)
-      return state
-    case EDIT_TOPICS:
-      return state.set('error', false)
-    case EDIT_TOPICS_SUCCESS:
-      payload.resolve(payload.result)
-      // streams.splice(streams.indexOf(streams.find(p => p.streamTopic.id === payload.result.streamTopic.id)), 1, payload.result)
-      return state.set('streams', streams.slice())
     case LOAD_LOGS_INFO:
       return state
     case LOAD_LOGS_INFO_SUCCESS:
@@ -137,22 +120,17 @@ function streamReducer (state = initialState, { type, payload }) {
       return state.set('streamSubmitLoading', true)
     case ADD_STREAMS_SUCCESS:
       payload.resolve()
-      streams.unshift(payload.result[0])
+      streams.unshift(payload.result)
       return state
         .set('streams', streams.slice())
         .set('streamSubmitLoading', false)
-    case LOAD_SINGLE_STREAM:
-      return state
-    case LOAD_SINGLE_STREAM_SUCCESS:
-      payload.resolve(payload.result)
-      return state
     case EDIT_STREAM:
       return state
         .set('error', false)
         .set('streamSubmitLoading', true)
     case EDIT_STREAM_SUCCESS:
       payload.resolve()
-      streams.splice(streams.indexOf(streams.find(p => p.stream.id === payload.result[0].stream.id)), 1, payload.result[0])
+      streams.splice(streams.indexOf(streams.find(p => p.stream.id === payload.result.stream.id)), 1, payload.result)
       return state
         .set('streams', streams.slice())
         .set('streamSubmitLoading', false)

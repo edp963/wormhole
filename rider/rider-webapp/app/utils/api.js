@@ -19,7 +19,6 @@
  */
 
 const productionHost = window._RIDER_PRODUCTION_HOST
-const productionHostTest = window._RIDER_PRODUCTION_HOST_TEST
 
 export default {
   login: `${productionHost}/login`,
@@ -37,7 +36,5 @@ export default {
   udf: `${productionHost}/admin/udfs`,
 
   projectAdminStream: `${productionHost}/admin/projects`,
-  projectStream: `${productionHost}/user/projects`,
-
-  projectStreamTest: `${productionHostTest}/user/projects`
+  projectStream: `${productionHost}/user/projects`
 }

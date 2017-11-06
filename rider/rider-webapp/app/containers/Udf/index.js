@@ -45,6 +45,8 @@ export class Udf extends React.PureComponent {
     this.state = {
       formVisible: false,
       formType: 'add',
+      refreshUdfLoading: false,
+      refreshUdfText: '',
 
       currentudfs: [],
       originUdfs: [],
@@ -77,14 +79,7 @@ export class Udf extends React.PureComponent {
   }
 
   componentWillMount () {
-    const { projectIdGeted, udfClassHide } = this.props
-    if (localStorage.getItem('loginRoleType') === 'admin') {
-      udfClassHide === 'hide'
-        ? this.props.onLoadSingleUdf(projectIdGeted, 'admin', () => {})
-        : this.props.onLoadUdfs(() => {})
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
-      this.props.onLoadSingleUdf(projectIdGeted, 'user', () => {})
-    }
+    this.loadUdfData()
   }
 
   componentWillReceiveProps (props) {
@@ -99,6 +94,32 @@ export class Udf extends React.PureComponent {
         originUdfs: originUdfs.slice(),
         currentudfs: originUdfs.slice()
       })
+    }
+  }
+
+  refreshUdf = () => {
+    this.setState({
+      refreshUdfLoading: true,
+      refreshUdfText: 'Refreshing'
+    })
+    this.loadUdfData()
+  }
+
+  udfRefreshState () {
+    this.setState({
+      refreshUdfLoading: false,
+      refreshUdfText: 'Refresh'
+    })
+  }
+
+  loadUdfData () {
+    const { projectIdGeted, udfClassHide } = this.props
+    if (localStorage.getItem('loginRoleType') === 'admin') {
+      udfClassHide === 'hide'
+        ? this.props.onLoadSingleUdf(projectIdGeted, 'admin', () => { this.udfRefreshState() })
+        : this.props.onLoadUdfs(() => { this.udfRefreshState() })
+    } else if (localStorage.getItem('loginRoleType') === 'user') {
+      this.props.onLoadSingleUdf(projectIdGeted, 'user', () => { this.udfRefreshState() })
     }
   }
 
@@ -288,6 +309,7 @@ export class Udf extends React.PureComponent {
 
   render () {
     const { udfClassHide } = this.props
+    const { refreshUdfLoading, refreshUdfText } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -551,6 +573,7 @@ export class Udf extends React.PureComponent {
             <Icon type="bars" /> UDF 列表
           </h3>
           <div className="ri-common-block-tools">
+            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshUdfLoading} onClick={this.refreshUdf}>{refreshUdfText}</Button>
             <Button icon="plus" type="primary" onClick={this.showAddUdf} className={udfClassHide}>新建</Button>
           </div>
           <Table

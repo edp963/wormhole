@@ -40,8 +40,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
   constructor (props) {
     super(props)
     this.state = {
-      streamMode: '',
-      topicChildren1111: 0
+      streamMode: ''
     }
   }
 
@@ -58,8 +57,6 @@ export class WorkbenchStreamForm extends React.PureComponent {
     // console.log('val', e.target.value)
   }
 
-  onKafkaTypeSelect = (val) => this.props.onKafkaTypeSelect(val)
-
   forceCheckSave = (rule, value, callback) => {
     const reg = /^\w+$/
     if (reg.test(value)) {
@@ -69,8 +66,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
     }
   }
 
-  handleTopicsChange = (value) => {
-    console.log('value', value)
+  // handleTopicsChange = (value) => {
     // const { topicsValues } = this.props
     // if (value === '全选') {
     //   this.setState({
@@ -83,14 +79,14 @@ export class WorkbenchStreamForm extends React.PureComponent {
     //     })
     //   }
     // }
-  }
+  // }
 
   selectTopic = (value) => {
     console.log('va', value)
   }
 
   render () {
-    const { isWormhole, onShowConfigModal, streamConfigCheck, kafkaValues, topicsValues } = this.props
+    const { isWormhole, onShowConfigModal, streamConfigCheck, kafkaValues } = this.props
     const { streamMode } = this.state
     const { getFieldDecorator } = this.props.form
     const itemStyle = {
@@ -111,9 +107,9 @@ export class WorkbenchStreamForm extends React.PureComponent {
     //   topicChildren.push(<Option key={topicsValues[i].id} value={`${topicsValues[i].id}`}>{topicsValues[i].name}</Option>)
     // }
 
-    const topicChildren = topicsValues.map(i => (<Option key={i.id} value={`${i.id}`}>{i.name}</Option>))
+    // const topicChildren = topicsValues.map(i => (<Option key={i.id} value={`${i.id}`}>{i.name}</Option>))
 
-    const kafkaOptions = kafkaValues.map(s => (<Option key={s.id} value={`${s.id}`}>{s.name}</Option>))
+    const kafkaOptions = kafkaValues.map(s => (<Option key={s.id} value={`${s.id}`}>{s.nsInstance}</Option>))
 
     const streamConfigTag = streamConfigCheck === true
       ? (
@@ -182,7 +178,6 @@ export class WorkbenchStreamForm extends React.PureComponent {
               })(
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown"
-                  onSelect={this.onKafkaTypeSelect}
                   placeholder="Select a Kafka"
                   disabled={disabledOrNot}
                 >
@@ -192,7 +187,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
             </FormItem>
           </Col>
 
-          <Col span={24}>
+          {/* <Col span={24}>
             <FormItem label="Topics" {...itemStyle}>
               {getFieldDecorator('topics', {
                 rules: [{
@@ -212,7 +207,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
                 </Select>
               )}
             </FormItem>
-          </Col>
+          </Col> */}
 
           <Col span={24}>
             <div className="ant-col-6 ant-form-item-label">
@@ -286,8 +281,7 @@ WorkbenchStreamForm.propTypes = {
   form: React.PropTypes.any,
   isWormhole: React.PropTypes.bool,
   kafkaValues: React.PropTypes.array,
-  topicsValues: React.PropTypes.array,
-  onKafkaTypeSelect: React.PropTypes.func,
+  // topicsValues: React.PropTypes.array,
   onShowConfigModal: React.PropTypes.func,
   onInitStreamNameValue: React.PropTypes.func,
   streamConfigCheck: React.PropTypes.bool

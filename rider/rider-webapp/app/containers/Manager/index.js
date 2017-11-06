@@ -42,7 +42,8 @@ import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 import { uuid } from '../../utils/util'
 
-import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream, deleteStream, loadStreamDetail, loadOffset, editTopics, loadLogsInfo, loadAdminLogsInfo} from './action'
+import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream, deleteStream, loadStreamDetail, loadOffset, loadLogsInfo, loadAdminLogsInfo} from './action'
+import {loadSingleUdf} from '../Udf/action'
 import {selectStreams} from './selectors'
 
 export class Manager extends React.Component {
@@ -63,9 +64,9 @@ export class Manager extends React.Component {
       editModalVisible: false,
       logsModalVisible: false,
       startModalVisible: false,
-      // showStreamOffset: [],
       showStreamdetails: null,
       streamStartFormData: [],
+      topicInfoModal: '',
       streamIdGeted: 0,
       actionType: '',
 
@@ -95,7 +96,9 @@ export class Manager extends React.Component {
 
       logsContent: '',
       logsProjectId: 0,
-      logsStreamId: 0
+      logsStreamId: 0,
+
+      udfVals: []
     }
   }
 
@@ -124,8 +127,8 @@ export class Manager extends React.Component {
           const responseOriginStream = Object.assign({}, s.stream, {
             disableActions: s.disableActions,
             topicInfo: s.topicInfo,
-            instance: s.KafkaInfo.instance,
-            connUrl: s.KafkaInfo.connUrl,
+            instance: s.kafkaInfo.instance,
+            connUrl: s.kafkaInfo.connUrl,
             projectName: s.projectName,
             currentUdf: s.currentUdf,
             usingUdf: s.usingUdf
@@ -191,9 +194,9 @@ export class Manager extends React.Component {
   }
 
   updateStream = (record) => (e) => {
-    this.loadOffsetData(record)
     this.setState({
-      actionType: 'renew'
+      actionType: 'renew',
+      startModalVisible: true
     })
   }
 
@@ -202,20 +205,61 @@ export class Manager extends React.Component {
    * @param record
    */
   onShowEditStart = (record) => (e) => {
-    this.loadOffsetData(record)
     this.setState({
-      actionType: 'start'
+      actionType: 'start',
+      startModalVisible: true,
+      streamIdGeted: record.id
+    })
+    // 单条查询接口获得回显的topic Info和UDF信息
+    // 与user UDF table相同的接口获得全部的UDF
+    this.props.onLoadStreamDetail(this.props.projectIdGeted, record.id, 'user', (result) => {
+      this.setState({
+        topicInfoModal: result.topicInfo.length === 0 ? 'hide' : '',
+        streamStartFormData: result.topicInfo
+      })
+    })
+
+    this.props.onLoadSingleUdf(this.props.projectIdGeted, 'user', (result) => {
+      const allOptionVal = {
+        createBy: 1,
+        createTime: '',
+        desc: '',
+        fullClassName: '',
+        functionName: '全选',
+        id: -1,
+        jarName: '',
+        pubic: false,
+        updateBy: 1,
+        updateTime: ''
+      }
+      result.unshift(allOptionVal)
+      this.setState({
+        udfVals: result
+      })
     })
   }
 
-  // user role type
-  loadOffsetData (record) {
-    this.props.onLoadOffset(this.props.projectIdGeted, record.id, (result) => {
-      this.setState({
-        startModalVisible: true,
-        streamIdGeted: record.id,
-        streamStartFormData: result
-      })
+  /**
+   * 查询最新的 Offset
+   * @param e
+   */
+  queryLastestoffset = (e) => {
+    const { projectIdGeted } = this.props
+    const { streamIdGeted } = this.state
+
+    const requestVal = {
+      id: projectIdGeted,
+      streamId: streamIdGeted
+    }
+    this.props.onLoadOffset(requestVal, (result) => {
+      for (let k = 0; k < result.length; k++) {
+        const partitionAndOffset = result[k].partitionOffsets.split(',')
+        for (let j = 0; j < partitionAndOffset.length; j++) {
+          this.streamStartForm.setFieldsValue({
+            [`latest_${result[k].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1)
+          })
+        }
+      }
     })
   }
 
@@ -224,92 +268,95 @@ export class Manager extends React.Component {
    * @param e
    */
   handleEditStartOk = (e) => {
-    const { actionType, streamIdGeted, streamStartFormData } = this.state
+    const { actionType, streamIdGeted, streamStartFormData, udfVals } = this.state
     const { projectIdGeted } = this.props
 
     this.streamStartForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        const mergedData = streamStartFormData.map((i) => {
-          const offsetArr = []
-          for (let r = 0; r < i.partition; r++) {
-            const offsetArrTemp = values[`${i.id}_${r}`]
-            if (offsetArrTemp === '') {
-              message.warning('Offset 不能为空！', 3)
+        let requestStartVal = {}
+        if (streamStartFormData.length === 0) {
+          if (values.udfs === undefined || values.udfs.length === 0) {
+            requestStartVal = {}
+          } else {
+            if (values.udfs[0] === '-1') {
+              // 全选
+              const udfValsOrigin = udfVals.filter(k => k.id !== -1)
+              requestStartVal = {
+                udfInfo: udfValsOrigin.map(p => p.id)
+              }
             } else {
-              offsetArr.push(`${r}:${offsetArrTemp}`)
+              requestStartVal = {
+                udfInfo: values.udfs
+              }
             }
           }
-          const offsetVal = offsetArr.join(',')
+        } else {
+          const mergedData = streamStartFormData.map((i) => {
+            const parOffTemp = i.partitionOffsets
+            const partitionTemp = parOffTemp.split(',')
 
-          const robj = {
-            id: i.id,
-            streamId: streamIdGeted,
-            nsInstanceId: i.nsInstanceId,
-            nsDatabaseId: i.nsDatabaseId,
-            partitionOffsets: offsetVal,
-            rate: Number(values[`${i.id}`]),
-            zookeeper: i.zookeeper,
-            active: i.active,
-            createTime: i.createTime,
-            createBy: i.createBy,
-            updateTime: i.updateTime,
-            updateBy: i.updateBy
-          }
-          return robj
-        })
-
-        new Promise((resolve) => {
-          this.props.onEditTopics(projectIdGeted, streamIdGeted, mergedData, (result) => {
-            resolve(result)
-            this.setState({
-              modalLoading: true
-            })
-          })
-        })
-          .then((result) => {
-            let actionTypeRequest = ''
-            let actionTypeMsg = ''
-            if (actionType === 'start') {
-              actionTypeRequest = 'start'
-              actionTypeMsg = '启动成功！'
-            } else if (actionType === 'renew') {
-              actionTypeRequest = 'renew'
-              actionTypeMsg = '生效！'
+            const offsetArr = []
+            for (let r = 0; r < partitionTemp.length; r++) {
+              const offsetArrTemp = values[`${i.id}_${r}`]
+              if (offsetArrTemp === '') {
+                message.warning('Offset 不能为空！', 3)
+              } else {
+                offsetArr.push(`${r}:${offsetArrTemp}`)
+              }
             }
+            const offsetVal = offsetArr.join(',')
 
-            const requestVal = []
-            result.map(i => {
-              requestVal.push({
-                id: i.id,
-                name: i.name,
-                rate: i.rate,
-                partitionOffsets: i.partitionOffsets,
-                zookeeper: i.zookeeper
-              })
-              return i
-            })
-
-            this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, () => {
-              this.setState({
-                startModalVisible: false,
-                streamStartFormData: [],
-                modalLoading: false
-              })
-              message.success(actionTypeMsg, 3)
-            }, (result) => {
-              message.error(`操作失败：${result}`, 3)
-              this.setState({
-                modalLoading: false
-              })
-            })
+            const robj = {
+              id: i.id,
+              partitionOffsets: offsetVal,
+              rate: values[i.rate]
+            }
+            return robj
           })
+
+          if (values.udfs === undefined || values.udfs.length === 0) {
+            requestStartVal = {
+              topicInfo: mergedData
+            }
+          } else {
+            requestStartVal = {
+              udfInfo: values.udfs,
+              topicInfo: mergedData
+            }
+          }
+        }
+
+        let actionTypeRequest = ''
+        let actionTypeMsg = ''
+        if (actionType === 'start') {
+          actionTypeRequest = 'start'
+          actionTypeMsg = '启动成功！'
+        } else if (actionType === 'renew') {
+          actionTypeRequest = 'renew'
+          actionTypeMsg = '生效！'
+        }
+
+        this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, requestStartVal, actionTypeRequest, () => {
+          this.setState({
+            startModalVisible: false,
+            streamStartFormData: [],
+            modalLoading: false
+          })
+          message.success(actionTypeMsg, 3)
+        }, (result) => {
+          message.error(`操作失败：${result}`, 3)
+          this.setState({
+            modalLoading: false
+          })
+        })
       }
     })
   }
 
   handleEditStartCancel = (e) => {
     this.setState({
-      startModalVisible: false
+      startModalVisible: false,
+      streamStartFormData: []
     })
     this.streamStartForm.resetFields()
   }
@@ -896,6 +943,7 @@ export class Manager extends React.Component {
               <p><strong>   Current Udf：</strong>{currentUdfFinal}</p>
               <p><strong>   Using Udf：</strong>{usingUdfTempFinal}</p>
 
+              <p><strong>   Description：</strong>{detailTemp.desc}</p>
               <p><strong>   Disable Actions：</strong>{showStreamdetails.disableActions}</p>
 
               <p><strong>   Create Time：</strong>{detailTemp.createTime}</p>
@@ -954,6 +1002,7 @@ export class Manager extends React.Component {
       ? (
         <StreamStartForm
           data={this.state.streamStartFormData}
+          udfValsOption={this.state.udfVals}
           ref={(f) => { this.streamStartForm = f }}
         />
       )
@@ -994,9 +1043,17 @@ export class Manager extends React.Component {
         <Modal
           title={`确定${this.state.actionType === 'start' ? '开始' : '生效'}吗？`}
           visible={startModalVisible}
-          wrapClassName="ant-modal-small"
+          wrapClassName="stream-start-form-style"
           onCancel={this.handleEditStartCancel}
           footer={[
+            <Button
+              className={`query-offset-btn ${this.state.topicInfoModal}`}
+              key="query"
+              size="large"
+              onClick={this.queryLastestoffset}
+            >
+              查看最新 Offset
+            </Button>,
             <Button
               key="cancel"
               size="large"
@@ -1057,7 +1114,7 @@ Manager.propTypes = {
   onLoadLogsInfo: React.PropTypes.func,
   onLoadAdminLogsInfo: React.PropTypes.func,
   onShowEditStream: React.PropTypes.func,
-  onEditTopics: React.PropTypes.func
+  onLoadSingleUdf: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1069,10 +1126,10 @@ export function mapDispatchToProps (dispatch) {
     onDeleteStream: (projectId, id, action, resolve, reject) => dispatch(deleteStream(projectId, id, action, resolve, reject)),
     onStartOrRenewStream: (projectId, id, topicResult, action, resolve, reject) => dispatch(startOrRenewStream(projectId, id, topicResult, action, resolve, reject)),
     onLoadStreamDetail: (projectId, streamId, roleType, resolve) => dispatch(loadStreamDetail(projectId, streamId, roleType, resolve)),
-    onLoadOffset: (projectId, streamId, resolve) => dispatch(loadOffset(projectId, streamId, resolve)),
-    onEditTopics: (projectId, streamId, values, resolve) => dispatch(editTopics(projectId, streamId, values, resolve)),
+    onLoadOffset: (values, resolve) => dispatch(loadOffset(values, resolve)),
     onLoadLogsInfo: (projectId, streamId, resolve) => dispatch(loadLogsInfo(projectId, streamId, resolve)),
-    onLoadAdminLogsInfo: (projectId, streamId, resolve) => dispatch(loadAdminLogsInfo(projectId, streamId, resolve))
+    onLoadAdminLogsInfo: (projectId, streamId, resolve) => dispatch(loadAdminLogsInfo(projectId, streamId, resolve)),
+    onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve))
   }
 }
 

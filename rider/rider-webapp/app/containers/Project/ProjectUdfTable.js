@@ -205,7 +205,7 @@ export class ProjectUdfTable extends React.Component {
     return (
       <Table
         bordered
-        title={() => (<h3 className="required-style">UDF</h3>)}
+        title={() => (<h3>UDF</h3>)}
         columns={columnsProject}
         dataSource={this.state.currentUdfs}
         pagination={pagination}

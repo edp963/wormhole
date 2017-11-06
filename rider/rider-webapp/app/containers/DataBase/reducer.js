@@ -88,7 +88,7 @@ export function databaseReducer (state = initialState, { type, payload }) {
     case LOAD_DATABASES_INSTANCE:
       return state
     case LOAD_DATABASES_INSTANCE_SUCCESS:
-      payload.resolve()
+      payload.resolve(payload.result)
       return state.set('dbUrlValue', payload.result)
     case LOAD_NAME_EXIST:
       return state.set('databaseNameExited', false)

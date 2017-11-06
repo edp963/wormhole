@@ -23,7 +23,7 @@
 }
 
 .conform-table-input {
-  width: 90px !important;
+  width: 86px !important;
   height: 26px !important;
   margin-top: 4px;
 }
@@ -81,8 +81,8 @@
 
   .ant-card-head {
     background-color: rgba(31, 31, 31, 0.25) !important;
-    height: 70px !important;
-    line-height: 29px !important;
+    height: 40px !important;
+    line-height: 40px !important;
     border: 0 !important;
     padding: 2px 24px !important;
   }
@@ -94,15 +94,19 @@
 
   .ant-card-body {
     background-color: @ri-bg-color;
-    padding: 18px 24px !important;
+    padding-top: 8px !important;
+    padding-bottom: 1px !important;
+    padding-left: 24px !important;
   }
 
   .card-content {
     font-weight: 500;
+    height: 20px !important;
   }
 
   .partition-content {
     line-height: 32px;
+    padding-left: 25px;
   }
 
   .offset-content {
@@ -140,9 +144,8 @@
 
   .ant-card-body {
     background-color: @ri-bg-color;
-    //padding: 18px 24px !important;
-    padding-top: 15px !important;
-    padding-bottom: 0 !important;
+    padding-top: 10px !important;
+    padding-bottom: 6px !important;
   }
 
   .card-content {
@@ -161,11 +164,21 @@
     float: left;
   }
 
+  .modal-topic-name {
+    font-weight: 500;
+  }
+
   .modal-topic-name:after {
     content: ":";
     margin: 0 8px 0 2px;
     position: relative;
     top: -0.5px;
+  }
+}
+
+.stream-start-form-style {
+  .ant-form-item {
+    margin-bottom: 5px !important;
   }
 }
 
@@ -179,7 +192,7 @@
 }
 
 .rate-input {
-  width: 90px !important;
+  width: 86px !important;
 }
 
 .stream-detail {
@@ -192,4 +205,36 @@
   .li-class {
     font-weight: 700;
   }
+}
+
+.stream-start-offset-class {
+  .ant-btn-ghost {
+    border-color: #bdbdbd !important;
+  }
+}
+
+.stream-start-offset-class111 {
+  .ant-btn-ghost {
+    border-color: transparent !important;
+  }
+}
+
+.rate-class {
+  float: left;
+  width: 90px;
+}
+
+.topic-info-class {
+  float: right;
+  width: 305px;
+}
+
+.query-offset-btn {
+  float: left;
+  margin-left: 6px;
+}
+
+.no-topic-class {
+  margin-top: 25px;
+  margin-bottom: 7px;
 }
