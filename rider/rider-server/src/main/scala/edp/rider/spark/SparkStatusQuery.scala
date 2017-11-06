@@ -27,6 +27,7 @@ import edp.rider.common
 import edp.rider.common.StreamStatus._
 import edp.rider.common._
 import edp.rider.rest.persistence.entities.{FullJobInfo, Job}
+import edp.rider.rest.util.JobUtils.getDisableAction
 import edp.rider.spark.SparkJobClientLog._
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.common.util.DtFormat
@@ -46,7 +47,7 @@ object SparkStatusQuery extends RiderLogger {
     val stoppedTime = if (appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
     FullJobInfo(Job(job.id, job.name, job.projectId, job.sourceType, job.sinkNs, job.sourceType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
       job.sinkConfig, job.tranConfig, appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.createTime, job.createBy, job.updateTime, job.updateBy)
-    , projectName)
+    , projectName,getDisableAction(JobStatus.jobStatus(job.status)))
   })
 
 

@@ -96,3 +96,19 @@ object SparkAppStatus extends Enumeration {
 
   def sparkAppStatus(s: String) = StreamStatus.withName(s.toUpperCase)
 }
+
+
+object JobStatus extends Enumeration {
+  type JobStatus = Value
+
+  val NEW = Value("new")
+  val STARTING = Value("starting")
+  val WAITING = Value("waiting")
+  val RUNNING = Value("running")
+  val STOPPING = Value("stopping")
+  val STOPPED = Value("stopped")
+  val FAILED = Value("failed")
+  val DONE = Value("done")
+
+  def jobStatus(s: String) = JobStatus.withName(s.toLowerCase)
+}
