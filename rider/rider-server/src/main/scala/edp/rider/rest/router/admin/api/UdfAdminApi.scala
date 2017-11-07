@@ -204,6 +204,14 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
         udf.jarName
       } doesn't exist in hdfs", session))
     } else {
+      val udfSearch = Await.result(udfDal.findById(udf.id), minTimeOut).headOption
+      if (udfSearch.nonEmpty) {
+        if (udfSearch.get.pubic != udf.pubic) {
+          if (udf.pubic) {
+            Await.result(relProjectUdfDal.deleteByFilter(_.udfId === udf.id), minTimeOut)
+          }
+        }
+      }
       val updateUdf = Udf(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic, udf.createTime, udf.createBy, currentSec, session.userId)
       onComplete(udfDal.update(updateUdf).mapTo[Int]) {
         case Success(_) =>
