@@ -262,7 +262,8 @@ CREATE TABLE IF NOT EXISTS `job` (
   `update_time` TIMESTAMP NOT NULL,
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `job_UNIQUE` (`source_ns` ASC, `sink_ns` ASC))
+  UNIQUE INDEX `name_UNIQUE` (`name` ASC),
+  UNIQUE INDEX `job_UNIQUE` (`source_ns` ASC, `sink_ns` ASC)
 ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS `udf` (

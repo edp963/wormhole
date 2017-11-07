@@ -122,5 +122,6 @@ class JobTable(_tableTag: Tag) extends BaseTable[Job](_tableTag, "job") {
   val stoppedTime: Rep[Option[String]] = column[Option[String]]("stopped_time", O.Default(None))
 
   /** Uniqueness Index over (sourceNs,sinkNs) (database name job_UNIQUE) */
-  val index1 = index("job_UNIQUE", (sourceNs, sinkNs), unique = true)
+  val index1 = index("name_UNIQUE", name, unique = true)
+  val index2 = index("job_UNIQUE", (sourceNs, sinkNs), unique = true)
 }
