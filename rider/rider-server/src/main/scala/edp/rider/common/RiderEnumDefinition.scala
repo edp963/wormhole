@@ -44,7 +44,7 @@ object Action extends Enumeration {
   val STOP = Value("stop")
   val MODIFY = Value("modify")
   val RENEW = Value("renew")
-  val DELETE = Value("dele")
+  val DELETE = Value("delete")
 
   def action(s: String) = Action.withName(s.toLowerCase)
 }
@@ -91,7 +91,6 @@ object SparkAppStatus extends Enumeration {
   val RUNNING = Value("RUNNING")
   val SUCCEEDED = Value("SUCCEEDED")
   val KILLED = Value("KILLED")
-  val FAILED = Value("failed")
   val FINISHED = Value("FINISHED")
 
   def sparkAppStatus(s: String) = StreamStatus.withName(s.toUpperCase)
