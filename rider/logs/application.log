@@ -1,0 +1,45 @@
+2017-10-26 17:06:50 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-10-26 17:07:44 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-10-26 17:07:44 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-10-26 17:08:43 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-10-26 17:08:44 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-10-26 17:08:44 [main] INFO  edp.rider.module.DbModule[47] - Initial rider database success
+2017-10-26 17:08:47 [main] INFO  edp.rider.RiderStarter[57] - WormholeServer http://localhost:8989/.
+2017-10-26 17:09:12 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-10-26 17:09:13 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-10-26 17:09:13 [main] INFO  edp.rider.module.DbModule[47] - Initial rider database success
+2017-10-26 17:09:15 [main] INFO  edp.rider.RiderStarter[57] - WormholeServer http://localhost:8989/.
+2017-10-26 17:11:05 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-10-26 17:11:06 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-10-26 17:11:07 [main] INFO  edp.rider.module.DbModule[47] - Initial rider database success
+2017-10-26 17:11:10 [main] INFO  edp.rider.RiderStarter[57] - WormholeServer http://localhost:8989/.
+2017-10-26 17:13:17 [riderActorSystem-akka.actor.default-dispatcher-4] INFO  edp.rider.rest.util.AuthorizationProvider[100] - token validate success.
+2017-10-26 17:13:17 [riderActorSystem-akka.actor.default-dispatcher-4] INFO  edp.rider.rest.router.admin.api.UserAdminApi[193] - user 1 select all users where project id is 2 success.
+2017-10-26 17:13:31 [riderActorSystem-akka.actor.default-dispatcher-7] INFO  edp.rider.rest.util.AuthorizationProvider[100] - token validate success.
+2017-10-26 17:13:31 [riderActorSystem-akka.actor.default-dispatcher-7] INFO  edp.rider.rest.router.admin.api.UserAdminApi[193] - user 1 select all users where project id is 1 success.
+2017-10-26 17:13:39 [riderActorSystem-akka.actor.default-dispatcher-7] INFO  edp.rider.rest.util.AuthorizationProvider[100] - token validate success.
+2017-10-26 17:13:39 [riderActorSystem-akka.actor.default-dispatcher-7] INFO  edp.rider.rest.router.admin.api.UserAdminApi[193] - user 1 select all users where project id is 2 success.
+2017-10-26 17:16:24 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-10-26 17:16:25 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-10-26 17:16:25 [main] INFO  edp.rider.module.DbModule[47] - Initial rider database success
+2017-10-26 17:16:27 [main] INFO  edp.rider.RiderStarter[57] - WormholeServer http://localhost:8989/.
+2017-10-26 17:16:35 [riderActorSystem-akka.actor.default-dispatcher-2] INFO  edp.rider.rest.util.AuthorizationProvider[100] - token validate success.
+2017-10-26 17:16:35 [riderActorSystem-akka.actor.default-dispatcher-2] INFO  edp.rider.rest.router.admin.api.UserAdminApi[193] - user 1 select all users where project id is 2 success.
+2017-10-26 17:16:40 [riderActorSystem-akka.actor.default-dispatcher-2] INFO  edp.rider.rest.util.AuthorizationProvider[100] - token validate success.
+2017-10-26 17:16:40 [riderActorSystem-akka.actor.default-dispatcher-2] INFO  edp.rider.rest.router.admin.api.UserAdminApi[193] - user 1 select all users where project id is 1 success.
+2017-10-26 17:18:18 [riderActorSystem-akka.actor.default-dispatcher-5] INFO  edp.rider.rest.util.AuthorizationProvider[100] - token validate success.
+2017-10-26 17:18:18 [riderActorSystem-akka.actor.default-dispatcher-5] INFO  edp.rider.rest.router.admin.api.UserAdminApi[69] - user 1 select users by 2 success.
+2017-10-26 17:35:14 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-10-26 17:35:14 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-10-26 17:35:14 [main] INFO  edp.rider.module.DbModule[47] - Initial rider database success
+2017-10-26 17:35:17 [main] INFO  edp.rider.RiderStarter[57] - WormholeServer http://localhost:8989/.
+2017-10-26 20:06:26 [mysql.db housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool[616] - mysql.db - Thread starvation or clock leap detected (housekeeper delta=2m37s476ms).
+2017-10-26 22:13:57 [mysql.db housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool[616] - mysql.db - Thread starvation or clock leap detected (housekeeper delta=2h27s496ms).
+2017-10-27 00:14:25 [mysql.db housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool[616] - mysql.db - Thread starvation or clock leap detected (housekeeper delta=2h27s509ms).
+2017-10-27 01:15:17 [mysql.db housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool[616] - mysql.db - Thread starvation or clock leap detected (housekeeper delta=1h22s510ms).
+2017-10-27 03:16:14 [mysql.db housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool[616] - mysql.db - Thread starvation or clock leap detected (housekeeper delta=2h27s207ms).
+2017-10-27 05:17:12 [mysql.db housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool[616] - mysql.db - Thread starvation or clock leap detected (housekeeper delta=2h27s508ms).
+2017-10-27 07:18:10 [mysql.db housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool[616] - mysql.db - Thread starvation or clock leap detected (housekeeper delta=2h27s495ms).
+2017-10-27 09:19:07 [mysql.db housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool[616] - mysql.db - Thread starvation or clock leap detected (housekeeper delta=2h27s407ms).
+2017-10-27 10:23:12 [mysql.db housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool[616] - mysql.db - Thread starvation or clock leap detected (housekeeper delta=1h3m35s524ms).
+2017-10-27 14:01:00 [mysql.db housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool[616] - mysql.db - Thread starvation or clock leap detected (housekeeper delta=1h2m12s38ms).
