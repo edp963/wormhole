@@ -52,7 +52,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
   def getDbusFromRest: Seq[SimpleDbus] = {
     try {
       val dbusServices =
-        if(RiderConfig.dbusUrl != null) RiderConfig.dbusUrl.toList
+        if (RiderConfig.dbusUrl != null) RiderConfig.dbusUrl.toList
         else List()
       val simpleDbusSeq = new ArrayBuffer[SimpleDbus]
       dbusServices.map {
@@ -101,14 +101,19 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         else if (!kafkaTopicMap.contains(simple.kafka))
           kafkaTopicMap.put(simple.kafka, ArrayBuffer(simple.topic))
       })
-      kafkaSeq.distinct.foreach(
+      val dbusKafka = Await.result(instanceDal.findByFilter(_.nsInstance.startsWith("dbusKafka")), minTimeOut).size
+      var i = dbusKafka + 1
+      kafkaSeq.distinct.foreach {
         kafka => {
           val instanceSearch = Await.result(instanceDal.findByFilter(_.connUrl === kafka), minTimeOut)
-          if (instanceSearch.isEmpty)
-            instanceSeq += Instance(0, generateNsInstance(kafka), Some("dbus kafka"), "kafka", kafka, active = true, currentSec, session.userId, currentSec, session.userId)
+          if (instanceSearch.isEmpty) {
+            instanceSeq += Instance(0, s"dbusKafka$i", Some("dbus kafka"), "kafka", kafka, active = true, currentSec, session.userId, currentSec, session.userId)
+            i = i + 1
+          }
           else kafkaIdMap.put(kafka, instanceSearch.head.id)
         }
-      )
+      }
+
       val instances = Await.result(instanceDal.insert(instanceSeq), minTimeOut)
       instances.foreach(instance => kafkaIdMap.put(instance.connUrl, instance.id))
 
