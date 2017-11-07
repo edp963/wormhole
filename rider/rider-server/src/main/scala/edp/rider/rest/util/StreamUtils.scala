@@ -46,12 +46,12 @@ object StreamUtils extends RiderLogger {
 
   def getDisableActions(status: String): String = {
     streamStatus(status) match {
-      case NEW => s"$STOP,$RENEW"
-      case STARTING => s"$START, $STOP"
+      case NEW => s"$STOP, $RENEW"
+      case STARTING => s"$START, $STOP, $DELETE"
       case WAITING => s"$START"
       case RUNNING => s"$START"
       case STOPPING => s"$START, $RENEW"
-      case STOPPED => s"$STOP,$RENEW"
+      case STOPPED => s"$STOP, $RENEW"
       case FAILED => s"$RENEW"
     }
   }
