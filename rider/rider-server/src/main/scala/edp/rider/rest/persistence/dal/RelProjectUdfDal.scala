@@ -45,10 +45,9 @@ class RelProjectUdfDal(udfTable: TableQuery[UdfTable],
   }
 
   def getUdfByProjectId(id: Long): Future[Seq[Udf]] = {
-    db.run(((udfTable.filter(_.public === true) union udfTable.filter(_.public === false)) join relProjectUdfTable.filter(_.projectId === id) on (_.id === _.udfId))
-      .map {
-        case (udf, _) => (udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.public, udf.createTime, udf.createBy, udf.updateTime, udf.updateBy) <> (Udf.tupled, Udf.unapply)
-      }.distinct.result).mapTo[Seq[Udf]]
+    val privateUdfs = Await.result(getNonPublicUdfByProjectId(id), minTimeOut)
+    val publicUdfs: Seq[Udf] = Await.result(db.run(udfTable.filter(_.public === true).result), minTimeOut)
+    Future(privateUdfs union publicUdfs)
   }
 
   def getNonPublicUdfByProjectId(id: Long): Future[Seq[Udf]] = {
