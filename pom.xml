@@ -25,6 +25,7 @@
         <module>common/util</module>
         <module>common/zookeeper</module>
         <module>common/dbpool</module>
+        <module>common/redispool</module>
         <module>common/hadoop</module>
         <module>sparkx</module>
         <module>rider/rider-server</module>

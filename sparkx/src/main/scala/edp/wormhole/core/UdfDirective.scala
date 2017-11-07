@@ -25,13 +25,13 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import edp.wormhole.common.FeedbackPriority
 import edp.wormhole.common.util.DateUtils
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.udf.{UdfRegister, UdfUtils}
+import edp.wormhole.spark.log.EdpLogging
+import edp.wormhole.udf.UdfRegister
 import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType}
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 
-object UdfDirective {
+object UdfDirective extends EdpLogging {
 
   val udfDirectiveQueue = new ConcurrentLinkedQueue[Ums]()
 
@@ -54,13 +54,17 @@ object UdfDirective {
         val udfName = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "udf_name").toString
         val udfClassFullname = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "udf_class_fullname").toString
         val udfJarPath = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "udf_jar_path").toString
-//        rdd.foreachPartition(_=>{
-//          UdfUtils.removeUdf(udfName)
-//        })
-        UdfRegister.register(udfName, udfClassFullname, udfJarPath, session)
-
-        WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
-
+        //        rdd.foreachPartition(_=>{
+        //          UdfUtils.removeUdf(udfName)
+        //        })
+        try {
+          UdfRegister.register(udfName, udfClassFullname, udfJarPath, session)
+          WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
+        } catch {
+          case e: Throwable =>
+            logError(udfName + " register fail", e)
+            WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, ""), None, brokers)
+        }
       })
     }
   }
