@@ -74,7 +74,7 @@ object HdfsLogReadUtil extends EdpLogging{
   }
 
   def getHdfsPathList(hdfsRoot: String, namespace: UmsNamespace): Seq[String] = {
-    var prefix = hdfsRoot + "/" + namespace.dataSys + "." + namespace.instance + "." + namespace.database + "/" + namespace.table //+ "/" + namespace.version + "/" + namespace.databasePar + "/" + namespace.tablePar + "/" + "right"
+    var prefix = hdfsRoot + "/hdfslog/" + namespace.dataSys + "." + namespace.instance + "." + namespace.database + "/" + namespace.table //+ "/" + namespace.version + "/" + namespace.databasePar + "/" + namespace.tablePar + "/" + "right"
     val namespaceVersion = if (namespace.version == "*") {
       getHdfsFileList(prefix).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).head.toString
     } else {
