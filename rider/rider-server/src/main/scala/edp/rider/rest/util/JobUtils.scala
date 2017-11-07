@@ -142,7 +142,7 @@ object JobUtils extends RiderLogger {
       "job"
     )
     riderLogger.info(s"start job command: $command")
-    // runShellCommand(command)
+    runShellCommand(command)
   }
 
   def genJobName(projectId: Long, sourceNs: String, sinkNs: String) = {
