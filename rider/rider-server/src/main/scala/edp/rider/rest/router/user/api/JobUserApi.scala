@@ -175,7 +175,8 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseUserApiImpl
                           complete(OK, ResponseJson[Seq[FullJobInfo]](getHeader(200, session), Seq()))
                         }
                       case (None, None, Some(jobName)) =>
-                        onComplete(jobDal.checkJobNameUnique(jobName)) {
+                        val projectName = jobDal.adminGetRow(projectId)
+                        onComplete(jobDal.checkJobNameUnique("wormhole_" + projectName + "_" + jobName)) {
                           case Success(jobs) =>
                             if (jobs.isEmpty) {
                               riderLogger.info(s"user ${session.userId} check job name $jobName doesn't exist success.")
