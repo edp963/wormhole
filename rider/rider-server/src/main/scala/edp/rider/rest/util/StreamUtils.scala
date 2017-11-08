@@ -78,7 +78,7 @@ object StreamUtils extends RiderLogger {
             val endAction =
               if (dbStatus == STARTING.toString) "refresh_log"
               else "refresh_spark"
-//            val endAction = "refresh_spark"
+            //            val endAction = "refresh_spark"
             val sparkStatus: AppInfo = endAction match {
               case "refresh_spark" =>
                 getAppStatusByRest(appInfoList, stream.name, stream.status, startedTime, stoppedTime)
@@ -188,53 +188,55 @@ object StreamUtils extends RiderLogger {
       val topicUms = directiveNew.map({
         directive =>
           val topicInfo = directive.directive.split("#")
-          s"""
-             |{
-             |"protocol": {
-             |"type": "${DIRECTIVE_TOPIC_SUBSCRIBE.toString}"
-             |},
-             |"schema": {
-             |"namespace": "",
-             |"fields": [
-             |{
-             |"name": "directive_id",
-             |"type": "long",
-             |"nullable": false
-             |},
-             |{
-             |"name": "stream_id",
-             |"type": "long",
-             |"nullable": false
-             |},
-             |{
-             |"name": "ums_ts_",
-             |"type": "datetime",
-             |"nullable": false
-             |},
-             |{
-             |"name": "topic_name",
-             |"type": "string",
-             |"nullable": false
-             |},
-             |{
-             |"name": "topic_rate",
-             |"type": "int",
-             |"nullable": false
-             |},
-             |{
-             |"name": "partitions_offset",
-             |"type": "string",
-             |"nullable": false
-             |}
-             |]
-             |},
-             |"payload": [
-             |{
-             |"tuple": [${directive.id}, ${topicInfo(0)}, "${topicInfo(1)}", "${topicInfo(2)}", ${topicInfo(3)}, "${topicInfo(4)}"]
-             |}
-             |]
-             |}
+          val ums =
+            s"""
+               |{
+               |"protocol": {
+               |"type": "${DIRECTIVE_TOPIC_SUBSCRIBE.toString}"
+               |},
+               |"schema": {
+               |"namespace": "",
+               |"fields": [
+               |{
+               |"name": "directive_id",
+               |"type": "long",
+               |"nullable": false
+               |},
+               |{
+               |"name": "stream_id",
+               |"type": "long",
+               |"nullable": false
+               |},
+               |{
+               |"name": "ums_ts_",
+               |"type": "datetime",
+               |"nullable": false
+               |},
+               |{
+               |"name": "topic_name",
+               |"type": "string",
+               |"nullable": false
+               |},
+               |{
+               |"name": "topic_rate",
+               |"type": "int",
+               |"nullable": false
+               |},
+               |{
+               |"name": "partitions_offset",
+               |"type": "string",
+               |"nullable": false
+               |}
+               |]
+               |},
+               |"payload": [
+               |{
+               |"tuple": [${directive.id}, ${topicInfo(0)}, "${topicInfo(1)}", "${topicInfo(2)}", ${topicInfo(3)}, "${topicInfo(4)}"]
+               |}
+               |]
+               |}
           """.stripMargin.replaceAll("[\\n\\t\\r]+", "")
+          jsonCompact(ums)
       }).mkString("\n")
       PushDirective.sendTopicDirective(streamId, topicUms, directiveNew.head.zkPath)
       riderLogger.info(s"user $userId send ${DIRECTIVE_TOPIC_SUBSCRIBE.toString} directives success.")
@@ -288,7 +290,7 @@ object StreamUtils extends RiderLogger {
            |  ]
            |}
           """.stripMargin.replaceAll("[\\n\\t\\r]+", "")
-      PushDirective.sendTopicDirective(streamId, topicUms)
+      PushDirective.sendTopicDirective(streamId, jsonCompact(topicUms))
       riderLogger.info(s"user $userId send ${DIRECTIVE_TOPIC_SUBSCRIBE.toString} directives success.")
     } catch {
       case ex: Exception =>
@@ -297,7 +299,7 @@ object StreamUtils extends RiderLogger {
     }
   }
 
-  def removeAndSendDirective(streamId: Long, topicSeq: Seq[StreamTopicTemp], userId: Long) = {
+  def removeAndSendTopicDirective(streamId: Long, topicSeq: Seq[StreamTopicTemp], userId: Long) = {
     try {
       if (topicSeq.nonEmpty) {
         PushDirective.removeTopicDirective(streamId)
@@ -314,21 +316,17 @@ object StreamUtils extends RiderLogger {
     }
   }
 
-  def removeStreamDirective(streamId: Long, topicSeq: Seq[StreamTopic], userId: Long) = {
+  def removeStreamDirective(streamId: Long, userId: Long) = {
     try {
-      if (topicSeq.nonEmpty) {
-        PushDirective.removeTopicDirective(streamId, RiderConfig.zk)
-        riderLogger.info(s"user $userId remove topic directive success.")
-      } else {
-        PushDirective.removeTopicDirective(streamId)
-        riderLogger.info(s"user $userId remove topic directive success.")
-      }
+      PushDirective.removeStreamDirective(streamId, RiderConfig.zk)
+      riderLogger.info(s"user $userId remove stream $streamId directive success.")
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"remove and send stream $streamId topic directive failed", ex)
+        riderLogger.error(s"remove and send stream $streamId directive failed", ex)
         throw ex
     }
   }
+
 
   def getDuration(launchConfig: String): Int = {
     if (launchConfig != null && launchConfig != "") {
