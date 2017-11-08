@@ -59,7 +59,8 @@ export class InstanceForm extends React.Component {
       { value: 'phoenix', text: 'Phoenix' },
       { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
       // { value: 'log', text: 'Log' },
-      { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} }
+      { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
+      { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} }
     ]
 
     // edit 时，不能修改部分元素

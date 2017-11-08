@@ -406,9 +406,11 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
     updateOffsetFromFeedback(streamId, userId)
   }
 
-  def getTopicByInstanceId(instanceId: Long) = {
-    db.run((instanceTable.filter(_.active === true).filter(_.id === instanceId) join namespaceTable.filter(_.active === true) on (_.id === _.nsInstanceId) join nsDatabaseTable.filter(_.active === true) on (_._2.nsDatabaseId === _.id)).map {
-      case (instance, database) => (database.id, database.nsDatabase, database.partitions.getOrElse(0)) <> (TopicSimple.tupled, TopicSimple.unapply)
+  def getTopicByInstanceId(projectId: Long, instanceId: Long) = {
+    db.run((((instanceTable.filter(_.id === instanceId) join namespaceTable on (_.id === _.nsInstanceId))
+      join relProjectNsTable.filter(_.projectId === projectId) on (_._2.id === _.nsId))
+      join nsDatabaseTable on (_._1._2.nsDatabaseId === _.id)).map {
+      case (((_, _), _), database) => (database.id, database.nsDatabase, database.partitions.getOrElse(0)) <> (TopicSimple.tupled, TopicSimple.unapply)
     }.distinct.result).mapTo[Seq[TopicSimple]]
   }
 

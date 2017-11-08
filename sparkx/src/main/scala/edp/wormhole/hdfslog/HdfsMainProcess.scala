@@ -294,6 +294,8 @@ object HdfsMainProcess extends EdpLogging {
           correctFileName = name
           currentCorrectMetaContent = meta
           correctCurrentSize = 0
+          finalMinTs = minTs
+          finalMaxTs = maxTs
         }
 
         if (minTs != null && correctFileName != null) {
@@ -308,6 +310,8 @@ object HdfsMainProcess extends EdpLogging {
             correctFileName = name
             currentCorrectMetaContent = meta
             correctCurrentSize = 0
+            finalMinTs = minTs
+            finalMaxTs = maxTs
           }
         }
 
