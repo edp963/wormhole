@@ -33,28 +33,41 @@ import scala.concurrent.{Await, Future}
 
 class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTable]) extends BaseDalImpl[JobTable, Job](jobTable) {
 
-  def updateJobStatus(jobId: Long, appInfo: AppInfo) = {
+  def updateJobStatus(jobId: Long, appInfo: AppInfo): Int = {
     Await.result(db.run(jobTable.filter(_.id === jobId).map(c => (c.sparkAppid, c.status, c.startedTime, c.stoppedTime, c.updateTime))
-      .update(Option(appInfo.appId), appInfo.appState, Option(appInfo.startedTime), Option(appInfo.startedTime), currentSec)), minTimeOut)
+      .update(Option(appInfo.appId), appInfo.appState, Option(appInfo.startedTime), Option(appInfo.finishedTime), currentSec)), minTimeOut)
   }
 
-  def updateJobStatus(jobId: Long, status: String) = {
+  def updateJobStatus(jobId: Long, status: String): Int = {
     Await.result(db.run(jobTable.filter(_.id === jobId).map(c => (c.status, c.updateTime))
       .update(status, currentSec)), minTimeOut)
   }
 
-  def updateJobStatusList(appInfoSeq: Seq[(Int, AppInfo)]) = appInfoSeq.foreach { case (jobId, appInfo) => updateJobStatus(jobId, appInfo) }
+  def getJobNameByJobID(jobId: Long): Future[Job] = {
+    db.run(jobTable.filter(_.id === jobId).result.head)
+  }
+
+
+  //def updateJobStatusList(appInfoSeq: Seq[(Int, AppInfo)]) = appInfoSeq.foreach { case (jobId, appInfo) => updateJobStatus(jobId, appInfo) }
 
 
   def adminGetRow(projectId: Long): String = {
-    Await.result(db.run(projectTable.filter(_.id === projectId).result).mapTo[Seq[Project]], maxTimeOut).head.name
+    Await.result(db.run(projectTable.filter(_.id === projectId).result), maxTimeOut).head.name
   }
 
   def getAllJobs4Project(projectId: Long): Seq[Job] = {
     Await.result(db.run(jobTable.filter(_.projectId === projectId).result), maxTimeOut)
   }
 
-  def checkJobNameUnique(jobName: String) = {
+  def checkJobNameUnique(jobName: String): Future[Seq[Job]] = {
     db.run(jobTable.filter(_.name === jobName).result)
+  }
+
+  def getAllJobs: Seq[Job] = {
+    Await.result(super.findAll, minTimeOut)
+  }
+
+  def getAllUniqueProjectIdAndName(uniqueProjectIds:Seq[Long]): Map[Long, String] = {
+    Await.result(db.run(projectTable.filter(_.id inSet uniqueProjectIds).result), maxTimeOut).map(p => (p.id, p.name)).toMap
   }
 }
