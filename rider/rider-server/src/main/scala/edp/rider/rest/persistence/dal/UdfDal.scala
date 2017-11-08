@@ -25,8 +25,8 @@ import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
-import slick.lifted.{CanBeQueryCondition, TableQuery}
-
+import slick.lifted.TableQuery
+import slick.jdbc.MySQLProfile.api._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
@@ -39,15 +39,16 @@ class UdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdfDal)
       val udfs = super.findAll
       udfs.map[Seq[UdfProject]] {
         val udfProjectSeq = new ArrayBuffer[UdfProject]
-        udfs => udfs.foreach(
-          udf =>
-            if (udfProjectMap.contains(udf.id))
-              udfProjectSeq += UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic,
-                udf.createTime, udf.createBy, udf.updateTime, udf.updateBy, udfProjectMap(udf.id).sorted.mkString(","))
-            else
-              udfProjectSeq += UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic,
-                udf.createTime, udf.createBy, udf.updateTime, udf.updateBy, "")
-        )
+        udfs =>
+          udfs.foreach(
+            udf =>
+              if (udfProjectMap.contains(udf.id))
+                udfProjectSeq += UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic,
+                  udf.createTime, udf.createBy, udf.updateTime, udf.updateBy, udfProjectMap(udf.id).sorted.mkString(","))
+              else
+                udfProjectSeq += UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic,
+                  udf.createTime, udf.createBy, udf.updateTime, udf.updateBy, "")
+          )
           udfProjectSeq
       }
     } catch {
@@ -55,5 +56,10 @@ class UdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdfDal)
         riderLogger.error(s"admin refresh users failed", ex)
         throw ex
     }
+  }
+
+  override def deleteById(id: Long): Future[Int] = {
+    Await.result(relProjectUdfDal.deleteByFilter(_.udfId === id), minTimeOut)
+    super.deleteById(id)
   }
 }

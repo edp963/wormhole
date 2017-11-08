@@ -53,7 +53,7 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
             onComplete(udfDal.getUdfProject.mapTo[Seq[UdfProject]]) {
               case Success(udfProjects) =>
                 riderLogger.info(s"user ${session.userId} select all $route success.")
-                complete(OK, ResponseSeqJson[UdfProject](getHeader(200, session), udfProjects.sortBy(_.pubic).reverse.sortBy(_.functionName)))
+                complete(OK, ResponseSeqJson[UdfProject](getHeader(200, session), udfProjects.sortBy(_.functionName)))
               case Failure(ex) =>
                 riderLogger.error(s"user ${session.userId} select all $route failed", ex)
                 complete(OK, getHeader(451, ex.getMessage, session))
@@ -204,6 +204,14 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
         udf.jarName
       } doesn't exist in hdfs", session))
     } else {
+      val udfSearch = Await.result(udfDal.findById(udf.id), minTimeOut).headOption
+      if (udfSearch.nonEmpty) {
+        if (udfSearch.get.pubic != udf.pubic) {
+          if (udf.pubic) {
+            Await.result(relProjectUdfDal.deleteByFilter(_.udfId === udf.id), minTimeOut)
+          }
+        }
+      }
       val updateUdf = Udf(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic, udf.createTime, udf.createBy, currentSec, session.userId)
       onComplete(udfDal.update(updateUdf).mapTo[Int]) {
         case Success(_) =>
@@ -320,7 +328,7 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
                           riderLogger.info(s"user ${
                             session.userId
                           } select all udfs where project id is $id success.")
-                          complete(OK, ResponseSeqJson[Udf](getHeader(200, session), udfs.sortBy(_.pubic).reverse.sortBy(_.functionName)))
+                          complete(OK, ResponseSeqJson[Udf](getHeader(200, session), udfs.sortBy(_.functionName)))
                         case Failure(ex) =>
                           riderLogger.error(s"user ${
                             session.userId
