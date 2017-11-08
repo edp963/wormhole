@@ -22,13 +22,9 @@
 package edp.wormhole.sinks.cassandrasink
 
 import java.net.InetAddress
-import javax.naming.AuthenticationException
 
 import com.datastax.driver.core.Cluster.Builder
-import com.datastax.driver.core.exceptions.NoHostAvailableException
 import com.datastax.driver.core.{Cluster, Session}
-import edp.wormhole.memorystorage.ConfMemoryStorage._
-import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.spark.log.EdpLogging
 
 import scala.collection.mutable
