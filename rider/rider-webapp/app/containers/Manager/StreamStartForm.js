@@ -25,7 +25,6 @@ import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 import Card from 'antd/lib/card'
 import Select from 'antd/lib/select'
-import Input from 'antd/lib/input'
 import InputNumber from 'antd/lib/input-number'
 const FormItem = Form.Item
 
@@ -54,8 +53,19 @@ export class StreamStartForm extends React.Component {
     //   partitionOffsets: '0:200,1:300'
     // }]
 
-    const { form, data, udfValsOption } = this.props
+    const { form, data, streamActionType, selectEditIcon, startUdfValsOption, renewUdfValsOption, currentUdfVal } = this.props
     const { getFieldDecorator } = form
+
+    let disablecOrNot = false
+    if (streamActionType === 'start') {
+      disablecOrNot = false
+    } else if (streamActionType === 'renew') {
+      if (selectEditIcon === 'edit') {
+        disablecOrNot = true
+      } else {
+        disablecOrNot = false
+      }
+    }
 
     const noTopicCardTitle = (<Col span={24} style={{fontWeight: '500'}}><span className="modal-topic-name">Topic Name</span></Col>)
 
@@ -70,8 +80,8 @@ export class StreamStartForm extends React.Component {
               <Col span={8} className="card-content">Partition</Col>
               <Col span={8} className="card-content required-offset">Offset</Col>
               <Col span={8} className="card-content">Lastest Offset</Col>
-              <h3 className="no-topic-class">There is no topics now.</h3>
             </div>
+            <h3 className="no-topic-class">There is no topics now.</h3>
           </Card>
         </Row>
       )
@@ -93,9 +103,11 @@ export class StreamStartForm extends React.Component {
                       rules: [{
                         required: true,
                         message: '请填写 Offset'
+                      }, {
+                        validator: this.forceCheckTopic
                       }]
                     })(
-                      <Input className="conform-table-input" />
+                      <InputNumber className="conform-table-input" disabled={disablecOrNot} />
                     )}
                   </ol>
                 </FormItem>
@@ -119,7 +131,7 @@ export class StreamStartForm extends React.Component {
                       }],
                       initialValue: g.substring(g.indexOf(':') + 1)
                     })(
-                      <InputNumber size="medium" className="conform-table-input" />
+                      <InputNumber size="medium" className="conform-table-input" disabled={disablecOrNot} />
                     )}
                   </ol>
                 </FormItem>
@@ -128,7 +140,7 @@ export class StreamStartForm extends React.Component {
                 <FormItem>
                   <ol key={g}>
                     {getFieldDecorator(`latest_${i.id}_${index}`, {
-                      initialValue: g.substring(g.indexOf(':') + 1)
+                      // initialValue: g.substring(g.indexOf(':') + 1)
                     })(
                       <InputNumber size="medium" className="conform-table-input" disabled />
                     )}
@@ -170,7 +182,7 @@ export class StreamStartForm extends React.Component {
                       }],
                       initialValue: `${i.rate}`
                     })(
-                      <InputNumber size="medium" className="rate-input" />
+                      <InputNumber size="medium" className="rate-input" disabled={disablecOrNot} />
                     )}
                   </FormItem>
                 </Col>
@@ -188,18 +200,25 @@ export class StreamStartForm extends React.Component {
       wrapperCol: { span: 24 }
     }
 
-    const udfChildren = udfValsOption.map(i => (<Select.Option key={i.id} value={`${i.id}`}>{i.functionName}</Select.Option>))
+    const udfChildren = streamActionType === 'start'
+      ? startUdfValsOption.map(i => (<Select.Option key={i.id} value={`${i.id}`}>{i.functionName}</Select.Option>))
+      : renewUdfValsOption.map(i => (<Select.Option key={i.id} value={`${i.id}`}>{i.functionName}</Select.Option>))
+
+    const currentUdfsShow = currentUdfVal.length === 0
+      ? ''
+      : currentUdfVal.map(i => i.functionName).join(', ')
 
     return (
       <Form>
         <Row>
           <Card title="UDFs：" className="stream-start-form-udf-style">
+            <div className={`${streamActionType === 'start' ? 'hide' : ''} selected-udf-class`}>Selected UDFs：{currentUdfsShow}</div>
             <Col span={24} className="stream-udf">
               <FormItem label="" {...itemStyleUdf}>
                 {getFieldDecorator('udfs', {})(
                   <Select
                     mode="multiple"
-                    placeholder="Select UDFs"
+                    placeholder={streamActionType === 'start' ? 'Select UDFs' : 'Add UDFs'}
                   >
                     {udfChildren}
                   </Select>
@@ -217,7 +236,11 @@ export class StreamStartForm extends React.Component {
 StreamStartForm.propTypes = {
   form: React.PropTypes.any,
   data: React.PropTypes.array,
-  udfValsOption: React.PropTypes.array
+  streamActionType: React.PropTypes.string,
+  selectEditIcon: React.PropTypes.string,
+  startUdfValsOption: React.PropTypes.array,
+  renewUdfValsOption: React.PropTypes.array,
+  currentUdfVal: React.PropTypes.array
 }
 
 export default Form.create({wrappedComponentRef: true})(StreamStartForm)
