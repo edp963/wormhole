@@ -70,7 +70,7 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
   @Path("/{projectId}/jobs/{jobId}/delete")
   @ApiOperation(value = "delete job by id", notes = "", nickname = "", httpMethod = "PUT")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "jobId", value = "jobId id", required = true, dataType = "integer", paramType = "path")
   ))
   @ApiResponses(Array(
