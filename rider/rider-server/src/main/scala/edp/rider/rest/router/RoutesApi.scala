@@ -44,6 +44,7 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
   lazy val riderInfoAdmin = new RiderInfoAdminRoutes(modules)
   lazy val udfAdmin = new UdfAdminRoutes(modules)
   lazy val riderUI = new RiderRoutes
+  lazy val jobAdmin = new JobAdminRoutes(modules)
 
   lazy val projectUser = new ProjectUserRoutes(modules)
   lazy val namespaceUser = new NamespaceUserRoutes(modules)
