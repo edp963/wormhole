@@ -12,6 +12,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Await
 import scala.sys.process._
 import scala.language.postfixOps
+import edp.wormhole.common.util.JsonUtils._
 
 object UdfUtils extends RiderLogger {
   def checkHdfsPathExist(jarName: String): Boolean = {
@@ -108,7 +109,7 @@ object UdfUtils extends RiderLogger {
                |
           """.stripMargin.replaceAll("\\n", "")
           riderLogger.info(s"user $userId send ${DIRECTIVE_UDF_ADD.toString} directive $msg")
-          PushDirective.sendUdfDirective(streamId, udfInfo(2), msg)
+          PushDirective.sendUdfDirective(streamId, udfInfo(2), jsonCompact(msg))
       })
       riderLogger.info(s"user $userId send ${DIRECTIVE_UDF_ADD.toString} directives success.")
     } catch {

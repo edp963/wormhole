@@ -421,8 +421,8 @@ class StreamUserApi(streamDal: StreamDal, projectDal: ProjectDal, streamUdfDal: 
         streamDirective.topicInfo.get.foreach(
           topic => Await.result(inTopicDal.updateOffset(streamId, topic.id, topic.partitionOffsets, topic.rate, userId), minTimeOut)
         )
-        removeAndSendDirective(streamId, inTopicDal.getStreamTopic(Seq(streamId)), userId)
-      }
+        removeAndSendTopicDirective(streamId, inTopicDal.getStreamTopic(Seq(streamId)), userId)
+      } else removeAndSendTopicDirective(streamId, inTopicDal.getStreamTopic(Seq(streamId)), userId)
     } else {
       Await.result(streamUdfDal.deleteByFilter(_.streamId === streamId), minTimeOut)
       removeUdfDirective(streamId, userId = userId)
@@ -502,7 +502,7 @@ class StreamUserApi(streamDal: StreamDal, projectDal: ProjectDal, streamUdfDal: 
                       riderLogger.info(s"user ${session.userId} can't delete stream $streamId now, please delete flow ${flows.map(_.id).mkString(",")} first")
                       complete(OK, getHeader(412, s"please delete flow ${flows.map(_.id).mkString(",")} first", session))
                     } else {
-                      removeStreamDirective(streamId, streamDetail.topicInfo, session.userId)
+                      removeStreamDirective(streamId, session.userId)
                       if (streamDetail.stream.sparkAppid.getOrElse("") != "") {
                         runShellCommand("yarn application -kill " + streamDetail.stream.sparkAppid.get)
                         riderLogger.info(s"user ${session.userId} stop stream $streamId success")

@@ -35,6 +35,7 @@ import edp.wormhole.ums.UmsProtocolType._
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await
+import edp.wormhole.common.util.JsonUtils._
 
 object FlowUtils extends RiderLogger {
 
@@ -228,7 +229,7 @@ object FlowUtils extends RiderLogger {
              |}
         """.stripMargin.replaceAll("\n", "")
         riderLogger.info(s"user ${directive.createBy} send flow $flowId start directive: $flow_start_ums")
-        PushDirective.sendFlowStartDirective(streamId, sourceNs, sinkNs, flow_start_ums)
+        PushDirective.sendFlowStartDirective(streamId, sourceNs, sinkNs, jsonCompact(flow_start_ums))
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
       } else if (streamType == "hdfslog") {
         val tuple = Seq(streamId, currentMillSec, sourceNs, "24")
@@ -278,7 +279,7 @@ object FlowUtils extends RiderLogger {
              |}
         """.stripMargin.replaceAll("\n", "")
         riderLogger.info(s"user ${directive.createBy} send flow $flowId start directive: $flow_start_ums")
-        PushDirective.sendHdfsLogFlowStartDirective(streamId, sourceNs, flow_start_ums)
+        PushDirective.sendHdfsLogFlowStartDirective(streamId, sourceNs, jsonCompact(flow_start_ums))
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
       }
       autoRegisterTopic(streamId, sourceNs, userId)
