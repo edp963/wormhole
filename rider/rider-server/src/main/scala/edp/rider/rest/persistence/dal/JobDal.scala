@@ -35,7 +35,7 @@ class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTab
 
   def updateJobStatus(jobId: Long, appInfo: AppInfo) = {
     Await.result(db.run(jobTable.filter(_.id === jobId).map(c => (c.sparkAppid, c.status, c.startedTime, c.stoppedTime, c.updateTime))
-      .update(Option(appInfo.appId), appInfo.appState, Option(appInfo.startedTime), Option(appInfo.startedTime), currentSec)), minTimeOut)
+      .update(Option(appInfo.appId), appInfo.appState, Option(appInfo.startedTime), Option(appInfo.finishedTime), currentSec)), minTimeOut)
   }
 
   def updateJobStatus(jobId: Long, status: String) = {
