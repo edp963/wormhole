@@ -170,8 +170,8 @@ object FlowUtils extends RiderLogger {
               JSON.parseObject(tranConfig).fluentPut("action", base64byte2s(JSON.parseObject(tranConfig).getString("action").trim.getBytes)).toString
             else tranConfig
           }
-        val tuple = Seq(streamId, currentMicroSec, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
-        val base64Tuple = Seq(streamId, currentMicroSec, sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
+        val tuple = Seq(streamId, currentMicroSec, "ums", "", sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
+        val base64Tuple = Seq(streamId, currentMicroSec, "ums", "", sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
           base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))
         val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, tuple.mkString(","), RiderConfig.zk, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_START.toString} success.")
@@ -200,12 +200,22 @@ object FlowUtils extends RiderLogger {
              |"nullable": false
              |},
              |{
+             |"name": "data_type",
+             |"type": "string",
+             |"nullable": false
+             |},
+             |{
+             |"name": "data_parse",
+             |"type": "string",
+             |"nullable": true
+             |},
+             |{
              |"name": "sink_namespace",
              |"type": "string",
              |"nullable": false
              |},
              |{
-             |"name": "consumption_data_type",
+             |"name": "consumption_protocol",
              |"type": "string",
              |"nullable": false
              |},
@@ -223,7 +233,7 @@ object FlowUtils extends RiderLogger {
              |},
              |"payload": [
              |{
-             |"tuple": [${directive.id}, ${base64Tuple.head}, "${base64Tuple(1)}", "${base64Tuple(2)}", "${base64Tuple(3)}", "${base64Tuple(4)}", "${base64Tuple(5)}"]
+             |"tuple": [${directive.id}, ${base64Tuple.head}, "${base64Tuple(1)}", "${base64Tuple(2)}", "${base64Tuple(3)}", "${base64Tuple(4)}", "${base64Tuple(5)}", "${base64Tuple(6)}", "${base64Tuple(7)}"]
              |}
              |]
              |}
