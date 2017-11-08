@@ -113,7 +113,7 @@ export class Workbench extends React.Component {
       streamConfigValues: {
         sparkConfig: '',
         startConfig: '{"driverCores":1,"driverMemory":2,"executorNums":6,"perExecutorMemory":2,"perExecutorCores":1}',
-        launchConfig: '{"durations": 10, "partitions": 6, "maxRecords": 600}'
+        launchConfig: '{"durations": 10, "partitions": 6, "maxRecords": 50}'
       },
       streamQueryValues: {},
 
@@ -959,7 +959,7 @@ export class Workbench extends React.Component {
         streamConfigValues: {
           sparkConfig: `${result},${othersInit}`,
           startConfig: '{"driverCores":1,"driverMemory":2,"executorNums":6,"perExecutorMemory":2,"perExecutorCores":1}',
-          launchConfig: '{"durations": 10, "partitions": 6, "maxRecords": 600}'
+          launchConfig: '{"durations": 10, "partitions": 6, "maxRecords": 50}'
         }
       })
     })
