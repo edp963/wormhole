@@ -154,7 +154,7 @@ object StreamUtils extends RiderLogger {
 
   def getBatchFlowConfig(streamDetail: StreamDetail) = {
     val launchConfig = json2caseClass[LaunchConfig](streamDetail.stream.launchConfig)
-    val config = BatchFlowConfig(KafkaInputBaseConfig(streamDetail.stream.name, launchConfig.durations.toInt, streamDetail.kafkaInfo.connUrl, launchConfig.maxRecords.toInt),
+    val config = BatchFlowConfig(KafkaInputBaseConfig(streamDetail.stream.name, launchConfig.durations.toInt, streamDetail.kafkaInfo.connUrl, launchConfig.maxRecords.toInt * 1024 * 1024),
       KafkaOutputConfig(RiderConfig.consumer.topic, RiderConfig.consumer.brokers),
       SparkConfig(streamDetail.stream.id, streamDetail.stream.name, "yarn-cluster", launchConfig.partitions.toInt),
       launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfs_root))
@@ -178,14 +178,13 @@ object StreamUtils extends RiderLogger {
           val tuple = Seq(streamId, currentMicroSec, topic.name, topic.rate, topic.partitionOffsets).mkString("#")
           directiveSeq += Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, tuple, zkConURL, currentSec, userId)
       })
+      val blankTopic = Directive(0, null, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, "0:0").mkString("#"), zkConURL, currentSec, userId)
       val directives: Seq[Directive] =
-        if (directiveSeq.isEmpty) directiveSeq
+        if (directiveSeq.isEmpty) directiveSeq += blankTopic
         else {
           Await.result(modules.directiveDal.insert(directiveSeq), minTimeOut)
         }
-      val blankTopic = Directive(0, null, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, "0:0").mkString("#"), zkConURL, currentSec, userId)
-      val directiveNew = directives.to[mutable.ArrayBuffer] += blankTopic
-      val topicUms = directiveNew.map({
+      val topicUms = directives.map({
         directive =>
           val topicInfo = directive.directive.split("#")
           val ums =
@@ -238,7 +237,7 @@ object StreamUtils extends RiderLogger {
           """.stripMargin.replaceAll("[\\n\\t\\r]+", "")
           jsonCompact(ums)
       }).mkString("\n")
-      PushDirective.sendTopicDirective(streamId, topicUms, directiveNew.head.zkPath)
+      PushDirective.sendTopicDirective(streamId, topicUms)
       riderLogger.info(s"user $userId send ${DIRECTIVE_TOPIC_SUBSCRIBE.toString} directives success.")
     } catch {
       case ex: Exception =>
