@@ -6,7 +6,7 @@ import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{JobDal, ProjectDal}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, SessionClass}
-import edp.rider.spark.{SparkStatusQuery, SubmitSparkJob}
+import edp.rider.spark.{SparkJobClientLog, SparkStatusQuery, SubmitSparkJob}
 import edp.rider.rest.util.JobUtils
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils.{currentSec, minTimeOut}
@@ -16,8 +16,10 @@ import edp.rider.rest.util.StreamUtils.genStreamNameByProjectName
 import slick.jdbc.MySQLProfile.api._
 import edp.rider.common.JobStatus
 import edp.rider.rest.util.JobUtils.getDisableAction
+
 import scala.concurrent.Await
 import edp.rider.spark.SubmitSparkJob.runShellCommand
+
 import scala.util.{Failure, Success}
 
 class JobUserApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseUserApiImpl[JobTable, Job](jobDal) with RiderLogger with JsonSerializer {
@@ -250,7 +252,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseUserApiImpl
       }
   }
 
-//{projectId}/jobs/{jobId}/delete
+  //{projectId}/jobs/{jobId}/delete
 
   def deleteJob(route: String): Route = path(route / LongNumber / "jobs" / LongNumber / "delete") {
     (projectId, jobId) =>
@@ -294,6 +296,38 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseUserApiImpl
             } else {
               riderLogger.error(s"user ${session.userId} doesn't have permission to access the project ${projectId}.")
               complete(OK, getHeader(403, session))
+            }
+        }
+      }
+  }
+
+  // @Path("/{projectId}/jobs/{jobId}/logs/")
+  def getLogByJobId(route: String): Route = path(route / LongNumber / "jobs" / LongNumber / "logs") {
+    (projectId, jobId) =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "user") {
+              riderLogger.warn(s"${
+                session.userId
+              } has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              if (session.projectIdList.contains(projectId)) {
+                onComplete(jobDal.getJobNameByJobID(jobId)) {
+                  case Success(job) =>
+                    riderLogger.info(s"user ${session.userId} refresh job log where job id is $jobId success.")
+                    val log = SparkJobClientLog.getLogByAppName(job.name)
+                    complete(OK, ResponseJson[String](getHeader(200, session), log))
+                  case Failure(ex) =>
+                    riderLogger.error(s"user ${session.userId} refresh job log where job id is $jobId failed", ex)
+                    complete(OK, getHeader(451, ex.getMessage, session))
+                }
+              } else {
+                riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
+                complete(OK, getHeader(403, session))
+              }
             }
         }
       }
