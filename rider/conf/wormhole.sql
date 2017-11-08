@@ -339,7 +339,7 @@ CREATE TABLE IF NOT EXISTS `feedback_directive` (
   `stream_id`  BIGINT NOT NULL,
   `directive_id`  BIGINT NOT NULL,
   `status`      VARCHAR(32) NOT NULL,
-  `result_desc` VARCHAR(2000) ,
+  `result_desc` VARCHAR(2000),
   `feedback_time` TIMESTAMP NOT NULL,
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB;
