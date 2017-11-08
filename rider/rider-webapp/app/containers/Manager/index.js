@@ -98,7 +98,11 @@ export class Manager extends React.Component {
       logsProjectId: 0,
       logsStreamId: 0,
 
-      udfVals: []
+      startUdfVals: [],
+      renewUdfVals: [],
+      selectEditIcon: 'edit',
+      selectEditText: '修改',
+      currentUdfVal: []
     }
   }
 
@@ -194,10 +198,63 @@ export class Manager extends React.Component {
   }
 
   updateStream = (record) => (e) => {
+    const { projectIdGeted } = this.props
+
     this.setState({
       actionType: 'renew',
-      startModalVisible: true
+      startModalVisible: true,
+      streamIdGeted: record.id
     })
+
+    new Promise((resolve) => {
+      this.props.onLoadStreamDetail(projectIdGeted, record.id, 'user', (result) => {
+        resolve(result)
+        this.setState({
+          topicInfoModal: result.topicInfo.length === 0 ? 'hide' : '',
+          streamStartFormData: result.topicInfo,
+          currentUdfVal: result.currentUdf
+        })
+      })
+    })
+      .then((result) => {
+        // 与user UDF table相同的接口获得全部的UDF
+        this.props.onLoadSingleUdf(projectIdGeted, 'user', (resultUdf) => {
+          // 下拉框除去回显的udfs，id options
+          const resultCurrentUdf = result.currentUdf
+          const resultUdfIdArr = resultUdf.map(i => i.id)
+          const currentUdfIdArr = resultCurrentUdf.map(i => i.id)
+
+          let renewUdfValIds = []
+          let tmp = resultUdfIdArr.concat(currentUdfIdArr)
+          let o = {}
+          for (let i = 0; i < tmp.length; i++) (tmp[i] in o) ? o[tmp[i]] ++ : o[tmp[i]] = 1
+          for (let x in o) if (o[x] === 1) renewUdfValIds.push(x)
+
+          // id: value 键值对
+          let arrTemp = []
+          for (let m = 0; m < resultUdf.length; m++) {
+            const objTemp = {
+              [resultUdf[m].id]: resultUdf[m]
+            }
+            arrTemp.push(objTemp)
+          }
+
+          // 根据 id 找到对应的项，形成数组
+          let renewUdfValFinal = []
+          for (let n = 0; n < arrTemp.length; n++) {
+            for (let k = 0; k < renewUdfValIds.length; k++) {
+              const tt = renewUdfValIds[k]
+              if (arrTemp[n][tt] !== undefined) {
+                renewUdfValFinal.push(arrTemp[n][tt])
+              }
+            }
+          }
+
+          this.setState({
+            renewUdfVals: renewUdfValFinal
+          })
+        })
+      })
   }
 
   /**
@@ -205,21 +262,36 @@ export class Manager extends React.Component {
    * @param record
    */
   onShowEditStart = (record) => (e) => {
+    const { projectIdGeted } = this.props
+
     this.setState({
       actionType: 'start',
       startModalVisible: true,
       streamIdGeted: record.id
     })
-    // 单条查询接口获得回显的topic Info和UDF信息
-    // 与user UDF table相同的接口获得全部的UDF
-    this.props.onLoadStreamDetail(this.props.projectIdGeted, record.id, 'user', (result) => {
+
+    // 单条查询接口获得回显的topic Info，回显选中的UDFs
+    this.props.onLoadStreamDetail(projectIdGeted, record.id, 'user', (result) => {
+      // resolve(result)
       this.setState({
         topicInfoModal: result.topicInfo.length === 0 ? 'hide' : '',
         streamStartFormData: result.topicInfo
       })
+
+      // 回显选中的 topic，必须有 id
+      const currentUdfTemp = result.currentUdf
+      let topicsSelectValue = []
+      for (let i = 0; i < currentUdfTemp.length; i++) {
+        topicsSelectValue.push(`${currentUdfTemp[i].id}`)
+      }
+
+      this.streamStartForm.setFieldsValue({
+        udfs: topicsSelectValue
+      })
     })
 
-    this.props.onLoadSingleUdf(this.props.projectIdGeted, 'user', (result) => {
+    // 与user UDF table相同的接口获得全部的UDFs
+    this.props.onLoadSingleUdf(projectIdGeted, 'user', (result) => {
       const allOptionVal = {
         createBy: 1,
         createTime: '',
@@ -234,15 +306,11 @@ export class Manager extends React.Component {
       }
       result.unshift(allOptionVal)
       this.setState({
-        udfVals: result
+        startUdfVals: result
       })
     })
   }
 
-  /**
-   * 查询最新的 Offset
-   * @param e
-   */
   queryLastestoffset = (e) => {
     const { projectIdGeted } = this.props
     const { streamIdGeted } = this.state
@@ -251,6 +319,13 @@ export class Manager extends React.Component {
       id: projectIdGeted,
       streamId: streamIdGeted
     }
+    this.loadLastestOffset(requestVal)
+  }
+
+  /**
+   * 最新的 Offset
+   */
+  loadLastestOffset (requestVal) {
     this.props.onLoadOffset(requestVal, (result) => {
       for (let k = 0; k < result.length; k++) {
         const partitionAndOffset = result[k].partitionOffsets.split(',')
@@ -263,65 +338,165 @@ export class Manager extends React.Component {
     })
   }
 
+  onChangeEditSelect = () => {
+    const { selectEditIcon, streamStartFormData } = this.state
+
+    if (selectEditIcon === 'close') {
+      this.setState({
+        selectEditIcon: 'edit',
+        selectEditText: '修改'
+      })
+      for (let k = 0; k < streamStartFormData.length; k++) {
+        const partitionAndOffset = streamStartFormData[k].partitionOffsets.split(',')
+
+        for (let j = 0; j < partitionAndOffset.length; j++) {
+          this.streamStartForm.setFieldsValue({
+            [`${streamStartFormData[k].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
+            [`${streamStartFormData[k].rate}`]: streamStartFormData[k].rate
+          })
+        }
+      }
+    } else if (selectEditIcon === 'edit') {
+      this.setState({
+        selectEditIcon: 'close',
+        selectEditText: '还原'
+      })
+    }
+  }
+
   /**
    * start操作  ok
    * @param e
    */
   handleEditStartOk = (e) => {
-    const { actionType, streamIdGeted, streamStartFormData, udfVals } = this.state
+    const { actionType, streamIdGeted, streamStartFormData, startUdfVals } = this.state
     const { projectIdGeted } = this.props
 
     this.streamStartForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        let requestStartVal = {}
-        if (streamStartFormData.length === 0) {
-          if (values.udfs === undefined || values.udfs.length === 0) {
-            requestStartVal = {}
+        let requestVal = {}
+        if (actionType === 'start') {
+          if (streamStartFormData.length === 0) {
+            if (values.udfs === undefined || values.udfs.length === 0) {
+              requestVal = {}
+            } else {
+              if (values.udfs.find(i => i === '-1')) {
+                // 全选
+                const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                requestVal = {
+                  udfInfo: startUdfValsOrigin.map(p => p.id)
+                }
+              } else {
+                requestVal = {
+                  udfInfo: values.udfs.map(q => Number(q))
+                }
+              }
+            }
           } else {
-            if (values.udfs[0] === '-1') {
-              // 全选
-              const udfValsOrigin = udfVals.filter(k => k.id !== -1)
-              requestStartVal = {
-                udfInfo: udfValsOrigin.map(p => p.id)
+            const mergedData = streamStartFormData.map((i) => {
+              const parOffTemp = i.partitionOffsets
+              const partitionTemp = parOffTemp.split(',')
+
+              const offsetArr = []
+              for (let r = 0; r < partitionTemp.length; r++) {
+                const offsetArrTemp = values[`${i.id}_${r}`]
+                if (offsetArrTemp === '') {
+                  message.warning('Offset 不能为空！', 3)
+                } else {
+                  offsetArr.push(`${r}:${offsetArrTemp}`)
+                }
+              }
+              const offsetVal = offsetArr.join(',')
+
+              const robj = {
+                id: i.id,
+                partitionOffsets: offsetVal,
+                rate: Number(values[i.rate])
+              }
+              return robj
+            })
+
+            if (values.udfs === undefined || values.udfs.length === 0) {
+              requestVal = {
+                topicInfo: mergedData
               }
             } else {
-              requestStartVal = {
-                udfInfo: values.udfs
+              if (values.udfs.find(i => i === '-1')) {
+                // 全选
+                const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                requestVal = {
+                  udfInfo: startUdfValsOrigin.map(p => p.id),
+                  topicInfo: mergedData
+                }
+              } else {
+                requestVal = {
+                  udfInfo: values.udfs.map(q => Number(q)),
+                  topicInfo: mergedData
+                }
               }
             }
           }
-        } else {
-          const mergedData = streamStartFormData.map((i) => {
-            const parOffTemp = i.partitionOffsets
-            const partitionTemp = parOffTemp.split(',')
-
-            const offsetArr = []
-            for (let r = 0; r < partitionTemp.length; r++) {
-              const offsetArrTemp = values[`${i.id}_${r}`]
-              if (offsetArrTemp === '') {
-                message.warning('Offset 不能为空！', 3)
-              } else {
-                offsetArr.push(`${r}:${offsetArrTemp}`)
+        } else if (actionType === 'renew') {
+          if (streamStartFormData.length === 0) {
+            if (values.udfs === undefined || values.udfs.length === 0) {
+              requestVal = {}
+            } else {
+              requestVal = {
+                udfInfo: values.udfs.map(q => Number(q))
               }
             }
-            const offsetVal = offsetArr.join(',')
-
-            const robj = {
-              id: i.id,
-              partitionOffsets: offsetVal,
-              rate: values[i.rate]
-            }
-            return robj
-          })
-
-          if (values.udfs === undefined || values.udfs.length === 0) {
-            requestStartVal = {
-              topicInfo: mergedData
-            }
           } else {
-            requestStartVal = {
-              udfInfo: values.udfs,
-              topicInfo: mergedData
+            const mergedData = streamStartFormData.map((i) => {
+              const parOffTemp = i.partitionOffsets
+              const partitionTemp = parOffTemp.split(',')
+
+              const offsetArr = []
+              for (let r = 0; r < partitionTemp.length; r++) {
+                const offsetArrTemp = values[`${i.id}_${r}`]
+                if (offsetArrTemp === '') {
+                  message.warning('Offset 不能为空！', 3)
+                } else {
+                  offsetArr.push(`${r}:${offsetArrTemp}`)
+                }
+              }
+              const offsetVal = offsetArr.join(',')
+
+              const robj = {
+                id: i.id,
+                name: i.name,
+                partitionOffsets: offsetVal,
+                rate: Number(values[i.rate])
+              }
+              return robj
+            })
+
+            // 接口参数：改动的topicInfo
+            let topicInfoTemp = []
+            for (let f = 0; f < streamStartFormData.length; f++) {
+              for (let g = 0; g < mergedData.length; g++) {
+                if (streamStartFormData[f].id === mergedData[g].id) {
+                  if (!this.isEquivalent(streamStartFormData[f], mergedData[g])) {
+                    topicInfoTemp.push({
+                      id: mergedData[g].id,
+                      partitionOffsets: mergedData[g].partitionOffsets,
+                      rate: mergedData[g].rate
+                    })
+                  }
+                }
+              }
+            }
+
+            if (topicInfoTemp.length === 0) {
+              requestVal = (values.udfs === undefined || values.udfs.length === 0)
+                ? {}
+                : requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
+            } else {
+              requestVal = (values.udfs === undefined || values.udfs.length === 0)
+                ? { topicInfo: topicInfoTemp }
+                : {
+                  udfInfo: values.udfs.map(q => Number(q)),
+                  topicInfo: topicInfoTemp
+                }
             }
           }
         }
@@ -336,12 +511,18 @@ export class Manager extends React.Component {
           actionTypeMsg = '生效！'
         }
 
-        this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, requestStartVal, actionTypeRequest, () => {
+        this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, () => {
           this.setState({
             startModalVisible: false,
             streamStartFormData: [],
             modalLoading: false
           })
+          if (actionType === 'renew') {
+            this.setState({
+              selectEditIcon: 'edit',
+              selectEditText: '修改'
+            })
+          }
           message.success(actionTypeMsg, 3)
         }, (result) => {
           message.error(`操作失败：${result}`, 3)
@@ -353,11 +534,44 @@ export class Manager extends React.Component {
     })
   }
 
+  /**
+   * 判断两个对象的值是否相等
+   */
+  isEquivalent (a, b) {
+    // 获取对象属性的所有的键
+    const aProps = Object.getOwnPropertyNames(a)
+    const bProps = Object.getOwnPropertyNames(b)
+
+    // 如果键的数量不同，那么两个对象内容也不同
+    if (aProps.length !== bProps.length) {
+      return false
+    }
+
+    for (let i = 0, len = aProps.length; i < len; i++) {
+      var propName = aProps[i]
+
+      // 如果对应的值不同，那么对象内容也不同
+      if (a[propName] !== b[propName]) {
+        return false
+      }
+    }
+    return true
+  }
+
   handleEditStartCancel = (e) => {
+    const { actionType } = this.state
     this.setState({
       startModalVisible: false,
       streamStartFormData: []
     })
+
+    if (actionType === 'renew') {
+      this.setState({
+        selectEditIcon: 'edit',
+        selectEditText: '修改'
+      })
+    }
+
     this.streamStartForm.resetFields()
   }
 
@@ -817,11 +1031,24 @@ export class Manager extends React.Component {
       className: 'text-align-center',
       render: (text, record) => {
         const stream = this.state.currentStreams.find(s => s.id === record.id)
-        // 当admin时，action只有查看详情
         let streamActionSelect = ''
         if (localStorage.getItem('loginRoleType') === 'admin') {
           streamActionSelect = ''
         } else if (localStorage.getItem('loginRoleType') === 'user') {
+          const strDelete = record.disableActions.indexOf('delete') > -1
+            ? (
+              <Tooltip title="删除">
+                <Button icon="delete" shape="circle" type="ghost" disabled></Button>
+              </Tooltip>
+            )
+            : (
+              <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteStreambtn(record, 'delete')}>
+                <Tooltip title="删除">
+                  <Button icon="delete" shape="circle" type="ghost"></Button>
+                </Tooltip>
+              </Popconfirm>
+            )
+
           let streamStartDisabled = false
           let streamRenewDisabled = false
           let strStop = ''
@@ -892,11 +1119,7 @@ export class Manager extends React.Component {
                 <Button icon="check" shape="circle" type="ghost" onClick={this.updateStream(record, 'renew')} disabled={streamRenewDisabled}></Button>
               </Tooltip>
 
-              <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteStreambtn(record, 'delete')}>
-                <Tooltip title="删除">
-                  <Button icon="delete" shape="circle" type="ghost"></Button>
-                </Tooltip>
-              </Popconfirm>
+              {strDelete}
             </span>
           )
         }
@@ -1002,7 +1225,11 @@ export class Manager extends React.Component {
       ? (
         <StreamStartForm
           data={this.state.streamStartFormData}
-          udfValsOption={this.state.udfVals}
+          streamActionType={this.state.actionType}
+          selectEditIcon={this.state.selectEditIcon}
+          startUdfValsOption={this.state.startUdfVals}
+          renewUdfValsOption={this.state.renewUdfVals}
+          currentUdfVal={this.state.currentUdfVal}
           ref={(f) => { this.streamStartForm = f }}
         />
       )
@@ -1053,6 +1280,15 @@ export class Manager extends React.Component {
               onClick={this.queryLastestoffset}
             >
               查看最新 Offset
+            </Button>,
+            <Button
+              className={`edit-topic-btn ${this.state.actionType === 'start' ? 'hide' : ''}`}
+              icon={this.state.selectEditIcon}
+              type="default"
+              onClick={this.onChangeEditSelect}
+              key="renewEdit"
+              size="large">
+              {this.state.selectEditText}
             </Button>,
             <Button
               key="cancel"
