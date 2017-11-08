@@ -437,13 +437,19 @@ class StreamUserApi(streamDal: StreamDal, projectDal: ProjectDal, streamUdfDal: 
           id => RelStreamUdf(0, streamId, id, currentSec, userId, currentSec, userId)
         )
         Await.result(streamUdfDal.insertOrUpdate(insertUdfs).mapTo[Int], minTimeOut)
-        sendUdfDirective(streamId, streamUdfDal.getStreamUdf(Seq(streamId)), userId)
+        sendUdfDirective(streamId,
+          streamUdfDal.getStreamUdf(Seq(streamId)).filter(udf => streamDirective.udfInfo.get.contains(udf.id)),
+          userId)
       }
+      val topicMap = inTopicDal.getStreamTopic(Seq(streamId)).map(topic => (topic.id, topic.name)).toMap
       if (streamDirective.topicInfo.nonEmpty) {
-        streamDirective.topicInfo.get.foreach(
-          topic => Await.result(inTopicDal.updateOffset(streamId, topic.id, topic.partitionOffsets, topic.rate, userId), minTimeOut)
+        val updateOffsets = streamDirective.topicInfo.get.map(
+          topic => {
+            Await.result(inTopicDal.updateOffset(streamId, topic.id, topic.partitionOffsets, topic.rate, userId), minTimeOut)
+            StreamTopicTemp(topic.id, streamId, topicMap(topic.id), topic.partitionOffsets, topic.rate)
+          }
         )
-        sendTopicDirective(streamId, inTopicDal.getStreamTopic(Seq(streamId)), userId)
+        sendTopicDirective(streamId, updateOffsets, userId)
       }
     }
   }
