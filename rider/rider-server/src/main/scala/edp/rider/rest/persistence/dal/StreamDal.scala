@@ -159,4 +159,20 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     db.run(streamTable.filter(_.name === streamName).result)
   }
 
+
+
+  def getProjectStreamsUsedRource(projectId: Long) = {
+    val streamSeq: Seq[Stream] = Await.result(super.findByFilter(job => job.projectId === projectId && (job.status === "running" || job.status === "waiting" || job.status === "starting" || job.status === "stopping")), minTimeOut)
+    var usedCores = 0
+    var usedMemory = 0
+    streamSeq.foreach(
+      stream => {
+        val config = json2caseClass[StartConfig](stream.startConfig)
+        usedCores += config.driverCores + config.executorNums * config.perExecutorCores
+        usedMemory += config.driverMemory + config.executorNums * config.perExecutorMemory
+      }
+    )
+    (usedCores, usedMemory)
+  }
+
 }

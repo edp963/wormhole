@@ -3,7 +3,7 @@ package edp.rider.rest.router.user.api
 import akka.http.scaladsl.model.StatusCodes.OK
 import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
-import edp.rider.rest.persistence.dal.{JobDal, ProjectDal}
+import edp.rider.rest.persistence.dal.{JobDal, ProjectDal, StreamDal}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, SessionClass}
 import edp.rider.spark.{SparkJobClientLog, SparkStatusQuery, SubmitSparkJob}
@@ -15,14 +15,17 @@ import edp.rider.rest.util.ResponseUtils.getHeader
 import edp.rider.rest.util.StreamUtils.genStreamNameByProjectName
 import slick.jdbc.MySQLProfile.api._
 import edp.rider.common.JobStatus
+import edp.rider.module.DbModule.db
 import edp.rider.rest.util.JobUtils.getDisableAction
+import edp.rider.rest.util.ProjectUtils.isResourceEnough
 
 import scala.concurrent.Await
 import edp.rider.spark.SubmitSparkJob.runShellCommand
+import edp.wormhole.common.util.JsonUtils.json2caseClass
 
 import scala.util.{Failure, Success}
 
-class JobUserApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseUserApiImpl[JobTable, Job](jobDal) with RiderLogger with JsonSerializer {
+class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) extends BaseUserApiImpl[JobTable, Job](jobDal) with RiderLogger with JsonSerializer {
   def postRoute(route: String): Route = path(route / LongNumber / "jobs") {
     projectId =>
       post {
@@ -83,12 +86,24 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseUserApiImpl
                       job.status != JobStatus.WAITING.toString &&
                       job.status != JobStatus.RUNNING.toString &&
                       job.status != JobStatus.STOPPING.toString) {
-                      val updateJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.sourceType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd,
-                        job.sourceConfig, job.sinkConfig, job.tranConfig, JobStatus.STARTING.toString, job.sparkAppid, job.logPath, Some(currentSec), job.stoppedTime, job.createTime, job.createBy, currentSec, session.userId)
-                      Await.result(jobDal.update(updateJob), minTimeOut)
-                      JobUtils.startJob(job)
-                      val projectName = jobDal.adminGetRow(job.projectId)
-                      complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(JobStatus.jobStatus(job.status)))))
+                      val project: Project = Await.result(projectDal.findById(projectId), minTimeOut).head
+                      val (projectTotalCore, projectTotalMemory) = (project.resCores, project.resMemoryG)
+                      val (jobUsedCore, jobUsedMemory) = jobDal.getProjectJobsUsedRource(projectId)
+                      val (streamUsedCore, streamUsedMemory) = streamDal.getProjectStreamsUsedRource(projectId)
+                      val currentConfig = json2caseClass[StartConfig](job.startConfig)
+                      val currentNeededCore = currentConfig.driverCores + currentConfig.executorNums * currentConfig.perExecutorCores
+                      val currentNeededMemory = currentConfig.driverMemory + currentConfig.executorNums * currentConfig.perExecutorMemory
+                      if ((projectTotalCore - jobUsedCore - streamUsedCore - currentNeededCore) >= 0 && (projectTotalMemory - jobUsedMemory - streamUsedMemory - currentNeededMemory) >= 0) {
+                        riderLogger.warn(s"user ${session.userId} start job $jobId failed, caused by resource is not enough")
+                        complete(OK, getHeader(507, "resource is not enough", null))
+                      } else {
+                        val updateJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.sourceType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd,
+                          job.sourceConfig, job.sinkConfig, job.tranConfig, JobStatus.STARTING.toString, job.sparkAppid, job.logPath, Some(currentSec), job.stoppedTime, job.createTime, job.createBy, currentSec, session.userId)
+                        Await.result(jobDal.update(updateJob), minTimeOut)
+                        JobUtils.startJob(job)
+                        val projectName = jobDal.adminGetRow(job.projectId)
+                        complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(JobStatus.jobStatus(job.status)))))
+                      }
                     } else {
                       riderLogger.error(s"can not start ${job.id} at this moment, because the job is in ${job.status} status")
                       complete(OK, getHeader(403, session))
