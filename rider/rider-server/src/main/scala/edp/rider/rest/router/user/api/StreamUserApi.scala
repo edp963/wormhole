@@ -80,6 +80,7 @@ class StreamUserApi(streamDal: StreamDal, projectDal: ProjectDal, streamUdfDal: 
             None, None, "new", None, None, active = true, currentSec, session.userId, currentSec, session.userId)
           onComplete(streamDal.insert(insertStream).mapTo[Stream]) {
             case Success(stream) =>
+              CacheMap.streamCacheMapRefresh
               val streamDetail = streamDal.getStreamDetail(Some(projectId), Some(stream.id))
               complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail.head))
             case Failure(ex) =>
@@ -503,21 +504,28 @@ class StreamUserApi(streamDal: StreamDal, projectDal: ProjectDal, streamUdfDal: 
                 val streamDetailOpt = streamDal.getStreamDetail(Some(id), Some(streamId)).headOption
                 streamDetailOpt match {
                   case Some(streamDetail) =>
-                    val flows = Await.result(flowDal.findByFilter(_.streamId === streamId), minTimeOut)
-                    if (flows.nonEmpty) {
-                      riderLogger.info(s"user ${session.userId} can't delete stream $streamId now, please delete flow ${flows.map(_.id).mkString(",")} first")
-                      complete(OK, getHeader(412, s"please delete flow ${flows.map(_.id).mkString(",")} first", session))
-                    } else {
-                      removeStreamDirective(streamId, session.userId)
-                      if (streamDetail.stream.sparkAppid.getOrElse("") != "") {
-                        runShellCommand("yarn application -kill " + streamDetail.stream.sparkAppid.get)
-                        riderLogger.info(s"user ${session.userId} stop stream $streamId success")
+                    if (checkAction(DELETE.toString, streamDetail.stream.status)) {
+                      val flows = Await.result(flowDal.findByFilter(_.streamId === streamId), minTimeOut)
+                      if (flows.nonEmpty) {
+                        riderLogger.info(s"user ${session.userId} can't delete stream $streamId now, please delete flow ${flows.map(_.id).mkString(",")} first")
+                        complete(OK, getHeader(412, s"please delete flow ${flows.map(_.id).mkString(",")} first", session))
+                      } else {
+                        removeStreamDirective(streamId, session.userId)
+                        if (streamDetail.stream.sparkAppid.getOrElse("") != "") {
+                          runShellCommand("yarn application -kill " + streamDetail.stream.sparkAppid.get)
+                          riderLogger.info(s"user ${session.userId} stop stream $streamId success")
+                        }
+                        Await.result(streamDal.deleteById(streamId), minTimeOut)
+                        Await.result(inTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
+                        CacheMap.streamCacheMapRefresh
+                        runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(streamDetail.stream.name)}")
+                        riderLogger.info(s"user ${session.userId} delete stream $streamId success")
+                        complete(OK, getHeader(200, session))
                       }
-                      Await.result(streamDal.deleteById(streamId), minTimeOut)
-                      Await.result(inTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
-                      CacheMap.streamCacheMapRefresh
-                      riderLogger.info(s"user ${session.userId} delete stream $streamId success")
-                      complete(OK, getHeader(200, session))
+                    }
+                    else {
+                      riderLogger.info(s"user ${session.userId} can't stop stream $streamId now")
+                      complete(OK, getHeader(406, s"start is forbidden", session))
                     }
                   case None => complete(OK, getHeader(200, session))
                 }

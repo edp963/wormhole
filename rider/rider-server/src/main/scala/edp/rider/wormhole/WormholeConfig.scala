@@ -75,7 +75,7 @@ case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,
 case class KafkaInputBaseConfig(group_id: String,
                                 batch_duration_seconds: Int,
                                 brokers: String,
-                                `max.partition.fetch.bytes`: Int = 10485760,
+                                `max.partition.fetch.bytes`: Int = 52428800,
                                 `key.deserializer`: String = "org.apache.kafka.common.serialization.StringDeserializer",
                                 `value.deserializer`: String = "org.apache.kafka.common.serialization.StringDeserializer",
                                 `session.timeout.ms`: Int = 30000
