@@ -73,7 +73,8 @@ export class InstanceForm extends React.Component {
       { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
       // { value: 'log', text: 'Log' },
       { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
-      { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} }
+      { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
+      { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} }
     ]
 
     // edit 时，不能修改部分元素
@@ -86,7 +87,7 @@ export class InstanceForm extends React.Component {
 
     // help
     let questionDS = ''
-    if (instanceDSValue === 'oracle' || instanceDSValue === 'mysql' || instanceDSValue === 'postgresql' || instanceDSValue === 'cassandra') {
+    if (instanceDSValue === 'oracle' || instanceDSValue === 'mysql' || instanceDSValue === 'postgresql') {
       questionDS = `${instanceDSValue.substring(0, 1).toUpperCase()}${instanceDSValue.substring(1)} 时, 为 ip:port 格式`
     } else if (instanceDSValue === 'es') {
       questionDS = 'Elastic 时, 为 http(s)://ip:port 格式'
@@ -96,6 +97,8 @@ export class InstanceForm extends React.Component {
       questionDS = 'Phoenix 时, 为 zookeeper url, 如localhost:2181'
     } else if (instanceDSValue === 'kafka') {
       questionDS = 'Kafka 时, 为 borker list, localhost:9092, 多条用逗号隔开'
+    } else if (instanceDSValue === 'cassandra') {
+      questionDS = 'Cassandra时, 域名或ip, 多条用逗号隔开'
     } else {
       questionDS = '请选择 Data System'
     }

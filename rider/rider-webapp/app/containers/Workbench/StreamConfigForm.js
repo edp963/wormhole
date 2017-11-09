@@ -178,7 +178,7 @@ export class StreamConfigForm extends React.Component {
             </FormItem>
           </Col>
           <Col span={8}>
-            <FormItem label="Max Batch Data Size (M)：" {...itemStylePEM}>
+            <FormItem label="Max Batch Data Size (Mb)：" {...itemStylePEM}>
               {getFieldDecorator('maxRecords', {
                 rules: [{
                   required: true,

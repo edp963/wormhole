@@ -91,13 +91,13 @@ export class FlowTransformForm extends React.Component {
     const flowLookupSqlType = [
       { value: 'leftJoin', text: 'Left Join' },
       // { value: 'rightJoin', text: 'Right Join' },
-      { value: 'innerJoin', text: 'Inner Join' },
+      // { value: 'innerJoin', text: 'Inner Join' },
       { value: 'union', text: 'Union' }
     ]
 
     const flowStreamJoinSqlType = [
       { value: 'leftJoin', text: 'Left Join' },
-      { value: 'rightJoin', text: 'Right Join' },
+      // { value: 'rightJoin', text: 'Right Join' },
       { value: 'innerJoin', text: 'Inner Join' }
     ]
 
@@ -107,8 +107,9 @@ export class FlowTransformForm extends React.Component {
       { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
       { value: 'hbase', icon: 'icon-hbase1' },
       { value: 'phoenix', text: 'Phoenix' },
-      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
-      { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} }
+      // { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
+      { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
+      { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} }
     ]
 
     const lookUpSqlMsg = (
