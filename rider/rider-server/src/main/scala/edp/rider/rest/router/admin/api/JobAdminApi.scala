@@ -10,7 +10,9 @@ import edp.rider.rest.util.{AuthorizationProvider, JobUtils}
 import edp.rider.rest.util.JobUtils.getDisableAction
 import edp.rider.rest.util.ResponseUtils.getHeader
 import edp.rider.spark.{SparkJobClientLog, SparkStatusQuery}
+import edp.rider.rest.util.CommonUtils.minTimeOut
 
+import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
 class JobAdminApi(jobDal: JobDal) extends BaseAdminApiImpl(jobDal) with RiderLogger with JsonSerializer {
@@ -119,10 +121,17 @@ class JobAdminApi(jobDal: JobDal) extends BaseAdminApiImpl(jobDal) with RiderLog
               complete(OK, getHeader(403, session))
             }
             else {
+              val jobOut = Await.result(jobDal.findById(jobId), minTimeOut)
+              jobOut match {
+                case Some(_) =>
               riderLogger.info(s"user ${session.userId} refresh job.")
               val job = JobUtils.refreshJob(jobId)
               val projectName = jobDal.adminGetRow(job.projectId)
               complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(JobStatus.jobStatus(job.status)))))
+                case None =>
+                complete(OK, getHeader(200, s"this job ${jobId} does not exist", null))
+
+              }
             }
         }
       }
