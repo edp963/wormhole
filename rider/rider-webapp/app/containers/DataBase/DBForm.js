@@ -114,7 +114,8 @@ export class DBForm extends React.Component {
       { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
       // { value: 'log', text: 'Log' },
       { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
-      { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} }
+      { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
+      { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} }
     ]
 
     // kafka 独立样式hide/show
