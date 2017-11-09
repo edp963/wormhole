@@ -202,6 +202,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       stopFlow(flow.streamId, flow.id, userId, flow.streamType, flow.sourceNs, flow.sinkNs)
       CacheMap.flowCacheMapRefresh
       Await.result(super.deleteById(flow.id), minTimeOut)
+      CacheMap.flowCacheMapRefresh
     })
     riderLogger.info(s"user $userId delete flow ${flowSeq.map(_.id).mkString(",")} success")
     Future(Seq())
