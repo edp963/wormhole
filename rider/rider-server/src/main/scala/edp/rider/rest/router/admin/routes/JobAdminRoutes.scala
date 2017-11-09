@@ -25,7 +25,7 @@ class JobAdminRoutes(modules: ConfigurationModule with PersistenceModule with Bu
   ))
   def getJobByAllRoute: Route = modules.jobAdminService.getByAllRoute(basePath)
 
-  @Path("/projects/{projectId}/jobs/{jobId}/logs/")
+  @Path("/jobs/{jobId}/logs")
   @ApiOperation(value = "get job log by job id", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
@@ -38,7 +38,7 @@ class JobAdminRoutes(modules: ConfigurationModule with PersistenceModule with Bu
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getLogByJobId: Route = modules.jobAdminService.getLogByJobId("projects")
+  def getLogByJobId: Route = modules.jobAdminService.getLogByJobId(basePath)
 
 
   @Path("/projects/{projectId}/jobs")
