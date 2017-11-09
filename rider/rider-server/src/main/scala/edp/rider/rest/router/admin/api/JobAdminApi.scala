@@ -32,7 +32,7 @@ class JobAdminApi(jobDal: JobDal) extends BaseAdminApiImpl(jobDal) with RiderLog
               val jobsGroupByProjectId: Map[Long, Seq[Job]] = jobs.groupBy(_.projectId)
               val rst = jobsGroupByProjectId.flatMap { case (projectId, jobSeq) =>
                 SparkStatusQuery.getSparkAllJobStatus(jobSeq, allAppStatus, projectIdAndName(projectId))
-              }.toSeq
+              }.toSeq.sortBy(_.job.id)
               riderLogger.info(s"user ${session.userId} select all jobs success.")
               complete(OK, ResponseSeqJson[FullJobInfo](getHeader(200, session), rst))
             } else {
