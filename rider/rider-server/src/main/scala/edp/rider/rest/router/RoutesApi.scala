@@ -76,7 +76,8 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
               crossDomainHandler(userAdmin.routes) ~
               crossDomainHandler(projectAdmin.routes) ~
               crossDomainHandler(riderInfoAdmin.routes) ~
-              crossDomainHandler(udfAdmin.routes)
+              crossDomainHandler(udfAdmin.routes) ~
+              crossDomainHandler(jobAdmin.routes)
           } ~
           pathPrefix("user") {
             crossDomainHandler(projectUser.routes) ~
