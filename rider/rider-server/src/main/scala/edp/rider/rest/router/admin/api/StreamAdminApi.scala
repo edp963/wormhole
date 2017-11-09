@@ -132,14 +132,9 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
               complete(OK, getHeader(403, session))
             }
             else {
-              if (session.projectIdList.contains(id)) {
-                val stream = streamDal.getStreamDetail(Some(id), Some(streamId)).head
-                riderLogger.info(s"user ${session.userId} select streams where project id is $id success.")
-                complete(OK, ResponseJson[StreamDetail](getHeader(200, session), stream))
-              } else {
-                riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
-                complete(OK, getHeader(403, session))
-              }
+              val stream = streamDal.getStreamDetail(Some(id), Some(streamId)).head
+              riderLogger.info(s"user ${session.userId} select streams where project id is $id success.")
+              complete(OK, ResponseJson[StreamDetail](getHeader(200, session), stream))
             }
         }
       }
