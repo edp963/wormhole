@@ -144,13 +144,14 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
         namespaces =>
           val nsProjectSeq = new ArrayBuffer[NamespaceAdmin]
           namespaces.foreach(ns => {
+            val topic = if (ns.topic == ns.nsDatabase) "" else ns.topic
             if (nsProjectMap.contains(ns.id))
               nsProjectSeq += NamespaceAdmin(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar,
                 ns.permission, ns.keys, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy,
-                nsProjectMap(ns.id).mkString(","), ns.topic)
+                nsProjectMap(ns.id).mkString(","), topic)
             else
               nsProjectSeq += NamespaceAdmin(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar,
-                ns.permission, ns.keys, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy, "", ns.topic)
+                ns.permission, ns.keys, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy, "", topic)
           })
           nsProjectSeq
       }

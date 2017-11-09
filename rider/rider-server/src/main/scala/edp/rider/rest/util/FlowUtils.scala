@@ -55,6 +55,10 @@ object FlowUtils extends RiderLogger {
         if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
           JSON.parseObject(sinkConfig).getString("sink_specific_config")
         else "{}"
+      val sink_output =
+        if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_output"))
+          JSON.parseObject(sinkConfig).getString("sink_output")
+        else ""
       val dbConfig = "\"\""
       //      val dbConfig = if (db.config.getOrElse("") == "") "\"\"" else db.config.get
       s"""
@@ -63,6 +67,7 @@ object FlowUtils extends RiderLogger {
          |"sink_connection_username": "${db.user.getOrElse("")}",
          |"sink_connection_password": "${db.pwd.getOrElse("")}",
          |"sink_table_keys": "${ns.keys.getOrElse("")}",
+         |"sink_output": "$sink_output",
          |"sink_connection_config": $dbConfig,
          |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys)}",
          |"sink_specific_config": $specialConfig,
