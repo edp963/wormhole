@@ -10,7 +10,7 @@ import io.swagger.annotations._
 @Api(value = "/jobs", consumes = "application/json", produces = "application/json")
 @Path("/user/projects")
 class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives{
-  lazy val routes: Route = postRoute ~ startJob ~ getFlowByIdRoute ~ getFlowByFilterRoute ~ stopJob ~ deleteJob ~ getLogByJobId
+  lazy val routes: Route = postRoute ~ startJob ~ getJobByIdRoute ~ getJobByFilterRoute ~ stopJob ~ deleteJob ~ getLogByJobId
   lazy val basePath = "projects"
 
   @Path("/{projectId}/jobs")
@@ -100,7 +100,7 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getFlowByIdRoute: Route = modules.jobUserService.getByIdRoute(basePath)
+  def getJobByIdRoute: Route = modules.jobUserService.getByIdRoute(basePath)
 
 
 
@@ -122,7 +122,7 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getFlowByFilterRoute: Route = modules.jobUserService.getByFilterRoute(basePath)
+  def getJobByFilterRoute: Route = modules.jobUserService.getByFilterRoute(basePath)
 
 
   @Path("/{projectId}/jobs/{jobId}/logs/")
