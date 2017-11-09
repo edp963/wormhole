@@ -28,7 +28,6 @@ class JobAdminRoutes(modules: ConfigurationModule with PersistenceModule with Bu
   @Path("/jobs/{jobId}/logs")
   @ApiOperation(value = "get job log by job id", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "jobId", value = "job id", required = true, dataType = "integer", paramType = "path")
   ))
   @ApiResponses(Array(
