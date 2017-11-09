@@ -564,7 +564,8 @@ export class DataBase extends React.PureComponent {
         // {text: 'log', value: 'log'},
         {text: 'kafka', value: 'kafka'},
         {text: 'postgresql', value: 'postgresql'},
-        {text: 'mongodb', value: 'mongodb'}
+        {text: 'mongodb', value: 'mongodb'},
+        {text: 'redis', value: 'redis'}
       ],
       filteredValue: filteredInfo.nsSys,
       onFilter: (value, record) => record.nsSys.includes(value)
