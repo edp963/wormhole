@@ -40,32 +40,31 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
   def getNsByProjectId(route: String): Route = path(route / LongNumber / "namespaces") {
     id =>
       get {
-        parameter('sourceType.as[String].?, 'sinkType.as[String].?, 'transType.as[String].?) {
-          (sourceType, sinkType, transType) =>
-            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
-              session =>
-                if (session.roleType != "user") {
-                  riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-                  complete(OK, getHeader(403, session))
+
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "user") {
+              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              if (session.projectIdList.contains(id)) {
+                onComplete(relProjectNsDal.getNsByProjectId(Some(id)).mapTo[Seq[NamespaceTopic]]) {
+                  case Success(nsSeq) =>
+                    riderLogger.info(s"user ${session.userId} select namespaces where project id is $id success.")
+                    complete(OK, ResponseSeqJson[NamespaceTopic](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
+                  case Failure(ex) =>
+                    riderLogger.error(s"user ${session.userId} select namespaces where project id is $id failed", ex)
+                    complete(OK, getHeader(451, ex.getMessage, session))
                 }
-                else {
-                  if (session.projectIdList.contains(id)) {
-                    onComplete(relProjectNsDal.getNsByProjectId(Some(id)).mapTo[Seq[NamespaceTopic]]) {
-                      case Success(nsSeq) =>
-                        riderLogger.info(s"user ${session.userId} select namespaces where project id is $id success.")
-                        complete(OK, ResponseSeqJson[NamespaceTopic](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
-                      case Failure(ex) =>
-                        riderLogger.error(s"user ${session.userId} select namespaces where project id is $id failed", ex)
-                        complete(OK, getHeader(451, ex.getMessage, session))
-                    }
-                  }
-                  else {
-                    riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
-                    complete(OK, getHeader(501, session))
-                  }
-                }
+              }
+              else {
+                riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
+                complete(OK, getHeader(501, session))
+              }
             }
         }
+
       }
   }
 
