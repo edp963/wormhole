@@ -122,4 +122,27 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
       }
   }
 
+  override def getByIdRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber) {
+    (id, streamId) =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              if (session.projectIdList.contains(id)) {
+                val stream = streamDal.getStreamDetail(Some(id), Some(streamId)).head
+                riderLogger.info(s"user ${session.userId} select streams where project id is $id success.")
+                complete(OK, ResponseJson[StreamDetail](getHeader(200, session), stream))
+              } else {
+                riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
+                complete(OK, getHeader(403, session))
+              }
+            }
+        }
+      }
+  }
+
 }
