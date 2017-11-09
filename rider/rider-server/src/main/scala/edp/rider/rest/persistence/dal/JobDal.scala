@@ -43,9 +43,9 @@ class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTab
       .update(status, currentSec)), minTimeOut)
   }
 
-  def getJobNameByJobID(jobId: Long): Future[Job] = {
-    db.run(jobTable.filter(_.id === jobId).result.head)
-  }
+//  def getJobNameByJobID(jobId: Long): Future[Job] = {
+//    db.run(jobTable.filter(_.id === jobId).result.head)
+//  }
 
 
   //def updateJobStatusList(appInfoSeq: Seq[(Int, AppInfo)]) = appInfoSeq.foreach { case (jobId, appInfo) => updateJobStatus(jobId, appInfo) }

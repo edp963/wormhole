@@ -30,12 +30,12 @@ class JobAdminApi(jobDal: JobDal) extends BaseAdminApiImpl(jobDal) with RiderLog
               val minStartTime = if (jobList.isEmpty) "" else jobList.map(_.startedTime.get).sorted.head //check null to option None todo
               val allAppStatus: List[AppResult] = SparkStatusQuery.getAllAppStatus(minStartTime).filter(t => jobsNameSet.contains(t.appName))
               val jobsGroupByProjectId: Map[Long, Seq[Job]] = jobs.groupBy(_.projectId)
-              val rst = jobsGroupByProjectId.flatMap{case (projectId, jobSeq) =>
+              val rst = jobsGroupByProjectId.flatMap { case (projectId, jobSeq) =>
                 SparkStatusQuery.getSparkAllJobStatus(jobSeq, allAppStatus, projectIdAndName(projectId))
-              }.toSeq
+              }.toSeq.sortBy(_.job.id)
               riderLogger.info(s"user ${session.userId} select all jobs success.")
               complete(OK, ResponseSeqJson[FullJobInfo](getHeader(200, session), rst))
-            }else {
+            } else {
               riderLogger.info(s"user ${session.userId} admin refresh jobs, but no jobs here.")
               complete(OK, ResponseJson[Seq[FullJobInfo]](getHeader(200, session), Seq()))
             }
@@ -77,38 +77,32 @@ class JobAdminApi(jobDal: JobDal) extends BaseAdminApiImpl(jobDal) with RiderLog
   }
 
 
-  // @Path("/projects/{projectId}/jobs/{jobId}/logs/")
-  def getLogByJobId(route: String): Route = path(route / LongNumber / "jobs" / LongNumber / "logs") {
-    (projectId, jobId) =>
+  def getLogByJobId(route: String): Route = path(route / LongNumber / "logs") {
+   jobId =>
       get {
         authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
           session =>
-            if (session.roleType != "admin") {riderLogger.warn(s"${session.userId} has no permission to access it.")
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"${session.userId} has no permission to access it.")
               complete(OK, getHeader(403, session))
             }
             else {
-              if (session.projectIdList.contains(projectId)) {
-                onComplete(jobDal.getJobNameByJobID(jobId)) {
-                  case Success(job) =>
+              onComplete(jobDal.findById(jobId)) {
+                case Success(job) =>
+                  if (job.isDefined) {
                     riderLogger.info(s"user ${session.userId} refresh job log where job id is $jobId success.")
-                    val log = SparkJobClientLog.getLogByAppName(job.name)
+                    val log = SparkJobClientLog.getLogByAppName(job.get.name)
                     complete(OK, ResponseJson[String](getHeader(200, session), log))
-                  case Failure(ex) =>
-                    riderLogger.error(s"user ${session.userId} refresh job log where job id is $jobId failed", ex)
-                    complete(OK, getHeader(451, ex.getMessage, session))
-                }
-              } else {
-                riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
-                complete(OK, getHeader(403, session))
+                  } else {
+                    riderLogger.error(s"user ${session.userId} refresh job log where job id is $jobId, but job do not exist")
+                    complete(OK, getHeader(451, s"job id is $jobId, but job do not exists", session))
+                  }
+                case Failure(ex) =>
+                  riderLogger.error(s"user ${session.userId} refresh job log where job id is $jobId failed", ex)
+                  complete(OK, getHeader(451, ex.getMessage, session))
               }
             }
         }
       }
   }
-
-
-
-
-
-
 }

@@ -315,11 +315,16 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseUserApiImpl
             }
             else {
               if (session.projectIdList.contains(projectId)) {
-                onComplete(jobDal.getJobNameByJobID(jobId)) {
+                onComplete(jobDal.findById(jobId)) {
                   case Success(job) =>
-                    riderLogger.info(s"user ${session.userId} refresh job log where job id is $jobId success.")
-                    val log = SparkJobClientLog.getLogByAppName(job.name)
-                    complete(OK, ResponseJson[String](getHeader(200, session), log))
+                    if (job.isDefined) {
+                      riderLogger.info(s"user ${session.userId} refresh job log where job id is $jobId success.")
+                      val log = SparkJobClientLog.getLogByAppName(job.get.name)
+                      complete(OK, ResponseJson[String](getHeader(200, session), log))
+                    } else {
+                      riderLogger.error(s"user ${session.userId} refresh job log where job id is $jobId, but job do not exist")
+                      complete(OK, getHeader(451, s"job id is $jobId, but job do not exists", session))
+                    }
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} refresh job log where job id is $jobId failed", ex)
                     complete(OK, getHeader(451, ex.getMessage, session))
