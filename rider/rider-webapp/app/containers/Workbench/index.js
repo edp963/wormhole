@@ -300,13 +300,13 @@ export class Workbench extends React.Component {
 
     let sinkConfigMsgTemp = ''
     if (value === 'hbase') {
-      sinkConfigMsgTemp = 'For example: {"sink_specific_config":{"hbase.columnFamily":"cf","hbase.saveAsString": true, "hbase.rowKey":[{"name":"id","pattern":"mod_64_2"}, {"name":"name","pattern":"value"}, {"name":"address","pattern":"hash"}, {"name": "name", "pattern": "reverse"}]}}'
+      sinkConfigMsgTemp = 'For example: {"hbase.columnFamily":"cf","hbase.saveAsString": true, "hbase.rowKey":[{"name":"id","pattern":"mod_64_2"}, {"name":"name","pattern":"value"}, {"name":"address","pattern":"hash"}, {"name": "name", "pattern": "reverse"}]}'
     } else if (value === 'mysql' || value === 'oracle' || value === 'postgresql') {
-      sinkConfigMsgTemp = 'For example: {"sink_specific_config":{"db.mutation_type":"iud","db.sql_batch_size": 100}}'
+      sinkConfigMsgTemp = 'For example: {"db.mutation_type":"iud","db.sql_batch_size": 100}'
     } else if (value === 'es') {
-      sinkConfigMsgTemp = 'For example: {"sink_specific_config":{"es.mutation_type":"iud"}}'
+      sinkConfigMsgTemp = 'For example: {"es.mutation_type":"iud"}'
     } else if (value === 'phoenix') {
-      sinkConfigMsgTemp = 'For example: {"sink_specific_config":{"db.sql_batch_size": 100}}'
+      sinkConfigMsgTemp = 'For example: {"db.sql_batch_size": 100}'
     } else {
       sinkConfigMsgTemp = ''
     }
@@ -702,35 +702,11 @@ export class Workbench extends React.Component {
         const sourceNsArr = result.sourceNs.split('.')
         const sinkNsArr = result.sinkNs.split('.')
 
-        let resultFieldsVal = ''
         let dataframeShowVal = ''
 
         if (result.tranConfig !== '') {
-          const tranConfigVal = JSON.parse(JSON.parse(JSON.stringify(result.tranConfig)))
-
-          if (result.tranConfig.indexOf('output') < 0) {
-            resultFieldsVal = 'all'
-            this.setState({
-              fieldSelected: 'hide'
-            }, () => {
-              this.workbenchFlowForm.setFieldsValue({
-                resultFieldsSelected: '',
-                resultFields: 'all'
-              })
-            })
-          } else {
-            resultFieldsVal = 'selected'
-            this.setState({
-              fieldSelected: ''
-            }, () => {
-              this.workbenchFlowForm.setFieldsValue({
-                resultFieldsSelected: tranConfigVal.output,
-                resultFields: 'selected'
-              })
-            })
-          }
-
           if (result.tranConfig.indexOf('action') > 0) {
+            const tranConfigVal = JSON.parse(JSON.parse(JSON.stringify(result.transConfig)))
             let validityTemp = tranConfigVal.validity
 
             if (result.tranConfig.indexOf('validity') > 0) {
@@ -862,12 +838,57 @@ export class Workbench extends React.Component {
           }
         } else {
           this.setState({
-            fieldSelected: 'hide',
+            // fieldSelected: 'hide',
             transformTagClassName: '',
             transformTableClassName: 'hide',
             transConnectClass: 'hide',
             etpStrategyCheck: false,
             dataframeShowSelected: 'hide'
+          })
+        }
+
+        let sinkConfigShow = ''
+        if (result.sinkConfig !== '') {
+          const sinkConfigTemp = JSON.parse(JSON.stringify(result.sinkConfig))
+          const sinkConfigVal = JSON.parse(sinkConfigTemp)
+          sinkConfigShow = sinkConfigVal.sink_specific_config ? JSON.stringify(sinkConfigVal.sink_specific_config) : ''
+        } else {
+          sinkConfigShow = ''
+        }
+
+        let resultFieldsVal = ''
+        if (result.sinkConfig !== '') {
+          const sinkConfigVal = JSON.parse(JSON.parse(JSON.stringify(result.sinkConfig)))
+          if (result.sinkConfig.indexOf('output') < 0) {
+            resultFieldsVal = 'all'
+            this.setState({
+              fieldSelected: 'hide'
+            }, () => {
+              this.workbenchFlowForm.setFieldsValue({
+                resultFieldsSelected: '',
+                resultFields: 'all'
+              })
+            })
+          } else {
+            resultFieldsVal = 'selected'
+            this.setState({
+              fieldSelected: ''
+            }, () => {
+              this.workbenchFlowForm.setFieldsValue({
+                resultFieldsSelected: sinkConfigVal.sink_output,
+                resultFields: 'selected'
+              })
+            })
+          }
+        } else {
+          resultFieldsVal = 'all'
+          this.setState({
+            fieldSelected: 'hide'
+          }, () => {
+            this.workbenchFlowForm.setFieldsValue({
+              resultFieldsSelected: '',
+              resultFields: 'all'
+            })
           })
         }
 
@@ -885,7 +906,7 @@ export class Workbench extends React.Component {
             sinkNsArr[3]
           ],
 
-          sinkConfig: result.sinkConfig,
+          sinkConfig: sinkConfigShow,
           resultFields: resultFieldsVal,
           dataframeShow: dataframeShowVal
         })
@@ -1215,23 +1236,23 @@ export class Workbench extends React.Component {
                 this.loadSTSExit(values)
               }
             }
+
+            const rfSelect = this.workbenchFlowForm.getFieldValue('resultFields')
+            if (rfSelect === 'all') {
+              this.setState({
+                resultFiledsOutput: '',
+                resultFieldsValue: 'all'
+              })
+            } else if (rfSelect === 'selected') {
+              const rfSelectSelected = this.workbenchFlowForm.getFieldValue('resultFieldsSelected')
+              this.setState({
+                resultFiledsOutput: `"sink_output":"${rfSelectSelected}"`,
+                resultFieldsValue: rfSelectSelected
+              })
+            }
             break
           case 1:
             if (streamDiffType === 'default') {
-              const rfSelect = this.workbenchFlowForm.getFieldValue('resultFields')
-              if (rfSelect === 'all') {
-                this.setState({
-                  resultFiledsOutput: '',
-                  resultFieldsValue: 'all'
-                })
-              } else if (rfSelect === 'selected') {
-                const rfSelectSelected = this.workbenchFlowForm.getFieldValue('resultFieldsSelected')
-                this.setState({
-                  resultFiledsOutput: `"output":"${rfSelectSelected}"`,
-                  resultFieldsValue: rfSelectSelected
-                })
-              }
-
               const dataframeShowSelect = this.workbenchFlowForm.getFieldValue('dataframeShow')
               if (dataframeShowSelect === 'true') {
                 const dataframeShowNum = this.workbenchFlowForm.getFieldValue('dataframeShowNum')
@@ -1335,7 +1356,17 @@ export class Workbench extends React.Component {
     const { resultFiledsOutput, dataframeShowOrNot, etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue } = this.state
 
     const sinkConfigValue = this.workbenchFlowForm.getFieldValue('sinkConfig')
-    const sinkConfigRequest = sinkConfigValue === undefined ? '' : sinkConfigValue
+
+    let sinkConfigRequest = ''
+    if (resultFiledsOutput === '') {
+      sinkConfigRequest = (sinkConfigValue === undefined || sinkConfigValue === '')
+        ? ''
+        : `{"sink_specific_config":${sinkConfigValue}}`
+    } else {
+      sinkConfigRequest = (sinkConfigValue === undefined || sinkConfigValue === '')
+        ? `{${resultFiledsOutput}}`
+        : `{${resultFiledsOutput},"sink_specific_config":${sinkConfigValue}}`
+    }
 
     let etpStrategyRequestValFinal = ''
     if (etpStrategyRequestValue === '') {
@@ -1344,16 +1375,9 @@ export class Workbench extends React.Component {
       etpStrategyRequestValFinal = `${etpStrategyRequestValue},`
     }
 
-    let resultFiledsOutputFinal = ''
-    if (resultFiledsOutput === '') {
-      resultFiledsOutputFinal = resultFiledsOutput
-    } else {
-      resultFiledsOutputFinal = `${resultFiledsOutput},`
-    }
-
     const tranConfigRequest = transformTableRequestValue === ''
-      ? `{${resultFiledsOutput}}`
-      : `{${etpStrategyRequestValFinal}${resultFiledsOutputFinal}${transformTableRequestValue},${pushdownConnectRequestValue}${dataframeShowOrNot}}`
+      ? ''
+      : `{${etpStrategyRequestValFinal}${transformTableRequestValue},${pushdownConnectRequestValue}${dataframeShowOrNot}}`
 
     if (flowMode === 'add' || flowMode === 'copy') {
       const sourceDataInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')

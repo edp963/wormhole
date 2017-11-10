@@ -56,6 +56,7 @@ export class Project extends React.Component {
       projectResult: {},
       projectUserId: '',
       projectNsId: '',
+      projectUdfId: '',
 
       projectNsTableDataSource: [],
       projectUsersTableDataSource: [],
@@ -278,9 +279,14 @@ export class Project extends React.Component {
       .then((result) => {
         this.setState({
           projectNsId: result.nsId,
-          projectUserId: result.userId
+          projectUserId: result.userId,
+          projectUdfId: result.udfId
         }, () => {
-          showOrHideValues = Object.assign({}, p, { nsId: this.state.projectNsId }, { userId: this.state.projectUserId })
+          showOrHideValues = Object.assign({}, p, {
+            nsId: this.state.projectNsId,
+            userId: this.state.projectUserId,
+            udfId: this.state.projectUdfId
+          })
           new Promise((resolve) => {
             this.props.onEditProject(showOrHideValues, () => {
               resolve()
