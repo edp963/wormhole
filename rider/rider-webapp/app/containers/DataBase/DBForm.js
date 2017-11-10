@@ -161,6 +161,9 @@ export class DBForm extends React.Component {
     } else if (databaseDSValue === 'hbase') {
       databaseDSLabel = 'Namespace Name'
       databaseDSPlace = 'Namespace Name（若无, 填写 default）'
+    } else if (databaseDSValue === 'redis') {
+      databaseDSLabel = 'Database Name'
+      databaseDSPlace = '可填写 default）'
     } else {
       databaseDSLabel = 'Database Name'
       databaseDSPlace = 'Database Name'

@@ -142,9 +142,18 @@ export class NamespaceForm extends React.Component {
       namespaceDBPlace = 'select a Database'
     }
 
+    let namespaceTablePlace = ''
+    if (namespaceDSValue === 'es') {
+      namespaceTablePlace = 'Type'
+    } else if (namespaceDSValue === 'redis') {
+      namespaceTablePlace = '可填写 default'
+    } else {
+      namespaceTablePlace = 'table'
+    }
+
     const namespaceTableLabel = namespaceDSValue === 'es' ? 'Types' : 'Tables'
-    const namespaceTablePlace = namespaceDSValue === 'es' ? 'Type' : 'Table'
-    const disabledKeyOrNot = namespaceDSValue === 'hbase'
+
+    const disabledKeyOrNot = (namespaceDSValue === 'hbase' || namespaceDSValue === 'redis')
     const namespaceKeyPlaceholder = namespaceDSValue === 'kafka' ? '多个数据主键用逗号隔开' : '多个业务主键用逗号隔开'
 
     const questionOrNot = namespaceDSValue === 'kafka'

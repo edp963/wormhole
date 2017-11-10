@@ -265,6 +265,8 @@ export class Instance extends React.PureComponent {
         errMsg = [new Error('borker list, localhost:9092, 多条用逗号隔开')]
       } else if (InstanceSourceDsVal === 'cassandra') {
         errMsg = [new Error('域名或ip, 多条用逗号隔开')]
+      } else if (InstanceSourceDsVal === 'redis') {
+        errMsg = [new Error('localhost:6379, 多条用逗号隔开')]
       }
 
       // else if (InstanceSourceDsVal === 'log') {
