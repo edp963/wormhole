@@ -1248,6 +1248,11 @@ export class Manager extends React.Component {
       ? (<Helmet title="Stream" />)
       : (<Helmet title="Workbench" />)
 
+    const { topicInfoModal, actionType } = this.state
+    const editBtn = topicInfoModal === ''
+      ? actionType === 'start' ? 'hide' : ''
+      : 'hide'
+
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>
         {helmetHide}
@@ -1282,7 +1287,7 @@ export class Manager extends React.Component {
               查看最新 Offset
             </Button>,
             <Button
-              className={`edit-topic-btn ${this.state.actionType === 'start' ? 'hide' : ''}`}
+              className={`edit-topic-btn ${editBtn}`}
               icon={this.state.selectEditIcon}
               type="default"
               onClick={this.onChangeEditSelect}
