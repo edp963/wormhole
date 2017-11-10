@@ -248,14 +248,14 @@ export class Instance extends React.PureComponent {
     const { instanceFormType, InstanceSourceDsVal } = this.state
     let errMsg = ''
     if (result.indexOf('exists') > 0) {
-      errMsg = `该 Connection URL 已存在，确定${instanceFormType === 'add' ? '新建' : '修改'}吗？`
+      errMsg = [new Error(`该 Connection URL 已存在，确定${instanceFormType === 'add' ? '新建' : '修改'}吗？`)]
     } else {
       // errMsg = this.state.InstanceSourceDsVal === 'es'
       //   ? '必须是 "http(s)://ip:port"或"http(s)://hostname:port" 格式'
       //   : '必须是 "ip:port"或"hostname:port" 格式, 多条时用逗号隔开'
       if (InstanceSourceDsVal === 'es') {
         errMsg = [new Error('http(s)://ip:port 格式')]
-      } else if (InstanceSourceDsVal === 'oracle' || InstanceSourceDsVal === 'mysql' || InstanceSourceDsVal === 'postgresql' || InstanceSourceDsVal === 'cassandra' || InstanceSourceDsVal === 'mongodb') {
+      } else if (InstanceSourceDsVal === 'oracle' || InstanceSourceDsVal === 'mysql' || InstanceSourceDsVal === 'postgresql' || InstanceSourceDsVal === 'mongodb') {
         errMsg = [new Error('ip:port 格式')]
       } else if (InstanceSourceDsVal === 'hbase') {
         errMsg = [new Error('zookeeper url list, 如localhost:2181/hbase, 多条用逗号隔开')]
@@ -263,6 +263,8 @@ export class Instance extends React.PureComponent {
         errMsg = [new Error('zookeeper url, 如localhost:2181')]
       } else if (InstanceSourceDsVal === 'kafka') {
         errMsg = [new Error('borker list, localhost:9092, 多条用逗号隔开')]
+      } else if (InstanceSourceDsVal === 'cassandra') {
+        errMsg = [new Error('域名或ip, 多条用逗号隔开')]
       }
       // else if (InstanceSourceDsVal === 'log') {
       //   errMsg = ''
@@ -276,42 +278,6 @@ export class Instance extends React.PureComponent {
       }
     })
   }
-  /***
-   * 新增时，根据 Connection Url 获得 Instance
-   * */
-  // onInitInstanceInputValue = (value) => {
-  //   if (value === '') {
-  //     this.instanceForm.setFieldsValue({
-  //       instance: ''
-  //     })
-  //   } else {
-  //     const requestVal = {
-  //       type: this.state.InstanceSourceDsVal,
-  //       conn_url: value
-  //     }
-  //
-  //     this.props.onLoadInstanceInputValue(requestVal, (result) => {
-  //       if (this.instanceForm.getFieldValue('connectionUrl')) {
-  //         this.instanceForm.setFieldsValue({
-  //           instance: result
-  //         })
-  //       }
-  //     }, (result) => {
-  //       const errMsg = result.indexOf('exists') > 0
-  //         ? '该 Connection URL 已存在'
-  //         : '必须是 "ip:port" 或 "hostname:port" 格式'
-  //       this.instanceForm.setFields({
-  //         connectionUrl: {
-  //           value: value,
-  //           errors: [new Error(`${errMsg}`)]
-  //         },
-  //         instance: {
-  //           value: ''
-  //         }
-  //       })
-  //     })
-  //   }
-  // }
 
   /***
    * 新增时，验证 Instance 是否存在

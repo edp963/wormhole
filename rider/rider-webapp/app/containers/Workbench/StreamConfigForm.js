@@ -178,7 +178,7 @@ export class StreamConfigForm extends React.Component {
             </FormItem>
           </Col>
           <Col span={8}>
-            <FormItem label="Max Records (Row)：" {...itemStylePEM}>
+            <FormItem label="Max Batch Data Size (Mb)：" {...itemStylePEM}>
               {getFieldDecorator('maxRecords', {
                 rules: [{
                   required: true,
@@ -186,7 +186,7 @@ export class StreamConfigForm extends React.Component {
                 }, {
                   validator: this.forceCheckNums
                 }],
-                initialValue: 600
+                initialValue: 50
               })(
                 <InputNumber min={1} step={1} />
               )}

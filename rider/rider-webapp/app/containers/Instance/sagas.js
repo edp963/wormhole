@@ -121,10 +121,9 @@ export function* getInstanceInputValue ({ payload }) {
       method: 'get',
       url: `${api.instance}?type=${payload.value.type}&conn_url=${payload.value.conn_url}`
     })
-
-    if (result.code === 409 || result.code === 400) {
+    if (result.code && (result.code === 409 || result.code === 400)) {
       yield put(instanceInputValueErrorLoaded(result.msg, payload.reject))
-    } else {
+    } else if (result.header.code && result.header.code === 200) {
       yield put(instanceInputValueLoaded(result.payload, payload.resolve))
     }
   } catch (err) {
