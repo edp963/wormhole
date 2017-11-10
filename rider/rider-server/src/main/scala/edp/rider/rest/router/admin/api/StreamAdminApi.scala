@@ -24,16 +24,18 @@ package edp.rider.rest.router.admin.api
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server._
 import edp.rider.common.RiderLogger
-import edp.rider.rest.persistence.dal.StreamDal
+import edp.rider.rest.persistence.dal.{JobDal, ProjectDal, StreamDal}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
+import edp.rider.rest.util.CommonUtils.minTimeOut
 import edp.rider.rest.util.ResponseUtils._
 import edp.rider.spark.SparkJobClientLog
 
+import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
-class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) with RiderLogger with JsonSerializer {
+class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal) extends BaseAdminApiImpl(streamDal) with RiderLogger with JsonSerializer {
   override def getByAllRoute(route: String): Route = path(route) {
     get {
       parameter('visible.as[Boolean].?) {
@@ -85,14 +87,28 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
               complete(OK, getHeader(403, session))
             }
             else {
-              onComplete(streamDal.getResource(id).mapTo[Resource]) {
-                case Success(resources) =>
+
+
+
+                try {
+                  val project: Project = Await.result(projectDal.findById(id), minTimeOut).head
+                  val (projectTotalCore, projectTotalMemory) = (project.resCores, project.resMemoryG)
+                  val (jobUsedCore, jobUsedMemory, jobSeq) = jobDal.getProjectJobsUsedResource(id)
+                  val (streamUsedCore, streamUsedMemory, streamSeq) = streamDal.getProjectStreamsUsedResource(id)
+                  val appResources = jobSeq ++ streamSeq
+                  val resources = Resource(projectTotalCore, projectTotalMemory, projectTotalCore - jobUsedCore - streamUsedCore, projectTotalMemory - jobUsedMemory - streamUsedMemory, appResources)
                   riderLogger.info(s"user ${session.userId} select all resources success where project id is $id.")
                   complete(OK, ResponseJson[Resource](getHeader(200, session), resources))
-                case Failure(ex) =>
-                  riderLogger.error(s"user ${session.userId} select all resources failed where project id is $id", ex)
-                  complete(OK, getHeader(451, ex.getMessage, session))
-              }
+                } catch {
+                  case ex: Exception =>
+                    riderLogger.error(s"user ${session.userId} get resources for project ${id}  failed", ex)
+                    complete(OK, getHeader(451, ex.getMessage, session))
+                }
+
+
+
+
+
             }
         }
       }

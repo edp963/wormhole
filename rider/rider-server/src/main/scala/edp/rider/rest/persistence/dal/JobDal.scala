@@ -26,6 +26,7 @@ import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.common.AppInfo
+import edp.wormhole.common.util.JsonUtils.json2caseClass
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
@@ -43,9 +44,9 @@ class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTab
       .update(status, currentSec)), minTimeOut)
   }
 
-//  def getJobNameByJobID(jobId: Long): Future[Job] = {
-//    db.run(jobTable.filter(_.id === jobId).result.head)
-//  }
+  //  def getJobNameByJobID(jobId: Long): Future[Job] = {
+  //    db.run(jobTable.filter(_.id === jobId).result.head)
+  //  }
 
 
   //def updateJobStatusList(appInfoSeq: Seq[(Int, AppInfo)]) = appInfoSeq.foreach { case (jobId, appInfo) => updateJobStatus(jobId, appInfo) }
@@ -67,7 +68,23 @@ class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTab
     Await.result(super.findAll, minTimeOut)
   }
 
-  def getAllUniqueProjectIdAndName(uniqueProjectIds:Seq[Long]): Map[Long, String] = {
+  def getAllUniqueProjectIdAndName(uniqueProjectIds: Seq[Long]): Map[Long, String] = {
     Await.result(db.run(projectTable.filter(_.id inSet uniqueProjectIds).result), maxTimeOut).map(p => (p.id, p.name)).toMap
+  }
+
+
+  def getProjectJobsUsedResource(projectId: Long) = {
+    val jobSeq: Seq[Job] = Await.result(super.findByFilter(job => job.projectId === projectId && (job.status === "running" || job.status === "waiting" || job.status === "starting" || job.status === "stopping")), minTimeOut)
+    var usedCores = 0
+    var usedMemory = 0
+    val jobResources: Seq[AppResource] = jobSeq.map(
+      job => {
+        val config = json2caseClass[StartConfig](job.startConfig)
+        usedCores += config.driverCores + config.executorNums * config.perExecutorCores
+        usedMemory += config.driverMemory + config.executorNums * config.perExecutorMemory
+        AppResource(job.name, config.driverCores, config.driverMemory, config.executorNums, config.perExecutorMemory, config.perExecutorCores)
+      }
+    )
+    (usedCores, usedMemory, jobResources)
   }
 }

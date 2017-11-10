@@ -10,7 +10,7 @@ import io.swagger.annotations._
 @Api(value = "/jobs", consumes = "application/json", produces = "application/json")
 @Path("/user/projects")
 class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives{
-  lazy val routes: Route = postRoute ~ startJob ~ getFlowByIdRoute ~ getFlowByFilterRoute ~ stopJob ~ deleteJob ~ getLogByJobId
+  lazy val routes: Route = postRoute ~ startJob ~ getJobByIdRoute ~ getJobByFilterRoute ~ stopJob ~ deleteJob ~ getLogByJobId ~ reviseRoute
   lazy val basePath = "projects"
 
   @Path("/{projectId}/jobs")
@@ -28,6 +28,25 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def postRoute: Route = modules.jobUserService.postRoute(basePath)
+
+
+
+
+  @Path("/{projectId}/jobs")
+  @ApiOperation(value = "revise job to the system", notes = "", nickname = "", httpMethod = "PUT")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "job", value = "Job object to be revised", required = true, dataType = "edp.rider.rest.persistence.entities.Job", paramType = "body")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "put success"),
+    new ApiResponse(code = 403, message = "user is not user"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 409, message = "job already exists"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def reviseRoute: Route = modules.jobUserService.reviseRoute(basePath)
 
 
 
@@ -100,12 +119,12 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getFlowByIdRoute: Route = modules.jobUserService.getByIdRoute(basePath)
+  def getJobByIdRoute: Route = modules.jobUserService.getByIdRoute(basePath)
 
 
 
 
-  @Path("/{projectId}/jobs/status")
+  @Path("/{projectId}/jobs")
   @ApiOperation(value = "check source sink existence from system, refresh, check the name of job", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
@@ -122,7 +141,7 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getFlowByFilterRoute: Route = modules.jobUserService.getByFilterRoute(basePath)
+  def getJobByFilterRoute: Route = modules.jobUserService.getByFilterRoute(basePath)
 
 
   @Path("/{projectId}/jobs/{jobId}/logs/")

@@ -39,12 +39,13 @@ import edp.rider.spark.{SparkJobClientLog, SubmitSparkJob}
 import edp.rider.spark.SubmitSparkJob.runShellCommand
 import slick.jdbc.MySQLProfile.api._
 import edp.rider.kafka.KafkaUtils._
+import edp.wormhole.common.util.JsonUtils.json2caseClass
 
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
 
-class StreamUserApi(streamDal: StreamDal, projectDal: ProjectDal, streamUdfDal: RelStreamUdfDal, inTopicDal: StreamInTopicDal, flowDal: FlowDal) extends BaseUserApiImpl(streamDal) with RiderLogger with JsonSerializer {
+class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal, streamUdfDal: RelStreamUdfDal, inTopicDal: StreamInTopicDal, flowDal: FlowDal) extends BaseUserApiImpl(streamDal) with RiderLogger with JsonSerializer {
 
   def postRoute(route: String): Route = path(route / LongNumber / "streams") {
     id =>
@@ -460,23 +461,35 @@ class StreamUserApi(streamDal: StreamDal, projectDal: ProjectDal, streamUdfDal: 
       val streamDetail = streamDal.getStreamDetail(Some(projectId), Some(streamId)).head
       val stream = streamDetail.stream
       if (checkAction(START.toString, stream.status)) {
-        val resource = Await.result(streamDal.getResource(projectId), minTimeOut)
-        if (!isResourceEnough(stream.startConfig, resource)) {
-          riderLogger.warn(s"user ${session.userId} start stream $streamId failed, caused by resource is not enough")
-          complete(OK, getHeader(507, session))
-        } else {
-          startStreamDirective(streamId, streamDirectiveOpt, session.userId)
-          runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(stream.name)}")
-          startStream(streamDetail)
-          riderLogger.info(s"user ${session.userId} start stream $streamId success")
-          onComplete(streamDal.updateByStatus(streamId, StreamStatus.STARTING.toString, session.userId).mapTo[Int]) {
-            case Success(_) =>
-              val streamDetail = streamDal.getStreamDetail(Some(projectId), Some(streamId)).head
-              complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail))
-            case Failure(ex) =>
-              riderLogger.error(s"user ${session.userId} start stream where project id is $projectId failed", ex)
-              complete(OK, getHeader(451, session))
+        try {
+          val project: Project = Await.result(projectDal.findById(projectId), minTimeOut).head
+          val (projectTotalCore, projectTotalMemory) = (project.resCores, project.resMemoryG)
+          val (jobUsedCore, jobUsedMemory,_) = jobDal.getProjectJobsUsedResource(projectId)
+          val (streamUsedCore, streamUsedMemory,_) = streamDal.getProjectStreamsUsedResource(projectId)
+          val currentConfig = json2caseClass[StartConfig](stream.startConfig)
+          val currentNeededCore = currentConfig.driverCores + currentConfig.executorNums * currentConfig.perExecutorCores
+          val currentNeededMemory = currentConfig.driverMemory + currentConfig.executorNums * currentConfig.perExecutorMemory
+          if ((projectTotalCore - jobUsedCore - streamUsedCore - currentNeededCore) < 0 || (projectTotalMemory - jobUsedMemory - streamUsedMemory - currentNeededMemory) < 0) {
+            riderLogger.warn(s"user ${session.userId} start stream ${stream.id} failed, caused by resource is not enough")
+            complete(OK, getHeader(507, "resource is not enough", session))
+          } else {
+            startStreamDirective(streamId, streamDirectiveOpt, session.userId)
+            runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(stream.name)}")
+            startStream(streamDetail)
+            riderLogger.info(s"user ${session.userId} start stream $streamId success")
+            onComplete(streamDal.updateByStatus(streamId, StreamStatus.STARTING.toString, session.userId).mapTo[Int]) {
+              case Success(_) =>
+                val streamDetail = streamDal.getStreamDetail(Some(projectId), Some(streamId)).head
+                complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail))
+              case Failure(ex) =>
+                riderLogger.error(s"user ${session.userId} start stream where project id is $projectId failed", ex)
+                complete(OK, getHeader(451, session))
+            }
           }
+        } catch {
+          case ex: Exception =>
+            riderLogger.error(s"user ${session.userId} get resources for project ${projectId}  failed when start new stream", ex)
+            complete(OK, getHeader(451, ex.getMessage, session))
         }
       } else {
         riderLogger.info(s"user ${session.userId} can't stop stream $streamId now")
@@ -595,23 +608,23 @@ class StreamUserApi(streamDal: StreamDal, projectDal: ProjectDal, streamUdfDal: 
         authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
           session =>
             if (session.roleType != "user") {
-              riderLogger.warn(s"${
-                session.userId
-              } has no permission to access it.")
+              riderLogger.warn(s"${session.userId} has no permission to access it.")
               complete(OK, getHeader(403, session))
             }
             else {
               if (session.projectIdList.contains(id)) {
-                onComplete(streamDal.getResource(id).mapTo[Resource]) {
-                  case Success(resources) =>
-                    riderLogger.info(s"user ${
-                      session.userId
-                    } select all resources success where project id is $id.")
-                    complete(OK, ResponseJson[Resource](getHeader(200, session), resources))
-                  case Failure(ex) =>
-                    riderLogger.error(s"user ${
-                      session.userId
-                    } select all resources failed where project id is $id", ex)
+                try {
+                  val project: Project = Await.result(projectDal.findById(id), minTimeOut).head
+                  val (projectTotalCore, projectTotalMemory) = (project.resCores, project.resMemoryG)
+                  val (jobUsedCore, jobUsedMemory, jobSeq) = jobDal.getProjectJobsUsedResource(id)
+                  val (streamUsedCore, streamUsedMemory, streamSeq) = streamDal.getProjectStreamsUsedResource(id)
+                  val appResources = jobSeq ++ streamSeq
+                  val resources = Resource(projectTotalCore, projectTotalMemory, projectTotalCore - jobUsedCore - streamUsedCore, projectTotalMemory - jobUsedMemory - streamUsedMemory, appResources)
+                  riderLogger.info(s"user ${session.userId} select all resources success where project id is $id.")
+                  complete(OK, ResponseJson[Resource](getHeader(200, session), resources))
+                } catch {
+                  case ex: Exception =>
+                    riderLogger.error(s"user ${session.userId} get resources for project ${id}  failed", ex)
                     complete(OK, getHeader(451, ex.getMessage, session))
                 }
               } else {

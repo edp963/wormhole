@@ -2,13 +2,17 @@ package edp.rider.rest.router.admin.api
 
 import akka.http.scaladsl.model.StatusCodes.OK
 import akka.http.scaladsl.server.Route
-import edp.rider.common.{AppResult, RiderLogger}
+import edp.rider.common.{AppResult, JobStatus, RiderLogger}
 import edp.rider.rest.persistence.dal.JobDal
 import edp.rider.rest.persistence.entities.{FullJobInfo, Job}
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
-import edp.rider.rest.util.AuthorizationProvider
+import edp.rider.rest.util.{AuthorizationProvider, JobUtils}
+import edp.rider.rest.util.JobUtils.getDisableAction
 import edp.rider.rest.util.ResponseUtils.getHeader
 import edp.rider.spark.{SparkJobClientLog, SparkStatusQuery}
+import edp.rider.rest.util.CommonUtils.minTimeOut
+
+import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
 class JobAdminApi(jobDal: JobDal) extends BaseAdminApiImpl(jobDal) with RiderLogger with JsonSerializer {
@@ -78,7 +82,7 @@ class JobAdminApi(jobDal: JobDal) extends BaseAdminApiImpl(jobDal) with RiderLog
 
 
   def getLogByJobId(route: String): Route = path(route / LongNumber / "logs") {
-   jobId =>
+    jobId =>
       get {
         authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
           session =>
@@ -105,4 +109,32 @@ class JobAdminApi(jobDal: JobDal) extends BaseAdminApiImpl(jobDal) with RiderLog
         }
       }
   }
+
+
+  def getByJobIdRoute(route: String): Route = path(route / LongNumber) {
+    jobId =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              val jobOut = Await.result(jobDal.findById(jobId), minTimeOut)
+              jobOut match {
+                case Some(_) =>
+              riderLogger.info(s"user ${session.userId} refresh job.")
+              val job = JobUtils.refreshJob(jobId)
+              val projectName = jobDal.adminGetRow(job.projectId)
+              complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(JobStatus.jobStatus(job.status)))))
+                case None =>
+                complete(OK, getHeader(200, s"this job ${jobId} does not exist", null))
+
+              }
+            }
+        }
+      }
+  }
+
 }
