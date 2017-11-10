@@ -356,15 +356,10 @@ object StreamUtils extends RiderLogger {
       })
       seq
     } catch {
-      case _: GetZookeeperDataException =>
+      case _: Exception =>
         riderLogger.info(s"streams ${
           streamIds.mkString(",")
         } zk udf didn't exist")
-        seq
-      case ex: Exception =>
-        riderLogger.error(s"get stream ${
-          streamIds.mkString(",")
-        } zk udf failed", ex)
         seq
     }
   }
