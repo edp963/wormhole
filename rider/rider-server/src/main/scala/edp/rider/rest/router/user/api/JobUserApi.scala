@@ -112,9 +112,9 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                       }
                     } else {
                       riderLogger.error(s"can not start ${job.id} at this moment, because the job is in ${job.status} status")
-                      complete(OK, getHeader(403, session))
+                      complete(OK, getHeader(406,s"can not start ${job.id} at this moment, because the job is in ${job.status} status", session))
                     }
-                  case None => complete(OK, getHeader(200, session))
+                  case None => complete(OK, ResponseJson[String](getHeader(200, session), ""))
                 }
               } else {
                 riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
@@ -146,7 +146,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                     val projectName = jobDal.adminGetRow(job.projectId)
                     complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(JobStatus.jobStatus(job.status)))))
                   case None =>
-                    complete(OK, getHeader(200, s"this job ${jobId} does not exist", session))
+                    complete(OK, ResponseJson[String](getHeader(200, session), ""))
 
                 }
               } else {
@@ -260,7 +260,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                   job.get.status == JobStatus.DONE.toString ||
                   job.get.status == JobStatus.NEW.toString) {
                   riderLogger.warn(s"user ${session.userId} job $jobId status is ${job.get.status}, can't stop now.")
-                  complete(OK, getHeader(403, s"job $jobId status is starting, can't stop now.", session))
+                  complete(OK, getHeader(406, s"job $jobId status is starting, can't stop now.", session))
                 } else {
                   val status: String = killJob(jobId)
                   riderLogger.info(s"user ${session.userId} stop job $jobId success.")
@@ -298,7 +298,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                   case Some(job) =>
                     if (job.status == JobStatus.STARTING.toString) {
                       riderLogger.warn(s"user ${session.userId} job $jobId status is ${job.status}, can't stop now.")
-                      complete(OK, getHeader(403, s"job $jobId status is starting, can't stop now.", session))
+                      complete(OK, getHeader(406, s"job $jobId status is starting, can't stop now.", session))
                     } else {
                       if (job.sparkAppid.getOrElse("") != "") {
                         runShellCommand("yarn application -kill " + job.sparkAppid.get)
@@ -351,7 +351,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                       complete(OK, ResponseJson[String](getHeader(200, session), log))
                     } else {
                       riderLogger.error(s"user ${session.userId} refresh job log where job id is $jobId, but job does not exist")
-                      complete(OK, getHeader(451, s"job id is $jobId, but job does not exists", session))
+                      complete(OK, getHeader(200, s"job id is $jobId, but job does not exists", session))
                     }
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} refresh job log where job id is $jobId failed", ex)
