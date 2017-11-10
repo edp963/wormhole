@@ -60,6 +60,8 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
     new ApiResponse(code = 200, message = "OK"),
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "start is forbidden"),
+    new ApiResponse(code = 507, message = "resource not enough"),
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
@@ -77,6 +79,7 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
     new ApiResponse(code = 200, message = "OK"),
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "stop is forbidden"),
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
@@ -96,6 +99,7 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
     new ApiResponse(code = 200, message = "OK"),
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "delete is forbidden"),
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
