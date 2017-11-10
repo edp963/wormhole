@@ -129,7 +129,7 @@ class JobAdminApi(jobDal: JobDal) extends BaseAdminApiImpl(jobDal) with RiderLog
               val projectName = jobDal.adminGetRow(job.projectId)
               complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(JobStatus.jobStatus(job.status)))))
                 case None =>
-                complete(OK, getHeader(200, s"this job ${jobId} does not exist", null))
+                complete(OK, getHeader(200, s"this job ${jobId} does not exist", session))
 
               }
             }
