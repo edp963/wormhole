@@ -73,17 +73,18 @@ class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTab
   }
 
 
-  def getProjectJobsUsedRource(projectId: Long) = {
+  def getProjectJobsUsedResource(projectId: Long) = {
     val jobSeq: Seq[Job] = Await.result(super.findByFilter(job => job.projectId === projectId && (job.status === "running" || job.status === "waiting" || job.status === "starting" || job.status === "stopping")), minTimeOut)
     var usedCores = 0
     var usedMemory = 0
-    jobSeq.foreach(
+    val jobResources: Seq[AppResource] = jobSeq.map(
       job => {
         val config = json2caseClass[StartConfig](job.startConfig)
         usedCores += config.driverCores + config.executorNums * config.perExecutorCores
         usedMemory += config.driverMemory + config.executorNums * config.perExecutorMemory
+        AppResource(job.name, config.driverCores, config.driverMemory, config.executorNums, config.perExecutorMemory, config.perExecutorCores)
       }
     )
-    (usedCores, usedMemory)
+    (usedCores, usedMemory, jobResources)
   }
 }

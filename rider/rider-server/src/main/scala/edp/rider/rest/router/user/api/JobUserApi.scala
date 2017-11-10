@@ -86,23 +86,29 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                       job.status != JobStatus.WAITING.toString &&
                       job.status != JobStatus.RUNNING.toString &&
                       job.status != JobStatus.STOPPING.toString) {
-                      val project: Project = Await.result(projectDal.findById(projectId), minTimeOut).head
-                      val (projectTotalCore, projectTotalMemory) = (project.resCores, project.resMemoryG)
-                      val (jobUsedCore, jobUsedMemory) = jobDal.getProjectJobsUsedRource(projectId)
-                      val (streamUsedCore, streamUsedMemory) = streamDal.getProjectStreamsUsedRource(projectId)
-                      val currentConfig = json2caseClass[StartConfig](job.startConfig)
-                      val currentNeededCore = currentConfig.driverCores + currentConfig.executorNums * currentConfig.perExecutorCores
-                      val currentNeededMemory = currentConfig.driverMemory + currentConfig.executorNums * currentConfig.perExecutorMemory
-                      if ((projectTotalCore - jobUsedCore - streamUsedCore - currentNeededCore) >= 0 && (projectTotalMemory - jobUsedMemory - streamUsedMemory - currentNeededMemory) >= 0) {
-                        riderLogger.warn(s"user ${session.userId} start job $jobId failed, caused by resource is not enough")
-                        complete(OK, getHeader(507, "resource is not enough", null))
-                      } else {
-                        val updateJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.sourceType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd,
-                          job.sourceConfig, job.sinkConfig, job.tranConfig, JobStatus.STARTING.toString, job.sparkAppid, job.logPath, Some(currentSec), job.stoppedTime, job.createTime, job.createBy, currentSec, session.userId)
-                        Await.result(jobDal.update(updateJob), minTimeOut)
-                        JobUtils.startJob(job)
-                        val projectName = jobDal.adminGetRow(job.projectId)
-                        complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(JobStatus.jobStatus(job.status)))))
+                      try {
+                        val project: Project = Await.result(projectDal.findById(projectId), minTimeOut).head
+                        val (projectTotalCore, projectTotalMemory) = (project.resCores, project.resMemoryG)
+                        val (jobUsedCore, jobUsedMemory, _) = jobDal.getProjectJobsUsedResource(projectId)
+                        val (streamUsedCore, streamUsedMemory, _) = streamDal.getProjectStreamsUsedResource(projectId)
+                        val currentConfig = json2caseClass[StartConfig](job.startConfig)
+                        val currentNeededCore = currentConfig.driverCores + currentConfig.executorNums * currentConfig.perExecutorCores
+                        val currentNeededMemory = currentConfig.driverMemory + currentConfig.executorNums * currentConfig.perExecutorMemory
+                        if ((projectTotalCore - jobUsedCore - streamUsedCore - currentNeededCore) < 0 || (projectTotalMemory - jobUsedMemory - streamUsedMemory - currentNeededMemory) < 0) {
+                          riderLogger.warn(s"user ${session.userId} start job $jobId failed, caused by resource is not enough")
+                          complete(OK, getHeader(507, "resource is not enough", session))
+                        } else {
+                          val updateJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.sourceType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd,
+                            job.sourceConfig, job.sinkConfig, job.tranConfig, JobStatus.STARTING.toString, job.sparkAppid, job.logPath, Some(currentSec), job.stoppedTime, job.createTime, job.createBy, currentSec, session.userId)
+                          Await.result(jobDal.update(updateJob), minTimeOut)
+                          JobUtils.startJob(job)
+                          val projectName = jobDal.adminGetRow(job.projectId)
+                          complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(JobStatus.jobStatus(job.status)))))
+                        }
+                      } catch {
+                        case ex: Exception =>
+                          riderLogger.error(s"user ${session.userId} get resources for project ${projectId}  failed when start job", ex)
+                          complete(OK, getHeader(451, ex.getMessage, session))
                       }
                     } else {
                       riderLogger.error(s"can not start ${job.id} at this moment, because the job is in ${job.status} status")
@@ -140,7 +146,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                     val projectName = jobDal.adminGetRow(job.projectId)
                     complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(JobStatus.jobStatus(job.status)))))
                   case None =>
-                    complete(OK, getHeader(200, s"this job ${jobId} does not exist", null))
+                    complete(OK, getHeader(200, s"this job ${jobId} does not exist", session))
 
                 }
               } else {
@@ -237,24 +243,24 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
           session =>
             if (session.roleType != "user") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(OK, getHeader(403, null))
+              complete(OK, getHeader(403, session))
             } else {
               try {
                 val project = Await.result(projectDal.findById(projectId), minTimeOut)
                 if (project.isEmpty) {
                   riderLogger.error(s"user ${session.userId} request to stop project $projectId, job $jobId, but the project $projectId doesn't exist.")
-                  complete(OK, getHeader(403, s"project $projectId doesn't exist", null))
+                  complete(OK, getHeader(403, s"project $projectId doesn't exist", session))
                 }
                 val job: Option[Job] = Await.result(jobDal.findById(jobId), minTimeOut)
                 if (job.isEmpty) {
                   riderLogger.error(s"user ${session.userId} request to stop project $projectId, job $jobId, but the job $jobId doesn't exist.")
-                  complete(OK, getHeader(403, s"job $jobId doesn't exist", null))
+                  complete(OK, getHeader(403, s"job $jobId doesn't exist", session))
                 } else if (job.get.status == JobStatus.STARTING.toString ||
                   job.get.status == JobStatus.STOPPED.toString ||
                   job.get.status == JobStatus.DONE.toString ||
                   job.get.status == JobStatus.NEW.toString) {
                   riderLogger.warn(s"user ${session.userId} job $jobId status is ${job.get.status}, can't stop now.")
-                  complete(OK, getHeader(403, s"job $jobId status is starting, can't stop now.", null))
+                  complete(OK, getHeader(403, s"job $jobId status is starting, can't stop now.", session))
                 } else {
                   val status: String = killJob(jobId)
                   riderLogger.info(s"user ${session.userId} stop job $jobId success.")
@@ -262,12 +268,12 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                   val jobGet = job.get
                   val updateJob = Job(jobGet.id, jobGet.name, jobGet.projectId, jobGet.sourceNs, jobGet.sinkNs, jobGet.sourceType, jobGet.sparkConfig, jobGet.startConfig, jobGet.eventTsStart, jobGet.eventTsEnd,
                     jobGet.sourceConfig, jobGet.sinkConfig, jobGet.tranConfig, status, jobGet.sparkAppid, jobGet.logPath, jobGet.startedTime, jobGet.stoppedTime, jobGet.createTime, jobGet.createBy, jobGet.updateTime, jobGet.updateBy)
-                  complete(OK, ResponseJson[FullJobInfo](getHeader(200, null), FullJobInfo(updateJob, projectName, getDisableAction(JobStatus.jobStatus(jobGet.status)))))
+                  complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(JobStatus.jobStatus(jobGet.status)))))
                 }
               } catch {
                 case ex: Exception =>
                   riderLogger.error(s"user ${session.userId} stop job $jobId failed", ex)
-                  complete(OK, getHeader(451, null))
+                  complete(OK, getHeader(451, session))
               }
             }
         }
@@ -292,7 +298,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                   case Some(job) =>
                     if (job.status == JobStatus.STARTING.toString) {
                       riderLogger.warn(s"user ${session.userId} job $jobId status is ${job.status}, can't stop now.")
-                      complete(OK, getHeader(403, s"job $jobId status is starting, can't stop now.", null))
+                      complete(OK, getHeader(403, s"job $jobId status is starting, can't stop now.", session))
                     } else {
                       if (job.sparkAppid.getOrElse("") != "") {
                         runShellCommand("yarn application -kill " + job.sparkAppid.get)
@@ -308,12 +314,12 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                           complete(OK, getHeader(451, ex.getMessage, session))
                       }
                     }
-                  case None => complete(OK, getHeader(200, s"this job ${jobId} does not exist", null))
+                  case None => complete(OK, getHeader(200, s"this job ${jobId} does not exist", session))
                 }
               } catch {
                 case ex: Exception =>
                   riderLogger.error(s"delete job ${jobId} failed", ex)
-                  complete(OK, getHeader(451, null))
+                  complete(OK, getHeader(451, session))
               }
             } else {
               riderLogger.error(s"user ${session.userId} doesn't have permission to access the project ${projectId}.")
