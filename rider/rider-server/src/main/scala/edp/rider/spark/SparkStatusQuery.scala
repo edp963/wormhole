@@ -124,7 +124,7 @@ object SparkStatusQuery extends RiderLogger {
     appList.foreach {
       app =>
         if (app.appName == appName) {
-          if (yyyyMMddHHmmss(app.startedTime) >= yyyyMMddHHmmss(result.startedTime))
+          if (result.startedTime == null || yyyyMMddHHmmss(app.startedTime) >= yyyyMMddHHmmss(result.startedTime))
             result = app
         } else {
           riderLogger.debug("refresh spark/yarn api response is null")
