@@ -99,6 +99,8 @@ export class InstanceForm extends React.Component {
       questionDS = 'Kafka 时, 为 borker list, localhost:9092, 多条用逗号隔开'
     } else if (instanceDSValue === 'cassandra') {
       questionDS = 'Cassandra时, 域名或ip, 多条用逗号隔开'
+    } else if (instanceDSValue === 'redis') {
+      questionDS = 'redis时, 为 localhost:6379, 多条用逗号隔开'
     } else {
       questionDS = '请选择 Data System'
     }

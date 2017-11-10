@@ -555,6 +555,34 @@ export class WorkbenchFlowForm extends React.Component {
                 )}
               </FormItem>
             </Col>
+
+            <Col span={24} className={`result-field-class ${streamDiffType === 'default' ? '' : 'hide'}`}>
+              <FormItem label="Result Fields" {...itemStyle}>
+                {getFieldDecorator('resultFields', {
+                  rules: [{
+                    required: true,
+                    message: '请选择 Result Fields'
+                  }],
+                  hidden: stepHiddens[1] || streamTypeHiddens[0]
+                })(
+                  <RadioGroup className="radio-group-style" onChange={this.onAllOrNotSelect} size="default">
+                    <RadioButton value="all" className="radio-btn-style fradio-btn-extra">All</RadioButton>
+                    <RadioButton value="selected" className="radio-btn-style radio-btn-extra">Selected</RadioButton>
+                  </RadioGroup>
+                )}
+              </FormItem>
+            </Col>
+            <Col span={6}></Col>
+            <Col span={17} className={`${fieldSelected}`}>
+              <FormItem>
+                {getFieldDecorator('resultFieldsSelected', {
+                  hidden: stepHiddens[1] || streamTypeHiddens[0]
+                })(
+                  <Input type="textarea" placeholder="Result Fields 多条时以英文逗号分隔" autosize={{ minRows: 2, maxRows: 6 }} />
+                )}
+              </FormItem>
+            </Col>
+
             <Col span={24} className={streamTypeClass[0]} style={{marginBottom: '8px'}}>
               <div className="ant-col-6 ant-form-item-label">
                 <label htmlFor="#" className={sinkConfigClass}>Sink Config</label>
@@ -611,33 +639,6 @@ export class WorkbenchFlowForm extends React.Component {
                 hidden: stepHiddens[1] || streamTypeHiddens[0]
               })(
                 <p className="value-font-style">{step2SinkNamespace}</p>
-              )}
-            </FormItem>
-          </Col>
-
-          <Col span={24} className="result-field-class">
-            <FormItem label="Result Fields" {...itemStyle}>
-              {getFieldDecorator('resultFields', {
-                rules: [{
-                  required: true,
-                  message: '请选择 Result Fields'
-                }],
-                hidden: stepHiddens[1] || streamTypeHiddens[0]
-              })(
-                <RadioGroup className="radio-group-style" onChange={this.onAllOrNotSelect} size="default">
-                  <RadioButton value="all" className="radio-btn-style fradio-btn-extra">All</RadioButton>
-                  <RadioButton value="selected" className="radio-btn-style radio-btn-extra">Selected</RadioButton>
-                </RadioGroup>
-              )}
-            </FormItem>
-          </Col>
-          <Col span={6}></Col>
-          <Col span={17} className={fieldSelected}>
-            <FormItem>
-              {getFieldDecorator('resultFieldsSelected', {
-                hidden: stepHiddens[1] || streamTypeHiddens[0]
-              })(
-                <Input type="textarea" placeholder="Result Fields 多条时以英文逗号分隔" autosize={{ minRows: 5, maxRows: 8 }} />
               )}
             </FormItem>
           </Col>
