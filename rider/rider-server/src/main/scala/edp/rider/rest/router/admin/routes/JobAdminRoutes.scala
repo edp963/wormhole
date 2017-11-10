@@ -10,7 +10,7 @@ import io.swagger.annotations._
 @Path("/admin")
 class JobAdminRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
-  lazy val routes: Route = getJobByAllRoute ~ getLogByJobId ~ getJobByProjectIdRoute
+  lazy val routes: Route = getJobByAllRoute ~ getLogByJobId ~ getJobByProjectIdRoute ~ getJobByJobIdRoute
 
   lazy val basePath = "jobs"
 
@@ -53,5 +53,21 @@ class JobAdminRoutes(modules: ConfigurationModule with PersistenceModule with Bu
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getJobByProjectIdRoute: Route = modules.jobAdminService.getByProjectIdRoute("projects")
+
+
+
+  @Path("/jobs/{jobId}")
+  @ApiOperation(value = "get one job from system by jobId", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "jobId", value = "job id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not admin"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getJobByJobIdRoute: Route = modules.jobAdminService.getByJobIdRoute(basePath)
 
 }
