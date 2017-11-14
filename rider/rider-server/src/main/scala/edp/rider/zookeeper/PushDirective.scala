@@ -111,7 +111,7 @@ object PushDirective extends RiderLogger {
       else throw GetZookeeperDataException(s"zk path $path didn't exist")
     } catch {
       case e: Exception =>
-        riderLogger.error(s"get zk $zkUrl path $path data failed", e)
+//        riderLogger.error(s"get zk $zkUrl path $path data failed", e)
         throw GetZookeeperDataException(e.getMessage, e.getCause)
     }
   }
