@@ -100,9 +100,9 @@ object SubmitSparkJob extends App with RiderLogger {
       }
       else l
     }).mkString("").stripMargin.replace("\\", "  ")
-    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    println("final:" + submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1")
-    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+//    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+//    println("final:" + submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1")
+//    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1"
   }
 }
