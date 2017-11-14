@@ -109,6 +109,7 @@ export class InstanceForm extends React.Component {
                 <Input
                   placeholder="Instance"
                   onChange={this.onInstanceInputChange}
+                  disabled={instanceFormType === 'edit'}
                 />
               )}
             </FormItem>
