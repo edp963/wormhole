@@ -74,7 +74,7 @@
     <files>
         <file>
             <source>
-                ${project.parent.basedir}/sparkx/target/wormhole-ums_1.3-sparkx_2.2.0-0.3.2-SNAPSHOTS-jar-with-dependencies.jar
+                ${project.parent.basedir}/sparkx/target/wormhole-ums_1.3-sparkx_2.2.0-0.3.3-SNAPSHOTS-jar-with-dependencies.jar
             </source>
             <outputDirectory>lib</outputDirectory>
         </file>
