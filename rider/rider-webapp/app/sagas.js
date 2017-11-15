@@ -23,6 +23,7 @@ import LoginSagas from './containers/Login/sagas'
 import ProjectSagas from './containers/Project/sagas'
 import FlowSagas from './containers/Flow/sagas'
 import StreamSagas from './containers/Manager/sagas'
+import JobSagas from './containers/Job/sagas'
 import NamespaceSagas from './containers/Namespace/sagas'
 import UserSagas from './containers/User/sagas'
 import UdfSagas from './containers/Udf/sagas'
@@ -41,6 +42,7 @@ export default [
   ...ProjectSagas,
   ...FlowSagas,
   ...StreamSagas,
+  ...JobSagas,
   ...NamespaceSagas,
   ...UserSagas,
   ...UdfSagas,
