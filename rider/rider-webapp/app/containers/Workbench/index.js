@@ -28,6 +28,7 @@ require('../../../node_modules/codemirror/mode/javascript/javascript')
 
 import Flow from '../Flow'
 import Manager from '../Manager'
+import Job from '../Job'
 import Namespace from '../Namespace'
 import User from '../User'
 import Udf from '../Udf'
@@ -35,6 +36,7 @@ import Resource from '../Resource'
 
 import WorkbenchFlowForm from './WorkbenchFlowForm'
 import WorkbenchStreamForm from './WorkbenchStreamForm'
+// import WorkbenchJobForm from './WorkbenchJobForm'
 import FlowEtpStrategyForm from './FlowEtpStrategyForm'
 import FlowTransformForm from './FlowTransformForm'
 import StreamConfigForm from './StreamConfigForm'
@@ -71,6 +73,7 @@ export class Workbench extends React.Component {
       streamMode: '',
       transformMode: '',
       formStep: 0,
+      jobStep: 0,
 
       // all and parts of flow/stream/namespace/user
       userClassHide: 'hide',
@@ -705,16 +708,25 @@ export class Workbench extends React.Component {
         let dataframeShowVal = ''
 
         if (result.tranConfig !== '') {
-          if (result.tranConfig.indexOf('action') > 0) {
-            const tranConfigVal = JSON.parse(JSON.parse(JSON.stringify(result.transConfig)))
+          if (result.tranConfig.indexOf('action') > -1) {
+            const tranConfigVal = JSON.parse(JSON.parse(JSON.stringify(result.tranConfig)))
+
             let validityTemp = tranConfigVal.validity
 
-            if (result.tranConfig.indexOf('validity') > 0) {
+            if (result.tranConfig.indexOf('validity') > -1) {
+              const requestTempJson = {
+                check_columns: validityTemp.check_columns,
+                check_rule: validityTemp.check_rule,
+                rule_mode: validityTemp.rule_mode,
+                rule_params: validityTemp.rule_params,
+                against_action: validityTemp.against_action
+              }
+
               this.setState({
                 etpStrategyCheck: true,
                 etpStrategyResponseValue: validityTemp,
-                etpStrategyRequestValue: `"validity":{"check_columns":"${validityTemp.check_columns}","check_rule":"${validityTemp.check_rule}","rule_mode":"${validityTemp.rule_mode}","rule_params":"${validityTemp.rule_params}","against_action":"${validityTemp.against_action}"}`,
-                etpStrategyConfirmValue: `"check_columns":"${validityTemp.check_columns}","check_rule":"${validityTemp.check_rule}","rule_mode":"${validityTemp.rule_mode}","rule_params":"${validityTemp.rule_params}","against_action":"${validityTemp.against_action}"`
+                etpStrategyRequestValue: `"validity":${JSON.stringify(requestTempJson)}`,
+                etpStrategyConfirmValue: JSON.stringify(requestTempJson)
               })
             } else {
               this.setState({
@@ -767,8 +779,14 @@ export class Workbench extends React.Component {
                 tranConfigInfoTemp = [lookupBeforePartTemp[1], lookupBeforePartTemp[3], lookupAfterPartTepm].join('.')
                 tranTypeTepm = 'lookupSql'
 
-                const pushdownConTepmObj = tranConfigVal.pushdown_connection.find(g => g.name_space === lookupBeforePartTemp[3])
-                pushdownConTepm = `{"name_space":"${pushdownConTepmObj.name_space}","jdbc_url":"${pushdownConTepmObj.jdbc_url}","username":"${pushdownConTepmObj.username}","password":"${pushdownConTepmObj.password}"}`
+                const tmpObj = tranConfigVal.pushdown_connection.find(g => g.name_space === lookupBeforePartTemp[3])
+                const pushdownConTepmJson = {
+                  name_space: tmpObj.name_space,
+                  jdbc_url: tmpObj.jdbc_url,
+                  username: tmpObj.username,
+                  password: tmpObj.password
+                }
+                pushdownConTepm = JSON.stringify(pushdownConTepmJson)
               }
 
               if (i.indexOf('parquet_sql') > 0 || i.indexOf('parquet_sql') === 0) {
@@ -906,7 +924,7 @@ export class Workbench extends React.Component {
             sinkNsArr[3]
           ],
 
-          sinkConfig: sinkConfigShow,
+          sinkConfig: this.state.flowMode === 'copy' ? '' : sinkConfigShow,
           resultFields: resultFieldsVal,
           dataframeShow: dataframeShowVal
         })
@@ -1114,12 +1132,26 @@ export class Workbench extends React.Component {
             sparkConfigValue = `${jvmValTemp},${personalConfTemp}`
           }
 
+          const startConfigJson = {
+            driverCores: values.driverCores,
+            driverMemory: values.driverMemory,
+            executorNums: values.executorNums,
+            perExecutorMemory: values.perExecutorMemory,
+            perExecutorCores: values.perExecutorCores
+          }
+
+          const launchConfigJson = {
+            durations: values.durations,
+            partitions: values.partitions,
+            maxRecords: values.maxRecords
+          }
+
           this.setState({
             streamConfigCheck: true,
             streamConfigValues: {
               sparkConfig: sparkConfigValue,
-              startConfig: `{"driverCores":${values.driverCores},"driverMemory":${values.driverMemory},"executorNums":${values.executorNums},"perExecutorMemory":${values.perExecutorMemory},"perExecutorCores":${values.perExecutorCores}}`,
-              launchConfig: `{"durations": ${values.durations}, "partitions": ${values.partitions}, "maxRecords": ${values.maxRecords}}`
+              startConfig: JSON.stringify(startConfigJson),
+              launchConfig: JSON.stringify(launchConfigJson)
             }
           })
           this.hideConfigModal()
@@ -1195,24 +1227,24 @@ export class Workbench extends React.Component {
   handleForwardDefault () {
     const { flowFormTransformTableSource, streamDiffType } = this.state
 
-    let transformRequestTempArr = []
-    flowFormTransformTableSource.map(i => transformRequestTempArr.push(i.transformConfigInfoRequest))
-    const transformRequestTempString = transformRequestTempArr.join('')
+    let tranRequestTempArr = []
+    flowFormTransformTableSource.map(i => tranRequestTempArr.push(i.transformConfigInfoRequest))
+    const tranRequestTempString = tranRequestTempArr.join('')
     this.setState({
-      transformTableRequestValue: transformRequestTempString === '' ? '' : `"action": "${transformRequestTempString}"`,
-      transformTableConfirmValue: transformRequestTempString === '' ? '' : `"${transformRequestTempString}"`
+      transformTableRequestValue: tranRequestTempString === '' ? '' : `"action": "${tranRequestTempString}"`,
+      transformTableConfirmValue: tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`
     })
 
     // 只有 lookup sql 才有 pushdownConnection
     let tempSource = flowFormTransformTableSource.filter(s => s.pushdownConnection !== '')
 
-    let pushdownConnectionTempString = []
+    let pushConnTemp = []
     for (let i = 0; i < tempSource.length; i++) {
-      pushdownConnectionTempString.push(tempSource[i].pushdownConnection)
+      pushConnTemp.push(tempSource[i].pushdownConnection)
     }
 
     this.setState({
-      pushdownConnectRequestValue: pushdownConnectionTempString === '' ? '' : `"pushdown_connection":[${pushdownConnectionTempString}],`
+      pushdownConnectRequestValue: pushConnTemp === '' ? '' : `"pushdown_connection":[${pushConnTemp}],`
     })
 
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
@@ -1693,12 +1725,27 @@ export class Workbench extends React.Component {
             lookupSqlTypeOrigin = 'union'
           }
 
-          const systemInstanceDatabase = [values.transformSinkDataSystem, values.transformSinkNamespace[0], values.transformSinkNamespace[1]].join('.')
+          const sysInsDb = [values.transformSinkDataSystem, values.transformSinkNamespace[0], values.transformSinkNamespace[1]].join('.')
           transformConfigInfoString = `${values.lookupSqlType}.${values.transformSinkDataSystem}.${values.transformSinkNamespace.join('.')}.${lookupSqlVal}`
-          transformConfigInfoRequestString = `pushdown_sql ${lookupSqlTypeOrigin} with ${systemInstanceDatabase} = ${lookupSqlVal}`
-          const pushdownConnectArrTemp = transformSinkNamespaceArray.find(i => [i.nsSys, i.nsInstance, i.nsDatabase].join('.') === systemInstanceDatabase)
-          const pushdownConnectArr = `{"name_space":"${pushdownConnectArrTemp.nsSys}.${pushdownConnectArrTemp.nsInstance}.${pushdownConnectArrTemp.nsDatabase}", "jdbc_url": "${pushdownConnectArrTemp.conn_url}", "username": "${pushdownConnectArrTemp.user}", "password": "${pushdownConnectArrTemp.pwd}"}`
-          pushdownConnectionString = pushdownConnectArr
+          transformConfigInfoRequestString = `pushdown_sql ${lookupSqlTypeOrigin} with ${sysInsDb} = ${lookupSqlVal}`
+          const tmp = transformSinkNamespaceArray.find(i => [i.nsSys, i.nsInstance, i.nsDatabase].join('.') === sysInsDb)
+
+          const pushdownConnectJson = tmp.connection_config === null
+            ? {
+              name_space: `${tmp.nsSys}.${tmp.nsInstance}.${tmp.nsDatabase}`,
+              jdbc_url: tmp.conn_url,
+              username: tmp.user,
+              password: tmp.pwd
+            }
+            : {
+              name_space: `${tmp.nsSys}.${tmp.nsInstance}.${tmp.nsDatabase}`,
+              jdbc_url: tmp.conn_url,
+              username: tmp.user,
+              password: tmp.pwd,
+              connection_config: tmp.connection_config
+            }
+
+          pushdownConnectionString = JSON.stringify(pushdownConnectJson)
 
           num = (lookupSqlVal.split(';')).length - 1
           valLength = lookupSqlVal.length
@@ -1946,10 +1993,18 @@ export class Workbench extends React.Component {
   onEtpStrategyModalOk = () => {
     this.flowEtpStrategyForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
+        const valueJson = {
+          check_columns: values.checkColumns,
+          check_rule: values.checkRule,
+          rule_mode: values.ruleMode,
+          rule_params: values.ruleParams,
+          against_action: values.againstAction
+        }
+
         this.setState({
           etpStrategyCheck: true,
-          etpStrategyRequestValue: `"validity":{"check_columns":"${values.checkColumns}","check_rule":"${values.checkRule}","rule_mode":"${values.ruleMode}","rule_params":"${values.ruleParams}","against_action":"${values.againstAction}"}`,
-          etpStrategyConfirmValue: `"check_columns":"${values.checkColumns}","check_rule":"${values.checkRule}","rule_mode":"${values.ruleMode}","rule_params":"${values.ruleParams}","against_action":"${values.againstAction}"`
+          etpStrategyRequestValue: `"validity":${JSON.stringify(valueJson)}`,
+          etpStrategyConfirmValue: JSON.stringify(valueJson)
         })
         this.hideEtpStrategyModal()
       }
@@ -2256,6 +2311,47 @@ export class Workbench extends React.Component {
                 <div className="dag-modal">
                   <Button icon="shrink" type="ghost" className="hide-dag-modal" onClick={this.hideStreamDagModal}></Button>
                   <StreamDagModal />
+                </div>
+              </div> */}
+            </div>
+          </TabPane>
+          {/* Job Panel */}
+          <TabPane tab="Job" key="job" style={{height: `${paneHeight}px`}}>
+            <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
+              <Job
+                // className={joMode ? 'op-mode' : ''}
+                // onShowAddFlow={this.showAddFlowWorkbench}
+                // onShowEditFlow={this.showEditFlowWorkbench}
+                // onShowCopyFlow={this.showCopyFlowWorkbench}
+                projectIdGeted={this.state.projectId}
+                // jobClassHide={this.state.jobClassHide}
+              />
+              {/* <div className={`ri-workbench-sidebar ri-common-block ${flowMode ? 'op-mode' : ''}`}>
+                <h3 className="ri-common-block-title">
+                  {`${sidebarPrefixes[flowMode] || ''} Job`}
+                </h3>
+                <div className="ri-common-block-tools">
+                  <Button icon="arrow-left" type="ghost" onClick={this.hideFlowWorkbench}></Button>
+                </div>
+                <div className="ri-workbench-sidebar-container">
+                  <Steps current={jobStep}>
+                    <Step title="Pipeline" />
+                    <Step title="Transformation" />
+                    <Step title="Confirmation" />
+                  </Steps>
+                  <WorkbenchJobForm
+                    step={jobStep}
+                    // sourceNamespaces={projectNamespaces || []}
+                    // sinkNamespaces={projectNamespaces || []}
+                    // jobMode={this.state.jobMode}
+                    projectIdGeted={this.state.projectId}
+
+                    // step2SinkNamespace={this.state.step2SinkNamespace}
+                    // step2SourceNamespace={this.state.step2SourceNamespace}
+
+                    ref={(f) => { this.workbenchFlowForm = f }}
+                  />
+                  {stepButtons}
                 </div>
               </div> */}
             </div>

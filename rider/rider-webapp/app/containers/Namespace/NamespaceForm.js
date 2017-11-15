@@ -154,7 +154,15 @@ export class NamespaceForm extends React.Component {
     const namespaceTableLabel = namespaceDSValue === 'es' ? 'Types' : 'Tables'
 
     const disabledKeyOrNot = (namespaceDSValue === 'hbase' || namespaceDSValue === 'redis')
-    const namespaceKeyPlaceholder = namespaceDSValue === 'kafka' ? '多个数据主键用逗号隔开' : '多个业务主键用逗号隔开'
+
+    let namespaceKeyPlaceholder = ''
+    if (namespaceDSValue === 'kafka') {
+      namespaceKeyPlaceholder = '多个数据主键用逗号隔开'
+    } else if (namespaceDSValue === 'hbase' || namespaceDSValue === 'redis') {
+      namespaceKeyPlaceholder = 'Key 无需配置'
+    } else {
+      namespaceKeyPlaceholder = '多个业务主键用逗号隔开'
+    }
 
     const questionOrNot = namespaceDSValue === 'kafka'
       ? (
