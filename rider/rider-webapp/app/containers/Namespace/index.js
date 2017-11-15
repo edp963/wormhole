@@ -393,69 +393,38 @@ export class Namespace extends React.PureComponent {
               if (addTableValue === undefined || addTableValue === '') {
                 this.nsErrorMsg(values.dataBaseDataSystem === 'es' ? '请填写 Type' : '请填写 Table')
               } else {
-                if (values.dataBaseDataSystem === 'hbase') {
-                  this.namespaceForm.setFields({
-                    nsTables: {
-                      errors: []
-                    }
-                  })
-                  this.nsKeyAdd(addTableValue, addKeyValue, requestOthers)
+                if (addKeyValue === undefined || addKeyValue === '') {
+                  this.nsErrorMsg('请填写 Key')
                 } else {
-                  if (addKeyValue === undefined || addKeyValue === '') {
-                    this.nsErrorMsg('请填写 Key')
-                  } else {
-                    this.nsKeyAdd(addTableValue, addKeyValue, requestOthers)
-                  }
+                  this.nsKeyAdd(addTableValue, addKeyValue, requestOthers)
                 }
               }
             } else {
-              if (values.dataBaseDataSystem === 'hbase') {
-                if (addTableValue === '' && addKeyValue === '') { // 当tables表格有数据时，table input 和 key input 可以为空
-                  this.nsTableInputAdd(requestNsTables, requestOthers)
-                } else {
-                  namespaceTableSource.map(i => {
-                    requestNsTables.push({
-                      table: i.nsModalTable,
-                      key: ''
-                    })
-                    return i
+              if ((addTableValue === '' && addKeyValue !== '') || (addTableValue !== '' && addKeyValue === '')) {
+                this.nsErrorMsg(values.dataBaseDataSystem === 'es' ? 'Type & Key 填写同步' : 'Table & Key 填写同步')
+              } else if (addTableValue === '' && addKeyValue === '') {
+                this.nsTableInputAdd(requestNsTables, requestOthers)
+              } else if (addTableValue !== '' && addKeyValue !== '') {
+                namespaceTableSource.map(i => {
+                  requestNsTables.push({
+                    table: i.nsModalTable,
+                    key: i.nsModalKey
                   })
-                  this.nsTableAdd(requestNsTables, addTableValue, addKeyValue, requestOthers)
-                }
-              } else {
-                if ((addTableValue === '' && addKeyValue !== '') || (addTableValue !== '' && addKeyValue === '')) {
-                  this.nsErrorMsg(values.dataBaseDataSystem === 'es' ? 'Type & Key 填写同步' : 'Table & Key 填写同步')
-                } else if (addTableValue === '' && addKeyValue === '') {
-                  this.nsTableInputAdd(requestNsTables, requestOthers)
-                } else if (addTableValue !== '' && addKeyValue !== '') {
-                  namespaceTableSource.map(i => {
-                    requestNsTables.push({
-                      table: i.nsModalTable,
-                      key: i.nsModalKey
-                    })
-                    return i
-                  })
-                  this.nsTableAdd(requestNsTables, addTableValue, addKeyValue, requestOthers)
-                }
+                  return i
+                })
+                this.nsTableAdd(requestNsTables, addTableValue, addKeyValue, requestOthers)
               }
             }
           } else if (namespaceFormType === 'edit') {
             const editKeysValue = values.nsSingleKeyValue
 
-            if (values.dataBaseDataSystem === 'hbase') {
-              this.props.onEditNamespace(Object.assign({}, editNamespaceData, { keys: '' }), () => {
+            if (editKeysValue === '') {
+              this.nsErrorMsg('请填写 Key')
+            } else {
+              this.props.onEditNamespace(Object.assign({}, editNamespaceData, { keys: editKeysValue }), () => {
                 this.hideForm()
                 message.success('Namespace 修改成功！', 3)
               })
-            } else {
-              if (editKeysValue === '') {
-                this.nsErrorMsg('请填写 Key')
-              } else {
-                this.props.onEditNamespace(Object.assign({}, editNamespaceData, { keys: editKeysValue }), () => {
-                  this.hideForm()
-                  message.success('Namespace 修改成功！', 3)
-                })
-              }
             }
           }
         }
@@ -530,14 +499,10 @@ export class Namespace extends React.PureComponent {
     } else if (namespaceTableSource.find(i => i.nsModalTable === moadlTempVal.nsSingleTableName)) {
       this.nsErrorMsg('Table 重名')
     } else {
-      if (nsDsVal === 'hbase') {
-        this.addTableTemp('')
+      if (moadlTempVal.nsSingleKeyValue === '' || moadlTempVal.nsSingleKeyValue === undefined) {
+        this.nsErrorMsg('请填写 Key')
       } else {
-        if (moadlTempVal.nsSingleKeyValue === '' || moadlTempVal.nsSingleKeyValue === undefined) {
-          this.nsErrorMsg('请填写 Key')
-        } else {
-          this.addTableTemp(moadlTempVal.nsSingleKeyValue)
-        }
+        this.addTableTemp(moadlTempVal.nsSingleKeyValue)
       }
     }
   }

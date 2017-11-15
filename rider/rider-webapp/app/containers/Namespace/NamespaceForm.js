@@ -143,7 +143,6 @@ export class NamespaceForm extends React.Component {
 
     const namespaceTableLabel = namespaceDSValue === 'es' ? 'Types' : 'Tables'
     const namespaceTablePlace = namespaceDSValue === 'es' ? 'Type' : 'Table'
-    const disabledKeyOrNot = namespaceDSValue === 'hbase'
     const namespaceKeyPlaceholder = namespaceDSValue === 'kafka' ? '多个数据主键用逗号隔开' : '多个业务主键用逗号隔开'
 
     const columns = [{
@@ -301,7 +300,6 @@ export class NamespaceForm extends React.Component {
                   <Input
                     placeholder={namespaceKeyPlaceholder}
                     onChange={this.onHandleNsKey}
-                    disabled={disabledKeyOrNot}
                   />
                 )}
               </FormItem>
