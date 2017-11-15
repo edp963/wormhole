@@ -211,11 +211,12 @@ export class WorkbenchStreamForm extends React.PureComponent {
 
           <Col span={24}>
             <div className="ant-col-6 ant-form-item-label">
-              <label htmlFor="#">Configs</label>
+              <label htmlFor="#" className="sink-config-class">Configs</label>
             </div>
             <div className="ant-col-17">
               <div className="ant-form-item-control">
                 {streamConfigTag}
+                <span className="config-msg-class">( Dirver/Execotor 资源配置 )</span>
               </div>
             </div>
           </Col>
