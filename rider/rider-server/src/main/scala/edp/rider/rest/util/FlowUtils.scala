@@ -21,7 +21,7 @@
 
 package edp.rider.rest.util
 
-import com.alibaba.fastjson.JSON
+import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import edp.rider.RiderStarter.modules
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.kafka.KafkaUtils
@@ -35,7 +35,7 @@ import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.ums.UmsProtocolType._
 import slick.jdbc.MySQLProfile.api._
-
+import scala.collection.JavaConversions._
 import scala.concurrent.Await
 
 object FlowUtils extends RiderLogger {
@@ -79,6 +79,26 @@ object FlowUtils extends RiderLogger {
       case ex: Exception =>
         riderLogger.error(s"get sinkConfig failed", ex)
         throw ex
+    }
+  }
+
+  def getTranConfig(tranConfig: String) = {
+    println("tranconfig pre: " + tranConfig)
+    if (tranConfig == "") "{}"
+    else {
+      val json = JSON.parseObject(tranConfig)
+      if (json.containsKey("action")) {
+        json.fluentPut("action", base64byte2s(JSON.parseObject(tranConfig).getString("action").trim.getBytes)).toString
+        val seq = getPushDownConfig(tranConfig)
+        if (seq.nonEmpty)
+          if (json.containsKey("pushdown_connection"))
+            json.fluentRemove("pushdown_connection")
+        val jsonArray = new JSONArray()
+        seq.foreach(config => jsonArray.add(JSON.parseObject(caseClass2json[PushDownConnection](config))))
+        json.fluentPut("pushdown_connection", jsonArray)
+        json.toString
+      }
+      else tranConfig
     }
   }
 
@@ -168,13 +188,7 @@ object FlowUtils extends RiderLogger {
       if (streamType == "default") {
         val consumedProtocolSet = getConsumptionType(consumedProtocol)
         val sinkConfigSet = getSinkConfig(sinkNs, sinkConfig)
-        val tranConfigFinal =
-          if (tranConfig == "") "{}"
-          else {
-            if (JSON.parseObject(tranConfig).containsKey("action"))
-              JSON.parseObject(tranConfig).fluentPut("action", base64byte2s(JSON.parseObject(tranConfig).getString("action").trim.getBytes)).toString
-            else tranConfig
-          }
+        val tranConfigFinal = getTranConfig(tranConfig)
         val tuple = Seq(streamId, currentMicroSec, "ums", "", sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
         val base64Tuple = Seq(streamId, currentMicroSec, "ums", "", sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
           base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))

@@ -127,9 +127,17 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
           })
     }
 
+  def getTranDbConfig(nsSys: String, nsInstance: String, nsDb: String) = {
+    db.run((instanceTable.filter(instance => instance.nsSys === nsSys && instance.nsInstance === nsInstance)
+      join databaseTable.filter(_.nsDatabase === nsDb) on (_.id === _.nsInstanceId))
+      .map{
+        case (instance, database) => (instance, database, database.config, instance.nsSys) <> (TransNamespaceTemp.tupled, TransNamespaceTemp.unapply)
+      }.result).mapTo[Seq[TransNamespaceTemp]]
+  }
+
   def getInstanceByProjectId(projectId: Long, nsSys: String): Future[Seq[Instance]] = {
     db.run((relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) join namespaceTable.filter(_.nsSys === nsSys) on (_.nsId === _.id) join instanceTable.filter(_.nsSys === "kafka") on (_._2.nsInstanceId === _.id)).map {
-      case ((rel, ns), instance) => instance
+      case ((_, _), instance) => instance
     }.distinct.result).mapTo[Seq[Instance]]
   }
 
