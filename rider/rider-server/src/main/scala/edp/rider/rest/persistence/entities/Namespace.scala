@@ -22,8 +22,9 @@
 package edp.rider.rest.persistence.entities
 
 import edp.rider.rest.persistence.base.{BaseEntity, BaseTable, SimpleBaseEntity}
-import slick.lifted.{Rep, Tag}
+import edp.wormhole.common.KVConfig
 import slick.jdbc.MySQLProfile.api._
+import slick.lifted.{Rep, Tag}
 
 case class Namespace(id: Long,
                      nsSys: String,
@@ -103,9 +104,10 @@ case class TransNamespace(nsSys: String,
                           nsDatabase: String,
                           conn_url: String,
                           user: Option[String],
-                          pwd: Option[String])
+                          pwd: Option[String],
+                          connection_config: Option[Seq[KVConfig]])
 
-case class TransNamespaceTemp(instance: Instance, db: NsDatabase, nsSys: String)
+case class TransNamespaceTemp(instance: Instance, db: NsDatabase, dbConfig: Option[String], nsSys: String)
 
 case class NamespaceAdmin(id: Long,
                           nsSys: String,

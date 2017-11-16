@@ -28,14 +28,15 @@ import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.NamespaceUtils._
+import edp.rider.rest.util.NsDatabaseUtils._
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.common.util.CommonUtils._
+import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.ums.UmsProtocolType._
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await
-import edp.wormhole.common.util.JsonUtils._
 
 object FlowUtils extends RiderLogger {
 
@@ -46,7 +47,6 @@ object FlowUtils extends RiderLogger {
       case "all" => "{\"initial\": true, \"increment\": true, \"batch\": false}"
     }
   }
-
 
   def getSinkConfig(sinkNs: String, sinkConfig: String): String = {
     try {
@@ -59,8 +59,8 @@ object FlowUtils extends RiderLogger {
         if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_output"))
           JSON.parseObject(sinkConfig).getString("sink_output")
         else ""
-      val dbConfig = "\"\""
-      //      val dbConfig = if (db.config.getOrElse("") == "") "\"\"" else db.config.get
+      val dbConfig = getDbConfig(ns.nsSys, db.config.getOrElse(""))
+      val sinkConnectionConfig = if (dbConfig.nonEmpty) db.config.get else "\"\""
       s"""
          |{
          |"sink_connection_url": "${getConnUrl(instance, db)}",
@@ -68,7 +68,7 @@ object FlowUtils extends RiderLogger {
          |"sink_connection_password": "${db.pwd.getOrElse("")}",
          |"sink_table_keys": "${ns.keys.getOrElse("")}",
          |"sink_output": "$sink_output",
-         |"sink_connection_config": $dbConfig,
+         |"sink_connection_config": $sinkConnectionConfig,
          |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys)}",
          |"sink_specific_config": $specialConfig,
          |"sink_retry_times": "3",
