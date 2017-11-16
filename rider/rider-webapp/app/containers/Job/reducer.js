@@ -43,7 +43,8 @@ const initialState = fromJS({
 })
 
 function jobReducer (state = initialState, { type, payload }) {
-  // const jobs = state.get('jobs')
+  const jobs = state.get('jobs')
+
   switch (type) {
     case LOAD_ADMIN_ALL_JOBS:
       return state.set('error', false)
@@ -73,6 +74,7 @@ function jobReducer (state = initialState, { type, payload }) {
     case OPERATE_JOB:
       return state.set('error', false)
     case OPERATE_JOB_SUCCESS:
+      console.log('reqqq', payload.result)
       // if (typeof (payload.result) === 'string') {
       //   payload.resolve(payload.result)
       //   return state.set('jobs', jobs.filter(g => payload.result.split(',').indexOf(`${g.id}`) < 0))
@@ -87,7 +89,9 @@ function jobReducer (state = initialState, { type, payload }) {
       //   payload.resolve(payload.result)
       //   return state.set('jobs', jobs.slice())
       // }
-      return state
+      payload.resolve(payload.result)
+      jobs.splice(jobs.indexOf(jobs.find(g => g.id === payload.result.job.id)), 1, payload.result)
+      return state.set('jobs', jobs.slice())
     case OPERATE_JOB_ERROR:
       payload.reject(payload.message)
       return state

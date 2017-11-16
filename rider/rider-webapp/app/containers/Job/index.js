@@ -152,30 +152,25 @@ export class Job extends React.Component {
       jobId: `${record.id}`
     }
 
-    let singleMsg = ''
-    if (action === 'start') {
-      singleMsg = '启动'
-    } else if (action === 'stop') {
-      singleMsg = '停止'
-    } else if (action === 'delete') {
-      singleMsg = '删除'
-    }
-
     this.props.onOperateJob(requestValue, (result) => {
-      console.log('result', result)
-      message(`${singleMsg} 成功！`, 3)
+      let singleMsg = ''
+      if (action === 'start') {
+        singleMsg = '启动'
+      } else if (action === 'stop') {
+        singleMsg = '停止'
+      } else if (action === 'delete') {
+        singleMsg = '删除'
+      }
+      message.success(`${singleMsg} 成功！`, 3)
     }, (result) => {
-      message.error(`操作失败：${result}`, 3)
+      message.error(`操作失败：${result}`, 5)
     })
   }
 
-  // start
   startJobBtn = (record, action) => (e) => this.opreateJobFunc(record, action)
 
-  // stop
   stopJobBtn = (record, action) => (e) => this.opreateJobFunc(record, action)
 
-  // delete
   deleteJobBtn = (record, action) => (e) => this.opreateJobFunc(record, action)
 
   onShowJobLogs = (record) => (e) => {
@@ -316,7 +311,7 @@ export class Job extends React.Component {
   }
 
   render () {
-    const { className, jobClassHide } = this.props
+    const { className, jobClassHide, onShowAddJob } = this.props
     const { refreshJobText, refreshJobLoading } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
@@ -731,7 +726,7 @@ export class Job extends React.Component {
       jobAddOrNot = ''
     } else if (localStorage.getItem('loginRoleType') === 'user') {
       jobAddOrNot = (
-        <Button icon="plus" type="primary">新建</Button>
+        <Button icon="plus" type="primary" onClick={onShowAddJob}>新建</Button>
       )
     }
 
@@ -754,7 +749,6 @@ export class Job extends React.Component {
           columns={columns}
           onChange={this.handleJobChange}
           pagination={pagination}
-          // rowSelection={rowSelection}
           className="ri-workbench-table-container"
           bordered>
         </Table>
@@ -788,6 +782,7 @@ Job.propTypes = {
   projectIdGeted: React.PropTypes.string,
   jobClassHide: React.PropTypes.string,
   className: React.PropTypes.string,
+  onShowAddJob: React.PropTypes.func,
 
   onLoadAdminAllJobs: React.PropTypes.func,
   onLoadUserAllJobs: React.PropTypes.func,
