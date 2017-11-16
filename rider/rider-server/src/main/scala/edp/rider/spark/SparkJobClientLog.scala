@@ -62,7 +62,7 @@ object SparkJobClientLog extends RiderLogger {
       val fileLines = getLogByAppName(appName).split("\\n")
       val appIdList = appIdPattern.findAllIn(fileLines.mkString("\\n")).toList
       val appId = if (appIdList.nonEmpty) appIdList.last else ""
-      val hasException = fileLines.count(s => s contains "Error")
+      val hasException = fileLines.count(s => s contains "Exception")
       val isRunning = fileLines.count(s => s contains s"(state: $RUNNING)")
       val isAccepted = fileLines.count(s => s contains s"(state: $ACCEPTED)")
       val isFinished = fileLines.count(s => s contains s"((state: $FINISHED))")
