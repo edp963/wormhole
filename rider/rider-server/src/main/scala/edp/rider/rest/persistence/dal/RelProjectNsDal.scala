@@ -34,6 +34,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
+import edp.rider.rest.util.NsDatabaseUtils._
 
 class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
                       databaseTable: TableQuery[NsDatabaseTable],
@@ -116,13 +117,13 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
     db.run((((namespaceTable.filter(ns => ns.nsSys === nsSys && ns.active === true) join relProjectNsTable.filter(rel => rel.projectId === id && rel.active === true) on (_.id === _.nsId))
       join databaseTable on (_._1.nsDatabaseId === _.id)) join instanceTable on (_._2.nsInstanceId === _.id))
       .map {
-        case (((ns, rel), database), instance) => (instance, database, ns.nsSys) <> (TransNamespaceTemp.tupled, TransNamespaceTemp.unapply)
+        case (((ns, rel), database), instance) => (instance, database, database.config, ns.nsSys) <> (TransNamespaceTemp.tupled, TransNamespaceTemp.unapply)
       }.distinct.result).map[Seq[TransNamespace]] {
       nsSeq =>
         nsSeq.filter(ns => ns.nsSys == ns.instance.nsSys)
           .map(ns => {
             val url = getConnUrl(ns.instance, ns.db)
-            TransNamespace(ns.nsSys, ns.instance.nsInstance, ns.db.nsDatabase, url, ns.db.user, ns.db.pwd)
+            TransNamespace(ns.nsSys, ns.instance.nsInstance, ns.db.nsDatabase, url, ns.db.user, ns.db.pwd, getDbConfig(nsSys, ns.dbConfig.getOrElse("")))
           })
     }
 

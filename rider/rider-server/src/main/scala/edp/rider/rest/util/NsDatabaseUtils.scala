@@ -21,11 +21,39 @@
 
 package edp.rider.rest.util
 
+import com.alibaba.fastjson.JSON
+import edp.rider.rest.util.CommonUtils.{isJson, isKeyEqualValue}
+import edp.wormhole.common.KVConfig
+
+import scala.collection.mutable.ListBuffer
+
 
 object NsDatabaseUtils {
 
-  def checkFormat(config: String) = {
-
+  def getDbConfig(nsSys: String, config: String): Option[Seq[KVConfig]] = {
+    nsSys match {
+      case "mysql" | "postgresql" | "phoenix" => None
+      case "oracle" => None
+      case _ =>
+        if (config == null || config == "") None
+        else if (isJson(config)) {
+          val seq = new ListBuffer[KVConfig]
+          val json = JSON.parseObject(config)
+          val keySet = json.keySet().toArray
+          keySet.foreach(key => seq += KVConfig(key.toString, json.get(key).toString))
+          Some(seq)
+        } else if (isKeyEqualValue(config)) {
+          val seq = new ListBuffer[KVConfig]
+          val keyValueSeq = config.split(",").mkString("&").split("&")
+          keyValueSeq.foreach(
+            keyValue => {
+              val data = keyValue.split("=")
+              seq += KVConfig(data(0), data(1))
+            }
+          )
+          Some(seq)
+        } else None
+    }
   }
 
 }
