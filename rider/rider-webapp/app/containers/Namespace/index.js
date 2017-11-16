@@ -393,7 +393,7 @@ export class Namespace extends React.PureComponent {
               if (addTableValue === undefined || addTableValue === '') {
                 this.nsErrorMsg(values.dataBaseDataSystem === 'es' ? '请填写 Type' : '请填写 Table')
               } else {
-                if (values.dataBaseDataSystem === 'hbase' || values.dataBaseDataSystem === 'redis') {
+                if (values.dataBaseDataSystem === 'redis') {
                   this.namespaceForm.setFields({
                     nsTables: {
                       errors: []
@@ -409,7 +409,7 @@ export class Namespace extends React.PureComponent {
                 }
               }
             } else {
-              if (values.dataBaseDataSystem === 'hbase' || values.dataBaseDataSystem === 'redis') {
+              if (values.dataBaseDataSystem === 'redis') {
                 if (addTableValue === '' && addKeyValue === '') { // 当tables表格有数据时，table input 和 key input 可以为空
                   this.nsTableInputAdd(requestNsTables, requestOthers)
                 } else {
@@ -442,7 +442,7 @@ export class Namespace extends React.PureComponent {
           } else if (namespaceFormType === 'edit') {
             const editKeysValue = values.nsSingleKeyValue
 
-            if (values.dataBaseDataSystem === 'hbase' || values.dataBaseDataSystem === 'redis') {
+            if (values.dataBaseDataSystem === 'redis') {
               this.props.onEditNamespace(Object.assign({}, editNamespaceData, { keys: '' }), () => {
                 this.hideForm()
                 message.success('Namespace 修改成功！', 3)
@@ -530,7 +530,7 @@ export class Namespace extends React.PureComponent {
     } else if (namespaceTableSource.find(i => i.nsModalTable === moadlTempVal.nsSingleTableName)) {
       this.nsErrorMsg('Table 重名')
     } else {
-      if (nsDsVal === 'hbase' || nsDsVal === 'redis') {
+      if (nsDsVal === 'redis') {
         this.addTableTemp('')
       } else {
         if (moadlTempVal.nsSingleKeyValue === '' || moadlTempVal.nsSingleKeyValue === undefined) {

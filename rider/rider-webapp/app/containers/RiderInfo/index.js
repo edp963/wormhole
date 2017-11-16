@@ -40,24 +40,6 @@ export class RiderInfo extends React.Component {
   render () {
     const { riderInfos } = this.props
 
-    // let infoMonitor = {}
-    // let infoConsumer = {}
-    // let infoZk = {}
-    // let infoDb = {}
-    // let infoSpark = {}
-    // if (typeof (riderInfos) === 'object') {
-    //   infoMonitor = riderInfos.monitor
-    //   infoConsumer = riderInfos.consumer
-    //   infoZk = riderInfos.zk
-    //   infoDb = riderInfos.db
-    //   infoSpark = riderInfos.spark
-    // }
-
-    // const itemStyle = {
-    //   labelCol: { span: 11 },
-    //   wrapperCol: { span: 12 }
-    // }
-
     return (
       <div className={`ri-workbench-table ri-common-block`}>
         <Helmet title="Rider Info" />
@@ -82,58 +64,6 @@ export class RiderInfo extends React.Component {
             </Col>
             <Col span={6}></Col>
           </Row>
-          {/* <Row gutter={8}>
-            <Col span={12}>
-              <FormItem label="Monitor" {...itemStyle}>
-                <pre>"grafana_host":"{infoMonitor.grafana_host}"</pre>
-                <pre>"grafana_admin_user":"{infoMonitor.grafana_admin_user}"</pre>
-                <pre>"grafana_viewer_user":"{infoMonitor.grafana_viewer_user}"</pre>
-                <pre>"elasticsearch_host":"{infoMonitor.elasticsearch_host}"</pre>
-              </FormItem>
-            </Col>
-            <Col span={12}>
-              <FormItem label="ZK" {...itemStyle}>
-                <pre>"url":"{infoZk.url}"</pre>
-                <pre>"directive_root_path":"{infoZk.directive_root_path}"</pre>
-                <pre>"directive_flow_path":"{infoZk.directive_flow_path}"</pre>
-                <pre>"directive_topic_path":"{infoZk.directive_topic_path}"</pre>
-              </FormItem>
-            </Col>
-          </Row>
-          <Row gutter={8}>
-            <Col span={12}>
-              <FormItem label="Consumer" {...itemStyle}>
-                <pre>"brokers":"{infoConsumer.brokers}"</pre>
-                <pre>"topic":"{infoConsumer.topic}"</pre>
-                <pre>"client_id":"{infoConsumer.client_id}"</pre>
-                <pre>"group_id":"{infoConsumer.group_id}"</pre>
-              </FormItem>
-            </Col>
-            <Col span={12}>
-              <FormItem label="DB" {...itemStyle}>
-                <pre>"url":"{infoDb.url}"</pre>
-                <pre>"user":"{infoDb.user}"</pre>
-                <pre>"thread_number":"{infoDb.thread_number}"</pre>
-              </FormItem>
-            </Col>
-          </Row>
-          <Row gutter={8}>
-            <Col span={12}>
-              <FormItem label="Spark" {...itemStyle}>
-                <pre>"wormhole_default_topic":"{infoSpark.wormhole_default_topic}"</pre>
-                <pre>"hdfs_root":"{infoSpark.hdfs_root}"</pre>
-                <pre>"log4j_file_path":"{infoSpark.log4j_file_path}"</pre>
-                <pre>"host":"{infoSpark.host}"</pre>
-                <pre>"rest_api":"{infoSpark.rest_api}"</pre>
-                <pre>"wormhole_start_shell":"{infoSpark.wormhole_start_shell}"</pre>
-                <pre>"wormhole_jar_path":"{infoSpark.wormhole_jar_path}"</pre>
-                <pre>"mode":"{infoSpark.mode}"</pre>
-                <pre>"spark_home":"{infoSpark.spark_home}"</pre>
-                <pre>"user":"{infoSpark.user}"</pre>
-                <pre>"log_path":"{infoSpark.log_path}"</pre>
-              </FormItem>
-            </Col>
-          </Row> */}
         </Form>
 
       </div>

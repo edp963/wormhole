@@ -36,7 +36,7 @@ import Resource from '../Resource'
 
 import WorkbenchFlowForm from './WorkbenchFlowForm'
 import WorkbenchStreamForm from './WorkbenchStreamForm'
-// import WorkbenchJobForm from './WorkbenchJobForm'
+import WorkbenchJobForm from './WorkbenchJobForm'
 import FlowEtpStrategyForm from './FlowEtpStrategyForm'
 import FlowTransformForm from './FlowTransformForm'
 import StreamConfigForm from './StreamConfigForm'
@@ -72,8 +72,9 @@ export class Workbench extends React.Component {
       flowMode: '',
       streamMode: '',
       transformMode: '',
+      jobMode: '',
       formStep: 0,
-      jobStep: 0,
+      tabPanelKey: '',
 
       // all and parts of flow/stream/namespace/user
       userClassHide: 'hide',
@@ -91,7 +92,7 @@ export class Workbench extends React.Component {
       sinkConfigModalVisible: false,
 
       // Flow Modal Transform
-      flowFormTransformTableSource: [],
+      flowFormTranTableSource: [],
       transformTagClassName: '',
       transformTableClassName: 'hide',
       transformValue: '',
@@ -111,7 +112,6 @@ export class Workbench extends React.Component {
 
       kafkaValues: [],
       kafkaInstanceId: 0,
-      topicsValues: [],
 
       streamConfigValues: {
         sparkConfig: '',
@@ -165,13 +165,21 @@ export class Workbench extends React.Component {
       flowKafkaInstanceValue: '',
       flowKafkaTopicValue: '',
 
-      sinkConfigMsg: ''
+      sinkConfigMsg: '',
+
+      // job
+      jobConfigCheck: false,
+      jobStepSourceNs: '',
+      jobStepSinkNs: ''
     }
   }
 
   componentWillMount () {
     const projectId = this.props.router.params.projectId
     this.loadData(projectId)
+    this.setState({
+      tabPanelKey: 'flow'
+    })
   }
 
   componentWillReceiveProps (props) {
@@ -230,6 +238,10 @@ export class Workbench extends React.Component {
         onLoadSingleUdf(projectId, 'user', () => {})
       }
     }
+
+    this.setState({
+      tabPanelKey: key
+    })
   }
 
   /***
@@ -524,7 +536,7 @@ export class Workbench extends React.Component {
     this.setState({
       flowMode: 'add',
       formStep: 0,
-      flowFormTransformTableSource: [],
+      flowFormTranTableSource: [],
       transformTagClassName: '',
       transformTableClassName: 'hide',
       transConnectClass: 'hide',
@@ -758,21 +770,16 @@ export class Workbench extends React.Component {
             const tranActionArr = tranConfigVal.action.split(';')
             tranActionArr.splice(tranActionArr.length - 1, 1)
 
-            this.state.flowFormTransformTableSource = tranActionArr.map((i, index) => {
+            this.state.flowFormTranTableSource = tranActionArr.map((i, index) => {
               const tranTableSourceTemp = {}
               let tranConfigInfoTemp = ''
               let tranTypeTepm = ''
               let pushdownConTepm = ''
 
-              if (i.indexOf('pushdown_sql') > 0 || i.indexOf('pushdown_sql') === 0) {
-                if (i.indexOf('left join') > 0) {
-                  i = i.replace('left join', 'leftJoin')
-                }
-                if (i.indexOf('inner join') > 0) {
-                  i = i.replace('inner join', 'innerJoin')
-                }
-                const lookupBeforePart = i.substring(0, i.indexOf('=') - 1)
-                const lookupAfterPart = i.substring(i.indexOf('=') + 1)
+              if (i.indexOf('pushdown_sql') > -1) {
+                const iTmp = i.indexOf('left join') > -1 ? i.replace('left join', 'leftJoin') : i
+                const lookupBeforePart = iTmp.substring(0, i.indexOf('=') - 1)
+                const lookupAfterPart = iTmp.substring(i.indexOf('=') + 1)
                 const lookupBeforePartTemp = (lookupBeforePart.replace(/(^\s*)|(\s*$)/g, '')).split(' ')
                 const lookupAfterPartTepm = lookupAfterPart.replace(/(^\s*)|(\s*$)/g, '') // 去字符串前后的空白；sql语句回显
 
@@ -780,6 +787,7 @@ export class Workbench extends React.Component {
                 tranTypeTepm = 'lookupSql'
 
                 const tmpObj = tranConfigVal.pushdown_connection.find(g => g.name_space === lookupBeforePartTemp[3])
+
                 const pushdownConTepmJson = {
                   name_space: tmpObj.name_space,
                   jdbc_url: tmpObj.jdbc_url,
@@ -789,19 +797,18 @@ export class Workbench extends React.Component {
                 pushdownConTepm = JSON.stringify(pushdownConTepmJson)
               }
 
-              if (i.indexOf('parquet_sql') > 0 || i.indexOf('parquet_sql') === 0) {
+              if (i.indexOf('parquet_sql') > -1) {
+                let imp = ''
                 if (i.indexOf('left join') > 0) {
-                  i = i.replace('left join', 'leftJoin')
-                }
-                if (i.indexOf('right join') > 0) {
-                  i = i.replace('right join', 'rightJoin')
-                }
-                if (i.indexOf('inner join') > 0) {
-                  i = i.replace('inner join', 'innerJoin')
+                  imp = i.replace('left join', 'leftJoin')
                 }
 
-                const streamJoinBeforePart = i.substring(0, i.indexOf('=') - 1)
-                const streamJoinAfterPart = i.substring(i.indexOf('=') + 1)
+                if (i.indexOf('inner join') > 0) {
+                  imp = i.replace('inner join', 'innerJoin')
+                }
+
+                const streamJoinBeforePart = imp.substring(0, i.indexOf('=') - 1)
+                const streamJoinAfterPart = imp.substring(i.indexOf('=') + 1)
                 const streamJoinBeforePartTemp = streamJoinBeforePart.replace(/(^\s*)|(\s*$)/g, '').split(' ')
                 const streamJoinAfterPartTepm = streamJoinAfterPart.replace(/(^\s*)|(\s*$)/g, '')
 
@@ -812,7 +819,7 @@ export class Workbench extends React.Component {
                 pushdownConTepm = ''
               }
 
-              if (i.indexOf('spark_sql') > 0 || i.indexOf('spark_sql') === 0) {
+              if (i.indexOf('spark_sql') > -1) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepm = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
 
@@ -821,7 +828,7 @@ export class Workbench extends React.Component {
                 pushdownConTepm = ''
               }
 
-              if (i.indexOf('custom_class') > 0 || i.indexOf('custom_class') === 0) {
+              if (i.indexOf('custom_class') > -1) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepm = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
 
@@ -1190,14 +1197,21 @@ export class Workbench extends React.Component {
   }
 
   forwardStep = () => {
-    if (this.state.streamDiffType === 'default') {
-      this.handleForwardDefault()
-    } else if (this.state.streamDiffType === 'hdfslog') {
-      this.handleForwardHdfslog()
+    const { tabPanelKey, streamDiffType } = this.state
+    console.log('tabPanelKey', tabPanelKey)
+
+    if (tabPanelKey === 'flow') {
+      if (streamDiffType === 'default') {
+        this.handleForwardDefault()
+      } else if (streamDiffType === 'hdfslog') {
+        this.handleForwardHdfslog()
+      }
+    } else if (tabPanelKey === 'job') {
+      this.handleForwardJob()
     }
   }
 
-  // 验证 source to sink 存在性
+  // 验证 Flow default source to sink 存在性
   loadSTSExit (values) {
     const { flowMode } = this.state
 
@@ -1225,10 +1239,10 @@ export class Workbench extends React.Component {
   }
 
   handleForwardDefault () {
-    const { flowFormTransformTableSource, streamDiffType } = this.state
+    const { flowFormTranTableSource, streamDiffType } = this.state
 
     let tranRequestTempArr = []
-    flowFormTransformTableSource.map(i => tranRequestTempArr.push(i.transformConfigInfoRequest))
+    flowFormTranTableSource.map(i => tranRequestTempArr.push(i.transformConfigInfoRequest))
     const tranRequestTempString = tranRequestTempArr.join('')
     this.setState({
       transformTableRequestValue: tranRequestTempString === '' ? '' : `"action": "${tranRequestTempString}"`,
@@ -1236,7 +1250,7 @@ export class Workbench extends React.Component {
     })
 
     // 只有 lookup sql 才有 pushdownConnection
-    let tempSource = flowFormTransformTableSource.filter(s => s.pushdownConnection !== '')
+    let tempSource = flowFormTranTableSource.filter(s => s.pushdownConnection !== '')
 
     let pushConnTemp = []
     for (let i = 0; i < tempSource.length; i++) {
@@ -1328,6 +1342,93 @@ export class Workbench extends React.Component {
           })
         } else if (flowMode === 'edit') {
           this.setState({ formStep: this.state.formStep + 2 })
+        }
+      }
+    })
+  }
+
+  // 验证 Job source to sink 存在性
+  loadJobSTSExit (values) {
+    const { jobMode, formStep } = this.state
+
+    if (jobMode === 'add') {
+      // 新增 Job 时验证 source to sink 是否存在
+      // const sourceInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
+      // const sinkInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
+
+      // this.props.onLoadSourceToSinkExist(projectId, sourceInfo, sinkInfo, () => {
+      this.setState({
+        formStep: formStep + 1
+        // jobStepSourceNs: [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.'),
+        // jobStepSinkNs: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
+      })
+      // }, () => {
+      //   message.error('Source to Sink 已存在！', 3)
+      // })
+    } else if (jobMode === 'edit') {
+      this.setState({
+        formStep: formStep + 1
+        // jobStepSourceNs: [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.'),
+        // jobStepSinkNs: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
+      })
+    }
+  }
+
+  handleForwardJob () {
+    const { formStep } = this.state
+
+    this.workbenchJobForm.validateFieldsAndScroll((err, values) => {
+      if (!err) {
+        switch (formStep) {
+          case 0:
+            const values = this.workbenchJobForm.getFieldsValue()
+            if (values.sinkConfig === undefined || values.sinkConfig === '') {
+              if (values.sinkDataSystem === 'hbase' || values.sinkDataSystem === 'mysql' || values.sinkDataSystem === 'oracle' || values.sinkDataSystem === 'postgresql') {
+                message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
+              } else {
+                this.loadJobSTSExit(values)
+              }
+            } else {
+              if (this.isJSON(values.sinkConfig) === false) {
+                message.error('Sink Config 应为 JSON格式！', 3)
+                return
+              } else {
+                this.loadJobSTSExit(values)
+              }
+            }
+
+            const rfSelect = this.workbenchJobForm.getFieldValue('resultFields')
+            if (rfSelect === 'all') {
+              this.setState({
+                resultFiledsOutput: '',
+                resultFieldsValue: 'all'
+              })
+            } else if (rfSelect === 'selected') {
+              const rfSelectSelected = this.workbenchJobForm.getFieldValue('resultFieldsSelected')
+              this.setState({
+                resultFiledsOutput: `"sink_output":"${rfSelectSelected}"`,
+                resultFieldsValue: rfSelectSelected
+              })
+            }
+            break
+          case 1:
+            const dataframeShowSelect = this.workbenchJobForm.getFieldValue('dataframeShow')
+            if (dataframeShowSelect === 'true') {
+              const dataframeShowNum = this.workbenchJobForm.getFieldValue('dataframeShowNum')
+              this.setState({
+                dataframeShowOrNot: `"dataframe_show":"true","dataframe_show_num":"${dataframeShowNum}","swifts_specific_config":""`,
+                dataframeShowNumValue: `true; Number is ${dataframeShowNum}`
+              })
+            } else {
+              this.setState({
+                dataframeShowOrNot: `"dataframe_show":"false","swifts_specific_config":""`,
+                dataframeShowNumValue: 'false'
+              })
+            }
+            this.setState({
+              formStep: formStep + 1
+            })
+            break
         }
       }
     })
@@ -1445,7 +1546,7 @@ export class Workbench extends React.Component {
               fieldSelected: 'hide',
               etpStrategyCheck: false,
               dataframeShowSelected: 'hide',
-              flowFormTransformTableSource: []
+              flowFormTranTableSource: []
             })
           })
         })
@@ -1478,7 +1579,7 @@ export class Workbench extends React.Component {
             fieldSelected: 'hide',
             etpStrategyCheck: false,
             dataframeShowSelected: 'hide',
-            flowFormTransformTableSource: []
+            flowFormTranTableSource: []
           })
         })
       })
@@ -1612,10 +1713,6 @@ export class Workbench extends React.Component {
     })
   }
 
-  onChange = (pagination, filter, sorter) => {
-    console.log('params', pagination, filter, sorter)
-  }
-
   /**
    * Flow Transformation Modal
    * */
@@ -1719,8 +1816,6 @@ export class Workbench extends React.Component {
           let lookupSqlTypeOrigin = ''
           if (values.lookupSqlType === 'leftJoin') {
             lookupSqlTypeOrigin = 'left join'
-          } else if (values.lookupSqlType === 'innerJoin') {
-            lookupSqlTypeOrigin = 'inner join'
           } else if (values.lookupSqlType === 'union') {
             lookupSqlTypeOrigin = 'union'
           }
@@ -1768,8 +1863,6 @@ export class Workbench extends React.Component {
             streamJoinSqlTypeOrigin = 'left join'
           } else if (values.streamJoinSqlType === 'innerJoin') {
             streamJoinSqlTypeOrigin = 'inner join'
-          } else if (values.streamJoinSqlType === 'rightJoin') {
-            streamJoinSqlTypeOrigin = 'right join'
           }
           // transformConfigInfoString = `${values.streamJoinSqlType}.${values.streamJoinSqlConfig}.${values.timeout}.${streamJoinSqlVal}`
           transformConfigInfoString = `${values.streamJoinSqlType}.${values.timeout}.${streamJoinSqlVal}`
@@ -1804,7 +1897,7 @@ export class Workbench extends React.Component {
             // 加隐藏字段 transformType, 获得每次选中的transformation type
             if (transformMode === '') {
               // 第一次添加数据时
-              this.state.flowFormTransformTableSource.push({
+              this.state.flowFormTranTableSource.push({
                 transformType: values.transformation,
                 order: 1,
                 transformConfigInfo: transformConfigInfoString,
@@ -1821,7 +1914,7 @@ export class Workbench extends React.Component {
                 })
               })
             } else if (transformMode === 'edit') {
-              this.state.flowFormTransformTableSource[values.editTransformId - 1] = {
+              this.state.flowFormTranTableSource[values.editTransformId - 1] = {
                 transformType: values.transformation,
                 order: values.editTransformId,
                 transformConfigInfo: transformConfigInfoString,
@@ -1829,7 +1922,7 @@ export class Workbench extends React.Component {
                 pushdownConnection: pushdownConnectionString
               }
             } else if (transformMode === 'add') {
-              const tableSourceArr = this.state.flowFormTransformTableSource
+              const tableSourceArr = this.state.flowFormTranTableSource
               // 当前插入的数据
               tableSourceArr.splice(values.editTransformId, 0, {
                 transformType: values.transformation,
@@ -1843,7 +1936,7 @@ export class Workbench extends React.Component {
                 tableSourceArr[i].order = tableSourceArr[i].order + 1
               }
               // 重新setState数组
-              this.setState({ flowFormTransformTableSource: tableSourceArr })
+              this.setState({ flowFormTranTableSource: tableSourceArr })
             }
             this.tranModalOkSuccess()
           }
@@ -1862,7 +1955,7 @@ export class Workbench extends React.Component {
   }
 
   onDeleteSingleTransform = (record) => (e) => {
-    const tableSourceArr = this.state.flowFormTransformTableSource
+    const tableSourceArr = this.state.flowFormTranTableSource
     if (tableSourceArr.length === 1) {
       this.setState({
         transformTagClassName: '',
@@ -1890,11 +1983,11 @@ export class Workbench extends React.Component {
     for (let i = record.order - 1; i < tableSourceArr.length; i++) {
       tableSourceArr[i].order = tableSourceArr[i].order - 1
     }
-    this.setState({ flowFormTransformTableSource: tableSourceArr })
+    this.setState({ flowFormTranTableSource: tableSourceArr })
   }
 
   onUpTransform = (record) => (e) => {
-    const tableSourceArr = this.state.flowFormTransformTableSource
+    const tableSourceArr = this.state.flowFormTranTableSource
 
     // 当前数据
     let currentInfo = [{
@@ -1926,11 +2019,11 @@ export class Workbench extends React.Component {
 
     tableSourceArr.splice(record.order - 2, 2, beforeArr[0], currentInfo[0])
 
-    this.setState({ flowFormTransformTableSource: tableSourceArr })
+    this.setState({ flowFormTranTableSource: tableSourceArr })
   }
 
   onDownTransform = (record) => (e) => {
-    const tableSourceArr = this.state.flowFormTransformTableSource
+    const tableSourceArr = this.state.flowFormTranTableSource
 
     // 当前数据
     let currentInfo = [{
@@ -1962,7 +2055,7 @@ export class Workbench extends React.Component {
 
     tableSourceArr.splice(record.order - 1, 2, currentInfo[0], afterArr[0])
 
-    this.setState({ flowFormTransformTableSource: tableSourceArr })
+    this.setState({ flowFormTranTableSource: tableSourceArr })
   }
 
   /**
@@ -2041,6 +2134,30 @@ export class Workbench extends React.Component {
     this.hideSinkConfigModal()
   }
 
+  showAddJobWorkbench = () => {
+    this.workbenchJobForm.resetFields()
+    this.setState({
+      jobMode: 'add',
+      formStep: 0,
+      flowFormTranTableSource: [],
+      transformTagClassName: '',
+      transformTableClassName: 'hide',
+      transConnectClass: 'hide',
+      fieldSelected: 'hide',
+      etpStrategyCheck: false,
+      dataframeShowSelected: 'hide',
+      resultFieldsValue: 'all',
+      etpStrategyConfirmValue: '',
+      etpStrategyRequestValue: ''
+    }, () => {
+      this.workbenchJobForm.setFieldsValue({
+        resultFields: 'all',
+        dataframeShow: 'false',
+        dataframeShowNum: 10
+      })
+    })
+  }
+
   /**
    * Dag 图
    * */
@@ -2069,7 +2186,7 @@ export class Workbench extends React.Component {
   // }
 
   render () {
-    const {flowMode, streamMode, formStep, isWormhole, flowFormTransformTableSource} = this.state
+    const {flowMode, streamMode, jobMode, formStep, isWormhole, flowFormTranTableSource} = this.state
     const {streams, projectNamespaces, streamSubmitLoading} = this.props
 
     const sidebarPrefixes = {
@@ -2123,7 +2240,7 @@ export class Workbench extends React.Component {
                     flowMode={this.state.flowMode}
                     projectIdGeted={this.state.projectId}
 
-                    transformTableSource={flowFormTransformTableSource}
+                    transformTableSource={flowFormTranTableSource}
                     // onStreamJoinSqlConfigTypeSelect={this.onStreamJoinSqlConfigTypeSelect}
 
                     onShowTransformModal={this.onShowTransformModal}
@@ -2265,7 +2382,6 @@ export class Workbench extends React.Component {
                     streamMode={this.state.streamMode}
                     onInitStreamNameValue={this.onInitStreamNameValue}
                     kafkaValues={this.state.kafkaValues}
-                    topicsValues={this.state.topicsValues}
 
                     onShowConfigModal={this.onShowConfigModal}
                     streamConfigCheck={this.state.streamConfigCheck}
@@ -2319,41 +2435,44 @@ export class Workbench extends React.Component {
           <TabPane tab="Job" key="job" style={{height: `${paneHeight}px`}}>
             <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
               <Job
-                // className={joMode ? 'op-mode' : ''}
-                // onShowAddFlow={this.showAddFlowWorkbench}
+                className={jobMode ? 'op-mode' : ''}
+                onShowAddJob={this.showAddJobWorkbench}
                 // onShowEditFlow={this.showEditFlowWorkbench}
-                // onShowCopyFlow={this.showCopyFlowWorkbench}
                 projectIdGeted={this.state.projectId}
                 // jobClassHide={this.state.jobClassHide}
               />
-              {/* <div className={`ri-workbench-sidebar ri-common-block ${flowMode ? 'op-mode' : ''}`}>
+              <div className={`ri-workbench-sidebar ri-common-block ${jobMode ? 'op-mode' : ''}`}>
                 <h3 className="ri-common-block-title">
-                  {`${sidebarPrefixes[flowMode] || ''} Job`}
+                  {`${sidebarPrefixes[jobMode] || ''} Job`}
                 </h3>
                 <div className="ri-common-block-tools">
                   <Button icon="arrow-left" type="ghost" onClick={this.hideFlowWorkbench}></Button>
                 </div>
                 <div className="ri-workbench-sidebar-container">
-                  <Steps current={jobStep}>
+                  <Steps current={formStep}>
                     <Step title="Pipeline" />
                     <Step title="Transformation" />
                     <Step title="Confirmation" />
                   </Steps>
                   <WorkbenchJobForm
-                    step={jobStep}
+                    step={formStep}
+                    jobConfigCheck={this.state.jobConfigCheck}
+                    onShowConfigModal={this.onShowConfigModal}
+                    fieldSelected={this.state.fieldSelected}
+                    initResultFieldClass={this.initResultFieldClass}
                     // sourceNamespaces={projectNamespaces || []}
                     // sinkNamespaces={projectNamespaces || []}
                     // jobMode={this.state.jobMode}
                     projectIdGeted={this.state.projectId}
 
-                    // step2SinkNamespace={this.state.step2SinkNamespace}
-                    // step2SourceNamespace={this.state.step2SourceNamespace}
+                    jobStepSourceNs={this.state.jobStepSourceNs}
+                    jobStepSinkNs={this.state.jobStepSinkNs}
 
-                    ref={(f) => { this.workbenchFlowForm = f }}
+                    ref={(f) => { this.workbenchJobForm = f }}
                   />
                   {stepButtons}
                 </div>
-              </div> */}
+              </div>
             </div>
           </TabPane>
           {/* Namespace Panel */}
