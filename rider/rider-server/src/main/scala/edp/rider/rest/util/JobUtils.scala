@@ -36,7 +36,7 @@ import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.common.{ConnectionConfig, KVConfig}
-
+import edp.rider.rest.util.NsDatabaseUtils._
 import scala.concurrent.Await
 
 object JobUtils extends RiderLogger {
@@ -72,7 +72,10 @@ object JobUtils extends RiderLogger {
   def getTranConfig(tranConfig: String) = {
     if (tranConfig != "" && tranConfig != null) {
       val tranClass = JSON.parseObject(tranConfig)
-      val action = if (tranClass.containsKey("action") && tranClass.getString("action").nonEmpty) Some(base64byte2s(tranClass.getString("action").trim.getBytes)) else None
+      val action =
+        if (tranClass.containsKey("action") && tranClass.getString("action").nonEmpty)
+          Some(base64byte2s(tranClass.getString("action").trim.getBytes))
+        else None
       val specialConfig = if (tranClass.containsKey("specialConfig") && tranClass.getString("specialConfig").nonEmpty) {
         Some(base64byte2s(tranClass.getJSONObject("specialConfig").toString.trim.getBytes))
       } else {
@@ -131,7 +134,7 @@ object JobUtils extends RiderLogger {
     val connUrl =
       if (sourceType == null || sourceType == "" || !sourceType.contains("hdfs")) getConnUrl(instance, db)
       else RiderConfig.spark.hdfs_root
-    ConnectionConfig(connUrl, db.user, db.pwd, None)
+    ConnectionConfig(connUrl, db.user, db.pwd, getDbConfig(instance.nsSys, db.config.getOrElse("")))
   }
 
   def startJob(job: Job) = {
@@ -188,7 +191,7 @@ object JobUtils extends RiderLogger {
     case JobStatus.NEW => s"${Action.STOP}"
     case JobStatus.STARTING => s"${Action.START},${Action.STOP},${Action.DELETE}"
     case JobStatus.WAITING => s"${Action.START}"
-    case JobStatus.RUNNING =>  s"${Action.START}"
+    case JobStatus.RUNNING => s"${Action.START}"
     case JobStatus.STOPPING => s"${Action.START}"
     case JobStatus.FAILED => ""
     case JobStatus.STOPPED => s"${Action.STOP}"

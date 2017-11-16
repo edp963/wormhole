@@ -22,18 +22,43 @@
 package edp.rider.rest.util
 
 import com.alibaba.fastjson.JSON
-import edp.rider.rest.util.CommonUtils.{isJson, isKeyEqualValue}
+import edp.rider.RiderStarter.modules
+import edp.rider.rest.persistence.entities.PushDownConnection
+import edp.rider.rest.util.CommonUtils.{isJson, isKeyEqualValue, _}
+import edp.rider.rest.util.NamespaceUtils._
 import edp.wormhole.common.KVConfig
 
 import scala.collection.mutable.ListBuffer
-
+import scala.concurrent.Await
 
 object NsDatabaseUtils {
 
   def getDbConfig(nsSys: String, config: String): Option[Seq[KVConfig]] = {
     nsSys match {
-      case "mysql" | "postgresql" | "phoenix" => None
-      case "oracle" => None
+      case "mysql" | "postgresql" | "oracle" =>
+        if (config == null || config == "") None
+        else if (isJson(config)) {
+          val seq = new ListBuffer[KVConfig]
+          val json = JSON.parseObject(config)
+          val keySet = json.keySet().toArray
+          keySet.foreach(key => {
+            if (key == "maxPoolSize")
+              seq += KVConfig(key.toString, json.get(key).toString)
+          })
+          Some(seq)
+        } else if (isKeyEqualValue(config)) {
+          val seq = new ListBuffer[KVConfig]
+          val keyValueSeq = config.split(",").mkString("&").split("&")
+          keyValueSeq.foreach(
+            keyValue => {
+              val data = keyValue.split("=")
+              if (data(0) == "maxPoolSize")
+                seq += KVConfig(data(0), data(1))
+            }
+          )
+          Some(seq)
+        } else None
+      case "phoenix" => None
       case _ =>
         if (config == null || config == "") None
         else if (isJson(config)) {
@@ -56,6 +81,36 @@ object NsDatabaseUtils {
     }
   }
 
+  def getPushDownConfig(tranConfig: String): Seq[PushDownConnection] = {
+    val seq = new ListBuffer[PushDownConnection]
+    if (tranConfig == null || tranConfig == "")
+      seq
+    else {
+      val json = JSON.parseObject(tranConfig)
+      if (json.containsKey("action")) {
+        val sql = json.getString("action")
+        sql.split(";").foreach(
+          sql => {
+            if (sql.contains("pushdown_sql")) {
+              val regrex = "with[\\s\\S]+\\=".r.findFirstIn(sql)
+              if (regrex.nonEmpty) {
+                val db = regrex.get.stripSuffix("=").stripPrefix("with").trim
+                if (db != "") {
+                  val dbSeq = db.split("\\.")
+                  val dbInfo = Await.result(modules.relProjectNsDal.getTranDbConfig(dbSeq(0), dbSeq(1), dbSeq(2)), minTimeOut)
+                  if (dbInfo.nonEmpty) {
+                    val head = dbInfo.head
+                    seq += PushDownConnection(db, getConnUrl(head.instance, head.db), head.db.user, head.db.pwd, getDbConfig(head.nsSys, head.db.config.getOrElse("")))
+                  }
+                }
+              }
+            }
+          }
+        )
+      }
+      seq
+    }
+  }
 }
 
 

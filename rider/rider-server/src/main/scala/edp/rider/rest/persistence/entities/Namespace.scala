@@ -132,6 +132,12 @@ case class NamespaceAdmin(id: Long,
 case class NamespaceProjectName(nsId: Long,
                                 name: String)
 
+case class PushDownConnection(name_space: String,
+                              jdbc_url: String,
+                              username: Option[String],
+                              password: Option[String],
+                              connection_config: Option[Seq[KVConfig]])
+
 
 class NamespaceTable(_tableTag: Tag) extends BaseTable[Namespace](_tableTag, "namespace") {
   def * = (id, nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar, permission, keys, nsDatabaseId, nsInstanceId, active, createTime, createBy, updateTime, updateBy) <> (Namespace.tupled, Namespace.unapply)
