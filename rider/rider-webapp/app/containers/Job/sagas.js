@@ -116,10 +116,11 @@ export function* operateUserJob ({ payload }) {
       method: 'put',
       url: `${api.projectUserList}/${payload.values.projectId}/jobs/${Number(payload.values.jobId)}/${payload.values.action}`
     })
+    console.log('result', result)
     if (result.code && result.code !== 200) {
       yield put(jobOperatedError(result.msg, payload.reject))
     } else if (result.header.code && result.header.code === 200) {
-      yield put(jobOperated(payload.values.jobId, payload.resolve))
+      yield put(jobOperated(result.payload, payload.resolve))
     }
   } catch (err) {
     notifySagasError(err, 'operateUserJob')
