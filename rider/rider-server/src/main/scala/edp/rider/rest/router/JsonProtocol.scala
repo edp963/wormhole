@@ -48,7 +48,6 @@ object JsonProtocol extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val formatNsTable: RootJsonFormat[NsTable] = jsonFormat2(NsTable)
   implicit val formatSimpleNamespace: RootJsonFormat[SimpleNamespace] = jsonFormat6(SimpleNamespace)
   implicit val formatNamespaceTopic: RootJsonFormat[NamespaceTopic] = jsonFormat18(NamespaceTopic)
-  implicit val formatTransNamespace: RootJsonFormat[TransNamespace] = jsonFormat6(TransNamespace)
   implicit val formatNamespaceAdmin: RootJsonFormat[NamespaceAdmin] = jsonFormat19(NamespaceAdmin)
   implicit val formatSimpleDsDatabaseInstance: RootJsonFormat[NsDatabaseInstance] = jsonFormat7(NsDatabaseInstance)
   implicit val formatUser: RootJsonFormat[User] = jsonFormat10(User)

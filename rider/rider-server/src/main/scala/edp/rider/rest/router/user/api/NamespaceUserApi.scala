@@ -26,8 +26,7 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{NamespaceDal, RelProjectNsDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
@@ -35,7 +34,7 @@ import edp.rider.rest.util.ResponseUtils._
 import scala.util.{Failure, Success}
 
 class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNsDal)
-  extends BaseUserApiImpl[NamespaceTable, Namespace](namespaceDal) with RiderLogger {
+  extends BaseUserApiImpl[NamespaceTable, Namespace](namespaceDal) with RiderLogger with JsonSerializer {
 
   def getNsByProjectId(route: String): Route = path(route / LongNumber / "namespaces") {
     id =>
