@@ -48,7 +48,7 @@ object InstanceUtils {
   def checkFormat(nsSys: String, url: String): Boolean = {
     nsSys.toLowerCase match {
       case "mysql" | "oracle" | "postgresql" | "phoenix" => one_tcp_url_host_port_pattern.matcher(url).matches() || one_tcp_url_ip_port_pattern.matcher(url).matches()
-      case "kafka" => tcp_url_ip_port_pattern.matcher(url).matches() || tcp_url_host_port_pattern.matcher(url).matches()
+      case "kafka" | "redis" => tcp_url_ip_port_pattern.matcher(url).matches() || tcp_url_host_port_pattern.matcher(url).matches()
       case "es" => http_url_ip_port_pattern.matcher(url).matches() || http_host_ip_port_pattern.matcher(url).matches()
       case "hbase" => zk_node_ip_pattern.matcher(url).matches() || zk_node_host_pattern.matcher(url).matches()
       case "cassandra" => tcp_url_ip_pattern.matcher(url).matches() || tcp_url_host_pattern.matcher(url).matches()
@@ -59,7 +59,7 @@ object InstanceUtils {
   def getTip(nsSys: String, url: String): String = {
     nsSys.toLowerCase match {
       case "mysql" | "oracle" | "postgresql" | "phoenix" => s"connection url $url format is wrong, please alter it as localhost:3306"
-      case "kafka" => s"connection url $url format is wrong, please alter it as localhost:9092(,localhost1:9092)*"
+      case "kafka" | "redis" => s"connection url $url format is wrong, please alter it as localhost:9092(,localhost1:9092)*"
       case "hbase" => s"connection url $url format is wrong, please alter it as localhost:2181(/hbase)*(,localhost:2181(/hbase)*)*"
       case "es" => s"connection url $url format is wrong, please alter it as http(s)?://localhost:9200"
       case "cassandra" => s"connection url $url format is wrong, please alter it as localhost(,localhost1)"

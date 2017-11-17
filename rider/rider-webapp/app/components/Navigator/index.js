@@ -83,6 +83,9 @@ class Navigator extends React.Component {
       case 'streams':
         router.push('/streams')
         break
+      case 'jobs':
+        router.push('/jobs')
+        break
       case 'namespaces':
         router.push('/namespaces')
         break
@@ -182,6 +185,9 @@ class Navigator extends React.Component {
           </MenuItem>
           <MenuItem key="streams" className="ri-menu-item">
             <i className="iconfont icon-318stream-copy"></i>Stream
+          </MenuItem>
+          <MenuItem key="jobs" className="ri-menu-item">
+            <i className="iconfont icon-job"></i>Job
           </MenuItem>
 
           <SubMenu

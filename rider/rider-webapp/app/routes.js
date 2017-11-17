@@ -30,6 +30,7 @@ import SecondNavigatorContainer from './containers/SecondNavigatorContainer'
 import Project from './containers/Project'
 import Flow from './containers/Flow'
 import Manager from './containers/Manager'
+import Job from './containers/Job'
 import Namespace from './containers/Namespace'
 import Instance from './containers/Instance'
 import DataBase from './containers/DataBase'
@@ -59,6 +60,10 @@ export default function createRoutes (store) {
       path: 'streams',
       name: 'streams',
       components: Manager
+    }, {
+      path: 'jobs',
+      name: 'jobs',
+      components: Job
     }, {
       path: 'namespaces',
       name: 'namespaces',

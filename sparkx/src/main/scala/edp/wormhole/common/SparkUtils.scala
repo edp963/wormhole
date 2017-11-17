@@ -137,11 +137,12 @@ object SparkUtils extends EdpLogging {
     val dataArray = ArrayBuffer.fill(resultSchemaMap.size) {""}
     resultSchemaMap.foreach { case (columnName, (index, fieldType, _)) => {
       val data = if (renameMap.isDefined && renameMap.get.contains(columnName)) row(originalSchemaMap(renameMap.get(columnName))._1) else row(originalSchemaMap(columnName)._1)
-      if (fieldType == UmsFieldType.BINARY) {
-        dataArray(index) = if (null != data) {
-          if (data != null) new String(data.asInstanceOf[Array[Byte]]) else null.asInstanceOf[String]
-        } else null.asInstanceOf[String]
-      } else dataArray(index) = if (data != null) data.toString else null.asInstanceOf[String]
+//      if (fieldType == UmsFieldType.BINARY) {
+//        dataArray(index) = if (null != data) {
+//          if (data != null) new String(data.asInstanceOf[Array[Byte]]) else null.asInstanceOf[String]
+//        } else null.asInstanceOf[String]
+//      } else
+        dataArray(index) = if (data != null) data.toString else null.asInstanceOf[String]
     }
     }
     dataArray
@@ -154,9 +155,11 @@ object SparkUtils extends EdpLogging {
       case "LongType" => UmsFieldType.LONG
       case "IntegerType" => UmsFieldType.INT
       case "DecimalType" => UmsFieldType.DECIMAL
+      case "DecimalType(38,18)" => UmsFieldType.DECIMAL
       case "StringType" => UmsFieldType.STRING
       case "DateType" => UmsFieldType.DATETIME
       case "TimestampType" => UmsFieldType.DATETIME
+      case "BinaryType" => UmsFieldType.BINARY
     }
   }
 }

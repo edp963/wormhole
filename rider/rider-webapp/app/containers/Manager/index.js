@@ -217,9 +217,9 @@ export class Manager extends React.Component {
       })
     })
       .then((result) => {
-        // 与user UDF table相同的接口获得全部的UDF
+        // 与 user UDF table 相同的接口获得全部的 UDF
         this.props.onLoadSingleUdf(projectIdGeted, 'user', (resultUdf) => {
-          // 下拉框除去回显的udfs，id options
+          // 下拉框除去回显的 UDFs，id options
           const resultCurrentUdf = result.currentUdf
           const resultUdfIdArr = resultUdf.map(i => i.id)
           const currentUdfIdArr = resultCurrentUdf.map(i => i.id)
@@ -230,7 +230,7 @@ export class Manager extends React.Component {
           for (let i = 0; i < tmp.length; i++) (tmp[i] in o) ? o[tmp[i]] ++ : o[tmp[i]] = 1
           for (let x in o) if (o[x] === 1) renewUdfValIds.push(x)
 
-          // id: value 键值对
+          // id:value 键值对
           let arrTemp = []
           for (let m = 0; m < resultUdf.length; m++) {
             const objTemp = {
@@ -1248,6 +1248,11 @@ export class Manager extends React.Component {
       ? (<Helmet title="Stream" />)
       : (<Helmet title="Workbench" />)
 
+    const { topicInfoModal, actionType } = this.state
+    const editBtn = topicInfoModal === ''
+      ? actionType === 'start' ? 'hide' : ''
+      : 'hide'
+
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>
         {helmetHide}
@@ -1282,7 +1287,7 @@ export class Manager extends React.Component {
               查看最新 Offset
             </Button>,
             <Button
-              className={`edit-topic-btn ${this.state.actionType === 'start' ? 'hide' : ''}`}
+              className={`edit-topic-btn ${editBtn}`}
               icon={this.state.selectEditIcon}
               type="default"
               onClick={this.onChangeEditSelect}
