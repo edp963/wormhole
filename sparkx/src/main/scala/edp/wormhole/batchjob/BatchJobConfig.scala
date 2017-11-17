@@ -36,7 +36,6 @@ case class SourceConfig(startTime: String,
                         specialConfig: Option[String])
 
 case class TransformationConfig(action: Option[String],
-                                projection:Option[String],
                                 specialConfig: Option[String])
 
 case class SinkConfig(sinkNamespace: String,
