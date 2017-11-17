@@ -79,7 +79,7 @@ object JobUtils extends RiderLogger {
     if (tranConfig != "" && tranConfig != null) {
       val tranClass = JSON.parseObject(tranConfig)
       val action = if (tranClass.containsKey("action") && tranClass.getString("action").nonEmpty) Some(base64byte2s(tranClass.getString("action").trim.getBytes)) else None
-      val specialConfig = if (action.isDefined && tranClass.getString("action").trim == "edp.wormhole.batchjob.transform.Snapshot") {  //todo dangers
+      val specialConfig = if (action.isDefined && tranClass.getString("action").trim.indexOf("edp.wormhole.batchjob.transform.Snapshot") >= 0) {  //todo dangers
         val (_, _, ns) = modules.namespaceDal.getNsDetail(sinkNs)
         val keys = ns.keys.get
         val keystr = s"""{"table_keys":"${keys}"}"""
