@@ -36,10 +36,18 @@ const RadioButton = Radio.Button
 const RadioGroup = Radio.Group
 
 export class FlowTransformForm extends React.Component {
+  constructor (props) {
+    super(props)
+    this.state = {
+      dsHideOrNot: ''
+    }
+  }
   onTransformTypeSelect = (e) => this.props.onInitTransformValue(e.target.value)
 
   onLookupSqlTypeItemSelect = (val) => {
-    // console.log(val)
+    this.setState({
+      dsHideOrNot: val === 'union' ? 'hide' : ''
+    })
   }
 
   // 通过不同的Transformation里的 Sink Data System 显示不同的 Sink Namespace 的内容
@@ -62,6 +70,7 @@ export class FlowTransformForm extends React.Component {
   render () {
     const { form } = this.props
     const { transformValue, transformSinkTypeNamespaceData } = this.props
+    const { dsHideOrNot } = this.state
     const { getFieldDecorator } = form
 
     const itemStyle = {
@@ -101,16 +110,24 @@ export class FlowTransformForm extends React.Component {
       { value: 'innerJoin', text: 'Inner Join' }
     ]
 
-    const sinkDataSystemData = [
-      { value: 'oracle', icon: 'icon-amy-db-oracle' },
-      { value: 'mysql', icon: 'icon-mysql' },
-      { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
-      { value: 'hbase', icon: 'icon-hbase1' },
-      { value: 'phoenix', text: 'Phoenix' },
-      // { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
-      { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
-      { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} }
-    ]
+    const sinkDataSystemData = dsHideOrNot
+      ? [
+        { value: 'oracle', icon: 'icon-amy-db-oracle' },
+        { value: 'mysql', icon: 'icon-mysql' },
+        { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
+        { value: 'phoenix', text: 'Phoenix' },
+        { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} }
+      ]
+      : [
+        { value: 'oracle', icon: 'icon-amy-db-oracle' },
+        { value: 'mysql', icon: 'icon-mysql' },
+        { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
+        { value: 'hbase', icon: 'icon-hbase1' },
+        { value: 'phoenix', text: 'Phoenix' },
+        // { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
+        { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
+        { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} }
+      ]
 
     const lookUpSqlMsg = (
       <span>

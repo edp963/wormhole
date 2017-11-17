@@ -34,6 +34,7 @@ import loginReducer from 'containers/Login/reducer'
 import projectReducer from 'containers/Project/reducer'
 import flowReducer from 'containers/Flow/reducer'
 import streamReducer from 'containers/Manager/reducer'
+import jobReducer from 'containers/Job/reducer'
 import namespaceReducer from 'containers/Namespace/reducer'
 import userReducer from 'containers/User/reducer'
 import udfReducer from 'containers/Udf/reducer'
@@ -91,6 +92,7 @@ export default function createReducer (asyncReducers) {
       project: projectReducer,
       flow: flowReducer,
       stream: streamReducer,
+      job: jobReducer,
       namespace: namespaceReducer,
       user: userReducer,
       udf: udfReducer,

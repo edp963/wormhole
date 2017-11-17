@@ -34,6 +34,7 @@ export default {
   stream: `${productionHost}/admin/streams`,
   riderInfo: `${productionHost}/admin/riderInfo`,
   udf: `${productionHost}/admin/udfs`,
+  job: `${productionHost}/admin/jobs`,
 
   projectAdminStream: `${productionHost}/admin/projects`,
   projectStream: `${productionHost}/user/projects`

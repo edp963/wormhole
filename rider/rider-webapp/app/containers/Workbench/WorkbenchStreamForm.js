@@ -53,10 +53,6 @@ export class WorkbenchStreamForm extends React.PureComponent {
   // 验证 stream name 是否存在
   onNameInputChange = (e) => this.props.onInitStreamNameValue(e.target.value)
 
-  onStreamTypeSelect = (e) => {
-    // console.log('val', e.target.value)
-  }
-
   forceCheckSave = (rule, value, callback) => {
     const reg = /^\w+$/
     if (reg.test(value)) {
@@ -64,25 +60,6 @@ export class WorkbenchStreamForm extends React.PureComponent {
     } else {
       callback('必须是字母、数字或下划线')
     }
-  }
-
-  // handleTopicsChange = (value) => {
-    // const { topicsValues } = this.props
-    // if (value === '全选') {
-    //   this.setState({
-    //     topicChildren: ['全选']
-    //   })
-    // } else {
-    //   for (let i = 0; i < topicsValues.length; i++) {
-    //     this.setState({
-    //       topicChildren: this.state.topicChildren.push(<Option key={topicsValues[i].id} value={`${topicsValues[i].id}`}>{topicsValues[i].name}</Option>)
-    //     })
-    //   }
-    // }
-  // }
-
-  selectTopic = (value) => {
-    console.log('va', value)
   }
 
   render () {
@@ -101,13 +78,6 @@ export class WorkbenchStreamForm extends React.PureComponent {
     } else if (streamMode === 'edit') {
       disabledOrNot = true
     }
-
-    // const topicChildren = []
-    // for (let i = 0; i < topicsValues.length; i++) {
-    //   topicChildren.push(<Option key={topicsValues[i].id} value={`${topicsValues[i].id}`}>{topicsValues[i].name}</Option>)
-    // }
-
-    // const topicChildren = topicsValues.map(i => (<Option key={i.id} value={`${i.id}`}>{i.name}</Option>))
 
     const kafkaOptions = kafkaValues.map(s => (<Option key={s.id} value={`${s.id}`}>{s.nsInstance}</Option>))
 
@@ -149,7 +119,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
                   message: '请选择 Type'
                 }]
               })(
-                <RadioGroup className="radio-group-style" onChange={this.onStreamTypeSelect} disabled={disabledOrNot} size="default">
+                <RadioGroup className="radio-group-style" disabled={disabledOrNot} size="default">
                   <RadioButton value="default" className="radio-btn-style radio-btn-extra">Default</RadioButton>
                   <RadioButton value="hdfslog" className="radio-btn-style radio-btn-extra">Hdfslog</RadioButton>
                   <RadioButton value="routing" className="radio-btn-style radio-btn-final">Routing</RadioButton>
@@ -187,35 +157,14 @@ export class WorkbenchStreamForm extends React.PureComponent {
             </FormItem>
           </Col>
 
-          {/* <Col span={24}>
-            <FormItem label="Topics" {...itemStyle}>
-              {getFieldDecorator('topics', {
-                rules: [{
-                  required: true,
-                  message: '请选择 Topic'
-                }]
-              })(
-                <Select
-                  tags
-                  // mode="multiple"
-                  placeholder="Select Topics"
-                  searchPlaceholder="标签模式"
-                  onChange={this.handleTopicsChange}
-                  onSelect={this.selectTopic}
-                >
-                  {topicChildren}
-                </Select>
-              )}
-            </FormItem>
-          </Col> */}
-
           <Col span={24}>
             <div className="ant-col-6 ant-form-item-label">
-              <label htmlFor="#">Configs</label>
+              <label htmlFor="#" className="sink-config-class">Configs</label>
             </div>
             <div className="ant-col-17">
               <div className="ant-form-item-control">
                 {streamConfigTag}
+                <span className="config-msg-class">( Dirver / Execotor 资源配置 )</span>
               </div>
             </div>
           </Col>
@@ -281,7 +230,6 @@ WorkbenchStreamForm.propTypes = {
   form: React.PropTypes.any,
   isWormhole: React.PropTypes.bool,
   kafkaValues: React.PropTypes.array,
-  // topicsValues: React.PropTypes.array,
   onShowConfigModal: React.PropTypes.func,
   onInitStreamNameValue: React.PropTypes.func,
   streamConfigCheck: React.PropTypes.bool

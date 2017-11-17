@@ -25,6 +25,7 @@ import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 import Card from 'antd/lib/card'
 import Select from 'antd/lib/select'
+import Input from 'antd/lib/input'
 import InputNumber from 'antd/lib/input-number'
 const FormItem = Form.Item
 
@@ -142,7 +143,7 @@ export class StreamStartForm extends React.Component {
                     {getFieldDecorator(`latest_${i.id}_${index}`, {
                       // initialValue: g.substring(g.indexOf(':') + 1)
                     })(
-                      <InputNumber size="medium" className="conform-table-input" disabled />
+                      <Input size="default" className="conform-table-input-readOnly" readOnly />
                     )}
                   </ol>
                 </FormItem>

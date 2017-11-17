@@ -64,7 +64,16 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
         val rkGet = rkHash(rkValue)
         if (rkGet == null) null else rkGet.toString
       } else if (rkPattern == REVERSE.toString) rkReverse(rkValue)
-      else if (rkPattern.startsWith(MD5.toString)) rkMod(rkValue, rkPattern)
+      else if (rkPattern == MOD.toString) {
+        val cg = rkValue.split(",")
+        rkMod(cg(0).trim.toLong,cg(1).trim.toLong).toString
+      }
+      else if (rkPattern == SUB.toString) {
+        val cg = rkValue.split(",")
+        rkSub(cg(0).trim,cg(1).trim.toInt)
+      }
+      else if (rkPattern==MD5TMP.toString) rkModTmp(rkValue, rkPattern)
+      else if (rkPattern==RowkeyPattern.ABS.toString) RowkeyPattern.rkAbs(rkValue.toLong).toString
       else {
         val rkGet = rkHash(rkReverse(rkValue))
         if (rkGet == null) null else rkGet.toString

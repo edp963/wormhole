@@ -36,7 +36,7 @@ import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.common.{ConnectionConfig, KVConfig}
-
+import edp.rider.rest.util.NsDatabaseUtils._
 import scala.concurrent.Await
 
 object JobUtils extends RiderLogger {
@@ -137,7 +137,7 @@ object JobUtils extends RiderLogger {
     val connUrl =
       if (sourceType == null || sourceType == "" || !sourceType.contains("hdfs")) getConnUrl(instance, db)
       else RiderConfig.spark.hdfs_root
-    ConnectionConfig(connUrl, db.user, db.pwd, None)
+    ConnectionConfig(connUrl, db.user, db.pwd, getDbConfig(instance.nsSys, db.config.getOrElse("")))
   }
 
   def startJob(job: Job) = {

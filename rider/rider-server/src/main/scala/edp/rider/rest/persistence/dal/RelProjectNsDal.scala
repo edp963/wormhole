@@ -34,6 +34,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
+import edp.rider.rest.util.NsDatabaseUtils._
 
 class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
                       databaseTable: TableQuery[NsDatabaseTable],
@@ -91,13 +92,19 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
     }
   }
 
-  def getSourceNamespaceByProjectId(projectId: Long, streamId: Long, nsSys: String) =
+  def getFlowSourceNamespaceByProjectId(projectId: Long, streamId: Long, nsSys: String) =
     db.run(((namespaceTable.filter(ns => ns.nsSys === nsSys && ns.active === true) join
       relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) on (_.id === _.nsId))
       join streamTable.filter(_.id === streamId) on (_._1.nsInstanceId === _.instanceId))
       .map {
-        case ((ns, rel), topic) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
-          ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy) <> (Namespace.tupled, Namespace.unapply)
+        case ((ns, _), _) => ns
+      }.result).mapTo[Seq[Namespace]]
+
+  def getJobSourceNamespaceByProjectId(projectId: Long, nsSys: String) =
+    db.run((namespaceTable.filter(ns => ns.nsSys === nsSys && ns.active === true) join
+      relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) on (_.id === _.nsId))
+      .map {
+        case (ns, _) => ns
       }.result).mapTo[Seq[Namespace]]
 
   def getSinkNamespaceByProjectId(id: Long, nsSys: String) =
@@ -107,28 +114,37 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
         case ((ns, rel), instance) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
           ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy, instance.nsSys) <> (NamespaceTemp.tupled, NamespaceTemp.unapply)
       }.result).map[Seq[Namespace]] {
-      nsSeq => nsSeq.filter(ns => ns.nsSys == ns.nsInstanceSys)
-        .map(ns => Namespace(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
-          ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy))
+      nsSeq =>
+        nsSeq.filter(ns => ns.nsSys == ns.nsInstanceSys)
+          .map(ns => Namespace(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
+            ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy))
     }
 
   def getTransNamespaceByProjectId(id: Long, nsSys: String) =
     db.run((((namespaceTable.filter(ns => ns.nsSys === nsSys && ns.active === true) join relProjectNsTable.filter(rel => rel.projectId === id && rel.active === true) on (_.id === _.nsId))
       join databaseTable on (_._1.nsDatabaseId === _.id)) join instanceTable on (_._2.nsInstanceId === _.id))
       .map {
-        case (((ns, rel), database), instance) => (instance, database, ns.nsSys) <> (TransNamespaceTemp.tupled, TransNamespaceTemp.unapply)
+        case (((ns, rel), database), instance) => (instance, database, database.config, ns.nsSys) <> (TransNamespaceTemp.tupled, TransNamespaceTemp.unapply)
       }.distinct.result).map[Seq[TransNamespace]] {
       nsSeq =>
         nsSeq.filter(ns => ns.nsSys == ns.instance.nsSys)
           .map(ns => {
             val url = getConnUrl(ns.instance, ns.db)
-            TransNamespace(ns.nsSys, ns.instance.nsInstance, ns.db.nsDatabase, url, ns.db.user, ns.db.pwd)
+            TransNamespace(ns.nsSys, ns.instance.nsInstance, ns.db.nsDatabase, url, ns.db.user, ns.db.pwd, getDbConfig(nsSys, ns.dbConfig.getOrElse("")))
           })
     }
 
+  def getTranDbConfig(nsSys: String, nsInstance: String, nsDb: String) = {
+    db.run((instanceTable.filter(instance => instance.nsSys === nsSys && instance.nsInstance === nsInstance)
+      join databaseTable.filter(_.nsDatabase === nsDb) on (_.id === _.nsInstanceId))
+      .map {
+        case (instance, database) => (instance, database, database.config, instance.nsSys) <> (TransNamespaceTemp.tupled, TransNamespaceTemp.unapply)
+      }.result).mapTo[Seq[TransNamespaceTemp]]
+  }
+
   def getInstanceByProjectId(projectId: Long, nsSys: String): Future[Seq[Instance]] = {
     db.run((relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) join namespaceTable.filter(_.nsSys === nsSys) on (_.nsId === _.id) join instanceTable.filter(_.nsSys === "kafka") on (_._2.nsInstanceId === _.id)).map {
-      case ((rel, ns), instance) => instance
+      case ((_, _), instance) => instance
     }.distinct.result).mapTo[Seq[Instance]]
   }
 
