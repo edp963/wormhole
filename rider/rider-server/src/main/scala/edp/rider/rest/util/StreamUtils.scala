@@ -164,7 +164,7 @@ object StreamUtils extends RiderLogger {
   def startStream(streamDetail: StreamDetail) = {
     val args = getBatchFlowConfig(streamDetail)
     val startConfig = json2caseClass[StartConfig](streamDetail.stream.startConfig)
-    val commandSh = generateStreamStartSh(s"'''$args'''", streamDetail.stream.name, startConfig, streamDetail.stream.sparkConfig.get, streamDetail.stream.streamType)
+    val commandSh = generateStreamStartSh(s"'''$args'''", streamDetail.stream.name, startConfig, streamDetail.stream.sparkConfig.getOrElse(""), streamDetail.stream.streamType)
     riderLogger.info(s"start stream command: $commandSh")
     runShellCommand(commandSh)
   }
