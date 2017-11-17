@@ -87,7 +87,13 @@ object BatchflowDirective extends Directive {
             val jdbc_url = jsonObj.getString("jdbc_url")
             val username = if (jsonObj.containsKey("username")) Some(jsonObj.getString("username")) else None
             val password = if (jsonObj.containsKey("password")) Some(jsonObj.getString("password")) else None
-            val parameters = if (jsonObj.containsKey("connection_config") && jsonObj.getString("connection_config").trim.nonEmpty) Some(JsonUtils.json2caseClass[Seq[KVConfig]](jsonObj.getString("connection_config"))) else None
+            val parameters = if (jsonObj.containsKey("connection_config") && jsonObj.getString("connection_config").trim.nonEmpty) {
+              logInfo("connection_config:"+jsonObj.getString("connection_config"))
+              Some(JsonUtils.json2caseClass[Seq[KVConfig]](jsonObj.getString("connection_config")))
+            } else {
+              logInfo("not contains connection_config")
+              None
+            }
             ConfMemoryStorage.registerDataStoreConnectionsMap(name_space, jdbc_url, username, password, parameters)
           }
         }

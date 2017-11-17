@@ -32,7 +32,7 @@ object SharedJedisConnection extends Serializable{
     val shards = ListBuffer.empty[JedisShardInfo]
     hosts.foreach(host => {
       val info = new JedisShardInfo(host._1, host._2)
-      if(password.nonEmpty) info.setPassword(password.get)
+      if(password.nonEmpty&&password.get.nonEmpty) info.setPassword(password.get)
       shards += info
     })
     val poolConfig = new GenericObjectPoolConfig()

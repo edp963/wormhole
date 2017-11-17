@@ -28,17 +28,13 @@ import edp.wormhole.common.SparkSchemaUtils._
 import edp.wormhole.common.WormholeUtils.json2Ums
 import edp.wormhole.common._
 import edp.wormhole.common.hadoop.HdfsUtils
-import edp.wormhole.common.util.DateUtils
+import edp.wormhole.common.util.{CommonUtils, DateUtils}
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.core.{InputDataRequirement, UdfDirective, WormholeConfig}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.sinks.{SinkProcessConfig, SourceMutationType}
 import org.apache.spark.HashPartitioner
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.types.DataType
-
-//import scala.collection.mutable
 import edp.wormhole.sinks.utils.SinkCommonUtils
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.swifts.parse.SwiftsProcessConfig
@@ -50,6 +46,7 @@ import edp.wormhole.ums._
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.types.{BinaryType, DataType}
 //import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 //import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, _}
@@ -115,8 +112,7 @@ object BatchflowMainProcess extends EdpLogging {
         WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config)
 
         classifyRdd.unpersist()
-      }
-      catch {
+      } catch {
         case e: Throwable =>
           logAlert("batch error", e)
           WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, currentDateTime, UmsFeedbackStatus.FAIL, e.getMessage), None, config.kafka_output.brokers)
@@ -242,9 +238,11 @@ object BatchflowMainProcess extends EdpLogging {
       val sourceNamespace: String = schema._1._2
       logInfo(uuid + ",schema loop,sourceNamespace:" + sourceNamespace)
       val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
+
       val sourceTupleRDD: RDD[Seq[String]] = umsRdd.filter(row => {
         row._1 == protocolType && row._2 == sourceNamespace
       }).flatMap(_._3).cache
+
       val jsonUmsSysFields: UmsSysRename = if (ConfMemoryStorage.existJsonSourceParseMap(protocolType,sourceNamespace)) ConfMemoryStorage.getJsonUmsFieldsName(protocolType,sourceNamespace) else null
       val (minTs, maxTs, count) = getMinMaxTsAndCount(protocolType, sourceNamespace, sourceTupleRDD, schema._2,jsonUmsSysFields)
       logInfo(uuid + "sourceNamespace:" + sourceNamespace + ",minTs:" + minTs + ",maxTs:" + maxTs + ",sourceDf.count:" + count)
@@ -343,6 +341,10 @@ object BatchflowMainProcess extends EdpLogging {
                             umsFields: Seq[UmsField]): (Seq[UmsField], RDD[Seq[String]], DataFrame) = {
     val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
     val sourceDf = createSourceDf(session, sourceNamespace, umsFields, sourceTupleRDD)
+    val dataSetShow = swiftsProcessConfig.get.datasetShow
+    if (dataSetShow.get){
+      sourceDf.show(swiftsProcessConfig.get.datasetShowNum.get)
+    }
 
     val afterUnionDf = unionParquetNonTimeoutDf(swiftsProcessConfig, uuid, session, sourceDf, config, sourceNamespace, sinkNamespace).cache
     println("sourceNamespace=" + sourceNamespace + ",afterUnionDf.count" + afterUnionDf.count)
@@ -350,13 +352,21 @@ object BatchflowMainProcess extends EdpLogging {
     try {
       val swiftsDf: DataFrame = SwiftsTransform.transform(session, sourceNamespace, sinkNamespace, afterUnionDf, matchSourceNamespace, config)
       val resultSchema = swiftsDf.schema
-      val nameIndex: Array[(String, Int, String)] = resultSchema.fieldNames.map(name => (name, resultSchema.fieldIndex(name), resultSchema.apply(resultSchema.fieldIndex(name)).dataType.toString)).sortBy(_._2)
+      val nameIndex: Array[(String, Int, DataType)] = resultSchema.fieldNames.map(name => (name, resultSchema.fieldIndex(name), resultSchema.apply(resultSchema.fieldIndex(name)).dataType)).sortBy(_._2)
       import session.implicits._
-      val umsFields: Seq[UmsField] = nameIndex.map(t => UmsField(t._1, SparkUtils.sparkSqlType2UmsFieldType(t._3), Some(true))).toSeq
+      val umsFields: Seq[UmsField] = nameIndex.map(t => {
+        UmsField(t._1, SparkUtils.sparkSqlType2UmsFieldType(t._3.toString), Some(true))
+      }).toSeq
       val tuples: RDD[Seq[String]] = swiftsDf.map { row =>
-        nameIndex.map { case (_, index, _) =>
+        nameIndex.map { case (_, index, dataType) =>
           val value = row.get(index)
-          if (value == null) null else value.toString
+          if (value == null) null else {
+            if(dataType==BinaryType){
+              CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
+            }else{
+              value.toString
+            }
+          }
         }.toSeq
       }.rdd
       (umsFields, tuples, afterUnionDf)
@@ -371,6 +381,13 @@ object BatchflowMainProcess extends EdpLogging {
 
   private def createSourceDf(session: SparkSession, sourceNamespace: String, fields: Seq[UmsField], sourceTupleRDD: RDD[Seq[String]]) = {
     val rowRdd: RDD[Row] = sourceTupleRDD.flatMap(row => SparkUtils.umsToSparkRowWrapper(sourceNamespace, fields, row))
+//    fields.foreach(field=>{
+//      logInfo("schema:::"+field.name)
+//    })
+//    rowRdd.collect().foreach(row=>{
+//      logInfo("content1:::"+row.toSeq)
+//      logInfo("content2:::"+row.get(0)+","+row.get(1))
+//    })
     createDf(session, fields, rowRdd)
   }
 

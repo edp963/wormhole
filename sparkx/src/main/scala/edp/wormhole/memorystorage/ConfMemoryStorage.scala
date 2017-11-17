@@ -219,10 +219,12 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   }
 
 
-  def registerDataStoreConnectionsMap(lookupNamespace: String, connectionUrl: String, usrname: Option[String], password: Option[String], parameters: Option[Seq[KVConfig]]) {
+  def registerDataStoreConnectionsMap(lookupNamespace: String, connectionUrl: String, username: Option[String], password: Option[String], parameters: Option[Seq[KVConfig]]) {
+    logInfo("register datastore,lookupNamespace:"+lookupNamespace+",connectionUrl;"+connectionUrl+",username:"+username+",password:"+password+",parameters:"+parameters)
     val connectionNamespace = lookupNamespace.split("\\.").slice(0, 3).mkString(".")
     if (!dataStoreConnectionsMap.contains(connectionNamespace)) {
-      dataStoreConnectionsMap(connectionNamespace) = ConnectionConfig(connectionUrl, usrname, password, parameters)
+      dataStoreConnectionsMap(connectionNamespace) = ConnectionConfig(connectionUrl, username, password, parameters)
+      logInfo("register datastore success,lookupNamespace:"+lookupNamespace+",connectionUrl;"+connectionUrl+",username:"+username+",password:"+password+",parameters:"+parameters)
     }
   }
 
