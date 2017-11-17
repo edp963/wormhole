@@ -174,7 +174,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                             complete(OK, getHeader(451, ex.getMessage, session))
                       }
                     } else{
-                      riderLogger.warn(s"user ${session.userId} insert flow failed, casued by ${checkFormat._2}")
+                      riderLogger.warn(s"user ${session.userId} insert flow failed, caused by ${checkFormat._2}")
                       complete(OK, getHeader(400, checkFormat._2, session))
                     }
                   } else {

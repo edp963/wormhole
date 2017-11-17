@@ -69,7 +69,10 @@ object SubmitSparkJob extends App with RiderLogger {
         RiderConfig.spark.kafka08JarPath
       else RiderConfig.spark.jarPath
 
-    val confList: Array[String] = sparkConfig.split(",") :+ s"spark.yarn.tags=${RiderConfig.spark.app_tags}"
+    val confList: Array[String] =
+      if (sparkConfig != "")
+        sparkConfig.split(",") :+ s"spark.yarn.tags=${RiderConfig.spark.app_tags}"
+      else Array(s"spark.yarn.tags=${RiderConfig.spark.app_tags}")
     val logPath = getLogPath(streamName)
     runShellCommand(s"mkdir -p ${RiderConfig.spark.clientLogRootPath}")
     val startShell =
@@ -100,9 +103,9 @@ object SubmitSparkJob extends App with RiderLogger {
       }
       else l
     }).mkString("").stripMargin.replace("\\", "  ")
-//    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-//    println("final:" + submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1")
-//    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    //    println("final:" + submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1")
+    //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1"
   }
 }
