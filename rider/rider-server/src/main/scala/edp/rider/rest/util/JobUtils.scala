@@ -43,7 +43,7 @@ object JobUtils extends RiderLogger {
 
   def getBatchJobConfigConfig(job: Job) =
     BatchJobConfig(getSourceConfig(job.sourceNs, job.eventTsStart, job.eventTsEnd, job.sourceType, job.sourceConfig),
-      getTranConfig(job.tranConfig.getOrElse("")),
+      getTranConfig(job.tranConfig.getOrElse(""), job.sinkNs),
       getSinkConfig(job.sinkNs, job.sinkConfig.getOrElse("")),
       getJobConfig(job.name, job.sparkConfig))
 
@@ -66,24 +66,30 @@ object JobUtils extends RiderLogger {
       if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
         Some(base64byte2s(JSON.parseObject(sinkConfig).getString("sink_specific_config").trim.getBytes()))
       else None
-    SinkConfig(sinkNs, getConnConfig(instance, db), maxRecord, Some(getSinkProcessClass(ns.nsSys)), specialConfig, ns.keys)
+
+    val projection = if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_output")) {
+      Some(JSON.parseObject(sinkConfig).getString("sink_output").trim)
+    } else {
+      None
+    }
+    SinkConfig(sinkNs, getConnConfig(instance, db), maxRecord, Some(getSinkProcessClass(ns.nsSys)), specialConfig, ns.keys, projection)
   }
 
-  def getTranConfig(tranConfig: String) = {
+  def getTranConfig(tranConfig: String, sinkNs: String) = {
     if (tranConfig != "" && tranConfig != null) {
       val tranClass = JSON.parseObject(tranConfig)
       val action = if (tranClass.containsKey("action") && tranClass.getString("action").nonEmpty) Some(base64byte2s(tranClass.getString("action").trim.getBytes)) else None
-      val specialConfig = if (tranClass.containsKey("specialConfig") && tranClass.getString("specialConfig").nonEmpty) {
+      val specialConfig = if (action.isDefined && tranClass.getString("action").trim == "edp.wormhole.batchjob.transform.Snapshot") {  //todo dangers
+        val (_, _, ns) = modules.namespaceDal.getNsDetail(sinkNs)
+        val keys = ns.keys.get
+        val keystr = s"""{"table_keys":"${keys}"}"""
+        Some(base64byte2s(keystr.trim.getBytes))
+      } else if (tranClass.containsKey("specialConfig") && tranClass.getString("specialConfig").nonEmpty) {
         Some(base64byte2s(tranClass.getJSONObject("specialConfig").toString.trim.getBytes))
       } else {
         None
       }
-      val projection = if (tranClass.containsKey("projection") && tranClass.getString("projection").nonEmpty) {
-        Some(tranClass.getString("projection"))
-      } else {
-        None
-      }
-      Some(TransformationConfig(action, projection, specialConfig))
+      Some(TransformationConfig(action, specialConfig))
     }
     else None
   }
@@ -188,7 +194,7 @@ object JobUtils extends RiderLogger {
     case JobStatus.NEW => s"${Action.STOP}"
     case JobStatus.STARTING => s"${Action.START},${Action.STOP},${Action.DELETE}"
     case JobStatus.WAITING => s"${Action.START}"
-    case JobStatus.RUNNING =>  s"${Action.START}"
+    case JobStatus.RUNNING => s"${Action.START}"
     case JobStatus.STOPPING => s"${Action.START}"
     case JobStatus.FAILED => ""
     case JobStatus.STOPPED => s"${Action.STOP}"
