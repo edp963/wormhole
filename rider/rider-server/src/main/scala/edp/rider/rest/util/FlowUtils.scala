@@ -370,13 +370,13 @@ object FlowUtils extends RiderLogger {
   def flowMatch(projectId: Long, streamId: Long, sourceNs: String): Seq[String] = {
     val nsSplit = sourceNs.split("\\.")
     if (nsSplit(1).trim == "*") {
-      val nsSelect = Await.result(modules.relProjectNsDal.getSourceNamespaceByProjectId(projectId, streamId, nsSplit(0)), minTimeOut)
+      val nsSelect = Await.result(modules.relProjectNsDal.getFlowSourceNamespaceByProjectId(projectId, streamId, nsSplit(0)), minTimeOut)
       nsSelect.map(ns => NamespaceUtils.generateStandardNs(ns))
     } else if (nsSplit(2).trim == "*") {
-      val nsSelect = Await.result(modules.relProjectNsDal.getSourceNamespaceByProjectId(projectId, streamId, nsSplit(0)), minTimeOut)
+      val nsSelect = Await.result(modules.relProjectNsDal.getFlowSourceNamespaceByProjectId(projectId, streamId, nsSplit(0)), minTimeOut)
       nsSelect.filter(ns => ns.nsInstance == nsSplit(1)).map(ns => NamespaceUtils.generateStandardNs(ns))
     } else if (nsSplit(3).trim == "*") {
-      val nsSelect = Await.result(modules.relProjectNsDal.getSourceNamespaceByProjectId(projectId, streamId, nsSplit(0)), minTimeOut)
+      val nsSelect = Await.result(modules.relProjectNsDal.getFlowSourceNamespaceByProjectId(projectId, streamId, nsSplit(0)), minTimeOut)
       nsSelect.filter(ns => ns.nsInstance == nsSplit(1) && ns.nsDatabase == nsSplit(2)).map(ns => NamespaceUtils.generateStandardNs(ns))
 
     } else Seq(sourceNs)
