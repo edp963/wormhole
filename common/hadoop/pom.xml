@@ -29,6 +29,10 @@
                     <artifactId>jsr305</artifactId>
                 </exclusion>
                 <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>org.codehaus.jettison</groupId>
                     <artifactId>jettison</artifactId>
                 </exclusion>
