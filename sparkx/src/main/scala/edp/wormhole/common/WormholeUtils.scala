@@ -118,8 +118,8 @@ object WormholeUtils extends EdpLogging {
           val subFieldsInfo: Seq[FieldInfo] = fieldInfo.subFields.get
           for (i <- subFieldsInfo.indices) {
             val sysField = subFieldsInfo(i).umsSysField
-            val subFieldDataType = subFieldsInfo(i).`type`
-            if (sysField.isDefined && sysField.get == "ums_ts_" && subFieldDataType == "long")
+//            val subFieldDataType = subFieldsInfo(i).`type`
+            if (sysField.isDefined && sysField.get == "ums_ts_")
               oneRecord.append(convertLongTimestamp(splitData(i)).toString)
             else oneRecord.append(splitData(i))
           }}
@@ -175,7 +175,7 @@ object WormholeUtils extends EdpLogging {
   }
 
   def convertLongTimestamp(timestampStr: String): DateTime = {
-    if (timestampStr.startsWith("1") || timestampStr.startsWith("2")) {
+    if (timestampStr.substring(0,2)=="20") {
       dt2dateTime(timestampStr)
     }
     else {
