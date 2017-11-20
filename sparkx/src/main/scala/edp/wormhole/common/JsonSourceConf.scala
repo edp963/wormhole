@@ -20,7 +20,7 @@ object JsonSourceConf {
       def convert(jsonStr: String): FieldInfo = {
         val jsonObj = JSON.parseObject(jsonStr)
         val name = jsonObj.getString("name")
-        val `type` = jsonObj.getString("type")
+        val `type` = if (jsonObj.containsKey("umsSysField") && jsonObj.getString("umsSysField").nonEmpty&&jsonObj.getString("umsSysField")=="ums_ts_") "datetime" else jsonObj.getString("type")
         val rename = if (jsonObj.containsKey("rename") && jsonObj.getString("rename").nonEmpty) Some(jsonObj.getString("rename")) else None
         val umsSysField = if (jsonObj.containsKey("umsSysField") && jsonObj.getString("umsSysField").nonEmpty) Some(jsonObj.getString("umsSysField")) else None
         val umsOpMapping = if (jsonObj.containsKey("umsOpMapping") && jsonObj.getString("umsOpMapping").nonEmpty) Some(jsonObj.getString("umsOpMapping")) else None
