@@ -58,7 +58,7 @@ import {loadSelectNamespaces, loadUserNamespaces} from '../Namespace/action'
 import {loadUserUsers, loadSelectUsers} from '../User/action'
 import {loadResources} from '../Resource/action'
 import {loadSingleUdf} from '../Udf/action'
-import {loadJobName, loadJobSourceNs, loadJobSinkNs, loadJobSourceToSinkExist, addJob, queryJob, editJob} from '../Job/action'
+import {loadJobName, loadJobNs, loadJobSourceToSinkExist, addJob, queryJob, editJob} from '../Job/action'
 
 import { selectFlows, selectFlowSubmitLoading, selectSourceToSinkExited } from '../Flow/selectors'
 import { selectStreams, selectStreamSubmitLoading, selectStreamNameExited } from '../Manager/selectors'
@@ -180,8 +180,7 @@ export class Workbench extends React.Component {
       jobTranTableConfirmValue: '',
       singleJobResult: {},
       startTsVal: '',
-      endTsVal: '',
-      test: ''
+      endTsVal: ''
     }
   }
 
@@ -301,7 +300,7 @@ export class Workbench extends React.Component {
 
     this.setState({ jobSourceNsData: [] })
 
-    this.props.onLoadJobSourceNs(projectId, value, type, (result) => {
+    this.props.onLoadJobNs(projectId, value, type, (result) => {
       this.setState({
         jobSourceNsData: this.generateSourceSinkNamespaceHierarchy(value, result)
       })
@@ -367,7 +366,7 @@ export class Workbench extends React.Component {
       jobSinkNsData: [],
       jobSinkConfigMsg: this.showSinkConfigMsg(value)
     })
-    this.props.onLoadJobSinkNs(projectId, value, type, (result) => {
+    this.props.onLoadJobNs(projectId, value, type, (result) => {
       this.setState({
         jobSinkNsData: this.generateSourceSinkNamespaceHierarchy(value, result)
       })
@@ -716,16 +715,6 @@ export class Workbench extends React.Component {
     })
 
     new Promise((resolve) => {
-      resolve(job)
-      this.workbenchJobForm.resetFields()
-    })
-      .then((job) => {
-        this.queryJobInfo(job)
-      })
-  }
-
-  queryJobInfo (job) {
-    new Promise((resolve) => {
       const requestData = {
         projectId: job.projectId,
         jobId: job.id
@@ -769,11 +758,6 @@ export class Workbench extends React.Component {
       })
     })
       .then((resultFinal) => {
-        // "tranConfig": "string",
-
-        const sourceNsArr = resultFinal.sourceNs.split('.')
-        const sinkNsArr = resultFinal.sinkNs.split('.')
-
         if (resultFinal.tranConfig !== '') {
           if (resultFinal.tranConfig.indexOf('action') > -1) {
             const tranConfigVal = JSON.parse(JSON.parse(JSON.stringify(resultFinal.tranConfig)))
@@ -871,19 +855,14 @@ export class Workbench extends React.Component {
           })
         }
 
+        const sourceNsArr = resultFinal.sourceNs.split('.')
+        const sinkNsArr = resultFinal.sinkNs.split('.')
+
         this.workbenchJobForm.setFieldsValue({
           sourceDataSystem: sourceNsArr[0],
-          sourceNamespace: [
-            sourceNsArr[1],
-            sourceNsArr[2],
-            sourceNsArr[3]
-          ],
+          sourceNamespace: [sourceNsArr[1], sourceNsArr[2], sourceNsArr[3]],
           sinkDataSystem: sinkNsArr[0],
-          sinkNamespace: [
-            sinkNsArr[1],
-            sinkNsArr[2],
-            sinkNsArr[3]
-          ],
+          sinkNamespace: [sinkNsArr[1], sinkNsArr[2], sinkNsArr[3]],
 
           sinkConfig: sinkConfigShow,
           maxRecordPerPartitionProcessed: maxRecordShow,
@@ -895,19 +874,6 @@ export class Workbench extends React.Component {
   showEditFlowWorkbench = (flow) => () => {
     this.setState({ flowMode: 'edit' })
 
-    new Promise((resolve) => {
-      resolve(flow)
-      this.workbenchFlowForm.resetFields()
-    })
-      .then((flow) => {
-        this.queryFlowInfo(flow)
-      })
-  }
-
-  /**
-   *  Flow 调单条查询的接口，回显数据
-   * */
-  queryFlowInfo = (flow) => {
     this.setState({
       streamDiffType: flow.streamType
     }, () => {
@@ -919,6 +885,9 @@ export class Workbench extends React.Component {
     })
   }
 
+  /**
+   *  Flow 调单条查询的接口，回显数据
+   * */
   queryFlowDefault (flow) {
     new Promise((resolve) => {
       const requestData = {
@@ -1107,7 +1076,6 @@ export class Workbench extends React.Component {
           }
         } else {
           this.setState({
-            // fieldSelected: 'hide',
             transformTagClassName: '',
             transformTableClassName: 'hide',
             transConnectClass: 'hide',
@@ -1116,18 +1084,13 @@ export class Workbench extends React.Component {
           })
         }
 
-        let sinkConfigShow = ''
-        if (result.sinkConfig !== '') {
-          const sinkConfigTemp = JSON.parse(JSON.stringify(result.sinkConfig))
-          const sinkConfigVal = JSON.parse(sinkConfigTemp)
-          sinkConfigShow = sinkConfigVal.sink_specific_config ? JSON.stringify(sinkConfigVal.sink_specific_config) : ''
-        } else {
-          sinkConfigShow = ''
-        }
+        const sinkConfigVal = JSON.parse(JSON.parse(JSON.stringify(result.sinkConfig)))
 
+        let sinkConfigShow = ''
         let resultFieldsVal = ''
         if (result.sinkConfig !== '') {
-          const sinkConfigVal = JSON.parse(JSON.parse(JSON.stringify(result.sinkConfig)))
+          sinkConfigShow = sinkConfigVal.sink_specific_config ? JSON.stringify(sinkConfigVal.sink_specific_config) : ''
+
           if (result.sinkConfig.indexOf('output') < 0) {
             resultFieldsVal = 'all'
             this.setState({
@@ -1150,6 +1113,7 @@ export class Workbench extends React.Component {
             })
           }
         } else {
+          sinkConfigShow = ''
           resultFieldsVal = 'all'
           this.setState({
             fieldSelected: 'hide'
@@ -1163,17 +1127,9 @@ export class Workbench extends React.Component {
 
         this.workbenchFlowForm.setFieldsValue({
           sourceDataSystem: sourceNsArr[0],
-          sourceNamespace: [
-            sourceNsArr[1],
-            sourceNsArr[2],
-            sourceNsArr[3]
-          ],
+          sourceNamespace: [sourceNsArr[1], sourceNsArr[2], sourceNsArr[3]],
           sinkDataSystem: sinkNsArr[0],
-          sinkNamespace: [
-            sinkNsArr[1],
-            sinkNsArr[2],
-            sinkNsArr[3]
-          ],
+          sinkNamespace: [sinkNsArr[1], sinkNsArr[2], sinkNsArr[3]],
 
           sinkConfig: this.state.flowMode === 'copy' ? '' : sinkConfigShow,
           resultFields: resultFieldsVal,
@@ -1358,11 +1314,9 @@ export class Workbench extends React.Component {
    * */
   onShowSparkConfigModal = () => {
     const { jobSparkConfigValues } = this.state
-    console.log('ff', jobSparkConfigValues)
     this.setState({
       sparkConfigModalVisible: true
     }, () => {
-      // 点击 config 按钮时，回显数据。 有且只有2条 jvm 配置
       const sparkConArr = jobSparkConfigValues.sparkConfig.split(',')
 
       const jobTempJvmArr = []
@@ -1544,7 +1498,6 @@ export class Workbench extends React.Component {
     }
   }
 
-  // 验证 Flow default source to sink 存在性
   loadSTSExit (values) {
     const { flowMode } = this.state
 
@@ -1635,13 +1588,23 @@ export class Workbench extends React.Component {
               const dataframeShowSelect = this.workbenchFlowForm.getFieldValue('dataframeShow')
               if (dataframeShowSelect === 'true') {
                 const dataframeShowNum = this.workbenchFlowForm.getFieldValue('dataframeShowNum')
+
+                const tempShow = {
+                  dataframe_show: true,
+                  dataframe_show_num: dataframeShowNum,
+                  swifts_specific_config: ''
+                }
                 this.setState({
-                  dataframeShowOrNot: `"dataframe_show":"true","dataframe_show_num":"${dataframeShowNum}","swifts_specific_config":""`,
+                  dataframeShowOrNot: JSON.stringify(tempShow),
                   dataframeShowNumValue: `true; Number is ${dataframeShowNum}`
                 })
               } else {
+                const temp = {
+                  dataframe_show: false,
+                  swifts_specific_config: ''
+                }
                 this.setState({
-                  dataframeShowOrNot: `"dataframe_show":"false","swifts_specific_config":""`,
+                  dataframeShowOrNot: JSON.stringify(temp),
                   dataframeShowNumValue: 'false'
                 })
               }
@@ -1680,7 +1643,6 @@ export class Workbench extends React.Component {
     })
   }
 
-  // 验证 Job source to sink 存在性
   loadJobSTSExit (values) {
     const { jobMode, formStep, projectId } = this.state
 
@@ -1841,7 +1803,6 @@ export class Workbench extends React.Component {
 
   submitJobForm = () => {
     const values = this.workbenchJobForm.getFieldsValue()
-    console.log('v12', values)
 
     const { projectId, jobMode, startTsVal, endTsVal, singleJobResult } = this.state
     const { jobResultFiledsOutput, jobTranTableRequestValue, jobSparkConfigValues } = this.state
@@ -2225,7 +2186,6 @@ export class Workbench extends React.Component {
   }
 
   onJobEditTransform = (record) => (e) => {
-    console.log('recordedit', record)
     // 加隐藏字段获得 record.transformType
     this.setState({
       transformMode: 'edit',
@@ -2263,7 +2223,6 @@ export class Workbench extends React.Component {
   }
 
   onJobAddTransform = (record) => (e) => {
-    console.log('readd', record)
     this.setState({
       transformMode: 'add',
       jobTransModalVisible: true,
@@ -2299,7 +2258,6 @@ export class Workbench extends React.Component {
 
     this.flowTransformForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        console.log('va22', values)
         let transformConfigInfoString = ''
         let transformConfigInfoRequestString = ''
 
@@ -2856,6 +2814,7 @@ export class Workbench extends React.Component {
       resultFieldsValue: 'all'
     }, () => {
       this.workbenchJobForm.setFieldsValue({
+        type: 'hdfs_txt',
         resultFields: 'all'
       })
     })
@@ -3193,7 +3152,6 @@ export class Workbench extends React.Component {
                     step={formStep}
                     projectIdGeted={this.state.projectId}
                     jobMode={this.state.jobMode}
-                    test={this.state.test}
                     sparkConfigCheck={this.state.sparkConfigCheck}
                     onShowSparkConfigModal={this.onShowSparkConfigModal}
                     fieldSelected={this.state.fieldSelected}
@@ -3364,8 +3322,7 @@ Workbench.propTypes = {
   onEditJob: React.PropTypes.func,
 
   onLoadJobName: React.PropTypes.func,
-  onLoadJobSourceNs: React.PropTypes.func,
-  onLoadJobSinkNs: React.PropTypes.func,
+  onLoadJobNs: React.PropTypes.func,
   jobNameExited: React.PropTypes.bool,
   jobSubmitLoading: React.PropTypes.bool
 }
@@ -3399,8 +3356,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadSourceToSinkExist: (projectId, sourceNs, sinkNs, resolve, reject) => dispatch(loadSourceToSinkExist(projectId, sourceNs, sinkNs, resolve, reject)),
     onLoadJobSourceToSinkExist: (projectId, sourceNs, sinkNs, resolve, reject) => dispatch(loadJobSourceToSinkExist(projectId, sourceNs, sinkNs, resolve, reject)),
     onLoadJobName: (projectId, value, resolve, reject) => dispatch(loadJobName(projectId, value, resolve, reject)),
-    onLoadJobSourceNs: (projectId, value, type, resolve, reject) => dispatch(loadJobSourceNs(projectId, value, type, resolve, reject)),
-    onLoadJobSinkNs: (projectId, value, type, resolve, reject) => dispatch(loadJobSinkNs(projectId, value, type, resolve, reject)),
+    onLoadJobNs: (projectId, value, type, resolve, reject) => dispatch(loadJobNs(projectId, value, type, resolve, reject)),
     onAddJob: (values, resolve, final) => dispatch(addJob(values, resolve, final)),
     onQueryJob: (values, resolve, final) => dispatch(queryJob(values, resolve, final)),
     onEditJob: (values, resolve, final) => dispatch(editJob(values, resolve, final))
