@@ -45,7 +45,8 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                       onComplete(jobDal.insert(jobInsert)) {
                         case Success(job) =>
                           riderLogger.info(s"user ${session.userId} inserted job where project id is $projectId success.")
-                          complete(OK, ResponseJson[Job](getHeader(200, session), job))
+                          val projectName = jobDal.adminGetRow(job.projectId)
+                          complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(JobStatus.jobStatus(job.status)))))
                         case Failure(ex) =>
                           riderLogger.error(s"user ${session.userId} inserted job where project id is $projectId failed", ex)
                           complete(OK, getHeader(451, ex.getMessage, session))
@@ -380,11 +381,12 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                 } else {
                   if (session.projectIdList.contains(projectId)) {
                     val newJob = Job(updatedJob.id, updatedJob.name, updatedJob.projectId, updatedJob.sourceNs, updatedJob.sinkNs, updatedJob.sourceType, updatedJob.sparkConfig, updatedJob.startConfig, updatedJob.eventTsStart, updatedJob.eventTsEnd,
-                      updatedJob.sourceConfig, updatedJob.sinkConfig, updatedJob.tranConfig, updatedJob.status, updatedJob.sparkAppid, updatedJob.logPath, if (updatedJob.startedTime.get.trim.isEmpty) null else updatedJob.startedTime, if (updatedJob.stoppedTime.get.trim.isEmpty) null else updatedJob.stoppedTime, updatedJob.createTime, updatedJob.createBy, currentSec, session.userId)
+                      updatedJob.sourceConfig, updatedJob.sinkConfig, updatedJob.tranConfig, updatedJob.status, updatedJob.sparkAppid, updatedJob.logPath, if (updatedJob.startedTime.isEmpty || updatedJob.startedTime.get == null  || updatedJob.startedTime.get.trim.isEmpty) null else updatedJob.startedTime, if (updatedJob.stoppedTime.isEmpty || updatedJob.stoppedTime.get.trim.isEmpty) null else updatedJob.stoppedTime, updatedJob.createTime, updatedJob.createBy, currentSec, session.userId)
                     onComplete(jobDal.update(newJob)) {
                       case Success(_) =>
                         riderLogger.info(s"user ${session.userId} update job where project id is $projectId success.")
-                        complete(OK, ResponseJson[Job](getHeader(200, session), newJob))
+                        val projectName = jobDal.adminGetRow(newJob.projectId)
+                        complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(newJob, projectName, getDisableAction(JobStatus.jobStatus(newJob.status)))))
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} update job where project id is $projectId failed", ex)
                         complete(OK, getHeader(451, ex.getMessage, session))
