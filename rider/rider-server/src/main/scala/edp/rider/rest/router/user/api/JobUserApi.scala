@@ -381,7 +381,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                 } else {
                   if (session.projectIdList.contains(projectId)) {
                     val newJob = Job(updatedJob.id, updatedJob.name, updatedJob.projectId, updatedJob.sourceNs, updatedJob.sinkNs, updatedJob.sourceType, updatedJob.sparkConfig, updatedJob.startConfig, updatedJob.eventTsStart, updatedJob.eventTsEnd,
-                      updatedJob.sourceConfig, updatedJob.sinkConfig, updatedJob.tranConfig, updatedJob.status, updatedJob.sparkAppid, updatedJob.logPath, if (updatedJob.startedTime == null || updatedJob.startedTime.get.trim.isEmpty) null else updatedJob.startedTime, if (updatedJob.stoppedTime == null || updatedJob.stoppedTime.get.trim.isEmpty) null else updatedJob.stoppedTime, updatedJob.createTime, updatedJob.createBy, currentSec, session.userId)
+                      updatedJob.sourceConfig, updatedJob.sinkConfig, updatedJob.tranConfig, updatedJob.status, updatedJob.sparkAppid, updatedJob.logPath, if (updatedJob.startedTime.get == null  || updatedJob.startedTime.get.trim.isEmpty) null else updatedJob.startedTime, if (updatedJob.stoppedTime.get == null || updatedJob.stoppedTime.get.trim.isEmpty) null else updatedJob.stoppedTime, updatedJob.createTime, updatedJob.createBy, currentSec, session.userId)
                     onComplete(jobDal.update(newJob)) {
                       case Success(_) =>
                         riderLogger.info(s"user ${session.userId} update job where project id is $projectId success.")
