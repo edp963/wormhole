@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -66,7 +66,7 @@ object WormholeUtils extends EdpLogging {
   def jsonGetValue(namespace: String, protocolType: UmsProtocolType, json: String, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)], UmsSysRename)]): (Seq[UmsField], Seq[UmsTuple]) = {
     if (jsonSourceParseMap.contains((protocolType, namespace))) {
       val mapValue: (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)], UmsSysRename) = jsonSourceParseMap((protocolType, namespace))
-      (mapValue._1, dataParse(json,mapValue._2, mapValue._3))
+      (mapValue._1, dataParse(json, mapValue._2, mapValue._3))
     } else {
       val ums = json2Ums(json)
       (ums.schema.fields_get, ums.payload_get)
@@ -74,96 +74,90 @@ object WormholeUtils extends EdpLogging {
   }
 
 
-  def dataParse(jsonStr: String, allFieldsInfo:Seq[FieldInfo], twoFieldsArr:ArrayBuffer[(String, String)]): Seq[UmsTuple] = {
-
+  def dataParse(jsonStr: String, allFieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)]): Seq[UmsTuple] = {
     val jsonParse = JSON.parseObject(jsonStr)
     val fieldNameSeq = twoFieldsArr.map(_._1)
     val resultSeq = ArrayBuffer[UmsTuple]()
     val oneRecord = ArrayBuffer[String]()
     var arrValue = (Seq[String](), -1)
-    allFieldsInfo.foreach(fieldInfo => {
-      val outerFieldIndex = allFieldsInfo.indexOf(fieldInfo)
-      val fieldName = fieldInfo.name
-      val fieldDataType = fieldInfo.`type`
-      val umsSysField = if (fieldInfo.umsSysField.isDefined) fieldInfo.umsSysField.get else null
-      dataTypeProcess(fieldDataType) match {
-        case "simplearray" => {
-          arrValue = (jsonParse.getJSONArray(fieldName).toArray.map(_.toString), outerFieldIndex)
+    def dataProcess(fieldInfo: FieldInfo, jsonValue: JSONObject): Unit = {
+      val name = fieldInfo.name
+      val dataType = fieldInfo.`type`
+      val fieldIndex = if (fieldNameSeq.contains(name)) fieldNameSeq.indexOf(name) else -1
+      val umsSysField = fieldInfo.umsSysField
+      val subFields = fieldInfo.subFields
+      val dataTypeProcessed = dataTypeProcess(dataType)
+      if (dataTypeProcessed == "simplearray") {
+        arrValue =
+          try {
+            (jsonValue.getJSONArray(name).toArray.map(_.toString), fieldIndex)
+          }
+          catch {
+            case NonFatal(e) =>
+              oneRecord.append(null)
+              (null, fieldIndex)
+          }
+      } else if (dataTypeProcessed == "tuple") {
+        val fieldMessage =
+          try {
+            jsonValue.getString(name)
+          }
+          catch {
+            case NonFatal(e) => null
+          }
+        if (fieldMessage==null){
+          val subFieldsInfo: Seq[FieldInfo] = fieldInfo.subFields.get
+          for (i <- subFieldsInfo.indices) {
+            oneRecord.append(null)
+          }
         }
-        case "tuple" => {
-          val fieldMessage = jsonParse.getString(fieldName)
+        else{
           var splitMark = fieldInfo.separator.get
           if (Array("*", "^", ":", "|", ",", ".").contains(splitMark)) splitMark = "\\" + splitMark
           val splitData = fieldMessage.split(splitMark)
           val subFieldsInfo: Seq[FieldInfo] = fieldInfo.subFields.get
           for (i <- subFieldsInfo.indices) {
             val sysField = subFieldsInfo(i).umsSysField
-            val subFieldDataType = subFieldsInfo(i).`type`
-            if (sysField.isDefined && sysField.get == "ums_ts_" && subFieldDataType == "long")
+//            val subFieldDataType = subFieldsInfo(i).`type`
+            if (sysField.isDefined && sysField.get == "ums_ts_")
               oneRecord.append(convertLongTimestamp(splitData(i)).toString)
             else oneRecord.append(splitData(i))
-          }
-
+          }}
+      }
+      else if (dataTypeProcessed == "jsonarray") {
+        val subFieldsInfo: Seq[FieldInfo] = fieldInfo.subFields.get
+        val arrayParse = jsonParse.getJSONArray(name)
+        for (i <- 0 until arrayParse.size()) {
+          val jsonDetail = subFieldsInfo(i)
+          val content = arrayParse.getJSONObject(i)
+          dataProcess(jsonDetail, content)
         }
-        case "jsonarray" => {
-          val subFieldsInfo = fieldInfo.subFields.get
-          val arrayParse = jsonParse.getJSONArray(jsonParse.getString(fieldName))
-          for (i <- 0 until arrayParse.size()) {
-            val jsonDetail = subFieldsInfo(i)
-            val jsonKey = jsonDetail.name
-            val jsonDataType = jsonDetail.`type`
-            val subSysField = jsonDetail.umsSysField
-            val fieldIndex = fieldNameSeq.indexOf(jsonKey)
-            val jsonData: JSONObject = arrayParse.get(i).asInstanceOf[JSONObject]
-            dataTypeProcess(jsonDataType) match {
-              case "simplearray" => arrValue = (jsonParse.getJSONArray(jsonKey).toArray.asInstanceOf[Seq[String]], fieldIndex)
-              case _ => {
-                if (subSysField.isDefined && subSysField.get == "ums_ts_" && jsonDataType == "long")
-                  oneRecord.append(convertLongTimestamp(jsonData.getString(jsonKey)).toString)
-                else oneRecord.append(jsonData.getString(jsonKey))
-              }
-            }
-
-          }
+      }
+      else if (dataTypeProcessed == "jsonobj") {
+        val subFieldsInfo = subFields.get
+        val jsonParseRes = jsonValue.getJSONObject(name)
+        subFieldsInfo.foreach(subField => {
+          dataProcess(subField, jsonParseRes)
         }
-        case "jsonobj" => {
-          val subFieldsInfo = fieldInfo.subFields.get
-          val jsonParseRes = JSON.parseObject(jsonParse.getString(fieldName))
-          //          val detailFieldNames = subFieldsInfo.map(_.name)
-          subFieldsInfo.foreach(subField => {
-            val subFieldSys = subField.umsSysField
-            val fieldIndex = fieldNameSeq.indexOf(subField.name)
-            val fieldDataType = subField.`type`
-            dataTypeProcess(fieldDataType) match {
-              case "simpleArray" => arrValue = (jsonParse.getJSONArray(subField.name).toArray.asInstanceOf[Seq[String]], fieldIndex)
-              case _ => {
-                if (subFieldSys.isDefined && subFieldSys.get == "ums_ts_" && fieldDataType == "long")
-                  oneRecord.append(convertLongTimestamp(jsonParseRes.getString(subField.name)).toString)
-                else oneRecord.append(jsonParseRes.getString(subField.name))
-
-              }
-
-            }
-          }
-          )
-        }
-        case _ => {
-          if (umsSysField == "ums_ts_" && fieldDataType == "long")
-            oneRecord.append(convertLongTimestamp(jsonParse.getString(fieldName)).toString)
-          else oneRecord.append(jsonParse.getString(fieldName))
-        }
-
+        )
+      }
+      else {
+        if (umsSysField.nonEmpty && umsSysField.get == "ums_ts_" && dataType == "long")
+          oneRecord.append(convertLongTimestamp(jsonValue.getString(name)).toString)
+        else oneRecord.append(jsonValue.getString(name))
       }
     }
+    allFieldsInfo.foreach(fieldInfo => {
+      dataProcess(fieldInfo, jsonParse)
+    }
     )
-    if (arrValue._2 > (-1)) {
+    if (arrValue._2 > (-1)&&arrValue._1!=null) {
       arrValue._1.foreach(value => {
         val newRecord: ArrayBuffer[String] = oneRecord.clone()
         newRecord.insert(arrValue._2, value)
         resultSeq.append(UmsTuple(newRecord))
       }
       )
-
     }
     else {
       resultSeq.append(UmsTuple(oneRecord))
@@ -181,8 +175,13 @@ object WormholeUtils extends EdpLogging {
   }
 
   def convertLongTimestamp(timestampStr: String): DateTime = {
-    val timestampLong = if (timestampStr.split("").length < 16) timestampStr.toLong * 1000000 else timestampStr.toLong
-    dt2dateTime(timestampLong)
+    if (timestampStr.substring(0,2)=="20") {
+      dt2dateTime(timestampStr)
+    }
+    else {
+      val timestampLong = if (timestampStr.split("").length < 16) timestampStr.toLong * 1000000 else timestampStr.toLong
+      dt2dateTime(timestampLong)
+    }
   }
 
 
