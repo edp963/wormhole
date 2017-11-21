@@ -42,7 +42,9 @@ export class FlowTransformForm extends React.Component {
       dsHideOrNot: ''
     }
   }
-  onTransformTypeSelect = (e) => this.props.onInitTransformValue(e.target.value)
+  onTransformTypeSelect = (e) => {
+    this.props.onInitTransformValue(e.target.value)
+  }
 
   onLookupSqlTypeItemSelect = (val) => {
     this.setState({
@@ -69,7 +71,7 @@ export class FlowTransformForm extends React.Component {
 
   render () {
     const { form } = this.props
-    const { transformValue, transformSinkTypeNamespaceData } = this.props
+    const { tabPanelKey, transformValue, transformSinkTypeNamespaceData } = this.props
     const { dsHideOrNot } = this.state
     const { getFieldDecorator } = form
 
@@ -194,9 +196,9 @@ export class FlowTransformForm extends React.Component {
                 }]
               })(
                 <RadioGroup onChange={this.onTransformTypeSelect}>
-                  <RadioButton value="lookupSql">Lookup SQL</RadioButton>
+                  <RadioButton value="lookupSql" disabled={tabPanelKey === 'job'}>Lookup SQL</RadioButton>
                   <RadioButton value="sparkSql">Spark SQL</RadioButton>
-                  <RadioButton value="streamJoinSql">Stream Join SQL</RadioButton>
+                  <RadioButton value="streamJoinSql" disabled={tabPanelKey === 'job'}>Stream Join SQL</RadioButton>
                   <RadioButton value="transformClassName">ClassName</RadioButton>
                 </RadioGroup>
               )}
@@ -403,6 +405,7 @@ FlowTransformForm.propTypes = {
   form: React.PropTypes.any,
   transformSinkTypeNamespaceData: React.PropTypes.array,
   projectIdGeted: React.PropTypes.string,
+  tabPanelKey: React.PropTypes.string,
   transformValue: React.PropTypes.string,
   step2SinkNamespace: React.PropTypes.string,
   step2SourceNamespace: React.PropTypes.string,

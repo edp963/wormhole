@@ -361,51 +361,49 @@ export class WorkbenchFlowForm extends React.Component {
         {/* Step 1 */}
         <Row gutter={8} className={stepClassNames[0]}>
           <Card title="Stream" className="ri-workbench-form-card-style stream-card">
-            <Row>
-              <Col span={24}>
-                <FormItem label="Stream Type" {...itemStyle}>
-                  {getFieldDecorator('streamType', {
-                    rules: [{
-                      required: true,
-                      message: '请选择 Stream Type'
-                    }],
-                    initialValue: 'default'
-                  })(
-                    <RadioGroup className="radio-group-style" onChange={this.onHandleChangeStreamType} size="default">
-                      <RadioButton value="default" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Default</RadioButton>
-                      <RadioButton value="hdfslog" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Hdfslog</RadioButton>
-                      <RadioButton value="routing" className="radio-btn-style" disabled>Routing</RadioButton>
-                    </RadioGroup>
-                  )}
-                </FormItem>
-              </Col>
-              <Col span={24} className="hide">
-                <FormItem label="">
-                  {getFieldDecorator('flowStreamId', {})(
-                    <Input />
-                  )}
-                </FormItem>
-              </Col>
-              <Col span={24}>
-                <FormItem label="Stream Name" {...itemStyle}>
-                  {getFieldDecorator('streamName', {
-                    rules: [{
-                      required: true,
-                      message: '请选择 Stream Name'
-                    }]
-                  })(
-                    <Select
-                      dropdownClassName="ri-workbench-select-dropdown"
-                      onSelect={this.onHandleChangeStreamName}
-                      placeholder="Select a Stream Name"
-                      disabled={flowDisabledOrNot}
-                    >
-                      {streamNameOptions}
-                    </Select>
-                  )}
-                </FormItem>
-              </Col>
-            </Row>
+            <Col span={24}>
+              <FormItem label="Stream Type" {...itemStyle}>
+                {getFieldDecorator('streamType', {
+                  rules: [{
+                    required: true,
+                    message: '请选择 Stream Type'
+                  }],
+                  initialValue: 'default'
+                })(
+                  <RadioGroup className="radio-group-style" onChange={this.onHandleChangeStreamType} size="default">
+                    <RadioButton value="default" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Default</RadioButton>
+                    <RadioButton value="hdfslog" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Hdfslog</RadioButton>
+                    <RadioButton value="routing" className="radio-btn-style" disabled>Routing</RadioButton>
+                  </RadioGroup>
+                )}
+              </FormItem>
+            </Col>
+            <Col span={24} className="hide">
+              <FormItem label="">
+                {getFieldDecorator('flowStreamId', {})(
+                  <Input />
+                )}
+              </FormItem>
+            </Col>
+            <Col span={24}>
+              <FormItem label="Stream Name" {...itemStyle}>
+                {getFieldDecorator('streamName', {
+                  rules: [{
+                    required: true,
+                    message: '请选择 Stream Name'
+                  }]
+                })(
+                  <Select
+                    dropdownClassName="ri-workbench-select-dropdown"
+                    onSelect={this.onHandleChangeStreamName}
+                    placeholder="Select a Stream Name"
+                    disabled={flowDisabledOrNot}
+                  >
+                    {streamNameOptions}
+                  </Select>
+                )}
+              </FormItem>
+            </Col>
             <Col span={24} className="ri-input-text">
               <FormItem label="Kafka Instance" {...itemStyle} >
                 {getFieldDecorator('kafkaInstance', {})(
