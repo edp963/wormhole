@@ -28,7 +28,7 @@ object SourceMutationType extends Enumeration with EdpLogging {
 
   val INSERT_ONLY = Value("i")
   val I_U_D = Value("iud")
-  val IDEMPOTENCE_IDU = Value("idempotence_idu")
+  val IDEMPOTENCE_IDU = Value("idempotence_idu")//分表幂等
   val INSERT_INSERT = Value("i_i")
   val INSERT_UPDATE = Value("i_u")
   val UPDATE_INSERT = Value("u_i")
