@@ -27,6 +27,8 @@ const FormItem = Form.Item
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 import Input from 'antd/lib/input'
+import Popover from 'antd/lib/popover'
+import Tooltip from 'antd/lib/tooltip'
 import Tag from 'antd/lib/tag'
 import Icon from 'antd/lib/icon'
 import Radio from 'antd/lib/radio'
@@ -92,6 +94,23 @@ export class WorkbenchStreamForm extends React.PureComponent {
           <Icon type="minus-circle-o" /> 点击修改
         </Tag>
       )
+
+    const warningMsg = (
+      <span>
+        Configs
+        <Tooltip title="帮助" placement="bottom">
+          <Popover
+            placement="top"
+            content={<div style={{ width: '200px', height: '25px' }}>
+              <p>Dirver / Execotor 资源配置</p>
+            </div>}
+            title={<h3>帮助</h3>}
+            trigger="click">
+            <Icon type="question-circle-o" className="question-class" />
+          </Popover>
+        </Tooltip>
+      </span>
+    )
 
     return (
       <Form className="ri-workbench-form workbench-stream-form">
@@ -159,12 +178,11 @@ export class WorkbenchStreamForm extends React.PureComponent {
 
           <Col span={24}>
             <div className="ant-col-6 ant-form-item-label">
-              <label htmlFor="#" className="sink-config-class">Configs</label>
+              <label htmlFor="#" className="sink-config-class">{warningMsg}</label>
             </div>
             <div className="ant-col-17">
               <div className="ant-form-item-control">
                 {streamConfigTag}
-                <span className="config-msg-class">( Dirver / Execotor 资源配置 )</span>
               </div>
             </div>
           </Col>

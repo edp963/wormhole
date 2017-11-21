@@ -18,8 +18,7 @@
  * >>
  */
 
-import {takeLatest, takeEvery
-  // throttle
+import {takeLatest, takeEvery, throttle
 } from 'redux-saga'
 import { call, fork, put } from 'redux-saga/effects'
 import {
@@ -28,7 +27,14 @@ import {
   LOAD_ADMIN_SINGLE_JOB,
   LOAD_ADMIN_JOB_LOGS,
   LOAD_USER_JOB_LOGS,
-  OPERATE_JOB
+  OPERATE_JOB,
+  LOAD_JOB_NAME,
+  LOAD_JOB_SOURCE_NS,
+  LOAD_JOB_SINK_NS,
+  LOAD_JOB_SOURCETOSINK_EXIST,
+  ADD_JOB,
+  QUERY_JOB,
+  EDIT_JOB
 } from './constants'
 
 import {
@@ -38,7 +44,16 @@ import {
   adminJobLogsLoaded,
   userJobLogsLoaded,
   jobOperated,
-  jobOperatedError
+  jobOperatedError,
+  jobNameLoaded,
+  jobNameLoadedError,
+  jobSourceNsLoaded,
+  jobSinkNsLoaded,
+  jobSourceToSinkExistLoaded,
+  jobSourceToSinkExistErrorLoaded,
+  jobAdded,
+  jobQueryed,
+  jobEdited
 } from './action'
 
 import request from '../../utils/request'
@@ -131,11 +146,140 @@ export function* operateUserJobWatcher () {
   yield fork(takeEvery, OPERATE_JOB, operateUserJob)
 }
 
+export function* loadJobNameValue ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'get',
+      url: `${api.projectUserList}/${payload.projectId}/jobs?jobName=${payload.value}`
+    })
+    if (result.code && result.code === 409) {
+      yield put(jobNameLoadedError(result.msg, payload.reject))
+    } else if (result.header.code && result.header.code === 200) {
+      yield put(jobNameLoaded(result.payload, payload.resolve))
+    }
+  } catch (err) {
+    notifySagasError(err, 'loadJobNameValue')
+  }
+}
+
+export function* loadJobNameValueWatcher () {
+  yield fork(takeEvery, LOAD_JOB_NAME, loadJobNameValue)
+}
+
+export function* loadJobSourceNsValue ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'get',
+      url: `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`
+    })
+    yield put(jobSourceNsLoaded(result.payload, payload.resolve))
+  } catch (err) {
+    notifySagasError(err, 'loadJobSourceNsValue')
+  }
+}
+
+export function* loadJobSourceNsValueWatcher () {
+  yield fork(takeEvery, LOAD_JOB_SOURCE_NS, loadJobSourceNsValue)
+}
+
+export function* loadJobSinkNsValue ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'get',
+      url: `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`
+    })
+    yield put(jobSinkNsLoaded(result.payload, payload.resolve))
+  } catch (err) {
+    notifySagasError(err, 'loadJobSinkNsValue')
+  }
+}
+
+export function* loadJobSinkNsValueWatcher () {
+  yield fork(takeEvery, LOAD_JOB_SINK_NS, loadJobSinkNsValue)
+}
+
+export function* getJobSourceToSink ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'get',
+      url: `${api.projectUserList}/${payload.projectId}/jobs?sourceNs=${payload.sourceNs}&sinkNs=${payload.sinkNs}`
+    })
+    if (result.code === 200) {
+      yield put(jobSourceToSinkExistLoaded(result.msg, payload.resolve))
+    } else {
+      yield put(jobSourceToSinkExistErrorLoaded(result.msg, payload.reject))
+    }
+  } catch (err) {
+    notifySagasError(err, 'getJobSourceToSink')
+  }
+}
+
+export function* getJobSourceToSinkWatcher () {
+  yield fork(throttle, 500, LOAD_JOB_SOURCETOSINK_EXIST, getJobSourceToSink)
+}
+
+export function* addJob ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'post',
+      url: `${api.projectUserList}/${payload.values.projectId}/jobs`,
+      data: payload.values
+    })
+    yield put(jobAdded(result.payload, payload.resolve, payload.final))
+  } catch (err) {
+    notifySagasError(err, 'addJob')
+  }
+}
+
+export function* addJobWatcher () {
+  yield fork(takeEvery, ADD_JOB, addJob)
+}
+
+export function* queryJob ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'get',
+      url: `${api.projectUserList}/${payload.values.projectId}/jobs/${payload.values.jobId}`
+    })
+    yield put(jobQueryed(result.payload, payload.resolve))
+  } catch (err) {
+    notifySagasError(err, 'queryJob')
+  }
+}
+
+export function* queryJobWatcher () {
+  yield fork(takeEvery, QUERY_JOB, queryJob)
+}
+
+export function* editJob ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'put',
+      url: `${api.projectUserList}/${payload.values.projectId}/jobs`,
+      data: payload.values
+    })
+    yield put(jobEdited(result.payload, payload.resolve, payload.final))
+  } catch (err) {
+    notifySagasError(err, 'editJob')
+  }
+}
+
+export function* editJobWatcher () {
+  yield fork(takeEvery, EDIT_JOB, editJob)
+}
+
 export default [
   getAdminAllJobsWatcher,
   getUserAllJobsWatcher,
   getAdminSingleJobWatcher,
   getAdminJobLogsWatcher,
   getUserJobLogsWatcher,
-  operateUserJobWatcher
+  operateUserJobWatcher,
+  loadJobNameValueWatcher,
+  loadJobSourceNsValueWatcher,
+  loadJobSinkNsValueWatcher,
+  getJobSourceToSinkWatcher,
+  addJobWatcher,
+  queryJobWatcher,
+  editJobWatcher
 ]

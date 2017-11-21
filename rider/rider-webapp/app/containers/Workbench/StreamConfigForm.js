@@ -38,8 +38,9 @@ export class StreamConfigForm extends React.Component {
   }
 
   render () {
-    const { form } = this.props
+    const { form, tabPanelKey } = this.props
     const { getFieldDecorator } = form
+
     const itemStyle = {
       labelCol: { span: 4 },
       wrapperCol: { span: 19 }
@@ -147,7 +148,7 @@ export class StreamConfigForm extends React.Component {
           </Col>
         </Row>
         <Row>
-          <Col span={8}>
+          <Col span={8} className={`${tabPanelKey === 'stream' ? '' : 'hide'}`}>
             <FormItem label="Batch Duration (Sec)：" {...itemStyleOthers}>
               {getFieldDecorator('durations', {
                 rules: [{
@@ -162,7 +163,7 @@ export class StreamConfigForm extends React.Component {
               )}
             </FormItem>
           </Col>
-          <Col span={8}>
+          <Col span={8} className={`${tabPanelKey === 'stream' ? '' : 'hide'}`}>
             <FormItem label="Parallelism Partition：" {...itemStyleOthers}>
               {getFieldDecorator('partitions', {
                 rules: [{
@@ -177,7 +178,7 @@ export class StreamConfigForm extends React.Component {
               )}
             </FormItem>
           </Col>
-          <Col span={8}>
+          <Col span={8} className={`${tabPanelKey === 'stream' ? '' : 'hide'}`}>
             <FormItem label="Max Batch Data Size (Mb)：" {...itemStylePEM}>
               {getFieldDecorator('maxRecords', {
                 rules: [{
@@ -206,7 +207,8 @@ export class StreamConfigForm extends React.Component {
 }
 
 StreamConfigForm.propTypes = {
-  form: React.PropTypes.any
+  form: React.PropTypes.any,
+  tabPanelKey: React.PropTypes.string
 }
 
 export default Form.create({wrappedComponentRef: true})(StreamConfigForm)

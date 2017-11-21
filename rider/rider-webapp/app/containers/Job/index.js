@@ -311,7 +311,7 @@ export class Job extends React.Component {
   }
 
   render () {
-    const { className, jobClassHide, onShowAddJob } = this.props
+    const { className, jobClassHide, onShowAddJob, onShowEditJob } = this.props
     const { refreshJobText, refreshJobLoading } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
@@ -656,7 +656,7 @@ export class Job extends React.Component {
           jobActionSelect = (
             <span>
               <Tooltip title="修改">
-                <Button icon="edit" shape="circle" type="ghost"></Button>
+                <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditJob(record)}></Button>
               </Tooltip>
               {strStart}
               {strStop}
@@ -790,7 +790,8 @@ Job.propTypes = {
   // onChuckAwayJob: React.PropTypes.func
   onLoadAdminJobLogs: React.PropTypes.func,
   onLoadUserJobLogs: React.PropTypes.func,
-  onOperateJob: React.PropTypes.func
+  onOperateJob: React.PropTypes.func,
+  onShowEditJob: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {

@@ -32,6 +32,22 @@ import {
   OPERATE_JOB,
   OPERATE_JOB_SUCCESS,
   OPERATE_JOB_ERROR,
+  LOAD_JOB_NAME,
+  LOAD_JOB_NAME_SUCCESS,
+  LOAD_JOB_NAME_ERROR,
+  LOAD_JOB_SOURCE_NS,
+  LOAD_JOB_SOURCE_NS_SUCCESS,
+  LOAD_JOB_SINK_NS,
+  LOAD_JOB_SINK_NS_SUCCESS,
+  LOAD_JOB_SOURCETOSINK_EXIST,
+  LOAD_JOB_SOURCETOSINK_EXIST_SUCCESS,
+  LOAD_JOB_SOURCETOSINK_EXIST_ERROR,
+  ADD_JOB,
+  ADD_JOB_SUCCESS,
+  EDIT_JOB,
+  EDIT_JOB_SUCCESS,
+  QUERY_JOB,
+  QUERY_JOB_SUCCESS,
   CHUCKAWAY_JOB
 } from './constants'
 
@@ -163,6 +179,180 @@ export function jobOperatedError (message, reject) {
     payload: {
       message,
       reject
+    }
+  }
+}
+
+export function loadJobName (projectId, value, resolve, reject) {
+  return {
+    type: LOAD_JOB_NAME,
+    payload: {
+      projectId,
+      value,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function jobNameLoaded (result, resolve) {
+  return {
+    type: LOAD_JOB_NAME_SUCCESS,
+    payload: {
+      result,
+      resolve
+    }
+  }
+}
+
+export function jobNameLoadedError (message, reject) {
+  return {
+    type: LOAD_JOB_NAME_ERROR,
+    payload: {
+      message,
+      reject
+    }
+  }
+}
+
+export function loadJobSourceNs (projectId, value, type, resolve, reject) {
+  return {
+    type: LOAD_JOB_SOURCE_NS,
+    payload: {
+      projectId,
+      value,
+      type,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function jobSourceNsLoaded (result, resolve) {
+  return {
+    type: LOAD_JOB_SOURCE_NS_SUCCESS,
+    payload: {
+      result,
+      resolve
+    }
+  }
+}
+
+export function loadJobSinkNs (projectId, value, type, resolve, reject) {
+  return {
+    type: LOAD_JOB_SINK_NS,
+    payload: {
+      projectId,
+      value,
+      type,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function jobSinkNsLoaded (result, resolve) {
+  return {
+    type: LOAD_JOB_SINK_NS_SUCCESS,
+    payload: {
+      result,
+      resolve
+    }
+  }
+}
+
+export function loadJobSourceToSinkExist (projectId, sourceNs, sinkNs, resolve, reject) {
+  return {
+    type: LOAD_JOB_SOURCETOSINK_EXIST,
+    payload: {
+      projectId,
+      sourceNs,
+      sinkNs,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function jobSourceToSinkExistLoaded (result, resolve) {
+  return {
+    type: LOAD_JOB_SOURCETOSINK_EXIST_SUCCESS,
+    payload: {
+      result,
+      resolve
+    }
+  }
+}
+
+export function jobSourceToSinkExistErrorLoaded (result, reject) {
+  return {
+    type: LOAD_JOB_SOURCETOSINK_EXIST_ERROR,
+    payload: {
+      result,
+      reject
+    }
+  }
+}
+
+export function addJob (values, resolve, final) {
+  return {
+    type: ADD_JOB,
+    payload: {
+      values,
+      resolve,
+      final
+    }
+  }
+}
+
+export function jobAdded (result, resolve, final) {
+  return {
+    type: ADD_JOB_SUCCESS,
+    payload: {
+      result,
+      resolve,
+      final
+    }
+  }
+}
+export function queryJob (values, resolve) {
+  return {
+    type: QUERY_JOB,
+    payload: {
+      values,
+      resolve
+    }
+  }
+}
+
+export function jobQueryed (result, resolve) {
+  return {
+    type: QUERY_JOB_SUCCESS,
+    payload: {
+      result,
+      resolve
+    }
+  }
+}
+
+export function editJob (values, resolve, final) {
+  return {
+    type: EDIT_JOB,
+    payload: {
+      values,
+      resolve,
+      final
+    }
+  }
+}
+
+export function jobEdited (result, resolve, final) {
+  return {
+    type: EDIT_JOB_SUCCESS,
+    payload: {
+      result,
+      resolve,
+      final
     }
   }
 }
