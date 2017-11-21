@@ -29,8 +29,7 @@ import {
   LOAD_USER_JOB_LOGS,
   OPERATE_JOB,
   LOAD_JOB_NAME,
-  LOAD_JOB_SOURCE_NS,
-  LOAD_JOB_SINK_NS,
+  LOAD_JOB_NS,
   LOAD_JOB_SOURCETOSINK_EXIST,
   ADD_JOB,
   QUERY_JOB,
@@ -47,8 +46,7 @@ import {
   jobOperatedError,
   jobNameLoaded,
   jobNameLoadedError,
-  jobSourceNsLoaded,
-  jobSinkNsLoaded,
+  jobNsLoaded,
   jobSourceToSinkExistLoaded,
   jobSourceToSinkExistErrorLoaded,
   jobAdded,
@@ -173,36 +171,20 @@ export function* loadJobNameValueWatcher () {
   yield fork(takeEvery, LOAD_JOB_NAME, loadJobNameValue)
 }
 
-export function* loadJobSourceNsValue ({ payload }) {
+export function* loadJobNsValue ({ payload }) {
   try {
     const result = yield call(request, {
       method: 'get',
       url: `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`
     })
-    yield put(jobSourceNsLoaded(result.payload, payload.resolve))
+    yield put(jobNsLoaded(result.payload, payload.resolve))
   } catch (err) {
-    notifySagasError(err, 'loadJobSourceNsValue')
+    notifySagasError(err, 'loadJobNsValue')
   }
 }
 
-export function* loadJobSourceNsValueWatcher () {
-  yield fork(takeEvery, LOAD_JOB_SOURCE_NS, loadJobSourceNsValue)
-}
-
-export function* loadJobSinkNsValue ({ payload }) {
-  try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`
-    })
-    yield put(jobSinkNsLoaded(result.payload, payload.resolve))
-  } catch (err) {
-    notifySagasError(err, 'loadJobSinkNsValue')
-  }
-}
-
-export function* loadJobSinkNsValueWatcher () {
-  yield fork(takeEvery, LOAD_JOB_SINK_NS, loadJobSinkNsValue)
+export function* loadJobNsValueWatcher () {
+  yield fork(takeEvery, LOAD_JOB_NS, loadJobNsValue)
 }
 
 export function* getJobSourceToSink ({ payload }) {
@@ -283,8 +265,7 @@ export default [
   getUserJobLogsWatcher,
   operateUserJobWatcher,
   loadJobNameValueWatcher,
-  loadJobSourceNsValueWatcher,
-  loadJobSinkNsValueWatcher,
+  loadJobNsValueWatcher,
   getJobSourceToSinkWatcher,
   addJobWatcher,
   queryJobWatcher,
