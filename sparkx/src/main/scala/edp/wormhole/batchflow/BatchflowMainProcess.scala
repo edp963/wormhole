@@ -21,6 +21,7 @@
 
 package edp.wormhole.batchflow
 
+import java.io.Serializable
 import java.util.UUID
 
 import com.alibaba.fastjson.{JSON, JSONObject}
@@ -451,7 +452,7 @@ object BatchflowMainProcess extends EdpLogging {
                                      uuid: String,
                                      jsonUmsSysFields:UmsSysRename) = {
     val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(sinkNamespace)
-    val (resultSchemaMap, originalSchemaMap, renameMap) = SparkUtils.getSchemaMap(sinkFields, sinkProcessConfig.sinkOutput)
+    val (resultSchemaMap: Map[String, (Int, UmsFieldType, Boolean)], originalSchemaMap, renameMap) = SparkUtils.getSchemaMap(sinkFields, sinkProcessConfig.sinkOutput)
     logInfo(uuid + ",schemaMap:" + resultSchemaMap)
     val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
 
@@ -484,12 +485,12 @@ object BatchflowMainProcess extends EdpLogging {
     }
 
 
-    val nonTimeoutUids = repartitionRDD.mapPartitions((partition: Iterator[Seq[String]]) => {
+    val send2saveData:RDD[(ListBuffer[Seq[String]],ListBuffer[String])] = repartitionRDD.mapPartitions((partition: Iterator[Seq[String]]) => {
 
       if (partition.nonEmpty) {
         logInfo(uuid + ",partition.nonEmpty")
 
-        val (sendList, saveList) = doValidityAndGetData(swiftsProcessConfig, partition, resultSchemaMap, originalSchemaMap, renameMap, minTs, sourceNamespace, sinkNamespace,jsonUmsSysFields)
+        val (sendList: ListBuffer[Seq[String]], saveList: ListBuffer[String]) = doValidityAndGetData(swiftsProcessConfig, partition, resultSchemaMap, originalSchemaMap, renameMap, minTs, sourceNamespace, sinkNamespace,jsonUmsSysFields)
 
         //  sendList.foreach(data=>logInfo("before merge:"+data))
         logInfo(uuid + ",@sendList size: " + sendList.size + " saveList size: " + saveList.size)
@@ -497,22 +498,34 @@ object BatchflowMainProcess extends EdpLogging {
         logInfo(uuid + ",@mergeSendList size: " + mergeSendList.size)
         //        mergeSendList.foreach(data=>logInfo("after merge:"+data))
 
-        val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
-
-        sinkMethod.invoke(sinkObject, protocolType, sourceNamespace, sinkNamespace, sinkProcessConfig, resultSchemaMap, mergeSendList, connectionConfig)
+//        val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
+//
+//        sinkMethod.invoke(sinkObject,session, protocolType, sourceNamespace, sinkNamespace, sinkProcessConfig, resultSchemaMap, mergeSendList, connectionConfig)
         //todo add rename mapping to sink, and revise sink part
 
-        saveList.toIterator
+        List((sendList,saveList)).toIterator
       } else {
         logInfo(uuid + ",partition data(payload) size is 0,do not process sink")
-        List.empty[String].toIterator
+        List.empty[(ListBuffer[Seq[String]],ListBuffer[String])].toIterator
       }
+    })//.collect()
+
+    val sendData: RDD[Seq[String]] = send2saveData.mapPartitions(par=>{
+      par.flatMap(_._1)
+    })
+    val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
+    sinkMethod.invoke(sinkObject,session, protocolType, sourceNamespace, sinkNamespace, sinkProcessConfig, resultSchemaMap, sendData, connectionConfig)
+
+    val nonTimeoutUids: Array[String] = send2saveData.mapPartitions(par=>{
+      par.flatMap(_._2)
     }).collect()
+
     // val dt3: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
     //  println("In validityAndSinkProcess, writetoSInk duration:   " + dt3 + " - "+ dt2 +" = " + (Seconds.secondsBetween(dt2, dt3).getSeconds() % 60 + " seconds."))
 
     if (swiftsProcessConfig.nonEmpty && swiftsProcessConfig.get.validityConfig.nonEmpty) {
-      failureAndNonTimeoutProcess(sourceNamespace, sinkNamespace, nonTimeoutUids, streamUnionParquetDf, config,jsonUmsSysFields)
+      if(nonTimeoutUids!=null&&nonTimeoutUids.length>0)
+          failureAndNonTimeoutProcess(sourceNamespace, sinkNamespace, nonTimeoutUids, streamUnionParquetDf, config,jsonUmsSysFields)
     }
     if (ConfMemoryStorage.existEventTs(matchSourceNamespace, sinkNamespace)) {
       val currentMinTs = ConfMemoryStorage.getEventTs(matchSourceNamespace, sinkNamespace)
