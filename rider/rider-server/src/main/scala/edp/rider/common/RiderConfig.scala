@@ -31,7 +31,8 @@ case class RiderServer(host: String, port: Int, adminUser: String, adminPwd: Str
 
 case class RiderKafka(brokers: String,
                       zkUrl: String,
-                      topic: String,
+                      feedbackTopic: String,
+                      heartbeatTopic: String,
                       partitions: Int,
                       client_id: String,
                       group_id: String,
@@ -118,6 +119,8 @@ object RiderConfig {
 
   lazy val feedbackTopic = getStringConfig("kafka.consumer.feedback.topic", "wormhole_feedback")
 
+  lazy val heartbeatTopic = getStringConfig("kafka.consumer.heartbeat.topic", "wormhole_heartbeat")
+
   lazy val pollInterval = getFiniteDurationConfig("kafka.consumer.poll-interval", FiniteDuration(30, MILLISECONDS))
 
   lazy val pollTimeout = getFiniteDurationConfig("kafka.consumer.poll-timeout", FiniteDuration(30, MILLISECONDS))
@@ -134,6 +137,7 @@ object RiderConfig {
 
   lazy val consumer = RiderKafka(config.getString("kafka.brokers.url"), config.getString("kafka.zookeeper.url"),
     feedbackTopic,
+    heartbeatTopic,
     4,
     "wormhole_rider_group",
     "wormhole_rider_group_consumer1",
@@ -185,7 +189,7 @@ object RiderConfig {
     s"${RiderConfig.riderRootPath}/conf/sparkx.log4j.properties",
     wormholeJarPath,
     wormholeKafka08JarPath,
-    kafka08StreamNames, "wormhole_heartbeat", 2, 1, 6, 4, 2, 100, 600,
+    kafka08StreamNames, consumer.heartbeatTopic, 2, 1, 6, 4, 2, 100, 600,
     "spark.driver.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc/",
     "spark.executor.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc",
     "spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3"
@@ -219,7 +223,7 @@ object RiderConfig {
       config.getStringList("dbus.namespace.rest.api.url")
     else null
 
-  lazy val riderInfo = RiderInfo(zk, consumer.brokers, consumer.topic, spark.wormholeHeartBeatTopic, spark.hdfs_root,
+  lazy val riderInfo = RiderInfo(zk, consumer.brokers, consumer.feedbackTopic, spark.wormholeHeartBeatTopic, spark.hdfs_root,
     spark.user, spark.app_tags, spark.rm1Url, spark.rm2Url)
 
   def getStringConfig(path: String, default: String): String = {

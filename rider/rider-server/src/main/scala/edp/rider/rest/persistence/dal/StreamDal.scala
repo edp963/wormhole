@@ -313,7 +313,7 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
                     AppInfo(sparkStatus.appId, "running", startedTime, stoppedTime)
                   }
                 case "stopping" =>
-                  if (sparkStatus.appState == "KILLED") {
+                  if (sparkStatus.appState == "KILLED" || sparkStatus.appState == "FAILED" || sparkStatus.appState == "FINISHED") {
                     AppInfo(sparkStatus.appId, "stopped", sparkStatus.startedTime, sparkStatus.finishedTime)
                   }
                   else {
