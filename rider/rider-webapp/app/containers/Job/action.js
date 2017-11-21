@@ -35,10 +35,8 @@ import {
   LOAD_JOB_NAME,
   LOAD_JOB_NAME_SUCCESS,
   LOAD_JOB_NAME_ERROR,
-  LOAD_JOB_SOURCE_NS,
-  LOAD_JOB_SOURCE_NS_SUCCESS,
-  LOAD_JOB_SINK_NS,
-  LOAD_JOB_SINK_NS_SUCCESS,
+  LOAD_JOB_NS,
+  LOAD_JOB_NS_SUCCESS,
   LOAD_JOB_SOURCETOSINK_EXIST,
   LOAD_JOB_SOURCETOSINK_EXIST_SUCCESS,
   LOAD_JOB_SOURCETOSINK_EXIST_ERROR,
@@ -215,9 +213,9 @@ export function jobNameLoadedError (message, reject) {
   }
 }
 
-export function loadJobSourceNs (projectId, value, type, resolve, reject) {
+export function loadJobNs (projectId, value, type, resolve, reject) {
   return {
-    type: LOAD_JOB_SOURCE_NS,
+    type: LOAD_JOB_NS,
     payload: {
       projectId,
       value,
@@ -228,32 +226,9 @@ export function loadJobSourceNs (projectId, value, type, resolve, reject) {
   }
 }
 
-export function jobSourceNsLoaded (result, resolve) {
+export function jobNsLoaded (result, resolve) {
   return {
-    type: LOAD_JOB_SOURCE_NS_SUCCESS,
-    payload: {
-      result,
-      resolve
-    }
-  }
-}
-
-export function loadJobSinkNs (projectId, value, type, resolve, reject) {
-  return {
-    type: LOAD_JOB_SINK_NS,
-    payload: {
-      projectId,
-      value,
-      type,
-      resolve,
-      reject
-    }
-  }
-}
-
-export function jobSinkNsLoaded (result, resolve) {
-  return {
-    type: LOAD_JOB_SINK_NS_SUCCESS,
+    type: LOAD_JOB_NS_SUCCESS,
     payload: {
       result,
       resolve

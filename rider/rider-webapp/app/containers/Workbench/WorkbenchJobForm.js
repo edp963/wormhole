@@ -385,7 +385,6 @@ export class WorkbenchJobForm extends React.Component {
                   }]
                 })(
                   <DataSystemSelector
-                    jobMode={jobMode}
                     data={sourceDataSystemData}
                     onItemSelect={this.onSourceDataSystemItemSelect}
                     dataSystemDisabled={jobMode === 'edit'}
@@ -424,7 +423,6 @@ export class WorkbenchJobForm extends React.Component {
                   }]
                 })(
                   <DataSystemSelector
-                    jobMode={jobMode}
                     data={sinkDataSystemData}
                     onItemSelect={this.onSinkDataSystemItemSelect}
                     dataSystemDisabled={jobMode === 'edit'}
