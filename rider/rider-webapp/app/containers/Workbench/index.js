@@ -3208,9 +3208,6 @@ export class Workbench extends React.Component {
                     initStartTS={this.initStartTS}
                     initEndTS={this.initEndTS}
 
-                    // sourceNamespaces={projectNamespaces || []}
-                    // sinkNamespaces={projectNamespaces || []}
-
                     jobStepSourceNs={this.state.jobStepSourceNs}
                     jobStepSinkNs={this.state.jobStepSinkNs}
 

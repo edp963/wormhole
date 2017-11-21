@@ -131,11 +131,18 @@ export function* operateUserJob ({ payload }) {
       method: 'put',
       url: `${api.projectUserList}/${payload.values.projectId}/jobs/${Number(payload.values.jobId)}/${payload.values.action}`
     })
-    console.log('result', result)
-    if (result.code && result.code !== 200) {
-      yield put(jobOperatedError(result.msg, payload.reject))
-    } else if (result.header.code && result.header.code === 200) {
-      yield put(jobOperated(result.payload, payload.resolve))
+    if (payload.values.action === 'delete') {
+      if (result.code && result.code !== 200) {
+        yield put(jobOperatedError(result.msg, payload.reject))
+      } else if (result.code && result.code === 200) {
+        yield put(jobOperated(Number(payload.values.jobId), payload.resolve))
+      }
+    } else {
+      if (result.code && result.code !== 200) {
+        yield put(jobOperatedError(result.msg, payload.reject))
+      } else if (result.header.code && result.header.code === 200) {
+        yield put(jobOperated(result.payload, payload.resolve))
+      }
     }
   } catch (err) {
     notifySagasError(err, 'operateUserJob')
