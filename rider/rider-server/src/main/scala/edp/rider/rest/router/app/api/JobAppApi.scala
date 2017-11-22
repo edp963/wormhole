@@ -26,8 +26,8 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.{AppInfo, RiderLogger}
 import edp.rider.rest.persistence.dal.{JobDal, ProjectDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.{ResponseJson, SessionClass}
+//import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, SessionClass}
 import edp.rider.rest.util.AppUtils._
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
@@ -36,7 +36,7 @@ import edp.rider.rest.util.ResponseUtils._
 
 import scala.concurrent.Await
 
-class JobAppApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseAppApiImpl(jobDal) with RiderLogger {
+class JobAppApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseAppApiImpl(jobDal) with RiderLogger with JsonSerializer {
 
   def postRoute(route: String): Route = path(route / LongNumber / "jobs") {
     projectId =>

@@ -26,8 +26,8 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{RelProjectUserDal, UserDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.{LoginClass, ResponseJson, ResponseSeqJson, SessionClass}
+//import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.router._
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
@@ -36,7 +36,7 @@ import slick.jdbc.MySQLProfile.api._
 import scala.util.{Failure, Success}
 
 
-class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) extends BaseAdminApiImpl(userDal) with RiderLogger {
+class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) extends BaseAdminApiImpl(userDal) with RiderLogger with JsonSerializer {
 
   def getByFilterRoute(route: String): Route = path(route) {
     get {
@@ -96,7 +96,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                 complete(OK, getHeader(403, session))
               }
               else {
-                val user = User(0, simple.email, simple.password, simple.name, simple.roleType, active = true, currentSec, session.userId, currentSec, session.userId)
+                val user = User(0, simple.email.trim, simple.password.trim, simple.name.trim, simple.roleType.trim, active = true, currentSec, session.userId, currentSec, session.userId)
                 onComplete(userDal.insert(user).mapTo[User]) {
                   case Success(row) =>
                     riderLogger.info(s"user ${session.userId} insert user success.")
@@ -132,7 +132,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
               if (session.roleType != "admin")
                 complete(OK, getHeader(403, session))
               else {
-                val userEntity = User(user.id, user.email, user.password, user.name, user.roleType, user.active, user.createTime, user.createBy, currentSec, session.userId)
+                val userEntity = User(user.id, user.email.trim, user.password.trim, user.name.trim, user.roleType.trim, user.active, user.createTime, user.createBy, currentSec, session.userId)
                 onComplete(userDal.update(userEntity)) {
                   case Success(result) =>
                     riderLogger.info(s"user ${session.userId} update user success.")

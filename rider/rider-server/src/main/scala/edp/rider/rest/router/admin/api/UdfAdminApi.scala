@@ -24,11 +24,12 @@ package edp.rider.rest.router.admin.api
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
+
 import scala.language.postfixOps
 import edp.rider.rest.persistence.dal.{RelProjectUdfDal, UdfDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+//import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
@@ -39,7 +40,7 @@ import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
 
-class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends BaseAdminApiImpl(udfDal) with RiderLogger {
+class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends BaseAdminApiImpl(udfDal) with RiderLogger with JsonSerializer {
 
   override def getByAllRoute(route: String): Route = path(route) {
     get {
@@ -171,7 +172,7 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
         riderLogger.warn(msg)
         complete(OK, getHeader(409, msg, session))
       } else {
-        val udfInsert = Udf(0, simpleUdf.functionName, simpleUdf.fullClassName, simpleUdf.jarName, Some(simpleUdf.desc.getOrElse("")), simpleUdf.public, currentSec, session.userId, currentSec, session.userId)
+        val udfInsert = Udf(0, simpleUdf.functionName.trim, simpleUdf.fullClassName.trim, simpleUdf.jarName.trim, simpleUdf.desc, simpleUdf.public, currentSec, session.userId, currentSec, session.userId)
         onComplete(udfDal.insert(udfInsert).mapTo[Udf]) {
           case Success(udf) =>
             riderLogger.info(s"user ${
@@ -212,7 +213,7 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
           }
         }
       }
-      val updateUdf = Udf(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic, udf.createTime, udf.createBy, currentSec, session.userId)
+      val updateUdf = Udf(udf.id, udf.functionName.trim, udf.fullClassName.trim, udf.jarName.trim, udf.desc, udf.pubic, udf.createTime, udf.createBy, currentSec, session.userId)
       onComplete(udfDal.update(updateUdf).mapTo[Int]) {
         case Success(_) =>
           riderLogger.info(s"user ${

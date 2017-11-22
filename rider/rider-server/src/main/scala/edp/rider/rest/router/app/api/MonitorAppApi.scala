@@ -27,20 +27,20 @@ import edp.rider.common.RiderLogger
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.dal._
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.{ResponseJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, SessionClass}
 import edp.rider.rest.util.{AuthorizationProvider, StreamUtils}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.JobUtils._
 import edp.rider.rest.util.ResponseUtils._
 import edp.rider.service.util.FeedbackOffsetUtil
 import edp.wormhole.common.util.JsonUtils
-import edp.rider.rest.router.JsonProtocol._
+//import edp.rider.rest.router.JsonProtocol._
 import edp.wormhole.common.util.DateUtils._
 
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
-class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamDal, jobDal: JobDal, feedbackFlowErrDal: FeedbackFlowErrDal, feedbackOffsetDal: FeedbackOffsetDal) extends BaseAppApiImpl(flowDal) with RiderLogger {
+class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamDal, jobDal: JobDal, feedbackFlowErrDal: FeedbackFlowErrDal, feedbackOffsetDal: FeedbackOffsetDal) extends BaseAppApiImpl(flowDal) with RiderLogger with JsonSerializer {
 
   def getFlowHealthByIdRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows" / LongNumber / "health") {
     (projectId, streamId, flowId) =>

@@ -156,7 +156,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
     dbusSeq.map(dbus => {
       val nsSplit: Array[String] = dbus.namespace.split("\\.")
       Namespace(0, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
-        READONLY.toString, Some(""), dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
+        READONLY.toString, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
     })
   }
 
