@@ -40,7 +40,6 @@ import {
   SAVE_FORM,
   CHECKOUT_FORM,
   EDIT_FLOWS,
-  OPERATE_FLOWS,
   QUERY_FLOW
 } from './constants'
 
@@ -74,7 +73,6 @@ import {
   formCheckOuted,
   formCheckOutingError,
   flowEdited,
-  flowOperated,
   flowQueryed
 } from './action'
 
@@ -460,28 +458,6 @@ export function* editFlowWatcher () {
   yield fork(takeEvery, EDIT_FLOWS, editFlow)
 }
 
-export function* operateFlow ({ payload }) {
-  try {
-    yield call(request, {
-      method: 'post',
-      url: `${api.flowService}/${payload.projectId}`,
-      data: {
-        endTime: payload.endDate,
-        startTime: payload.startDate,
-        flowIds: payload.flowIds,
-        operate: payload.operate
-      }
-    })
-    yield put(flowOperated(payload.projectId, payload.flowIds, payload.operate, payload.resolve, payload.reject))
-  } catch (err) {
-    notifySagasError(err, 'operateFlow')
-  }
-}
-
-export function* operateFlowWatcher () {
-  yield fork(takeEvery, OPERATE_FLOWS, operateFlow)
-}
-
 export default [
   getAdminAllFlowsWatcher,
   getUserAllFlowsWatcher,
@@ -503,6 +479,5 @@ export default [
   saveFormWatcher,
   checkOutFormWatcher,
   editFlowWatcher,
-  operateFlowWatcher,
   queryFormWatcher
 ]
