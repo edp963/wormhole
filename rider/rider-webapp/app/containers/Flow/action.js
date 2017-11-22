@@ -67,8 +67,6 @@ import {
   LOAD_SOURCEINPUT,
   LOAD_SOURCEINPUT_SUCCESS,
   LOAD_SOURCEINPUT_ERROR,
-  OPERATE_FLOWS,
-  OPERATE_FLOWS_SUCCESS,
   QUERY_FLOW,
   QUERY_FLOW_SUCCESS
 } from './constants'
@@ -565,34 +563,6 @@ export function flowEdited (result, resolve, final) {
       result,
       resolve,
       final
-    }
-  }
-}
-
-export function operateFlow (projectId, flowIds, operate, startDate, endDate, resolve, reject) {
-  return {
-    type: OPERATE_FLOWS,
-    payload: {
-      projectId,
-      flowIds,
-      operate,
-      startDate,
-      endDate,
-      resolve,
-      reject
-    }
-  }
-}
-
-export function flowOperated (projectId, flowIds, operate, resolve, reject) {
-  return {
-    type: OPERATE_FLOWS_SUCCESS,
-    payload: {
-      projectId,
-      flowIds,
-      operate,
-      resolve,
-      reject
     }
   }
 }

@@ -44,7 +44,7 @@ import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
 import { selectFlows, selectError } from './selectors'
-import { loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm, saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail, loadSourceInput, chuckAwayFlow, operateFlow } from './action'
+import { loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm, saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail, loadSourceInput, chuckAwayFlow } from './action'
 
 export class Flow extends React.Component {
   constructor (props) {
@@ -317,82 +317,76 @@ export class Flow extends React.Component {
     } else if (this.flowsTime.state.endValue === null) {
       message.warning('结束时间不能为空！')
     } else {
-      const s = new Date(this.flowsTime.state.startValue._d)
-      const e = new Date(this.flowsTime.state.endValue._d)
+      // const s = new Date(this.flowsTime.state.startValue._d)
+      // const e = new Date(this.flowsTime.state.endValue._d)
+      //
+      // // 时间格式转换
+      // // start time
+      // let monthStringS = ''
+      // if (s.getMonth() + 1 < 10) {
+      //   monthStringS = `0${s.getMonth() + 1}`
+      // } else {
+      //   monthStringS = `${s.getMonth()}`
+      // }
+      //
+      // let dateStringS = ''
+      // if (s.getDate() < 10) {
+      //   dateStringS = `0${s.getDate()}`
+      // } else {
+      //   dateStringS = `${s.getDate()}`
+      // }
+      //
+      // let hourStringS = ''
+      // if (s.getHours() < 10) {
+      //   hourStringS = `0${s.getHours()}`
+      // } else {
+      //   hourStringS = `${s.getHours()}`
+      // }
+      //
+      // let minuteStringS = ''
+      // if (s.getMinutes() < 10) {
+      //   minuteStringS = `0${s.getMinutes()}`
+      // } else {
+      //   minuteStringS = `${s.getMinutes()}`
+      // }
 
-      // 时间格式转换
-      // start time
-      let monthStringS = ''
-      if (s.getMonth() + 1 < 10) {
-        monthStringS = `0${s.getMonth() + 1}`
-      } else {
-        monthStringS = `${s.getMonth()}`
-      }
+      // // end time
+      // let monthStringE = ''
+      // if (e.getMonth() + 1 < 10) {
+      //   monthStringE = `0${e.getMonth() + 1}`
+      // } else {
+      //   monthStringE = `${e.getMonth()}`
+      // }
+      //
+      // let dateStringE = ''
+      // if (e.getDate() < 10) {
+      //   dateStringE = `0${e.getDate()}`
+      // } else {
+      //   dateStringE = `${e.getDate()}`
+      // }
 
-      let dateStringS = ''
-      if (s.getDate() < 10) {
-        dateStringS = `0${s.getDate()}`
-      } else {
-        dateStringS = `${s.getDate()}`
-      }
-
-      let hourStringS = ''
-      if (s.getHours() < 10) {
-        hourStringS = `0${s.getHours()}`
-      } else {
-        hourStringS = `${s.getHours()}`
-      }
-
-      let minuteStringS = ''
-      if (s.getMinutes() < 10) {
-        minuteStringS = `0${s.getMinutes()}`
-      } else {
-        minuteStringS = `${s.getMinutes()}`
-      }
-
-      // end time
-      let monthStringE = ''
-      if (e.getMonth() + 1 < 10) {
-        monthStringE = `0${e.getMonth() + 1}`
-      } else {
-        monthStringE = `${e.getMonth()}`
-      }
-
-      let dateStringE = ''
-      if (e.getDate() < 10) {
-        dateStringE = `0${e.getDate()}`
-      } else {
-        dateStringE = `${e.getDate()}`
-      }
-
-      let hourStringE = ''
-      if (e.getHours() < 10) {
-        hourStringE = `0${e.getHours()}`
-      } else {
-        hourStringE = `${e.getHours()}`
-      }
-
-      let minuteStringE = ''
-      if (e.getMinutes() < 10) {
-        minuteStringE = `0${e.getMinutes()}`
-      } else {
-        minuteStringE = `${e.getMinutes()}`
-      }
+      // let hourStringE = ''
+      // if (e.getHours() < 10) {
+      //   hourStringE = `0${e.getHours()}`
+      // } else {
+      //   hourStringE = `${e.getHours()}`
+      // }
+      //
+      // let minuteStringE = ''
+      // if (e.getMinutes() < 10) {
+      //   minuteStringE = `0${e.getMinutes()}`
+      // } else {
+      //   minuteStringE = `${e.getMinutes()}`
+      // }
 
       // 时间格式拼接
-      const startDate = `${s.getFullYear()}-${monthStringS}-${dateStringS} ${hourStringS}:${minuteStringS}`
-      const endDate = `${e.getFullYear()}-${monthStringE}-${dateStringE} ${hourStringE}:${minuteStringE}`
+      // const startDate = `${s.getFullYear()}-${monthStringS}-${dateStringS} ${hourStringS}:${minuteStringS}`
+      // const endDate = `${e.getFullYear()}-${monthStringE}-${dateStringE} ${hourStringE}:${minuteStringE}`
 
-      const flowIds = this.state.selectedRowKeys.length === 0
-        ? `${this.state.flowIdTemp}`
-        : this.state.selectedRowKeys.join(',')
+      // const flowIds = this.state.selectedRowKeys.length === 0
+      //   ? `${this.state.flowIdTemp}`
+      //   : this.state.selectedRowKeys.join(',')
 
-      this.props.onOperateFlow(this.props.projectIdGeted, flowIds, 'backfill', startDate, endDate, () => {
-        message.success('Backfill 成功！', 3)
-        this.setState({
-          selectedRowKeys: []
-        })
-      })
       this.setState({
         timeModalVisible: false
       })
@@ -1073,7 +1067,6 @@ Flow.propTypes = {
   projectIdGeted: React.PropTypes.string,
   flowClassHide: React.PropTypes.string,
 
-  onOperateFlow: React.PropTypes.func,
   onLoadAdminAllFlows: React.PropTypes.func,
   onLoadUserAllFlows: React.PropTypes.func,
   onLoadAdminSingleFlow: React.PropTypes.func,
@@ -1095,9 +1088,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadSourceSinkDetail: (id, pageIndex, pageSize, resolve) => dispatch(loadSourceSinkDetail(id, pageIndex, pageSize, resolve)),
     onLoadSinkWriteRrrorDetail: (id, pageIndex, pageSize, resolve) => dispatch(loadSinkWriteRrrorDetail(id, pageIndex, pageSize, resolve)),
     onLoadSourceInput: (flowId, taskType, resolve) => dispatch(loadSourceInput(flowId, taskType, resolve)),
-    onChuckAwayFlow: () => dispatch(chuckAwayFlow()),
-
-    onOperateFlow: (projectId, flowIds, operate, startDate, endDate, resolve, reject) => dispatch(operateFlow(projectId, flowIds, operate, startDate, endDate, resolve, reject))
+    onChuckAwayFlow: () => dispatch(chuckAwayFlow())
   }
 }
 

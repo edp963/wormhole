@@ -95,7 +95,7 @@ function jobReducer (state = initialState, { type, payload }) {
         return state.set('jobs', jobs.filter(g => g.job.id !== payload.result))
       } else {
         payload.resolve(payload.result)
-        jobs.splice(jobs.indexOf(jobs.find(g => g.id === payload.result.job.id)), 1, payload.result)
+        jobs.splice(jobs.indexOf(jobs.find(g => g.job.id === payload.result.job.id)), 1, payload.result)
         return state.set('jobs', jobs.slice())
       }
     case OPERATE_JOB_ERROR:

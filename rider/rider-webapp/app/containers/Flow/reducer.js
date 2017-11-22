@@ -68,9 +68,7 @@ import {
   EDIT_FLOWS_SUCCESS,
   LOAD_SOURCEINPUT,
   LOAD_SOURCEINPUT_SUCCESS,
-  LOAD_SOURCEINPUT_ERROR,
-  OPERATE_FLOWS,
-  OPERATE_FLOWS_SUCCESS
+  LOAD_SOURCEINPUT_ERROR
 } from './constants'
 import { fromJS } from 'immutable'
 
@@ -226,51 +224,10 @@ function flowReducer (state = initialState, { type, payload }) {
     case EDIT_FLOWS_SUCCESS:
       payload.resolve()
       flows.splice(flows.indexOf(flows.find(p => p.id === payload.result.id)), 1, payload.result)
-      // if (payload.result.header.code < 400) {
-      //   payload.resolve()
-      //   flows.splice(flows.indexOf(flows.find(p => p.id === payload.result.payload.id)), 1, payload.result.payload)
-      // } else {
-      //   payload.reject(payload.result)
-      // }
       payload.final()
       return state
         .set('flows', flows.slice())
         .set('flowSubmitLoading', false)
-    case OPERATE_FLOWS:
-      return state.set('error', false)
-    case OPERATE_FLOWS_SUCCESS:
-      payload.resolve()
-      let selectedOperateFlows = flows.filter(g => payload.flowIds.split(',').indexOf(`${g.id}`) >= 0)
-
-      if (payload.operate !== 'backfill') {
-        if (payload.operate === 'start') {
-          selectedOperateFlows.forEach((element) => {
-            if (element.status === 'failed' || element.status === 'stopped' || element.status === 'new') {
-              element.status = 'starting'
-            } else {
-              console.log('start-todo')
-            }
-          })
-        } else if (payload.operate === 'stop') {
-          selectedOperateFlows.forEach((element) => {
-            if (element.status === 'starting' || element.status === 'running') {
-              element.status = 'stopping'
-            } else {
-              console.log('stop-todo')
-            }
-          })
-        } else if (payload.operate === 'delete') {
-          selectedOperateFlows.forEach((element) => {
-            if (element.status === 'failed' || element.status === 'new' || element.status === 'stopped') {
-              element.status = 'deleting'
-            } else {
-              console.log('delete-todo')
-            }
-          })
-        }
-      }
-
-      return state.set('flows', flows.slice())
     default:
       return state
   }
