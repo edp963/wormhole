@@ -86,12 +86,20 @@ export class WorkbenchJobForm extends React.Component {
     this.props.initStartTS(dateString)
   }
 
+  onOkStartTs= (value) => {
+   // console.log('onOkStart: ', value)
+  }
+
   onChangeEndTs = (value, dateString) => {
     this.props.initEndTS(dateString)
   }
 
+  onOkEndTs= (value) => {
+    // console.log('onOkEnd: ', value)
+  }
+
   render () {
-    const { step, form, jobMode, fieldSelected, streamDiffType, jobTranTableConfirmValue } = this.props
+    const { step, form, jobMode, fieldSelected, jobTranTableConfirmValue } = this.props
     const { getFieldDecorator } = form
     const { onShowJobTransModal, onShowJobSinkConfigModal } = this.props
     const { jobTransTableSource, onDeleteSingleTransform, onAddTransform, onEditTransform, onUpTransform, onDownTransform } = this.props
@@ -139,19 +147,22 @@ export class WorkbenchJobForm extends React.Component {
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} }
     ]
 
-    let formDSNSValues = ''
     let formValues = ''
-    if (streamDiffType === 'default') {
-      formValues = this.props.form.getFieldsValue([
-        'sourceDataSystem',
-        'sourceNamespace',
-        'sinkDataSystem',
-        'sinkNamespace',
-        'sinkConfig'
-      ])
-    }
+    formValues = this.props.form.getFieldsValue([
+      'jobName',
+      'type',
+      // Spark Configs
+      // 'eventStartTs',
+      // 'eventEndTs',
+      'sourceDataSystem',
+      'sourceNamespace',
+      'sinkDataSystem',
+      'sinkNamespace',
+      'maxRecordPerPartitionProcessed'
+      // 'sinkConfig'
+    ])
 
-    const step3ConfirmDSNS = Object.keys(formDSNSValues).map(key => (
+    const step3ConfirmDSNS = Object.keys(formValues).map(key => (
       <Col span={24} key={key}>
         <div className="ant-row ant-form-item">
           <Row>
@@ -355,7 +366,7 @@ export class WorkbenchJobForm extends React.Component {
                     format="YYYY-MM-DD HH:mm:ss"
                     placeholder="Select Start Time"
                     onChange={this.onChangeStartTs}
-                    onOk={this.onOkStartTs}
+                    // onOk={this.onOkStartTs}
                   />
                 )}
               </FormItem>
@@ -368,7 +379,7 @@ export class WorkbenchJobForm extends React.Component {
                     format="YYYY-MM-DD HH:mm:ss"
                     placeholder="Select End Time"
                     onChange={this.onChangeEndTs}
-                    onOk={this.onOkEndTs}
+                    // onOk={this.onOkEndTs}
                   />
                 )}
               </FormItem>
@@ -632,7 +643,6 @@ WorkbenchJobForm.propTypes = {
   jobResultFieldsValue: React.PropTypes.string,
   jobTranTableConfirmValue: React.PropTypes.string,
   fieldSelected: React.PropTypes.string,
-  streamDiffType: React.PropTypes.string,
   initResultFieldClass: React.PropTypes.func,
   initDataShowClass: React.PropTypes.func,
   initStartTS: React.PropTypes.func,
