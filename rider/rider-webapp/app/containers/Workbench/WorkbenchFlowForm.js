@@ -41,7 +41,7 @@ import Radio from 'antd/lib/radio'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 
-import { prettyShownText } from '../../utils/util'
+import { prettyShownText, uuid } from '../../utils/util'
 
 export class WorkbenchFlowForm extends React.Component {
   constructor (props) {
@@ -54,6 +54,13 @@ export class WorkbenchFlowForm extends React.Component {
 
   componentWillReceiveProps (props) {
     this.setState({ flowMode: props.flowMode })
+    if (props.transformTableSource) {
+      props.transformTableSource.map(s => {
+        s.key = uuid()
+        // s.visible = false
+        return s
+      })
+    }
   }
 
   onAllOrNotSelect = (e) => this.props.initResultFieldClass(e)
@@ -276,8 +283,8 @@ export class WorkbenchFlowForm extends React.Component {
       width: '12%'
     }, {
       title: 'Config Info',
-      dataIndex: 'transformConfigInfo',
-      key: 'transformConfigInfo',
+      dataIndex: 'tranConfigInfoSql',
+      key: 'tranConfigInfoSql',
       width: '65%'
     }, {
       title: 'Transform Config Info Request',
@@ -453,13 +460,6 @@ export class WorkbenchFlowForm extends React.Component {
                     options={sourceTypeNamespaceData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
-                    onChange={(labels, options) => {
-                      // const sourceNsId = sourceTypeNamespaceData.find(i => i.value === options[options.length - 1].value)
-                      // console.log('sourceNsId', sourceNsId)
-                      // this.props.form.setFieldsValue({
-                      //   sourceNamespaceId: sourceNsId
-                      // })
-                    }}
                   />
                 )}
               </FormItem>
@@ -541,14 +541,6 @@ export class WorkbenchFlowForm extends React.Component {
                     options={sinkTypeNamespaceData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
-                    // onChange={(labels, options) => {
-                    //   const { topicName, topicId, type } = options[options.length - 1]
-                    //   this.props.form.setFieldsValue({
-                    //     sourceTopicName: topicName,
-                    //     sourceTopicId: topicId,
-                    //     sourceType: type
-                    //   })
-                    // }}
                   />
                 )}
               </FormItem>
