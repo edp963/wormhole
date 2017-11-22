@@ -784,8 +784,6 @@ export class Workbench extends React.Component {
               tranTableSourceTemp.transformConfigInfo = `${tranConfigInfoTemp};`
               tranTableSourceTemp.transformConfigInfoRequest = `${i};`
               tranTableSourceTemp.transformType = tranTypeTepm
-              // tranTableSourceTemp.key = index
-              // tranTableSourceTemp.visible = false
               return tranTableSourceTemp
             })
 
@@ -990,6 +988,7 @@ export class Workbench extends React.Component {
             this.state.flowFormTranTableSource = tranActionArr.map((i, index) => {
               const tranTableSourceTemp = {}
               let tranConfigInfoTemp = ''
+              let tranConfigInfoSqlTemp = ''
               let tranTypeTepm = ''
               let pushdownConTepm = ''
 
@@ -1001,6 +1000,7 @@ export class Workbench extends React.Component {
                 const lookupAfterPartTepm = lookupAfterPart.replace(/(^\s*)|(\s*$)/g, '') // 去字符串前后的空白；sql语句回显
 
                 tranConfigInfoTemp = [lookupBeforePartTemp[1], lookupBeforePartTemp[3], lookupAfterPartTepm].join('.')
+                tranConfigInfoSqlTemp = lookupAfterPartTepm
                 tranTypeTepm = 'lookupSql'
 
                 const tmpObj = tranConfigVal.pushdown_connection.find(g => g.name_space === lookupBeforePartTemp[3])
@@ -1032,6 +1032,7 @@ export class Workbench extends React.Component {
                 const iTemp3Temp = streamJoinBeforePartTemp[3].substring(streamJoinBeforePartTemp[3].indexOf('(') + 1)
                 const iTemp3Val = iTemp3Temp.substring(0, iTemp3Temp.indexOf(')'))
                 tranConfigInfoTemp = [streamJoinBeforePartTemp[1], iTemp3Val, streamJoinAfterPartTepm].join('.')
+                tranConfigInfoSqlTemp = streamJoinAfterPartTepm
                 tranTypeTepm = 'streamJoinSql'
                 pushdownConTepm = ''
               }
@@ -1041,26 +1042,27 @@ export class Workbench extends React.Component {
                 const sparkAfterPartTepm = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
 
                 tranConfigInfoTemp = sparkAfterPartTepm
+                tranConfigInfoSqlTemp = sparkAfterPartTepm
                 tranTypeTepm = 'sparkSql'
                 pushdownConTepm = ''
               }
 
               if (i.indexOf('custom_class') > -1) {
-                const sparkAfterPart = i.substring(i.indexOf('=') + 1)
-                const sparkAfterPartTepm = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
+                const classAfterPart = i.substring(i.indexOf('=') + 1)
+                const classAfterPartTepm = classAfterPart.replace(/(^\s*)|(\s*$)/g, '')
 
-                tranConfigInfoTemp = sparkAfterPartTepm
+                tranConfigInfoTemp = classAfterPartTepm
+                tranConfigInfoSqlTemp = classAfterPartTepm
                 tranTypeTepm = 'transformClassName'
                 pushdownConTepm = ''
               }
 
               tranTableSourceTemp.order = index + 1
               tranTableSourceTemp.transformConfigInfo = `${tranConfigInfoTemp};`
+              tranTableSourceTemp.tranConfigInfoSql = tranConfigInfoSqlTemp
               tranTableSourceTemp.transformConfigInfoRequest = `${i};`
               tranTableSourceTemp.transformType = tranTypeTepm
               tranTableSourceTemp.pushdownConnection = pushdownConTepm
-              // tranTableSourceTemp.key = index
-              // tranTableSourceTemp.visible = false
               return tranTableSourceTemp
             })
 
@@ -1789,8 +1791,6 @@ export class Workbench extends React.Component {
     const startTs = val.replace(/-| |:/g, '')
     this.setState({
       startTsVal: startTs
-    }, () => {
-      console.log('s', this.state.startTsVal)
     })
   }
 
@@ -2109,7 +2109,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  // Flow Transformation Modal
+  // flow Transformation Modal
   onShowTransformModal = () => this.setState({ transformModalVisible: true })
 
   // Job Transformation Modal
@@ -2225,7 +2225,6 @@ export class Workbench extends React.Component {
     })
   }
 
-  // flow
   hideTransformModal = () => {
     this.setState({
       transformModalVisible: false,
@@ -2234,7 +2233,6 @@ export class Workbench extends React.Component {
     this.flowTransformForm.resetFields()
   }
 
-  // job
   hideJobTransModal = () => {
     this.setState({
       jobTransModalVisible: false,
@@ -2338,6 +2336,7 @@ export class Workbench extends React.Component {
     this.flowTransformForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         let transformConfigInfoString = ''
+        let tranConfigInfoSqlString = ''
         let transformConfigInfoRequestString = ''
         let pushdownConnectionString = ''
 
@@ -2359,6 +2358,7 @@ export class Workbench extends React.Component {
 
           const sysInsDb = [values.transformSinkDataSystem, values.transformSinkNamespace[0], values.transformSinkNamespace[1]].join('.')
           transformConfigInfoString = `${values.lookupSqlType}.${values.transformSinkDataSystem}.${values.transformSinkNamespace.join('.')}.${lookupSqlVal}`
+          tranConfigInfoSqlString = lookupSqlVal
           transformConfigInfoRequestString = `pushdown_sql ${lookupSqlTypeOrigin} with ${sysInsDb} = ${lookupSqlVal}`
           const tmp = transformSinkNamespaceArray.find(i => [i.nsSys, i.nsInstance, i.nsDatabase].join('.') === sysInsDb)
 
@@ -2386,6 +2386,7 @@ export class Workbench extends React.Component {
           const sparkSqlVal = values.sparkSql.replace(/(^\s*)|(\s*$)/g, '')
 
           transformConfigInfoString = sparkSqlVal
+          tranConfigInfoSqlString = sparkSqlVal
           transformConfigInfoRequestString = `spark_sql = ${sparkSqlVal}`
           pushdownConnectionString = ''
 
@@ -2403,6 +2404,7 @@ export class Workbench extends React.Component {
           }
           // transformConfigInfoString = `${values.streamJoinSqlType}.${values.streamJoinSqlConfig}.${values.timeout}.${streamJoinSqlVal}`
           transformConfigInfoString = `${values.streamJoinSqlType}.${values.timeout}.${streamJoinSqlVal}`
+          tranConfigInfoSqlString = streamJoinSqlVal
           transformConfigInfoRequestString = `parquet_sql ${streamJoinSqlTypeOrigin} with ${step2SourceNamespace}.*.*.*(${values.timeout}) = ${streamJoinSqlVal}`
           pushdownConnectionString = ''
 
@@ -2413,6 +2415,7 @@ export class Workbench extends React.Component {
           const transformClassNameVal = values.transformClassName.replace(/(^\s*)|(\s*$)/g, '')
 
           transformConfigInfoString = transformClassNameVal
+          tranConfigInfoSqlString = transformClassNameVal
           transformConfigInfoRequestString = `custom_class = ${transformClassNameVal}`
           pushdownConnectionString = ''
 
@@ -2438,6 +2441,7 @@ export class Workbench extends React.Component {
                 transformType: values.transformation,
                 order: 1,
                 transformConfigInfo: transformConfigInfoString,
+                tranConfigInfoSql: tranConfigInfoSqlString,
                 transformConfigInfoRequest: transformConfigInfoRequestString,
                 pushdownConnection: pushdownConnectionString
               })
@@ -2455,6 +2459,7 @@ export class Workbench extends React.Component {
                 transformType: values.transformation,
                 order: values.editTransformId,
                 transformConfigInfo: transformConfigInfoString,
+                tranConfigInfoSql: tranConfigInfoSqlString,
                 transformConfigInfoRequest: transformConfigInfoRequestString,
                 pushdownConnection: pushdownConnectionString
               }
@@ -2465,6 +2470,7 @@ export class Workbench extends React.Component {
                 transformType: values.transformation,
                 order: values.editTransformId + 1,
                 transformConfigInfo: transformConfigInfoString,
+                tranConfigInfoSql: tranConfigInfoSqlString,
                 transformConfigInfoRequest: transformConfigInfoRequestString,
                 pushdownConnection: pushdownConnectionString
               })
@@ -2554,6 +2560,7 @@ export class Workbench extends React.Component {
       transformType: record.transformType,
       order: record.order,
       transformConfigInfo: record.transformConfigInfo,
+      tranConfigInfoSql: record.tranConfigInfoSql,
       transformConfigInfoRequest: record.transformConfigInfoRequest,
       pushdownConnection: record.pushdownConnection
     }]
@@ -2565,6 +2572,7 @@ export class Workbench extends React.Component {
       transformType: beforeArr[0].transformType,
       order: record.order,
       transformConfigInfo: beforeArr[0].transformConfigInfo,
+      tranConfigInfoSql: beforeArr[0].tranConfigInfoSql,
       transformConfigInfoRequest: beforeArr[0].transformConfigInfoRequest,
       pushdownConnection: beforeArr[0].pushdownConnection
     }
@@ -2573,6 +2581,7 @@ export class Workbench extends React.Component {
       transformType: record.transformType,
       order: record.order - 1,
       transformConfigInfo: record.transformConfigInfo,
+      tranConfigInfoSql: record.tranConfigInfoSql,
       transformConfigInfoRequest: record.transformConfigInfoRequest,
       pushdownConnection: record.pushdownConnection
     }
@@ -2590,6 +2599,7 @@ export class Workbench extends React.Component {
       transformType: record.transformType,
       order: record.order,
       transformConfigInfo: record.transformConfigInfo,
+      tranConfigInfoSql: record.tranConfigInfoSql,
       transformConfigInfoRequest: record.transformConfigInfoRequest
     }]
 
@@ -2600,6 +2610,7 @@ export class Workbench extends React.Component {
       transformType: beforeArr[0].transformType,
       order: record.order,
       transformConfigInfo: beforeArr[0].transformConfigInfo,
+      tranConfigInfoSql: beforeArr[0].tranConfigInfoSql,
       transformConfigInfoRequest: beforeArr[0].transformConfigInfoRequest
     }
 
@@ -2607,6 +2618,7 @@ export class Workbench extends React.Component {
       transformType: record.transformType,
       order: record.order - 1,
       transformConfigInfo: record.transformConfigInfo,
+      tranConfigInfoSql: record.tranConfigInfoSql,
       transformConfigInfoRequest: record.transformConfigInfoRequest
     }
 
@@ -2623,6 +2635,7 @@ export class Workbench extends React.Component {
       transformType: record.transformType,
       order: record.order,
       transformConfigInfo: record.transformConfigInfo,
+      tranConfigInfoSql: record.tranConfigInfoSql,
       transformConfigInfoRequest: record.transformConfigInfoRequest,
       pushdownConnection: record.pushdownConnection
     }]
@@ -2634,6 +2647,7 @@ export class Workbench extends React.Component {
       transformType: afterArr[0].transformType,
       order: record.order,
       transformConfigInfo: afterArr[0].transformConfigInfo,
+      tranConfigInfoSql: afterArr[0].tranConfigInfoSql,
       transformConfigInfoRequest: afterArr[0].transformConfigInfoRequest,
       pushdownConnection: afterArr[0].pushdownConnection
     }
@@ -2642,6 +2656,7 @@ export class Workbench extends React.Component {
       transformType: record.transformType,
       order: record.order + 1,
       transformConfigInfo: record.transformConfigInfo,
+      tranConfigInfoSql: record.tranConfigInfoSql,
       transformConfigInfoRequest: record.transformConfigInfoRequest,
       pushdownConnection: record.pushdownConnection
     }

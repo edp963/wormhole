@@ -42,13 +42,23 @@ const RadioButton = Radio.Button
 import DatePicker from 'antd/lib/date-picker'
 // const { RangePicker } = DatePicker
 
-import { prettyShownText } from '../../utils/util'
+import { prettyShownText, uuid } from '../../utils/util'
 
 export class WorkbenchJobForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
       sinkConfigClass: ''
+    }
+  }
+
+  componentWillReceiveProps (props) {
+    if (props.jobTransTableSource) {
+      props.jobTransTableSource.map(s => {
+        s.key = uuid()
+        // s.visible = false
+        return s
+      })
     }
   }
 
@@ -86,16 +96,8 @@ export class WorkbenchJobForm extends React.Component {
     this.props.initStartTS(dateString)
   }
 
-  onOkStartTs= (value) => {
-   // console.log('onOkStart: ', value)
-  }
-
   onChangeEndTs = (value, dateString) => {
     this.props.initEndTS(dateString)
-  }
-
-  onOkEndTs= (value) => {
-    // console.log('onOkEnd: ', value)
   }
 
   render () {
@@ -366,7 +368,6 @@ export class WorkbenchJobForm extends React.Component {
                     format="YYYY-MM-DD HH:mm:ss"
                     placeholder="Select Start Time"
                     onChange={this.onChangeStartTs}
-                    // onOk={this.onOkStartTs}
                   />
                 )}
               </FormItem>
@@ -379,7 +380,6 @@ export class WorkbenchJobForm extends React.Component {
                     format="YYYY-MM-DD HH:mm:ss"
                     placeholder="Select End Time"
                     onChange={this.onChangeEndTs}
-                    // onOk={this.onOkEndTs}
                   />
                 )}
               </FormItem>
