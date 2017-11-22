@@ -59,7 +59,7 @@ object TopicSource extends RiderLogger {
       .withBootstrapServers(RiderConfig.consumer.brokers)
       .withGroupId(RiderConfig.consumer.group_id)
       .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-    Consumer.committablePartitionedSource(consumerSettings, Subscriptions.topics(RiderConfig.consumer.topic))
+    Consumer.committablePartitionedSource(consumerSettings, Subscriptions.topics(RiderConfig.consumer.feedbackTopic))
   }
 
 
@@ -67,7 +67,7 @@ object TopicSource extends RiderLogger {
     val consumerSettings = ConsumerSettings(system, new ByteArrayDeserializer, new StringDeserializer)
       .withBootstrapServers(RiderConfig.consumer.brokers)
       .withGroupId(RiderConfig.consumer.group_id)
-    val topicMap: mutable.Map[TopicPartition, Long] = FeedbackOffsetUtil.getTopicMapForDB(0,RiderConfig.consumer.topic, RiderConfig.consumer.partitions)
+    val topicMap: mutable.Map[TopicPartition, Long] = FeedbackOffsetUtil.getTopicMapForDB(0,RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions)
     if (topicMap == null || topicMap.isEmpty) {
       riderLogger.error(s"topicMap is empty")
     }

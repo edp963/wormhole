@@ -119,7 +119,7 @@ object StreamUtils extends RiderLogger {
                     AppInfo(sparkStatus.appId, "running", startedTime, stoppedTime)
                   }
                 case "stopping" =>
-                  if (sparkStatus.appState == "KILLED") {
+                  if (sparkStatus.appState == "KILLED" || sparkStatus.appState == "FAILED" || sparkStatus.appState == "FINISHED") {
                     AppInfo(sparkStatus.appId, "stopped", sparkStatus.startedTime, sparkStatus.finishedTime)
                   }
                   else {
@@ -155,7 +155,7 @@ object StreamUtils extends RiderLogger {
   def getBatchFlowConfig(streamDetail: StreamDetail) = {
     val launchConfig = json2caseClass[LaunchConfig](streamDetail.stream.launchConfig)
     val config = BatchFlowConfig(KafkaInputBaseConfig(streamDetail.stream.name, launchConfig.durations.toInt, streamDetail.kafkaInfo.connUrl, launchConfig.maxRecords.toInt * 1024 * 1024),
-      KafkaOutputConfig(RiderConfig.consumer.topic, RiderConfig.consumer.brokers),
+      KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
       SparkConfig(streamDetail.stream.id, streamDetail.stream.name, "yarn-cluster", launchConfig.partitions.toInt),
       launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfs_root))
     caseClass2json[BatchFlowConfig](config)
