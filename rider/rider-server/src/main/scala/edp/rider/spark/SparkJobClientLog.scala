@@ -67,11 +67,13 @@ object SparkJobClientLog extends RiderLogger {
       val isAccepted = fileLines.count(s => s contains s"(state: $ACCEPTED)")
       val isFinished = fileLines.count(s => s contains s"((state: $FINISHED))")
 
-      val status = if (hasException == 0 && isRunning > 0) StreamStatus.RUNNING.toString
-      else if (hasException > 0) StreamStatus.FAILED.toString
-      else if (isAccepted > 0) StreamStatus.WAITING.toString
-      else if (isFinished > 0) StreamStatus.FINISHED.toString
-      else curStatus
+      val status =
+        if (appId == "") curStatus
+        else if (hasException == 0 && isRunning > 0) StreamStatus.RUNNING.toString
+        else if (hasException > 0) StreamStatus.FAILED.toString
+        else if (isAccepted > 0) StreamStatus.WAITING.toString
+        else if (isFinished > 0) StreamStatus.FINISHED.toString
+        else curStatus
       (appId, status)
     }
     catch {
