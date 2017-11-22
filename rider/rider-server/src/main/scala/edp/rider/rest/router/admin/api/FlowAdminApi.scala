@@ -26,15 +26,15 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{FlowDal, StreamDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.{ResponseSeqJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.rest.router.JsonProtocol._
+//import edp.rider.rest.router.JsonProtocol._
 import slick.jdbc.MySQLProfile.api._
 
 import scala.util.{Failure, Success}
 
-class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiImpl(flowDal) with RiderLogger {
+class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiImpl(flowDal) with RiderLogger with JsonSerializer {
 
   override def getByAllRoute(route: String): Route = path(route) {
     get {

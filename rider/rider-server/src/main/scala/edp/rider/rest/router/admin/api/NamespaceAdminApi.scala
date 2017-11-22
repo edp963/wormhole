@@ -26,8 +26,8 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{NamespaceDal, NsDatabaseDal, RelProjectNsDal}
 import edp.rider.rest.persistence.entities.{Namespace, _}
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+//import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
@@ -36,7 +36,7 @@ import slick.jdbc.MySQLProfile.api._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.{Failure, Success}
 
-class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, relProjectNsDal: RelProjectNsDal) extends BaseAdminApiImpl(namespaceDal) with RiderLogger {
+class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, relProjectNsDal: RelProjectNsDal) extends BaseAdminApiImpl(namespaceDal) with RiderLogger with JsonSerializer {
 
   override def getByIdRoute(route: String): Route = path(route / LongNumber) {
     id =>
@@ -123,7 +123,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                         val permission = db.permission
                         val nsSeq = new ArrayBuffer[Namespace]
                         simple.nsTables.map(nsTable => {
-                          nsSeq += Namespace(0, simple.nsSys, simple.nsInstance, simple.nsDatabase, nsTable.table, "*", "*", "*", permission, nsTable.key,
+                          nsSeq += Namespace(0, simple.nsSys.trim, simple.nsInstance.trim, simple.nsDatabase.trim, nsTable.table.trim, "*", "*", "*", permission.trim, nsTable.key,
                             simple.nsDatabaseId, simple.nsInstanceId, active = true, currentSec, session.userId, currentSec, session.userId)
                         })
                         onComplete(namespaceDal.insert(nsSeq).mapTo[Seq[Namespace]]) {
@@ -183,7 +183,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                 complete(OK, getHeader(403, session))
               }
               else {
-                val namespace = Namespace(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar,
+                val namespace = Namespace(ns.id, ns.nsSys.trim, ns.nsInstance.trim, ns.nsDatabase.trim, ns.nsTable.trim, ns.nsVersion, ns.nsDbpar, ns.nsTablepar,
                   ns.permission, ns.keys, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, currentSec, session.userId)
                 onComplete(namespaceDal.update(namespace).mapTo[Int]) {
                   case Success(num) =>

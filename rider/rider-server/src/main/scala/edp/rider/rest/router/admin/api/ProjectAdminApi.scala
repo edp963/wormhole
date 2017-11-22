@@ -27,8 +27,8 @@ import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.monitor.Dashboard
 import edp.rider.rest.persistence.dal.{ProjectDal, RelProjectNsDal, RelProjectUdfDal, RelProjectUserDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+//import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
@@ -37,7 +37,7 @@ import slick.jdbc.MySQLProfile.api._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.{Failure, Success}
 
-class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, relProjectUserDal: RelProjectUserDal, relProjectUdfDal: RelProjectUdfDal) extends BaseAdminApiImpl(projectDal) with RiderLogger {
+class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, relProjectUserDal: RelProjectUserDal, relProjectUdfDal: RelProjectUdfDal) extends BaseAdminApiImpl(projectDal) with RiderLogger with JsonSerializer {
 
   override def getByIdRoute(route: String): Route = path(route / LongNumber) {
     id =>
@@ -126,7 +126,7 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
                 complete(OK, getHeader(403, session))
               }
               else {
-                val projectEntity = Project(0, simple.name, Some(simple.desc.getOrElse("")), simple.pic, simple.resCores, simple.resMemoryG, active = true, currentSec, session.userId, currentSec, session.userId)
+                val projectEntity = Project(0, simple.name.trim, simple.desc, simple.pic, simple.resCores, simple.resMemoryG, active = true, currentSec, session.userId, currentSec, session.userId)
                 onComplete(projectDal.insert(projectEntity).mapTo[Project]) {
                   case Success(project) =>
                     riderLogger.info(s"user ${session.userId} insert project success.")
@@ -188,7 +188,7 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
                 complete(OK, getHeader(403, session))
               }
               else {
-                val projectEntity = Project(entity.id, entity.name, Some(entity.desc.getOrElse("")), entity.pic, entity.resCores, entity.resMemoryG, entity.active, entity.createTime, entity.createBy, currentSec, session.userId)
+                val projectEntity = Project(entity.id, entity.name.trim, entity.desc, entity.pic, entity.resCores, entity.resMemoryG, entity.active, entity.createTime, entity.createBy, currentSec, session.userId)
                 onComplete(projectDal.update(projectEntity).mapTo[Int]) {
                   case Success(_) =>
                     riderLogger.info(s"user ${session.userId} updated project success.")
