@@ -26,8 +26,8 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{FlowDal, StreamDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+//import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
 import edp.rider.rest.util.{AuthorizationProvider, FlowUtils}
@@ -36,7 +36,7 @@ import slick.jdbc.MySQLProfile.api._
 
 import scala.util.{Failure, Success}
 
-class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImpl[FlowTable, Flow](flowDal) with RiderLogger {
+class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImpl[FlowTable, Flow](flowDal) with RiderLogger with JsonSerializer {
 
   override def getByIdRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows" / LongNumber) {
     (projectId, streamId, flowId) =>
@@ -146,13 +146,13 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                     if (checkFormat._1) {
                       val flowInsertSeq =
                         if (streamDal.getStreamDetail(Some(projectId), Some(streamId)).head.stream.streamType != "hdfslog")
-                          Seq(Flow(0, simple.projectId, simple.streamId, simple.sourceNs, simple.sinkNs, simple.consumedProtocol, simple.sinkConfig,
-                            simple.tranConfig, "new", null, null, active = true, currentSec, session.userId, currentSec, session.userId))
+                          Seq(Flow(0, simple.projectId, simple.streamId, simple.sourceNs.trim, simple.sinkNs.trim, simple.consumedProtocol.trim, simple.sinkConfig,
+                            simple.tranConfig, "new", None, None, active = true, currentSec, session.userId, currentSec, session.userId))
                         else
                           FlowUtils.flowMatch(projectId, streamId, simple.sourceNs).map(
                             sourceNs =>
                               Flow(0, simple.projectId, simple.streamId, sourceNs, sourceNs, simple.consumedProtocol, simple.sinkConfig,
-                                simple.tranConfig, "new", null, null, active = true, currentSec, session.userId, currentSec, session.userId)
+                                simple.tranConfig, "new", None, None, active = true, currentSec, session.userId, currentSec, session.userId)
                           )
                       try {
                         val flows = flowDal.insertOrAbort(flowInsertSeq)
@@ -173,7 +173,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                           else
                             complete(OK, getHeader(451, ex.getMessage, session))
                       }
-                    } else{
+                    } else {
                       riderLogger.warn(s"user ${session.userId} insert flow failed, caused by ${checkFormat._2}")
                       complete(OK, getHeader(400, checkFormat._2, session))
                     }
@@ -204,7 +204,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                   if (session.projectIdList.contains(projectId)) {
                     val checkFormat = FlowUtils.checkConfigFormat(flow.sinkConfig.getOrElse(""), flow.tranConfig.getOrElse(""))
                     if (checkFormat._1) {
-                      val updateFlow = Flow(flow.id, flow.projectId, flow.streamId, flow.sourceNs, flow.sinkNs, flow.consumedProtocol, flow.sinkConfig,
+                      val updateFlow = Flow(flow.id, flow.projectId, flow.streamId, flow.sourceNs.trim, flow.sinkNs.trim, flow.consumedProtocol.trim, flow.sinkConfig,
                         flow.tranConfig, flow.status, flow.startedTime, flow.stoppedTime, flow.active, flow.createTime, flow.createBy, currentSec, session.userId)
                       onComplete(flowDal.update(updateFlow).mapTo[Int]) {
                         case Success(_) =>

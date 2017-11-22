@@ -27,8 +27,8 @@ import edp.rider.RiderStarter._
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{FlowDal, ProjectDal, StreamDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.{ActionClass, ResponseHeader, ResponseJson, SessionClass}
+//import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.router._
 import edp.rider.rest.util.AppUtils._
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils._
@@ -37,7 +37,7 @@ import edp.rider.rest.util.CommonUtils._
 
 import scala.concurrent.Await
 
-class FlowAppApi(flowDal: FlowDal, streamDal: StreamDal, projectDal: ProjectDal) extends BaseAppApiImpl(flowDal) with RiderLogger {
+class FlowAppApi(flowDal: FlowDal, streamDal: StreamDal, projectDal: ProjectDal) extends BaseAppApiImpl(flowDal) with RiderLogger with JsonSerializer {
 
   def postRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows") {
     (projectId, streamId) =>

@@ -27,16 +27,17 @@ import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.base.{BaseDal, BaseEntity, BaseTable, SimpleBaseEntity}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.admin.api.BaseRoutesApi
-import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
 import slick.jdbc.MySQLProfile.api._
-import edp.rider.rest.router.JsonProtocol._
+//import edp.rider.rest.router.JsonProtocol._
+
 import scala.util.{Failure, Success}
 
 
-class BaseAppApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A]) extends BaseRoutesApi with RiderLogger {
+class BaseAppApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A]) extends BaseRoutesApi with RiderLogger with JsonSerializer {
 
   override def getByIdRoute(route: String): Route = path(route / LongNumber) {
     id =>
