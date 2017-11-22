@@ -27,8 +27,8 @@ import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.NsDatabaseDal
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.persistence.entities.NsDatabase
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+//import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
@@ -37,7 +37,7 @@ import slick.jdbc.MySQLProfile.api._
 import scala.util.{Failure, Success}
 
 
-class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(databaseDal) with RiderLogger {
+class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(databaseDal) with RiderLogger with JsonSerializer {
   override def getByIdRoute(route: String): Route = path(route / LongNumber) {
     id =>
       get {
@@ -119,7 +119,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
               }
               else {
                 if (isKeyEqualValue(simple.config.getOrElse(""))) {
-                  val database = NsDatabase(0, simple.nsDatabase.toLowerCase, Some(simple.desc.getOrElse("")), simple.nsInstanceId, simple.permission, Some(simple.user.getOrElse("")), Some(simple.pwd.getOrElse("")), simple.partitions, Some(simple.config.getOrElse("")), active = true, currentSec, session.userId, currentSec, session.userId)
+                  val database = NsDatabase(0, simple.nsDatabase.toLowerCase.trim, simple.desc, simple.nsInstanceId, simple.permission.trim, simple.user, simple.pwd, simple.partitions, simple.config, active = true, currentSec, session.userId, currentSec, session.userId)
                   onComplete(databaseDal.insert(database).mapTo[NsDatabase]) {
                     case Success(db) =>
                       riderLogger.info(s"user ${session.userId} insert database success.")
@@ -165,7 +165,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
               }
               else {
                 if (isJson(database.config.getOrElse("")) || isKeyEqualValue(database.config.getOrElse(""))) {
-                  val db = NsDatabase(database.id, database.nsDatabase, Some(database.desc.getOrElse("")), database.nsInstanceId, database.permission, Some(database.user.getOrElse("")), Some(database.pwd.getOrElse("")), database.partitions, Some(database.config.getOrElse("")), database.active, database.createTime, database.createBy, currentSec, session.userId)
+                  val db = NsDatabase(database.id, database.nsDatabase.trim, database.desc, database.nsInstanceId, database.permission.trim, database.user, database.pwd, database.partitions, database.config, database.active, database.createTime, database.createBy, currentSec, session.userId)
                   onComplete(databaseDal.update(db)) {
                     case Success(result) =>
                       riderLogger.info(s"user ${session.userId} update database success.")

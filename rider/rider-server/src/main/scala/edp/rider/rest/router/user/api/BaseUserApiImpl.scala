@@ -22,21 +22,21 @@
 package edp.rider.rest.router.user.api
 
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.server.{Directives, Route}
+import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.base.{BaseDal, BaseEntity, BaseTable, SimpleBaseEntity}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.admin.api.BaseRoutesApi
-import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
 import slick.jdbc.MySQLProfile.api._
-import edp.rider.rest.router.JsonProtocol._
+//import edp.rider.rest.router.JsonProtocol._
 
 import scala.util.{Failure, Success}
 
-class BaseUserApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A]) extends BaseRoutesApi with RiderLogger {
+class BaseUserApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A]) extends BaseRoutesApi with RiderLogger with JsonSerializer {
 
   override def getByIdRoute(route: String): Route = path(route / LongNumber) {
     id =>
@@ -64,7 +64,7 @@ class BaseUserApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A]
             }
         }
       }
-     
+
   }
 
 
@@ -88,7 +88,7 @@ class BaseUserApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A]
           }
       }
     }
-   
+
   }
 
 
@@ -116,7 +116,7 @@ class BaseUserApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A]
           }
       }
     }
-   
+
   }
 
   override def postRoute(session: SessionClass, simple: SimpleBaseEntity, tip: String): Route = {
@@ -141,7 +141,7 @@ class BaseUserApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A]
           }
       }
     }
-   
+
   }
 
 
@@ -167,7 +167,7 @@ class BaseUserApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A]
           complete(OK, getHeader(451, ex.getMessage, session))
       }
     }
-   
+
   }
 
   override def deleteRoute(route: String): Route = path(route / LongNumber) {

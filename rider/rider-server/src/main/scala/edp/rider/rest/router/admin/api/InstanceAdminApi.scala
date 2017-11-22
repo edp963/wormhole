@@ -133,7 +133,7 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
               }
               else {
                 if (checkFormat(simple.nsSys, simple.connUrl)) {
-                  val instance = Instance(0, simple.nsInstance, simple.desc, simple.nsSys, simple.connUrl, active = true, currentSec, session.userId, currentSec, session.userId)
+                  val instance = Instance(0, simple.nsInstance.trim, simple.desc, simple.nsSys.trim, simple.connUrl.trim, active = true, currentSec, session.userId, currentSec, session.userId)
                   onComplete(instanceDal.insert(instance).mapTo[Instance]) {
                     case Success(row) =>
                       riderLogger.info(s"user ${session.userId} inserted instance $row success.")
@@ -171,7 +171,7 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
               }
               else {
                 if (checkFormat(instance.nsSys, instance.connUrl)) {
-                  val instanceUpdate = Instance(instance.id, instance.nsInstance, instance.desc, instance.nsSys, instance.connUrl, instance.active, instance.createTime, instance.createBy, currentSec, session.userId)
+                  val instanceUpdate = Instance(instance.id, instance.nsInstance.trim, instance.desc, instance.nsSys.trim, instance.connUrl.trim, instance.active, instance.createTime, instance.createBy, currentSec, session.userId)
                   onComplete(instanceDal.update(instanceUpdate).mapTo[Int]) {
                     case Success(_) =>
                       riderLogger.info(s"user ${session.userId} update instance success.")

@@ -26,13 +26,14 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{RelProjectUdfDal, UdfDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.{ResponseSeqJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.rest.router.JsonProtocol._
+//import edp.rider.rest.router.JsonProtocol._
+
 import scala.util.{Failure, Success}
 
-class UdfUserApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends BaseUserApiImpl[UdfTable, Udf](udfDal) with RiderLogger {
+class UdfUserApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends BaseUserApiImpl[UdfTable, Udf](udfDal) with RiderLogger with JsonSerializer {
 
   def getUdfByProjectId(route: String): Route = path(route / LongNumber / "udfs") {
     id =>

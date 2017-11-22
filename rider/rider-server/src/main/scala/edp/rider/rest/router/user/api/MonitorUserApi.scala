@@ -26,13 +26,12 @@ import akka.http.scaladsl.server._
 import edp.rider.common.{GrafanaConnectionInfo, RiderLogger}
 import edp.rider.monitor.Dashboard
 import edp.rider.rest.persistence.dal.StreamDal
-
-import edp.rider.rest.router.{ResponseJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.rest.router.JsonProtocol._
+//import edp.rider.rest.router.JsonProtocol._
 
-class MonitorUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) with RiderLogger {
+class MonitorUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) with RiderLogger with JsonSerializer {
   def getDashboardByProjectIdRoute(route: String): Route = path(route / LongNumber / "monitors") {
     id =>
       get {
@@ -54,6 +53,6 @@ class MonitorUserApi(streamDal: StreamDal) extends BaseUserApiImpl(streamDal) wi
             }
         }
       }
-     
+
   }
 }
