@@ -494,7 +494,7 @@ object BatchflowMainProcess extends EdpLogging {
 
         //  sendList.foreach(data=>logInfo("before merge:"+data))
         logInfo(uuid + ",@sendList size: " + sendList.size + " saveList size: " + saveList.size)
-        val mergeSendList: Seq[Seq[String]] = mergeTuple(sendList, resultSchemaMap, sinkProcessConfig.tableKeyList)
+        val mergeSendList: Seq[Seq[String]] = if (sinkProcessConfig.specialConfig.isDefined && sinkProcessConfig.specialConfig.get.indexOf("iud") >= 0)  mergeTuple(sendList, resultSchemaMap, sinkProcessConfig.tableKeyList) else sendList
         logInfo(uuid + ",@mergeSendList size: " + mergeSendList.size)
         //        mergeSendList.foreach(data=>logInfo("after merge:"+data))
 
@@ -510,7 +510,7 @@ object BatchflowMainProcess extends EdpLogging {
       }
     })//.collect()
 
-    val sendData: RDD[Seq[String]] = send2saveData.mapPartitions(par=>{
+       val sendData: RDD[Seq[String]] = send2saveData.mapPartitions(par=>{
       par.flatMap(_._1)
     })
     val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
