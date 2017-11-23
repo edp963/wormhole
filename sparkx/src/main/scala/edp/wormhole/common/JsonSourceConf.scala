@@ -71,7 +71,7 @@ case class UmsSysRename(umsSysTs: String, umsSysId: Option[String], umsSysOp: Op
 case class FieldInfo(name: String,
                      `type`: String,
                      umsSysField: Option[String],
-                     umsOpMapping: Option[String],
+                     umsSysMapping: Option[String],
                      nullable: Option[Boolean] = Some(false),
                      subFields: Option[Seq[FieldInfo]],
                      rename: Option[String],
