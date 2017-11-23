@@ -109,6 +109,12 @@ export class WorkbenchFlowForm extends React.Component {
 
   onHandleHdfslogCascader = (value) => this.props.initialHdfslogCascader(value)
 
+  onChangeSchemaType = (e) => {
+    if (e.target.value === 'ums_extension') {
+      this.props.initSchemaType()
+    }
+  }
+
   render () {
     const { step, form, fieldSelected, dataframeShowSelected, streamDiffType, hdfslogSinkDataSysValue, hdfslogSinkNsValue, transformTableConfirmValue, flowKafkaTopicValue } = this.props
     const { getFieldDecorator } = form
@@ -504,6 +510,23 @@ export class WorkbenchFlowForm extends React.Component {
                 )}
               </FormItem>
             </Col>
+
+            {/* <Col span={24} className={streamTypeClass[0]}>
+              <FormItem label="Schema Type" {...itemStyle}>
+                {getFieldDecorator('schemaType', {
+                  rules: [{
+                    required: true,
+                    message: '请选择 Schema Type'
+                  }],
+                  hidden: streamTypeHiddens[0]
+                })(
+                  <RadioGroup className="radio-group-style" size="default" onChange={this.onChangeSchemaType}>
+                    <RadioButton value="ums" className="radio-btn-style radio-btn-extra">Ums</RadioButton>
+                    <RadioButton value="ums_extension" className="ums-extension radio-btn-extra">Ums_extension</RadioButton>
+                  </RadioGroup>
+                )}
+              </FormItem>
+            </Col> */}
           </Card>
 
           <Card title="Sink" className="ri-workbench-form-card-style sink-card">
@@ -909,6 +932,7 @@ WorkbenchFlowForm.propTypes = {
   initDataShowClass: React.PropTypes.func,
   onInitStreamTypeSelect: React.PropTypes.func,
   initialHdfslogCascader: React.PropTypes.func,
+  initSchemaType: React.PropTypes.func,
   flowKafkaTopicValue: React.PropTypes.string,
   flowKafkaInstanceValue: React.PropTypes.string
 }
