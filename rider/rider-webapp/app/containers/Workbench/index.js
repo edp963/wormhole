@@ -1090,11 +1090,10 @@ export class Workbench extends React.Component {
           })
         }
 
-        const sinkConfigVal = JSON.parse(JSON.parse(JSON.stringify(result.sinkConfig)))
-
         let sinkConfigShow = ''
         let resultFieldsVal = ''
         if (result.sinkConfig !== '') {
+          const sinkConfigVal = JSON.parse(JSON.parse(JSON.stringify(result.sinkConfig)))
           sinkConfigShow = sinkConfigVal.sink_specific_config ? JSON.stringify(sinkConfigVal.sink_specific_config) : ''
 
           if (result.sinkConfig.indexOf('output') < 0) {
@@ -2862,6 +2861,10 @@ export class Workbench extends React.Component {
     })
   }
 
+  initSchemaType = () => {
+    console.log('va22')
+    // 弹框
+  }
   /**
    * Dag 图
    * */
@@ -2992,6 +2995,8 @@ export class Workbench extends React.Component {
 
                     flowKafkaInstanceValue={this.state.flowKafkaInstanceValue}
                     flowKafkaTopicValue={this.state.flowKafkaTopicValue}
+
+                    initSchemaType={this.initSchemaType}
 
                     ref={(f) => { this.workbenchFlowForm = f }}
                   />
