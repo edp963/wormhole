@@ -23,6 +23,6 @@ package edp.wormhole.sinks.elasticsearchsink
 
 import edp.wormhole.sinks.SourceMutationType
 
-class EsConfig(`es.mutation_type`: Option[String]) {
+case class EsConfig(`es.mutation_type`: Option[String],row_key:Option[String]) {
   lazy val `es.mutation_type.get` = `es.mutation_type`.getOrElse(SourceMutationType.I_U_D.toString)
 }

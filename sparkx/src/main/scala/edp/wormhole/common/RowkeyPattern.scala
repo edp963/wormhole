@@ -21,6 +21,7 @@
 package edp.wormhole.common
 
 import edp.wormhole.common.util.MD5Utils
+import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructField
 
@@ -135,6 +136,17 @@ object RowkeyTool {
     val keyFieldContentDesc: mutable.Seq[(Boolean, Int, String)] = patternContentList.map(patternContent => {
       if (patternContent.patternType == RowkeyPatternType.EXPERSSION.toString) {
         (true, headRow.fieldIndex(patternContent.fieldContent), "")
+      } else {
+        (false, 0, patternContent.fieldContent)
+      }
+    })
+    keyFieldContentDesc
+  }
+
+  def generateOnerowKeyFieldsSchema(schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], patternContentList: Seq[RowkeyPatternContent]): Seq[(Boolean, Int, String)] = {
+    val keyFieldContentDesc = patternContentList.map(patternContent => {
+      if (patternContent.patternType == RowkeyPatternType.EXPERSSION.toString) {
+        (true, schemaMap(patternContent.fieldContent)._1, "")
       } else {
         (false, 0, patternContent.fieldContent)
       }
