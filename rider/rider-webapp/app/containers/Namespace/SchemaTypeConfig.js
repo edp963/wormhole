@@ -37,9 +37,12 @@ export class SchemaTypeConfig extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      selectedRowKeys: [],
-      schemaConfigMethod: ''
+      selectedRowKeys: []
     }
+  }
+
+  onChangeUmsType = (e) => {
+    this.props.initChangeUmsType(e.target.value)
   }
 
   render () {
@@ -96,8 +99,8 @@ export class SchemaTypeConfig extends React.Component {
     }]
 
     const pagination = {
-      defaultPageSize: 5,
-      pageSizeOptions: ['5', '10', '15'],
+      defaultPageSize: 10,
+      pageSizeOptions: ['10', '20', '30', '40'],
       showSizeChanger: true,
       onShowSizeChange: (current, pageSize) => {
         this.setState({
@@ -113,6 +116,7 @@ export class SchemaTypeConfig extends React.Component {
     }
 
     const { selectedRowKeys } = this.state
+    const { umsTypeSeleted } = this.props
 
     const rowSelection = {
       selectedRowKeys,
@@ -129,9 +133,10 @@ export class SchemaTypeConfig extends React.Component {
                 rules: [{
                   required: true,
                   message: '请选择 Ums Type'
-                }]
+                }],
+                initialValue: 'ums'
               })(
-                <RadioGroup className="radio-group-style" size="default" onChange={this.onChangeSchemaType}>
+                <RadioGroup className="radio-group-style" size="default" onChange={this.onChangeUmsType}>
                   <RadioButton value="ums" className="radio-btn-style radio-btn-extra">Ums</RadioButton>
                   <RadioButton value="ums_extension" className="ums-extension radio-btn-extra">Ums_extension</RadioButton>
                 </RadioGroup>
@@ -139,7 +144,7 @@ export class SchemaTypeConfig extends React.Component {
             </FormItem>
           </Col>
         </Row>
-        <Row>
+        <Row className={umsTypeSeleted === 'ums' ? 'hide' : ''}>
           <Col span={8}>
             <FormItem label="" {...itemStyle}>
               {getFieldDecorator('jsonSample', {})(
@@ -158,7 +163,7 @@ export class SchemaTypeConfig extends React.Component {
           </Col>
           <Col span={15} className="schema-config-table">
             <Table
-              // dataSource={transformTableSource}
+              dataSource={this.props.umsTableDataSource}
               columns={columns}
               pagination={pagination}
               rowSelection={rowSelection}
@@ -174,7 +179,10 @@ export class SchemaTypeConfig extends React.Component {
 
 SchemaTypeConfig.propTypes = {
   form: React.PropTypes.any,
-  onChangeJsonToTable: React.PropTypes.func
+  initChangeUmsType: React.PropTypes.func,
+  onChangeJsonToTable: React.PropTypes.func,
+  umsTableDataSource: React.PropTypes.array,
+  umsTypeSeleted: React.PropTypes.string
 }
 
 export default Form.create({wrappedComponentRef: true})(SchemaTypeConfig)
