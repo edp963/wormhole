@@ -22,8 +22,12 @@ import React from 'react'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
+import CodeMirror from 'codemirror'
+require('../../../node_modules/codemirror/addon/display/placeholder')
+require('../../../node_modules/codemirror/mode/javascript/javascript')
 
 import NamespaceForm from './NamespaceForm'
+import SchemaTypeConfig from './SchemaTypeConfig'
 import Table from 'antd/lib/table'
 import Icon from 'antd/lib/icon'
 import Input from 'antd/lib/input'
@@ -88,7 +92,10 @@ export class Namespace extends React.PureComponent {
       exitedNsTableValue: '',
 
       nsDsVal: '',
-      nsInstanceVal: ''
+      nsInstanceVal: '',
+
+      schemaModalVisible: false,
+      schemaModalLoading: false
     }
   }
 
@@ -607,6 +614,48 @@ export class Namespace extends React.PureComponent {
     }
   }
 
+  showEditUms = (record) => (e) => {
+    this.setState({
+      schemaModalVisible: true
+    }, () => {
+      if (!this.cmSample) {
+        const temp = document.getElementById('jsonSample')
+
+        this.cmSample = CodeMirror.fromTextArea(temp, {
+          lineNumbers: true,
+          matchBrackets: true,
+          autoCloseBrackets: true,
+          mode: 'application/ld+json',
+          lineWrapping: true
+        })
+        this.cmSample.setSize('100%', '256px')
+      }
+      // this.cmSample.doc.setValue(this.schemaTypeConfig.getFieldValue('jsonSample') || '')
+    })
+  }
+
+  hideSchemaModal = () => {
+    this.setState({ schemaModalVisible: false })
+    this.workbenchFlowForm.setFieldsValue({
+      schemaType: ''
+    })
+    this.cmSample.doc.setValue('')
+  }
+
+  onSchemaModalOk = () => {
+    this.schemaTypeConfig.validateFieldsAndScroll((err, values) => {
+      if (!err) {
+        this.hideSchemaModal()
+      }
+    })
+  }
+
+  onJsonFormat = () => {
+    const cmJsonvalue = this.cmSample.doc.getValue()
+    const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, '\t')
+    this.cmSample.doc.setValue(cmJsonvalueFormat || '')
+  }
+
   render () {
     const { refreshNsLoading, refreshNsText } = this.state
 
@@ -862,24 +911,35 @@ export class Namespace extends React.PureComponent {
         title: 'Action',
         key: 'action',
         className: `text-align-center ${this.props.namespaceClassHide}`,
-        render: (text, record) => (
-          <span className="ant-table-action-column">
-            <Tooltip title="查看详情">
-              <Popover
-                placement="left"
-                content={<div className="project-name-detail">
-                  <p><strong>   Project Names：</strong>{record.projectName}</p>
-                </div>}
-                title={<h3>详情</h3>}
-                trigger="click">
-                <Button icon="file-text" shape="circle" type="ghost"></Button>
-              </Popover>
-            </Tooltip>
-            <Tooltip title="修改">
-              <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditNamespace(record)}></Button>
-            </Tooltip>
-          </span>
-        )
+        render: (text, record) => {
+          const umsAction = record.nsSys === 'kafka'
+            ? (
+              <Tooltip title="Ums 配置">
+                <Button icon="setting" shape="circle" type="ghost" onClick={this.showEditUms(record)}></Button>
+              </Tooltip>
+            )
+            : ''
+
+          return (
+            <span className="ant-table-action-column">
+              <Tooltip title="查看详情">
+                <Popover
+                  placement="left"
+                  content={<div className="project-name-detail">
+                    <p><strong>   Project Names：</strong>{record.projectName}</p>
+                  </div>}
+                  title={<h3>详情</h3>}
+                  trigger="click">
+                  <Button icon="file-text" shape="circle" type="ghost"></Button>
+                </Popover>
+              </Tooltip>
+              <Tooltip title="修改">
+                <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditNamespace(record)}></Button>
+              </Tooltip>
+              {umsAction}
+            </span>
+          )
+        }
       }]
 
     const pagination = {
@@ -967,6 +1027,23 @@ export class Namespace extends React.PureComponent {
             cleanNsTableData={this.cleanNsTableData}
             count={this.state.count}
             ref={(f) => { this.namespaceForm = f }}
+          />
+        </Modal>
+        {/* Schema Config Modal */}
+        <Modal
+          title="Schema Config"
+          okText="保存"
+          wrapClassName="schema-config-modal"
+          visible={this.state.schemaModalVisible}
+          footer={[
+            <Button key="jsonFormat" type="primary" className="json-format" onClick={this.onJsonFormat}>JSON 格式化</Button>,
+            <Button key="cancel" size="large" onClick={this.hideSchemaModal}>取 消</Button>,
+            <Button key="submit" size="large" type="primary" loading={this.state.schemaModalLoading} onClick={this.onSchemaModalOk}>保存</Button>
+          ]}
+        >
+          <SchemaTypeConfig
+            onChangeJsonToTable={this.onChangeUmsJsonToTable}
+            ref={(f) => { this.schemaTypeConfig = f }}
           />
         </Modal>
       </div>
