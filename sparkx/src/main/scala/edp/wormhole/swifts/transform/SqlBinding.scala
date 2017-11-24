@@ -22,6 +22,7 @@
 package edp.wormhole.swifts.transform
 
 
+import edp.wormhole.common.WormholeUtils
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.swifts.SwiftsConstants
 import org.apache.spark.sql._
@@ -74,13 +75,13 @@ object SqlBinding extends EdpLogging {
   }
 
 
-   def getFieldContentByType(row: Row, schema: Array[StructField], i: Int): Any = {
-    if (schema(i).dataType.toString.equals("StringType")) {
-      //if (row.get(i) == null) "''"  // join fields cannot be null
-      if (row.get(i) == null) null
-      else "'" + row.get(i) + "'"
-    } else row.get(i)
-  }
+//   def getFieldContentByType(row: Row, schema: Array[StructField], i: Int): Any = {
+//    if (schema(i).dataType.toString.equals("StringType")) {
+//      //if (row.get(i) == null) "''"  // join fields cannot be null
+//      if (row.get(i) == null) null
+//      else "'" + row.get(i) + "'"
+//    } else row.get(i)
+//  }
 
   private def getJoinFieldsContent(session: SparkSession, tmpLastDf: DataFrame, sourceTableFields: Array[String], lookupTableFields: Array[String]): Array[String] = {
     import session.implicits._
@@ -89,7 +90,7 @@ object SqlBinding extends EdpLogging {
       val lookupFieldsLength = lookupTableFields.length
       val fieldContent = sourceTableFields.map(fieldName => {
         val index = row.fieldIndex(fieldName)
-        getFieldContentByType(row, schema, index)
+        WormholeUtils.getFieldContentByType(row, schema, index)
       }).mkString(",")
       if (lookupFieldsLength == 1) fieldContent
       else "(" + fieldContent + ")"
