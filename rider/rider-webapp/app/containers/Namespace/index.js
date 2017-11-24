@@ -26,6 +26,8 @@ import CodeMirror from 'codemirror'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
 
+import { jsonParse, genDefaultSchemaTable } from './umsFunction'
+
 import NamespaceForm from './NamespaceForm'
 import SchemaTypeConfig from './SchemaTypeConfig'
 import Table from 'antd/lib/table'
@@ -95,7 +97,10 @@ export class Namespace extends React.PureComponent {
       nsInstanceVal: '',
 
       schemaModalVisible: false,
-      schemaModalLoading: false
+      schemaModalLoading: false,
+      jsonSampleValue: {},
+      umsTableDataSource: [],
+      umsTypeSeleted: 'ums'
     }
   }
 
@@ -617,28 +622,32 @@ export class Namespace extends React.PureComponent {
   showEditUms = (record) => (e) => {
     this.setState({
       schemaModalVisible: true
-    }, () => {
-      if (!this.cmSample) {
-        const temp = document.getElementById('jsonSample')
+    })
+  }
 
-        this.cmSample = CodeMirror.fromTextArea(temp, {
-          lineNumbers: true,
-          matchBrackets: true,
-          autoCloseBrackets: true,
-          mode: 'application/ld+json',
-          lineWrapping: true
-        })
-        this.cmSample.setSize('100%', '256px')
+  initChangeUmsType = (value) => {
+    this.setState({
+      umsTypeSeleted: value
+    }, () => {
+      if (this.state.umsTypeSeleted === 'ums_extension') {
+        if (!this.cmSample) {
+          const temp = document.getElementById('jsonSample')
+
+          this.cmSample = CodeMirror.fromTextArea(temp, {
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            mode: 'application/ld+json',
+            lineWrapping: true
+          })
+          this.cmSample.setSize('100%', '256px')
+        }
       }
-      // this.cmSample.doc.setValue(this.schemaTypeConfig.getFieldValue('jsonSample') || '')
     })
   }
 
   hideSchemaModal = () => {
     this.setState({ schemaModalVisible: false })
-    this.workbenchFlowForm.setFieldsValue({
-      schemaType: ''
-    })
     this.cmSample.doc.setValue('')
   }
 
@@ -652,8 +661,27 @@ export class Namespace extends React.PureComponent {
 
   onJsonFormat = () => {
     const cmJsonvalue = this.cmSample.doc.getValue()
-    const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, '\t')
-    this.cmSample.doc.setValue(cmJsonvalueFormat || '')
+    if (cmJsonvalue === '') {
+      message.warning('JSON Sample 为空！', 3)
+    } else {
+      const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, '\t')
+      this.cmSample.doc.setValue(cmJsonvalueFormat || '')
+    }
+  }
+
+  onChangeUmsJsonToTable = () => {
+    const cmVal = this.cmSample.doc.getValue()
+    if (cmVal === '') {
+      message.warning('请填写 JSON Sample', 3)
+    } else {
+      const cmJsonvalue = JSON.parse(this.cmSample.doc.getValue())
+      const jsonSmaple = jsonParse(cmJsonvalue, '', [])
+
+      this.setState({
+        jsonSampleValue: jsonSmaple,
+        umsTableDataSource: genDefaultSchemaTable(jsonSmaple)
+      })
+    }
   }
 
   render () {
@@ -1036,13 +1064,37 @@ export class Namespace extends React.PureComponent {
           wrapClassName="schema-config-modal"
           visible={this.state.schemaModalVisible}
           footer={[
-            <Button key="jsonFormat" type="primary" className="json-format" onClick={this.onJsonFormat}>JSON 格式化</Button>,
-            <Button key="cancel" size="large" onClick={this.hideSchemaModal}>取 消</Button>,
-            <Button key="submit" size="large" type="primary" loading={this.state.schemaModalLoading} onClick={this.onSchemaModalOk}>保存</Button>
+            <Button
+              key="jsonFormat"
+              type="primary"
+              className={`json-format ${this.state.umsTypeSeleted === 'ums' ? 'hide' : ''}`}
+              onClick={this.onJsonFormat}
+            >
+              JSON 格式化
+            </Button>,
+            <Button
+              key="cancel"
+              size="large"
+              onClick={this.hideSchemaModal}
+            >
+              取 消
+            </Button>,
+            <Button
+              key="submit"
+              size="large"
+              type="primary"
+              loading={this.state.schemaModalLoading}
+              onClick={this.onSchemaModalOk}
+            >
+              保存
+            </Button>
           ]}
         >
           <SchemaTypeConfig
+            initChangeUmsType={this.initChangeUmsType}
             onChangeJsonToTable={this.onChangeUmsJsonToTable}
+            umsTableDataSource={this.state.umsTableDataSource}
+            umsTypeSeleted={this.state.umsTypeSeleted}
             ref={(f) => { this.schemaTypeConfig = f }}
           />
         </Modal>

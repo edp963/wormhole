@@ -35,8 +35,12 @@ import {
   LOAD_JOB_NAME,
   LOAD_JOB_NAME_SUCCESS,
   LOAD_JOB_NAME_ERROR,
-  LOAD_JOB_NS,
-  LOAD_JOB_NS_SUCCESS,
+  LOAD_JOB_SOURCENS,
+  LOAD_JOB_SOURCENS_SUCCESS,
+  LOAD_JOB_SOURCENS_ERROR,
+  LOAD_JOB_SINKNS,
+  LOAD_JOB_SINKNS_SUCCESS,
+  LOAD_JOB_SINKNS_ERROR,
   LOAD_JOB_SOURCETOSINK_EXIST,
   LOAD_JOB_SOURCETOSINK_EXIST_SUCCESS,
   LOAD_JOB_SOURCETOSINK_EXIST_ERROR,
@@ -109,10 +113,21 @@ function jobReducer (state = initialState, { type, payload }) {
     case LOAD_JOB_NAME_ERROR:
       payload.reject()
       return state.set('jobNameExited', true)
-    case LOAD_JOB_NS:
+    case LOAD_JOB_SOURCENS:
       return state
-    case LOAD_JOB_NS_SUCCESS:
+    case LOAD_JOB_SOURCENS_SUCCESS:
       payload.resolve(payload.result)
+      return state
+    case LOAD_JOB_SOURCENS_ERROR:
+      payload.reject(payload.result)
+      return state
+    case LOAD_JOB_SINKNS:
+      return state
+    case LOAD_JOB_SINKNS_SUCCESS:
+      payload.resolve(payload.result)
+      return state
+    case LOAD_JOB_SINKNS_ERROR:
+      payload.reject(payload.result)
       return state
     case LOAD_JOB_SOURCETOSINK_EXIST:
       return state.set('jobSourceToSinkExited', false)

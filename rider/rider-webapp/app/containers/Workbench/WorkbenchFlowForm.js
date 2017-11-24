@@ -109,12 +109,6 @@ export class WorkbenchFlowForm extends React.Component {
 
   onHandleHdfslogCascader = (value) => this.props.initialHdfslogCascader(value)
 
-  onChangeSchemaType = (e) => {
-    if (e.target.value === 'ums_extension') {
-      this.props.initSchemaType()
-    }
-  }
-
   render () {
     const { step, form, fieldSelected, dataframeShowSelected, streamDiffType, hdfslogSinkDataSysValue, hdfslogSinkNsValue, transformTableConfirmValue, flowKafkaTopicValue } = this.props
     const { getFieldDecorator } = form
@@ -915,7 +909,6 @@ WorkbenchFlowForm.propTypes = {
   initDataShowClass: React.PropTypes.func,
   onInitStreamTypeSelect: React.PropTypes.func,
   initialHdfslogCascader: React.PropTypes.func,
-  initSchemaType: React.PropTypes.func,
   flowKafkaTopicValue: React.PropTypes.string,
   flowKafkaInstanceValue: React.PropTypes.string
 }
