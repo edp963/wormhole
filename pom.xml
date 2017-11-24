@@ -242,8 +242,8 @@
                     <jvmArgs>
                         <!--<jvmArg>-Xss2m</jvmArg>-->
                         <jvmArg>-Xms512M</jvmArg>
-                        <jvmArg>-Xmx2048M</jvmArg>
-                        <jvmArg>-XX:MaxPermSize=2048M</jvmArg>
+                        <jvmArg>-Xmx1024M</jvmArg>
+                        <!--<jvmArg>-XX:MaxPermSize=2048M</jvmArg>-->
                         <jvmArg>-XX:+CMSClassUnloadingEnabled</jvmArg>
                     </jvmArgs>
                     <javacArgs>
@@ -321,7 +321,7 @@
                     <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                     <junitxml>.</junitxml>
                     <filereports>EDPTestSuite.txt</filereports>
-                    <argLine>-Xms512M -Xmx2048M -XX:MaxPermSize=2048M -XX:+CMSClassUnloadingEnabled</argLine>
+                    <argLine>-Xms512M -Xmx1024M  -XX:+CMSClassUnloadingEnabled</argLine>
                 </configuration>
                 <executions>
                     <execution>
