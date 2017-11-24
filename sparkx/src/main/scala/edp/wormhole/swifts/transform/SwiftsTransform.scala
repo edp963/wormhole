@@ -30,7 +30,6 @@ import edp.wormhole.ums.UmsDataSystem
 import org.apache.spark.sql._
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.swifts.custom.{LookupHbase, LookupRedis}
-import edp.wormhole.ums
 
 import scala.collection.mutable.ListBuffer
 

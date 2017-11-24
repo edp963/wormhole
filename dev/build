@@ -29,9 +29,6 @@ mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../
 cd kafka010
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
-cd ../
-cd elasticsearch-hadoop
-mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../../
 cd ums
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true

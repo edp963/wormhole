@@ -26,7 +26,7 @@ import edp.wormhole.common.util.DateUtils.currentDateTime
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums._
 import edp.wormhole.ums.UmsSchemaUtils.toUms
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.streaming.kafka010.OffsetRange
 import org.apache.spark.sql.expressions.Window
 
@@ -41,9 +41,18 @@ import edp.wormhole.core.{PartitionOffsetConfig, WormholeConfig}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.common.util.DateUtils.dt2dateTime
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
+import org.apache.spark.sql.types.StructField
 import org.joda.time.DateTime
 
 object WormholeUtils extends EdpLogging {
+
+  def getFieldContentByType(row: Row, schema: Array[StructField], i: Int): Any = {
+    if (schema(i).dataType.toString.equals("StringType")) {
+      //if (row.get(i) == null) "''"  // join fields cannot be null
+      if (row.get(i) == null) null
+      else "'" + row.get(i) + "'"
+    } else row.get(i)
+  }
 
   def keys2keyList(keys: String): List[String] = if (keys == null) Nil else keys.split(",").map(CommonUtils.trimBothBlank).toList
 
