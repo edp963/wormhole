@@ -116,7 +116,7 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
     db.run((((namespaceTable.filter(ns => ns.nsSys === nsSys && ns.active === true) join relProjectNsTable.filter(rel => rel.projectId === id && rel.active === true) on (_.id === _.nsId))
       join databaseTable on (_._1.nsDatabaseId === _.id)) join instanceTable on (_._2.nsInstanceId === _.id))
       .map {
-        case (((ns, rel), database), instance) => (instance, database, ns.nsSys) <> (TransNamespaceTemp.tupled, TransNamespaceTemp.unapply)
+        case (((ns, rel), database), instance) => (instance, database, database.config, ns.nsSys) <> (TransNamespaceTemp.tupled, TransNamespaceTemp.unapply)
       }.distinct.result).map[Seq[TransNamespace]] {
       nsSeq =>
         nsSeq.filter(ns => ns.nsSys == ns.instance.nsSys)
@@ -161,6 +161,14 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
         throw ex
     }
 
+  }
+
+  def getTranDbConfig(nsSys: String, nsInstance: String, nsDb: String) = {
+    db.run((instanceTable.filter(instance => instance.nsSys === nsSys && instance.nsInstance === nsInstance)
+      join databaseTable.filter(_.nsDatabase === nsDb) on (_.id === _.nsInstanceId))
+      .map {
+        case (instance, database) => (instance, database, database.config, instance.nsSys) <> (TransNamespaceTemp.tupled, TransNamespaceTemp.unapply)
+      }.result).mapTo[Seq[TransNamespaceTemp]]
   }
 
   def isAvailable(projectId: Long, nsId: Long): Boolean = {
