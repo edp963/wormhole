@@ -29,7 +29,8 @@ import {
   LOAD_USER_JOB_LOGS,
   OPERATE_JOB,
   LOAD_JOB_NAME,
-  LOAD_JOB_NS,
+  LOAD_JOB_SOURCENS,
+  LOAD_JOB_SINKNS,
   LOAD_JOB_SOURCETOSINK_EXIST,
   ADD_JOB,
   QUERY_JOB,
@@ -46,7 +47,10 @@ import {
   jobOperatedError,
   jobNameLoaded,
   jobNameLoadedError,
-  jobNsLoaded,
+  jobSourceNsLoaded,
+  jobSourceNsLoadedError,
+  jobSinkNsLoaded,
+  jobSinkNsLoadedError,
   jobSourceToSinkExistLoaded,
   jobSourceToSinkExistErrorLoaded,
   jobAdded,
@@ -171,20 +175,44 @@ export function* loadJobNameValueWatcher () {
   yield fork(takeEvery, LOAD_JOB_NAME, loadJobNameValue)
 }
 
-export function* loadJobNsValue ({ payload }) {
+export function* loadJobSourceNsValue ({ payload }) {
   try {
     const result = yield call(request, {
       method: 'get',
       url: `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`
     })
-    yield put(jobNsLoaded(result.payload, payload.resolve))
+    if (result.code && result.code !== 200) {
+      yield put(jobSourceNsLoadedError(result.msg, payload.reject))
+    } else if (result.header.code && result.header.code === 200) {
+      yield put(jobSourceNsLoaded(result.payload, payload.resolve))
+    }
   } catch (err) {
-    notifySagasError(err, 'loadJobNsValue')
+    notifySagasError(err, 'loadJobSourceNsValue')
   }
 }
 
-export function* loadJobNsValueWatcher () {
-  yield fork(takeEvery, LOAD_JOB_NS, loadJobNsValue)
+export function* loadJobSourceNsValueWatcher () {
+  yield fork(takeEvery, LOAD_JOB_SOURCENS, loadJobSourceNsValue)
+}
+
+export function* loadJobSinkNsValue ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'get',
+      url: `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`
+    })
+    if (result.code && result.code !== 200) {
+      yield put(jobSinkNsLoadedError(result.msg, payload.reject))
+    } else if (result.header.code && result.header.code === 200) {
+      yield put(jobSinkNsLoaded(result.payload, payload.resolve))
+    }
+  } catch (err) {
+    notifySagasError(err, 'loadJobSinkNsValue')
+  }
+}
+
+export function* loadJobSinkNsValueWatcher () {
+  yield fork(takeEvery, LOAD_JOB_SINKNS, loadJobSinkNsValue)
 }
 
 export function* getJobSourceToSink ({ payload }) {
@@ -265,7 +293,8 @@ export default [
   getUserJobLogsWatcher,
   operateUserJobWatcher,
   loadJobNameValueWatcher,
-  loadJobNsValueWatcher,
+  loadJobSourceNsValueWatcher,
+  loadJobSinkNsValueWatcher,
   getJobSourceToSinkWatcher,
   addJobWatcher,
   queryJobWatcher,

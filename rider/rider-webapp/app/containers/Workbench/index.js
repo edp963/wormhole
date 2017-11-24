@@ -58,7 +58,7 @@ import {loadSelectNamespaces, loadUserNamespaces} from '../Namespace/action'
 import {loadUserUsers, loadSelectUsers} from '../User/action'
 import {loadResources} from '../Resource/action'
 import {loadSingleUdf} from '../Udf/action'
-import {loadJobName, loadJobNs, loadJobSourceToSinkExist, addJob, queryJob, editJob} from '../Job/action'
+import {loadJobName, loadJobSourceNs, loadJobSinkNs, loadJobSourceToSinkExist, addJob, queryJob, editJob} from '../Job/action'
 
 import { selectFlows, selectFlowSubmitLoading, selectSourceToSinkExited } from '../Flow/selectors'
 import { selectStreams, selectStreamSubmitLoading, selectStreamNameExited } from '../Manager/selectors'
@@ -294,7 +294,7 @@ export class Workbench extends React.Component {
 
     this.setState({ jobSourceNsData: [] })
 
-    this.props.onLoadJobNs(projectId, value, type, (result) => {
+    this.props.onLoadJobSourceNs(projectId, value, type, (result) => {
       this.setState({
         jobSourceNsData: this.generateSourceSinkNamespaceHierarchy(value, result)
       })
@@ -303,6 +303,8 @@ export class Workbench extends React.Component {
           sourceNamespace: undefined
         })
       }
+    }, (result) => {
+      message.error(`Source 异常：${result}`, 5)
     })
   }
 
@@ -360,7 +362,7 @@ export class Workbench extends React.Component {
       jobSinkNsData: [],
       jobSinkConfigMsg: this.showSinkConfigMsg(value)
     })
-    this.props.onLoadJobNs(projectId, value, type, (result) => {
+    this.props.onLoadJobSinkNs(projectId, value, type, (result) => {
       this.setState({
         jobSinkNsData: this.generateSourceSinkNamespaceHierarchy(value, result)
       })
@@ -369,6 +371,8 @@ export class Workbench extends React.Component {
           sinkNamespace: undefined
         })
       }
+    }, (result) => {
+      message.error(`Sink 异常：${result}`, 5)
     })
   }
 
@@ -3330,7 +3334,8 @@ Workbench.propTypes = {
   onEditJob: React.PropTypes.func,
 
   onLoadJobName: React.PropTypes.func,
-  onLoadJobNs: React.PropTypes.func,
+  onLoadJobSourceNs: React.PropTypes.func,
+  onLoadJobSinkNs: React.PropTypes.func,
   jobNameExited: React.PropTypes.bool,
   jobSubmitLoading: React.PropTypes.bool
 }
@@ -3364,7 +3369,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadSourceToSinkExist: (projectId, sourceNs, sinkNs, resolve, reject) => dispatch(loadSourceToSinkExist(projectId, sourceNs, sinkNs, resolve, reject)),
     onLoadJobSourceToSinkExist: (projectId, sourceNs, sinkNs, resolve, reject) => dispatch(loadJobSourceToSinkExist(projectId, sourceNs, sinkNs, resolve, reject)),
     onLoadJobName: (projectId, value, resolve, reject) => dispatch(loadJobName(projectId, value, resolve, reject)),
-    onLoadJobNs: (projectId, value, type, resolve, reject) => dispatch(loadJobNs(projectId, value, type, resolve, reject)),
+    onLoadJobSourceNs: (projectId, value, type, resolve, reject) => dispatch(loadJobSourceNs(projectId, value, type, resolve, reject)),
+    onLoadJobSinkNs: (projectId, value, type, resolve, reject) => dispatch(loadJobSinkNs(projectId, value, type, resolve, reject)),
     onAddJob: (values, resolve, final) => dispatch(addJob(values, resolve, final)),
     onQueryJob: (values, resolve, final) => dispatch(queryJob(values, resolve, final)),
     onEditJob: (values, resolve, final) => dispatch(editJob(values, resolve, final))
