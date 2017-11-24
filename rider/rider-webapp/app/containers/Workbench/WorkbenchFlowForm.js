@@ -510,23 +510,6 @@ export class WorkbenchFlowForm extends React.Component {
                 )}
               </FormItem>
             </Col>
-
-            {/* <Col span={24} className={streamTypeClass[0]}>
-              <FormItem label="Schema Type" {...itemStyle}>
-                {getFieldDecorator('schemaType', {
-                  rules: [{
-                    required: true,
-                    message: '请选择 Schema Type'
-                  }],
-                  hidden: streamTypeHiddens[0]
-                })(
-                  <RadioGroup className="radio-group-style" size="default" onChange={this.onChangeSchemaType}>
-                    <RadioButton value="ums" className="radio-btn-style radio-btn-extra">Ums</RadioButton>
-                    <RadioButton value="ums_extension" className="ums-extension radio-btn-extra">Ums_extension</RadioButton>
-                  </RadioGroup>
-                )}
-              </FormItem>
-            </Col> */}
           </Card>
 
           <Card title="Sink" className="ri-workbench-form-card-style sink-card">

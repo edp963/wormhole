@@ -1018,10 +1018,10 @@ export class Workbench extends React.Component {
                 let imp = ''
                 if (i.indexOf('left join') > 0) {
                   imp = i.replace('left join', 'leftJoin')
-                }
-
-                if (i.indexOf('inner join') > 0) {
+                } else if (i.indexOf('inner join') > 0) {
                   imp = i.replace('inner join', 'innerJoin')
+                } else {
+                  imp = i
                 }
 
                 const streamJoinBeforePart = imp.substring(0, i.indexOf('=') - 1)
@@ -2861,10 +2861,6 @@ export class Workbench extends React.Component {
     })
   }
 
-  initSchemaType = () => {
-    console.log('va22')
-    // 弹框
-  }
   /**
    * Dag 图
    * */
@@ -2996,8 +2992,6 @@ export class Workbench extends React.Component {
                     flowKafkaInstanceValue={this.state.flowKafkaInstanceValue}
                     flowKafkaTopicValue={this.state.flowKafkaTopicValue}
 
-                    initSchemaType={this.initSchemaType}
-
                     ref={(f) => { this.workbenchFlowForm = f }}
                   />
                   {/* Flow Transform Modal */}
@@ -3033,7 +3027,7 @@ export class Workbench extends React.Component {
                       <h4 className="sink-config-modal-class">{this.state.sinkConfigMsg}</h4>
                       <textarea
                         ref={(f) => { this.sinkConfigInput = f }}
-                        placeholder="Paste your Sink Config JSON here"
+                        placeholder="Paste your Sink Config JSON here."
                         className="ant-input ant-input-extra"
                         rows="5">
                       </textarea>
@@ -3221,7 +3215,7 @@ export class Workbench extends React.Component {
                       <h4 className="sink-config-modal-class">{this.state.jobSinkConfigMsg}</h4>
                       <textarea
                         ref={(f) => { this.jobSinkConfigInput = f }}
-                        placeholder="Paste your Sink Config JSON here"
+                        placeholder="Paste your Sink Config JSON here."
                         className="ant-input ant-input-extra"
                         rows="5">
                       </textarea>
