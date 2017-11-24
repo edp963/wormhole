@@ -248,7 +248,6 @@ export class Workbench extends React.Component {
    * */
   onInitSourceTypeNamespace = (projectId, value, type) => {
     const { flowMode, pipelineStreamId } = this.state
-
     this.setState({
       sourceTypeNamespaceData: []
     })
@@ -780,15 +779,17 @@ export class Workbench extends React.Component {
               let tranTypeTepm = ''
               let pushdownConTepm = ''
 
-              if (i.indexOf('pushdown_sql') > 0 || i.indexOf('pushdown_sql') === 0) {
-                if (i.indexOf('left join') > 0) {
-                  i = i.replace('left join', 'leftJoin')
+              if (i.indexOf('pushdown_sql') > -1) {
+                let temp = ''
+                if (i.indexOf('left join') > -1) {
+                  temp = i.replace('left join', 'leftJoin')
+                } else if (i.indexOf('inner join') > -1) {
+                  temp = i.replace('inner join', 'innerJoin')
+                } else {
+                  temp = i
                 }
-                if (i.indexOf('inner join') > 0) {
-                  i = i.replace('inner join', 'innerJoin')
-                }
-                const lookupBeforePart = i.substring(0, i.indexOf('=') - 1)
-                const lookupAfterPart = i.substring(i.indexOf('=') + 1)
+                const lookupBeforePart = temp.substring(0, i.indexOf('=') - 1)
+                const lookupAfterPart = temp.substring(i.indexOf('=') + 1)
                 const lookupBeforePartTemp = (lookupBeforePart.replace(/(^\s*)|(\s*$)/g, '')).split(' ')
                 const lookupAfterPartTepm = lookupAfterPart.replace(/(^\s*)|(\s*$)/g, '') // 去字符串前后的空白；sql语句回显
 
@@ -796,22 +797,24 @@ export class Workbench extends React.Component {
                 tranTypeTepm = 'lookupSql'
 
                 const pushdownConTepmObj = tranConfigVal.pushdown_connection.find(g => g.name_space === lookupBeforePartTemp[3])
+
                 pushdownConTepm = `{"name_space":"${pushdownConTepmObj.name_space}","jdbc_url":"${pushdownConTepmObj.jdbc_url}","username":"${pushdownConTepmObj.username}","password":"${pushdownConTepmObj.password}"}`
               }
 
-              if (i.indexOf('parquet_sql') > 0 || i.indexOf('parquet_sql') === 0) {
+              if (i.indexOf('parquet_sql') > -1) {
+                let imp = ''
                 if (i.indexOf('left join') > 0) {
-                  i = i.replace('left join', 'leftJoin')
-                }
-                if (i.indexOf('right join') > 0) {
-                  i = i.replace('right join', 'rightJoin')
-                }
-                if (i.indexOf('inner join') > 0) {
-                  i = i.replace('inner join', 'innerJoin')
+                  imp = i.replace('left join', 'leftJoin')
+                } else if (i.indexOf('right join') > 0) {
+                  imp = i.replace('right join', 'rightJoin')
+                } else if (i.indexOf('inner join') > 0) {
+                  imp = i.replace('inner join', 'innerJoin')
+                } else {
+                  imp = i
                 }
 
-                const streamJoinBeforePart = i.substring(0, i.indexOf('=') - 1)
-                const streamJoinAfterPart = i.substring(i.indexOf('=') + 1)
+                const streamJoinBeforePart = imp.substring(0, i.indexOf('=') - 1)
+                const streamJoinAfterPart = imp.substring(i.indexOf('=') + 1)
                 const streamJoinBeforePartTemp = streamJoinBeforePart.replace(/(^\s*)|(\s*$)/g, '').split(' ')
                 const streamJoinAfterPartTepm = streamJoinAfterPart.replace(/(^\s*)|(\s*$)/g, '')
 
@@ -822,7 +825,7 @@ export class Workbench extends React.Component {
                 pushdownConTepm = ''
               }
 
-              if (i.indexOf('spark_sql') > 0 || i.indexOf('spark_sql') === 0) {
+              if (i.indexOf('spark_sql') > -1) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepm = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
 
@@ -831,7 +834,7 @@ export class Workbench extends React.Component {
                 pushdownConTepm = ''
               }
 
-              if (i.indexOf('custom_class') > 0 || i.indexOf('custom_class') === 0) {
+              if (i.indexOf('custom_class') > -1) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepm = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
 
