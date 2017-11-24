@@ -127,7 +127,7 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
     }
 
   def getInstanceByProjectId(projectId: Long, nsSys: String): Future[Seq[Instance]] = {
-    db.run((relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) join namespaceTable.filter(_.nsSys === nsSys) on (_.nsId === _.id) join instanceTable.filter(_.nsSys === "kafka") on (_._2.nsInstanceId === _.id)).map {
+    db.run((relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) join namespaceTable on (_.nsId === _.id) join instanceTable.filter(_.nsSys === "kafka") on (_._2.nsInstanceId === _.id)).map {
       case ((rel, ns), instance) => instance
     }.distinct.result).mapTo[Seq[Instance]]
   }
