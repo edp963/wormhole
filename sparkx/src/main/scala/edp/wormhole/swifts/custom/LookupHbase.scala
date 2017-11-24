@@ -20,12 +20,11 @@
 
 package edp.wormhole.swifts.custom
 
-import edp.wormhole.common.{ConnectionConfig, SparkSchemaUtils}
+import edp.wormhole.common._
 import edp.wormhole.common.SparkSchemaUtils.ums2sparkType
-import edp.wormhole.sinks.hbasesink.{HbaseConnection, RowkeyPattern}
+import edp.wormhole.sinks.hbasesink.HbaseConnection
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.swifts.parse.SwiftsSql
-import edp.wormhole.swifts.transform.SqlBinding.getFieldContentByType
 import edp.wormhole.ums.UmsFieldType.umsFieldType
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
@@ -48,32 +47,33 @@ object LookupHbase extends EdpLogging {
     logInfo("table2cfGrp:" + table2cfGrp(0) + "," + table2cfGrp(1))
     val tablename = table2cfGrp(0)
     val cf = table2cfGrp(1)
-    var joinContent = sqlConfig.sourceTableFields.get(0)
-    val keyOpts = ListBuffer.empty[(String,String)]
-    while (joinContent.contains("(")) {
-      val firstIndex = joinContent.indexOf("(")
-      val keyOpt = joinContent.substring(0, firstIndex).trim
-      val lastIndex = joinContent.lastIndexOf(")")
-      joinContent = joinContent.substring(firstIndex+1,lastIndex)
-      val param = if(joinContent.trim.endsWith(")")){//无参数
-        null.asInstanceOf[String]
-      }else{
-        if(joinContent.contains("(")){
-          val subLastIndex = joinContent.lastIndexOf(")",lastIndex)
-          val part = joinContent.substring(subLastIndex+1)
-          joinContent = joinContent.substring(0,subLastIndex+1)
-          if(part.contains(",")) part.trim.substring(1)
-          else null.asInstanceOf[String]
-        }else if(joinContent.contains(",")){
-          val tmpIndex = joinContent.indexOf(",")
-          val tmp = joinContent.substring(tmpIndex+1)
-          joinContent = joinContent.substring(0,tmpIndex)
-          tmp
-        }else null.asInstanceOf[String]
-      }
-      keyOpts += ((keyOpt.toLowerCase,param))
-    }
-    val joinbyFileds = joinContent.split("\\+")
+    val patternContentList: mutable.Seq[RowkeyPatternContent] = RowkeyTool.parse(sqlConfig.sourceTableFields.get(0))
+
+//    val keyOpts = ListBuffer.empty[(String,String)]
+//    while (joinContent.contains("(")) {
+//      val firstIndex = joinContent.indexOf("(")
+//      val keyOpt = joinContent.substring(0, firstIndex).trim
+//      val lastIndex = joinContent.lastIndexOf(")")
+//      joinContent = joinContent.substring(firstIndex+1,lastIndex)
+//      val param = if(joinContent.trim.endsWith(")")){//无参数
+//        null.asInstanceOf[String]
+//      }else{
+//        if(joinContent.contains("(")){
+//          val subLastIndex = joinContent.lastIndexOf(")",lastIndex)
+//          val part = joinContent.substring(subLastIndex+1)
+//          joinContent = joinContent.substring(0,subLastIndex+1)
+//          if(part.contains(",")) part.trim.substring(1)
+//          else null.asInstanceOf[String]
+//        }else if(joinContent.contains(",")){
+//          val tmpIndex = joinContent.indexOf(",")
+//          val tmp = joinContent.substring(tmpIndex+1)
+//          joinContent = joinContent.substring(0,tmpIndex)
+//          tmp
+//        }else null.asInstanceOf[String]
+//      }
+//      keyOpts += ((keyOpt.toLowerCase,param))
+//    }
+//    val joinbyFileds = joinContent.split("\\+")
 
     val resultSchema = {
       var resultSchema: StructType = df.schema
@@ -89,41 +89,11 @@ object LookupHbase extends EdpLogging {
 
       val originalData: ListBuffer[Row] = partition.to[ListBuffer]
       if (originalData.nonEmpty) {
-        val headRow = originalData.head
-        val keyFieldContentDesc: Array[(Boolean, Int, String)] = joinbyFileds.map(fieldName => {
-          if (!fieldName.startsWith("'")) {
-            (true, headRow.fieldIndex(fieldName), "")
-          } else {
-            (false, 0, fieldName.substring(1, fieldName.length - 1))
-          }
-        })
+        val keyFieldsSchema = RowkeyTool.generateKeyFieldsSchema(originalData,patternContentList)
 
         val keys: mutable.Seq[String] = originalData.map(row => {
-          val schema: Array[StructField] = row.schema.fields
-          var fieldContent = keyFieldContentDesc.map(fieldDesc => {
-            if (fieldDesc._1) {
-              val value = getFieldContentByType(row, schema, fieldDesc._2)
-              if (value != null) value else "N/A"
-            } else {
-              fieldDesc._3
-            }
-          }).mkString("")
-
-          keyOpts.reverse.foreach(pattern => {
-            val keyOpt = pattern._1
-            val param = pattern._2
-            fieldContent = if (keyOpt == RowkeyPattern.HASH.toString) RowkeyPattern.rkHash(fieldContent).toString
-            else if (keyOpt==RowkeyPattern.MD5.toString) RowkeyPattern.rkMD5(fieldContent)
-            else if (keyOpt==RowkeyPattern.ABS.toString) RowkeyPattern.rkAbs(fieldContent.toLong).toString
-            else if (keyOpt==RowkeyPattern.MOD.toString) {
-              RowkeyPattern.rkMod(fieldContent.toLong,param.toLong).toString
-            }else if (keyOpt==RowkeyPattern.SUB.toString) {
-              RowkeyPattern.rkSub(fieldContent,param.toInt)
-            } else if (keyOpt == RowkeyPattern.REVERSE.toString) RowkeyPattern.rkReverse(fieldContent)
-            else fieldContent //RowkeyPattern.VALUE.toString
-          })
-
-          fieldContent
+          val keydatas = RowkeyTool.generateRowKeyDatas(keyFieldsSchema,row)
+          RowkeyTool.generatePatternKey(keydatas,patternContentList)
         })
 
         HbaseConnection.initHbaseConfig(null, null, connectionConfig)

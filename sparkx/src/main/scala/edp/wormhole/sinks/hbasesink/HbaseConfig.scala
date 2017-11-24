@@ -30,7 +30,7 @@ case class HbaseConfig(`hbase.columnFamily`: Option[String],
                        `hbase.saveAsString`: Option[Boolean],
                        `hbase.version.column`:Option[String],
                        `hbase.mutation.type`:Option[String],
-                       `hbase.rowKey`: Seq[RowkeyInfo] //separator","
+                       `hbase.rowKey`: String //separator","
 
                       ) {
   lazy val `hbase.columnFamily.get` = `hbase.columnFamily`.getOrElse("cf")
@@ -40,6 +40,6 @@ case class HbaseConfig(`hbase.columnFamily`: Option[String],
   lazy val `hbase.version.column.get` = `hbase.version.column`.getOrElse(UmsSysField.TS.toString)
 }
 
-case class RowkeyInfo(name: String, pattern: String)
+//case class RowkeyInfo(name: String, pattern: String)
 
 

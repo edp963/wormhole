@@ -21,25 +21,23 @@
 
 package edp.wormhole.swifts.transform
 
-import java.sql.{SQLTransientConnectionException, Connection, ResultSet}
-import edp.wormhole.swifts.transform.SqlBinding.{getMysqlSql, getSlidingUnionSql, getCassandraSql}
-import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.common.JdbcPushdown._
+import java.sql.{Connection, ResultSet, SQLTransientConnectionException}
+
+import edp.wormhole.swifts.transform.SqlBinding.{getCassandraSql, getMysqlSql, getSlidingUnionSql}
+import edp.wormhole.common.{ConnectionConfig, WormholeUtils}
 import edp.wormhole.common.SparkSchemaUtils._
 import edp.wormhole.common.db.DbConnection
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.swifts.parse.{SqlOptType, SwiftsSql}
-import edp.wormhole.ums.{UmsSysField, UmsDataSystem, UmsField}
+import edp.wormhole.ums.{UmsDataSystem,  UmsSysField}
 import edp.wormhole.ums.UmsFieldType._
-import edp.wormhole.ums.UmsSchemaUtils._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
-import org.apache.spark.sql.{DataFrame, Row, SparkSession, functions}
+import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.types._
-import edp.wormhole.swifts.transform.SqlBinding.getFieldContentByType
 
 import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.ListBuffer
 
 object DataFrameTransform extends EdpLogging {
   def getDbJoinOrUnionDf(session: SparkSession, currentDf: DataFrame, sourceTableFields: Array[String], lookupTableFields: Array[String], sql: String, connectionConfig: ConnectionConfig, schemaStr: String, operate: SwiftsSql, sqlType: UmsDataSystem.Value): DataFrame = {
@@ -67,7 +65,7 @@ object DataFrameTransform extends EdpLogging {
         val lookupFieldsLength = lookupTableFields.length
         val fieldContent = sourceTableFields.map(fieldName => {
           val index = row.fieldIndex(fieldName)
-          val value = getFieldContentByType(row, schema, index)
+          val value = WormholeUtils.getFieldContentByType(row, schema, index)
           if (value != null) value else "N/A"
         }).mkString(",")
         if (!fieldContent.contains("N/A")) {
@@ -142,7 +140,7 @@ object DataFrameTransform extends EdpLogging {
     val resultData: ListBuffer[Row] = originalData
     val originalSchemaArr = resultSchema.fieldNames.map(name => (name, resultSchema.apply(resultSchema.fieldIndex(name)).dataType)) //order is same every time?
     if (dataMapFromDb != null)
-      dataMapFromDb.foreach { case (keyCombine, tupleLists) =>
+      dataMapFromDb.foreach { case (_, tupleLists) =>
         tupleLists.foreach(tupleList => {
           val unionArr = originalSchemaArr.map { case (name, dataType) =>
             if (dbOutPutSchemaMap.contains(name)) {
@@ -180,7 +178,7 @@ object DataFrameTransform extends EdpLogging {
       } else {
         val originalArray: Array[Any] = iter.schema.fieldNames.map(name => iter.get(iter.fieldIndex(name)))
         dataMapFromDb(originalJoinFields).foreach { tupleList =>
-          val dbOutputArray = dbOutPutSchemaMap.map { case (name, (dataType, index)) =>
+          val dbOutputArray = dbOutPutSchemaMap.map { case (_, (dataType, index)) =>
             s2sparkValue(tupleList(index), umsFieldType(dataType))
           }.toArray
           val row = new GenericRowWithSchema(originalArray ++ dbOutputArray, resultSchema)
@@ -209,7 +207,7 @@ object DataFrameTransform extends EdpLogging {
         if (dataMapFromDb.contains(originalJoinFields)) {
           val originalArray: Array[Any] = iter.schema.fieldNames.map(name => iter.get(iter.fieldIndex(name)))
           dataMapFromDb(originalJoinFields).foreach { tupleList =>
-            val dbOutputArray = dbOutPutSchemaMap.map { case (name, (dataType, index)) =>
+            val dbOutputArray = dbOutPutSchemaMap.map { case (_, (dataType, index)) =>
               s2sparkValue(tupleList(index), umsFieldType(dataType))
             }.toArray
             val row = new GenericRowWithSchema(originalArray ++ dbOutputArray, resultSchema)
@@ -231,7 +229,7 @@ object DataFrameTransform extends EdpLogging {
       val arrayBuf: Array[String] = Array.fill(dbOutPutSchemaMap.size) {
         ""
       }
-      dbOutPutSchemaMap.foreach { case (name, (dataType, index)) =>
+      dbOutPutSchemaMap.foreach { case (name, (_, index)) =>
         val value = rs.getObject(name)
         arrayBuf(index) = if (value != null) rs.getObject(name).toString else null
       }

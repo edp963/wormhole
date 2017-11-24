@@ -21,12 +21,11 @@
 package edp.wormhole.swifts.custom
 
 import com.alibaba.fastjson.JSON
-import edp.wormhole.common.{ConnectionConfig, KVConfig, SparkSchemaUtils}
+import edp.wormhole.common.{ConnectionConfig, KVConfig, SparkSchemaUtils, WormholeUtils}
 import edp.wormhole.common.SparkSchemaUtils.ums2sparkType
 import edp.wormhole.redis.JedisConnection
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.swifts.parse.SwiftsSql
-import edp.wormhole.swifts.transform.SqlBinding.getFieldContentByType
 import edp.wormhole.ums.UmsFieldType.umsFieldType
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types.{StructField, StructType}
@@ -53,8 +52,6 @@ object LookupRedis extends EdpLogging {
       joinbyFiledsArray(0)
     }
 
-    //    val optType = sqlConfig.optType
-
     val resultSchema = {
       var resultSchema: StructType = df.schema
       val addColumnType = selectFields.map { case (name, dataType) =>
@@ -65,7 +62,6 @@ object LookupRedis extends EdpLogging {
     }
 
     val joinedRow: RDD[Row] = df.rdd.mapPartitions(partition => {
-      //      val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(pushdownNamespace)
       val params: Seq[KVConfig] = connectionConfig.parameters.get
       val mode = params.filter(_.key == "mode").map(_.value).head
       val resultData = ListBuffer.empty[Row]
@@ -85,7 +81,7 @@ object LookupRedis extends EdpLogging {
           val schema: Array[StructField] = row.schema.fields
           val fieldContent = keyFieldContentDesc.map(fieldDesc => {
             if (fieldDesc._1) {
-              val value = getFieldContentByType(row, schema, fieldDesc._2)
+              val value = WormholeUtils.getFieldContentByType(row, schema, fieldDesc._2)
               if (value != null) value else "N/A"
             } else {
               fieldDesc._3
@@ -97,13 +93,6 @@ object LookupRedis extends EdpLogging {
         val lookupValues = keys.map(key => {
           JedisConnection.get(connectionConfig.connectionUrl, connectionConfig.password, mode, key)
         })
-
-        //      var i = resultSchema.size - 1
-        //      val selectFields2Index = selectFields.map { case (name, dataType) =>
-        //        i += 1
-        //        (name, dataType, i)
-        //      }
-
 
         for (i <- originalData.indices) {
           val ori = originalData(i)
