@@ -21,11 +21,10 @@
 
 package edp.wormhole.sinks.hbasesink
 
-import edp.wormhole.common.ConnectionConfig
+import edp.wormhole.common.{ConnectionConfig, RowkeyPatternContent, RowkeyPatternType, RowkeyTool}
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.sinks.hbasesink.HbaseConstants._
-import edp.wormhole.sinks.hbasesink.RowkeyPattern._
 import org.apache.hadoop.hbase.client._
 import org.apache.hadoop.hbase.util.Bytes
 import edp.wormhole.ums.UmsSysField._
@@ -51,37 +50,27 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
                        connectionConfig: ConnectionConfig): Unit = {
     HbaseConnection.initHbaseConfig(sinkNamespace, sinkProcessConfig, connectionConfig)
 
-    def rowkey(rowkeyConfig: Seq[RowkeyInfo], recordValue: Seq[String]): String = rowkeyConfig.map(rowkey => {
-      val rkName = rowkey.name.toLowerCase
-      if (!schemaMap.contains(rkName)) {
-        logError("schemaMap does not containing " + rkName)
-        throw new Exception("schemaMap does not containing " + rkName)
-      }
-      val rkValue = recordValue(schemaMap(rkName)._1)
-      val rkPattern = rowkey.pattern
-      if (rkPattern == VALUE.toString) rkValue
-      else if (rkPattern == HASH.toString) {
-        val rkGet = rkHash(rkValue)
-        if (rkGet == null) null else rkGet.toString
-      } else if (rkPattern == REVERSE.toString) rkReverse(rkValue)
-      else if (rkPattern == MOD.toString) {
-        val cg = rkValue.split(",")
-        rkMod(cg(0).trim.toLong,cg(1).trim.toLong).toString
-      }
-      else if (rkPattern == SUB.toString) {
-        val cg = rkValue.split(",")
-        rkSub(cg(0).trim,cg(1).trim.toInt)
-      }
-      else if (rkPattern==MD5TMP.toString) rkModTmp(rkValue, rkPattern)
-      else if (rkPattern==RowkeyPattern.ABS.toString) RowkeyPattern.rkAbs(rkValue.toLong).toString
-      else {
-        val rkGet = rkHash(rkReverse(rkValue))
-        if (rkGet == null) null else rkGet.toString
-      }
-    }).mkString("_")
+    def rowkey(rowkeyConfig: Seq[RowkeyPatternContent], recordValue: Seq[String]): String = {
+      val keydatas = rowkeyConfig.map(rowkey => {
+
+        val rkName = rowkey.fieldContent.toLowerCase
+        val rkType = rowkey.patternType
+        if (rkType==RowkeyPatternType.DELIMIER.toString){
+          rowkey.fieldContent
+        } else {
+          if (!schemaMap.contains(rkName)) {
+            logError("schemaMap does not containing " + rkName)
+            throw new Exception("schemaMap does not containing " + rkName)
+          }
+          recordValue(schemaMap(rkName)._1)
+
+        }
+      })
+      RowkeyTool.generatePatternKey(keydatas, rowkeyConfig)
+    }
 
 
-    def gerneratePuts(rkConfig: Seq[RowkeyInfo], columnFamily: String, saveAsString: Boolean, versionColumn: String, filterRowkey2idTuples: Seq[(String, Long, Seq[String])]): ListBuffer[Put] = {
+    def gerneratePuts(columnFamily: String, saveAsString: Boolean, versionColumn: String, filterRowkey2idTuples: Seq[(String, Long, Seq[String])]): ListBuffer[Put] = {
       val puts: ListBuffer[Put] = new mutable.ListBuffer[Put]
       for (tuple <- filterRowkey2idTuples) {
         try {
@@ -110,11 +99,13 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
     val namespace = UmsNamespace(sinkNamespace)
     val hbaseConfig = json2caseClass[HbaseConfig](sinkProcessConfig.specialConfig.get)
     val zk = HbaseConnection.getZookeeperInfo(connectionConfig.connectionUrl)
-    val rowkeyConfig: Seq[RowkeyInfo] = hbaseConfig.`hbase.rowKey`
+    val rowkeyConfig: String = hbaseConfig.`hbase.rowKey`
+
+    val patternContentList: mutable.Seq[RowkeyPatternContent] = RowkeyTool.parse(rowkeyConfig)
 
     //    logInfo("before format:" + tupleList.size)
     val rowkey2IdTuples: Seq[(String, Long, Seq[String])] = tupleList.map(tuple => {
-      (rowkey(rowkeyConfig, tuple), tuple(schemaMap(ID.toString)._1).toLong, tuple)
+      (rowkey(patternContentList, tuple), tuple(schemaMap(ID.toString)._1).toLong, tuple)
     })
 
     val filterRowkey2idTuples = SourceMutationType.sourceMutationType(hbaseConfig.`hbase.mutation.type.get`) match {
@@ -135,7 +126,7 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
     }
 
     //    logInfo("before generate puts:" + filterRowkey2idTuples.size)
-    val puts = gerneratePuts(rowkeyConfig, hbaseConfig.`hbase.columnFamily.get`, hbaseConfig.`hbase.valueType.get`, hbaseConfig.`hbase.version.column.get`, filterRowkey2idTuples)
+    val puts = gerneratePuts(hbaseConfig.`hbase.columnFamily.get`, hbaseConfig.`hbase.valueType.get`, hbaseConfig.`hbase.version.column.get`, filterRowkey2idTuples)
     //    logInfo("before put:" + puts.size)
     if (puts.nonEmpty) {
       HbaseConnection.dataPut(namespace.database + ":" + namespace.table, puts, zk._1, zk._2)
