@@ -24,7 +24,6 @@ import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 import Table from 'antd/lib/table'
-import Popconfirm from 'antd/lib/popconfirm'
 import Tooltip from 'antd/lib/tooltip'
 import Button from 'antd/lib/button'
 import Radio from 'antd/lib/radio'
@@ -38,6 +37,15 @@ export class SchemaTypeConfig extends React.Component {
     super(props)
     this.state = {
       selectedRowKeys: []
+    }
+  }
+
+  componentWillReceiveProps (props) {
+    if (props.umsTableDataSource) {
+      props.umsTableDataSource.map(s => {
+        s.key = s.fieldName
+        return s
+      })
     }
   }
 
@@ -86,14 +94,6 @@ export class SchemaTypeConfig extends React.Component {
           <Tooltip title="编辑">
             <Button icon="edit" shape="circle" type="ghost"></Button>
           </Tooltip>
-
-          <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No">
-            <Tooltip title="删除">
-              <Button shape="circle" type="ghost">
-                <i className="iconfont icon-jian"></i>
-              </Button>
-            </Tooltip>
-          </Popconfirm>
         </span>
       )
     }]
@@ -138,30 +138,30 @@ export class SchemaTypeConfig extends React.Component {
               })(
                 <RadioGroup className="radio-group-style" size="default" onChange={this.onChangeUmsType}>
                   <RadioButton value="ums" className="radio-btn-style radio-btn-extra">Ums</RadioButton>
-                  <RadioButton value="ums_extension" className="ums-extension radio-btn-extra">Ums_extension</RadioButton>
+                  <RadioButton value="ums_extension" className="ums-extension">Ums_extension</RadioButton>
                 </RadioGroup>
               )}
             </FormItem>
           </Col>
         </Row>
         <Row className={umsTypeSeleted === 'ums' ? 'hide' : ''}>
-          <Col span={8}>
-            <FormItem label="" {...itemStyle}>
+          <Col span={7} className="code-mirror-content">
+            <FormItem label="">
               {getFieldDecorator('jsonSample', {})(
                 <textarea
-                  placeholder="Paste your Sink Config JSON here."
+                  placeholder="Paste your JSON Sample here."
                   className="ant-input ant-input-extra"
                   rows="5">
                 </textarea>
               )}
             </FormItem>
           </Col>
-          <Col span={1}>
+          <Col span={1} className="change-btn">
             <Button type="primary" onClick={this.props.onChangeJsonToTable}>
               <Icon type="caret-right" />
             </Button>
           </Col>
-          <Col span={15} className="schema-config-table">
+          <Col span={16} className="schema-config-table">
             <Table
               dataSource={this.props.umsTableDataSource}
               columns={columns}
