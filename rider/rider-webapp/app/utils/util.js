@@ -110,3 +110,44 @@ export function notifyError (err, title) {
 export function notifySagasError (err, prefix) {
   notifyError(err, `${prefix} sagas or reducer 异常`)
 }
+
+/**
+ *  JSON 格式校验
+ *  如果JSON.parse能转换成功；并且字符串中包含 { 时，那么该字符串就是JSON格式的字符串。
+   *  另：str 可为空
+   */
+export function isJSON (str) {
+  if (typeof str === 'string') {
+    if (str === '') {
+      return true
+    } else {
+      try {
+        JSON.parse(str)
+        if (str.indexOf('{') > -1) {
+          return true
+        } else {
+          return false
+        }
+      } catch (e) {
+        return false
+      }
+    }
+  }
+  return false
+}
+
+export function isJSONNotEmpty (str) {
+  if (typeof str === 'string') {
+    try {
+      JSON.parse(str)
+      if (str.indexOf('{') > -1) {
+        return true
+      } else {
+        return false
+      }
+    } catch (e) {
+      return false
+    }
+  }
+  return false
+}
