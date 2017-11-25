@@ -27,6 +27,7 @@ require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
 
 import { jsonParse, genDefaultSchemaTable } from './umsFunction'
+import { isJSONNotEmpty } from '../../utils/util'
 
 import NamespaceForm from './NamespaceForm'
 import SchemaTypeConfig from './SchemaTypeConfig'
@@ -640,7 +641,7 @@ export class Namespace extends React.PureComponent {
             mode: 'application/ld+json',
             lineWrapping: true
           })
-          this.cmSample.setSize('100%', '256px')
+          this.cmSample.setSize('100%', '520px')
         }
       }
     })
@@ -663,8 +664,10 @@ export class Namespace extends React.PureComponent {
     const cmJsonvalue = this.cmSample.doc.getValue()
     if (cmJsonvalue === '') {
       message.warning('JSON Sample 为空！', 3)
+    } else if (!isJSONNotEmpty(cmJsonvalue)) {
+      message.error('非 JSON格式！', 3)
     } else {
-      const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, '\t')
+      const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, 1)
       this.cmSample.doc.setValue(cmJsonvalueFormat || '')
     }
   }
@@ -673,6 +676,8 @@ export class Namespace extends React.PureComponent {
     const cmVal = this.cmSample.doc.getValue()
     if (cmVal === '') {
       message.warning('请填写 JSON Sample', 3)
+    } else if (!isJSONNotEmpty(cmVal)) {
+      message.error('非 JSON格式！', 3)
     } else {
       const cmJsonvalue = JSON.parse(this.cmSample.doc.getValue())
       const jsonSmaple = jsonParse(cmJsonvalue, '', [])
@@ -1061,7 +1066,7 @@ export class Namespace extends React.PureComponent {
         <Modal
           title="Schema Config"
           okText="保存"
-          wrapClassName="schema-config-modal"
+          wrapClassName="schema-config-modal ums-modal"
           visible={this.state.schemaModalVisible}
           footer={[
             <Button
