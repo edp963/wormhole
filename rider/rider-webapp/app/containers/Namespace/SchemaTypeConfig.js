@@ -20,17 +20,87 @@
 
 import React from 'react'
 
+import { getAlterTypesByOriginType } from './umsFunction'
+
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 import Table from 'antd/lib/table'
-import Tooltip from 'antd/lib/tooltip'
 import Button from 'antd/lib/button'
 import Radio from 'antd/lib/radio'
 import Icon from 'antd/lib/icon'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 const FormItem = Form.Item
+import Select from 'antd/lib/select'
+const Option = Select.Option
+
+class EditableCell extends React.Component {
+  state = {
+    value: this.props.value, // eslint-disable-line
+    editable: false,
+    fieldTypeOptionsVal: []
+  }
+
+  onChangeFieldType = (value) => {
+    this.setState({ value })
+  }
+
+  check = () => {
+    this.setState({ editable: false })
+  }
+
+  edit = () => {
+    const selectTypeValue = getAlterTypesByOriginType(this.state.value)
+    this.setState({
+      editable: true,
+      fieldTypeOptionsVal: selectTypeValue
+    })
+  }
+
+  render () {
+    const { value, editable, fieldTypeOptionsVal } = this.state
+
+    const fieldTypeOptions = fieldTypeOptionsVal.map(s => (<Option key={s} value={`${s}`}>{s}</Option>))
+
+    return (
+      <div className="editable-cell">
+        {
+          editable
+            ? <div className="editable-cell-input-wrapper">
+              {/* <Input
+                value={value}
+                onChange={this.onChangeFieldType}
+                onPressEnter={this.check}
+              /> */}
+              <Select
+              // dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
+                onChange={this.onChangeFieldType}
+                placeholder="Select"
+                className="field-type-select"
+                onPressEnter={this.check}
+              >
+                {fieldTypeOptions}
+              </Select>
+              <Icon
+                type="check"
+                className="editable-cell-icon-check"
+                onClick={this.check}
+              />
+            </div>
+            : <div className="editable-cell-text-wrapper">
+              {value || ' '}
+              <Icon
+                type="edit"
+                className="editable-cell-icon"
+                onClick={this.edit}
+              />
+            </div>
+        }
+      </div>
+    )
+  }
+}
 
 export class SchemaTypeConfig extends React.Component {
   constructor (props) {
@@ -53,13 +123,25 @@ export class SchemaTypeConfig extends React.Component {
     this.props.initChangeUmsType(e.target.value)
   }
 
+  onCellChange = (key, dataIndex) => {
+    console.log(key, dataIndex)
+    return (value) => {
+      const dataSource = [...this.state.dataSource]
+      const target = dataSource.find(item => item.key === key)
+      if (target) {
+        target[dataIndex] = value
+        this.setState({ dataSource })
+      }
+    }
+  }
+
   render () {
     const { form } = this.props
     const { getFieldDecorator } = form
 
     const itemStyle = {
-      labelCol: { span: 4 },
-      wrapperCol: { span: 19 }
+      labelCol: { span: 2 },
+      wrapperCol: { span: 22 }
     }
 
     const columns = [{
@@ -73,7 +155,13 @@ export class SchemaTypeConfig extends React.Component {
     }, {
       title: 'FieldType',
       dataIndex: 'fieldType',
-      key: 'fieldType'
+      key: 'fieldType',
+      render: (text, record) => (
+        <EditableCell
+          value={text}
+          onChange={this.onCellChange(record.key, 'name')}
+        />
+      )
     }, {
       title: 'ums_id_',
       dataIndex: 'umsId',
@@ -86,21 +174,11 @@ export class SchemaTypeConfig extends React.Component {
       title: 'ums_op_',
       dataIndex: 'umsOp',
       key: 'umsOp'
-    }, {
-      title: 'Action',
-      key: 'action',
-      render: (text, record) => (
-        <span className="ant-table-action-column">
-          <Tooltip title="编辑">
-            <Button icon="edit" shape="circle" type="ghost"></Button>
-          </Tooltip>
-        </span>
-      )
     }]
 
     const pagination = {
-      defaultPageSize: 10,
-      pageSizeOptions: ['10', '20', '30', '40'],
+      defaultPageSize: 15,
+      pageSizeOptions: ['15', '30', '45', '60'],
       showSizeChanger: true,
       onShowSizeChange: (current, pageSize) => {
         this.setState({

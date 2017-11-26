@@ -641,15 +641,22 @@ export class Namespace extends React.PureComponent {
             mode: 'application/ld+json',
             lineWrapping: true
           })
-          this.cmSample.setSize('100%', '520px')
+          this.cmSample.setSize('100%', '530px')
         }
       }
     })
   }
 
   hideSchemaModal = () => {
-    this.setState({ schemaModalVisible: false })
-    this.cmSample.doc.setValue('')
+    this.setState({
+      schemaModalVisible: false
+    }, () => {
+      this.setState({
+        umsTableDataSource: []
+      }, () => {
+        this.cmSample.doc.setValue('')
+      })
+    })
   }
 
   onSchemaModalOk = () => {
@@ -674,6 +681,7 @@ export class Namespace extends React.PureComponent {
 
   onChangeUmsJsonToTable = () => {
     const cmVal = this.cmSample.doc.getValue()
+
     if (cmVal === '') {
       message.warning('请填写 JSON Sample', 3)
     } else if (!isJSONNotEmpty(cmVal)) {
@@ -1068,6 +1076,7 @@ export class Namespace extends React.PureComponent {
           okText="保存"
           wrapClassName="schema-config-modal ums-modal"
           visible={this.state.schemaModalVisible}
+          onCancel={this.hideSchemaModal} // "X" 按钮
           footer={[
             <Button
               key="jsonFormat"
