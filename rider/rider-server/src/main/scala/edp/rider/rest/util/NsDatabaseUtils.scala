@@ -45,7 +45,8 @@ object NsDatabaseUtils {
             if (key == "maxPoolSize")
               seq += KVConfig(key.toString, json.get(key).toString)
           })
-          Some(seq)
+          if (seq.isEmpty) None
+          else Some(seq)
         } else if (isKeyEqualValue(config)) {
           val seq = new ListBuffer[KVConfig]
           val keyValueSeq = config.split(",").mkString("&").split("&")
@@ -56,7 +57,8 @@ object NsDatabaseUtils {
                 seq += KVConfig(data(0), data(1))
             }
           )
-          Some(seq)
+          if (seq.isEmpty) None
+          else Some(seq)
         } else None
       case "phoenix" => None
       case _ =>

@@ -58,6 +58,7 @@ object FlowUtils extends RiderLogger {
         else "{}"
       val dbConfig = getDbConfig(ns.nsSys, db.config.getOrElse(""))
       val sinkConnectionConfig = if (dbConfig.nonEmpty) db.config.get else "\"\""
+
       s"""
          |{
          |"sink_connection_url": "${getConnUrl(instance, db)}",
@@ -79,7 +80,6 @@ object FlowUtils extends RiderLogger {
   }
 
   def getTranConfig(tranConfig: String) = {
-    println("tranconfig pre: " + tranConfig)
     if (tranConfig == "") "{}"
     else {
       val json = JSON.parseObject(tranConfig)
