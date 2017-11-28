@@ -1,48 +1,20 @@
-/*-
- * <<
- * wormhole
- * ==
- * Copyright (C) 2016 - 2017 EDP
- * ==
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * >>
- */
-
-
 package edp.wormhole.sinks.mongosink
 
-import java.text.SimpleDateFormat
-import java.util
+import javax.net.SocketFactory
 
 import com.alibaba.fastjson.JSON
-import com.mongodb.ConnectionString
-import com.mongodb.async.client.MongoClients
-import com.mongodb.client.model.IndexOptions
-import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.memorystorage.ConfMemoryStorage._
-import edp.wormhole.sinks.SinkProcessConfig
-import edp.wormhole.sinks.mongosink.MongoHelper._
+import com.mongodb.{DBObject, ReadPreference, WriteConcern}
+import com.mongodb.casbah.{MongoClient, MongoClientOptions, MongoCollection, MongoDB}
+import com.mongodb.casbah.commons.{MongoDBObject, TypeImports}
+import com.sun.corba.se.spi.ior.ObjectId
+import edp.wormhole.common.util.JsonUtils.json2caseClass
+import edp.wormhole.common.{ConnectionConfig, KVConfig, RowkeyPatternContent, RowkeyTool}
+import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.sinks.SinkProcessor
-import edp.wormhole.ums.UmsFieldType._
-import edp.wormhole.ums.UmsProtocolType.{apply => _, _}
-import edp.wormhole.ums.{UmsFieldType, _}
-import org.mongodb.scala.bson.{BsonBinary, BsonBoolean, BsonDateTime, BsonDouble, BsonInt32, BsonInt64, BsonString}
-import org.mongodb.scala.connection._
-import org.mongodb.scala.model.Filters._
-import org.mongodb.scala.{MongoClient, MongoClientSettings, MongoCollection, MongoDatabase, bson, _}
-
-import scala.collection.mutable.{Builder, ListBuffer}
+import edp.wormhole.ums.UmsFieldType.UmsFieldType
+import edp.wormhole.ums.{UmsNamespace, UmsSysField}
+import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
+import org.mongodb.scala.{MongoCredential, ServerAddress}
 
 class Data2MongoSink extends SinkProcessor with EdpLogging {
   override def process(protocolType: UmsProtocolType,
@@ -51,97 +23,105 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
                        sinkProcessConfig: SinkProcessConfig,
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        tupleList: Seq[Seq[String]],
-                       connectionConfig:ConnectionConfig): Unit = {
-
-    val start1 = System.currentTimeMillis()
-    //      val sinkProcessConfig = sinkConfigMap(sinkNamespace)
-    //oracle.oracle01.db.collection.2.0.0
-    val namespace = UmsNamespace(sinkNamespace)
-    val db: String = namespace.database
-    val table: String = namespace.table
-    val authentication = sinkProcessConfig.specialConfig.get
-    var user: String = null
-    var password: String = null
-    if (authentication.length != 0) {
-      val json = JSON.parseObject(authentication)
-      user = json.getString("user")
-      password = json.getString("password")
-    }
-    //val connectionConfig = getDataStoreConnectionsMap(sinkNamespace)
-    val kvConfig=connectionConfig.parameters.get
-    val kvList =if (kvConfig.nonEmpty){
-      kvConfig.map(kv=>
-        kv.key+"="+kv.value)
-    }
-    else Nil
-    val connectionUrl=connectionConfig.connectionUrl+"/?"+kvList.mkString("&")
-    //      val connectionUrl = sinkProcessConfig.    mongodb://localhost:27017
-    val credential = MongoCredential.createCredential(user, db, password.toCharArray)
-    val settings: MongoClientSettings = MongoClientSettings.builder()
-      .clusterSettings(ClusterSettings.builder().applyConnectionString(new ConnectionString(connectionUrl)).build())
-      .connectionPoolSettings(ConnectionPoolSettings.builder().applyConnectionString(new ConnectionString(connectionUrl)).build())
-      .serverSettings(ServerSettings.builder().applyConnectionString(new ConnectionString(connectionUrl)).build())
-      .heartbeatSocketSettings(SocketSettings.builder().applyConnectionString(new ConnectionString(connectionUrl)).build())
-      .socketSettings(SocketSettings.builder().applyConnectionString(new ConnectionString(connectionUrl)).build())
-      .sslSettings(SslSettings.builder().applyConnectionString(new ConnectionString(connectionUrl)).build())
-      .credentialList(util.Arrays.asList(credential)).build()
-    val mongoClient: MongoClient = MongoClient(MongoClients.create(settings))
-    // get handle to "mydb" database
-    val database: MongoDatabase = mongoClient.getDatabase(db)
-    val collection: MongoCollection[Document] = database.getCollection(table)
-    val keys = sinkProcessConfig.tableKeyList
-    val indexBuilder = Document.builder
-    keys.foreach { key =>
-      indexBuilder += key -> BsonInt32(1)
-    }
-    val index = indexBuilder.result()
-    collection.createIndex(index, new IndexOptions().unique(true)).headResult()
-    indexBuilder.clear()
-    println("get connection time : " + (System.currentTimeMillis() - start1))
-    val insertDocuments = ListBuffer[Document]()
-    tupleList.foreach { payload =>
-      val document = getDocument(schemaMap, payload)
-      val keyFilter = and(keys.map(key => equal(key, document.get(key).get)): _*)
-      if (collection.count(keyFilter).headResult() == 0L) {
-        insertDocuments += document
+                       connectionConfig: ConnectionConfig): Unit = {
+    val namespace: UmsNamespace = UmsNamespace(sinkNamespace)
+    val mongoClient = getMongoClient(namespace, sinkProcessConfig, connectionConfig)
+    try {
+      val db: String = namespace.database
+      val table: String = namespace.table
+      val database: MongoDB = mongoClient.getDB(db)
+      val collection: MongoCollection = database(table)
+      val sinkSpecificConfig: MongoConfig = json2caseClass[MongoConfig](sinkProcessConfig.specialConfig.get)
+      val patternContentList: Seq[RowkeyPatternContent] = if (sinkSpecificConfig.row_key.nonEmpty && sinkSpecificConfig.row_key.get.nonEmpty) RowkeyTool.parse(sinkSpecificConfig.row_key.get) else null.asInstanceOf[Seq[RowkeyPatternContent]]
+      val keySchema: Seq[(Boolean, Int, String)] = if (sinkSpecificConfig.row_key.nonEmpty && sinkSpecificConfig.row_key.get.nonEmpty) RowkeyTool.generateOnerowKeyFieldsSchema(schemaMap, patternContentList) else null.asInstanceOf[Seq[(Boolean, Int, String)]]
+      if (sinkSpecificConfig.`es.mutation_type.get` == SourceMutationType.I_U_D.toString) {
+        tupleList.foreach(tuple => {
+          val keyDatas = RowkeyTool.generateTupleKeyDatas(keySchema, tuple)
+          val key = RowkeyTool.generatePatternKey(keyDatas, patternContentList)
+          val o: DBObject = MongoDBObject("_id" -> key.asInstanceOf[ObjectId])
+          val field = MongoDBObject(UmsSysField.ID.toString)
+          val result: Option[TypeImports.DBObject] = collection.findOne(o, field)
+          if (result.nonEmpty) {
+            val umsidInStore = result.get.get(UmsSysField.ID.toString).asInstanceOf[Long]
+            val umsidInTuple = tuple(schemaMap(UmsSysField.ID.toString)._1).asInstanceOf[Long]
+            if (umsidInStore < umsidInTuple) {
+              val data = formatData(schemaMap, tuple, collection, key)
+              collection.save(data)
+            }
+          } else {
+            val data = formatData(schemaMap, tuple, collection, key)
+            collection.save(data)
+          }
+        })
       } else {
-        val updateFilter = and(keyFilter, lt("ums_id_", document.get("ums_id_").get))
-        collection.replaceOne(updateFilter, document).printHeadResult("replace result:  ")
+        val datas = tupleList.map(tuple => {
+          val keyDatas = RowkeyTool.generateTupleKeyDatas(keySchema, tuple)
+          val key = RowkeyTool.generatePatternKey(keyDatas, patternContentList)
+          formatData(schemaMap, tuple, collection, key)
+        })
+        collection.insert(datas: _*)
       }
+    } catch {
+      case e: Throwable =>
+        logError("", e)
+    } finally {
+      mongoClient.close()
     }
-    collection.insertMany(insertDocuments).printHeadResult("-----> success <-----")
-    //collection.dropIndex(index).printHeadResult("-----> drop index <-----")
-    mongoClient.close()
-
   }
 
-  def getDocument(schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], payload: Seq[String]): Document = {
-    val builder = Document.builder
-    val columns = schemaMap.keys
-    for (column <- columns) {
-      if (column == UmsSysField.OP.toString) {
-        if (payload(schemaMap(column)._1) == UmsOpType.DELETE.toString) {
-          builderdWithDifferentTypes(builder, UmsSysField.ACTIVE.toString, UmsFieldType.INT, UmsActiveType.INACTIVE.toString)
-        } else {
-          builderdWithDifferentTypes(builder, UmsSysField.ACTIVE.toString, UmsFieldType.INT, UmsActiveType.ACTIVE.toString)
-        }
-      } else {
-        builderdWithDifferentTypes(builder, column, schemaMap(column)._2, payload(schemaMap(column)._1))
-      }
-    }
+  def formatData(schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], tuple: Seq[String], collection: MongoCollection, key: String): DBObject = {
+    val builder = MongoDBObject.newBuilder
+    schemaMap.foreach(schema => {
+      builder += schema._1 -> tuple(schema._2._1)
+    })
+    builder += "_id" -> key
     builder.result()
   }
 
-  def builderdWithDifferentTypes(builder: Builder[(String, bson.BsonValue), Document], columnName: String, fieldType: UmsFieldType, value: String): Unit = fieldType match {
-    //mongoDB ISODate time zone 8 hours apart
-    case UmsFieldType.STRING => builder += columnName -> BsonString(value.trim)
-    case UmsFieldType.INT => builder += columnName -> BsonInt32(value.trim.toInt)
-    case UmsFieldType.LONG => builder += columnName -> BsonInt64(value.trim.toLong)
-    case UmsFieldType.FLOAT | UmsFieldType.DOUBLE | UmsFieldType.DECIMAL => builder += columnName -> BsonDouble(value.trim.toFloat)
-    case UmsFieldType.BOOLEAN => builder += columnName -> BsonBoolean(value.trim.toBoolean)
-    case UmsFieldType.DATE => builder += columnName -> BsonDateTime(new SimpleDateFormat("yyyy-MM-dd").parse(value.trim))
-    case UmsFieldType.DATETIME => builder += columnName -> BsonDateTime(new SimpleDateFormat("yyyy-MM-dd").parse(value.trim))
-    case UmsFieldType.BINARY => builder += columnName -> BsonBinary(value.trim.getBytes())
-    case _ => throw new UnsupportedOperationException(s"Unknown Type: $fieldType")
+  def getMongoClient(namespace: UmsNamespace, sinkProcessConfig: SinkProcessConfig, connectionConfig: ConnectionConfig): MongoClient = {
+    val db: String = namespace.database
+    val authentication = sinkProcessConfig.specialConfig.get
+    val (user, password) = if (authentication.length != 0) {
+      val json = JSON.parseObject(authentication)
+      (json.getString("user"), json.getString("password"))
+    } else (null, null)
+
+    val kvConfig: Seq[KVConfig] = connectionConfig.parameters.get
+    val credential = MongoCredential.createCredential(user, db, password.toCharArray)
+    val serverList = connectionConfig.connectionUrl.split(",").map(conn => {
+      val ip2port = conn.split("\\:")
+      new ServerAddress(ip2port(0), ip2port(1).toInt)
+    }).toList
+
+    if (kvConfig.nonEmpty) {
+      val configMap: Map[String, String] = kvConfig.map(kv => {
+        (kv.key, kv.value)
+      }).toMap
+      val connectionsPerHost: Int = if (configMap.contains("connectionsPerHost")) configMap("connectionsPerHost").toInt else MongoClientOptions.Defaults.getConnectionsPerHost
+      val connectTimeout: Int = if (configMap.contains("connectTimeout")) configMap("connectTimeout").toInt else MongoClientOptions.Defaults.getConnectTimeout
+      val cursorFinalizerEnabled: Boolean = if (configMap.contains("cursorFinalizerEnabled")) configMap("cursorFinalizerEnabled").toBoolean else MongoClientOptions.Defaults.isCursorFinalizerEnabled
+      val dbDecoderFactory = MongoClientOptions.Defaults.getDbDecoderFactory
+      val DBEncoderFactory = MongoClientOptions.Defaults.getDbEncoderFactory
+      val description: String = if (configMap.contains("description")) configMap("description") else MongoClientOptions.Defaults.getDescription
+      val maxWaitTime: Int = if (configMap.contains("maxWaitTime")) configMap("maxWaitTime").toInt else MongoClientOptions.Defaults.getMaxWaitTime
+      val readPreference: ReadPreference = MongoClientOptions.Defaults.getReadPreference
+      val socketFactory: SocketFactory = MongoClientOptions.Defaults.getSocketFactory
+      val socketKeepAlive: Boolean = if (configMap.contains("socketKeepAlive")) configMap("socketKeepAlive").toBoolean else MongoClientOptions.Defaults.isSocketKeepAlive
+      val socketTimeout: Int = if (configMap.contains("socketTimeout")) configMap("socketTimeout").toInt else MongoClientOptions.Defaults.getSocketTimeout
+      val threadsAllowedToBlockForConnectionMultiplier: Int = if (configMap.contains("threadsAllowedToBlockForConnectionMultiplier")) configMap("threadsAllowedToBlockForConnectionMultiplier").toInt else MongoClientOptions.Defaults.getThreadsAllowedToBlockForConnectionMultiplier
+      val writeConcern: WriteConcern = MongoClientOptions.Defaults.getWriteConcern
+      val alwaysUseMBeans: Boolean = if (configMap.contains("alwaysUseMBeans")) configMap("alwaysUseMBeans").toBoolean else MongoClientOptions.Defaults.isAlwaysUseMBeans
+      val heartbeatConnectTimeout: Int = if (configMap.contains("heartbeatConnectTimeout")) configMap("heartbeatConnectTimeout").toInt else MongoClientOptions.Defaults.getHeartbeatConnectTimeout
+      val heartbeatFrequency: Int = if (configMap.contains("heartbeatFrequency")) configMap("heartbeatFrequency").toInt else MongoClientOptions.Defaults.getHeartbeatFrequency
+      val heartbeatSocketTimeout: Int = if (configMap.contains("heartbeatSocketTimeout")) configMap("heartbeatSocketTimeout").toInt else MongoClientOptions.Defaults.getHeartbeatSocketTimeout
+      val maxConnectionIdleTime: Int = if (configMap.contains("maxConnectionIdleTime")) configMap("maxConnectionIdleTime").toInt else MongoClientOptions.Defaults.getMaxConnectionIdleTime
+      val maxConnectionLifeTime: Int = if (configMap.contains("maxConnectionLifeTime")) configMap("maxConnectionLifeTime").toInt else MongoClientOptions.Defaults.getMaxConnectionLifeTime
+      val minConnectionsPerHost: Int = if (configMap.contains("minConnectionsPerHost")) configMap("minConnectionsPerHost").toInt else MongoClientOptions.Defaults.getMinConnectionsPerHost
+      val requiredReplicaSetName: String = if (configMap.contains("requiredReplicaSetName")) configMap("requiredReplicaSetName") else MongoClientOptions.Defaults.getRequiredReplicaSetName
+      val minHeartbeatFrequency: Int = if (configMap.contains("minHeartbeatFrequency")) configMap("minHeartbeatFrequency").toInt else MongoClientOptions.Defaults.getMinHeartbeatFrequency
+      MongoClient(serverList, List(credential), MongoClientOptions(connectionsPerHost, connectTimeout, cursorFinalizerEnabled, dbDecoderFactory, DBEncoderFactory,
+        description, maxWaitTime, readPreference, socketFactory, socketKeepAlive, socketTimeout, threadsAllowedToBlockForConnectionMultiplier, writeConcern, alwaysUseMBeans,
+        heartbeatConnectTimeout, heartbeatFrequency, heartbeatSocketTimeout, maxConnectionIdleTime, maxConnectionLifeTime, minConnectionsPerHost, requiredReplicaSetName, minHeartbeatFrequency))
+    } else MongoClient(serverList, List(credential), MongoClientOptions.Defaults)
   }
 }
