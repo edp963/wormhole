@@ -25,8 +25,9 @@ import Helmet from 'react-helmet'
 import CodeMirror from 'codemirror'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
+// require('../../../node_modules/codemirror/mode/sql/sql')
 
-import { jsonParse, genDefaultSchemaTable } from './umsFunction'
+import { jsonParse, genDefaultSchemaTable, nestType2string, string2nestType, tupleFields } from './umsFunction'
 import { isJSONNotEmpty } from '../../utils/util'
 
 import NamespaceForm from './NamespaceForm'
@@ -101,7 +102,8 @@ export class Namespace extends React.PureComponent {
       schemaModalLoading: false,
       jsonSampleValue: {},
       umsTableDataSource: [],
-      umsTypeSeleted: 'ums'
+      umsTypeSeleted: 'ums',
+      selectedTableRowKeys: []
     }
   }
 
@@ -639,6 +641,7 @@ export class Namespace extends React.PureComponent {
             matchBrackets: true,
             autoCloseBrackets: true,
             mode: 'application/ld+json',
+            // mode: 'text/x-sql',
             lineWrapping: true
           })
           this.cmSample.setSize('100%', '530px')
@@ -690,11 +693,98 @@ export class Namespace extends React.PureComponent {
       const cmJsonvalue = JSON.parse(this.cmSample.doc.getValue())
       const jsonSmaple = jsonParse(cmJsonvalue, '', [])
 
+      const tableArray = genDefaultSchemaTable(jsonSmaple)
+
       this.setState({
         jsonSampleValue: jsonSmaple,
-        umsTableDataSource: genDefaultSchemaTable(jsonSmaple)
+        umsTableDataSource: tableArray.map((s, index) => {
+          s.key = index
+          return s
+        })
+      }, () => {
+        const selectRowArr = this.state.umsTableDataSource.filter(s => s.forbidden === false)
+        this.setState({
+          selectedTableRowKeys: [...selectRowArr.keys()]
+        })
       })
     }
+  }
+
+  initChangeFiledType = (fieldName, beforeValue, afterValue) => {
+    const { umsTableDataSource } = this.state
+
+    const indexValue = umsTableDataSource.find(s => s.fieldName === fieldName)
+
+    let umsArr = []
+    if ((beforeValue === 'jsonobject' || beforeValue === 'jsonarray' || beforeValue === 'tuple') && afterValue === 'string') {
+      umsArr = nestType2string(umsTableDataSource, indexValue.key)
+    } else if (beforeValue === 'string' && ((afterValue === 'jsonobject' || afterValue === 'jsonarray'))) {
+      umsArr = string2nestType(umsTableDataSource, indexValue.key, afterValue)
+    } else if ((beforeValue.indexOf('tuple') > -1 && afterValue.indexOf('tuple') < 0) ||
+      (beforeValue.indexOf('tuple') < 0 && afterValue.indexOf('tuple') > -1)) {
+      const temp = afterValue.split('##')   // 如fieldType为 "tuple##|"
+      const tupleTempArr = tupleFields(umsTableDataSource, indexValue.key, temp[1])
+
+      // 给新增的子数组设置key
+      umsArr = tupleTempArr.map((s, index) => {
+        s.key = index
+        return s
+      })
+    } else if (beforeValue.indexOf('tuple') > -1 && afterValue.indexOf('tuple') > -1) {
+      const filedTempArr = umsTableDataSource.filter(s => s.fieldName.indexOf(`${fieldName}#`) < 0)  // 去掉子行
+
+      const temp = afterValue.split('##')
+      const tupleTempArr = tupleFields(filedTempArr, indexValue.key, temp[1])
+      umsArr = tupleTempArr.map((s, index) => {
+        s.key = index
+        return s
+      })
+    } else {
+      // 替换
+      const result = {
+        fieldName: indexValue.fieldName,
+        fieldType: afterValue,
+        forbidden: indexValue.forbidden,
+        key: indexValue.key,
+        rename: indexValue.rename,
+        selected: indexValue.selected,
+        ums_id_: indexValue.ums_id_,
+        ums_op_: indexValue.ums_op_,
+        ums_ts_: indexValue.ums_ts_,
+        value: indexValue.value
+      }
+      umsTableDataSource.splice(umsTableDataSource.indexOf(indexValue), 1, result)
+      umsArr = umsTableDataSource.slice()
+    }
+
+    this.setState({
+      umsTableDataSource: umsArr
+    }, () => {
+      const selectRowArr = this.state.umsTableDataSource.filter(s => s.forbidden === false)
+      this.setState({
+        selectedTableRowKeys: [...selectRowArr.keys()]
+      })
+    })
+  }
+
+  initEditRename = (record, value) => {
+    const { umsTableDataSource } = this.state
+    const result = {
+      fieldName: record.fieldName,
+      fieldType: record.fieldType,
+      forbidden: record.forbidden,
+      key: record.key,
+      rename: value,
+      selected: record.selected,
+      ums_id_: record.ums_id_,
+      ums_op_: record.ums_op_,
+      ums_ts_: record.ums_ts_,
+      value: record.value
+    }
+    umsTableDataSource.splice(umsTableDataSource.indexOf(record), 1, result)
+    this.setState({
+      umsTableDataSource: umsTableDataSource.slice()
+    })
   }
 
   render () {
@@ -1107,7 +1197,10 @@ export class Namespace extends React.PureComponent {
           <SchemaTypeConfig
             initChangeUmsType={this.initChangeUmsType}
             onChangeJsonToTable={this.onChangeUmsJsonToTable}
+            initChangeType={this.initChangeFiledType}
+            initEditRename={this.initEditRename}
             umsTableDataSource={this.state.umsTableDataSource}
+            selectedTableRowKeys={this.state.selectedTableRowKeys}
             umsTypeSeleted={this.state.umsTypeSeleted}
             ref={(f) => { this.schemaTypeConfig = f }}
           />
