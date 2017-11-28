@@ -117,9 +117,14 @@
         </dependency>
         <!--mongodb driver-->
         <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>casbah_2.11</artifactId>
+            <version>3.1.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.mongodb.scala</groupId>
             <artifactId>mongo-scala-driver_2.11</artifactId>
-            <version>1.1.1</version>
+            <version>2.1.0</version>
         </dependency>
 
         <dependency>
