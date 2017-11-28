@@ -55,10 +55,11 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
     //  val dt1: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
     val sinkSpecificConfig: EsConfig = json2caseClass[EsConfig](sinkProcessConfig.specialConfig.get)
     val patternContentList:Seq[RowkeyPatternContent] = if (sinkSpecificConfig.row_key.nonEmpty && sinkSpecificConfig.row_key.get.nonEmpty) RowkeyTool.parse(sinkSpecificConfig.row_key.get) else null.asInstanceOf[Seq[RowkeyPatternContent]]
+    val keySchema: Seq[(Boolean, Int, String)] = if (sinkSpecificConfig.row_key.nonEmpty && sinkSpecificConfig.row_key.get.nonEmpty) RowkeyTool.generateOnerowKeyFieldsSchema(schemaMap,patternContentList) else null.asInstanceOf[Seq[(Boolean, Int, String)]]
     val dataList = ListBuffer.empty[(String, Long, String)]
     val idList = ListBuffer.empty[String]
     for (row <- tupleList) {
-      val data = convertJson(row, schemaMap, sinkProcessConfig, sinkSpecificConfig,patternContentList)
+      val data = convertJson(row, schemaMap, sinkProcessConfig, sinkSpecificConfig,patternContentList,keySchema)
       dataList += data
       idList += data._1
     }
@@ -74,7 +75,8 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
                           schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                           sinkConfig: SinkProcessConfig,
                           sinkSpecificConfig: EsConfig,
-                          patternContentList:Seq[RowkeyPatternContent]): (String, Long, String) = {
+                          patternContentList:Seq[RowkeyPatternContent],
+                          keySchema: Seq[(Boolean, Int, String)]): (String, Long, String) = {
     var umsid = -1l
     val json = new JSONObject
     for ((name, (index, fieldType, _)) <- schemaMap) {
@@ -103,8 +105,8 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
       }
     }
     if (sinkSpecificConfig.`es.mutation_type.get` == SourceMutationType.I_U_D.toString) {
-//      val keyFieldContentDesc = RowkeyTool.generateOnerowKeyFieldsSchema(schemaMap,patternContentList)
-      val key = RowkeyTool.generatePatternKey(row, patternContentList: Seq[RowkeyPatternContent])
+      val keyDatas = RowkeyTool.generateTupleKeyDatas(keySchema,row)
+      val key = RowkeyTool.generatePatternKey(keyDatas, patternContentList: Seq[RowkeyPatternContent])
       (key, umsid, json.toJSONString)
     } else {
       (UUID.randomUUID().toString, umsid, json.toJSONString)
