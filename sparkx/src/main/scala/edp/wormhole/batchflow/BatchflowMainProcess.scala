@@ -603,7 +603,7 @@ object BatchflowMainProcess extends EdpLogging {
                                        sinkNamespace: String,
                                        config: WormholeConfig,
                                        minTs: String,
-                                       session: SparkSession,
+                                       session: SparkSession
                                        )
 
   = {
