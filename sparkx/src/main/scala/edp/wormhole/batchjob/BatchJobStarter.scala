@@ -81,7 +81,7 @@ object BatchJobStarter extends App with EdpLogging {
     val sourceNamespace = sourceConfig.sourceNamespace
     val specialConfig: Option[String] = if (sinkConfig.specialConfig.isDefined) Some(new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkConfig.specialConfig.get.toString.split(" ").mkString("")))) else None
     val sinkConnectionConfig = sinkConfig.connectionConfig
-    val sinkProcessConfig = SinkProcessConfig("", sinkConfig.tableKeys, specialConfig, sinkClassFullName, 1, 1)
+    val sinkProcessConfig = SinkProcessConfig("", sinkConfig.tableKeys, specialConfig, None, sinkClassFullName, 1, 1) //todo json to replace none
     outPutTransformDf.foreachPartition(partition => {
       //println("!!!!TaskContext.getPartitionId:" + TaskContext.getPartitionId)
       val sendList = ListBuffer.empty[Seq[String]]

@@ -31,9 +31,9 @@ import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.common.util.JsonUtils._
 import org.joda.time.{DateTime, Seconds}
 import edp.wormhole.common.util.DateUtils._
+import edp.wormhole.ums.UmsSysField
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
 class Data2DbSink extends SinkProcessor with EdpLogging {
   override def process(protocolType: UmsProtocolType,
@@ -44,12 +44,29 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig) = {
     logInfo("process KafkaLog2DbSnapshot")
-            val dt1: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
+    val dt1: DateTime = dt2dateTime(currentyyyyMMddHHmmss)
     //        println("repartition dataRepartitionRdd duration:   " + dt2 + " - "+ dt1 +" = " + (Seconds.secondsBetween(dt1, dt2).getSeconds() % 60 + " seconds."))
 
     val sinkSpecificConfig = json2caseClass[DbConfig](sinkProcessConfig.specialConfig.get)
+    val systemFieldsRename: String = sinkSpecificConfig.system_fields_rename
+    val systemRenameMap: Map[String, String] = if (systemFieldsRename.isEmpty) null else {
+      systemFieldsRename.split(",").map(t => {
+        val keyValue = t.split(":").map(_.trim)
+        (keyValue(0), keyValue(1))
+      }).toMap
+    }
 
-    val sqlProcess = new SqlProcessor(sinkProcessConfig, schemaMap, sinkSpecificConfig, sinkNamespace, connectionConfig)
+    val renameSchema: collection.Map[String, (Int, UmsFieldType, Boolean)] = if (systemRenameMap == null) schemaMap else {
+      schemaMap.map{case (name, (index, umsType, nullable)) =>
+        name match {
+          case "ums_id_" =>( systemRenameMap(UmsSysField.ID.toString), (index, umsType, nullable))
+          case "ums_ts_" =>( systemRenameMap(UmsSysField.TS.toString), (index, umsType, nullable))
+          case _ => (name, (index, umsType, nullable))
+        }
+      }.toMap
+    }
+
+    val sqlProcess = new SqlProcessor(sinkProcessConfig, renameSchema, sinkSpecificConfig, sinkNamespace, connectionConfig,systemRenameMap)
     val specialSqlProcessor: SpecialSqlProcessor = new SpecialSqlProcessor(sinkProcessConfig, schemaMap, sinkSpecificConfig, sinkNamespace, connectionConfig)
 
     SourceMutationType.sourceMutationType(sinkSpecificConfig.`db.mutation_type.get`) match {
@@ -88,7 +105,7 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
 
         val keysTupleMap = mutable.HashMap.empty[String, Seq[String]]
         for (tuple <- tupleList) {
-          val keys = keyList2values(sinkProcessConfig.tableKeyList, schemaMap, tuple)
+          val keys = keyList2values(sinkProcessConfig.tableKeyList, renameSchema, tuple)
           keysTupleMap(keys) = tuple
         }
         checkAndCategorizeAndExecute(keysTupleMap)
@@ -110,13 +127,13 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
 
         val keysTupleMap = mutable.HashMap.empty[String, Seq[String]]
         for (tuple <- tupleList) {
-          val keys = keyList2values(sinkProcessConfig.tableKeyList, schemaMap, tuple)
+          val keys = keyList2values(sinkProcessConfig.tableKeyList, renameSchema, tuple)
           keysTupleMap(keys) = tuple
         }
         checkAndCategorizeAndExecute(keysTupleMap)
     }
-    val dt2: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
-    println("db duration:   " + dt2 + " - "+ dt1 +" = " + (Seconds.secondsBetween(dt1, dt2).getSeconds() % 60 + " seconds."))
+    val dt2: DateTime = dt2dateTime(currentyyyyMMddHHmmss)
+    println("db duration:   " + dt2 + " - " + dt1 + " = " + (Seconds.secondsBetween(dt1, dt2).getSeconds() % 60 + " seconds."))
 
   }
 }
