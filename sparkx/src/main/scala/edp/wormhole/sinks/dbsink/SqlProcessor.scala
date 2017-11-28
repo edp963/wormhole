@@ -38,10 +38,10 @@ import edp.wormhole.ums.UmsSysField._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-class SqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], specificConfig: DbConfig, sinkNamespace: String, connectionConfig: ConnectionConfig) extends EdpLogging {
+class SqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], specificConfig: DbConfig, sinkNamespace: String, connectionConfig: ConnectionConfig,systemRenameMap: Map[String, String] ) extends EdpLogging {
   private lazy val namespace = UmsNamespace(sinkNamespace)
   private lazy val tableName = namespace.table
-  private lazy val metaIdName = ID.toString
+  private lazy val metaIdName = if (systemRenameMap == null) ID.toString else systemRenameMap(ID.toString)
   private lazy val allFieldNames = schemaMap.keySet.toList
   private lazy val baseFieldNames = removeFieldNames(allFieldNames, Set(OP.toString).contains)
   private lazy val tableKeyNames = sinkProcessConfig.tableKeyList
@@ -176,9 +176,9 @@ class SqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.M
     val columnNames = baseFieldNames.map(n =>s"""`$n`""").mkString(", ")
     val oracleColumnNames = baseFieldNames.map(n =>s"""$n""").mkString(",")
     val sql = namespace.dataSys match {
-      case UmsDataSystem.MYSQL => s"INSERT INTO `$tableName` ($columnNames, ${UmsSysField.ACTIVE.toString}) VALUES " +
+      case UmsDataSystem.MYSQL => s"INSERT INTO `$tableName` ($columnNames, ${if (systemRenameMap == null) UmsSysField.ACTIVE.toString else systemRenameMap(UmsSysField.ACTIVE.toString)}) VALUES " +
         (1 to baseFieldNames.size + 1).map(_ => "?").mkString("(", ",", ")")
-      case _ => s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames, ${UmsSysField.ACTIVE.toString}) VALUES """ +
+      case _ => s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames, ${if (systemRenameMap == null) UmsSysField.ACTIVE.toString else systemRenameMap(UmsSysField.ACTIVE.toString)}) VALUES """ +
         (1 to baseFieldNames.size + 1).map(_ => "?").mkString("(", ",", ")")
     }
     logInfo("insert sql " + sql)
@@ -201,10 +201,10 @@ class SqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.M
     val batchSize = specificConfig.`db.sql_batch_size.get`
     val sql = namespace.dataSys match {
       case UmsDataSystem.MYSQL => s"UPDATE `$tableName` SET " +
-        updateFieldNames.map(fieldName => s"`$fieldName`=?").mkString(",") + s",${UmsSysField.ACTIVE.toString}=? WHERE " +
+        updateFieldNames.map(fieldName => s"`$fieldName`=?").mkString(",") + s",${if (systemRenameMap == null) UmsSysField.ACTIVE.toString else systemRenameMap(UmsSysField.ACTIVE.toString)}=? WHERE " +
         tableKeyNames.map(key => s"`$key`=?").mkString(" AND ") + s" AND $metaIdName<? "
       case _ => s"""UPDATE ${tableName.toUpperCase()} SET """ +
-        updateFieldNames.map(fieldName => s"$fieldName=?").mkString(",") + s",${UmsSysField.ACTIVE.toString}=? WHERE " +
+        updateFieldNames.map(fieldName => s"$fieldName=?").mkString(",") + s",${if (systemRenameMap == null) UmsSysField.ACTIVE.toString else systemRenameMap(UmsSysField.ACTIVE.toString)}=? WHERE " +
         tableKeyNames.map(key => s"$key=?").mkString(" AND ") + s" AND $metaIdName<? "
     }
     logInfo("@update sql " + sql)

@@ -52,8 +52,8 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   //sourceNamespace,sinkNamespace,minTs
   val eventTsMap = mutable.HashMap.empty[(String, String), String]
 
-  val JsonSourceParseMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField],  Seq[FieldInfo],  ArrayBuffer[(String, String)], UmsSysRename)]
-
+  val JsonSourceParseMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)], UmsSysRename)]
+  //val JsonSourceSinkSchema = mutable.HashMap.empty[(String, String), String]//[(source, sink), schema]
   //[className, (object, method)]
   private val swiftsTransformReflectMap = mutable.HashMap.empty[String, (Any, Method)]
 
@@ -80,9 +80,13 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
     namespaceArray1(0) == namespaceArray2(0) && namespaceArray1(1) == namespaceArray2(1) && namespaceArray1(2) == namespaceArray2(2) && namespaceArray1(3) == namespaceArray2(3)
   }
 
-  def registerJsonSourceParseMap(protocolType: UmsProtocolType, namespace: String, umsField: Seq[UmsField], fieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)], umsSysRename:UmsSysRename) = {
-    JsonSourceParseMap((protocolType, namespace)) = (umsField, fieldsInfo,twoFieldsArr,umsSysRename)
+  def registerJsonSourceParseMap(protocolType: UmsProtocolType, namespace: String, umsField: Seq[UmsField], fieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)], umsSysRename: UmsSysRename) = {
+    JsonSourceParseMap((protocolType, namespace)) = (umsField, fieldsInfo, twoFieldsArr, umsSysRename)
   }
+
+//  def registerJsonSourceSinkSchema(sourceNamespace:String, sinkNamespace:String, sinkSchema:String): Unit = {
+//    JsonSourceSinkSchema((sourceNamespace, sinkNamespace)) = sinkSchema
+//  }
 
   def getMatchSourceNamespaceRule(namespace: String): String = {
     var result: String = null
@@ -222,11 +226,11 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
 
 
   def registerDataStoreConnectionsMap(lookupNamespace: String, connectionUrl: String, username: Option[String], password: Option[String], parameters: Option[Seq[KVConfig]]) {
-    logInfo("register datastore,lookupNamespace:"+lookupNamespace+",connectionUrl;"+connectionUrl+",username:"+username+",password:"+password+",parameters:"+parameters)
+    logInfo("register datastore,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
     val connectionNamespace = lookupNamespace.split("\\.").slice(0, 3).mkString(".")
     if (!dataStoreConnectionsMap.contains(connectionNamespace)) {
       dataStoreConnectionsMap(connectionNamespace) = ConnectionConfig(connectionUrl, username, password, parameters)
-      logInfo("register datastore success,lookupNamespace:"+lookupNamespace+",connectionUrl;"+connectionUrl+",username:"+username+",password:"+password+",parameters:"+parameters)
+      logInfo("register datastore success,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
     }
   }
 

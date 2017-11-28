@@ -134,8 +134,18 @@ object BatchflowDirective extends Directive {
       tmpOutput
     } else ""
 
+    var sink_schema:Option[String] = None
+    if (dataType != "ums") {
+      if (sinks.containsKey("sink_schema") &&  sinks.getString("sink_schema").trim.nonEmpty) {
+        val sinkSchemaEncoded = sinks.getString("sink_schema").trim
+         sink_schema = Some(new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkSchemaEncoded.toString)))
+        //ConfMemoryStorage.registerJsonSourceSinkSchema(sourceNamespace, fullsinkNamespace, sink_schema)
+      }
+      val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
+      ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo,parseResult.twoFieldsArr, parseResult.umsSysRename)
+    }
 
-    val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_process_class_fullname, sink_retry_times, sink_retry_seconds)
+    val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_schema, sink_process_class_fullname, sink_retry_times, sink_retry_seconds)
 
 
     val swiftsStrCache = if (swiftsStr == null) "" else swiftsStr
@@ -144,10 +154,7 @@ object BatchflowDirective extends Directive {
     ConfMemoryStorage.registerStreamLookupNamespaceMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig)
     ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap)
 
-    if (dataType != "ums") {
-      val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
-      ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo,parseResult.twoFieldsArr, parseResult.umsSysRename)
-    }
+
 
     ConfMemoryStorage.registerDataStoreConnectionsMap(fullsinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
     WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
