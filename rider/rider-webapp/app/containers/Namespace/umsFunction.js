@@ -26,7 +26,7 @@ const DOUBLE = 'double'
 const BOOLEAN = 'boolean'
 const DECIMAL = 'decimal'
 const BINARY = 'binary'
-const DATETIME = 'ç'
+const DATETIME = 'datetime'
 
 const STRINGARRAY = 'stringarray'
 const INTARRAY = 'intarray'
@@ -74,7 +74,6 @@ function sortNumber (a, b) {
   return a - b
 }
 
-// 输出为array中重复的rename字段index组成的数组
 // 用户点保存时，调用getRepeatFieldIndex方法，返回重复rename数组，检查rename字段是否有重复，
 // 若数组的length为0，表示无重复，否则提示rename重复的位置，数组中的值为rename重复的index
 export function getRepeatFieldIndex (array) {
@@ -123,9 +122,10 @@ export function getAlterTypesByOriginType (fieldType) {
   return typeArray
 }
 
+// todo: test
 function selectedFields (array) {
   for (var i = 0; i < array.length; i++) {
-    if (array[i].selected === false || array[i].forbidden === true) {
+    if (array[i].selected === false) {
       array.splice(i, 1)
       i = i - 1
     }
@@ -134,17 +134,24 @@ function selectedFields (array) {
 }
 
 // 若用户配置fieldName为 ums_id_或ums_ts_或ums_op_，调用umsSysFieldSelected方法，获得新的数组
+// todo: test
 export function umsSysFieldSelected (array, index, umsSysField) {
-  var object = array[index]
-  object.rename = umsSysField
-  if (umsSysField === 'ums_op_') {
-    object.forbidden === true
+  var umsField = umsSysField
+  var object = array.slice(index, index + 1)
+  if (umsField === 'ums_op_') {
+    object[0][umsField] = object[0].ums_op_
+  } else {
+    object[0][umsField] = true
   }
-  array.splice(index, 0, object)
+  object[0].rename = umsField
+  object[0].selected = true
+  object[0].forbidden === true
+  array.splice(index + 1, 0, object[0])
   return array
 }
 
 // 若用户选择该行为ums_id_或ums_ts_或ums_op_后，又点了取消，调用umsSysFieldUnSelected方法，删除刚刚生成的新行，返回新数组
+// todo: test
 export function umsSysFieldUnSelected (array, index, umsSysField) {
   if (array[index + 1].rename === umsSysField) {
     array.splice(index + 1, 1)
@@ -156,11 +163,13 @@ export function umsSysFieldUnSelected (array, index, umsSysField) {
 }
 
 // fieldType值由 jsonobject/jsonarray/tuple 改为 string 时，生成新数组
-export function nestType2string (array, key, index) {
-  var prefix = `${key}#`
-  for (var i = index; i < array.length; i++) {
+export function nestType2string (array, index) {
+  var prefix = `${array[index].fieldName}#`
+  array[index].fieldType = STRING
+  for (var i = index + 1; i < array.length; i++) {
     if (array[i].fieldName.startsWith(prefix)) {
       array[i].forbidden = true
+      array[i].selected = false
     } else {
       break
     }
@@ -169,11 +178,13 @@ export function nestType2string (array, key, index) {
 }
 
 // fieldType值由 string 改为 jsonobject/jsonarray/tuple 时，生成新数组
-export function string2nestType (array, key, index) {
-  var prefix = `${key}#`
-  for (var i = index; i < array.length; i++) {
+export function string2nestType (array, index, alterType) {
+  var prefix = `${array[index].fieldName}#`
+  array[index].fieldType = alterType
+  for (var i = index + 1; i < array.length; i++) {
     if (array[i].fieldName.startsWith(prefix)) {
       array[i].forbidden = false
+      array[i].selected = true
     } else {
       break
     }
@@ -181,13 +192,26 @@ export function string2nestType (array, key, index) {
   return array
 }
 
-// fieldType配置为 tuple 时，需要让用户配置分隔符，假设为"/"，该fieldType的值为"tuple;/"，调用tupleFields方法，生成包含 tuple 子字段的新数组
-export function tupleFields (array, index, key, seprator) {
-  var tupleSplit = array[index].value.split(`\\${seprator}`)
+// fieldType配置为 tuple 时，需要让用户配置分隔符，假设为"/"，该fieldType的值为"tuple##/"，
+// 1. string 改为 tuple；2.用户修改了分隔符。调用tupleFields方法，生成包含 tuple 子字段的新数组
+// 子数组的 rename 需要用户配
+export function tupleFields (array, index, separator) {
+  array[index].fieldType = `${TUPLE}##${separator}`
+  for (let i = index + 1; i < array.length; i++) {
+    if (array[i].fieldName.startsWith(`${array[index].fieldName}#`)) {
+      array.splice(i, 1)
+    } else {
+      break
+    }
+  }
+  var tupleSplit = array[index].value.split(separator)
+  if (tupleSplit.length <= 1) {
+    return array
+  }
   var tupleArray = []
-  for (var i = 0; i < tupleSplit.length; i++) {
+  for (let i = 0; i < tupleSplit.length; i++) {
     var object = {}
-    object['fieldName'] = `${key}#${i}`
+    object['fieldName'] = `${array[index].fieldName}#${i}`
     object['fieldType'] = 'string'
     object['value'] = tupleArray[i]
     object['selected'] = true
@@ -196,9 +220,13 @@ export function tupleFields (array, index, key, seprator) {
     object['ums_ts_'] = false
     object['ums_op_'] = ''
     object['forbidden'] = false
+    object['value'] = tupleSplit[i]
     tupleArray.push(object)
   }
-  array.splice(index, 0, tupleArray)
+  for (let i = 0; i < tupleArray.length; i++) {
+    array.splice(index + 1, 0, tupleArray[i])
+    index = index + 1
+  }
   return array
 }
 

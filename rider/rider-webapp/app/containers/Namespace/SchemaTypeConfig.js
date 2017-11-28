@@ -20,146 +20,246 @@
 
 import React from 'react'
 
-import { getAlterTypesByOriginType } from './umsFunction'
+import EditableCell from './EditableCell'
 
 import Form from 'antd/lib/form'
+import Input from 'antd/lib/input'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
 import Radio from 'antd/lib/radio'
 import Icon from 'antd/lib/icon'
+import message from 'antd/lib/message'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 const FormItem = Form.Item
-import Select from 'antd/lib/select'
-const Option = Select.Option
-
-class EditableCell extends React.Component {
-  state = {
-    value: this.props.value, // eslint-disable-line
-    editable: false,
-    fieldTypeOptionsVal: []
-  }
-
-  onChangeFieldType = (value) => {
-    this.setState({ value })
-  }
-
-  check = () => {
-    this.setState({ editable: false })
-  }
-
-  edit = () => {
-    const selectTypeValue = getAlterTypesByOriginType(this.state.value)
-    this.setState({
-      editable: true,
-      fieldTypeOptionsVal: selectTypeValue
-    })
-  }
-
-  render () {
-    const { value, editable, fieldTypeOptionsVal } = this.state
-
-    const fieldTypeOptions = fieldTypeOptionsVal.map(s => (<Option key={s} value={`${s}`}>{s}</Option>))
-
-    return (
-      <div className="editable-cell">
-        {
-          editable
-            ? <div className="editable-cell-input-wrapper">
-              {/* <Input
-                value={value}
-                onChange={this.onChangeFieldType}
-                onPressEnter={this.check}
-              /> */}
-              <Select
-              // dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
-                onChange={this.onChangeFieldType}
-                placeholder="Select"
-                className="field-type-select"
-                onPressEnter={this.check}
-              >
-                {fieldTypeOptions}
-              </Select>
-              <Icon
-                type="check"
-                className="editable-cell-icon-check"
-                onClick={this.check}
-              />
-            </div>
-            : <div className="editable-cell-text-wrapper">
-              {value || ' '}
-              <Icon
-                type="edit"
-                className="editable-cell-icon"
-                onClick={this.edit}
-              />
-            </div>
-        }
-      </div>
-    )
-  }
-}
 
 export class SchemaTypeConfig extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      selectedRowKeys: []
+      selectedRowKeys: [],
+      currentUmsTableData: [],
+      currentFieldName: '',
+      renameEditable: false,
+      renameEditVal: '',
+
+      searchFieldName: '',
+      filterDropdownVisibleFieldName: false,
+      searchReName: '',
+      filterDropdownVisibleReName: false
     }
   }
 
   componentWillReceiveProps (props) {
     if (props.umsTableDataSource) {
-      props.umsTableDataSource.map(s => {
-        s.key = s.fieldName
-        return s
+      this.setState({
+        currentUmsTableData: props.umsTableDataSource,
+        selectedRowKeys: props.selectedTableRowKeys
+      }, () => {
+        // console.log('selectedRowKeys', this.state.selectedRowKeys)
       })
     }
   }
+
+  onInputChange = (value) => (e) => this.setState({ [value]: e.target.value })
+
+  onSearch = (columnName, value, visible) => () => {
+    const reg = new RegExp(this.state[value], 'gi')
+
+    this.setState({
+      [visible]: false,
+      currentUmsTableData: this.props.umsTableDataSource.map((record) => {
+        const match = String(record[columnName]).match(reg)
+        if (!match) {
+          return null
+        }
+        return {
+          ...record,
+          [`${columnName}Origin`]: record[columnName],
+          [columnName]: (
+            <span>
+              {String(record[columnName]).split(reg).map((text, i) => (
+                i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
+              ))}
+            </span>
+          )
+        }
+      }).filter(record => !!record)
+    })
+  }
+
+  onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
 
   onChangeUmsType = (e) => {
     this.props.initChangeUmsType(e.target.value)
   }
 
   onCellChange = (key, dataIndex) => {
-    console.log(key, dataIndex)
-    return (value) => {
-      const dataSource = [...this.state.dataSource]
-      const target = dataSource.find(item => item.key === key)
-      if (target) {
-        target[dataIndex] = value
-        this.setState({ dataSource })
-      }
+    // console.log('key', key)
+
+    // return (value) => {
+    //   console.log('va', value)
+    //   const dataSource = [...this.state.dataSource]
+    //   const target = dataSource.find(item => item.key === key)
+    //   if (target) {
+    //     target[dataIndex] = value
+    //     this.setState({ dataSource })
+    //   }
+    // }
+  }
+
+  initChangeType = (fieldName) => (va1, va2) => {
+    this.props.initChangeType(fieldName, va1, va2)
+  }
+
+  editRename = () => {
+    this.setState({
+      renameEditable: true,
+      renameEditVal: ''
+    })
+  }
+
+  handleChangeRename = (e) => {
+    this.setState({
+      renameEditVal: e.target.value
+    })
+  }
+
+  checkRename = (record) => (e) => {
+    const { renameEditVal } = this.state
+
+    if (renameEditVal === '') {
+      message.warning('请填写 Rename！', 3)
+    } else {
+      this.setState({
+        renameEditable: false
+      })
+      this.props.initEditRename(record, renameEditVal)  // 组成新数组
     }
   }
 
   render () {
     const { form } = this.props
     const { getFieldDecorator } = form
+    const { renameEditable } = this.state
 
     const itemStyle = {
       labelCol: { span: 2 },
       wrapperCol: { span: 22 }
     }
 
+    let { filteredInfo } = this.state
+    filteredInfo = filteredInfo || {}
+
     const columns = [{
       title: 'FieldName',
       dataIndex: 'fieldName',
-      key: 'fieldName'
+      key: 'fieldName',
+      filterDropdown: (
+        <div className="custom-filter-dropdown">
+          <Input
+            ref={ele => { this.searchInput = ele }}
+            placeholder="FieldName"
+            value={this.state.searchFieldName}
+            onChange={this.onInputChange('searchFieldName')}
+            onPressEnter={this.onSearch('fieldName', 'searchFieldName', 'filterDropdownVisibleFieldName')}
+          />
+          <Button type="primary" onClick={this.onSearch('fieldName', 'searchFieldName', 'filterDropdownVisibleFieldName')}>Search</Button>
+        </div>
+      ),
+      filterDropdownVisible: this.state.filterDropdownVisibleFieldName,
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleFieldName: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Rename',
       dataIndex: 'rename',
-      key: 'rename'
+      key: 'rename',
+      filterDropdown: (
+        <div className="custom-filter-dropdown">
+          <Input
+            ref={ele => { this.searchInput = ele }}
+            placeholder="Rename"
+            value={this.state.searchRename}
+            onChange={this.onInputChange('searchRename')}
+            onPressEnter={this.onSearch('rename', 'searchRename', 'filterDropdownVisibleReName')}
+          />
+          <Button type="primary" onClick={this.onSearch('rename', 'searchRename', 'filterDropdownVisibleReName')}>Search</Button>
+        </div>
+      ),
+      filterDropdownVisible: this.state.filterDropdownVisibleReName,
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleReName: visible
+      }, () => this.searchInput.focus()),
+      render: (text, record) => {
+        const temp1 = (text === '' && renameEditable === true) ? '' : 'hide'
+        const temp2 = (text === '' && renameEditable === false) ? '' : 'hide'
+
+        return (
+          <div className="editable-cell">
+            {
+              <div className="editable-rename-cell-text-wrapper">
+                {text || ' '}
+                <Input
+                  // value={value}
+                  className={temp1}
+                  onChange={this.handleChangeRename}
+                  onPressEnter={this.checkRename(record)}
+                />
+                <Icon
+                  type="check"
+                  className={`editable-cell-icon-check ${temp1}`}
+                  onClick={this.checkRename(record)}
+                 />
+                <Icon
+                  type="edit"
+                  className={`editable-cell-icon ${temp2}`}
+                  onClick={this.editRename}
+                />
+              </div>
+            }
+          </div>
+        )
+      }
     }, {
       title: 'FieldType',
       dataIndex: 'fieldType',
       key: 'fieldType',
+      filters: [
+        {text: 'string', value: 'string'},
+        {text: 'int', value: 'int'},
+        {text: 'long', value: 'long'},
+        {text: 'float', value: 'float'},
+        {text: 'double', value: 'double'},
+        {text: 'boolean', value: 'boolean'},
+        {text: 'decimal', value: 'decimal'},
+        {text: 'binary', value: 'binary'},
+        {text: 'datetime', value: 'datetime'},
+
+        {text: 'stringarray', value: 'stringarray'},
+        {text: 'intarray', value: 'intarray'},
+        {text: 'longarray', value: 'longarray'},
+        {text: 'floatarray', value: 'floatarray'},
+        {text: 'doublearray', value: 'doublearray'},
+        {text: 'booleanarray', value: 'booleanarray'},
+        {text: 'decimalarray', value: 'decimalarray'},
+        {text: 'binaryarray', value: 'binaryarray'},
+        {text: 'datetimearray', value: 'datetimearray'},
+
+        {text: 'jsonobject', value: 'jsonobject'},
+        {text: 'jsonarray', value: 'jsonarray'},
+        {text: 'tuple', value: 'tuple'}
+      ],
+      filteredValue: filteredInfo.fieldType,
+      onFilter: (value, record) => record.fieldType.includes(value),
       render: (text, record) => (
         <EditableCell
           value={text}
-          onChange={this.onCellChange(record.key, 'name')}
+          // onChange={this.onCellChange(record.fieldName, 'name')}
+          initChangeTypeOption={this.initChangeType(record.fieldName)}
+          tableDatas={this.state.currentUmsTableData}
         />
       )
     }, {
@@ -200,6 +300,7 @@ export class SchemaTypeConfig extends React.Component {
       selectedRowKeys,
       onChange: this.onSelectChange,
       onShowSizeChange: this.onShowSizeChange
+      // selections: [{}]
     }
 
     return (
@@ -241,7 +342,7 @@ export class SchemaTypeConfig extends React.Component {
           </Col>
           <Col span={16} className="schema-config-table">
             <Table
-              dataSource={this.props.umsTableDataSource}
+              dataSource={this.state.currentUmsTableData}
               columns={columns}
               pagination={pagination}
               rowSelection={rowSelection}
@@ -259,7 +360,10 @@ SchemaTypeConfig.propTypes = {
   form: React.PropTypes.any,
   initChangeUmsType: React.PropTypes.func,
   onChangeJsonToTable: React.PropTypes.func,
+  initChangeType: React.PropTypes.func,
+  initEditRename: React.PropTypes.func,
   umsTableDataSource: React.PropTypes.array,
+  // selectedTableRowKeys: React.PropTypes.array,
   umsTypeSeleted: React.PropTypes.string
 }
 
