@@ -166,6 +166,17 @@ object RowkeyTool {
     })
   }
 
+  def generateTupleKeyDatas(keyFieldsSchema:Seq[(Boolean, Int, String)],tuple:Seq[String]): Seq[String] ={
+    keyFieldsSchema.map(fieldDesc => {
+      if (fieldDesc._1) {
+        val value = tuple( fieldDesc._2)
+        if (value != null) value else "N/A"
+      } else {
+        fieldDesc._3
+      }
+    })
+  }
+
   def generatePatternKey(keyDatas: Seq[String], patternContentList: Seq[RowkeyPatternContent]): String = {
     val keys = ListBuffer.empty[String]
     for (i <- patternContentList.indices) {
