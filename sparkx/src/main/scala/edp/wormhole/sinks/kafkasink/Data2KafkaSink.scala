@@ -42,7 +42,7 @@ class Data2KafkaSink extends SinkProcessor with EdpLogging {
                        connectionConfig: ConnectionConfig): Unit = {
     logInfo("In Data2KafkaSink")
     WormholeKafkaProducer.init(connectionConfig.connectionUrl, connectionConfig.parameters)
-    val sinkSpecificConfig = json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get)
+    val sinkSpecificConfig = if (sinkProcessConfig.specialConfig.isDefined) json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get) else KafkaConfig(None, None, None)
     val kafkaTopic = sinkNamespace.split("\\.")(2)
     val schemaList: Seq[(String, (Int, UmsFieldType, Boolean))] = schemaMap.toSeq.sortBy(_._2._1)
     val protocol: UmsProtocol = UmsProtocol(protocolType)
