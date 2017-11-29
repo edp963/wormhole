@@ -30,7 +30,7 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
       val db: String = namespace.database
       val table: String = namespace.table
       val database: MongoDB = mongoClient.getDB(db)
-      val collection: MongoCollection = database(table)
+      val mongoCollection: MongoCollection = database(table)
       val sinkSpecificConfig: MongoConfig = json2caseClass[MongoConfig](sinkProcessConfig.specialConfig.get)
       val patternContentList: Seq[RowkeyPatternContent] = if (sinkSpecificConfig.row_key.nonEmpty && sinkSpecificConfig.row_key.get.nonEmpty) RowkeyTool.parse(sinkSpecificConfig.row_key.get) else null.asInstanceOf[Seq[RowkeyPatternContent]]
       val keySchema: Seq[(Boolean, Int, String)] = if (sinkSpecificConfig.row_key.nonEmpty && sinkSpecificConfig.row_key.get.nonEmpty) RowkeyTool.generateOnerowKeyFieldsSchema(schemaMap, patternContentList) else null.asInstanceOf[Seq[(Boolean, Int, String)]]
@@ -40,26 +40,26 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
           val key = RowkeyTool.generatePatternKey(keyDatas, patternContentList)
           val o: DBObject = MongoDBObject("_id" -> key.asInstanceOf[ObjectId])
           val field = MongoDBObject(UmsSysField.ID.toString)
-          val result: Option[TypeImports.DBObject] = collection.findOne(o, field)
+          val result: Option[TypeImports.DBObject] = mongoCollection.findOne(o, field)
           if (result.nonEmpty) {
             val umsidInStore = result.get.get(UmsSysField.ID.toString).asInstanceOf[Long]
             val umsidInTuple = tuple(schemaMap(UmsSysField.ID.toString)._1).asInstanceOf[Long]
             if (umsidInStore < umsidInTuple) {
-              val data = formatData(schemaMap, tuple, collection, key)
-              collection.save(data)
+              val data = formatData(schemaMap, tuple,  key)
+              mongoCollection.save(data)
             }
           } else {
-            val data = formatData(schemaMap, tuple, collection, key)
-            collection.save(data)
+            val data = formatData(schemaMap, tuple,  key)
+            mongoCollection.save(data)
           }
         })
       } else {
         val datas = tupleList.map(tuple => {
           val keyDatas = RowkeyTool.generateTupleKeyDatas(keySchema, tuple)
           val key = RowkeyTool.generatePatternKey(keyDatas, patternContentList)
-          formatData(schemaMap, tuple, collection, key)
+          formatData(schemaMap, tuple,  key)
         })
-        collection.insert(datas: _*)
+        mongoCollection.insert(datas: _*)
       }
     } catch {
       case e: Throwable =>
@@ -69,7 +69,7 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
     }
   }
 
-  def formatData(schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], tuple: Seq[String], collection: MongoCollection, key: String): DBObject = {
+  def formatData(schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], tuple: Seq[String], key: String): DBObject = {
     val builder = MongoDBObject.newBuilder
     schemaMap.foreach(schema => {
       builder += schema._1 -> tuple(schema._2._1)
