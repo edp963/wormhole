@@ -1,14 +1,18 @@
 package edp.wormhole.sinks.mongojsonsink
 
+import javax.net.SocketFactory
+
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
-import com.mongodb.casbah
+import com.mongodb.{ReadPreference, WriteConcern, casbah}
 import com.mongodb.casbah.commons.{Imports, MongoDBList, MongoDBObject}
-import com.mongodb.casbah.{MongoCollection, MongoConnection, MongoDB, commons}
+import com.mongodb.casbah._
 import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
+import edp.wormhole.ums.UmsNamespace
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
+import org.mongodb.scala.{MongoCredential, ServerAddress}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -56,6 +60,52 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
     outputJson
   }
 
+  def getMongoClient(namespace: UmsNamespace, sinkProcessConfig: SinkProcessConfig, connectionConfig: ConnectionConfig): MongoClient = {
+    val db: String = namespace.database
+    val user = connectionConfig.username.getOrElse("")
+    val password =  connectionConfig.password.getOrElse("")
+
+    val kvConfig = connectionConfig.parameters
+    val credential = MongoCredential.createCredential(user, db, password.toCharArray)
+    val serverList = connectionConfig.connectionUrl.split(",").map(conn => {
+      val ip2port = conn.split("\\:")
+      println(ip2port(0).trim)
+      println(ip2port(1).trim.toInt)
+      new ServerAddress(ip2port(0).trim, ip2port(1).trim.toInt)
+    }).toList
+
+    if (kvConfig.nonEmpty) {
+      val configMap: Map[String, String] = kvConfig.get.map(kv => {
+        (kv.key, kv.value)
+      }).toMap
+      val connectionsPerHost: Int = if (configMap.contains("connectionsPerHost")) configMap("connectionsPerHost").toInt else MongoClientOptions.Defaults.getConnectionsPerHost
+      val connectTimeout: Int = if (configMap.contains("connectTimeout")) configMap("connectTimeout").toInt else MongoClientOptions.Defaults.getConnectTimeout
+      val cursorFinalizerEnabled: Boolean = if (configMap.contains("cursorFinalizerEnabled")) configMap("cursorFinalizerEnabled").toBoolean else MongoClientOptions.Defaults.isCursorFinalizerEnabled
+      val dbDecoderFactory = MongoClientOptions.Defaults.getDbDecoderFactory
+      val DBEncoderFactory = MongoClientOptions.Defaults.getDbEncoderFactory
+      val description: String = if (configMap.contains("description")) configMap("description") else MongoClientOptions.Defaults.getDescription
+      val maxWaitTime: Int = if (configMap.contains("maxWaitTime")) configMap("maxWaitTime").toInt else MongoClientOptions.Defaults.getMaxWaitTime
+      val readPreference: ReadPreference = MongoClientOptions.Defaults.getReadPreference
+      val socketFactory: SocketFactory = MongoClientOptions.Defaults.getSocketFactory
+      val socketKeepAlive: Boolean = if (configMap.contains("socketKeepAlive")) configMap("socketKeepAlive").toBoolean else MongoClientOptions.Defaults.isSocketKeepAlive
+      val socketTimeout: Int = if (configMap.contains("socketTimeout")) configMap("socketTimeout").toInt else MongoClientOptions.Defaults.getSocketTimeout
+      val threadsAllowedToBlockForConnectionMultiplier: Int = if (configMap.contains("threadsAllowedToBlockForConnectionMultiplier")) configMap("threadsAllowedToBlockForConnectionMultiplier").toInt else MongoClientOptions.Defaults.getThreadsAllowedToBlockForConnectionMultiplier
+      val writeConcern: WriteConcern = MongoClientOptions.Defaults.getWriteConcern
+      val alwaysUseMBeans: Boolean = if (configMap.contains("alwaysUseMBeans")) configMap("alwaysUseMBeans").toBoolean else MongoClientOptions.Defaults.isAlwaysUseMBeans
+      val heartbeatConnectTimeout: Int = if (configMap.contains("heartbeatConnectTimeout")) configMap("heartbeatConnectTimeout").toInt else MongoClientOptions.Defaults.getHeartbeatConnectTimeout
+      val heartbeatFrequency: Int = if (configMap.contains("heartbeatFrequency")) configMap("heartbeatFrequency").toInt else MongoClientOptions.Defaults.getHeartbeatFrequency
+      val heartbeatSocketTimeout: Int = if (configMap.contains("heartbeatSocketTimeout")) configMap("heartbeatSocketTimeout").toInt else MongoClientOptions.Defaults.getHeartbeatSocketTimeout
+      val maxConnectionIdleTime: Int = if (configMap.contains("maxConnectionIdleTime")) configMap("maxConnectionIdleTime").toInt else MongoClientOptions.Defaults.getMaxConnectionIdleTime
+      val maxConnectionLifeTime: Int = if (configMap.contains("maxConnectionLifeTime")) configMap("maxConnectionLifeTime").toInt else MongoClientOptions.Defaults.getMaxConnectionLifeTime
+      val minConnectionsPerHost: Int = if (configMap.contains("minConnectionsPerHost")) configMap("minConnectionsPerHost").toInt else MongoClientOptions.Defaults.getMinConnectionsPerHost
+      val requiredReplicaSetName: String = if (configMap.contains("requiredReplicaSetName")) configMap("requiredReplicaSetName") else MongoClientOptions.Defaults.getRequiredReplicaSetName
+      val minHeartbeatFrequency: Int = if (configMap.contains("minHeartbeatFrequency")) configMap("minHeartbeatFrequency").toInt else MongoClientOptions.Defaults.getMinHeartbeatFrequency
+      MongoClient(serverList, List(credential), MongoClientOptions(connectionsPerHost, connectTimeout, cursorFinalizerEnabled, dbDecoderFactory, DBEncoderFactory,
+        description, maxWaitTime, readPreference, socketFactory, socketKeepAlive, socketTimeout, threadsAllowedToBlockForConnectionMultiplier, writeConcern, alwaysUseMBeans,
+        heartbeatConnectTimeout, heartbeatFrequency, heartbeatSocketTimeout, maxConnectionIdleTime, maxConnectionLifeTime, minConnectionsPerHost, requiredReplicaSetName, minHeartbeatFrequency))
+    } else MongoClient(serverList)
+  }
+
   override def process(protocolType: UmsProtocolType,
                        sourceNamespace: String,
                        sinkNamespace: String,
@@ -63,8 +113,12 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
-    val database: MongoDB = MongoConnection("ip")("mydb")
-    val collection: MongoCollection = database("mycol")
+    val namespace: UmsNamespace = UmsNamespace(sinkNamespace)
+    val mongoClient = getMongoClient(namespace, sinkProcessConfig, connectionConfig)
+    val db: String = namespace.database
+    val table: String = namespace.table
+    val database: MongoDB = mongoClient.getDB(db)
+    val collection: MongoCollection = database(table)
     val targetSchemaStr = sinkProcessConfig.jsonSchema.get
     val targetSchemaArr = JSON.parseObject(targetSchemaStr).getJSONArray("fields")
     tupleList.foreach(tuple => {
