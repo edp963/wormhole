@@ -27,7 +27,7 @@ require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
 // require('../../../node_modules/codemirror/mode/sql/sql')
 
-import { jsonParse, genDefaultSchemaTable, nestType2string, string2nestType, tupleFields, umsSysFieldSelected } from './umsFunction'
+import { jsonParse, genDefaultSchemaTable, nestType2string, string2nestType, tupleFields, umsSysFieldSelected, umsSysFieldUnSelected } from './umsFunction'
 import { isJSONNotEmpty } from '../../utils/util'
 
 import NamespaceForm from './NamespaceForm'
@@ -718,22 +718,12 @@ export class Namespace extends React.PureComponent {
     } else if ((beforeValue.indexOf('tuple') > -1 && afterValue.indexOf('tuple') < 0) ||
       (beforeValue.indexOf('tuple') < 0 && afterValue.indexOf('tuple') > -1)) {
       const temp = afterValue.split('##')   // 如fieldType为 "tuple##|"
-      const tupleTempArr = tupleFields(umsTableDataSource, indexValue.key, temp[1])
-
-      // 给新增的子数组设置key
-      umsArr = tupleTempArr.map((s, index) => {
-        s.key = index
-        return s
-      })
+      umsArr = tupleFields(umsTableDataSource, indexValue.key, temp[1])
     } else if (beforeValue.indexOf('tuple') > -1 && afterValue.indexOf('tuple') > -1) {
       const filedTempArr = umsTableDataSource.filter(s => s.fieldName.indexOf(`${fieldName}#`) < 0)  // 去掉子行
 
       const temp = afterValue.split('##')
-      const tupleTempArr = tupleFields(filedTempArr, indexValue.key, temp[1])
-      umsArr = tupleTempArr.map((s, index) => {
-        s.key = index
-        return s
-      })
+      umsArr = tupleFields(filedTempArr, indexValue.key, temp[1])
     } else {
       // 替换
       const result = {
@@ -782,34 +772,22 @@ export class Namespace extends React.PureComponent {
   initSelectUmsId = (record, umsSysField) => {
     const { umsTableDataSource } = this.state
 
-    const result = {
-      fieldName: record.fieldName,
-      fieldType: record.fieldType,
-      forbidden: record.forbidden,
-      key: record.key,
-      rename: record.rename,
-      selected: record.selected,
-      ums_id_: umsSysField === 'ums_id_',
-      ums_op_: record.ums_op_,
-      ums_ts_: umsSysField === 'ums_ts_',
-      value: record.value
-    }
-    umsTableDataSource.splice(umsTableDataSource.indexOf(record), 1, result)
-
+    const tempArr = umsSysFieldSelected(umsTableDataSource, record.key, umsSysField)
     this.setState({
-      umsTableDataSource: umsTableDataSource.slice()
+      umsTableDataSource: tempArr
     }, () => {
-      const tempArr = umsSysFieldSelected(umsTableDataSource, record.key, umsSysField)
-      // 给新增的子数组设置key
-      const umsArr = tempArr.map((s, index) => {
-        s.key = index
-        return s
-      })
-      this.setState({
-        umsTableDataSource: umsArr
-      }, () => {
-        // console.log('umsTableDataSource', this.state.umsTableDataSource)
-      })
+      // console.log('umsTableDataSource', this.state.umsTableDataSource)
+    })
+  }
+
+  initSelectUmsOp = (record, umsSysField) => {}
+
+  cancelSelectUmsId = (record, umsSysField) => {
+    const { umsTableDataSource } = this.state
+    this.setState({
+      umsTableDataSource: umsSysFieldUnSelected(umsTableDataSource, record.key, umsSysField)
+    }, () => {
+      // console.log('cancel', umsTableDataSource)
     })
   }
 
@@ -1226,6 +1204,8 @@ export class Namespace extends React.PureComponent {
             initChangeType={this.initChangeFiledType}
             initEditRename={this.initEditRename}
             initSelectUmsId={this.initSelectUmsId}
+            cancelSelectUmsId={this.cancelSelectUmsId}
+            initSelectUmsOp={this.initSelectUmsOp}
             umsTableDataSource={this.state.umsTableDataSource}
             umsTypeSeleted={this.state.umsTypeSeleted}
             ref={(f) => { this.schemaTypeConfig = f }}
