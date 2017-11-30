@@ -140,9 +140,26 @@ export function umsSysFieldSelected (array, index, umsSysField) {
   const umsField = umsSysField
 
   const arr = []
-  for (let i = 0; i < index + 1; i++) {
+  for (let i = 0; i < index; i++) {
     arr.push(array[i])
   }
+
+  // index 项
+  const indexVal = {
+    fieldName: array[index].fieldName,
+    fieldType: array[index].fieldType,
+    forbidden: array[index].forbidden,
+    rename: array[index].rename,
+    selected: array[index].selected,
+    ums_id_: (umsSysField === 'ums_id_' || array[index].ums_id_ === true),
+    ums_op_: array[index].ums_op_,
+    ums_ts_: (umsSysField === 'ums_ts_' || array[index].ums_ts_ === true),
+    value: array[index].value
+  }
+
+  arr.push(indexVal)
+
+  // index + 1 项
   const objectVal = {
     fieldName: array[index].fieldName,
     fieldType: array[index].fieldType,
@@ -152,9 +169,9 @@ export function umsSysFieldSelected (array, index, umsSysField) {
     selected: true,
     forbidden: true,
 
-    ums_id_: false,
-    ums_op_: '',
-    ums_ts_: false
+    ums_id_: umsSysField === 'ums_id_',
+    ums_op_: array[index].ums_op_,
+    ums_ts_: umsSysField === 'ums_ts_'
   }
   arr.push(objectVal)
 
@@ -162,24 +179,70 @@ export function umsSysFieldSelected (array, index, umsSysField) {
     arr.push(array[j])
   }
 
-//      if (umsField === 'ums_op_') {
-//          object[0][umsField] = object[0].ums_op_
-//      }
-  return arr
+  // 给新增的子数组 index + 1 项设置key
+  const umsArr = arr.map((s, index) => {
+    s.key = index
+    return s
+  })
+  return umsArr
 }
 
 // 若用户选择该行为ums_id_或ums_ts_或ums_op_后，又点了取消，调用umsSysFieldUnSelected方法，删除刚刚生成的新行，返回新数组
-// todo: test
 export function umsSysFieldUnSelected (array, index, umsSysField) {
-  if (array[index].ums_id_ === true || array[index].ums_ts_ === true || array[index].ums_op_ !== '') {
+  if ((array[index + 1].ums_id_ === true && array[index + 1].forbidden === true) ||
+    (array[index + 1].ums_ts_ === true && array[index + 1].forbidden === true) ||
+    ((array[index + 1].ums_op_ !== '' && array[index + 1].forbidden === true))) {
+    const arr = []
+    for (let i = 0; i < index; i++) {
+      arr.push(array[i])
+    }
+
+    let umsIdBool = false
+    let umsTsBool = false
+    if (umsSysField === 'ums_id_') {
+      umsIdBool = false
+      umsTsBool = array[index].ums_ts_
+    } else if (umsSysField === 'ums_ts_') {
+      umsIdBool = array[index].ums_id_
+      umsTsBool = false
+    }
+
+    const indexVal = {
+      fieldName: array[index].fieldName,
+      fieldType: array[index].fieldType,
+      forbidden: array[index].forbidden,
+      rename: array[index].rename,
+      selected: array[index].selected,
+      ums_id_: umsIdBool,
+      ums_op_: '',
+      ums_ts_: umsTsBool,
+      value: array[index].value
+    }
+    arr.push(indexVal)
+
     if (array[index + 1].rename === umsSysField) {
-      array.splice(index + 1, 1)
+      for (let j = index + 2; j < array.length; j++) {
+        arr.push(array[j])
+      }
+    } else if (array[index + 2].rename === umsSysField) {
+      arr.push(array[index + 1])
+      for (let k = index + 3; k < array.length; k++) {
+        arr.push(array[k])
+      }
+    } else if (array[index + 3].rename === umsSysField) {
+      arr.push(array[index + 1], array[index + 2])
+      for (let g = index + 4; g < array.length; g++) {
+        arr.push(array[g])
+      }
     }
-    if (array[index + 2].rename === umsSysField) {
-      array.splice(index + 2, 1)
-    }
+
+    // 重新设置key
+    const umsArr = arr.map((s, index) => {
+      s.key = index
+      return s
+    })
+    return umsArr
   }
-  return array
 }
 
 // fieldType值由 jsonobject/jsonarray/tuple 改为 string 时，生成新数组
@@ -247,7 +310,12 @@ export function tupleFields (array, index, separator) {
     array.splice(index + 1, 0, tupleArray[i])
     index = index + 1
   }
-  return array
+
+  const umsArr = array.map((s, index) => {
+    s.key = index
+    return s
+  })
+  return umsArr
 }
 
 // 生成基本字段数组array1，"jsonParseArray":array1）
