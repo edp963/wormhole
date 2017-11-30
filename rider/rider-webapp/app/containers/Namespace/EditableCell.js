@@ -113,7 +113,6 @@ export class EditableCell extends React.Component {
           editable
             ? <div className="editable-cell-input-wrapper">
               <Select
-                // dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
                 onChange={this.onChangeFieldType}
                 placeholder="Select"
                 className="field-type-select"
