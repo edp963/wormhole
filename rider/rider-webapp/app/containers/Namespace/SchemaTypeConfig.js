@@ -55,10 +55,12 @@ export class SchemaTypeConfig extends React.Component {
   componentWillReceiveProps (props) {
     if (props.umsTableDataSource) {
       this.setState({
-        currentUmsTableData: props.umsTableDataSource,
-        selectedRowKeys: props.selectedTableRowKeys
+        currentUmsTableData: props.umsTableDataSource
       }, () => {
-        // console.log('selectedRowKeys', this.state.selectedRowKeys)
+        const selectRowArr = this.state.currentUmsTableData.filter(s => s.selected === true)
+        this.setState({
+          selectedRowKeys: [...selectRowArr.keys()]
+        })
       })
     }
   }
@@ -90,7 +92,11 @@ export class SchemaTypeConfig extends React.Component {
     })
   }
 
-  onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
+  onSelectChange = (selectedRowKeys) => {
+    console.log('selectedRowKeys', selectedRowKeys)
+
+    this.setState({ selectedRowKeys })
+  }
 
   onChangeUmsType = (e) => {
     this.props.initChangeUmsType(e.target.value)
@@ -140,6 +146,18 @@ export class SchemaTypeConfig extends React.Component {
     }
   }
 
+  onChangeUmsId = (record) => (e) => {
+    this.props.initSelectUmsId(record, 'ums_id_')
+  }
+
+  onChangeUmsTs = (record) => (e) => {
+    // this.props.initSelectUmsId(record, 'ums_ts_')
+  }
+
+  onChangeUmsOp = (record) => (e) => {
+    // this.props.initSelectUmsId(record, 'ums_op_')
+  }
+
   render () {
     const { form } = this.props
     const { getFieldDecorator } = form
@@ -157,6 +175,7 @@ export class SchemaTypeConfig extends React.Component {
       title: 'FieldName',
       dataIndex: 'fieldName',
       key: 'fieldName',
+      width: '30%',
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
@@ -177,6 +196,7 @@ export class SchemaTypeConfig extends React.Component {
       title: 'Rename',
       dataIndex: 'rename',
       key: 'rename',
+      width: '15%',
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
@@ -227,6 +247,7 @@ export class SchemaTypeConfig extends React.Component {
       title: 'FieldType',
       dataIndex: 'fieldType',
       key: 'fieldType',
+      width: '15%',
       filters: [
         {text: 'string', value: 'string'},
         {text: 'int', value: 'int'},
@@ -263,35 +284,65 @@ export class SchemaTypeConfig extends React.Component {
         />
       )
     }, {
-      title: 'ums_id_',
+      title: 'UMS_ID_',
       dataIndex: 'umsId',
-      key: 'umsId'
+      key: 'umsId',
+      width: '10%',
+      className: 'text-align-center',
+      render: (text, record) => (
+        <div className="editable-cell">
+          {
+            <div className="editable-rename-cell-text-wrapper">
+              <span className="ant-checkbox-wrapper">
+                <span className={`ant-checkbox ${record.ums_id_ === true ? 'ant-checkbox-checked' : ''}`}>
+                  <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsId(record)} />
+                  <span className="ant-checkbox-inner"></span>
+                </span>
+              </span>
+            </div>
+          }
+        </div>
+      )
     }, {
-      title: 'ums_ts_',
+      title: 'UMS_TS_',
       dataIndex: 'umsTs',
-      key: 'umsTs'
+      key: 'umsTs',
+      width: '10%',
+      className: 'text-align-center',
+      render: (text, record) => (
+        <div className="editable-cell">
+          {
+            <div className="editable-rename-cell-text-wrapper">
+              <span className="ant-checkbox-wrapper">
+                <span className={`ant-checkbox ${record.ums_ts_ === true ? 'ant-checkbox-checked' : ''}`}>
+                  <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsTs(record)} />
+                  <span className="ant-checkbox-inner"></span>
+                </span>
+              </span>
+            </div>
+          }
+        </div>
+      )
     }, {
-      title: 'ums_op_',
+      title: 'UMS_OP_',
       dataIndex: 'umsOp',
-      key: 'umsOp'
+      key: 'umsOp',
+      className: 'text-align-center',
+      render: (text, record) => (
+        <div className="editable-cell">
+          {
+            <div className="editable-rename-cell-text-wrapper">
+              <span className="ant-checkbox-wrapper">
+                <span className={`ant-checkbox ${record.ums_op_ === true ? 'ant-checkbox-checked' : ''}`}>
+                  <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record)} />
+                  <span className="ant-checkbox-inner"></span>
+                </span>
+              </span>
+            </div>
+          }
+        </div>
+      )
     }]
-
-    const pagination = {
-      defaultPageSize: 15,
-      pageSizeOptions: ['15', '30', '45', '60'],
-      showSizeChanger: true,
-      onShowSizeChange: (current, pageSize) => {
-        this.setState({
-          pageIndex: current,
-          pageSize: pageSize
-        })
-      },
-      onChange: (current) => {
-        this.setState({
-          pageIndex: current
-        })
-      }
-    }
 
     const { selectedRowKeys } = this.state
     const { umsTypeSeleted } = this.props
@@ -307,17 +358,17 @@ export class SchemaTypeConfig extends React.Component {
       <Form>
         <Row>
           <Col span={24}>
-            <FormItem label="Ums Type" {...itemStyle}>
+            <FormItem label="UMS Type" {...itemStyle}>
               {getFieldDecorator('umsType', {
                 rules: [{
                   required: true,
-                  message: '请选择 Ums Type'
+                  message: '请选择 UMS Type'
                 }],
                 initialValue: 'ums'
               })(
                 <RadioGroup className="radio-group-style" size="default" onChange={this.onChangeUmsType}>
-                  <RadioButton value="ums" className="radio-btn-style radio-btn-extra">Ums</RadioButton>
-                  <RadioButton value="ums_extension" className="ums-extension">Ums_extension</RadioButton>
+                  <RadioButton value="ums" className="radio-btn-style radio-btn-extra">UMS</RadioButton>
+                  <RadioButton value="ums_extension" className="ums-extension">UMS_extension</RadioButton>
                 </RadioGroup>
               )}
             </FormItem>
@@ -344,7 +395,8 @@ export class SchemaTypeConfig extends React.Component {
             <Table
               dataSource={this.state.currentUmsTableData}
               columns={columns}
-              pagination={pagination}
+              pagination={false}
+              scroll={{ y: 500 }}
               rowSelection={rowSelection}
               bordered
               className="tran-table-style"
@@ -362,8 +414,8 @@ SchemaTypeConfig.propTypes = {
   onChangeJsonToTable: React.PropTypes.func,
   initChangeType: React.PropTypes.func,
   initEditRename: React.PropTypes.func,
+  initSelectUmsId: React.PropTypes.func,
   umsTableDataSource: React.PropTypes.array,
-  // selectedTableRowKeys: React.PropTypes.array,
   umsTypeSeleted: React.PropTypes.string
 }
 

@@ -27,7 +27,7 @@ require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
 // require('../../../node_modules/codemirror/mode/sql/sql')
 
-import { jsonParse, genDefaultSchemaTable, nestType2string, string2nestType, tupleFields } from './umsFunction'
+import { jsonParse, genDefaultSchemaTable, nestType2string, string2nestType, tupleFields, umsSysFieldSelected } from './umsFunction'
 import { isJSONNotEmpty } from '../../utils/util'
 
 import NamespaceForm from './NamespaceForm'
@@ -102,8 +102,7 @@ export class Namespace extends React.PureComponent {
       schemaModalLoading: false,
       jsonSampleValue: {},
       umsTableDataSource: [],
-      umsTypeSeleted: 'ums',
-      selectedTableRowKeys: []
+      umsTypeSeleted: 'ums'
     }
   }
 
@@ -701,15 +700,11 @@ export class Namespace extends React.PureComponent {
           s.key = index
           return s
         })
-      }, () => {
-        const selectRowArr = this.state.umsTableDataSource.filter(s => s.forbidden === false)
-        this.setState({
-          selectedTableRowKeys: [...selectRowArr.keys()]
-        })
       })
     }
   }
 
+  // todo: test。fieldName 不是唯一的
   initChangeFiledType = (fieldName, beforeValue, afterValue) => {
     const { umsTableDataSource } = this.state
 
@@ -754,16 +749,13 @@ export class Namespace extends React.PureComponent {
         value: indexValue.value
       }
       umsTableDataSource.splice(umsTableDataSource.indexOf(indexValue), 1, result)
+
+      // todo：基本类型判断
       umsArr = umsTableDataSource.slice()
     }
 
     this.setState({
       umsTableDataSource: umsArr
-    }, () => {
-      const selectRowArr = this.state.umsTableDataSource.filter(s => s.forbidden === false)
-      this.setState({
-        selectedTableRowKeys: [...selectRowArr.keys()]
-      })
     })
   }
 
@@ -784,6 +776,40 @@ export class Namespace extends React.PureComponent {
     umsTableDataSource.splice(umsTableDataSource.indexOf(record), 1, result)
     this.setState({
       umsTableDataSource: umsTableDataSource.slice()
+    })
+  }
+
+  initSelectUmsId = (record, umsSysField) => {
+    const { umsTableDataSource } = this.state
+
+    const result = {
+      fieldName: record.fieldName,
+      fieldType: record.fieldType,
+      forbidden: record.forbidden,
+      key: record.key,
+      rename: record.rename,
+      selected: record.selected,
+      ums_id_: umsSysField === 'ums_id_',
+      ums_op_: record.ums_op_,
+      ums_ts_: umsSysField === 'ums_ts_',
+      value: record.value
+    }
+    umsTableDataSource.splice(umsTableDataSource.indexOf(record), 1, result)
+
+    this.setState({
+      umsTableDataSource: umsTableDataSource.slice()
+    }, () => {
+      const tempArr = umsSysFieldSelected(umsTableDataSource, record.key, umsSysField)
+      // 给新增的子数组设置key
+      const umsArr = tempArr.map((s, index) => {
+        s.key = index
+        return s
+      })
+      this.setState({
+        umsTableDataSource: umsArr
+      }, () => {
+        // console.log('umsTableDataSource', this.state.umsTableDataSource)
+      })
     })
   }
 
@@ -1199,8 +1225,8 @@ export class Namespace extends React.PureComponent {
             onChangeJsonToTable={this.onChangeUmsJsonToTable}
             initChangeType={this.initChangeFiledType}
             initEditRename={this.initEditRename}
+            initSelectUmsId={this.initSelectUmsId}
             umsTableDataSource={this.state.umsTableDataSource}
-            selectedTableRowKeys={this.state.selectedTableRowKeys}
             umsTypeSeleted={this.state.umsTypeSeleted}
             ref={(f) => { this.schemaTypeConfig = f }}
           />
