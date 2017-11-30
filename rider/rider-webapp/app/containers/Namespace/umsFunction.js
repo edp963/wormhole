@@ -122,6 +122,7 @@ export function getAlterTypesByOriginType (fieldType) {
   return typeArray
 }
 
+// 点击保存时，去除selected === false的行
 // todo: test
 function selectedFields (array) {
   for (var i = 0; i < array.length; i++) {
@@ -134,30 +135,49 @@ function selectedFields (array) {
 }
 
 // 若用户配置fieldName为 ums_id_或ums_ts_或ums_op_，调用umsSysFieldSelected方法，获得新的数组
-// todo: test
+// umsSysField = ums_id_或ums_ts_或ums_op_
 export function umsSysFieldSelected (array, index, umsSysField) {
-  var umsField = umsSysField
-  var object = array.slice(index, index + 1)
-  if (umsField === 'ums_op_') {
-    object[0][umsField] = object[0].ums_op_
-  } else {
-    object[0][umsField] = true
+  const umsField = umsSysField
+
+  const arr = []
+  for (let i = 0; i < index + 1; i++) {
+    arr.push(array[i])
   }
-  object[0].rename = umsField
-  object[0].selected = true
-  object[0].forbidden === true
-  array.splice(index + 1, 0, object[0])
-  return array
+  const objectVal = {
+    fieldName: array[index].fieldName,
+    fieldType: array[index].fieldType,
+    value: array[index].value,
+
+    rename: umsField,
+    selected: true,
+    forbidden: true,
+
+    ums_id_: false,
+    ums_op_: '',
+    ums_ts_: false
+  }
+  arr.push(objectVal)
+
+  for (let j = index + 1; j < array.length; j++) {
+    arr.push(array[j])
+  }
+
+//      if (umsField === 'ums_op_') {
+//          object[0][umsField] = object[0].ums_op_
+//      }
+  return arr
 }
 
 // 若用户选择该行为ums_id_或ums_ts_或ums_op_后，又点了取消，调用umsSysFieldUnSelected方法，删除刚刚生成的新行，返回新数组
 // todo: test
 export function umsSysFieldUnSelected (array, index, umsSysField) {
-  if (array[index + 1].rename === umsSysField) {
-    array.splice(index + 1, 1)
-  }
-  if (array[index + 2].rename === umsSysField) {
-    array.splice(index + 2, 1)
+  if (array[index].ums_id_ === true || array[index].ums_ts_ === true || array[index].ums_op_ !== '') {
+    if (array[index + 1].rename === umsSysField) {
+      array.splice(index + 1, 1)
+    }
+    if (array[index + 2].rename === umsSysField) {
+      array.splice(index + 2, 1)
+    }
   }
   return array
 }
@@ -376,5 +396,21 @@ export function genSchema (array) {
     }
   }
   return fieldsObject
+}
+
+// 若用户修改某字段类型，判断该字段是否为ums系统字段，若是，修改与之相关的ums系统字段类型
+export function umsSysFieldTypeAutoChange (array, index, alterType) {
+  if (array[index].ums_id_ === true || array[index].ums_ts_ === true || array[index].ums_op_ !== '') {
+    if (array[index + 1].rename === 'ums_id_' || array[index + 1].rename === 'ums_ts_' || array[index + 1].rename === 'ums_op_') {
+      array[index + 1].fieldType = alterType
+    }
+    if (array[index + 2].rename === 'ums_id_' || array[index + 2].rename === 'ums_ts_' || array[index + 2].rename === 'ums_op_') {
+      array[index + 2].fieldType = alterType
+    }
+    if (array[index + 3].rename === 'ums_id_' || array[index + 3].rename === 'ums_ts_' || array[index + 3].rename === 'ums_op_') {
+      array[index + 3].fieldType = alterType
+    }
+  }
+  return array
 }
 
