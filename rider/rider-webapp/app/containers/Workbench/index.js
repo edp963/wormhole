@@ -22,6 +22,7 @@ import React from 'react'
 import {connect} from 'react-redux'
 import {createStructuredSelector} from 'reselect'
 import Helmet from 'react-helmet'
+import { preProcessSql } from '../../utils/util'
 import CodeMirror from 'codemirror'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
@@ -791,7 +792,8 @@ export class Workbench extends React.Component {
                 const lookupBeforePart = temp.substring(0, i.indexOf('=') - 1)
                 const lookupAfterPart = temp.substring(i.indexOf('=') + 1)
                 const lookupBeforePartTemp = (lookupBeforePart.replace(/(^\s*)|(\s*$)/g, '')).split(' ')
-                const lookupAfterPartTepm = lookupAfterPart.replace(/(^\s*)|(\s*$)/g, '') // 去字符串前后的空白；sql语句回显
+                const lookupAfterPartTepmTemp = lookupAfterPart.replace(/(^\s*)|(\s*$)/g, '') // 去字符串前后的空白；sql语句回显
+                const lookupAfterPartTepm = preProcessSql(lookupAfterPartTepmTemp)
 
                 tranConfigInfoTemp = [lookupBeforePartTemp[1], lookupBeforePartTemp[3], lookupAfterPartTepm].join('.')
                 tranTypeTepm = 'lookupSql'
@@ -816,7 +818,8 @@ export class Workbench extends React.Component {
                 const streamJoinBeforePart = imp.substring(0, i.indexOf('=') - 1)
                 const streamJoinAfterPart = imp.substring(i.indexOf('=') + 1)
                 const streamJoinBeforePartTemp = streamJoinBeforePart.replace(/(^\s*)|(\s*$)/g, '').split(' ')
-                const streamJoinAfterPartTepm = streamJoinAfterPart.replace(/(^\s*)|(\s*$)/g, '')
+                const streamJoinAfterPartTepmTemp = streamJoinAfterPart.replace(/(^\s*)|(\s*$)/g, '')
+                const streamJoinAfterPartTepm = preProcessSql(streamJoinAfterPartTepmTemp)
 
                 const iTemp3Temp = streamJoinBeforePartTemp[3].substring(streamJoinBeforePartTemp[3].indexOf('(') + 1)
                 const iTemp3Val = iTemp3Temp.substring(0, iTemp3Temp.indexOf(')'))
@@ -827,7 +830,8 @@ export class Workbench extends React.Component {
 
               if (i.indexOf('spark_sql') > -1) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
-                const sparkAfterPartTepm = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
+                const sparkAfterPartTepmTemp = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
+                const sparkAfterPartTepm = preProcessSql(sparkAfterPartTepmTemp)
 
                 tranConfigInfoTemp = sparkAfterPartTepm
                 tranTypeTepm = 'sparkSql'
@@ -835,10 +839,11 @@ export class Workbench extends React.Component {
               }
 
               if (i.indexOf('custom_class') > -1) {
-                const sparkAfterPart = i.substring(i.indexOf('=') + 1)
-                const sparkAfterPartTepm = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
+                const classAfterPart = i.substring(i.indexOf('=') + 1)
+                const classAfterPartTepmTemp = classAfterPart.replace(/(^\s*)|(\s*$)/g, '')
+                const classAfterPartTepm = preProcessSql(classAfterPartTepmTemp)
 
-                tranConfigInfoTemp = sparkAfterPartTepm
+                tranConfigInfoTemp = classAfterPartTepm
                 tranTypeTepm = 'transformClassName'
                 pushdownConTepm = ''
               }
@@ -1238,7 +1243,8 @@ export class Workbench extends React.Component {
     const { flowFormTransformTableSource, streamDiffType } = this.state
 
     let transformRequestTempArr = []
-    flowFormTransformTableSource.map(i => transformRequestTempArr.push(i.transformConfigInfoRequest))
+    flowFormTransformTableSource.map(i => transformRequestTempArr.push(preProcessSql(i.transformConfigInfoRequest)))
+
     const transformRequestTempString = transformRequestTempArr.join('')
     this.setState({
       transformTableRequestValue: transformRequestTempString === '' ? '' : `"action": "${transformRequestTempString}"`,
@@ -1750,7 +1756,8 @@ export class Workbench extends React.Component {
         if (values.transformation === 'lookupSql') {
           // values.transformSinkNamespace 为 []
           // 去掉字符串前后的空格
-          const lookupSqlVal = values.lookupSql.replace(/(^\s*)|(\s*$)/g, '')
+          const lookupSqlValTemp = values.lookupSql.replace(/(^\s*)|(\s*$)/g, '')
+          const lookupSqlVal = preProcessSql(lookupSqlValTemp)
 
           let lookupSqlTypeOrigin = ''
           if (values.lookupSqlType === 'leftJoin') {
@@ -1772,7 +1779,8 @@ export class Workbench extends React.Component {
           valLength = lookupSqlVal.length
           finalVal = lookupSqlVal.substring(lookupSqlVal.length - 1)
         } else if (values.transformation === 'sparkSql') {
-          const sparkSqlVal = values.sparkSql.replace(/(^\s*)|(\s*$)/g, '')
+          const sparkSqlValTemp = values.sparkSql.replace(/(^\s*)|(\s*$)/g, '')
+          const sparkSqlVal = preProcessSql(sparkSqlValTemp)
 
           transformConfigInfoString = sparkSqlVal
           transformConfigInfoRequestString = `spark_sql = ${sparkSqlVal}`
@@ -1782,7 +1790,8 @@ export class Workbench extends React.Component {
           valLength = sparkSqlVal.length
           finalVal = sparkSqlVal.substring(sparkSqlVal.length - 1)
         } else if (values.transformation === 'streamJoinSql') {
-          const streamJoinSqlVal = values.streamJoinSql.replace(/(^\s*)|(\s*$)/g, '')
+          const streamJoinSqlValTemp = values.streamJoinSql.replace(/(^\s*)|(\s*$)/g, '')
+          const streamJoinSqlVal = preProcessSql(streamJoinSqlValTemp)
 
           let streamJoinSqlTypeOrigin = ''
           if (values.streamJoinSqlType === 'leftJoin') {
@@ -1801,7 +1810,8 @@ export class Workbench extends React.Component {
           valLength = streamJoinSqlVal.length
           finalVal = streamJoinSqlVal.substring(streamJoinSqlVal.length - 1)
         } else if (values.transformation === 'transformClassName') {
-          const transformClassNameVal = values.transformClassName.replace(/(^\s*)|(\s*$)/g, '')
+          const transformClassNameValTemp = values.transformClassName.replace(/(^\s*)|(\s*$)/g, '')
+          const transformClassNameVal = preProcessSql(transformClassNameValTemp)
 
           transformConfigInfoString = transformClassNameVal
           transformConfigInfoRequestString = `custom_class = ${transformClassNameVal}`

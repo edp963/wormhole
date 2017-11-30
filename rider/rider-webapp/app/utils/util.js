@@ -110,3 +110,18 @@ export function notifyError (err, title) {
 export function notifySagasError (err, prefix) {
   notifyError(err, `${prefix} sagas or reducer 异常`)
 }
+
+/**
+ * flow transformation: sql语句可能出现双引号，从而影响Json对象解析，将双引号转义
+ * @param sql
+ */
+export function preProcessSql (sql) {
+  const doubleQuotationRegex = new RegExp('\\"{1}', 'g')
+  let result
+  if (sql.indexOf('\\') > -1) {
+    result = sql
+  } else {
+    result = sql.replace(doubleQuotationRegex, '\\"')
+  }
+  return result
+}
