@@ -21,16 +21,18 @@
 
 package edp.rider.rest.util
 
-import com.alibaba.fastjson.JSON
+import com.alibaba.fastjson.{JSON, JSONArray}
 import edp.rider.RiderStarter.modules
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.NamespaceUtils._
+import edp.rider.rest.util.NsDatabaseUtils.{getDbConfig, getPushDownConfig}
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.common.util.CommonUtils._
+import edp.wormhole.common.util.JsonUtils.caseClass2json
 import edp.wormhole.ums.UmsProtocolType._
 import slick.jdbc.MySQLProfile.api._
 
@@ -54,15 +56,16 @@ object FlowUtils extends RiderLogger {
         if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
           JSON.parseObject(sinkConfig).getString("sink_specific_config")
         else "{}"
-      val dbConfig = "\"\""
-//      val dbConfig = if (db.config.getOrElse("") == "") "\"\"" else db.config.get
+      val dbConfig = getDbConfig(ns.nsSys, db.config.getOrElse(""))
+      val sinkConnectionConfig = if (dbConfig.nonEmpty) db.config.get else "\"\""
+
       s"""
          |{
          |"sink_connection_url": "${getConnUrl(instance, db)}",
          |"sink_connection_username": "${db.user.getOrElse("")}",
          |"sink_connection_password": "${db.pwd.getOrElse("")}",
          |"sink_table_keys": "${ns.keys.getOrElse("")}",
-         |"sink_connection_config": $dbConfig,
+         |"sink_connection_config": $sinkConnectionConfig,
          |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys)}",
          |"sink_specific_config": $specialConfig,
          |"sink_retry_times": "3",
@@ -73,6 +76,25 @@ object FlowUtils extends RiderLogger {
       case ex: Exception =>
         riderLogger.error(s"get sinkConfig failed", ex)
         throw ex
+    }
+  }
+
+  def getTranConfig(tranConfig: String) = {
+    if (tranConfig == "") "{}"
+    else {
+      val json = JSON.parseObject(tranConfig)
+      if (json.containsKey("action")) {
+        json.fluentPut("action", base64byte2s(JSON.parseObject(tranConfig).getString("action").trim.getBytes)).toString
+        val seq = getPushDownConfig(tranConfig)
+        if (seq.nonEmpty)
+          if (json.containsKey("pushdown_connection"))
+            json.fluentRemove("pushdown_connection")
+        val jsonArray = new JSONArray()
+        seq.foreach(config => jsonArray.add(JSON.parseObject(caseClass2json[PushDownConnection](config))))
+        json.fluentPut("pushdown_connection", jsonArray)
+        json.toString
+      }
+      else tranConfig
     }
   }
 
@@ -162,13 +184,7 @@ object FlowUtils extends RiderLogger {
       if (streamType == "default") {
         val consumedProtocolSet = getConsumptionType(consumedProtocol)
         val sinkConfigSet = getSinkConfig(sinkNs, sinkConfig)
-        val tranConfigFinal =
-          if (tranConfig == "") "{}"
-          else {
-            if (JSON.parseObject(tranConfig).containsKey("action"))
-              JSON.parseObject(tranConfig).fluentPut("action", base64byte2s(JSON.parseObject(tranConfig).getString("action").trim.getBytes)).toString
-            else tranConfig
-          }
+        val tranConfigFinal = getTranConfig(tranConfig)
         val tuple = Seq(streamId, currentMicroSec, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
         val base64Tuple = Seq(streamId, currentMicroSec, sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
           base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))

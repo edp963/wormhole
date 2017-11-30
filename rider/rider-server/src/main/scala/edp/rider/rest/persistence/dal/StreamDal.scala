@@ -306,7 +306,7 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
                   case _ => AppInfo(sparkStatus.appId, "waiting", startedTime, stoppedTime)
                 }
                 case "running" =>
-                  if (List("FAILED", "KILLED", "FINISHED").contains(sparkStatus.appState.toUpperCase)) {
+                  if (List("FAILED", "KILLED", "FINISHED", "DONE").contains(sparkStatus.appState.toUpperCase)) {
                     AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
                   }
                   else {
