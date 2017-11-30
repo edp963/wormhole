@@ -60,7 +60,6 @@ object NsDatabaseUtils {
           if (seq.isEmpty) None
           else Some(seq)
         } else None
-      case "phoenix" => None
       case _ =>
         if (config == null || config == "") None
         else if (isJson(config)) {

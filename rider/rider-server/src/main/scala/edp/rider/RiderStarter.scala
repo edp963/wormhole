@@ -57,6 +57,7 @@ object RiderStarter extends App with RiderLogger {
   Http().bindAndHandle(new RoutesApi(modules).routes, RiderConfig.riderServer.host, RiderConfig.riderServer.port)
   riderLogger.info(s"WormholeServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
 
+
   CacheMap.cacheMapInit
 
   val manager = new ConsumerManager(modules)

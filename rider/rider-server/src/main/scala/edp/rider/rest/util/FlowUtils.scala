@@ -57,7 +57,7 @@ object FlowUtils extends RiderLogger {
           JSON.parseObject(sinkConfig).getString("sink_specific_config")
         else "{}"
       val dbConfig = getDbConfig(ns.nsSys, db.config.getOrElse(""))
-      val sinkConnectionConfig = if (dbConfig.nonEmpty) db.config.get else "\"\""
+      val sinkConnectionConfig = if (dbConfig.nonEmpty && dbConfig.get.nonEmpty) dbConfig.get else "\"\""
 
       s"""
          |{
