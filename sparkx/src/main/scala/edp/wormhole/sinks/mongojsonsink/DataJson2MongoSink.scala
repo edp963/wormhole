@@ -191,7 +191,6 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
       constructBuilder(jsonData, jsonObj, builder)
 
     }
-    builder += "_id" -> 123
     builder.result()
   }
 
