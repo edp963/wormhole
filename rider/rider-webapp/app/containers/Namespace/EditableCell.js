@@ -31,16 +31,27 @@ const Option = Select.Option
 
 export class EditableCell extends React.Component {
   state = {
-    value: this.props.value,
-    changeBeforeValue: this.props.value,
+    typeValue: '',
+    changeBeforeValue: '',
     editable: false,
     fieldTypeOptionsVal: [],
     tupleOrNot: false,
     sepratorValue: ''
   }
 
+  componentWillReceiveProps (props) {
+    if (props.value) {
+      this.setState({
+        typeValue: props.value,
+        changeBeforeValue: props.value
+      })
+    }
+  }
+
   onChangeFieldType = (value) => {
     const { tableDatas } = this.props
+    const { changeBeforeValue } = this.state
+
     const tupleExit = tableDatas.find(i => i.fieldType.indexOf('tuple') > -1)
     if (tupleExit && value === 'tuple') {
       message.warning('FieldType 至多有一个 tuple 类型！', 3)
@@ -55,20 +66,20 @@ export class EditableCell extends React.Component {
           tupleOrNot: true
         })
       } else {
-        this.props.initChangeTypeOption(this.state.changeBeforeValue, value)
+        this.props.initChangeTypeOption(changeBeforeValue, value)
       }
     }
   }
 
   edit = () => {
-    const { value } = this.state
+    const { typeValue } = this.state
 
     let typeVal = ''
-    if (value.indexOf('tuple') > -1) {
-      const arrTemp = value.split('##')
+    if (typeValue.indexOf('tuple') > -1) {
+      const arrTemp = typeValue.split('##')
       typeVal = arrTemp[0]
     } else {
-      typeVal = value
+      typeVal = typeValue
     }
 
     const selectTypeValue = getAlterTypesByOriginType(typeVal)
@@ -103,7 +114,7 @@ export class EditableCell extends React.Component {
   }
 
   render () {
-    const { value, editable, fieldTypeOptionsVal, tupleOrNot } = this.state
+    const { typeValue, editable, fieldTypeOptionsVal, tupleOrNot } = this.state
 
     const fieldTypeOptions = fieldTypeOptionsVal.map(s => (<Option key={s} value={`${s}`}>{s}</Option>))
 
@@ -122,9 +133,8 @@ export class EditableCell extends React.Component {
 
             </div>
             : <div className="editable-cell-text-wrapper">
-              {value || ' '}
+              {typeValue || ' '}
               <Input
-                // value={value}
                 className={tupleOrNot === true ? '' : 'hide'}
                 onChange={this.handleChange}
                 onPressEnter={this.check}
@@ -148,7 +158,6 @@ export class EditableCell extends React.Component {
 
 EditableCell.propTypes = {
   initChangeTypeOption: React.PropTypes.func,
-  value: React.PropTypes.string,
   tableDatas: React.PropTypes.array
 }
 

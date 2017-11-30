@@ -147,15 +147,22 @@ export class SchemaTypeConfig extends React.Component {
   }
 
   onChangeUmsId = (record) => (e) => {
-    this.props.initSelectUmsId(record, 'ums_id_')
+    record.ums_id_
+      ? this.props.cancelSelectUmsId(record, 'ums_id_')
+      : this.props.initSelectUmsId(record, 'ums_id_')
   }
 
   onChangeUmsTs = (record) => (e) => {
-    // this.props.initSelectUmsId(record, 'ums_ts_')
+    record.ums_ts_
+      ? this.props.cancelSelectUmsId(record, 'ums_ts_')
+      : this.props.initSelectUmsId(record, 'ums_ts_')
   }
 
   onChangeUmsOp = (record) => (e) => {
-    // this.props.initSelectUmsId(record, 'ums_op_')
+    record.ums_op_ !== ''
+      ? this.props.cancelSelectUmsId(record, 'ums_op_')
+      : this.props.initSelectUmsId(record, 'ums_op_')
+    // this.props.initSelectUmsOp(record, 'ums_op_')
   }
 
   render () {
@@ -247,7 +254,7 @@ export class SchemaTypeConfig extends React.Component {
       title: 'FieldType',
       dataIndex: 'fieldType',
       key: 'fieldType',
-      width: '15%',
+      width: '17%',
       filters: [
         {text: 'string', value: 'string'},
         {text: 'int', value: 'int'},
@@ -282,12 +289,12 @@ export class SchemaTypeConfig extends React.Component {
           initChangeTypeOption={this.initChangeType(record.fieldName)}
           tableDatas={this.state.currentUmsTableData}
         />
-      )
+        )
     }, {
       title: 'UMS_ID_',
       dataIndex: 'umsId',
       key: 'umsId',
-      width: '10%',
+      width: '9%',
       className: 'text-align-center',
       render: (text, record) => (
         <div className="editable-cell">
@@ -307,7 +314,7 @@ export class SchemaTypeConfig extends React.Component {
       title: 'UMS_TS_',
       dataIndex: 'umsTs',
       key: 'umsTs',
-      width: '10%',
+      width: '9%',
       className: 'text-align-center',
       render: (text, record) => (
         <div className="editable-cell">
@@ -415,6 +422,8 @@ SchemaTypeConfig.propTypes = {
   initChangeType: React.PropTypes.func,
   initEditRename: React.PropTypes.func,
   initSelectUmsId: React.PropTypes.func,
+  cancelSelectUmsId: React.PropTypes.func,
+  // initSelectUmsOp: React.PropTypes.func,
   umsTableDataSource: React.PropTypes.array,
   umsTypeSeleted: React.PropTypes.string
 }
