@@ -21,6 +21,7 @@
 import React from 'react'
 
 import EditableCell from './EditableCell'
+import EditUmsOp from './EditUmsOp'
 
 import Form from 'antd/lib/form'
 import Input from 'antd/lib/input'
@@ -44,6 +45,8 @@ export class SchemaTypeConfig extends React.Component {
       currentFieldName: '',
       renameEditable: false,
       renameEditVal: '',
+      editUmsOpable: false,
+      editUmsOpKey: false || '',
 
       searchFieldName: '',
       filterDropdownVisibleFieldName: false,
@@ -147,28 +150,61 @@ export class SchemaTypeConfig extends React.Component {
   }
 
   onChangeUmsId = (record) => (e) => {
-    record.ums_id_
-      ? this.props.cancelSelectUmsId(record, 'ums_id_')
-      : this.props.initSelectUmsId(record, 'ums_id_')
+    const { currentUmsTableData } = this.state
+
+    if (record.fieldType === 'string' || record.fieldType === 'long' || record.fieldType === 'datetime') {
+      const tempData = currentUmsTableData.filter(i => i.forbidden === false) // 过滤掉 forbidden === true 的项
+      const umsIdExitNum = tempData.find(i => i.ums_id_ === true)
+
+      if (umsIdExitNum) {
+        record.ums_id_
+          ? this.props.cancelSelectUmsId(record, 'ums_id_')
+          : message.warning('UMS_ID_有且只能有一个！', 3)
+      } else {
+        this.props.initSelectUmsId(record, 'ums_id_')
+      }
+    } else {
+      message.warning('必须为 string/long/datetime 类型！', 3)
+    }
   }
 
   onChangeUmsTs = (record) => (e) => {
-    record.ums_ts_
-      ? this.props.cancelSelectUmsId(record, 'ums_ts_')
-      : this.props.initSelectUmsId(record, 'ums_ts_')
+    const { currentUmsTableData } = this.state
+    const tempData = currentUmsTableData.filter(i => i.forbidden === false)
+    const umsTsExitNum = tempData.find(i => i.ums_ts_ === true)
+    if (umsTsExitNum) {
+      record.ums_ts_
+        ? this.props.cancelSelectUmsId(record, 'ums_ts_')
+        : message.warning('UMS_TS_有且只能有一个！', 3)
+    } else {
+      this.props.initSelectUmsId(record, 'ums_ts_')
+    }
   }
 
   onChangeUmsOp = (record) => (e) => {
-    record.ums_op_ !== ''
-      ? this.props.cancelSelectUmsId(record, 'ums_op_')
-      : this.props.initSelectUmsId(record, 'ums_op_')
-    // this.props.initSelectUmsOp(record, 'ums_op_')
+    this.setState({
+      editUmsOpKey: record.key
+    })
+
+    // record.ums_op_ !== ''
+    //   ? this.props.cancelSelectUmsId(record, 'ums_op_')
+    //   : this.props.initSelectUmsId(record, 'ums_op_')
   }
+
+  initCheckUmsOp = (record) => (umsopValue) => {
+    this.props.initCheckUmsOp(record, umsopValue)
+    // this.props.initSelectUmsId(record, umsopValue)
+  }
+
+  // editUmsOP = (record) => (e) =>{
+  //   console.log('re', record)
+  //   this.props.initCancelUmsOp(record)
+  // }
 
   render () {
     const { form } = this.props
     const { getFieldDecorator } = form
-    const { renameEditable } = this.state
+    const { renameEditable, editUmsOpKey } = this.state
 
     const itemStyle = {
       labelCol: { span: 2 },
@@ -182,7 +218,7 @@ export class SchemaTypeConfig extends React.Component {
       title: 'FieldName',
       dataIndex: 'fieldName',
       key: 'fieldName',
-      width: '30%',
+      width: '25%',
       filterDropdown: (
         <div className="custom-filter-dropdown">
           <Input
@@ -294,7 +330,7 @@ export class SchemaTypeConfig extends React.Component {
       title: 'UMS_ID_',
       dataIndex: 'umsId',
       key: 'umsId',
-      width: '9%',
+      width: '8%',
       className: 'text-align-center',
       render: (text, record) => (
         <div className="editable-cell">
@@ -314,7 +350,7 @@ export class SchemaTypeConfig extends React.Component {
       title: 'UMS_TS_',
       dataIndex: 'umsTs',
       key: 'umsTs',
-      width: '9%',
+      width: '8%',
       className: 'text-align-center',
       render: (text, record) => (
         <div className="editable-cell">
@@ -335,20 +371,43 @@ export class SchemaTypeConfig extends React.Component {
       dataIndex: 'umsOp',
       key: 'umsOp',
       className: 'text-align-center',
-      render: (text, record) => (
-        <div className="editable-cell">
-          {
-            <div className="editable-rename-cell-text-wrapper">
-              <span className="ant-checkbox-wrapper">
-                <span className={`ant-checkbox ${record.ums_op_ === true ? 'ant-checkbox-checked' : ''}`}>
-                  <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record)} />
-                  <span className="ant-checkbox-inner"></span>
+      render: (text, record) => {
+        let umsopHtml = ''
+        if (record.key === editUmsOpKey) {
+          umsopHtml = (
+            <EditUmsOp
+              initCheckUmsOp={this.initCheckUmsOp(record)}
+              ref={(f) => { this.editUmsOp = f }}
+            />
+          )
+        } else {
+          if (record.ums_op_ !== '') {
+            umsopHtml = record.ums_op_
+          } else {
+            umsopHtml = (
+              <div className="editable-umsop-cell-text-wrapper">
+                <span className="ant-checkbox-wrapper">
+                  <span className="ant-checkbox">
+                    <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record)} />
+                    <span className="ant-checkbox-inner"></span>
+                  </span>
                 </span>
-              </span>
-            </div>
+              </div>
+            )
           }
-        </div>
-      )
+        }
+
+        return (
+          <div>
+            {umsopHtml}
+            {/* <Icon
+              type="edit"
+              className={`editable-cell-icon`}
+              onClick={this.editUmsOP(record)}
+            /> */}
+          </div>
+        )
+      }
     }]
 
     const { selectedRowKeys } = this.state
@@ -375,7 +434,7 @@ export class SchemaTypeConfig extends React.Component {
               })(
                 <RadioGroup className="radio-group-style" size="default" onChange={this.onChangeUmsType}>
                   <RadioButton value="ums" className="radio-btn-style radio-btn-extra">UMS</RadioButton>
-                  <RadioButton value="ums_extension" className="ums-extension">UMS_extension</RadioButton>
+                  <RadioButton value="ums_extension" className="ums-extension">UMS_Extension</RadioButton>
                 </RadioGroup>
               )}
             </FormItem>
@@ -423,7 +482,8 @@ SchemaTypeConfig.propTypes = {
   initEditRename: React.PropTypes.func,
   initSelectUmsId: React.PropTypes.func,
   cancelSelectUmsId: React.PropTypes.func,
-  // initSelectUmsOp: React.PropTypes.func,
+  initCheckUmsOp: React.PropTypes.func,
+  // initCancelUmsOp: React.PropTypes.func,
   umsTableDataSource: React.PropTypes.array,
   umsTypeSeleted: React.PropTypes.string
 }
