@@ -57,7 +57,7 @@ export class EditableCell extends React.Component {
       message.warning('FieldType 至多有一个 tuple 类型！', 3)
     } else {
       this.setState({
-        value,
+        typeValue: value,
         editable: false
       })
 
