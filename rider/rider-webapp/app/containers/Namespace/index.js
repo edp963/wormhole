@@ -775,12 +775,8 @@ export class Namespace extends React.PureComponent {
     const tempArr = umsSysFieldSelected(umsTableDataSource, record.key, umsSysField)
     this.setState({
       umsTableDataSource: tempArr
-    }, () => {
-      // console.log('umsTableDataSource', this.state.umsTableDataSource)
     })
   }
-
-  initSelectUmsOp = (record, umsSysField) => {}
 
   cancelSelectUmsId = (record, umsSysField) => {
     const { umsTableDataSource } = this.state
@@ -790,6 +786,43 @@ export class Namespace extends React.PureComponent {
       // console.log('cancel', umsTableDataSource)
     })
   }
+
+  initCheckUmsOp = (record, umsopValue) => {
+    const { umsTableDataSource } = this.state
+
+    const result = {
+      fieldName: record.fieldName,
+      fieldType: record.fieldType,
+      forbidden: record.forbidden,
+      key: record.key,
+      rename: record.rename,
+      selected: record.selected,
+      ums_id_: record.ums_id_,
+      ums_op_: umsopValue,
+      ums_ts_: record.ums_ts_,
+      value: record.value
+    }
+    umsTableDataSource.splice(umsTableDataSource.indexOf(record), 1, result)
+    this.setState({
+      umsTableDataSource: umsTableDataSource.slice()
+    }, () => {
+      const tempArr = umsSysFieldSelected(umsTableDataSource, record.key, 'ums_op_')
+      this.setState({
+        umsTableDataSource: tempArr
+      })
+    })
+  }
+
+  // initCancelUmsOp = (record) => {
+    // console.log('rec', record)
+    // const { umsTableDataSource } = this.state
+
+    // this.setState({
+    //   umsTableDataSource: umsSysFieldUnSelected(umsTableDataSource, record.key, 'ums_op')
+    // }, () => {
+    //   console.log('cancel', umsTableDataSource)
+    // })
+  // }
 
   render () {
     const { refreshNsLoading, refreshNsText } = this.state
@@ -1205,7 +1238,8 @@ export class Namespace extends React.PureComponent {
             initEditRename={this.initEditRename}
             initSelectUmsId={this.initSelectUmsId}
             cancelSelectUmsId={this.cancelSelectUmsId}
-            initSelectUmsOp={this.initSelectUmsOp}
+            initCheckUmsOp={this.initCheckUmsOp}
+            // initCancelUmsOp={this.initCancelUmsOp}
             umsTableDataSource={this.state.umsTableDataSource}
             umsTypeSeleted={this.state.umsTypeSeleted}
             ref={(f) => { this.schemaTypeConfig = f }}
