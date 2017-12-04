@@ -199,12 +199,19 @@ export function umsSysFieldUnSelected (array, index, umsSysField) {
 
     let umsIdBool = false
     let umsTsBool = false
+    let umsOpValue = ''
     if (umsSysField === 'ums_id_') {
       umsIdBool = false
       umsTsBool = array[index].ums_ts_
+      umsOpValue = array[index].ums_op_
     } else if (umsSysField === 'ums_ts_') {
       umsIdBool = array[index].ums_id_
       umsTsBool = false
+      umsOpValue = array[index].ums_op_
+    } else if (umsSysField === 'ums_op_') {
+      umsIdBool = array[index].ums_id_
+      umsTsBool = array[index].ums_ts_
+      umsOpValue = ''
     }
 
     const indexVal = {
@@ -213,8 +220,9 @@ export function umsSysFieldUnSelected (array, index, umsSysField) {
       forbidden: array[index].forbidden,
       rename: array[index].rename,
       selected: array[index].selected,
+      key: array[index].key,
       ums_id_: umsIdBool,
-      ums_op_: '',
+      ums_op_: umsOpValue,
       ums_ts_: umsTsBool,
       value: array[index].value
     }
@@ -237,7 +245,8 @@ export function umsSysFieldUnSelected (array, index, umsSysField) {
     }
 
     // 重新设置key
-    const umsArr = arr.map((s, index) => {
+    const arrTemp = JSON.stringify(arr, ['fieldName', 'fieldType', 'forbidden', 'rename', 'selected', 'ums_id_', 'ums_op_', 'ums_ts_', 'value'])
+    const umsArr = JSON.parse(arrTemp).map((s, index) => {
       s.key = index
       return s
     })

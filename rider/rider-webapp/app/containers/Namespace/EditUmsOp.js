@@ -43,23 +43,23 @@ export class EditUmsOp extends React.Component {
     const deleteTemp = umsTemp.delete
 
     let umsString = '' // 8种组合
-    if (addTemp && addTemp !== '') {
-      if (uptateTemp && uptateTemp !== '') {
-        umsString = (deleteTemp && deleteTemp !== '')
+    if (addTemp && addTemp.trim() !== '') {
+      if (uptateTemp && uptateTemp.trim() !== '') {
+        umsString = (deleteTemp && deleteTemp.trim() !== '')
           ? `i:${umsTemp.add},u:${umsTemp.update},d:${umsTemp.delete}`
           : `i:${umsTemp.add},u:${umsTemp.update}`
       } else {
-        umsString = (deleteTemp && deleteTemp !== '')
+        umsString = (deleteTemp && deleteTemp.trim() !== '')
           ? `i:${umsTemp.add},d:${umsTemp.delete}`
           : `i:${umsTemp.add}`
       }
     } else {
-      if (uptateTemp && uptateTemp !== '') {
-        umsString = (deleteTemp && deleteTemp !== '')
+      if (uptateTemp && uptateTemp.trim() !== '') {
+        umsString = (deleteTemp && deleteTemp.trim() !== '')
           ? `u:${umsTemp.update},d:${umsTemp.delete}`
           : `u:${umsTemp.update}`
       } else {
-        umsString = (deleteTemp && deleteTemp !== '')
+        umsString = (deleteTemp && deleteTemp.trim() !== '')
           ? `d:${umsTemp.delete}`
           : ''
       }
