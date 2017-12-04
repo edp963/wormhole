@@ -421,12 +421,22 @@ function genBaseField (fieldInfo) {
   fieldObject['name'] = fieldInfo.fieldName.split('#').pop()
   fieldObject['type'] = fieldInfo.fieldType
   fieldObject['nullable'] = true
-  if (fieldInfo.hasOwnProperty('rename') && fieldInfo.rename !== '' && fieldInfo.rename !== fieldInfo.fieldName) {
+  if (fieldInfo.hasOwnProperty('rename') && fieldInfo.rename !== '' && fieldInfo.fieldName.split('#').pop() !== fieldInfo.rename) {
     fieldObject['rename'] = fieldInfo.rename
-  } else if (fieldInfo.hasOwnProperty('ums_op_') && fieldInfo.ums_op_ !== '') {
+  }
+  if (fieldInfo.hasOwnProperty('ums_op_') && fieldInfo.ums_op_ !== '' && fieldInfo.forbidden === true) {
+    fieldObject['rename'] = fieldInfo.rename
     fieldObject['ums_sys_mapping'] = fieldInfo.ums_op_
-  } else if (fieldInfo.fieldType === TUPLE) {
-    fieldObject['tuple_sep'] = fieldInfo.split(';').pop()
+  }
+  if (fieldInfo.hasOwnProperty('ums_id_') && fieldInfo.ums_id_ === true && fieldInfo.forbidden === true) {
+    fieldObject['rename'] = fieldInfo.rename
+  }
+  if (fieldInfo.hasOwnProperty('ums_ts_') && fieldInfo.ums_ts_ === true && fieldInfo.forbidden === true) {
+    fieldObject['rename'] = fieldInfo.rename
+  }
+  if (fieldInfo.fieldType.startsWith(TUPLE)) {
+    fieldObject['type'] = TUPLE
+    fieldObject['tuple_sep'] = fieldInfo.fieldType.split('##').pop()
   }
 
   return fieldObject
