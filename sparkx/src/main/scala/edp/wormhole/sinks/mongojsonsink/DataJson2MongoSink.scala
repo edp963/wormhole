@@ -7,10 +7,12 @@ import com.mongodb.{ReadPreference, WriteConcern, casbah}
 import com.mongodb.casbah.commons.{Imports, MongoDBList, MongoDBObject}
 import com.mongodb.casbah._
 import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
+import edp.wormhole.common.util.JsonUtils.json2caseClass
+import edp.wormhole.sinks.SourceMutationType.INSERT_ONLY
+import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
-import edp.wormhole.ums.{UmsNamespace, UmsSysField}
+import edp.wormhole.ums.{UmsFieldType, UmsNamespace, UmsSysField}
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import org.mongodb.scala.{MongoCredential, ServerAddress}
 
@@ -35,7 +37,7 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
       }
       outputJson
     } else {
-      if (outerName == UmsSysField.OP.toString)
+      if (outerName == UmsSysField.ACTIVE.toString)
         data match {
           case "i" | "u" => "1"
           case "d" => "0"
@@ -56,11 +58,7 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
       if (schemaMap.contains(name)) {
         val subFields: Option[JSONArray] = if (jsonObj.containsKey("sub_fields")) Some(jsonObj.getJSONArray("sub_fields")) else None
         val value = str2Json(name, tuple(schemaMap(name)._1), dataType, subFields)
-        if (name == UmsSysField.OP.toString) {
-          outputJson.put(UmsSysField.ACTIVE.toString, value)
-        } else {
-          outputJson.put(name, value)
-        }
+        outputJson.put(name, value)
       } else {
         assert(dataType == "jsonobject", "name: " + name + " not found, it should be jsonobject, but it is " + dataType)
         val subFields: JSONArray = jsonObj.getJSONArray("sub_fields")
@@ -122,6 +120,10 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
+    val sinkMap = schemaMap.map{case (name, (index, umsType, nullable)) =>
+      if (name == UmsSysField.OP.toString) (UmsSysField.ACTIVE.toString, (index, UmsFieldType.INT, nullable))
+      else (name, (index, umsType, nullable))
+    }.toMap
     val namespace: UmsNamespace = UmsNamespace(sinkNamespace)
     val mongoClient = getMongoClient(namespace, sinkProcessConfig, connectionConfig)
     val db: String = namespace.database
@@ -131,10 +133,27 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
     val targetSchemaStr = sinkProcessConfig.jsonSchema.get
     val targetSchemaArr = JSON.parseObject(targetSchemaStr).getJSONArray("fields")
     val keys = sinkProcessConfig.tableKeyList
-    tupleList.foreach(tuple => {
-      val result: JSONObject = jsonObjHelper(tuple, schemaMap, targetSchemaArr)
-      save2Mongo(result, targetSchemaArr, collection, keys)
-    })
+    val sinkSpecificConfig = json2caseClass[MongoJsonConfig](sinkProcessConfig.specialConfig.get)
+    try {
+      SourceMutationType.sourceMutationType(sinkSpecificConfig.`mutation_type.get`) match {
+        case INSERT_ONLY =>
+          logInfo("INSERT_ONLY: " + sinkSpecificConfig.`mutation_type.get`)
+          tupleList.foreach(tuple => {
+            val result: JSONObject = jsonObjHelper(tuple, sinkMap, targetSchemaArr)
+            save2MongoByI(result, targetSchemaArr, collection)
+          })
+        case _ =>
+          logInfo("iud: " + sinkSpecificConfig.`mutation_type.get`)
+          tupleList.foreach(tuple => {
+            val result: JSONObject = jsonObjHelper(tuple, sinkMap, targetSchemaArr)
+            save2MongoByIud(result, targetSchemaArr, collection, keys)
+          })
+      }
+    } catch {
+      case e: Throwable =>
+        logError("mongo json insert or update error", e)
+    }
+
   }
 
   private def constructBuilder(jsonData: JSONObject, subField: JSONObject, builder: mutable.Builder[(String, Any), Imports.DBObject]): Unit = {
@@ -145,7 +164,7 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
       val subContent = constructBuilder(jsonContent, subField.getJSONArray("sub_fields"))
       builder += name -> subContent
     } else {
-      val content = if (name != UmsSysField.OP.toString )jsonData.getString(name) else jsonData.getString(UmsSysField.ACTIVE.toString )
+      val content =  jsonData.getString(name) //else jsonData.getString(UmsSysField.ACTIVE.toString)
       if (dataType == "jsonarray") {
         val list = MongoDBList
         val jsonArray = JSON.parseArray(content)
@@ -174,11 +193,7 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
           builder += name -> toUpsert
         }
       } else {
-        if (name == UmsSysField.OP.toString) {
-          builder += UmsSysField.ACTIVE.toString -> content
-        } else {
-          builder += name -> content
-        }
+        builder += name -> content
       }
     }
   }
@@ -191,12 +206,12 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
       constructBuilder(jsonData, jsonObj, builder)
 
     }
+    // builder += "_id" -> 123
     builder.result()
   }
 
-  private def save2Mongo(jsonData: JSONObject, subFields: JSONArray, collection: MongoCollection, keys: Seq[String]) = {
+  private def save2MongoByIud(jsonData: JSONObject, subFields: JSONArray, collection: MongoCollection, keys: Seq[String]) = {
     val result: casbah.commons.Imports.DBObject = constructBuilder(jsonData: JSONObject, subFields: JSONArray)
-
     val builder = MongoDBObject.newBuilder
     keys.foreach(key => {
       builder += key -> result.get(key)
@@ -212,5 +227,10 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
     } else {
       collection.save(result)
     }
+  }
+
+  private def save2MongoByI(jsonData: JSONObject, subFields: JSONArray, collection: MongoCollection) = {
+    val result: casbah.commons.Imports.DBObject = constructBuilder(jsonData: JSONObject, subFields: JSONArray)
+    collection.insert(result)
   }
 }
