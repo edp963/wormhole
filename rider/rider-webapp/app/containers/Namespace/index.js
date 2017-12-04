@@ -813,16 +813,13 @@ export class Namespace extends React.PureComponent {
     })
   }
 
-  // initCancelUmsOp = (record) => {
-    // console.log('rec', record)
-    // const { umsTableDataSource } = this.state
+  initCancelUmsOp = (record) => {
+    const { umsTableDataSource } = this.state
 
-    // this.setState({
-    //   umsTableDataSource: umsSysFieldUnSelected(umsTableDataSource, record.key, 'ums_op')
-    // }, () => {
-    //   console.log('cancel', umsTableDataSource)
-    // })
-  // }
+    this.setState({
+      umsTableDataSource: umsSysFieldUnSelected(umsTableDataSource, record.key, 'ums_op_')
+    })
+  }
 
   render () {
     const { refreshNsLoading, refreshNsText } = this.state
@@ -1239,7 +1236,7 @@ export class Namespace extends React.PureComponent {
             initSelectUmsId={this.initSelectUmsId}
             cancelSelectUmsId={this.cancelSelectUmsId}
             initCheckUmsOp={this.initCheckUmsOp}
-            // initCancelUmsOp={this.initCancelUmsOp}
+            initCancelUmsOp={this.initCancelUmsOp}
             umsTableDataSource={this.state.umsTableDataSource}
             umsTypeSeleted={this.state.umsTypeSeleted}
             ref={(f) => { this.schemaTypeConfig = f }}

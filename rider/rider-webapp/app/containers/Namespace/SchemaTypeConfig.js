@@ -43,10 +43,12 @@ export class SchemaTypeConfig extends React.Component {
       selectedRowKeys: [],
       currentUmsTableData: [],
       currentFieldName: '',
-      renameEditable: false,
       renameEditVal: '',
       editUmsOpable: false,
       editUmsOpKey: false || '',
+      umsOPForm: '',
+      renameForm: '',
+      editRenameKey: false || '',
 
       searchFieldName: '',
       filterDropdownVisibleFieldName: false,
@@ -107,26 +109,17 @@ export class SchemaTypeConfig extends React.Component {
 
   onCellChange = (key, dataIndex) => {
     // console.log('key', key)
-
-    // return (value) => {
-    //   console.log('va', value)
-    //   const dataSource = [...this.state.dataSource]
-    //   const target = dataSource.find(item => item.key === key)
-    //   if (target) {
-    //     target[dataIndex] = value
-    //     this.setState({ dataSource })
-    //   }
-    // }
   }
 
   initChangeType = (fieldName) => (va1, va2) => {
     this.props.initChangeType(fieldName, va1, va2)
   }
 
-  editRename = () => {
+  editRename = (record) => (e) => {
     this.setState({
-      renameEditable: true,
-      renameEditVal: ''
+      renameForm: 'edit',
+      editRenameKey: record.key,
+      renameEditVal: record.rename
     })
   }
 
@@ -143,7 +136,8 @@ export class SchemaTypeConfig extends React.Component {
       message.warning('请填写 Rename！', 3)
     } else {
       this.setState({
-        renameEditable: false
+        renameForm: 'check',
+        editRenameKey: record.key
       })
       this.props.initEditRename(record, renameEditVal)  // 组成新数组
     }
@@ -172,6 +166,7 @@ export class SchemaTypeConfig extends React.Component {
     const { currentUmsTableData } = this.state
     const tempData = currentUmsTableData.filter(i => i.forbidden === false)
     const umsTsExitNum = tempData.find(i => i.ums_ts_ === true)
+
     if (umsTsExitNum) {
       record.ums_ts_
         ? this.props.cancelSelectUmsId(record, 'ums_ts_')
@@ -182,29 +177,38 @@ export class SchemaTypeConfig extends React.Component {
   }
 
   onChangeUmsOp = (record) => (e) => {
-    this.setState({
-      editUmsOpKey: record.key
-    })
+    const { currentUmsTableData } = this.state
+    const tempData = currentUmsTableData.filter(i => i.forbidden === false)
+    const umsOpExitNum = tempData.find(i => i.ums_op_ !== '')
 
-    // record.ums_op_ !== ''
-    //   ? this.props.cancelSelectUmsId(record, 'ums_op_')
-    //   : this.props.initSelectUmsId(record, 'ums_op_')
+    if (umsOpExitNum) {
+      message.warning('UMS_OP_最多有一个！', 3)
+    } else {
+      this.setState({
+        editUmsOpKey: record.key,
+        umsOPForm: 'check'
+      })
+    }
   }
 
   initCheckUmsOp = (record) => (umsopValue) => {
+    this.setState({
+      umsOPForm: 'edit'
+    })
     this.props.initCheckUmsOp(record, umsopValue)
-    // this.props.initSelectUmsId(record, umsopValue)
   }
 
-  // editUmsOP = (record) => (e) =>{
-  //   console.log('re', record)
-  //   this.props.initCancelUmsOp(record)
-  // }
+  editUmsOP = (record) => (e) => {
+    this.setState({
+      umsOPForm: ''
+    })
+    this.props.initCancelUmsOp(record)
+  }
 
   render () {
     const { form } = this.props
     const { getFieldDecorator } = form
-    const { renameEditable, editUmsOpKey } = this.state
+    const { editUmsOpKey, umsOPForm, renameForm, editRenameKey } = this.state
 
     const itemStyle = {
       labelCol: { span: 2 },
@@ -257,8 +261,23 @@ export class SchemaTypeConfig extends React.Component {
         filterDropdownVisibleReName: visible
       }, () => this.searchInput.focus()),
       render: (text, record) => {
-        const temp1 = (text === '' && renameEditable === true) ? '' : 'hide'
-        const temp2 = (text === '' && renameEditable === false) ? '' : 'hide'
+        let editIconDisabledClass = ''
+        let checkIconClass = 'hide'
+        let editIconClass = ''
+
+        if (record.forbidden === true) {
+          editIconDisabledClass = 'edit-disabled-class'
+          editIconClass = 'hide'
+        } else {
+          editIconDisabledClass = 'hide'
+          if (renameForm === 'edit' && editRenameKey === record.key) {
+            checkIconClass = ''
+            editIconClass = 'hide'
+          } else if (renameForm === 'check' && editRenameKey === record.key) {
+            checkIconClass = 'hide'
+            editIconClass = ''
+          }
+        }
 
         return (
           <div className="editable-cell">
@@ -266,20 +285,24 @@ export class SchemaTypeConfig extends React.Component {
               <div className="editable-rename-cell-text-wrapper">
                 {text || ' '}
                 <Input
-                  // value={value}
-                  className={temp1}
+                  value={this.state.renameEditVal}
+                  className={checkIconClass}
                   onChange={this.handleChangeRename}
                   onPressEnter={this.checkRename(record)}
                 />
                 <Icon
                   type="check"
-                  className={`editable-cell-icon-check ${temp1}`}
+                  className={`editable-cell-icon-check ${checkIconClass}`}
                   onClick={this.checkRename(record)}
                  />
                 <Icon
                   type="edit"
-                  className={`editable-cell-icon ${temp2}`}
-                  onClick={this.editRename}
+                  className={`editable-cell-icon ${editIconClass}`}
+                  onClick={this.editRename(record)}
+                />
+                <Icon
+                  type="edit"
+                  className={`editable-cell-icon ${editIconDisabledClass}`}
                 />
               </div>
             }
@@ -373,38 +396,42 @@ export class SchemaTypeConfig extends React.Component {
       className: 'text-align-center',
       render: (text, record) => {
         let umsopHtml = ''
-        if (record.key === editUmsOpKey) {
+        if (umsOPForm === 'check' && record.key === editUmsOpKey) {
           umsopHtml = (
             <EditUmsOp
               initCheckUmsOp={this.initCheckUmsOp(record)}
               ref={(f) => { this.editUmsOp = f }}
             />
           )
+        } else if (umsOPForm === 'edit' && record.ums_op_ !== '' && record.forbidden === false) {
+          umsopHtml = (
+            <span>
+              <span className="ums-op-string">{record.ums_op_}</span>
+              <Icon
+                type="edit"
+                className={`editable-cell-icon`}
+                onClick={this.editUmsOP(record)}
+              />
+            </span>
+          )
+        } else if (umsOPForm === 'edit' && record.ums_op_ !== '' && record.forbidden === true) {
+          umsopHtml = record.ums_op_
         } else {
-          if (record.ums_op_ !== '') {
-            umsopHtml = record.ums_op_
-          } else {
-            umsopHtml = (
-              <div className="editable-umsop-cell-text-wrapper">
-                <span className="ant-checkbox-wrapper">
-                  <span className="ant-checkbox">
-                    <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record)} />
-                    <span className="ant-checkbox-inner"></span>
-                  </span>
+          umsopHtml = (
+            <div className="editable-umsop-cell-text-wrapper">
+              <span className="ant-checkbox-wrapper">
+                <span className="ant-checkbox">
+                  <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record)} />
+                  <span className="ant-checkbox-inner"></span>
                 </span>
-              </div>
-            )
-          }
+              </span>
+            </div>
+          )
         }
 
         return (
           <div>
             {umsopHtml}
-            {/* <Icon
-              type="edit"
-              className={`editable-cell-icon`}
-              onClick={this.editUmsOP(record)}
-            /> */}
           </div>
         )
       }
@@ -483,7 +510,7 @@ SchemaTypeConfig.propTypes = {
   initSelectUmsId: React.PropTypes.func,
   cancelSelectUmsId: React.PropTypes.func,
   initCheckUmsOp: React.PropTypes.func,
-  // initCancelUmsOp: React.PropTypes.func,
+  initCancelUmsOp: React.PropTypes.func,
   umsTableDataSource: React.PropTypes.array,
   umsTypeSeleted: React.PropTypes.string
 }
