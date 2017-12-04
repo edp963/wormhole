@@ -353,7 +353,7 @@ export class SchemaTypeConfig extends React.Component {
       title: 'UMS_ID_',
       dataIndex: 'umsId',
       key: 'umsId',
-      width: '8%',
+      width: '8.4%',
       className: 'text-align-center',
       render: (text, record) => (
         <div className="editable-cell">
@@ -373,7 +373,7 @@ export class SchemaTypeConfig extends React.Component {
       title: 'UMS_TS_',
       dataIndex: 'umsTs',
       key: 'umsTs',
-      width: '8%',
+      width: '8.5%',
       className: 'text-align-center',
       render: (text, record) => (
         <div className="editable-cell">
