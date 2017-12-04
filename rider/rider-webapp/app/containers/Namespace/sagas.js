@@ -30,7 +30,8 @@ import {
   LOAD_SINGLE_NAMESPACE,
   EDIT_NAMESPACE,
   LOAD_PROJECT_NS_ALL,
-  SET_SCHEMA
+  SET_SCHEMA,
+  QUERY_SCHEMA_CONFIG
 } from './constants'
 import {
   adminAllNamespacesLoaded,
@@ -44,6 +45,7 @@ import {
   namespaceEdited,
   projectNsAllLoaded,
   schemaSetted,
+  schemaConfigQueried,
   getError
 } from './action'
 
@@ -199,6 +201,19 @@ export function* setSchemaWatcher () {
   yield fork(takeLatest, SET_SCHEMA, setSchema)
 }
 
+export function* querySchema ({ payload }) {
+  try {
+    const result = yield call(request, `${api.namespace}/${payload.namespaceId}/schema`)
+    yield put(schemaConfigQueried(result.payload, payload.resolve))
+  } catch (err) {
+    yield put(getError())
+  }
+}
+
+export function* querySchemaWatcher () {
+  yield fork(takeLatest, QUERY_SCHEMA_CONFIG, querySchema)
+}
+
 export default [
   getAdminAllNamespacesWatcher,
   getUserNamespacesWatcher,
@@ -209,5 +224,6 @@ export default [
   getSelectNamespaceWatcher,
   editNamespaceWatcher,
   getProjectNsAllWatcher,
-  setSchemaWatcher
+  setSchemaWatcher,
+  querySchemaWatcher
 ]
