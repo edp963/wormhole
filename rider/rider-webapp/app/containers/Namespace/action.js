@@ -40,6 +40,8 @@ import {
   LOAD_PROJECT_NS_ALL_SUCCESS,
   SET_SCHEMA,
   SET_SCHEMA_SUCCESS,
+  QUERY_SCHEMA_CONFIG,
+  QUERY_SCHEMA_CONFIG_SUCCESS,
   GET_ERROR
 } from './constants'
 
@@ -246,6 +248,26 @@ export function setSchema (namespaceId, value, resolve) {
 export function schemaSetted (result, resolve) {
   return {
     type: SET_SCHEMA_SUCCESS,
+    payload: {
+      result,
+      resolve
+    }
+  }
+}
+
+export function querySchemaConfig (namespaceId, resolve) {
+  return {
+    type: QUERY_SCHEMA_CONFIG,
+    payload: {
+      namespaceId,
+      resolve
+    }
+  }
+}
+
+export function schemaConfigQueried (result, resolve) {
+  return {
+    type: QUERY_SCHEMA_CONFIG_SUCCESS,
     payload: {
       result,
       resolve

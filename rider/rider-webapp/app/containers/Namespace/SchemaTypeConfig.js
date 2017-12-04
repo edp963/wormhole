@@ -456,8 +456,8 @@ export class SchemaTypeConfig extends React.Component {
                 rules: [{
                   required: true,
                   message: '请选择 UMS Type'
-                }],
-                initialValue: 'ums'
+                }]
+                // initialValue: 'ums'
               })(
                 <RadioGroup className="radio-group-style" size="default" onChange={this.onChangeUmsType}>
                   <RadioButton value="ums" className="radio-btn-style radio-btn-extra">UMS</RadioButton>

@@ -42,6 +42,8 @@ import {
   LOAD_PROJECT_NS_ALL_SUCCESS,
   SET_SCHEMA,
   SET_SCHEMA_SUCCESS,
+  QUERY_SCHEMA_CONFIG,
+  QUERY_SCHEMA_CONFIG_SUCCESS,
   GET_ERROR
 } from './constants'
 
@@ -120,9 +122,13 @@ export function namespaceReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case SET_SCHEMA_SUCCESS:
-      console.log('paywww', payload)
       payload.resolve()
       return state.set('modalLoading', false)
+    case QUERY_SCHEMA_CONFIG:
+      return state.set('error', false)
+    case QUERY_SCHEMA_CONFIG_SUCCESS:
+      payload.resolve(payload.result)
+      return state
     case GET_ERROR:
       return state.set('error', payload.error)
     default:

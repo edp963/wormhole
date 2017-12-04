@@ -47,7 +47,7 @@ import { loadDatabasesInstance } from '../../containers/DataBase/action'
 import { selectDbUrlValue } from '../../containers/DataBase/selectors'
 import { loadSingleInstance } from '../../containers/Instance/action'
 import { loadAdminAllNamespaces, loadUserNamespaces, loadSelectNamespaces, loadNamespaceDatabase,
-  addNamespace, editNamespace, loadTableNameExist, loadSingleNamespace, setSchema } from './action'
+  addNamespace, editNamespace, loadTableNameExist, loadSingleNamespace, setSchema, querySchemaConfig } from './action'
 import { selectNamespaces, selectError, selectModalLoading, selectTableNameExited } from './selectors'
 
 export class Namespace extends React.PureComponent {
@@ -628,6 +628,31 @@ export class Namespace extends React.PureComponent {
       schemaModalVisible: true,
       nsIdValue: record.id
     })
+
+    this.props.onQuerySchemaConfig(record.id, (result) => {
+      // console.log('re', result)
+      this.schemaTypeConfig.setFieldsValue({
+        umsType: result === null ? 'ums' : result.umsType
+      })
+
+      if (result.umsType === 'ums_extension') {
+        this.initChangeUmsType(result.umsType)
+        this.cmSample.doc.setValue(result.jsonSample)
+
+        // this.schemaTypeConfig.setFieldsValue({
+        //   jsonSample: result.jsonSample
+        // })
+
+        const tableData = result.umsSchemaTable.map((s, index) => {
+          s.key = index
+          return s
+        })
+        this.setState({
+          umsTableDataSource: tableData,
+          umsTypeSeleted: result.umsType
+        })
+      }
+    })
   }
 
   initChangeUmsType = (value) => {
@@ -692,7 +717,7 @@ export class Namespace extends React.PureComponent {
               } else if (umsTsExit === undefined) {
                 message.warning('请选择 UMS_TS_！', 3)
               } else {
-                const tableDataString = JSON.stringify(umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+                const tableDataString = JSON.stringify(umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden', 'value'])
 
                 const requestValue = {
                   umsType: 'ums_extension',
@@ -1311,7 +1336,8 @@ Namespace.propTypes = {
   onEditNamespace: React.PropTypes.func,
   onLoadSingleNamespace: React.PropTypes.func,
   onLoadSingleInstance: React.PropTypes.func,
-  onSetSchema: React.PropTypes.func
+  onSetSchema: React.PropTypes.func,
+  onQuerySchemaConfig: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1326,7 +1352,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadTableNameExist: (value, resolve, reject) => dispatch(loadTableNameExist(value, resolve, reject)),
     onLoadSingleNamespace: (namespaceId, resolve) => dispatch(loadSingleNamespace(namespaceId, resolve)),
     onLoadSingleInstance: (namespaceId, resolve) => dispatch(loadSingleInstance(namespaceId, resolve)),
-    onSetSchema: (namespaceId, value, resolve) => dispatch(setSchema(namespaceId, value, resolve))
+    onSetSchema: (namespaceId, value, resolve) => dispatch(setSchema(namespaceId, value, resolve)),
+    onQuerySchemaConfig: (namespaceId, value, resolve) => dispatch(querySchemaConfig(namespaceId, value, resolve))
   }
 }
 
