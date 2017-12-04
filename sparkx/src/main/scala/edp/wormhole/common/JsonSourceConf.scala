@@ -55,8 +55,8 @@ object JsonSourceConf extends EdpLogging{
 
       schemaArr.append(fieldInfo)
     }
-    val umsSysRename = UmsSysRename(umsTsField, judgeIfIsDefined(umsIdField), judgeIfIsDefined(umsOpField), judgeIfIsDefined(umsUidField))
-    RegularJsonSchema(schemaArr, twoFieldArr, seqField, umsSysRename)
+   // val umsSysRename = UmsSysRename(umsTsField, judgeIfIsDefined(umsIdField), judgeIfIsDefined(umsOpField), judgeIfIsDefined(umsUidField))
+    RegularJsonSchema(schemaArr, twoFieldArr, seqField)
   }
 
   def judgeIfIsDefined(judgeStr: String): Option[String] = {
@@ -64,9 +64,9 @@ object JsonSourceConf extends EdpLogging{
   }
 }
 
-case class RegularJsonSchema(fieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)], schemaField: Seq[UmsField], umsSysRename: UmsSysRename)
+case class RegularJsonSchema(fieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)], schemaField: Seq[UmsField])
 
-case class UmsSysRename(umsSysTs: String, umsSysId: Option[String], umsSysOp: Option[String], umsSysUid: Option[String])
+//case class UmsSysRename(umsSysTs: String, umsSysId: Option[String], umsSysOp: Option[String], umsSysUid: Option[String])
 
 case class FieldInfo(name: String,
                      `type`: String,
