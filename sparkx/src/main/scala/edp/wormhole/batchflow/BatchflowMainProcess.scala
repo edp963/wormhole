@@ -127,7 +127,7 @@ object BatchflowMainProcess extends EdpLogging {
   private def getClassifyRdd(dataRepartitionRdd: RDD[(String, String)]): RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])] = {
     val streamLookupNamespaceSet = ConfMemoryStorage.getAllLookupNamespaceSet
     val mainNamespaceSet = ConfMemoryStorage.getAllMainNamespaceSet
-    val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)], UmsSysRename)] = ConfMemoryStorage.getAllSourceParseMap
+    val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
     dataRepartitionRdd.mapPartitions(partition => {
       val mainDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
       val lookupDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
@@ -138,7 +138,7 @@ object BatchflowMainProcess extends EdpLogging {
           val (protocolType, namespace) = WormholeUtils.getTypeNamespaceFromKafkaKey(row._1)
           if (protocolType == UmsProtocolType.DATA_INCREMENT_DATA || protocolType == UmsProtocolType.DATA_BATCH_DATA || protocolType == UmsProtocolType.DATA_INITIAL_DATA) {
             if (ConfMemoryStorage.existNamespace(mainNamespaceSet, namespace)) {
-              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
+              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2,jsonSourceParseMap)
               if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
               mainDataList += (((protocolType, namespace), schemaValueTuple._2))
             }

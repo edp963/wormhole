@@ -43,7 +43,7 @@ object HdfsDirective extends Directive {
       try {
         if (dataParseStr != null) {
           val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
-          HdfsMainProcess.jsonSourceMap(namespace_rule) = (parseResult.fieldsInfo, parseResult.twoFieldsArr, parseResult.umsSysRename, parseResult.schemaField)
+          HdfsMainProcess.jsonSourceMap(namespace_rule) = (parseResult.fieldsInfo, parseResult.twoFieldsArr, parseResult.schemaField)
         }
         val hour_duration = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "hour_duration").toString.toLowerCase.toInt
         HdfsMainProcess.directiveNamespaceRule(namespace_rule) = hour_duration
