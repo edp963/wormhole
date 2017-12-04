@@ -104,7 +104,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     val batch = new BatchStatement()
     for (tuple <- tupleFilterList) {
       //      val umsIdValue: Long = tuple(schemaMap(ID.toString)._1).toLong
-      val umsTsLong=dt2long(tuple(schemaMap(TS.toString)._1))
+      val umsTsLong=dt2long(tuple(schemaMap(TS.toString)._1).split("\\+")(0).replace("T"," "))
       val bound: BoundStatement = prepareSchema.bind()
       val umsOpValue: String = tuple(schemaMap(OP.toString)._1)
       schemaMap.keys.foreach { column =>
@@ -206,7 +206,11 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     }
   }
 
-  private def bindWithDifferentTypes(bound: BoundStatement, columnName: String, fieldType: UmsFieldType, value: String): Unit = fieldType match {
+  private def bindWithDifferentTypes(bound: BoundStatement, columnName: String, fieldType: UmsFieldType, value: String): Unit =
+    if (columnName=="ums_ts_")
+      bound.setTimestamp(columnName, dt2date(value.trim.split("\\+")(0).replace("T"," ")))
+      else{
+    fieldType match {
     case UmsFieldType.STRING => bound.setString(columnName, value.trim)
     case UmsFieldType.INT => bound.setInt(columnName, Integer.valueOf(value.trim))
     case UmsFieldType.LONG => bound.setLong(columnName, Long.valueOf(value.trim))
@@ -214,8 +218,8 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     case UmsFieldType.DOUBLE => bound.setDouble(columnName, Double.valueOf(value.trim))
     case UmsFieldType.BOOLEAN => bound.setBool(columnName, java.lang.Boolean.valueOf(value.trim))
     case UmsFieldType.DATE => bound.setDate(columnName,  LocalDate.fromMillisSinceEpoch(dt2date(value.trim).getTime))
-    case UmsFieldType.DATETIME => bound.setDate(columnName, LocalDate.fromMillisSinceEpoch(dt2date(value.trim).getTime))
+    case UmsFieldType.DATETIME => bound.setTimestamp(columnName, dt2date(value.trim.split("\\+")(0).replace("T"," ")))
     case UmsFieldType.DECIMAL => bound.setDecimal(columnName, new java.math.BigDecimal(value.trim).stripTrailingZeros())
     case _ => throw new UnsupportedOperationException(s"Unknown Type: $fieldType")
-  }
+  }}
 }
