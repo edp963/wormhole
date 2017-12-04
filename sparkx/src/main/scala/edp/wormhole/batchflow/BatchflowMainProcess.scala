@@ -291,7 +291,7 @@ object BatchflowMainProcess extends EdpLogging {
             processedSourceNamespace.add(sourceNamespace)
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
               UmsProtocolUtils.feedbackFlowStats(sourceNamespace, protocolType.toString, currentDateTime, config.spark_config.stream_id, statsId, sinkNamespace,
-                count, DateUtils.dt2date(maxTs).getTime, rddTs, directiveTs, mainDataTs, swiftsTs, sinkTs, doneTs), None, config.kafka_output.brokers)
+                count, DateUtils.dt2date(maxTs.split("\\+")(0).replace("T"," ")).getTime, rddTs, directiveTs, mainDataTs, swiftsTs, sinkTs, doneTs), None, config.kafka_output.brokers)
           }
         }
         )

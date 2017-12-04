@@ -39,7 +39,7 @@ import java.sql.Timestamp
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.core.{PartitionOffsetConfig, WormholeConfig}
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.common.util.DateUtils.dt2dateTime
+import edp.wormhole.common.util.DateUtils.dt2timestamp
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import org.apache.spark.sql.types.StructField
 import org.joda.time.DateTime
@@ -84,6 +84,7 @@ object WormholeUtils extends EdpLogging {
 
 
   def dataParse(jsonStr: String, allFieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)]): Seq[UmsTuple] = {
+
     val jsonParse = JSON.parseObject(jsonStr)
     val fieldNameSeq = twoFieldsArr.map(_._1)
     val resultSeq = ArrayBuffer[UmsTuple]()
@@ -93,7 +94,7 @@ object WormholeUtils extends EdpLogging {
       val name = fieldInfo.name
       val dataType = fieldInfo.`type`
       val fieldIndex = if (fieldNameSeq.contains(name)) fieldNameSeq.indexOf(name) else -1
-      val umsSysField = fieldInfo.umsSysField
+      val umsSysField = if(fieldInfo.rename.isDefined) fieldInfo.rename.get else name
       val subFields = fieldInfo.subFields
       val dataTypeProcessed = dataTypeProcess(dataType)
       if (dataTypeProcessed == "simplearray") {
@@ -126,7 +127,7 @@ object WormholeUtils extends EdpLogging {
           val splitData = fieldMessage.split(splitMark)
           val subFieldsInfo: Seq[FieldInfo] = fieldInfo.subFields.get
           for (i <- subFieldsInfo.indices) {
-            val sysField = subFieldsInfo(i).umsSysField
+            val sysField = subFieldsInfo(i).rename
 //            val subFieldDataType = subFieldsInfo(i).`type`
             if (sysField.isDefined && sysField.get == "ums_ts_")
               oneRecord.append(convertLongTimestamp(splitData(i)).toString)
@@ -151,8 +152,13 @@ object WormholeUtils extends EdpLogging {
         )
       }
       else {
-        if (umsSysField.nonEmpty && umsSysField.get == "ums_ts_" && dataType == "long")
-          oneRecord.append(convertLongTimestamp(jsonValue.getString(name)).toString)
+        if (umsSysField.nonEmpty && umsSysField == "ums_ts_"||name=="ums_ts_"){
+          oneRecord.append(convertLongTimestamp(jsonValue.getString(name)).toString)}
+        else if (umsSysField.nonEmpty && umsSysField == "ums_op_"||name=="ums_op_") {
+          val mappingRule = fieldInfo.umsSysMapping.get
+          val iudMap = mappingRule.split(",").map(_.split("\\:")).map(arr => arr(1) -> arr(0)).toMap
+          oneRecord.append(iudMap(jsonValue.getString(name)))
+        }
         else oneRecord.append(jsonValue.getString(name))
       }
     }
@@ -183,13 +189,13 @@ object WormholeUtils extends EdpLogging {
     else dataType
   }
 
-  def convertLongTimestamp(timestampStr: String): DateTime = {
+  def convertLongTimestamp(timestampStr: String) = {
     if (timestampStr.substring(0,2)=="20") {
-      dt2dateTime(timestampStr)
+      dt2timestamp(timestampStr)
     }
     else {
       val timestampLong = if (timestampStr.split("").length < 16) timestampStr.toLong * 1000000 else timestampStr.toLong
-      dt2dateTime(timestampLong)
+      dt2timestamp(timestampLong)
     }
   }
 
