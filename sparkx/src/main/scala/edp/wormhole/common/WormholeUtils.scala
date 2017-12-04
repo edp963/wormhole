@@ -72,9 +72,9 @@ object WormholeUtils extends EdpLogging {
     }
   }
 
-  def jsonGetValue(namespace: String, protocolType: UmsProtocolType, json: String, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)], UmsSysRename)]): (Seq[UmsField], Seq[UmsTuple]) = {
+  def jsonGetValue(namespace: String, protocolType: UmsProtocolType, json: String, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])]): (Seq[UmsField], Seq[UmsTuple]) = {
     if (jsonSourceParseMap.contains((protocolType, namespace))) {
-      val mapValue: (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)], UmsSysRename) = jsonSourceParseMap((protocolType, namespace))
+      val mapValue: (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)]) = jsonSourceParseMap((protocolType, namespace))
       (mapValue._1, dataParse(json, mapValue._2, mapValue._3))
     } else {
       val ums = json2Ums(json)
