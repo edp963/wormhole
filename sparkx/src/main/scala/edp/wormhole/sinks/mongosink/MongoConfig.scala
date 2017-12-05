@@ -1,7 +1,9 @@
 package edp.wormhole.sinks.mongosink
 
-import edp.wormhole.sinks.SourceMutationType
+import edp.wormhole.sinks.{RowKeyType, SourceMutationType}
 
-case class MongoConfig(`es.mutation_type`: Option[String],row_key:Option[String]) {
-  lazy val `es.mutation_type.get` = `es.mutation_type`.getOrElse(SourceMutationType.I_U_D.toString)
+case class MongoConfig(mutation_type: Option[String],rowkey_type:Option[String]) {
+  lazy val `mutation_type.get` = mutation_type.getOrElse(SourceMutationType.I_U_D.toString)
+
+  lazy val `rowkey_type.get` = rowkey_type.getOrElse(RowKeyType.SYSTEM.toString)
 }
