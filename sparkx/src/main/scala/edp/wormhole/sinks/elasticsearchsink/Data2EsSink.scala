@@ -18,13 +18,12 @@
  * >>
  */
 
-
 package edp.wormhole.sinks.elasticsearchsink
 
 import java.util.UUID
 
 import com.alibaba.fastjson.JSONObject
-import edp.wormhole.common.{ConnectionConfig, RowkeyPatternContent, RowkeyTool}
+import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.common.WormholeDefault._
 import edp.wormhole.common.util.CommonUtils
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
@@ -52,31 +51,21 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
     logInfo("process KafkaLog2ESSnapshot")
-    //  val dt1: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
     val sinkSpecificConfig: EsConfig = json2caseClass[EsConfig](sinkProcessConfig.specialConfig.get)
-    val patternContentList:Seq[RowkeyPatternContent] = if (sinkSpecificConfig.row_key.nonEmpty && sinkSpecificConfig.row_key.get.nonEmpty) RowkeyTool.parse(sinkSpecificConfig.row_key.get) else null.asInstanceOf[Seq[RowkeyPatternContent]]
-    val keySchema: Seq[(Boolean, Int, String)] = if (sinkSpecificConfig.row_key.nonEmpty && sinkSpecificConfig.row_key.get.nonEmpty) RowkeyTool.generateOnerowKeyFieldsSchema(schemaMap,patternContentList) else null.asInstanceOf[Seq[(Boolean, Int, String)]]
     val dataList = ListBuffer.empty[(String, Long, String)]
-    val idList = ListBuffer.empty[String]
     for (row <- tupleList) {
-      val data = convertJson(row, schemaMap, sinkProcessConfig, sinkSpecificConfig,patternContentList,keySchema)
+      val data = convertJson(row, schemaMap, sinkProcessConfig, sinkSpecificConfig)
       dataList += data
-      idList += data._1
     }
-    if (!doSinkProcess(sinkProcessConfig, sinkNamespace, idList, dataList, connectionConfig, sinkSpecificConfig)) {
+    if (!doSinkProcess(sinkProcessConfig, sinkNamespace, schemaMap, dataList, connectionConfig, sinkSpecificConfig)) {
       throw new Exception("has error row to insert or update")
     }
-    // val dt2: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
-    //  println("elastic duration:   " + dt2 + " - "+ dt1 +" = " + (Seconds.secondsBetween(dt1, dt2).getSeconds() % 60 + " seconds."))
-
   }
 
   private def convertJson(row: Seq[String],
                           schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                           sinkConfig: SinkProcessConfig,
-                          sinkSpecificConfig: EsConfig,
-                          patternContentList:Seq[RowkeyPatternContent],
-                          keySchema: Seq[(Boolean, Int, String)]): (String, Long, String) = {
+                          sinkSpecificConfig: EsConfig): (String, Long, String) = {
     var umsid = -1l
     val json = new JSONObject
     for ((name, (index, fieldType, _)) <- schemaMap) {
@@ -104,13 +93,13 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
         case _ => if (isNull(field) || field.isEmpty) json.put(name, null) else json.put(name, field.trim)
       }
     }
-    if (sinkSpecificConfig.`es.mutation_type.get` == SourceMutationType.I_U_D.toString) {
-      val keyDatas = RowkeyTool.generateTupleKeyDatas(keySchema,row)
-      val key = RowkeyTool.generatePatternKey(keyDatas, patternContentList: Seq[RowkeyPatternContent])
-      (key, umsid, json.toJSONString)
-    } else {
-      (UUID.randomUUID().toString, umsid, json.toJSONString)
-    }
+    val _ids = ListBuffer.empty[String]
+    sinkConfig.tableKeyList.foreach(keyname => {
+      val (index, _, _) = schemaMap(keyname)
+      _ids += row(index)
+    })
+    if (_ids.nonEmpty) (_ids.mkString("_"), umsid, json.toJSONString)
+    else (UUID.randomUUID().toString, umsid, json.toJSONString)
   }
 
   private def getAvailableConnection(cc: ConnectionConfig): ConnectionConfig = {
@@ -141,7 +130,7 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
 
   private def doSinkProcess(sinkConfig: SinkProcessConfig,
                             sinkNamespace: String,
-                            idList: mutable.ListBuffer[String],
+                            schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                             dataList: ListBuffer[(String, Long, String)],
                             connectionConfig: ConnectionConfig,
                             sinkSpecificConfig: EsConfig): Boolean = {
@@ -149,8 +138,13 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
     logInfo("random url:" + cc.connectionUrl)
     if (cc.connectionUrl.isEmpty) new Exception(connectionConfig.connectionUrl + " are all not available")
 
-    if (sinkSpecificConfig.`es.mutation_type.get` == SourceMutationType.I_U_D.toString) {
-      val (result, esid2UmsidInEsMap) = queryVersionByEsid(idList, sinkConfig, sinkNamespace, cc)
+    if (sinkSpecificConfig.`mutation_type.get` == SourceMutationType.I_U_D.toString) {
+
+      val (result, esid2UmsidInEsMap) = {
+        val idList = dataList.map(_._1)
+        queryVersionByEsid(idList, sinkConfig, sinkNamespace, cc)
+      }
+
       if (!result) false
       else {
         val insertId2JsonMap = mutable.HashMap.empty[String, String]
@@ -255,4 +249,5 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
     }
     (queryResult, esid2VersionMap)
   }
+
 }
