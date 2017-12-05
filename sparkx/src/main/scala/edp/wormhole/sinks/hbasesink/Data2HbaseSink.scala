@@ -53,7 +53,7 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
 
         val rkName = rowkey.fieldContent.toLowerCase
         val rkType = rowkey.patternType
-        if (rkType==RowkeyPatternType.DELIMIER.toString){
+        if (rkType == RowkeyPatternType.DELIMIER.toString) {
           rowkey.fieldContent
         } else {
           if (!schemaMap.contains(rkName)) {
@@ -73,19 +73,22 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
       for (tuple <- filterRowkey2idTuples) {
         try {
           val umsOpValue: String = tuple._3(schemaMap(OP.toString)._1)
-//          val versionValue = if (schemaMap(versionColumn)._2 == UmsFieldType.DATETIME) DateUtils.dt2long(tuple._3(schemaMap(versionColumn)._1))
-//          else s2long(tuple._3(schemaMap(versionColumn)._1))
+          //          val versionValue = if (schemaMap(versionColumn)._2 == UmsFieldType.DATETIME) DateUtils.dt2long(tuple._3(schemaMap(versionColumn)._1))
+          //          else s2long(tuple._3(schemaMap(versionColumn)._1))
           val rowkeyBytes = Bytes.toBytes(tuple._1)
           val put = new Put(rowkeyBytes)
           schemaMap.keys.foreach { column =>
             val (index, fieldType, _) = schemaMap(column)
             val valueString = tuple._3(index)
             if (OP.toString != column) {
-              put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column),  s2hbaseValue(fieldType, valueString))
-              if (saveAsString && !(ID.toString == column || TS.toString == column || UID.toString == column))
-                put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), s2hbaseStringValue(fieldType, valueString, column))
-              else put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column),  s2hbaseValue(fieldType, valueString))
-            } else put.addColumn(Bytes.toBytes(columnFamily), activeColBytes,  if (DELETE.toString == umsOpValue.toLowerCase) inactiveBytes else activeBytes)
+              put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), s2hbaseValue(fieldType, valueString))
+              if (saveAsString) put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), s2hbaseStringValue(fieldType, valueString, column))
+              else put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), s2hbaseValue(fieldType, valueString))
+            } else {
+              if (saveAsString)
+                put.addColumn(Bytes.toBytes(columnFamily), activeColBytes, if (DELETE.toString == umsOpValue.toLowerCase) inactiveString else activeString)
+              else put.addColumn(Bytes.toBytes(columnFamily), activeColBytes, if (DELETE.toString == umsOpValue.toLowerCase) inactiveBytes else activeBytes)
+            }
           }
           puts += put
         } catch {
