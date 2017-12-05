@@ -21,8 +21,6 @@
 
 package edp.wormhole.sinks.phoenixsink
 
-import edp.wormhole.common.KVConfig
-
 
 case class PhoenixConfig(`phoenix.BatchSize`: Option[Int]
                         ) {

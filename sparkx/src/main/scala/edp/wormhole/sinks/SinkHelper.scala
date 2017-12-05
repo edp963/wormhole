@@ -47,6 +47,13 @@ object SourceMutationType extends Enumeration with EdpLogging {
   }
 }
 
+object RowKeyType extends Enumeration with EdpLogging {
+  type RowKeyType = Value
+
+  val USER = Value("user")
+  val SYSTEM = Value("system")
+}
+
 object DbHelper {
   def removeFieldNames(allFieldNames: List[String], removeFn: String => Boolean): List[String] = allFieldNames.filterNot(removeFn)
 
