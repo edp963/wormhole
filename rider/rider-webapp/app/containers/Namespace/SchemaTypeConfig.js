@@ -146,33 +146,34 @@ export class SchemaTypeConfig extends React.Component {
   onChangeUmsId = (record) => (e) => {
     const { currentUmsTableData } = this.state
 
-    if (record.fieldType === 'string' || record.fieldType === 'long' || record.fieldType === 'datetime') {
-      const tempData = currentUmsTableData.filter(i => i.forbidden === false) // 过滤掉 forbidden === true 的项
-      const umsIdExitNum = tempData.find(i => i.ums_id_ === true)
+    const tempData = currentUmsTableData.filter(i => i.forbidden === false) // 过滤掉 forbidden === true 的项
+    const umsIdExitNum = tempData.find(i => i.ums_id_ === true)
 
-      if (umsIdExitNum) {
-        record.ums_id_
-          ? this.props.cancelSelectUmsId(record, 'ums_id_')
-          : message.warning('UMS_ID_有且只能有一个！', 3)
-      } else {
-        this.props.initSelectUmsId(record, 'ums_id_')
-      }
+    if (umsIdExitNum) {
+      record.ums_id_
+        ? this.props.cancelSelectUmsId(record, 'ums_id_')
+        : message.warning('UMS_ID_有且只能有一个！', 3)
     } else {
-      message.warning('必须为 string/long/datetime 类型！', 3)
+      this.props.initSelectUmsId(record, 'ums_id_')
     }
   }
 
   onChangeUmsTs = (record) => (e) => {
     const { currentUmsTableData } = this.state
-    const tempData = currentUmsTableData.filter(i => i.forbidden === false)
-    const umsTsExitNum = tempData.find(i => i.ums_ts_ === true)
 
-    if (umsTsExitNum) {
-      record.ums_ts_
-        ? this.props.cancelSelectUmsId(record, 'ums_ts_')
-        : message.warning('UMS_TS_有且只能有一个！', 3)
+    if (record.fieldType === 'string' || record.fieldType === 'long' || record.fieldType === 'datetime') {
+      const tempData = currentUmsTableData.filter(i => i.forbidden === false)
+      const umsTsExitNum = tempData.find(i => i.ums_ts_ === true)
+
+      if (umsTsExitNum) {
+        record.ums_ts_
+          ? this.props.cancelSelectUmsId(record, 'ums_ts_')
+          : message.warning('UMS_TS_有且只能有一个！', 3)
+      } else {
+        this.props.initSelectUmsId(record, 'ums_ts_')
+      }
     } else {
-      this.props.initSelectUmsId(record, 'ums_ts_')
+      message.warning('必须为 string/long/datetime 类型！', 3)
     }
   }
 
@@ -181,13 +182,17 @@ export class SchemaTypeConfig extends React.Component {
     const tempData = currentUmsTableData.filter(i => i.forbidden === false)
     const umsOpExitNum = tempData.find(i => i.ums_op_ !== '')
 
-    if (umsOpExitNum) {
-      message.warning('UMS_OP_最多有一个！', 3)
+    if (record.fieldType === 'string' || record.fieldType === 'long' || record.fieldType === 'int') {
+      if (umsOpExitNum) {
+        message.warning('UMS_OP_最多有一个！', 3)
+      } else {
+        this.setState({
+          editUmsOpKey: record.key,
+          umsOPForm: 'check'
+        })
+      }
     } else {
-      this.setState({
-        editUmsOpKey: record.key,
-        umsOPForm: 'check'
-      })
+      message.warning('必须为 string/long/int 类型！', 3)
     }
   }
 
@@ -209,6 +214,7 @@ export class SchemaTypeConfig extends React.Component {
     const { form } = this.props
     const { getFieldDecorator } = form
     const { editUmsOpKey, umsOPForm, renameForm, editRenameKey } = this.state
+    const { repeatRenameArr } = this.props
 
     const itemStyle = {
       labelCol: { span: 2 },
@@ -279,11 +285,14 @@ export class SchemaTypeConfig extends React.Component {
           }
         }
 
+        const exitKey = repeatRenameArr.length === 0 ? undefined : repeatRenameArr.find(i => i === record.key)
+        const renameTextClass = exitKey ? 'rename-text-class' : ''
+
         return (
           <div className="editable-cell">
             {
               <div className="editable-rename-cell-text-wrapper">
-                {text || ' '}
+                <span className={renameTextClass}>{text || ' '}</span>
                 <Input
                   value={this.state.renameEditVal}
                   className={checkIconClass}
@@ -467,17 +476,12 @@ export class SchemaTypeConfig extends React.Component {
             </FormItem>
           </Col>
         </Row>
-        <Row className={umsTypeSeleted === 'ums' ? 'hide' : ''}>
-          <Col span={7} className="code-mirror-content">
-            <FormItem label="">
-              {getFieldDecorator('jsonSample', {})(
-                <textarea
-                  placeholder="Paste your JSON Sample here."
-                  className="ant-input ant-input-extra"
-                  rows="5">
-                </textarea>
-              )}
-            </FormItem>
+        <Row className={umsTypeSeleted === 'ums_extension' ? '' : 'hide'}>
+          <Col span={7}>
+            <textarea
+              id="jsonSampleTextarea"
+              placeholder="Paste your JSON Sample here."
+            />
           </Col>
           <Col span={1} className="change-btn">
             <Button type="primary" onClick={this.props.onChangeJsonToTable}>
@@ -512,6 +516,7 @@ SchemaTypeConfig.propTypes = {
   initCheckUmsOp: React.PropTypes.func,
   initCancelUmsOp: React.PropTypes.func,
   umsTableDataSource: React.PropTypes.array,
+  repeatRenameArr: React.PropTypes.array,
   umsTypeSeleted: React.PropTypes.string
 }
 
