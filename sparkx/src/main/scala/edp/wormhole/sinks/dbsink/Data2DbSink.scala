@@ -52,13 +52,13 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
     val sqlProcess = new SqlProcessor(sinkProcessConfig, schemaMap, sinkSpecificConfig, sinkNamespace, connectionConfig)
     val specialSqlProcessor: SpecialSqlProcessor = new SpecialSqlProcessor(sinkProcessConfig, schemaMap, sinkSpecificConfig, sinkNamespace, connectionConfig)
 
-    SourceMutationType.sourceMutationType(sinkSpecificConfig.`db.mutation_type.get`) match {
+    SourceMutationType.sourceMutationType(sinkSpecificConfig.`mutation_type.get`) match {
       case INSERT_ONLY =>
-        logInfo("INSERT_ONLY: " + sinkSpecificConfig.`db.mutation_type.get`)
+        logInfo("INSERT_ONLY: " + sinkSpecificConfig.`mutation_type.get`)
         val errorList = sqlProcess.doInsert(tupleList, INSERT_ONLY)
         if (errorList.nonEmpty) throw new Exception(INSERT_ONLY + ",some data error ,data records=" + errorList.length)
       case IDEMPOTENCE_IDU =>
-        logInfo("IDEMPOTENCE_IDU: " + sinkSpecificConfig.`db.mutation_type.get`)
+        logInfo("IDEMPOTENCE_IDU: " + sinkSpecificConfig.`mutation_type.get`)
 
         def checkAndCategorizeAndExecute(keysTupleMap: mutable.HashMap[String, Seq[String]]) = {
           if (keysTupleMap.nonEmpty) {
@@ -94,7 +94,7 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
         checkAndCategorizeAndExecute(keysTupleMap)
 
       case _ =>
-        logInfo("OTHER:" + sinkSpecificConfig.`db.mutation_type.get`)
+        logInfo("OTHER:" + sinkSpecificConfig.`mutation_type.get`)
 
         def checkAndCategorizeAndExecute(keysTupleMap: mutable.HashMap[String, Seq[String]]) = {
           if (keysTupleMap.nonEmpty) {
