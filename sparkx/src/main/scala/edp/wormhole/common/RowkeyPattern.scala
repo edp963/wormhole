@@ -38,7 +38,8 @@ object RowkeyPattern extends Enumeration {
   val VALUE = Value("value")
 
   val MD5 = Value("md5")
-  val CONCAT = Value("concat")
+  val SUFFIX = Value("suffix")
+  val PREFIX = Value("prefix")
   val MOD = Value("mod")
   val SUB = Value("sub")
   val ABS = Value("abs")
@@ -191,7 +192,8 @@ object RowkeyTool {
           fieldContent = if (keyOpt == RowkeyPattern.HASH.toString) RowkeyPattern.rkHash(fieldContent).toString
           else if (keyOpt == RowkeyPattern.MD5.toString) RowkeyPattern.rkMD5(fieldContent)
           else if (keyOpt == RowkeyPattern.ABS.toString) RowkeyPattern.rkAbs(fieldContent.toLong).toString
-          else if (keyOpt == RowkeyPattern.CONCAT.toString) RowkeyPattern.rkConcat(fieldContent,param.toString)
+          else if (keyOpt == RowkeyPattern.SUFFIX.toString) RowkeyPattern.rkConcat(fieldContent,param.toString)
+          else if (keyOpt == RowkeyPattern.PREFIX.toString) RowkeyPattern.rkConcat(param.toString,fieldContent)
           else if (keyOpt == RowkeyPattern.MOD.toString) {
             RowkeyPattern.rkMod(fieldContent.toLong, param.toLong).toString
           } else if (keyOpt == RowkeyPattern.SUB.toString) {
