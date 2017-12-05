@@ -38,6 +38,7 @@ object RowkeyPattern extends Enumeration {
   val VALUE = Value("value")
 
   val MD5 = Value("md5")
+  val CONCAT = Value("concat")
   val MOD = Value("mod")
   val SUB = Value("sub")
   val ABS = Value("abs")
@@ -60,6 +61,8 @@ object RowkeyPattern extends Enumeration {
   def rkReverse(s: String): String = if (s == null) s else s.reverse
 
   def rkAbs(s: Long): Long = abs(s)
+
+  def rkConcat(s1: String, s2: String): String = if (s1 == null || s2 == null) null else s1 + s2
 
   def rkHash(s: String): Long = if (s == null) 0 else MurmurHash3.stringHash(s)
 
@@ -154,7 +157,7 @@ object RowkeyTool {
     keyFieldContentDesc
   }
 
-  def generateRowKeyDatas(keyFieldsSchema:Seq[(Boolean, Int, String)],row:Row): Seq[String] ={
+  def generateRowKeyDatas(keyFieldsSchema: Seq[(Boolean, Int, String)], row: Row): Seq[String] = {
     val schema: Array[StructField] = row.schema.fields
     keyFieldsSchema.map(fieldDesc => {
       if (fieldDesc._1) {
@@ -166,10 +169,10 @@ object RowkeyTool {
     })
   }
 
-  def generateTupleKeyDatas(keyFieldsSchema:Seq[(Boolean, Int, String)],tuple:Seq[String]): Seq[String] ={
+  def generateTupleKeyDatas(keyFieldsSchema: Seq[(Boolean, Int, String)], tuple: Seq[String]): Seq[String] = {
     keyFieldsSchema.map(fieldDesc => {
       if (fieldDesc._1) {
-        val value = tuple( fieldDesc._2)
+        val value = tuple(fieldDesc._2)
         if (value != null) value else "N/A"
       } else {
         fieldDesc._3
@@ -188,6 +191,7 @@ object RowkeyTool {
           fieldContent = if (keyOpt == RowkeyPattern.HASH.toString) RowkeyPattern.rkHash(fieldContent).toString
           else if (keyOpt == RowkeyPattern.MD5.toString) RowkeyPattern.rkMD5(fieldContent)
           else if (keyOpt == RowkeyPattern.ABS.toString) RowkeyPattern.rkAbs(fieldContent.toLong).toString
+          else if (keyOpt == RowkeyPattern.CONCAT.toString) RowkeyPattern.rkConcat(fieldContent,param.toString)
           else if (keyOpt == RowkeyPattern.MOD.toString) {
             RowkeyPattern.rkMod(fieldContent.toLong, param.toLong).toString
           } else if (keyOpt == RowkeyPattern.SUB.toString) {
