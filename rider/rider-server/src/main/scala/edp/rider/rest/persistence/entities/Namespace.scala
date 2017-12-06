@@ -36,6 +36,7 @@ case class Namespace(id: Long,
                      nsTablepar: String,
                      permission: String,
                      keys: Option[String],
+                     umsInfo: Option[String],
                      nsDatabaseId: Long,
                      nsInstanceId: Long,
                      active: Boolean,
@@ -43,6 +44,52 @@ case class Namespace(id: Long,
                      createBy: Long,
                      updateTime: String,
                      updateBy: Long) extends BaseEntity
+
+case class JsonParse(fieldName: String, fieldType: String, value: Object)
+
+case class UmsSchemaTable(selected: Boolean,
+                          fieldName: String,
+                          rename: String,
+                          fieldType: String,
+                          `ums_id_`: Boolean,
+                          `ums_ts_`: Boolean,
+                          `ums_op_`: String,
+                          forbidden: Boolean,
+                          value: Object)
+
+case class UmsSchema(fields: Seq[Field])
+
+case class Field(name: String,
+                 `type`: String,
+                 nullable: Boolean,
+                 rename: Option[String],
+                 ums_sys_mapping: Option[String],
+                 tuple_sep: Option[String],
+                 sub_fields: Option[Field])
+
+case class UmsInfo(umsType: Option[String],
+                   jsonSample: Option[String],
+                   jsonParseArray: Option[Seq[JsonParse]],
+                   umsSchemaTable: Option[Seq[UmsSchemaTable]],
+                   umsSchema: Option[UmsSchema])
+
+case class NamespaceInfo(id: Long,
+                         nsSys: String,
+                         nsInstance: String,
+                         nsDatabase: String,
+                         nsTable: String,
+                         nsVersion: String,
+                         nsDbpar: String,
+                         nsTablepar: String,
+                         permission: String,
+                         keys: Option[String],
+                         nsDatabaseId: Long,
+                         nsInstanceId: Long,
+                         active: Boolean,
+                         createTime: String,
+                         createBy: Long,
+                         updateTime: String,
+                         updateBy: Long)
 
 case class NamespaceTopic(id: Long,
                           nsSys: String,
@@ -82,7 +129,8 @@ case class NamespaceTemp(id: Long,
                          updateBy: Long,
                          nsInstanceSys: String)
 
-case class NsTable(table: String, key: Option[String])
+case class NsTable(table: String,
+                   key: Option[String])
 
 case class SimpleNamespace(nsSys: String,
                            nsInstance: String,
@@ -140,7 +188,8 @@ case class PushDownConnection(name_space: String,
 
 
 class NamespaceTable(_tableTag: Tag) extends BaseTable[Namespace](_tableTag, "namespace") {
-  def * = (id, nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar, permission, keys, nsDatabaseId, nsInstanceId, active, createTime, createBy, updateTime, updateBy) <> (Namespace.tupled, Namespace.unapply)
+  def * = (id, nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar, permission, keys,
+    umsInfo, nsDatabaseId, nsInstanceId, active, createTime, createBy, updateTime, updateBy) <> (Namespace.tupled, Namespace.unapply)
 
   val nsSys: Rep[String] = column[String]("ns_sys", O.Length(100, varying = true))
   /** Database column ns_instance SqlType(VARCHAR), Length(100,true) */
@@ -159,6 +208,7 @@ class NamespaceTable(_tableTag: Tag) extends BaseTable[Namespace](_tableTag, "na
   val permission: Rep[String] = column[String]("permission", O.Length(20, varying = true))
   /** Database column keys SqlType(VARCHAR), Length(1000,true), Default(None) */
   val keys: Rep[Option[String]] = column[Option[String]]("keys", O.Length(1000, varying = true), O.Default(None))
+  val umsInfo: Rep[Option[String]] = column[Option[String]]("ums_info", O.Length(5000, varying = true), O.Default(None))
   /** Database column ns_database_id SqlType(BIGINT) */
   val nsDatabaseId: Rep[Long] = column[Long]("ns_database_id")
   /** Database column ns_instance_id SqlType(BIGINT) */

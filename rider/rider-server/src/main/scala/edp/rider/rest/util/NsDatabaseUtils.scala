@@ -58,7 +58,6 @@ object NsDatabaseUtils {
           )
           Some(seq)
         } else None
-      case "phoenix" => None
       case _ =>
         if (config == null || config == "") None
         else if (isJson(config)) {
@@ -70,6 +69,7 @@ object NsDatabaseUtils {
         } else if (isKeyEqualValue(config)) {
           val seq = new ListBuffer[KVConfig]
           val keyValueSeq = config.split(",").mkString("&").split("&")
+          keyValueSeq.foreach(println(_))
           keyValueSeq.foreach(
             keyValue => {
               val data = keyValue.split("=")

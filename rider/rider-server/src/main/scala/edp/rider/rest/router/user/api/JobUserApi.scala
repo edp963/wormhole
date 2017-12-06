@@ -40,7 +40,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                   if (session.projectIdList.contains(projectId)) {
                     val projectName = jobDal.adminGetRow(projectId)
                     val jobInsert = Job(0, genStreamNameByProjectName(projectName, simple.name), projectId, simple.sourceNs, simple.sinkNs, simple.sourceType, simple.sparkConfig, simple.startConfig, simple.eventTsStart, simple.eventTsEnd,
-                      simple.sourceConfig, simple.sinkConfig, simple.tranConfig, "new", Some(""), Some(SubmitSparkJob.getLogPath(simple.name)), null, null, currentSec, session.userId, currentSec, session.userId)
+                      simple.sourceConfig, simple.sinkConfig, simple.tranConfig, "new", None, Some(SubmitSparkJob.getLogPath(simple.name)), None, None, currentSec, session.userId, currentSec, session.userId)
                     try {
                       onComplete(jobDal.insert(jobInsert)) {
                         case Success(job) =>
