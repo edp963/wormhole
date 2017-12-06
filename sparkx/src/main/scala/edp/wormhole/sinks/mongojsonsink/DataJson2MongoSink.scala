@@ -120,7 +120,7 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
-    val sinkMap = schemaMap.map{case (name, (index, umsType, nullable)) =>
+    val sinkMap = schemaMap.map { case (name, (index, umsType, nullable)) =>
       if (name == UmsSysField.OP.toString) (UmsSysField.ACTIVE.toString, (index, UmsFieldType.INT, nullable))
       else (name, (index, umsType, nullable))
     }.toMap
@@ -164,7 +164,7 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
       val subContent = constructBuilder(jsonContent, subField.getJSONArray("sub_fields"))
       builder += name -> subContent
     } else {
-      val content =  jsonData.getString(name) //else jsonData.getString(UmsSysField.ACTIVE.toString)
+      val content = jsonData.getString(name) //else jsonData.getString(UmsSysField.ACTIVE.toString)
       if (dataType == "jsonarray") {
         val list = MongoDBList
         val jsonArray = JSON.parseArray(content)
@@ -185,15 +185,15 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
       } else if (dataType.endsWith("array")) {
         if (content != null && content.trim.nonEmpty) {
           val jsonArray = JSON.parseArray(content)
-          val toUpsert = ListBuffer.empty[String]
+          val toUpsert = ListBuffer.empty[Any]
           val size = jsonArray.size()
           for (i <- 0 until size) {
-            toUpsert.append(jsonArray.get(i).asInstanceOf[String])
+            toUpsert.append(jsonArray.get(i))
           }
           builder += name -> toUpsert
         }
       } else {
-        builder += name -> content
+        builder += name -> parseData2CorrectType(dataType, content)
       }
     }
   }
@@ -232,5 +232,16 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
   private def save2MongoByI(jsonData: JSONObject, subFields: JSONArray, collection: MongoCollection) = {
     val result: casbah.commons.Imports.DBObject = constructBuilder(jsonData: JSONObject, subFields: JSONArray)
     collection.insert(result)
+  }
+
+  private def parseData2CorrectType(dataType: String, data: String): Any = {
+    dataType.toLowerCase match {
+      case "int" => data.toInt
+      case "long" => data.toLong
+      case "double" => data.toDouble
+      case "float" => data.toFloat
+      case "boolean" => data.toBoolean
+      case _ => data
+    }
   }
 }
