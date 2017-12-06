@@ -95,12 +95,10 @@
             <id>conjars</id>
             <url>http://conjars.org/repo/</url>
         </repository>
-    <!--
-        <repository>
-            <id>creditease</id>
-            <url>${public.url}</url>
-        </repository>
-    -->
+        <!-- <repository> -->
+            <!-- <id>creditease</id> -->
+            <!-- <url>${public.url}</url> -->
+        <!-- </repository> -->
     </repositories>
 
     <!-- common pluginRepositories -->
