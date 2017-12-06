@@ -29,14 +29,15 @@ import edp.rider.rest.persistence.entities.{Instance, Job, NsDatabase, StartConf
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.FlowUtils._
 import edp.rider.rest.util.NamespaceUtils._
-import edp.rider.spark.SubmitSparkJob._
+import edp.rider.rest.util.NsDatabaseUtils._
 import edp.rider.spark.SparkStatusQuery.getSparkJobStatus
+import edp.rider.spark.SubmitSparkJob._
 import edp.rider.wormhole._
+import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.common.util.JsonUtils._
-import edp.wormhole.common.{ConnectionConfig, KVConfig}
-import edp.rider.rest.util.NsDatabaseUtils._
+
 import scala.concurrent.Await
 
 object JobUtils extends RiderLogger {
@@ -79,7 +80,7 @@ object JobUtils extends RiderLogger {
     if (tranConfig != "" && tranConfig != null) {
       val tranClass = JSON.parseObject(tranConfig)
       val action = if (tranClass.containsKey("action") && tranClass.getString("action").nonEmpty) Some(base64byte2s(tranClass.getString("action").trim.getBytes)) else None
-      val specialConfig = if (action.isDefined && tranClass.getString("action").trim.indexOf("edp.wormhole.batchjob.transform.Snapshot") >= 0) {  //todo dangers
+      val specialConfig = if (action.isDefined && tranClass.getString("action").trim.indexOf("edp.wormhole.batchjob.transform.Snapshot") >= 0) { //todo dangers
         val (_, _, ns) = modules.namespaceDal.getNsDetail(sinkNs)
         val keys = ns.keys.get
         val keystr = s"""{"table_keys":"${keys}"}"""
@@ -170,13 +171,17 @@ object JobUtils extends RiderLogger {
     try {
       val job = refreshJob(id)
       try {
-        if (job.status != "failed" && job.status != "stopped" && job.status != "done") {
+        if (job.status == "running" || job.status == "waiting") {
           val command = s"yarn application -kill ${job.sparkAppid.get}"
           riderLogger.info(s"stop job command: $command")
           runShellCommand(command)
           modules.jobDal.updateJobStatus(job.id, "stopping")
           "stopping"
-        } else job.status
+        } else if (job.status == "failed") {
+          modules.jobDal.updateJobStatus(job.id, "stopped")
+          "stopped"
+        }
+        else job.status
       }
       catch {
         case ex: Exception =>

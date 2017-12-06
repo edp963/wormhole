@@ -28,7 +28,6 @@ import akka.http.scaladsl.server.{Directives, Route}
 import edp.rider.common.RiderLogger
 import edp.rider.module.{BusinessModule, ConfigurationModule, PersistenceModule}
 import edp.rider.rest.persistence.entities.User
-import edp.rider.rest.router.JsonProtocol._
 import edp.rider.rest.util.ResponseUtils._
 import edp.rider.rest.util.{AuthorizationProvider, PassWordNotMatch, UserNotFound}
 import io.swagger.annotations._
@@ -37,7 +36,7 @@ import scala.util.{Failure, Success}
 
 @Api(value = "/changepwd", consumes = "application/json")
 @Path("/changepwd")
-class ChangePwdRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule) extends Directives with RiderLogger {
+class ChangePwdRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule) extends Directives with RiderLogger with JsonSerializer {
 
   lazy val routes: Route = changeUserPwdRoute
 
@@ -82,7 +81,7 @@ class ChangePwdRoutes(modules: ConfigurationModule with PersistenceModule with B
         }
       }
     }
-   
+
 
   }
 

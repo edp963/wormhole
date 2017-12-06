@@ -81,6 +81,10 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
   }
 
+  def updateSchema(id: Long, umsInfo: UmsInfo, user: Long): Future[Int] = {
+    val schema = Option(caseClass2json[UmsInfo](umsInfo))
+    db.run(namespaceTable.filter(_.id === id).map(ns => (ns.umsInfo, ns.updateTime, ns.updateBy)).update(schema, currentSec, user)).mapTo[Int]
+  }
 
   def dbusInsert(session: SessionClass): Future[Seq[Dbus]] = {
     try {
@@ -156,7 +160,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
     dbusSeq.map(dbus => {
       val nsSplit: Array[String] = dbus.namespace.split("\\.")
       Namespace(0, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
-        READONLY.toString, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
+        READONLY.toString, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
     })
   }
 
@@ -221,7 +225,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
     }
   }
 
-  def updateKeys(id: Long, keys: String) =
+  def updateKeys(id: Long, keys: String): Int =
     try {
       Await.result(db.run(namespaceTable.filter(_.id === id).map(_.keys).update(Some(keys))), minTimeOut)
     } catch {
@@ -229,4 +233,17 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         riderLogger.error(s"update namespace $id keys $keys failed", ex)
         throw ex
     }
+
+  def getSchema(id: Long): Future[Option[UmsInfo]] = {
+    super.findById(id).map[Option[UmsInfo]](
+      namespaceOpt => namespaceOpt match {
+        case Some(namespace) =>
+          namespace.umsInfo match {
+            case Some(umsInfo) => Some(json2caseClass[UmsInfo](umsInfo))
+            case None => None
+          }
+        case None => None
+      }
+    )
+  }
 }

@@ -23,11 +23,12 @@ package edp.rider.rest.util
 
 import com.alibaba.fastjson.JSON
 import edp.rider.common.RiderLogger
-import edp.rider.rest.persistence.entities.{Instance, Namespace, NsDatabase}
+import edp.rider.rest.persistence.entities.{Instance, Namespace, NamespaceInfo, NsDatabase}
 import edp.rider.rest.util.CommonUtils._
-import edp.rider.rest.util.JobUtils.riderLogger
 
 object NamespaceUtils extends RiderLogger {
+
+  def generateStandardNs(ns: NamespaceInfo) = Seq(ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar).mkString(".")
 
   def generateStandardNs(ns: Namespace) = Seq(ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar).mkString(".")
 
