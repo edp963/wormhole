@@ -2,6 +2,11 @@ language: java
 jdk:
   - oraclejdk8
 
+cache:
+  directories:
+  - $HOME/.sbt
+  - $HOME/.m2
+
 notification:
   email:
     recipients:
