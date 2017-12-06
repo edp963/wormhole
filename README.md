@@ -16,7 +16,37 @@ Wormhole面向大数据流式处理项目的开发管理运维人员，致力于
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/wh4_pipeline_overview.png" alt="" width="600"/>
 
-## Features
+## Experience Preview
+
+#### Admin可以创建Project/Namespace/User/UDF，并且可以查看所有Flow/Stream/Job
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin_1.png" alt="" width="600"/>
+
+#### Admin可以为Project分配Namespace资源/User资源/UDF资源/计算资源，以支持多租户资源隔离
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin_2.png" alt="" width="600"/>
+
+#### User可以对自己有权限的Project进行开发实施和管理运维工作
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_1_project.png" alt="" width="600"/>
+
+#### User可以通过简单配置步骤即可搭建起一个流式作业pipeline（Flow），只需关注数据从哪来到哪去如何转换
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_2_flow_1.png" alt="" width="600"/>
+
+#### 转换支持大部分流上作业常用场景，大部分工作可以通过配置SQL实现流上处理逻辑
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_2_flow_2.png" alt="" width="600"/>
+
+#### Wormhole有Flow和Stream的概念，支持在一个物理Stream（对应一个Spark Streaming作业）里通过处理多个逻辑Flow，使得User可以更加精细灵活的利用计算资源
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_3_stream.png" alt="" width="600"/>
+
+#### Wormhole也支持批处理Job，同样可以配置化实现处理逻辑并落到多个异构Sink，Flow和Job的配合可以很容易实现Lambda架构和Kappa架构
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_4_job_1.png" alt="" width="600"/>
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_4_job_2.png" alt="" width="600"/>
+
+#### User可以查看Project相关的Namespace/User/UDF/Resource
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_5_ns.png" alt="" width="600"/>
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_5_user.png" alt="" width="600"/>
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_6_udf.png" alt="" width="600"/>
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_7_res.png" alt="" width="600"/>
+
+#### 以上是简短的功能和用户体验预览，更多强大的细节功能请参见Documentation
 
 ## Documentation
 
@@ -29,9 +59,7 @@ Please download the latest [RELEASE](https://github.com/edp963/wormhole/releases
 ## Get Help
 
 - **Mailing list**: edp_support@groups.163.com
-- **WeChat**: edpstack
-
-<img src="https://github.com/edp963/edp-resource/raw/master/WeChat.jpg" alt="" width="100"/>
+- **WeChat**: edpstack <img src="https://github.com/edp963/edp-resource/raw/master/WeChat.jpg" alt="" width="100"/>
 
 ## License
 
