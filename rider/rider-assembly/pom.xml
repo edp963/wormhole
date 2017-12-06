@@ -25,7 +25,7 @@
     <dependencies>
         <dependency>
             <groupId>edp.wormhole</groupId>
-            <artifactId>wormhole-rider-server_1.2</artifactId>
+            <artifactId>wormhole-rider-server_${ums.version}</artifactId>
             <version>0.4.0-SNAPSHOTS</version>
         </dependency>
     </dependencies>
