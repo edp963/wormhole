@@ -46,6 +46,9 @@ Wormhole面向大数据流式处理项目的开发管理运维人员，致力于
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_6_udf.png" alt="" width="600"/>
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_7_res.png" alt="" width="600"/>
 
+#### User还可以监控Project正在运行的所有Flow/Stream的吞吐和延迟
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_8_mon.png" alt="" width="600"/>
+
 #### 以上是简短的功能和用户体验预览，更多强大的细节功能请参见Documentation
 
 ## Documentation
