@@ -27,7 +27,7 @@ require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
 
 import { jsonParse, genDefaultSchemaTable, nestType2string, string2nestType,
-  tupleFields, umsSysFieldSelected, umsSysFieldUnSelected, getRepeatFieldIndex, genSchema } from './umsFunction'
+  tupleFields, umsSysFieldSelected, umsSysFieldUnSelected, getRepeatFieldIndex, genSchema, rowSelectFunc } from './umsFunction'
 import { isJSONNotEmpty } from '../../utils/util'
 
 import NamespaceForm from './NamespaceForm'
@@ -105,7 +105,8 @@ export class Namespace extends React.PureComponent {
       umsTableDataSource: [],
       umsTypeSeleted: 'ums',
       nsIdValue: 0,
-      repeatRenameArr: []
+      repeatRenameArr: [],
+      selectAllState: 'all'
     }
   }
 
@@ -658,6 +659,19 @@ export class Namespace extends React.PureComponent {
               })
               this.setState({
                 umsTableDataSource: tableData
+              }, () => {
+                const tempArr = this.state.umsTableDataSource.filter(s => !s.forbidden)
+                const selectedArr = tempArr.filter(s => s.selected)
+
+                let tempState = ''
+                if (selectedArr.length !== 0) {
+                  tempState = selectedArr.length === tempArr.length ? 'all' : 'part'
+                } else {
+                  tempState = 'not'
+                }
+                this.setState({
+                  selectAllState: tempState
+                })
               })
             }
           })
@@ -790,6 +804,105 @@ export class Namespace extends React.PureComponent {
         })
       })
     }
+  }
+
+  initChangeSelected = (record) => {
+    const { umsTableDataSource } = this.state
+
+    const tempData = umsTableDataSource.map(s => {
+      const temp = s.key === record.key
+        ? {
+          fieldName: s.fieldName,
+          fieldType: s.fieldType,
+          forbidden: s.forbidden,
+          key: s.key,
+          rename: s.rename,
+          selected: !s.selected,
+          ums_id_: s.ums_id_,
+          ums_op_: s.ums_op_,
+          ums_ts_: s.ums_ts_,
+          value: s.value
+        }
+        : s
+      return temp
+    })
+
+    rowSelectFunc(tempData, record.key)
+
+    this.setState({
+      umsTableDataSource: tempData
+    })
+  }
+
+  initRowSelectedAll = () => {
+    const { umsTableDataSource, selectAllState } = this.state
+
+    let temp = ''
+    if (selectAllState === 'all') {
+      temp = 'not'
+    } else if (selectAllState === 'not') {
+      temp = 'all'
+    } else if (selectAllState === 'part') {
+      temp = 'all'
+    }
+
+    this.setState({
+      selectAllState: temp
+    }, () => {
+      let tempArr = []
+      if (this.state.selectAllState === 'all') {
+        tempArr = umsTableDataSource.map(s => {
+          let tempObj = {}
+          if (!s.forbidden) {
+            tempObj = !s.selected
+              ? {
+                fieldName: s.fieldName,
+                fieldType: s.fieldType,
+                forbidden: s.forbidden,
+                key: s.key,
+                rename: s.rename,
+                selected: true,
+                ums_id_: s.ums_id_,
+                ums_op_: s.ums_op_,
+                ums_ts_: s.ums_ts_,
+                value: s.value
+              }
+              : s
+          } else {
+            tempObj = s
+          }
+          return tempObj
+        })
+      } else if (this.state.selectAllState === 'not') {
+        tempArr = umsTableDataSource.map(s => {
+          let tempObj = {}
+          if (!s.forbidden) {
+            tempObj = s.selected
+              ? {
+                fieldName: s.fieldName,
+                fieldType: s.fieldType,
+                forbidden: s.forbidden,
+                key: s.key,
+                rename: s.rename,
+                selected: false,
+                ums_id_: s.ums_id_,
+                ums_op_: s.ums_op_,
+                ums_ts_: s.ums_ts_,
+                value: s.value
+              }
+              : s
+          } else {
+            tempObj = s
+          }
+          return tempObj
+        })
+      } else if (this.state.selectAllState === 'part') {
+        tempArr = umsTableDataSource
+      }
+      this.setState({
+        umsTableDataSource: tempArr
+      })
+    })
   }
 
   // todo: test。fieldName 不是唯一的
@@ -1165,7 +1278,7 @@ export class Namespace extends React.PureComponent {
         render: (text, record) => {
           const umsAction = record.nsSys === 'kafka'
             ? (
-              <Tooltip title="Ums 配置">
+              <Tooltip title="Schema 配置">
                 <Button icon="setting" shape="circle" type="ghost" onClick={this.showEditUms(record)}></Button>
               </Tooltip>
             )
@@ -1315,6 +1428,7 @@ export class Namespace extends React.PureComponent {
           ]}
         >
           <SchemaTypeConfig
+            initChangeSelected={this.initChangeSelected}
             initChangeUmsType={this.initChangeUmsType}
             onChangeJsonToTable={this.onChangeUmsJsonToTable}
             initChangeType={this.initChangeFiledType}
@@ -1323,9 +1437,11 @@ export class Namespace extends React.PureComponent {
             cancelSelectUmsId={this.cancelSelectUmsId}
             initCheckUmsOp={this.initCheckUmsOp}
             initCancelUmsOp={this.initCancelUmsOp}
+            initRowSelectedAll={this.initRowSelectedAll}
             umsTableDataSource={this.state.umsTableDataSource}
             umsTypeSeleted={this.state.umsTypeSeleted}
             repeatRenameArr={this.state.repeatRenameArr}
+            selectAllState={this.state.selectAllState}
             ref={(f) => { this.schemaTypeConfig = f }}
           />
         </Modal>
