@@ -21,6 +21,7 @@
 
 package edp.wormhole.sinks.hbasesink
 
+import com.alibaba.fastjson.JSON
 import edp.wormhole.common.{ConnectionConfig, RowkeyPatternContent, RowkeyPatternType, RowkeyTool}
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
 import edp.wormhole.spark.log.EdpLogging
@@ -37,6 +38,8 @@ import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsNamespace
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.common.util.JsonUtils._
+
+import scala.util.parsing.json.JSONObject
 
 class Data2HbaseSink extends SinkProcessor with EdpLogging {
   override def process(protocolType: UmsProtocolType,
