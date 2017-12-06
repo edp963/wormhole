@@ -21,7 +21,7 @@ Wormhole面向大数据流式处理项目的开发管理运维人员，致力于
 #### Admin可以创建Project/Namespace/User/UDF，并且可以查看所有Flow/Stream/Job
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin_1.png" alt="" width="600"/>
 
-#### Admin可以为Project分配Namespace资源/User资源/UDF资源/计算资源，以支持多租户资源隔离
+#### Admin可以为Project分配Namespace资源/User资源/UDF资源/计算资源，以支持多租户资源隔离
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin_2.png" alt="" width="600"/>
 
 #### User可以对自己有权限的Project进行开发实施和管理运维工作
