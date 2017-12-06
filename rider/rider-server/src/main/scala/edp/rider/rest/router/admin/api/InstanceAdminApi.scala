@@ -23,19 +23,15 @@ package edp.rider.rest.router.admin.api
 
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
-import de.heikoseeberger.akkahttpjson4s.Json4sSupport.ShouldWritePretty
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.base.BaseDal
 import edp.rider.rest.persistence.entities._
-import org.json4s.DefaultFormats
-import org.json4s.jackson.Serialization
-//import edp.rider.rest.router.JsonProtocol._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
+import edp.rider.rest.util.InstanceUtils._
 import edp.rider.rest.util.ResponseUtils._
 import slick.jdbc.MySQLProfile.api._
-import edp.rider.rest.util.InstanceUtils._
 
 import scala.util.{Failure, Success}
 
@@ -63,13 +59,12 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
                         complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   case (None, Some(sys), Some(url), None) =>
-                    val nsInstance = generateNsInstance(url)
                     onComplete(instanceDal.findByFilter(_.connUrl === conn_url).mapTo[Seq[Instance]]) {
                       case Success(instances) =>
                         if (instances.isEmpty) {
                           if (checkFormat(sys, url)) {
                             riderLogger.info(s"user ${session.userId} check instance url $url doesn't exist, and fits the url format.")
-                            complete(OK, ResponseJson[String](getHeader(200, session), nsInstance))
+                            complete(OK, ResponseJson[String](getHeader(200, session), url))
                           }
                           else {
                             riderLogger.info(s"user ${session.userId} check instance url $url doesn't exist, but doesn't fit the url format.")

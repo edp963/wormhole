@@ -200,7 +200,6 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     val flowStream = Await.result(defaultGetAll(_.id inSet flowSeq.map(_.id)), minTimeOut)
     flowStream.foreach(flow => {
       stopFlow(flow.streamId, flow.id, userId, flow.streamType, flow.sourceNs, flow.sinkNs)
-      CacheMap.flowCacheMapRefresh
       Await.result(super.deleteById(flow.id), minTimeOut)
       CacheMap.flowCacheMapRefresh
     })
