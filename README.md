@@ -1,9 +1,9 @@
 
 
-Wormhole
-============
+## What is Wormhole?
 
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
+[![Build Status](https://travis-ci.org/edp963/wormhole.svg?branch=master)](https://travis-ci.org/edp963/wormhole)
 
 > 来自[宜信](https://www.creditease.cn/)[技术研发中心](http://crdc.creditease.cn/)的流式处理平台
 
@@ -11,22 +11,22 @@ Wormhole是一个SPAAS（Stream Processing as a Service）平台解决方案。W
 
 For more details, see the [WEBSITE](https://edp963.github.io/wormhole).
 
-Documentation
-=============
+## Documentation
+
 Please refer to [Wormhole用户手册](https://edp-wormhole.gitbooks.io/wormhole-user-guide-cn/content), or download [PDF](https://www.gitbook.com/download/pdf/book/edp-wormhole/wormhole-user-guide-cn).
 
-Latest Release
-=============
+## Latest Release
+
 Please download the latest [RELEASE](https://github.com/edp963/wormhole/releases/download/0.3.0/wormhole-0.3.0.tar.gz).
 
-Get Help
-============
+## Get Help
+
 The fastest way to get response from our developers is to send email to our mail list 
 edp_support@groups.163.com,
 and you are also welcome to join our WeChat group for online discussion.
 
 ![二维码](https://github.com/edp963/edp-resource/raw/master/WeChat.jpg)
 
-License
-============
+## License
+
 Please refer to [LICENSE](https://github.com/edp963/wormhole/blob/master/LICENSE) file.
