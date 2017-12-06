@@ -11,7 +11,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>wormhole-rider-server</artifactId>
+    <artifactId>wormhole-rider-server_${ums.version}</artifactId>
     <packaging>jar</packaging>
 
     <properties>
