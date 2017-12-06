@@ -196,9 +196,9 @@ export class FlowTransformForm extends React.Component {
                 }]
               })(
                 <RadioGroup onChange={this.onTransformTypeSelect}>
-                  <RadioButton value="lookupSql" disabled={tabPanelKey === 'job'}>Lookup SQL</RadioButton>
+                  <RadioButton value="lookupSql" className={tabPanelKey === 'job' ? 'hide' : ''}>Lookup SQL</RadioButton>
                   <RadioButton value="sparkSql">Spark SQL</RadioButton>
-                  <RadioButton value="streamJoinSql" disabled={tabPanelKey === 'job'}>Stream Join SQL</RadioButton>
+                  <RadioButton value="streamJoinSql" className={tabPanelKey === 'job' ? 'hide' : ''}>Stream Join SQL</RadioButton>
                   <RadioButton value="transformClassName">ClassName</RadioButton>
                 </RadioGroup>
               )}

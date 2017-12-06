@@ -86,6 +86,7 @@ export class Workbench extends React.Component {
       namespaceClassHide: 'hide',
       flowClassHide: 'hide',
       streamClassHide: 'hide',
+      jobClassHide: 'hide',
       udfClassHide: 'hide',
 
       transformModalVisible: false,
@@ -3154,7 +3155,7 @@ export class Workbench extends React.Component {
                 onShowAddJob={this.showAddJobWorkbench}
                 onShowEditJob={this.showEditJobWorkbench}
                 projectIdGeted={this.state.projectId}
-                // jobClassHide={this.state.jobClassHide}
+                jobClassHide={this.state.jobClassHide}
               />
               <div className={`ri-workbench-sidebar ri-common-block ${jobMode ? 'op-mode' : ''}`}>
                 <h3 className="ri-common-block-title">
