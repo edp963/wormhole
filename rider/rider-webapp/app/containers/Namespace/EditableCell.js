@@ -115,8 +115,21 @@ export class EditableCell extends React.Component {
 
   render () {
     const { typeValue, editable, fieldTypeOptionsVal, tupleOrNot } = this.state
+    const { recordValue } = this.props
 
     const fieldTypeOptions = fieldTypeOptionsVal.map(s => (<Option key={s} value={`${s}`}>{s}</Option>))
+
+    let editTypeIconDiasabled = ''
+    let editTypeIconClass = ''
+    let textClass = ''
+    if (recordValue.forbidden) {
+      editTypeIconDiasabled = 'edit-disabled-class'
+      editTypeIconClass = 'hide'
+      textClass = 'type-text-class'
+    } else {
+      editTypeIconDiasabled = 'hide'
+      textClass = ''
+    }
 
     return (
       <div className="editable-cell">
@@ -133,7 +146,7 @@ export class EditableCell extends React.Component {
 
             </div>
             : <div className="editable-cell-text-wrapper">
-              {typeValue || ' '}
+              <span className={textClass}>{typeValue || ' '}</span>
               <Input
                 className={tupleOrNot === true ? '' : 'hide'}
                 onChange={this.handleChange}
@@ -146,8 +159,12 @@ export class EditableCell extends React.Component {
               />
               <Icon
                 type="edit"
-                className="editable-cell-icon"
+                className={`editable-cell-icon ${editTypeIconClass}`}
                 onClick={this.edit}
+              />
+              <Icon
+                type="edit"
+                className={`editable-cell-icon ${editTypeIconDiasabled}`}
               />
             </div>
         }
@@ -158,7 +175,8 @@ export class EditableCell extends React.Component {
 
 EditableCell.propTypes = {
   initChangeTypeOption: React.PropTypes.func,
-  tableDatas: React.PropTypes.array
+  tableDatas: React.PropTypes.array,
+  recordValue: React.PropTypes.object
 }
 
 export default Form.create({wrappedComponentRef: true})(EditableCell)
