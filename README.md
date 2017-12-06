@@ -27,7 +27,7 @@ Wormhole面向大数据流式处理项目的开发管理运维人员，致力于
 #### User可以对自己有权限的Project进行开发实施和管理运维工作
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_1_project.png" alt="" width="600"/>
 
-#### User可以通过简单配置步骤即可搭建起一个流式作业pipeline（Flow），只需关注数据从哪来到哪去如何转换
+#### User可以通过简单配置步骤即可搭建起一个流式作业pipeline（Flow），只需关注数据从哪来到哪去和如何转换处理
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_2_flow_1.png" alt="" width="600"/>
 
 #### 转换支持大部分流上作业常用场景，大部分工作可以通过配置SQL实现流上处理逻辑
