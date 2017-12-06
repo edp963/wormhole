@@ -122,8 +122,7 @@ export function getAlterTypesByOriginType (fieldType) {
   return typeArray
 }
 
-// 点击保存时，去除selected === false的行
-// todo: test
+// 点击保存时，去除 selected === false的行
 function selectedFields (array) {
   for (var i = 0; i < array.length; i++) {
     if (array[i].selected === false) {
@@ -262,6 +261,25 @@ export function nestType2string (array, index) {
     if (array[i].fieldName.startsWith(prefix)) {
       array[i].forbidden = true
       array[i].selected = false
+    } else {
+      break
+    }
+  }
+  return array
+}
+
+// 当row select的项有子级（如test#t1）时，
+// 若 selected=true，子级的 forbidden=false；若 selected=false，子级的 forbidden=true, selected=false
+export function rowSelectFunc (array, index) {
+  const prefix = `${array[index].fieldName}#`
+  for (let i = index + 1; i < array.length; i++) {
+    if (array[i].fieldName.startsWith(prefix)) {
+      if (array[index].selected) {
+        array[i].forbidden = false
+      } else {
+        array[i].forbidden = true
+        array[i].selected = false
+      }
     } else {
       break
     }
