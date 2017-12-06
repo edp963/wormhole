@@ -21,7 +21,7 @@
 
 package edp.rider.rest.util
 
-import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
+import com.alibaba.fastjson.{JSON, JSONArray}
 import edp.rider.RiderStarter.modules
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.kafka.KafkaUtils
@@ -30,13 +30,15 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
 import edp.rider.rest.util.StreamUtils._
+import edp.rider.service.util.CacheMap
 import edp.rider.zookeeper.PushDirective
+import edp.wormhole.common.KVConfig
 import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.ums.UmsProtocolType._
 import slick.jdbc.MySQLProfile.api._
-import scala.collection.JavaConversions._
-import scala.concurrent.Await
+
+import scala.concurrent.{Await, Future}
 
 object FlowUtils extends RiderLogger {
 
@@ -60,7 +62,10 @@ object FlowUtils extends RiderLogger {
           JSON.parseObject(sinkConfig).getString("sink_output")
         else ""
       val dbConfig = getDbConfig(ns.nsSys, db.config.getOrElse(""))
-      val sinkConnectionConfig = if (dbConfig.nonEmpty) db.config.get else "\"\""
+      val sinkConnectionConfig =
+        if (dbConfig.nonEmpty && dbConfig.get.nonEmpty)
+          caseClass2json[Seq[KVConfig]](dbConfig.get)
+        else "\"\""
       s"""
          |{
          |"sink_connection_url": "${getConnUrl(instance, db)}",
@@ -83,7 +88,6 @@ object FlowUtils extends RiderLogger {
   }
 
   def getTranConfig(tranConfig: String) = {
-    println("tranconfig pre: " + tranConfig)
     if (tranConfig == "") "{}"
     else {
       val json = JSON.parseObject(tranConfig)
@@ -185,12 +189,24 @@ object FlowUtils extends RiderLogger {
 
   def startFlow(streamId: Long, streamType: String, flowId: Long, sourceNs: String, sinkNs: String, consumedProtocol: String, sinkConfig: String, tranConfig: String, userId: Long): Boolean = {
     try {
+      val umsInfoOpt =
+        if (modules.namespaceDal.getNamespaceByNs(sourceNs).umsInfo.nonEmpty)
+          json2caseClass[Option[UmsInfo]](modules.namespaceDal.getNamespaceByNs(sourceNs).umsInfo.get)
+        else None
+      val umsType = umsInfoOpt match {
+        case Some(umsInfo) => umsInfo.umsType.getOrElse("ums")
+        case None => "ums"
+      }
+      val umsSchema = umsInfoOpt match {
+        case Some(umsInfo) => umsInfo.umsSchema.getOrElse("")
+        case None => ""
+      }
       if (streamType == "default") {
         val consumedProtocolSet = getConsumptionType(consumedProtocol)
         val sinkConfigSet = getSinkConfig(sinkNs, sinkConfig)
         val tranConfigFinal = getTranConfig(tranConfig)
-        val tuple = Seq(streamId, currentMicroSec, "ums", "", sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
-        val base64Tuple = Seq(streamId, currentMicroSec, "ums", "", sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
+        val tuple = Seq(streamId, currentMicroSec, umsType, umsSchema, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
+        val base64Tuple = Seq(streamId, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
           base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))
         val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, tuple.mkString(","), RiderConfig.zk, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_START.toString} success.")
@@ -261,7 +277,8 @@ object FlowUtils extends RiderLogger {
         PushDirective.sendFlowStartDirective(streamId, sourceNs, sinkNs, jsonCompact(flow_start_ums))
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
       } else if (streamType == "hdfslog") {
-        val tuple = Seq(streamId, currentMillSec, sourceNs, "24")
+        val tuple = Seq(streamId, currentMillSec, sourceNs, "24", umsType, umsSchema)
+        val base64Tuple = Seq(streamId, currentMillSec, sourceNs, "24", umsType, base64byte2s(umsSchema.toString.trim.getBytes))
         val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, tuple.mkString(","), RiderConfig.zk, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
         val flow_start_ums =
@@ -297,12 +314,22 @@ object FlowUtils extends RiderLogger {
              |"name": "hour_duration",
              |"type": "string",
              |"nullable": false
+             |},
+             |{
+             |"name": "data_type",
+             |"type": "string",
+             |"nullable": false
+             |},
+             |{
+             |"name": "data_parse",
+             |"type": "string",
+             |"nullable": true
              |}
              |]
              |},
              |"payload": [
              |{
-             |"tuple": [${directive.id}, ${tuple.head}, "${tuple(1)}", "${tuple(2)}", "${tuple(3)}"]
+             |"tuple": [${directive.id}, ${base64Tuple.head}, "${base64Tuple(1)}", "${base64Tuple(2)}", "${base64Tuple(3)}", "${base64Tuple(4)}", "${base64Tuple(5)}"]
              |}
              |]
              |}
@@ -399,4 +426,5 @@ object FlowUtils extends RiderLogger {
     if (ids.size > 1) (false, ns.nsDatabaseId, topicName)
     else (true, ns.nsDatabaseId, topicName)
   }
+
 }

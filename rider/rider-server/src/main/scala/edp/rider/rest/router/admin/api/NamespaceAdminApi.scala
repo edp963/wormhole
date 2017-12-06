@@ -25,8 +25,7 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{NamespaceDal, NsDatabaseDal, RelProjectNsDal}
-import edp.rider.rest.persistence.entities.{Namespace, _}
-//import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
@@ -49,11 +48,29 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
             }
             else {
               onComplete(relProjectNsDal.getNamespaceAdmin(_.id === id).mapTo[Seq[NamespaceAdmin]]) {
-                case Success(nsSeq) =>
-                  if (nsSeq.nonEmpty)
-                    complete(OK, ResponseJson[NamespaceAdmin](getHeader(200, session), nsSeq.head))
-                  else
-                    complete(OK, ResponseJson[String](getHeader(200, session), ""))
+                case Success(ns) =>
+                  complete(OK, ResponseJson[NamespaceAdmin](getHeader(200, session), ns.head))
+                case Failure(ex) =>
+                  riderLogger.error(s"user ${session.userId} select namespace by $id failed", ex)
+                  complete(OK, getHeader(451, ex.getMessage, session))
+              }
+            }
+        }
+      }
+  }
+
+  def getSchemaByIdRoute(route: String): Route = path(route / LongNumber / "schema") {
+    id =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              onComplete(namespaceDal.getSchema(id).mapTo[Option[UmsInfo]]) {
+                case Success(umsInfo) => complete(OK, ResponseJson[Option[UmsInfo]](getHeader(200, session), umsInfo))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} select namespace by $id failed", ex)
                   complete(OK, getHeader(451, ex.getMessage, session))
@@ -124,7 +141,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                         val nsSeq = new ArrayBuffer[Namespace]
                         simple.nsTables.map(nsTable => {
                           nsSeq += Namespace(0, simple.nsSys.trim, simple.nsInstance.trim, simple.nsDatabase.trim, nsTable.table.trim, "*", "*", "*", permission.trim, nsTable.key,
-                            simple.nsDatabaseId, simple.nsInstanceId, active = true, currentSec, session.userId, currentSec, session.userId)
+                            None, simple.nsDatabaseId, simple.nsInstanceId, active = true, currentSec, session.userId, currentSec, session.userId)
                         })
                         onComplete(namespaceDal.insert(nsSeq).mapTo[Seq[Namespace]]) {
                           case Success(seq) =>
@@ -144,9 +161,9 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                               onComplete(namespaceDal.findByFilter(ns => ns.nsInstanceId === simple.nsInstanceId && ns.nsDatabaseId === simple.nsDatabaseId).mapTo[Seq[Namespace]]) {
                                 case Success(rows) =>
                                   val tables = rows.map(ns => ns.nsTable)
-                                  val OKTables = tables.filter(simple.nsTables.contains(_))
-                                  riderLogger.error(s"user ${session.userId} inser namespace ${OKTables.mkString(",")} table failed", ex)
-                                  complete(OK, getHeader(409, s"${OKTables.mkString(",")} already exists", session))
+                                  val existTables = tables.filter(simple.nsTables.contains(_))
+                                  riderLogger.error(s"user ${session.userId} insert namespace ${existTables.mkString(",")} table failed", ex)
+                                  complete(OK, getHeader(409, s"${existTables.mkString(",")} already exists", session))
                                 case Failure(e) =>
                                   riderLogger.error(s"user ${session.userId} insert namespace failed", e)
                                   complete(OK, getHeader(451, e.getMessage, session))
@@ -184,9 +201,9 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
               }
               else {
                 val namespace = Namespace(ns.id, ns.nsSys.trim, ns.nsInstance.trim, ns.nsDatabase.trim, ns.nsTable.trim, ns.nsVersion, ns.nsDbpar, ns.nsTablepar,
-                  ns.permission, ns.keys, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, currentSec, session.userId)
+                  ns.permission, ns.keys, ns.umsInfo, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, currentSec, session.userId)
                 onComplete(namespaceDal.update(namespace).mapTo[Int]) {
-                  case Success(num) =>
+                  case Success(_) =>
                     riderLogger.info(s"user ${session.userId} update namespace success.")
                     onComplete(relProjectNsDal.getNamespaceAdmin(_.id === ns.id).mapTo[Seq[NamespaceAdmin]]) {
                       case Success(nsProject) =>
@@ -206,6 +223,34 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
     }
 
   }
+
+  def putSchemaConfigRoute(route: String): Route = path(route / LongNumber / "schema") {
+    id =>
+      put {
+        entity(as[UmsInfo]) {
+          ums =>
+            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+              session =>
+                if (session.roleType != "admin") {
+                  riderLogger.warn(s"${session.userId} has no permission to access it.")
+                  complete(OK, getHeader(403, session))
+                }
+                else {
+                  onComplete(namespaceDal.updateSchema(id, ums, session.userId).mapTo[Int]) {
+                    case Success(_) =>
+                      riderLogger.info(s"user ${session.userId} update namespace schema success.")
+                      complete(OK, ResponseJson[UmsInfo](getHeader(200, session), ums))
+                    case Failure(ex) =>
+                      riderLogger.error(s"user ${session.userId} update namespace failed", ex)
+                      complete(OK, getHeader(451, ex.getMessage, session))
+                  }
+                }
+            }
+        }
+      }
+
+  }
+
 
   def getByProjectIdRoute(route: String): Route = path(route / LongNumber / "namespaces") {
     id =>
@@ -250,7 +295,8 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
     onComplete(relProjectNsDal.getNamespaceAdmin(_.active === visible).mapTo[Seq[NamespaceAdmin]]) {
       case Success(res) =>
         riderLogger.info(s"user ${session.userId} select all namespaces success.")
-        complete(OK, ResponseSeqJson[NamespaceAdmin](getHeader(200, session), res))
+        complete(OK, ResponseSeqJson[NamespaceAdmin](getHeader(200, session),
+          res.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
       case Failure(ex) =>
         riderLogger.error(s"user ${session.userId} select all namespaces failed", ex)
         complete(OK, getHeader(451, ex.getMessage, session))

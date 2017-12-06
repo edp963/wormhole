@@ -27,14 +27,12 @@ import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.monitor.Dashboard
 import edp.rider.rest.persistence.dal.{ProjectDal, RelProjectNsDal, RelProjectUdfDal, RelProjectUserDal}
 import edp.rider.rest.persistence.entities._
-//import edp.rider.rest.router.JsonProtocol._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
 import slick.jdbc.MySQLProfile.api._
-
-import scala.collection.mutable.ArrayBuffer
+import edp.rider.monitor.Dashboard._
 import scala.util.{Failure, Success}
 
 class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, relProjectUserDal: RelProjectUserDal, relProjectUdfDal: RelProjectUdfDal) extends BaseAdminApiImpl(projectDal) with RiderLogger with JsonSerializer {
@@ -130,6 +128,7 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
                 onComplete(projectDal.insert(projectEntity).mapTo[Project]) {
                   case Success(project) =>
                     riderLogger.info(s"user ${session.userId} insert project success.")
+                    createDashboard(project.id, project.name)
                     val relNsEntity = simple.nsId.split(",").map(nsId => RelProjectNs(0, project.id, nsId.toLong, active = true, currentSec, session.userId, currentSec, session.userId)).toSeq
                     val relUserEntity = simple.userId.split(",").map(userId => RelProjectUser(0, project.id, userId.toLong, active = true, currentSec, session.userId, currentSec, session.userId)).toSeq
                     val relUdfEntity =
@@ -194,7 +193,10 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
                     riderLogger.info(s"user ${session.userId} updated project success.")
                     val relNsEntity = entity.nsId.split(",").map(nsId => RelProjectNs(0, entity.id, nsId.toLong, active = true, currentSec, session.userId, currentSec, session.userId)).toSeq
                     val relUserEntity = entity.userId.split(",").map(userId => RelProjectUser(0, entity.id, userId.toLong, active = true, currentSec, session.userId, currentSec, session.userId)).toSeq
-                    val relUdfEntity = entity.udfId.split(",").map(udfId => RelProjectUdf(0, entity.id, udfId.toLong, currentSec, session.userId, currentSec, session.userId)).toSeq
+                    val relUdfEntity =
+                      if (entity.udfId != "")
+                        entity.udfId.split(",").map(udfId => RelProjectUdf(0, entity.id, udfId.toLong, currentSec, session.userId, currentSec, session.userId)).toSeq
+                      else Seq[RelProjectUdf]()
                     onComplete(relProjectNsDal.findByFilter(_.projectId === entity.id).mapTo[Seq[RelProjectNs]]) {
                       case Success(existRelNsSeq) =>
                         riderLogger.info(s"user ${session.userId} select relProjectNs where project id is ${entity.id} success.")

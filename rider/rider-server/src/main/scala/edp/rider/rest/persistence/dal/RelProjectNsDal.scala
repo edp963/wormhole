@@ -97,15 +97,17 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
       relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) on (_.id === _.nsId))
       join streamTable.filter(_.id === streamId) on (_._1.nsInstanceId === _.instanceId))
       .map {
-        case ((ns, _), _) => ns
-      }.result).mapTo[Seq[Namespace]]
+        case ((ns, _), _) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
+          ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy) <> (NamespaceInfo.tupled, NamespaceInfo.unapply)
+      }.result).mapTo[Seq[NamespaceInfo]]
 
   def getJobSourceNamespaceByProjectId(projectId: Long, nsSys: String) =
     db.run((namespaceTable.filter(ns => ns.nsSys === nsSys && ns.active === true) join
       relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) on (_.id === _.nsId))
       .map {
-        case (ns, _) => ns
-      }.result).mapTo[Seq[Namespace]]
+        case (ns, _) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
+          ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy) <> (NamespaceInfo.tupled, NamespaceInfo.unapply)
+      }.result).mapTo[Seq[NamespaceInfo]]
 
   def getSinkNamespaceByProjectId(id: Long, nsSys: String) =
     db.run(((namespaceTable.filter(ns => ns.nsSys === nsSys && ns.active === true && ns.permission === READWRITE.toString) join
@@ -113,10 +115,10 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
       .map {
         case ((ns, rel), instance) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
           ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy, instance.nsSys) <> (NamespaceTemp.tupled, NamespaceTemp.unapply)
-      }.result).map[Seq[Namespace]] {
+      }.result).map[Seq[NamespaceInfo]] {
       nsSeq =>
         nsSeq.filter(ns => ns.nsSys == ns.nsInstanceSys)
-          .map(ns => Namespace(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
+          .map(ns => NamespaceInfo(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
             ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy))
     }
 
@@ -143,7 +145,7 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
   }
 
   def getInstanceByProjectId(projectId: Long, nsSys: String): Future[Seq[Instance]] = {
-    db.run((relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) join namespaceTable.filter(_.nsSys === nsSys) on (_.nsId === _.id) join instanceTable.filter(_.nsSys === "kafka") on (_._2.nsInstanceId === _.id)).map {
+    db.run((relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) join namespaceTable on (_.nsId === _.id) join instanceTable.filter(_.nsSys === "kafka") on (_._2.nsInstanceId === _.id)).map {
       case ((_, _), instance) => instance
     }.distinct.result).mapTo[Seq[Instance]]
   }

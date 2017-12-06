@@ -50,19 +50,19 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
                   if (session.projectIdList.contains(id)) {
                     (sourceType, sinkType, transType) match {
                       case (Some(source), None, None) =>
-                        onComplete(relProjectNsDal.getJobSourceNamespaceByProjectId(id, source).mapTo[Seq[Namespace]]) {
+                        onComplete(relProjectNsDal.getJobSourceNamespaceByProjectId(id, source).mapTo[Seq[NamespaceInfo]]) {
                           case Success(nsSeq) =>
                             riderLogger.info(s"user ${session.userId} select namespaces where project id is $id, nsSys is $source success.")
-                            complete(OK, ResponseSeqJson[Namespace](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
+                            complete(OK, ResponseSeqJson[NamespaceInfo](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
                           case Failure(ex) =>
                             riderLogger.error(s"user ${session.userId} select namespaces where project id is $id and nsSys is $source failed", ex)
                             complete(OK, getHeader(451, ex.getMessage, session))
                         }
                       case (None, Some(sink), None) =>
-                        onComplete(relProjectNsDal.getSinkNamespaceByProjectId(id, sink).mapTo[Seq[Namespace]]) {
+                        onComplete(relProjectNsDal.getSinkNamespaceByProjectId(id, sink).mapTo[Seq[NamespaceInfo]]) {
                           case Success(nsSeq) =>
                             riderLogger.info(s"user ${session.userId} select namespaces where project id is $id and nsSys is $sink success.")
-                            complete(OK, ResponseSeqJson[Namespace](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
+                            complete(OK, ResponseSeqJson[NamespaceInfo](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
                           case Failure(ex) =>
                             riderLogger.error(s"user ${session.userId} select namespaces where project id is $id and nsSys is $sink failed", ex)
                             complete(OK, getHeader(451, ex.getMessage, session))
@@ -116,19 +116,19 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
                   if (session.projectIdList.contains(projectId)) {
                     (sourceType, sinkType, transType) match {
                       case (Some(source), None, None) =>
-                        onComplete(relProjectNsDal.getFlowSourceNamespaceByProjectId(projectId, streamId, source).mapTo[Seq[Namespace]]) {
+                        onComplete(relProjectNsDal.getFlowSourceNamespaceByProjectId(projectId, streamId, source).mapTo[Seq[NamespaceInfo]]) {
                           case Success(nsSeq) =>
                             riderLogger.info(s"user ${session.userId} select namespaces where project id is $projectId, stream id is $streamId and nsSys is $source success.")
-                            complete(OK, ResponseSeqJson[Namespace](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
+                            complete(OK, ResponseSeqJson[NamespaceInfo](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
                           case Failure(ex) =>
                             riderLogger.error(s"user ${session.userId} select namespaces where project id is $projectId and nsSys is $source failed", ex)
                             complete(OK, getHeader(451, ex.getMessage, session))
                         }
                       case (None, Some(sink), None) =>
-                        onComplete(relProjectNsDal.getSinkNamespaceByProjectId(projectId, sink).mapTo[Seq[Namespace]]) {
+                        onComplete(relProjectNsDal.getSinkNamespaceByProjectId(projectId, sink).mapTo[Seq[NamespaceInfo]]) {
                           case Success(nsSeq) =>
                             riderLogger.info(s"user ${session.userId} select namespaces where project id is $projectId and nsSys is $sink success.")
-                            complete(OK, ResponseSeqJson[Namespace](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
+                            complete(OK, ResponseSeqJson[NamespaceInfo](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
                           case Failure(ex) =>
                             riderLogger.error(s"user ${session.userId} select namespaces where project id is $projectId and nsSys is $sink failed", ex)
                             complete(OK, getHeader(451, ex.getMessage, session))

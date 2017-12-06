@@ -26,15 +26,14 @@ import javax.ws.rs.Path
 import akka.http.scaladsl.server.{Directives, Route}
 import edp.rider.module._
 import edp.rider.rest.persistence.entities.{SimpleStream, StreamInTopic, StreamTopic}
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.SessionClass
+import edp.rider.rest.router.{JsonSerializer, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import io.swagger.annotations.{ApiResponses, _}
 
 
 @Api(value = "/streams", consumes = "application/json", produces = "application/json")
 @Path("/user/projects")
-class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
+class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives with JsonSerializer {
   lazy val routes: Route = getStreamByAllRoute ~ putStreamRoute ~ postStreamRoute ~ renewRoute ~
     getStreamById ~ getLogByStreamId ~ stop ~ startRoute ~ deleteStream ~ getConf ~ getLatestOffset
 

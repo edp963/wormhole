@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS `namespace` (
   `ns_tablepar` VARCHAR(100) NOT NULL,
   `permission` VARCHAR(20) NOT NULL,
   `keys` VARCHAR(1000) NULL,
+  `ums_info` VARCHAR(5000) NULL,
   `ns_database_id` BIGINT NOT NULL,
   `ns_instance_id` BIGINT NOT NULL,
   `active` TINYINT(1) NOT NULL,
@@ -70,6 +71,8 @@ CREATE TABLE IF NOT EXISTS `namespace` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `namespace_UNIQUE` (`ns_sys` ASC, `ns_instance` ASC, `ns_database` ASC, `ns_table` ASC, `ns_version` ASC, `ns_dbpar` ASC, `ns_tablepar` ASC, `permission` ASC))
 ENGINE = InnoDB;
+
+alter table `namespace` Add column `ums_info` varchar(5000) default null;
 
 CREATE TABLE IF NOT EXISTS `stream` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
