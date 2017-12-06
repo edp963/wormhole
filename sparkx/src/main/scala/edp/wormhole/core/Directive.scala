@@ -60,7 +60,7 @@ trait Directive extends EdpLogging{
       addTopicList.foreach(topic => {
         val topicName = topic._1.topic_name
         topic._1.topic_partition.foreach(partition => {
-          addTpMap((topicName, partition.partition_num)) = (partition.offset, topic._2)
+          addTpMap((topicName, partition.partition_num)) = (partition.offset, topic._1.topic_rate)
         })
       })
       stream.updateTopicOffset(addTpMap.map(tp => {
