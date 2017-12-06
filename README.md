@@ -14,7 +14,7 @@ Wormhole面向大数据流式处理项目的开发管理运维人员，致力于
 
 ## Architecture
 
-![wh4 pipeline overview](https://github.com/edp963/wormhole/raw/master/docs/img/wh4_pipeline_overview.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/wh4_pipeline_overview.png" alt="" style="width: 600px;"/>
 
 ## Features
 
@@ -31,7 +31,7 @@ Please download the latest [RELEASE](https://github.com/edp963/wormhole/releases
 - **Mailing list**: edp_support@groups.163.com
 - **WeChat**: edpstack
 
-![二维码](https://github.com/edp963/edp-resource/raw/master/WeChat.jpg)
+<img src="https://github.com/edp963/edp-resource/raw/master/WeChat.jpg" alt="" style="width: 100px;"/>
 
 ## License
 
