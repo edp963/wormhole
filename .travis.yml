@@ -1,0 +1,9 @@
+language: java
+jdk:
+  - oraclejdk8
+
+notification:
+  email:
+    recipients:
+      - edp_support@groups.163.com
+    on_failure: always
