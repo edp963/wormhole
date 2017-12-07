@@ -1,0 +1,1 @@
+2017-12-01 12:45:02 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
