@@ -56,7 +56,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
           result match {
             case Failure(e) =>
               riderLogger.error(s"FeedbackHeartbeat inserted ${tuple.toString} failed", e)
-            case Success(t) => riderLogger.info("FeedbackHeartbeat inserted success.")
+            case Success(t) => riderLogger.debug("FeedbackHeartbeat inserted success.")
           }
         }else { riderLogger.error(s"FeedbackHeartbeat can't found the value", tuple)}
       })
