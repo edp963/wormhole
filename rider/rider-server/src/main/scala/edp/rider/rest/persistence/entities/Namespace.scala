@@ -68,9 +68,9 @@ case class Field(name: String,
                  sub_fields: Option[Field])
 
 case class UmsInfo(umsType: Option[String],
-                   jsonSample: Option[String],
-                   jsonParseArray: Option[Seq[JsonParse]],
-                   umsSchemaTable: Option[Seq[UmsSchemaTable]],
+                   jsonSample: Option[Object],
+                   jsonParseArray: Option[Object],
+                   umsSchemaTable: Option[Object],
                    umsSchema: Option[UmsSchema])
 
 case class NamespaceInfo(id: Long,
