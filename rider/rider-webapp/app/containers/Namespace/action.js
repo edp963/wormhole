@@ -36,9 +36,12 @@ import {
   LOAD_SINGLE_NAMESPACE_SUCCESS,
   EDIT_NAMESPACE,
   EDIT_NAMESPACE_SUCCESS,
-
   LOAD_PROJECT_NS_ALL,
   LOAD_PROJECT_NS_ALL_SUCCESS,
+  SET_SCHEMA,
+  SET_SCHEMA_SUCCESS,
+  QUERY_SCHEMA_CONFIG,
+  QUERY_SCHEMA_CONFIG_SUCCESS,
   GET_ERROR
 } from './constants'
 
@@ -224,6 +227,47 @@ export function loadProjectNsAll (resolve) {
 export function projectNsAllLoaded (result, resolve) {
   return {
     type: LOAD_PROJECT_NS_ALL_SUCCESS,
+    payload: {
+      result,
+      resolve
+    }
+  }
+}
+
+export function setSchema (namespaceId, value, resolve) {
+  return {
+    type: SET_SCHEMA,
+    payload: {
+      namespaceId,
+      value,
+      resolve
+    }
+  }
+}
+
+export function schemaSetted (result, resolve) {
+  return {
+    type: SET_SCHEMA_SUCCESS,
+    payload: {
+      result,
+      resolve
+    }
+  }
+}
+
+export function querySchemaConfig (namespaceId, resolve) {
+  return {
+    type: QUERY_SCHEMA_CONFIG,
+    payload: {
+      namespaceId,
+      resolve
+    }
+  }
+}
+
+export function schemaConfigQueried (result, resolve) {
+  return {
+    type: QUERY_SCHEMA_CONFIG_SUCCESS,
     payload: {
       result,
       resolve

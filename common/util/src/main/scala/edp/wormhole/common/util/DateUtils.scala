@@ -183,9 +183,9 @@ trait DateUtils {
     * convert Date to Long, from 1970 base
     *
     * @param timeDate time as Date type
-    * @return time as Long type in microsecond
+    * @return time as Long type in millisecond
     */
-  def dt2long(timeDate: Date): JavaLong = if (timeDate == null) null else timeDate.getTime * 1000
+  def dt2long(timeDate: Date): JavaLong = if (timeDate == null) null else timeDate.getTime
 
   /**
     * convert time String to Long

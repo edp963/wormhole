@@ -25,14 +25,14 @@ import edp.wormhole.common.KVConfig
 import edp.wormhole.sinks.SourceMutationType
 import edp.wormhole.sinks.utils.SinkDefault._
 
-case class DbConfig(`db.mutation_type`: Option[String],
+case class DbConfig(`mutation_type`: Option[String],
                     `db.sql_batch_size`: Option[Int],
                     `db.partition_keys`: Option[String],
                     `db.system_fields_rename`: Option[String],
                     //                     `db.connection_password`: String,
                     `db.function_table`: Option[String]
                    ) {
-  lazy val `db.mutation_type.get` = `db.mutation_type`.getOrElse(SourceMutationType.I_U_D.toString)
+  lazy val `mutation_type.get` = `mutation_type`.getOrElse(SourceMutationType.I_U_D.toString)
   lazy val `db.sql_batch_size.get` = `db.sql_batch_size`.getOrElse(100)
   lazy val partitionKeyList = keys2keyList(`db.partition_keys`.orNull)
   lazy val edpTable = `db.function_table`.getOrElse("edp")

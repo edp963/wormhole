@@ -27,7 +27,6 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.{Directives, Route}
 import edp.rider.common.RiderLogger
 import edp.rider.module.{BusinessModule, ConfigurationModule, PersistenceModule}
-import edp.rider.rest.router.JsonProtocol._
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils._
 import io.swagger.annotations._
@@ -36,7 +35,7 @@ import scala.util.{Failure, Success}
 
 @Api(value = "generateToken", consumes = "application/json", produces = "application/json")
 @Path("/users")
-class GenTokenRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule) extends Directives with RiderLogger {
+class GenTokenRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule) extends Directives with RiderLogger with JsonSerializer {
 
   lazy val routes = genToken
 

@@ -38,9 +38,12 @@ import {
   LOAD_SINGLE_NAMESPACE_SUCCESS,
   EDIT_NAMESPACE,
   EDIT_NAMESPACE_SUCCESS,
-
   LOAD_PROJECT_NS_ALL,
   LOAD_PROJECT_NS_ALL_SUCCESS,
+  SET_SCHEMA,
+  SET_SCHEMA_SUCCESS,
+  QUERY_SCHEMA_CONFIG,
+  QUERY_SCHEMA_CONFIG_SUCCESS,
   GET_ERROR
 } from './constants'
 
@@ -109,12 +112,23 @@ export function namespaceReducer (state = initialState, { type, payload }) {
       return state
         .set('namespaces', namespaces.slice())
         .set('modalLoading', false)
-
     case LOAD_PROJECT_NS_ALL:
       return state.set('error', false)
     case LOAD_PROJECT_NS_ALL_SUCCESS:
       payload.resolve(payload.result)
       return state.set('namespaces', payload.result)
+    case SET_SCHEMA:
+      return state
+        .set('error', false)
+        .set('modalLoading', true)
+    case SET_SCHEMA_SUCCESS:
+      payload.resolve()
+      return state.set('modalLoading', false)
+    case QUERY_SCHEMA_CONFIG:
+      return state.set('error', false)
+    case QUERY_SCHEMA_CONFIG_SUCCESS:
+      payload.resolve(payload.result)
+      return state
     case GET_ERROR:
       return state.set('error', payload.error)
     default:

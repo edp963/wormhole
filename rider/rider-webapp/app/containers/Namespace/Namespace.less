@@ -63,7 +63,7 @@
 
 .schema-config-modal {
   &>.ant-modal {
-    width: 1280px !important;
+    width: 1200px !important;
   }
 }
 
@@ -73,17 +73,13 @@
 }
 
 .change-btn {
-  margin-left: 5px;
-  margin-right: -5px;
+  margin-left: 3px;
+  margin-right: -3px;
   margin-top: 265px;
 }
 
 .ums-modal .ant-modal {
   top: 40px !important;
-}
-
-.code-mirror-content {
-  margin-bottom: -24px;
 }
 
 .editable-cell-icon-check {
@@ -145,4 +141,22 @@
 .edit-disabled-class {
   cursor: not-allowed;
   color: #8a8a8a;
+}
+
+.type-text-class {
+  color: #8a8a8a;
+}
+
+.rename-text-class {
+  color: red;
+}
+
+.table-ums-class {
+  .ant-checkbox-input {
+    cursor: not-allowed !important;
+  }
+  .ant-checkbox-checked .ant-checkbox-inner {
+    background-color: #8a8a8a !important;
+    border-color: #8a8a8a !important;
+  }
 }

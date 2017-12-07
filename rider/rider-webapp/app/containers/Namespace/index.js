@@ -25,9 +25,9 @@ import Helmet from 'react-helmet'
 import CodeMirror from 'codemirror'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
-// require('../../../node_modules/codemirror/mode/sql/sql')
 
-import { jsonParse, genDefaultSchemaTable, nestType2string, string2nestType, tupleFields, umsSysFieldSelected, umsSysFieldUnSelected } from './umsFunction'
+import { jsonParse, genDefaultSchemaTable, nestType2string, string2nestType,
+  tupleFields, umsSysFieldSelected, umsSysFieldUnSelected, getRepeatFieldIndex, genSchema, rowSelectFunc } from './umsFunction'
 import { isJSONNotEmpty } from '../../utils/util'
 
 import NamespaceForm from './NamespaceForm'
@@ -46,7 +46,8 @@ const { RangePicker } = DatePicker
 import { loadDatabasesInstance } from '../../containers/DataBase/action'
 import { selectDbUrlValue } from '../../containers/DataBase/selectors'
 import { loadSingleInstance } from '../../containers/Instance/action'
-import { loadAdminAllNamespaces, loadUserNamespaces, loadSelectNamespaces, loadNamespaceDatabase, addNamespace, editNamespace, loadTableNameExist, loadSingleNamespace } from './action'
+import { loadAdminAllNamespaces, loadUserNamespaces, loadSelectNamespaces, loadNamespaceDatabase,
+  addNamespace, editNamespace, loadTableNameExist, loadSingleNamespace, setSchema, querySchemaConfig } from './action'
 import { selectNamespaces, selectError, selectModalLoading, selectTableNameExited } from './selectors'
 
 export class Namespace extends React.PureComponent {
@@ -102,7 +103,10 @@ export class Namespace extends React.PureComponent {
       schemaModalLoading: false,
       jsonSampleValue: {},
       umsTableDataSource: [],
-      umsTypeSeleted: 'ums'
+      umsTypeSeleted: 'ums',
+      nsIdValue: 0,
+      repeatRenameArr: [],
+      selectAllState: 'all'
     }
   }
 
@@ -623,30 +627,78 @@ export class Namespace extends React.PureComponent {
 
   showEditUms = (record) => (e) => {
     this.setState({
-      schemaModalVisible: true
+      schemaModalVisible: true,
+      nsIdValue: record.id
+    }, () => {
+      if (this.cmSample) {
+        this.cmSample.doc.setValue('')
+      }
+      this.makeCodeMirrorInstance()
+
+      this.props.onQuerySchemaConfig(record.id, (result) => {
+        if (result === null) {
+          this.schemaTypeConfig.setFieldsValue({
+            umsType: 'ums'
+          })
+          this.setState({ umsTypeSeleted: 'ums' })
+        } else {
+          this.schemaTypeConfig.setFieldsValue({
+            umsType: result.umsType
+          })
+          this.setState({
+            umsTypeSeleted: result.umsType
+          }, () => {
+            if (this.state.umsTypeSeleted === 'ums_extension') {
+              this.cmSample.doc.setValue(result.jsonSample)
+
+              // setTimeout(this.onJsonFormat(), 100)
+
+              const tableData = result.umsSchemaTable.map((s, index) => {
+                s.key = index
+                return s
+              })
+              this.setState({
+                umsTableDataSource: tableData
+              }, () => {
+                const tempArr = this.state.umsTableDataSource.filter(s => !s.forbidden)
+                const selectedArr = tempArr.filter(s => s.selected)
+
+                let tempState = ''
+                if (selectedArr.length !== 0) {
+                  tempState = selectedArr.length === tempArr.length ? 'all' : 'part'
+                } else {
+                  tempState = 'not'
+                }
+                this.setState({
+                  selectAllState: tempState
+                })
+              })
+            }
+          })
+        }
+      })
     })
   }
 
   initChangeUmsType = (value) => {
     this.setState({
       umsTypeSeleted: value
-    }, () => {
-      if (this.state.umsTypeSeleted === 'ums_extension') {
-        if (!this.cmSample) {
-          const temp = document.getElementById('jsonSample')
-
-          this.cmSample = CodeMirror.fromTextArea(temp, {
-            lineNumbers: true,
-            matchBrackets: true,
-            autoCloseBrackets: true,
-            mode: 'application/ld+json',
-            // mode: 'text/x-sql',
-            lineWrapping: true
-          })
-          this.cmSample.setSize('100%', '530px')
-        }
-      }
     })
+  }
+
+  makeCodeMirrorInstance = () => {
+    if (!this.cmSample) {
+      const temp = document.getElementById('jsonSampleTextarea')
+
+      this.cmSample = CodeMirror.fromTextArea(temp, {
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        mode: 'application/ld+json',
+        lineWrapping: true
+      })
+      this.cmSample.setSize('100%', '530px')
+    }
   }
 
   hideSchemaModal = () => {
@@ -654,17 +706,67 @@ export class Namespace extends React.PureComponent {
       schemaModalVisible: false
     }, () => {
       this.setState({
-        umsTableDataSource: []
+        umsTableDataSource: [],
+        umsTypeSeleted: 'ums'
       }, () => {
-        this.cmSample.doc.setValue('')
+        if (this.cmSample) {
+          this.cmSample.doc.setValue('')
+        }
       })
+      this.schemaTypeConfig.resetFields()
     })
   }
 
   onSchemaModalOk = () => {
     this.schemaTypeConfig.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        this.hideSchemaModal()
+        const { nsIdValue } = this.state
+        switch (values.umsType) {
+          case 'ums':
+            const requestValue = {umsType: 'ums'}
+            this.props.onSetSchema(nsIdValue, requestValue, () => {
+              message.success('Schema 配置成功！', 3)
+              this.hideSchemaModal()
+            })
+            break
+          case 'ums_extension':
+            const { jsonSampleValue, umsTableDataSource } = this.state
+
+            // 检查rename字段是否有重复, 提示rename重复的位置，数组中的值为rename重复的index
+            const repeatArr = getRepeatFieldIndex(umsTableDataSource)
+
+            if (repeatArr.length !== 0) {
+              message.warning('请修改 Rename 重复项！', 3)
+              this.setState({
+                repeatRenameArr: repeatArr
+              })
+            } else {
+              // 检查ums_id_/ums_ts_，分别必须得有一个
+              const umsIdExit = umsTableDataSource.find(i => i.ums_id_ === true)
+              const umsTsExit = umsTableDataSource.find(i => i.ums_ts_ === true)
+              if (umsIdExit === undefined) {
+                message.warning('请选择 UMS_ID_！', 3)
+              } else if (umsTsExit === undefined) {
+                message.warning('请选择 UMS_TS_！', 3)
+              } else {
+                const tableDataString = JSON.stringify(umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden', 'value'])
+
+                const requestValue = {
+                  umsType: 'ums_extension',
+                  jsonSample: this.cmSample.doc.getValue(),
+                  jsonParseArray: jsonSampleValue,
+                  umsSchemaTable: JSON.parse(tableDataString),
+                  umsSchema: genSchema(umsTableDataSource) // 生成 umsSchema json
+                }
+
+                this.props.onSetSchema(nsIdValue, requestValue, () => {
+                  message.success('Schema 配置成功！', 3)
+                  this.hideSchemaModal()
+                })
+              }
+            }
+            break
+        }
       }
     })
   }
@@ -702,6 +804,105 @@ export class Namespace extends React.PureComponent {
         })
       })
     }
+  }
+
+  initChangeSelected = (record) => {
+    const { umsTableDataSource } = this.state
+
+    const tempData = umsTableDataSource.map(s => {
+      const temp = s.key === record.key
+        ? {
+          fieldName: s.fieldName,
+          fieldType: s.fieldType,
+          forbidden: s.forbidden,
+          key: s.key,
+          rename: s.rename,
+          selected: !s.selected,
+          ums_id_: s.ums_id_,
+          ums_op_: s.ums_op_,
+          ums_ts_: s.ums_ts_,
+          value: s.value
+        }
+        : s
+      return temp
+    })
+
+    rowSelectFunc(tempData, record.key)
+
+    this.setState({
+      umsTableDataSource: tempData
+    })
+  }
+
+  initRowSelectedAll = () => {
+    const { umsTableDataSource, selectAllState } = this.state
+
+    let temp = ''
+    if (selectAllState === 'all') {
+      temp = 'not'
+    } else if (selectAllState === 'not') {
+      temp = 'all'
+    } else if (selectAllState === 'part') {
+      temp = 'all'
+    }
+
+    this.setState({
+      selectAllState: temp
+    }, () => {
+      let tempArr = []
+      if (this.state.selectAllState === 'all') {
+        tempArr = umsTableDataSource.map(s => {
+          let tempObj = {}
+          if (!s.forbidden) {
+            tempObj = !s.selected
+              ? {
+                fieldName: s.fieldName,
+                fieldType: s.fieldType,
+                forbidden: s.forbidden,
+                key: s.key,
+                rename: s.rename,
+                selected: true,
+                ums_id_: s.ums_id_,
+                ums_op_: s.ums_op_,
+                ums_ts_: s.ums_ts_,
+                value: s.value
+              }
+              : s
+          } else {
+            tempObj = s
+          }
+          return tempObj
+        })
+      } else if (this.state.selectAllState === 'not') {
+        tempArr = umsTableDataSource.map(s => {
+          let tempObj = {}
+          if (!s.forbidden) {
+            tempObj = s.selected
+              ? {
+                fieldName: s.fieldName,
+                fieldType: s.fieldType,
+                forbidden: s.forbidden,
+                key: s.key,
+                rename: s.rename,
+                selected: false,
+                ums_id_: s.ums_id_,
+                ums_op_: s.ums_op_,
+                ums_ts_: s.ums_ts_,
+                value: s.value
+              }
+              : s
+          } else {
+            tempObj = s
+          }
+          return tempObj
+        })
+      } else if (this.state.selectAllState === 'part') {
+        tempArr = umsTableDataSource
+      }
+      this.setState({
+        umsTableDataSource: tempArr
+      })
+    })
   }
 
   // todo: test。fieldName 不是唯一的
@@ -782,8 +983,6 @@ export class Namespace extends React.PureComponent {
     const { umsTableDataSource } = this.state
     this.setState({
       umsTableDataSource: umsSysFieldUnSelected(umsTableDataSource, record.key, umsSysField)
-    }, () => {
-      // console.log('cancel', umsTableDataSource)
     })
   }
 
@@ -1079,7 +1278,7 @@ export class Namespace extends React.PureComponent {
         render: (text, record) => {
           const umsAction = record.nsSys === 'kafka'
             ? (
-              <Tooltip title="Ums 配置">
+              <Tooltip title="Schema 配置">
                 <Button icon="setting" shape="circle" type="ghost" onClick={this.showEditUms(record)}></Button>
               </Tooltip>
             )
@@ -1229,6 +1428,7 @@ export class Namespace extends React.PureComponent {
           ]}
         >
           <SchemaTypeConfig
+            initChangeSelected={this.initChangeSelected}
             initChangeUmsType={this.initChangeUmsType}
             onChangeJsonToTable={this.onChangeUmsJsonToTable}
             initChangeType={this.initChangeFiledType}
@@ -1237,8 +1437,11 @@ export class Namespace extends React.PureComponent {
             cancelSelectUmsId={this.cancelSelectUmsId}
             initCheckUmsOp={this.initCheckUmsOp}
             initCancelUmsOp={this.initCancelUmsOp}
+            initRowSelectedAll={this.initRowSelectedAll}
             umsTableDataSource={this.state.umsTableDataSource}
             umsTypeSeleted={this.state.umsTypeSeleted}
+            repeatRenameArr={this.state.repeatRenameArr}
+            selectAllState={this.state.selectAllState}
             ref={(f) => { this.schemaTypeConfig = f }}
           />
         </Modal>
@@ -1265,7 +1468,9 @@ Namespace.propTypes = {
   onAddNamespace: React.PropTypes.func,
   onEditNamespace: React.PropTypes.func,
   onLoadSingleNamespace: React.PropTypes.func,
-  onLoadSingleInstance: React.PropTypes.func
+  onLoadSingleInstance: React.PropTypes.func,
+  onSetSchema: React.PropTypes.func,
+  onQuerySchemaConfig: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1279,7 +1484,9 @@ export function mapDispatchToProps (dispatch) {
     onLoadNamespaceDatabase: (value, resolve) => dispatch(loadNamespaceDatabase(value, resolve)),
     onLoadTableNameExist: (value, resolve, reject) => dispatch(loadTableNameExist(value, resolve, reject)),
     onLoadSingleNamespace: (namespaceId, resolve) => dispatch(loadSingleNamespace(namespaceId, resolve)),
-    onLoadSingleInstance: (namespaceId, resolve) => dispatch(loadSingleInstance(namespaceId, resolve))
+    onLoadSingleInstance: (namespaceId, resolve) => dispatch(loadSingleInstance(namespaceId, resolve)),
+    onSetSchema: (namespaceId, value, resolve) => dispatch(setSchema(namespaceId, value, resolve)),
+    onQuerySchemaConfig: (namespaceId, value, resolve) => dispatch(querySchemaConfig(namespaceId, value, resolve))
   }
 }
 

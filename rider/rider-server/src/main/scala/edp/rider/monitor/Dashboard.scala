@@ -38,7 +38,7 @@ object Dashboard extends RiderLogger {
     try {
       val uri = Uri.apply(s"${RiderConfig.grafana.url}/api/dashboards/db")
       val userData: ByteString = ByteString(getCreateDashboardJson(projectName, projectId))
-      //      riderLogger.info(s"Grafna create dashboard $userData")
+      riderLogger.info(s"Grafana create ${projectName}_Monitor dashboard")
       grafanaPostData(RiderConfig.grafana.adminToken, uri, userData)
     } catch {
       case e: Exception =>

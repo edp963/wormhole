@@ -43,11 +43,11 @@ object SparkStatusQuery extends RiderLogger {
   def getSparkAllJobStatus(jobs: Seq[Job], sparkList: List[AppResult], projectName: String) = jobs.map(job => {
     val appInfo = mappingSparkJobStatus(job, sparkList)
     modules.jobDal.updateJobStatus(job.id, appInfo)
-    val startedTime = if (appInfo.startedTime != null) Some(appInfo.startedTime) else Some("")
-    val stoppedTime = if (appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
+    //    val startedTime = if (appInfo.startedTime != null) Some(appInfo.startedTime) else Some("")
+    //    val stoppedTime = if (appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
     FullJobInfo(Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.sourceType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
-      job.sinkConfig, job.tranConfig, appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.createTime, job.createBy, job.updateTime, job.updateBy)
-    , projectName,getDisableAction(JobStatus.jobStatus(job.status)))
+      job.sinkConfig, job.tranConfig, appInfo.appState, Some(appInfo.appId), job.logPath, Option(appInfo.startedTime), Option(appInfo.finishedTime), job.createTime, job.createBy, job.updateTime, job.updateBy)
+      , projectName, getDisableAction(JobStatus.jobStatus(job.status)))
   })
 
 
@@ -62,22 +62,22 @@ object SparkStatusQuery extends RiderLogger {
     val result = job.status match {
       case "starting" =>
         val logInfo = getAppStatusByLog(job.name, job.status)
-        riderLogger.info(s"job log status: $logInfo._2")
-        if (logInfo._2.toUpperCase == "WAITING" || logInfo._2.toUpperCase == "RUNNING" || logInfo._2.toUpperCase == "STARTING") {
-          appInfo.appState.toUpperCase match {
-            case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
-            case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
-            case "KILLED" | "FINISHED" | "FAILED" => AppInfo(appInfo.appId, "failed", appInfo.startedTime, appInfo.finishedTime)
-            case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
-            case "STARTING" => AppInfo(logInfo._1, logInfo._2, startedTime, appInfo.finishedTime)
-            case "WAITING" => AppInfo(appInfo.appId, logInfo._2, startedTime, appInfo.finishedTime)
-          }
-        } else AppInfo(logInfo._1, logInfo._2, startedTime, appInfo.finishedTime)
+        //        if (logInfo._2.toUpperCase == "WAITING" || logInfo._2.toUpperCase == "RUNNING" || logInfo._2.toUpperCase == "STARTING") {
+        //          appInfo.appState.toUpperCase match {
+        //            case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
+        //            case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
+        //            case "KILLED" | "FINISHED" | "FAILED" => AppInfo(appInfo.appId, "failed", appInfo.startedTime, appInfo.finishedTime)
+        //            case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
+        //            case "STARTING" => AppInfo(logInfo._1, logInfo._2, startedTime, appInfo.finishedTime)
+        //            case "WAITING" => AppInfo(appInfo.appId, logInfo._2, startedTime, appInfo.finishedTime)
+        //          }
+        //        } else
+        AppInfo(logInfo._1, logInfo._2, appInfo.startedTime, appInfo.finishedTime)
       case "waiting" =>
         appInfo.appState.toUpperCase match {
           case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
           case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
-          case "WAITING" => AppInfo(appInfo.appId, "waiting", startedTime, appInfo.finishedTime)
+          case "WAITING" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
           case "KILLED" | "FINISHED" | "FAILED" => AppInfo(appInfo.appId, "failed", appInfo.startedTime, appInfo.finishedTime)
           case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
         }
@@ -91,16 +91,14 @@ object SparkStatusQuery extends RiderLogger {
       case "stopping" =>
         appInfo.appState.toUpperCase match {
           case "STOPPING" => AppInfo(appInfo.appId, "stopping", appInfo.startedTime, appInfo.finishedTime)
-          case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
-          case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
           case "KILLED" | "FAILED" | "FINISHED" => AppInfo(appInfo.appId, "stopped", appInfo.startedTime, appInfo.finishedTime)
           case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
+          case _ => AppInfo(appInfo.appId, "stopping", appInfo.startedTime, appInfo.finishedTime)
         }
       case "stopped" =>
         appInfo.appState.toUpperCase match {
-          case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
           case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
-          case _ => AppInfo(job.sparkAppid.getOrElse(""), job.status, startedTime, stoppedTime)
+          case _ => AppInfo(job.sparkAppid.getOrElse(""), "stopped", startedTime, stoppedTime)
         }
       case _ => AppInfo(job.sparkAppid.getOrElse(""), job.status, startedTime, stoppedTime)
     }
