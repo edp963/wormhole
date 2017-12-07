@@ -21,6 +21,8 @@
 
 package edp.rider.module
 
+import java.sql.SQLException
+
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.base._
 import edp.rider.rest.persistence.dal._
@@ -39,18 +41,22 @@ object DbModule extends ConfigurationModuleImpl with RiderLogger {
   lazy val profile: JdbcProfile = dbConfig.profile
   lazy val db: JdbcProfile#Backend#Database = dbConfig.db
 
-
   def createSchema: Unit = {
     val session = db.createSession()
-    try {
-      sqlSeq.filter(_.toLowerCase().contains("create")).map(session.withPreparedStatement(_)(_.execute))
-      riderLogger.info("Initial rider database success")
-    } catch {
-      case ex: Exception => riderLogger.error("Initial rider database failed", ex)
-    }
-    finally {
-      session.close()
-    }
+    sqlSeq.filter(sql =>
+      sql.trim.toLowerCase().startsWith("create")
+        || sql.trim.toLowerCase().startsWith("alter")
+        || sql.trim.toLowerCase().startsWith("drop"))
+      .map { sql =>
+        try {
+          session.withPreparedStatement(sql)(_.execute)
+        } catch {
+          case e: SQLException =>
+            riderLogger.info("some sql execute failed", e.getMessage)
+        }
+      }
+    riderLogger.info("Initial rider database success")
+    session.close()
   }
 
 }
