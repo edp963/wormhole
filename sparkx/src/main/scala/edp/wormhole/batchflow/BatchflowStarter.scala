@@ -37,6 +37,7 @@ import edp.wormhole.udf.UdfWatch
 object BatchflowStarter extends App with EdpLogging {
   SparkContextUtils.setLoggerLevel()
 
+
   logInfo("swiftsConfig:" + args(0))
   val config: WormholeConfig = JsonUtils.json2caseClass[WormholeConfig](args(0))
   val appId = SparkUtils.getAppId
