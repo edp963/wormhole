@@ -208,8 +208,14 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                     if (checkFormat._1) {
                       val updateFlow = Flow(flow.id, flow.projectId, flow.streamId, flow.sourceNs.trim, flow.sinkNs.trim, flow.consumedProtocol.trim, flow.sinkConfig,
                         flow.tranConfig, flow.status, flow.startedTime, flow.stoppedTime, flow.active, flow.createTime, flow.createBy, currentSec, session.userId)
+
+                      val stream = Await.result(streamDal.findById(streamId), minTimeOut).head
+                      val existFlow = Await.result(flowDal.findById(flow.id), minTimeOut).head
+
                       onComplete(flowDal.update(updateFlow).mapTo[Int]) {
                         case Success(_) =>
+                          if (streamId != flow.streamId)
+                            FlowUtils.stopFlow(streamId, flow.id, session.userId, stream.streamType, existFlow.sourceNs, existFlow.sinkNs)
                           riderLogger.info(s"user ${session.userId} update flow $updateFlow where project id is $projectId success.")
                           onComplete(flowDal.defaultGetAll(_.id === updateFlow.id, "modify").mapTo[Seq[FlowStream]]) {
                             case Success(flowStream) =>
