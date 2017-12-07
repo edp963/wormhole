@@ -28,7 +28,6 @@ import java.util.UUID
 import edp.wormhole.common.WormholeUtils.dataParse
 import edp.wormhole.common._
 import edp.wormhole.common.util.DateUtils
-import edp.wormhole.core.WormholeConfig
 import edp.wormhole.kafka.WormholeKafkaProducer
 import org.apache.spark.streaming.kafka010.CanCommitOffsets
 import edp.wormhole.common.hadoop.HdfsUtils._

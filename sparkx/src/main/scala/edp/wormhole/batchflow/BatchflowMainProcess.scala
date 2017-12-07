@@ -31,7 +31,7 @@ import edp.wormhole.common._
 import edp.wormhole.common.hadoop.HdfsUtils
 import edp.wormhole.common.util.{CommonUtils, DateUtils}
 import edp.wormhole.common.util.DateUtils._
-import edp.wormhole.core.{InputDataRequirement, UdfDirective, WormholeConfig}
+import edp.wormhole.directive.UdfDirective
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.sinks.{SinkProcessConfig, SourceMutationType}
@@ -492,7 +492,7 @@ object BatchflowMainProcess extends EdpLogging {
 
         //  sendList.foreach(data=>logInfo("before merge:"+data))
         logInfo(uuid + ",@sendList size: " + sendList.size + " saveList size: " + saveList.size)
-        val mergeSendList: Seq[Seq[String]] = if (sinkProcessConfig.specialConfig.isDefined && sinkProcessConfig.specialConfig.get.indexOf("iud") >= 0)  mergeTuple(sendList, resultSchemaMap, sinkProcessConfig.tableKeyList) else sendList
+        val mergeSendList: Seq[Seq[String]] = if (sinkProcessConfig.specialConfig.isDefined && sinkProcessConfig.specialConfig.get.indexOf("\"i\"") < 0)  mergeTuple(sendList, resultSchemaMap, sinkProcessConfig.tableKeyList) else sendList
         logInfo(uuid + ",@mergeSendList size: " + mergeSendList.size)
         //        mergeSendList.foreach(data=>logInfo("after merge:"+data))
 
