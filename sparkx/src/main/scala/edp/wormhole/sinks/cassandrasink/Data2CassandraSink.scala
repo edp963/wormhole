@@ -70,7 +70,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     val prepareStatement: String = getPrepareStatement(keyspace, table, schemaString, valueStrByPlaceHolder)
     //INSERT INTO keyspace.table (a, b, c, d, e) VALUES(?, ?, ?, ?, ?) USING TIMESTAMP ?;
     val session = CassandraConnection.getSession(sortedAddressList, user, password)
-    val tupleFilterList: Seq[Seq[String]] =SourceMutationType.sourceMutationType(cassandraSpecialConfig.`cassandra.mutation.type.get`) match {
+    val tupleFilterList: Seq[Seq[String]] =SourceMutationType.sourceMutationType(cassandraSpecialConfig.`mutation_type.get`) match {
       case SourceMutationType.I_U_D =>
         val filterableStatement=checkTableBykey(keyspace,table,tableKeys,tableKeysIndex,tupleList)
         val filterRes=session.execute(filterableStatement).all()
