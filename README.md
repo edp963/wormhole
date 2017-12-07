@@ -8,7 +8,7 @@
 
 > 来自[宜信](https://www.creditease.cn/)[技术研发中心](http://crdc.creditease.cn/)的流式处理平台
 
-Wormhole是一个一站式流式处理云平台解决方案（SPaaS - Stream Processing as a Service）。
+**Wormhole是一个一站式流式处理云平台解决方案（SPaaS - Stream Processing as a Service）。**
 
 Wormhole面向大数据流式处理项目的开发管理运维人员，致力于提供统一抽象的概念体系，直观可视化的操作界面，简单流畅的配置管理流程，基于SQL即可完成的业务逻辑开发方式，并且屏蔽了流式处理的底层技术细节，极大的降低了数据项目管理运维门槛，使得大数据流式处理项目的开发管理运维变得更加轻量敏捷可控可靠。
 
@@ -16,16 +16,39 @@ Wormhole面向大数据流式处理项目的开发管理运维人员，致力于
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/wh4_pipeline_overview.png" alt="" width="600"/>
 
-- **支持kafka source到众多sink的并发幂等入库**
-- **支持source为统一消息协议ums和自定义json消息格式**
-- **支持pipeline上配置化实现流式处理逻辑及lookup众多外部数据系统**
-- **支持单个物理Spark stream上同时并行处理多个逻辑业务flow**
-- **支持流式处理和批量处理两类情景，并天然支持Lambda架构和Kappa架构**
-- **支持可视化流式处理项目的开发，管理，运维，诊断和监控**
-- **支持于三方系统无缝集成，可作为三方系统的流控引擎**
-- **支持私有云安全权限管控的基于项目的多租户管理体系**
+#### 设计理念
 
-## Experience Preview
+- **统一DAG高阶分形抽象**
+  - 构建由Source Datastore，Kafka Topic，Spark Stream（Flink Stream）和Sink Datastore组成的物理DAG
+  - 物理DAG里可以并行处理多个由Source Namespace，Flow，Sink Namespace组成的逻辑DAG
+  - 每个Flow本身是典型的Spark RDD DAG
+- **统一通用流消息UMS协议抽象**
+  - UMS是Wormhole定义的流消息协议规范
+  - UMS试图抽象统一所有结构化消息
+  - UMS自身携带结构化数据Schema信息
+  - Wh4支持用户自定义半结构化JSON格式
+- **统一数据逻辑表命名空间Namespace抽象**
+  - Namespace唯一定位所有数据存储所有结构化逻辑表
+  - [Data System].[Instance].[Database].[Table].[Table Version].[Database Partition].[Table Partition]
+
+#### 主要特性
+
+- **支持可视化，配置化，SQL化开发实施流式项目**
+- **支持指令式动态流式处理的管理，运维，诊断和监控**
+- **支持统一结构化UMS消息和自定义半结构化JSON消息**
+- **支持处理增删改三态事件消息流**
+- **支持单个物理流同时并行处理多个逻辑业务流**
+- **支持流上Lookup Anywhere，Pushdown Anywhere**
+- **支持基于业务策略的事件时间戳流式处理**
+- **支持UDF的注册管理和动态加载**
+- **支持多目标数据系统的并发幂等入库**
+- **支持多级基于增量消息的数据质量管理**
+- **支持基于增量消息的流式处理和批量处理**
+- **支持Lambda架构和Kappa架构**
+- **支持与三方系统无缝集成，可作为三方系统的流控引擎**
+- **支持私有云部署，安全权限管控和多租户资源管理**
+
+## Experience
 
 #### Admin可以创建Project/Namespace/User/UDF，并且可以查看所有Flow/Stream/Job
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin_1.png" alt="" width="600"/>
