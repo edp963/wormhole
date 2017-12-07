@@ -127,8 +127,9 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
                 val projectEntity = Project(0, simple.name.trim, simple.desc, simple.pic, simple.resCores, simple.resMemoryG, active = true, currentSec, session.userId, currentSec, session.userId)
                 onComplete(projectDal.insert(projectEntity).mapTo[Project]) {
                   case Success(project) =>
+                    if (RiderConfig.grafana != null)
+                      Dashboard.createDashboard(project.id, simple.name, RiderConfig.es.wormholeIndex)
                     riderLogger.info(s"user ${session.userId} insert project success.")
-                    createDashboard(project.id, project.name)
                     val relNsEntity = simple.nsId.split(",").map(nsId => RelProjectNs(0, project.id, nsId.toLong, active = true, currentSec, session.userId, currentSec, session.userId)).toSeq
                     val relUserEntity = simple.userId.split(",").map(userId => RelProjectUser(0, project.id, userId.toLong, active = true, currentSec, session.userId, currentSec, session.userId)).toSeq
                     val relUdfEntity =
@@ -145,8 +146,6 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
                               onComplete(relProjectUdfDal.insert(relUdfEntity).mapTo[Seq[RelProjectUdf]]) {
                                 case Success(_) =>
                                   riderLogger.info(s"user ${session.userId} insert relProjectUdf success.")
-                                  if (RiderConfig.grafana != null)
-                                    Dashboard.createDashboard(project.id, simple.name)
                                   complete(OK, ResponseJson[Project](getHeader(200, session), project))
                                 case Failure(ex) =>
                                   riderLogger.error(s"user ${session.userId} insert relProjectUdf failed", ex)

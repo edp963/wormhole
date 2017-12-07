@@ -34,10 +34,10 @@ import scala.concurrent.duration.Duration
 
 object Dashboard extends RiderLogger {
 
-  def createDashboard(projectId: Long, projectName: String) = {
+  def createDashboard(projectId: Long, projectName: String, esIndex: String) = {
     try {
       val uri = Uri.apply(s"${RiderConfig.grafana.url}/api/dashboards/db")
-      val userData: ByteString = ByteString(getCreateDashboardJson(projectName, projectId))
+      val userData: ByteString = ByteString(getCreateDashboardJson(projectName, projectId, esIndex))
       riderLogger.info(s"Grafana create ${projectName}_Monitor dashboard")
       grafanaPostData(RiderConfig.grafana.adminToken, uri, userData)
     } catch {
@@ -106,10 +106,11 @@ object Dashboard extends RiderLogger {
     }
   }
 
-  def getCreateDashboardJson(projectName: String, projectId: Long): String = {
+  def getCreateDashboardJson(projectName: String, projectId: Long, esIndex: String): String = {
     val msg: String = ReadJsonFile.getMessageFromJson(JsonFileType.GRAFANACREATE)
       .replace("#EDP_DASHBOARD#", projectName + "_Monitor")
       .replace("#PROJECT_ID#", projectId.toString)
+      .replace("#GRAFANA_DATASOURCE#", esIndex)
     msg
   }
 

@@ -68,6 +68,12 @@ object TopicSource extends RiderLogger {
     //      .withBootstrapServers(RiderConfig.consumer.brokers)
     //      .withGroupId(RiderConfig.consumer.group_id)
     val propertyMap = new mutable.HashMap[String, String]()
+    propertyMap("session.timeout.ms") = RiderConfig.getIntConfig("kafka.consumer.session.timeout.ms", 60000).toString
+    propertyMap("heartbeat.interval.ms") = RiderConfig.getIntConfig("kafka.consumer.heartbeat.interval.ms", 50000).toString
+    propertyMap("max.poll.records") = RiderConfig.getIntConfig("kafka.consumer.max.poll.records", 500).toString
+    propertyMap("request.timeout.ms") = RiderConfig.getIntConfig("kafka.consumer.request.timeout.ms", 80000).toString
+    propertyMap("max.partition.fetch.bytes") = RiderConfig.getIntConfig("kafka.consumer.max.partition.fetch.bytes", 10485760).toString
+    propertyMap("fetch.min.bytes") = 0.toString
     val consumerSettings = new ConsumerSettings(propertyMap.toMap, Some(RiderConfig.consumer.keyDeserializer),
       Some(RiderConfig.consumer.valueDeserializer),
       RiderConfig.consumer.pollInterval,
@@ -81,6 +87,17 @@ object TopicSource extends RiderLogger {
       .withBootstrapServers(RiderConfig.consumer.brokers)
       .withGroupId(RiderConfig.consumer.group_id)
     val topicMap: mutable.Map[TopicPartition, Long] = FeedbackOffsetUtil.getTopicMapForDB(0, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions)
+    val earliestMap = KafkaUtils.getKafkaEarliestOffset(RiderConfig.consumer.brokers, RiderConfig.consumer.feedbackTopic)
+      .split(",").map(partition => {
+      val partitionOffset = partition.split(":")
+      (new TopicPartition(RiderConfig.consumer.feedbackTopic, partitionOffset(0).toInt), partitionOffset(1).toLong)
+    }).toMap[TopicPartition, Long]
+
+    topicMap.foreach(partition => {
+      if (partition._2 < earliestMap(partition._1))
+        topicMap(partition._1) = earliestMap(partition._1)
+    })
+
     if (topicMap == null || topicMap.isEmpty) {
       riderLogger.error(s"topicMap is empty")
     }

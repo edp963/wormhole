@@ -3,6 +3,7 @@ wormholeServer {
   host = "127.0.0.1"
   port = 8989
   token.timeout = 7
+  request.timeout = 120s
   admin.username = "admin"    #default admin user name
   admin.password = "admin"    #default admin user password
 }
