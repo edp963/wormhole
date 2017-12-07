@@ -109,9 +109,12 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
   def updateOffsetFromFeedback(streamId: Long, userId: Long): Seq[TopicDetail] = {
     try {
       val topicSeq = Await.result(getTopicDetailByStreamId(streamId), minTimeOut)
-      if (topicSeq.size != 0) {
+      if (topicSeq.nonEmpty) {
         val topicFeedbackSeq = Await.result(db.run(feedbackOffsetTable.filter(_.streamId === streamId).sortBy(_.feedbackTime.desc).take(topicSeq.size + 1).result).mapTo[Seq[FeedbackOffset]], minTimeOut)
-        val map = topicFeedbackSeq.map(topic => (topic.topicName, topic.partitionOffsets)).toMap
+        val map = new mutable.HashMap[String, String]()
+        topicFeedbackSeq.foreach(topic => {
+          if (!map.contains(topic.topicName)) map(topic.topicName) = topic.partitionOffsets
+        })
         val updateSeq = new ArrayBuffer[StreamInTopic]
         val latestOffset = topicSeq.map(
           topic => {

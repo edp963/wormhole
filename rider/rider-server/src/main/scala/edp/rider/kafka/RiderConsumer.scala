@@ -32,7 +32,6 @@ import edp.rider.module._
 import edp.rider.rest.persistence.entities.FeedbackOffset
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.service.MessageService
-import edp.rider.service.util.{CacheMap, FeedbackOffsetUtil}
 import edp.wormhole.kafka.WormholeTopicCommand
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums._
@@ -88,7 +87,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
 
       future.onFailure {
         case ex =>
-          riderLogger.error(s"RiderConsumer stream failed due to error, restarting ${ex.getMessage}")
+          riderLogger.error(s"RiderConsumer stream failed due to error", ex)
           throw ex
       }
 
@@ -126,9 +125,9 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
     if (msg.record.key() != null)
       riderLogger.debug(s"Consumed key: ${msg.record.key().toString}")
     val curTs = currentMillSec
-    val defaultStreamIdForRider = 0
-    CacheMap.setOffsetMap(defaultStreamIdForRider, msg.record.topic(), msg.record.partition(), msg.record.offset())
-    val partitionOffsetStr = FeedbackOffsetUtil.getPartitionOffsetStrFromMap(defaultStreamIdForRider, msg.record.topic(), RiderConfig.consumer.partitions)
+//    val defaultStreamIdForRider = 0
+//    CacheMap.setOffsetMap(defaultStreamIdForRider, msg.record.topic(), msg.record.partition(), msg.record.offset())
+    val partitionOffsetStr = modules.feedbackOffsetDal.getFeedbackTopicOffset(RiderConfig.consumer.feedbackTopic)
     modules.feedbackOffsetDal.insert(FeedbackOffset(1, UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET.toString, curTs, 0, msg.record.topic(), RiderConfig.consumer.partitions, partitionOffsetStr, curTs))
 
     if (msg.record.value() == null || msg.record.value() == "") {

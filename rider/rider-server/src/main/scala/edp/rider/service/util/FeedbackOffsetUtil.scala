@@ -4,6 +4,7 @@ import edp.rider.common.RiderLogger
 import edp.rider.module.{ConfigurationModuleImpl, PersistenceModuleImpl}
 import edp.rider.rest.persistence.entities._
 import org.apache.kafka.common.TopicPartition
+import slick.jdbc.MySQLProfile.api._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -75,6 +76,7 @@ object FeedbackOffsetUtil extends RiderLogger with ConfigurationModuleImpl with 
     }
     partitionOffsetStr
   }
+
 
   def getTopicMapForDB(streamId: Long, topicName: String, partitions: Int): scala.collection.mutable.Map[TopicPartition, Long] = {
     val topicMap = scala.collection.mutable.Map[TopicPartition, Long]()

@@ -225,9 +225,12 @@ object CacheMap extends RiderLogger {
 
   def cacheMapInit = {
     streamCacheMapRefresh
+    riderLogger.info("stream cache finish")
     flowCacheMapRefresh
-    offsetMapRefresh
-    cacheMapPrint
+    riderLogger.info("flow cache finish")
+
+    //    offsetMapRefresh
+//    cacheMapPrint
   }
 
   def cacheMapPrint = {

@@ -40,6 +40,6 @@ class FeedbackStreamErrTable(_tableTag: Tag) extends BaseTable[FeedbackStreamErr
   val umsTs: Rep[String] = column[String]("ums_ts")
   val streamId: Rep[Long] = column[Long]("stream_id")
   val status: Rep[String] = column[String]("status", O.Length(32, varying = true))
-  val resultDesc: Rep[String] = column[String]("result_desc", O.Length(2000, varying = true))
+  val resultDesc: Rep[String] = column[String]("result_desc", O.Length(5000, varying = true))
   val feedbackTime: Rep[String] = column[String]("feedback_time")
 }

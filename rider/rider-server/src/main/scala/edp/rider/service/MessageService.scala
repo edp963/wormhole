@@ -56,7 +56,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
           result match {
             case Failure(e) =>
               riderLogger.error(s"FeedbackHeartbeat inserted ${tuple.toString} failed", e)
-            case Success(t) => riderLogger.debug("FeedbackHeartbeat inserted success.")
+            case Success(t) => riderLogger.info("FeedbackHeartbeat inserted success.")
           }
         }else { riderLogger.error(s"FeedbackHeartbeat can't found the value", tuple)}
       })
@@ -100,7 +100,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
                     modules.flowDal.updateFlowStatus(records.flowId, STOPPED.toString)
                   else
                     modules.flowDal.updateFlowStatus(records.flowId, FAILED.toString)
-                case _ => riderLogger.error(s"$pType not supported now.")
+                case _ => riderLogger.debug(s"$pType not supported now.")
               }
             case None => riderLogger.warn(s"directive id doesn't exist.")
           }
@@ -267,6 +267,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
             interval_data_process_dataums, interval_data_process_rdd, interval_data_process_swifts, interval_data_process_sink, interval_data_process_done,
             interval_data_process_done, interval_data_swifts_sink, interval_data_sink_done)
           ElasticSearch.insertFlowStatToES(monitorInfo)
+          riderLogger.debug("es insert success")
         }else {riderLogger.error(s"Failed to get value from FeedbackFlowStats", tuple)}
       })
     } catch {
