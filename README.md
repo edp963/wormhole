@@ -15,6 +15,8 @@ Wormhole面向大数据流式处理项目的开发管理运维人员，致力于
 ## Architecture
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/wh4_pipeline_overview.png" alt="" width="600"/>
+
+- **Mailing list**
 - **支持kafka source到众多sink的并发幂等入库**
 - **支持source为统一消息协议ums和自定义json消息格式**
 - **支持pipeline上配置化实现流式处理逻辑及lookup众多外部数据系统**
