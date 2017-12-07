@@ -1,8 +1,10 @@
-# Wormhole
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/wormhole-png.png" alt="" width="300"/>
 
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![Build Status](https://travis-ci.org/edp963/wormhole.svg?branch=master)](https://travis-ci.org/edp963/wormhole)
 [![Coverage Status](https://coveralls.io/repos/github/edp963/wormhole/badge.svg)](https://coveralls.io/github/edp963/wormhole)
+
+## Wormhole
 
 > 来自[宜信](https://www.creditease.cn/)[技术研发中心](http://crdc.creditease.cn/)的流式处理平台
 
@@ -13,6 +15,14 @@ Wormhole面向大数据流式处理项目的开发管理运维人员，致力于
 ## Architecture
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/wh4_pipeline_overview.png" alt="" width="600"/>
+- **支持kafka source到众多sink的并发幂等入库**
+- **支持source为统一消息协议ums和自定义json消息格式**
+- **支持pipeline上配置化实现流式处理逻辑及lookup众多外部数据系统**
+- **支持单个物理Spark stream上同时并行处理多个逻辑业务flow**
+- **支持流式处理和批量处理两类情景，并天然支持Lambda架构和Kappa架构**
+- **支持可视化流式处理项目的开发，管理，运维，诊断和监控**
+- **支持于三方系统无缝集成，可作为三方系统的流控引擎**
+- **支持私有云安全权限管控的基于项目的多租户管理体系**
 
 ## Experience Preview
 
