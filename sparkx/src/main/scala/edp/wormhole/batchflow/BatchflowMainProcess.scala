@@ -458,8 +458,8 @@ object BatchflowMainProcess extends EdpLogging {
     val repartitionRDD = if (dataSysType == UmsDataSystem.MYSQL || dataSysType == UmsDataSystem.ORACLE || dataSysType == UmsDataSystem.POSTGRESQL) {
       val specialConfigJson: JSONObject = if (sinkProcessConfig.specialConfig.isDefined) JSON.parseObject(sinkProcessConfig.specialConfig.get) else new JSONObject()
 
-      if (specialConfigJson.containsKey("db.mutation.type") && specialConfigJson.getString("db.mutation.type").nonEmpty) {
-        val mutationType = specialConfigJson.getString("db.mutation.type").trim
+      if (specialConfigJson.containsKey("mutation_type") && specialConfigJson.getString("mutation_type").nonEmpty) {
+        val mutationType = specialConfigJson.getString("mutation_type").trim
         if (SourceMutationType.INSERT_ONLY.toString != mutationType) {
           if (sinkProcessConfig.tableKeys.nonEmpty) {
             logInfo("sinkProcessConfig.tableKeys.nonEmpty")
@@ -474,7 +474,7 @@ object BatchflowMainProcess extends EdpLogging {
           sinkRDD
         }
       } else {
-        logInfo("specialConfigJson.containsKey(mutation.type)")
+        logInfo("specialConfigJson.containsKey(mutation_type)")
         sinkRDD
       }
     } else {

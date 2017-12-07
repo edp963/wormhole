@@ -113,7 +113,7 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
       (rowkey(patternContentList, tuple), tuple(schemaMap(ID.toString)._1).toLong, tuple)
     })
 
-    val filterRowkey2idTuples = SourceMutationType.sourceMutationType(hbaseConfig.`mutation.type.get`) match {
+    val filterRowkey2idTuples = SourceMutationType.sourceMutationType(hbaseConfig.`mutation_type.get`) match {
       case SourceMutationType.I_U_D =>
         logInfo("hbase iud:")
         logInfo("before select:" + rowkey2IdTuples.size)
