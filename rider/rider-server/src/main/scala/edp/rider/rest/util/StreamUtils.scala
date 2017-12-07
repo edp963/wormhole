@@ -154,7 +154,7 @@ object StreamUtils extends RiderLogger {
 
   def getBatchFlowConfig(streamDetail: StreamDetail) = {
     val launchConfig = json2caseClass[LaunchConfig](streamDetail.stream.launchConfig)
-    val config = BatchFlowConfig(KafkaInputBaseConfig(streamDetail.stream.name, launchConfig.durations.toInt, streamDetail.kafkaInfo.connUrl, launchConfig.maxRecords.toInt * 1024 * 1024),
+    val config = BatchFlowConfig(KafkaInputBaseConfig(streamDetail.stream.name, launchConfig.durations.toInt, streamDetail.kafkaInfo.connUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.zkSessionTimeOut),
       KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
       SparkConfig(streamDetail.stream.id, streamDetail.stream.name, "yarn-cluster", launchConfig.partitions.toInt),
       launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfs_root))
