@@ -23,10 +23,9 @@ package edp.wormhole.router
 
 import java.util.UUID
 
-import edp.wormhole.common.{FeedbackPriority, SparkUtils, WormholeUtils}
+import edp.wormhole.common.{FeedbackPriority, SparkUtils, WormholeConfig, WormholeUtils}
 import edp.wormhole.common.util.DateUtils
 import edp.wormhole.common.util.DateUtils.currentDateTime
-import edp.wormhole.core.WormholeConfig
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.{UmsFeedbackStatus, UmsProtocolType, UmsProtocolUtils, UmsSysField}

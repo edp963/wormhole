@@ -23,8 +23,8 @@ package edp.wormhole.batchflow
 
 import com.alibaba.fastjson.JSON
 import edp.wormhole.common.util.{DateUtils, JsonUtils}
-import edp.wormhole.common.{FeedbackPriority, JsonSourceConf, KVConfig, RegularJsonSchema}
-import edp.wormhole.core._
+import edp.wormhole.common._
+import edp.wormhole.directive._
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.sinks.SinkProcessConfig

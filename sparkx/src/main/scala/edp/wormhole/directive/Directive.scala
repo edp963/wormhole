@@ -19,8 +19,9 @@
  */
 
 
-package edp.wormhole.core
+package edp.wormhole.directive
 
+import edp.wormhole.common.{KafkaTopicConfig, PartitionOffsetConfig, WormholeConfig}
 import edp.wormhole.memorystorage.OffsetPersistenceManager
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.{Ums, UmsFieldType}

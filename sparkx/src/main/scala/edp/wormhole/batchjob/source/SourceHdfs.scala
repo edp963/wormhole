@@ -25,8 +25,7 @@ import com.alibaba.fastjson.JSON
 import edp.wormhole.common.SparkSchemaUtils.createDf
 import edp.wormhole.common.hadoop.HdfsUtils
 import edp.wormhole.common.util.DateUtils
-import edp.wormhole.common.{ConnectionConfig, SparkUtils}
-import edp.wormhole.core.InputDataRequirement
+import edp.wormhole.common.{ConnectionConfig, InputDataRequirement, SparkUtils}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums._
 import org.apache.spark.rdd.RDD
