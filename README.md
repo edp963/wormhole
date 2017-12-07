@@ -16,7 +16,7 @@ Wormhole面向大数据流式处理项目的开发管理运维人员，致力于
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/wh4_pipeline_overview.png" alt="" width="600"/>
 
-#### 设计理念
+### 设计理念
 
 - **统一DAG高阶分形抽象**
   - 构建由Source Datastore，Kafka Topic，Spark Stream（Flink Stream）和Sink Datastore组成的物理DAG
@@ -31,7 +31,7 @@ Wormhole面向大数据流式处理项目的开发管理运维人员，致力于
   - Namespace唯一定位所有数据存储所有结构化逻辑表
   - [Data System].[Instance].[Database].[Table].[Table Version].[Database Partition].[Table Partition]
 
-#### 主要特性
+### 主要特性
 
 - **支持可视化，配置化，SQL化开发实施流式项目**
 - **支持指令式动态流式处理的管理，运维，诊断和监控**
