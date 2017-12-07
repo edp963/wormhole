@@ -65,6 +65,7 @@ case class RiderSpark(user: String,
                       hdfs_root: String,
                       rm1Url: String,
                       rm2Url: String,
+                      zkSessionTimeOut: Int,
                       startShell: String,
                       clientLogRootPath: String,
                       sparkLog4jPath: String,
@@ -173,6 +174,7 @@ object RiderConfig {
   lazy val sshPort = config.getInt("spark.wormholeServer.ssh.port")
   lazy val rm1Url = config.getString("spark.yarn.rm1.http.url")
   lazy val rm2Url = getStringConfig("spark.yarn.rm2.http.url", "")
+  lazy val zkSessionTimeOut = getIntConfig("spark.zk.session.timeout", 3000)
 
   lazy val spark = RiderSpark(wormholeUser,
     sshPort,
@@ -180,7 +182,7 @@ object RiderConfig {
     config.getString("spark.yarn.queue.name"),
     appTags,
     config.getString("spark.wormhole.hdfs.root.path"),
-    rm1Url, rm2Url,
+    rm1Url, rm2Url, zkSessionTimeOut,
     s"""
        |--class edp.wormhole.WormholeStarter \\
        |--master yarn \\
