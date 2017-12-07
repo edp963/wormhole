@@ -269,6 +269,12 @@ CREATE TABLE IF NOT EXISTS `job` (
   UNIQUE INDEX `job_UNIQUE` (`source_ns` ASC, `sink_ns` ASC))
 ENGINE = InnoDB;
 
+alter table `job` drop column `consumed_protocol`;
+alter table `job` drop column `job_config`;
+alter table `job` add column `spark_config` VARCHAR(4000) NULL after `source_type`;
+alter table `job` add column `start_config` VARCHAR(1000) NOT NULL after `spark_config`;
+
+
 CREATE TABLE IF NOT EXISTS `udf` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `function_name` VARCHAR(200) NOT NULL,
@@ -320,6 +326,8 @@ CREATE TABLE IF NOT EXISTS `feedback_stream_error` (
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB;
 
+alter table `feedback_stream_error` modify column `result_desc` varchar(5000);
+
 CREATE TABLE IF NOT EXISTS `feedback_flow_error` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `protocol_type` VARCHAR(200) NOT NULL,
@@ -335,6 +343,8 @@ CREATE TABLE IF NOT EXISTS `feedback_flow_error` (
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB;
 
+alter table `feedback_flow_error` modify column `error_info` varchar(5000);
+
 CREATE TABLE IF NOT EXISTS `feedback_directive` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `protocol_type` VARCHAR(200) NOT NULL,
@@ -346,3 +356,6 @@ CREATE TABLE IF NOT EXISTS `feedback_directive` (
   `feedback_time` TIMESTAMP NOT NULL,
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB;
+
+alter table `feedback_directive` modify column `result_desc` varchar(5000);
+
