@@ -23,7 +23,7 @@ package edp.wormhole.hdfslog
 
 import edp.wormhole.common.{FeedbackPriority, FieldInfo, JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.common.util.DateUtils
-import edp.wormhole.core.Directive
+import edp.wormhole.directive.Directive
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
 import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType}

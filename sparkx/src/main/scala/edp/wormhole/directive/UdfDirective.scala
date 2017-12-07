@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.wormhole.core
+package edp.wormhole.directive
 
 import java.util.concurrent.ConcurrentLinkedQueue
 

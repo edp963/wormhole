@@ -23,7 +23,7 @@ package edp.wormhole.swifts.transform
 
 import java.util.UUID
 
-import edp.wormhole.core.WormholeConfig
+import edp.wormhole.common.WormholeConfig
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.swifts.parse.{SqlOptType, _}
 import edp.wormhole.ums.UmsDataSystem
