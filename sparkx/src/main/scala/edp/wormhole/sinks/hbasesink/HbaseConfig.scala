@@ -29,14 +29,14 @@ case class HbaseConfig(`hbase.columnFamily`: Option[String],
                        `hbase.znParent`: Option[String],
                        `hbase.saveAsString`: Option[Boolean],
                        `hbase.version.column`:Option[String],
-                       `mutation.type`:Option[String],
+                       `mutation_type`:Option[String],
                        `hbase.rowKey`: String //separator","
 
                       ) {
   lazy val `hbase.columnFamily.get` = `hbase.columnFamily`.getOrElse("cf")
  // lazy val `hbase.znParent.get` = `hbase.znParent`.getOrElse("/hbase")
   lazy val `hbase.valueType.get` = `hbase.saveAsString`.getOrElse(false)
-  lazy val `mutation.type.get` = `mutation.type`.getOrElse(SourceMutationType.I_U_D.toString)
+  lazy val `mutation_type.get` = `mutation_type`.getOrElse(SourceMutationType.I_U_D.toString)
   lazy val `hbase.version.column.get` = `hbase.version.column`.getOrElse(UmsSysField.TS.toString)
 }
 
