@@ -152,7 +152,7 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
     } catch {
       case e: Throwable =>
         logError("mongo json insert or update error", e)
-    }
+    } finally mongoClient.close()
 
   }
 
