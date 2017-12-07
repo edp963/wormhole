@@ -27,7 +27,13 @@ import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeser
 
 import scala.concurrent.duration.{FiniteDuration, _}
 
-case class RiderServer(host: String, port: Int, adminUser: String, adminPwd: String, normalUser: String, normalPwd: String)
+case class RiderServer(host: String,
+                       port: Int,
+                       requestTimeOut: Duration,
+                       adminUser: String,
+                       adminPwd: String,
+                       normalUser: String,
+                       normalPwd: String)
 
 case class RiderKafka(brokers: String,
                       zkUrl: String,
@@ -108,6 +114,7 @@ object RiderConfig {
 
   lazy val riderServer = RiderServer(
     config.getString("wormholeServer.host"), config.getInt("wormholeServer.port"),
+    getDurationConfig("wormholeServer.request.timeout", 120.seconds),
     getStringConfig("wormholeServer.admin.username", "admin"),
     getStringConfig("wormholeServer.admin.password", "admin"),
     getStringConfig("wormholeServer.normal.username", "normal"),
@@ -131,9 +138,9 @@ object RiderConfig {
 
   lazy val closeTimeout = getFiniteDurationConfig("kafka.consumer.close-timeout", FiniteDuration(20, SECONDS))
 
-  lazy val commitTimeout = getFiniteDurationConfig("kafka.consumer.commit-timeout", FiniteDuration(15, SECONDS))
+  lazy val commitTimeout = getFiniteDurationConfig("kafka.consumer.commit-timeout", FiniteDuration(70, SECONDS))
 
-  lazy val wakeupTimeout = getFiniteDurationConfig("kafka.consumer.wakeup-timeout", FiniteDuration(3, SECONDS))
+  lazy val wakeupTimeout = getFiniteDurationConfig("kafka.consumer.wakeup-timeout", FiniteDuration(60, SECONDS))
 
   lazy val maxWakeups = getIntConfig("kafka.consumer.max-wakeups", 10)
 
@@ -213,7 +220,7 @@ object RiderConfig {
   lazy val grafana =
     if (config.hasPath("grafana") && config.getString("grafana.url").nonEmpty && config.getString("grafana.admin.token").nonEmpty)
       RiderMonitor(config.getString("grafana.url"),
-        grafanaDomain, "wormhole_stats",
+        grafanaDomain, es.wormholeIndex,
         config.getString("grafana.admin.token"))
     else null
 
@@ -252,4 +259,9 @@ object RiderConfig {
     else default
   }
 
+  def getDurationConfig(path: String, default: Duration): Duration = {
+    if (config.hasPath(path) && !config.getIsNull(path))
+      config.getDuration(path, TimeUnit.SECONDS).seconds
+    else default
+  }
 }

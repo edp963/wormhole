@@ -315,7 +315,7 @@ CREATE TABLE IF NOT EXISTS `feedback_stream_error` (
   `ums_ts` TIMESTAMP NOT NULL,
   `stream_id`   BIGINT NOT NULL,
   `status`    VARCHAR(32) NOT NULL,
-  `result_desc` VARCHAR(2000) NOT NULL,
+  `result_desc` VARCHAR(5000) NOT NULL,
   `feedback_time` TIMESTAMP NOT NULL,
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB;
@@ -330,7 +330,7 @@ CREATE TABLE IF NOT EXISTS `feedback_flow_error` (
   `error_count`   INT NOT NULL,
   `error_max_watermark_ts`  TIMESTAMP,
   `error_min_watermark_ts`  TIMESTAMP,
-  `error_info` VARCHAR(2000) NOT NULL,
+  `error_info` VARCHAR(5000) NOT NULL,
   `feedback_time` TIMESTAMP NOT NULL,
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB;
@@ -342,7 +342,7 @@ CREATE TABLE IF NOT EXISTS `feedback_directive` (
   `stream_id`  BIGINT NOT NULL,
   `directive_id`  BIGINT NOT NULL,
   `status`      VARCHAR(32) NOT NULL,
-  `result_desc` VARCHAR(2000),
+  `result_desc` VARCHAR(5000),
   `feedback_time` TIMESTAMP NOT NULL,
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB;

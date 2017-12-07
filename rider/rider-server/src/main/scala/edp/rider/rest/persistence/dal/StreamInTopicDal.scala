@@ -29,6 +29,7 @@ import edp.rider.rest.util.CommonUtils.{currentSec, minTimeOut}
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
+import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration._
@@ -57,7 +58,10 @@ class StreamInTopicDal(streamInTopicTable: TableQuery[StreamInTopicTable],
         streamId => {
           val topicSeq = streamTopics.filter(_.streamId == streamId)
           val topicFeedbackSeq = Await.result(db.run(feedbackOffsetTable.filter(_.streamId === streamId).sortBy(_.feedbackTime.desc).take(topicSeq.size + 1).result).mapTo[Seq[FeedbackOffset]], minTimeOut)
-          val map = topicFeedbackSeq.map(topic => (topic.topicName, topic.partitionOffsets)).toMap
+          val map = new mutable.HashMap[String, String]()
+          topicFeedbackSeq.foreach(topic => {
+            if(!map.contains(topic.topicName)) map(topic.topicName) = topic.partitionOffsets
+          })
           topicSeq.foreach(
             topic => {
               if (map.contains(topic.name))
