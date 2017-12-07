@@ -26,6 +26,8 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{FlowDal, StreamDal}
 import edp.rider.rest.persistence.entities._
+
+import scala.concurrent.Await
 //import edp.rider.rest.router.JsonProtocol._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.CommonUtils._
@@ -49,7 +51,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
             }
             else {
               if (session.projectIdList.contains(projectId)) {
-                streamDal.getStreamDetail(Some(projectId), Some(streamId))
+                streamDal.refreshStreamStatus(Some(projectId), Some(streamId))
                 riderLogger.info(s"user ${session.userId} refresh streams.")
                 onComplete(flowDal.getById(projectId, flowId).mapTo[Option[FlowStreamInfo]]) {
                   case Success(flowStreamOpt) =>
@@ -101,7 +103,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                             complete(OK, getHeader(451, ex.getMessage, session))
                         }
                       case (_, None, None) =>
-                        streamDal.getStreamDetail(Some(projectId))
+                        streamDal.refreshStreamStatus(Some(projectId))
                         riderLogger.info(s"user ${session.userId} refresh project $projectId all streams.")
                         val future = if (visible.getOrElse(true)) flowDal.defaultGetAll(flow => flow.active === true && flow.projectId === projectId)
                         else flowDal.defaultGetAll(_.projectId === projectId)
@@ -145,7 +147,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                     val checkFormat = FlowUtils.checkConfigFormat(simple.sinkConfig.getOrElse(""), simple.tranConfig.getOrElse(""))
                     if (checkFormat._1) {
                       val flowInsertSeq =
-                        if (streamDal.getStreamDetail(Some(projectId), Some(streamId)).head.stream.streamType != "hdfslog")
+                        if (Await.result(streamDal.findById(streamId), minTimeOut).head.streamType != "hdfslog")
                           Seq(Flow(0, simple.projectId, simple.streamId, simple.sourceNs.trim, simple.sinkNs.trim, simple.consumedProtocol.trim, simple.sinkConfig,
                             simple.tranConfig, "new", None, None, active = true, currentSec, session.userId, currentSec, session.userId))
                         else
@@ -199,7 +201,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                 if (session.roleType != "user")
                   complete(OK, getHeader(403, session))
                 else {
-                  streamDal.getStreamDetail(Some(projectId), Some(streamId))
+                  streamDal.refreshStreamStatus(Some(projectId), Some(streamId))
                   riderLogger.info(s"user ${session.userId} refresh streams.")
                   if (session.projectIdList.contains(projectId)) {
                     val checkFormat = FlowUtils.checkConfigFormat(flow.sinkConfig.getOrElse(""), flow.tranConfig.getOrElse(""))
