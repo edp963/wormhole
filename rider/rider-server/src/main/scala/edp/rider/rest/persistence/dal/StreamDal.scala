@@ -43,22 +43,48 @@ class StreamDal(streamTable: TableQuery[StreamTable],
                 streamUdfDal: RelStreamUdfDal,
                 projectTable: TableQuery[ProjectTable]) extends BaseDalImpl[StreamTable, Stream](streamTable) with RiderLogger {
 
+  def refreshStreamStatus(projectIdOpt: Option[Long] = None, streamIdOpt: Option[Long] = None, action: String = REFRESH.toString): Seq[Stream] = {
+    val streamSeq = getStreamSeq(projectIdOpt, streamIdOpt)
+    val refreshStreamSeq = getStatus(action, streamSeq)
+    Await.result(super.update(refreshStreamSeq), Inf)
+    refreshStreamSeq
+  }
+
+  def getStreamSeq(projectIdOpt: Option[Long] = None, streamIdOpt: Option[Long] = None): Seq[Stream] = {
+    (projectIdOpt, streamIdOpt) match {
+      case (Some(projectId), Some(streamId)) => Await.result(super.findByFilter(stream => stream.projectId === projectId && stream.id === streamId), minTimeOut)
+      case (Some(projectId), None) => Await.result(super.findByFilter(_.projectId === projectId), minTimeOut)
+      case (None, Some(streamId)) => Await.result(super.findByFilter(_.id === streamId), minTimeOut)
+      case (None, None) => Await.result(super.findAll, minTimeOut)
+    }
+  }
+
+  def getBriefDetail(projectIdOpt: Option[Long] = None, streamIdOpt: Option[Long] = None, action: String = REFRESH.toString): Seq[StreamDetail] = {
+    try {
+      val streamSeq = refreshStreamStatus(projectIdOpt, streamIdOpt, action)
+      val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
+      streamSeq.map(
+        stream => {
+          StreamDetail(stream, getProjectNameByStreamName(stream.name), streamKafkaMap(stream.id), Seq[StreamTopic](), Seq[StreamUdf](), Seq[StreamZkUdf](), getDisableActions(stream.status))
+        }
+      )
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"get stream detail failed", ex)
+        throw GetStreamDetailException(ex.getMessage, ex.getCause)
+    }
+  }
+
   def getStreamDetail(projectIdOpt: Option[Long] = None, streamIdOpt: Option[Long] = None, action: String = REFRESH.toString): Seq[StreamDetail] = {
     try {
-      val streamSeq = (projectIdOpt, streamIdOpt) match {
-        case (Some(projectId), Some(streamId)) => Await.result(super.findByFilter(stream => stream.projectId === projectId && stream.id === streamId), minTimeOut)
-        case (Some(projectId), None) => Await.result(super.findByFilter(_.projectId === projectId), minTimeOut)
-        case (None, Some(streamId)) => Await.result(super.findByFilter(_.id === streamId), minTimeOut)
-        case (None, None) => Await.result(super.findAll, minTimeOut)
-      }
+      val streamSeq = refreshStreamStatus(projectIdOpt, streamIdOpt, action)
       val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
       val streamIds = streamSeq.map(_.id)
       val streamTopicSeq = streamInTopicDal.getStreamTopic(streamIds)
       val streamUdfSeq = streamUdfDal.getStreamUdf(streamIds)
       val streamZkUdfSeq = getZkStreamUdf(streamIds)
-      val refreshStreamSeq = getStatus(action, streamSeq)
-      Await.result(super.update(refreshStreamSeq), Inf)
-      refreshStreamSeq.map(
+
+      streamSeq.map(
         stream => {
           val topics = streamTopicSeq.filter(_.streamId == stream.id).map(
             topic => StreamTopic(topic.id, topic.name, topic.partitionOffsets, topic.rate)
@@ -101,7 +127,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
 
   def getResource(projectId: Long): Future[Resource] = {
     try {
-      val project = Await.result(db.run((projectTable.filter(_.id === projectId)).result).mapTo[Seq[Project]], minTimeOut).head
+      val project = Await.result(db.run(projectTable.filter(_.id === projectId).result).mapTo[Seq[Project]], minTimeOut).head
       val streamSeq = super.findByFilter(stream => stream.projectId === projectId && (stream.status === "running" || stream.status === "waiting" || stream.status === "starting" || stream.status === "stopping")).mapTo[Seq[Stream]]
       val totalCores = project.resCores
       val totalMemory = project.resMemoryG
@@ -158,7 +184,6 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   def checkStreamNameUnique(streamName: String) = {
     db.run(streamTable.filter(_.name === streamName).result)
   }
-
 
 
   def getProjectStreamsUsedResource(projectId: Long) = {

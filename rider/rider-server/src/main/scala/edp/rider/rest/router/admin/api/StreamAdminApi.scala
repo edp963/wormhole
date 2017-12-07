@@ -47,7 +47,7 @@ class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal)
                 complete(OK, getHeader(403, session))
               }
               else {
-                val streams = streamDal.getStreamDetail()
+                val streams = streamDal.getBriefDetail()
                 riderLogger.info(s"user ${session.userId} select all streams success.")
                 complete(OK, ResponseSeqJson[StreamDetail](getHeader(200, session), streams))
               }
@@ -68,7 +68,7 @@ class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal)
               complete(OK, getHeader(403, session))
             }
             else {
-              val streams = streamDal.getStreamDetail(Some(id))
+              val streams = streamDal.getBriefDetail(Some(id))
               riderLogger.info(s"user ${session.userId} select all streams success.")
               complete(OK, ResponseSeqJson[StreamDetail](getHeader(200, session), streams))
             }
