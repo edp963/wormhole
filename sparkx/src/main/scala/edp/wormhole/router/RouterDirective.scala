@@ -21,7 +21,7 @@
 
 package edp.wormhole.router
 
-import edp.wormhole.core.Directive
+import edp.wormhole.directive.Directive
 
 import edp.wormhole.ums.{Ums, UmsFieldType}
 
