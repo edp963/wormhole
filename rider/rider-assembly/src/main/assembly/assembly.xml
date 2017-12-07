@@ -69,6 +69,13 @@
             </directory>
             <outputDirectory>logs/streams</outputDirectory>
         </fileSet>
+        <fileSet>
+            <directory>${project.build.directory}</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>bc*.jar</include>
+            </includes>
+        </fileSet>
     </fileSets>
 
     <files>
@@ -78,6 +85,12 @@
             </source>
             <outputDirectory>lib</outputDirectory>
         </file>
+        <!--<file>-->
+            <!--<source>-->
+                <!--${project.parent.basedir}/rider/rider-server/target/wormhole-rider-server-0.4.0-SNAPSHOTS-jar-with-dependencies.jar-->
+            <!--</source>-->
+            <!--<outputDirectory>lib</outputDirectory>-->
+        <!--</file>-->
     </files>
 
     <dependencySets>
@@ -89,5 +102,6 @@
             <useProjectArtifact>false</useProjectArtifact>
         </dependencySet>
     </dependencySets>
+
 
 </assembly>

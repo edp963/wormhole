@@ -113,7 +113,7 @@ object RiderConfig {
     getStringConfig("wormholeServer.normal.username", "normal"),
     getStringConfig("wormholeServer.normal.password", "normal"))
 
-  lazy val udfRootPath = s"${spark.hdfs_root.stripSuffix("/")}/udfjar"
+  lazy val udfRootPath = s"${spark.hdfs_root.stripSuffix("/")}/udfjars"
 
   lazy val riderDomain = getStringConfig("wormholeServer.domain.url", "")
 
@@ -123,9 +123,9 @@ object RiderConfig {
 
   lazy val heartbeatTopic = getStringConfig("kafka.consumer.heartbeat.topic", "wormhole_heartbeat")
 
-  lazy val pollInterval = getFiniteDurationConfig("kafka.consumer.poll-interval", FiniteDuration(30, MILLISECONDS))
+  lazy val pollInterval = getFiniteDurationConfig("kafka.consumer.poll-interval", FiniteDuration(20, MILLISECONDS))
 
-  lazy val pollTimeout = getFiniteDurationConfig("kafka.consumer.poll-timeout", FiniteDuration(30, MILLISECONDS))
+  lazy val pollTimeout = getFiniteDurationConfig("kafka.consumer.poll-timeout", FiniteDuration(1, SECONDS))
 
   lazy val stopTimeout = getFiniteDurationConfig("kafka.consumer.stop-timeout", FiniteDuration(30, SECONDS))
 

@@ -122,8 +122,7 @@ export function getAlterTypesByOriginType (fieldType) {
   return typeArray
 }
 
-// 点击保存时，去除selected === false的行
-// todo: test
+// 点击保存时，去除 selected === false的行
 function selectedFields (array) {
   for (var i = 0; i < array.length; i++) {
     if (array[i].selected === false) {
@@ -262,6 +261,25 @@ export function nestType2string (array, index) {
     if (array[i].fieldName.startsWith(prefix)) {
       array[i].forbidden = true
       array[i].selected = false
+    } else {
+      break
+    }
+  }
+  return array
+}
+
+// 当row select的项有子级（如test#t1）时，
+// 若 selected=true，子级的 forbidden=false；若 selected=false，子级的 forbidden=true, selected=false
+export function rowSelectFunc (array, index) {
+  const prefix = `${array[index].fieldName}#`
+  for (let i = index + 1; i < array.length; i++) {
+    if (array[i].fieldName.startsWith(prefix)) {
+      if (array[index].selected) {
+        array[i].forbidden = false
+      } else {
+        array[i].forbidden = true
+        array[i].selected = false
+      }
     } else {
       break
     }
@@ -421,12 +439,22 @@ function genBaseField (fieldInfo) {
   fieldObject['name'] = fieldInfo.fieldName.split('#').pop()
   fieldObject['type'] = fieldInfo.fieldType
   fieldObject['nullable'] = true
-  if (fieldInfo.hasOwnProperty('rename') && fieldInfo.rename !== '' && fieldInfo.rename !== fieldInfo.fieldName) {
+  if (fieldInfo.hasOwnProperty('rename') && fieldInfo.rename !== '' && fieldInfo.fieldName.split('#').pop() !== fieldInfo.rename) {
     fieldObject['rename'] = fieldInfo.rename
-  } else if (fieldInfo.hasOwnProperty('ums_op_') && fieldInfo.ums_op_ !== '') {
+  }
+  if (fieldInfo.hasOwnProperty('ums_op_') && fieldInfo.ums_op_ !== '' && fieldInfo.forbidden === true) {
+    fieldObject['rename'] = fieldInfo.rename
     fieldObject['ums_sys_mapping'] = fieldInfo.ums_op_
-  } else if (fieldInfo.fieldType === TUPLE) {
-    fieldObject['tuple_sep'] = fieldInfo.split(';').pop()
+  }
+  if (fieldInfo.hasOwnProperty('ums_id_') && fieldInfo.ums_id_ === true && fieldInfo.forbidden === true) {
+    fieldObject['rename'] = fieldInfo.rename
+  }
+  if (fieldInfo.hasOwnProperty('ums_ts_') && fieldInfo.ums_ts_ === true && fieldInfo.forbidden === true) {
+    fieldObject['rename'] = fieldInfo.rename
+  }
+  if (fieldInfo.fieldType.startsWith(TUPLE)) {
+    fieldObject['type'] = TUPLE
+    fieldObject['tuple_sep'] = fieldInfo.fieldType.split('##').pop()
   }
 
   return fieldObject

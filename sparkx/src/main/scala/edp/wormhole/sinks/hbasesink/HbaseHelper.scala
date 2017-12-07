@@ -31,6 +31,8 @@ import scala.math._
 
 object HbaseConstants {
   lazy val activeColBytes = Bytes.toBytes(UmsSysField.ACTIVE.toString)
+  lazy val activeString = Bytes.toBytes(UmsActiveType.ACTIVE.toString)
+  lazy val inactiveString = Bytes.toBytes(UmsActiveType.INACTIVE.toString)
   lazy val activeBytes = Bytes.toBytes(UmsActiveType.ACTIVE)
   lazy val inactiveBytes = Bytes.toBytes(UmsActiveType.INACTIVE)
   lazy val activeBytesLength = activeBytes.length

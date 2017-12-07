@@ -46,7 +46,7 @@ object TopicSource extends RiderLogger {
     //      .withGroupId(modules.config.getString("akka.kafka.consumer.kafka-clients.group.id"))
     //      .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
 
-    val consumerSettings = new ConsumerSettings(null, Some(RiderConfig.consumer.keyDeserializer),
+    val consumerSettings = new ConsumerSettings(Map.empty, Some(RiderConfig.consumer.keyDeserializer),
       Some(RiderConfig.consumer.valueDeserializer),
       RiderConfig.consumer.pollInterval,
       RiderConfig.consumer.pollTimeout,
@@ -64,10 +64,23 @@ object TopicSource extends RiderLogger {
 
 
   def createFromOffset(groupId: String)(implicit system: ActorSystem): Source[CommittableMessage[Array[Byte], String], Control] = {
-    val consumerSettings = ConsumerSettings(system, new ByteArrayDeserializer, new StringDeserializer)
+    //    val consumerSettings = ConsumerSettings(system, new ByteArrayDeserializer, new StringDeserializer)
+    //      .withBootstrapServers(RiderConfig.consumer.brokers)
+    //      .withGroupId(RiderConfig.consumer.group_id)
+    val propertyMap = new mutable.HashMap[String, String]()
+    val consumerSettings = new ConsumerSettings(propertyMap.toMap, Some(RiderConfig.consumer.keyDeserializer),
+      Some(RiderConfig.consumer.valueDeserializer),
+      RiderConfig.consumer.pollInterval,
+      RiderConfig.consumer.pollTimeout,
+      RiderConfig.consumer.stopTimeout,
+      RiderConfig.consumer.closeTimeout,
+      RiderConfig.consumer.commitTimeout,
+      RiderConfig.consumer.wakeupTimeout,
+      RiderConfig.consumer.maxWakeups,
+      RiderConfig.consumer.dispatcher)
       .withBootstrapServers(RiderConfig.consumer.brokers)
       .withGroupId(RiderConfig.consumer.group_id)
-    val topicMap: mutable.Map[TopicPartition, Long] = FeedbackOffsetUtil.getTopicMapForDB(0,RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions)
+    val topicMap: mutable.Map[TopicPartition, Long] = FeedbackOffsetUtil.getTopicMapForDB(0, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions)
     if (topicMap == null || topicMap.isEmpty) {
       riderLogger.error(s"topicMap is empty")
     }
