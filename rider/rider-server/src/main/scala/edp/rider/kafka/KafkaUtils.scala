@@ -50,4 +50,13 @@ object KafkaUtils extends RiderLogger {
     }
   }
 
+  def getKafkaEarliestOffset(brokers: String, topic: String): String = {
+    try {
+      WormholeGetOffsetShell.getTopicOffsets(brokers, topic, -2)
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"get kafka latest offset failed", ex)
+        ""
+    }
+  }
 }
