@@ -84,7 +84,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
           result match {
             case Failure(e) =>
               riderLogger.error(s"FeedbackDirective inserted ${tuple.toString} failed", e)
-            case Success(t) => riderLogger.info("FeedbackDirective inserted success.")
+            case Success(t) => riderLogger.debug("FeedbackDirective inserted success.")
           }
           Await.result(modules.directiveDal.findById(directiveIdValue.toString.toLong), minTimeOut) match {
             case Some(records) =>
