@@ -175,6 +175,12 @@ object CacheMap extends RiderLogger {
         throw ex
     }
 
+  def getPartitionOffsetStrFromMap(streamId: Long, topicName: String, partitionNum: Int): String = {
+    val offsetSeq = for (i <- 0 until partitionNum)
+      yield i + ":" + getOffsetValue(streamId, topicName, i)
+    offsetSeq.mkString(",")
+  }
+
   def streamCacheMapRefresh: Unit =
     try {
       Await.result(modules.streamDal.getAllActiveStream, minTimeOut)
