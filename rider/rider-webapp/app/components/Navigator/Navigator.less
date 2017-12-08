@@ -9,31 +9,37 @@
   z-index: @header-index;
 }
 
+.ri-logo-href {
+  cursor: pointer;
+  width: 160px;
+  height: 64px;
+}
+
 //.ri-logo {
-//  width: 8px;
-//  height: 8px;
+//  width: 6px;
+//  height: 6px;
 //  background-color: @logo-color;
 //  border-radius: 50%;
 //  position: absolute;
-//  top: 15px;
-//  left: 20px;
+//  top: 10px;
+//  left: 40px;
 //
-//  box-shadow: 8px 24px 0 0 @logo-color,
-//              28px 4px 0 -1px @logo-color,
-//              8px 24px 0 6px @ri-nav-bg,
-//              28px 4px 0 4px @ri-nav-bg,
-//              8px 24px 0 8px @logo-color,
-//              28px 4px 0 6px @logo-color;
+//  box-shadow: -14px 30px 0 2px @logo-color,
+//  12px 14px 0 1px @logo-color,
+//  -14px 30px 0 8px @ri-nav-bg,
+//  12px 14px 0 6px @ri-nav-bg,
+//  -14px 30px 0 10px @logo-color,
+//  12px 14px 0 8px @logo-color;
 //
 //  &:before {
-//    width: 20px;
-//    height: 12px;
+//    width: 12px;
+//    height: 20px;
 //    border-top: 3px solid @logo-color;
 //    border-left: 3px solid @logo-color;
 //    position: absolute;
-//    top: 6px;
-//    left: 8px;
-//    transform: rotate(-25deg);
+//    top: 8px;
+//    left: -6px;
+//    transform: rotate(25deg);
 //    content: '';
 //    z-index: -1;
 //  }
@@ -44,55 +50,16 @@
 //    color: @logo-color;
 //    content: 'Rider';
 //    position: absolute;
-//    top: -5px;
-//    left: 50px;
+//    top: 0;
+//    left: 40px;
 //  }
 //}
 
-.ri-logo-href {
-  cursor: pointer;
-  width: 160px;
-  height: 64px;
-}
-
-.ri-logo {
-  width: 6px;
-  height: 6px;
-  background-color: @logo-color;
-  border-radius: 50%;
-  position: absolute;
-  top: 10px;
-  left: 40px;
-
-  box-shadow: -14px 30px 0 2px @logo-color,
-  12px 14px 0 1px @logo-color,
-  -14px 30px 0 8px @ri-nav-bg,
-  12px 14px 0 6px @ri-nav-bg,
-  -14px 30px 0 10px @logo-color,
-  12px 14px 0 8px @logo-color;
-
-  &:before {
-    width: 12px;
-    height: 20px;
-    border-top: 3px solid @logo-color;
-    border-left: 3px solid @logo-color;
-    position: absolute;
-    top: 8px;
-    left: -6px;
-    transform: rotate(25deg);
-    content: '';
-    z-index: -1;
-  }
-
-  &:after {
-    font-size: 28px;
-    font-weight: bolder;
-    color: @logo-color;
-    content: 'Rider';
-    position: absolute;
-    top: 0;
-    left: 40px;
-  }
+.ri-logo-img {
+  margin-top: 14px;
+  margin-left: 15px;
+  width: 198px;
+  height: 36px;
 }
 
 .ri-menu {
@@ -100,7 +67,7 @@
   border-bottom: 0;
   position: absolute;
   top: 0;
-  left: 160px;
+  left: 228px;
   & > .ri-menu-item {
     font-size: 14px;
     line-height: 64px;
