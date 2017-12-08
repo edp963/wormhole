@@ -19,7 +19,7 @@ Wormhole面向大数据流式处理项目的开发管理运维人员，致力于
 ### 设计理念
 
 - **统一DAG高阶分形抽象**
-  - 构建由Source Datastore，Kafka Topic，Spark Stream（Flink Stream），Sink Datastore组成的物理DAG
+  - 构建由Source DataSys，Kafka Topic，Spark Stream（Flink Stream），Sink DataSys组成的物理DAG
   - 每个物理DAG里可以并行处理多个由Source Namespace，Flow，Sink Namespace组成的逻辑DAG
   - 每个Flow本身是典型的Spark RDD DAG
 - **统一通用流消息UMS协议抽象**
