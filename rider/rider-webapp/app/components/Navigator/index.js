@@ -231,7 +231,9 @@ class Navigator extends React.Component {
     return (
       <header className="ri-header">
         <nav>
-          <div className="ri-logo-href" onClick={this.logoChange}><div className="ri-logo" ></div></div>
+          <div className="ri-logo-href" onClick={this.logoChange}>
+            <img src={require(`../../assets/images/logo.png`)} alt="Wormhole" className="ri-logo-img" />
+          </div>
           {node}
           <div>
             <Tooltip title="修改密码">
