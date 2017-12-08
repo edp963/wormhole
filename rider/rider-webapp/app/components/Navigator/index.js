@@ -177,16 +177,16 @@ class Navigator extends React.Component {
           selectedKeys={[selectedKey]}
           onClick={this.navClick}
         >
-          <MenuItem key="projects" className={`ri-menu-item ${projectSelectedClass}`}>
+          <MenuItem key="projects" className={`ri-menu-item ${projectSelectedClass}`} style={{ marginTop: 0 }}>
             <Icon type="appstore-o" />Project
           </MenuItem>
-          <MenuItem key="flows" className="ri-menu-item">
+          <MenuItem key="flows" className="ri-menu-item" style={{ marginTop: 0 }}>
             <i className="iconfont icon-flow"></i>Flow
           </MenuItem>
-          <MenuItem key="streams" className="ri-menu-item">
+          <MenuItem key="streams" className="ri-menu-item" style={{ marginTop: 0 }}>
             <i className="iconfont icon-318stream-copy"></i>Stream
           </MenuItem>
-          <MenuItem key="jobs" className="ri-menu-item">
+          <MenuItem key="jobs" className="ri-menu-item" style={{ marginTop: 0 }}>
             <i className="iconfont icon-job"></i>Job
           </MenuItem>
 
@@ -209,15 +209,15 @@ class Navigator extends React.Component {
             </MenuItem>
           </SubMenu>
 
-          <MenuItem key="users" className="ri-menu-item">
+          <MenuItem key="users" className="ri-menu-item" style={{ marginTop: 0 }}>
             <Icon type="solution" />User
           </MenuItem>
 
-          <MenuItem key="udf" className="ri-menu-item">
+          <MenuItem key="udf" className="ri-menu-item" style={{ marginTop: 0 }}>
             <i className="iconfont icon-function" style={{ marginRight: '6px' }}></i>UDF
           </MenuItem>
 
-          <MenuItem key="riderInfo" className="ri-menu-item">
+          <MenuItem key="riderInfo" className="ri-menu-item" style={{ marginTop: 0 }}>
             <i className="iconfont icon-infor"></i>Rider Info
           </MenuItem>
         </Menu>

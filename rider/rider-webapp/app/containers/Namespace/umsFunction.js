@@ -18,48 +18,258 @@
  * >>
  */
 
-const STRING = 'string'
+// 基本类型
 const INT = 'int'
 const LONG = 'long'
 const FLOAT = 'float'
 const DOUBLE = 'double'
-const BOOLEAN = 'boolean'
 const DECIMAL = 'decimal'
-const BINARY = 'binary'
+const STRING = 'string'
+const BOOLEAN = 'boolean'
 const DATETIME = 'datetime'
+const BINARY = 'binary'
 
-const STRINGARRAY = 'stringarray'
+// 数组类型
 const INTARRAY = 'intarray'
 const LONGARRAY = 'longarray'
 const FLOATARRAY = 'floatarray'
 const DOUBLEARRAY = 'doublearray'
-const BOOLEANARRAY = 'booleanarray'
 const DECIMALARRAY = 'decimalarray'
-const BINARYARRAY = 'binaryarray'
+const STRINGARRAY = 'stringarray'
+const BOOLEANARRAY = 'booleanarray'
 const DATETIMEARRAY = 'datetimearray'
+const BINARYARRAY = 'binaryarray'
 
+// 对象
 const JSONOBJECT = 'jsonobject'
 const JSONARRAY = 'jsonarray'
 const TUPLE = 'tuple'
+
+// 获取非嵌套类型
+export function getBaseType () {
+  return [INT, LONG, FLOAT, DOUBLE, DECIMAL, STRING, BOOLEAN, DATETIME, BINARY,
+    INTARRAY, LONGARRAY, FLOATARRAY, DOUBLEARRAY, DECIMALARRAY, STRINGARRAY, BOOLEANARRAY, DATETIMEARRAY, BINARYARRAY]
+}
+
+// 获取嵌套类型
+export function getNestType () {
+  return [JSONOBJECT, JSONARRAY, TUPLE]
+}
+
+// just copy array, don't alter it
+function copyArray (array) {
+  // 重新设置key
+  const arrTemp = JSON.stringify(array, ['fieldName', 'fieldType', 'forbidden', 'rename', 'selected', 'ums_id_', 'ums_op_', 'ums_ts_'])
+  const umsArr = JSON.parse(arrTemp).map((s, index) => {
+    s.key = index
+    return s
+  })
+  return umsArr
+}
+
+// fieldType修改,用户选中修改类型后，不要修改原数组该index的fieldType值，直接调用该方法
+// 选择的类型为tuple时，alterType="tuple##/##10"
+export function fieldTypeAlter (array, index, alterType) {
+  var newArray = copyArray(array)
+
+  if (newArray[index].fieldType.startsWith(TUPLE)) {
+    newArray = tuple2other(newArray, index)
+  } else if (newArray[index].fieldType.startsWith('json')) {
+    newArray = jsonType2other(newArray, index)
+  }
+
+  if (alterType.startsWith(TUPLE)) {
+    newArray = other2tuple(newArray, index, alterType)
+  } else if (alterType.startsWith('json')) {
+    newArray = other2jsonType(newArray, index)
+  }
+  newArray[index].fieldType = alterType
+  return newArray
+}
+
+// tuple类型修改为其他类型，删除原tuple子对象
+function tuple2other (array, index) {
+  var newArray = copyArray(array)
+  var tupleSubFieldRegrex = new RegExp(`^${newArray[index].fieldName}#[0-9]+$`)
+  for (let i = index + 1; i < newArray.length; i++) {
+    if (newArray[i].fieldName.search(tupleSubFieldRegrex) !== -1) {
+      newArray.splice(i, 1)
+      i = i - 1
+    } else {
+      break
+    }
+  }
+  return copyArray(newArray)
+}
+
+// 其他类型修改为tuple
+function other2tuple (array, index, alterType) {
+  var newArray = copyArray(array)
+  var num = Number(alterType.split('##').pop())
+  var tupleArray = []
+  for (let i = 0; i < num; i++) {
+    var object = {}
+    object['fieldName'] = `${newArray[index].fieldName}#${i}`
+    object['fieldType'] = 'string'
+    object['selected'] = true
+    object['rename'] = ''
+    object['ums_id_'] = false
+    object['ums_ts_'] = false
+    object['ums_op_'] = ''
+    object['forbidden'] = false
+    tupleArray.push(object)
+  }
+  for (let i = 0; i < tupleArray.length; i++) {
+    newArray.splice(index + 1, 0, tupleArray[i])
+    index = index + 1
+  }
+  return copyArray(newArray)
+}
+
+// jsonobject/jsonarray类型修改为其他类型时，原嵌套子字段forbidden设置为true
+function jsonType2other (array, index) {
+  var newArray = copyArray(array)
+  var prefix = `${newArray[index].fieldName}#`
+  for (var i = index + 1; i < newArray.length; i++) {
+    if (newArray[i].fieldName.startsWith(prefix)) {
+      newArray[i].forbidden = true
+      newArray[i].selected = false
+      newArray[i].ums_id_ = false
+      newArray[i].ums_ts_ = false
+      newArray[i].ums_op_ = ''
+    } else {
+      break
+    }
+  }
+  return newArray
+}
+
+// 其他类型修改为jsonobject/jsonarray类型
+function other2jsonType (array, index) {
+  var newArray = copyArray(array)
+  var prefix = `${newArray[index].fieldName}#`
+  for (var i = index + 1; i < newArray.length; i++) {
+    if (newArray[i].fieldName.startsWith(prefix)) {
+      newArray[i].forbidden = false
+      newArray[i].selected = true
+    } else {
+      break
+    }
+  }
+  return newArray
+}
+
+// 若用户配置fieldName为 ums_id_或ums_ts_或ums_op_，将之前选为对应ums系统字段的行对象ums值设置为false，
+// 将新选择的index所对应行的ums对应字段设置为true.value为对应ums字段的值，true或i:1,u:2,d:3
+export function umsSysFieldSelected (array, index, umsSysField, value) {
+  var newArray = copyArray(array)
+  newArray = umsSysFieldCanceled(array, umsSysField)
+  if (umsSysField === 'ums_id_') {
+    newArray[index].ums_id_ = value
+  } else if (umsSysField === 'ums_ts_') {
+    newArray[index].ums_ts_ = value
+  } else if (umsSysField === 'ums_op_') {
+    newArray[index].ums_op_ = value
+  }
+  return newArray
+}
+
+// 若用户选择该行为ums_id_或ums_ts_或ums_op_后，又点了取消，调用umsSysFieldUnSelected方法
+function umsSysFieldCanceled (array, umsSysField) {
+  var newArray = copyArray(array)
+  for (let i = 0; i < newArray.length; i++) {
+    if (umsSysField === 'ums_id_') {
+      newArray[i].ums_id_ = false
+      break
+    } else if (umsSysField === 'ums_ts_') {
+      newArray[i].ums_ts_ = false
+      break
+    } else if (umsSysField === 'ums_op_') {
+      newArray[i].ums_op_ = ''
+      break
+    }
+  }
+
+  return newArray
+}
+
+// 修改rename
+export function renameAlter (array, index, rename) {
+  var newArray = copyArray(array)
+  newArray[index].rename = rename
+  return newArray
+}
+
+function genUmsField (array) {
+  var newArray = copyArray(array)
+  var umsArray = []
+  for (let i = 0; i < newArray.length; i++) {
+    if (newArray[i].ums_id_ === true || newArray[i].ums_ts_ === true || newArray[i].ums_op_ !== '') {
+      var object = genBaseField(newArray[i])
+      if (newArray[i].ums_id_ === true) {
+        object.rename = 'ums_id_'
+      } else if (newArray[i].ums_ts_ === true) {
+        object.rename = 'ums_ts_'
+      } else {
+        object.rename = 'ums_op_'
+        object.ums_sys_mapping = newArray[i].ums_op_
+      }
+      umsArray.push(object)
+    }
+  }
+  return umsArray
+}
+
+function genBaseField (fieldInfo) {
+  var fieldObject = {}
+  fieldObject['name'] = fieldInfo.fieldName.split('#').pop()
+  fieldObject['type'] = fieldInfo.fieldType
+  fieldObject['nullable'] = true
+  if (fieldInfo.rename !== '' && fieldInfo.fieldName.split('#').pop() !== fieldInfo.rename) {
+    fieldObject['rename'] = fieldInfo.rename
+  }
+  if (fieldInfo.fieldType.startsWith(TUPLE)) {
+    fieldObject['type'] = TUPLE
+    fieldObject['tuple_sep'] = fieldInfo.fieldType.split('##')[1]
+  }
+
+  return fieldObject
+}
+
+// 用户点保存后，最终table数组为array2，调用genSchema方法，生成Json
+export function genSchema (array) {
+  var fieldsObject = {}
+  var fieldsArray = []
+  fieldsObject['fields'] = fieldsArray
+  var selectedArray = selectedFields(array)
+  for (var i = 0; i < selectedArray.length; i++) {
+    if (selectedArray[i].hasOwnProperty('fieldName') && selectedArray[i].fieldName.indexOf('#') === -1) {
+      var fieldObject = genBaseField(selectedArray[i])
+      if (fieldObject.type === JSONARRAY || fieldObject.type === JSONOBJECT || fieldObject.type.startsWith('tuple')) {
+        fieldObject = genSubField(array.slice(i + 1, selectedArray.length), fieldObject, '')
+      }
+      fieldsArray.push(fieldObject)
+    }
+  }
+  var umsArray = genUmsField(array)
+  for (let i = 0; i < umsArray.length; i++) {
+    fieldsArray.push(umsArray[i])
+  }
+  return fieldsObject
+}
+//
+//
+//
+//
+//
+//
+//
 
 function getDefaultNumType (value) {
   value = `${value}`
   if (value.indexOf('.') === -1) return LONG
   else return DOUBLE
 }
-
-// function distinct (array) {
-//   for (var i = 0; i < array.length; i++) {
-//     for (var j = i + 1; j < array.length;) {
-//       if (array[i].fieldName === array[j].fieldName) {
-//         array.splice(j, 1)
-//       } else {
-//         j++
-//       }
-//     }
-//   }
-//   return array
-// }
 
 function isExist (array, key) {
   for (var i in array) {
@@ -103,25 +313,6 @@ function lastPositionOfKeyPrefix (array, key) {
   return p
 }
 
-// 修改某个fieldType时，传入原fieldType类型，返回可选择的类型数组
-export function getAlterTypesByOriginType (fieldType) {
-  var typeArray = []
-  if (fieldType === INT || fieldType === LONG || fieldType === DECIMAL || fieldType === FLOAT || fieldType === DOUBLE ||
-    fieldType === BINARY || fieldType === DATETIME || fieldType === BOOLEAN) {
-    typeArray = [INT, LONG, FLOAT, DOUBLE, DECIMAL, STRING, BOOLEAN, DATETIME, BINARY]
-  } else if (fieldType === INTARRAY || fieldType === LONGARRAY || fieldType === DECIMALARRAY || fieldType === FLOATARRAY ||
-    fieldType === DOUBLEARRAY || fieldType === STRINGARRAY || fieldType === BINARYARRAY ||
-    fieldType === DATETIMEARRAY || fieldType === BOOLEANARRAY) {
-    typeArray = [INTARRAY, LONGARRAY, FLOATARRAY, DOUBLEARRAY, DECIMALARRAY,
-      STRINGARRAY, BOOLEANARRAY, DATETIMEARRAY, BINARYARRAY]
-  } else if (fieldType === JSONARRAY || fieldType === JSONOBJECT || fieldType === TUPLE) {
-    typeArray = [fieldType, STRING]
-  } else if (fieldType === STRING) {
-    typeArray = [INT, LONG, DECIMAL, FLOAT, DOUBLE, BINARY, DATETIME, JSONOBJECT, JSONARRAY, TUPLE, BOOLEAN]
-  }
-  return typeArray
-}
-
 // 点击保存时，去除 selected === false的行
 function selectedFields (array) {
   for (var i = 0; i < array.length; i++) {
@@ -133,143 +324,9 @@ function selectedFields (array) {
   return array
 }
 
-// 若用户配置fieldName为 ums_id_或ums_ts_或ums_op_，调用umsSysFieldSelected方法，获得新的数组
-// umsSysField = ums_id_或ums_ts_或ums_op_
-export function umsSysFieldSelected (array, index, umsSysField) {
-  const umsField = umsSysField
-
-  const arr = []
-  for (let i = 0; i < index; i++) {
-    arr.push(array[i])
-  }
-
-  // index 项
-  const indexVal = {
-    fieldName: array[index].fieldName,
-    fieldType: array[index].fieldType,
-    forbidden: array[index].forbidden,
-    rename: array[index].rename,
-    selected: array[index].selected,
-    ums_id_: (umsSysField === 'ums_id_' || array[index].ums_id_ === true),
-    ums_op_: array[index].ums_op_,
-    ums_ts_: (umsSysField === 'ums_ts_' || array[index].ums_ts_ === true),
-    value: array[index].value
-  }
-
-  arr.push(indexVal)
-
-  // index + 1 项
-  const objectVal = {
-    fieldName: array[index].fieldName,
-    fieldType: array[index].fieldType,
-    value: array[index].value,
-
-    rename: umsField,
-    selected: true,
-    forbidden: true,
-
-    ums_id_: umsSysField === 'ums_id_',
-    ums_op_: array[index].ums_op_,
-    ums_ts_: umsSysField === 'ums_ts_'
-  }
-  arr.push(objectVal)
-
-  for (let j = index + 1; j < array.length; j++) {
-    arr.push(array[j])
-  }
-
-  // 给新增的子数组 index + 1 项设置key
-  const umsArr = arr.map((s, index) => {
-    s.key = index
-    return s
-  })
-  return umsArr
-}
-
-// 若用户选择该行为ums_id_或ums_ts_或ums_op_后，又点了取消，调用umsSysFieldUnSelected方法，删除刚刚生成的新行，返回新数组
-export function umsSysFieldUnSelected (array, index, umsSysField) {
-  if ((array[index + 1].ums_id_ === true && array[index + 1].forbidden === true) ||
-    (array[index + 1].ums_ts_ === true && array[index + 1].forbidden === true) ||
-    ((array[index + 1].ums_op_ !== '' && array[index + 1].forbidden === true))) {
-    const arr = []
-    for (let i = 0; i < index; i++) {
-      arr.push(array[i])
-    }
-
-    let umsIdBool = false
-    let umsTsBool = false
-    let umsOpValue = ''
-    if (umsSysField === 'ums_id_') {
-      umsIdBool = false
-      umsTsBool = array[index].ums_ts_
-      umsOpValue = array[index].ums_op_
-    } else if (umsSysField === 'ums_ts_') {
-      umsIdBool = array[index].ums_id_
-      umsTsBool = false
-      umsOpValue = array[index].ums_op_
-    } else if (umsSysField === 'ums_op_') {
-      umsIdBool = array[index].ums_id_
-      umsTsBool = array[index].ums_ts_
-      umsOpValue = ''
-    }
-
-    const indexVal = {
-      fieldName: array[index].fieldName,
-      fieldType: array[index].fieldType,
-      forbidden: array[index].forbidden,
-      rename: array[index].rename,
-      selected: array[index].selected,
-      key: array[index].key,
-      ums_id_: umsIdBool,
-      ums_op_: umsOpValue,
-      ums_ts_: umsTsBool,
-      value: array[index].value
-    }
-    arr.push(indexVal)
-
-    if (array[index + 1].rename === umsSysField) {
-      for (let j = index + 2; j < array.length; j++) {
-        arr.push(array[j])
-      }
-    } else if (array[index + 2].rename === umsSysField) {
-      arr.push(array[index + 1])
-      for (let k = index + 3; k < array.length; k++) {
-        arr.push(array[k])
-      }
-    } else if (array[index + 3].rename === umsSysField) {
-      arr.push(array[index + 1], array[index + 2])
-      for (let g = index + 4; g < array.length; g++) {
-        arr.push(array[g])
-      }
-    }
-
-    // 重新设置key
-    const arrTemp = JSON.stringify(arr, ['fieldName', 'fieldType', 'forbidden', 'rename', 'selected', 'ums_id_', 'ums_op_', 'ums_ts_', 'value'])
-    const umsArr = JSON.parse(arrTemp).map((s, index) => {
-      s.key = index
-      return s
-    })
-    return umsArr
-  }
-}
-
-// fieldType值由 jsonobject/jsonarray/tuple 改为 string 时，生成新数组
-export function nestType2string (array, index) {
-  var prefix = `${array[index].fieldName}#`
-  array[index].fieldType = STRING
-  for (var i = index + 1; i < array.length; i++) {
-    if (array[i].fieldName.startsWith(prefix)) {
-      array[i].forbidden = true
-      array[i].selected = false
-    } else {
-      break
-    }
-  }
-  return array
-}
-
 // 当row select的项有子级（如test#t1）时，
 // 若 selected=true，子级的 forbidden=false；若 selected=false，子级的 forbidden=true, selected=false
+// todo:edit 过滤掉forbidden = true
 export function rowSelectFunc (array, index) {
   const prefix = `${array[index].fieldName}#`
   for (let i = index + 1; i < array.length; i++) {
@@ -287,64 +344,6 @@ export function rowSelectFunc (array, index) {
   return array
 }
 
-// fieldType值由 string 改为 jsonobject/jsonarray/tuple 时，生成新数组
-export function string2nestType (array, index, alterType) {
-  var prefix = `${array[index].fieldName}#`
-  array[index].fieldType = alterType
-  for (var i = index + 1; i < array.length; i++) {
-    if (array[i].fieldName.startsWith(prefix)) {
-      array[i].forbidden = false
-      array[i].selected = true
-    } else {
-      break
-    }
-  }
-  return array
-}
-
-// fieldType配置为 tuple 时，需要让用户配置分隔符，假设为"/"，该fieldType的值为"tuple##/"，
-// 1. string 改为 tuple；2.用户修改了分隔符。调用tupleFields方法，生成包含 tuple 子字段的新数组
-// 子数组的 rename 需要用户配
-export function tupleFields (array, index, separator) {
-  array[index].fieldType = `${TUPLE}##${separator}`
-  for (let i = index + 1; i < array.length; i++) {
-    if (array[i].fieldName.startsWith(`${array[index].fieldName}#`)) {
-      array.splice(i, 1)
-    } else {
-      break
-    }
-  }
-  var tupleSplit = array[index].value.split(separator)
-  if (tupleSplit.length <= 1) {
-    return array
-  }
-  var tupleArray = []
-  for (let i = 0; i < tupleSplit.length; i++) {
-    var object = {}
-    object['fieldName'] = `${array[index].fieldName}#${i}`
-    object['fieldType'] = 'string'
-    object['value'] = tupleArray[i]
-    object['selected'] = true
-    object['rename'] = ''
-    object['ums_id_'] = false
-    object['ums_ts_'] = false
-    object['ums_op_'] = ''
-    object['forbidden'] = false
-    object['value'] = tupleSplit[i]
-    tupleArray.push(object)
-  }
-  for (let i = 0; i < tupleArray.length; i++) {
-    array.splice(index + 1, 0, tupleArray[i])
-    index = index + 1
-  }
-
-  const umsArr = array.map((s, index) => {
-    s.key = index
-    return s
-  })
-  return umsArr
-}
-
 // 生成基本字段数组array1，"jsonParseArray":array1）
 export function jsonParse (jsonSample, prefix, array) {
   for (var key in jsonSample) {
@@ -355,13 +354,11 @@ export function jsonParse (jsonSample, prefix, array) {
         else prefix = key
         data['fieldName'] = prefix
         data['fieldType'] = 'array'
-        data['value'] = jsonSample[key].slice(0, 1)
       } else {
         if (prefix !== '') prefix = `${prefix}#${key}`
         else prefix = key
         data['fieldName'] = prefix
         data['fieldType'] = JSONOBJECT
-        data['value'] = jsonSample[key]
       }
       array.push(data)
       jsonParse(jsonSample[key], prefix, array)
@@ -378,7 +375,6 @@ export function jsonParse (jsonSample, prefix, array) {
       } else {
         data['fieldType'] = fieldType
       }
-      data['value'] = jsonSample[key]
       array.push(data)
     }
   }
@@ -434,32 +430,6 @@ export function genDefaultSchemaTable (array) {
   return arrayFinal
 }
 
-function genBaseField (fieldInfo) {
-  var fieldObject = {}
-  fieldObject['name'] = fieldInfo.fieldName.split('#').pop()
-  fieldObject['type'] = fieldInfo.fieldType
-  fieldObject['nullable'] = true
-  if (fieldInfo.hasOwnProperty('rename') && fieldInfo.rename !== '' && fieldInfo.fieldName.split('#').pop() !== fieldInfo.rename) {
-    fieldObject['rename'] = fieldInfo.rename
-  }
-  if (fieldInfo.hasOwnProperty('ums_op_') && fieldInfo.ums_op_ !== '' && fieldInfo.forbidden === true) {
-    fieldObject['rename'] = fieldInfo.rename
-    fieldObject['ums_sys_mapping'] = fieldInfo.ums_op_
-  }
-  if (fieldInfo.hasOwnProperty('ums_id_') && fieldInfo.ums_id_ === true && fieldInfo.forbidden === true) {
-    fieldObject['rename'] = fieldInfo.rename
-  }
-  if (fieldInfo.hasOwnProperty('ums_ts_') && fieldInfo.ums_ts_ === true && fieldInfo.forbidden === true) {
-    fieldObject['rename'] = fieldInfo.rename
-  }
-  if (fieldInfo.fieldType.startsWith(TUPLE)) {
-    fieldObject['type'] = TUPLE
-    fieldObject['tuple_sep'] = fieldInfo.fieldType.split('##').pop()
-  }
-
-  return fieldObject
-}
-
 function genSubField (array, fieldObject, prefix) {
   if (prefix === '') prefix = `${fieldObject.name}#`
   else prefix = `${prefix}${fieldObject.name}#`
@@ -484,38 +454,3 @@ function genSubField (array, fieldObject, prefix) {
   fieldObject['sub_fields'] = subFieldsArray
   return fieldObject
 }
-
-// 用户点保存后，最终table数组为array2，调用genSchema方法，生成Json
-export function genSchema (array) {
-  var fieldsObject = {}
-  var fieldsArray = []
-  fieldsObject['fields'] = fieldsArray
-  var selectedArray = selectedFields(array)
-  for (var i = 0; i < selectedArray.length; i++) {
-    if (selectedArray[i].hasOwnProperty('fieldName') && selectedArray[i].fieldName.indexOf('#') === -1) {
-      var fieldObject = genBaseField(selectedArray[i])
-      if (fieldObject.type === JSONARRAY || fieldObject.type === JSONOBJECT || fieldObject.type.startsWith('tuple')) {
-        fieldObject = genSubField(array.slice(i + 1, selectedArray.length), fieldObject, '')
-      }
-      fieldsArray.push(fieldObject)
-    }
-  }
-  return fieldsObject
-}
-
-// 若用户修改某字段类型，判断该字段是否为ums系统字段，若是，修改与之相关的ums系统字段类型
-export function umsSysFieldTypeAutoChange (array, index, alterType) {
-  if (array[index].ums_id_ === true || array[index].ums_ts_ === true || array[index].ums_op_ !== '') {
-    if (array[index + 1].rename === 'ums_id_' || array[index + 1].rename === 'ums_ts_' || array[index + 1].rename === 'ums_op_') {
-      array[index + 1].fieldType = alterType
-    }
-    if (array[index + 2].rename === 'ums_id_' || array[index + 2].rename === 'ums_ts_' || array[index + 2].rename === 'ums_op_') {
-      array[index + 2].fieldType = alterType
-    }
-    if (array[index + 3].rename === 'ums_id_' || array[index + 3].rename === 'ums_ts_' || array[index + 3].rename === 'ums_op_') {
-      array[index + 3].fieldType = alterType
-    }
-  }
-  return array
-}
-
