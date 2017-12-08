@@ -19,8 +19,8 @@ Wormhole面向大数据流式处理项目的开发管理运维人员，致力于
 ### 设计理念
 
 - **统一DAG高阶分形抽象**
-  - 构建由Source Datastore，Kafka Topic，Spark Stream（Flink Stream）和Sink Datastore组成的物理DAG
-  - 物理DAG里可以并行处理多个由Source Namespace，Flow，Sink Namespace组成的逻辑DAG
+  - 构建由Source DataSys，Kafka Topic，Spark Stream（Flink Stream），Sink DataSys组成的物理DAG
+  - 每个物理DAG里可以并行处理多个由Source Namespace，Flow，Sink Namespace组成的逻辑DAG
   - 每个Flow本身是典型的Spark RDD DAG
 - **统一通用流消息UMS协议抽象**
   - UMS是Wormhole定义的流消息协议规范
@@ -65,7 +65,7 @@ Wormhole面向大数据流式处理项目的开发管理运维人员，致力于
 #### 转换支持大部分流上作业常用场景，大部分工作可以通过配置SQL实现流上处理逻辑
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_2_flow_2.png" alt="" width="600"/>
 
-#### Wormhole有Flow和Stream的概念，支持在一个物理Stream（对应一个Spark Streaming作业）里通过处理多个逻辑Flow，使得User可以更加精细灵活的利用计算资源
+#### Wormhole有Flow和Stream的概念，支持在一个物理Stream（对应一个Spark Stream）里通过并行处理多个逻辑Flow，使得User可以更加精细灵活的利用计算资源，User也可以对Stream进行精细化参数配置调整以更好平衡需求和资源
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_3_stream.png" alt="" width="600"/>
 
 #### Wormhole也支持批处理Job，同样可以配置化实现处理逻辑并落到多个异构Sink，Flow和Job的配合可以很容易实现Lambda架构和Kappa架构
