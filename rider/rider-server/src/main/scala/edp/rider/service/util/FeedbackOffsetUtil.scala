@@ -60,22 +60,6 @@ object FeedbackOffsetUtil extends RiderLogger with ConfigurationModuleImpl with 
     topicList.toList
   }
 
-  def getPartitionOffsetStrFromMap(streamId: Long, topicName: String, partitionNum: Int): String = {
-    var pid: Int = 0
-    var partitionOffsetStr = ""
-    while (pid < partitionNum) {
-      val offset = CacheMap.getOffsetValue(streamId, topicName, pid)
-      if (offset >= 0) {
-        if (pid == 0)
-          partitionOffsetStr = partitionOffsetStr + s"$pid:$offset"
-        else
-          partitionOffsetStr = partitionOffsetStr + s",$pid:$offset"
-      }
-      pid += 1
-    }
-    partitionOffsetStr
-  }
-
   def getTopicMapForDB(streamId: Long, topicName: String, partitions: Int): scala.collection.mutable.Map[TopicPartition, Long] = {
     val topicMap = scala.collection.mutable.Map[TopicPartition, Long]()
     riderLogger.info(s"Rider Feedback Topic: $topicName, partition num: $partitions")

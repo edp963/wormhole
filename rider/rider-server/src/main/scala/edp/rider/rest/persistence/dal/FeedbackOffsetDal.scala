@@ -46,13 +46,13 @@ class FeedbackOffsetDal(feedbackOffsetTable: TableQuery[FeedbackOffsetTable]) ex
   }
 
   def getDistinctList: Future[Seq[IdStreamTopicPartitionId]] ={
-    db.run(feedbackOffsetTable.map{case(str)=>(str.id,str.streamId,str.topicName,str.partitionNum) <> (IdStreamTopicPartitionId.tupled, IdStreamTopicPartitionId.unapply) }
+    db.run(feedbackOffsetTable.map{case(str)=>(str.streamId,str.topicName) <> (IdStreamTopicPartitionId.tupled, IdStreamTopicPartitionId.unapply) }
       .distinct.result).mapTo[Seq[IdStreamTopicPartitionId]]
   }
 
 
   def deleteHistory( pastNdays : String, reservedIds: Seq[Long]) = {
-    super.deleteByFilter(str=> str.feedbackTime <= pastNdays && !(str.id.inSet(reservedIds)) )
+    super.deleteByFilter(str=> str.feedbackTime <= pastNdays && !str.id.inSet(reservedIds))
   }
 
   def getFeedbackTopicOffset(topicName: String): String = {
