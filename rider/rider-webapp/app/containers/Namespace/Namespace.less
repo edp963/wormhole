@@ -102,6 +102,10 @@
   .ant-select-selection--single {
     height: 21px !important;
   }
+
+  .close-select-class, .edit-tuple-class {
+    margin-left: 4px;
+  }
 }
 
 .editable-cell-text-wrapper {
@@ -148,7 +152,9 @@
 }
 
 .rename-text-class {
-  color: red;
+  .ant-input {
+    color: red;
+  }
 }
 
 .table-ums-class {
@@ -158,5 +164,32 @@
   .ant-checkbox-checked .ant-checkbox-inner {
     background-color: #8a8a8a !important;
     border-color: #8a8a8a !important;
+  }
+}
+
+.field-type-modal-class {
+  .field-type-radio {
+    .ant-radio-button-wrapper {
+      width: 100px !important;
+      text-align: center;
+      padding: 0 !important;
+    }
+  }
+}
+
+.field-type-modal-class {
+  .ant-radio-button-wrapper:first-child {
+    border-radius: 0 !important;
+    border-left: 0 !important;
+  }
+
+  .ant-radio-button-wrapper:last-child {
+    border-radius: 0 !important;
+  }
+}
+
+.ums_field_type_class {
+  .ant-select-dropdown-menu-item {
+    padding: 5px 6px !important;
   }
 }

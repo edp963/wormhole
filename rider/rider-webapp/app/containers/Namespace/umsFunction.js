@@ -58,8 +58,8 @@ export function getNestType () {
 
 // just copy array, don't alter it
 function copyArray (array) {
-  // 重新设置key
   const arrTemp = JSON.stringify(array, ['fieldName', 'fieldType', 'forbidden', 'rename', 'selected', 'ums_id_', 'ums_op_', 'ums_ts_'])
+  // 重新设置key
   const umsArr = JSON.parse(arrTemp).map((s, index) => {
     s.key = index
     return s
@@ -72,14 +72,17 @@ function copyArray (array) {
 export function fieldTypeAlter (array, index, alterType) {
   var newArray = copyArray(array)
 
+  if (array[index].fieldType.startsWith(TUPLE) && alterType.startsWith(TUPLE)) {
+    newArray = tuple2tuple(newArray, index, alterType)
+  }
   if (newArray[index].fieldType.startsWith(TUPLE)) {
-    newArray = tuple2other(newArray, index)
+    newArray = tuple2other(newArray, index, index + 1)
   } else if (newArray[index].fieldType.startsWith('json')) {
     newArray = jsonType2other(newArray, index)
   }
 
   if (alterType.startsWith(TUPLE)) {
-    newArray = other2tuple(newArray, index, alterType)
+    newArray = other2tuple(newArray, index, 0, alterType)
   } else if (alterType.startsWith('json')) {
     newArray = other2jsonType(newArray, index)
   }
@@ -88,13 +91,15 @@ export function fieldTypeAlter (array, index, alterType) {
 }
 
 // tuple类型修改为其他类型，删除原tuple子对象
-function tuple2other (array, index) {
+function tuple2other (array, index, deleteIndex) {
   var newArray = copyArray(array)
   var tupleSubFieldRegrex = new RegExp(`^${newArray[index].fieldName}#[0-9]+$`)
   for (let i = index + 1; i < newArray.length; i++) {
     if (newArray[i].fieldName.search(tupleSubFieldRegrex) !== -1) {
-      newArray.splice(i, 1)
-      i = i - 1
+      if (i >= deleteIndex) {
+        newArray.splice(i, 1)
+        i = i - 1
+      }
     } else {
       break
     }
@@ -102,12 +107,29 @@ function tuple2other (array, index) {
   return copyArray(newArray)
 }
 
-// 其他类型修改为tuple
-function other2tuple (array, index, alterType) {
+// tuple类型修改为tuple，根据size大小调整子对象的行数
+function tuple2tuple (array, index, alterType) {
   var newArray = copyArray(array)
-  var num = Number(alterType.split('##').pop())
+  // var tupleSubFieldRegrex = new RegExp(`^${newArray[index].fieldName}#[0-9]+$`)
+  var preSize = Number(newArray[index].fieldType.split('##').pop())
+  var alterSize = Number(alterType.split('##').pop())
+  if (preSize === alterSize) {
+    return newArray
+  } else if (preSize > alterSize) {
+    newArray = tuple2other(newArray, index, index + preSize + 1)
+    return newArray
+  } else {
+    newArray = other2tuple(newArray, index, preSize, alterType)
+    return newArray
+  }
+}
+
+// 其他类型修改为tuple
+function other2tuple (array, index, preSize, alterType) {
+  var newArray = copyArray(array)
+  var size = Number(alterType.split('##').pop())
   var tupleArray = []
-  for (let i = 0; i < num; i++) {
+  for (let i = preSize; i < size; i++) {
     var object = {}
     object['fieldName'] = `${newArray[index].fieldName}#${i}`
     object['fieldType'] = 'string'
@@ -120,8 +142,7 @@ function other2tuple (array, index, alterType) {
     tupleArray.push(object)
   }
   for (let i = 0; i < tupleArray.length; i++) {
-    newArray.splice(index + 1, 0, tupleArray[i])
-    index = index + 1
+    newArray.splice(index + preSize + i + 1, 0, tupleArray[i])
   }
   return copyArray(newArray)
 }
@@ -163,6 +184,7 @@ function other2jsonType (array, index) {
 // 将新选择的index所对应行的ums对应字段设置为true.value为对应ums字段的值，true或i:1,u:2,d:3
 export function umsSysFieldSelected (array, index, umsSysField, value) {
   var newArray = copyArray(array)
+
   newArray = umsSysFieldCanceled(array, umsSysField)
   if (umsSysField === 'ums_id_') {
     newArray[index].ums_id_ = value
@@ -171,25 +193,22 @@ export function umsSysFieldSelected (array, index, umsSysField, value) {
   } else if (umsSysField === 'ums_op_') {
     newArray[index].ums_op_ = value
   }
+
   return newArray
 }
 
-// 若用户选择该行为ums_id_或ums_ts_或ums_op_后，又点了取消，调用umsSysFieldUnSelected方法
+// 若用户选择该行为ums_id_或ums_ts_或ums_op_后，又点了取消，调用 umsSysFieldCanceled 方法
 function umsSysFieldCanceled (array, umsSysField) {
   var newArray = copyArray(array)
   for (let i = 0; i < newArray.length; i++) {
     if (umsSysField === 'ums_id_') {
       newArray[i].ums_id_ = false
-      break
     } else if (umsSysField === 'ums_ts_') {
       newArray[i].ums_ts_ = false
-      break
     } else if (umsSysField === 'ums_op_') {
       newArray[i].ums_op_ = ''
-      break
     }
   }
-
   return newArray
 }
 

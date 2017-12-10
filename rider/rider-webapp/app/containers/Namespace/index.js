@@ -26,8 +26,8 @@ import CodeMirror from 'codemirror'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
 
-import { jsonParse, genDefaultSchemaTable, nestType2string, string2nestType,
-  tupleFields, umsSysFieldSelected, umsSysFieldUnSelected, getRepeatFieldIndex, genSchema, rowSelectFunc } from './umsFunction'
+import { jsonParse, fieldTypeAlter, renameAlter, genDefaultSchemaTable, umsSysFieldSelected,
+  getRepeatFieldIndex, genSchema, rowSelectFunc } from './umsFunction'
 import { isJSONNotEmpty } from '../../utils/util'
 
 import NamespaceForm from './NamespaceForm'
@@ -106,7 +106,8 @@ export class Namespace extends React.PureComponent {
       umsTypeSeleted: 'ums',
       nsIdValue: 0,
       repeatRenameArr: [],
-      selectAllState: 'all'
+      selectAllState: 'all',
+      beforesepratorValue: ''
     }
   }
 
@@ -741,6 +742,10 @@ export class Namespace extends React.PureComponent {
                 repeatRenameArr: repeatArr
               })
             } else {
+              this.setState({
+                repeatRenameArr: []
+              })
+
               // 检查ums_id_/ums_ts_，分别必须得有一个
               const umsIdExit = umsTableDataSource.find(i => i.ums_id_ === true)
               const umsTsExit = umsTableDataSource.find(i => i.ums_ts_ === true)
@@ -749,7 +754,7 @@ export class Namespace extends React.PureComponent {
               } else if (umsTsExit === undefined) {
                 message.warning('请选择 UMS_TS_！', 3)
               } else {
-                const tableDataString = JSON.stringify(umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden', 'value'])
+                const tableDataString = JSON.stringify(umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
 
                 const requestValue = {
                   umsType: 'ums_extension',
@@ -820,8 +825,7 @@ export class Namespace extends React.PureComponent {
           selected: !s.selected,
           ums_id_: s.ums_id_,
           ums_op_: s.ums_op_,
-          ums_ts_: s.ums_ts_,
-          value: s.value
+          ums_ts_: s.ums_ts_
         }
         : s
       return temp
@@ -864,8 +868,7 @@ export class Namespace extends React.PureComponent {
                 selected: true,
                 ums_id_: s.ums_id_,
                 ums_op_: s.ums_op_,
-                ums_ts_: s.ums_ts_,
-                value: s.value
+                ums_ts_: s.ums_ts_
               }
               : s
           } else {
@@ -887,8 +890,7 @@ export class Namespace extends React.PureComponent {
                 selected: false,
                 ums_id_: s.ums_id_,
                 ums_op_: s.ums_op_,
-                ums_ts_: s.ums_ts_,
-                value: s.value
+                ums_ts_: s.ums_ts_
               }
               : s
           } else {
@@ -905,84 +907,43 @@ export class Namespace extends React.PureComponent {
     })
   }
 
-  // todo: test。fieldName 不是唯一的
-  initChangeFiledType = (fieldName, beforeValue, afterValue) => {
+  umsFieldTypeSelectOk = (recordKey, selectTypeVal) => {
     const { umsTableDataSource } = this.state
-
-    const indexValue = umsTableDataSource.find(s => s.fieldName === fieldName)
-
-    let umsArr = []
-    if ((beforeValue === 'jsonobject' || beforeValue === 'jsonarray' || beforeValue === 'tuple') && afterValue === 'string') {
-      umsArr = nestType2string(umsTableDataSource, indexValue.key)
-    } else if (beforeValue === 'string' && ((afterValue === 'jsonobject' || afterValue === 'jsonarray'))) {
-      umsArr = string2nestType(umsTableDataSource, indexValue.key, afterValue)
-    } else if ((beforeValue.indexOf('tuple') > -1 && afterValue.indexOf('tuple') < 0) ||
-      (beforeValue.indexOf('tuple') < 0 && afterValue.indexOf('tuple') > -1)) {
-      const temp = afterValue.split('##')   // 如fieldType为 "tuple##|"
-      umsArr = tupleFields(umsTableDataSource, indexValue.key, temp[1])
-    } else if (beforeValue.indexOf('tuple') > -1 && afterValue.indexOf('tuple') > -1) {
-      const filedTempArr = umsTableDataSource.filter(s => s.fieldName.indexOf(`${fieldName}#`) < 0)  // 去掉子行
-
-      const temp = afterValue.split('##')
-      umsArr = tupleFields(filedTempArr, indexValue.key, temp[1])
-    } else {
-      // 替换
-      const result = {
-        fieldName: indexValue.fieldName,
-        fieldType: afterValue,
-        forbidden: indexValue.forbidden,
-        key: indexValue.key,
-        rename: indexValue.rename,
-        selected: indexValue.selected,
-        ums_id_: indexValue.ums_id_,
-        ums_op_: indexValue.ums_op_,
-        ums_ts_: indexValue.ums_ts_,
-        value: indexValue.value
-      }
-      umsTableDataSource.splice(umsTableDataSource.indexOf(indexValue), 1, result)
-
-      // todo：基本类型判断
-      umsArr = umsTableDataSource.slice()
-    }
-
+    const umsArr = fieldTypeAlter(umsTableDataSource, recordKey, selectTypeVal)
     this.setState({
       umsTableDataSource: umsArr
     })
   }
 
-  initEditRename = (record, value) => {
+  initEditRename = (recordKey, value) => {
     const { umsTableDataSource } = this.state
-    const result = {
-      fieldName: record.fieldName,
-      fieldType: record.fieldType,
-      forbidden: record.forbidden,
-      key: record.key,
-      rename: value,
-      selected: record.selected,
-      ums_id_: record.ums_id_,
-      ums_op_: record.ums_op_,
-      ums_ts_: record.ums_ts_,
-      value: record.value
-    }
-    umsTableDataSource.splice(umsTableDataSource.indexOf(record), 1, result)
+
+    const umsArr = renameAlter(umsTableDataSource, recordKey, value)
     this.setState({
-      umsTableDataSource: umsTableDataSource.slice()
+      umsTableDataSource: umsArr
+    }, () => {
+      const repeatArr = getRepeatFieldIndex(this.state.umsTableDataSource)
+
+      if (repeatArr.length !== 0) {
+        message.warning('请修改 Rename 重复项！', 3)
+        this.setState({
+          repeatRenameArr: repeatArr
+        })
+      } else {
+        this.setState({
+          repeatRenameArr: []
+        })
+      }
     })
   }
 
-  initSelectUmsId = (record, umsSysField) => {
+  initSelectUmsIdTs = (record, umsSysField) => {
     const { umsTableDataSource } = this.state
 
-    const tempArr = umsSysFieldSelected(umsTableDataSource, record.key, umsSysField)
+    const tempArr = umsSysFieldSelected(umsTableDataSource, record.key, umsSysField, true)
+
     this.setState({
       umsTableDataSource: tempArr
-    })
-  }
-
-  cancelSelectUmsId = (record, umsSysField) => {
-    const { umsTableDataSource } = this.state
-    this.setState({
-      umsTableDataSource: umsSysFieldUnSelected(umsTableDataSource, record.key, umsSysField)
     })
   }
 
@@ -998,8 +959,7 @@ export class Namespace extends React.PureComponent {
       selected: record.selected,
       ums_id_: record.ums_id_,
       ums_op_: umsopValue,
-      ums_ts_: record.ums_ts_,
-      value: record.value
+      ums_ts_: record.ums_ts_
     }
     umsTableDataSource.splice(umsTableDataSource.indexOf(record), 1, result)
     this.setState({
@@ -1013,10 +973,10 @@ export class Namespace extends React.PureComponent {
   }
 
   initCancelUmsOp = (record) => {
-    const { umsTableDataSource } = this.state
+    // const { umsTableDataSource } = this.state
 
     this.setState({
-      umsTableDataSource: umsSysFieldUnSelected(umsTableDataSource, record.key, 'ums_op_')
+      // umsTableDataSource: umsSysFieldCanceled(umsTableDataSource, record.key, 'ums_op_')
     })
   }
 
@@ -1428,17 +1388,18 @@ export class Namespace extends React.PureComponent {
           ]}
         >
           <SchemaTypeConfig
+            umsFieldTypeSelectOk={this.umsFieldTypeSelectOk}
             initChangeSelected={this.initChangeSelected}
             initChangeUmsType={this.initChangeUmsType}
             onChangeJsonToTable={this.onChangeUmsJsonToTable}
-            initChangeType={this.initChangeFiledType}
             initEditRename={this.initEditRename}
-            initSelectUmsId={this.initSelectUmsId}
+            initSelectUmsIdTs={this.initSelectUmsIdTs}
             cancelSelectUmsId={this.cancelSelectUmsId}
             initCheckUmsOp={this.initCheckUmsOp}
             initCancelUmsOp={this.initCancelUmsOp}
             initRowSelectedAll={this.initRowSelectedAll}
             umsTableDataSource={this.state.umsTableDataSource}
+            beforesepratorValue={this.state.beforesepratorValue}
             umsTypeSeleted={this.state.umsTypeSeleted}
             repeatRenameArr={this.state.repeatRenameArr}
             selectAllState={this.state.selectAllState}
