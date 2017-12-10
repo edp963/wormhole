@@ -11,7 +11,7 @@ import scala.collection.mutable.ListBuffer
 
 object WormholeGetOffsetShell {
 
-  def getTopicOffsets(brokerList: String, topic: String, time: Long = -1, maxWaitMs: Int = 10000): String = {
+  def getTopicOffsets(brokerList: String, topic: String, time: Long = -1, maxWaitMs: Int = 30000): String = {
     try {
       val parser = new OptionParser
       val clientId = "GetOffsetShell"
@@ -30,7 +30,7 @@ object WormholeGetOffsetShell {
             case Some(metadata) =>
               metadata.leader match {
                 case Some(leader) =>
-                  val consumer = new SimpleConsumer(leader.host, leader.port, 10000, 100000, clientId)
+                  val consumer = new SimpleConsumer(leader.host, leader.port, maxWaitMs, 100000, clientId)
                   try {
                     val topicAndPartition = TopicAndPartition(topic, partitionId)
                     val request = OffsetRequest(Map(topicAndPartition -> PartitionOffsetRequestInfo(time, 1)))

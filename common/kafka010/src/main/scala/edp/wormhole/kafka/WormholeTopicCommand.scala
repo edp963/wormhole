@@ -8,7 +8,7 @@ import kafka.utils.{CommandLineUtils, ZkUtils}
 
 object WormholeTopicCommand {
 
-  def createOrAlterTopic(zkUrl: String, topic: String, partition: Int = 1, refactor: Int = 1, sessionTimeOut: Int = 10000, connectionTimeout: Int = 10000): Unit = {
+  def createOrAlterTopic(zkUrl: String, topic: String, partition: Int = 1, refactor: Int = 1, sessionTimeOut: Int = 30000, connectionTimeout: Int = 30000): Unit = {
     val zkUtils = ZkUtils(zkUrl, sessionTimeOut, connectionTimeout, false)
     val topicCommand = new TopicCommandOptions(Array[String]("if-not-exists", "--create", "--zookeeper", s"$zkUrl", "--partitions", s"$partition", "--replication-factor", s"$refactor", "--topic", s"$topic"))
     createOrAlterTopic(zkUtils, topicCommand)
