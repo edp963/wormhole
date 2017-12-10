@@ -1,0 +1,138 @@
+2017-12-07 21:39:40 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-12-07 21:39:41 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-12-07 21:39:55 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-12-07 21:39:56 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-12-07 21:40:07 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-12-07 21:40:08 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-12-07 21:40:08 [main] INFO  edp.rider.module.DbModule[48] - Initial rider database success
+2017-12-07 21:40:11 [main] INFO  edp.rider.RiderStarter[63] - WormholeServer http://localhost:8989/.
+2017-12-07 21:40:11 [main] INFO  edp.rider.RiderStarter[68] - WormholeServer Consumer started
+2017-12-07 21:40:11 [main] INFO  edp.rider.RiderStarter[70] - Wormhole Scheduler started
+2017-12-07 21:40:25 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-12-07 21:40:25 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-12-07 21:40:26 [main] INFO  edp.rider.module.DbModule[48] - Initial rider database success
+2017-12-07 21:40:28 [main] INFO  edp.rider.RiderStarter[63] - WormholeServer http://localhost:8989/.
+2017-12-07 21:40:28 [main] INFO  edp.rider.RiderStarter[68] - WormholeServer Consumer started
+2017-12-07 21:40:28 [main] INFO  edp.rider.RiderStarter[70] - Wormhole Scheduler started
+2017-12-07 21:41:53 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-12-07 21:41:53 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-12-07 21:41:53 [main] INFO  edp.rider.module.DbModule[48] - Initial rider database success
+2017-12-07 21:41:56 [main] INFO  edp.rider.RiderStarter[63] - WormholeServer http://localhost:8989/.
+2017-12-07 21:41:56 [main] INFO  edp.rider.RiderStarter[68] - WormholeServer Consumer started
+2017-12-07 21:41:56 [main] INFO  edp.rider.RiderStarter[70] - Wormhole Scheduler started
+2017-12-07 21:42:27 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-12-07 21:42:27 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-12-07 21:42:28 [main] INFO  edp.rider.module.DbModule[48] - Initial rider database success
+2017-12-07 21:42:30 [main] INFO  edp.rider.RiderStarter[63] - WormholeServer http://localhost:8989/.
+2017-12-07 21:42:30 [main] INFO  edp.rider.RiderStarter[68] - WormholeServer Consumer started
+2017-12-07 21:42:30 [main] INFO  edp.rider.RiderStarter[70] - Wormhole Scheduler started
+2017-12-07 21:44:20 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-12-07 21:44:21 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-12-07 21:44:21 [main] ERROR edp.rider.module.DbModule[44] - Initial rider database failed
+com.mysql.jdbc.exceptions.jdbc4.MySQLSyntaxErrorException: Can't DROP 'conn_url'; check that column/key exists
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62)
+	at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.lang.reflect.Constructor.newInstance(Constructor.java:423)
+	at com.mysql.jdbc.Util.handleNewInstance(Util.java:425)
+	at com.mysql.jdbc.Util.getInstance(Util.java:408)
+	at com.mysql.jdbc.SQLError.createSQLException(SQLError.java:943)
+	at com.mysql.jdbc.MysqlIO.checkErrorPacket(MysqlIO.java:3973)
+	at com.mysql.jdbc.MysqlIO.checkErrorPacket(MysqlIO.java:3909)
+	at com.mysql.jdbc.MysqlIO.sendCommand(MysqlIO.java:2527)
+	at com.mysql.jdbc.MysqlIO.sqlQueryDirect(MysqlIO.java:2680)
+	at com.mysql.jdbc.ConnectionImpl.execSQL(ConnectionImpl.java:2501)
+	at com.mysql.jdbc.PreparedStatement.executeInternal(PreparedStatement.java:1858)
+	at com.mysql.jdbc.PreparedStatement.execute(PreparedStatement.java:1197)
+	at com.zaxxer.hikari.pool.ProxyPreparedStatement.execute(ProxyPreparedStatement.java:44)
+	at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.execute(HikariProxyPreparedStatement.java)
+	at edp.rider.module.DbModule$$anonfun$createSchema$2$$anonfun$apply$1.apply(PersistenceModule.scala:47)
+	at edp.rider.module.DbModule$$anonfun$createSchema$2$$anonfun$apply$1.apply(PersistenceModule.scala:47)
+	at slick.jdbc.JdbcBackend$SessionDef$class.withPreparedStatement(JdbcBackend.scala:372)
+	at slick.jdbc.JdbcBackend$BaseSession.withPreparedStatement(JdbcBackend.scala:434)
+	at edp.rider.module.DbModule$$anonfun$createSchema$2.apply(PersistenceModule.scala:47)
+	at edp.rider.module.DbModule$$anonfun$createSchema$2.apply(PersistenceModule.scala:47)
+	at scala.collection.TraversableLike$$anonfun$map$1.apply(TraversableLike.scala:234)
+	at scala.collection.TraversableLike$$anonfun$map$1.apply(TraversableLike.scala:234)
+	at scala.collection.IndexedSeqOptimized$class.foreach(IndexedSeqOptimized.scala:33)
+	at scala.collection.mutable.ArrayOps$ofRef.foreach(ArrayOps.scala:186)
+	at scala.collection.TraversableLike$class.map(TraversableLike.scala:234)
+	at scala.collection.mutable.ArrayOps$ofRef.map(ArrayOps.scala:186)
+	at edp.rider.module.DbModule$.createSchema(PersistenceModule.scala:47)
+	at edp.rider.RiderStarter$.delayedEndpoint$edp$rider$RiderStarter$1(RiderStarter.scala:52)
+	at edp.rider.RiderStarter$delayedInit$body.apply(RiderStarter.scala:40)
+	at scala.Function0$class.apply$mcV$sp(Function0.scala:34)
+	at scala.runtime.AbstractFunction0.apply$mcV$sp(AbstractFunction0.scala:12)
+	at scala.App$$anonfun$main$1.apply(App.scala:76)
+	at scala.App$$anonfun$main$1.apply(App.scala:76)
+	at scala.collection.immutable.List.foreach(List.scala:381)
+	at scala.collection.generic.TraversableForwarder$class.foreach(TraversableForwarder.scala:35)
+	at scala.App$class.main(App.scala:76)
+	at edp.rider.RiderStarter$.main(RiderStarter.scala:40)
+	at edp.rider.RiderStarter.main(RiderStarter.scala)
+2017-12-07 21:44:24 [main] INFO  edp.rider.RiderStarter[63] - WormholeServer http://localhost:8989/.
+2017-12-07 21:44:24 [main] INFO  edp.rider.RiderStarter[68] - WormholeServer Consumer started
+2017-12-07 21:44:24 [main] INFO  edp.rider.RiderStarter[70] - Wormhole Scheduler started
+2017-12-07 21:45:08 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-12-07 21:45:08 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-12-07 21:45:08 [main] ERROR edp.rider.module.DbModule[44] - Initial rider database failed
+com.mysql.jdbc.exceptions.jdbc4.MySQLSyntaxErrorException: Can't DROP 'conn_url'; check that column/key exists
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62)
+	at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.lang.reflect.Constructor.newInstance(Constructor.java:423)
+	at com.mysql.jdbc.Util.handleNewInstance(Util.java:425)
+	at com.mysql.jdbc.Util.getInstance(Util.java:408)
+	at com.mysql.jdbc.SQLError.createSQLException(SQLError.java:943)
+	at com.mysql.jdbc.MysqlIO.checkErrorPacket(MysqlIO.java:3973)
+	at com.mysql.jdbc.MysqlIO.checkErrorPacket(MysqlIO.java:3909)
+	at com.mysql.jdbc.MysqlIO.sendCommand(MysqlIO.java:2527)
+	at com.mysql.jdbc.MysqlIO.sqlQueryDirect(MysqlIO.java:2680)
+	at com.mysql.jdbc.ConnectionImpl.execSQL(ConnectionImpl.java:2501)
+	at com.mysql.jdbc.PreparedStatement.executeInternal(PreparedStatement.java:1858)
+	at com.mysql.jdbc.PreparedStatement.execute(PreparedStatement.java:1197)
+	at com.zaxxer.hikari.pool.ProxyPreparedStatement.execute(ProxyPreparedStatement.java:44)
+	at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.execute(HikariProxyPreparedStatement.java)
+	at edp.rider.module.DbModule$$anonfun$createSchema$2$$anonfun$apply$1.apply(PersistenceModule.scala:47)
+	at edp.rider.module.DbModule$$anonfun$createSchema$2$$anonfun$apply$1.apply(PersistenceModule.scala:47)
+	at slick.jdbc.JdbcBackend$SessionDef$class.withPreparedStatement(JdbcBackend.scala:372)
+	at slick.jdbc.JdbcBackend$BaseSession.withPreparedStatement(JdbcBackend.scala:434)
+	at edp.rider.module.DbModule$$anonfun$createSchema$2.apply(PersistenceModule.scala:47)
+	at edp.rider.module.DbModule$$anonfun$createSchema$2.apply(PersistenceModule.scala:47)
+	at scala.collection.TraversableLike$$anonfun$map$1.apply(TraversableLike.scala:234)
+	at scala.collection.TraversableLike$$anonfun$map$1.apply(TraversableLike.scala:234)
+	at scala.collection.IndexedSeqOptimized$class.foreach(IndexedSeqOptimized.scala:33)
+	at scala.collection.mutable.ArrayOps$ofRef.foreach(ArrayOps.scala:186)
+	at scala.collection.TraversableLike$class.map(TraversableLike.scala:234)
+	at scala.collection.mutable.ArrayOps$ofRef.map(ArrayOps.scala:186)
+	at edp.rider.module.DbModule$.createSchema(PersistenceModule.scala:47)
+	at edp.rider.RiderStarter$.delayedEndpoint$edp$rider$RiderStarter$1(RiderStarter.scala:52)
+	at edp.rider.RiderStarter$delayedInit$body.apply(RiderStarter.scala:40)
+	at scala.Function0$class.apply$mcV$sp(Function0.scala:34)
+	at scala.runtime.AbstractFunction0.apply$mcV$sp(AbstractFunction0.scala:12)
+	at scala.App$$anonfun$main$1.apply(App.scala:76)
+	at scala.App$$anonfun$main$1.apply(App.scala:76)
+	at scala.collection.immutable.List.foreach(List.scala:381)
+	at scala.collection.generic.TraversableForwarder$class.foreach(TraversableForwarder.scala:35)
+	at scala.App$class.main(App.scala:76)
+	at edp.rider.RiderStarter$.main(RiderStarter.scala:40)
+	at edp.rider.RiderStarter.main(RiderStarter.scala)
+2017-12-07 21:45:11 [main] INFO  edp.rider.RiderStarter[63] - WormholeServer http://localhost:8989/.
+2017-12-07 21:45:11 [main] INFO  edp.rider.RiderStarter[68] - WormholeServer Consumer started
+2017-12-07 21:45:11 [main] INFO  edp.rider.RiderStarter[70] - Wormhole Scheduler started
+2017-12-07 21:45:35 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-12-07 21:45:35 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-12-07 21:47:21 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-12-07 21:47:21 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-12-07 21:52:59 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2017-12-07 21:52:59 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2017-12-07 21:53:00 [main] ERROR edp.rider.module.DbModule[54] - Initial rider database failed
+2017-12-07 21:53:00 [main] ERROR edp.rider.module.DbModule[54] - Initial rider database failed
+2017-12-07 21:53:00 [main] ERROR edp.rider.module.DbModule[54] - Initial rider database failed
+2017-12-07 21:53:00 [main] ERROR edp.rider.module.DbModule[54] - Initial rider database failed
+2017-12-07 21:53:00 [main] ERROR edp.rider.module.DbModule[54] - Initial rider database failed
+2017-12-07 21:53:00 [main] ERROR edp.rider.module.DbModule[54] - Initial rider database failed
+2017-12-07 21:53:00 [main] INFO  edp.rider.module.DbModule[57] - Initial rider database success
+2017-12-07 21:53:02 [main] INFO  edp.rider.RiderStarter[63] - WormholeServer http://localhost:8989/.
+2017-12-07 21:53:02 [main] INFO  edp.rider.RiderStarter[68] - WormholeServer Consumer started
+2017-12-07 21:53:02 [main] INFO  edp.rider.RiderStarter[70] - Wormhole Scheduler started

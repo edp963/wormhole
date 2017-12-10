@@ -32,4 +32,9 @@ class ConsumerManager(modules: ConfigurationModule with PersistenceModule with A
 
   val RiderConsumer: ActorRef = system.actorOf(Props(new RiderConsumer(modules)))
   val ConsumerManagerProxy = system.actorOf(AkkaRetry.props(retryTimes = 5, retryTimeOut = 3000.millis, retryInterval = 5000.millis, RiderConsumer))
+
+  def stopManager = {
+    system.stop(ConsumerManagerProxy)
+    system.stop(RiderConsumer)
+  }
 }
