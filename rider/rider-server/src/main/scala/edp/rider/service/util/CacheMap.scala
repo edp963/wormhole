@@ -94,7 +94,7 @@ class CacheMap private {
   }
 
   private def getOffsetValue(streamid: Long, topicName: String, partitionId: Int): Long = {
-    var offset: Long = -1L
+    var offset: Long = 0
     topicLatestOffsetMap.get(OffsetMapkey(streamid, topicName, partitionId)) match {
       case Some(x) =>
         offset = x.offset
@@ -110,6 +110,7 @@ class CacheMap private {
       topicLatestOffsetMap.put(OffsetMapkey(streamid, topicName, partitionId), OffsetMapValue(offset))
     }
   }
+
 }
 
 object CacheMap extends RiderLogger {
@@ -164,16 +165,23 @@ object CacheMap extends RiderLogger {
 
   def getOffsetValue(streamid: Long, topicName: String, partitionId: Int) =
     try {
-      val offset = singleMap.getOffsetValue(streamid, topicName, partitionId)
-      if (offset == 0) {
-        flowCacheMapRefresh
-        singleMap.getOffsetValue(streamid, topicName, partitionId)
-      } else offset
+      singleMap.getOffsetValue(streamid, topicName, partitionId)
+      //      if (offset == 0) {
+      //        flowCacheMapRefresh
+      //        singleMap.getOffsetValue(streamid, topicName, partitionId)
+      //      } else offset
     } catch {
       case ex: Exception =>
         riderLogger.error(s"stream cache map refresh failed", ex)
         throw ex
     }
+
+  def getPartitionOffsetStrFromMap(streamId: Long, topicName: String, partitionNum: Int): String = {
+    val offsetSeq = for (i <- 0 until partitionNum)
+      yield i + ":" + getOffsetValue(streamId, topicName, i)
+    offsetSeq.mkString(",")
+  }
+
 
   def streamCacheMapRefresh: Unit =
     try {
@@ -223,11 +231,12 @@ object CacheMap extends RiderLogger {
     }
   }
 
+
   def cacheMapInit = {
     streamCacheMapRefresh
     flowCacheMapRefresh
-//    offsetMapRefresh
-//    cacheMapPrint
+    //    offsetMapRefresh
+    //    cacheMapPrint
   }
 
   def cacheMapPrint = {

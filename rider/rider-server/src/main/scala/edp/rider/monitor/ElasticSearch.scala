@@ -151,9 +151,9 @@ object ElasticSearch extends RiderLogger {
       .replace("#FROMDATE#", s""""$fromDate"""")
       .replace("#TODATE#", s""""$endDate"""")
     val url = getESUrl + "_delete_by_query"
-    //    riderLogger.info(s"deleteEsHistory url $url $postBody")
+    riderLogger.info(s"deleteEsHistory url $url $postBody")
     val response = syncToES(postBody, url, HttpMethods.POST)
-    //    riderLogger.info(s"deleteEsHistory response $response")
+    riderLogger.info(s"deleteEsHistory response $response")
     if (response._1) {
       try {
         deleted = JsonUtils.jValue2json(JsonUtils.getJValue(response._2, "deleted")).toInt
