@@ -29,7 +29,7 @@ import akka.kafka.{ConsumerSettings, Subscriptions}
 import akka.stream.scaladsl.Source
 import edp.rider.RiderStarter.modules
 import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.service.util.FeedbackOffsetUtil
+import edp.rider.service.util.{CacheMap, FeedbackOffsetUtil}
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeserializer}
@@ -101,6 +101,12 @@ object TopicSource extends RiderLogger {
     if (topicMap == null || topicMap.isEmpty) {
       riderLogger.error(s"topicMap is empty")
     }
+
+    topicMap.foreach(part => {
+      CacheMap.setOffsetMap(0, RiderConfig.consumer.feedbackTopic, part._1.partition(), part._2)
+      riderLogger.info(s"topic ${RiderConfig.consumer.feedbackTopic} partition ${part._1.partition()} offset ${part._2}")
+    })
+
     Consumer.committableSource(consumerSettings, Subscriptions.assignmentWithOffset(topicMap.toMap))
   }
 

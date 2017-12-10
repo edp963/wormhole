@@ -38,7 +38,7 @@ import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
 class RiderConsumer(modules: ConfigurationModule with PersistenceModule with ActorModuleImpl)
@@ -127,10 +127,10 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
     if (msg.record.key() != null)
       riderLogger.debug(s"Consumed key: ${msg.record.key().toString}")
     val curTs = currentMillSec
-//    val defaultStreamIdForRider = 0
-//    CacheMap.setOffsetMap(defaultStreamIdForRider, msg.record.topic(), msg.record.partition(), msg.record.offset())
-    val partitionOffsetStr = modules.feedbackOffsetDal.getFeedbackTopicOffset(RiderConfig.consumer.feedbackTopic)
-    modules.feedbackOffsetDal.insert(FeedbackOffset(1, UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET.toString, curTs, 0, msg.record.topic(), RiderConfig.consumer.partitions, partitionOffsetStr, curTs))
+    val defaultStreamIdForRider = 0
+    CacheMap.setOffsetMap(defaultStreamIdForRider, msg.record.topic(), msg.record.partition(), msg.record.offset())
+    val partitionOffsetStr = CacheMap.getPartitionOffsetStrFromMap(defaultStreamIdForRider, msg.record.topic(), RiderConfig.consumer.partitions)
+    Await.result(modules.feedbackOffsetDal.insert(FeedbackOffset(1, UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET.toString, curTs, 0, msg.record.topic(), RiderConfig.consumer.partitions, partitionOffsetStr, curTs)), minTimeOut)
 
     if (msg.record.value() == null || msg.record.value() == "") {
       riderLogger.error(s"feedback message value is null: ${msg.toString}")
