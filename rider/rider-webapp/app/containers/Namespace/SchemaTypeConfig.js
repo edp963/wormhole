@@ -20,7 +20,7 @@
 
 import React from 'react'
 
-import EditableCell from './EditableCell'
+// import EditableCell from './EditableCell'
 import EditUmsOp from './EditUmsOp'
 
 import Form from 'antd/lib/form'
@@ -32,63 +32,42 @@ import Button from 'antd/lib/button'
 import Radio from 'antd/lib/radio'
 import Icon from 'antd/lib/icon'
 import message from 'antd/lib/message'
+import Select from 'antd/lib/select'
+const { Option, OptGroup } = Select
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 const FormItem = Form.Item
+import InputNumber from 'antd/lib/input-number'
 
 export class SchemaTypeConfig extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
       currentUmsTableData: [],
-      currentFieldName: '',
-      renameEditVal: '',
       editUmsOpable: false,
       editUmsOpKey: false || '',
       umsOPForm: '',
-      renameForm: '',
-      editRenameKey: false || '',
-
-      searchFieldName: '',
-      filterDropdownVisibleFieldName: false,
-      searchReName: '',
-      filterDropdownVisibleReName: false
+      tupleForm: '',
+      currentKey: 0,
+      delimiterValue: '',
+      sizeValue: '',
+      umsTsSelect: ''
     }
   }
 
   componentWillReceiveProps (props) {
-    if (props.umsTableDataSource) {
+    if (props.umsTableDataSource.length !== 0) {
       this.setState({
-        currentUmsTableData: props.umsTableDataSource
+        currentUmsTableData: props.umsTableDataSource.filter(s => !s.forbidden)
+      }, () => {
+        // const temp = this.state.currentUmsTableData.find(i => i.fieldType.indexOf('##') > -1)
+        // if (temp) {
+        //   this.setState({
+        //     tupleForm: 'text'
+        //   })
+        // }
       })
     }
-  }
-
-  onInputChange = (value) => (e) => this.setState({ [value]: e.target.value })
-
-  onSearch = (columnName, value, visible) => () => {
-    const reg = new RegExp(this.state[value], 'gi')
-
-    this.setState({
-      [visible]: false,
-      currentUmsTableData: this.props.umsTableDataSource.map((record) => {
-        const match = String(record[columnName]).match(reg)
-        if (!match) {
-          return null
-        }
-        return {
-          ...record,
-          [`${columnName}Origin`]: record[columnName],
-          [columnName]: (
-            <span>
-              {String(record[columnName]).split(reg).map((text, i) => (
-                i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
-              ))}
-            </span>
-          )
-        }
-      }).filter(record => !!record)
-    })
   }
 
   onChangeRowSelect = (record) => (e) => {
@@ -99,74 +78,13 @@ export class SchemaTypeConfig extends React.Component {
     this.props.initChangeUmsType(e.target.value)
   }
 
-  onCellChange = (key, dataIndex) => {
-    // console.log('key', key)
-  }
-
-  initChangeType = (fieldName) => (va1, va2) => {
-    this.props.initChangeType(fieldName, va1, va2)
-  }
-
-  editRename = (record) => (e) => {
-    this.setState({
-      renameForm: 'edit',
-      editRenameKey: record.key,
-      renameEditVal: record.rename
-    })
-  }
-
-  handleChangeRename = (e) => {
-    this.setState({
-      renameEditVal: e.target.value
-    })
-  }
-
-  checkRename = (record) => (e) => {
-    const { renameEditVal } = this.state
-
-    if (renameEditVal === '') {
-      message.warning('请填写 Rename！', 3)
-    } else {
-      this.setState({
-        renameForm: 'check',
-        editRenameKey: record.key
-      })
-      this.props.initEditRename(record, renameEditVal)  // 组成新数组
-    }
-  }
-
   onChangeUmsId = (record) => (e) => {
-    const { currentUmsTableData } = this.state
-
-    const tempData = currentUmsTableData.filter(i => i.forbidden === false) // 过滤掉 forbidden === true 的项
-    const umsIdExitNum = tempData.find(i => i.ums_id_ === true)
-
-    if (umsIdExitNum) {
-      record.ums_id_
-        ? this.props.cancelSelectUmsId(record, 'ums_id_')
-        : message.warning('UMS_ID_有且只能有一个！', 3)
-    } else {
-      this.props.initSelectUmsId(record, 'ums_id_')
-    }
+    console.log('rec', record)
+    this.props.initSelectUmsIdTs(record, 'ums_id_')
   }
 
   onChangeUmsTs = (record) => (e) => {
-    const { currentUmsTableData } = this.state
-
-    if (record.fieldType === 'string' || record.fieldType === 'long' || record.fieldType === 'datetime') {
-      const tempData = currentUmsTableData.filter(i => i.forbidden === false)
-      const umsTsExitNum = tempData.find(i => i.ums_ts_ === true)
-
-      if (umsTsExitNum) {
-        record.ums_ts_
-          ? this.props.cancelSelectUmsId(record, 'ums_ts_')
-          : message.warning('UMS_TS_有且只能有一个！', 3)
-      } else {
-        this.props.initSelectUmsId(record, 'ums_ts_')
-      }
-    } else {
-      message.warning('必须为 string/long/datetime 类型！', 3)
-    }
+    this.props.initSelectUmsIdTs(record, 'ums_ts_')
   }
 
   onChangeUmsOp = (record) => (e) => {
@@ -174,7 +92,7 @@ export class SchemaTypeConfig extends React.Component {
     const tempData = currentUmsTableData.filter(i => i.forbidden === false)
     const umsOpExitNum = tempData.find(i => i.ums_op_ !== '')
 
-    if (record.fieldType === 'string' || record.fieldType === 'long' || record.fieldType === 'int') {
+    if (record.fieldType === 'string' || record.fieldType === 'long' || record.fieldType === 'int' || record.fieldType === 'array') {
       if (umsOpExitNum) {
         message.warning('UMS_OP_最多有一个！', 3)
       } else {
@@ -184,7 +102,7 @@ export class SchemaTypeConfig extends React.Component {
         })
       }
     } else {
-      message.warning('必须为 string/long/int 类型！', 3)
+      message.warning('必须为 string/long/int/array 类型！', 3)
     }
   }
 
@@ -206,19 +124,80 @@ export class SchemaTypeConfig extends React.Component {
     this.props.initRowSelectedAll()
   }
 
+  handleChangeType = (record) => (afterType) => {
+    this.setState({
+      delimiterValue: '',
+      sizeValue: ''
+    })
+
+    const originType = record.fieldType
+    const currentType = originType.indexOf('##') > -1 ? 'tuple' : originType
+
+    let tupleTypeTemp = ''
+    if ((currentType !== 'tuple' && afterType !== 'tuple') || (currentType === 'tuple' && afterType !== 'tuple')) {
+      tupleTypeTemp = ''
+      this.props.umsFieldTypeSelectOk(record.key, afterType)
+    } else if ((currentType !== 'tuple' && afterType === 'tuple') || (currentType === 'tuple' && afterType === 'tuple')) {
+      tupleTypeTemp = 'edit'
+    }
+    this.setState({
+      tupleForm: tupleTypeTemp,
+      currentKey: record.key
+    })
+  }
+
+  handleChangeDelimiter = (e) => {
+    this.setState({
+      delimiterValue: e.target.value
+    })
+  }
+
+  handleChangeSize = (value) => {
+    const reg = /^[0-9]*$/
+    if (reg.test(value)) {
+      this.setState({
+        sizeValue: value
+      })
+    } else {
+      message.warning('Tuple 时，行数必须是数字！', 3)
+    }
+  }
+
+  checkFieldType = () => {
+    const { delimiterValue, sizeValue, currentKey } = this.state
+
+    if (delimiterValue !== '' && sizeValue !== '') {
+      const afterType = `tuple##${delimiterValue}##${sizeValue}`
+      this.props.umsFieldTypeSelectOk(currentKey, afterType)
+      this.setState({
+        tupleForm: 'text'
+      })
+    } else {
+      message.warning('Tuple 时，必须填写分隔符和行数！', 3)
+    }
+  }
+
+  editFieldType = () => {
+    this.setState({
+      tupleForm: 'edit'
+    })
+  }
+
+  handleChangeRename = (record) => (e) => {
+    const val = e.target.value
+    this.props.initEditRename(record.key, val)
+  }
+
   render () {
     const { form } = this.props
     const { getFieldDecorator } = form
-    const { editUmsOpKey, umsOPForm, renameForm, editRenameKey } = this.state
-    const { repeatRenameArr, selectAllState } = this.props
+    // const { editUmsOpKey, umsOPForm } = this.state
+    const { selectAllState, repeatRenameArr } = this.props
 
     const itemStyle = {
       labelCol: { span: 2 },
       wrapperCol: { span: 22 }
     }
-
-    // let { filteredInfo } = this.state
-    // filteredInfo = filteredInfo || {}
 
     let finalClass = ''
     if (selectAllState === 'all') {
@@ -244,7 +223,7 @@ export class SchemaTypeConfig extends React.Component {
       title: selectAll,
       dataIndex: 'selected',
       key: 'selected',
-      width: '8%',
+      width: '7%',
       className: 'text-align-center',
       render: (text, record) => (
         <div className="editable-cell">
@@ -276,263 +255,216 @@ export class SchemaTypeConfig extends React.Component {
       title: 'FieldName',
       dataIndex: 'fieldName',
       key: 'fieldName',
-      width: '25%',
-      // filterDropdown: (
-      //   <div className="custom-filter-dropdown">
-      //     <Input
-      //       ref={ele => { this.searchInput = ele }}
-      //       placeholder="FieldName"
-      //       value={this.state.searchFieldName}
-      //       onChange={this.onInputChange('searchFieldName')}
-      //       onPressEnter={this.onSearch('fieldName', 'searchFieldName', 'filterDropdownVisibleFieldName')}
-      //     />
-      //     <Button type="primary" onClick={this.onSearch('fieldName', 'searchFieldName', 'filterDropdownVisibleFieldName')}>Search</Button>
-      //   </div>
-      // ),
-      // filterDropdownVisible: this.state.filterDropdownVisibleFieldName,
-      // onFilterDropdownVisibleChange: visible => this.setState({
-      //   filterDropdownVisibleFieldName: visible
-      // }, () => this.searchInput.focus()),
+      width: '20%',
       render: (text, record) => <span className={record.forbidden ? 'type-text-class' : ''}>{text}</span>
     }, {
       title: 'Rename',
       dataIndex: 'rename',
       key: 'rename',
-      width: '15%',
-      // filterDropdown: (
-      //   <div className="custom-filter-dropdown">
-      //     <Input
-      //       ref={ele => { this.searchInput = ele }}
-      //       placeholder="Rename"
-      //       value={this.state.searchRename}
-      //       onChange={this.onInputChange('searchRename')}
-      //       onPressEnter={this.onSearch('rename', 'searchRename', 'filterDropdownVisibleReName')}
-      //     />
-      //     <Button type="primary" onClick={this.onSearch('rename', 'searchRename', 'filterDropdownVisibleReName')}>Search</Button>
-      //   </div>
-      // ),
-      // filterDropdownVisible: this.state.filterDropdownVisibleReName,
-      // onFilterDropdownVisibleChange: visible => this.setState({
-      //   filterDropdownVisibleReName: visible
-      // }, () => this.searchInput.focus()),
+      width: '12%',
       render: (text, record) => {
-        const exitKey = repeatRenameArr.length === 0 ? undefined : repeatRenameArr.find(i => i === record.key)
-
-        let editIconDisabledClass = ''
-        let checkIconClass = 'hide'
-        let editIconClass = ''
-        let renameTextClass = ''
-
-        if (record.forbidden) {
-          editIconDisabledClass = 'edit-disabled-class'
-          editIconClass = 'hide'
-          renameTextClass = 'type-text-class'
-        } else {
-          editIconDisabledClass = 'hide'
-          renameTextClass = exitKey ? 'rename-text-class' : ''
-
-          if (renameForm === 'edit' && editRenameKey === record.key) {
-            checkIconClass = ''
-            editIconClass = 'hide'
-          } else if (renameForm === 'check' && editRenameKey === record.key) {
-            checkIconClass = 'hide'
-            editIconClass = ''
-          }
-        }
+        const repeatKey = repeatRenameArr.length === 0 ? undefined : repeatRenameArr.find(i => i === record.key)
 
         return (
-          <div className="editable-cell">
-            {
-              <div className="editable-rename-cell-text-wrapper">
-                <span className={renameTextClass}>{text || ' '}</span>
-                <Input
-                  value={this.state.renameEditVal}
-                  className={checkIconClass}
-                  onChange={this.handleChangeRename}
-                  onPressEnter={this.checkRename(record)}
-                />
-                <Icon
-                  type="check"
-                  className={`editable-cell-icon-check ${checkIconClass}`}
-                  onClick={this.checkRename(record)}
-                 />
-                <Icon
-                  type="edit"
-                  className={`editable-cell-icon ${editIconClass}`}
-                  onClick={this.editRename(record)}
-                />
-                <Icon
-                  type="edit"
-                  className={`editable-cell-icon ${editIconDisabledClass}`}
-                />
-              </div>
-            }
-          </div>
+          <Row className={repeatKey ? 'rename-text-class' : ''}>
+            <Input
+              value={record.rename}
+              onChange={this.handleChangeRename(record)}
+            />
+          </Row>
         )
       }
     }, {
       title: 'FieldType',
       dataIndex: 'fieldType',
       key: 'fieldType',
-      width: '17%',
-      // filters: [
-      //   {text: 'string', value: 'string'},
-      //   {text: 'int', value: 'int'},
-      //   {text: 'long', value: 'long'},
-      //   {text: 'float', value: 'float'},
-      //   {text: 'double', value: 'double'},
-      //   {text: 'boolean', value: 'boolean'},
-      //   {text: 'decimal', value: 'decimal'},
-      //   {text: 'binary', value: 'binary'},
-      //   {text: 'datetime', value: 'datetime'},
-      //
-      //   {text: 'stringarray', value: 'stringarray'},
-      //   {text: 'intarray', value: 'intarray'},
-      //   {text: 'longarray', value: 'longarray'},
-      //   {text: 'floatarray', value: 'floatarray'},
-      //   {text: 'doublearray', value: 'doublearray'},
-      //   {text: 'booleanarray', value: 'booleanarray'},
-      //   {text: 'decimalarray', value: 'decimalarray'},
-      //   {text: 'binaryarray', value: 'binaryarray'},
-      //   {text: 'datetimearray', value: 'datetimearray'},
-      //
-      //   {text: 'jsonobject', value: 'jsonobject'},
-      //   {text: 'jsonarray', value: 'jsonarray'},
-      //   {text: 'tuple', value: 'tuple'}
-      // ],
-      // filteredValue: filteredInfo.fieldType,
-      // onFilter: (value, record) => record.fieldType.includes(value),
-      render: (text, record) => (
-        <EditableCell
-          value={text}
-          recordValue={record}
-          // onChange={this.onCellChange(record.fieldName, 'name')}
-          initChangeTypeOption={this.initChangeType(record.fieldName)}
-          tableDatas={this.state.currentUmsTableData}
-        />
-      )
+      width: '25%',
+      render: (text, record) => {
+        const { currentKey, tupleForm, delimiterValue, sizeValue } = this.state
+
+        const initType = record.fieldType.indexOf('##') > -1 ? 'tuple' : record.fieldType
+
+        let delimiterTemp = ''
+        let sizeTemp = ''
+        // let inputClass = ''
+        // let textClass = ''
+        if (record.fieldType.indexOf('##') > -1) {
+          const typeArrTemp = record.fieldType.split('##')
+          delimiterTemp = typeArrTemp[1]
+          sizeTemp = typeArrTemp[2]
+
+          if (currentKey === record.key) {
+            if (tupleForm === 'edit') {
+              // inputClass = ''
+              // textClass = 'hide'
+            } else if (tupleForm === 'text') {
+              // inputClass = 'hide'
+              // textClass = ''
+            } else {
+              // inputClass = 'hide'
+              // textClass = 'hide'
+            }
+          }
+        } else {
+          delimiterTemp = delimiterValue
+          sizeTemp = sizeValue
+
+          // inputClass = 'hide'
+          // textClass = 'hide'
+        }
+
+        return (
+          <div className="ums_field_type_class">
+            <Select
+              defaultValue={initType}
+              onChange={this.handleChangeType(record)}
+            >
+              <OptGroup label="Basic Type">
+                <Option value="int">int</Option>
+                <Option value="long">long</Option>
+                <Option value="float">float</Option>
+                <Option value="double">double</Option>
+                <Option value="decimal">decimal</Option>
+                <Option value="string">string</Option>
+                <Option value="boolean">boolean</Option>
+                <Option value="datetime">datetime</Option>
+                <Option value="binary">binary</Option>
+              </OptGroup>
+              <OptGroup label="Array Type">
+                <Option value="intarray">intarray</Option>
+                <Option value="longarray">longarray</Option>
+                <Option value="floatarray">floatarray</Option>
+                <Option value="doublearray">doublearray</Option>
+                <Option value="decimalarray">decimalarray</Option>
+                <Option value="stringarray">stringarray</Option>
+                <Option value="booleanarray">booleanarray</Option>
+                <Option value="datetimearray">datetimearray</Option>
+                <Option value="binaryarray">binaryarray</Option>
+              </OptGroup>
+              <OptGroup label="Object Type">
+                <Option value="jsonobject">jsonobject</Option>
+                <Option value="jsonarray">jsonarray</Option>
+              </OptGroup>
+              <OptGroup label="Tuple Type">
+                <Option value="tuple">tuple</Option>
+              </OptGroup>
+            </Select>
+            <Row gutter={8} className={(currentKey === record.key && tupleForm === 'edit') ? '' : 'hide'}>
+              <Col span={10}>
+                <Input
+                  value={delimiterValue}
+                  onChange={this.handleChangeDelimiter}
+                />
+              </Col>
+              <Col span={10}>
+                <InputNumber
+                  value={sizeValue}
+                  onChange={this.handleChangeSize}
+                />
+              </Col>
+              <Col span={4}>
+                <Icon
+                  type="check"
+                  onClick={this.checkFieldType}
+                />
+              </Col>
+            </Row>
+            <Row gutter={8} className={(currentKey === record.key && tupleForm === 'text') ? '' : 'hide'}>
+              <Col span={10}>
+                <span>{`Delimiter: ${delimiterTemp}  `}</span>
+              </Col>
+              <Col span={10}>
+                <span>{`Size: ${sizeTemp}`}</span>
+              </Col>
+              <Col span={4}>
+                <Icon
+                  type="edit"
+                  onClick={this.editFieldType}
+                />
+              </Col>
+            </Row>
+
+            {/* <EditableCell
+              typeFormVisible={this.state.typeFormVisible}
+              initHideTypeModal={this.initHideTypeModal}
+              initTypeModalOk={this.initTypeModalOk}
+            /> */}
+          </div>
+        )
+      }
     }, {
-      title: 'UMS_ID_',
+      title: 'ums_id_',
       dataIndex: 'umsId',
       key: 'umsId',
       width: '8.4%',
       className: 'text-align-center',
-      render: (text, record) => (
-        <div className="editable-cell">
-          {record.forbidden
-            ? (
-              <div className="table-ums-class">
-                <span className="ant-checkbox-wrapper">
-                  <span className={`ant-checkbox ${record.ums_id_ === true ? 'ant-checkbox-checked' : ''}`}>
-                    <input type="checkbox" className="ant-checkbox-input" value="on" />
-                    <span className="ant-checkbox-inner"></span>
-                  </span>
-                </span>
-              </div>
-            )
-            : (
-              <div>
-                <span className="ant-checkbox-wrapper">
-                  <span className={`ant-checkbox ${record.ums_id_ === true ? 'ant-checkbox-checked' : ''}`}>
-                    <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsId(record)} />
-                    <span className="ant-checkbox-inner"></span>
-                  </span>
-                </span>
-              </div>
-            )
-          }
-        </div>
-      )
+      render: (text, record) => {
+        const tempHtml = (record.fieldType === 'long' || record.fieldType === 'datetime' ||
+        record.fieldType === 'longarray' || record.fieldType === 'datetimearray' || record.fieldType === 'array')
+          ? (
+            <span className="ant-checkbox-wrapper">
+              <span className={`ant-checkbox ${record.ums_id_ ? 'ant-checkbox-checked' : ''}`}>
+                <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsId(record)} />
+                <span className="ant-checkbox-inner"></span>
+              </span>
+            </span>
+          )
+          : ''
+        return (
+          <div>
+            {tempHtml}
+          </div>
+        )
+      }
     }, {
-      title: 'UMS_TS_',
+      title: 'ums_ts_',
       dataIndex: 'umsTs',
       key: 'umsTs',
       width: '8.6%',
       className: 'text-align-center',
-      render: (text, record) => (
-        <div className="editable-cell">
-          {record.forbidden
+      render: (text, record) => {
+        const tempHtml = (record.fieldType === 'string' || record.fieldType === 'long' ||
+        record.fieldType === 'datetime' || record.fieldType === 'array')
           ? (
-            <div className="table-ums-class">
-              <span className="ant-checkbox-wrapper">
-                <span className={`ant-checkbox ${record.ums_ts_ ? 'ant-checkbox-checked' : ''}`}>
-                  <input type="checkbox" className="ant-checkbox-input" value="on" />
-                  <span className="ant-checkbox-inner"></span>
-                </span>
+            <span className={`ant-radio-wrapper`}>
+              <span className={`ant-radio ${record.ums_ts_ ? 'ant-radio-checked' : ''}`}>
+                <input type="radio" className="ant-radio-input" onClick={this.onChangeUmsTs(record)} />
+                <span className="ant-radio-inner"></span>
               </span>
-            </div>
-            )
-          : (
-            <div>
-              <span className="ant-checkbox-wrapper">
-                <span className={`ant-checkbox ${record.ums_ts_ ? 'ant-checkbox-checked' : ''}`}>
-                  <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsTs(record)} />
-                  <span className="ant-checkbox-inner"></span>
-                </span>
-              </span>
-            </div>
-            )
-          }
-        </div>
-      )
+            </span>
+          )
+          : ''
+
+        return (
+          <div>
+            {tempHtml}
+          </div>
+        )
+      }
     }, {
-      title: 'UMS_OP_',
+      title: 'ums_op_',
       dataIndex: 'umsOp',
       key: 'umsOp',
       className: 'text-align-center',
       render: (text, record) => {
-        let umsopHtml = ''
-        if (record.forbidden) {
-          if (umsOPForm === 'edit' && record.ums_op_ !== '') {
-            umsopHtml = <span className="type-text-class">{record.ums_op_}</span>
-          } else {
-            umsopHtml = (
-              <div className="table-ums-class">
-                <span className="ant-checkbox-wrapper">
-                  <span className="ant-checkbox">
-                    <input type="checkbox" className="ant-checkbox-input" value="on" />
-                    <span className="ant-checkbox-inner"></span>
-                  </span>
-                </span>
-              </div>
-            )
-          }
-        } else {
-          if (umsOPForm === 'check' && record.key === editUmsOpKey) {
-            umsopHtml = (
-              <EditUmsOp
-                initCheckUmsOp={this.initCheckUmsOp(record)}
-                ref={(f) => { this.editUmsOp = f }}
-              />
-            )
-          } else if (umsOPForm === 'edit' && record.ums_op_ !== '') {
-            umsopHtml = (
-              <span>
-                <span className="ums-op-string">{record.ums_op_}</span>
-                <Icon
-                  type="edit"
-                  className={`editable-cell-icon`}
-                  onClick={this.editUmsOP(record)}
-                />
+        const umsopHtml = (record.fieldType === 'string' || record.fieldType === 'long' ||
+        record.fieldType === 'int' || record.fieldType === 'array')
+          ? (
+            <span className="ant-checkbox-wrapper">
+              <span className="ant-checkbox">
+                <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record)} />
+                <span className="ant-checkbox-inner"></span>
               </span>
-            )
-          } else {
-            umsopHtml = (
-              <div>
-                <span className="ant-checkbox-wrapper">
-                  <span className="ant-checkbox">
-                    <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record)} />
-                    <span className="ant-checkbox-inner"></span>
-                  </span>
-                </span>
-              </div>
-            )
-          }
-        }
+            </span>
+          )
+          : ''
 
         return (
           <div>
             {umsopHtml}
+            <EditUmsOp
+              ref={(f) => { this.editUmsOp = f }}
+            />
           </div>
         )
       }
@@ -578,7 +510,6 @@ export class SchemaTypeConfig extends React.Component {
               columns={columns}
               pagination={false}
               scroll={{ y: 500 }}
-              // rowSelection={rowSelection}
               bordered
               className="tran-table-style"
             />
@@ -594,13 +525,12 @@ SchemaTypeConfig.propTypes = {
   initChangeSelected: React.PropTypes.func,
   initChangeUmsType: React.PropTypes.func,
   onChangeJsonToTable: React.PropTypes.func,
-  initChangeType: React.PropTypes.func,
+  umsFieldTypeSelectOk: React.PropTypes.func,
   initEditRename: React.PropTypes.func,
-  initSelectUmsId: React.PropTypes.func,
-  cancelSelectUmsId: React.PropTypes.func,
+  initSelectUmsIdTs: React.PropTypes.func,
   initCheckUmsOp: React.PropTypes.func,
   initCancelUmsOp: React.PropTypes.func,
-  umsTableDataSource: React.PropTypes.array,
+  // umsTableDataSource: React.PropTypes.array,
   repeatRenameArr: React.PropTypes.array,
   umsTypeSeleted: React.PropTypes.string,
   selectAllState: React.PropTypes.string,

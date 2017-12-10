@@ -101,7 +101,7 @@ export class Login extends React.PureComponent {
     return (
       <div className="login-container">
         <div className="login-panel">
-          <h2 className="login-title">Rider 登录</h2>
+          <h2 className="login-title">Wormhole Rider 登录</h2>
           <Form name="Form1">
             <FormItem>
               {getFieldDecorator('userName', {
