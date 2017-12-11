@@ -71,7 +71,7 @@ case class UmsInfo(umsType: Option[String],
                    jsonSample: Option[Object],
                    jsonParseArray: Option[Object],
                    umsSchemaTable: Option[Object],
-                   umsSchema: Option[UmsSchema])
+                   umsSchema: Option[Object])
 
 case class NamespaceInfo(id: Long,
                          nsSys: String,

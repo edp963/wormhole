@@ -198,7 +198,10 @@ object FlowUtils extends RiderLogger {
         case None => "ums"
       }
       val umsSchema = umsInfoOpt match {
-        case Some(umsInfo) => umsInfo.umsSchema.getOrElse("")
+        case Some(umsInfo) => umsInfo.umsSchema match {
+          case Some(schema) => caseClass2json[Object](schema)
+          case None => ""
+        }
         case None => ""
       }
       if (streamType == "default") {

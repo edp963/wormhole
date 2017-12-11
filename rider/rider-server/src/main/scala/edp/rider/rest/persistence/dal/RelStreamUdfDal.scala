@@ -34,9 +34,13 @@ import scala.concurrent.duration.Duration.Inf
 
 class RelStreamUdfDal(relStreamUdfTable: TableQuery[RelStreamUdfTable], udfTable: TableQuery[UdfTable]) extends BaseDalImpl[RelStreamUdfTable, RelStreamUdf](relStreamUdfTable) with RiderLogger {
 
-  def getStreamUdf(streamIds: Seq[Long]): Seq[StreamUdfTemp] = {
+  def getStreamUdf(streamIds: Seq[Long], udfIdsOpt: Option[Seq[Long]] = None): Seq[StreamUdfTemp] = {
+    val udfQuery = udfIdsOpt match {
+      case Some(udfIds) => udfTable.filter(_.id inSet(udfIds))
+      case None => udfTable
+    }
     try {
-      Await.result(db.run((relStreamUdfTable.filter(_.streamId inSet streamIds) join udfTable on (_.udfId === _.id))
+      Await.result(db.run((relStreamUdfTable.filter(_.streamId inSet streamIds) join udfQuery on (_.udfId === _.id))
         .map {
           case (relStreamUdf, udf) => (relStreamUdf.udfId, relStreamUdf.streamId, udf.functionName, udf.fullClassName, udf.jarName) <> (StreamUdfTemp.tupled, StreamUdfTemp.unapply)
         }.result).mapTo[Seq[StreamUdfTemp]], Inf)
@@ -45,6 +49,7 @@ class RelStreamUdfDal(relStreamUdfTable: TableQuery[RelStreamUdfTable], udfTable
         throw DatabaseSearchException(ex.getMessage, ex.getCause)
     }
   }
+
 
   def getDeleteUdfIds(streamId: Long, udfIds: Seq[Long]): Seq[Long] = {
     val udfs = Await.result(super.findByFilter(udf => udf.streamId === streamId), minTimeOut)
