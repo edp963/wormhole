@@ -142,7 +142,7 @@ object WormholeUtils extends EdpLogging {
           dataProcess(jsonDetail, content)
         }
       }
-      else if (dataTypeProcessed == "jsonobj") {
+      else if (dataTypeProcessed == "jsonobject") {
         val subFieldsInfo = subFields.get
         val jsonParseRes = jsonValue.getJSONObject(name)
         subFieldsInfo.foreach(subField => {
