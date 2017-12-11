@@ -1,4 +1,4 @@
-<img src="https://github.com/edp963/wormhole/raw/master/docs/img/wormhole-png.png" alt="" width="300"/>
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/wormhole-logo.png" alt="" width="300"/>
 
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![Build Status](https://travis-ci.org/edp963/wormhole.svg?branch=master)](https://travis-ci.org/edp963/wormhole)
