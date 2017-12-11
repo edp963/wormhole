@@ -20,163 +20,136 @@
 
 import React from 'react'
 
-import { getAlterTypesByOriginType } from './umsFunction'
-
 import Form from 'antd/lib/form'
-import Icon from 'antd/lib/icon'
 import Input from 'antd/lib/input'
-import message from 'antd/lib/message'
-import Select from 'antd/lib/select'
-const Option = Select.Option
+import InputNumber from 'antd/lib/input-number'
+import Row from 'antd/lib/row'
+import Col from 'antd/lib/col'
+import Icon from 'antd/lib/icon'
+const FormItem = Form.Item
 
 export class EditableCell extends React.Component {
-  state = {
-    typeValue: '',
-    changeBeforeValue: '',
-    editable: false,
-    fieldTypeOptionsVal: [],
-    tupleOrNot: false,
-    sepratorValue: ''
+  constructor (props) {
+    super(props)
+    this.state = {
+
+    }
+  }
+
+  componentWillMount () {
+    // console.log('this.props', this.props.recordVal)
   }
 
   componentWillReceiveProps (props) {
-    if (props.value) {
-      this.setState({
-        typeValue: props.value,
-        changeBeforeValue: props.value
-      })
+
+  }
+
+  forceCheckSize = (rule, value, callback) => {
+    const reg = /^[0-9]*$/
+    if (reg.test(value)) {
+      callback()
+    } else {
+      callback('必须是正整数')
     }
   }
 
-  onChangeFieldType = (value) => {
-    const { tableDatas } = this.props
-    const { changeBeforeValue } = this.state
-
-    const tupleExit = tableDatas.find(i => i.fieldType.indexOf('tuple') > -1)
-    if (tupleExit && value === 'tuple') {
-      message.warning('FieldType 至多有一个 tuple 类型！', 3)
-    } else {
-      this.setState({
-        typeValue: value,
-        editable: false
-      })
-
-      if (value === 'tuple') {
-        this.setState({
-          tupleOrNot: true
-        })
-      } else {
-        this.props.initChangeTypeOption(changeBeforeValue, value)
+  checkFieldType = () => {
+    this.props.form.validateFieldsAndScroll((err, values) => { // eslint-disable-line
+      if (!err) {
+        this.props.initcheckFieldType(this.props.recordVal, values)
       }
-    }
-  }
-
-  edit = () => {
-    const { typeValue } = this.state
-
-    let typeVal = ''
-    if (typeValue.indexOf('tuple') > -1) {
-      const arrTemp = typeValue.split('##')
-      typeVal = arrTemp[0]
-    } else {
-      typeVal = typeValue
-    }
-
-    const selectTypeValue = getAlterTypesByOriginType(typeVal)
-
-    this.setState({
-      changeBeforeValue: typeVal,
-      editable: true,
-      fieldTypeOptionsVal: selectTypeValue
     })
   }
 
-  handleChange = (e) => {
-    const value = e.target.value
-    this.setState({
-      sepratorValue: value
-    })
-  }
-
-  check = () => {
-    const { sepratorValue } = this.state
-
-    if (sepratorValue === '') {
-      message.warning('请填写分隔符!', 3)
-    } else {
-      this.setState({
-        value: `tuple##${sepratorValue}`,
-        tupleOrNot: false
-      }, () => {
-        this.props.initChangeTypeOption(this.state.changeBeforeValue, this.state.value)
-      })
-    }
+  editFieldType = () => {
+    this.props.initeditFieldType(this.props.recordVal)
   }
 
   render () {
-    const { typeValue, editable, fieldTypeOptionsVal, tupleOrNot } = this.state
-    const { recordValue } = this.props
+    const { getFieldDecorator } = this.props.form
+    const { tupleForm, delimiterValue, sizeValue } = this.props
+    // const { recordVal, tupleForm, currentKey,  } = this.props
 
-    const fieldTypeOptions = fieldTypeOptionsVal.map(s => (<Option key={s} value={`${s}`}>{s}</Option>))
-
-    let editTypeIconDiasabled = ''
-    let editTypeIconClass = ''
-    let textClass = ''
-    if (recordValue.forbidden) {
-      editTypeIconDiasabled = 'edit-disabled-class'
-      editTypeIconClass = 'hide'
-      textClass = 'type-text-class'
-    } else {
-      editTypeIconDiasabled = 'hide'
-      textClass = ''
+    let htmlUmsop = ''
+    if (tupleForm === '') {
+      htmlUmsop = ''
+    } else if (tupleForm === 'edit') {
+      htmlUmsop = (
+        <Row gutter={8} style={{ marginBottom: '-25px', marginTop: '5px' }}>
+          <Col span={10}>
+            <FormItem label="">
+              {getFieldDecorator('delimiterValue', {
+                rules: [{
+                  required: true,
+                  message: '请填写'
+                }]
+              })(
+                <Input
+                  onChange={this.handleChangeDelimiter}
+                />
+              )}
+            </FormItem>
+          </Col>
+          <Col span={10}>
+            <FormItem label="">
+              {getFieldDecorator('sizeValue', {
+                rules: [{
+                  required: true,
+                  message: '必须是正整数'
+                }, {
+                  validator: this.forceCheckSize
+                }]
+              })(
+                <InputNumber
+                  style={{ width: '100%' }}
+                  onChange={this.handleChangeSize}
+                />
+              )}
+            </FormItem>
+          </Col>
+          <Col span={4}>
+            <Icon
+              type="check"
+              onClick={this.checkFieldType}
+            />
+          </Col>
+        </Row>
+      )
+    } else if (tupleForm === 'text') {
+      htmlUmsop = (
+        <Row gutter={8}>
+          <Col span={12}>
+            <span>{`Delimiter: ${delimiterValue}`}</span>
+          </Col>
+          <Col span={10}>
+            <span>{`Size: ${sizeValue}`}</span>
+          </Col>
+          <Col span={2}>
+            <Icon
+              type="edit"
+              onClick={this.editFieldType}
+            />
+          </Col>
+        </Row>
+      )
     }
 
     return (
-      <div className="editable-cell">
-        {
-          editable
-            ? <div className="editable-cell-input-wrapper">
-              <Select
-                onChange={this.onChangeFieldType}
-                placeholder="Select"
-                className="field-type-select"
-              >
-                {fieldTypeOptions}
-              </Select>
-
-            </div>
-            : <div className="editable-cell-text-wrapper">
-              <span className={textClass}>{typeValue || ' '}</span>
-              <Input
-                className={tupleOrNot === true ? '' : 'hide'}
-                onChange={this.handleChange}
-                onPressEnter={this.check}
-              />
-              <Icon
-                type="check"
-                className={`editable-cell-icon-check ${tupleOrNot === true ? '' : 'hide'}`}
-                onClick={this.check}
-              />
-              <Icon
-                type="edit"
-                className={`editable-cell-icon ${editTypeIconClass}`}
-                onClick={this.edit}
-              />
-              <Icon
-                type="edit"
-                className={`editable-cell-icon ${editTypeIconDiasabled}`}
-              />
-            </div>
-        }
-      </div>
+      <Form>
+        {htmlUmsop}
+      </Form>
     )
   }
 }
 
 EditableCell.propTypes = {
-  initChangeTypeOption: React.PropTypes.func,
-  tableDatas: React.PropTypes.array,
-  recordValue: React.PropTypes.object
+  form: React.PropTypes.any,
+  sizeValue: React.PropTypes.number,
+  delimiterValue: React.PropTypes.string,
+  recordVal: React.PropTypes.object,
+  tupleForm: React.PropTypes.string,
+  initcheckFieldType: React.PropTypes.func,
+  initeditFieldType: React.PropTypes.func
 }
 
 export default Form.create({wrappedComponentRef: true})(EditableCell)

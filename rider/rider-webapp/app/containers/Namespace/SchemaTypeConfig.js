@@ -20,7 +20,7 @@
 
 import React from 'react'
 
-// import EditableCell from './EditableCell'
+import EditableCell from './EditableCell'
 import EditUmsOp from './EditUmsOp'
 
 import Form from 'antd/lib/form'
@@ -32,26 +32,27 @@ import Button from 'antd/lib/button'
 import Radio from 'antd/lib/radio'
 import Icon from 'antd/lib/icon'
 import message from 'antd/lib/message'
-import Select from 'antd/lib/select'
-const { Option, OptGroup } = Select
+import Modal from 'antd/lib/modal'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 const FormItem = Form.Item
-import InputNumber from 'antd/lib/input-number'
+import Select from 'antd/lib/select'
+const { Option, OptGroup } = Select
 
 export class SchemaTypeConfig extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
       currentUmsTableData: [],
-      editUmsOpable: false,
-      editUmsOpKey: false || '',
-      umsOPForm: '',
       tupleForm: '',
       currentKey: 0,
       delimiterValue: '',
-      sizeValue: '',
-      umsTsSelect: ''
+      sizeValue: 0,
+      umsTsSelect: '',
+      umsopVisible: false,
+      umsopRecord: '',
+      umsopForm: '',
+      tupleNum: 0
     }
   }
 
@@ -60,12 +61,23 @@ export class SchemaTypeConfig extends React.Component {
       this.setState({
         currentUmsTableData: props.umsTableDataSource.filter(s => !s.forbidden)
       }, () => {
-        // const temp = this.state.currentUmsTableData.find(i => i.fieldType.indexOf('##') > -1)
-        // if (temp) {
-        //   this.setState({
-        //     tupleForm: 'text'
-        //   })
-        // }
+        const temp = this.state.currentUmsTableData.find(i => i.fieldType.indexOf('##') > -1)
+        if (temp) {
+          this.setState({
+            tupleForm: 'text',
+            tupleNum: 1
+          }, () => {
+            const tupleArr = temp.fieldType.split('##')
+            this.setState({
+              delimiterValue: tupleArr[1],
+              sizeValue: Number(tupleArr[2])
+            })
+          })
+        } else {
+          this.setState({
+            tupleNum: 0
+          })
+        }
       })
     }
   }
@@ -79,7 +91,6 @@ export class SchemaTypeConfig extends React.Component {
   }
 
   onChangeUmsId = (record) => (e) => {
-    console.log('rec', record)
     this.props.initSelectUmsIdTs(record, 'ums_id_')
   }
 
@@ -87,99 +98,56 @@ export class SchemaTypeConfig extends React.Component {
     this.props.initSelectUmsIdTs(record, 'ums_ts_')
   }
 
-  onChangeUmsOp = (record) => (e) => {
-    const { currentUmsTableData } = this.state
-    const tempData = currentUmsTableData.filter(i => i.forbidden === false)
-    const umsOpExitNum = tempData.find(i => i.ums_op_ !== '')
-
-    if (record.fieldType === 'string' || record.fieldType === 'long' || record.fieldType === 'int' || record.fieldType === 'array') {
-      if (umsOpExitNum) {
-        message.warning('UMS_OP_最多有一个！', 3)
-      } else {
-        this.setState({
-          editUmsOpKey: record.key,
-          umsOPForm: 'check'
-        })
-      }
-    } else {
-      message.warning('必须为 string/long/int/array 类型！', 3)
-    }
-  }
-
-  initCheckUmsOp = (record) => (umsopValue) => {
-    this.setState({
-      umsOPForm: 'edit'
-    })
-    this.props.initCheckUmsOp(record, umsopValue)
-  }
-
-  editUmsOP = (record) => (e) => {
-    this.setState({
-      umsOPForm: ''
-    })
-    this.props.initCancelUmsOp(record)
-  }
-
   onRowSelectAll = () => {
     this.props.initRowSelectedAll()
   }
 
   handleChangeType = (record) => (afterType) => {
-    this.setState({
-      delimiterValue: '',
-      sizeValue: ''
-    })
-
     const originType = record.fieldType
     const currentType = originType.indexOf('##') > -1 ? 'tuple' : originType
 
     let tupleTypeTemp = ''
-    if ((currentType !== 'tuple' && afterType !== 'tuple') || (currentType === 'tuple' && afterType !== 'tuple')) {
+    if (currentType !== 'tuple' && afterType !== 'tuple') { // other to other
       tupleTypeTemp = ''
       this.props.umsFieldTypeSelectOk(record.key, afterType)
-    } else if ((currentType !== 'tuple' && afterType === 'tuple') || (currentType === 'tuple' && afterType === 'tuple')) {
-      tupleTypeTemp = 'edit'
+    } else if (currentType === 'tuple' && afterType !== 'tuple') {    // tuple to other
+      tupleTypeTemp = ''
+      this.props.umsFieldTypeSelectOk(record.key, afterType)
+    } else if (currentType !== 'tuple' && afterType === 'tuple') {     // other to tuple
+      if (this.state.tupleNum === 1) {
+        message.warning('最多有一个 Tuple！', 3)
+      } else {
+        tupleTypeTemp = 'edit'
+        this.setState({
+          tupleNum: 1,
+          currentKey: record.key
+        })
+      }
     }
+
     this.setState({
-      tupleForm: tupleTypeTemp,
-      currentKey: record.key
+      tupleForm: tupleTypeTemp
     })
   }
 
-  handleChangeDelimiter = (e) => {
+  initcheckFieldType = (record, values) => {
     this.setState({
-      delimiterValue: e.target.value
+      tupleForm: 'text',
+      delimiterValue: values.delimiterValue,
+      sizeValue: values.sizeValue
+    }, () => {
+      this.props.initUmsopOther2Tuple(record, this.state.delimiterValue, this.state.sizeValue)
     })
   }
 
-  handleChangeSize = (value) => {
-    const reg = /^[0-9]*$/
-    if (reg.test(value)) {
-      this.setState({
-        sizeValue: value
-      })
-    } else {
-      message.warning('Tuple 时，行数必须是数字！', 3)
-    }
-  }
-
-  checkFieldType = () => {
-    const { delimiterValue, sizeValue, currentKey } = this.state
-
-    if (delimiterValue !== '' && sizeValue !== '') {
-      const afterType = `tuple##${delimiterValue}##${sizeValue}`
-      this.props.umsFieldTypeSelectOk(currentKey, afterType)
-      this.setState({
-        tupleForm: 'text'
-      })
-    } else {
-      message.warning('Tuple 时，必须填写分隔符和行数！', 3)
-    }
-  }
-
-  editFieldType = () => {
+  initeditFieldType = () => {
     this.setState({
       tupleForm: 'edit'
+    }, () => {
+      this.editableCell.setFieldsValue({
+        delimiterValue: this.state.delimiterValue,
+        sizeValue: this.state.sizeValue
+      })
     })
   }
 
@@ -188,10 +156,54 @@ export class SchemaTypeConfig extends React.Component {
     this.props.initEditRename(record.key, val)
   }
 
+  onChangeUmsOp = (record) => (e) => {
+    this.setState({
+      umsopVisible: true,
+      umsopRecord: record
+    })
+  }
+
+  onHandleUmsop = (record) => (e) => {
+    this.setState({
+      umsopVisible: true
+    }, () => {
+      const arr = record.split(',')
+      const insertArr = arr[0].split(':')
+      const updateArr = arr[1].split(':')
+      const deleteArr = arr[2].split(':')
+      this.editUmsOp.setFieldsValue({
+        insert: insertArr[1],
+        update: updateArr[1],
+        delete: deleteArr[1]
+      })
+    })
+  }
+
+  hideUmsopForm = () => {
+    this.setState({
+      umsopVisible: false
+    })
+  }
+
+  resetUmsopModal = () => {
+    this.editUmsOp.resetFields()
+  }
+
+  onUmsopModalOk = () => {
+    const { umsopRecord } = this.state
+
+    this.editUmsOp.validateFieldsAndScroll((err, values) => { // eslint-disable-line
+      if (values.insert && values.update && values.delete) {
+        const textVal = `i:${values.insert},u:${values.update},d:${values.delete}`
+        this.props.initCheckUmsOp(umsopRecord, 'ums_op_', textVal)
+        this.hideUmsopForm()
+      }
+    })
+  }
+
   render () {
     const { form } = this.props
     const { getFieldDecorator } = form
-    // const { editUmsOpKey, umsOPForm } = this.state
     const { selectAllState, repeatRenameArr } = this.props
 
     const itemStyle = {
@@ -255,13 +267,13 @@ export class SchemaTypeConfig extends React.Component {
       title: 'FieldName',
       dataIndex: 'fieldName',
       key: 'fieldName',
-      width: '20%',
+      width: '21%',
       render: (text, record) => <span className={record.forbidden ? 'type-text-class' : ''}>{text}</span>
     }, {
       title: 'Rename',
       dataIndex: 'rename',
       key: 'rename',
-      width: '12%',
+      width: '15%',
       render: (text, record) => {
         const repeatKey = repeatRenameArr.length === 0 ? undefined : repeatRenameArr.find(i => i === record.key)
 
@@ -278,45 +290,23 @@ export class SchemaTypeConfig extends React.Component {
       title: 'FieldType',
       dataIndex: 'fieldType',
       key: 'fieldType',
-      width: '25%',
+      width: '24%',
       render: (text, record) => {
-        const { currentKey, tupleForm, delimiterValue, sizeValue } = this.state
+        const { currentKey, tupleForm } = this.state
 
-        const initType = record.fieldType.indexOf('##') > -1 ? 'tuple' : record.fieldType
-
-        let delimiterTemp = ''
-        let sizeTemp = ''
-        // let inputClass = ''
-        // let textClass = ''
-        if (record.fieldType.indexOf('##') > -1) {
-          const typeArrTemp = record.fieldType.split('##')
-          delimiterTemp = typeArrTemp[1]
-          sizeTemp = typeArrTemp[2]
-
-          if (currentKey === record.key) {
-            if (tupleForm === 'edit') {
-              // inputClass = ''
-              // textClass = 'hide'
-            } else if (tupleForm === 'text') {
-              // inputClass = 'hide'
-              // textClass = ''
-            } else {
-              // inputClass = 'hide'
-              // textClass = 'hide'
-            }
-          }
+        let initType = ''
+        if (currentKey === record.key && tupleForm === 'edit') {
+          initType = 'tuple'
+        } else if (record.fieldType.indexOf('##') > -1) {
+          initType = 'tuple'
         } else {
-          delimiterTemp = delimiterValue
-          sizeTemp = sizeValue
-
-          // inputClass = 'hide'
-          // textClass = 'hide'
+          initType = record.fieldType
         }
 
         return (
           <div className="ums_field_type_class">
             <Select
-              defaultValue={initType}
+              value={initType}
               onChange={this.handleChangeType(record)}
             >
               <OptGroup label="Basic Type">
@@ -349,46 +339,20 @@ export class SchemaTypeConfig extends React.Component {
                 <Option value="tuple">tuple</Option>
               </OptGroup>
             </Select>
-            <Row gutter={8} className={(currentKey === record.key && tupleForm === 'edit') ? '' : 'hide'}>
-              <Col span={10}>
-                <Input
-                  value={delimiterValue}
-                  onChange={this.handleChangeDelimiter}
-                />
-              </Col>
-              <Col span={10}>
-                <InputNumber
-                  value={sizeValue}
-                  onChange={this.handleChangeSize}
-                />
-              </Col>
-              <Col span={4}>
-                <Icon
-                  type="check"
-                  onClick={this.checkFieldType}
-                />
-              </Col>
-            </Row>
-            <Row gutter={8} className={(currentKey === record.key && tupleForm === 'text') ? '' : 'hide'}>
-              <Col span={10}>
-                <span>{`Delimiter: ${delimiterTemp}  `}</span>
-              </Col>
-              <Col span={10}>
-                <span>{`Size: ${sizeTemp}`}</span>
-              </Col>
-              <Col span={4}>
-                <Icon
-                  type="edit"
-                  onClick={this.editFieldType}
-                />
-              </Col>
-            </Row>
 
-            {/* <EditableCell
-              typeFormVisible={this.state.typeFormVisible}
-              initHideTypeModal={this.initHideTypeModal}
-              initTypeModalOk={this.initTypeModalOk}
-            /> */}
+            { currentKey === record.key
+              ? <EditableCell
+                recordVal={record}
+                tupleForm={this.state.tupleForm}
+                currentKey={this.state.currentKey}
+                delimiterValue={this.state.delimiterValue}
+                sizeValue={this.state.sizeValue}
+                initcheckFieldType={this.initcheckFieldType}
+                initeditFieldType={this.initeditFieldType}
+                ref={(f) => { this.editableCell = f }}
+              />
+              : ''
+            }
           </div>
         )
       }
@@ -396,7 +360,7 @@ export class SchemaTypeConfig extends React.Component {
       title: 'ums_id_',
       dataIndex: 'umsId',
       key: 'umsId',
-      width: '8.4%',
+      width: '8%',
       className: 'text-align-center',
       render: (text, record) => {
         const tempHtml = (record.fieldType === 'long' || record.fieldType === 'datetime' ||
@@ -420,7 +384,7 @@ export class SchemaTypeConfig extends React.Component {
       title: 'ums_ts_',
       dataIndex: 'umsTs',
       key: 'umsTs',
-      width: '8.6%',
+      width: '8%',
       className: 'text-align-center',
       render: (text, record) => {
         const tempHtml = (record.fieldType === 'string' || record.fieldType === 'long' ||
@@ -447,24 +411,66 @@ export class SchemaTypeConfig extends React.Component {
       key: 'umsOp',
       className: 'text-align-center',
       render: (text, record) => {
-        const umsopHtml = (record.fieldType === 'string' || record.fieldType === 'long' ||
-        record.fieldType === 'int' || record.fieldType === 'array')
-          ? (
-            <span className="ant-checkbox-wrapper">
-              <span className="ant-checkbox">
-                <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record)} />
-                <span className="ant-checkbox-inner"></span>
+        const { umsopVisible, umsopRecord } = this.state
+        let umsopHtml = ''
+        if (record.ums_op_ === '') {
+          umsopHtml = (record.fieldType === 'string' || record.fieldType === 'long' ||
+          record.fieldType === 'int' || record.fieldType === 'array')
+            ? (
+              <span className="ant-checkbox-wrapper">
+                <span className={`ant-checkbox ${(umsopVisible && umsopRecord.key === record.key) ? 'ant-checkbox-checked' : ''}`}>
+                  <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record)} />
+                  <span className="ant-checkbox-inner"></span>
+                </span>
               </span>
+            )
+            : ''
+        } else {
+          umsopHtml = (
+            <span>
+              {record.ums_op_}
+              <Icon
+                type="edit"
+                className="umsop-edit-icon-class"
+                onClick={this.onHandleUmsop(record.ums_op_)}
+              />
             </span>
           )
-          : ''
+        }
 
         return (
-          <div>
+          <div className="umsop-modal-class">
             {umsopHtml}
-            <EditUmsOp
-              ref={(f) => { this.editUmsOp = f }}
-            />
+            <Modal
+              title="ums_op_"
+              okText="保存"
+              visible={this.state.umsopVisible}
+              onCancel={this.hideUmsopForm}
+              afterClose={this.resetUmsopModal}
+              mask={false}
+              footer={[
+                <Button
+                  key="cancel"
+                  size="large"
+                  type="ghost"
+                  onClick={this.hideUmsopForm}
+                >
+                  取消
+                </Button>,
+                <Button
+                  key="submit"
+                  size="large"
+                  type="primary"
+                  onClick={this.onUmsopModalOk}
+                >
+                  保存
+                </Button>
+              ]}
+            >
+              <EditUmsOp
+                ref={(f) => { this.editUmsOp = f }}
+              />
+            </Modal>
           </div>
         )
       }
@@ -526,10 +532,11 @@ SchemaTypeConfig.propTypes = {
   initChangeUmsType: React.PropTypes.func,
   onChangeJsonToTable: React.PropTypes.func,
   umsFieldTypeSelectOk: React.PropTypes.func,
+  initUmsopOther2Tuple: React.PropTypes.func,
   initEditRename: React.PropTypes.func,
   initSelectUmsIdTs: React.PropTypes.func,
   initCheckUmsOp: React.PropTypes.func,
-  initCancelUmsOp: React.PropTypes.func,
+  // initCancelUmsOp: React.PropTypes.func,
   // umsTableDataSource: React.PropTypes.array,
   repeatRenameArr: React.PropTypes.array,
   umsTypeSeleted: React.PropTypes.string,

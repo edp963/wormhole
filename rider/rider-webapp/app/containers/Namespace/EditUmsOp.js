@@ -24,117 +24,74 @@ import Form from 'antd/lib/form'
 const FormItem = Form.Item
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
-import Icon from 'antd/lib/icon'
 import Input from 'antd/lib/input'
-import message from 'antd/lib/message'
 
 export class EditUmsOp extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      umsOpString: ''
-    }
-  }
-
-  checkUmsOp = () => {
-    const umsTemp = this.props.form.getFieldsValue()
-    const addTemp = umsTemp.add
-    const uptateTemp = umsTemp.update
-    const deleteTemp = umsTemp.delete
-
-    let umsString = '' // 8种组合
-    if (addTemp && addTemp.trim() !== '') {
-      if (uptateTemp && uptateTemp.trim() !== '') {
-        umsString = (deleteTemp && deleteTemp.trim() !== '')
-          ? `i:${umsTemp.add},u:${umsTemp.update},d:${umsTemp.delete}`
-          : `i:${umsTemp.add},u:${umsTemp.update}`
-      } else {
-        umsString = (deleteTemp && deleteTemp.trim() !== '')
-          ? `i:${umsTemp.add},d:${umsTemp.delete}`
-          : `i:${umsTemp.add}`
-      }
-    } else {
-      if (uptateTemp && uptateTemp.trim() !== '') {
-        umsString = (deleteTemp && deleteTemp.trim() !== '')
-          ? `u:${umsTemp.update},d:${umsTemp.delete}`
-          : `u:${umsTemp.update}`
-      } else {
-        umsString = (deleteTemp && deleteTemp.trim() !== '')
-          ? `d:${umsTemp.delete}`
-          : ''
-      }
-    }
-
-    if (umsString === '') {
-      message.warning('UMS_OP 值不为空！', 3)
-    } else {
-      this.props.initCheckUmsOp(umsString)
-      this.setState({
-        umsOpString: umsString
-      })
     }
   }
 
   render () {
     const { getFieldDecorator } = this.props.form
-    const { umsOpString } = this.state
-    const itemStyle = {
-      // labelCol: { span: 6 },
-      wrapperCol: { span: 24 }
-    }
-
-    const temp = umsOpString === ''
-      ? (
-        <Row gutter={1}>
-          <Col span={7}>
-            <FormItem {...itemStyle}>
-              {getFieldDecorator('add', {})(
-                <Input
-                  placeholder="Add"
-                />
-              )}
-            </FormItem>
-          </Col>
-          <Col span={7}>
-            <FormItem {...itemStyle}>
-              {getFieldDecorator('update', {})(
-                <Input
-                  placeholder="Update"
-                />
-              )}
-            </FormItem>
-          </Col>
-          <Col span={7}>
-            <FormItem {...itemStyle}>
-              {getFieldDecorator('delete', {})(
-                <Input
-                  placeholder="Delete"
-                />
-              )}
-            </FormItem>
-          </Col>
-          <Col span={1}></Col>
-          <Col span={2} className="umsop-check">
-            <Icon
-              type="check"
-              onClick={this.checkUmsOp}
-            />
-          </Col>
-        </Row>
-      )
-      : umsOpString
 
     return (
-      <Form className="editable-umsop-cell-text-wrapper">
-        {temp}
+      <Form>
+        <Row>
+          <Col span={6}>
+            <span className="umsop-label-class">Insert</span>
+          </Col>
+          <Col span={17}>
+            <FormItem>
+              {getFieldDecorator('insert', {
+                rules: [{
+                  required: true,
+                  message: '请填写 Insert'
+                }]
+              })(
+                <Input placeholder="Insert" />
+              )}
+            </FormItem>
+          </Col>
+          <Col span={6}>
+            <span className="umsop-label-class">Update</span>
+          </Col>
+          <Col span={17}>
+            <FormItem>
+              {getFieldDecorator('update', {
+                rules: [{
+                  required: true,
+                  message: '请填写 Update'
+                }]
+              })(
+                <Input placeholder="Update" />
+              )}
+            </FormItem>
+          </Col>
+          <Col span={6}>
+            <span className="umsop-label-class">Delete</span>
+          </Col>
+          <Col span={17}>
+            <FormItem>
+              {getFieldDecorator('delete', {
+                rules: [{
+                  required: true,
+                  message: '请填写 Delete'
+                }]
+              })(
+                <Input placeholder="Delete" />
+              )}
+            </FormItem>
+          </Col>
+        </Row>
       </Form>
     )
   }
 }
 
 EditUmsOp.propTypes = {
-  form: React.PropTypes.any,
-  initCheckUmsOp: React.PropTypes.func
+  form: React.PropTypes.any
 }
 
 export default Form.create({wrappedComponentRef: true})(EditUmsOp)
