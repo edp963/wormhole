@@ -174,7 +174,7 @@ object RiderConfig {
   lazy val sshPort = config.getInt("spark.wormholeServer.ssh.port")
   lazy val rm1Url = config.getString("spark.yarn.rm1.http.url")
   lazy val rm2Url = getStringConfig("spark.yarn.rm2.http.url", "")
-  lazy val zkSessionTimeOut = getIntConfig("spark.zk.session.timeout", 3000)
+  lazy val zkSessionTimeOut = getIntConfig("spark.zk.session.timeout", 30000)
 
   lazy val spark = RiderSpark(wormholeUser,
     sshPort,

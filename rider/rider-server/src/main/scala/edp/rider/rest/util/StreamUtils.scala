@@ -238,7 +238,7 @@ object StreamUtils extends RiderLogger {
           jsonCompact(ums)
       }).mkString("\n")
       PushDirective.sendTopicDirective(streamId, topicUms)
-      riderLogger.info(s"user $userId send ${DIRECTIVE_TOPIC_SUBSCRIBE.toString} directives success.")
+      riderLogger.info(s"user $userId send topic directive $topicUms success.")
     } catch {
       case ex: Exception =>
         riderLogger.error(s"send stream $streamId topic directive failed", ex)
@@ -290,7 +290,7 @@ object StreamUtils extends RiderLogger {
            |}
           """.stripMargin.replaceAll("[\\n\\t\\r]+", "")
       PushDirective.sendTopicDirective(streamId, jsonCompact(topicUms))
-      riderLogger.info(s"user $userId send ${DIRECTIVE_TOPIC_SUBSCRIBE.toString} directives success.")
+      riderLogger.info(s"user $userId send topic directive $topicUms success.")
     } catch {
       case ex: Exception =>
         riderLogger.error(s"send stream $streamId topic directive failed", ex)
