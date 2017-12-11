@@ -42,8 +42,8 @@ object ScheduledTask extends RiderLogger {
       var pastNdays: Date = cal.getTime()
 
       modules.feedbackFlowErrDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
-      modules.feedbackHeartbeatDal.deleteByFilter(_.feedbackTime <= DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
-      modules.feedbackStreamErrDal.deleteByFilter(_.feedbackTime <= DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
+      modules.feedbackHeartbeatDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
+      modules.feedbackStreamErrDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
 
       FeedbackOffsetUtil.deleteFeedbackOffsetHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
       riderLogger.info(s"delete the feedback history past ${RiderConfig.maintenance.mysqlRemain} days")

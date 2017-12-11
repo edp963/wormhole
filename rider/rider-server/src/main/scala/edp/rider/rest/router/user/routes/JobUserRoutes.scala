@@ -29,9 +29,6 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
   ))
   def postRoute: Route = modules.jobUserService.postRoute(basePath)
 
-
-
-
   @Path("/{projectId}/jobs")
   @ApiOperation(value = "revise job to the system", notes = "", nickname = "", httpMethod = "PUT")
   @ApiImplicitParams(Array(
@@ -47,7 +44,6 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def reviseRoute: Route = modules.jobUserService.reviseRoute(basePath)
-
 
 
   @Path("/{projectId}/jobs/{jobId}/start")
@@ -67,8 +63,6 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
   ))
   def startJob: Route = modules.jobUserService.startJob(basePath)
 
-
-
   @Path("/{projectId}/jobs/{jobId}/stop")
   @ApiOperation(value = "stop job by id", notes = "", nickname = "", httpMethod = "PUT")
   @ApiImplicitParams(Array(
@@ -84,10 +78,6 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def stopJob: Route = modules.jobUserService.stopJob(basePath)
-
-
-
-
 
   @Path("/{projectId}/jobs/{jobId}/delete")
   @ApiOperation(value = "delete job by id", notes = "", nickname = "", httpMethod = "PUT")
@@ -125,9 +115,6 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
   ))
   def getJobByIdRoute: Route = modules.jobUserService.getByIdRoute(basePath)
 
-
-
-
   @Path("/{projectId}/jobs")
   @ApiOperation(value = "check source sink existence from system, refresh, check the name of job", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
@@ -162,5 +149,22 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getLogByJobId: Route = modules.jobUserService.getLogByJobId(basePath)
+
+
+  @Path("/{projectId}/jobs/{jobId}/heartbeat/latest")
+  @ApiOperation(value = "get hdfslog stream of job source namespace latest heartbeat time by job id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "jobId", value = "job id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getLatestHeartbeatById: Route = modules.jobUserService.getLogByJobId(basePath)
+
 
 }

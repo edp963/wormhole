@@ -100,7 +100,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                           complete(OK, getHeader(507, "resource is not enough", session))
                         } else {
                           val updateJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.sourceType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd,
-                            job.sourceConfig, job.sinkConfig, job.tranConfig, JobStatus.STARTING.toString, job.sparkAppid, job.logPath, Some(currentSec), job.stoppedTime, job.createTime, job.createBy, currentSec, session.userId)
+                            job.sourceConfig, job.sinkConfig, job.tranConfig, JobStatus.STARTING.toString, None, job.logPath, Some(currentSec), None, job.createTime, job.createBy, currentSec, session.userId)
                           Await.result(jobDal.update(updateJob), minTimeOut)
                           JobUtils.startJob(job)
                           val projectName = jobDal.adminGetRow(job.projectId)
@@ -396,6 +396,42 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                     complete(OK, getHeader(403, session))
                   }
                 }
+            }
+        }
+      }
+  }
+
+  def getLatestHeartbeatById(route: String): Route = path(route / LongNumber / "jobs" / LongNumber / "heartbeat" / "latest") {
+    (projectId, jobId) =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "user") {
+              riderLogger.warn(s"${
+                session.userId
+              } has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              if (session.projectIdList.contains(projectId)) {
+                onComplete(jobDal.findById(jobId)) {
+                  case Success(job) =>
+                    if (job.isDefined) {
+                      riderLogger.info(s"user ${session.userId} refresh job log where job id is $jobId success.")
+                      val log = SparkJobClientLog.getLogByAppName(job.get.name)
+                      complete(OK, ResponseJson[String](getHeader(200, session), log))
+                    } else {
+                      riderLogger.error(s"user ${session.userId} refresh job log where job id is $jobId, but job does not exist")
+                      complete(OK, getHeader(200, s"job id is $jobId, but job does not exists", session))
+                    }
+                  case Failure(ex) =>
+                    riderLogger.error(s"user ${session.userId} refresh job log where job id is $jobId failed", ex)
+                    complete(OK, getHeader(451, ex.getMessage, session))
+                }
+              } else {
+                riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
+                complete(OK, getHeader(403, session))
+              }
             }
         }
       }
