@@ -36,10 +36,6 @@ export class EditableCell extends React.Component {
     }
   }
 
-  componentWillMount () {
-    // console.log('this.props', this.props.recordVal)
-  }
-
   componentWillReceiveProps (props) {
 
   }
@@ -68,14 +64,12 @@ export class EditableCell extends React.Component {
   render () {
     const { getFieldDecorator } = this.props.form
     const { tupleForm, delimiterValue, sizeValue } = this.props
-    // const { recordVal, tupleForm, currentKey,  } = this.props
-
-    let htmlUmsop = ''
+    let htmlFieldType = ''
     if (tupleForm === '') {
-      htmlUmsop = ''
+      htmlFieldType = ''
     } else if (tupleForm === 'edit') {
-      htmlUmsop = (
-        <Row gutter={4} style={{ marginBottom: '-25px', marginTop: '5px' }}>
+      htmlFieldType = (
+        <Row gutter={4} style={{ marginBottom: '-28px' }}>
           <Col span={9}>
             <FormItem label="">
               {getFieldDecorator('delimiterValue', {
@@ -109,7 +103,7 @@ export class EditableCell extends React.Component {
               )}
             </FormItem>
           </Col>
-          <Col span={4}>
+          <Col span={4} className="field-type-check-class">
             <Icon
               type="check"
               onClick={this.checkFieldType}
@@ -118,10 +112,10 @@ export class EditableCell extends React.Component {
         </Row>
       )
     } else if (tupleForm === 'text') {
-      htmlUmsop = (
+      htmlFieldType = (
         <Row gutter={4}>
           <Col span={9}>
-            <span>{`Sep: ${delimiterValue}`}</span>
+            <span style={{ marginLeft: '2px' }}>{`Sep: ${delimiterValue}`}</span>
           </Col>
           <Col span={11}>
             <span>{`Size: ${sizeValue}`}</span>
@@ -137,8 +131,8 @@ export class EditableCell extends React.Component {
     }
 
     return (
-      <Form>
-        {htmlUmsop}
+      <Form className="field-type-form-class">
+        {htmlFieldType}
       </Form>
     )
   }

@@ -27,7 +27,7 @@ require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
 
 import { jsonParse, fieldTypeAlter, renameAlter, genDefaultSchemaTable, umsSysFieldSelected, umsSysFieldCanceled,
-  getRepeatFieldIndex, genSchema, rowSelectFunc } from './umsFunction'
+  getRepeatFieldIndex, genSchema } from './umsFunction'
 import { isJSONNotEmpty } from '../../utils/util'
 
 import NamespaceForm from './NamespaceForm'
@@ -874,9 +874,6 @@ export class Namespace extends React.PureComponent {
         : s
       return temp
     })
-
-    rowSelectFunc(tempData, record.key)
-
     this.setState({
       umsTableDataSource: tempData
     })
