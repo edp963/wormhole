@@ -229,12 +229,12 @@ function genUmsField (array) {
       var object = genBaseField(newArray[i])
       if (newArray[i].ums_id_ === true) {
         object.rename = 'ums_id_'
-        object.fieldType = LONG
+        object.type = LONG
       } else if (newArray[i].ums_ts_ === true) {
         object.rename = 'ums_ts_'
+        object.type = DATETIME
       } else {
         object.rename = 'ums_op_'
-        object.fieldType = DATETIME
         object.ums_sys_mapping = newArray[i].ums_op_
       }
       umsArray.push(object)

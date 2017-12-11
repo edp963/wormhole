@@ -107,7 +107,8 @@ export class Namespace extends React.PureComponent {
       nsIdValue: 0,
       repeatRenameArr: [],
       selectAllState: 'all',
-      beforesepratorValue: ''
+      beforesepratorValue: '',
+      umsopRecordValue: ''
     }
   }
 
@@ -719,6 +720,12 @@ export class Namespace extends React.PureComponent {
     })
   }
 
+  initSelectUmsop = (record) => {
+    this.setState({
+      umsopRecordValue: record
+    })
+  }
+
   onSchemaModalOk = () => {
     this.schemaTypeConfig.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -753,23 +760,58 @@ export class Namespace extends React.PureComponent {
 
               // 检查ums_ts_，分别必须得有一个
               const umsTsExit = umsTableDataSource.find(i => i.ums_ts_ === true)
-              if (umsTsExit === undefined) {
+              if (!umsTsExit) {
                 message.warning('请选择 UMS_TS_！', 3)
               } else {
-                const tableDataString = JSON.stringify(umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+                if (document.getElementById('insert')) {
+                  const opInsert = document.getElementById('insert').value
+                  const opUpdate = document.getElementById('update').value
+                  const opDelete = document.getElementById('delete').value
 
-                const requestValue = {
-                  umsType: 'ums_extension',
-                  jsonSample: this.cmSample.doc.getValue(),
-                  jsonParseArray: jsonSampleValue,
-                  umsSchemaTable: JSON.parse(tableDataString),
-                  umsSchema: genSchema(umsTableDataSource) // 生成 umsSchema json
+                  if (opInsert && opUpdate && opDelete) {
+                    const { umsTableDataSource, umsopRecordValue } = this.state
+
+                    const textVal = `i:${opInsert},u:${opUpdate},d:${opDelete}`
+                    const tempArr = umsSysFieldSelected(umsTableDataSource, umsopRecordValue.key, 'ums_op_', textVal)
+                    this.setState({
+                      umsTableDataSource: tempArr
+                    }, () => {
+                      const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+
+                      const requestValue = {
+                        umsType: 'ums_extension',
+                        jsonSample: this.cmSample.doc.getValue(),
+                        jsonParseArray: jsonSampleValue,
+                        umsSchemaTable: JSON.parse(tableDataString),
+                        umsSchema: genSchema(umsTableDataSource) // 生成 umsSchema json
+                      }
+
+                      this.props.onSetSchema(nsIdValue, requestValue, () => {
+                        message.success('Schema 配置成功！', 3)
+                        this.hideSchemaModal()
+                      })
+                    })
+                  } else {
+                    message.error('ums_op_配置失败！', 3)
+                  }
+                } else {
+                  const { umsTableDataSource } = this.state
+
+                  const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+
+                  const requestValue = {
+                    umsType: 'ums_extension',
+                    jsonSample: this.cmSample.doc.getValue(),
+                    jsonParseArray: jsonSampleValue,
+                    umsSchemaTable: JSON.parse(tableDataString),
+                    umsSchema: genSchema(umsTableDataSource) // 生成 umsSchema json
+                  }
+
+                  this.props.onSetSchema(nsIdValue, requestValue, () => {
+                    message.success('Schema 配置成功！', 3)
+                    this.hideSchemaModal()
+                  })
                 }
-
-                this.props.onSetSchema(nsIdValue, requestValue, () => {
-                  message.success('Schema 配置成功！', 3)
-                  this.hideSchemaModal()
-                })
               }
             }
             break
@@ -957,22 +999,6 @@ export class Namespace extends React.PureComponent {
 
     this.setState({
       umsTableDataSource: tempArr
-    })
-  }
-
-  initCheckUmsOp = (record, umsop, textVal) => {
-    const { umsTableDataSource } = this.state
-    const tempArr = umsSysFieldSelected(umsTableDataSource, record.key, 'ums_op_', textVal)
-    this.setState({
-      umsTableDataSource: tempArr
-    })
-  }
-
-  initCancelUmsOp = (record) => {
-    // const { umsTableDataSource } = this.state
-
-    this.setState({
-      // umsTableDataSource: umsSysFieldCanceled(umsTableDataSource, 'ums_op_')
     })
   }
 
@@ -1391,6 +1417,7 @@ export class Namespace extends React.PureComponent {
             initEditRename={this.initEditRename}
             initSelectUmsIdTs={this.initSelectUmsIdTs}
             initUmsopOther2Tuple={this.initUmsopOther2Tuple}
+            initSelectUmsop={this.initSelectUmsop}
             cancelSelectUmsId={this.cancelSelectUmsId}
             initCheckUmsOp={this.initCheckUmsOp}
             initCancelUmsOp={this.initCancelUmsOp}

@@ -38,48 +38,24 @@ export class EditUmsOp extends React.Component {
 
     return (
       <Form>
-        <Row>
-          <Col span={6}>
-            <span className="umsop-label-class">Insert</span>
-          </Col>
-          <Col span={17}>
+        <Row gutter={1} style={{ marginBottom: '-25px', marginTop: '5px' }}>
+          <Col span={8}>
             <FormItem>
-              {getFieldDecorator('insert', {
-                rules: [{
-                  required: true,
-                  message: '请填写 Insert'
-                }]
-              })(
+              {getFieldDecorator('insert', {})(
                 <Input placeholder="Insert" />
               )}
             </FormItem>
           </Col>
-          <Col span={6}>
-            <span className="umsop-label-class">Update</span>
-          </Col>
-          <Col span={17}>
+          <Col span={8}>
             <FormItem>
-              {getFieldDecorator('update', {
-                rules: [{
-                  required: true,
-                  message: '请填写 Update'
-                }]
-              })(
+              {getFieldDecorator('update', {})(
                 <Input placeholder="Update" />
               )}
             </FormItem>
           </Col>
-          <Col span={6}>
-            <span className="umsop-label-class">Delete</span>
-          </Col>
-          <Col span={17}>
+          <Col span={8}>
             <FormItem>
-              {getFieldDecorator('delete', {
-                rules: [{
-                  required: true,
-                  message: '请填写 Delete'
-                }]
-              })(
+              {getFieldDecorator('delete', {})(
                 <Input placeholder="Delete" />
               )}
             </FormItem>

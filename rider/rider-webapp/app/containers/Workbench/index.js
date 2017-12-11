@@ -382,7 +382,7 @@ export class Workbench extends React.Component {
     let sinkConfigMsgTemp = ''
     if (value === 'hbase') {
       const temp = "'_'"
-      sinkConfigMsgTemp = `For example: {"hbase.columnFamily":"cf","hbase.saveAsString": true, "hbase.rowKey":hash(id1)+${temp}+value(id2)}`
+      sinkConfigMsgTemp = `For example: {"hbase.columnFamily":"cf","hbase.saveAsString": true, "hbase.rowKey":"hash(id1)+${temp}+value(id2)"}`
     } else if (value === 'mysql' || value === 'oracle' || value === 'postgresql') {
       sinkConfigMsgTemp = 'For example: {"mutation_type":"iud","db.sql_batch_size": 100}'
     } else if (value === 'es') {
