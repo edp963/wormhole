@@ -35,7 +35,7 @@ object JsonSourceConf extends EdpLogging{
           }
         val nullable = if (jsonObj.containsKey("nullable") && jsonObj.getString("nullable").nonEmpty) Some(jsonObj.getBooleanValue("nullable")) else Some(true)
         val separator = if (jsonObj.containsKey("tuple_sep") && jsonObj.getString("tuple_sep").nonEmpty) Some(jsonObj.getString("tuple_sep")) else None
-        if (`type` == "jsonarray" || `type` == "tuple" || `type` == "jsonobj") {
+        if (`type` == "jsonarray" || `type` == "tuple" || `type` == "jsonobject") {
           val subJsonArray = jsonObj.getJSONArray("sub_fields")
           val subList = ListBuffer.empty[FieldInfo]
           for (i <- 0 until subJsonArray.size()) {
