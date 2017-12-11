@@ -40,9 +40,11 @@ const BOOLEANARRAY = 'booleanarray'
 const DATETIMEARRAY = 'datetimearray'
 const BINARYARRAY = 'binaryarray'
 
-// 对象
+// 对象类型
 const JSONOBJECT = 'jsonobject'
 const JSONARRAY = 'jsonarray'
+
+// tuple 类型
 const TUPLE = 'tuple'
 
 // 获取非嵌套类型
@@ -198,7 +200,7 @@ export function umsSysFieldSelected (array, index, umsSysField, value) {
 }
 
 // 若用户选择该行为ums_id_或ums_ts_或ums_op_后，又点了取消，调用 umsSysFieldCanceled 方法
-function umsSysFieldCanceled (array, umsSysField) {
+export function umsSysFieldCanceled (array, umsSysField) {
   var newArray = copyArray(array)
   for (let i = 0; i < newArray.length; i++) {
     if (umsSysField === 'ums_id_') {
