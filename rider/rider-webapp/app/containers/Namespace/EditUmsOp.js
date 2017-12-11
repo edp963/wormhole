@@ -37,7 +37,7 @@ export class EditUmsOp extends React.Component {
     const { getFieldDecorator } = this.props.form
 
     return (
-      <Form>
+      <Form className="field-type-form-class">
         <Row gutter={1} style={{ marginBottom: '-25px', marginTop: '5px' }}>
           <Col span={8}>
             <FormItem>
