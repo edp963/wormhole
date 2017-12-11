@@ -75,8 +75,8 @@ export class EditableCell extends React.Component {
       htmlUmsop = ''
     } else if (tupleForm === 'edit') {
       htmlUmsop = (
-        <Row gutter={8} style={{ marginBottom: '-25px', marginTop: '5px' }}>
-          <Col span={10}>
+        <Row gutter={4} style={{ marginBottom: '-25px', marginTop: '5px' }}>
+          <Col span={9}>
             <FormItem label="">
               {getFieldDecorator('delimiterValue', {
                 rules: [{
@@ -85,12 +85,13 @@ export class EditableCell extends React.Component {
                 }]
               })(
                 <Input
+                  placeholder="Sep"
                   onChange={this.handleChangeDelimiter}
                 />
               )}
             </FormItem>
           </Col>
-          <Col span={10}>
+          <Col span={11}>
             <FormItem label="">
               {getFieldDecorator('sizeValue', {
                 rules: [{
@@ -101,6 +102,7 @@ export class EditableCell extends React.Component {
                 }]
               })(
                 <InputNumber
+                  placeholder="Size"
                   style={{ width: '100%' }}
                   onChange={this.handleChangeSize}
                 />
@@ -117,14 +119,14 @@ export class EditableCell extends React.Component {
       )
     } else if (tupleForm === 'text') {
       htmlUmsop = (
-        <Row gutter={8}>
-          <Col span={12}>
-            <span>{`Delimiter: ${delimiterValue}`}</span>
+        <Row gutter={4}>
+          <Col span={9}>
+            <span>{`Sep: ${delimiterValue}`}</span>
           </Col>
-          <Col span={10}>
+          <Col span={11}>
             <span>{`Size: ${sizeValue}`}</span>
           </Col>
-          <Col span={2}>
+          <Col span={4}>
             <Icon
               type="edit"
               onClick={this.editFieldType}

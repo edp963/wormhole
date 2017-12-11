@@ -32,7 +32,6 @@ import Button from 'antd/lib/button'
 import Radio from 'antd/lib/radio'
 import Icon from 'antd/lib/icon'
 import message from 'antd/lib/message'
-import Modal from 'antd/lib/modal'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 const FormItem = Form.Item
@@ -49,9 +48,8 @@ export class SchemaTypeConfig extends React.Component {
       delimiterValue: '',
       sizeValue: 0,
       umsTsSelect: '',
-      umsopVisible: false,
+      umsopInput: false,
       umsopRecord: '',
-      umsopForm: '',
       tupleNum: 0
     }
   }
@@ -158,47 +156,10 @@ export class SchemaTypeConfig extends React.Component {
 
   onChangeUmsOp = (record) => (e) => {
     this.setState({
-      umsopVisible: true,
+      umsopInput: !this.state.umsopInput,
       umsopRecord: record
     })
-  }
-
-  onHandleUmsop = (record) => (e) => {
-    this.setState({
-      umsopVisible: true
-    }, () => {
-      const arr = record.split(',')
-      const insertArr = arr[0].split(':')
-      const updateArr = arr[1].split(':')
-      const deleteArr = arr[2].split(':')
-      this.editUmsOp.setFieldsValue({
-        insert: insertArr[1],
-        update: updateArr[1],
-        delete: deleteArr[1]
-      })
-    })
-  }
-
-  hideUmsopForm = () => {
-    this.setState({
-      umsopVisible: false
-    })
-  }
-
-  resetUmsopModal = () => {
-    this.editUmsOp.resetFields()
-  }
-
-  onUmsopModalOk = () => {
-    const { umsopRecord } = this.state
-
-    this.editUmsOp.validateFieldsAndScroll((err, values) => { // eslint-disable-line
-      if (values.insert && values.update && values.delete) {
-        const textVal = `i:${values.insert},u:${values.update},d:${values.delete}`
-        this.props.initCheckUmsOp(umsopRecord, 'ums_op_', textVal)
-        this.hideUmsopForm()
-      }
-    })
+    this.props.initSelectUmsop(record)
   }
 
   render () {
@@ -273,7 +234,7 @@ export class SchemaTypeConfig extends React.Component {
       title: 'Rename',
       dataIndex: 'rename',
       key: 'rename',
-      width: '15%',
+      width: '24%',
       render: (text, record) => {
         const repeatKey = repeatRenameArr.length === 0 ? undefined : repeatRenameArr.find(i => i === record.key)
 
@@ -290,7 +251,7 @@ export class SchemaTypeConfig extends React.Component {
       title: 'FieldType',
       dataIndex: 'fieldType',
       key: 'fieldType',
-      width: '24%',
+      width: '17%',
       render: (text, record) => {
         const { currentKey, tupleForm } = this.state
 
@@ -411,66 +372,32 @@ export class SchemaTypeConfig extends React.Component {
       key: 'umsOp',
       className: 'text-align-center',
       render: (text, record) => {
-        const { umsopVisible, umsopRecord } = this.state
-        let umsopHtml = ''
-        if (record.ums_op_ === '') {
-          umsopHtml = (record.fieldType === 'int' || record.fieldType === 'long' || record.fieldType === 'string' ||
+        const { umsopInput, umsopRecord } = this.state
+
+        const editUmsopHtml = (umsopInput && umsopRecord.key === record.key)
+          ? <EditUmsOp
+            ref={(f) => { this.editUmsOp = f }}
+            />
+          : ''
+
+        const umsopHtml = (record.fieldType === 'int' || record.fieldType === 'long' || record.fieldType === 'string' ||
           record.fieldType === 'intarray' || record.fieldType === 'longarray' || record.fieldType === 'stringarray')
-            ? (
+          ? (
+            <span>
               <span className="ant-checkbox-wrapper">
-                <span className={`ant-checkbox ${(umsopVisible && umsopRecord.key === record.key) ? 'ant-checkbox-checked' : ''}`}>
+                <span className={`ant-checkbox ${(umsopInput && umsopRecord.key === record.key) ? 'ant-checkbox-checked' : ''}`}>
                   <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record)} />
                   <span className="ant-checkbox-inner"></span>
                 </span>
               </span>
-            )
-            : ''
-        } else {
-          umsopHtml = (
-            <span>
-              {record.ums_op_}
-              <Icon
-                type="edit"
-                className="umsop-edit-icon-class"
-                onClick={this.onHandleUmsop(record.ums_op_)}
-              />
+              {editUmsopHtml}
             </span>
           )
-        }
+          : ''
 
         return (
           <div className="umsop-modal-class">
             {umsopHtml}
-            <Modal
-              title="ums_op_"
-              okText="保存"
-              visible={this.state.umsopVisible}
-              onCancel={this.hideUmsopForm}
-              afterClose={this.resetUmsopModal}
-              mask={false}
-              footer={[
-                <Button
-                  key="cancel"
-                  size="large"
-                  type="ghost"
-                  onClick={this.hideUmsopForm}
-                >
-                  取消
-                </Button>,
-                <Button
-                  key="submit"
-                  size="large"
-                  type="primary"
-                  onClick={this.onUmsopModalOk}
-                >
-                  保存
-                </Button>
-              ]}
-            >
-              <EditUmsOp
-                ref={(f) => { this.editUmsOp = f }}
-              />
-            </Modal>
           </div>
         )
       }
@@ -535,13 +462,13 @@ SchemaTypeConfig.propTypes = {
   initUmsopOther2Tuple: React.PropTypes.func,
   initEditRename: React.PropTypes.func,
   initSelectUmsIdTs: React.PropTypes.func,
-  initCheckUmsOp: React.PropTypes.func,
   // initCancelUmsOp: React.PropTypes.func,
   // umsTableDataSource: React.PropTypes.array,
   repeatRenameArr: React.PropTypes.array,
   umsTypeSeleted: React.PropTypes.string,
   selectAllState: React.PropTypes.string,
-  initRowSelectedAll: React.PropTypes.func
+  initRowSelectedAll: React.PropTypes.func,
+  initSelectUmsop: React.PropTypes.func
 }
 
 export default Form.create({wrappedComponentRef: true})(SchemaTypeConfig)
