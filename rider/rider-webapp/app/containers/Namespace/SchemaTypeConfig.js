@@ -363,8 +363,8 @@ export class SchemaTypeConfig extends React.Component {
       width: '8%',
       className: 'text-align-center',
       render: (text, record) => {
-        const tempHtml = (record.fieldType === 'long' || record.fieldType === 'datetime' ||
-        record.fieldType === 'longarray' || record.fieldType === 'datetimearray' || record.fieldType === 'array')
+        const tempHtml = (record.fieldType === 'int' || record.fieldType === 'long' ||
+        record.fieldType === 'intarray' || record.fieldType === 'longarray')
           ? (
             <span className="ant-checkbox-wrapper">
               <span className={`ant-checkbox ${record.ums_id_ ? 'ant-checkbox-checked' : ''}`}>
@@ -387,8 +387,8 @@ export class SchemaTypeConfig extends React.Component {
       width: '8%',
       className: 'text-align-center',
       render: (text, record) => {
-        const tempHtml = (record.fieldType === 'string' || record.fieldType === 'long' ||
-        record.fieldType === 'datetime' || record.fieldType === 'array')
+        const tempHtml = (record.fieldType === 'long' || record.fieldType === 'datetime' ||
+        record.fieldType === 'longarray' || record.fieldType === 'datetimearray')
           ? (
             <span className={`ant-radio-wrapper`}>
               <span className={`ant-radio ${record.ums_ts_ ? 'ant-radio-checked' : ''}`}>
@@ -414,8 +414,8 @@ export class SchemaTypeConfig extends React.Component {
         const { umsopVisible, umsopRecord } = this.state
         let umsopHtml = ''
         if (record.ums_op_ === '') {
-          umsopHtml = (record.fieldType === 'string' || record.fieldType === 'long' ||
-          record.fieldType === 'int' || record.fieldType === 'array')
+          umsopHtml = (record.fieldType === 'int' || record.fieldType === 'long' || record.fieldType === 'string' ||
+          record.fieldType === 'intarray' || record.fieldType === 'longarray' || record.fieldType === 'stringarray')
             ? (
               <span className="ant-checkbox-wrapper">
                 <span className={`ant-checkbox ${(umsopVisible && umsopRecord.key === record.key) ? 'ant-checkbox-checked' : ''}`}>
