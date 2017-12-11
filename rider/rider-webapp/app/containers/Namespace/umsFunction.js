@@ -347,26 +347,6 @@ function selectedFields (array) {
   return array
 }
 
-// 当row select的项有子级（如test#t1）时，
-// 若 selected=true，子级的 forbidden=false；若 selected=false，子级的 forbidden=true, selected=false
-// todo:edit 过滤掉forbidden = true
-export function rowSelectFunc (array, index) {
-  const prefix = `${array[index].fieldName}#`
-  for (let i = index + 1; i < array.length; i++) {
-    if (array[i].fieldName.startsWith(prefix)) {
-      if (array[index].selected) {
-        array[i].forbidden = false
-      } else {
-        array[i].forbidden = true
-        array[i].selected = false
-      }
-    } else {
-      break
-    }
-  }
-  return array
-}
-
 // 生成基本字段数组array1，"jsonParseArray":array1）
 export function jsonParse (jsonSample, prefix, array) {
   for (var key in jsonSample) {
