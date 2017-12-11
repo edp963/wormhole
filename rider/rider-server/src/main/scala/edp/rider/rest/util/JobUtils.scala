@@ -31,6 +31,7 @@ import edp.rider.rest.util.FlowUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
 import edp.rider.spark.SparkStatusQuery.getSparkJobStatus
+import edp.rider.spark.SubmitSparkJob
 import edp.rider.spark.SubmitSparkJob._
 import edp.rider.wormhole._
 import edp.wormhole.common.ConnectionConfig
@@ -142,6 +143,7 @@ object JobUtils extends RiderLogger {
   }
 
   def startJob(job: Job) = {
+    runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(job.name)}")
     val startConfig: StartConfig = if (job.startConfig.isEmpty) null else json2caseClass[StartConfig](job.startConfig)
     val command = generateStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name,
       if (startConfig != null) startConfig else StartConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum, RiderConfig.spark.executorMemory, RiderConfig.spark.executorCores),

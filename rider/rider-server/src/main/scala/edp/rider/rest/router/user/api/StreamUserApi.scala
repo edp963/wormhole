@@ -419,11 +419,15 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
         Await.result(streamUdfDal.deleteByFilter(_.streamId === streamId), minTimeOut)
         removeUdfDirective(streamId, userId = userId)
       }
+      val map = inTopicDal.getStreamTopic(Seq(streamId)).map(topic => (topic.id, topic.name)).toMap[Long, String]
       if (streamDirective.topicInfo.nonEmpty) {
-        streamDirective.topicInfo.get.foreach(
-          topic => Await.result(inTopicDal.updateOffset(streamId, topic.id, topic.partitionOffsets, topic.rate, userId), minTimeOut)
+        val topics = streamDirective.topicInfo.get.map(
+          topic => {
+            Await.result(inTopicDal.updateOffset(streamId, topic.id, topic.partitionOffsets, topic.rate, userId), minTimeOut)
+            StreamTopicTemp(topic.id, streamId, map(topic.id), topic.partitionOffsets, topic.rate)
+          }
         )
-        removeAndSendTopicDirective(streamId, inTopicDal.getStreamTopic(Seq(streamId)), userId)
+        removeAndSendTopicDirective(streamId, topics, userId)
       } else removeAndSendTopicDirective(streamId, inTopicDal.getStreamTopic(Seq(streamId)), userId)
     } else {
       Await.result(streamUdfDal.deleteByFilter(_.streamId === streamId), minTimeOut)
@@ -464,8 +468,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
         try {
           val project: Project = Await.result(projectDal.findById(projectId), minTimeOut).head
           val (projectTotalCore, projectTotalMemory) = (project.resCores, project.resMemoryG)
-          val (jobUsedCore, jobUsedMemory,_) = jobDal.getProjectJobsUsedResource(projectId)
-          val (streamUsedCore, streamUsedMemory,_) = streamDal.getProjectStreamsUsedResource(projectId)
+          val (jobUsedCore, jobUsedMemory, _) = jobDal.getProjectJobsUsedResource(projectId)
+          val (streamUsedCore, streamUsedMemory, _) = streamDal.getProjectStreamsUsedResource(projectId)
           val currentConfig = json2caseClass[StartConfig](stream.startConfig)
           val currentNeededCore = currentConfig.driverCores + currentConfig.executorNums * currentConfig.perExecutorCores
           val currentNeededMemory = currentConfig.driverMemory + currentConfig.executorNums * currentConfig.perExecutorMemory
@@ -592,7 +596,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
   private def getLatestOffsetResponse(projectId: Long, streamId: Long, session: SessionClass): Route = {
     if (session.projectIdList.contains(projectId)) {
       val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(streamId)).head
-      val offsets = streamDetail.topicInfo.map(topic =>
+      val topicSeq = inTopicDal.getStreamTopic(Seq(streamId))
+      val offsets = topicSeq.map(topic =>
         TopicLatestOffset(topic.id, topic.name, getKafkaLatestOffset(streamDetail.kafkaInfo.connUrl, topic.name)))
       riderLogger.info(s"user ${session.userId} get stream $streamId topics latest offset success")
       complete(OK, ResponseSeqJson[TopicLatestOffset](getHeader(200, session), offsets))

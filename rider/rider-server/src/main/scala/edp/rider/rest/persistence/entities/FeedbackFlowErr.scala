@@ -35,14 +35,13 @@ case class FeedbackFlowErr(id: Long,
                            errorMaxWaterMarkTs: String,
                            errorMinWaterMarkTs: String,
                            errorInfo: String,
-                           feedbackTime: String
-                          ) extends BaseEntity
+                           feedbackTime: String) extends BaseEntity
 
-case class SinkError(
-                    maxErrorWatermarkTs: String,
-                    minErrorWatermarkTs: String,
-                    errorCount: Int
-                    )
+case class SinkError(maxErrorWatermarkTs: String,
+                     minErrorWatermarkTs: String,
+                     errorCount: Int)
+
+case class StreamSourceSink(streamId: Long, sourceNs: String, sinkNs: String)
 
 class FeedbackFlowErrTable(_tableTag: Tag) extends BaseTable[FeedbackFlowErr](_tableTag, "feedback_flow_error") {
   def * = (id, projectType, umsTs, streamId, sourceNamespace, sinkNamespace, errorCount,
