@@ -33,8 +33,16 @@ export class EditableCell extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-
+      tupleFormFinal: props.tupleForm
     }
+  }
+
+  componentWillReceiveProps (props) {
+    const ft = props.recordVal.fieldType
+
+    this.setState({
+      tupleFormFinal: (ft.indexOf('tuple') > -1 || props.selectTypeVal === 'tuple') ? props.tupleForm : ''
+    })
   }
 
   checkFieldType = () => {
@@ -65,12 +73,13 @@ export class EditableCell extends React.Component {
 
   render () {
     const { getFieldDecorator } = this.props.form
-    const { tupleForm, delimiterValue, sizeValue } = this.props
+    const { delimiterValue, sizeValue } = this.props
+    const { tupleFormFinal } = this.state
 
     let htmlFieldType = ''
-    if (tupleForm === '') {
+    if (tupleFormFinal === '') {
       htmlFieldType = ''
-    } else if (tupleForm === 'edit') {
+    } else if (tupleFormFinal === 'edit') {
       htmlFieldType = (
         <Row gutter={4} style={{ marginBottom: '-28px' }}>
           <Col span={9}>
@@ -107,7 +116,7 @@ export class EditableCell extends React.Component {
           </Col>
         </Row>
       )
-    } else if (tupleForm === 'text') {
+    } else if (tupleFormFinal === 'text') {
       htmlFieldType = (
         <Row gutter={4}>
           <Col span={9}>
