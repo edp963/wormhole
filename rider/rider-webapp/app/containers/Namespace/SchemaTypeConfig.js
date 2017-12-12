@@ -52,14 +52,16 @@ export class SchemaTypeConfig extends React.Component {
       umsTsSelect: '',
       umsopInput: false,
       umsopRecord: '',
-      tupleNum: 0
+      tupleNum: 0,
+      selectTypeVal: ''
     }
   }
 
   componentWillReceiveProps (props) {
     if (props.umsTableDataSource.length !== 0) {
       this.setState({
-        currentUmsTableData: props.umsTableDataSource.filter(s => !s.forbidden)
+        currentUmsTableData: props.umsTableDataSource.filter(s => !s.forbidden),
+        selectTypeVal: ''
       }, () => {
         const temp = this.state.currentUmsTableData.find(i => i.fieldType.indexOf('##') > -1)
         if (temp) {
@@ -85,15 +87,13 @@ export class SchemaTypeConfig extends React.Component {
         // const updateArr = arr[1].split(':')
         // const deleteArr = arr[2].split(':')
         // this.setState({
-        //   umsopInput: true,
-        //   umsopRecord: umsopExit
+        //   // umsopInput: true,
         // }, () => {
         //   this.editUmsOp.setFieldsValue({
         //     insert: insertArr[1],
         //     update: updateArr[1],
         //     delete: deleteArr[1]
         //   })
-        //   this.props.initSelectUmsop(umsopExit)
         // })
       })
     } else {
@@ -147,7 +147,8 @@ export class SchemaTypeConfig extends React.Component {
     }
 
     this.setState({
-      tupleForm: tupleTypeTemp
+      tupleForm: tupleTypeTemp,
+      selectTypeVal: afterType
     })
   }
 
@@ -357,6 +358,7 @@ export class SchemaTypeConfig extends React.Component {
               ? <EditableCell
                 recordVal={record}
                 tupleForm={this.state.tupleForm}
+                selectTypeVal={this.state.selectTypeVal}
                 currentKey={this.state.currentKey}
                 delimiterValue={this.state.delimiterValue}
                 sizeValue={this.state.sizeValue}
@@ -426,8 +428,10 @@ export class SchemaTypeConfig extends React.Component {
       render: (text, record) => {
         const { umsopInput, umsopRecord } = this.state
 
-        const editUmsopHtml = ((umsopInput && umsopRecord.key === record.key) || (umsopInput && umsopRecord.key === undefined))
+        const editUmsopHtml = ((umsopInput && umsopRecord.key === record.key) ||
+        (umsopInput && umsopRecord.key === undefined))
           ? <EditUmsOp
+            umsopRecord={record}
             ref={(f) => { this.editUmsOp = f }}
             />
           : ''

@@ -636,6 +636,8 @@ export class Namespace extends React.PureComponent {
         this.cmSample.doc.setValue('')
       }
 
+      this.makeCodeMirrorInstance()
+
       this.props.onQuerySchemaConfig(record.id, (result) => {
         if (result === null) {
           this.schemaTypeConfig.setFieldsValue({
@@ -650,7 +652,6 @@ export class Namespace extends React.PureComponent {
             umsTypeSeleted: result.umsType
           }, () => {
             if (this.state.umsTypeSeleted === 'ums_extension') {
-              this.makeCodeMirrorInstance()
               this.cmSample.doc.setValue(result.jsonSample)
 
               // setTimeout(this.onJsonFormat(), 100)
