@@ -52,8 +52,25 @@ object SharedJedisConnection extends Serializable{
     value
   }
 
-//  def closeResource(jedis:ShardedJedis): Unit ={
-//    jedis.close()
-//  }
+  def set(jedis:ShardedJedis, key: String, value: String):String ={
+    val rcKey = jedis.set(key, value)
+    jedis.close()
+    rcKey
+  }
+
+  def expire(jedis:ShardedJedis, key: String, nSeconds: Int ) :Long={
+    val l = jedis.expire(key, nSeconds)
+    jedis.close()
+    l
+  }
+
+  def del(jedis:ShardedJedis, key: String) = {
+    jedis.del(key)
+  }
+
+
+  //  def closeResource(jedis:ShardedJedis): Unit ={
+  //    jedis.close()
+  //  }
 
 }
