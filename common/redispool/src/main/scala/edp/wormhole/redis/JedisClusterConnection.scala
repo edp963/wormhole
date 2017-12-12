@@ -53,8 +53,8 @@ object JedisClusterConnection {
     value
   }
 
-//  def closeResource(jedisCluster:JedisCluster): Unit ={
-//    jedisCluster.close()
-//  }
+  //  def closeResource(jedisCluster:JedisCluster): Unit ={
+  //    jedisCluster.close()
+  //  }
 
 }
