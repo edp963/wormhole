@@ -30,7 +30,7 @@ export class EditUmsOp extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      umsopRecordFinal: props.umsopRecord
+
     }
   }
 
@@ -72,8 +72,7 @@ export class EditUmsOp extends React.Component {
 }
 
 EditUmsOp.propTypes = {
-  form: React.PropTypes.any,
-  umsopRecord: React.PropTypes.object
+  form: React.PropTypes.any
 }
 
 export default Form.create({wrappedComponentRef: true})(EditUmsOp)
