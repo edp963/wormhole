@@ -6,7 +6,7 @@
 
     <groupId>edp.wormhole</groupId>
     <artifactId>wormhole-parent</artifactId>
-    <version>0.4.0-SNAPSHOTS</version>
+    <version>0.3.0-SNAPSHOTS</version>
     <packaging>pom</packaging>
 
     <licenses>
@@ -28,14 +28,16 @@
         <module>common/redispool</module>
         <module>common/hadoop</module>
         <module>sparkx</module>
+        <module>rider/common/haservice</module>
         <module>rider/rider-server</module>
+        <module>rider/mad-server</module>
         <module>rider/rider-assembly</module>
     </modules>
 
     <properties>
         <main.basedir>${project.basedir}</main.basedir>
         <ums.version>1.3</ums.version>
-        <project.version>0.4.0-SNAPSHOTS</project.version>
+        <project.version>0.3.0-SNAPSHOTS</project.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
@@ -242,8 +244,8 @@
                     <jvmArgs>
                         <!--<jvmArg>-Xss2m</jvmArg>-->
                         <jvmArg>-Xms512M</jvmArg>
-                        <jvmArg>-Xmx1024M</jvmArg>
-                        <!--<jvmArg>-XX:MaxPermSize=2048M</jvmArg>-->
+                        <jvmArg>-Xmx2048M</jvmArg>
+                        <jvmArg>-XX:MaxPermSize=2048M</jvmArg>
                         <jvmArg>-XX:+CMSClassUnloadingEnabled</jvmArg>
                     </jvmArgs>
                     <javacArgs>
@@ -321,7 +323,7 @@
                     <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                     <junitxml>.</junitxml>
                     <filereports>EDPTestSuite.txt</filereports>
-                    <argLine>-Xms512M -Xmx1024M  -XX:+CMSClassUnloadingEnabled</argLine>
+                    <argLine>-Xms512M -Xmx2048M -XX:MaxPermSize=2048M -XX:+CMSClassUnloadingEnabled</argLine>
                 </configuration>
                 <executions>
                     <execution>
@@ -554,12 +556,7 @@
                         <param>${main.basedir}/dev/codecheck/license-mappings.xml</param>
                     </licenseMapping>
                 </configuration>
-            </plugin>
-                 
-            <plugin>
-                <groupId>org.eluder.coveralls</groupId>
-                <artifactId>coveralls-maven-plugin</artifactId>
-                <version>4.3.0</version>
+
             </plugin>
         </plugins>
     </build>
