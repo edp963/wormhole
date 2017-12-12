@@ -701,7 +701,7 @@ export class Namespace extends React.PureComponent {
         mode: 'application/ld+json',
         lineWrapping: true
       })
-      this.cmSample.setSize('100%', '530px')
+      this.cmSample.setSize('100%', '528.8px')
     }
   }
 
