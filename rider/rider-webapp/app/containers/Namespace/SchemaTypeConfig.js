@@ -32,6 +32,8 @@ import Button from 'antd/lib/button'
 import Radio from 'antd/lib/radio'
 import Icon from 'antd/lib/icon'
 import message from 'antd/lib/message'
+import Tooltip from 'antd/lib/tooltip'
+import Popover from 'antd/lib/popover'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 const FormItem = Form.Item
@@ -76,6 +78,27 @@ export class SchemaTypeConfig extends React.Component {
             tupleNum: 0
           })
         }
+
+        // const umsopExit = this.state.currentUmsTableData.find(i => i.ums_op_ !== '')
+        // const arr = umsopExit.ums_op_.split(',')
+        // const insertArr = arr[0].split(':')
+        // const updateArr = arr[1].split(':')
+        // const deleteArr = arr[2].split(':')
+        // this.setState({
+        //   umsopInput: true,
+        //   umsopRecord: umsopExit
+        // }, () => {
+        //   this.editUmsOp.setFieldsValue({
+        //     insert: insertArr[1],
+        //     update: updateArr[1],
+        //     delete: deleteArr[1]
+        //   })
+        //   this.props.initSelectUmsop(umsopExit)
+        // })
+      })
+    } else {
+      this.setState({
+        currentUmsTableData: []
       })
     }
   }
@@ -155,10 +178,22 @@ export class SchemaTypeConfig extends React.Component {
   }
 
   onChangeUmsOp = (record) => (e) => {
+    const { umsopRecord } = this.state
+
     this.setState({
-      umsopInput: !this.state.umsopInput,
       umsopRecord: record
     })
+
+    if (umsopRecord.key === undefined && record.key) {
+      this.setState({
+        umsopInput: true
+      })
+    }
+
+    this.setState({
+      umsopInput: umsopRecord.key === record.key ? !this.state.umsopInput : true
+    })
+
     this.props.initSelectUmsop(record)
   }
 
@@ -190,6 +225,23 @@ export class SchemaTypeConfig extends React.Component {
           </span>
         </span>
       </div>
+    )
+
+    const fieldTypeMsg = (
+      <span>
+        FieldType
+        <Tooltip title="帮助">
+          <Popover
+            placement="top"
+            content={<div style={{ width: '411px', height: '30px' }}>
+              <p>{`**array 举例说明：字段 classid 为 intarray，数据格式：{"classid":[1,4,7,9]}`}</p>
+            </div>}
+            title={<h3>帮助</h3>}
+            trigger="click">
+            <Icon type="question-circle-o" className="question-class" />
+          </Popover>
+        </Tooltip>
+      </span>
     )
 
     const columns = [{
@@ -248,7 +300,7 @@ export class SchemaTypeConfig extends React.Component {
         )
       }
     }, {
-      title: 'FieldType',
+      title: fieldTypeMsg,
       dataIndex: 'fieldType',
       key: 'fieldType',
       width: '17%',
@@ -374,7 +426,7 @@ export class SchemaTypeConfig extends React.Component {
       render: (text, record) => {
         const { umsopInput, umsopRecord } = this.state
 
-        const editUmsopHtml = (umsopInput && umsopRecord.key === record.key)
+        const editUmsopHtml = ((umsopInput && umsopRecord.key === record.key) || (umsopInput && umsopRecord.key === undefined))
           ? <EditUmsOp
             ref={(f) => { this.editUmsOp = f }}
             />
@@ -460,6 +512,7 @@ SchemaTypeConfig.propTypes = {
   onChangeJsonToTable: React.PropTypes.func,
   umsFieldTypeSelectOk: React.PropTypes.func,
   initUmsopOther2Tuple: React.PropTypes.func,
+  // initTuple2Tuple: React.PropTypes.func,
   initEditRename: React.PropTypes.func,
   initSelectUmsIdTs: React.PropTypes.func,
   // initCancelUmsOp: React.PropTypes.func,
