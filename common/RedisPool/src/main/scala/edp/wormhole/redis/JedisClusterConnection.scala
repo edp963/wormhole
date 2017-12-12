@@ -20,8 +20,6 @@
 
 package edp.wormhole.redis
 
-import java.util
-
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import redis.clients.jedis.{HostAndPort, JedisCluster}
 
@@ -55,8 +53,8 @@ object JedisClusterConnection {
     value
   }
 
-//  def closeResource(jedisCluster:JedisCluster): Unit ={
-//    jedisCluster.close()
-//  }
+  //  def closeResource(jedisCluster:JedisCluster): Unit ={
+  //    jedisCluster.close()
+  //  }
 
 }

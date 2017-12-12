@@ -26,9 +26,9 @@ import scala.collection.mutable
 
 object JedisConnection extends Serializable {
 
-  @volatile val shardedPoolMap: mutable.HashMap[String, ShardedJedisPool] = new mutable.HashMap[String, ShardedJedisPool]
+  val shardedPoolMap: mutable.HashMap[String, ShardedJedisPool] = new mutable.HashMap[String, ShardedJedisPool]
 
-  @volatile val clusterPoolMap: mutable.HashMap[String, JedisCluster] = new mutable.HashMap[String, JedisCluster]
+  val clusterPoolMap: mutable.HashMap[String, JedisCluster] = new mutable.HashMap[String, JedisCluster]
 
   private def createJedisPool(url: String, password: Option[String], mode: String): Unit = {
     val hosts: Array[(String, Int)] = {
@@ -38,12 +38,10 @@ object JedisConnection extends Serializable {
       })
     }
     if (mode == "cluster") {
-      //      if (!clusterPoolMap.contains(url))
       synchronized {
         if (!clusterPoolMap.contains(url)) clusterPoolMap(url) = JedisClusterConnection.createPool(hosts, password)
       }
     } else {
-      //      if (!shardedPoolMap.contains(url))
       synchronized {
         if (!shardedPoolMap.contains(url)) shardedPoolMap(url) = SharedJedisConnection.createPool(hosts, password)
       }
@@ -60,6 +58,31 @@ object JedisConnection extends Serializable {
       val j = shardedPoolMap(url)
       SharedJedisConnection.get(SharedJedisConnection.getJedis(j),key)
     }
+  }
+
+  def set(url: String, password: Option[String], mode: String, key: String, value: String ):String = {
+    if (mode != "cluster") {
+      if (!shardedPoolMap.contains(url)) createJedisPool(url, password, mode)
+      val j = shardedPoolMap(url)
+      SharedJedisConnection.set(SharedJedisConnection.getJedis(j),key, value)
+    }else ""
+  }
+
+  def expire(url: String, password: Option[String], mode: String, key: String, nSeconds: Int) :Long = {
+    if (mode != "cluster") {
+      if (!shardedPoolMap.contains(url)) createJedisPool(url, password, mode)
+      val j = shardedPoolMap(url)
+      SharedJedisConnection.expire(SharedJedisConnection.getJedis(j),key,nSeconds )
+    }else -1L
+
+  }
+
+  def del(url: String, password: Option[String], mode: String, key: String):Long = {
+    if (mode != "cluster") {
+      if (!shardedPoolMap.contains(url)) createJedisPool(url, password, mode)
+      val j = shardedPoolMap(url)
+      SharedJedisConnection.del(SharedJedisConnection.getJedis(j),key )
+    }else -1L
   }
 
 }
