@@ -181,21 +181,21 @@ export class SchemaTypeConfig extends React.Component {
   onChangeUmsOp = (record) => (e) => {
     const { umsopRecord } = this.state
 
-    this.setState({
-      umsopRecord: record
-    })
-
     if (umsopRecord.key === undefined && record.key) {
       this.setState({
         umsopInput: true
       })
+    } else {
+      this.setState({
+        umsopInput: umsopRecord.key === record.key ? !this.state.umsopInput : true
+      })
     }
 
     this.setState({
-      umsopInput: umsopRecord.key === record.key ? !this.state.umsopInput : true
+      umsopRecord: record
+    }, () => {
+      this.props.initSelectUmsop(record)
     })
-
-    this.props.initSelectUmsop(record)
   }
 
   render () {
@@ -307,6 +307,7 @@ export class SchemaTypeConfig extends React.Component {
       width: '17%',
       render: (text, record) => {
         const { currentKey, tupleForm } = this.state
+        console.log('record', record)
 
         let initType = ''
         if (currentKey === record.key && tupleForm === 'edit') {

@@ -943,7 +943,10 @@ export class Workbench extends React.Component {
 
         if (result.tranConfig !== '') {
           if (result.tranConfig.indexOf('action') > -1) {
-            const tranConfigVal = JSON.parse(JSON.parse(JSON.stringify(result.tranConfig)))
+            const temp = JSON.parse(JSON.stringify(result.tranConfig))
+
+            const tt = temp.replace(/\n/g, ' ')
+            const tranConfigVal = JSON.parse(tt)
 
             let validityTemp = tranConfigVal.validity
 
