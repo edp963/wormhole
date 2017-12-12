@@ -26,6 +26,7 @@ import InputNumber from 'antd/lib/input-number'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 import Icon from 'antd/lib/icon'
+import message from 'antd/lib/message'
 const FormItem = Form.Item
 
 export class EditableCell extends React.Component {
@@ -36,23 +37,24 @@ export class EditableCell extends React.Component {
     }
   }
 
-  componentWillReceiveProps (props) {
-
-  }
-
-  forceCheckSize = (rule, value, callback) => {
-    const reg = /^[0-9]*$/
-    if (reg.test(value)) {
-      callback()
-    } else {
-      callback('必须是正整数')
-    }
-  }
-
   checkFieldType = () => {
     this.props.form.validateFieldsAndScroll((err, values) => { // eslint-disable-line
-      if (!err) {
-        this.props.initcheckFieldType(this.props.recordVal, values)
+      // if (!err) {
+      //   this.props.initcheckFieldType(this.props.recordVal, values)
+      // }
+      if (values.sizeValue) {
+        const reg = /^[0-9]*$/
+        if (!reg.test(values.sizeValue)) {
+          message.error('长度必须是正整数！', 3)
+        } else if (values.delimiterValue) {
+          this.props.initcheckFieldType(this.props.recordVal, values)
+        } else if (!values.delimiterValue) {
+          message.error('请填写分隔符！', 3)
+        }
+      } else if (!values.delimiterValue) {
+        message.error('请填写分隔符！', 3)
+      } else if (!values.sizeValue) {
+        message.error('请正确填写长度！', 3)
       }
     })
   }
@@ -64,6 +66,7 @@ export class EditableCell extends React.Component {
   render () {
     const { getFieldDecorator } = this.props.form
     const { tupleForm, delimiterValue, sizeValue } = this.props
+
     let htmlFieldType = ''
     if (tupleForm === '') {
       htmlFieldType = ''
@@ -73,33 +76,26 @@ export class EditableCell extends React.Component {
           <Col span={9}>
             <FormItem label="">
               {getFieldDecorator('delimiterValue', {
-                rules: [{
-                  required: true,
-                  message: '请填写'
-                }]
+                // rules: [{
+                //   required: true,
+                //   message: '请填写'
+                // }]
               })(
-                <Input
-                  placeholder="Sep"
-                  onChange={this.handleChangeDelimiter}
-                />
+                <Input placeholder="Sep" />
               )}
             </FormItem>
           </Col>
           <Col span={11}>
             <FormItem label="">
               {getFieldDecorator('sizeValue', {
-                rules: [{
-                  required: true,
-                  message: '必须是正整数'
-                }, {
-                  validator: this.forceCheckSize
-                }]
+                // rules: [{
+                //   required: true,
+                //   message: '必须是正整数'
+                // }, {
+                //   // validator: this.forceCheckSize
+                // }]
               })(
-                <InputNumber
-                  placeholder="Size"
-                  style={{ width: '100%' }}
-                  onChange={this.handleChangeSize}
-                />
+                <InputNumber placeholder="Size" style={{ width: '100%' }} />
               )}
             </FormItem>
           </Col>
