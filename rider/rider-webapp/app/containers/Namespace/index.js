@@ -635,7 +635,6 @@ export class Namespace extends React.PureComponent {
       if (this.cmSample) {
         this.cmSample.doc.setValue('')
       }
-      this.makeCodeMirrorInstance()
 
       this.props.onQuerySchemaConfig(record.id, (result) => {
         if (result === null) {
@@ -651,6 +650,7 @@ export class Namespace extends React.PureComponent {
             umsTypeSeleted: result.umsType
           }, () => {
             if (this.state.umsTypeSeleted === 'ums_extension') {
+              this.makeCodeMirrorInstance()
               this.cmSample.doc.setValue(result.jsonSample)
 
               // setTimeout(this.onJsonFormat(), 100)
@@ -710,7 +710,8 @@ export class Namespace extends React.PureComponent {
     }, () => {
       this.setState({
         umsTableDataSource: [],
-        umsTypeSeleted: 'ums'
+        umsTypeSeleted: 'ums',
+        tupleFormFinal: ''
       }, () => {
         if (this.cmSample) {
           this.cmSample.doc.setValue('')
@@ -792,7 +793,7 @@ export class Namespace extends React.PureComponent {
                       })
                     })
                   } else {
-                    message.error('ums_op_配置失败！', 3)
+                    message.error('ums_op_ 配置错误！', 3)
                   }
                 } else {
                   const { umsTableDataSource } = this.state
@@ -956,12 +957,19 @@ export class Namespace extends React.PureComponent {
     })
   }
 
-  initUmsopOther2Tuple = (record, delimiterValue, sizeValue) => {
+  initUmsopOther2Tuple = (record, delimiterValue, sizeValue, tupleForm) => {
     const { umsTableDataSource } = this.state
     const textVal = `tuple##${delimiterValue}##${sizeValue}`
     const tempArr = fieldTypeAlter(umsTableDataSource, record.key, textVal)
     this.setState({
-      umsTableDataSource: tempArr
+      umsTableDataSource: tempArr,
+      tupleFormFinal: tupleForm
+    })
+  }
+
+  initTuple2Tuple = (tupleForm) => {
+    this.setState({
+      tupleFormFinal: tupleForm
     })
   }
 
@@ -1414,6 +1422,7 @@ export class Namespace extends React.PureComponent {
             initEditRename={this.initEditRename}
             initSelectUmsIdTs={this.initSelectUmsIdTs}
             initUmsopOther2Tuple={this.initUmsopOther2Tuple}
+            initTuple2Tuple={this.initTuple2Tuple}
             initSelectUmsop={this.initSelectUmsop}
             cancelSelectUmsId={this.cancelSelectUmsId}
             initCheckUmsOp={this.initCheckUmsOp}
