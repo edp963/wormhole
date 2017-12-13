@@ -47,7 +47,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   val lookup2SourceSinkNamespaceMap = mutable.HashMap.empty[String, mutable.HashSet[(String, String)]]
 
   //[sourceNamespace, [sinkNamespace, (SwiftsProcessConfig, SinkProcessConfig, directiveId, swiftsConfigStr,sinkConfigStr,consumption_data_type,ums/json)]]
-  val flowConfigMap = mutable.HashMap.empty[String, mutable.LinkedHashMap[String, (Option[SwiftsProcessConfig], SinkProcessConfig, Long, String, String, Map[String, Boolean])]]
+  var flowConfigMap = mutable.LinkedHashMap.empty[String, mutable.LinkedHashMap[String, (Option[SwiftsProcessConfig], SinkProcessConfig, Long, String, String, Map[String, Boolean])]]
 
   //sourceNamespace,sinkNamespace,minTs
   val eventTsMap = mutable.HashMap.empty[(String, String), String]
@@ -195,6 +195,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
 
       val tmpLinkedHashMap = mutable.LinkedHashMap(flowConfigMap(sourceNamespace).toSeq.sortBy(_._2._3): _*)
       flowConfigMap(sourceNamespace) = tmpLinkedHashMap
+      flowConfigMap  = mutable.LinkedHashMap(flowConfigMap.toSeq.sortBy(_._2.last._2._3): _*)
     }
   }
 
