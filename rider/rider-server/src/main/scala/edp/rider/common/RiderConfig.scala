@@ -209,7 +209,7 @@ object RiderConfig {
   lazy val es =
     if (config.hasPath("elasticSearch") && config.getString("elasticSearch.http.url").nonEmpty) {
       RiderEs(config.getString("elasticSearch.http.url"),
-        "wormhole_test_feedback",
+        "wormhole_feedback",
         "wormhole_stats_feedback",
         getStringConfig("elasticSearch.http.user", ""),
         getStringConfig("elasticSearch.http.password", ""))
