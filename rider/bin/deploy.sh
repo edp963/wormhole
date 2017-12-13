@@ -33,7 +33,7 @@ echo "exec su - $HDFS_SUPER_USERGROUP -c 'hdfs dfs -mkdir -p $WORMHOLE_HDFS_ROOT
 su - $HDFS_SUPER_USERGROUP -c "hdfs dfs -mkdir -p $WORMHOLE_HDFS_ROOT/udfjars"
 
 echo "exec su - $HDFS_SUPER_USERGROUP -c 'hdfs dfs -chown -R $WORMHOLE_USER:$HDFS_SUPER_USERGROUP $WORMHOLE_HDFS_ROOT'"
-su - $HDFS_SUPER_USERGROUP -c "hdfs dfs -chown -R $WORMHOLE_USER:$HDFS_SUPER_USERGROUP $WORMHOLE_HDFS_ROOT"
+su - $HDFS_SUPER_USERGROUP -c "hdfs dfs -chown -R $WORMHOLE_USER:$HDFS_SUPER_USERGROUP $WORMHOLE_HDFS_ROOT/udfjars"
 
 SPARK_HOME=`grep "spark.home" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
 echo "SPARK_HOME=$SPARK_HOME"
