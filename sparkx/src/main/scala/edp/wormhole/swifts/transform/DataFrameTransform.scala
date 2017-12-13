@@ -167,7 +167,7 @@ object DataFrameTransform extends EdpLogging {
     val resultData = ListBuffer.empty[Row]
     originalData.foreach(iter => {
       val originalJoinFields = sourceTableFields.map(joinFields => {
-        val field = iter.get(iter.fieldIndex(joinFields)).toString
+        val field = iter.get(iter.fieldIndex(joinFields))//.toString
         if (field != null) field.toString else "N/A" // source flow is empty in some fields
       }).mkString("_")
       if (dataMapFromDb == null || !dataMapFromDb.contains(originalJoinFields)) {
