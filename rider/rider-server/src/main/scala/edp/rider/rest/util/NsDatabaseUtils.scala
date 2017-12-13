@@ -89,13 +89,12 @@ object NsDatabaseUtils {
       val json = JSON.parseObject(tranConfig)
       if (json.containsKey("action")) {
         val sql = json.getString("action")
-
         sql.split(";").foreach(
           sql => {
             if (sql.contains("pushdown_sql")) {
               val regrex = "with[\\s\\S]+\\=".r.findFirstIn(sql)
               if (regrex.nonEmpty) {
-                val db = regrex.get.stripSuffix("=").stripPrefix("with").trim
+                val db = regrex.get.split("=")(0).stripPrefix("with").trim
                 if (db != "") {
                   val dbSeq = db.split("\\.")
                   val dbInfo = Await.result(modules.relProjectNsDal.getTranDbConfig(dbSeq(0), dbSeq(1), dbSeq(2)), minTimeOut)
