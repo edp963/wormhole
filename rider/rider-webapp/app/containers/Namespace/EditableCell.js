@@ -104,7 +104,7 @@ export class EditableCell extends React.Component {
                 //   // validator: this.forceCheckSize
                 // }]
               })(
-                <InputNumber placeholder="Size" style={{ width: '100%' }} />
+                <InputNumber placeholder="Size" style={{ width: '100%' }} min={1} />
               )}
             </FormItem>
           </Col>
