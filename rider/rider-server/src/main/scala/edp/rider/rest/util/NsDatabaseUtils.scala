@@ -89,6 +89,7 @@ object NsDatabaseUtils {
       val json = JSON.parseObject(tranConfig)
       if (json.containsKey("action")) {
         val sql = json.getString("action")
+
         sql.split(";").foreach(
           sql => {
             if (sql.contains("pushdown_sql")) {
