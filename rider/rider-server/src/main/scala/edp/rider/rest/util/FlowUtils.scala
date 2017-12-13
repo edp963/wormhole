@@ -88,18 +88,19 @@ object FlowUtils extends RiderLogger {
   }
 
   def getTranConfig(tranConfig: String) = {
+    riderLogger.info("tranconfig: " + tranConfig)
     if (tranConfig == "") "{}"
     else {
       val json = JSON.parseObject(tranConfig)
       if (json.containsKey("action")) {
         json.fluentPut("action", base64byte2s(JSON.parseObject(tranConfig).getString("action").trim.getBytes)).toString
-        val seq = getPushDownConfig(tranConfig)
-        if (seq.nonEmpty)
-          if (json.containsKey("pushdown_connection"))
-            json.fluentRemove("pushdown_connection")
-        val jsonArray = new JSONArray()
-        seq.foreach(config => jsonArray.add(JSON.parseObject(caseClass2json[PushDownConnection](config))))
-        json.fluentPut("pushdown_connection", jsonArray)
+        if (json.containsKey("pushdown_connection")) {
+          json.fluentRemove("pushdown_connection")
+          val seq = getPushDownConfig(tranConfig)
+          val jsonArray = new JSONArray()
+          seq.foreach(config => jsonArray.add(JSON.parseObject(caseClass2json[PushDownConnection](config))))
+          json.fluentPut("pushdown_connection", jsonArray)
+        }
         json.toString
       }
       else tranConfig
@@ -217,7 +218,9 @@ object FlowUtils extends RiderLogger {
           s"""
              |{
              |"protocol": {
-             |"type": "${DIRECTIVE_FLOW_START.toString}"
+             |"type": "${
+            DIRECTIVE_FLOW_START.toString
+          }"
              |},
              |"schema": {
              |"namespace": "$sourceNs",
@@ -271,12 +274,32 @@ object FlowUtils extends RiderLogger {
              |},
              |"payload": [
              |{
-             |"tuple": [${directive.id}, ${base64Tuple.head}, "${base64Tuple(1)}", "${base64Tuple(2)}", "${base64Tuple(3)}", "${base64Tuple(4)}", "${base64Tuple(5)}", "${base64Tuple(6)}", "${base64Tuple(7)}"]
+             |"tuple": [${
+            directive.id
+          }, ${
+            base64Tuple.head
+          }, "${
+            base64Tuple(1)
+          }", "${
+            base64Tuple(2)
+          }", "${
+            base64Tuple(3)
+          }", "${
+            base64Tuple(4)
+          }", "${
+            base64Tuple(5)
+          }", "${
+            base64Tuple(6)
+          }", "${
+            base64Tuple(7)
+          }"]
              |}
              |]
              |}
         """.stripMargin.replaceAll("\n", "")
-        riderLogger.info(s"user ${directive.createBy} send flow $flowId start directive: $flow_start_ums")
+        riderLogger.info(s"user ${
+          directive.createBy
+        } send flow $flowId start directive: $flow_start_ums")
         PushDirective.sendFlowStartDirective(streamId, sourceNs, sinkNs, jsonCompact(flow_start_ums))
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
       } else if (streamType == "hdfslog") {
@@ -288,7 +311,9 @@ object FlowUtils extends RiderLogger {
           s"""
              |{
              |"protocol": {
-             |"type": "${DIRECTIVE_HDFSLOG_FLOW_START.toString}"
+             |"type": "${
+            DIRECTIVE_HDFSLOG_FLOW_START.toString
+          }"
              |},
              |"schema": {
              |"namespace": "$sourceNs",
@@ -332,12 +357,28 @@ object FlowUtils extends RiderLogger {
              |},
              |"payload": [
              |{
-             |"tuple": [${directive.id}, ${base64Tuple.head}, "${base64Tuple(1)}", "${base64Tuple(2)}", "${base64Tuple(3)}", "${base64Tuple(4)}", "${base64Tuple(5)}"]
+             |"tuple": [${
+            directive.id
+          }, ${
+            base64Tuple.head
+          }, "${
+            base64Tuple(1)
+          }", "${
+            base64Tuple(2)
+          }", "${
+            base64Tuple(3)
+          }", "${
+            base64Tuple(4)
+          }", "${
+            base64Tuple(5)
+          }"]
              |}
              |]
              |}
         """.stripMargin.replaceAll("\n", "")
-        riderLogger.info(s"user ${directive.createBy} send flow $flowId start directive: $flow_start_ums")
+        riderLogger.info(s"user ${
+          directive.createBy
+        } send flow $flowId start directive: $flow_start_ums")
         PushDirective.sendHdfsLogFlowStartDirective(streamId, sourceNs, jsonCompact(flow_start_ums))
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
       }
@@ -357,18 +398,24 @@ object FlowUtils extends RiderLogger {
       if (topicInfo._1) {
         StreamUtils.sendUnsubscribeTopicDirective(streamId, topicInfo._3, userId)
         Await.result(modules.inTopicDal.deleteByFilter(topic => topic.streamId === streamId && topic.nsDatabaseId === topicInfo._2), minTimeOut)
-        riderLogger.info(s"drop topic ${topicInfo._3} directive")
+        riderLogger.info(s"drop topic ${
+          topicInfo._3
+        } directive")
       }
       if (streamType == "default") {
         val tuple = Seq(streamId, currentMicroSec, sourceNs).mkString(",")
         val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_FLOW_STOP.toString, streamId, flowId, tuple, RiderConfig.zk, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_STOP.toString} success.")
-        riderLogger.info(s"user ${directive.createBy} send flow $flowId stop directive")
+        riderLogger.info(s"user ${
+          directive.createBy
+        } send flow $flowId stop directive")
         PushDirective.sendFlowStopDirective(streamId, sourceNs, sinkNs)
       } else if (streamType == "hdfslog") {
         val tuple = Seq(streamId, currentMillSec, sourceNs).mkString(",")
         val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_HDFSLOG_FLOW_STOP.toString, streamId, flowId, tuple, RiderConfig.zk, currentSec, userId)), minTimeOut)
-        riderLogger.info(s"user ${directive.createBy} send flow $flowId stop directive")
+        riderLogger.info(s"user ${
+          directive.createBy
+        } send flow $flowId stop directive")
         PushDirective.sendHdfsLogFlowStopDirective(streamId, sourceNs)
       }
       true
