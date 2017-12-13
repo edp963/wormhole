@@ -21,7 +21,6 @@
 import React from 'react'
 
 import EditableCell from './EditableCell'
-import EditUmsOp from './EditUmsOp'
 
 import Form from 'antd/lib/form'
 import Input from 'antd/lib/input'
@@ -50,10 +49,12 @@ export class SchemaTypeConfig extends React.Component {
       delimiterValue: '',
       sizeValue: 0,
       umsTsSelect: '',
-      umsopInput: false,
-      umsopRecord: '',
       tupleNum: 0,
-      selectTypeVal: ''
+      selectTypeVal: '',
+
+      insertValue: '',
+      updateValue: '',
+      deleteValue: ''
     }
   }
 
@@ -80,21 +81,6 @@ export class SchemaTypeConfig extends React.Component {
             tupleNum: 0
           })
         }
-
-        // const umsopExit = this.state.currentUmsTableData.find(i => i.ums_op_ !== '')
-        // const arr = umsopExit.ums_op_.split(',')
-        // const insertArr = arr[0].split(':')
-        // const updateArr = arr[1].split(':')
-        // const deleteArr = arr[2].split(':')
-        // this.setState({
-        //   // umsopInput: true,
-        // }, () => {
-        //   this.editUmsOp.setFieldsValue({
-        //     insert: insertArr[1],
-        //     update: updateArr[1],
-        //     delete: deleteArr[1]
-        //   })
-        // })
       })
     } else {
       this.setState({
@@ -178,24 +164,19 @@ export class SchemaTypeConfig extends React.Component {
     this.props.initEditRename(record.key, val)
   }
 
-  onChangeUmsOp = (record) => (e) => {
-    const { umsopRecord } = this.state
-
-    if (umsopRecord.key === undefined && record.key) {
-      this.setState({
-        umsopInput: true
-      })
+  onChangeUmsOp = (key) => (e) => {
+    const { currentUmsTableData } = this.state
+    const umsopSelect = currentUmsTableData.find(s => s.ums_op_ !== '')
+    if (umsopSelect) {
+      if (key === umsopSelect.key) {
+        // 自我取消
+        this.props.initCancelUmsopSelf(key)
+      } else {
+        this.props.initSelectUmsop(key)
+      }
     } else {
-      this.setState({
-        umsopInput: umsopRecord.key === record.key ? !this.state.umsopInput : true
-      })
+      this.props.initSelectUmsop(key)
     }
-
-    this.setState({
-      umsopRecord: record
-    }, () => {
-      this.props.initSelectUmsop(record)
-    })
   }
 
   render () {
@@ -307,7 +288,7 @@ export class SchemaTypeConfig extends React.Component {
       width: '17%',
       render: (text, record) => {
         const { currentKey, tupleForm } = this.state
-        console.log('record', record)
+        // console.log('record', record)
 
         let initType = ''
         if (currentKey === record.key && tupleForm === 'edit') {
@@ -427,30 +408,86 @@ export class SchemaTypeConfig extends React.Component {
       key: 'umsOp',
       className: 'text-align-center',
       render: (text, record) => {
-        const { umsopInput, umsopRecord } = this.state
+        let iVal = ''
+        let uVal = ''
+        let dVal = ''
+        if (record.ums_op_ !== '') {
+          const arr = record.ums_op_.split(',')
+          const insertArr = arr[0].split(':')
+          const updateArr = arr[1].split(':')
+          const deleteArr = arr[2].split(':')
+          iVal = insertArr[1]
+          uVal = updateArr[1]
+          dVal = deleteArr[1]
+        } else {
+          iVal = ''
+          uVal = ''
+          dVal = ''
+        }
 
-        const editUmsopHtml = ((umsopInput && umsopRecord.key === record.key) ||
-        (umsopInput && umsopRecord.key === undefined))
-          ? <EditUmsOp
-            umsopRecord={record}
-            ref={(f) => { this.editUmsOp = f }}
-            />
-          : ''
-
-        const umsopHtml = (record.fieldType === 'int' || record.fieldType === 'long' || record.fieldType === 'string' ||
-          record.fieldType === 'intarray' || record.fieldType === 'longarray' || record.fieldType === 'stringarray')
-          ? (
-            <span>
-              <span className="ant-checkbox-wrapper">
-                <span className={`ant-checkbox ${(umsopInput && umsopRecord.key === record.key) ? 'ant-checkbox-checked' : ''}`}>
-                  <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record)} />
-                  <span className="ant-checkbox-inner"></span>
-                </span>
+        const selectedHtml = (
+          <span>
+            <span className="ant-checkbox-wrapper">
+              <span className="ant-checkbox ant-checkbox-checked">
+                <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record.key)} />
+                <span className="ant-checkbox-inner"></span>
               </span>
-              {editUmsopHtml}
             </span>
-          )
-          : ''
+            <div>
+              <Input
+                style={{ width: '30%' }}
+                defaultValue={iVal || ''}
+                id="insert"
+              />
+              <Input
+                style={{ width: '30%' }}
+                defaultValue={uVal || ''}
+                id="update"
+              />
+              <Input
+                style={{ width: '30%' }}
+                defaultValue={dVal || ''}
+                id="delete"
+              />
+            </div>
+          </span>
+        )
+
+        const noSelectHtml = (
+          <span className="ant-checkbox-wrapper">
+            <span className="ant-checkbox">
+              <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record.key)} />
+              <span className="ant-checkbox-inner"></span>
+            </span>
+          </span>
+        )
+
+        const { umsopRecordValue } = this.props
+
+        let umsopHtml = ''
+        if (record.fieldType === 'int' || record.fieldType === 'long' || record.fieldType === 'string' ||
+          record.fieldType === 'intarray' || record.fieldType === 'longarray' || record.fieldType === 'stringarray') {
+          if (umsopRecordValue < 0) {
+            if (record.ums_op_ !== '') {
+              umsopHtml = selectedHtml
+            } else {
+              umsopHtml = noSelectHtml
+            }
+          } else {
+            if (record.key === umsopRecordValue) {
+              umsopHtml = selectedHtml
+              // if (record.ums_op_ !== '') {
+              //   umsopHtml = noSelectHtml
+              // } else {
+              //   umsopHtml = selectedHtml
+              // }
+            } else {
+              umsopHtml = noSelectHtml
+            }
+          }
+        } else {
+          umsopHtml = ''
+        }
 
         return (
           <div className="umsop-modal-class">
@@ -526,7 +563,9 @@ SchemaTypeConfig.propTypes = {
   umsTypeSeleted: React.PropTypes.string,
   selectAllState: React.PropTypes.string,
   initRowSelectedAll: React.PropTypes.func,
-  initSelectUmsop: React.PropTypes.func
+  initSelectUmsop: React.PropTypes.func,
+  initCancelUmsopSelf: React.PropTypes.func,
+  umsopRecordValue: React.PropTypes.number
 }
 
 export default Form.create({wrappedComponentRef: true})(SchemaTypeConfig)

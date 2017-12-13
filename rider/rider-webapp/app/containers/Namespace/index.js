@@ -108,7 +108,7 @@ export class Namespace extends React.PureComponent {
       repeatRenameArr: [],
       selectAllState: 'all',
       beforesepratorValue: '',
-      umsopRecordValue: ''
+      umsopRecordValue: -1
     }
   }
 
@@ -712,7 +712,8 @@ export class Namespace extends React.PureComponent {
       this.setState({
         umsTableDataSource: [],
         umsTypeSeleted: 'ums',
-        tupleFormFinal: ''
+        tupleFormFinal: '',
+        umsopRecordValue: -1
       }, () => {
         if (this.cmSample) {
           this.cmSample.doc.setValue('')
@@ -722,9 +723,18 @@ export class Namespace extends React.PureComponent {
     })
   }
 
-  initSelectUmsop = (record) => {
+  initSelectUmsop = (key) => {
     this.setState({
-      umsopRecordValue: record
+      umsopRecordValue: key
+    })
+  }
+
+  initCancelUmsopSelf = (key) => {
+    const { umsTableDataSource } = this.state
+
+    const umsArr = umsSysFieldCanceled(umsTableDataSource, 'ums_op_')
+    this.setState({
+      umsTableDataSource: umsArr
     })
   }
 
@@ -772,9 +782,12 @@ export class Namespace extends React.PureComponent {
 
                   if (opInsert && opUpdate && opDelete) {
                     const { umsTableDataSource, umsopRecordValue } = this.state
+                    const originUmsop = umsTableDataSource.find(s => s.ums_op_ !== '')
+
+                    const umsopKeyTemp = umsopRecordValue === -1 ? originUmsop.key : umsopRecordValue
 
                     const textVal = `i:${opInsert},u:${opUpdate},d:${opDelete}`
-                    const tempArr = umsSysFieldSelected(umsTableDataSource, umsopRecordValue.key, 'ums_op_', textVal)
+                    const tempArr = umsSysFieldSelected(umsTableDataSource, umsopKeyTemp, 'ums_op_', textVal)
                     this.setState({
                       umsTableDataSource: tempArr
                     }, () => {
@@ -799,7 +812,7 @@ export class Namespace extends React.PureComponent {
                 } else {
                   const { umsTableDataSource } = this.state
 
-                  const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+                  const tableDataString = JSON.stringify(umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
 
                   const requestValue = {
                     umsType: 'ums_extension',
@@ -1425,6 +1438,7 @@ export class Namespace extends React.PureComponent {
             initUmsopOther2Tuple={this.initUmsopOther2Tuple}
             initTuple2Tuple={this.initTuple2Tuple}
             initSelectUmsop={this.initSelectUmsop}
+            initCancelUmsopSelf={this.initCancelUmsopSelf}
             cancelSelectUmsId={this.cancelSelectUmsId}
             initCheckUmsOp={this.initCheckUmsOp}
             initCancelUmsOp={this.initCancelUmsOp}
@@ -1434,6 +1448,7 @@ export class Namespace extends React.PureComponent {
             umsTypeSeleted={this.state.umsTypeSeleted}
             repeatRenameArr={this.state.repeatRenameArr}
             selectAllState={this.state.selectAllState}
+            umsopRecordValue={this.state.umsopRecordValue}
             ref={(f) => { this.schemaTypeConfig = f }}
           />
         </Modal>
