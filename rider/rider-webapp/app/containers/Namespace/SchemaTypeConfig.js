@@ -435,19 +435,22 @@ export class SchemaTypeConfig extends React.Component {
             </span>
             <div>
               <Input
-                style={{ width: '30%' }}
+                style={{ width: '33%' }}
                 defaultValue={iVal || ''}
                 id="insert"
+                placeholder="Insert"
               />
               <Input
-                style={{ width: '30%' }}
+                style={{ width: '33%' }}
                 defaultValue={uVal || ''}
                 id="update"
+                placeholder="Update"
               />
               <Input
-                style={{ width: '30%' }}
+                style={{ width: '33%' }}
                 defaultValue={dVal || ''}
                 id="delete"
+                placeholder="Delete"
               />
             </div>
           </span>
@@ -476,11 +479,6 @@ export class SchemaTypeConfig extends React.Component {
           } else {
             if (record.key === umsopRecordValue) {
               umsopHtml = selectedHtml
-              // if (record.ums_op_ !== '') {
-              //   umsopHtml = noSelectHtml
-              // } else {
-              //   umsopHtml = selectedHtml
-              // }
             } else {
               umsopHtml = noSelectHtml
             }
@@ -557,8 +555,6 @@ SchemaTypeConfig.propTypes = {
   // initTuple2Tuple: React.PropTypes.func,
   initEditRename: React.PropTypes.func,
   initSelectUmsIdTs: React.PropTypes.func,
-  // initCancelUmsOp: React.PropTypes.func,
-  // umsTableDataSource: React.PropTypes.array,
   repeatRenameArr: React.PropTypes.array,
   umsTypeSeleted: React.PropTypes.string,
   selectAllState: React.PropTypes.string,
