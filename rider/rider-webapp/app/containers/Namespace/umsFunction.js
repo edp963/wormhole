@@ -76,17 +76,18 @@ export function fieldTypeAlter (array, index, alterType) {
 
   if (array[index].fieldType.startsWith(TUPLE) && alterType.startsWith(TUPLE)) {
     newArray = tuple2tuple(newArray, index, alterType)
-  }
-  if (newArray[index].fieldType.startsWith(TUPLE)) {
-    newArray = tuple2other(newArray, index, index + 1)
-  } else if (newArray[index].fieldType.startsWith('json')) {
-    newArray = jsonType2other(newArray, index)
-  }
+  } else {
+    if (newArray[index].fieldType.startsWith(TUPLE)) {
+      newArray = tuple2other(newArray, index, index + 1)
+    } else if (newArray[index].fieldType.startsWith('json')) {
+      newArray = jsonType2other(newArray, index)
+    }
 
-  if (alterType.startsWith(TUPLE)) {
-    newArray = other2tuple(newArray, index, 0, alterType)
-  } else if (alterType.startsWith('json')) {
-    newArray = other2jsonType(newArray, index)
+    if (alterType.startsWith(TUPLE)) {
+      newArray = other2tuple(newArray, index, 0, alterType)
+    } else if (alterType.startsWith('json')) {
+      newArray = other2jsonType(newArray, index)
+    }
   }
   newArray[index].fieldType = alterType
   return newArray
@@ -226,18 +227,24 @@ function genUmsField (array) {
   var umsArray = []
   for (let i = 0; i < newArray.length; i++) {
     if (newArray[i].ums_id_ === true || newArray[i].ums_ts_ === true || newArray[i].ums_op_ !== '') {
-      var object = genBaseField(newArray[i])
       if (newArray[i].ums_id_ === true) {
+        const object = genBaseField(newArray[i])
         object.rename = 'ums_id_'
         object.type = LONG
-      } else if (newArray[i].ums_ts_ === true) {
+        umsArray.push(object)
+      }
+      if (newArray[i].ums_ts_ === true) {
+        const object = genBaseField(newArray[i])
         object.rename = 'ums_ts_'
         object.type = DATETIME
-      } else {
+        umsArray.push(object)
+      }
+      if (newArray[i].ums_op_ !== '') {
+        const object = genBaseField(newArray[i])
         object.rename = 'ums_op_'
         object.ums_sys_mapping = newArray[i].ums_op_
+        umsArray.push(object)
       }
-      umsArray.push(object)
     }
   }
   return umsArray
