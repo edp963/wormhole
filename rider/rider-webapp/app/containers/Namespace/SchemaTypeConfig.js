@@ -55,7 +55,8 @@ export class SchemaTypeConfig extends React.Component {
       updateValue: '',
       deleteValue: '',
 
-      tupleSizeValue: -1
+      tupleSizeValue: -1,
+      test: false
     }
   }
 
@@ -126,7 +127,7 @@ export class SchemaTypeConfig extends React.Component {
         this.props.umsFieldTypeSelectOk(record.key, afterType)
       } else if (currentType !== 'tuple' && afterType === 'tuple') {     // other to tuple
         if (this.state.tupleNum === 1) {
-          message.warning('最多有一个 Tuple！', 3)
+          message.error('最多有一个 Tuple！', 3)
           tupleTypeTemp = 'text'
         } else {
           const { currentUmsTableData } = this.state
@@ -184,7 +185,7 @@ export class SchemaTypeConfig extends React.Component {
         message.error('请填写分隔符！', 3)
       } else if (!tupleSizeValue) {
         message.error('请填写长度！', 3)
-      } else if (!reg.test(tupleSizeValue)) {
+      } else if (!reg.umsopable(tupleSizeValue)) {
         message.error('长度应为数字！', 3)
       } else {
         this.setState({
@@ -219,6 +220,11 @@ export class SchemaTypeConfig extends React.Component {
       }
     } else {
       this.props.initSelectUmsop(key)
+      if (this.state.currentKey !== key) {
+        this.setState({
+          umsopable: !this.state.umsopable
+        })
+      }
     }
   }
 
@@ -305,13 +311,12 @@ export class SchemaTypeConfig extends React.Component {
       title: 'FieldName',
       dataIndex: 'fieldName',
       key: 'fieldName',
-      width: '21%',
-      render: (text, record) => <span className={record.forbidden ? 'type-text-class' : ''}>{text}</span>
+      width: '22%'
     }, {
       title: 'Rename',
       dataIndex: 'rename',
       key: 'rename',
-      width: '24%',
+      width: '20%',
       render: (text, record) => {
         const { repeatRenameArr } = this.props
         const repeatKey = repeatRenameArr.length === 0 ? undefined : repeatRenameArr.find(i => i === record.key)
@@ -338,7 +343,7 @@ export class SchemaTypeConfig extends React.Component {
           const tupleVals = record.fieldType.split('##')
 
           const textHtml = (
-            <div>
+            <div style={{ marginTop: '4px' }}>
               <Col span={10}><span >{`Sep: ${tupleVals[1]}`}</span></Col>
               <Col span={11}><span >{`Size: ${tupleVals[2]}`}</span></Col>
               <Col span={3}>
@@ -351,7 +356,7 @@ export class SchemaTypeConfig extends React.Component {
           )
 
           const inputhtml = (
-            <div>
+            <div style={{ marginTop: '4px' }}>
               <Input
                 id="sep"
                 defaultValue={tupleVals[1]}
@@ -443,30 +448,6 @@ export class SchemaTypeConfig extends React.Component {
         )
       }
     }, {
-      title: 'ums_id_',
-      dataIndex: 'umsId',
-      key: 'umsId',
-      width: '8%',
-      className: 'text-align-center',
-      render: (text, record) => {
-        const tempHtml = (record.fieldType === 'int' || record.fieldType === 'long' ||
-        record.fieldType === 'intarray' || record.fieldType === 'longarray')
-          ? (
-            <span className="ant-checkbox-wrapper">
-              <span className={`ant-checkbox ${record.ums_id_ ? 'ant-checkbox-checked' : ''}`}>
-                <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsId(record)} />
-                <span className="ant-checkbox-inner"></span>
-              </span>
-            </span>
-          )
-          : ''
-        return (
-          <div>
-            {tempHtml}
-          </div>
-        )
-      }
-    }, {
       title: 'ums_ts_',
       dataIndex: 'umsTs',
       key: 'umsTs',
@@ -485,6 +466,30 @@ export class SchemaTypeConfig extends React.Component {
           )
           : ''
 
+        return (
+          <div>
+            {tempHtml}
+          </div>
+        )
+      }
+    }, {
+      title: 'ums_id_',
+      dataIndex: 'umsId',
+      key: 'umsId',
+      width: '8%',
+      className: 'text-align-center',
+      render: (text, record) => {
+        const tempHtml = (record.fieldType === 'int' || record.fieldType === 'long' ||
+        record.fieldType === 'intarray' || record.fieldType === 'longarray')
+          ? (
+            <span className="ant-checkbox-wrapper">
+              <span className={`ant-checkbox ${record.ums_id_ ? 'ant-checkbox-checked' : ''}`}>
+                <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsId(record)} />
+                <span className="ant-checkbox-inner"></span>
+              </span>
+            </span>
+          )
+          : ''
         return (
           <div>
             {tempHtml}
@@ -522,24 +527,24 @@ export class SchemaTypeConfig extends React.Component {
                 <span className="ant-checkbox-inner"></span>
               </span>
             </span>
-            <div>
+            <div style={{ marginTop: '4px' }}>
               <Input
                 style={{ width: '33%' }}
                 defaultValue={iVal || ''}
                 id="insert"
-                placeholder="Insert"
+                placeholder="Ins"
               />
               <Input
                 style={{ width: '33%' }}
                 defaultValue={uVal || ''}
                 id="update"
-                placeholder="Update"
+                placeholder="Upd"
               />
               <Input
                 style={{ width: '33%' }}
                 defaultValue={dVal || ''}
                 id="delete"
-                placeholder="Delete"
+                placeholder="Del"
               />
             </div>
           </span>
@@ -567,7 +572,11 @@ export class SchemaTypeConfig extends React.Component {
             }
           } else {
             if (record.key === umsopRecordValue) {
-              umsopHtml = selectedHtml
+              if (this.state.umsopable) {
+                umsopHtml = selectedHtml
+              } else {
+                umsopHtml = noSelectHtml
+              }
             } else {
               umsopHtml = noSelectHtml
             }
