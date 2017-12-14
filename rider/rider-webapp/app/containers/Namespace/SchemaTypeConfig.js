@@ -20,10 +20,9 @@
 
 import React from 'react'
 
-import EditableCell from './EditableCell'
-
 import Form from 'antd/lib/form'
 import Input from 'antd/lib/input'
+import InputNumber from 'antd/lib/input-number'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 import Table from 'antd/lib/table'
@@ -45,7 +44,7 @@ export class SchemaTypeConfig extends React.Component {
     this.state = {
       currentUmsTableData: [],
       tupleForm: '',
-      currentKey: 0,
+      currentKey: -1,
       delimiterValue: '',
       sizeValue: 0,
       umsTsSelect: '',
@@ -54,7 +53,9 @@ export class SchemaTypeConfig extends React.Component {
 
       insertValue: '',
       updateValue: '',
-      deleteValue: ''
+      deleteValue: '',
+
+      tupleSizeValue: -1
     }
   }
 
@@ -109,53 +110,95 @@ export class SchemaTypeConfig extends React.Component {
     this.props.initRowSelectedAll()
   }
 
-  handleChangeType = (record) => (afterType) => {
+  handleChangeFieldType = (record) => (afterType) => {
     const originType = record.fieldType
     const currentType = originType.indexOf('##') > -1 ? 'tuple' : originType
 
-    let tupleTypeTemp = ''
-    if (currentType !== 'tuple' && afterType !== 'tuple') { // other to other
-      tupleTypeTemp = ''
-      this.props.umsFieldTypeSelectOk(record.key, afterType)
-    } else if (currentType === 'tuple' && afterType !== 'tuple') {    // tuple to other
-      tupleTypeTemp = ''
-      this.props.umsFieldTypeSelectOk(record.key, afterType)
-    } else if (currentType !== 'tuple' && afterType === 'tuple') {     // other to tuple
-      if (this.state.tupleNum === 1) {
-        message.warning('最多有一个 Tuple！', 3)
+    if (this.state.tupleForm === 'edit') {
+      message.error('Tuple 配置失败！', 3)
+    } else {
+      let tupleTypeTemp = ''
+      if (currentType !== 'tuple' && afterType !== 'tuple') { // other to other
+        tupleTypeTemp = ''
+        this.props.umsFieldTypeSelectOk(record.key, afterType)
+      } else if (currentType === 'tuple' && afterType !== 'tuple') {    // tuple to other
+        tupleTypeTemp = ''
+        this.props.umsFieldTypeSelectOk(record.key, afterType)
+      } else if (currentType !== 'tuple' && afterType === 'tuple') {     // other to tuple
+        if (this.state.tupleNum === 1) {
+          message.warning('最多有一个 Tuple！', 3)
+          tupleTypeTemp = 'text'
+        } else {
+          const { currentUmsTableData } = this.state
+          tupleTypeTemp = 'edit'
+          this.setState({
+            tupleNum: 1,
+            currentKey: record.key
+          }, () => {
+            const tumsArr = currentUmsTableData.map(s => {
+              let tempObject = {}
+              tempObject = (this.state.currentKey === s.key)
+                ? tempObject = {
+                  fieldName: s.fieldName,
+                  fieldType: 'tuple',
+                  forbidden: s.forbidden,
+                  key: s.key,
+                  rename: s.rename,
+                  selected: s.selected,
+                  ums_id_: s.ums_id_,
+                  ums_op_: s.ums_op_,
+                  ums_ts_: s.ums_ts_
+                }
+                : s
+              return tempObject
+            })
+            this.setState({
+              currentUmsTableData: tumsArr
+            })
+          })
+        }
+      }
+
+      this.setState({
+        tupleForm: tupleTypeTemp,
+        selectTypeVal: afterType
+      })
+    }
+  }
+
+  onChangeSizeValue = (value) => {
+    this.setState({
+      tupleSizeValue: value
+    })
+  }
+
+  checkFieldType = (record) => (e) => {
+    const sepTemp = document.getElementById('sep')
+
+    if (sepTemp) {
+      const sepValue = sepTemp.value
+      const { tupleSizeValue } = this.state
+
+      const reg = /^[0-9]*$/
+      if (!sepValue) {
+        message.error('请填写分隔符！', 3)
+      } else if (!tupleSizeValue) {
+        message.error('请填写长度！', 3)
+      } else if (!reg.test(tupleSizeValue)) {
+        message.error('长度应为数字！', 3)
       } else {
-        tupleTypeTemp = 'edit'
         this.setState({
-          tupleNum: 1,
-          currentKey: record.key
+          tupleForm: 'text'
+        }, () => {
+          this.props.initUmsopOther2Tuple(record, sepValue, tupleSizeValue)
         })
       }
     }
-
-    this.setState({
-      tupleForm: tupleTypeTemp,
-      selectTypeVal: afterType
-    })
   }
 
-  initcheckFieldType = (record, values) => {
-    this.setState({
-      tupleForm: 'text',
-      delimiterValue: values.delimiterValue,
-      sizeValue: values.sizeValue
-    }, () => {
-      this.props.initUmsopOther2Tuple(record, this.state.delimiterValue, this.state.sizeValue)
-    })
-  }
-
-  initeditFieldType = () => {
+  editFieldType = () => {
     this.setState({
       tupleForm: 'edit'
-    }, () => {
-      this.editableCell.setFieldsValue({
-        delimiterValue: this.state.delimiterValue,
-        sizeValue: this.state.sizeValue
-      })
     })
   }
 
@@ -182,7 +225,7 @@ export class SchemaTypeConfig extends React.Component {
   render () {
     const { form } = this.props
     const { getFieldDecorator } = form
-    const { selectAllState, repeatRenameArr } = this.props
+    const { selectAllState } = this.props
 
     const itemStyle = {
       labelCol: { span: 2 },
@@ -269,18 +312,12 @@ export class SchemaTypeConfig extends React.Component {
       dataIndex: 'rename',
       key: 'rename',
       width: '24%',
-      render: (text, record) => {
-        const repeatKey = repeatRenameArr.length === 0 ? undefined : repeatRenameArr.find(i => i === record.key)
-
-        return (
-          <Row className={repeatKey ? 'rename-text-class' : ''}>
-            <Input
-              value={record.rename}
-              onChange={this.handleChangeRename(record)}
-            />
-          </Row>
-        )
-      }
+      render: (text, record) => (
+        <Input
+          value={record.rename}
+          onChange={this.handleChangeRename(record)}
+        />
+      )
     }, {
       title: fieldTypeMsg,
       dataIndex: 'fieldType',
@@ -288,7 +325,68 @@ export class SchemaTypeConfig extends React.Component {
       width: '17%',
       render: (text, record) => {
         const { currentKey, tupleForm } = this.state
-        // console.log('record', record)
+
+        let fieldTypeHtml = ''
+        if (record.fieldType.indexOf('tuple') > -1) {
+          const tupleVals = record.fieldType.split('##')
+
+          const textHtml = (
+            <div>
+              <Col span={9}><span >{`Sep: ${tupleVals[1]}`}</span></Col>
+              <Col span={11}><span >{`Size: ${tupleVals[2]}`}</span></Col>
+              <Col span={4}>
+                <Icon
+                  type="edit"
+                  onClick={this.editFieldType}
+                />
+              </Col>
+            </div>
+          )
+
+          const inputhtml = (
+            <div>
+              <Input
+                id="sep"
+                defaultValue={tupleVals[1]}
+                style={{ width: '40%' }}
+                placeholder="Sep"
+              />
+              <InputNumber
+                id="size1"
+                defaultValue={tupleVals[2]}
+                style={{ width: '40%' }}
+                placeholder="Size"
+                min={1}
+                step={1}
+                onChange={this.onChangeSizeValue}
+              />
+              <Icon
+                type="check"
+                onClick={this.checkFieldType(record)}
+              />
+            </div>
+          )
+
+          if (currentKey < 0) {
+            if (tupleForm === 'text') {
+              fieldTypeHtml = textHtml
+            } else if (tupleForm === 'edit') {
+              fieldTypeHtml = inputhtml
+            }
+          } else {
+            if (currentKey === record.key) {
+              if (tupleForm === 'text') {
+                fieldTypeHtml = textHtml
+              } else if (tupleForm === 'edit') {
+                fieldTypeHtml = inputhtml
+              }
+            } else {
+              console.log(1)
+            }
+          }
+        } else {
+          fieldTypeHtml = ''
+        }
 
         let initType = ''
         if (currentKey === record.key && tupleForm === 'edit') {
@@ -303,7 +401,7 @@ export class SchemaTypeConfig extends React.Component {
           <div className="ums_field_type_class">
             <Select
               value={initType}
-              onChange={this.handleChangeType(record)}
+              onChange={this.handleChangeFieldType(record)}
             >
               <OptGroup label="Basic Type">
                 <Option value="int">int</Option>
@@ -336,7 +434,8 @@ export class SchemaTypeConfig extends React.Component {
               </OptGroup>
             </Select>
 
-            { currentKey === record.key
+            {fieldTypeHtml}
+            {/* { currentKey === record.key
               ? <EditableCell
                 recordVal={record}
                 tupleForm={this.state.tupleForm}
@@ -349,7 +448,7 @@ export class SchemaTypeConfig extends React.Component {
                 ref={(f) => { this.editableCell = f }}
               />
               : ''
-            }
+            } */}
           </div>
         )
       }
@@ -552,10 +651,8 @@ SchemaTypeConfig.propTypes = {
   onChangeJsonToTable: React.PropTypes.func,
   umsFieldTypeSelectOk: React.PropTypes.func,
   initUmsopOther2Tuple: React.PropTypes.func,
-  // initTuple2Tuple: React.PropTypes.func,
   initEditRename: React.PropTypes.func,
   initSelectUmsIdTs: React.PropTypes.func,
-  repeatRenameArr: React.PropTypes.array,
   umsTypeSeleted: React.PropTypes.string,
   selectAllState: React.PropTypes.string,
   initRowSelectedAll: React.PropTypes.func,

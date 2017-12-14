@@ -712,7 +712,6 @@ export class Namespace extends React.PureComponent {
       this.setState({
         umsTableDataSource: [],
         umsTypeSeleted: 'ums',
-        tupleFormFinal: '',
         umsopRecordValue: -1
       }, () => {
         if (this.cmSample) {
@@ -758,74 +757,79 @@ export class Namespace extends React.PureComponent {
 
             const spaceRename = umsTableDataSource.find(s => !s.rename)
 
-            if (spaceRename) {
-              message.warning('Rename 不为空！', 3)
-            } else if (repeatArr.length !== 0) {
-              message.warning('请修改 Rename 重复项！', 3)
-              this.setState({
-                repeatRenameArr: repeatArr
-              })
+            if (document.getElementById('sep')) {
+              message.error('Tuple 类型配置失败！', 3)
+              break
             } else {
-              this.setState({
-                repeatRenameArr: []
-              })
-
-              // 检查ums_ts_，分别必须得有一个
-              const umsTsExit = umsTableDataSource.find(i => i.ums_ts_ === true)
-              if (!umsTsExit) {
-                message.warning('请选择 UMS_TS_！', 3)
+              if (spaceRename) {
+                message.warning('Rename 不为空！', 3)
+              } else if (repeatArr.length !== 0) {
+                message.warning('请修改 Rename 重复项！', 3)
+                this.setState({
+                  repeatRenameArr: repeatArr
+                })
               } else {
-                if (document.getElementById('insert')) {
-                  const opInsert = document.getElementById('insert').value
-                  const opUpdate = document.getElementById('update').value
-                  const opDelete = document.getElementById('delete').value
+                this.setState({
+                  repeatRenameArr: []
+                })
 
-                  if (opInsert && opUpdate && opDelete) {
-                    const { umsTableDataSource, umsopRecordValue } = this.state
-                    const originUmsop = umsTableDataSource.find(s => s.ums_op_ !== '')
-
-                    const umsopKeyTemp = umsopRecordValue === -1 ? originUmsop.key : umsopRecordValue
-
-                    const textVal = `i:${opInsert},u:${opUpdate},d:${opDelete}`
-                    const tempArr = umsSysFieldSelected(umsTableDataSource, umsopKeyTemp, 'ums_op_', textVal)
-                    this.setState({
-                      umsTableDataSource: tempArr
-                    }, () => {
-                      const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
-
-                      const requestValue = {
-                        umsType: 'ums_extension',
-                        jsonSample: this.cmSample.doc.getValue(),
-                        jsonParseArray: jsonSampleValue,
-                        umsSchemaTable: JSON.parse(tableDataString),
-                        umsSchema: genSchema(umsTableDataSource) // 生成 umsSchema json
-                      }
-
-                      this.props.onSetSchema(nsIdValue, requestValue, () => {
-                        message.success('Schema 配置成功！', 3)
-                        this.hideSchemaModal()
-                      })
-                    })
-                  } else {
-                    message.error('ums_op_ 配置错误！', 3)
-                  }
+                // 检查ums_ts_，分别必须得有一个
+                const umsTsExit = umsTableDataSource.find(i => i.ums_ts_ === true)
+                if (!umsTsExit) {
+                  message.warning('请选择 UMS_TS_！', 3)
                 } else {
-                  const { umsTableDataSource } = this.state
+                  if (document.getElementById('insert')) {
+                    const opInsert = document.getElementById('insert').value
+                    const opUpdate = document.getElementById('update').value
+                    const opDelete = document.getElementById('delete').value
 
-                  const tableDataString = JSON.stringify(umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+                    if (opInsert && opUpdate && opDelete) {
+                      const { umsTableDataSource, umsopRecordValue } = this.state
+                      const originUmsop = umsTableDataSource.find(s => s.ums_op_ !== '')
 
-                  const requestValue = {
-                    umsType: 'ums_extension',
-                    jsonSample: this.cmSample.doc.getValue(),
-                    jsonParseArray: jsonSampleValue,
-                    umsSchemaTable: JSON.parse(tableDataString),
-                    umsSchema: genSchema(umsTableDataSource) // 生成 umsSchema json
+                      const umsopKeyTemp = umsopRecordValue === -1 ? originUmsop.key : umsopRecordValue
+
+                      const textVal = `i:${opInsert},u:${opUpdate},d:${opDelete}`
+                      const tempArr = umsSysFieldSelected(umsTableDataSource, umsopKeyTemp, 'ums_op_', textVal)
+                      this.setState({
+                        umsTableDataSource: tempArr
+                      }, () => {
+                        const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+
+                        const requestValue = {
+                          umsType: 'ums_extension',
+                          jsonSample: this.cmSample.doc.getValue(),
+                          jsonParseArray: jsonSampleValue,
+                          umsSchemaTable: JSON.parse(tableDataString),
+                          umsSchema: genSchema(umsTableDataSource) // 生成 umsSchema json
+                        }
+
+                        this.props.onSetSchema(nsIdValue, requestValue, () => {
+                          message.success('Schema 配置成功！', 3)
+                          this.hideSchemaModal()
+                        })
+                      })
+                    } else {
+                      message.error('ums_op_ 配置错误！', 3)
+                    }
+                  } else {
+                    const { umsTableDataSource } = this.state
+
+                    const tableDataString = JSON.stringify(umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+
+                    const requestValue = {
+                      umsType: 'ums_extension',
+                      jsonSample: this.cmSample.doc.getValue(),
+                      jsonParseArray: jsonSampleValue,
+                      umsSchemaTable: JSON.parse(tableDataString),
+                      umsSchema: genSchema(umsTableDataSource) // 生成 umsSchema json
+                    }
+
+                    this.props.onSetSchema(nsIdValue, requestValue, () => {
+                      message.success('Schema 配置成功！', 3)
+                      this.hideSchemaModal()
+                    })
                   }
-
-                  this.props.onSetSchema(nsIdValue, requestValue, () => {
-                    message.success('Schema 配置成功！', 3)
-                    this.hideSchemaModal()
-                  })
                 }
               }
             }
@@ -973,17 +977,13 @@ export class Namespace extends React.PureComponent {
 
   initUmsopOther2Tuple = (record, delimiterValue, sizeValue, tupleForm) => {
     const { umsTableDataSource } = this.state
+
     const textVal = `tuple##${delimiterValue}##${sizeValue}`
     const tempArr = fieldTypeAlter(umsTableDataSource, record.key, textVal)
     this.setState({
-      umsTableDataSource: tempArr,
-      tupleFormFinal: tupleForm
-    })
-  }
-
-  initTuple2Tuple = (tupleForm) => {
-    this.setState({
-      tupleFormFinal: tupleForm
+      umsTableDataSource: tempArr
+    }, () => {
+      console.log('umsarr', this.state.umsTableDataSource)
     })
   }
 
@@ -993,19 +993,6 @@ export class Namespace extends React.PureComponent {
     const umsArr = renameAlter(umsTableDataSource, recordKey, value)
     this.setState({
       umsTableDataSource: umsArr
-    }, () => {
-      const repeatArr = getRepeatFieldIndex(this.state.umsTableDataSource)
-
-      if (repeatArr.length !== 0) {
-        message.warning('请修改 Rename 重复项！', 3)
-        this.setState({
-          repeatRenameArr: repeatArr
-        })
-      } else {
-        this.setState({
-          repeatRenameArr: []
-        })
-      }
     })
   }
 
@@ -1436,7 +1423,6 @@ export class Namespace extends React.PureComponent {
             initEditRename={this.initEditRename}
             initSelectUmsIdTs={this.initSelectUmsIdTs}
             initUmsopOther2Tuple={this.initUmsopOther2Tuple}
-            initTuple2Tuple={this.initTuple2Tuple}
             initSelectUmsop={this.initSelectUmsop}
             initCancelUmsopSelf={this.initCancelUmsopSelf}
             cancelSelectUmsId={this.cancelSelectUmsId}
