@@ -97,7 +97,7 @@ export class WorkbenchFlowForm extends React.Component {
   onSinkDataSystemItemSelect = (val) => {
     this.props.onInitSinkTypeNamespace(this.props.projectIdGeted, val, 'sinkType')
     this.setState({
-      sinkConfigClass: (val === 'hbase' || val === 'mysql' || val === 'oracle' || val === 'postgresql') ? 'sink-config-class' : ''
+      sinkConfigClass: (val === 'hbase' || val === 'postgresql') ? 'sink-config-class' : ''
     })
   }
 
@@ -419,7 +419,7 @@ export class WorkbenchFlowForm extends React.Component {
               </FormItem>
             </Col>
             <Col span={24} className="ri-input-text">
-              <FormItem label="Kafka Topics" {...itemStyle}>
+              <FormItem label="Exist Kafka Topics" {...itemStyle}>
                 {getFieldDecorator('kafkaTopic', {})(
                   <p className="value-font-style">{flowKafkaTopicValue}</p>
                 )}
