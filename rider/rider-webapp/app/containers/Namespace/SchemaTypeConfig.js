@@ -339,9 +339,9 @@ export class SchemaTypeConfig extends React.Component {
 
           const textHtml = (
             <div>
-              <Col span={9}><span >{`Sep: ${tupleVals[1]}`}</span></Col>
+              <Col span={10}><span >{`Sep: ${tupleVals[1]}`}</span></Col>
               <Col span={11}><span >{`Size: ${tupleVals[2]}`}</span></Col>
-              <Col span={4}>
+              <Col span={3}>
                 <Icon
                   type="edit"
                   onClick={this.editFieldType}
@@ -360,7 +360,7 @@ export class SchemaTypeConfig extends React.Component {
               />
               <InputNumber
                 defaultValue={tupleVals[2]}
-                style={{ width: '40%' }}
+                style={{ width: '43%' }}
                 placeholder="Size"
                 min={1}
                 step={1}
@@ -386,8 +386,6 @@ export class SchemaTypeConfig extends React.Component {
               } else if (tupleForm === 'edit') {
                 fieldTypeHtml = inputhtml
               }
-            } else {
-              console.log('')
             }
           }
         } else {

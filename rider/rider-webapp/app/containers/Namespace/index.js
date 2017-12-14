@@ -654,8 +654,7 @@ export class Namespace extends React.PureComponent {
             if (this.state.umsTypeSeleted === 'ums_extension') {
               this.cmSample.doc.setValue(result.jsonSample)
 
-              // setTimeout(this.onJsonFormat(), 100)
-              // setTimeout(() => JSON.stringify(JSON.parse(result.jsonSample), null, 1), 100)
+              setTimeout(() => this.onJsonFormat(), 205)
 
               const tableData = result.umsSchemaTable.map((s, index) => {
                 s.key = index
@@ -782,7 +781,7 @@ export class Namespace extends React.PureComponent {
                 // 检查ums_ts_，分别必须得有一个
                 const umsTsExit = umsTableDataSource.find(i => i.ums_ts_ === true)
                 if (!umsTsExit) {
-                  message.warning('请选择 UMS_TS_！', 3)
+                  message.warning('请选择 ums_ts！', 3)
                 } else {
                   if (document.getElementById('insert')) {
                     const opInsert = document.getElementById('insert').value
