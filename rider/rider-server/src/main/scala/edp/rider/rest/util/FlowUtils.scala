@@ -469,7 +469,9 @@ object FlowUtils extends RiderLogger {
   }
 
   def checkDeleteTopic(streamId: Long, flowId: Long, sourceNs: String) = {
-    val flows = Await.result(modules.flowDal.findByFilter(_.streamId === streamId), minTimeOut)
+    val flows = Await.result(modules.flowDal
+      .findByFilter(flow => flow.streamId === streamId && flow.status =!= "new" && flow.status =!= "stopping" && flow.status =!= "stopped")
+      , minTimeOut)
     val ns = modules.namespaceDal.getNamespaceByNs(sourceNs)
     val topicName = Await.result(modules.databaseDal.findById(ns.nsDatabaseId), minTimeOut).get.nsDatabase
     val ids = flows.map(flow => modules.namespaceDal.getNamespaceByNs(flow.sourceNs)).filter(_.nsDatabaseId == ns.nsDatabaseId)
