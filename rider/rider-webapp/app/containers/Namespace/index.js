@@ -738,6 +738,10 @@ export class Namespace extends React.PureComponent {
   }
 
   onSchemaModalOk = () => {
+    if (document.getElementById('sep')) {
+      message.error('Tuple 类型配置失败！', 3)
+      return
+    }
     this.schemaTypeConfig.validateFieldsAndScroll((err, values) => {
       if (!err) {
         const { nsIdValue } = this.state
@@ -759,7 +763,7 @@ export class Namespace extends React.PureComponent {
 
             if (document.getElementById('sep')) {
               message.error('Tuple 类型配置失败！', 3)
-              break
+              return
             } else {
               if (spaceRename) {
                 message.warning('Rename 不为空！', 3)
@@ -982,8 +986,6 @@ export class Namespace extends React.PureComponent {
     const tempArr = fieldTypeAlter(umsTableDataSource, record.key, textVal)
     this.setState({
       umsTableDataSource: tempArr
-    }, () => {
-      console.log('umsarr', this.state.umsTableDataSource)
     })
   }
 
