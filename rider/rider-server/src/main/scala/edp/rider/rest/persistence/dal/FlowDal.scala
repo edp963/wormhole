@@ -121,7 +121,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     try {
       val flowStatus = actionRule(flowStream, action)
 
-      val startedTime = if (action == "start") Some(currentSec) else if (flowStream.startedTime.getOrElse("") == "") null else flowStream.startedTime
+      val startedTime = if (action == "start" || action == "renew") Some(currentSec) else if (flowStream.startedTime.getOrElse("") == "") null else flowStream.startedTime
       val stoppedTime =
         if (action == "stop" && flowStatus.flowStatus == "stopped") Some(currentSec)
         else if (action == "start") null
