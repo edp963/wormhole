@@ -56,7 +56,7 @@ export class SchemaTypeConfig extends React.Component {
       deleteValue: '',
 
       tupleSizeValue: -1,
-      test: false
+      umsopable: false
     }
   }
 
@@ -185,7 +185,7 @@ export class SchemaTypeConfig extends React.Component {
         message.error('请填写分隔符！', 3)
       } else if (!tupleSizeValue) {
         message.error('请填写长度！', 3)
-      } else if (!reg.umsopable(tupleSizeValue)) {
+      } else if (!reg.test(tupleSizeValue)) {
         message.error('长度应为数字！', 3)
       } else {
         this.setState({
