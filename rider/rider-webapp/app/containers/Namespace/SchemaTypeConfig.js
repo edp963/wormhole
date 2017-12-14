@@ -312,12 +312,19 @@ export class SchemaTypeConfig extends React.Component {
       dataIndex: 'rename',
       key: 'rename',
       width: '24%',
-      render: (text, record) => (
-        <Input
-          value={record.rename}
-          onChange={this.handleChangeRename(record)}
-        />
-      )
+      render: (text, record) => {
+        const { repeatRenameArr } = this.props
+        const repeatKey = repeatRenameArr.length === 0 ? undefined : repeatRenameArr.find(i => i === record.key)
+
+        return (
+          <Row className={repeatKey === record.key ? 'rename-text-class' : ''}>
+            <Input
+              value={record.rename}
+              onChange={this.handleChangeRename(record)}
+            />
+          </Row>
+        )
+      }
     }, {
       title: fieldTypeMsg,
       dataIndex: 'fieldType',
@@ -352,7 +359,6 @@ export class SchemaTypeConfig extends React.Component {
                 placeholder="Sep"
               />
               <InputNumber
-                id="size1"
                 defaultValue={tupleVals[2]}
                 style={{ width: '40%' }}
                 placeholder="Size"
@@ -381,7 +387,7 @@ export class SchemaTypeConfig extends React.Component {
                 fieldTypeHtml = inputhtml
               }
             } else {
-              console.log(1)
+              console.log('')
             }
           }
         } else {
@@ -435,20 +441,6 @@ export class SchemaTypeConfig extends React.Component {
             </Select>
 
             {fieldTypeHtml}
-            {/* { currentKey === record.key
-              ? <EditableCell
-                recordVal={record}
-                tupleForm={this.state.tupleForm}
-                selectTypeVal={this.state.selectTypeVal}
-                currentKey={this.state.currentKey}
-                delimiterValue={this.state.delimiterValue}
-                sizeValue={this.state.sizeValue}
-                initcheckFieldType={this.initcheckFieldType}
-                initeditFieldType={this.initeditFieldType}
-                ref={(f) => { this.editableCell = f }}
-              />
-              : ''
-            } */}
           </div>
         )
       }
@@ -658,7 +650,8 @@ SchemaTypeConfig.propTypes = {
   initRowSelectedAll: React.PropTypes.func,
   initSelectUmsop: React.PropTypes.func,
   initCancelUmsopSelf: React.PropTypes.func,
-  umsopRecordValue: React.PropTypes.number
+  umsopRecordValue: React.PropTypes.number,
+  repeatRenameArr: React.PropTypes.array
 }
 
 export default Form.create({wrappedComponentRef: true})(SchemaTypeConfig)

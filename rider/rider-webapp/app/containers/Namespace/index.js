@@ -655,6 +655,7 @@ export class Namespace extends React.PureComponent {
               this.cmSample.doc.setValue(result.jsonSample)
 
               // setTimeout(this.onJsonFormat(), 100)
+              // setTimeout(() => JSON.stringify(JSON.parse(result.jsonSample), null, 1), 100)
 
               const tableData = result.umsSchemaTable.map((s, index) => {
                 s.key = index
@@ -712,7 +713,8 @@ export class Namespace extends React.PureComponent {
       this.setState({
         umsTableDataSource: [],
         umsTypeSeleted: 'ums',
-        umsopRecordValue: -1
+        umsopRecordValue: -1,
+        repeatRenameArr: []
       }, () => {
         if (this.cmSample) {
           this.cmSample.doc.setValue('')
@@ -805,7 +807,7 @@ export class Namespace extends React.PureComponent {
                           jsonSample: this.cmSample.doc.getValue(),
                           jsonParseArray: jsonSampleValue,
                           umsSchemaTable: JSON.parse(tableDataString),
-                          umsSchema: genSchema(umsTableDataSource) // 生成 umsSchema json
+                          umsSchema: genSchema(this.state.umsTableDataSource) // 生成 umsSchema json
                         }
 
                         this.props.onSetSchema(nsIdValue, requestValue, () => {
