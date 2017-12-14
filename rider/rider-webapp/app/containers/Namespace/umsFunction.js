@@ -114,12 +114,14 @@ function tuple2other (array, index, deleteIndex) {
 function tuple2tuple (array, index, alterType) {
   var newArray = copyArray(array)
   // var tupleSubFieldRegrex = new RegExp(`^${newArray[index].fieldName}#[0-9]+$`)
+
   var preSize = Number(newArray[index].fieldType.split('##').pop())
   var alterSize = Number(alterType.split('##').pop())
+
   if (preSize === alterSize) {
     return newArray
   } else if (preSize > alterSize) {
-    newArray = tuple2other(newArray, index, index + preSize + 1)
+    newArray = tuple2other(newArray, index, index + alterSize + 1)
     return newArray
   } else {
     newArray = other2tuple(newArray, index, preSize, alterType)
