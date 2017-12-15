@@ -88,16 +88,16 @@
                         <configuration>
                             <relocations>
                                 <relocation>
-                                    <pattern>com</pattern>
-                                    <shadedPattern>sql4es5.com</shadedPattern>
+                                    <pattern>com.fasterxml.jackson</pattern>
+                                    <shadedPattern>sql4es5.com.fasterxml.jackson</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>org</pattern>
-                                    <shadedPattern>sql4es5.org</shadedPattern>
+                                    <pattern>org.joda</pattern>
+                                    <shadedPattern>sql4es5.org.joda</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>io</pattern>
-                                    <shadedPattern>sql4es5.io</shadedPattern>
+                                    <pattern>io.netty</pattern>
+                                    <shadedPattern>sql4es5.io.netty</shadedPattern>
                                 </relocation>
                             </relocations>
                             <filters>
