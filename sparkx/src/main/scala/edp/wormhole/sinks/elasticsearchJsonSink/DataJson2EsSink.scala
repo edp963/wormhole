@@ -39,12 +39,13 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
     logInfo("random url:" + cc.connectionUrl)
     if (cc.connectionUrl.isEmpty) new Exception(connectionConfig.connectionUrl + " are all not available")
     val sinkSpecificConfig = json2caseClass[EsJsonConfig](sinkProcessConfig.specialConfig.get)
-    val namespace: UmsNamespace = UmsNamespace(sinkNamespace)
     SourceMutationType.sourceMutationType(sinkSpecificConfig.`mutation_type.get`) match {
       case INSERT_ONLY =>
-        val result = insertOnly(tupleList, targetSchemaArr, sinkMap, namespace, cc)
+        logInfo("insert only process")
+        val result = insertOnly(tupleList, targetSchemaArr, sinkMap, sinkNamespace, cc)
         if (!result) throw new Exception("has error row for insert only")
       case _ =>
+        logInfo("insert and update process")
         val result = insertOrUpdate(tupleList, targetSchemaArr, sinkMap, sinkProcessConfig, sinkNamespace, cc)
         if (!result) throw new Exception("has error row for insert or update")
     }
@@ -88,60 +89,49 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
   private def doBatchInsert(insertId2JsonMap: mutable.HashMap[String, String],
                             sinkConfig: SinkProcessConfig, sinkNamespace: String,
                             connectionConfig: ConnectionConfig): Boolean = {
-    val namespace = UmsNamespace(sinkNamespace)
     if (insertId2JsonMap.nonEmpty) {
       val insertList = ListBuffer.empty[String]
       insertId2JsonMap.foreach(item => {
         insertList += s"""{ "$optNameInsert" : {"_id" : "${item._1}" }}"""
         insertList += item._2
       })
-      val requestContent = insertList.mkString("\n") + "\n"
-      val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl.trim + namespace.database + "/" + namespace.table + "/_bulk"
-      else connectionConfig.connectionUrl.trim + "/" + namespace.database + "/" + namespace.table + "/_bulk"
-      logInfo("doBatch url:" + url)
-      val responseContent = doHttp(url, connectionConfig.username, connectionConfig.password, requestContent)
-      val responseJson: JValue = json2jValue(responseContent)
-      checkResponseSuccess(responseJson)
+      write2Es(insertList, connectionConfig, sinkNamespace)
     } else true
   }
+
+
 
 
   private def doBatchUpdate(updateId2JsonMap: mutable.HashMap[String, String],
                             sinkConfig: SinkProcessConfig, sinkNamespace: String,
                             connectionConfig: ConnectionConfig): Boolean = {
-    val namespace = UmsNamespace(sinkNamespace)
     if (updateId2JsonMap.nonEmpty) {
       val updateList = ListBuffer.empty[String]
       updateId2JsonMap.foreach(item => {
         updateList += s"""{ "$optNameUpdate" : {"_id" : "${item._1}" }}"""
         updateList += "{\"doc\":" + item._2 + "}"
       })
-      val requestContent = updateList.mkString("\n") + "\n"
-      val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl.trim + namespace.database + "/" + namespace.table + "/_bulk"
-      else connectionConfig.connectionUrl.trim + "/" + namespace.database + "/" + namespace.table + "/_bulk"
-      logInfo("doBatch url:" + url)
-      val responseContent = doHttp(url, connectionConfig.username, connectionConfig.password, requestContent)
-      val responseJson: JValue = json2jValue(responseContent)
-      checkResponseSuccess(responseJson)
+      write2Es(updateList, connectionConfig, sinkNamespace)
     } else true
   }
 
 
-  private def insertOnly(tupleList: Seq[Seq[String]], targetSchemaArr: JSONArray, sinkMap: collection.Map[String, (Int, UmsFieldType, Boolean)], namespace: UmsNamespace, connectionConfig: ConnectionConfig): Boolean = {
+  private def insertOnly(tupleList: Seq[Seq[String]], targetSchemaArr: JSONArray, sinkMap: collection.Map[String, (Int, UmsFieldType, Boolean)], sinkNamespace: String, connectionConfig: ConnectionConfig): Boolean = {
     val insertList = ListBuffer.empty[String]
-    if (insertList.nonEmpty) {
+    if (tupleList.nonEmpty) {
       for (row <- tupleList) {
         val data = jsonObjHelper(row, sinkMap, targetSchemaArr).toJSONString
         val uuid = UUID.randomUUID().toString
         insertList += s"""{ "$optNameInsert" : {"_id" : "${uuid}" }}"""
         insertList += data
       }
-      doBatchInsert(insertList, connectionConfig, namespace)
+      write2Es(insertList, connectionConfig, sinkNamespace)
     } else true
   }
 
-  private def doBatchInsert(insertList: ListBuffer[String], connectionConfig: ConnectionConfig, namespace: UmsNamespace): Boolean = {
-    val requestContent = insertList.mkString("\n") + "\n"
+  private def write2Es(list: ListBuffer[String], connectionConfig: ConnectionConfig, sinkNamespace: String): Boolean = {
+    val namespace = UmsNamespace(sinkNamespace)
+    val requestContent = list.mkString("\n") + "\n"
     val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl.trim + namespace.database + "/" + namespace.table + "/_bulk"
     else connectionConfig.connectionUrl.trim + "/" + namespace.database + "/" + namespace.table + "/_bulk"
     logInfo("doBatch url:" + url)
@@ -149,6 +139,7 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
     val responseJson: JValue = json2jValue(responseContent)
     checkResponseSuccess(responseJson)
   }
+
 
   private def jsonObjHelper(tuple: Seq[String], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], subFields: JSONArray): JSONObject = {
     val outputJson = new JSONObject()
@@ -208,11 +199,11 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
     } else {
       if (outerName == UmsSysField.ACTIVE.toString)
         data match {
-          case "i" | "u" => "1"
-          case "d" => "0"
-          case _ => "-1"
+          case "i" | "u" => 1
+          case "d" => 0
+          case _ => -1
         } else {
-        data
+        parseData2CorrectType(dataType, data)
       }
     }
   }
@@ -251,9 +242,6 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
   }
 
   private def doHttp(url: String, username: Option[String], passwd: Option[String], requestContent: String): String = {
-    println("+++++++++++++++++requestContent++++++++++++++++++++++")
-    println(requestContent)
-    println("=======================================")
     if (username.nonEmpty && username.get.nonEmpty && passwd.nonEmpty && passwd.get.nonEmpty) {
       Http(url).auth(username.get, passwd.get).postData(requestContent).asString.body
     } else {
@@ -289,4 +277,14 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
     (queryResult, esid2VersionMap)
   }
 
+  private def parseData2CorrectType(dataType: String, data: String): Any = {
+    dataType.toLowerCase match {
+      case "int" => data.toInt
+      case "long" => data.toLong
+      case "double" => data.toDouble
+      case "float" => data.toFloat
+      case "boolean" => data.toBoolean
+      case _ => data
+    }
+  }
 }
