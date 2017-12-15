@@ -1,4 +1,4 @@
-package edp.wormhole.sinks.mongojsonsink
+package edp.wormhole.sinks.jsonsink.mongojsonsink
 
 import edp.wormhole.sinks.SourceMutationType
 
