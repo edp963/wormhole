@@ -80,6 +80,13 @@
 
     </properties>
 
+    <distributionManagement>
+        <repository>
+            <id>dist-nexus</id>
+            <url>${release.url}</url>
+        </repository>
+    </distributionManagement>
+
     <!-- common repositories -->
     <repositories>
         <repository>
@@ -93,6 +100,10 @@
         <repository>
             <id>conjars</id>
             <url>http://conjars.org/repo/</url>
+        </repository>
+        <repository>
+            <id>creditease</id>
+            <url>${public.url}</url>
         </repository>
     </repositories>
 
@@ -549,7 +560,6 @@
                         <param>${main.basedir}/dev/codecheck/license-mappings.xml</param>
                     </licenseMapping>
                 </configuration>
-
             </plugin>
         </plugins>
     </build>
