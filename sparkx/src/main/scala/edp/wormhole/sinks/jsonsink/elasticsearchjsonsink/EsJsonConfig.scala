@@ -1,4 +1,4 @@
-package edp.wormhole.sinks.elasticsearchJsonSink
+package edp.wormhole.sinks.jsonsink.elasticsearchjsonsink
 
 import edp.wormhole.sinks.SourceMutationType
 
