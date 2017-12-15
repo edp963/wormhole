@@ -16,4 +16,4 @@ sed -i "s#http://.*/api/v1#http://$finalAddress/api/v1#g" $WORMHOLE_HOME/webapp/
 sed -i "s#http://.*/api-docs/swagger.json#http://$finalAddress/api-docs/swagger.json#g" $WORMHOLE_HOME/swagger-ui/index.html
 
 echo "[WormholeServer] is starting..."
-java -DWORMHOLE_HOME=$WORMHOLE_HOME -cp $WORMHOLE_HOME/lib/wormhole-rider-server_1.2-0.4.0-SNAPSHOTS.jar:$WORMHOLE_HOME/lib/* edp.rider.RiderStarter &
+java -DWORMHOLE_HOME=$WORMHOLE_HOME -cp $WORMHOLE_HOME/lib/wormhole-rider-server_1.3-0.4.0-SNAPSHOTS.jar:$WORMHOLE_HOME/lib/* edp.rider.RiderStarter &
