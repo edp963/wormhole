@@ -8,7 +8,6 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <!--<groupId>edp.wormhole</groupId>-->
     <artifactId>sql4es5</artifactId>
     <packaging>jar</packaging>
     <name>sql-4-elasticsearch</name>
@@ -46,7 +45,6 @@
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch</artifactId>
             <version>${elasticsearch.version}</version>
-
         </dependency>
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
@@ -73,7 +71,6 @@
             <artifactId>joda-time</artifactId>
             <version>2.9.5</version>
         </dependency>
-
     </dependencies>
 
     <build>
