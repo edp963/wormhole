@@ -15,6 +15,15 @@ cd common
 cd util
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../
+cd sql4es5
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd sql4es2
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd cassandra-jdbc
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
 cd dbpool
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../
