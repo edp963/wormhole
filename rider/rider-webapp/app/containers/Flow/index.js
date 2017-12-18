@@ -913,16 +913,19 @@ export class Flow extends React.Component {
               <Popover
                 placement="left"
                 content={<div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
-                  <p><strong>   Project Id：</strong>{record.projectId}</p>
+                  <p className={this.props.flowClassHide}><strong>   Project Id：</strong>{record.projectId}</p>
                   <p><strong>   Protocol：</strong>{record.consumedProtocol}</p>
                   <p><strong>   Stream Name：</strong>{record.streamName}</p>
+
+                  <p><strong>   Sink Config：</strong>{record.sinkConfig}</p>
+                  <p><strong>   Transformation Config：</strong>{record.tranConfig}</p>
+
                   <p><strong>   Create Time：</strong>{record.createTime}</p>
                   <p><strong>   Update Time：</strong>{record.updateTime}</p>
                   <p><strong>   Create By：</strong>{record.createBy}</p>
                   <p><strong>   Update By：</strong>{record.updateBy}</p>
                   <p><strong>   Disable Actions：</strong>{record.disableActions}</p>
-                  <p><strong>   Sink Config：</strong>{record.sinkConfig}</p>
-                  <p><strong>   Transformation Config：</strong>{record.tranConfig}</p>
+
                   <p><strong>   Message：</strong>{record.msg}</p>
                 </div>}
                 title={<h3>详情</h3>}

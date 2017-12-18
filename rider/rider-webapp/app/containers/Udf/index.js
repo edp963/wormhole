@@ -507,7 +507,7 @@ export class Udf extends React.PureComponent {
     }, {
       title: 'Action',
       key: 'action',
-      className: 'text-align-center',
+      className: `text-align-center ${udfClassHide}`,
       render: (text, record) => (
         <span className="ant-table-action-column">
           <Tooltip title="查看详情">
@@ -525,10 +525,10 @@ export class Udf extends React.PureComponent {
           </Tooltip>
 
           <Tooltip title="复制">
-            <Button icon="copy" shape="circle" type="ghost" onClick={this.copySingleUdf(record)} className={udfClassHide}></Button>
+            <Button icon="copy" shape="circle" type="ghost" onClick={this.copySingleUdf(record)}></Button>
           </Tooltip>
           <Tooltip title="修改">
-            <Button icon="edit" shape="circle" type="ghost" onClick={this.onShowEditUdf(record)} className={udfClassHide}></Button>
+            <Button icon="edit" shape="circle" type="ghost" onClick={this.onShowEditUdf(record)}></Button>
           </Tooltip>
           {/* <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteSingleUdf(record)}>
             <Tooltip title="删除">
