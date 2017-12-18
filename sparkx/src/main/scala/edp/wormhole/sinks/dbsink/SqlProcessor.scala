@@ -196,14 +196,14 @@ class SqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.M
 
     logInfo("insert sql " + sql)
     val batchSize = specificConfig.`db.sql_batch_size.get`
-    executeProcess(tupleList, sql, batchSize, UmsOpType.INSERT.toString)
+    executeProcess(tupleList, sql, batchSize, UmsOpType.INSERT.toString,sourceMutationType)
   }
 
-  def executeProcess(tupleList: Seq[Seq[String]], sql: String, batchSize: Int, optType: String): Seq[Seq[String]] = {
+  def executeProcess(tupleList: Seq[Seq[String]], sql: String, batchSize: Int, optType: String,sourceMutationType: SourceMutationType): Seq[Seq[String]] = {
     if (tupleList.nonEmpty) {
-      val errorTupleList = executeSql(tupleList, sql, UmsOpType.umsOpType(optType), batchSize)
+      val errorTupleList = executeSql(tupleList, sql, UmsOpType.umsOpType(optType), batchSize,sourceMutationType)
       if (errorTupleList.nonEmpty) {
-        val newErrorTupleList = if (batchSize == 1) errorTupleList else executeSql(errorTupleList, sql, UmsOpType.umsOpType(optType), 1)
+        val newErrorTupleList = if (batchSize == 1) errorTupleList else executeSql(errorTupleList, sql, UmsOpType.umsOpType(optType), 1,sourceMutationType)
         newErrorTupleList.foreach(data => logInfo(optType + ",data:" + data))
         newErrorTupleList
       } else ListBuffer.empty[List[String]]
@@ -221,7 +221,7 @@ class SqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.M
         tableKeyNames.map(key => s"$key=?").mkString(" AND ") + s" AND $metaIdName<? "
     }
     logInfo("@update sql " + sql)
-    executeProcess(tupleList, sql, batchSize, UmsOpType.UPDATE.toString)
+    executeProcess(tupleList, sql, batchSize, UmsOpType.UPDATE.toString, SourceMutationType.I_U_D)
   }
 
 
@@ -232,32 +232,41 @@ class SqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.M
     else ps.setObject(parameterIndex, value, fieldSqlTypeMap(fieldName))
   }
 
-  def executeSql(tupleList: Seq[Seq[String]], sql: String, opType: UmsOpType, batchSize: Int): List[Seq[String]] = {
+  def executeSql(tupleList: Seq[Seq[String]], sql: String, opType: UmsOpType, batchSize: Int,sourceMutationType:SourceMutationType): List[Seq[String]] = {
     def setPlaceholder(tuple: Seq[String], ps: PreparedStatement) = {
       var parameterIndex: Int = 1
-      if (opType == UmsOpType.INSERT)
-        for (field <- baseFieldNames) {
-          psSetValue(field, parameterIndex, tuple, ps)
-          parameterIndex += 1
-        }
-      else
-        for (field <- updateFieldNames) {
-          psSetValue(field, parameterIndex, tuple, ps)
-          parameterIndex += 1
-        }
+      sourceMutationType match {
+        case SourceMutationType.INSERT_ONLY =>
+          for (field <- allFieldNames) {
+            psSetValue(field, parameterIndex, tuple, ps)
+            parameterIndex += 1
+          }
+        case  _ =>
+          if (opType == UmsOpType.INSERT)
+            for (field <- baseFieldNames) {
+              psSetValue(field, parameterIndex, tuple, ps)
+              parameterIndex += 1
+            }
+          else
+            for (field <- updateFieldNames) {
+              psSetValue(field, parameterIndex, tuple, ps)
+              parameterIndex += 1
+            }
 
-      ps.setInt(parameterIndex,
-        if (umsOpType(fieldValue(OP.toString, schemaMap, tuple).toString) == DELETE) UmsActiveType.INACTIVE
-        else UmsActiveType.ACTIVE)
+          ps.setInt(parameterIndex,
+            if (umsOpType(fieldValue(OP.toString, schemaMap, tuple).toString) == DELETE) UmsActiveType.INACTIVE
+            else UmsActiveType.ACTIVE)
 
-      if (opType == UPDATE) {
-        for (i <- tableKeyNames.indices) {
-          parameterIndex += 1
-          psSetValue(tableKeyNames(i), parameterIndex, tuple, ps)
-        }
-        parameterIndex += 1
-        psSetValue(metaIdName, parameterIndex, tuple, ps)
+          if (opType == UPDATE) {
+            for (i <- tableKeyNames.indices) {
+              parameterIndex += 1
+              psSetValue(tableKeyNames(i), parameterIndex, tuple, ps)
+            }
+            parameterIndex += 1
+            psSetValue(metaIdName, parameterIndex, tuple, ps)
+          }
       }
+
     }
 
     var ps: PreparedStatement = null
