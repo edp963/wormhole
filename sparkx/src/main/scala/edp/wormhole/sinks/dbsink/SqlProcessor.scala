@@ -25,9 +25,9 @@ import java.sql._
 
 import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.common.db.DbConnection
-import edp.wormhole.sinks.SinkProcessConfig
+import edp.wormhole.sinks.{SinkProcessConfig, SourceMutationType}
 import edp.wormhole.sinks.DbHelper._
-import edp.wormhole.sinks.SourceMutationType._
+import edp.wormhole.sinks.SourceMutationType.{SourceMutationType, _}
 import edp.wormhole.sinks.utils.SinkDefault._
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.{UmsFieldType, UmsSysField, _}
@@ -173,14 +173,27 @@ class SqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.M
   }
 
   def doInsert(tupleList: Seq[Seq[String]], sourceMutationType: SourceMutationType): Seq[Seq[String]] = {
-    val columnNames = baseFieldNames.map(n =>s"""`$n`""").mkString(", ")
-    val oracleColumnNames = baseFieldNames.map(n =>s"""$n""").mkString(",")
-    val sql = namespace.dataSys match {
-      case UmsDataSystem.MYSQL => s"INSERT INTO `$tableName` ($columnNames, ${if (systemRenameMap == null) UmsSysField.ACTIVE.toString else systemRenameMap(UmsSysField.ACTIVE.toString)}) VALUES " +
-        (1 to baseFieldNames.size + 1).map(_ => "?").mkString("(", ",", ")")
-      case _ => s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames, ${if (systemRenameMap == null) UmsSysField.ACTIVE.toString else systemRenameMap(UmsSysField.ACTIVE.toString)}) VALUES """ +
-        (1 to baseFieldNames.size + 1).map(_ => "?").mkString("(", ",", ")")
+    val sql = sourceMutationType match {
+      case SourceMutationType.INSERT_ONLY =>
+        val columnNames = allFieldNames.map(n =>s"""`$n`""").mkString(", ")
+        val oracleColumnNames = allFieldNames.map(n =>s"""$n""").mkString(",")
+        namespace.dataSys match {
+          case UmsDataSystem.MYSQL => s"INSERT INTO `$tableName` ($columnNames) VALUES " +
+            (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
+          case _ => s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames) VALUES """ +
+            (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
+        }
+      case _ =>
+        val columnNames = baseFieldNames.map(n =>s"""`$n`""").mkString(", ")
+        val oracleColumnNames = baseFieldNames.map(n =>s"""$n""").mkString(",")
+        namespace.dataSys match {
+          case UmsDataSystem.MYSQL => s"INSERT INTO `$tableName` ($columnNames, ${if (systemRenameMap == null) UmsSysField.ACTIVE.toString else systemRenameMap(UmsSysField.ACTIVE.toString)}) VALUES " +
+            (1 to baseFieldNames.size + 1).map(_ => "?").mkString("(", ",", ")")
+          case _ => s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames, ${if (systemRenameMap == null) UmsSysField.ACTIVE.toString else systemRenameMap(UmsSysField.ACTIVE.toString)}) VALUES """ +
+            (1 to baseFieldNames.size + 1).map(_ => "?").mkString("(", ",", ")")
+        }
     }
+
     logInfo("insert sql " + sql)
     val batchSize = specificConfig.`db.sql_batch_size.get`
     executeProcess(tupleList, sql, batchSize, UmsOpType.INSERT.toString)
