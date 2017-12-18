@@ -112,36 +112,20 @@ export class Manager extends React.Component {
 
   componentWillReceiveProps (props) {
     if (props.streams) {
-      let originStreams = []
-      if (props.streamClassHide === undefined) {
-        originStreams = props.streams.map(s => {
-          const responseOriginStream = Object.assign({}, s.stream, {
-            kafkaConnection: s.kafkaConnection,
-            kafkaName: s.kafkaName,
-            disableActions: s.disableActions,
-            projectName: s.projectName,
-            topicInfo: s.topicInfo
-          })
-          responseOriginStream.key = responseOriginStream.id
-          responseOriginStream.visible = false
-          return responseOriginStream
+      const originStreams = props.streams.map(s => {
+        const responseOriginStream = Object.assign({}, s.stream, {
+          disableActions: s.disableActions,
+          topicInfo: s.topicInfo,
+          instance: s.kafkaInfo.instance,
+          connUrl: s.kafkaInfo.connUrl,
+          projectName: s.projectName,
+          currentUdf: s.currentUdf,
+          usingUdf: s.usingUdf
         })
-      } else if (props.streamClassHide === 'hide') {
-        originStreams = props.streams.map(s => {
-          const responseOriginStream = Object.assign({}, s.stream, {
-            disableActions: s.disableActions,
-            topicInfo: s.topicInfo,
-            instance: s.kafkaInfo.instance,
-            connUrl: s.kafkaInfo.connUrl,
-            projectName: s.projectName,
-            currentUdf: s.currentUdf,
-            usingUdf: s.usingUdf
-          })
-          responseOriginStream.key = responseOriginStream.id
-          responseOriginStream.visible = false
-          return responseOriginStream
-        })
-      }
+        responseOriginStream.key = responseOriginStream.id
+        responseOriginStream.visible = false
+        return responseOriginStream
+      })
 
       this.setState({
         originStreams: originStreams.slice(),
@@ -1161,22 +1145,21 @@ export class Manager extends React.Component {
 
           streamDetailContent = (
             <div className="stream-detail">
-              <p><strong>   Project Id：</strong>{detailTemp.projectId}</p>
+              <p className={this.props.streamClassHide}><strong>   Project Id：</strong>{detailTemp.projectId}</p>
               <p><strong>   Topic Info：</strong>{topicFinal}</p>
               <p><strong>   Current Udf：</strong>{currentUdfFinal}</p>
               <p><strong>   Using Udf：</strong>{usingUdfTempFinal}</p>
-
               <p><strong>   Description：</strong>{detailTemp.desc}</p>
-              <p><strong>   Disable Actions：</strong>{showStreamdetails.disableActions}</p>
-
-              <p><strong>   Create Time：</strong>{detailTemp.createTime}</p>
-              <p><strong>   Create By：</strong>{detailTemp.createBy}</p>
-              <p><strong>   Update Time：</strong>{detailTemp.updateTime}</p>
-              <p><strong>   Update By：</strong>{detailTemp.updateBy}</p>
 
               <p><strong>   Launch Config：</strong>{detailTemp.launchConfig}</p>
               <p><strong>   spark Config：</strong>{detailTemp.sparkConfig}</p>
               <p><strong>   start Config：</strong>{detailTemp.startConfig}</p>
+
+              <p><strong>   Create Time：</strong>{detailTemp.createTime}</p>
+              <p><strong>   Update Time：</strong>{detailTemp.updateTime}</p>
+              <p><strong>   Create By：</strong>{detailTemp.createBy}</p>
+              <p><strong>   Update By：</strong>{detailTemp.updateBy}</p>
+              <p><strong>   Disable Actions：</strong>{showStreamdetails.disableActions}</p>
             </div>
           )
         }

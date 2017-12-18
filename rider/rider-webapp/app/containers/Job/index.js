@@ -311,7 +311,7 @@ export class Job extends React.Component {
   }
 
   render () {
-    const { className, jobClassHide, onShowAddJob, onShowEditJob } = this.props
+    const { className, onShowAddJob, onShowEditJob } = this.props
     const { refreshJobText, refreshJobLoading } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
@@ -360,7 +360,7 @@ export class Job extends React.Component {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      className: `${jobClassHide}`,
+      // className: `${jobClassHide}`,
       sorter: (a, b) => {
         if (typeof a.name === 'object') {
           return a.nameOrigin < b.nameOrigin ? -1 : 1
@@ -503,7 +503,7 @@ export class Job extends React.Component {
         } else if (record.status === 'starting') {
           jobStatusColor = 'green'
         } else if (record.status === 'waiting') {
-          jobStatusColor = '#f50'
+          jobStatusColor = '#22D67C'
         } else if (record.status === 'running') {
           jobStatusColor = 'green-inverse'
         } else if (record.status === 'stopping') {
@@ -671,7 +671,7 @@ export class Job extends React.Component {
               <Popover
                 placement="left"
                 content={<div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
-                  <p><strong>   Project Name：</strong>{record.projectName}</p>
+                  <p className={this.props.jobClassHide}><strong>   Project Name：</strong>{record.projectName}</p>
                   <p><strong>   Event Ts Start：</strong>{record.eventTsStart}</p>
                   <p><strong>   Event Ts End：</strong>{record.eventTsEnd}</p>
                   <p><strong>   Log Path：</strong>{record.logPath}</p>

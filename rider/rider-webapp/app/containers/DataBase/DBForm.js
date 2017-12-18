@@ -29,16 +29,16 @@ import InputNumber from 'antd/lib/input-number'
 const FormItem = Form.Item
 import Select from 'antd/lib/select'
 const Option = Select.Option
-import Radio from 'antd/lib/radio'
-const RadioGroup = Radio.Group
-const RadioButton = Radio.Button
+// import Radio from 'antd/lib/radio'
+// const RadioGroup = Radio.Group
+// const RadioButton = Radio.Button
 
 export class DBForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
       databaseDSValue: '',
-      permissionValue: '',
+      // permissionValue: '',
       currentDatabaseUrlValue: []
     }
   }
@@ -51,15 +51,15 @@ export class DBForm extends React.Component {
     }
   }
 
-  onChangeDBROOrRW = (e) => {
-    // const { databaseDSValue } = this.state
-    this.setState({
-      permissionValue: e.target.value
-    })
-    // this.props.form.setFieldsValue({
-    //   nsDatabase: databaseDSValue === 'hbase' ? 'default' : ''
-    // })
-  }
+  // onChangeDBROOrRW = (e) => {
+  //   // const { databaseDSValue } = this.state
+  //   this.setState({
+  //     permissionValue: e.target.value
+  //   })
+  //   // this.props.form.setFieldsValue({
+  //   //   nsDatabase: databaseDSValue === 'hbase' ? 'default' : ''
+  //   // })
+  // }
 
   // 显示 instance 下拉框的内容
   onDatabaseDataSystemItemSelect = (value) => {
@@ -118,9 +118,9 @@ export class DBForm extends React.Component {
       { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} }
     ]
 
-    // kafka 独立样式hide/show
+    // kafka 独立样式 hide /show
     const databaseDSKafkaShowClass = databaseDSValue === 'kafka' ? '' : 'hide'
-    const databaseDSKafkaHideClass = databaseDSValue === 'kafka' ? 'hide' : ''
+    // const databaseDSKafkaHideClass = databaseDSValue === 'kafka' ? 'hide' : ''
 
     // kafka 实际隐藏(必填hide/show)
     const kafkaTypeHiddens = [
@@ -246,7 +246,7 @@ export class DBForm extends React.Component {
             </FormItem>
           </Col>
 
-          <Col span={24} className={databaseDSKafkaHideClass}>
+          {/* <Col span={24} className={databaseDSKafkaHideClass}>
             <FormItem label="Permission" {...itemStyle}>
               {getFieldDecorator('permission', {
                 rules: [{
@@ -261,7 +261,7 @@ export class DBForm extends React.Component {
                 </RadioGroup>
               )}
             </FormItem>
-          </Col>
+          </Col> */}
 
           <Col span={24}>
             <FormItem label={databaseDSLabel} {...itemStyle}>

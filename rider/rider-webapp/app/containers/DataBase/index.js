@@ -153,7 +153,7 @@ export class DataBase extends React.PureComponent {
           dataBaseDataSystem: result.nsSys,
           instance: result.nsInstance,
           connectionUrl: result.connUrl,
-          permission: result.permission,
+          // permission: result.permission,
           nsDatabase: result.nsDatabase,
           config: conFinal,
           description: result.desc,
@@ -264,7 +264,7 @@ export class DataBase extends React.PureComponent {
                 nsDatabase: values.nsDatabase,
                 desc: values.description === undefined ? '' : values.description,
                 nsInstanceId: Number(values.instance),
-                permission: values.permission,
+                // permission: values.permission,
                 user: values.userRequired,
                 pwd: values.passwordRequired,
                 partitions: 0,
@@ -307,7 +307,7 @@ export class DataBase extends React.PureComponent {
               nsDatabase: values.nsDatabase,
               desc: values.description === undefined ? '' : values.description,
               nsInstanceId: Number(values.instance),
-              permission: values.dataBaseDataSystem === 'kafka' ? 'ReadWrite' : values.permission,
+              // permission: values.dataBaseDataSystem === 'kafka' ? 'ReadWrite' : values.permission,
               user: valuesUser,
               pwd: valuesPwd,
               partitions: values.dataBaseDataSystem === 'kafka' ? Number(values.partition) : 0,
@@ -332,7 +332,7 @@ export class DataBase extends React.PureComponent {
               })
             } else {
               const editValues = {
-                permission: values.permission,
+                // permission: values.permission,
                 user: values.userRequired,
                 pwd: values.passwordRequired,
                 config: this.isJSON('oracle', values.config) === true ? values.config : this.onConfigValue(values.config),
@@ -363,7 +363,7 @@ export class DataBase extends React.PureComponent {
             }
 
             const editValues = {
-              permission: values.dataBaseDataSystem === 'kafka' ? 'ReadWrite' : values.permission,
+              // permission: values.dataBaseDataSystem === 'kafka' ? 'ReadWrite' : values.permission,
               user: editUser,
               pwd: editPwd,
               config: this.isJSON('others', values.config) === true ? values.config : this.onConfigValue(values.config),
@@ -444,7 +444,7 @@ export class DataBase extends React.PureComponent {
       this.dBForm.setFieldsValue({
         connectionUrl: '',
         instance: undefined,
-        permission: '',
+        // permission: '',
         // nsDatabase: value === 'hbase' ? 'default' : '',
         nsDatabase: '',
         user: '',
@@ -465,7 +465,7 @@ export class DataBase extends React.PureComponent {
     const formValues = this.dBForm.getFieldsValue()
     const requestValues = {
       nsInstanceId: Number(formValues.instance),
-      permission: formValues.permission,
+      // permission: formValues.permission,
       nsDatabaseName: value,
       dsType: formValues.dataBaseDataSystem
     }
@@ -625,24 +625,6 @@ export class DataBase extends React.PureComponent {
       onFilterDropdownVisibleChange: visible => this.setState({
         filterDropdownVisibleDatabase: visible
       }, () => this.searchInput.focus())
-    }, {
-      title: 'Permission',
-      dataIndex: 'permission',
-      key: 'permission',
-      sorter: (a, b) => {
-        if (typeof a.permission === 'object') {
-          return a.permissionOrigin < b.permissionOrigin ? -1 : 1
-        } else {
-          return a.permission < b.permission ? -1 : 1
-        }
-      },
-      sortOrder: sortedInfo.columnKey === 'permission' && sortedInfo.order,
-      filters: [
-        {text: 'ReadOnly', value: 'ReadOnly'},
-        {text: 'ReadWrite', value: 'ReadWrite'}
-      ],
-      filteredValue: filteredInfo.permission,
-      onFilter: (value, record) => record.permission.includes(value)
     }, {
       title: 'Connection URL',
       dataIndex: 'connUrl',
