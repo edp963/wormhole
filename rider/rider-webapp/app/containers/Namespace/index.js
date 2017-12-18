@@ -729,15 +729,6 @@ export class Namespace extends React.PureComponent {
     })
   }
 
-  initCancelUmsopSelf = (key) => {
-    const { umsTableDataSource } = this.state
-
-    const umsArr = umsSysFieldCanceled(umsTableDataSource, 'ums_op_')
-    this.setState({
-      umsTableDataSource: umsArr
-    })
-  }
-
   onSchemaModalOk = () => {
     if (document.getElementById('sep')) {
       message.error('Tuple 类型配置失败！', 3)
@@ -816,19 +807,24 @@ export class Namespace extends React.PureComponent {
                 } else {
                   const { umsTableDataSource } = this.state
 
-                  const tableDataString = JSON.stringify(umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+                  const umsArr = umsSysFieldCanceled(umsTableDataSource, 'ums_op_')
+                  this.setState({
+                    umsTableDataSource: umsArr
+                  }, () => {
+                    const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
 
-                  const requestValue = {
-                    umsType: 'ums_extension',
-                    jsonSample: this.cmSample.doc.getValue(),
-                    jsonParseArray: jsonSampleValue,
-                    umsSchemaTable: JSON.parse(tableDataString),
-                    umsSchema: genSchema(umsTableDataSource) // 生成 umsSchema json
-                  }
+                    const requestValue = {
+                      umsType: 'ums_extension',
+                      jsonSample: this.cmSample.doc.getValue(),
+                      jsonParseArray: jsonSampleValue,
+                      umsSchemaTable: JSON.parse(tableDataString),
+                      umsSchema: genSchema(umsTableDataSource) // 生成 umsSchema json
+                    }
 
-                  this.props.onSetSchema(nsIdValue, requestValue, () => {
-                    message.success('Schema 配置成功！', 3)
-                    this.hideSchemaModal()
+                    this.props.onSetSchema(nsIdValue, requestValue, () => {
+                      message.success('Schema 配置成功！', 3)
+                      this.hideSchemaModal()
+                    })
                   })
                 }
               }
@@ -1422,7 +1418,6 @@ export class Namespace extends React.PureComponent {
             initSelectUmsIdTs={this.initSelectUmsIdTs}
             initUmsopOther2Tuple={this.initUmsopOther2Tuple}
             initSelectUmsop={this.initSelectUmsop}
-            initCancelUmsopSelf={this.initCancelUmsopSelf}
             cancelSelectUmsId={this.cancelSelectUmsId}
             initCheckUmsOp={this.initCheckUmsOp}
             initCancelUmsOp={this.initCancelUmsOp}
@@ -1432,7 +1427,6 @@ export class Namespace extends React.PureComponent {
             umsTypeSeleted={this.state.umsTypeSeleted}
             repeatRenameArr={this.state.repeatRenameArr}
             selectAllState={this.state.selectAllState}
-            umsopRecordValue={this.state.umsopRecordValue}
             ref={(f) => { this.schemaTypeConfig = f }}
           />
         </Modal>

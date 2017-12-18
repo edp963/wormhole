@@ -56,7 +56,8 @@ export class SchemaTypeConfig extends React.Component {
       deleteValue: '',
 
       tupleSizeValue: -1,
-      umsopable: false
+      umsopable: false,
+      umsopKey: -1
     }
   }
 
@@ -209,22 +210,24 @@ export class SchemaTypeConfig extends React.Component {
   }
 
   onChangeUmsOp = (key) => (e) => {
-    const { currentUmsTableData } = this.state
-    const umsopSelect = currentUmsTableData.find(s => s.ums_op_ !== '')
-    if (umsopSelect) {
-      if (key === umsopSelect.key) {
-        // 自我取消
-        this.props.initCancelUmsopSelf(key)
-      } else {
-        this.props.initSelectUmsop(key)
-      }
-    } else {
-      this.props.initSelectUmsop(key)
-      if (this.state.currentKey !== key) {
-        this.setState({
-          umsopable: !this.state.umsopable
-        })
-      }
+    const { umsopKey } = this.state
+
+    this.props.initSelectUmsop(key)
+
+    if (umsopKey === -1) { // ums_op_不为空，回显后取消自己
+      this.setState({
+        umsopKey: key,
+        umsopable: false
+      })
+    } else if (umsopKey === key) { // 选择自己和取消自己
+      this.setState({
+        umsopable: !this.state.umsopable
+      })
+    } else if (umsopKey !== key) { // 选择其他
+      this.setState({
+        umsopKey: key,
+        umsopable: true
+      })
     }
   }
 
@@ -559,20 +562,20 @@ export class SchemaTypeConfig extends React.Component {
           </span>
         )
 
-        const { umsopRecordValue } = this.props
+        const { umsopKey, umsopable } = this.state
 
         let umsopHtml = ''
         if (record.fieldType === 'int' || record.fieldType === 'long' || record.fieldType === 'string' ||
           record.fieldType === 'intarray' || record.fieldType === 'longarray' || record.fieldType === 'stringarray') {
-          if (umsopRecordValue < 0) {
+          if (umsopKey < 0) {
             if (record.ums_op_ !== '') {
               umsopHtml = selectedHtml
             } else {
               umsopHtml = noSelectHtml
             }
           } else {
-            if (record.key === umsopRecordValue) {
-              if (this.state.umsopable) {
+            if (record.key === umsopKey) {
+              if (umsopable) {
                 umsopHtml = selectedHtml
               } else {
                 umsopHtml = noSelectHtml
@@ -656,8 +659,6 @@ SchemaTypeConfig.propTypes = {
   selectAllState: React.PropTypes.string,
   initRowSelectedAll: React.PropTypes.func,
   initSelectUmsop: React.PropTypes.func,
-  initCancelUmsopSelf: React.PropTypes.func,
-  umsopRecordValue: React.PropTypes.number,
   repeatRenameArr: React.PropTypes.array
 }
 
