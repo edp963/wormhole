@@ -94,8 +94,8 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
       }
     }
     val _ids = ListBuffer.empty[String]
-    if (sinkSpecificConfig.`mutation_type.get` == SourceMutationType.I_U_D.toString) {
-      sinkConfig.tableKeyList.foreach(keyname => {
+    if (sinkSpecificConfig._id.nonEmpty&&sinkSpecificConfig._id.get.nonEmpty){//.`mutation_type.get` == SourceMutationType.I_U_D.toString) {
+      sinkSpecificConfig._id.get.toLowerCase.split(",").foreach(keyname => {
         val (index, _, _) = schemaMap(keyname)
         _ids += row(index)
       })

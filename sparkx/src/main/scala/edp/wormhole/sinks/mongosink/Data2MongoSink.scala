@@ -59,15 +59,16 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
     try {
       val database: MongoDatabase = mongoClient.getDatabase(db)
       val collection: MongoCollection[Document] = database.getCollection(table)
-      val keys = sinkProcessConfig.tableKeyList
+//      val keys = sinkProcessConfig.tableKeyList
 
       val sinkSpecificConfig = json2caseClass[MongoConfig](sinkProcessConfig.specialConfig.get)
-      if (sinkSpecificConfig.`mutation_type.get` == SourceMutationType.I_U_D.toString) {
+      //if (sinkSpecificConfig.`mutation_type.get` == SourceMutationType.I_U_D.toString) {
+      if (sinkSpecificConfig._id.nonEmpty&&sinkSpecificConfig._id.get.nonEmpty){
         tupleList.foreach(payload => {
           val builder = getDocument(schemaMap, payload)
           try {
             val keyFilter = {
-              val f = keys.map(keyname=>{
+              val f = sinkSpecificConfig._id.get.split(",").map(keyname=>{
                 payload(schemaMap(keyname)._1)
               }).mkString("_")
               builder += "_id" -> BsonString(f)
