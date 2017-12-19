@@ -124,7 +124,7 @@ export class NamespaceForm extends React.Component {
     }
 
     const instanceOptions = currentNamespaceUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.nsInstance}</Option>))
-    const databaseOptions = databaseSelectValue.map((s) => (<Option key={s.id} value={`${s.id}`}>{`${s.nsDatabase} (${s.permission})`}</Option>))
+    const databaseOptions = databaseSelectValue.map((s) => (<Option key={s.id} value={`${s.id}`}>{s.nsDatabase}</Option>))
 
     let namespaceDBLabel = ''
     let namespaceDBPlace = ''
