@@ -158,13 +158,13 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
   }
 
   def getMongoClient(db: String, connectionConfig: ConnectionConfig): MongoClient = {
-    val kvConfig: Seq[KVConfig] = connectionConfig.parameters.get
+//    val kvConfig: Seq[KVConfig] = connectionConfig.parameters.get
     val (user, password) = if (connectionConfig.username.nonEmpty && connectionConfig.username.get.nonEmpty) {
       (connectionConfig.username.get, connectionConfig.password.get)
     } else (null, null)
 
-    val kvList = if (kvConfig.nonEmpty) {
-      kvConfig.map(kv =>
+    val kvList = if (connectionConfig.parameters.nonEmpty&&connectionConfig.parameters.get.nonEmpty) {
+      connectionConfig.parameters.get.map(kv =>
         kv.key + "=" + kv.value)
     } else Nil
     val connectionUrl = "mongodb://" + connectionConfig.connectionUrl + "/?" + kvList.mkString("&")
