@@ -569,8 +569,8 @@ export class User extends React.PureComponent {
             <Icon type="bars" /> User 列表
           </h3>
           <div className="ri-common-block-tools">
-            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshUserLoading} onClick={this.refreshUser}>{refreshUserText}</Button>
             <Button icon="plus" type="primary" onClick={this.showAdd} className={userClassHide}>新建</Button>
+            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshUserLoading} onClick={this.refreshUser}>{refreshUserText}</Button>
           </div>
           <Table
             dataSource={this.state.currentUsers}

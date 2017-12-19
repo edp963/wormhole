@@ -31,6 +31,7 @@ import {
   LOAD_SOURCETOSINK_EXIST,
   ADD_FLOWS,
   OPERATE_USER_FLOW,
+  LOAD_FLOW_DETAIL,
 
   LOAD_SOURCELOG_DETAIL,
   LOAD_SOURCESINK_DETAIL,
@@ -56,6 +57,7 @@ import {
   flowAdded,
   userFlowOperated,
   operateFlowError,
+  flowDetailLoad,
 
   flowsLoadingError,
   sourceLogLoadedDetail,
@@ -458,6 +460,25 @@ export function* editFlowWatcher () {
   yield fork(takeEvery, EDIT_FLOWS, editFlow)
 }
 
+export function* queryFlow ({ payload }) {
+  const apiFinal = payload.value.roleType === 'admin'
+    ? `${api.projectList}/${payload.value.projectId}/flows/${payload.value.flowId}`
+    : `${api.projectUserList}/${payload.value.projectId}/streams/${payload.value.streamId}/flows/${payload.value.flowId}`
+  try {
+    const result = yield call(request, {
+      method: 'get',
+      url: apiFinal
+    })
+    yield put(flowDetailLoad(result.payload, payload.resolve))
+  } catch (err) {
+    notifySagasError(err, 'queryFlow')
+  }
+}
+
+export function* queryFlowWatcher () {
+  yield fork(takeEvery, LOAD_FLOW_DETAIL, queryFlow)
+}
+
 export default [
   getAdminAllFlowsWatcher,
   getUserAllFlowsWatcher,
@@ -470,6 +491,7 @@ export default [
   addFlowWatcher,
   operateUserFlowWatcher,
   queryFormWatcher,
+  queryFlowWatcher,
 
   getSourceLogDetailWatcher,
   getSourceSinkDetailWatcher,

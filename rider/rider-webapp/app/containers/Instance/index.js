@@ -46,6 +46,7 @@ export class Instance extends React.PureComponent {
       instanceFormType: 'add',
       refreshInstanceLoading: false,
       refreshInstanceText: 'Refresh',
+      showInstanceDetails: {},
 
       currentInstances: [],
       originInstances: [],
@@ -250,11 +251,8 @@ export class Instance extends React.PureComponent {
     if (result.indexOf('exists') > 0) {
       errMsg = [new Error(`该 Connection URL 已存在，确定${instanceFormType === 'add' ? '新建' : '修改'}吗？`)]
     } else {
-      // errMsg = this.state.InstanceSourceDsVal === 'es'
-      //   ? '必须是 "http(s)://ip:port"或"http(s)://hostname:port" 格式'
-      //   : '必须是 "ip:port"或"hostname:port" 格式, 多条时用逗号隔开'
       if (InstanceSourceDsVal === 'es') {
-        errMsg = [new Error('http(s)://ip:port 格式')]
+        errMsg = [new Error('作为 sink 端时，请填写 http 端口地址，如 http://localhost:9200；作为 lookup 系统时，请填写 tcp 端口地址，如 localhost:9300')]
       } else if (InstanceSourceDsVal === 'oracle' || InstanceSourceDsVal === 'mysql' || InstanceSourceDsVal === 'postgresql' || InstanceSourceDsVal === 'mongodb') {
         errMsg = [new Error('ip:port 格式')]
       } else if (InstanceSourceDsVal === 'hbase') {
@@ -264,7 +262,7 @@ export class Instance extends React.PureComponent {
       } else if (InstanceSourceDsVal === 'kafka') {
         errMsg = [new Error('borker list, localhost:9092, 多条用逗号隔开')]
       } else if (InstanceSourceDsVal === 'cassandra') {
-        errMsg = [new Error('域名或ip, 多条用逗号隔开')]
+        errMsg = [new Error('ip:port, 多条用逗号隔开')]
       } else if (InstanceSourceDsVal === 'redis') {
         errMsg = [new Error('localhost:6379, 多条用逗号隔开')]
       }
@@ -344,8 +342,22 @@ export class Instance extends React.PureComponent {
     })
   }
 
+  handleVisibleChangeInstance = (record) => (visible) => {
+    if (visible) {
+      this.setState({
+        visible
+      }, () => {
+        this.props.onLoadSingleInstance(record.id, (result) => {
+          this.setState({
+            showInstanceDetails: result
+          })
+        })
+      })
+    }
+  }
+
   render () {
-    const { refreshInstanceLoading, refreshInstanceText } = this.state
+    const { refreshInstanceLoading, refreshInstanceText, showInstanceDetails } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -508,9 +520,10 @@ export class Instance extends React.PureComponent {
             <Tooltip title="查看详情">
               <Popover
                 placement="left"
-                content={<p><strong>Description：</strong>{record.desc}</p>}
+                content={<p><strong>Description：</strong>{showInstanceDetails.desc}</p>}
                 title={<h3>详情</h3>}
-                trigger="click">
+                trigger="click"
+                onVisibleChange={this.handleVisibleChangeInstance(record)}>
                 <Button icon="file-text" shape="circle" type="ghost"></Button>
               </Popover>
             </Tooltip>
@@ -550,8 +563,8 @@ export class Instance extends React.PureComponent {
             <Icon type="bars" /> Instance 列表
           </h3>
           <div className="ri-common-block-tools">
-            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshInstanceLoading} onClick={this.refreshInstance}>{refreshInstanceText}</Button>
             <Button icon="plus" type="primary" onClick={this.showAddInstance}>新建</Button>
+            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshInstanceLoading} onClick={this.refreshInstance}>{refreshInstanceText}</Button>
           </div>
           <Table
             dataSource={currentInstances}

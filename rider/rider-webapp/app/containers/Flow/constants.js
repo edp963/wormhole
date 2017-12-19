@@ -40,6 +40,8 @@ export const ADD_FLOWS_SUCCESS = 'rider/Flow/ADD_FLOWS_SUCCESS'
 export const OPERATE_USER_FLOW = 'rider/Flow/OPERATE_USER_FLOW'
 export const OPERATE_USER_FLOW_SUCCESS = 'rider/Flow/OPERATE_USER_FLOW_SUCCESS'
 export const OPERATE_FLOW_ERROR = 'rider/Flow/OPERATE_FLOW_ERROR'
+export const LOAD_FLOW_DETAIL = 'rider/Flow/LOAD_FLOW_DETAIL'
+export const LOAD_FLOW_DETAIL_SUCCESS = 'rider/Flow/LOAD_FLOW_DETAIL_SUCCESS'
 export const CHUCKAWAY_FLOW = 'rider/Flow/CHUCKAWAY_FLOW'
 
 export const LOAD_FLOWS_ERROR = 'rider/Flow/LOAD_FLOWS_ERROR'
