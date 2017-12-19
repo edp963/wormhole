@@ -258,8 +258,8 @@ export class Namespace extends React.PureComponent {
           this.namespaceForm.setFieldsValue({
             dataBaseDataSystem: result.nsSys,
             nsDatabase: [
-              result.nsDatabase,
-              result.permission
+              result.nsDatabase
+              // result.permission
             ],
             instance: result.nsInstance,
             nsSingleTableName: result.nsTable,
@@ -276,7 +276,7 @@ export class Namespace extends React.PureComponent {
               nsVersion: result.nsVersion,
               nsDbpar: result.nsDbpar,
               nsTablepar: result.nsTablepar,
-              permission: result.permission,
+              // permission: result.permission,
               nsDatabaseId: result.nsDatabaseId,
               nsInstanceId: result.nsInstanceId,
               active: result.active,
@@ -1143,24 +1143,6 @@ export class Namespace extends React.PureComponent {
         onFilterDropdownVisibleChange: visible => this.setState({
           filterDropdownVisibleNsKey: visible
         }, () => this.searchInput.focus())
-      }, {
-        title: 'Permission',
-        dataIndex: 'permission',
-        key: 'permission',
-        sorter: (a, b) => {
-          if (typeof a.permission === 'object') {
-            return a.permissionOrigin < b.permissionOrigin ? -1 : 1
-          } else {
-            return a.permission < b.permission ? -1 : 1
-          }
-        },
-        sortOrder: sortedInfo.columnKey === 'permission' && sortedInfo.order,
-        filters: [
-          {text: 'ReadOnly', value: 'ReadOnly'},
-          {text: 'ReadWrite', value: 'ReadWrite'}
-        ],
-        filteredValue: filteredInfo.permission,
-        onFilter: (value, record) => record.permission.includes(value)
       }, {
         title: 'Topic',
         dataIndex: 'topic',
