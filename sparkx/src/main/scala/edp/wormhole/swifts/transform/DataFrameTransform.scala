@@ -166,9 +166,15 @@ object DataFrameTransform extends EdpLogging {
   def getLeftJoinResult(originalData: ListBuffer[Row], dataMapFromDb: mutable.HashMap[String, ListBuffer[Array[String]]], sourceTableFields: Array[String], dbOutPutSchemaMap: Map[String, (String, Int)], resultSchema: StructType): Iterator[Row] = {
     val resultData = ListBuffer.empty[Row]
     originalData.foreach(iter => {
+      val sch: Array[StructField] = iter.schema.fields
       val originalJoinFields = sourceTableFields.map(joinFields => {
+        val dataType = sch.filter(t => t.name == joinFields).head.dataType.toString
         val field = iter.get(iter.fieldIndex(joinFields))//.toString
-        if (field != null) field.toString else "N/A" // source flow is empty in some fields
+        if (field != null) {
+          if (dataType != "StringType") {
+          field.toString.split("\\.")(0)
+        } else field.toString
+        } else "N/A" // source flow is empty in some fields
       }).mkString("_")
       if (dataMapFromDb == null || !dataMapFromDb.contains(originalJoinFields)) {
         val originalArray: Array[Any] = iter.schema.fieldNames.map(name => iter.get(iter.fieldIndex(name)))
