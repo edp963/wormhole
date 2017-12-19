@@ -22,7 +22,7 @@
 package edp.wormhole.swifts.parse
 
 object DbType {
-  def convert(dataTytpe: String): String = dataTytpe match {
+  def convert(dataTytpe: String): String = dataTytpe.toUpperCase match {
       //mysql type
     case "TIMESTAMP" => "datetime"
     case "DATE" => "date"
@@ -47,6 +47,8 @@ object DbType {
     case "RAW" => "binary"
     case "NUMBER" => "decimal"
     case "LONG RAW" => "binary"
+      //cassandra
+
 
 //    case "oracle.sql.TIMESTAMP" => "datetime"
 //    case "java.math.BigDecimal" => "decimal"

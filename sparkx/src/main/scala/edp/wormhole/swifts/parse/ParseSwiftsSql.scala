@@ -477,11 +477,12 @@ object ParseSwiftsSql extends EdpLogging {
     val joinFields = joinFieldsStr.trim.split(",").map(_.trim)
 
     val lookupNamespaceContentArray: Array[String] = joinNamespace.split("\\.")
-    val sql = if(joinNamespace.startsWith(UmsDataSystem.CASSANDRA.toString)){
-      ParseCassandraSql.getCassandraSql(sqlStr, lookupNamespaceContentArray(2))
-    }else{
+    val sql =
+//      if(joinNamespace.startsWith(UmsDataSystem.CASSANDRA.toString)){
+//      ParseCassandraSql.getCassandraSql(sqlStr, lookupNamespaceContentArray(2))
+//    }else{
       sqlStr.substring(0, joinLeftPosition) + " " + SwiftsConstants.REPLACE_STRING_INSQL + " " + sqlStr.substring(valueRightPosition + 1)
-    }
+
 //    val lookupNamespacesArr = joinNamespace.split(",").map(_.trim)
 //    val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(lookupNamespacesArr(0))
 //    val fieldsStr = getSchema(sql, connectionConfig)
