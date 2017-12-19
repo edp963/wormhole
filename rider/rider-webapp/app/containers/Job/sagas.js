@@ -34,7 +34,8 @@ import {
   LOAD_JOB_SOURCETOSINK_EXIST,
   ADD_JOB,
   QUERY_JOB,
-  EDIT_JOB
+  EDIT_JOB,
+  LOAD_JOB_DETAIL
 } from './constants'
 
 import {
@@ -55,7 +56,8 @@ import {
   jobSourceToSinkExistErrorLoaded,
   jobAdded,
   jobQueryed,
-  jobEdited
+  jobEdited,
+  jobDetailLoaded
 } from './action'
 
 import request from '../../utils/request'
@@ -285,6 +287,19 @@ export function* editJobWatcher () {
   yield fork(takeEvery, EDIT_JOB, editJob)
 }
 
+export function* queryJobDetail ({ payload }) {
+  try {
+    const result = yield call(request, `${api.job}/${payload.jobId}`)
+    yield put(jobDetailLoaded(result.payload, payload.resolve))
+  } catch (err) {
+    notifySagasError(err, 'queryJobDetail')
+  }
+}
+
+export function* queryJobDetailWatcher () {
+  yield fork(takeEvery, LOAD_JOB_DETAIL, queryJobDetail)
+}
+
 export default [
   getAdminAllJobsWatcher,
   getUserAllJobsWatcher,
@@ -298,5 +313,6 @@ export default [
   getJobSourceToSinkWatcher,
   addJobWatcher,
   queryJobWatcher,
-  editJobWatcher
+  editJobWatcher,
+  queryJobDetailWatcher
 ]

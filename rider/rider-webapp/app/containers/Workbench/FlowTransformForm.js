@@ -114,20 +114,21 @@ export class FlowTransformForm extends React.Component {
 
     const sinkDataSystemData = dsHideOrNot
       ? [
-        { value: 'oracle', icon: 'icon-amy-db-oracle' },
         { value: 'mysql', icon: 'icon-mysql' },
-        { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
+        { value: 'oracle', icon: 'icon-amy-db-oracle' },
+        { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
+        { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
         { value: 'phoenix', text: 'Phoenix' },
-        { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} }
+        { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} }
       ]
       : [
-        { value: 'oracle', icon: 'icon-amy-db-oracle' },
         { value: 'mysql', icon: 'icon-mysql' },
-        { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
-        { value: 'hbase', icon: 'icon-hbase1' },
-        { value: 'phoenix', text: 'Phoenix' },
-        // { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
+        { value: 'oracle', icon: 'icon-amy-db-oracle' },
         { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
+        { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
+        { value: 'phoenix', text: 'Phoenix' },
+        { value: 'hbase', icon: 'icon-hbase1' },
+        { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
         { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} }
       ]
 
@@ -138,7 +139,8 @@ export class FlowTransformForm extends React.Component {
           <Popover
             placement="top"
             content={<div style={{ width: '400px', height: '90px' }}>
-              <p>若 where 条件含有 source 数据中某字段值, table 为 source namespace, for example: source namespace 为kafka.test.test.test.*.*.*, 含有字段 id,name, look up时选择source namespace 中的 id 和 name, SQL 语句为 select * from look_up_table where (id,name) in (kafka.test.test.test.*.*.*.id, kafka.test.test.test.*.*.*.name);</p>
+              <p>若 where 条件含有 source 数据中某字段值, table 为 source namespace, for example: source namespace 为 kafka.test.test.test.*.*.*,</p>
+              <p>含有字段 id, name, look up 时选择 source namespace 中的 id 和 name, SQL 语句为: select * from look_up_table where (id,name) in (kafka.test.test.test.*.*.*.id, kafka.test.test.test.*.*.*.name);</p>
             </div>}
             title={<h3>帮助</h3>}
             trigger="click">
@@ -155,7 +157,8 @@ export class FlowTransformForm extends React.Component {
           <Popover
             placement="top"
             content={<div style={{ width: '400px', height: '90px' }}>
-              <p>sql 语句中的 table 为 source namespace 中第四层，for example: source namespace 为kafka.test.test1.test2.*.*.*, sql 语句为 select * from test2;</p>
+              <p>sql 语句中的 table 为 source namespace 中第四层, </p>
+              <p>for example: source namespace 为 kafka.test.test1.test2.*.*.*, sql 语句为 select * from test2;</p>
             </div>}
             title={<h3>帮助</h3>}
             trigger="click">

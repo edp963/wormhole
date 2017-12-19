@@ -46,7 +46,7 @@ export class Udf extends React.PureComponent {
       formVisible: false,
       formType: 'add',
       refreshUdfLoading: false,
-      refreshUdfText: '',
+      refreshUdfText: 'Refresh',
 
       currentudfs: [],
       originUdfs: [],
@@ -573,8 +573,8 @@ export class Udf extends React.PureComponent {
             <Icon type="bars" /> UDF 列表
           </h3>
           <div className="ri-common-block-tools">
-            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshUdfLoading} onClick={this.refreshUdf}>{refreshUdfText}</Button>
             <Button icon="plus" type="primary" onClick={this.showAddUdf} className={udfClassHide}>新建</Button>
+            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshUdfLoading} onClick={this.refreshUdf}>{refreshUdfText}</Button>
           </div>
           <Table
             dataSource={this.state.currentudfs}
