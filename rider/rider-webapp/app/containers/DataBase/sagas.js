@@ -135,11 +135,10 @@ export function* getDatabaseInstanceWatcher () {
 }
 
 export function* getName ({ payload }) {
-  payload.value.permission = payload.value.dsType === 'kafka' ? 'ReadWrite' : payload.value.permission
   try {
     const result = yield call(request, {
       method: 'get',
-      url: `${api.database}?nsInstanceId=${payload.value.nsInstanceId}&nsDatabaseName=${payload.value.nsDatabaseName}&permission=${payload.value.permission}`
+      url: `${api.database}?nsInstanceId=${payload.value.nsInstanceId}&nsDatabaseName=${payload.value.nsDatabaseName}`
     })
     if (result.code === 200) {
       yield put(nameExistLoaded(result.msg, payload.resolve))

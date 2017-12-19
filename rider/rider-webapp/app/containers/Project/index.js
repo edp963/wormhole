@@ -457,7 +457,7 @@ export class Project extends React.Component {
               />
             </div>
             <div className="ant-col-1"></div>
-            <div className="ant-col-11 pro-table-class">
+            <div className="ant-col-11 pro-table-class project-udf-table">
               <ProjectUdfTable
                 dataUdf={projectUdfTableDataSource}
                 ref={(f) => { this.projectUdfTable = f }}
