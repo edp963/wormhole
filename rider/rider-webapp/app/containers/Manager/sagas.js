@@ -109,7 +109,6 @@ export function* getStreamDetail ({ payload }) {
     const result = yield call(request, {
       method: 'get',
       url: `${apiFinal}/${payload.projectId}/streams/${payload.streamId}`
-      // url: 'http://localhost:3222/latestOffset'
     })
     yield put(streamDetailLoaded(result.payload, payload.resolve))
   } catch (err) {

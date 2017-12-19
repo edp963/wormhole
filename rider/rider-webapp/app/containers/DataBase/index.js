@@ -46,6 +46,7 @@ export class DataBase extends React.PureComponent {
       formType: 'add',
       refreshDbLoading: false,
       refreshDbText: 'Refresh',
+      showDBDetails: {},
 
       currentDatabases: [],
       originDatabases: [],
@@ -168,43 +169,6 @@ export class DataBase extends React.PureComponent {
 
   // Modal 完全关闭后的回调
   resetModal = () => this.dBForm.resetFields()
-
-  /**
-   *  JSON 格式校验
-   *  如果JSON.parse能转换成功；并且字符串中包含 { 时，那么该字符串就是JSON格式的字符串。
-   */
-  isJSON (type, str) {
-    if (typeof str === 'string') {
-      if (type === 'oracle') {
-        try {
-          JSON.parse(str)
-          if (str.indexOf('{') > -1) {
-            return true
-          } else {
-            return false
-          }
-        } catch (e) {
-          return false
-        }
-      } else {
-        if (str === '') {
-          return true
-        } else {
-          try {
-            JSON.parse(str)
-            if (str.indexOf('{') > -1) {
-              return true
-            } else {
-              return false
-            }
-          } catch (e) {
-            return false
-          }
-        }
-      }
-    }
-    return false
-  }
 
   /**
    * Config 格式校验
@@ -335,7 +299,7 @@ export class DataBase extends React.PureComponent {
                 // permission: values.permission,
                 user: values.userRequired,
                 pwd: values.passwordRequired,
-                config: this.isJSON('oracle', values.config) === true ? values.config : this.onConfigValue(values.config),
+                config: this.onConfigValue(values.config),
                 desc: values.description,
                 nsDatabase: values.nsDatabase,
                 partitions: 0
@@ -366,7 +330,7 @@ export class DataBase extends React.PureComponent {
               // permission: values.dataBaseDataSystem === 'kafka' ? 'ReadWrite' : values.permission,
               user: editUser,
               pwd: editPwd,
-              config: this.isJSON('others', values.config) === true ? values.config : this.onConfigValue(values.config),
+              config: this.onConfigValue(values.config),
               desc: values.description,
               nsDatabase: values.nsDatabase,
               partitions: values.dataBaseDataSystem === 'kafka' ? values.partition : 0
@@ -535,8 +499,22 @@ export class DataBase extends React.PureComponent {
     })
   }
 
+  handleVisibleChangeDatabase = (record) => (visible) => {
+    if (visible) {
+      this.setState({
+        visible
+      }, () => {
+        this.props.onLoadSingleDatabase(record.id, (result) => {
+          this.setState({
+            showDBDetails: result
+          })
+        })
+      })
+    }
+  }
+
   render () {
-    const { refreshDbLoading, refreshDbText } = this.state
+    const { refreshDbLoading, refreshDbText, showDBDetails } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -726,8 +704,8 @@ export class DataBase extends React.PureComponent {
           ? ''
           : (
             <div>
-              <p><strong>User：</strong>{record.user}</p>
-              <p><strong>Password：</strong>{record.pwd}</p>
+              <p><strong>User：</strong>{showDBDetails.user}</p>
+              <p><strong>Password：</strong>{showDBDetails.pwd}</p>
             </div>
           )
 
@@ -737,14 +715,15 @@ export class DataBase extends React.PureComponent {
               <Popover
                 placement="left"
                 content={<div>
-                  <p><strong>Description：</strong>{record.desc}</p>
-                  <p><strong>Config：</strong>{record.config}</p>
-                  <p><strong>Partitions：</strong>{record.partitions}</p>
+                  <p><strong>Description：</strong>{showDBDetails.desc}</p>
+                  <p><strong>Config：</strong>{showDBDetails.config}</p>
+                  <p><strong>Partitions：</strong>{showDBDetails.partitions}</p>
                   {nsSysKafka}
                 </div>
                 }
                 title={<h3>详情</h3>}
-                trigger="click">
+                trigger="click"
+                onVisibleChange={this.handleVisibleChangeDatabase(record)}>
                 <Button icon="file-text" shape="circle" type="ghost"></Button>
               </Popover>
             </Tooltip>
@@ -781,8 +760,8 @@ export class DataBase extends React.PureComponent {
             <Icon type="bars" /> Datebase 列表
           </h3>
           <div className="ri-common-block-tools">
-            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshDbLoading} onClick={this.refreshDatabase}>{refreshDbText}</Button>
             <Button icon="plus" type="primary" onClick={this.showAddDB}>新建</Button>
+            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshDbLoading} onClick={this.refreshDatabase}>{refreshDbText}</Button>
           </div>
           <Table
             dataSource={this.state.currentDatabases}

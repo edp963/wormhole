@@ -44,6 +44,8 @@ import {
   QUERY_FLOW_SUCCESS,
   OPERATE_FLOW_ERROR,
   CHUCKAWAY_FLOW,
+  LOAD_FLOW_DETAIL,
+  LOAD_FLOW_DETAIL_SUCCESS,
 
   LOAD_FLOWS_ERROR,
   LOAD_SOURCELOG_DETAIL,
@@ -156,6 +158,11 @@ function flowReducer (state = initialState, { type, payload }) {
       }
     case OPERATE_FLOW_ERROR:
       payload.reject(payload.message)
+      return state
+    case LOAD_FLOW_DETAIL:
+      return state
+    case LOAD_FLOW_DETAIL_SUCCESS:
+      payload.resolve(payload.result)
       return state
     case CHUCKAWAY_FLOW:
       return state.set('flows', false)
