@@ -215,7 +215,7 @@ object AppUtils extends RiderLogger {
         riderLogger.info(s"user ${session.userId} project $projectId request sink namespace dataSys $sinkSys, instance $sinkInstance, instance $sinkInstance doesn't exist.")
         return Left(getHeader(404, s"the sink instance $sinkInstance doesn't exist now, please contact admin", null))
     }
-    val databaseSearchOpt = Await.result(modules.databaseDal.findByFilter(db => db.nsDatabase === sinkDatabase && db.permission === READWRITE.toString), minTimeOut).headOption
+    val databaseSearchOpt = Await.result(modules.databaseDal.findByFilter(db => db.nsDatabase === sinkDatabase), minTimeOut).headOption
     val database = databaseSearchOpt match {
       case Some(databaseSearch) =>
         riderLogger.info(s"user ${session.userId} project $projectId request sink namespace dataSys $sinkSys, instance $sinkInstance, database $sinkDatabase success.")
@@ -224,7 +224,7 @@ object AppUtils extends RiderLogger {
         riderLogger.info(s"user ${session.userId} project $projectId request sink namespace dataSys $sinkSys, instance $sinkInstance, database $sinkDatabase, database $sinkDatabase doesn't exist.")
         return Left(getHeader(404, s"the sink database $sinkDatabase, permission ReadWrite doesn't exist now, please contact admin", null))
     }
-    val nsInsert = Namespace(0, sinkSys, sinkInstance, sinkDatabase, sinkTable, "*", "*", "*", database.permission,
+    val nsInsert = Namespace(0, sinkSys, sinkInstance, sinkDatabase, sinkTable, "*", "*", "*",
       Some(sinkKeys), None, database.id, instance.id, active = true, currentSec, session.userId, currentSec, session.userId)
     val ns = Await.result(modules.namespaceDal.insert(nsInsert), minTimeOut)
     riderLogger.info(s"user ${session.userId} project $projectId insert namespace success.")
@@ -241,7 +241,7 @@ object AppUtils extends RiderLogger {
       else {
         modules.namespaceDal.updateKeys(sinkNs.id, sinkKeys)
         Namespace(sinkNs.id, sinkNs.nsSys, sinkNs.nsInstance, sinkNs.nsDatabase, sinkNs.nsTable, sinkNs.nsVersion, sinkNs.nsDbpar, sinkNs.nsTablepar,
-          sinkNs.permission, Some(sinkKeys), sinkNs.umsInfo, sinkNs.nsDatabaseId, sinkNs.nsInstanceId, active = true, sinkNs.createTime, sinkNs.createBy, currentSec, session.userId)
+           Some(sinkKeys), sinkNs.umsInfo, sinkNs.nsDatabaseId, sinkNs.nsInstanceId, active = true, sinkNs.createTime, sinkNs.createBy, currentSec, session.userId)
       }
     } else sinkNs
   }
