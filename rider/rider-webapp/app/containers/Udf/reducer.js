@@ -30,6 +30,8 @@ import {
   ADD_UDF,
   ADD_UDF_SUCCESS,
   ADD_UDF_ERROR,
+  LOAD_UDF_DETAIL,
+  LOAD_UDF_DETAIL_SUCCESS,
   EDIT_UDF,
   EDIT_UDF_SUCCESS,
   EDIT_UDF_ERROR,
@@ -76,6 +78,11 @@ export function udfReducer (state = initialState, { type, payload }) {
     case ADD_UDF_ERROR:
       payload.reject(payload.result)
       return state.set('modalLoading', false)
+    case LOAD_UDF_DETAIL:
+      return state
+    case LOAD_UDF_DETAIL_SUCCESS:
+      payload.resolve(payload.result)
+      return state
     case EDIT_UDF:
       return state
         .set('error', false)

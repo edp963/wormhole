@@ -159,10 +159,7 @@ export function* operateUserJobWatcher () {
 
 export function* loadJobNameValue ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectUserList}/${payload.projectId}/jobs?jobName=${payload.value}`
-    })
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/jobs?jobName=${payload.value}`)
     if (result.code && result.code === 409) {
       yield put(jobNameLoadedError(result.msg, payload.reject))
     } else if (result.header.code && result.header.code === 200) {
@@ -179,10 +176,7 @@ export function* loadJobNameValueWatcher () {
 
 export function* loadJobSourceNsValue ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`
-    })
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`)
     if (result.code && result.code !== 200) {
       yield put(jobSourceNsLoadedError(result.msg, payload.reject))
     } else if (result.header.code && result.header.code === 200) {
@@ -199,10 +193,7 @@ export function* loadJobSourceNsValueWatcher () {
 
 export function* loadJobSinkNsValue ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`
-    })
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`)
     if (result.code && result.code !== 200) {
       yield put(jobSinkNsLoadedError(result.msg, payload.reject))
     } else if (result.header.code && result.header.code === 200) {
@@ -219,10 +210,7 @@ export function* loadJobSinkNsValueWatcher () {
 
 export function* getJobSourceToSink ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectUserList}/${payload.projectId}/jobs?sourceNs=${payload.sourceNs}&sinkNs=${payload.sinkNs}`
-    })
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/jobs?sourceNs=${payload.sourceNs}&sinkNs=${payload.sinkNs}`)
     if (result.code === 200) {
       yield put(jobSourceToSinkExistLoaded(result.msg, payload.resolve))
     } else {
@@ -256,10 +244,7 @@ export function* addJobWatcher () {
 
 export function* queryJob ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectUserList}/${payload.values.projectId}/jobs/${payload.values.jobId}`
-    })
+    const result = yield call(request, `${api.projectUserList}/${payload.values.projectId}/jobs/${payload.values.jobId}`)
     yield put(jobQueryed(result.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'queryJob')
