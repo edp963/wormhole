@@ -127,7 +127,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
           val topicExist = topicSearch.filter(_.nsDatabase == topic)
           if (topicExist.nonEmpty) topicIdMap.put(topic, topicExist.head.id)
           else
-            databaseSeq += NsDatabase(0, topic, Some("dbus topic"), kafkaIdMap(map._1), READONLY.toString, Some(""), Some(""), Some(1), Some(""), active = true, currentSec, session.userId, currentSec, session.userId)
+            databaseSeq += NsDatabase(0, topic, Some("dbus topic"), kafkaIdMap(map._1), Some(""), Some(""), Some(1), Some(""), active = true, currentSec, session.userId, currentSec, session.userId)
         })
       })
 
@@ -160,7 +160,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
     dbusSeq.map(dbus => {
       val nsSplit: Array[String] = dbus.namespace.split("\\.")
       Namespace(0, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
-        READONLY.toString, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
+         None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
     })
   }
 
@@ -178,7 +178,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
   def getNamespaceByNs(sys: String, database: String, table: String): Option[Namespace] =
     try {
-      val namespaces = Await.result(super.findByFilter(ns => ns.nsSys === sys.toLowerCase && ns.nsDatabase === database && ns.nsTable === table && ns.permission === READONLY.toString), minTimeOut)
+      val namespaces = Await.result(super.findByFilter(ns => ns.nsSys === sys.toLowerCase && ns.nsDatabase === database && ns.nsTable === table), minTimeOut)
       if (namespaces.isEmpty) None
       else if (namespaces.size == 1) namespaces.headOption
       else {
@@ -204,7 +204,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
   def getSinkNamespaceByNs(sys: String, instance: String, database: String, table: String): Option[Namespace] =
     try {
-      Await.result(super.findByFilter(ns => ns.nsSys === sys.toLowerCase && ns.nsInstance === instance && ns.nsDatabase === database && ns.nsTable === table && ns.permission === READWRITE.toString), minTimeOut).headOption
+      Await.result(super.findByFilter(ns => ns.nsSys === sys.toLowerCase && ns.nsInstance === instance && ns.nsDatabase === database && ns.nsTable === table), minTimeOut).headOption
     } catch {
       case ex: Exception =>
         riderLogger.error(s"get namespace by dataSys $sys, database $database, table $table failed", ex)

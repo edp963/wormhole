@@ -66,6 +66,29 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
 
   }
 
+  def getById(route: String): Route = path(route / LongNumber) {
+    id =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              udfDal.getUdfProjectById(id) match {
+                case Some(udfProject) =>
+                  riderLogger.info(s"user ${session.userId} select udf $id success.")
+                  complete(OK, ResponseJson[UdfProject](getHeader(200, session), udfProject))
+                case None =>
+                  riderLogger.info(s"user ${session.userId} select udf $id success, but it doesn't exist.")
+                  complete(OK, ResponseJson[String](getHeader(200, session), ""))
+              }
+            }
+        }
+      }
+  }
+
   def postRoute(route: String): Route = path(route) {
     post {
       entity(as[SimpleUdf]) {
@@ -104,9 +127,7 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
     }
   }
 
-  override def deleteRoute(route: String): Route
-
-  = path(route / LongNumber) {
+  override def deleteRoute(route: String): Route = path(route / LongNumber) {
     id =>
       delete {
         authenticateOAuth2Async("rider", AuthorizationProvider.authorize) {

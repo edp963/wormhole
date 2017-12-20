@@ -51,8 +51,7 @@ object DbModule extends ConfigurationModuleImpl with RiderLogger {
         try {
           session.withPreparedStatement(sql)(_.execute)
         } catch {
-          case e: SQLException =>
-            riderLogger.info("some sql execute failed", e.getMessage)
+          case _: SQLException =>
         }
       }
     riderLogger.info("Initial rider database success")
