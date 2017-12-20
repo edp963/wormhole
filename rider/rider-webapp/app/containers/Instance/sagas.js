@@ -46,10 +46,7 @@ import api from '../../utils/api'
 
 export function* getInstances ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: api.instance
-    })
+    const result = yield call(request, api.instance)
     yield put(instancesLoaded(result.payload, payload.resolve))
   } catch (err) {
     yield put(getError(err))
@@ -84,10 +81,7 @@ export function* addInstanceWatcher () {
 
 export function* getSingleInstance ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.instance}/${payload.instanceId}`
-    })
+    const result = yield call(request, `${api.instance}/${payload.instanceId}`)
     yield put(singleInstanceLoaded(result.payload, payload.resolve))
   } catch (err) {
     yield put(getError(err))
@@ -117,10 +111,7 @@ export function* editInstanceWatcher () {
 
 export function* getInstanceInputValue ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.instance}?type=${payload.value.type}&conn_url=${payload.value.conn_url}`
-    })
+    const result = yield call(request, `${api.instance}?type=${payload.value.type}&conn_url=${payload.value.conn_url}`)
 
     if (result.code && (result.code === 409 || result.code === 400)) {
       yield put(instanceInputValueErrorLoaded(result.msg, payload.reject))
@@ -138,10 +129,7 @@ export function* getInstanceInputValueWatcher () {
 
 export function* getInstanceValExit ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.instance}?type=${payload.value.type}&nsInstance=${payload.value.nsInstance}`
-    })
+    const result = yield call(request, `${api.instance}?type=${payload.value.type}&nsInstance=${payload.value.nsInstance}`)
     if (result.code === 409) {
       yield put(instanceExitErrorLoaded(result.msg, payload.reject))
     } else {

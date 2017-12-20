@@ -37,6 +37,8 @@ import {
   EDIT_ROLETYPE_USERPSW,
   EDIT_ROLETYPE_USERPSW_SUCCESS,
   EDIT_ROLETYPE_USERPSW_ERROR,
+  LOAD_USER_DETAIL,
+  LOAD_USER_DETAIL_SUCCESS,
 
   LOAD_PROJECT_USER_ALL,
   LOAD_PROJECT_USER_ALL_SUCCESS,
@@ -106,6 +108,11 @@ export function userReducer (state = initialState, { type, payload }) {
     case EDIT_ROLETYPE_USERPSW_ERROR:
       payload.reject(payload.result)
       return state.set('modalLoading', false)
+    case LOAD_USER_DETAIL:
+      return state
+    case LOAD_USER_DETAIL_SUCCESS:
+      payload.resolve(payload.result)
+      return state
 
     case LOAD_PROJECT_USER_ALL:
       return state.set('error', false)

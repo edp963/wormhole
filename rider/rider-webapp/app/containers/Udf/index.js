@@ -36,7 +36,7 @@ import Input from 'antd/lib/input'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { loadUdfs, loadSingleUdf, addUdf, editUdf } from './action'
+import { loadUdfs, loadSingleUdf, addUdf, loadUdfDetail, editUdf } from './action'
 import { selectUdfs, selectError, selectModalLoading } from './selectors'
 
 export class Udf extends React.PureComponent {
@@ -74,7 +74,8 @@ export class Udf extends React.PureComponent {
       searchEndByText: '',
       filterDropdownVisibleBy: false,
 
-      queryUdfVal: {}
+      queryUdfVal: {},
+      showUdfDetail: {}
     }
   }
 
@@ -135,12 +136,14 @@ export class Udf extends React.PureComponent {
       formVisible: true,
       formType: 'copy'
     }, () => {
-      this.udfForm.setFieldsValue({
-        functionName: record.functionName,
-        fullName: record.fullClassName,
-        jarName: record.jarName,
-        desc: record.desc,
-        public: record.pubic
+      this.props.onLoadUdfDetail(record.id, (result) => {
+        this.udfForm.setFieldsValue({
+          functionName: result.functionName,
+          fullName: result.fullClassName,
+          jarName: result.jarName,
+          desc: result.desc,
+          public: `${result.pubic}`
+        })
       })
     })
   }
@@ -148,21 +151,25 @@ export class Udf extends React.PureComponent {
   onShowEditUdf = (record) => (e) => {
     this.setState({
       formVisible: true,
-      formType: 'edit',
-      queryUdfVal: {
-        createTime: record.createTime,
-        createBy: record.createBy,
-        updateTime: record.updateTime,
-        updateBy: record.updateBy
-      }
+      formType: 'edit'
     }, () => {
-      this.udfForm.setFieldsValue({
-        id: record.id,
-        functionName: record.functionName,
-        fullName: record.fullClassName,
-        jarName: record.jarName,
-        desc: record.desc,
-        public: record.pubic
+      this.props.onLoadUdfDetail(record.id, (result) => {
+        this.setState({
+          queryUdfVal: {
+            createTime: result.createTime,
+            createBy: result.createBy,
+            updateTime: result.updateTime,
+            updateBy: result.updateBy
+          }
+        })
+        this.udfForm.setFieldsValue({
+          id: result.id,
+          functionName: result.functionName,
+          fullName: result.fullClassName,
+          jarName: result.jarName,
+          desc: result.desc,
+          public: `${result.pubic}`
+        })
       })
     })
   }
@@ -307,9 +314,23 @@ export class Udf extends React.PureComponent {
     })
   }
 
+  handleVisibleChangeUdf = (record) => (visible) => {
+    if (visible) {
+      this.setState({
+        visible
+      }, () => {
+        this.props.onLoadUdfDetail(record.id, (result) => {
+          this.setState({
+            showUdfDetail: result
+          })
+        })
+      })
+    }
+  }
+
   render () {
     const { udfClassHide } = this.props
-    const { refreshUdfLoading, refreshUdfText } = this.state
+    const { refreshUdfLoading, refreshUdfText, showUdfDetail } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -514,12 +535,14 @@ export class Udf extends React.PureComponent {
             <Popover
               placement="left"
               content={<div className="project-name-detail">
-                <p><strong>   Project Names：</strong>{record.projectNames}</p>
-                <p><strong>   Create By：</strong>{record.createBy}</p>
-                <p><strong>   Update By：</strong>{record.updateBy}</p>
+                <p><strong>   Project Names：</strong>{showUdfDetail.projectNames}</p>
+                <p><strong>   Create By：</strong>{showUdfDetail.createBy}</p>
+                <p><strong>   Update By：</strong>{showUdfDetail.updateBy}</p>
               </div>}
               title={<h3>详情</h3>}
-              trigger="click">
+              trigger="click"
+              onVisibleChange={this.handleVisibleChangeUdf(record)}
+            >
               <Button icon="file-text" shape="circle" type="ghost"></Button>
             </Popover>
           </Tooltip>
@@ -633,6 +656,7 @@ Udf.propTypes = {
   onLoadUdfs: React.PropTypes.func,
   onLoadSingleUdf: React.PropTypes.func,
   onAddUdf: React.PropTypes.func,
+  onLoadUdfDetail: React.PropTypes.func,
   onEditUdf: React.PropTypes.func
   // onDeleteUdf: React.PropTypes.func
 }
@@ -642,6 +666,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadUdfs: (resolve) => dispatch(loadUdfs(resolve)),
     onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
     onAddUdf: (values, resolve, reject) => dispatch(addUdf(values, resolve, reject)),
+    onLoadUdfDetail: (udfId, resolve) => dispatch(loadUdfDetail(udfId, resolve)),
     onEditUdf: (values, resolve, reject) => dispatch(editUdf(values, resolve, reject))
     // onDeleteUdf: (values, resolve) => dispatch(deleteUdf(values, resolve))
   }

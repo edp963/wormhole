@@ -25,6 +25,7 @@ import {
   LOAD_SINGLE_UDF,
   LOAD_PROJECT_UDFS,
   ADD_UDF,
+  LOAD_UDF_DETAIL,
   EDIT_UDF,
   DELETE_UDF
 } from './constants'
@@ -34,6 +35,7 @@ import {
   projectUdfsLoaded,
   udfAdded,
   udfAddedError,
+  udfDetailLoaded,
   udfEdited,
   udfEditedError,
   udfDeleted,
@@ -45,10 +47,7 @@ import api from '../../utils/api'
 
 export function* getUdfs ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: api.udf
-    })
+    const result = yield call(request, api.udf)
     yield put(udfsLoaded(result.payload, payload.resolve))
   } catch (err) {
     yield put(getError(err))
@@ -61,10 +60,7 @@ export function* getUdfsWatcher () {
 
 export function* getProjectUdfs ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectList}/udfs`
-    })
+    const result = yield call(request, `${api.projectList}/udfs`)
     yield put(projectUdfsLoaded(result.payload, payload.resolve))
   } catch (err) {
     yield put(getError(err))
@@ -86,10 +82,7 @@ export function* getSingleUdf ({ payload }) {
   }
 
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: urlTemp
-    })
+    const result = yield call(request, urlTemp)
     yield put(singleUdfLoaded(result.payload, payload.resolve))
   } catch (err) {
     yield put(getError(err))
@@ -126,6 +119,19 @@ export function* addUdf ({payload}) {
 
 export function* addUdfWatcher () {
   yield fork(takeEvery, ADD_UDF, addUdf)
+}
+
+export function* queryUdf ({payload}) {
+  try {
+    const result = yield call(request, `${api.udf}/${payload.udfId}`)
+    yield put(udfDetailLoaded(result.payload, payload.resolve))
+  } catch (err) {
+    yield put(getError(err))
+  }
+}
+
+export function* queryUdfWatcher () {
+  yield fork(takeLatest, LOAD_UDF_DETAIL, queryUdf)
 }
 
 export function* editUdf ({payload}) {
@@ -183,6 +189,7 @@ export default [
   getSingleUdfWatcher,
   getProjectUdfsWatcher,
   addUdfWatcher,
+  queryUdfWatcher,
   editUdfWatcher,
   deleteUdfWatcher
 ]
