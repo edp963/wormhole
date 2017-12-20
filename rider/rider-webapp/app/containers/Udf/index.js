@@ -80,13 +80,13 @@ export class Udf extends React.PureComponent {
   }
 
   componentWillMount () {
-    this.loadUdfData()
+    this.refreshUdf()
   }
 
   componentWillReceiveProps (props) {
     if (props.udfs) {
       const originUdfs = props.udfs.map(s => {
-        s.pubic = s.pubic === true ? 'true' : 'false'
+        s.pubic = s.pubic ? 'true' : 'false'
         s.key = s.id
         s.visible = false
         return s

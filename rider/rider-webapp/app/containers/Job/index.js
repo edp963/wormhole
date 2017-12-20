@@ -93,7 +93,7 @@ export class Job extends React.Component {
   }
 
   componentWillMount () {
-    this.loadJobData()
+    this.refreshJob()
   }
 
   componentWillReceiveProps (props) {

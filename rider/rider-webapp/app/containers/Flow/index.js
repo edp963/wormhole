@@ -93,7 +93,7 @@ export class Flow extends React.Component {
   }
 
   componentWillMount () {
-    this.loadFlowData()
+    this.refreshFlow()
   }
 
   componentWillReceiveProps (props) {

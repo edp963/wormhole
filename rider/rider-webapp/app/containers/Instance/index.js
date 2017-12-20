@@ -75,7 +75,7 @@ export class Instance extends React.PureComponent {
   }
 
   componentWillMount () {
-    this.props.onLoadInstances(() => { this.instanceRefreshState() })
+    this.refreshInstance()
   }
 
   componentWillReceiveProps (props) {
@@ -155,7 +155,7 @@ export class Instance extends React.PureComponent {
     this.instanceForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (instanceFormType === 'add') {
-          if (instanceExisted === true) {
+          if (instanceExisted) {
             this.instanceForm.setFields({
               instance: {
                 value: values.instance,

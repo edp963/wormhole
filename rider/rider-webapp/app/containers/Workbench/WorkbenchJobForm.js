@@ -88,7 +88,7 @@ export class WorkbenchJobForm extends React.Component {
   onSinkDataSystemItemSelect = (val) => {
     this.props.onInitJobSinkNs(this.props.projectIdGeted, val, 'sinkType')
     this.setState({
-      sinkConfigClass: (val === 'hbase' || val === 'postgresql') ? 'sink-config-class' : ''
+      sinkConfigClass: val === 'hbase' ? 'sink-config-class' : ''
     })
   }
 

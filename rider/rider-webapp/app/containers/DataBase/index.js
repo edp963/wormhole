@@ -76,7 +76,7 @@ export class DataBase extends React.PureComponent {
   }
 
   componentWillMount () {
-    this.props.onLoadDatabases(() => { this.refreshDbState() })
+    this.refreshDatabase()
   }
 
   componentWillReceiveProps (props) {
@@ -208,7 +208,7 @@ export class DataBase extends React.PureComponent {
     this.dBForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (formType === 'add') {
-          if (databaseNameExited === true) {
+          if (databaseNameExited) {
             this.dBForm.setFields({
               nsDatabase: {
                 value: values.nsDatabase,

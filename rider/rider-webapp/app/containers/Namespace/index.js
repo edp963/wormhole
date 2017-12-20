@@ -114,7 +114,7 @@ export class Namespace extends React.PureComponent {
   }
 
   componentWillMount () {
-    this.loadNamespaceData()
+    this.refreshNamespace()
   }
 
   componentWillReceiveProps (props) {
@@ -391,7 +391,7 @@ export class Namespace extends React.PureComponent {
 
     this.namespaceForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        if (tableNameExited === true) {
+        if (tableNameExited) {
           this.nsErrorMsg(`${exitedNsTableValue} 已存在`)
         } else {
           const selDatabase = databaseSelectValue.find(s => s.id === Number(values.nsDatabase))
