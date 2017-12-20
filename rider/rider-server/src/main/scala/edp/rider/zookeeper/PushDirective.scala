@@ -23,8 +23,6 @@ package edp.rider.zookeeper
 
 import edp.rider.common.{GetZookeeperDataException, RiderConfig, RiderLogger}
 import edp.wormhole.common.zookeeper.WormholeZkClient
-import edp.rider.RiderStarter.modules
-import kafka.utils.ZkUtils
 
 case class SendDirectiveException(message: String) extends Exception(message)
 
@@ -39,6 +37,11 @@ object PushDirective extends RiderLogger {
   def sendFlowStartDirective(streamId: Long, sourceNamespace: String, sinkNamespace: String, flowStartJson: String, zkUrl: String = RiderConfig.zk): Boolean = {
     val path = s"$rootPath$streamId${flowDir}/batchflow->$sourceNamespace->$sinkNamespace"
     setDataToPath(zkUrl, path, flowStartJson)
+  }
+
+  def getFlowStartDirective(streamId: Long, sourceNamespace: String, sinkNamespace: String, zkUrl: String = RiderConfig.zk): String = {
+    val path = s"$rootPath$streamId${flowDir}/batchflow->$sourceNamespace->$sinkNamespace"
+    new String(WormholeZkClient.getData(zkUrl, path))
   }
 
   def sendFlowStopDirective(streamId: Long, sourceNamespace: String, sinkNamespace: String, zkUrl: String = RiderConfig.zk): Unit = {
@@ -111,7 +114,7 @@ object PushDirective extends RiderLogger {
       else throw GetZookeeperDataException(s"zk path $path didn't exist")
     } catch {
       case e: Exception =>
-//        riderLogger.error(s"get zk $zkUrl path $path data failed", e)
+        //        riderLogger.error(s"get zk $zkUrl path $path data failed", e)
         throw GetZookeeperDataException(e.getMessage, e.getCause)
     }
   }
