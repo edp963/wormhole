@@ -67,14 +67,14 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
     }
 
     val sqlProcess = new SqlProcessor(sinkProcessConfig, renameSchema, sinkSpecificConfig, sinkNamespace, connectionConfig,systemRenameMap)
-    val specialSqlProcessor: SpecialSqlProcessor = new SpecialSqlProcessor(sinkProcessConfig, schemaMap, sinkSpecificConfig, sinkNamespace, connectionConfig)
+    val specialSqlProcessor: SplitTableSqlProcessor = new SplitTableSqlProcessor(sinkProcessConfig, schemaMap, sinkSpecificConfig, sinkNamespace, connectionConfig)
 
     SourceMutationType.sourceMutationType(sinkSpecificConfig.`mutation_type.get`) match {
       case INSERT_ONLY =>
         logInfo("INSERT_ONLY: " + sinkSpecificConfig.`mutation_type.get`)
         val errorList = sqlProcess.doInsert(tupleList, INSERT_ONLY)
         if (errorList.nonEmpty) throw new Exception(INSERT_ONLY + ",some data error ,data records=" + errorList.length)
-      case IDEMPOTENCE_IDU =>
+      case SPLIT_TABLE_IDU =>
         logInfo("IDEMPOTENCE_IDU: " + sinkSpecificConfig.`mutation_type.get`)
 
         def checkAndCategorizeAndExecute(keysTupleMap: mutable.HashMap[String, Seq[String]]) = {
@@ -99,7 +99,7 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
             errorList ++= specialSqlProcessor.contactDb(deleteUpdateList, DELETE_UPDATE.toString)
             errorList ++= specialSqlProcessor.contactDb(noneInsertList, NONE_INSERT.toString)
             errorList ++= specialSqlProcessor.contactDb(noneUpdateList, NONE_UPDATE.toString)
-            if (errorList.nonEmpty) throw new Exception(IDEMPOTENCE_IDU + ",some data error ,data records=" + errorList.length)
+            if (errorList.nonEmpty) throw new Exception(SPLIT_TABLE_IDU + ",some data error ,data records=" + errorList.length)
           }
         }
 
