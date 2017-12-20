@@ -78,6 +78,24 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
 
   }
 
+  def adminGetById(projectId: Long, flowId: Long): Future[Option[FlowStreamAdmin]] = {
+    try {
+      val flowStreamOpt = Await.result(defaultGetAll(_.id === flowId), minTimeOut).headOption
+      flowStreamOpt match {
+        case Some(flowStream) =>
+          val stream = streamDal.getStreamDetail(Some(projectId), Some(flowStream.streamId)).head
+          Future(Some(FlowStreamAdmin(flowStream.id, flowStream.projectId, stream.projectName, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol,
+            flowStream.sinkConfig, flowStream.tranConfig, flowStream.startedTime, flowStream.stoppedTime, flowStream.status, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
+            flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, flowStream.disableActions, flowStream.msg)))
+        case None => Future(None)
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"Failed to get flow $flowId", ex)
+        throw ex
+    }
+  }
+
   def adminGetAll(visible: Boolean = true): Future[Seq[FlowStreamAdmin]] = {
     try {
       defaultGetAll(_.active === true).map[Seq[FlowStreamAdmin]] {

@@ -58,8 +58,12 @@ class RelProjectUdfDal(udfTable: TableQuery[UdfTable],
   }
 
 
-  def getUdfProjectName: Future[mutable.HashMap[Long, ArrayBuffer[String]]] = {
-    val udfProjectSeq = db.run((projectTable join relProjectUdfTable on (_.id === _.projectId))
+  def getUdfProjectName(udfIdOpt: Option[Long] = None): Future[mutable.HashMap[Long, ArrayBuffer[String]]] = {
+    val relProjectUdfQuery = udfIdOpt match {
+      case Some(udfId) => relProjectUdfTable.filter(_.udfId === udfId)
+      case None => relProjectUdfTable
+    }
+    val udfProjectSeq = db.run((projectTable join relProjectUdfQuery on (_.id === _.projectId))
       .map {
         case (project, rel) => (rel.udfId, project.name) <> (UdfProjectName.tupled, UdfProjectName.unapply)
       }.result).mapTo[Seq[UdfProjectName]]
