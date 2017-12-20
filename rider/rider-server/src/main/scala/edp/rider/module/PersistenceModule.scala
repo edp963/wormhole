@@ -118,7 +118,7 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val instanceDal = new InstanceDal(instanceQuery)
   override lazy val databaseDal = new NsDatabaseDal(databaseQuery, instanceQuery)
   override lazy val namespaceDal = new NamespaceDal(namespaceQuery, databaseDal, instanceDal, dbusDal)
-  override lazy val userDal = new UserDal(userQuery, relProjectUserDal)
+  override lazy val userDal = new UserDal(userQuery, relProjectUserDal, projectDal)
   override lazy val relProjectUserDal = new RelProjectUserDal(userQuery, projectQuery, relProjectUserQuery)
   override lazy val relStreamUdfDal = new RelStreamUdfDal(relStreamUdfQuery, udfQuery)
   override lazy val streamDal = new StreamDal(streamQuery, instanceDal, inTopicDal, relStreamUdfDal, projectQuery)

@@ -88,7 +88,6 @@ object FlowUtils extends RiderLogger {
   }
 
   def getTranConfig(tranConfig: String) = {
-    riderLogger.info("tranconfig: " + tranConfig)
     if (tranConfig == "") "{}"
     else {
       val json = JSON.parseObject(tranConfig)
