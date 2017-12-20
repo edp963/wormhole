@@ -51,15 +51,19 @@ object DirectiveFlowWatch extends EdpLogging {
   def add(feedbackTopicName: String,brokers:String)(path: String, data: String, time: Long = 1): Unit = {
     try {
       logInfo("add"+data)
-      val ums = UmsSchemaUtils.toUms(data)
-      ums.protocol.`type` match {
-        case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_FLOW_STOP =>
-          BatchflowDirective.flowStartProcess(ums, feedbackTopicName,brokers)
-        case UmsProtocolType.DIRECTIVE_ROUTER_FLOW_START | UmsProtocolType.DIRECTIVE_ROUTER_FLOW_STOP =>
-          RouterDirective.flowStartProcess(ums, feedbackTopicName,brokers)
-        case UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_STOP =>
-          HdfsDirective.flowStartProcess(ums, feedbackTopicName,brokers)  //TOdo change name uniform, take directiveflowwatch and directiveoffsetwatch out of core, because hdfs also use them
-        case _ => logWarning("ums type: " + ums.protocol.`type` + " is not supported")
+      if (!data.startsWith("{")) {
+        logWarning("data is " + data + ", not in ums")
+      } else {
+        val ums = UmsSchemaUtils.toUms(data)
+        ums.protocol.`type` match {
+          case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_FLOW_STOP =>
+            BatchflowDirective.flowStartProcess(ums, feedbackTopicName, brokers)
+          case UmsProtocolType.DIRECTIVE_ROUTER_FLOW_START | UmsProtocolType.DIRECTIVE_ROUTER_FLOW_STOP =>
+            RouterDirective.flowStartProcess(ums, feedbackTopicName, brokers)
+          case UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_STOP =>
+            HdfsDirective.flowStartProcess(ums, feedbackTopicName, brokers) //TOdo change name uniform, take directiveflowwatch and directiveoffsetwatch out of core, because hdfs also use them
+          case _ => logWarning("ums type: " + ums.protocol.`type` + " is not supported")
+        }
       }
     } catch {
       case e: Throwable => logAlert("flow add error:" + data, e)
