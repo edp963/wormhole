@@ -35,6 +35,7 @@ import edp.rider.zookeeper.PushDirective
 import edp.wormhole.common.KVConfig
 import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.common.util.JsonUtils._
+import edp.wormhole.ums.UmsProtocol
 import edp.wormhole.ums.UmsProtocolType._
 import slick.jdbc.MySQLProfile.api._
 
@@ -304,7 +305,7 @@ object FlowUtils extends RiderLogger {
       } else if (streamType == "hdfslog") {
         val tuple = Seq(streamId, currentMillSec, sourceNs, "24", umsType, umsSchema)
         val base64Tuple = Seq(streamId, currentMillSec, sourceNs, "24", umsType, base64byte2s(umsSchema.toString.trim.getBytes))
-        val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, tuple.mkString(","), RiderConfig.zk, currentSec, userId)), minTimeOut)
+        val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_HDFSLOG_FLOW_START.toString, streamId, flowId, tuple.mkString(","), RiderConfig.zk, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
         val flow_start_ums =
           s"""
@@ -380,6 +381,65 @@ object FlowUtils extends RiderLogger {
         } send flow $flowId start directive: $flow_start_ums")
         PushDirective.sendHdfsLogFlowStartDirective(streamId, sourceNs, jsonCompact(flow_start_ums))
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
+      } else if (streamType == "routing") {
+        val (instance, db, _) = modules.namespaceDal.getNsDetail(sinkNs)
+        val tuple = Seq(streamId, currentMillSec, sinkNs, instance.connUrl, db.nsDatabase)
+        val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_ROUTER_FLOW_START.toString, streamId, flowId, tuple.mkString(","), RiderConfig.zk, currentSec, userId)), minTimeOut)
+        //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
+        val flow_start_ums =
+          s"""
+             |{
+             |  "protocol": {
+             |    "type": "${DIRECTIVE_ROUTER_FLOW_START.toString}"
+             |  },
+             |  "schema": {
+             |    "namespace": "$sourceNs",
+             |    "fields": [
+             |      {
+             |        "name": "directive_id",
+             |        "type": "long",
+             |        "nullable": false
+             |      },
+             |      {
+             |        "name": "stream_id",
+             |        "type": "long",
+             |        "nullable": false
+             |      },
+             |      {
+             |        "name": "ums_ts_",
+             |        "type": "datetime",
+             |        "nullable": false
+             |      },
+             |      {
+             |        "name": "sink_namespace",
+             |        "type": "string",
+             |        "nullable": false
+             |      },
+             |      {
+             |        "name": "kafka_broker",
+             |        "type": "string",
+             |        "nullable": true
+             |      },
+             |      {
+             |        "name": "kafka_topic",
+             |        "type": "string",
+             |        "nullable": false
+             |      }
+             |    ]
+             |  },
+             |  "payload": [
+             |    {
+             |      "tuple": [${directive.id}, ${tuple.head}, "${tuple(1)}", "${tuple(2)}", "${tuple(3)}","${tuple(4)}"]
+             |    }
+             |  ]
+             |}
+             |
+        """.stripMargin.replaceAll("\n", "")
+        riderLogger.info(s"user ${
+          directive.createBy
+        } send flow $flowId start directive: $flow_start_ums")
+        PushDirective.sendRouterFlowStartDirective(streamId, sourceNs, sinkNs, jsonCompact(flow_start_ums))
+        //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
       }
       autoRegisterTopic(streamId, sourceNs, userId)
       true
@@ -416,6 +476,13 @@ object FlowUtils extends RiderLogger {
           directive.createBy
         } send flow $flowId stop directive")
         PushDirective.sendHdfsLogFlowStopDirective(streamId, sourceNs)
+      } else if (streamType == "hdfslog") {
+        val tuple = Seq(streamId, currentMillSec, sourceNs).mkString(",")
+        val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_ROUTER_FLOW_STOP.toString, streamId, flowId, tuple, RiderConfig.zk, currentSec, userId)), minTimeOut)
+        riderLogger.info(s"user ${
+          directive.createBy
+        } send flow $flowId stop directive")
+        PushDirective.sendRouterFlowStopDirective(streamId, sourceNs, sinkNs)
       }
       true
     } catch {
