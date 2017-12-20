@@ -107,7 +107,7 @@ export class Manager extends React.Component {
   }
 
   componentWillMount () {
-    this.loadStreamData()
+    this.refreshStream()
   }
 
   componentWillReceiveProps (props) {

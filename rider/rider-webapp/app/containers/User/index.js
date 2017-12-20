@@ -82,7 +82,7 @@ export class User extends React.PureComponent {
   }
 
   componentWillMount () {
-    this.loadUserData()
+    this.refreshUser()
   }
 
   componentWillReceiveProps (props) {
@@ -200,7 +200,7 @@ export class User extends React.PureComponent {
     this.userForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (formType === 'add') {
-          if (emailExited === true) {
+          if (emailExited) {
             this.userForm.setFields({
               email: {
                 value: values.email,

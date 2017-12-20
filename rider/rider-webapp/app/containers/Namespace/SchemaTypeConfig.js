@@ -372,12 +372,12 @@ export class SchemaTypeConfig extends React.Component {
       title: 'FieldName',
       dataIndex: 'fieldName',
       key: 'fieldName',
-      width: '22%'
+      width: '20%'
     }, {
       title: 'Rename',
       dataIndex: 'rename',
       key: 'rename',
-      width: '20%',
+      width: '19%',
       render: (text, record) => {
         const { repeatRenameArr } = this.props
         const repeatKey = repeatRenameArr.length === 0 ? undefined : repeatRenameArr.find(i => i === record.key)
@@ -512,7 +512,7 @@ export class SchemaTypeConfig extends React.Component {
       title: umstsMsg,
       dataIndex: 'umsTs',
       key: 'umsTs',
-      width: '8%',
+      width: '10%',
       className: 'text-align-center',
       render: (text, record) => {
         const tempHtml = (record.fieldType === 'long' || record.fieldType === 'datetime' ||
@@ -537,7 +537,7 @@ export class SchemaTypeConfig extends React.Component {
       title: umsidMsg,
       dataIndex: 'umsId',
       key: 'umsId',
-      width: '8%',
+      width: '10%',
       className: 'text-align-center',
       render: (text, record) => {
         const tempHtml = (record.fieldType === 'int' || record.fieldType === 'long' ||
