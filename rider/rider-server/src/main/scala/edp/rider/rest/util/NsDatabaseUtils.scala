@@ -37,16 +37,17 @@ object NsDatabaseUtils {
     nsSys match {
       case "mysql" | "postgresql" | "oracle" =>
         if (config == null || config == "") None
-        else if (isJson(config)) {
-          val seq = new ListBuffer[KVConfig]
-          val json = JSON.parseObject(config)
-          val keySet = json.keySet().toArray
-          keySet.foreach(key => {
-            if (key == "maxPoolSize")
-              seq += KVConfig(key.toString, json.get(key).toString)
-          })
-          Some(seq)
-        } else if (isKeyEqualValue(config)) {
+        //        else if (isJson(config)) {
+        //          val seq = new ListBuffer[KVConfig]
+        //          val json = JSON.parseObject(config)
+        //          val keySet = json.keySet().toArray
+        //          keySet.foreach(key => {
+        //            if (key == "maxPoolSize")
+        //              seq += KVConfig(key.toString, json.get(key).toString)
+        //          })
+        //          Some(seq)
+        //        }
+        else if (isKeyEqualValue(config)) {
           val seq = new ListBuffer[KVConfig]
           val keyValueSeq = config.split(",").mkString("&").split("&")
           keyValueSeq.foreach(
@@ -58,18 +59,42 @@ object NsDatabaseUtils {
           )
           Some(seq)
         } else None
-      case _ =>
+      case "es" =>
         if (config == null || config == "") None
-        else if (isJson(config)) {
-          val seq = new ListBuffer[KVConfig]
-          val json = JSON.parseObject(config)
-          val keySet = json.keySet().toArray
-          keySet.foreach(key => seq += KVConfig(key.toString, json.get(key).toString))
-          Some(seq)
-        } else if (isKeyEqualValue(config)) {
+        //        else if (isJson(config)) {
+        //          val seq = new ListBuffer[KVConfig]
+        //          val json = JSON.parseObject(config)
+        //          val keySet = json.keySet().toArray
+        //          keySet.foreach(key => {
+        //            if (key == "maxPoolSize")
+        //              seq += KVConfig(key.toString, json.get(key).toString)
+        //          })
+        //          Some(seq)
+        //        }
+        else if (isKeyEqualValue(config)) {
           val seq = new ListBuffer[KVConfig]
           val keyValueSeq = config.split(",").mkString("&").split("&")
-          keyValueSeq.foreach(println(_))
+          keyValueSeq.foreach(
+            keyValue => {
+              val data = keyValue.split("=")
+              if (data(0) != "cluster.name")
+                seq += KVConfig(data(0), data(1))
+            }
+          )
+          Some(seq)
+        } else None
+      case _ =>
+        if (config == null || config == "") None
+        //        else if (isJson(config)) {
+        //          val seq = new ListBuffer[KVConfig]
+        //          val json = JSON.parseObject(config)
+        //          val keySet = json.keySet().toArray
+        //          keySet.foreach(key => seq += KVConfig(key.toString, json.get(key).toString))
+        //          Some(seq)
+        //        }
+        else if (isKeyEqualValue(config)) {
+          val seq = new ListBuffer[KVConfig]
+          val keyValueSeq = config.split(",").mkString("&").split("&")
           keyValueSeq.foreach(
             keyValue => {
               val data = keyValue.split("=")
@@ -100,7 +125,11 @@ object NsDatabaseUtils {
                   val dbInfo = Await.result(modules.relProjectNsDal.getTranDbConfig(dbSeq(0), dbSeq(1), dbSeq(2)), minTimeOut)
                   if (dbInfo.nonEmpty) {
                     val head = dbInfo.head
-                    seq += PushDownConnection(db, getConnUrl(head.instance, head.db), head.db.user, head.db.pwd, getDbConfig(head.nsSys, head.db.config.getOrElse("")))
+                    val connInfo =
+                      if (head.instance.nsSys == "cassandra" || head.instance.nsSys == "es")
+                        getConnUrl(head.instance, head.db, "lookup")
+                      else getConnUrl(head.instance, head.db)
+                    seq += PushDownConnection(db, connInfo, head.db.user, head.db.pwd, getDbConfig(head.nsSys, head.db.config.getOrElse("")))
                   }
                 }
               }

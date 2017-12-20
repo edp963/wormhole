@@ -40,20 +40,20 @@ class NsDatabaseDal(databaseTable: TableQuery[NsDatabaseTable], instanceTable: T
     val instanceQuery = if (visible) instanceTable.filter(_.active === visible) else instanceTable
     val result = db.run((databaseQuery join instanceQuery on (_.nsInstanceId === _.id))
       .map {
-        case (database, instance) => (database.id, database.nsDatabase, database.desc, database.nsInstanceId, database.permission,
+        case (database, instance) => (database.id, database.nsDatabase, database.desc, database.nsInstanceId,
           database.user, database.pwd, database.partitions, database.config, instance.nsInstance, instance.nsSys, instance.connUrl,
           database.active, database.createTime, database.createBy, database.updateTime, database.updateBy) <>(DatabaseInstance.tupled, DatabaseInstance.unapply)
       }.result).mapTo[Seq[DatabaseInstance]]
     result.map[Seq[DatabaseInstance]] {
       result =>
-        result.sortBy(ds => (ds.nsSys, ds.nsInstance, ds.nsDatabase, ds.permission))
+        result.sortBy(ds => (ds.nsSys, ds.nsInstance, ds.nsDatabase))
     }
   }
 
   def getDbusDs: Future[Seq[NsDatabaseInstance]] = {
     db.run((databaseTable join instanceTable.filter(_.nsSys endsWith "kafka") on (_.nsInstanceId === _.id))
       .map {
-        case (database, instance) => (database.id, database.nsDatabase, database.permission, instance.id, instance.nsInstance, instance.connUrl, instance.nsSys) <>(NsDatabaseInstance.tupled, NsDatabaseInstance.unapply)
+        case (database, instance) => (database.id, database.nsDatabase, instance.id, instance.nsInstance, instance.connUrl, instance.nsSys) <>(NsDatabaseInstance.tupled, NsDatabaseInstance.unapply)
       }.result).mapTo[Seq[NsDatabaseInstance]]
   }
 }

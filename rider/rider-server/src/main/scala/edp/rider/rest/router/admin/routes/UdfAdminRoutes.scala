@@ -47,7 +47,7 @@ class UdfAdminRoutes(modules: ConfigurationModule with PersistenceModule with Bu
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getUdfByIdRoute: Route = modules.udfAdminService.getByIdRoute(basePath)
+  def getUdfByIdRoute: Route = modules.udfAdminService.getById(basePath)
 
   @Path("/udfs")
   @ApiOperation(value = "get all udfs", notes = "", nickname = "", httpMethod = "GET")

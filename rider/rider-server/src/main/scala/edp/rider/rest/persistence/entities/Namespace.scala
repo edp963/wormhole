@@ -34,7 +34,6 @@ case class Namespace(id: Long,
                      nsVersion: String,
                      nsDbpar: String,
                      nsTablepar: String,
-                     permission: String,
                      keys: Option[String],
                      umsInfo: Option[String],
                      nsDatabaseId: Long,
@@ -81,7 +80,6 @@ case class NamespaceInfo(id: Long,
                          nsVersion: String,
                          nsDbpar: String,
                          nsTablepar: String,
-                         permission: String,
                          keys: Option[String],
                          nsDatabaseId: Long,
                          nsInstanceId: Long,
@@ -99,7 +97,6 @@ case class NamespaceTopic(id: Long,
                           nsVersion: String,
                           nsDbpar: String,
                           nsTablepar: String,
-                          permission: String,
                           keys: Option[String],
                           nsDatabaseId: Long,
                           nsInstanceId: Long,
@@ -118,7 +115,6 @@ case class NamespaceTemp(id: Long,
                          nsVersion: String,
                          nsDbpar: String,
                          nsTablepar: String,
-                         permission: String,
                          keys: Option[String],
                          nsDatabaseId: Long,
                          nsInstanceId: Long,
@@ -141,7 +137,6 @@ case class SimpleNamespace(nsSys: String,
 
 case class NsDatabaseInstance(nsDatabaseId: Long,
                               nsDatabase: String,
-                              permission: String,
                               nsInstanceId: Long,
                               nsInstance: String,
                               nsUrl: String,
@@ -165,7 +160,6 @@ case class NamespaceAdmin(id: Long,
                           nsVersion: String,
                           nsDbpar: String,
                           nsTablepar: String,
-                          permission: String,
                           keys: Option[String],
                           nsDatabaseId: Long,
                           nsInstanceId: Long,
@@ -188,7 +182,7 @@ case class PushDownConnection(name_space: String,
 
 
 class NamespaceTable(_tableTag: Tag) extends BaseTable[Namespace](_tableTag, "namespace") {
-  def * = (id, nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar, permission, keys,
+  def * = (id, nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar, keys,
     umsInfo, nsDatabaseId, nsInstanceId, active, createTime, createBy, updateTime, updateBy) <> (Namespace.tupled, Namespace.unapply)
 
   val nsSys: Rep[String] = column[String]("ns_sys", O.Length(100, varying = true))
@@ -204,8 +198,6 @@ class NamespaceTable(_tableTag: Tag) extends BaseTable[Namespace](_tableTag, "na
   val nsDbpar: Rep[String] = column[String]("ns_dbpar", O.Length(100, varying = true))
   /** Database column ns_tablepar SqlType(VARCHAR), Length(100,true) */
   val nsTablepar: Rep[String] = column[String]("ns_tablepar", O.Length(100, varying = true))
-  /** Database column permission SqlType(VARCHAR), Length(20,true) */
-  val permission: Rep[String] = column[String]("permission", O.Length(20, varying = true))
   /** Database column keys SqlType(VARCHAR), Length(1000,true), Default(None) */
   val keys: Rep[Option[String]] = column[Option[String]]("keys", O.Length(1000, varying = true), O.Default(None))
   val umsInfo: Rep[Option[String]] = column[Option[String]]("ums_info", O.Length(5000, varying = true), O.Default(None))
@@ -214,6 +206,6 @@ class NamespaceTable(_tableTag: Tag) extends BaseTable[Namespace](_tableTag, "na
   /** Database column ns_instance_id SqlType(BIGINT) */
   val nsInstanceId: Rep[Long] = column[Long]("ns_instance_id")
 
-  /** Uniqueness Index over (nsSys,nsInstance,nsDatabase,nsTable,nsVersion,nsDbpar,nsTablepar,permission,origin) (database name namespace_UNIQUE) */
-  val index1 = index("namespace_UNIQUE", (nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar, permission), unique = true)
+  /** Uniqueness Index over (nsSys,nsInstance,nsDatabase,nsTable,nsVersion,nsDbpar,nsTablepar) (database name namespace_UNIQUE) */
+  val index1 = index("namespace_UNIQUE", (nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar), unique = true)
 }
