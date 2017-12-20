@@ -47,6 +47,11 @@
             <version>${elasticsearch.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.elasticsearch.plugin</groupId>
+            <artifactId>transport-netty4-client</artifactId>
+            <version>${elasticsearch.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.elasticsearch.client</groupId>
             <artifactId>x-pack-transport</artifactId>
             <version>${elasticsearch.version}</version>
@@ -95,10 +100,10 @@
                                     <pattern>org.joda</pattern>
                                     <shadedPattern>sql4es5.org.joda</shadedPattern>
                                 </relocation>
-                                <relocation>
-                                    <pattern>io.netty</pattern>
-                                    <shadedPattern>sql4es5.io.netty</shadedPattern>
-                                </relocation>
+                                <!--<relocation>-->
+                                    <!--<pattern>io</pattern>-->
+                                    <!--<shadedPattern>sql4es5.io</shadedPattern>-->
+                                <!--</relocation>-->
                             </relocations>
                             <filters>
                                 <filter>

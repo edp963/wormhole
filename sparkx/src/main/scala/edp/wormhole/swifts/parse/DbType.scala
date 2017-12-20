@@ -47,20 +47,16 @@ object DbType {
     case "RAW" => "binary"
     case "NUMBER" => "decimal"
     case "LONG RAW" => "binary"
+
       //cassandra
-
-
-//    case "oracle.sql.TIMESTAMP" => "datetime"
-//    case "java.math.BigDecimal" => "decimal"
-//    case "java.sql.Timestamp" => "datetime"
-//    case "java.sql.Date" => "date"
-//    case "java.lang.Long" => "long"
-//    case "java.lang.Float" => "float"
-//    case "java.lang.Double" => "double"
-//    case "java.lang.Integer" => "int"
-//    case "java.lang.String" => "string"
-//    case "oracle.jdbc.OracleClob" => "string"
-//    case "oracle.sql.CLOB" => "string"
+    case "JAVA.MATH.BIGDECIMAL" => "decimal"
+    case "JAVA.SQL.TIMESTAMP" => "datetime"
+    case "JAVA.SQL.DATE" => "date"
+    case "JAVA.LANG.LONG" => "long"
+    case "JAVA.LANG.FLOAT" => "float"
+    case "JAVA.LANG.DOUBLE" => "double"
+    case "JAVA.LANG.INTEGER" => "int"
+    case "JAVA.LANG.STRING" => "string"
     case unknown =>
       throw new Exception("unknown type:"+unknown)
   }
