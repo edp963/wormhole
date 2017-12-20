@@ -228,7 +228,7 @@ export class Project extends React.Component {
           values.resMemoryG = Number(values.resMemoryG)
 
           if (projectFormType === 'add') {
-            if (projectNameExited === true) {
+            if (projectNameExited) {
               this.projectForm.setFields({
                 name: {
                   value: values.name,
@@ -315,7 +315,7 @@ export class Project extends React.Component {
 
     const projectList = projects
       ? this.props.projects.map((p) => {
-        const showOrHideBtn = p.active === true
+        const showOrHideBtn = p.active
           ? (
             <Tooltip title="隐藏">
               <Button shape="circle" type="ghost" onClick={this.editProjectShowOrHide(p)}>
@@ -356,7 +356,7 @@ export class Project extends React.Component {
             xs={24} sm={12} md={8} lg={6} xl={4}
           >
             <div
-              className={`ri-project-item active ${p.active === false ? 'project-hide-style' : ''}`}
+              className={`ri-project-item active ${!p.active ? 'project-hide-style' : ''}`}
               // style={{backgroundImage: `url(${require(`../../assets/images/bg20.png`)})`}}
               style={{backgroundImage: `url(${require(`../../assets/images/bg${Number(p.pic)}.png`)})`}}
               onClick={this.getIntoProject(p)}

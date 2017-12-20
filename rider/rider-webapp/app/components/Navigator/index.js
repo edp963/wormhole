@@ -70,6 +70,11 @@ class Navigator extends React.Component {
     this.state.selectedKey = routes[routes.length - 1].name
   }
 
+  navClickSubmenu = (e) => {
+    const { router } = this.props
+    router.push('/namespaces')
+  }
+
   navClick = (e) => {
     const { router } = this.props
 
@@ -191,6 +196,7 @@ class Navigator extends React.Component {
           </MenuItem>
 
           <SubMenu
+            onTitleClick={this.navClickSubmenu}
             key="dataSystem"
             className={`ri-menu-item ${dataSystemSelectedClass}`}
             title={

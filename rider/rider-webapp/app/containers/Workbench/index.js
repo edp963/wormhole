@@ -1383,7 +1383,7 @@ export class Workbench extends React.Component {
           jvmValTemp = values.jvm.replace(/\n/g, ',')
 
           let sparkConfigValue = ''
-          if (values.personalConf === undefined || values.personalConf === '') {
+          if (!values.personalConf) {
             sparkConfigValue = jvmValTemp
           } else {
             const nOthers = (values.jvm.split('=')).length - 1
@@ -1439,7 +1439,7 @@ export class Workbench extends React.Component {
           jvmValTemp = values.jvm.replace(/\n/g, ',')
 
           let sparkConfigVal = ''
-          if (values.personalConf === undefined || values.personalConf === '') {
+          if (!values.personalConf) {
             sparkConfigVal = jvmValTemp
           } else {
             const nOthers = (values.jvm.split('=')).length - 1
@@ -1573,21 +1573,15 @@ export class Workbench extends React.Component {
         switch (this.state.formStep) {
           case 0:
             const values = this.workbenchFlowForm.getFieldsValue()
-            if (values.sinkConfig === undefined || values.sinkConfig === '') {
-              // 是否是 hbase/mysql/oracle.postgresql
-              if (values.sinkDataSystem === 'hbase' || values.sinkDataSystem === 'postgresql') {
-                message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
-              } else {
-                this.loadSTSExit(values)
-              }
+            if (!values.sinkConfig) {
+              values.sinkDataSystem === 'hbase'
+                ? message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
+                : this.loadSTSExit(values)
             } else {
               // json 校验
-              if (this.isJSON(values.sinkConfig) === false) {
-                message.error('Sink Config 应为 JSON格式！', 3)
-                return
-              } else {
-                this.loadSTSExit(values)
-              }
+              this.isJSON(values.sinkConfig)
+                ? this.loadSTSExit(values)
+                : message.error('Sink Config 应为 JSON格式！', 3)
             }
 
             const rfSelect = this.workbenchFlowForm.getFieldValue('resultFields')
@@ -1697,19 +1691,14 @@ export class Workbench extends React.Component {
               })
               message.error('该 Job Name 已存在！', 3)
             } else {
-              if (values.sinkConfig === undefined || values.sinkConfig === '') {
-                if (values.sinkDataSystem === 'hbase' || values.sinkDataSystem === 'postgresql') {
-                  message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
-                } else {
-                  this.loadJobSTSExit(values)
-                }
+              if (!values.sinkConfig) {
+                values.sinkDataSystem === 'hbase'
+                  ? message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
+                  : this.loadJobSTSExit(values)
               } else {
-                if (this.isJSON(values.sinkConfig) === false) {
-                  message.error('Sink Config 应为 JSON格式！', 3)
-                  return
-                } else {
-                  this.loadJobSTSExit(values)
-                }
+                this.isJSON(values.sinkConfig)
+                  ? this.loadJobSTSExit(values)
+                  : message.error('Sink Config 应为 JSON格式！', 3)
               }
             }
 
@@ -1737,13 +1726,6 @@ export class Workbench extends React.Component {
               ? ''
               : JSON.stringify({ action: tranRequestTempString })
 
-            // if (values.specialConfig === undefined || values.specialConfig === '') {
-            //   tempRequestVal = tranRequestTempString === '' ? '' : JSON.stringify({ action: tranRequestTempString })
-            // } else {
-            //   tempRequestVal = tranRequestTempString === ''
-            //     ? JSON.stringify({ specialConfig: values.specialConfig })
-            //     : JSON.stringify({ specialConfig: values.specialConfig, action: tranRequestTempString })
-            // }
             this.setState({
               formStep: formStep + 1,
               jobTranTableRequestValue: tempRequestVal,
@@ -1826,11 +1808,11 @@ export class Workbench extends React.Component {
 
     let sinkConfigRequest = ''
     if (values.resultFields === 'all') {
-      sinkConfigRequest = (values.sinkConfig === undefined || values.sinkConfig === '')
+      sinkConfigRequest = (!values.sinkConfig)
         ? maxRecord
         : `{"maxRecordPerPartitionProcessed":${Number(values.maxRecordPerPartitionProcessed)},"sink_specific_config":${values.sinkConfig}}`
     } else {
-      sinkConfigRequest = (values.sinkConfig === undefined || values.sinkConfig === '')
+      sinkConfigRequest = (!values.sinkConfig)
         ? maxRecordAndResult
         : `{"maxRecordPerPartitionProcessed":${values.maxRecordPerPartitionProcessed},"sink_specific_config":${values.sinkConfig},"sink_output":"${values.resultFieldsSelected}"}`
     }
@@ -1838,8 +1820,8 @@ export class Workbench extends React.Component {
     const tranConfigRequest = jobTranTableRequestValue === '' ? '' : `${jobTranTableRequestValue}`
 
     const requestCommon = {
-      eventTsStart: (values.eventStartTs === undefined || values.eventStartTs === null || values.eventStartTs === '') ? '' : startTsVal,
-      eventTsEnd: (values.eventEndTs === undefined || values.eventEndTs === null || values.eventEndTs === '') ? '' : endTsVal,
+      eventTsStart: (!values.eventStartTs) ? '' : startTsVal,
+      eventTsEnd: (!values.eventEndTs) ? '' : endTsVal,
       sinkConfig: sinkConfigRequest,
       tranConfig: tranConfigRequest
     }
@@ -1912,11 +1894,11 @@ export class Workbench extends React.Component {
 
     let sinkConfigRequest = ''
     if (values.resultFields === 'all') {
-      sinkConfigRequest = (values.sinkConfig === undefined || values.sinkConfig === '')
+      sinkConfigRequest = (!values.sinkConfig)
         ? ''
         : `{"sink_specific_config":${values.sinkConfig}}`
     } else {
-      sinkConfigRequest = (values.sinkConfig === undefined || values.sinkConfig === '')
+      sinkConfigRequest = (!values.sinkConfig)
         ? JSON.stringify(resultFiledsOutput)
         : `{"sink_specific_config":${values.sinkConfig},"sink_output":"${values.resultFieldsSelected}"}`
     }
@@ -2012,9 +1994,10 @@ export class Workbench extends React.Component {
     if (flowMode === 'add' || flowMode === 'copy') {
       const sourceDataInfo = [values.sourceDataSystem, values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2], '*', '*', '*'].join('.')
 
+      console.lg
       const submitFlowData = {
         projectId: Number(projectId),
-        streamId: Number(values.flowStreamId),
+        streamId: Number(values.streamName),
         sourceNs: sourceDataInfo,
         sinkNs: sourceDataInfo,
         consumedProtocol: 'all',
@@ -2022,7 +2005,7 @@ export class Workbench extends React.Component {
         tranConfig: ''
       }
 
-      if (sourceToSinkExited === true) {
+      if (sourceToSinkExited) {
         message.error('Source to Sink 已存在！', 3)
       } else {
         new Promise((resolve) => {
@@ -2080,7 +2063,7 @@ export class Workbench extends React.Component {
             streamType: values.type
           }
 
-          if (streamNameExited === true) {
+          if (streamNameExited) {
             this.workbenchStreamForm.setFields({
               streamName: {
                 value: values.streamName,
@@ -2095,7 +2078,7 @@ export class Workbench extends React.Component {
                 streamMode: ''
               })
               this.workbenchStreamForm.resetFields()
-              if (streamConfigCheck === true) {
+              if (streamConfigCheck) {
                 this.streamConfigForm.resetFields()
               }
               this.hideStreamSubmit()
@@ -2444,7 +2427,9 @@ export class Workbench extends React.Component {
         }
 
         if (num === 0) {
-          message.warning('SQL语句应以一个分号结束！', 3)
+          values.transformation === 'transformClassName'
+            ? message.warning('请以一个分号结束！', 3)
+            : message.warning('SQL语句应以一个分号结束！', 3)
         } else if (num > 1) {
           message.warning('SQL语句应只有一个分号！', 3)
         } else if (num === 1 && finalVal !== ';') {
@@ -2727,7 +2712,7 @@ export class Workbench extends React.Component {
     this.setState({
       etpStrategyModalVisible: true
     }, () => {
-      if (etpStrategyCheck === true) {
+      if (etpStrategyCheck) {
         this.flowEtpStrategyForm.setFieldsValue({
           checkColumns: etpStrategyResponseValue.check_columns,
           checkRule: etpStrategyResponseValue.check_rule,
