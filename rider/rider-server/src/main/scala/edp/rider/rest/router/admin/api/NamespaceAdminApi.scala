@@ -137,10 +137,9 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                     riderLogger.info(s"user ${session.userId} select database where id is ${simple.nsDatabaseId} success.")
                     dbOpt match {
                       case Some(db) =>
-                        val permission = db.permission
                         val nsSeq = new ArrayBuffer[Namespace]
                         simple.nsTables.map(nsTable => {
-                          nsSeq += Namespace(0, simple.nsSys.trim, simple.nsInstance.trim, simple.nsDatabase.trim, nsTable.table.trim, "*", "*", "*", permission.trim, nsTable.key,
+                          nsSeq += Namespace(0, simple.nsSys.trim, simple.nsInstance.trim, simple.nsDatabase.trim, nsTable.table.trim, "*", "*", "*", nsTable.key,
                             None, simple.nsDatabaseId, simple.nsInstanceId, active = true, currentSec, session.userId, currentSec, session.userId)
                         })
                         onComplete(namespaceDal.insert(nsSeq).mapTo[Seq[Namespace]]) {
@@ -201,7 +200,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
               }
               else {
                 val namespace = Namespace(ns.id, ns.nsSys.trim, ns.nsInstance.trim, ns.nsDatabase.trim, ns.nsTable.trim, ns.nsVersion, ns.nsDbpar, ns.nsTablepar,
-                  ns.permission, ns.keys, ns.umsInfo, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, currentSec, session.userId)
+                 ns.keys, ns.umsInfo, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, currentSec, session.userId)
                 onComplete(namespaceDal.update(namespace).mapTo[Int]) {
                   case Success(_) =>
                     riderLogger.info(s"user ${session.userId} update namespace success.")
@@ -265,7 +264,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
               onComplete(relProjectNsDal.getNsByProjectId(Some(id)).mapTo[Seq[NamespaceTopic]]) {
                 case Success(nsSeq) =>
                   riderLogger.info(s"user ${session.userId} select all namespaces where project id $id success.")
-                  complete(OK, ResponseSeqJson[NamespaceTopic](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
+                  complete(OK, ResponseSeqJson[NamespaceTopic](getHeader(200, session), nsSeq.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable))))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} select all namespaces where project id $id failed", ex)
                   complete(OK, getHeader(451, ex.getMessage, session))
@@ -296,7 +295,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
       case Success(res) =>
         riderLogger.info(s"user ${session.userId} select all namespaces success.")
         complete(OK, ResponseSeqJson[NamespaceAdmin](getHeader(200, session),
-          res.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.permission))))
+          res.sortBy(ns => (ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable))))
       case Failure(ex) =>
         riderLogger.error(s"user ${session.userId} select all namespaces failed", ex)
         complete(OK, getHeader(451, ex.getMessage, session))

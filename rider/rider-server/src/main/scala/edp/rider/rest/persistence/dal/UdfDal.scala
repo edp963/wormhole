@@ -33,9 +33,25 @@ import scala.concurrent.{Await, Future}
 
 class UdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdfDal) extends BaseDalImpl[UdfTable, Udf](udfTable) with RiderLogger {
 
+  def getUdfProjectById(id: Long): Option[UdfProject] = {
+    val udfOpt = Await.result(super.findById(id), minTimeOut)
+    udfOpt match {
+      case Some(udf) =>
+        val map = Await.result(relProjectUdfDal.getUdfProjectName(Some(udf.id)), minTimeOut)
+        val projectNames =
+          if (map.contains(udf.id))
+            map(udf.id).sorted.mkString(",")
+          else ""
+        Some(UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic,
+          udf.createTime, udf.createBy, udf.updateTime, udf.updateBy, projectNames))
+      case None => None
+
+    }
+  }
+
   def getUdfProject: Future[Seq[UdfProject]] = {
     try {
-      val udfProjectMap = Await.result(relProjectUdfDal.getUdfProjectName, minTimeOut)
+      val udfProjectMap = Await.result(relProjectUdfDal.getUdfProjectName(), minTimeOut)
       val udfs = super.findAll
       udfs.map[Seq[UdfProject]] {
         val udfProjectSeq = new ArrayBuffer[UdfProject]

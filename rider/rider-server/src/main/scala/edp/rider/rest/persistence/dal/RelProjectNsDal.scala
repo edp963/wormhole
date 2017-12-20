@@ -79,14 +79,14 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
     db.run(((nsQuery.filter(_.active === true) join relProjectNsQuery on (_.id === _.nsId))
       join databaseTable on (_._1.nsDatabaseId === _.id))
       .map {
-        case ((ns, rel), database) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
+        case ((ns, rel), database) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.keys,
           ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy, database.nsDatabase) <> (NamespaceTopic.tupled, NamespaceTopic.unapply)
       }.distinct.result).map[Seq[NamespaceTopic]] {
       nsSeq =>
         nsSeq.map {
           ns =>
             val topic = if (ns.topic == ns.nsDatabase) "" else ns.topic
-            NamespaceTopic(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
+            NamespaceTopic(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.keys,
               ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy, topic)
         }
     }
@@ -97,7 +97,7 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
       relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) on (_.id === _.nsId))
       join streamTable.filter(_.id === streamId) on (_._1.nsInstanceId === _.instanceId))
       .map {
-        case ((ns, _), _) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
+        case ((ns, _), _) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.keys,
           ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy) <> (NamespaceInfo.tupled, NamespaceInfo.unapply)
       }.result).mapTo[Seq[NamespaceInfo]]
 
@@ -105,20 +105,20 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
     db.run((namespaceTable.filter(ns => ns.nsSys === nsSys && ns.active === true) join
       relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) on (_.id === _.nsId))
       .map {
-        case (ns, _) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
+        case (ns, _) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.keys,
           ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy) <> (NamespaceInfo.tupled, NamespaceInfo.unapply)
       }.result).mapTo[Seq[NamespaceInfo]]
 
   def getSinkNamespaceByProjectId(id: Long, nsSys: String) =
-    db.run(((namespaceTable.filter(ns => ns.nsSys === nsSys && ns.active === true && ns.permission === READWRITE.toString) join
+    db.run(((namespaceTable.filter(ns => ns.nsSys === nsSys && ns.active === true) join
       relProjectNsTable.filter(rel => rel.projectId === id && rel.active === true) on (_.id === _.nsId)) join instanceTable on (_._1.nsInstanceId === _.id))
       .map {
-        case ((ns, rel), instance) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
+        case ((ns, rel), instance) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.keys,
           ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy, instance.nsSys) <> (NamespaceTemp.tupled, NamespaceTemp.unapply)
       }.result).map[Seq[NamespaceInfo]] {
       nsSeq =>
         nsSeq.filter(ns => ns.nsSys == ns.nsInstanceSys)
-          .map(ns => NamespaceInfo(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
+          .map(ns => NamespaceInfo(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.keys,
             ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy))
     }
 
@@ -155,7 +155,7 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
       val nsProjectMap = Await.result(getNsProjectName, minTimeOut)
       db.run((namespaceTable.withFilter(f) join databaseTable on (_.nsDatabaseId === _.id))
         .map {
-          case (ns, database) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.permission, ns.keys,
+          case (ns, database) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.keys,
             ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy, database.nsDatabase) <> (NamespaceTopic.tupled, NamespaceTopic.unapply)
         }.distinct.result)
         .map[Seq[NamespaceAdmin]] {
@@ -165,11 +165,11 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
             val topic = if (ns.topic == ns.nsDatabase) "" else ns.topic
             if (nsProjectMap.contains(ns.id))
               nsProjectSeq += NamespaceAdmin(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar,
-                ns.permission, ns.keys, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy,
+                ns.keys, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy,
                 nsProjectMap(ns.id).mkString(","), topic)
             else
               nsProjectSeq += NamespaceAdmin(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar,
-                ns.permission, ns.keys, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy, "", topic)
+                ns.keys, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy, "", topic)
           })
           nsProjectSeq
       }
