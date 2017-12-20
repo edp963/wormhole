@@ -284,4 +284,29 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
         }
       }
   }
+
+  override def deleteRoute(route: String): Route = path(route / LongNumber) {
+    id =>
+      delete {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              try {
+                val result = userDal.delete(id)
+                if (result._1)
+                  complete(OK, getHeader(200, session))
+                else complete(OK, getHeader(412, result._2, session))
+              } catch {
+                case ex: Exception =>
+                  riderLogger.error(s"user ${session.userId} delete user $id success", ex)
+                  complete(OK, getHeader(451, session))
+              }
+            }
+        }
+      }
+  }
 }
