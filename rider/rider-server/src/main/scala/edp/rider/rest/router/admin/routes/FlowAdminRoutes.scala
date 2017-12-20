@@ -31,7 +31,7 @@ import io.swagger.annotations._
 @Path("/admin")
 class FlowAdminRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
-  lazy val routes: Route = getAll ~ getFlowByProjectIdRoute
+  lazy val routes: Route = getAll ~ getFlowByProjectIdRoute ~ getByIdRoute
 
   lazy val basePath = "flows"
 
@@ -62,6 +62,21 @@ class FlowAdminRoutes(modules: ConfigurationModule with PersistenceModule with B
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getFlowByProjectIdRoute: Route = modules.flowAdminService.getByProjectIdRoute("projects")
+
+  @Path("/projects/{id}/flows/{flowId}")
+  @ApiOperation(value = "get one flow from system by flow id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "flowId", value = "flow id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not admin"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getByIdRoute: Route = modules.flowAdminService.getById("projects")
 
 }
 

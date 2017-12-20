@@ -48,7 +48,7 @@ class UserAdminRoutes(modules: ConfigurationModule with PersistenceModule with B
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getUserByIdRoute: Route = modules.userAdminService.getByIdRoute(basePath)
+  def getUserByIdRoute: Route = modules.userAdminService.getById(basePath)
 
   @Path("/users")
   @ApiOperation(value = "get all users", notes = "", nickname = "", httpMethod = "GET")
