@@ -1575,7 +1575,7 @@ export class Workbench extends React.Component {
             const values = this.workbenchFlowForm.getFieldsValue()
             if (values.sinkConfig === undefined || values.sinkConfig === '') {
               // 是否是 hbase/mysql/oracle.postgresql
-              if (values.sinkDataSystem === 'hbase' || values.sinkDataSystem === 'mysql' || values.sinkDataSystem === 'oracle' || values.sinkDataSystem === 'postgresql') {
+              if (values.sinkDataSystem === 'hbase' || values.sinkDataSystem === 'postgresql') {
                 message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
               } else {
                 this.loadSTSExit(values)
@@ -1698,7 +1698,7 @@ export class Workbench extends React.Component {
               message.error('该 Job Name 已存在！', 3)
             } else {
               if (values.sinkConfig === undefined || values.sinkConfig === '') {
-                if (values.sinkDataSystem === 'hbase' || values.sinkDataSystem === 'mysql' || values.sinkDataSystem === 'oracle' || values.sinkDataSystem === 'postgresql') {
+                if (values.sinkDataSystem === 'hbase' || values.sinkDataSystem === 'postgresql') {
                   message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
                 } else {
                   this.loadJobSTSExit(values)

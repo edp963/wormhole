@@ -58,6 +58,7 @@ export class Namespace extends React.PureComponent {
       namespaceFormType: 'add',
       refreshNsLoading: false,
       refreshNsText: 'Refresh',
+      showNsDetail: {},
 
       currentNamespaces: [],
       originNamespaces: [],
@@ -1002,8 +1003,22 @@ export class Namespace extends React.PureComponent {
     })
   }
 
+  handleVisibleChangeNs = (record) => (visible) => {
+    if (visible) {
+      this.setState({
+        visible
+      }, () => {
+        this.props.onLoadSingleNamespace(record.id, (result) => {
+          this.setState({
+            showNsDetail: result
+          })
+        })
+      })
+    }
+  }
+
   render () {
-    const { refreshNsLoading, refreshNsText } = this.state
+    const { refreshNsLoading, refreshNsText, showNsDetail } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -1254,10 +1269,12 @@ export class Namespace extends React.PureComponent {
                 <Popover
                   placement="left"
                   content={<div className="project-name-detail">
-                    <p><strong>   Project Names：</strong>{record.projectName}</p>
+                    <p><strong>   Project Names：</strong>{showNsDetail.projectName}</p>
                   </div>}
                   title={<h3>详情</h3>}
-                  trigger="click">
+                  trigger="click"
+                  onVisibleChange={this.handleVisibleChangeNs(record)}
+                >
                   <Button icon="file-text" shape="circle" type="ghost"></Button>
                 </Popover>
               </Tooltip>

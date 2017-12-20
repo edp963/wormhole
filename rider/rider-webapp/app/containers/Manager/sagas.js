@@ -106,10 +106,7 @@ export function* getStreamDetail ({ payload }) {
     ? `${api.projectAdminStream}`
     : `${api.projectStream}`
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${apiFinal}/${payload.projectId}/streams/${payload.streamId}`
-    })
+    const result = yield call(request, `${apiFinal}/${payload.projectId}/streams/${payload.streamId}`)
     yield put(streamDetailLoaded(result.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'getStreamDetail')
@@ -122,10 +119,7 @@ export function* getStreamDetailWatcher () {
 
 export function* getOffset ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectStream}/${payload.values.id}/streams/${payload.values.streamId}/topics/offsets/latest`
-    })
+    const result = yield call(request, `${api.projectStream}/${payload.values.id}/streams/${payload.values.streamId}/topics/offsets/latest`)
     yield put(offsetLoaded(result.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'getOffset')
@@ -138,10 +132,7 @@ export function* getOffsetWatcher () {
 
 export function* getStreamNameValue ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectStream}/${payload.projectId}/streams?streamName=${payload.value}`
-    })
+    const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams?streamName=${payload.value}`)
     if (result.code === 409) {
       yield put(streamNameValueErrorLoaded(result.msg, payload.reject))
     } else {
@@ -158,10 +149,7 @@ export function* getStreamNameValueWatcher () {
 
 export function* getKafka ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectStream}/${payload.projectId}/instances?nsSys=kafka`
-    })
+    const result = yield call(request, `${api.projectStream}/${payload.projectId}/instances?nsSys=kafka`)
     yield put(kafkaLoaded(result.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'getKafka')
@@ -174,10 +162,7 @@ export function* getKafkaWatcher () {
 
 export function* getStreamConfigJvm ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectStream}/streams/default/config`
-    })
+    const result = yield call(request, `${api.projectStream}/streams/default/config`)
     yield put(streamConfigJvmLoaded(result.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'getStreamConfigJvm')
@@ -190,10 +175,7 @@ export function* getStreamConfigJvmWatcher () {
 
 export function* getLogs ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/logs`
-    })
+    const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/logs`)
     yield put(logsInfoLoaded(result.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'getLogs')
@@ -206,10 +188,7 @@ export function* getLogsWatcher () {
 
 export function* getAdminLogs ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectList}/${payload.projectId}/streams/${payload.streamId}/logs`
-    })
+    const result = yield call(request, `${api.projectList}/${payload.projectId}/streams/${payload.streamId}/logs`)
     yield put(adminLogsInfoLoaded(result.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'getAdminLogs')

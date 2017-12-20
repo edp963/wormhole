@@ -187,10 +187,7 @@ export function* getTranSinkTypeNamespaceWatcher () {
 
 export function* getSourceToSink ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectUserList}/${payload.projectId}/flows?sourceNs=${payload.sourceNs}&sinkNs=${payload.sinkNs}`
-    })
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/flows?sourceNs=${payload.sourceNs}&sinkNs=${payload.sinkNs}`)
     if (result.code === 200) {
       yield put(sourceToSinkExistLoaded(result.msg, payload.resolve))
     } else {
@@ -257,10 +254,7 @@ export function* operateUserFlowWatcher () {
 
 export function* queryForm ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectUserList}/${payload.values.projectId}/streams/${payload.values.streamId}/flows/${payload.values.id}`
-    })
+    const result = yield call(request, `${api.projectUserList}/${payload.values.projectId}/streams/${payload.values.streamId}/flows/${payload.values.id}`)
     yield put(flowQueryed(result.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'queryForm')
@@ -465,10 +459,7 @@ export function* queryFlow ({ payload }) {
     ? `${api.projectList}/${payload.value.projectId}/flows/${payload.value.flowId}`
     : `${api.projectUserList}/${payload.value.projectId}/streams/${payload.value.streamId}/flows/${payload.value.flowId}`
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: apiFinal
-    })
+    const result = yield call(request, apiFinal)
     yield put(flowDetailLoad(result.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'queryFlow')
