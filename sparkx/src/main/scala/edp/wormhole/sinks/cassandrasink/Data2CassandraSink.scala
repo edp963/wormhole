@@ -22,7 +22,7 @@
 package edp.wormhole.sinks.cassandrasink
 
 import com.datastax.driver.core._
-import com.datastax.driver.core.exceptions. NoHostAvailableException
+import com.datastax.driver.core.exceptions.NoHostAvailableException
 import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
@@ -32,12 +32,11 @@ import edp.wormhole.ums.{UmsFieldType, UmsOpType}
 import edp.wormhole.ums.UmsSysField._
 import java.lang.{Double, Float, Long}
 
+import edp.wormhole.common.util.DateUtils
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.common.util.DateUtils._
 
 import scala.collection.mutable
-
-
 
 class Data2CassandraSink extends SinkProcessor with EdpLogging {
   override def process(protocolType: UmsProtocolType,
@@ -77,7 +76,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
         val dataMap = mutable.HashMap.empty[String,Long]
         import collection.JavaConversions._
         filterRes.foreach(row=>{
-          val umsId=row.getLong("ums_id_")
+          val umsId=row.getLong(ID.toString)
           val mapKey=tableKeys.map(key=>row.getObject(key).toString).mkString("_")
           if (dataMap.contains(mapKey)) dataMap(mapKey)=if(dataMap(mapKey)>=umsId) dataMap(mapKey) else umsId
           else dataMap(mapKey)=umsId
@@ -104,12 +103,12 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     val batch = new BatchStatement()
     for (tuple <- tupleFilterList) {
       //      val umsIdValue: Long = tuple(schemaMap(ID.toString)._1).toLong
-      val umsTsLong=dt2long(tuple(schemaMap(TS.toString)._1).split("\\+")(0).replace("T"," "))
+//      val umsTsLong=dt2long(tuple(schemaMap(TS.toString)._1).split("\\+")(0).replace("T"," "))
       val bound: BoundStatement = prepareSchema.bind()
-      val umsOpValue: String = tuple(schemaMap(OP.toString)._1)
-      schemaMap.keys.foreach { column =>
-        if (!Set(OP.toString).contains(column)) {
-          val (index, fieldType, _) = schemaMap(column)
+      schemaMap.keys.foreach { column: String =>
+//        if (!Set(OP.toString).contains(column)) {
+        val (index, fieldType, _) = schemaMap(column)
+        if(OP.toString!=column){
           val valueString = tuple(index)
           if (valueString == null) {
             bound.setToNull(column)
@@ -120,15 +119,22 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
               case e: Throwable => logError("bindWithDifferentTypes:", e)
             }
           }
+        }else{
+          if (UmsOpType.DELETE.toString == tuple(index).toLowerCase) {
+            bound.setBool(columnNumber - 1, java.lang.Boolean.valueOf("false")) //not active--d--false
+          } else {
+            bound.setBool(columnNumber - 1, java.lang.Boolean.valueOf("true")) // active--i,u--true
+          }
         }
       }
 
-      if (UmsOpType.DELETE.toString == umsOpValue.toLowerCase) {
-        bound.setBool(columnNumber - 1, java.lang.Boolean.valueOf("false")) //not active--d--false
-      } else {
-        bound.setBool(columnNumber - 1, java.lang.Boolean.valueOf("true")) // active--i,u--true
-      }
-      bound.setLong(columnNumber, umsTsLong) //set TS
+//      val umsOpValue: String = tuple(schemaMap(OP.toString)._1)
+//      if (UmsOpType.DELETE.toString == umsOpValue.toLowerCase) {
+//        bound.setBool(columnNumber - 1, java.lang.Boolean.valueOf("false")) //not active--d--false
+//      } else {
+//        bound.setBool(columnNumber - 1, java.lang.Boolean.valueOf("true")) // active--i,u--true
+//      }
+//      bound.setLong(columnNumber, umsIdValue) //set TS
       if (batch.size() >= cassandraSpecialConfig.`cassandra.batchSize.get`) {
         session.execute(batch)
         batch.clear()
@@ -144,14 +150,17 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     val strBuilder = StringBuilder.newBuilder
     strBuilder.append("(")
     schemaMap.keys.foreach { column =>
-      if (!Set(OP.toString).contains(column)) {
+//      if (!Set(OP.toString).contains(column)) {
+      if(OP.toString!=column){
         columnCounter += 1
         strBuilder.append(column)
         strBuilder.append(", ")
+      }else{
+        strBuilder.append(OP.toString)
+        columnCounter += 1 // for "active"
       }
     }
-    strBuilder.append("ums_op_)")
-    columnCounter += 1 // for "active"
+    strBuilder.append(")")
     (strBuilder.toString(), columnCounter)
   }
 
@@ -185,7 +194,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
   private def checkTableBykey(keyspace: String, table: String,tableKeys:List[String],valueList:List[Int],tupleList:Seq[Seq[String]])={
     val firstPk=tableKeys.head
     val firstPkValues=tupleList.map(tuple=>tuple(valueList.head)).mkString("(",",",")")
-    val selectColumns=tableKeys.mkString(",")+",ums_id_"
+    val selectColumns=tableKeys.mkString(",")+","+ID.toString
     val tableKeySize=tableKeys.size
     if (tableKeySize==1){
       "SELECT "+selectColumns+" from "+keyspace+"."+table+" where "+firstPk+" in "+firstPkValues+";"
@@ -207,7 +216,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
   }
 
   private def bindWithDifferentTypes(bound: BoundStatement, columnName: String, fieldType: UmsFieldType, value: String): Unit =
-    if (columnName=="ums_ts_")
+    if (columnName==TS.toString)
       bound.setTimestamp(columnName, dt2date(value.trim.split("\\+")(0).replace("T"," ")))
       else{
     fieldType match {
