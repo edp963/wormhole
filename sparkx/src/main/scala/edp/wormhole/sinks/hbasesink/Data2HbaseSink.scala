@@ -79,7 +79,6 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
             val (index, fieldType, _) = schemaMap(column)
             val valueString = tuple._3(index)
             if (OP.toString != column) {
-              put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), s2hbaseValue(fieldType, valueString))
               if (saveAsString) put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), s2hbaseStringValue(fieldType, valueString, column))
               else put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), s2hbaseValue(fieldType, valueString))
             } else {
@@ -108,7 +107,7 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
       if(hbaseConfig.`mutation_type.get`==SourceMutationType.I_U_D.toString){
         (rowkey(patternContentList, tuple), tuple(schemaMap(ID.toString)._1).toLong, tuple)
       }else{
-        (rowkey(patternContentList, tuple), 0, tuple)
+        (rowkey(patternContentList, tuple), 0l, tuple)
       }
     })
 
