@@ -35,7 +35,7 @@ import edp.wormhole.ums.UmsFieldType.UmsFieldType
 
 import scala.collection.mutable
 
-class SpecialSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], specificConfig: DbConfig, sinkNamespace: String, connectionConfig: ConnectionConfig) extends EdpLogging {
+class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], specificConfig: DbConfig, sinkNamespace: String, connectionConfig: ConnectionConfig) extends EdpLogging {
   private lazy val namespace = UmsNamespace(sinkNamespace)
   private lazy val masterTableName = namespace.table
   private lazy val subTableName = specificConfig.edpTable
