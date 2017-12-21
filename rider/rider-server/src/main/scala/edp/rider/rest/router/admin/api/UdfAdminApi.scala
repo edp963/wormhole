@@ -261,27 +261,15 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
     }
   }
 
-  private def deleteResponse(id: Long, session: SessionClass): Route
-
-  = {
+  private def deleteResponse(id: Long, session: SessionClass): Route = {
     try {
-      onComplete(udfDal.deleteById(id).mapTo[Int]) {
-        case Success(_) =>
-          riderLogger.info(s"user ${
-            session.userId
-          } delete udf $id success")
-          complete(OK, getHeader(200, session))
-        case Failure(ex) =>
-          riderLogger.info(s"user ${
-            session.userId
-          } delete udf $id failed", ex)
-          complete(OK, getHeader(451, session))
-      }
+      val result = udfDal.delete(id)
+      if (result._1)
+        complete(OK, getHeader(200, session))
+      else complete(OK, getHeader(412, result._2, session))
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"user ${
-          session.userId
-        } delete udf $id failed", ex)
+        riderLogger.error(s"user ${session.userId} delete udf $id success", ex)
         complete(OK, getHeader(451, session))
     }
   }
