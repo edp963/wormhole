@@ -32,7 +32,7 @@ import io.swagger.annotations._
 class NamespaceAdminRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
   lazy val routes: Route = postNamespaceRoute ~ putNamespaceRoute ~ getNamespaceByAllRoute ~ getNamespaceByIdRoute ~
-    getNsByProjectIdRoute ~ putSchemaConfigRoute ~ getSchemaConfigRoute
+    getNsByProjectIdRoute ~ putUmsInfoRoute ~ getUmsInfoRoute ~ putSinkInfoRoute ~ getSinkInfoRoute
 
   lazy val basePath = "namespaces"
 
@@ -111,7 +111,7 @@ class NamespaceAdminRoutes(modules: ConfigurationModule with PersistenceModule w
   ))
   def getNsByProjectIdRoute: Route = modules.namespaceAdminService.getByProjectIdRoute("projects")
 
-  @Path("/namespaces/{id}/schema")
+  @Path("/namespaces/{id}/schema/source")
   @ApiOperation(value = "config namespace in the system", notes = "", nickname = "", httpMethod = "PUT")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "namespace id", required = true, dataType = "integer", paramType = "path"),
@@ -124,9 +124,9 @@ class NamespaceAdminRoutes(modules: ConfigurationModule with PersistenceModule w
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def putSchemaConfigRoute: Route = modules.namespaceAdminService.putSchemaConfigRoute(basePath)
+  def putUmsInfoRoute: Route = modules.namespaceAdminService.putUmsInfoRoute(basePath)
 
-  @Path("/namespaces/{id}/schema")
+  @Path("/namespaces/{id}/schema/source")
   @ApiOperation(value = "get namespace config in the system", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "namespace id", required = true, dataType = "integer", paramType = "path")
@@ -138,7 +138,36 @@ class NamespaceAdminRoutes(modules: ConfigurationModule with PersistenceModule w
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getSchemaConfigRoute: Route = modules.namespaceAdminService.getSchemaByIdRoute(basePath)
+  def getUmsInfoRoute: Route = modules.namespaceAdminService.getUmsInfoByIdRoute(basePath)
+
+  @Path("/namespaces/{id}/schema/sink")
+  @ApiOperation(value = "config namespace in the system", notes = "", nickname = "", httpMethod = "PUT")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "namespace id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "umsInfo", value = "umsInfo", required = true, dataType = "edp.rider.rest.persistence.entities.UmsInfo", paramType = "body")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "put success"),
+    new ApiResponse(code = 403, message = "user is not admin"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def putSinkInfoRoute: Route = modules.namespaceAdminService.putSinkInfoRoute(basePath)
+
+  @Path("/namespaces/{id}/schema/sink")
+  @ApiOperation(value = "get namespace config in the system", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "namespace id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "put success"),
+    new ApiResponse(code = 403, message = "user is not admin"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getSinkInfoRoute: Route = modules.namespaceAdminService.getSinkInfoByIdRoute(basePath)
 
 }
 
