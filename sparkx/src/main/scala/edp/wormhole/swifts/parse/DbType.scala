@@ -39,6 +39,7 @@ object DbType {
     case "BLOB" => "binary"
     case "LONGBLOB" => "binary"
     case "BINARY" => "binary"
+    case "CHAR" => "string"
 
     //oracle
     case "VARCHAR2" => "string"
