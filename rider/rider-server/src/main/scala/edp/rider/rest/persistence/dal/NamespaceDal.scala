@@ -35,7 +35,7 @@ import edp.rider.rest.util.{NamespaceUtils, UdfUtils}
 import edp.wormhole.common.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
-
+import edp.rider.RiderStarter.modules._
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -46,10 +46,7 @@ import scala.concurrent.{Await, Future}
 class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
                    databaseDal: NsDatabaseDal,
                    instanceDal: BaseDal[InstanceTable, Instance],
-                   dbusDal: BaseDal[DbusTable, Dbus],
-                   projectDal: ProjectDal,
-                   relProjectNsDal: RelProjectNsDal,
-                   flowDal: FlowDal) extends BaseDalImpl[NamespaceTable, Namespace](namespaceTable) with RiderLogger {
+                   dbusDal: BaseDal[DbusTable, Dbus]) extends BaseDalImpl[NamespaceTable, Namespace](namespaceTable) with RiderLogger {
 
   def getDbusFromRest: Seq[SimpleDbus] = {
     try {

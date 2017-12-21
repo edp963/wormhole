@@ -115,7 +115,7 @@ trait PersistenceModule {
 trait PersistenceModuleImpl extends PersistenceModule {
   this: ConfigurationModule =>
 
-  override lazy val instanceDal = new InstanceDal(instanceQuery)
+  override lazy val instanceDal = new InstanceDal(instanceQuery, databaseDal)
   override lazy val databaseDal = new NsDatabaseDal(databaseQuery, instanceQuery)
   override lazy val namespaceDal = new NamespaceDal(namespaceQuery, databaseDal, instanceDal, dbusDal)
   override lazy val userDal = new UserDal(userQuery, relProjectUserDal, projectDal)
