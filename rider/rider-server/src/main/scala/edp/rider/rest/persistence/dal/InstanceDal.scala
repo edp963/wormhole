@@ -24,13 +24,15 @@ package edp.rider.rest.persistence.dal
 import edp.rider.common.{DatabaseSearchException, InstanceNotExistException, RiderLogger}
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
+import edp.rider.rest.util.CommonUtils.minTimeOut
+import edp.rider.rest.util.NamespaceUtils
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration._
 
-class InstanceDal(instanceTable: TableQuery[InstanceTable]) extends BaseDalImpl[InstanceTable, Instance](instanceTable) with RiderLogger {
+class InstanceDal(instanceTable: TableQuery[InstanceTable], databaseDal: NsDatabaseDal) extends BaseDalImpl[InstanceTable, Instance](instanceTable) with RiderLogger {
 
   def getStreamKafka(streamInstanceMap: Map[Long, Long]): Map[Long, StreamKafka] = {
     try {
@@ -45,6 +47,23 @@ class InstanceDal(instanceTable: TableQuery[InstanceTable]) extends BaseDalImpl[
     } catch {
       case ex: Exception =>
         throw DatabaseSearchException(ex.getMessage, ex.getCause)
+    }
+  }
+
+  def delete(id: Long): (Boolean, String) = {
+    try {
+      val dbSeq = Await.result(databaseDal.findByFilter(_.nsInstanceId === id), minTimeOut).map(_.nsDatabase)
+      if (dbSeq.nonEmpty) {
+        riderLogger.info(s"instance $id still has database ${dbSeq.mkString(",")}, can't delete it")
+        (false, s"please delete database ${dbSeq.mkString(",")} first")
+      } else {
+        Await.result(super.deleteById(id), minTimeOut)
+        (true, "success")
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"delete instance $id failed", ex)
+        throw new Exception(s"delete instance $id failed", ex)
     }
   }
 }
