@@ -25,109 +25,113 @@ import java.sql._
 
 import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.common.db.DbConnection
-import edp.wormhole.sinks.{SinkProcessConfig, SourceMutationType}
-import edp.wormhole.sinks.DbHelper._
-import edp.wormhole.sinks.SourceMutationType.{SourceMutationType, _}
+import edp.wormhole.sinks.SourceMutationType.SourceMutationType
 import edp.wormhole.sinks.utils.SinkDefault._
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.ums.{UmsFieldType, UmsSysField, _}
+import edp.wormhole.ums.UmsDataSystem.UmsDataSystem
+import edp.wormhole.ums.{UmsFieldType, UmsOpType, UmsSysField, _}
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsOpType._
-import edp.wormhole.ums.UmsSysField._
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-class SqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], specificConfig: DbConfig, sinkNamespace: String, connectionConfig: ConnectionConfig,systemRenameMap: Map[String, String] ) extends EdpLogging {
-  private lazy val namespace = UmsNamespace(sinkNamespace)
-  private lazy val tableName = namespace.table
-  private lazy val metaIdName = if (systemRenameMap == null) ID.toString else systemRenameMap(ID.toString)
-  private lazy val allFieldNames = schemaMap.keySet.toList
-  private lazy val baseFieldNames = removeFieldNames(allFieldNames, Set(OP.toString).contains)
-  private lazy val tableKeyNames = sinkProcessConfig.tableKeyList
-  private lazy val fieldNamesWithoutParNames = removeFieldNames(baseFieldNames, specificConfig.partitionKeyList.contains)
-  private lazy val updateFieldNames = removeFieldNames(fieldNamesWithoutParNames, tableKeyNames.contains)
-  private lazy val fieldSqlTypeMap = schemaMap.map(kv => (kv._1, ums2dbType(kv._2._2)))
+object SqlProcessor extends EdpLogging {
+  //(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], specificConfig: DbConfig, sinkNamespace: String, connectionConfig: ConnectionConfig, systemRenameMap: Map[String, String])
+  //  private lazy val tableKeyNames: Seq[String] = sinkProcessConfig.tableKeyList
 
-  def checkDbAndGetInsertUpdateList(keysTupleMap: mutable.HashMap[String, Seq[String]]): (List[Seq[String]], List[Seq[String]]) = {
-    def selectMysqlSql(tupleCount: Int): String = {
-      val keysString = tableKeyNames.map(tk =>s"""`$tk`""").mkString(",")
-      val keyQuestionMarks = (1 to tableKeyNames.size).map(_ => "?").mkString("(", ",", ")")
-      s"SELECT $keysString, $metaIdName FROM `$tableName` WHERE ($keysString) IN " +
-        (1 to tupleCount).map(_ => keyQuestionMarks).mkString("(", ",", ")")
+  //  private lazy val namespace = UmsNamespace(sinkNamespace)
+  //  private lazy val tableName = namespace.table
+  //  private lazy val metaIdName = if (systemRenameMap == null) ID.toString else systemRenameMap(ID.toString)
+  //  private lazy val allFieldNames: Seq[String] = schemaMap.keySet.toList
+  //  private lazy val baseFieldNames = removeFieldNames(allFieldNames, Set(OP.toString).contains)
+  //
+  //  private lazy val fieldNamesWithoutParNames = removeFieldNames(baseFieldNames, specificConfig.partitionKeyList.contains)
+  //  private lazy val updateFieldNames = removeFieldNames(fieldNamesWithoutParNames, tableKeyNames.contains)
+  //    private lazy val fieldSqlTypeMap = schemaMap.map(kv => (kv._1, ums2dbType(kv._2._2)))
+
+  def selectMysqlSql(tupleCount: Int, tableKeyNames: Seq[String], tableName: String, sysIdName: String): String = {
+    val keysString = tableKeyNames.map(tk =>s"""`$tk`""").mkString(",")
+    val keyQuestionMarks = (1 to tableKeyNames.size).map(_ => "?").mkString("(", ",", ")")
+    s"SELECT $keysString, $sysIdName FROM `$tableName` WHERE ($keysString) IN " +
+      (1 to tupleCount).map(_ => keyQuestionMarks).mkString("(", ",", ")")
+  }
+
+  def selectOracleSql(tupleCount: Int, tableKeyNames: Seq[String], tableName: String, sysIdName: String): String = {
+    val keysString = tableKeyNames.map(name => "\"" + name.toUpperCase + "\"").mkString(",")
+    val keyQuestionMarks: String = (1 to tableKeyNames.size).map(_ => "?").mkString("(", ",", ")")
+    s"""SELECT $keysString, $sysIdName FROM "${tableName.toUpperCase}" WHERE ($keysString) IN """ +
+      (1 to tupleCount).sliding(1000, 1000).map(slidSize => {
+        (1 to slidSize.size).map(_ => keyQuestionMarks).mkString("(", ",", ")")
+      }).mkString(s" OR ($keysString) IN ")
+  }
+
+  def selectPostgresSql(tupleCount: Int, tableKeyNames: Seq[String], tableName: String, sysIdName: String): String = {
+    val keysString = tableKeyNames.map(tk =>s"""$tk""").mkString(",")
+    val keyQuestionMarks = (1 to tableKeyNames.size).map(_ => "?").mkString("(", ",", ")")
+    s"SELECT $keysString, $sysIdName FROM $tableName WHERE ($keysString) IN " +
+      (1 to tupleCount).map(_ => keyQuestionMarks).mkString("(", ",", ")")
+  }
+
+  def selectOtherSql(tupleCount: Int, tableKeyNames: Seq[String], tableName: String, sysIdName: String): String = {
+    val keysString = tableKeyNames.mkString(",")
+    val keyQuestionMarks: String = (1 to tableKeyNames.size).map(_ => "?").mkString("(", ",", ")")
+    s"""SELECT $keysString, $sysIdName FROM ${tableName.toUpperCase} WHERE ($keysString) IN """ +
+      (1 to tupleCount).sliding(1000, 1000).map(slidSize => {
+        (1 to slidSize.size).map(_ => keyQuestionMarks).mkString("(", ",", ")")
+      }).mkString(s" OR ($keysString) IN ")
+  }
+
+  def splitInsertAndUpdate(rs: ResultSet, keysTupleMap: mutable.HashMap[String, Seq[String]], tableKeyNames: Seq[String], sysIdName: String,
+                           renameSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): (List[Seq[String]], List[Seq[String]]) = {
+    val rsKeyUmsTsMap = mutable.HashMap.empty[String, Long]
+    val updateList = mutable.ListBuffer.empty[Seq[String]]
+    val insertList = mutable.ListBuffer.empty[Seq[String]]
+    val columnTypeMap = mutable.HashMap.empty[String, String]
+    val metaData = rs.getMetaData
+    val columnCount = metaData.getColumnCount
+    for (i <- 1 to columnCount) {
+      val columnName = metaData.getColumnLabel(i)
+      val columnType = metaData.getColumnClassName(i)
+      columnTypeMap(columnName.toLowerCase) = columnType
     }
 
-    def selectOracleSql(tupleCount: Int): String = {
-      val keysString = tableKeyNames.map(name => "\"" + name.toUpperCase + "\"").mkString(",")
-      val keyQuestionMarks: String = (1 to tableKeyNames.size).map(_ => "?").mkString("(", ",", ")")
-      s"""SELECT $keysString, $metaIdName FROM "${tableName.toUpperCase}" WHERE ($keysString) IN """ +
-        (1 to tupleCount).sliding(1000, 1000).map(slidSize => {
-          (1 to slidSize.size).map(_ => keyQuestionMarks).mkString("(", ",", ")")
-        }).mkString(s" OR ($keysString) IN ")
+    while (rs.next) {
+      val keysId = tableKeyNames.map(keyName => {
+        if (columnTypeMap(keyName) == "java.math.BigDecimal") rs.getBigDecimal(keyName).stripTrailingZeros.toPlainString
+        else rs.getObject(keyName).toString
+      }).mkString("_")
+      val umsId = rs.getLong(sysIdName)
+      rsKeyUmsTsMap(keysId) = umsId
     }
+    logInfo("rs finish")
 
-    def selectPostgresSql(tupleCount: Int): String = {
-      val keysString = tableKeyNames.map(tk =>s"""$tk""").mkString(",")
-      val keyQuestionMarks = (1 to tableKeyNames.size).map(_ => "?").mkString("(", ",", ")")
-      s"SELECT $keysString, $metaIdName FROM $tableName WHERE ($keysString) IN " +
-        (1 to tupleCount).map(_ => keyQuestionMarks).mkString("(", ",", ")")
-    }
+    keysTupleMap.foreach(keysTuple => {
+      val (keysId, tuple) = keysTuple
+      if (rsKeyUmsTsMap.contains(keysId)) {
+        val tupleId = umsFieldValue(tuple(renameSchemaMap(sysIdName)._1), UmsFieldType.LONG).asInstanceOf[Long]
+        val rsId = rsKeyUmsTsMap(keysId)
+        if (tupleId > rsId)
+          updateList.append(tuple)
+      } else
+        insertList.append(tuple)
+    })
+    (insertList.toList, updateList.toList)
+  }
 
-    def selectOtherSql(tupleCount: Int): String = {
-      val keysString = tableKeyNames.mkString(",")
-      val keyQuestionMarks: String = (1 to tableKeyNames.size).map(_ => "?").mkString("(", ",", ")")
-      s"""SELECT $keysString, $metaIdName FROM ${tableName.toUpperCase} WHERE ($keysString) IN """ +
-        (1 to tupleCount).sliding(1000, 1000).map(slidSize => {
-          (1 to slidSize.size).map(_ => keyQuestionMarks).mkString("(", ",", ")")
-        }).mkString(s" OR ($keysString) IN ")
-    }
-
-    def splitInsertAndUpdate(rs: ResultSet, keysTupleMap: mutable.HashMap[String, Seq[String]]) = {
-      val rsKeyUmsTsMap = mutable.HashMap.empty[String, Long]
-      val updateList = mutable.ListBuffer.empty[Seq[String]]
-      val insertList = mutable.ListBuffer.empty[Seq[String]]
-      val columnTypeMap = mutable.HashMap.empty[String, String]
-      val metaData = rs.getMetaData
-      val columnCount = metaData.getColumnCount
-      for (i <- 1 to columnCount) {
-        val columnName = metaData.getColumnLabel(i)
-        val columnType = metaData.getColumnClassName(i)
-        columnTypeMap(columnName.toLowerCase) = columnType
-      }
-
-      while (rs.next) {
-        val keysId = tableKeyNames.map(keyName => {
-          if (columnTypeMap(keyName) == "java.math.BigDecimal") rs.getBigDecimal(keyName).stripTrailingZeros.toPlainString
-          else rs.getObject(keyName).toString
-        }).mkString("_")
-        val umsId = rs.getLong(metaIdName)
-        rsKeyUmsTsMap(keysId) = umsId
-      }
-      logInfo("rs finish")
-
-      keysTupleMap.foreach(keysTuple => {
-        val (keysId, tuple) = keysTuple
-        if (rsKeyUmsTsMap.contains(keysId)) {
-          val tupleId = umsFieldValue(tuple(schemaMap(metaIdName)._1), UmsFieldType.LONG).asInstanceOf[Long]
-          val rsId = rsKeyUmsTsMap(keysId)
-          if (tupleId > rsId)
-            updateList.append(tuple)
-        } else
-          insertList.append(tuple)
-      })
-      (insertList.toList, updateList.toList)
-    }
-
+  def selectDataFromDbList(keysTupleMap: mutable.HashMap[String, Seq[String]], sinkNamespace: String, tableKeyNames: Seq[String],
+                           sysIdName: String, dataSys: UmsDataSystem, tableName: String, connectionConfig: ConnectionConfig,
+                           schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): ResultSet = {
     var ps: PreparedStatement = null
     var resultSet: ResultSet = null
     var conn: Connection = null
     try {
       val tupleList = keysTupleMap.values.toList
-      val sql = namespace.dataSys match {
-        case UmsDataSystem.MYSQL => selectMysqlSql(tupleList.size)
-        case UmsDataSystem.ORACLE => selectOracleSql(tupleList.size)
-        case UmsDataSystem.POSTGRESQL =>selectPostgresSql(tupleList.size)
-        case _ => selectOtherSql(tupleList.size)
+      val sql = dataSys match {
+        case UmsDataSystem.MYSQL => selectMysqlSql(tupleList.size, tableKeyNames, tableName, sysIdName)
+        case UmsDataSystem.ORACLE => selectOracleSql(tupleList.size, tableKeyNames, tableName, sysIdName)
+        case UmsDataSystem.POSTGRESQL => selectPostgresSql(tupleList.size, tableKeyNames, tableName, sysIdName)
+        case _ => selectOtherSql(tupleList.size, tableKeyNames, tableName, sysIdName)
       }
       logInfo("select sql:" + sql)
       conn = DbConnection.getConnection(connectionConfig)
@@ -135,13 +139,13 @@ class SqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.M
       var parameterIndex = 1
       for (tuple <- tupleList)
         for (key <- tableKeyNames) {
-          psSetValue(key, parameterIndex, tuple, ps)
+          psSetValue(key, parameterIndex, tuple, ps, schemaMap)
           parameterIndex += 1
         }
       logInfo("before query")
       resultSet = ps.executeQuery()
       logInfo("finish query")
-      splitInsertAndUpdate(resultSet, keysTupleMap)
+      resultSet
     } catch {
       case e: SQLTransientConnectionException => DbConnection.resetConnection(connectionConfig)
         logError("SQLTransientConnectionException", e)
@@ -172,102 +176,143 @@ class SqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.M
     }
   }
 
-  def doInsert(tupleList: Seq[Seq[String]], sourceMutationType: SourceMutationType): Seq[Seq[String]] = {
-    val sql = sourceMutationType match {
-      case SourceMutationType.INSERT_ONLY =>
-        val columnNames = allFieldNames.map(n =>s"""`$n`""").mkString(", ")
-        val oracleColumnNames = allFieldNames.map(n =>s"""$n""").mkString(",")
-        namespace.dataSys match {
-          case UmsDataSystem.MYSQL => s"INSERT INTO `$tableName` ($columnNames) VALUES " +
-            (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
-          case _ => s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames) VALUES """ +
-            (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
-        }
-      case _ =>
-        val columnNames = baseFieldNames.map(n =>s"""`$n`""").mkString(", ")
-        val oracleColumnNames = baseFieldNames.map(n =>s"""$n""").mkString(",")
-        namespace.dataSys match {
-          case UmsDataSystem.MYSQL => s"INSERT INTO `$tableName` ($columnNames, ${if (systemRenameMap == null) UmsSysField.ACTIVE.toString else systemRenameMap(UmsSysField.ACTIVE.toString)}) VALUES " +
-            (1 to baseFieldNames.size + 1).map(_ => "?").mkString("(", ",", ")")
-          case _ => s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames, ${if (systemRenameMap == null) UmsSysField.ACTIVE.toString else systemRenameMap(UmsSysField.ACTIVE.toString)}) VALUES """ +
-            (1 to baseFieldNames.size + 1).map(_ => "?").mkString("(", ",", ")")
-        }
+  def getInsertSql(sourceMutationType: SourceMutationType, dataSys: UmsDataSystem, tableName: String, systemRenameMap: Map[String, String],
+               allFieldNames: Seq[String]): String = {
+    //    val sql = sourceMutationType match {
+    //      case SourceMutationType.INSERT_ONLY =>
+    //        UmsDataSystem.dataSystem(dataSys) match {
+    //          case UmsDataSystem.MYSQL =>
+    //            val columnNames = allFieldNames.map(n => {
+    //              if (n == UmsSysField.OP.toString) {
+    //                val newn = systemRenameMap(UmsSysField.ACTIVE.toString)
+    //                s"""`$newn`"""
+    //              } else if (n == UmsSysField.ID.toString) {
+    //                val newn = systemRenameMap(UmsSysField.ID.toString)
+    //                s"""`$newn`"""
+    //              } else if (n == UmsSysField.TS.toString) {
+    //                val newn = systemRenameMap(UmsSysField.TS.toString)
+    //                s"""`$newn`"""
+    //              }else s"""`$n`"""
+    //            }).mkString(", ")
+    //            s"INSERT INTO `$tableName` ($columnNames) VALUES " + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
+    //          case _ =>
+    //            val oracleColumnNames = allFieldNames.map(n =>{
+    //              if (n == UmsSysField.OP.toString) {
+    //                val newn = systemRenameMap(UmsSysField.ACTIVE.toString)
+    //                s"""$newn"""
+    //              } else if (n == UmsSysField.ID.toString) {
+    //                val newn = systemRenameMap(UmsSysField.ID.toString)
+    //                s"""$newn"""
+    //              } else if (n == UmsSysField.TS.toString) {
+    //                val newn = systemRenameMap(UmsSysField.TS.toString)
+    //                s"""$newn"""
+    //              } else s"""$n"""
+    //            }).mkString(",")
+    //            s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames) VALUES """ + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
+    //        }
+    //      case _ => //iud
+    //        val newn = systemRenameMap(UmsSysField.ACTIVE.toString)
+    val columnNames = getSqlField(allFieldNames, systemRenameMap, UmsOpType.INSERT, dataSys)
+    val oracleColumnNames = getSqlField(allFieldNames, systemRenameMap, UmsOpType.INSERT, dataSys)
+    val sql = dataSys match {
+      case UmsDataSystem.MYSQL => s"INSERT INTO `$tableName` ($columnNames) VALUES " + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
+      case _ => s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames) VALUES """ + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
     }
 
     logInfo("insert sql " + sql)
-    val batchSize = specificConfig.`db.sql_batch_size.get`
-    executeProcess(tupleList, sql, batchSize, UmsOpType.INSERT.toString,sourceMutationType)
+    sql
+    //executeProcess(tupleList, sql, batchSize, UmsOpType.INSERT.toString, sourceMutationType)
   }
 
-  def executeProcess(tupleList: Seq[Seq[String]], sql: String, batchSize: Int, optType: String,sourceMutationType: SourceMutationType): Seq[Seq[String]] = {
+  def getSqlField(allFieldNames: Seq[String], systemRenameMap: Map[String, String], opType: UmsOpType, dataSys: UmsDataSystem): String = {
+    allFieldNames.map(n => {
+      val newn = if (n == UmsSysField.OP.toString) {
+        systemRenameMap(UmsSysField.ACTIVE.toString)
+      } else if (n == UmsSysField.ID.toString) {
+        systemRenameMap(UmsSysField.ID.toString)
+      } else if (n == UmsSysField.TS.toString) {
+        systemRenameMap(UmsSysField.TS.toString)
+      } else n
+
+      if (opType == UmsOpType.INSERT) {
+        if (dataSys == UmsDataSystem.MYSQL)
+          s"""`$newn`"""
+        else
+          s"""$newn"""
+      } else {
+        if (dataSys == UmsDataSystem.MYSQL)
+          s"""`$newn`=?"""
+        else
+          s"""$newn=?"""
+      }
+    }).mkString(", ")
+  }
+
+  def executeProcess(tupleList: Seq[Seq[String]], sql: String, batchSize: Int, optType: UmsOpType, sourceMutationType: SourceMutationType,
+                     connectionConfig: ConnectionConfig,fieldNames:Seq[String],renameSchema: collection.Map[String, (Int, UmsFieldType, Boolean)],
+                     systemRenameMap: Map[String, String], tableKeyNames: Seq[String], sysIdName: String): Seq[Seq[String]] = {
     if (tupleList.nonEmpty) {
-      val errorTupleList = executeSql(tupleList, sql, UmsOpType.umsOpType(optType), batchSize,sourceMutationType)
+      val errorTupleList = executeSql(tupleList, sql, optType, batchSize, sourceMutationType,
+        connectionConfig,fieldNames,renameSchema, systemRenameMap, tableKeyNames, sysIdName)
       if (errorTupleList.nonEmpty) {
-        val newErrorTupleList = if (batchSize == 1) errorTupleList else executeSql(errorTupleList, sql, UmsOpType.umsOpType(optType), 1,sourceMutationType)
+        val newErrorTupleList = if (batchSize == 1) errorTupleList else executeSql(errorTupleList, sql, optType, 1, sourceMutationType,
+          connectionConfig,fieldNames,renameSchema, systemRenameMap, tableKeyNames, sysIdName)
         newErrorTupleList.foreach(data => logInfo(optType + ",data:" + data))
         newErrorTupleList
       } else ListBuffer.empty[List[String]]
     } else ListBuffer.empty[List[String]]
   }
 
-  def doUpdate(tupleList: Seq[Seq[String]]): Seq[Seq[String]] = {
-    val batchSize = specificConfig.`db.sql_batch_size.get`
-    val sql = namespace.dataSys match {
-      case UmsDataSystem.MYSQL => s"UPDATE `$tableName` SET " +
-        updateFieldNames.map(fieldName => s"`$fieldName`=?").mkString(",") + s",${if (systemRenameMap == null) UmsSysField.ACTIVE.toString else systemRenameMap(UmsSysField.ACTIVE.toString)}=? WHERE " +
-        tableKeyNames.map(key => s"`$key`=?").mkString(" AND ") + s" AND $metaIdName<? "
-      case _ => s"""UPDATE ${tableName.toUpperCase()} SET """ +
-        updateFieldNames.map(fieldName => s"$fieldName=?").mkString(",") + s",${if (systemRenameMap == null) UmsSysField.ACTIVE.toString else systemRenameMap(UmsSysField.ACTIVE.toString)}=? WHERE " +
-        tableKeyNames.map(key => s"$key=?").mkString(" AND ") + s" AND $metaIdName<? "
+  def getUpdateSql(dataSys: UmsDataSystem, tableName: String, systemRenameMap: Map[String, String], updateFieldNames: Seq[String], tableKeyNames: Seq[String], sysIdName: String): String = {
+    //    val batchSize = specificConfig.`db.sql_batch_size.get`
+    val fields = getSqlField(updateFieldNames, systemRenameMap, UmsOpType.UPDATE, dataSys)
+    val sql = dataSys match {
+      case UmsDataSystem.MYSQL => s"UPDATE `$tableName` SET " + fields + " WHERE " + tableKeyNames.map(key => s"`$key`=?").mkString(" AND ") + s" AND $sysIdName<? "
+      case _ => s"UPDATE ${tableName.toUpperCase()} SET " + fields + " WHERE " + tableKeyNames.map(key => s"$key=?").mkString(" AND ") + s" AND $sysIdName<? "
     }
     logInfo("@update sql " + sql)
-    executeProcess(tupleList, sql, batchSize, UmsOpType.UPDATE.toString, SourceMutationType.I_U_D)
+    sql
+    //    executeProcess(tupleList, sql, batchSize, UmsOpType.UPDATE.toString, SourceMutationType.I_U_D)
   }
 
 
-  private def psSetValue(fieldName: String, parameterIndex: Int, tuple: Seq[String], ps: PreparedStatement) = {
-
+  private def psSetValue(fieldName: String, parameterIndex: Int, tuple: Seq[String], ps: PreparedStatement,
+                         schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]):Unit = {
     val value = fieldValue(fieldName, schemaMap, tuple)
-    if (value == null) ps.setNull(parameterIndex, fieldSqlTypeMap(fieldName))
-    else ps.setObject(parameterIndex, value, fieldSqlTypeMap(fieldName))
+    if (value == null) ps.setNull(parameterIndex, ums2dbType(schemaMap(fieldName)._2))
+    else ps.setObject(parameterIndex, value, ums2dbType(schemaMap(fieldName)._2))
   }
 
-  def executeSql(tupleList: Seq[Seq[String]], sql: String, opType: UmsOpType, batchSize: Int,sourceMutationType:SourceMutationType): List[Seq[String]] = {
-    def setPlaceholder(tuple: Seq[String], ps: PreparedStatement) = {
-      var parameterIndex: Int = 1
-      sourceMutationType match {
-        case SourceMutationType.INSERT_ONLY =>
-          for (field <- allFieldNames) {
-            psSetValue(field, parameterIndex, tuple, ps)
-            parameterIndex += 1
-          }
-        case  _ =>
-          if (opType == UmsOpType.INSERT)
-            for (field <- baseFieldNames) {
-              psSetValue(field, parameterIndex, tuple, ps)
-              parameterIndex += 1
-            }
-          else
-            for (field <- updateFieldNames) {
-              psSetValue(field, parameterIndex, tuple, ps)
-              parameterIndex += 1
-            }
-
-          ps.setInt(parameterIndex,
-            if (umsOpType(fieldValue(OP.toString, schemaMap, tuple).toString) == DELETE) UmsActiveType.INACTIVE
-            else UmsActiveType.ACTIVE)
-
-          if (opType == UPDATE) {
-            for (i <- tableKeyNames.indices) {
-              parameterIndex += 1
-              psSetValue(tableKeyNames(i), parameterIndex, tuple, ps)
-            }
-            parameterIndex += 1
-            psSetValue(metaIdName, parameterIndex, tuple, ps)
-          }
-      }
-
+  def setPlaceholder(opType: UmsOpType, tuple: Seq[String], ps: PreparedStatement, fieldNames: Seq[String],
+                     renameSchema: collection.Map[String, (Int, UmsFieldType, Boolean)], systemRenameMap: Map[String, String],
+                     tableKeyNames: Seq[String], sysIdName: String):Unit = {
+    var parameterIndex: Int = 1
+    for (field <- fieldNames) {
+      if (field == UmsSysField.OP.toString) {
+        ps.setInt(parameterIndex,
+          if (tuple(renameSchema(field)._1) == DELETE.toString) UmsActiveType.INACTIVE
+          else UmsActiveType.ACTIVE)
+      } else if (field == UmsSysField.ID.toString || field == UmsSysField.TS.toString) {
+        psSetValue(systemRenameMap(field), parameterIndex, tuple, ps, renameSchema)
+      } else psSetValue(field, parameterIndex, tuple, ps, renameSchema)
+      parameterIndex += 1
     }
+
+    if (opType == UPDATE) {
+      for (i <- tableKeyNames.indices) {
+        parameterIndex += 1
+        psSetValue(tableKeyNames(i), parameterIndex, tuple, ps, renameSchema)
+      }
+      parameterIndex += 1
+      psSetValue(sysIdName, parameterIndex, tuple, ps, renameSchema)
+    }
+  }
+
+
+  def executeSql(tupleList: Seq[Seq[String]], sql: String, opType: UmsOpType, batchSize: Int, sourceMutationType: SourceMutationType,
+                 connectionConfig: ConnectionConfig,fieldNames:Seq[String],renameSchema: collection.Map[String, (Int, UmsFieldType, Boolean)],
+                 systemRenameMap: Map[String, String], tableKeyNames: Seq[String], sysIdName: String): List[Seq[String]] = {
+
 
     var ps: PreparedStatement = null
     val errorTupleList: mutable.ListBuffer[Seq[String]] = mutable.ListBuffer.empty[Seq[String]]
@@ -282,7 +327,7 @@ class SqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.M
       tupleList.sliding(batchSize, batchSize).foreach(tuples => {
         index += batchSize
         for (i <- tuples.indices) {
-          setPlaceholder(tuples(i), ps)
+          setPlaceholder(opType,tuples(i), ps,fieldNames,renameSchema,  systemRenameMap, tableKeyNames, sysIdName)
           ps.addBatch()
         }
         try {
