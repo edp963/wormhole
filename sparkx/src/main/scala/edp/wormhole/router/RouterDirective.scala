@@ -29,24 +29,25 @@ import edp.wormhole.ums.{Ums, UmsFieldType}
 import scala.collection.mutable
 
 
-object RouterDirective  extends Directive {
+object RouterDirective extends Directive {
 
 
-  private def registerFlowStartDirective(sourceNamespace:String,
-                                         sinkNamespace:String,
+  private def registerFlowStartDirective(sourceNamespace: String,
+                                         sinkNamespace: String,
                                          target_kafka_broker: String,
                                          kafka_topic: String,
                                          directiveId: Long,
                                          feedbackTopicName: String,
-                                         brokers: String): Unit = {
+                                         brokers: String,
+                                         data_type: String): Unit = {
     if (RouterMainProcess.routerMap.contains(sourceNamespace)) {
-      if (RouterMainProcess.routerMap(sourceNamespace).contains(sinkNamespace)) {
-        RouterMainProcess.routerMap(sourceNamespace)(sinkNamespace) = (target_kafka_broker, kafka_topic)
+      if (RouterMainProcess.routerMap(sourceNamespace)._1.contains(sinkNamespace)) {
+        RouterMainProcess.routerMap(sourceNamespace)._1(sinkNamespace) = (target_kafka_broker, kafka_topic)
       } else {
-        RouterMainProcess.routerMap(sourceNamespace) = mutable.HashMap(sinkNamespace -> (target_kafka_broker, kafka_topic))
+        RouterMainProcess.routerMap(sourceNamespace) = (mutable.HashMap(sinkNamespace -> (target_kafka_broker, kafka_topic)), data_type)
       }
     } else {
-      RouterMainProcess.routerMap(sourceNamespace) = mutable.HashMap(sinkNamespace -> (target_kafka_broker, kafka_topic))
+      RouterMainProcess.routerMap(sourceNamespace) = (mutable.HashMap(sinkNamespace -> (target_kafka_broker, kafka_topic)), data_type)
     }
 
   }
@@ -56,11 +57,12 @@ object RouterDirective  extends Directive {
     val schemas = ums.schema.fields_get
     val sourceNamespace = ums.schema.namespace.toLowerCase
     payloads.foreach(tuple => {
+      val data_type = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_type").toString.toLowerCase
       val sinkNamespace = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "sink_namespace").toString.toLowerCase
       val target_kafka_broker = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "kafka_broker").toString.toLowerCase
       val kafka_topic = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "kafka_topic").toString
       val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
-      registerFlowStartDirective(sourceNamespace, sinkNamespace,target_kafka_broker, kafka_topic, directiveId, feedbackTopicName, brokers)
+      registerFlowStartDirective(sourceNamespace, sinkNamespace, target_kafka_broker, kafka_topic, directiveId, feedbackTopicName, brokers, data_type)
     })
   }
 
