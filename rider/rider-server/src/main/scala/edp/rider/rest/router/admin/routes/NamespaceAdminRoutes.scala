@@ -32,7 +32,7 @@ import io.swagger.annotations._
 class NamespaceAdminRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
   lazy val routes: Route = postNamespaceRoute ~ putNamespaceRoute ~ getNamespaceByAllRoute ~ getNamespaceByIdRoute ~
-    getNsByProjectIdRoute ~ putUmsInfoRoute ~ getUmsInfoRoute ~ putSinkInfoRoute ~ getSinkInfoRoute
+    getNsByProjectIdRoute ~ putUmsInfoRoute ~ getUmsInfoRoute ~ putSinkInfoRoute ~ getSinkInfoRoute ~ deleteByIdRoute
 
   lazy val basePath = "namespaces"
 
@@ -168,6 +168,21 @@ class NamespaceAdminRoutes(modules: ConfigurationModule with PersistenceModule w
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getSinkInfoRoute: Route = modules.namespaceAdminService.getSinkInfoByIdRoute(basePath)
+
+  @Path("/{id}/")
+  @ApiOperation(value = "delete one namespace from system by id", notes = "", nickname = "", httpMethod = "DELETE")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "namespace id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not admin user"),
+    new ApiResponse(code = 412, message = "user still has some projects"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def deleteByIdRoute: Route = modules.namespaceAdminService.deleteRoute(basePath)
 
 }
 

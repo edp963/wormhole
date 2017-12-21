@@ -297,12 +297,14 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
             else {
               try {
                 val result = userDal.delete(id)
-                if (result._1)
+                if (result._1) {
+                  riderLogger.error(s"user ${session.userId} delete user $id success.")
                   complete(OK, getHeader(200, session))
+                }
                 else complete(OK, getHeader(412, result._2, session))
               } catch {
                 case ex: Exception =>
-                  riderLogger.error(s"user ${session.userId} delete user $id success", ex)
+                  riderLogger.error(s"user ${session.userId} delete user $id failed", ex)
                   complete(OK, getHeader(451, session))
               }
             }

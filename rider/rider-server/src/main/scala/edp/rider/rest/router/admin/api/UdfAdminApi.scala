@@ -264,12 +264,14 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
   private def deleteResponse(id: Long, session: SessionClass): Route = {
     try {
       val result = udfDal.delete(id)
-      if (result._1)
+      if (result._1) {
+        riderLogger.error(s"user ${session.userId} delete udf $id success.")
         complete(OK, getHeader(200, session))
+      }
       else complete(OK, getHeader(412, result._2, session))
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"user ${session.userId} delete udf $id success", ex)
+        riderLogger.error(s"user ${session.userId} delete udf $id failed", ex)
         complete(OK, getHeader(451, session))
     }
   }
