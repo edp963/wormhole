@@ -25,13 +25,16 @@ import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
+import edp.rider.rest.util.UdfUtils
 import slick.lifted.TableQuery
 import slick.jdbc.MySQLProfile.api._
+
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 
-class UdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdfDal) extends BaseDalImpl[UdfTable, Udf](udfTable) with RiderLogger {
+class UdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdfDal, relStreamUdfDal: RelStreamUdfDal,
+             projectDal: ProjectDal, streamDal: StreamDal) extends BaseDalImpl[UdfTable, Udf](udfTable) with RiderLogger {
 
   def getUdfProjectById(id: Long): Option[UdfProject] = {
     val udfOpt = Await.result(super.findById(id), minTimeOut)
@@ -74,8 +77,31 @@ class UdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdfDal)
     }
   }
 
-  override def deleteById(id: Long): Future[Int] = {
-    Await.result(relProjectUdfDal.deleteByFilter(_.udfId === id), minTimeOut)
-    super.deleteById(id)
+  def delete(id: Long): (Boolean, String) = {
+    try {
+      val relProject = Await.result(relProjectUdfDal.findByFilter(_.udfId === id), minTimeOut)
+      val relStream = Await.result(relStreamUdfDal.findByFilter(_.udfId === id), minTimeOut)
+      val projects = Await.result(projectDal.findByFilter(_.id inSet relProject.map(_.projectId)), minTimeOut).map(_.name)
+      val streams = Await.result(streamDal.findByFilter(_.id inSet relStream.map(_.streamId)), minTimeOut).map(_.name)
+      if (projects.nonEmpty && streams.nonEmpty) {
+        riderLogger.info(s"project ${projects.mkString(",")} and stream ${streams.mkString(",")} still using UDF $id, can't delete it")
+        (false, s"please revoke project ${projects.mkString(",")}, stream ${streams.mkString(",")} and UDF binding relation first")
+      } else if (projects.nonEmpty && streams.isEmpty) {
+        riderLogger.info(s"project ${projects.mkString(",")} still using UDF $id, can't delete it")
+        (false, s"please revoke project ${projects.mkString(",")} and UDF binding relation first")
+      } else if (projects.isEmpty && streams.nonEmpty) {
+        riderLogger.info(s"stream ${streams.mkString(",")} still using UDF $id, can't delete it")
+        (false, s"please revoke stream ${streams.mkString(",")} and UDF binding relation first")
+      } else {
+        val jarName = Await.result(super.findById(id), minTimeOut).get.jarName
+        UdfUtils.deleteHdfsPath(jarName)
+        Await.result(super.deleteById(id), minTimeOut)
+        (true, "success")
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"delete UDF $id failed", ex)
+        throw new Exception(s"delete UDF $id failed", ex)
+    }
   }
 }

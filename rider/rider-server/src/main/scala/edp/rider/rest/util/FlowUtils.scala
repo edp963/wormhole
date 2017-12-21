@@ -51,7 +51,7 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def getSinkConfig(sinkNs: String, sinkConfig: String): String = {
+  def getSinkConfig(sinkNs: String, sinkConfig: String, sinkSchema: Option[String]): String = {
     try {
       val (instance, db, ns) = modules.namespaceDal.getNsDetail(sinkNs)
       val specialConfig =
@@ -67,20 +67,40 @@ object FlowUtils extends RiderLogger {
         if (dbConfig.nonEmpty && dbConfig.get.nonEmpty)
           caseClass2json[Seq[KVConfig]](dbConfig.get)
         else "\"\""
-      s"""
-         |{
-         |"sink_connection_url": "${getConnUrl(instance, db)}",
-         |"sink_connection_username": "${db.user.getOrElse("")}",
-         |"sink_connection_password": "${db.pwd.getOrElse("")}",
-         |"sink_table_keys": "${ns.keys.getOrElse("")}",
-         |"sink_output": "$sink_output",
-         |"sink_connection_config": $sinkConnectionConfig,
-         |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys)}",
-         |"sink_specific_config": $specialConfig,
-         |"sink_retry_times": "3",
-         |"sink_retry_seconds": "300"
-         |}
+      if (sinkSchema.nonEmpty && sinkSchema.get != "") {
+        s"""
+           |{
+           |"sink_connection_url": "${getConnUrl(instance, db)}",
+           |"sink_connection_username": "${db.user.getOrElse("")}",
+           |"sink_connection_password": "${db.pwd.getOrElse("")}",
+           |"sink_table_keys": "${ns.keys.getOrElse("")}",
+           |"sink_output": "$sink_output",
+           |"sink_connection_config": $sinkConnectionConfig,
+           |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys, ns.sinkSchema)}",
+           |"sink_specific_config": $specialConfig,
+           |"sink_retry_times": "3",
+           |"sink_retry_seconds": "300"
+           |}
        """.stripMargin.replaceAll("\n", "")
+      } else {
+        val schema = caseClass2json[Object](json2caseClass[SinkSchema](sinkSchema.get).schema)
+        val base64 = base64byte2s(schema.trim.getBytes)
+        s"""
+           |{
+           |"sink_connection_url": "${getConnUrl(instance, db)}",
+           |"sink_connection_username": "${db.user.getOrElse("")}",
+           |"sink_connection_password": "${db.pwd.getOrElse("")}",
+           |"sink_table_keys": "${ns.keys.getOrElse("")}",
+           |"sink_output": "$sink_output",
+           |"sink_connection_config": $sinkConnectionConfig,
+           |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys, ns.sinkSchema)}",
+           |"sink_specific_config": $specialConfig,
+           |"sink_retry_times": "3",
+           |"sink_retry_seconds": "300",
+           |"sink_schema": "$base64"
+           |}
+       """.stripMargin.replaceAll("\n", "")
+      }
     } catch {
       case ex: Exception =>
         riderLogger.error(s"get sinkConfig failed", ex)
@@ -107,16 +127,23 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def getSinkProcessClass(nsSys: String) =
+  def getSinkProcessClass(nsSys: String, sinkSchema: Option[String]) = {
     nsSys match {
       case "cassandra" => "edp.wormhole.sinks.cassandrasink.Data2CassandraSink"
       case "mysql" | "oracle" | "postgresql" => "edp.wormhole.sinks.dbsink.Data2DbSink"
-      case "es" => "edp.wormhole.sinks.elasticsearchsink.Data2EsSink"
+      case "es" =>
+        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.jsonsink.elasticsearchjsonsink.DataJson2EsSink"
+        else "edp.wormhole.sinks.elasticsearchsink.Data2EsSink"
       case "hbase" => "edp.wormhole.sinks.hbasesink.Data2HbaseSink"
-      case "kafka" => "edp.wormhole.sinks.kafkasink.Data2KafkaSink"
-      case "mongodb" => "edp.wormhole.sinks.mongosink.Data2MongoSink"
+      case "kafka" =>
+        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.kafkasink.Data2KafkaSink"
+        else "edp.wormhole.sinks.kafkasink.Data2KafkaSink"
+      case "mongodb" =>
+        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.jsonsink.mongojsonsink.DataJson2MongoSink"
+        else "edp.wormhole.sinks.mongosink.Data2MongoSink"
       case "phoenix" => "edp.wormhole.sinks.phoenixsink.Data2PhoenixSink"
     }
+  }
 
   def actionRule(flowStream: FlowStream, action: String): FlowInfo = {
     if (flowStream.disableActions.split(",").contains(action)) {
@@ -190,9 +217,10 @@ object FlowUtils extends RiderLogger {
 
   def startFlow(streamId: Long, streamType: String, flowId: Long, sourceNs: String, sinkNs: String, consumedProtocol: String, sinkConfig: String, tranConfig: String, userId: Long): Boolean = {
     try {
+      val ns = modules.namespaceDal.getNamespaceByNs(sourceNs)
       val umsInfoOpt =
-        if (modules.namespaceDal.getNamespaceByNs(sourceNs).umsInfo.nonEmpty)
-          json2caseClass[Option[UmsInfo]](modules.namespaceDal.getNamespaceByNs(sourceNs).umsInfo.get)
+        if (ns.sourceSchema.nonEmpty)
+          json2caseClass[Option[SourceSchema]](modules.namespaceDal.getNamespaceByNs(sourceNs).sourceSchema.get)
         else None
       val umsType = umsInfoOpt match {
         case Some(umsInfo) => umsInfo.umsType.getOrElse("ums")
@@ -207,7 +235,7 @@ object FlowUtils extends RiderLogger {
       }
       if (streamType == "default") {
         val consumedProtocolSet = getConsumptionType(consumedProtocol)
-        val sinkConfigSet = getSinkConfig(sinkNs, sinkConfig)
+        val sinkConfigSet = getSinkConfig(sinkNs, sinkConfig, ns.sinkSchema)
         val tranConfigFinal = getTranConfig(tranConfig)
         val tuple = Seq(streamId, currentMicroSec, umsType, umsSchema, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
         val base64Tuple = Seq(streamId, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
