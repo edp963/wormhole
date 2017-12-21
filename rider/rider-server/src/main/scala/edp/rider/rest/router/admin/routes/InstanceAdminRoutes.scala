@@ -34,7 +34,7 @@ import io.swagger.annotations._
 @Path("/admin/instances")
 class InstanceAdminRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives with JsonSerializer {
 
-  lazy val routes: Route = getInstanceByFilterRoute ~ postInstanceRoute ~ putInstanceRoute ~ getInstanceByIdRoute ~ getDbByIdRoute
+  lazy val routes: Route = getInstanceByFilterRoute ~ postInstanceRoute ~ putInstanceRoute ~ getInstanceByIdRoute ~ getDbByIdRoute ~ deleteByIdRoute
 
   lazy val basePath = "instances"
 
@@ -126,6 +126,21 @@ class InstanceAdminRoutes(modules: ConfigurationModule with PersistenceModule wi
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getDbByIdRoute: Route = modules.databaseAdminService.getDbByInstanceIdRoute(basePath)
+
+  @Path("/{id}/")
+  @ApiOperation(value = "delete one instance from system by id", notes = "", nickname = "", httpMethod = "DELETE")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "instance id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not admin user"),
+    new ApiResponse(code = 412, message = "user still has some projects"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def deleteByIdRoute: Route = modules.instanceAdminService.deleteRoute(basePath)
 
 }
 

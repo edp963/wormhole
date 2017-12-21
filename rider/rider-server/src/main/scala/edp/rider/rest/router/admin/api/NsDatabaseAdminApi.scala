@@ -25,9 +25,7 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.NsDatabaseDal
-import edp.rider.rest.persistence.entities._
-import edp.rider.rest.persistence.entities.NsDatabase
-//import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.persistence.entities.{NsDatabase, _}
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
@@ -215,4 +213,32 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
       }
 
   }
+
+  override def deleteRoute(route: String): Route = path(route / LongNumber) {
+    id =>
+      delete {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              try {
+                val result = databaseDal.delete(id)
+                if (result._1) {
+                  riderLogger.error(s"user ${session.userId} delete database $id success.")
+                  complete(OK, getHeader(200, session))
+                }
+                else complete(OK, getHeader(412, result._2, session))
+              } catch {
+                case ex: Exception =>
+                  riderLogger.error(s"user ${session.userId} delete database $id failed", ex)
+                  complete(OK, getHeader(451, session))
+              }
+            }
+        }
+      }
+  }
+
 }
