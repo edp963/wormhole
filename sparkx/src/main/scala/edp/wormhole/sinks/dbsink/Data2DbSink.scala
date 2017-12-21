@@ -70,9 +70,9 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
 
     val renameSchema: collection.Map[String, (Int, UmsFieldType, Boolean)] = if (systemRenameMap == null) schemaMap else {
       schemaMap.map { case (name, (index, umsType, nullable)) =>
-        name match {
-          case UmsSysField.ID.toString => (systemRenameMap(UmsSysField.ID.toString), (index, umsType, nullable))
-          case UmsSysField.TS.toString => (systemRenameMap(UmsSysField.TS.toString), (index, umsType, nullable))
+        UmsSysField.umsSysField(name) match {
+          case UmsSysField.ID => (systemRenameMap(name), (index, umsType, nullable))
+          case UmsSysField.TS => (systemRenameMap(name), (index, umsType, nullable))
           case _ => (name, (index, umsType, nullable))
         }
       }.toMap
