@@ -21,9 +21,10 @@
 
 package edp.wormhole.sinks.dbsink
 
+import java.sql.ResultSet
+
 import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
-import edp.wormhole.sinks.SourceMutationType._
+import edp.wormhole.sinks.{DbHelper, SinkProcessConfig, SinkProcessor, SourceMutationType}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.sinks.utils.SinkDefault._
@@ -31,7 +32,8 @@ import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.common.util.JsonUtils._
 import org.joda.time.{DateTime, Seconds}
 import edp.wormhole.common.util.DateUtils._
-import edp.wormhole.ums.UmsSysField
+import edp.wormhole.ums.UmsDataSystem.UmsDataSystem
+import edp.wormhole.ums.{UmsNamespace, UmsOpType, UmsSysField}
 
 import scala.collection.mutable
 
@@ -42,42 +44,61 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
                        sinkProcessConfig: SinkProcessConfig,
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        tupleList: Seq[Seq[String]],
-                       connectionConfig: ConnectionConfig) = {
+                       connectionConfig: ConnectionConfig): Unit = {
     logInfo("process KafkaLog2DbSnapshot")
     val dt1: DateTime = dt2dateTime(currentyyyyMMddHHmmss)
-    //        println("repartition dataRepartitionRdd duration:   " + dt2 + " - "+ dt1 +" = " + (Seconds.secondsBetween(dt1, dt2).getSeconds() % 60 + " seconds."))
 
     val sinkSpecificConfig = json2caseClass[DbConfig](sinkProcessConfig.specialConfig.get)
     val systemFieldsRename: String = sinkSpecificConfig.system_fields_rename
-    val systemRenameMap: Map[String, String] = if (systemFieldsRename.isEmpty) null else {
-      systemFieldsRename.split(",").map(t => {
+    val systemRenameMutableMap = mutable.HashMap.empty[String, String]
+    if (systemFieldsRename.nonEmpty) {
+      systemFieldsRename.split(",").foreach(t => {
         val keyValue = t.split(":").map(_.trim)
-        (keyValue(0), keyValue(1))
-      }).toMap
+        systemRenameMutableMap(keyValue(0)) = keyValue(1)
+      })
     }
+    if (systemRenameMutableMap.isEmpty || !systemRenameMutableMap.contains(UmsSysField.ACTIVE.toString)) {
+      systemRenameMutableMap(UmsSysField.ACTIVE.toString) = UmsSysField.ACTIVE.toString
+    }
+    if (systemRenameMutableMap.isEmpty || !systemRenameMutableMap.contains(UmsSysField.ID.toString)) {
+      systemRenameMutableMap(UmsSysField.ID.toString) = UmsSysField.ID.toString
+    }
+    if (systemRenameMutableMap.isEmpty || !systemRenameMutableMap.contains(UmsSysField.TS.toString)) {
+      systemRenameMutableMap(UmsSysField.TS.toString) = UmsSysField.TS.toString
+    }
+    val systemRenameMap = systemRenameMutableMap.toMap
 
     val renameSchema: collection.Map[String, (Int, UmsFieldType, Boolean)] = if (systemRenameMap == null) schemaMap else {
-      schemaMap.map{case (name, (index, umsType, nullable)) =>
+      schemaMap.map { case (name, (index, umsType, nullable)) =>
         name match {
-          case "ums_id_" =>( systemRenameMap(UmsSysField.ID.toString), (index, umsType, nullable))
-          case "ums_ts_" =>( systemRenameMap(UmsSysField.TS.toString), (index, umsType, nullable))
+          case UmsSysField.ID.toString => (systemRenameMap(UmsSysField.ID.toString), (index, umsType, nullable))
+          case UmsSysField.TS.toString => (systemRenameMap(UmsSysField.TS.toString), (index, umsType, nullable))
           case _ => (name, (index, umsType, nullable))
         }
       }.toMap
     }
 
-    val sqlProcess = new SqlProcessor(sinkProcessConfig, renameSchema, sinkSpecificConfig, sinkNamespace, connectionConfig,systemRenameMap)
+    val namespace = UmsNamespace(sinkNamespace)
+    val dataSys: UmsDataSystem = namespace.dataSys
+    val tableName: String = namespace.table
+    val allFieldNames: Seq[String] = schemaMap.keySet.toList
+    val batchSize = sinkSpecificConfig.`db.sql_batch_size.get`
+    val tableKeyNames: Seq[String] = sinkProcessConfig.tableKeyList
+    val sysIdName = systemRenameMap(UmsSysField.ID.toString)
+    val sourceMutationType = SourceMutationType.sourceMutationType(sinkSpecificConfig.`mutation_type.get`)
     val specialSqlProcessor: SplitTableSqlProcessor = new SplitTableSqlProcessor(sinkProcessConfig, schemaMap, sinkSpecificConfig, sinkNamespace, connectionConfig)
 
-    SourceMutationType.sourceMutationType(sinkSpecificConfig.`mutation_type.get`) match {
-      case INSERT_ONLY =>
+    sourceMutationType match {
+      case SourceMutationType.INSERT_ONLY =>
         logInfo("INSERT_ONLY: " + sinkSpecificConfig.`mutation_type.get`)
-        val errorList = sqlProcess.doInsert(tupleList, INSERT_ONLY)
-        if (errorList.nonEmpty) throw new Exception(INSERT_ONLY + ",some data error ,data records=" + errorList.length)
-      case SPLIT_TABLE_IDU =>
+        val insertSql = SqlProcessor.getInsertSql(sourceMutationType,dataSys,tableName,systemRenameMap,allFieldNames)
+        val errorList = SqlProcessor.executeProcess(tupleList,insertSql,batchSize,UmsOpType.INSERT,sourceMutationType,connectionConfig,allFieldNames,
+          renameSchema,systemRenameMap,tableKeyNames,sysIdName)
+        if (errorList.nonEmpty) throw new Exception(SourceMutationType.INSERT_ONLY + ",some data error ,data records=" + errorList.length)
+      case SourceMutationType.SPLIT_TABLE_IDU =>
         logInfo("IDEMPOTENCE_IDU: " + sinkSpecificConfig.`mutation_type.get`)
 
-        def checkAndCategorizeAndExecute(keysTupleMap: mutable.HashMap[String, Seq[String]]) = {
+        def checkAndCategorizeAndExecute(keysTupleMap: mutable.HashMap[String, Seq[String]]): Unit = {
           if (keysTupleMap.nonEmpty) {
             val (insertInsertList, insertUpdateList, updateInsertList, updateUpdateList, deleteInsertList, deleteUpdateList, noneInsertList, noneUpdateList) =
               specialSqlProcessor.checkDbAndGetInsertUpdateDeleteList(keysTupleMap)
@@ -91,15 +112,15 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
             logInfo(s"noneUpdateList.size:${noneUpdateList.size}")
 
             val errorList = mutable.ListBuffer.empty[Seq[String]]
-            errorList ++= specialSqlProcessor.contactDb(insertInsertList, INSERT_INSERT.toString)
-            errorList ++= specialSqlProcessor.contactDb(insertUpdateList, INSERT_UPDATE.toString)
-            errorList ++= specialSqlProcessor.contactDb(updateInsertList, UPDATE_INSERT.toString)
-            errorList ++= specialSqlProcessor.contactDb(updateUpdateList, UPDATE_UPDATE.toString)
-            errorList ++= specialSqlProcessor.contactDb(deleteInsertList, DELETE_INSERT.toString)
-            errorList ++= specialSqlProcessor.contactDb(deleteUpdateList, DELETE_UPDATE.toString)
-            errorList ++= specialSqlProcessor.contactDb(noneInsertList, NONE_INSERT.toString)
-            errorList ++= specialSqlProcessor.contactDb(noneUpdateList, NONE_UPDATE.toString)
-            if (errorList.nonEmpty) throw new Exception(SPLIT_TABLE_IDU + ",some data error ,data records=" + errorList.length)
+            errorList ++= specialSqlProcessor.contactDb(insertInsertList, SourceMutationType.INSERT_INSERT.toString)
+            errorList ++= specialSqlProcessor.contactDb(insertUpdateList, SourceMutationType.INSERT_UPDATE.toString)
+            errorList ++= specialSqlProcessor.contactDb(updateInsertList, SourceMutationType.UPDATE_INSERT.toString)
+            errorList ++= specialSqlProcessor.contactDb(updateUpdateList, SourceMutationType.UPDATE_UPDATE.toString)
+            errorList ++= specialSqlProcessor.contactDb(deleteInsertList, SourceMutationType.DELETE_INSERT.toString)
+            errorList ++= specialSqlProcessor.contactDb(deleteUpdateList, SourceMutationType.DELETE_UPDATE.toString)
+            errorList ++= specialSqlProcessor.contactDb(noneInsertList, SourceMutationType.NONE_INSERT.toString)
+            errorList ++= specialSqlProcessor.contactDb(noneUpdateList, SourceMutationType.NONE_UPDATE.toString)
+            if (errorList.nonEmpty) throw new Exception(SourceMutationType.SPLIT_TABLE_IDU + ",some data error ,data records=" + errorList.length)
           }
         }
 
@@ -112,28 +133,29 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
 
       case _ =>
         logInfo("OTHER:" + sinkSpecificConfig.`mutation_type.get`)
-
-        def checkAndCategorizeAndExecute(keysTupleMap: mutable.HashMap[String, Seq[String]]) = {
-          if (keysTupleMap.nonEmpty) {
-            logInfo("keysTupleMap all:" + keysTupleMap.size)
-            val (insertList, updateList: List[Seq[String]]) = sqlProcess.checkDbAndGetInsertUpdateList(keysTupleMap)
-            logInfo("insertList all:" + insertList.size)
-            val insertErrorTupleList = sqlProcess.doInsert(insertList, I_U_D)
-            logInfo("updateList all:" + updateList.size)
-            val updateErrorTupleList = sqlProcess.doUpdate(updateList)
-            if (insertErrorTupleList.nonEmpty || updateErrorTupleList.nonEmpty) throw new Exception(I_U_D + ",some data error ,data records=" + (insertErrorTupleList.length + updateErrorTupleList.length))
-          }
-        }
-
         val keysTupleMap = mutable.HashMap.empty[String, Seq[String]]
         for (tuple <- tupleList) {
           val keys = keyList2values(sinkProcessConfig.tableKeyList, renameSchema, tuple)
           keysTupleMap(keys) = tuple
         }
-        checkAndCategorizeAndExecute(keysTupleMap)
+        val rs:ResultSet = SqlProcessor.selectDataFromDbList(keysTupleMap, sinkNamespace, tableKeyNames, sysIdName, dataSys, tableName, connectionConfig,schemaMap)
+        val (insertList,updateList) = SqlProcessor.splitInsertAndUpdate(rs,keysTupleMap,tableKeyNames,sysIdName,renameSchema)
+
+        logInfo("insertList all:" + insertList.size)
+        val insertSql = SqlProcessor.getInsertSql(sourceMutationType,dataSys,tableName,systemRenameMap,allFieldNames)
+        val insertErrorTupleList = SqlProcessor.executeProcess(tupleList,insertSql,batchSize,UmsOpType.INSERT,sourceMutationType,connectionConfig,allFieldNames,
+          renameSchema,systemRenameMap,tableKeyNames,sysIdName)
+        logInfo("updateList all:" + updateList.size)
+        val fieldNamesWithoutParNames = DbHelper.removeFieldNames(allFieldNames.toList, sinkSpecificConfig.partitionKeyList.contains)
+        val updateFieldNames = DbHelper.removeFieldNames(fieldNamesWithoutParNames, tableKeyNames.contains)
+        val updateSql = SqlProcessor.getUpdateSql(dataSys, tableName, systemRenameMap, updateFieldNames: Seq[String], tableKeyNames, sysIdName)
+        val updateErrorTupleList = SqlProcessor.executeProcess(tupleList,updateSql,batchSize,UmsOpType.UPDATE,sourceMutationType,connectionConfig,updateFieldNames,
+          renameSchema,systemRenameMap,tableKeyNames,sysIdName)
+        if (insertErrorTupleList.nonEmpty || updateErrorTupleList.nonEmpty) throw new Exception(SourceMutationType.I_U_D + ",some data error ,data records=" + (insertErrorTupleList.length + updateErrorTupleList.length))
+
     }
     val dt2: DateTime = dt2dateTime(currentyyyyMMddHHmmss)
-    println("db duration:   " + dt2 + " - " + dt1 + " = " + (Seconds.secondsBetween(dt1, dt2).getSeconds() % 60 + " seconds."))
+    println("db duration:   " + dt2 + " - " + dt1 + " = " + (Seconds.secondsBetween(dt1, dt2).getSeconds % 60 + " seconds."))
 
   }
 }
