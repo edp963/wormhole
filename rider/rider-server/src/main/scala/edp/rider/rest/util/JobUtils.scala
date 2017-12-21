@@ -74,7 +74,7 @@ object JobUtils extends RiderLogger {
     } else {
       None
     }
-    SinkConfig(sinkNs, getConnConfig(instance, db), maxRecord, Some(getSinkProcessClass(ns.nsSys)), specialConfig, ns.keys, projection)
+    SinkConfig(sinkNs, getConnConfig(instance, db), maxRecord, Some(getSinkProcessClass(ns.nsSys, ns.sinkSchema)), specialConfig, ns.keys, projection)
   }
 
   def getTranConfig(tranConfig: String, sinkNs: String) = {
