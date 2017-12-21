@@ -472,6 +472,13 @@
 .transform-form-style {
   .ant-modal {
     width: 659px !important;
+    top: 50px !important;
+  }
+}
+
+.job-transform-form-style {
+  .ant-modal {
+    width: 659px !important;
   }
 }
 
@@ -620,7 +627,7 @@
   }
 }
 
-.sink-config-class:before {
+.sink-config-class:before, .tran-sql-label:before {
   display: inline-block;
   margin-right: 4px;
   content: "*";
@@ -651,4 +658,14 @@
 
 .max-record-class {
   width: 113px;
+}
+
+.tran-sql-label {
+  float: right;
+}
+
+.cm-sql-textarea {
+  .CodeMirror-placeholder {
+    color: #ccc;
+  }
 }
