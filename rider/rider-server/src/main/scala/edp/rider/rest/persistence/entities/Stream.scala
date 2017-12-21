@@ -75,7 +75,11 @@ case class PutStreamTopic(id: Long, partitionOffsets: String, rate: Int)
 
 case class StreamDirective(udfInfo: Option[Seq[Long]], topicInfo: Option[Seq[PutStreamTopic]])
 
-case class TopicLatestOffset(id: Long, name: String, partitionOffsets: String)
+case class ConsumedLatestOffset(id: Long, name: String, partitionOffsets: String)
+
+case class KafkaLatestOffset(id: Long, name: String, partitionOffsets: String)
+
+case class TopicLatestOffset(consumedLatestOffset: Seq[ConsumedLatestOffset], kafkaLatestOffset: Seq[KafkaLatestOffset])
 
 case class StreamTopicTemp(id: Long,
                            streamId: Long,
