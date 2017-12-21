@@ -105,6 +105,16 @@ object NamespaceUtils extends RiderLogger {
             else s"jdbc:sql4es://${instance.connUrl}/${db.nsDatabase}"
           } else s"jdbc:sql4es://${instance.connUrl}/${db.nsDatabase}"
         } else instance.connUrl
+      case "mongodb" =>
+        if (connType == "lookup") {
+          if (db.user.nonEmpty && db.user.get != "" && db.config.nonEmpty && db.config.get != "")
+            s"mongodb://${db.user.get}:${db.pwd.get}@${instance.connUrl}/${db.nsDatabase}?${db.config.get.split(",").mkString("&")}"
+          else if (db.user.nonEmpty && db.user.get != "" && db.config.isEmpty)
+            s"mongodb://${db.user.get}:${db.pwd.get}@${instance.connUrl}/${db.nsDatabase}"
+          else if (db.user.isEmpty && db.config.nonEmpty && db.config.get != "")
+            s"mongodb://${instance.connUrl}/${db.nsDatabase}?${db.config.get.split(",").mkString("&")}"
+          else s"mongodb://${instance.connUrl}/${db.nsDatabase}"
+        } else instance.connUrl
       case _ => instance.connUrl
     }
 
