@@ -24,11 +24,10 @@ package edp.wormhole.router
 import java.util.UUID
 
 import edp.wormhole.common.{FeedbackPriority, SparkUtils, WormholeConfig, WormholeUtils}
-import edp.wormhole.common.util.DateUtils
 import edp.wormhole.common.util.DateUtils.currentDateTime
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.ums.{UmsFeedbackStatus, UmsProtocolType, UmsProtocolUtils, UmsSysField}
+import edp.wormhole.ums.{UmsFeedbackStatus, UmsProtocolUtils}
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
@@ -39,7 +38,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object RouterMainProcess extends EdpLogging {
   //[(source,sink),(broker, topic)]
-  val routerMap = mutable.HashMap.empty[String, mutable.HashMap[String, (String, String)]]
+  val routerMap = mutable.HashMap.empty[String, (mutable.HashMap[String, (String, String)], String)]
 
   def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession): Unit = {
     stream.foreachRDD((streamRdd: RDD[ConsumerRecord[String, String]]) => {
@@ -60,66 +59,50 @@ object RouterMainProcess extends EdpLogging {
         val dataRepartitionRdd: RDD[(String, String)] =
           if (config.rdd_partition_number != -1) streamRdd.map(row => (row.key, row.value)).repartition(config.rdd_partition_number)
           else streamRdd.map(row => (row.key, row.value))
-        val sinkTs = System.currentTimeMillis
-        val namespaceTs: RDD[((String, String), (String,Int))] = dataRepartitionRdd.mapPartitions { partition =>
-          routerMap.foreach { case (_, map) =>
-            map.foreach { case (_, (kafkaBroker, _)) => WormholeKafkaProducer.init(kafkaBroker, None)
+        dataRepartitionRdd.foreachPartition { partition =>
+          routerMap.foreach { case (_, (map, _)) =>
+            map.foreach { case (kafkaBroker, _) => {
+              WormholeKafkaProducer.init(kafkaBroker, None)
+            }
             }
           }
-          val tsMap = mutable.HashMap.empty[(String, String), (String,Int)] //namespace(lowercase), ums_ts_
-          partition.foreach { case (key, value) =>
+          partition.foreach { case (key, value) => {
             val keys = key.split("\\.")
-
             val (protocolType, namespace) = if (keys.length > 7) (keys(0).toLowerCase, keys.slice(1, 8).mkString(".")) else (keys(0).toLowerCase, "")
             if (routerMap.contains(namespace.toLowerCase)) {
-              val messageIndex = value.lastIndexOf(namespace)
-              val prefix = value.substring(0, messageIndex)
-              val suffix = value.substring(messageIndex + namespace.length)
-              routerMap(namespace.toLowerCase).foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
-                if (!tsMap.contains((namespace.toLowerCase, sinkNamespace)) &&
-                  (protocolType == UmsProtocolType.DATA_INITIAL_DATA.toString
-                    || protocolType == UmsProtocolType.DATA_INCREMENT_DATA.toString
-                    || protocolType == UmsProtocolType.DATA_BATCH_DATA.toString)) {
-                  val ums = WormholeUtils.json2Ums(value)
-                  val index = ums.schema.fields_get.map(_.name).indexOf(UmsSysField.TS.toString)
-                  val ts = ums.payload_get.head.tuple(index)
-                  tsMap((namespace.toLowerCase, sinkNamespace)) = (ts,1)
-                }else{
-                  val(ts,count) = tsMap((namespace.toLowerCase, sinkNamespace))
-                  val tmpCount = count+1
-                  tsMap((namespace.toLowerCase, sinkNamespace)) = (ts,tmpCount)
+              if (routerMap(namespace.toLowerCase)._2 == "ums") {
+                val messageIndex = value.lastIndexOf(namespace)
+                val prefix = value.substring(0, messageIndex)
+                val suffix = value.substring(messageIndex + namespace.length)
+                routerMap(namespace.toLowerCase)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
+                  val messageBuf = new StringBuilder
+                  messageBuf ++= prefix ++= sinkNamespace ++= suffix
+                  val kafkaMessage = messageBuf.toString
+                  WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + sinkNamespace), kafkaBroker)
                 }
-                val messageBuf = new StringBuilder
-                messageBuf ++= prefix ++= sinkNamespace ++= suffix
-                val kafkaMessage = messageBuf.toString
-                WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + sinkNamespace), kafkaBroker)
+              } else {
+                routerMap(namespace.toLowerCase)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
+                  WormholeKafkaProducer.sendMessage(kafkaTopic, value, Some(protocolType + "." + sinkNamespace), kafkaBroker)
+                }
               }
             }
-
           }
-          tsMap.toIterator
-        }
-        val doneTs = System.currentTimeMillis
-        val namespace2tsMap = namespaceTs.collect().toMap
-        namespace2tsMap.foreach { case ((sourceNamespace, sinkNamespace), (ts,count)) =>
-          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-            UmsProtocolUtils.feedbackFlowStats(sourceNamespace, UmsProtocolType.DATA_INCREMENT_DATA.toString, currentDateTime, config.spark_config.stream_id, statsId, sinkNamespace,
-              count, DateUtils.dt2date(ts).getTime, rddTs, directiveTs, mainDataTs, sinkTs, sinkTs, doneTs), None, config.kafka_output.brokers)
+          }
         }
         WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config)
       } catch {
         case e: Throwable =>
           logAlert("batch error", e)
-          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, currentDateTime, UmsFeedbackStatus.FAIL, e.getMessage), None, config.kafka_output.brokers)
-          WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config)
+          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, currentDateTime, UmsFeedbackStatus.SUCCESS, ""), None, config.kafka_output.brokers)
       }
+      stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
     })
   }
 
   def removeFromRouterMap(sourceNamespace: String, sinkNamespace: String): Unit = {
-    if (routerMap.contains(sourceNamespace) && routerMap(sourceNamespace).contains(sinkNamespace)) {
-      routerMap(sourceNamespace).remove(sinkNamespace)
-      if (routerMap(sourceNamespace).isEmpty) {
+    if (routerMap.contains(sourceNamespace) && routerMap(sourceNamespace)._1.contains(sinkNamespace)) { //todo concurrent problem？
+      routerMap(sourceNamespace)._1.remove(sinkNamespace)
+      if (routerMap(sourceNamespace)._1.isEmpty) {
         routerMap.remove(sourceNamespace)
       }
     } else {
