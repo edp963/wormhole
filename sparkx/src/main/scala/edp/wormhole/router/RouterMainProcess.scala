@@ -61,7 +61,7 @@ object RouterMainProcess extends EdpLogging {
           else streamRdd.map(row => (row.key, row.value))
         dataRepartitionRdd.foreachPartition { partition =>
           routerMap.foreach { case (_, (map, _)) =>
-            map.foreach { case (kafkaBroker, _) => {
+            map.foreach { case (_, (kafkaBroker, _)) => {
               WormholeKafkaProducer.init(kafkaBroker, None)
             }
             }
@@ -110,4 +110,3 @@ object RouterMainProcess extends EdpLogging {
     }
   }
 }
-
