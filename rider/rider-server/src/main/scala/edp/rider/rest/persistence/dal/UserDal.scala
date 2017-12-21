@@ -61,10 +61,10 @@ class UserDal(userTable: TableQuery[UserTable], relProjectUserDal: RelProjectUse
   def delete(id: Long): (Boolean, String) = {
     try {
       val rel = Await.result(relProjectUserDal.findByFilter(_.userId === id), minTimeOut)
-      val projects = Await.result(projectDal.findByFilter(_.id inSet rel.map(_.projectId)), minTimeOut)
+      val projects = Await.result(projectDal.findByFilter(_.id inSet rel.map(_.projectId)), minTimeOut).map(_.name)
       if (projects.nonEmpty) {
-        riderLogger.info(s"project $id still has project ${projects.map(_.name).mkString(",")}, can't delete it")
-        (false, s"please revoke project ${projects.map(_.name).mkString(",")} and user binding relation first")
+        riderLogger.info(s"user $id still has project ${projects.mkString(",")}, can't delete it")
+        (false, s"please revoke project ${projects.mkString(",")} and user binding relation first")
       } else {
         Await.result(super.deleteById(id), minTimeOut)
         (true, "success")

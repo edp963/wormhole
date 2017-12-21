@@ -25,14 +25,13 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes}
 import akka.util.ByteString
 import edp.rider.RiderStarter.{materializer, system}
-import edp.rider.common.DbPermission._
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.{BaseDal, BaseDalImpl}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.SessionClass
 import edp.rider.rest.util.CommonUtils._
-import edp.rider.rest.util.InstanceUtils._
+import edp.rider.rest.util.{NamespaceUtils, UdfUtils}
 import edp.wormhole.common.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
@@ -47,7 +46,10 @@ import scala.concurrent.{Await, Future}
 class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
                    databaseDal: NsDatabaseDal,
                    instanceDal: BaseDal[InstanceTable, Instance],
-                   dbusDal: BaseDal[DbusTable, Dbus]) extends BaseDalImpl[NamespaceTable, Namespace](namespaceTable) with RiderLogger {
+                   dbusDal: BaseDal[DbusTable, Dbus],
+                   projectDal: ProjectDal,
+                   relProjectNsDal: RelProjectNsDal,
+                   flowDal: FlowDal) extends BaseDalImpl[NamespaceTable, Namespace](namespaceTable) with RiderLogger {
 
   def getDbusFromRest: Seq[SimpleDbus] = {
     try {
@@ -81,9 +83,14 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
   }
 
-  def updateSchema(id: Long, umsInfo: UmsInfo, user: Long): Future[Int] = {
-    val schema = Option(caseClass2json[UmsInfo](umsInfo))
+  def updateUmsInfo(id: Long, umsInfo: SourceSchema, user: Long): Future[Int] = {
+    val schema = Option(caseClass2json[SourceSchema](umsInfo))
     db.run(namespaceTable.filter(_.id === id).map(ns => (ns.umsInfo, ns.updateTime, ns.updateBy)).update(schema, currentSec, user)).mapTo[Int]
+  }
+
+  def updateSinkInfo(id: Long, sinkInfo: SinkSchema, user: Long): Future[Int] = {
+    val schema = Option(caseClass2json[SinkSchema](sinkInfo))
+    db.run(namespaceTable.filter(_.id === id).map(ns => (ns.sinkInfo, ns.updateTime, ns.updateBy)).update(schema, currentSec, user)).mapTo[Int]
   }
 
   def dbusInsert(session: SessionClass): Future[Seq[Dbus]] = {
@@ -160,7 +167,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
     dbusSeq.map(dbus => {
       val nsSplit: Array[String] = dbus.namespace.split("\\.")
       Namespace(0, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
-         None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
+        None, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
     })
   }
 
@@ -234,16 +241,56 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         throw ex
     }
 
-  def getSchema(id: Long): Future[Option[UmsInfo]] = {
-    super.findById(id).map[Option[UmsInfo]](
+  def getUmsInfo(id: Long): Future[Option[SourceSchema]] = {
+    super.findById(id).map[Option[SourceSchema]](
       namespaceOpt => namespaceOpt match {
         case Some(namespace) =>
-          namespace.umsInfo match {
-            case Some(umsInfo) => Some(json2caseClass[UmsInfo](umsInfo))
+          namespace.sourceSchema match {
+            case Some(umsInfo) => Some(json2caseClass[SourceSchema](umsInfo))
             case None => None
           }
         case None => None
       }
     )
+  }
+
+  def getSinkInfo(id: Long): Future[Option[SinkSchema]] = {
+    super.findById(id).map[Option[SinkSchema]](
+      namespaceOpt => namespaceOpt match {
+        case Some(namespace) =>
+          namespace.sinkSchema match {
+            case Some(sinkInfo) => Some(json2caseClass[SinkSchema](sinkInfo))
+            case None => None
+          }
+        case None => None
+      }
+    )
+  }
+
+  def delete(id: Long): (Boolean, String) = {
+    try {
+      val ns = NamespaceUtils.generateStandardNs(Await.result(super.findById(id), minTimeOut).get)
+      val relProject = Await.result(relProjectNsDal.findByFilter(_.nsId === id), minTimeOut)
+      val flows = Await.result(flowDal.findByFilter
+      (flow => flow.sourceNs === ns || flow.sinkNs === ns || flow.tranConfig.getOrElse("").like(s"%${ns.split("\\.").take(3).mkString(".")}%")), minTimeOut).map(_.id)
+      val projects = Await.result(projectDal.findByFilter(_.id inSet relProject.map(_.projectId)), minTimeOut).map(_.name)
+      if (projects.nonEmpty && flows.nonEmpty) {
+        riderLogger.info(s"project ${projects.mkString(",")} and flow ${flows.mkString(",")} still using namespace $id, can't delete it")
+        (false, s"please revoke project ${projects.mkString(",")}, flow ${flows.mkString(",")} and namespace binding relation first")
+      } else if (projects.nonEmpty && flows.isEmpty) {
+        riderLogger.info(s"project ${projects.mkString(",")} still using namespace $id, can't delete it")
+        (false, s"please revoke project ${projects.mkString(",")} and namespace binding relation first")
+      } else if (projects.isEmpty && flows.nonEmpty) {
+        riderLogger.info(s"flow ${flows.mkString(",")} still using namespace $id, can't delete it")
+        (false, s"please revoke flow ${flows.mkString(",")} and namespace binding relation first")
+      } else {
+        Await.result(super.deleteById(id), minTimeOut)
+        (true, "success")
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"delete namespace $id failed", ex)
+        throw new Exception(s"delete namespace $id failed", ex)
+    }
   }
 }
