@@ -303,7 +303,6 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
   }
 
 
-
   def getByProjectIdRoute(route: String): Route = path(route / LongNumber / "namespaces") {
     id =>
       get {
@@ -373,6 +372,33 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
         riderLogger.error(s"user ${session.userId} insertOrUpdate dbus table failed", ex)
         getNsRoute(session, visible)
     }
+  }
+
+  override def deleteRoute(route: String): Route = path(route / LongNumber) {
+    id =>
+      delete {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              try {
+                val result = namespaceDal.delete(id)
+                if (result._1) {
+                  riderLogger.error(s"user ${session.userId} delete namespace $id success.")
+                  complete(OK, getHeader(200, session))
+                }
+                else complete(OK, getHeader(412, result._2, session))
+              } catch {
+                case ex: Exception =>
+                  riderLogger.error(s"user ${session.userId} delete namespace $id failed", ex)
+                  complete(OK, getHeader(451, session))
+              }
+            }
+        }
+      }
   }
 
 
