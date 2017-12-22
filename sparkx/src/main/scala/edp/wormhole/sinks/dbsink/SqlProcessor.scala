@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -82,29 +82,29 @@ object SqlProcessor extends EdpLogging {
       }).mkString(s" OR ($keysString) IN ")
   }
 
-  def splitInsertAndUpdate(rs: ResultSet, keysTupleMap: mutable.HashMap[String, Seq[String]], tableKeyNames: Seq[String], sysIdName: String,
+  def splitInsertAndUpdate(rsKeyUmsTsMap :mutable.Map[String, Long], keysTupleMap: mutable.HashMap[String, Seq[String]], tableKeyNames: Seq[String], sysIdName: String,
                            renameSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): (List[Seq[String]], List[Seq[String]]) = {
-    val rsKeyUmsTsMap = mutable.HashMap.empty[String, Long]
+    //    val rsKeyUmsTsMap = mutable.HashMap.empty[String, Long]
     val updateList = mutable.ListBuffer.empty[Seq[String]]
     val insertList = mutable.ListBuffer.empty[Seq[String]]
-    val columnTypeMap = mutable.HashMap.empty[String, String]
-    val metaData = rs.getMetaData
-    val columnCount = metaData.getColumnCount
-    for (i <- 1 to columnCount) {
-      val columnName = metaData.getColumnLabel(i)
-      val columnType = metaData.getColumnClassName(i)
-      columnTypeMap(columnName.toLowerCase) = columnType
-    }
-
-    while (rs.next) {
-      val keysId = tableKeyNames.map(keyName => {
-        if (columnTypeMap(keyName) == "java.math.BigDecimal") rs.getBigDecimal(keyName).stripTrailingZeros.toPlainString
-        else rs.getObject(keyName).toString
-      }).mkString("_")
-      val umsId = rs.getLong(sysIdName)
-      rsKeyUmsTsMap(keysId) = umsId
-    }
-    logInfo("rs finish")
+    //    val columnTypeMap = mutable.HashMap.empty[String, String]
+    //    val metaData = rs.getMetaData
+    //    val columnCount = metaData.getColumnCount
+    //    for (i <- 1 to columnCount) {
+    //      val columnName = metaData.getColumnLabel(i)
+    //      val columnType = metaData.getColumnClassName(i)
+    //      columnTypeMap(columnName.toLowerCase) = columnType
+    //    }
+    //
+    //    while (rs.next) {
+    //      val keysId = tableKeyNames.map(keyName => {
+    //        if (columnTypeMap(keyName) == "java.math.BigDecimal") rs.getBigDecimal(keyName).stripTrailingZeros.toPlainString
+    //        else rs.getObject(keyName).toString
+    //      }).mkString("_")
+    //      val umsId = rs.getLong(sysIdName)
+    //      rsKeyUmsTsMap(keysId) = umsId
+    //    }
+    //    logInfo("rs finish")
 
     keysTupleMap.foreach(keysTuple => {
       val (keysId, tuple) = keysTuple
@@ -121,10 +121,10 @@ object SqlProcessor extends EdpLogging {
 
   def selectDataFromDbList(keysTupleMap: mutable.HashMap[String, Seq[String]], sinkNamespace: String, tableKeyNames: Seq[String],
                            sysIdName: String, dataSys: UmsDataSystem, tableName: String, connectionConfig: ConnectionConfig,
-                           schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): ResultSet = {
+                           schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): mutable.Map[String, Long] = {
     var ps: PreparedStatement = null
-    var resultSet: ResultSet = null
-    var conn: Connection = null
+    var rs: ResultSet = null
+    var conn:Connection = null
     try {
       val tupleList = keysTupleMap.values.toList
       val sql = dataSys match {
@@ -143,9 +143,28 @@ object SqlProcessor extends EdpLogging {
           parameterIndex += 1
         }
       logInfo("before query")
-      resultSet = ps.executeQuery()
+      rs = ps.executeQuery()
       logInfo("finish query")
-      resultSet
+
+      val columnTypeMap = mutable.HashMap.empty[String, String]
+      val metaData = rs.getMetaData
+      val columnCount = metaData.getColumnCount
+      val rsKeyUmsTsMap: mutable.Map[String, Long] = mutable.HashMap.empty[String, Long]
+      for (i <- 1 to columnCount) {
+        val columnName = metaData.getColumnLabel(i)
+        val columnType = metaData.getColumnClassName(i)
+        columnTypeMap(columnName.toLowerCase) = columnType
+      }
+
+      while (rs.next) {
+        val keysId = tableKeyNames.map(keyName => {
+          if (columnTypeMap(keyName) == "java.math.BigDecimal") rs.getBigDecimal(keyName).stripTrailingZeros.toPlainString
+          else rs.getObject(keyName).toString
+        }).mkString("_")
+        val umsId = rs.getLong(sysIdName)
+        rsKeyUmsTsMap(keysId) = umsId
+      }
+      rsKeyUmsTsMap
     } catch {
       case e: SQLTransientConnectionException => DbConnection.resetConnection(connectionConfig)
         logError("SQLTransientConnectionException", e)
@@ -154,9 +173,9 @@ object SqlProcessor extends EdpLogging {
         logError("execute select failed", e)
         throw e
     } finally {
-      if (resultSet != null)
+      if (rs != null)
         try {
-          resultSet.close()
+          rs.close()
         } catch {
           case e: Throwable => logError("resultSet.close", e)
         }
@@ -177,7 +196,7 @@ object SqlProcessor extends EdpLogging {
   }
 
   def getInsertSql(sourceMutationType: SourceMutationType, dataSys: UmsDataSystem, tableName: String, systemRenameMap: Map[String, String],
-               allFieldNames: Seq[String]): String = {
+                   allFieldNames: Seq[String]): String = {
     //    val sql = sourceMutationType match {
     //      case SourceMutationType.INSERT_ONLY =>
     //        UmsDataSystem.dataSystem(dataSys) match {
@@ -297,13 +316,11 @@ object SqlProcessor extends EdpLogging {
       } else psSetValue(field, parameterIndex, tuple, ps, renameSchema)
       parameterIndex += 1
     }
-
     if (opType == UPDATE) {
       for (i <- tableKeyNames.indices) {
-        parameterIndex += 1
         psSetValue(tableKeyNames(i), parameterIndex, tuple, ps, renameSchema)
+        parameterIndex += 1
       }
-      parameterIndex += 1
       psSetValue(sysIdName, parameterIndex, tuple, ps, renameSchema)
     }
   }
@@ -312,13 +329,10 @@ object SqlProcessor extends EdpLogging {
   def executeSql(tupleList: Seq[Seq[String]], sql: String, opType: UmsOpType, batchSize: Int, sourceMutationType: SourceMutationType,
                  connectionConfig: ConnectionConfig,fieldNames:Seq[String],renameSchema: collection.Map[String, (Int, UmsFieldType, Boolean)],
                  systemRenameMap: Map[String, String], tableKeyNames: Seq[String], sysIdName: String): List[Seq[String]] = {
-
-
     var ps: PreparedStatement = null
     val errorTupleList: mutable.ListBuffer[Seq[String]] = mutable.ListBuffer.empty[Seq[String]]
     var conn: Connection = null
     var index = 0 - batchSize
-
     try {
       conn = DbConnection.getConnection(connectionConfig)
       conn.setAutoCommit(false)
