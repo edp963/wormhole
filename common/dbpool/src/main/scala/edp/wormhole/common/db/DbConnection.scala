@@ -89,11 +89,14 @@ object DbConnection extends Serializable {
     config.setMinimumIdle(1)
     // config.setConnectionTestQuery("SELECT 1")
 
+    if(tmpJdbcUrl.indexOf("sql4es") < 0){
+      config.addDataSourceProperty("cachePrepStmts", "true")
+      config.addDataSourceProperty("maximumPoolSize", "1")
+      config.addDataSourceProperty("prepStmtCacheSize", "250")
+      config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048")
+    }
 
-    config.addDataSourceProperty("cachePrepStmts", "true")
-    config.addDataSourceProperty("prepStmtCacheSize", "250")
-    config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048")
-    config.addDataSourceProperty("maximumPoolSize", "1")
+
     if(kvConfig.nonEmpty)  kvConfig.get.foreach(kv => config.addDataSourceProperty(kv.key, kv.value))
 
     val ds: HikariDataSource = new HikariDataSource(config)
