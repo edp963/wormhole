@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,9 +21,10 @@
 
 package edp.wormhole.sinks.dbsink
 
-import java.sql.ResultSet
+import java.sql.{Connection, ResultSet}
 
 import edp.wormhole.common.ConnectionConfig
+import edp.wormhole.common.db.DbConnection
 import edp.wormhole.sinks.{DbHelper, SinkProcessConfig, SinkProcessor, SourceMutationType}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType._
@@ -69,12 +70,12 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
     val systemRenameMap = systemRenameMutableMap.toMap
 
     val renameSchema: collection.Map[String, (Int, UmsFieldType, Boolean)] = schemaMap.map { case (name, (index, umsType, nullable)) =>
-        UmsSysField.umsSysField(name) match {
-          case UmsSysField.ID => (systemRenameMap(name), (index, umsType, nullable))
-          case UmsSysField.TS => (systemRenameMap(name), (index, umsType, nullable))
-          case _ => (name, (index, umsType, nullable))
-        }
-      }.toMap
+      name match {
+        case "ums_id_" => (systemRenameMap(name), (index, umsType, nullable))
+        case "ums_ts_" => (systemRenameMap(name), (index, umsType, nullable))
+        case _ => (name, (index, umsType, nullable))
+      }
+    }.toMap
 
     val namespace = UmsNamespace(sinkNamespace)
     val dataSys: UmsDataSystem = namespace.dataSys
@@ -136,18 +137,19 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
           val keys = keyList2values(sinkProcessConfig.tableKeyList, renameSchema, tuple)
           keysTupleMap(keys) = tuple
         }
-        val rs: ResultSet = SqlProcessor.selectDataFromDbList(keysTupleMap, sinkNamespace, tableKeyNames, sysIdName, dataSys, tableName, connectionConfig, schemaMap)
-        val (insertList, updateList) = SqlProcessor.splitInsertAndUpdate(rs, keysTupleMap, tableKeyNames, sysIdName, renameSchema)
+
+        val rsKeyUmsTsMap: mutable.Map[String, Long] = SqlProcessor.selectDataFromDbList(keysTupleMap, sinkNamespace, tableKeyNames, sysIdName, dataSys, tableName, connectionConfig, schemaMap)
+        val (insertList, updateList) = SqlProcessor.splitInsertAndUpdate(rsKeyUmsTsMap, keysTupleMap, tableKeyNames, sysIdName, renameSchema)
 
         logInfo("insertList all:" + insertList.size)
         val insertSql = SqlProcessor.getInsertSql(sourceMutationType, dataSys, tableName, systemRenameMap, allFieldNames)
-        val insertErrorTupleList = SqlProcessor.executeProcess(tupleList, insertSql, batchSize, UmsOpType.INSERT, sourceMutationType, connectionConfig, allFieldNames,
+        val insertErrorTupleList = SqlProcessor.executeProcess(insertList, insertSql, batchSize, UmsOpType.INSERT, sourceMutationType, connectionConfig, allFieldNames,
           renameSchema, systemRenameMap, tableKeyNames, sysIdName)
         logInfo("updateList all:" + updateList.size)
         val fieldNamesWithoutParNames = DbHelper.removeFieldNames(allFieldNames.toList, sinkSpecificConfig.partitionKeyList.contains)
         val updateFieldNames = DbHelper.removeFieldNames(fieldNamesWithoutParNames, tableKeyNames.contains)
-        val updateSql = SqlProcessor.getUpdateSql(dataSys, tableName, systemRenameMap, updateFieldNames: Seq[String], tableKeyNames, sysIdName)
-        val updateErrorTupleList = SqlProcessor.executeProcess(tupleList, updateSql, batchSize, UmsOpType.UPDATE, sourceMutationType, connectionConfig, updateFieldNames,
+        val updateSql = SqlProcessor.getUpdateSql(dataSys, tableName, systemRenameMap, updateFieldNames, tableKeyNames, sysIdName)
+        val updateErrorTupleList = SqlProcessor.executeProcess(updateList, updateSql, batchSize, UmsOpType.UPDATE, sourceMutationType, connectionConfig, updateFieldNames,
           renameSchema, systemRenameMap, tableKeyNames, sysIdName)
         if (insertErrorTupleList.nonEmpty || updateErrorTupleList.nonEmpty) throw new Exception(SourceMutationType.I_U_D + ",some data error ,data records=" + (insertErrorTupleList.length + updateErrorTupleList.length))
 
