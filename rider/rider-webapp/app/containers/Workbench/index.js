@@ -2122,6 +2122,18 @@ export class Workbench extends React.Component {
     }, () => {
       if (this.state.transformValue !== 'transformClassName') {
         this.makeSqlCodeMirrorInstance(value)
+
+        switch (this.state.transformValue) {
+          case 'lookupSql':
+            this.cmLookupSql.doc.setValue(this.cmLookupSql.doc.getValue() || '')
+            break
+          case 'sparkSql':
+            this.cmSparkSql.doc.setValue(this.cmSparkSql.doc.getValue() || '')
+            break
+          case 'streamJoinSql':
+            this.cmStreamJoinSql.doc.setValue(this.cmStreamJoinSql.doc.getValue() || '')
+            break
+        }
       }
     })
   }
@@ -2177,7 +2189,7 @@ export class Workbench extends React.Component {
     }, () => {
       if (this.state.jobTransValue === 'sparkSql') {
         this.makeJobSqlCodeMirrorInstance()
-        // this.cmJobSparkSql.doc.setValue('')
+        this.cmJobSparkSql.doc.setValue(this.cmJobSparkSql.doc.getValue() || '')
       }
     })
   }
@@ -2265,18 +2277,15 @@ export class Workbench extends React.Component {
       jobTransModalVisible: true,
       jobTransValue: record.transformType
     }, () => {
-      if (record.transformType === 'sparkSql') {
-        this.makeJobSqlCodeMirrorInstance()
-      }
-
       this.jobTransformForm.setFieldsValue({
         editTransformId: record.order,
         transformation: record.transformType
       })
 
-      if (record.transformType === 'sparkSql') {
+      if (this.state.jobTransValue === 'sparkSql') {
+        this.makeJobSqlCodeMirrorInstance()
         this.cmJobSparkSql.doc.setValue(record.transformConfigInfo)
-      } else if (record.transformType === 'transformClassName') {
+      } else if (this.state.jobTransValue === 'transformClassName') {
         this.jobTransformForm.setFieldsValue({
           transformClassName: record.transformConfigInfo
         })
@@ -2336,7 +2345,6 @@ export class Workbench extends React.Component {
 
       if (this.cmJobSparkSql) {
         this.cmJobSparkSql.doc.setValue('')
-        console.log('fff', this.cmJobSparkSql.doc.getValue())
       }
     })
   }
