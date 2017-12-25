@@ -67,6 +67,8 @@ object SubmitSparkJob extends App with RiderLogger {
     val realJarPath =
       if (RiderConfig.spark.kafka08StreamNames.nonEmpty && RiderConfig.spark.kafka08StreamNames.contains(streamName))
         RiderConfig.spark.kafka08JarPath
+      else if (RiderConfig.spark.kafka11StreamNames.nonEmpty && RiderConfig.spark.kafka11StreamNames.contains(streamName))
+        RiderConfig.spark.kafka08JarPath
       else RiderConfig.spark.jarPath
 
     val confList: Array[String] =
