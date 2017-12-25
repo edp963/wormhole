@@ -381,11 +381,11 @@ export function jobEdited (result, resolve, final) {
   }
 }
 
-export function loadJobDetail (jobId, resolve) {
+export function loadJobDetail (value, resolve) {
   return {
     type: LOAD_JOB_DETAIL,
     payload: {
-      jobId,
+      value,
       resolve
     }
   }

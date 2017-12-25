@@ -779,7 +779,7 @@ export class Workbench extends React.Component {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepm = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
 
-                tranConfigInfoTemp = sparkAfterPartTepm
+                tranConfigInfoTemp = `${sparkAfterPartTepm};`
                 tranTypeTepm = 'sparkSql'
               }
 
@@ -792,7 +792,7 @@ export class Workbench extends React.Component {
               }
 
               tranTableSourceTemp.order = index + 1
-              tranTableSourceTemp.transformConfigInfo = `${tranConfigInfoTemp};`
+              tranTableSourceTemp.transformConfigInfo = tranConfigInfoTemp
               tranTableSourceTemp.transformConfigInfoRequest = `${i};`
               tranTableSourceTemp.transformType = tranTypeTepm
               return tranTableSourceTemp
@@ -1012,8 +1012,9 @@ export class Workbench extends React.Component {
                 const lookupAfterPartTepmTemp = lookupAfterPart.replace(/(^\s*)|(\s*$)/g, '') // 去字符串前后的空白；sql语句回显
                 const lookupAfterPartTepm = preProcessSql(lookupAfterPartTepmTemp)
 
-                tranConfigInfoTemp = [lookupBeforePartTemp[1], lookupBeforePartTemp[3], lookupAfterPartTepm].join('.')
-                tranConfigInfoSqlTemp = lookupAfterPartTepm
+                const tranConfigInfoTempTemp = [lookupBeforePartTemp[1], lookupBeforePartTemp[3], lookupAfterPartTepm].join('.')
+                tranConfigInfoTemp = `${tranConfigInfoTempTemp};`
+                tranConfigInfoSqlTemp = `${lookupAfterPartTepm};`
                 tranTypeTepm = 'lookupSql'
 
                 const tmpObj = tranConfigVal.pushdown_connection.find(g => g.name_space === lookupBeforePartTemp[3])
@@ -1045,8 +1046,9 @@ export class Workbench extends React.Component {
 
                 const iTemp3Temp = streamJoinBeforePartTemp[3].substring(streamJoinBeforePartTemp[3].indexOf('(') + 1)
                 const iTemp3Val = iTemp3Temp.substring(0, iTemp3Temp.indexOf(')'))
-                tranConfigInfoTemp = [streamJoinBeforePartTemp[1], iTemp3Val, streamJoinAfterPartTepm].join('.')
-                tranConfigInfoSqlTemp = streamJoinAfterPartTepm
+                const tranConfigInfoTempTemp = [streamJoinBeforePartTemp[1], iTemp3Val, streamJoinAfterPartTepm].join('.')
+                tranConfigInfoTemp = `${tranConfigInfoTempTemp};`
+                tranConfigInfoSqlTemp = `${streamJoinAfterPartTepm};`
                 tranTypeTepm = 'streamJoinSql'
                 pushdownConTepm = ''
               }
@@ -1056,8 +1058,8 @@ export class Workbench extends React.Component {
                 const sparkAfterPartTepmTemp = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
                 const sparkAfterPartTepm = preProcessSql(sparkAfterPartTepmTemp)
 
-                tranConfigInfoTemp = sparkAfterPartTepm
-                tranConfigInfoSqlTemp = sparkAfterPartTepm
+                tranConfigInfoTemp = `${sparkAfterPartTepm};`
+                tranConfigInfoSqlTemp = `${sparkAfterPartTepm};`
                 tranTypeTepm = 'sparkSql'
                 pushdownConTepm = ''
               }
@@ -1074,8 +1076,8 @@ export class Workbench extends React.Component {
               }
 
               tranTableSourceTemp.order = index + 1
-              tranTableSourceTemp.transformConfigInfo = `${tranConfigInfoTemp};`
-              tranTableSourceTemp.tranConfigInfoSql = `${tranConfigInfoSqlTemp};`
+              tranTableSourceTemp.transformConfigInfo = tranConfigInfoTemp
+              tranTableSourceTemp.tranConfigInfoSql = tranConfigInfoSqlTemp
               tranTableSourceTemp.transformConfigInfoRequest = `${i};`
               tranTableSourceTemp.transformType = tranTypeTepm
               tranTableSourceTemp.pushdownConnection = pushdownConTepm
@@ -2317,7 +2319,6 @@ export class Workbench extends React.Component {
         let transformConfigInfoRequestString = ''
 
         let num = -1
-        let valLength = 0
         let finalVal = ''
 
         switch (values.transformation) {
@@ -2332,71 +2333,87 @@ export class Workbench extends React.Component {
               transformConfigInfoRequestString = `spark_sql = ${sparkSqlVal}`
 
               num = (sparkSqlVal.split(';')).length - 1
-              valLength = sparkSqlVal.length
               finalVal = sparkSqlVal.substring(sparkSqlVal.length - 1)
             }
             break
           case 'transformClassName':
             const transformClassNameVal = values.transformClassName.replace(/(^\s*)|(\s*$)/g, '')
 
-            transformConfigInfoString = transformClassNameVal
-            transformConfigInfoRequestString = `custom_class = ${transformClassNameVal}`
-
             num = (transformClassNameVal.split(';')).length - 1
-            valLength = transformClassNameVal.length
             finalVal = transformClassNameVal.substring(transformClassNameVal.length - 1)
+
+            if (finalVal === ';') {
+              transformConfigInfoString = transformClassNameVal.substring(0, transformClassNameVal.length - 1)
+              transformConfigInfoRequestString = `custom_class = ${transformClassNameVal}`
+            } else {
+              transformConfigInfoString = transformClassNameVal
+              transformConfigInfoRequestString = `custom_class = ${transformClassNameVal};`
+            }
+
             break
         }
 
-        if (num === 0) {
-          values.transformation === 'transformClassName'
-            ? message.warning('请加一个分号！', 3)
-            : message.warning('SQL语句应以一个分号结束！', 3)
-        } else if (num > 1) {
-          message.warning('SQL语句应只有一个分号！', 3)
-        } else if (num === 1 && finalVal !== ';') {
-          message.warning('SQL语句应以一个分号结束！', 3)
-        } else if (num === 1 && finalVal === ';') {
-          if (valLength === 1) {
-            message.warning('请填写 SQL语句内容！', 3)
-          } else {
-            // 加隐藏字段 transformType, 获得每次选中的transformation type
-            if (jobTransformMode === '') {
-              // 第一次添加数据时
-              this.state.jobFormTranTableSource.push({
-                transformType: values.transformation,
-                order: 1,
-                transformConfigInfo: transformConfigInfoString,
-                transformConfigInfoRequest: transformConfigInfoRequestString
-              })
-            } else if (jobTransformMode === 'edit') {
-              this.state.jobFormTranTableSource[values.editTransformId - 1] = {
-                transformType: values.transformation,
-                order: values.editTransformId,
-                transformConfigInfo: transformConfigInfoString,
-                transformConfigInfoRequest: transformConfigInfoRequestString
-              }
-            } else if (jobTransformMode === 'add') {
-              const tableSourceArr = this.state.jobFormTranTableSource
-              // 当前插入的数据
-              tableSourceArr.splice(values.editTransformId, 0, {
-                transformType: values.transformation,
-                order: values.editTransformId + 1,
-                transformConfigInfo: transformConfigInfoString,
-                transformConfigInfoRequest: transformConfigInfoRequestString
-              })
-              // 当前数据的下一条开始，order+1
-              for (let i = values.editTransformId + 1; i < tableSourceArr.length; i++) {
-                tableSourceArr[i].order = tableSourceArr[i].order + 1
-              }
-              // 重新setState数组
-              this.setState({ jobFormTranTableSource: tableSourceArr })
-            }
-            this.jobTranModalOkSuccess()
+        if (values.transformation === 'transformClassName') {
+          if (num > 1) {
+            message.warning('ClassName 最多以一个分号结束，但其他地方不应有分号！', 3)
+          } else if (num === 1 && finalVal !== ';') {
+            message.warning('ClassName 最多以一个分号结束，但其他地方不应有分号！', 3)
+          } else if (num === 0 || (num === 1 && finalVal === ';')) {
+            this.jobTransSetState(jobTransformMode, values, transformConfigInfoString, transformConfigInfoRequestString)
+          }
+        } else {
+          if (num === 0) {
+            message.warning('SQL语句应以一个分号结束！', 3)
+          } else if (num > 1) {
+            message.warning('SQL语句应只有一个分号！', 3)
+          } else if (num === 1 && finalVal !== ';') {
+            message.warning('SQL语句应以一个分号结束！', 3)
+          } else if (num === 1 && finalVal === ';') {
+            this.jobTransSetState(jobTransformMode, values, transformConfigInfoString, transformConfigInfoRequestString)
           }
         }
       }
     })
+  }
+
+  jobTransSetState (jobTransformMode, values, transformConfigInfoString, transformConfigInfoRequestString) {
+    // 加隐藏字段 transformType, 获得每次选中的transformation type
+    switch (jobTransformMode) {
+      case '':
+        // 第一次添加数据时
+        this.state.jobFormTranTableSource.push({
+          transformType: values.transformation,
+          order: 1,
+          transformConfigInfo: transformConfigInfoString,
+          transformConfigInfoRequest: transformConfigInfoRequestString
+        })
+        break
+      case 'edit':
+        this.state.jobFormTranTableSource[values.editTransformId - 1] = {
+          transformType: values.transformation,
+          order: values.editTransformId,
+          transformConfigInfo: transformConfigInfoString,
+          transformConfigInfoRequest: transformConfigInfoRequestString
+        }
+        break
+      case 'add':
+        const tableSourceArr = this.state.jobFormTranTableSource
+        // 当前插入的数据
+        tableSourceArr.splice(values.editTransformId, 0, {
+          transformType: values.transformation,
+          order: values.editTransformId + 1,
+          transformConfigInfo: transformConfigInfoString,
+          transformConfigInfoRequest: transformConfigInfoRequestString
+        })
+        // 当前数据的下一条开始，order+1
+        for (let i = values.editTransformId + 1; i < tableSourceArr.length; i++) {
+          tableSourceArr[i].order = tableSourceArr[i].order + 1
+        }
+        // 重新setState数组
+        this.setState({ jobFormTranTableSource: tableSourceArr })
+        break
+    }
+    this.jobTranModalOkSuccess()
   }
 
   jobTranModalOkSuccess () {
@@ -2418,7 +2435,6 @@ export class Workbench extends React.Component {
         let pushdownConnectionString = ''
 
         let num = -1
-        let valLength = 0
         let finalVal = ''
 
         switch (values.transformation) {
@@ -2462,7 +2478,6 @@ export class Workbench extends React.Component {
               pushdownConnectionString = JSON.stringify(pushdownConnectJson)
 
               num = (lookupSqlVal.split(';')).length - 1
-              valLength = lookupSqlVal.length
               finalVal = lookupSqlVal.substring(lookupSqlVal.length - 1)
             }
             break
@@ -2480,7 +2495,6 @@ export class Workbench extends React.Component {
               pushdownConnectionString = ''
 
               num = (sparkSqlVal.split(';')).length - 1
-              valLength = sparkSqlVal.length
               finalVal = sparkSqlVal.substring(sparkSqlVal.length - 1)
             }
             break
@@ -2504,7 +2518,6 @@ export class Workbench extends React.Component {
               pushdownConnectionString = ''
 
               num = (streamJoinSqlVal.split(';')).length - 1
-              valLength = streamJoinSqlVal.length
               finalVal = streamJoinSqlVal.substring(streamJoinSqlVal.length - 1)
             }
             break
@@ -2512,81 +2525,95 @@ export class Workbench extends React.Component {
             const transformClassNameValTemp = values.transformClassName.replace(/(^\s*)|(\s*$)/g, '')
             const transformClassNameVal = preProcessSql(transformClassNameValTemp)
 
-            transformConfigInfoString = transformClassNameVal
-            tranConfigInfoSqlString = transformClassNameVal
-            transformConfigInfoRequestString = `custom_class = ${transformClassNameVal}`
             pushdownConnectionString = ''
 
             num = (transformClassNameVal.split(';')).length - 1
-            valLength = transformClassNameVal.length
             finalVal = transformClassNameVal.substring(transformClassNameVal.length - 1)
+
+            if (finalVal === ';') {
+              tranConfigInfoSqlString = transformClassNameVal.substring(0, transformClassNameVal.length - 1)
+              transformConfigInfoString = transformClassNameVal.substring(0, transformClassNameVal.length - 1)
+              transformConfigInfoRequestString = `custom_class = ${transformClassNameVal}`
+            } else {
+              tranConfigInfoSqlString = transformClassNameVal
+              transformConfigInfoString = transformClassNameVal
+              transformConfigInfoRequestString = `custom_class = ${transformClassNameVal};`
+            }
             break
         }
 
-        if (num === 0) {
-          values.transformation === 'transformClassName'
-            ? message.warning('请加一个分号！', 3)
-            : message.warning('SQL语句应以一个分号结束！', 3)
-        } else if (num > 1) {
-          message.warning('SQL语句应只有一个分号！', 3)
-        } else if (num === 1 && finalVal !== ';') {
-          message.warning('SQL语句应以一个分号结束！', 3)
-        } else if (num === 1 && finalVal === ';') {
-          if (valLength === 1) {
-            message.warning('请填写 SQL语句内容！', 3)
-          } else {
-            // 加隐藏字段 transformType, 获得每次选中的transformation type
-            if (transformMode === '') {
-              // 第一次添加数据时
-              this.state.flowFormTranTableSource.push({
-                transformType: values.transformation,
-                order: 1,
-                transformConfigInfo: transformConfigInfoString,
-                tranConfigInfoSql: tranConfigInfoSqlString,
-                transformConfigInfoRequest: transformConfigInfoRequestString,
-                pushdownConnection: pushdownConnectionString
-              })
-
-              this.setState({
-                dataframeShowSelected: 'hide'
-              }, () => {
-                this.workbenchFlowForm.setFieldsValue({
-                  dataframeShow: 'false',
-                  dataframeShowNum: 10
-                })
-              })
-            } else if (transformMode === 'edit') {
-              this.state.flowFormTranTableSource[values.editTransformId - 1] = {
-                transformType: values.transformation,
-                order: values.editTransformId,
-                transformConfigInfo: transformConfigInfoString,
-                tranConfigInfoSql: tranConfigInfoSqlString,
-                transformConfigInfoRequest: transformConfigInfoRequestString,
-                pushdownConnection: pushdownConnectionString
-              }
-            } else if (transformMode === 'add') {
-              const tableSourceArr = this.state.flowFormTranTableSource
-              // 当前插入的数据
-              tableSourceArr.splice(values.editTransformId, 0, {
-                transformType: values.transformation,
-                order: values.editTransformId + 1,
-                transformConfigInfo: transformConfigInfoString,
-                tranConfigInfoSql: tranConfigInfoSqlString,
-                transformConfigInfoRequest: transformConfigInfoRequestString,
-                pushdownConnection: pushdownConnectionString
-              })
-              // 当前数据的下一条开始，order+1
-              for (let i = values.editTransformId + 1; i < tableSourceArr.length; i++) {
-                tableSourceArr[i].order = tableSourceArr[i].order + 1
-              }
-              // 重新setState数组
-              this.setState({ flowFormTranTableSource: tableSourceArr })
-            }
-            this.tranModalOkSuccess()
+        if (values.transformation === 'transformClassName') {
+          if (num > 1) {
+            message.warning('ClassName 最多以一个分号结束，但其他地方不应有分号！', 3)
+          } else if (num === 1 && finalVal !== ';') {
+            message.warning('ClassName 最多以一个分号结束，但其他地方不应有分号！', 3)
+          } else if (num === 0 || (num === 1 && finalVal === ';')) {
+            this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionString)
+          }
+        } else {
+          if (num === 0) {
+            message.warning('SQL语句应以一个分号结束！', 3)
+          } else if (num > 1) {
+            message.warning('SQL语句应只有一个分号！', 3)
+          } else if (num === 1 && finalVal !== ';') {
+            message.warning('SQL语句应以一个分号结束！', 3)
+          } else if (num === 1 && finalVal === ';') {
+            this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionString)
           }
         }
       }
     })
+  }
+
+  flowTransSetState (transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionString) {
+    // 加隐藏字段 transformType, 获得每次选中的transformation type
+    if (transformMode === '') {
+      // 第一次添加数据时
+      this.state.flowFormTranTableSource.push({
+        transformType: values.transformation,
+        order: 1,
+        transformConfigInfo: transformConfigInfoString,
+        tranConfigInfoSql: tranConfigInfoSqlString,
+        transformConfigInfoRequest: transformConfigInfoRequestString,
+        pushdownConnection: pushdownConnectionString
+      })
+
+      this.setState({
+        dataframeShowSelected: 'hide'
+      }, () => {
+        this.workbenchFlowForm.setFieldsValue({
+          dataframeShow: 'false',
+          dataframeShowNum: 10
+        })
+      })
+    } else if (transformMode === 'edit') {
+      this.state.flowFormTranTableSource[values.editTransformId - 1] = {
+        transformType: values.transformation,
+        order: values.editTransformId,
+        transformConfigInfo: transformConfigInfoString,
+        tranConfigInfoSql: tranConfigInfoSqlString,
+        transformConfigInfoRequest: transformConfigInfoRequestString,
+        pushdownConnection: pushdownConnectionString
+      }
+    } else if (transformMode === 'add') {
+      const tableSourceArr = this.state.flowFormTranTableSource
+      // 当前插入的数据
+      tableSourceArr.splice(values.editTransformId, 0, {
+        transformType: values.transformation,
+        order: values.editTransformId + 1,
+        transformConfigInfo: transformConfigInfoString,
+        tranConfigInfoSql: tranConfigInfoSqlString,
+        transformConfigInfoRequest: transformConfigInfoRequestString,
+        pushdownConnection: pushdownConnectionString
+      })
+      // 当前数据的下一条开始，order+1
+      for (let i = values.editTransformId + 1; i < tableSourceArr.length; i++) {
+        tableSourceArr[i].order = tableSourceArr[i].order + 1
+      }
+      // 重新setState数组
+      this.setState({ flowFormTranTableSource: tableSourceArr })
+    }
+    this.tranModalOkSuccess()
   }
 
   tranModalOkSuccess () {

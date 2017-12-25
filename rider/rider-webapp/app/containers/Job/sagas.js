@@ -273,8 +273,12 @@ export function* editJobWatcher () {
 }
 
 export function* queryJobDetail ({ payload }) {
+  const apiFinal = payload.value.roleType === 'admin'
+    ? `${api.job}/${payload.value.jobId}`
+    : `${api.projectUserList}/${payload.value.projectId}/jobs/${payload.value.jobId}`
+
   try {
-    const result = yield call(request, `${api.job}/${payload.jobId}`)
+    const result = yield call(request, `${apiFinal}`)
     yield put(jobDetailLoaded(result.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'queryJobDetail')
