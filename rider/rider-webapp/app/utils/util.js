@@ -191,3 +191,16 @@ export function isEquivalent (a, b) {
   return true
 }
 
+/**
+ * 时间格式 YYYYMMDDHHmmss 转换成 YYYY-MM-DD HH:mm:ss, 再转成 YYYY/MM/DD HH:mm:ss
+ */
+export function formatString (dateString) {
+  let dateTemp = ''
+
+  dateTemp += `${dateString.slice(0, 4)}-${dateString.slice(4, 6)}-${dateString.slice(6, 8)} ${dateString.slice(8, 10)}:${dateString.slice(10, 12)}:${dateString.slice(12)}`
+
+  dateTemp = dateTemp.replace(new RegExp('-', 'gm'), '/')
+  const dateTempHaoMiao = (new Date(dateTemp)).getTime()
+  return dateTempHaoMiao
+}
+
