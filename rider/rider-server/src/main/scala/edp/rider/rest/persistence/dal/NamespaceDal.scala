@@ -24,6 +24,7 @@ package edp.rider.rest.persistence.dal
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes}
 import akka.util.ByteString
+import edp.rider.RiderStarter.modules._
 import edp.rider.RiderStarter.{materializer, system}
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.module.DbModule._
@@ -31,11 +32,11 @@ import edp.rider.rest.persistence.base.{BaseDal, BaseDalImpl}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.SessionClass
 import edp.rider.rest.util.CommonUtils._
-import edp.rider.rest.util.{NamespaceUtils, UdfUtils}
+import edp.rider.rest.util.NamespaceUtils
 import edp.wormhole.common.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
-import edp.rider.RiderStarter.modules._
+
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
