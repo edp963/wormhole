@@ -1366,11 +1366,10 @@ export class Workbench extends React.Component {
   }
 
   hideConfigModal = () => {
-    this.streamConfigForm.resetFields()
     this.setState({ streamConfigModalVisible: false })
   }
+
   hideSparkConfigModal = () => {
-    this.streamConfigForm.resetFields()
     this.setState({ sparkConfigModalVisible: false })
   }
 
