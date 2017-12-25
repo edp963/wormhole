@@ -24,12 +24,40 @@ import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 import Card from 'antd/lib/card'
+import Tooltip from 'antd/lib/tooltip'
+import Button from 'antd/lib/button'
 import Select from 'antd/lib/select'
-import Input from 'antd/lib/input'
 import InputNumber from 'antd/lib/input-number'
 const FormItem = Form.Item
 
 export class StreamStartForm extends React.Component {
+  constructor (props) {
+    super(props)
+    this.state = {
+      data: []
+    }
+  }
+
+  componentWillReceiveProps (props) {
+    const dataFinal = props.data.map(s => {
+      const conTemp = props.consumedOffsetValue.find(i => i.id === s.id)
+      const conTempObject = conTemp
+        ? {conOffsetVal: conTemp.partitionOffsets}
+        : {}
+
+      const kafTemp = props.kafkaOffsetValue.find(i => i.id === s.id)
+      const kafTempObject = kafTemp
+        ? {kafOffsetVal: kafTemp.partitionOffsets}
+        : {}
+
+      return Object.assign({}, s, conTempObject, kafTempObject)
+    })
+
+    this.setState({
+      data: dataFinal
+    })
+  }
+
   forceCheckTopic = (rule, value, callback) => {
     const reg = /^[0-9]*$/
     if (reg.test(value)) {
@@ -37,6 +65,18 @@ export class StreamStartForm extends React.Component {
     } else {
       callback('必须是数字')
     }
+  }
+
+  onApplyConOffset = (i, index, consumerOffsetFinal) => (e) => {
+    this.props.form.setFieldsValue({
+      [`${i.id}_${index}`]: consumerOffsetFinal
+    })
+  }
+
+  onApplyKafkaOffset = (i, index, kafkaOffsetFinal) => (e) => {
+    this.props.form.setFieldsValue({
+      [`${i.id}_${index}`]: kafkaOffsetFinal
+    })
   }
 
   render () {
@@ -47,40 +87,35 @@ export class StreamStartForm extends React.Component {
     // },{
     //   id: 24,
     //   rate: 200,
-    //   partitionOffsets: '0:100'
-    // }, {
-    //   id: 25,
-    //   rate: 300,
-    //   partitionOffsets: '0:200,1:300'
-    // }]
+    //   partitionOffsets: '0:100,1:200,2:300,3:77'
+    // },
+    //   {
+    //     id: 25,
+    //     rate: 300,
+    //     partitionOffsets: '0:200,1:300'
+    //   }
+    // ]
 
-    const { form, data, streamActionType, selectEditIcon, startUdfValsOption, renewUdfValsOption, currentUdfVal } = this.props
+    const { form, streamActionType, startUdfValsOption, renewUdfValsOption, currentUdfVal } = this.props
     const { getFieldDecorator } = form
-
-    let disablecOrNot = false
-    if (streamActionType === 'start') {
-      disablecOrNot = false
-    } else if (streamActionType === 'renew') {
-      if (selectEditIcon === 'edit') {
-        disablecOrNot = true
-      } else {
-        disablecOrNot = false
-      }
-    }
+    const { data } = this.state
 
     const noTopicCardTitle = (<Col span={24} style={{fontWeight: '500'}}><span className="modal-topic-name">Topic Name</span></Col>)
 
     const cardStartItem = data.length === 0
       ? (
-        <Row>
+        <Row className="no-topic-card-class">
           <Card title={noTopicCardTitle} className="stream-start-form-card-style">
-            <div className="rate-class">
-              <Col span={24} className="card-content required-offset">Rate (条/秒)</Col>
-            </div>
-            <div className="topic-info-class">
-              <Col span={8} className="card-content">Partition</Col>
-              <Col span={8} className="card-content required-offset">Offset</Col>
-              <Col span={8} className="card-content">Lastest Offset</Col>
+            <div className="rate-topic-info-wrapper">
+              <div className="rate-class">
+                <Col span={24} className="card-content required-offset">Rate (条/秒)</Col>
+              </div>
+              <div className="topic-info-class">
+                <Col span={3} className="card-content">Partition</Col>
+                <Col span={7} className="card-content required-offset">Offset</Col>
+                <Col span={7} className="card-content">Lastest Consumed Offset</Col>
+                <Col span={7} className="card-content">Lastest Kafka Offset</Col>
+              </div>
             </div>
             <h3 className="no-topic-class">There is no topics now.</h3>
           </Card>
@@ -108,7 +143,7 @@ export class StreamStartForm extends React.Component {
                         validator: this.forceCheckTopic
                       }]
                     })(
-                      <InputNumber className="conform-table-input" disabled={disablecOrNot} />
+                      <InputNumber className="conform-table-input" />
                     )}
                   </ol>
                 </FormItem>
@@ -117,10 +152,17 @@ export class StreamStartForm extends React.Component {
           ))
         } else {
           const partitionOffsetsArr = i.partitionOffsets.split(',')
+          const consumerOffsetFinal = i.conOffsetVal
+            ? i.conOffsetVal.substring(i.conOffsetVal.indexOf(':') + 1)
+            : ''
+          const kafkaOffsetFinal = i.kafOffsetVal
+            ? i.kafOffsetVal.substring(i.kafOffsetVal.indexOf(':') + 1)
+            : ''
+
           parOffInput = partitionOffsetsArr.map((g, index) => (
             <Row key={`${i.id}_${index}`}>
-              <Col span={8} className="partition-content">{g.substring(0, g.indexOf(':'))}</Col>
-              <Col span={8} className="offset-content">
+              <Col span={3} className="partition-content">{g.substring(0, g.indexOf(':'))}</Col>
+              <Col span={7} className="offset-content">
                 <FormItem>
                   <ol key={g}>
                     {getFieldDecorator(`${i.id}_${index}`, {
@@ -132,18 +174,40 @@ export class StreamStartForm extends React.Component {
                       }],
                       initialValue: g.substring(g.indexOf(':') + 1)
                     })(
-                      <InputNumber size="medium" className="conform-table-input" disabled={disablecOrNot} />
+                      <InputNumber size="medium" className="conform-table-input" />
                     )}
                   </ol>
                 </FormItem>
               </Col>
-              <Col span={8} className="stream-start-offset-class">
+              <Col span={7} className="stream-start-offset-class">
                 <FormItem>
                   <ol key={g}>
-                    {getFieldDecorator(`latest_${i.id}_${index}`, {
-                      // initialValue: g.substring(g.indexOf(':') + 1)
-                    })(
-                      <Input size="default" className="conform-table-input-readOnly" readOnly />
+                    {getFieldDecorator(`consumedLatest_${i.id}_${index}`, {})(
+                      <div className="stream-start-lastest-consumed-offset">
+                        <span style={{ marginRight: '5px' }}>{consumerOffsetFinal}</span>
+                        <Tooltip title="应用">
+                          <Button shape="circle" type="ghost" onClick={this.onApplyConOffset(i, index, consumerOffsetFinal)}>
+                            <i className="iconfont icon-apply_icon_-copy-copy-copy"></i>
+                          </Button>
+                        </Tooltip>
+                      </div>
+
+                    )}
+                  </ol>
+                </FormItem>
+              </Col>
+              <Col span={7} className="stream-start-offset-class">
+                <FormItem>
+                  <ol key={g}>
+                    {getFieldDecorator(`kafkaLatest_${i.id}_${index}`, {})(
+                      <div className="stream-start-lastest-kafka-offset">
+                        <span style={{ marginRight: '5px' }}>{kafkaOffsetFinal}</span>
+                        <Tooltip title="应用">
+                          <Button shape="circle" type="ghost" onClick={this.onApplyKafkaOffset(i, index, kafkaOffsetFinal)}>
+                            <i className="iconfont icon-apply_icon_-copy-copy-copy"></i>
+                          </Button>
+                        </Tooltip>
+                      </div>
                     )}
                   </ol>
                 </FormItem>
@@ -160,9 +224,10 @@ export class StreamStartForm extends React.Component {
 
         const cardContent = (
           <Row key={i.id}>
-            <Col span={8} className="card-content">Partition</Col>
-            <Col span={8} className="card-content required-offset">Offset</Col>
-            <Col span={8} className="card-content">Lastest Offset</Col>
+            <Col span={3} className="card-content">Partition</Col>
+            <Col span={7} className="card-content required-offset">Offset</Col>
+            <Col span={7} className="card-content">Lastest Consumed Offset</Col>
+            <Col span={7} className="card-content">Lastest Kafka Offset</Col>
             {parOffInput}
           </Row>
         )
@@ -170,26 +235,28 @@ export class StreamStartForm extends React.Component {
         return (
           <Row key={i.id}>
             <Card title={cardTitle} className="stream-start-form-card-style">
-              <div className="rate-class">
-                <Col span={24} className="card-content required-offset">Rate (条/秒)</Col>
-                <Col span={24}>
-                  <FormItem>
-                    {getFieldDecorator(`${i.rate}`, {
-                      rules: [{
-                        required: true,
-                        message: '请填写 Rate'
-                      }, {
-                        validator: this.forceCheckTopic
-                      }],
-                      initialValue: `${i.rate}`
-                    })(
-                      <InputNumber size="medium" className="rate-input" disabled={disablecOrNot} />
-                    )}
-                  </FormItem>
-                </Col>
-              </div>
-              <div className="topic-info-class">
-                {cardContent}
+              <div className="rate-topic-info-wrapper">
+                <div className="rate-class">
+                  <Col span={24} className="card-content required-offset">Rate (条/秒)</Col>
+                  <Col span={24}>
+                    <FormItem>
+                      {getFieldDecorator(`${i.rate}`, {
+                        rules: [{
+                          required: true,
+                          message: '请填写 Rate'
+                        }, {
+                          validator: this.forceCheckTopic
+                        }],
+                        initialValue: `${i.rate}`
+                      })(
+                        <InputNumber size="medium" className="rate-input" />
+                      )}
+                    </FormItem>
+                  </Col>
+                </div>
+                <div className="topic-info-class">
+                  {cardContent}
+                </div>
               </div>
             </Card>
           </Row>
@@ -212,20 +279,22 @@ export class StreamStartForm extends React.Component {
     return (
       <Form>
         <Row>
-          <Card title="UDFs：" className="stream-start-form-udf-style">
-            <div className={`${streamActionType === 'start' ? 'hide' : ''} selected-udf-class`}>Selected UDFs：{currentUdfsShow}</div>
-            <Col span={24} className="stream-udf">
-              <FormItem label="" {...itemStyleUdf}>
-                {getFieldDecorator('udfs', {})(
-                  <Select
-                    mode="multiple"
-                    placeholder={streamActionType === 'start' ? 'Select UDFs' : 'Add UDFs'}
-                  >
-                    {udfChildren}
-                  </Select>
-                )}
-              </FormItem>
-            </Col>
+          <Card title="UDFs：" className={streamActionType === 'start' ? 'stream-start-form-udf-style' : 'stream-renew-form-udf-style'}>
+            <div className="udf-info-wrapper">
+              <div className={`${streamActionType === 'start' ? 'hide' : ''} selected-udf-class`}>Selected UDFs：{currentUdfsShow}</div>
+              <Col span={24} className="stream-udf">
+                <FormItem label="" {...itemStyleUdf}>
+                  {getFieldDecorator('udfs', {})(
+                    <Select
+                      mode="multiple"
+                      placeholder={streamActionType === 'start' ? 'Select UDFs' : 'Add UDFs'}
+                    >
+                      {udfChildren}
+                    </Select>
+                  )}
+                </FormItem>
+              </Col>
+            </div>
           </Card>
         </Row>
         {cardStartItem}
@@ -236,9 +305,7 @@ export class StreamStartForm extends React.Component {
 
 StreamStartForm.propTypes = {
   form: React.PropTypes.any,
-  data: React.PropTypes.array,
   streamActionType: React.PropTypes.string,
-  selectEditIcon: React.PropTypes.string,
   startUdfValsOption: React.PropTypes.array,
   renewUdfValsOption: React.PropTypes.array,
   currentUdfVal: React.PropTypes.array
