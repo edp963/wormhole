@@ -27,8 +27,6 @@ import {
   LOAD_ADMIN_SINGLE_STREAM_SUCCESS,
   LOAD_STREAM_DETAIL,
   LOAD_STREAM_DETAIL_SUCCESS,
-  LOAD_OFFSET,
-  LOAD_OFFSET_SUCCESS,
   LOAD_STREAM_NAME_VALUE,
   LOAD_STREAM_NAME_VALUE_SUCCESS,
   LOAD_STREAM_NAME_VALUE_ERROR,
@@ -50,7 +48,9 @@ import {
   DELETE_STREAMS_SUCCESS,
   STARTORRENEW_STREAMS,
   STARTORRENEW_STREAMS_SUCCESS,
-  OPERATE_STREAMS_ERROR
+  OPERATE_STREAMS_ERROR,
+  LOAD_LASTEST_OFFSET,
+  LOAD_LASTEST_OFFSET_SUCCESS
 } from './constants'
 
 export function loadUserStreams (projectId, resolve) {
@@ -127,26 +127,6 @@ export function loadStreamDetail (projectId, streamId, roleType, resolve) {
 export function streamDetailLoaded (result, resolve) {
   return {
     type: LOAD_STREAM_DETAIL_SUCCESS,
-    payload: {
-      result,
-      resolve
-    }
-  }
-}
-
-export function loadOffset (values, resolve) {
-  return {
-    type: LOAD_OFFSET,
-    payload: {
-      values,
-      resolve
-    }
-  }
-}
-
-export function offsetLoaded (result, resolve) {
-  return {
-    type: LOAD_OFFSET_SUCCESS,
     payload: {
       result,
       resolve
@@ -388,6 +368,27 @@ export function streamOperatedError (message, reject) {
     payload: {
       message,
       reject
+    }
+  }
+}
+
+export function loadLastestOffset (projectId, streamId, resolve) {
+  return {
+    type: LOAD_LASTEST_OFFSET,
+    payload: {
+      projectId,
+      streamId,
+      resolve
+    }
+  }
+}
+
+export function lastestOffsetLoaded (result, resolve) {
+  return {
+    type: LOAD_LASTEST_OFFSET_SUCCESS,
+    payload: {
+      result,
+      resolve
     }
   }
 }

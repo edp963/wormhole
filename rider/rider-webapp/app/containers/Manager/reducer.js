@@ -27,8 +27,6 @@ import {
   LOAD_ADMIN_SINGLE_STREAM_SUCCESS,
   LOAD_STREAM_DETAIL,
   LOAD_STREAM_DETAIL_SUCCESS,
-  LOAD_OFFSET,
-  LOAD_OFFSET_SUCCESS,
   LOAD_STREAM_NAME_VALUE,
   LOAD_STREAM_NAME_VALUE_SUCCESS,
   LOAD_STREAM_NAME_VALUE_ERROR,
@@ -50,7 +48,9 @@ import {
   DELETE_STREAMS_SUCCESS,
   STARTORRENEW_STREAMS,
   STARTORRENEW_STREAMS_SUCCESS,
-  OPERATE_STREAMS_ERROR
+  OPERATE_STREAMS_ERROR,
+  LOAD_LASTEST_OFFSET,
+  LOAD_LASTEST_OFFSET_SUCCESS
 } from './constants'
 import { fromJS } from 'immutable'
 
@@ -81,11 +81,6 @@ function streamReducer (state = initialState, { type, payload }) {
     case LOAD_STREAM_DETAIL:
       return state
     case LOAD_STREAM_DETAIL_SUCCESS:
-      payload.resolve(payload.result)
-      return state
-    case LOAD_OFFSET:
-      return state
-    case LOAD_OFFSET_SUCCESS:
       payload.resolve(payload.result)
       return state
     case LOAD_STREAM_NAME_VALUE:
@@ -153,6 +148,11 @@ function streamReducer (state = initialState, { type, payload }) {
       return state.set('streams', streams.slice())
     case OPERATE_STREAMS_ERROR:
       payload.reject(payload.message)
+      return state
+    case LOAD_LASTEST_OFFSET:
+      return state
+    case LOAD_LASTEST_OFFSET_SUCCESS:
+      payload.resolve(payload.result)
       return state
     default:
       return state

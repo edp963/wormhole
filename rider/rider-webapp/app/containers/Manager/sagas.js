@@ -25,7 +25,6 @@ import {
   LOAD_ADMIN_ALL_STREAMS,
   LOAD_ADMIN_SINGLE_STREAM,
   LOAD_STREAM_DETAIL,
-  LOAD_OFFSET,
   LOAD_STREAM_NAME_VALUE,
   LOAD_KAFKA,
   LOAD_STREAM_CONFIG_JVM,
@@ -35,7 +34,8 @@ import {
   EDIT_STREAM,
   OPERATE_STREAMS,
   DELETE_STREAMS,
-  STARTORRENEW_STREAMS
+  STARTORRENEW_STREAMS,
+  LOAD_LASTEST_OFFSET
 } from './constants'
 
 import {
@@ -43,7 +43,6 @@ import {
   adminAllStreamsLoaded,
   adminSingleStreamLoaded,
   streamDetailLoaded,
-  offsetLoaded,
   streamNameValueLoaded,
   streamNameValueErrorLoaded,
   kafkaLoaded,
@@ -55,7 +54,8 @@ import {
   streamOperated,
   streamDeleted,
   streamStartOrRenewed,
-  streamOperatedError
+  streamOperatedError,
+  lastestOffsetLoaded
 } from './action'
 
 import request from '../../utils/request'
@@ -115,19 +115,6 @@ export function* getStreamDetail ({ payload }) {
 
 export function* getStreamDetailWatcher () {
   yield fork(takeLatest, LOAD_STREAM_DETAIL, getStreamDetail)
-}
-
-export function* getOffset ({ payload }) {
-  try {
-    const result = yield call(request, `${api.projectStream}/${payload.values.id}/streams/${payload.values.streamId}/topics/offsets/latest`)
-    yield put(offsetLoaded(result.payload, payload.resolve))
-  } catch (err) {
-    notifySagasError(err, 'getOffset')
-  }
-}
-
-export function* getOffsetWatcher () {
-  yield fork(takeLatest, LOAD_OFFSET, getOffset)
 }
 
 export function* getStreamNameValue ({ payload }) {
@@ -294,12 +281,24 @@ export function* startOrRenewStreamWathcer () {
   yield fork(takeEvery, STARTORRENEW_STREAMS, startOrRenewStream)
 }
 
+export function* getLastestOffset ({ payload }) {
+  try {
+    const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/topics/offsets/latest`)
+    yield put(lastestOffsetLoaded(result.payload, payload.resolve))
+  } catch (err) {
+    notifySagasError(err, 'getLastestOffset')
+  }
+}
+
+export function* getLastestOffsetWatcher () {
+  yield fork(takeLatest, LOAD_LASTEST_OFFSET, getLastestOffset)
+}
+
 export default [
   getUserStreamsWatcher,
   getAdminAllFlowsWatcher,
   getAdminSingleFlowWatcher,
   getStreamDetailWatcher,
-  getOffsetWatcher,
   getStreamNameValueWatcher,
   getKafkaWatcher,
   getStreamConfigJvmWatcher,
@@ -309,5 +308,6 @@ export default [
   editStreamWathcer,
   operateStreamWathcer,
   deleteStreamWathcer,
-  startOrRenewStreamWathcer
+  startOrRenewStreamWathcer,
+  getLastestOffsetWatcher
 ]
