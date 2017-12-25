@@ -22,7 +22,7 @@ import React from 'react'
 import {connect} from 'react-redux'
 import {createStructuredSelector} from 'reselect'
 import Helmet from 'react-helmet'
-import { preProcessSql } from '../../utils/util'
+import { preProcessSql, formatString, isJSON } from '../../utils/util'
 import CodeMirror from 'codemirror'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
@@ -55,8 +55,13 @@ const Step = Steps.Step
 import message from 'antd/lib/message'
 import Moment from 'moment'
 
-import {loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic, loadSourceSinkTypeNamespace, loadSinkTypeNamespace, loadTranSinkTypeNamespace, loadSourceToSinkExist, addFlow, editFlow, queryFlow} from '../Flow/action'
-import {loadUserStreams, loadAdminSingleStream, loadStreamNameValue, loadKafka, loadStreamConfigJvm, addStream, loadStreamDetail, editStream} from '../Manager/action'
+import {loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic,
+  loadSourceSinkTypeNamespace, loadSinkTypeNamespace, loadTranSinkTypeNamespace,
+  loadSourceToSinkExist, addFlow, editFlow, queryFlow} from '../Flow/action'
+
+import {loadUserStreams, loadAdminSingleStream, loadStreamNameValue, loadKafka,
+  loadStreamConfigJvm, addStream, loadStreamDetail, editStream} from '../Manager/action'
+
 import {loadSelectNamespaces, loadUserNamespaces} from '../Namespace/action'
 import {loadUserUsers, loadSelectUsers} from '../User/action'
 import {loadResources} from '../Resource/action'
@@ -210,42 +215,49 @@ export class Workbench extends React.Component {
     const { onLoadSelectNamespaces, onLoadUserNamespaces, onLoadSelectUsers, onLoadUserUsers, onLoadResources, onLoadSingleUdf } = this.props
     let roleTypeTemp = localStorage.getItem('loginRoleType')
 
-    if (key === 'flow') {
-      if (roleTypeTemp === 'admin') {
-        onLoadAdminSingleFlow(projectId, () => {})
-      } else if (roleTypeTemp === 'user') {
-        onLoadUserAllFlows(projectId, () => {})
-      }
-    } else if (key === 'stream') {
-      if (roleTypeTemp === 'admin') {
-        onLoadAdminSingleStream(projectId, () => {})
-      } else if (roleTypeTemp === 'user') {
-        onLoadUserStreams(projectId, () => {})
-      }
-    } else if (key === 'namespace') {
-      if (roleTypeTemp === 'admin') {
-        onLoadSelectNamespaces(projectId, () => {})
-      } else if (roleTypeTemp === 'user') {
-        onLoadUserNamespaces(projectId, () => {})
-      }
-    } else if (key === 'user') {
-      if (roleTypeTemp === 'admin') {
-        onLoadSelectUsers(projectId, () => {})
-      } else if (roleTypeTemp === 'user') {
-        onLoadUserUsers(projectId, () => {})
-      }
-    } else if (key === 'resource') {
-      if (roleTypeTemp === 'admin') {
-        onLoadResources(projectId, 'admin')
-      } else if (roleTypeTemp === 'user') {
-        onLoadResources(projectId, 'user')
-      }
-    } else if (key === 'udf') {
-      if (roleTypeTemp === 'admin') {
-        onLoadSingleUdf(projectId, 'admin', () => {})
-      } else if (roleTypeTemp === 'user') {
-        onLoadSingleUdf(projectId, 'user', () => {})
-      }
+    switch (key) {
+      case 'flow':
+        if (roleTypeTemp === 'admin') {
+          onLoadAdminSingleFlow(projectId, () => {})
+        } else if (roleTypeTemp === 'user') {
+          onLoadUserAllFlows(projectId, () => {})
+        }
+        break
+      case 'stream':
+        if (roleTypeTemp === 'admin') {
+          onLoadAdminSingleStream(projectId, () => {})
+        } else if (roleTypeTemp === 'user') {
+          onLoadUserStreams(projectId, () => {})
+        }
+        break
+      case 'namespace':
+        if (roleTypeTemp === 'admin') {
+          onLoadSelectNamespaces(projectId, () => {})
+        } else if (roleTypeTemp === 'user') {
+          onLoadUserNamespaces(projectId, () => {})
+        }
+        break
+      case 'user':
+        if (roleTypeTemp === 'admin') {
+          onLoadSelectUsers(projectId, () => {})
+        } else if (roleTypeTemp === 'user') {
+          onLoadUserUsers(projectId, () => {})
+        }
+        break
+      case 'resource':
+        if (roleTypeTemp === 'admin') {
+          onLoadResources(projectId, 'admin')
+        } else if (roleTypeTemp === 'user') {
+          onLoadResources(projectId, 'user')
+        }
+        break
+      case 'udf':
+        if (roleTypeTemp === 'admin') {
+          onLoadSingleUdf(projectId, 'admin', () => {})
+        } else if (roleTypeTemp === 'user') {
+          onLoadSingleUdf(projectId, 'user', () => {})
+        }
+        break
     }
 
     this.setState({
@@ -253,9 +265,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  /***
-   * 新增Stream时，验证 stream name 是否存在
-   * */
+  // 新增Stream时，验证 stream name 是否存在
   onInitStreamNameValue = (value) => {
     this.props.onLoadStreamNameValue(this.state.projectId, value, () => {}, () => {
       this.workbenchStreamForm.setFields({
@@ -703,17 +713,6 @@ export class Workbench extends React.Component {
     this.queryFlowInfo(flow)
   }
 
-  // YYYYMMDDHHmmss 转换成 YYYY-MM-DD HH:mm:ss, 再转成 YYYY/MM/DD HH:mm:ss
-  formatString (dateString) {
-    let dateTemp = ''
-
-    dateTemp += `${dateString.slice(0, 4)}-${dateString.slice(4, 6)}-${dateString.slice(6, 8)} ${dateString.slice(8, 10)}:${dateString.slice(10, 12)}:${dateString.slice(12)}`
-
-    dateTemp = dateTemp.replace(new RegExp('-', 'gm'), '/')
-    const dateTempHaoMiao = (new Date(dateTemp)).getTime()
-    return dateTempHaoMiao
-  }
-
   showEditJobWorkbench = (job) => () => {
     this.setState({
       jobMode: 'edit'
@@ -732,8 +731,8 @@ export class Workbench extends React.Component {
         this.workbenchJobForm.setFieldsValue({
           jobName: resultFinal.name,
           type: resultFinal.sourceType,
-          eventStartTs: resultFinal.eventTsStart === '' ? null : Moment(this.formatString(resultFinal.eventTsStart)),
-          eventEndTs: resultFinal.eventTsEnd === '' ? null : Moment(this.formatString(resultFinal.eventTsEnd))
+          eventStartTs: resultFinal.eventTsStart === '' ? null : Moment(formatString(resultFinal.eventTsStart)),
+          eventEndTs: resultFinal.eventTsEnd === '' ? null : Moment(formatString(resultFinal.eventTsEnd))
         })
 
         this.setState({
@@ -887,9 +886,7 @@ export class Workbench extends React.Component {
       })
   }
 
-  /**
-   *  Flow 调单条查询的接口，回显数据
-   * */
+  // Flow 调单条查询的接口，回显数据
   queryFlowInfo = (flow) => {
     this.setState({
       streamDiffType: flow.streamType
@@ -1365,13 +1362,8 @@ export class Workbench extends React.Component {
     })
   }
 
-  hideConfigModal = () => {
-    this.setState({ streamConfigModalVisible: false })
-  }
-
-  hideSparkConfigModal = () => {
-    this.setState({ sparkConfigModalVisible: false })
-  }
+  hideConfigModal = () => this.setState({ streamConfigModalVisible: false })
+  hideSparkConfigModal = () => this.setState({ sparkConfigModalVisible: false })
 
   onConfigModalOk = () => {
     this.streamConfigForm.validateFieldsAndScroll((err, values) => {
@@ -1390,12 +1382,10 @@ export class Workbench extends React.Component {
           } else {
             const nOthers = (values.jvm.split('=')).length - 1
 
-            let personalConfTemp = ''
-            if (nOthers === 1) {
-              personalConfTemp = values.personalConf
-            } else {
-              personalConfTemp = values.personalConf.replace(/\n/g, ',')
-            }
+            const personalConfTemp = nOthers === 1
+              ? values.personalConf
+              : values.personalConf.replace(/\n/g, ',')
+
             sparkConfigValue = `${jvmValTemp},${personalConfTemp}`
           }
 
@@ -1446,12 +1436,10 @@ export class Workbench extends React.Component {
           } else {
             const nOthers = (values.jvm.split('=')).length - 1
 
-            let personalConfTemp = ''
-            if (nOthers === 1) {
-              personalConfTemp = values.personalConf
-            } else {
-              personalConfTemp = values.personalConf.replace(/\n/g, ',')
-            }
+            const personalConfTemp = nOthers === 1
+              ? values.personalConf
+              : values.personalConf.replace(/\n/g, ',')
+
             sparkConfigVal = `${jvmValTemp},${personalConfTemp}`
           }
 
@@ -1481,31 +1469,6 @@ export class Workbench extends React.Component {
   hideFlowWorkbench = () => this.setState({ flowMode: '' })
   hideStreamWorkbench = () => this.setState({ streamMode: '' })
   hideJobWorkbench = () => this.setState({ jobMode: '' })
-
-  /**
-   *  JSON 格式校验
-   *  如果JSON.parse能转换成功；并且字符串中包含 { 时，那么该字符串就是JSON格式的字符串。
-   *  另：sink config 可为空
-   */
-  isJSON (str) {
-    if (typeof str === 'string') {
-      if (str === '') {
-        return true
-      } else {
-        try {
-          JSON.parse(str)
-          if (str.indexOf('{') > -1) {
-            return true
-          } else {
-            return false
-          }
-        } catch (e) {
-          return false
-        }
-      }
-    }
-    return false
-  }
 
   forwardStep = () => {
     const { tabPanelKey, streamDiffType } = this.state
@@ -1553,7 +1516,7 @@ export class Workbench extends React.Component {
     let tranRequestTempArr = []
     flowFormTranTableSource.map(i => tranRequestTempArr.push(preProcessSql(i.transformConfigInfoRequest)))
     const tranRequestTempString = tranRequestTempArr.join('')
-    this.setState({ //
+    this.setState({
       transformTableRequestValue: tranRequestTempString === '' ? '' : `"action": "${tranRequestTempString}"`,
       transformTableConfirmValue: tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`
     })
@@ -1581,7 +1544,7 @@ export class Workbench extends React.Component {
                 : this.loadSTSExit(values)
             } else {
               // json 校验
-              this.isJSON(values.sinkConfig)
+              isJSON(values.sinkConfig)
                 ? this.loadSTSExit(values)
                 : message.error('Sink Config 应为 JSON格式！', 3)
             }
@@ -1698,7 +1661,7 @@ export class Workbench extends React.Component {
                   ? message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
                   : this.loadJobSTSExit(values)
               } else {
-                this.isJSON(values.sinkConfig)
+                isJSON(values.sinkConfig)
                   ? this.loadJobSTSExit(values)
                   : message.error('Sink Config 应为 JSON格式！', 3)
               }
@@ -1788,9 +1751,7 @@ export class Workbench extends React.Component {
   initStartTS = (val) => {
     // 将 YYYY-MM-DD HH:mm:ss 转换成 YYYYMMDDHHmmss 格式
     const startTs = val.replace(/-| |:/g, '')
-    this.setState({
-      startTsVal: startTs
-    })
+    this.setState({ startTsVal: startTs })
   }
 
   initEndTS = (val) => {
@@ -1947,7 +1908,6 @@ export class Workbench extends React.Component {
         })
       })
         .then(() => {
-          // onchange 事件影响，Promise 解决
           this.workbenchFlowForm.resetFields()
           this.setState({
             flowKafkaInstanceValue: '',
@@ -2907,9 +2867,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  hideSinkConfigModal = () => {
-    this.setState({ sinkConfigModalVisible: false })
-  }
+  hideSinkConfigModal = () => this.setState({ sinkConfigModalVisible: false })
 
   onSinkConfigModalOk = () => {
     this.workbenchFlowForm.setFieldsValue({
@@ -2939,9 +2897,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  hideJobSinkConfigModal = () => {
-    this.setState({ jobSinkConfigModalVisible: false })
-  }
+  hideJobSinkConfigModal = () => this.setState({ jobSinkConfigModalVisible: false })
 
   onJobSinkConfigModalOk = () => {
     this.workbenchJobForm.setFieldsValue({
@@ -2989,9 +2945,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  /***
-   *  验证 Job name 是否存在
-   * */
+  // 验证 Job name 是否存在
   onInitJobNameValue = (value) => {
     this.props.onLoadJobName(this.state.projectId, value, () => {}, () => {
       this.workbenchJobForm.setFields({
