@@ -315,7 +315,21 @@ export class Job extends React.Component {
       this.setState({
         visible
       }, () => {
-        this.props.onLoadJobDetail(record.id, (result) => {
+        let roleType = ''
+        if (localStorage.getItem('loginRoleType') === 'admin') {
+          roleType = 'admin'
+        } else if (localStorage.getItem('loginRoleType') === 'user') {
+          roleType = 'user'
+        }
+
+        const requestValue = {
+          projectId: record.projectId,
+          streamId: record.streamId,
+          jobId: record.id,
+          roleType: roleType
+        }
+
+        this.props.onLoadJobDetail(requestValue, (result) => {
           this.setState({
             showJobDetail: result
           })
@@ -829,7 +843,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadAdminJobLogs: (projectId, jobId, resolve) => dispatch(loadAdminJobLogs(projectId, jobId, resolve)),
     onLoadUserJobLogs: (projectId, jobId, resolve) => dispatch(loadUserJobLogs(projectId, jobId, resolve)),
     onOperateJob: (values, resolve, reject) => dispatch(operateJob(values, resolve, reject)),
-    onLoadJobDetail: (jobId, resolve) => dispatch(loadJobDetail(jobId, resolve))
+    onLoadJobDetail: (value, resolve) => dispatch(loadJobDetail(value, resolve))
   }
 }
 
