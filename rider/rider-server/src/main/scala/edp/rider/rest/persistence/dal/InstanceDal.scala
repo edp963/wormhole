@@ -25,7 +25,6 @@ import edp.rider.common.{DatabaseSearchException, InstanceNotExistException, Rid
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils.minTimeOut
-import edp.rider.rest.util.NamespaceUtils
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 

@@ -411,7 +411,7 @@ object FlowUtils extends RiderLogger {
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
       } else if (streamType == "routing") {
         val (instance, db, _) = modules.namespaceDal.getNsDetail(sinkNs)
-        val tuple = Seq(streamId, currentMillSec, sinkNs, instance.connUrl, db.nsDatabase)
+        val tuple = Seq(streamId, currentMillSec,umsType, sinkNs, instance.connUrl, db.nsDatabase)
         val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_ROUTER_FLOW_START.toString, streamId, flowId, tuple.mkString(","), RiderConfig.zk, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
         val flow_start_ums =
@@ -439,6 +439,11 @@ object FlowUtils extends RiderLogger {
              |        "nullable": false
              |      },
              |      {
+             |        "name": "data_type",
+             |        "type": "string",
+             |        "nullable": false
+             |      },
+             |      {
              |        "name": "sink_namespace",
              |        "type": "string",
              |        "nullable": false
@@ -457,7 +462,7 @@ object FlowUtils extends RiderLogger {
              |  },
              |  "payload": [
              |    {
-             |      "tuple": [${directive.id}, ${tuple.head}, "${tuple(1)}", "${tuple(2)}", "${tuple(3)}","${tuple(4)}"]
+             |      "tuple": [${directive.id}, ${tuple.head}, "${tuple(1)}", "${tuple(2)}", "${tuple(3)}","${tuple(4)}", "${tuple(5)}"]
              |    }
              |  ]
              |}
