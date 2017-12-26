@@ -50,6 +50,8 @@ import {
   EDIT_JOB_SUCCESS,
   QUERY_JOB,
   QUERY_JOB_SUCCESS,
+  LOAD_JOB_DETAIL,
+  LOAD_JOB_DETAIL_SUCCESS,
   CHUCKAWAY_JOB
 } from './constants'
 
@@ -375,6 +377,26 @@ export function jobEdited (result, resolve, final) {
       result,
       resolve,
       final
+    }
+  }
+}
+
+export function loadJobDetail (value, resolve) {
+  return {
+    type: LOAD_JOB_DETAIL,
+    payload: {
+      value,
+      resolve
+    }
+  }
+}
+
+export function jobDetailLoaded (result, resolve) {
+  return {
+    type: LOAD_JOB_DETAIL_SUCCESS,
+    payload: {
+      result,
+      resolve
     }
   }
 }

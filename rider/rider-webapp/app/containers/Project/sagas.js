@@ -64,10 +64,7 @@ export function* getProjectsWatcher () {
 
 export function* getUserProjects () {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: api.projectUserList
-    })
+    const result = yield call(request, api.projectUserList)
     yield put(userProjectsLoaded(result.payload))
   } catch (err) {
     yield put(getError())
@@ -86,10 +83,7 @@ export function* getSingleProject ({ payload }) {
     requestUrl = `${api.projectUserList}`
   }
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${requestUrl}/${payload.projectId}`
-    })
+    const result = yield call(request, `${requestUrl}/${payload.projectId}`)
     yield put(singleProjectLoaded(result.payload, payload.resolve))
   } catch (err) {
     yield put(getError())
@@ -136,10 +130,7 @@ export function* editProjectWatcher () {
 
 export function* getProjectNameInputValue ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectList}?name=${payload.value}`
-    })
+    const result = yield call(request, `${api.projectList}?name=${payload.value}`)
     if (result.code === 409) {
       yield put(projectNameInputValueErrorLoaded(result.msg, payload.reject))
     } else {

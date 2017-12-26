@@ -35,8 +35,6 @@ export class ProjectNSTable extends React.Component {
       filteredInfo: null,
       sortedInfo: null,
 
-      searchTextPermission: '',
-      filterDropdownVisiblePermission: false,
       searchTextProjectNs: '',
       filterDropdownVisibleProjectNs: false,
 
@@ -69,7 +67,7 @@ export class ProjectNSTable extends React.Component {
           nsInstanceId: s.nsInstanceId,
           nsTablepar: s.nsTablepar,
           nsVersion: s.nsVersion,
-          permission: s.permission,
+          // permission: s.permission,
           projectName: s.projectName,
           updateBy: s.updateBy,
           updateTime: s.updateTime,
@@ -161,9 +159,8 @@ export class ProjectNSTable extends React.Component {
       onShowSizeChange: this.onShowSizeChange
     }
 
-    let { sortedInfo, filteredInfo } = this.state
+    let { sortedInfo } = this.state
     sortedInfo = sortedInfo || {}
-    filteredInfo = filteredInfo || {}
 
     const columnsProject = [{
       title: 'Namespace',
@@ -193,24 +190,6 @@ export class ProjectNSTable extends React.Component {
       onFilterDropdownVisibleChange: visible => this.setState({
         filterDropdownVisibleProjectNs: visible
       }, () => this.searchInput.focus())
-    }, {
-      title: 'Permission',
-      dataIndex: 'permission',
-      key: 'permission',
-      sorter: (a, b) => {
-        if (typeof a.permission === 'object') {
-          return a.permissionOrigin < b.permissionOrigin ? -1 : 1
-        } else {
-          return a.permission < b.permission ? -1 : 1
-        }
-      },
-      sortOrder: sortedInfo.columnKey === 'permission' && sortedInfo.order,
-      filters: [
-        {text: 'ReadOnly', value: 'ReadOnly'},
-        {text: 'ReadWrite', value: 'ReadWrite'}
-      ],
-      filteredValue: filteredInfo.permission,
-      onFilter: (value, record) => record.permission.includes(value)
     }]
 
     const { currentNameSpace, paginationOrNot, selectIcon, selectText } = this.state

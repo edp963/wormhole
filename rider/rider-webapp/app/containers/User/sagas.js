@@ -28,6 +28,7 @@ import {
   EDIT_USER,
   LOAD_EMAIL_INPUT_VALUE,
   EDIT_ROLETYPE_USERPSW,
+  LOAD_USER_DETAIL,
 
   LOAD_PROJECT_USER_ALL
 } from './constants'
@@ -41,6 +42,7 @@ import {
   emailInputValueErrorLoaded,
   roleTypeUserPswEdited,
   roleTypeUserPswErrorEdited,
+  userDetailLoaded,
 
   projectUserAllLoaded,
   getError
@@ -177,6 +179,19 @@ export function* getProjectUserAllWatcher () {
   yield fork(takeLatest, LOAD_PROJECT_USER_ALL, getProjectUserAll)
 }
 
+export function* queryUser ({payload}) {
+  try {
+    const result = yield call(request, `${api.user}/${payload.userId}`)
+    yield put(userDetailLoaded(result.payload, payload.resolve))
+  } catch (err) {
+    yield put(getError(err))
+  }
+}
+
+export function* queryUserWatcher () {
+  yield fork(takeLatest, LOAD_USER_DETAIL, queryUser)
+}
+
 export default [
   getAdminAllUsersWatcher,
   getUserUsersWatcher,
@@ -185,6 +200,7 @@ export default [
   editUserWatcher,
   getEmailInputValueWatcher,
   editroleTypeUserPswWatcher,
+  queryUserWatcher,
 
   getProjectUserAllWatcher
 ]

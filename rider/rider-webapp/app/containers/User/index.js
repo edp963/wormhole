@@ -38,7 +38,7 @@ import Input from 'antd/lib/input'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { loadAdminAllUsers, loadUserUsers, addUser, editUser, loadEmailInputValue, loadSelectUsers } from './action'
+import { loadAdminAllUsers, loadUserUsers, addUser, editUser, loadEmailInputValue, loadSelectUsers, loadUserDetail } from './action'
 import { selectUsers, selectError, selectModalLoading, selectEmailExited } from './selectors'
 
 export class User extends React.PureComponent {
@@ -76,12 +76,13 @@ export class User extends React.PureComponent {
       filterDropdownVisibleUpdateTime: false,
 
       editUsersMsgData: {},
-      editUsersPswData: {}
+      editUsersPswData: {},
+      showUserDetail: {}
     }
   }
 
   componentWillMount () {
-    this.loadUserData()
+    this.refreshUser()
   }
 
   componentWillReceiveProps (props) {
@@ -133,22 +134,27 @@ export class User extends React.PureComponent {
   showDetail = (user) => (e) => {
     this.setState({
       formVisible: true,
-      formType: 'editMsg',
-      editUsersMsgData: {
-        active: user.active,
-        createBy: user.createBy,
-        createTime: user.createTime,
-        roleType: user.roleType,
-        updateBy: user.updateBy,
-        updateTime: user.updateTime,
-        password: user.password
-      }
+      formType: 'editMsg'
     }, () => {
-      this.userForm.setFieldsValue({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        roleType: user.roleType
+      this.props.onLoadUserDetail(user.id, (result) => {
+        this.setState({
+          editUsersMsgData: {
+            active: result.active,
+            createBy: result.createBy,
+            createTime: result.createTime,
+            roleType: result.roleType,
+            updateBy: result.updateBy,
+            updateTime: result.updateTime,
+            password: result.password
+          }
+        })
+
+        this.userForm.setFieldsValue({
+          id: result.id,
+          email: result.email,
+          name: result.name,
+          roleType: result.roleType
+        })
       })
     })
   }
@@ -156,21 +162,26 @@ export class User extends React.PureComponent {
   showDetailPsw = (user) => (e) => {
     this.setState({
       formVisible: true,
-      formType: 'editPsw',
-      editUsersPswData: {
-        active: user.active,
-        createBy: user.createBy,
-        createTime: user.createTime,
-        email: user.email,
-        id: user.id,
-        name: user.name,
-        roleType: user.roleType,
-        updateBy: user.updateBy,
-        updateTime: user.updateTime
-      }
+      formType: 'editPsw'
     }, () => {
-      this.userForm.setFieldsValue({
-        email: user.email
+      this.props.onLoadUserDetail(user.id, (result) => {
+        this.setState({
+          editUsersPswData: {
+            active: result.active,
+            createBy: result.createBy,
+            createTime: result.createTime,
+            email: result.email,
+            id: result.id,
+            name: result.name,
+            roleType: result.roleType,
+            updateBy: result.updateBy,
+            updateTime: result.updateTime
+          }
+        })
+
+        this.userForm.setFieldsValue({
+          email: result.email
+        })
       })
     })
   }
@@ -189,7 +200,7 @@ export class User extends React.PureComponent {
     this.userForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (formType === 'add') {
-          if (emailExited === true) {
+          if (emailExited) {
             this.userForm.setFields({
               email: {
                 value: values.email,
@@ -310,8 +321,6 @@ export class User extends React.PureComponent {
         if ((match < startSearchTime) || (match > endSearchTime)) {
           return null
         }
-        console.log('fff', record[columnName])
-        console.log('ggg', this.state.startTimeText)
         return {
           ...record,
           [columnName]: (
@@ -325,8 +334,22 @@ export class User extends React.PureComponent {
     })
   }
 
+  handleVisibleChangeUser = (record) => (visible) => {
+    if (visible) {
+      this.setState({
+        visible
+      }, () => {
+        this.props.onLoadUserDetail(record.id, (result) => {
+          this.setState({
+            showUserDetail: result
+          })
+        })
+      })
+    }
+  }
+
   render () {
-    const { refreshUserLoading, refreshUserText, formType } = this.state
+    const { refreshUserLoading, refreshUserText, formType, showUserDetail } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     let { userClassHide } = this.props
@@ -512,15 +535,19 @@ export class User extends React.PureComponent {
         className: `text-align-center ${userClassHide}`,
         render: (text, record) => (
           <span className="ant-table-action-column">
-            <Popover
-              placement="left"
-              content={<div className="project-name-detail">
-                <p><strong>   Project Names：</strong>{record.projectNames}</p>
-              </div>}
-              title={<h3>详情</h3>}
-              trigger="click">
-              <Button icon="file-text" shape="circle" type="ghost"></Button>
-            </Popover>
+            <Tooltip title="查看详情">
+              <Popover
+                placement="left"
+                content={<div className="project-name-detail">
+                  <p><strong>   Project Names：</strong>{showUserDetail.projectNames}</p>
+                </div>}
+                title={<h3>详情</h3>}
+                trigger="click"
+                onVisibleChange={this.handleVisibleChangeUser(record)}
+              >
+                <Button icon="file-text" shape="circle" type="ghost"></Button>
+              </Popover>
+            </Tooltip>
             <Tooltip title="修改用户信息">
               <Button icon="user" shape="circle" type="ghost" onClick={this.showDetail(record)} />
             </Tooltip>
@@ -569,8 +596,8 @@ export class User extends React.PureComponent {
             <Icon type="bars" /> User 列表
           </h3>
           <div className="ri-common-block-tools">
-            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshUserLoading} onClick={this.refreshUser}>{refreshUserText}</Button>
             <Button icon="plus" type="primary" onClick={this.showAdd} className={userClassHide}>新建</Button>
+            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshUserLoading} onClick={this.refreshUser}>{refreshUserText}</Button>
           </div>
           <Table
             dataSource={this.state.currentUsers}
@@ -633,7 +660,8 @@ User.propTypes = {
   onLoadSelectUsers: React.PropTypes.func,
   onAddUser: React.PropTypes.func,
   onEditUser: React.PropTypes.func,
-  onLoadEmailInputValue: React.PropTypes.func
+  onLoadEmailInputValue: React.PropTypes.func,
+  onLoadUserDetail: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -643,7 +671,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadSelectUsers: (projectId, resolve) => dispatch(loadSelectUsers(projectId, resolve)),
     onAddUser: (user, resolve) => dispatch(addUser(user, resolve)),
     onEditUser: (user, resolve) => dispatch(editUser(user, resolve)),
-    onLoadEmailInputValue: (value, resolve, reject) => dispatch(loadEmailInputValue(value, resolve, reject))
+    onLoadEmailInputValue: (value, resolve, reject) => dispatch(loadEmailInputValue(value, resolve, reject)),
+    onLoadUserDetail: (userId, resolve) => dispatch(loadUserDetail(userId, resolve))
   }
 }
 

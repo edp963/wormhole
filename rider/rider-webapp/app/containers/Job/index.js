@@ -44,8 +44,7 @@ import { selectJobs, selectError } from './selectors'
 import {
   loadAdminAllJobs, loadUserAllJobs, loadAdminSingleJob,
   // chuckAwayJob,
-  loadAdminJobLogs, loadUserJobLogs,
-  operateJob
+  loadAdminJobLogs, loadUserJobLogs, operateJob, loadJobDetail
 } from './action'
 
 export class Job extends React.Component {
@@ -61,6 +60,7 @@ export class Job extends React.Component {
       refreshJobText: 'Refresh',
       refreshJobLogLoading: false,
       refreshJobLogText: 'Refresh',
+      showJobDetail: {},
 
       logsJobModalVisible: false,
       logLogsContent: '',
@@ -93,7 +93,7 @@ export class Job extends React.Component {
   }
 
   componentWillMount () {
-    this.loadJobData()
+    this.refreshJob()
   }
 
   componentWillReceiveProps (props) {
@@ -310,9 +310,37 @@ export class Job extends React.Component {
     })
   }
 
+  handleVisibleChangeJob = (record) => (visible) => {
+    if (visible) {
+      this.setState({
+        visible
+      }, () => {
+        let roleType = ''
+        if (localStorage.getItem('loginRoleType') === 'admin') {
+          roleType = 'admin'
+        } else if (localStorage.getItem('loginRoleType') === 'user') {
+          roleType = 'user'
+        }
+
+        const requestValue = {
+          projectId: record.projectId,
+          streamId: record.streamId,
+          jobId: record.id,
+          roleType: roleType
+        }
+
+        this.props.onLoadJobDetail(requestValue, (result) => {
+          this.setState({
+            showJobDetail: result
+          })
+        })
+      })
+    }
+  }
+
   render () {
-    const { className, jobClassHide, onShowAddJob, onShowEditJob } = this.props
-    const { refreshJobText, refreshJobLoading } = this.state
+    const { className, onShowAddJob, onShowEditJob } = this.props
+    const { refreshJobText, refreshJobLoading, showJobDetail } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -360,7 +388,7 @@ export class Job extends React.Component {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      className: `${jobClassHide}`,
+      // className: `${jobClassHide}`,
       sorter: (a, b) => {
         if (typeof a.name === 'object') {
           return a.nameOrigin < b.nameOrigin ? -1 : 1
@@ -503,7 +531,7 @@ export class Job extends React.Component {
         } else if (record.status === 'starting') {
           jobStatusColor = 'green'
         } else if (record.status === 'waiting') {
-          jobStatusColor = '#f50'
+          jobStatusColor = '#22D67C'
         } else if (record.status === 'running') {
           jobStatusColor = 'green-inverse'
         } else if (record.status === 'stopping') {
@@ -665,26 +693,37 @@ export class Job extends React.Component {
           )
         }
 
+        let jobDetailContent = ''
+        if (showJobDetail !== {}) {
+          const showJob = showJobDetail.job
+          if (showJob) {
+            jobDetailContent = (
+              <div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
+                <p className={this.props.jobClassHide}><strong>   Project Name：</strong>{showJobDetail.projectName}</p>
+                <p><strong>   Event Ts Start：</strong>{showJob.eventTsStart}</p>
+                <p><strong>   Event Ts End：</strong>{showJob.eventTsEnd}</p>
+                <p><strong>   Log Path：</strong>{showJob.logPath}</p>
+                <p><strong>   Source Config：</strong>{showJob.sourceConfig}</p>
+                <p><strong>   Sink Config：</strong>{showJob.sinkConfig}</p>
+                <p><strong>   Transformation Config：</strong>{showJob.tranConfig}</p>
+                <p><strong>   Create Time：</strong>{showJob.createTime}</p>
+                <p><strong>   Update Time：</strong>{showJob.updateTime}</p>
+                <p><strong>   Create By：</strong>{showJob.createBy}</p>
+                <p><strong>   Update By：</strong>{showJob.updateBy}</p>
+              </div>
+            )
+          }
+        }
+
         return (
           <span className="ant-table-action-column">
             <Tooltip title="查看详情">
               <Popover
                 placement="left"
-                content={<div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
-                  <p><strong>   Project Name：</strong>{record.projectName}</p>
-                  <p><strong>   Event Ts Start：</strong>{record.eventTsStart}</p>
-                  <p><strong>   Event Ts End：</strong>{record.eventTsEnd}</p>
-                  <p><strong>   Log Path：</strong>{record.logPath}</p>
-                  <p><strong>   Source Config：</strong>{record.sourceConfig}</p>
-                  <p><strong>   Sink Config：</strong>{record.sinkConfig}</p>
-                  <p><strong>   Transformation Config：</strong>{record.tranConfig}</p>
-                  <p><strong>   Create Time：</strong>{record.createTime}</p>
-                  <p><strong>   Update Time：</strong>{record.updateTime}</p>
-                  <p><strong>   Create By：</strong>{record.createBy}</p>
-                  <p><strong>   Update By：</strong>{record.updateBy}</p>
-                </div>}
+                content={jobDetailContent}
                 title={<h3>详情</h3>}
-                trigger="click">
+                trigger="click"
+                onVisibleChange={this.handleVisibleChangeJob(record)}>
                 <Button icon="file-text" shape="circle" type="ghost"></Button>
               </Popover>
             </Tooltip>
@@ -741,8 +780,8 @@ export class Job extends React.Component {
           <Icon type="bars" /> Job 列表
         </h3>
         <div className="ri-common-block-tools">
-          <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshJobLoading} onClick={this.refreshJob}>{refreshJobText}</Button>
           {jobAddOrNot}
+          <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshJobLoading} onClick={this.refreshJob}>{refreshJobText}</Button>
         </div>
         <Table
           dataSource={this.state.currentJobs}
@@ -791,7 +830,8 @@ Job.propTypes = {
   onLoadAdminJobLogs: React.PropTypes.func,
   onLoadUserJobLogs: React.PropTypes.func,
   onOperateJob: React.PropTypes.func,
-  onShowEditJob: React.PropTypes.func
+  onShowEditJob: React.PropTypes.func,
+  onLoadJobDetail: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -802,7 +842,8 @@ export function mapDispatchToProps (dispatch) {
     // onChuckAwayJob: () => dispatch(chuckAwayJob()),
     onLoadAdminJobLogs: (projectId, jobId, resolve) => dispatch(loadAdminJobLogs(projectId, jobId, resolve)),
     onLoadUserJobLogs: (projectId, jobId, resolve) => dispatch(loadUserJobLogs(projectId, jobId, resolve)),
-    onOperateJob: (values, resolve, reject) => dispatch(operateJob(values, resolve, reject))
+    onOperateJob: (values, resolve, reject) => dispatch(operateJob(values, resolve, reject)),
+    onLoadJobDetail: (value, resolve) => dispatch(loadJobDetail(value, resolve))
   }
 }
 

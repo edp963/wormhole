@@ -46,10 +46,7 @@ import api from '../../utils/api'
 
 export function* getDatabases ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: api.database
-    })
+    const result = yield call(request, api.database)
     yield put(databasesLoaded(result.payload, payload.resolve))
   } catch (err) {
     yield put(getError(err))
@@ -83,10 +80,7 @@ export function* addDatabaseWatcher () {
 
 export function* getSingleDatabase ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.database}/${payload.databaseId}`
-    })
+    const result = yield call(request, `${api.database}/${payload.databaseId}`)
     yield put(singleDatabaseLoaded(result.payload, payload.resolve))
   } catch (err) {
     yield put(getError(err))
@@ -120,10 +114,7 @@ export function* editDatabaseWatcher () {
 
 export function* getDatabaseInstance ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.instance}?type=${payload.value}`
-    })
+    const result = yield call(request, `${api.instance}?type=${payload.value}`)
     yield put(databasesInstanceLoaded(result.payload, payload.resolve))
   } catch (err) {
     yield put(getError(err))
@@ -135,12 +126,8 @@ export function* getDatabaseInstanceWatcher () {
 }
 
 export function* getName ({ payload }) {
-  payload.value.permission = payload.value.dsType === 'kafka' ? 'ReadWrite' : payload.value.permission
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.database}?nsInstanceId=${payload.value.nsInstanceId}&nsDatabaseName=${payload.value.nsDatabaseName}&permission=${payload.value.permission}`
-    })
+    const result = yield call(request, `${api.database}?nsInstanceId=${payload.value.nsInstanceId}&nsDatabaseName=${payload.value.nsDatabaseName}`)
     if (result.code === 200) {
       yield put(nameExistLoaded(result.msg, payload.resolve))
     } else {

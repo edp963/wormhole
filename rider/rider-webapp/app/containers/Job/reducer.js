@@ -50,6 +50,8 @@ import {
   QUERY_JOB_SUCCESS,
   EDIT_JOB,
   EDIT_JOB_SUCCESS,
+  LOAD_JOB_DETAIL,
+  LOAD_JOB_DETAIL_SUCCESS,
   CHUCKAWAY_JOB
 } from './constants'
 import { fromJS } from 'immutable'
@@ -160,6 +162,11 @@ function jobReducer (state = initialState, { type, payload }) {
       return state
         .set('jobs', jobs.slice())
         .set('jobSubmitLoading', false)
+    case LOAD_JOB_DETAIL:
+      return state.set('error', false)
+    case LOAD_JOB_DETAIL_SUCCESS:
+      payload.resolve(payload.result)
+      return state
 
     case CHUCKAWAY_JOB:
       return state.set('jobs', false)

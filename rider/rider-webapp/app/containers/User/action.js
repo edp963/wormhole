@@ -35,6 +35,8 @@ import {
   EDIT_ROLETYPE_USERPSW,
   EDIT_ROLETYPE_USERPSW_SUCCESS,
   EDIT_ROLETYPE_USERPSW_ERROR,
+  LOAD_USER_DETAIL,
+  LOAD_USER_DETAIL_SUCCESS,
 
   LOAD_PROJECT_USER_ALL,
   LOAD_PROJECT_USER_ALL_SUCCESS,
@@ -214,6 +216,26 @@ export function loadProjectUserAll (resolve) {
 export function projectUserAllLoaded (result, resolve) {
   return {
     type: LOAD_PROJECT_USER_ALL_SUCCESS,
+    payload: {
+      result,
+      resolve
+    }
+  }
+}
+
+export function loadUserDetail (userId, resolve) {
+  return {
+    type: LOAD_USER_DETAIL,
+    payload: {
+      userId,
+      resolve
+    }
+  }
+}
+
+export function userDetailLoaded (result, resolve) {
+  return {
+    type: LOAD_USER_DETAIL_SUCCESS,
     payload: {
       result,
       resolve

@@ -97,8 +97,13 @@ export class WorkbenchFlowForm extends React.Component {
   onSinkDataSystemItemSelect = (val) => {
     this.props.onInitSinkTypeNamespace(this.props.projectIdGeted, val, 'sinkType')
     this.setState({
-      sinkConfigClass: (val === 'hbase' || val === 'postgresql') ? 'sink-config-class' : ''
+      sinkConfigClass: val === 'hbase' ? 'sink-config-class' : ''
     })
+    if (this.state.flowMode !== 'edit') {
+      this.props.form.setFieldsValue({
+        sinkConfig: ''
+      })
+    }
   }
 
   onStreamJoinSqlConfigTypeSelect = (val) => this.props.onStreamJoinSqlConfigTypeSelect(val)

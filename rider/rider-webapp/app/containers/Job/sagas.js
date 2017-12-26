@@ -34,7 +34,8 @@ import {
   LOAD_JOB_SOURCETOSINK_EXIST,
   ADD_JOB,
   QUERY_JOB,
-  EDIT_JOB
+  EDIT_JOB,
+  LOAD_JOB_DETAIL
 } from './constants'
 
 import {
@@ -55,7 +56,8 @@ import {
   jobSourceToSinkExistErrorLoaded,
   jobAdded,
   jobQueryed,
-  jobEdited
+  jobEdited,
+  jobDetailLoaded
 } from './action'
 
 import request from '../../utils/request'
@@ -157,10 +159,7 @@ export function* operateUserJobWatcher () {
 
 export function* loadJobNameValue ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectUserList}/${payload.projectId}/jobs?jobName=${payload.value}`
-    })
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/jobs?jobName=${payload.value}`)
     if (result.code && result.code === 409) {
       yield put(jobNameLoadedError(result.msg, payload.reject))
     } else if (result.header.code && result.header.code === 200) {
@@ -177,10 +176,7 @@ export function* loadJobNameValueWatcher () {
 
 export function* loadJobSourceNsValue ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`
-    })
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`)
     if (result.code && result.code !== 200) {
       yield put(jobSourceNsLoadedError(result.msg, payload.reject))
     } else if (result.header.code && result.header.code === 200) {
@@ -197,10 +193,7 @@ export function* loadJobSourceNsValueWatcher () {
 
 export function* loadJobSinkNsValue ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`
-    })
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`)
     if (result.code && result.code !== 200) {
       yield put(jobSinkNsLoadedError(result.msg, payload.reject))
     } else if (result.header.code && result.header.code === 200) {
@@ -217,10 +210,7 @@ export function* loadJobSinkNsValueWatcher () {
 
 export function* getJobSourceToSink ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectUserList}/${payload.projectId}/jobs?sourceNs=${payload.sourceNs}&sinkNs=${payload.sinkNs}`
-    })
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/jobs?sourceNs=${payload.sourceNs}&sinkNs=${payload.sinkNs}`)
     if (result.code === 200) {
       yield put(jobSourceToSinkExistLoaded(result.msg, payload.resolve))
     } else {
@@ -254,10 +244,7 @@ export function* addJobWatcher () {
 
 export function* queryJob ({ payload }) {
   try {
-    const result = yield call(request, {
-      method: 'get',
-      url: `${api.projectUserList}/${payload.values.projectId}/jobs/${payload.values.jobId}`
-    })
+    const result = yield call(request, `${api.projectUserList}/${payload.values.projectId}/jobs/${payload.values.jobId}`)
     yield put(jobQueryed(result.payload, payload.resolve))
   } catch (err) {
     notifySagasError(err, 'queryJob')
@@ -285,6 +272,23 @@ export function* editJobWatcher () {
   yield fork(takeEvery, EDIT_JOB, editJob)
 }
 
+export function* queryJobDetail ({ payload }) {
+  const apiFinal = payload.value.roleType === 'admin'
+    ? `${api.job}/${payload.value.jobId}`
+    : `${api.projectUserList}/${payload.value.projectId}/jobs/${payload.value.jobId}`
+
+  try {
+    const result = yield call(request, `${apiFinal}`)
+    yield put(jobDetailLoaded(result.payload, payload.resolve))
+  } catch (err) {
+    notifySagasError(err, 'queryJobDetail')
+  }
+}
+
+export function* queryJobDetailWatcher () {
+  yield fork(takeEvery, LOAD_JOB_DETAIL, queryJobDetail)
+}
+
 export default [
   getAdminAllJobsWatcher,
   getUserAllJobsWatcher,
@@ -298,5 +302,6 @@ export default [
   getJobSourceToSinkWatcher,
   addJobWatcher,
   queryJobWatcher,
-  editJobWatcher
+  editJobWatcher,
+  queryJobDetailWatcher
 ]

@@ -40,9 +40,10 @@ import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
-import { uuid } from '../../utils/util'
+import { uuid, isEquivalent } from '../../utils/util'
 
-import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream, deleteStream, loadStreamDetail, loadOffset, loadLogsInfo, loadAdminLogsInfo} from './action'
+import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
+  deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset} from './action'
 import {loadSingleUdf} from '../Udf/action'
 import {selectStreams} from './selectors'
 
@@ -100,48 +101,33 @@ export class Manager extends React.Component {
 
       startUdfVals: [],
       renewUdfVals: [],
-      selectEditIcon: 'edit',
-      selectEditText: '修改',
-      currentUdfVal: []
+      currentUdfVal: [],
+
+      consumedOffsetValue: [],
+      kafkaOffsetValue: []
     }
   }
 
   componentWillMount () {
-    this.loadStreamData()
+    this.refreshStream()
   }
 
   componentWillReceiveProps (props) {
     if (props.streams) {
-      let originStreams = []
-      if (props.streamClassHide === undefined) {
-        originStreams = props.streams.map(s => {
-          const responseOriginStream = Object.assign({}, s.stream, {
-            kafkaConnection: s.kafkaConnection,
-            kafkaName: s.kafkaName,
-            disableActions: s.disableActions,
-            projectName: s.projectName,
-            topicInfo: s.topicInfo
-          })
-          responseOriginStream.key = responseOriginStream.id
-          responseOriginStream.visible = false
-          return responseOriginStream
+      const originStreams = props.streams.map(s => {
+        const responseOriginStream = Object.assign({}, s.stream, {
+          disableActions: s.disableActions,
+          topicInfo: s.topicInfo,
+          instance: s.kafkaInfo.instance,
+          connUrl: s.kafkaInfo.connUrl,
+          projectName: s.projectName,
+          currentUdf: s.currentUdf,
+          usingUdf: s.usingUdf
         })
-      } else if (props.streamClassHide === 'hide') {
-        originStreams = props.streams.map(s => {
-          const responseOriginStream = Object.assign({}, s.stream, {
-            disableActions: s.disableActions,
-            topicInfo: s.topicInfo,
-            instance: s.kafkaInfo.instance,
-            connUrl: s.kafkaInfo.connUrl,
-            projectName: s.projectName,
-            currentUdf: s.currentUdf,
-            usingUdf: s.usingUdf
-          })
-          responseOriginStream.key = responseOriginStream.id
-          responseOriginStream.visible = false
-          return responseOriginStream
-        })
-      }
+        responseOriginStream.key = responseOriginStream.id
+        responseOriginStream.visible = false
+        return responseOriginStream
+      })
 
       this.setState({
         originStreams: originStreams.slice(),
@@ -209,6 +195,7 @@ export class Manager extends React.Component {
     new Promise((resolve) => {
       this.props.onLoadStreamDetail(projectIdGeted, record.id, 'user', (result) => {
         resolve(result)
+
         this.setState({
           topicInfoModal: result.topicInfo.length === 0 ? 'hide' : '',
           streamStartFormData: result.topicInfo,
@@ -254,6 +241,15 @@ export class Manager extends React.Component {
             renewUdfVals: renewUdfValFinal
           })
         })
+
+        // 显示 lastest offset
+        this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
+          this.setState({
+            consumedOffsetValue: result.consumedLatestOffset,
+            kafkaOffsetValue: result.kafkaLatestOffset
+
+          })
+        })
       })
   }
 
@@ -272,7 +268,6 @@ export class Manager extends React.Component {
 
     // 单条查询接口获得回显的topic Info，回显选中的UDFs
     this.props.onLoadStreamDetail(projectIdGeted, record.id, 'user', (result) => {
-      // resolve(result)
       this.setState({
         topicInfoModal: result.topicInfo.length === 0 ? 'hide' : '',
         streamStartFormData: result.topicInfo
@@ -309,63 +304,58 @@ export class Manager extends React.Component {
         startUdfVals: result
       })
     })
+
+    // 显示 lastest offset
+    this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
+      this.setState({
+        consumedOffsetValue: result.consumedLatestOffset,
+        kafkaOffsetValue: result.kafkaLatestOffset
+      })
+    })
   }
 
   queryLastestoffset = (e) => {
     const { projectIdGeted } = this.props
     const { streamIdGeted } = this.state
 
-    const requestVal = {
-      id: projectIdGeted,
-      streamId: streamIdGeted
-    }
-    this.loadLastestOffset(requestVal)
+    this.loadLastestOffsetFunc(projectIdGeted, streamIdGeted)
   }
 
-  /**
-   * 最新的 Offset
-   */
-  loadLastestOffset (requestVal) {
-    this.props.onLoadOffset(requestVal, (result) => {
-      for (let k = 0; k < result.length; k++) {
-        const partitionAndOffset = result[k].partitionOffsets.split(',')
-        for (let j = 0; j < partitionAndOffset.length; j++) {
-          this.streamStartForm.setFieldsValue({
-            [`latest_${result[k].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1)
-          })
-        }
-      }
+  // Load Lastest Offset
+  loadLastestOffsetFunc (projectId, streamId) {
+    this.props.onLoadLastestOffset(projectId, streamId, (result) => {
+      this.setState({
+        consumedOffsetValue: result.consumedLatestOffset,
+        kafkaOffsetValue: result.kafkaLatestOffset
+      })
+      // for (let k = 0; k < result.length; k++) {
+      //   const partitionAndOffset = result[k].partitionOffsets.split(',')
+      //   for (let j = 0; j < partitionAndOffset.length; j++) {
+      //     this.streamStartForm.setFieldsValue({
+      //       [`latest_${result[k].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1)
+      //     })
+      //   }
+      // }
     })
   }
 
   onChangeEditSelect = () => {
-    const { selectEditIcon, streamStartFormData } = this.state
+    const { streamStartFormData } = this.state
 
-    if (selectEditIcon === 'close') {
-      this.setState({
-        selectEditIcon: 'edit',
-        selectEditText: '修改'
-      })
-      for (let k = 0; k < streamStartFormData.length; k++) {
-        const partitionAndOffset = streamStartFormData[k].partitionOffsets.split(',')
+    for (let k = 0; k < streamStartFormData.length; k++) {
+      const partitionAndOffset = streamStartFormData[k].partitionOffsets.split(',')
 
-        for (let j = 0; j < partitionAndOffset.length; j++) {
-          this.streamStartForm.setFieldsValue({
-            [`${streamStartFormData[k].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
-            [`${streamStartFormData[k].rate}`]: streamStartFormData[k].rate
-          })
-        }
+      for (let j = 0; j < partitionAndOffset.length; j++) {
+        this.streamStartForm.setFieldsValue({
+          [`${streamStartFormData[k].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
+          [`${streamStartFormData[k].rate}`]: streamStartFormData[k].rate
+        })
       }
-    } else if (selectEditIcon === 'edit') {
-      this.setState({
-        selectEditIcon: 'close',
-        selectEditText: '还原'
-      })
     }
   }
 
   /**
-   * start操作  ok
+   *  start/renew ok
    * @param e
    */
   handleEditStartOk = (e) => {
@@ -475,7 +465,7 @@ export class Manager extends React.Component {
             for (let f = 0; f < streamStartFormData.length; f++) {
               for (let g = 0; g < mergedData.length; g++) {
                 if (streamStartFormData[f].id === mergedData[g].id) {
-                  if (!this.isEquivalent(streamStartFormData[f], mergedData[g])) {
+                  if (!isEquivalent(streamStartFormData[f], mergedData[g])) {
                     topicInfoTemp.push({
                       id: mergedData[g].id,
                       partitionOffsets: mergedData[g].partitionOffsets,
@@ -517,12 +507,7 @@ export class Manager extends React.Component {
             streamStartFormData: [],
             modalLoading: false
           })
-          if (actionType === 'renew') {
-            this.setState({
-              selectEditIcon: 'edit',
-              selectEditText: '修改'
-            })
-          }
+
           message.success(actionTypeMsg, 3)
         }, (result) => {
           message.error(`操作失败：${result}`, 3)
@@ -534,43 +519,11 @@ export class Manager extends React.Component {
     })
   }
 
-  /**
-   * 判断两个对象的值是否相等
-   */
-  isEquivalent (a, b) {
-    // 获取对象属性的所有的键
-    const aProps = Object.getOwnPropertyNames(a)
-    const bProps = Object.getOwnPropertyNames(b)
-
-    // 如果键的数量不同，那么两个对象内容也不同
-    if (aProps.length !== bProps.length) {
-      return false
-    }
-
-    for (let i = 0, len = aProps.length; i < len; i++) {
-      var propName = aProps[i]
-
-      // 如果对应的值不同，那么对象内容也不同
-      if (a[propName] !== b[propName]) {
-        return false
-      }
-    }
-    return true
-  }
-
   handleEditStartCancel = (e) => {
-    const { actionType } = this.state
     this.setState({
       startModalVisible: false,
       streamStartFormData: []
     })
-
-    if (actionType === 'renew') {
-      this.setState({
-        selectEditIcon: 'edit',
-        selectEditText: '修改'
-      })
-    }
 
     this.streamStartForm.resetFields()
   }
@@ -1161,22 +1114,21 @@ export class Manager extends React.Component {
 
           streamDetailContent = (
             <div className="stream-detail">
-              <p><strong>   Project Id：</strong>{detailTemp.projectId}</p>
+              <p className={this.props.streamClassHide}><strong>   Project Id：</strong>{detailTemp.projectId}</p>
               <p><strong>   Topic Info：</strong>{topicFinal}</p>
               <p><strong>   Current Udf：</strong>{currentUdfFinal}</p>
               <p><strong>   Using Udf：</strong>{usingUdfTempFinal}</p>
-
               <p><strong>   Description：</strong>{detailTemp.desc}</p>
-              <p><strong>   Disable Actions：</strong>{showStreamdetails.disableActions}</p>
-
-              <p><strong>   Create Time：</strong>{detailTemp.createTime}</p>
-              <p><strong>   Create By：</strong>{detailTemp.createBy}</p>
-              <p><strong>   Update Time：</strong>{detailTemp.updateTime}</p>
-              <p><strong>   Update By：</strong>{detailTemp.updateBy}</p>
 
               <p><strong>   Launch Config：</strong>{detailTemp.launchConfig}</p>
               <p><strong>   spark Config：</strong>{detailTemp.sparkConfig}</p>
               <p><strong>   start Config：</strong>{detailTemp.startConfig}</p>
+
+              <p><strong>   Create Time：</strong>{detailTemp.createTime}</p>
+              <p><strong>   Update Time：</strong>{detailTemp.updateTime}</p>
+              <p><strong>   Create By：</strong>{detailTemp.createBy}</p>
+              <p><strong>   Update By：</strong>{detailTemp.updateBy}</p>
+              <p><strong>   Disable Actions：</strong>{showStreamdetails.disableActions}</p>
             </div>
           )
         }
@@ -1225,8 +1177,9 @@ export class Manager extends React.Component {
       ? (
         <StreamStartForm
           data={this.state.streamStartFormData}
+          consumedOffsetValue={this.state.consumedOffsetValue}
+          kafkaOffsetValue={this.state.kafkaOffsetValue}
           streamActionType={this.state.actionType}
-          selectEditIcon={this.state.selectEditIcon}
           startUdfValsOption={this.state.startUdfVals}
           renewUdfValsOption={this.state.renewUdfVals}
           currentUdfVal={this.state.currentUdfVal}
@@ -1248,10 +1201,8 @@ export class Manager extends React.Component {
       ? (<Helmet title="Stream" />)
       : (<Helmet title="Workbench" />)
 
-    const { topicInfoModal, actionType } = this.state
-    const editBtn = topicInfoModal === ''
-      ? actionType === 'start' ? 'hide' : ''
-      : 'hide'
+    const { topicInfoModal } = this.state
+    const editBtn = topicInfoModal === '' ? '' : 'hide'
 
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>
@@ -1260,8 +1211,8 @@ export class Manager extends React.Component {
           <Icon type="bars" /> Stream 列表
         </h3>
         <div className="ri-common-block-tools">
-          <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshStreamLoading} onClick={this.refreshStream}>{refreshStreamText}</Button>
           {StreamAddOrNot}
+          <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshStreamLoading} onClick={this.refreshStream}>{refreshStreamText}</Button>
         </div>
         <Table
           dataSource={this.state.currentStreams}
@@ -1275,7 +1226,7 @@ export class Manager extends React.Component {
         <Modal
           title={`确定${this.state.actionType === 'start' ? '开始' : '生效'}吗？`}
           visible={startModalVisible}
-          wrapClassName="stream-start-form-style"
+          wrapClassName="ant-modal-large stream-start-renew-modal"
           onCancel={this.handleEditStartCancel}
           footer={[
             <Button
@@ -1284,16 +1235,15 @@ export class Manager extends React.Component {
               size="large"
               onClick={this.queryLastestoffset}
             >
-              查看最新 Offset
+              查看 Lastest Offset
             </Button>,
             <Button
               className={`edit-topic-btn ${editBtn}`}
-              icon={this.state.selectEditIcon}
               type="default"
               onClick={this.onChangeEditSelect}
               key="renewEdit"
               size="large">
-              {this.state.selectEditText}
+              还原
             </Button>,
             <Button
               key="cancel"
@@ -1351,11 +1301,11 @@ Manager.propTypes = {
   onDeleteStream: React.PropTypes.func,
   onStartOrRenewStream: React.PropTypes.func,
   onLoadStreamDetail: React.PropTypes.func,
-  onLoadOffset: React.PropTypes.func,
   onLoadLogsInfo: React.PropTypes.func,
   onLoadAdminLogsInfo: React.PropTypes.func,
   onShowEditStream: React.PropTypes.func,
-  onLoadSingleUdf: React.PropTypes.func
+  onLoadSingleUdf: React.PropTypes.func,
+  onLoadLastestOffset: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1367,10 +1317,10 @@ export function mapDispatchToProps (dispatch) {
     onDeleteStream: (projectId, id, action, resolve, reject) => dispatch(deleteStream(projectId, id, action, resolve, reject)),
     onStartOrRenewStream: (projectId, id, topicResult, action, resolve, reject) => dispatch(startOrRenewStream(projectId, id, topicResult, action, resolve, reject)),
     onLoadStreamDetail: (projectId, streamId, roleType, resolve) => dispatch(loadStreamDetail(projectId, streamId, roleType, resolve)),
-    onLoadOffset: (values, resolve) => dispatch(loadOffset(values, resolve)),
     onLoadLogsInfo: (projectId, streamId, resolve) => dispatch(loadLogsInfo(projectId, streamId, resolve)),
     onLoadAdminLogsInfo: (projectId, streamId, resolve) => dispatch(loadAdminLogsInfo(projectId, streamId, resolve)),
-    onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve))
+    onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
+    onLoadLastestOffset: (projectId, streamId, resolve) => dispatch(loadLastestOffset(projectId, streamId, resolve))
   }
 }
 

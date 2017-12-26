@@ -58,6 +58,7 @@ export class Namespace extends React.PureComponent {
       namespaceFormType: 'add',
       refreshNsLoading: false,
       refreshNsText: 'Refresh',
+      showNsDetail: {},
 
       currentNamespaces: [],
       originNamespaces: [],
@@ -113,7 +114,7 @@ export class Namespace extends React.PureComponent {
   }
 
   componentWillMount () {
-    this.loadNamespaceData()
+    this.refreshNamespace()
   }
 
   componentWillReceiveProps (props) {
@@ -258,8 +259,8 @@ export class Namespace extends React.PureComponent {
           this.namespaceForm.setFieldsValue({
             dataBaseDataSystem: result.nsSys,
             nsDatabase: [
-              result.nsDatabase,
-              result.permission
+              result.nsDatabase
+              // result.permission
             ],
             instance: result.nsInstance,
             nsSingleTableName: result.nsTable,
@@ -276,7 +277,7 @@ export class Namespace extends React.PureComponent {
               nsVersion: result.nsVersion,
               nsDbpar: result.nsDbpar,
               nsTablepar: result.nsTablepar,
-              permission: result.permission,
+              // permission: result.permission,
               nsDatabaseId: result.nsDatabaseId,
               nsInstanceId: result.nsInstanceId,
               active: result.active,
@@ -390,7 +391,7 @@ export class Namespace extends React.PureComponent {
 
     this.namespaceForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        if (tableNameExited === true) {
+        if (tableNameExited) {
           this.nsErrorMsg(`${exitedNsTableValue} 已存在`)
         } else {
           const selDatabase = databaseSelectValue.find(s => s.id === Number(values.nsDatabase))
@@ -729,15 +730,6 @@ export class Namespace extends React.PureComponent {
     })
   }
 
-  initCancelUmsopSelf = (key) => {
-    const { umsTableDataSource } = this.state
-
-    const umsArr = umsSysFieldCanceled(umsTableDataSource, 'ums_op_')
-    this.setState({
-      umsTableDataSource: umsArr
-    })
-  }
-
   onSchemaModalOk = () => {
     if (document.getElementById('sep')) {
       message.error('Tuple 类型配置失败！', 3)
@@ -816,19 +808,24 @@ export class Namespace extends React.PureComponent {
                 } else {
                   const { umsTableDataSource } = this.state
 
-                  const tableDataString = JSON.stringify(umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+                  const umsArr = umsSysFieldCanceled(umsTableDataSource, 'ums_op_')
+                  this.setState({
+                    umsTableDataSource: umsArr
+                  }, () => {
+                    const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
 
-                  const requestValue = {
-                    umsType: 'ums_extension',
-                    jsonSample: this.cmSample.doc.getValue(),
-                    jsonParseArray: jsonSampleValue,
-                    umsSchemaTable: JSON.parse(tableDataString),
-                    umsSchema: genSchema(umsTableDataSource) // 生成 umsSchema json
-                  }
+                    const requestValue = {
+                      umsType: 'ums_extension',
+                      jsonSample: this.cmSample.doc.getValue(),
+                      jsonParseArray: jsonSampleValue,
+                      umsSchemaTable: JSON.parse(tableDataString),
+                      umsSchema: genSchema(umsTableDataSource) // 生成 umsSchema json
+                    }
 
-                  this.props.onSetSchema(nsIdValue, requestValue, () => {
-                    message.success('Schema 配置成功！', 3)
-                    this.hideSchemaModal()
+                    this.props.onSetSchema(nsIdValue, requestValue, () => {
+                      message.success('Schema 配置成功！', 3)
+                      this.hideSchemaModal()
+                    })
                   })
                 }
               }
@@ -1006,8 +1003,22 @@ export class Namespace extends React.PureComponent {
     })
   }
 
+  handleVisibleChangeNs = (record) => (visible) => {
+    if (visible) {
+      this.setState({
+        visible
+      }, () => {
+        this.props.onLoadSingleNamespace(record.id, (result) => {
+          this.setState({
+            showNsDetail: result
+          })
+        })
+      })
+    }
+  }
+
   render () {
-    const { refreshNsLoading, refreshNsText } = this.state
+    const { refreshNsLoading, refreshNsText, showNsDetail } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -1148,24 +1159,6 @@ export class Namespace extends React.PureComponent {
           filterDropdownVisibleNsKey: visible
         }, () => this.searchInput.focus())
       }, {
-        title: 'Permission',
-        dataIndex: 'permission',
-        key: 'permission',
-        sorter: (a, b) => {
-          if (typeof a.permission === 'object') {
-            return a.permissionOrigin < b.permissionOrigin ? -1 : 1
-          } else {
-            return a.permission < b.permission ? -1 : 1
-          }
-        },
-        sortOrder: sortedInfo.columnKey === 'permission' && sortedInfo.order,
-        filters: [
-          {text: 'ReadOnly', value: 'ReadOnly'},
-          {text: 'ReadWrite', value: 'ReadWrite'}
-        ],
-        filteredValue: filteredInfo.permission,
-        onFilter: (value, record) => record.permission.includes(value)
-      }, {
         title: 'Topic',
         dataIndex: 'topic',
         key: 'topic',
@@ -1276,10 +1269,12 @@ export class Namespace extends React.PureComponent {
                 <Popover
                   placement="left"
                   content={<div className="project-name-detail">
-                    <p><strong>   Project Names：</strong>{record.projectName}</p>
+                    <p><strong>   Project Names：</strong>{showNsDetail.projectName}</p>
                   </div>}
                   title={<h3>详情</h3>}
-                  trigger="click">
+                  trigger="click"
+                  onVisibleChange={this.handleVisibleChangeNs(record)}
+                >
                   <Button icon="file-text" shape="circle" type="ghost"></Button>
                 </Popover>
               </Tooltip>
@@ -1320,8 +1315,8 @@ export class Namespace extends React.PureComponent {
             <Icon type="bars" /> Namespace 列表
           </h3>
           <div className="ri-common-block-tools">
-            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshNsLoading} onClick={this.refreshNamespace}>{refreshNsText}</Button>
             <Button icon="plus" type="primary" className={this.props.namespaceClassHide} onClick={this.showAddNamespace}>新建</Button>
+            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshNsLoading} onClick={this.refreshNamespace}>{refreshNsText}</Button>
           </div>
           <Table
             dataSource={this.state.currentNamespaces || []}
@@ -1422,7 +1417,6 @@ export class Namespace extends React.PureComponent {
             initSelectUmsIdTs={this.initSelectUmsIdTs}
             initUmsopOther2Tuple={this.initUmsopOther2Tuple}
             initSelectUmsop={this.initSelectUmsop}
-            initCancelUmsopSelf={this.initCancelUmsopSelf}
             cancelSelectUmsId={this.cancelSelectUmsId}
             initCheckUmsOp={this.initCheckUmsOp}
             initCancelUmsOp={this.initCancelUmsOp}
@@ -1432,7 +1426,6 @@ export class Namespace extends React.PureComponent {
             umsTypeSeleted={this.state.umsTypeSeleted}
             repeatRenameArr={this.state.repeatRenameArr}
             selectAllState={this.state.selectAllState}
-            umsopRecordValue={this.state.umsopRecordValue}
             ref={(f) => { this.schemaTypeConfig = f }}
           />
         </Modal>

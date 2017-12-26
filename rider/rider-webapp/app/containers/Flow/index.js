@@ -44,7 +44,9 @@ import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
 import { selectFlows, selectError } from './selectors'
-import { loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm, saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail, loadSourceInput, chuckAwayFlow } from './action'
+import { loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm,
+  saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail,
+  loadSourceInput, loadFlowDetail, chuckAwayFlow } from './action'
 
 export class Flow extends React.Component {
   constructor (props) {
@@ -64,6 +66,7 @@ export class Flow extends React.Component {
       timeModalVisible: false,
       timeDetail: null,
       flowIdTemp: '',
+      showFlowDetails: {},
 
       filteredInfo: null,
       sortedInfo: null,
@@ -90,7 +93,7 @@ export class Flow extends React.Component {
   }
 
   componentWillMount () {
-    this.loadFlowData()
+    this.refreshFlow()
   }
 
   componentWillReceiveProps (props) {
@@ -452,6 +455,34 @@ export class Flow extends React.Component {
       }).filter(record => !!record),
       filteredInfo: infoFinal
     })
+  }
+
+  handleVisibleChangeFlow = (record) => (visible) => {
+    if (visible) {
+      this.setState({
+        visible
+      }, () => {
+        let roleType = ''
+        if (localStorage.getItem('loginRoleType') === 'admin') {
+          roleType = 'admin'
+        } else if (localStorage.getItem('loginRoleType') === 'user') {
+          roleType = 'user'
+        }
+
+        const requestValue = {
+          projectId: record.projectId,
+          streamId: record.streamId,
+          flowId: record.id,
+          roleType: roleType
+        }
+
+        this.props.onLoadFlowDetail(requestValue, (result) => {
+          this.setState({
+            showFlowDetails: result
+          })
+        })
+      })
+    }
   }
 
   render () {
@@ -907,26 +938,32 @@ export class Flow extends React.Component {
           )
         }
 
+        const { showFlowDetails } = this.state
+
         return (
           <span className="ant-table-action-column">
             <Tooltip title="查看详情">
               <Popover
                 placement="left"
                 content={<div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
-                  <p><strong>   Project Id：</strong>{record.projectId}</p>
-                  <p><strong>   Protocol：</strong>{record.consumedProtocol}</p>
-                  <p><strong>   Stream Name：</strong>{record.streamName}</p>
-                  <p><strong>   Create Time：</strong>{record.createTime}</p>
-                  <p><strong>   Update Time：</strong>{record.updateTime}</p>
-                  <p><strong>   Create By：</strong>{record.createBy}</p>
-                  <p><strong>   Update By：</strong>{record.updateBy}</p>
-                  <p><strong>   Disable Actions：</strong>{record.disableActions}</p>
-                  <p><strong>   Sink Config：</strong>{record.sinkConfig}</p>
-                  <p><strong>   Transformation Config：</strong>{record.tranConfig}</p>
-                  <p><strong>   Message：</strong>{record.msg}</p>
+                  <p className={this.props.flowClassHide}><strong>   Project Id：</strong>{showFlowDetails.projectId}</p>
+                  <p><strong>   Protocol：</strong>{showFlowDetails.consumedProtocol}</p>
+                  <p><strong>   Stream Name：</strong>{showFlowDetails.streamName}</p>
+
+                  <p><strong>   Sink Config：</strong>{showFlowDetails.sinkConfig}</p>
+                  <p><strong>   Transformation Config：</strong>{showFlowDetails.tranConfig}</p>
+
+                  <p><strong>   Create Time：</strong>{showFlowDetails.createTime}</p>
+                  <p><strong>   Update Time：</strong>{showFlowDetails.updateTime}</p>
+                  <p><strong>   Create By：</strong>{showFlowDetails.createBy}</p>
+                  <p><strong>   Update By：</strong>{showFlowDetails.updateBy}</p>
+                  <p><strong>   Disable Actions：</strong>{showFlowDetails.disableActions}</p>
+
+                  <p><strong>   Message：</strong>{showFlowDetails.msg}</p>
                 </div>}
                 title={<h3>详情</h3>}
-                trigger="click">
+                trigger="click"
+                onVisibleChange={this.handleVisibleChangeFlow(record)}>
                 <Button icon="file-text" shape="circle" type="ghost"></Button>
               </Popover>
             </Tooltip>
@@ -1001,8 +1038,8 @@ export class Flow extends React.Component {
           <Icon type="bars" /> Flow 列表
         </h3>
         <div className="ri-common-block-tools">
-          <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshFlowLoading} onClick={this.refreshFlow}>{refreshFlowText}</Button>
           {FlowAddOrNot}
+          <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshFlowLoading} onClick={this.refreshFlow}>{refreshFlowText}</Button>
         </div>
         <Table
           dataSource={this.state.currentFlows}
@@ -1066,6 +1103,7 @@ Flow.propTypes = {
   onLoadSourceInput: React.PropTypes.func,
   projectIdGeted: React.PropTypes.string,
   flowClassHide: React.PropTypes.string,
+  onLoadFlowDetail: React.PropTypes.func,
 
   onLoadAdminAllFlows: React.PropTypes.func,
   onLoadUserAllFlows: React.PropTypes.func,
@@ -1088,6 +1126,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadSourceSinkDetail: (id, pageIndex, pageSize, resolve) => dispatch(loadSourceSinkDetail(id, pageIndex, pageSize, resolve)),
     onLoadSinkWriteRrrorDetail: (id, pageIndex, pageSize, resolve) => dispatch(loadSinkWriteRrrorDetail(id, pageIndex, pageSize, resolve)),
     onLoadSourceInput: (flowId, taskType, resolve) => dispatch(loadSourceInput(flowId, taskType, resolve)),
+    onLoadFlowDetail: (requestValue, resolve) => dispatch(loadFlowDetail(requestValue, resolve)),
     onChuckAwayFlow: () => dispatch(chuckAwayFlow())
   }
 }
