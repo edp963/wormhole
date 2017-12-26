@@ -401,7 +401,7 @@ export class Manager extends React.Component {
               const robj = {
                 id: i.id,
                 partitionOffsets: offsetVal,
-                rate: Number(values[i.rate])
+                rate: Number(values[`${i.id}_${i.rate}`])
               }
               return robj
             })
@@ -455,7 +455,7 @@ export class Manager extends React.Component {
                 id: i.id,
                 name: i.name,
                 partitionOffsets: offsetVal,
-                rate: Number(values[i.rate])
+                rate: Number(values[`${i.id}_${i.rate}`])
               }
               return robj
             })
