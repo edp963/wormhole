@@ -23,12 +23,13 @@ package edp.wormhole.sinks.mongosink
 
 import java.text.SimpleDateFormat
 import java.util
+import java.util.UUID
 
 import edp.wormhole.sinks.mongosink.MongoHelper._
 import com.mongodb.ConnectionString
 import com.mongodb.async.client.MongoClients
 import edp.wormhole.common.util.JsonUtils.json2caseClass
-import edp.wormhole.common.{ConnectionConfig, KVConfig}
+import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType._
@@ -58,7 +59,6 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
     try {
       val database: MongoDatabase = mongoClient.getDatabase(db)
       val collection: MongoCollection[Document] = database.getCollection(table)
-      val keys = sinkProcessConfig.tableKeyList
 
       val sinkSpecificConfig = json2caseClass[MongoConfig](sinkProcessConfig.specialConfig.get)
       if (sinkSpecificConfig.`mutation_type.get` == SourceMutationType.I_U_D.toString) {
@@ -66,34 +66,36 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
           val builder = getDocument(schemaMap, payload)
           try {
             val keyFilter = {
-              val f = keys.map(keyname=>{
+              val f = sinkSpecificConfig._id.get.split(",").map(keyname => {
                 payload(schemaMap(keyname)._1)
               }).mkString("_")
               builder += "_id" -> BsonString(f)
               and(equal("_id", f))
             }
+
             val umsidInTuple = payload(schemaMap(UmsSysField.ID.toString)._1).toLong
             val updateFilter = and(keyFilter, gte(UmsSysField.ID.toString, umsidInTuple))
+
             val count: Long = collection.count(updateFilter).headResult()
-            if(count==0){
+            if (count == 0) {
               val op: FindOneAndReplaceOptions = FindOneAndReplaceOptions().upsert(true)
               collection.findOneAndReplace(keyFilter, builder.result(), op).results()
             }
           } catch {
             case e: Throwable =>
-              logError("findOneAndReplace error,document:"+builder, e)
+              logError("findOneAndReplace error,document:" + builder, e)
           }
         })
       } else {
         val insertDocuments = ListBuffer[Document]()
         tupleList.foreach(payload => {
           val builder = getDocument(schemaMap, payload)
-          if ( keys.nonEmpty) {
-            val f = keys.map(keyname=>{
+          if (sinkSpecificConfig._id.nonEmpty && sinkSpecificConfig._id.get.nonEmpty) {
+            val f = sinkSpecificConfig._id.get.split(",").map(keyname => {
               payload(schemaMap(keyname)._1)
             }).mkString("_")
             builder += "_id" -> BsonString(f)
-          }
+          }else builder += "_id" -> BsonString(UUID.randomUUID().toString)
           insertDocuments += builder.result()
         })
         if (insertDocuments.nonEmpty) {
@@ -155,13 +157,13 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
   }
 
   def getMongoClient(db: String, connectionConfig: ConnectionConfig): MongoClient = {
-    val kvConfig: Seq[KVConfig] = connectionConfig.parameters.get
+    //    val kvConfig: Seq[KVConfig] = connectionConfig.parameters.get
     val (user, password) = if (connectionConfig.username.nonEmpty && connectionConfig.username.get.nonEmpty) {
       (connectionConfig.username.get, connectionConfig.password.get)
     } else (null, null)
 
-    val kvList = if (kvConfig.nonEmpty) {
-      kvConfig.map(kv =>
+    val kvList = if (connectionConfig.parameters.nonEmpty && connectionConfig.parameters.get.nonEmpty) {
+      connectionConfig.parameters.get.map(kv =>
         kv.key + "=" + kv.value)
     } else Nil
     val connectionUrl = "mongodb://" + connectionConfig.connectionUrl + "/?" + kvList.mkString("&")

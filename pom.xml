@@ -25,6 +25,9 @@
         <module>common/util</module>
         <module>common/zookeeper</module>
         <module>common/dbpool</module>
+        <!--<module>common/phoenix-jdbc</module>-->
+        <module>common/sql4es5</module>
+        <module>common/sql4es2</module>
         <module>common/redispool</module>
         <module>common/hadoop</module>
         <module>sparkx</module>
@@ -76,6 +79,13 @@
 
     </properties>
 
+    <distributionManagement>
+        <repository>
+            <id>dist-nexus</id>
+            <url>${release.url}</url>
+        </repository>
+    </distributionManagement>
+
     <!-- common repositories -->
     <repositories>
         <repository>
@@ -89,6 +99,10 @@
         <repository>
             <id>conjars</id>
             <url>http://conjars.org/repo/</url>
+        </repository>
+        <repository>
+            <id>creditease</id>
+            <url>${public.url}</url>
         </repository>
     </repositories>
 
@@ -312,7 +326,7 @@
                     <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                     <junitxml>.</junitxml>
                     <filereports>EDPTestSuite.txt</filereports>
-                    <argLine>-Xms512M -Xmx2048M -XX:MaxPermSize=2048M -XX:+CMSClassUnloadingEnabled</argLine>
+                    <argLine>-Xms512M -Xmx1024M -XX:+CMSClassUnloadingEnabled</argLine>
                 </configuration>
                 <executions>
                     <execution>
@@ -545,7 +559,6 @@
                         <param>${main.basedir}/dev/codecheck/license-mappings.xml</param>
                     </licenseMapping>
                 </configuration>
-
             </plugin>
         </plugins>
     </build>

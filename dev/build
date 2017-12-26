@@ -15,6 +15,12 @@ cd common
 cd util
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../
+cd sql4es5
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
+cd sql4es2
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../
 cd dbpool
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../
@@ -35,6 +41,39 @@ mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../
 cd sparkx
 mvn clean package -U -Dmaven.test.skip=true
+cd ../
+
+
+cd common
+cd util
+mvn clean install
+cd ../
+cd sql4es5
+mvn clean install
+cd ../
+cd sql4es2
+mvn clean install
+cd ../
+cd dbpool
+mvn clean install
+cd ../
+cd zookeeper
+mvn clean install
+cd ../
+cd hadoop
+mvn clean install
+cd ../
+cd kafka08
+mvn clean install
+cd ../
+cd kafka010
+mvn clean install
+cd ../../
+cd ums
+mvn clean install
+cd ../
+cd sparkx
+mvn clean package -Dmaven.test.skip=true
 cd ../
 
 

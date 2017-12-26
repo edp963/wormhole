@@ -18,10 +18,8 @@
  * >>
  */
 
-
 package edp.wormhole.sinks.hbasesink
 
-import com.alibaba.fastjson.JSON
 import edp.wormhole.common.{ConnectionConfig, RowkeyPatternContent, RowkeyPatternType, RowkeyTool}
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
 import edp.wormhole.spark.log.EdpLogging
@@ -38,8 +36,6 @@ import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsNamespace
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.common.util.JsonUtils._
-
-import scala.util.parsing.json.JSONObject
 
 class Data2HbaseSink extends SinkProcessor with EdpLogging {
   override def process(protocolType: UmsProtocolType,
@@ -70,21 +66,19 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
       RowkeyTool.generatePatternKey(keydatas, rowkeyConfig)
     }
 
-
     def gerneratePuts(columnFamily: String, saveAsString: Boolean, versionColumn: String, filterRowkey2idTuples: Seq[(String, Long, Seq[String])]): ListBuffer[Put] = {
       val puts: ListBuffer[Put] = new mutable.ListBuffer[Put]
       for (tuple <- filterRowkey2idTuples) {
         try {
-          val umsOpValue: String = tuple._3(schemaMap(OP.toString)._1)
-          //          val versionValue = if (schemaMap(versionColumn)._2 == UmsFieldType.DATETIME) DateUtils.dt2long(tuple._3(schemaMap(versionColumn)._1))
-          //          else s2long(tuple._3(schemaMap(versionColumn)._1))
+          val umsOpValue: String = if(schemaMap.contains(OP.toString)){
+            tuple._3(schemaMap(OP.toString)._1)
+          }else ""
           val rowkeyBytes = Bytes.toBytes(tuple._1)
           val put = new Put(rowkeyBytes)
           schemaMap.keys.foreach { column =>
             val (index, fieldType, _) = schemaMap(column)
             val valueString = tuple._3(index)
             if (OP.toString != column) {
-              put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), s2hbaseValue(fieldType, valueString))
               if (saveAsString) put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), s2hbaseStringValue(fieldType, valueString, column))
               else put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), s2hbaseValue(fieldType, valueString))
             } else {
@@ -110,7 +104,11 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
 
     //    logInfo("before format:" + tupleList.size)
     val rowkey2IdTuples: Seq[(String, Long, Seq[String])] = tupleList.map(tuple => {
-      (rowkey(patternContentList, tuple), tuple(schemaMap(ID.toString)._1).toLong, tuple)
+      if(hbaseConfig.`mutation_type.get`==SourceMutationType.I_U_D.toString){
+        (rowkey(patternContentList, tuple), tuple(schemaMap(ID.toString)._1).toLong, tuple)
+      }else{
+        (rowkey(patternContentList, tuple), 0l, tuple)
+      }
     })
 
     val filterRowkey2idTuples = SourceMutationType.sourceMutationType(hbaseConfig.`mutation_type.get`) match {

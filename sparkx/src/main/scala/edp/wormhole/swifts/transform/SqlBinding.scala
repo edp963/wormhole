@@ -39,9 +39,13 @@ object SqlBinding extends EdpLogging {
   }
 
   def getCassandraSql(sourceJoinFieldsContent: List[String],lookupTableFields: Array[String], sql: String): String = {
+    val finalSql= if (!sql.toLowerCase().contains("allow filtering")) {
+       sql + " allow filtering"
+    }
+    else sql
     sourceJoinFieldsContent.sliding(1000, 1000).map(joinFields => {
-      if (lookupTableFields.length == 1) sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + " in (" + joinFields.mkString(",") + ")")
-      else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, "(" + lookupTableFields.mkString(",") + ") in (" + joinFields.mkString(",") + ")")
+      if (lookupTableFields.length == 1) finalSql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + " in (" + joinFields.mkString(",") + ")")
+      else finalSql.replace(SwiftsConstants.REPLACE_STRING_INSQL, "(" + lookupTableFields.mkString(",") + ") in (" + joinFields.mkString(",") + ")")
     }).mkString(" union ")  //TODO if sourceJoinFieldsContent is empty
   }
 
