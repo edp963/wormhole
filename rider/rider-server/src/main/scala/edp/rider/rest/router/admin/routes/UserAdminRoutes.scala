@@ -32,7 +32,7 @@ import io.swagger.annotations._
 @Path("/admin")
 class UserAdminRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
-  lazy val routes: Route = getUserByFilterRoute ~ postUserRoute ~ putUserRoute ~ getUserByIdRoute ~ getUserByProjectIdRoute
+  lazy val routes: Route = getUserByFilterRoute ~ postUserRoute ~ putUserRoute ~ getUserByIdRoute ~ getUserByProjectIdRoute ~ deleteByIdRoute
 
   lazy val basePath = "users"
 
@@ -48,7 +48,22 @@ class UserAdminRoutes(modules: ConfigurationModule with PersistenceModule with B
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getUserByIdRoute: Route = modules.userAdminService.getByIdRoute(basePath)
+  def getUserByIdRoute: Route = modules.userAdminService.getById(basePath)
+
+  @Path("/{id}/")
+  @ApiOperation(value = "delete one user from system by id", notes = "", nickname = "", httpMethod = "DELETE")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "user id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not admin user"),
+    new ApiResponse(code = 412, message = "user still has some projects"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def deleteByIdRoute: Route = modules.userAdminService.deleteRoute(basePath)
 
   @Path("/users")
   @ApiOperation(value = "get all users", notes = "", nickname = "", httpMethod = "GET")

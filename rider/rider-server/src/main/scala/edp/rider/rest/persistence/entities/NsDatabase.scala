@@ -30,7 +30,6 @@ case class NsDatabase(id: Long,
                       nsDatabase: String,
                       desc: Option[String] = None,
                       nsInstanceId: Long,
-                      permission: String,
                       user: Option[String] = None,
                       pwd: Option[String] = None,
                       partitions: Option[Int] = None,
@@ -44,7 +43,6 @@ case class NsDatabase(id: Long,
 case class SimpleNsDatabase(nsDatabase: String,
                             desc: Option[String] = None,
                             nsInstanceId: Long,
-                            permission: String,
                             user: Option[String] = None,
                             pwd: Option[String] = None,
                             partitions: Option[Int] = None,
@@ -55,7 +53,6 @@ case class DatabaseInstance(id: Long,
                             nsDatabase: String,
                             desc: Option[String] = None,
                             nsInstanceId: Long,
-                            permission: String,
                             user: Option[String] = None,
                             pwd: Option[String] = None,
                             partitions: Option[Int] = None,
@@ -71,7 +68,7 @@ case class DatabaseInstance(id: Long,
 
 
 class NsDatabaseTable(_tableTag: Tag) extends BaseTable[NsDatabase](_tableTag, "ns_database") {
-  def * = (id, nsDatabase, desc, nsInstanceId, permission, user, pwd, partitions, config, active, createTime, createBy, updateTime, updateBy) <>(NsDatabase.tupled, NsDatabase.unapply)
+  def * = (id, nsDatabase, desc, nsInstanceId, user, pwd, partitions, config, active, createTime, createBy, updateTime, updateBy) <>(NsDatabase.tupled, NsDatabase.unapply)
 
   /** Database column ns_database SqlType(VARCHAR), Length(200,true) */
   val nsDatabase: Rep[String] = column[String]("ns_database", O.Length(200, varying = true))
@@ -79,8 +76,6 @@ class NsDatabaseTable(_tableTag: Tag) extends BaseTable[NsDatabase](_tableTag, "
   val desc: Rep[Option[String]] = column[Option[String]]("desc", O.Length(1000, varying = true), O.Default(None))
   /** Database column ns_instance_id SqlType(BIGINT) */
   val nsInstanceId: Rep[Long] = column[Long]("ns_instance_id")
-  /** Database column permission SqlType(VARCHAR), Length(20,true) */
-  val permission: Rep[String] = column[String]("permission", O.Length(20, varying = true))
   /** Database column user SqlType(VARCHAR), Length(200,true), Default(None) */
   val user: Rep[Option[String]] = column[Option[String]]("user", O.Length(200, varying = true), O.Default(None))
   /** Database column pwd SqlType(VARCHAR), Length(200,true), Default(None) */
@@ -90,7 +85,7 @@ class NsDatabaseTable(_tableTag: Tag) extends BaseTable[NsDatabase](_tableTag, "
   /** Database column config SqlType(VARCHAR), Length(2000,true), Default(None) */
   val config: Rep[Option[String]] = column[Option[String]]("config", O.Length(2000, varying = true), O.Default(None))
 
-  /** Uniqueness Index over (nsDatabase,nsInstanceId,permission) (database name database_UNIQUE) */
-  val index1 = index("database_UNIQUE", (nsDatabase, nsInstanceId, permission), unique = true)
+  /** Uniqueness Index over (nsDatabase,nsInstanceId) (database name database_UNIQUE) */
+  val index1 = index("database_UNIQUE", (nsDatabase, nsInstanceId), unique = true)
 }
 

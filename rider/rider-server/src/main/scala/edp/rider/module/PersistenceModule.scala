@@ -51,8 +51,7 @@ object DbModule extends ConfigurationModuleImpl with RiderLogger {
         try {
           session.withPreparedStatement(sql)(_.execute)
         } catch {
-          case e: SQLException =>
-            riderLogger.info("some sql execute failed", e.getMessage)
+          case _: SQLException =>
         }
       }
     riderLogger.info("Initial rider database success")
@@ -119,7 +118,7 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val instanceDal = new InstanceDal(instanceQuery)
   override lazy val databaseDal = new NsDatabaseDal(databaseQuery, instanceQuery)
   override lazy val namespaceDal = new NamespaceDal(namespaceQuery, databaseDal, instanceDal, dbusDal)
-  override lazy val userDal = new UserDal(userQuery, relProjectUserDal)
+  override lazy val userDal = new UserDal(userQuery, relProjectUserDal, projectDal)
   override lazy val relProjectUserDal = new RelProjectUserDal(userQuery, projectQuery, relProjectUserQuery)
   override lazy val relStreamUdfDal = new RelStreamUdfDal(relStreamUdfQuery, udfQuery)
   override lazy val streamDal = new StreamDal(streamQuery, instanceDal, inTopicDal, relStreamUdfDal, projectQuery)

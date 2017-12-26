@@ -135,6 +135,8 @@ object UmsSysField extends Enumeration {
     UmsOpType.umsOpType(UmsFieldType.umsFieldValue(tuple, fields, OP.toString).asInstanceOf[String])
   def umsUid(tuple: Seq[String], fields: Seq[UmsField]): UmsOpType.Value =
     UmsOpType.umsOpType(UmsFieldType.umsFieldValue(tuple, fields, UID.toString).asInstanceOf[String])
+
+  def umsSysField(s: String) = UmsSysField.withName(s.toLowerCase)
 }
 
 object UmsOpType extends Enumeration {

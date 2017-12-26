@@ -94,12 +94,13 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
       }
     }
     val _ids = ListBuffer.empty[String]
-    sinkConfig.tableKeyList.foreach(keyname => {
-      val (index, _, _) = schemaMap(keyname)
-      _ids += row(index)
-    })
-    if (_ids.nonEmpty) (_ids.mkString("_"), umsid, json.toJSONString)
-    else (UUID.randomUUID().toString, umsid, json.toJSONString)
+    if (sinkSpecificConfig._id.nonEmpty&&sinkSpecificConfig._id.get.nonEmpty){//.`mutation_type.get` == SourceMutationType.I_U_D.toString) {
+      sinkSpecificConfig._id.get.toLowerCase.split(",").foreach(keyname => {
+        val (index, _, _) = schemaMap(keyname)
+        _ids += row(index)
+      })
+      (_ids.mkString("_"), umsid, json.toJSONString)
+    } else (UUID.randomUUID().toString, umsid, json.toJSONString)
   }
 
   private def getAvailableConnection(cc: ConnectionConfig): ConnectionConfig = {

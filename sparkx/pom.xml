@@ -49,7 +49,18 @@
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-dbpool</artifactId>
             <version>${project.version}</version>
+            <!--<exclusions>-->
+            <!--<exclusion>-->
+                <!--<groupId>com.google.guava</groupId>-->
+                <!--<artifactId>guava</artifactId>-->
+            <!--</exclusion>-->
+            <!--</exclusions>-->
         </dependency>
+        <!--<dependency>-->
+            <!--<groupId>com.google.guava</groupId>-->
+            <!--<artifactId>guava</artifactId>-->
+            <!--<version>16.0.1</version>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-hadoop</artifactId>
@@ -127,6 +138,23 @@
             <artifactId>mongo-scala-driver_2.11</artifactId>
             <version>2.1.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.datastax.cassandra</groupId>
+            <artifactId>cassandra-driver-core</artifactId>
+            <version>3.0.0</version>
+            <exclusions>
+            <exclusion>
+                <groupId>io.netty</groupId>
+                <artifactId>*</artifactId>
+            </exclusion>
+            </exclusions>
+        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>org.apache.cassandra</groupId>-->
+            <!--<artifactId>cassandra-clientutil</artifactId>-->
+            <!--<version>2.1.2</version>-->
+        <!--</dependency>-->
 
         <dependency>
             <groupId>com.hortonworks</groupId>
@@ -224,15 +252,15 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <configuration>
-                    <relocations>
-                        <relocation>
-                            <pattern>com.google.common</pattern>
-                            <shadedPattern>com.foo.com.google.common</shadedPattern>
-                        </relocation>
-                    </relocations>
-                    <finalName>${project.artifactId}-${project.version}-jar-with-dependencies</finalName>
-                </configuration>
+                <!--<configuration>-->
+                    <!--<relocations>-->
+                        <!--<relocation>-->
+                            <!--<pattern>com.google.common</pattern>-->
+                            <!--<shadedPattern>com.foo.com.google.common</shadedPattern>-->
+                        <!--</relocation>-->
+                    <!--</relocations>-->
+                    <!--<finalName>${project.artifactId}-${project.version}-jar-with-dependencies</finalName>-->
+                <!--</configuration>-->
                 <executions>
                     <execution>
                         <phase>package</phase>

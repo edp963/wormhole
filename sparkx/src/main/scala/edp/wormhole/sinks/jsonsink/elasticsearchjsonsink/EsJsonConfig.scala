@@ -1,8 +1,7 @@
-package edp.wormhole.sinks.mongojsonsink
+package edp.wormhole.sinks.jsonsink.elasticsearchjsonsink
 
 import edp.wormhole.sinks.SourceMutationType
 
-case class MongoJsonConfig(`mutation_type`: Option[String]) {
+case class EsJsonConfig(`mutation_type`: Option[String]) {
   lazy val `mutation_type.get` = `mutation_type`.getOrElse(SourceMutationType.I_U_D.toString)
 }
-

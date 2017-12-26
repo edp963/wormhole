@@ -64,30 +64,30 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
 
   def getByFilterRoute(route: String): Route = path(route) {
     get {
-      parameter('visible.as[Boolean].?, 'nsInstanceId.as[Long].?, 'nsDatabaseName.as[String].?, 'permission.as[String].?) {
-        (visible, nsInstanceId, nsDatabaseName, permission) =>
+      parameter('visible.as[Boolean].?, 'nsInstanceId.as[Long].?, 'nsDatabaseName.as[String].?) {
+        (visible, nsInstanceId, nsDatabaseName) =>
           authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
             session =>
               if (session.roleType != "admin")
                 complete(OK, getHeader(403, session))
               else {
-                (visible, nsInstanceId, nsDatabaseName, permission) match {
-                  case (None, Some(id), Some(name), Some(perm)) =>
-                    onComplete(databaseDal.findByFilter(database => database.nsInstanceId === id && database.nsDatabase === name.toLowerCase && database.permission === perm).mapTo[Seq[NsDatabase]]) {
+                (visible, nsInstanceId, nsDatabaseName) match {
+                  case (None, Some(id), Some(name)) =>
+                    onComplete(databaseDal.findByFilter(database => database.nsInstanceId === id && database.nsDatabase === name.toLowerCase).mapTo[Seq[NsDatabase]]) {
                       case Success(databases) =>
                         if (databases.isEmpty) {
-                          riderLogger.info(s"user ${session.userId} check instance $id permission $perm database $name doesn't exist.")
+                          riderLogger.info(s"user ${session.userId} check instance $id database $name doesn't exist.")
                           complete(OK, getHeader(200, session))
                         }
                         else {
-                          riderLogger.warn(s"user ${session.userId} check instance $id permission $perm database $name already exists.")
-                          complete(OK, getHeader(409, s"$perm permission $id instance $name database or topic already exists", session))
+                          riderLogger.warn(s"user ${session.userId} check instance $id database $name already exists.")
+                          complete(OK, getHeader(409, s"$id instance $name database or topic already exists", session))
                         }
                       case Failure(ex) =>
-                        riderLogger.error(s"user ${session.userId} check instance $id permission $perm database $name does exist failed", ex)
+                        riderLogger.error(s"user ${session.userId} check instance $id database $name does exist failed", ex)
                         complete(OK, getHeader(451, ex.getMessage, session))
                     }
-                  case (_, None, None, None) =>
+                  case (_, None, None) =>
                     onComplete(databaseDal.getDs(visible.getOrElse(true)).mapTo[Seq[DatabaseInstance]]) {
                       case Success(dsSeq) =>
                         riderLogger.info(s"user ${session.userId} select all $route where active is ${visible.getOrElse(true)} success.")
@@ -96,7 +96,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                         riderLogger.error(s"user ${session.userId} select all $route where active is ${visible.getOrElse(true)} failed", ex)
                         complete(OK, getHeader(451, ex.getMessage, session))
                     }
-                  case (_, _, _, _) =>
+                  case (_, _, _) =>
                     riderLogger.error(s"user ${session.userId} request url is not supported.")
                     complete(OK, getHeader(501, session))
                 }
@@ -119,7 +119,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
               }
               else {
                 if (isKeyEqualValue(simple.config.getOrElse(""))) {
-                  val database = NsDatabase(0, simple.nsDatabase.toLowerCase.trim, simple.desc, simple.nsInstanceId, simple.permission.trim, simple.user, simple.pwd, simple.partitions, simple.config, active = true, currentSec, session.userId, currentSec, session.userId)
+                  val database = NsDatabase(0, simple.nsDatabase.toLowerCase.trim, simple.desc, simple.nsInstanceId, simple.user, simple.pwd, simple.partitions, simple.config, active = true, currentSec, session.userId, currentSec, session.userId)
                   onComplete(databaseDal.insert(database).mapTo[NsDatabase]) {
                     case Success(db) =>
                       riderLogger.info(s"user ${session.userId} insert database success.")
@@ -134,7 +134,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                     case Failure(ex) =>
                       if (ex.toString.contains("Duplicate entry")) {
                         riderLogger.error(s"user ${session.userId} insert database failed", ex)
-                        complete(OK, getHeader(409, s"${simple.permission} permission ${simple.nsInstanceId} instance ${simple.nsDatabase} database or topic already exists", session))
+                        complete(OK, getHeader(409, s"${simple.nsInstanceId} instance ${simple.nsDatabase} database or topic already exists", session))
                       }
                       else {
                         riderLogger.error(s"user ${session.userId} insert database failed", ex)
@@ -164,8 +164,8 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                 complete(OK, getHeader(403, session))
               }
               else {
-                if (isJson(database.config.getOrElse("")) || isKeyEqualValue(database.config.getOrElse(""))) {
-                  val db = NsDatabase(database.id, database.nsDatabase.trim, database.desc, database.nsInstanceId, database.permission.trim, database.user, database.pwd, database.partitions, database.config, database.active, database.createTime, database.createBy, currentSec, session.userId)
+                if (isKeyEqualValue(database.config.getOrElse(""))) {
+                  val db = NsDatabase(database.id, database.nsDatabase.trim, database.desc, database.nsInstanceId, database.user, database.pwd, database.partitions, database.config, database.active, database.createTime, database.createBy, currentSec, session.userId)
                   onComplete(databaseDal.update(db)) {
                     case Success(result) =>
                       riderLogger.info(s"user ${session.userId} update database success.")
