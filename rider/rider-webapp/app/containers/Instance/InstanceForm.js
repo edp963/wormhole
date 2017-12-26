@@ -88,21 +88,21 @@ export class InstanceForm extends React.Component {
     // help
     let questionDS = ''
     if (instanceDSValue === 'oracle' || instanceDSValue === 'mysql' || instanceDSValue === 'postgresql') {
-      questionDS = `${instanceDSValue.substring(0, 1).toUpperCase()}${instanceDSValue.substring(1)} 时, 为 ip:port 格式`
+      questionDS = `${instanceDSValue.substring(0, 1).toUpperCase()}${instanceDSValue.substring(1)} 时, 为 ip:port 格式。`
     } else if (instanceDSValue === 'es') {
-      questionDS = 'Elastic 时, 为 http(s)://ip:port 格式'
+      questionDS = 'Elastic 时, 作为 sink 端，请填写 http 端口地址，如 http://localhost:9200；作为 lookup 系统，请填写 tcp 端口地址，如 localhost:9300。'
     } else if (instanceDSValue === 'hbase') {
-      questionDS = 'Hbase 时, 为 zookeeper url list, 如localhost:2181/hbase, 多条用逗号隔开'
+      questionDS = 'Hbase 时, 为 zookeeper url list, 如localhost:2181/hbase, 多条用逗号隔开。'
     } else if (instanceDSValue === 'phoenix') {
-      questionDS = 'Phoenix 时, 为 zookeeper url, 如localhost:2181'
+      questionDS = 'Phoenix 时, 为 zookeeper url, 如localhost:2181。'
     } else if (instanceDSValue === 'kafka') {
-      questionDS = 'Kafka 时, 为 borker list, localhost:9092, 多条用逗号隔开'
+      questionDS = 'Kafka 时, 为 borker list, localhost:9092, 多条用逗号隔开。'
     } else if (instanceDSValue === 'cassandra') {
-      questionDS = 'Cassandra时, 域名或ip, 多条用逗号隔开'
+      questionDS = 'Cassandra时, ip:port, 多条用逗号隔开。'
     } else if (instanceDSValue === 'redis') {
-      questionDS = 'redis时, 为 localhost:6379, 多条用逗号隔开'
+      questionDS = 'redis时, 为 localhost:6379, 多条用逗号隔开。'
     } else {
-      questionDS = '请选择 Data System'
+      questionDS = '请选择 Data System。'
     }
 
     const connectionURLMsg = (

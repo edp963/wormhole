@@ -88,7 +88,7 @@ export class WorkbenchJobForm extends React.Component {
   onSinkDataSystemItemSelect = (val) => {
     this.props.onInitJobSinkNs(this.props.projectIdGeted, val, 'sinkType')
     this.setState({
-      sinkConfigClass: (val === 'hbase' || val === 'mysql' || val === 'oracle' || val === 'postgresql') ? 'sink-config-class' : ''
+      sinkConfigClass: val === 'hbase' ? 'sink-config-class' : ''
     })
   }
 
@@ -104,7 +104,7 @@ export class WorkbenchJobForm extends React.Component {
     const { step, form, jobMode, fieldSelected, jobTranTableConfirmValue } = this.props
     const { getFieldDecorator } = form
     const { onShowJobTransModal, onShowJobSinkConfigModal } = this.props
-    const { jobTransTableSource, onDeleteSingleTransform, onAddTransform, onEditTransform, onUpTransform, onDownTransform } = this.props
+    const { jobTransTableSource, onDeleteSingleTransform, onJobAddTransform, onEditTransform, onUpTransform, onDownTransform } = this.props
     const { jobStepSourceNs, jobStepSinkNs, jobTranTagClassName, jobTranTableClassName } = this.props
     const { sourceTypeNamespaceData, sinkTypeNamespaceData } = this.props
     const { sinkConfigClass } = this.state
@@ -231,7 +231,7 @@ export class WorkbenchJobForm extends React.Component {
             </Tooltip>
 
             <Tooltip title="添加">
-              <Button shape="circle" type="ghost" onClick={onAddTransform(record)}>
+              <Button shape="circle" type="ghost" onClick={onJobAddTransform(record)}>
                 <i className="iconfont icon-jia"></i>
               </Button>
             </Tooltip>
@@ -632,7 +632,7 @@ WorkbenchJobForm.propTypes = {
   onShowJobTransModal: React.PropTypes.func,
   onShowJobSinkConfigModal: React.PropTypes.func,
   onDeleteSingleTransform: React.PropTypes.func,
-  onAddTransform: React.PropTypes.func,
+  onJobAddTransform: React.PropTypes.func,
   onEditTransform: React.PropTypes.func,
   onUpTransform: React.PropTypes.func,
   onDownTransform: React.PropTypes.func,

@@ -33,6 +33,8 @@ import {
   EDIT_UDF_ERROR,
   DELETE_UDF,
   DELETE_UDF_SUCCESS,
+  LOAD_UDF_DETAIL,
+  LOAD_UDF_DETAIL_SUCCESS,
   GET_ERROR
 } from './constants'
 
@@ -122,6 +124,26 @@ export function udfAddedError (result, reject) {
     payload: {
       result,
       reject
+    }
+  }
+}
+
+export function loadUdfDetail (udfId, resolve) {
+  return {
+    type: LOAD_UDF_DETAIL,
+    payload: {
+      udfId,
+      resolve
+    }
+  }
+}
+
+export function udfDetailLoaded (result, resolve) {
+  return {
+    type: LOAD_UDF_DETAIL_SUCCESS,
+    payload: {
+      result,
+      resolve
     }
   }
 }

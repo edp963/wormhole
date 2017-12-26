@@ -22,10 +22,11 @@ import React from 'react'
 import {connect} from 'react-redux'
 import {createStructuredSelector} from 'reselect'
 import Helmet from 'react-helmet'
-import { preProcessSql } from '../../utils/util'
+import { preProcessSql, formatString, isJSON } from '../../utils/util'
 import CodeMirror from 'codemirror'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
+require('../../../node_modules/codemirror/mode/sql/sql')
 
 import Flow from '../Flow'
 import Manager from '../Manager'
@@ -40,6 +41,7 @@ import WorkbenchStreamForm from './WorkbenchStreamForm'
 import WorkbenchJobForm from './WorkbenchJobForm'
 import FlowEtpStrategyForm from './FlowEtpStrategyForm'
 import FlowTransformForm from './FlowTransformForm'
+import JobTransformForm from './JobTransformForm'
 import StreamConfigForm from './StreamConfigForm'
 // import StreamDagModal from './StreamDagModal'
 // import FlowDagModal from './FlowDagModal'
@@ -53,8 +55,13 @@ const Step = Steps.Step
 import message from 'antd/lib/message'
 import Moment from 'moment'
 
-import {loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic, loadSourceSinkTypeNamespace, loadSinkTypeNamespace, loadTranSinkTypeNamespace, loadSourceToSinkExist, addFlow, editFlow, queryFlow} from '../Flow/action'
-import {loadUserStreams, loadAdminSingleStream, loadStreamNameValue, loadKafka, loadStreamConfigJvm, addStream, loadStreamDetail, editStream} from '../Manager/action'
+import {loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic,
+  loadSourceSinkTypeNamespace, loadSinkTypeNamespace, loadTranSinkTypeNamespace,
+  loadSourceToSinkExist, addFlow, editFlow, queryFlow} from '../Flow/action'
+
+import {loadUserStreams, loadAdminSingleStream, loadStreamNameValue, loadKafka,
+  loadStreamConfigJvm, addStream, loadStreamDetail, editStream} from '../Manager/action'
+
 import {loadSelectNamespaces, loadUserNamespaces} from '../Namespace/action'
 import {loadUserUsers, loadSelectUsers} from '../User/action'
 import {loadResources} from '../Resource/action'
@@ -176,7 +183,8 @@ export class Workbench extends React.Component {
       jobTranTableConfirmValue: '',
       singleJobResult: {},
       startTsVal: '',
-      endTsVal: ''
+      endTsVal: '',
+      jobTransformMode: ''
     }
   }
 
@@ -207,42 +215,49 @@ export class Workbench extends React.Component {
     const { onLoadSelectNamespaces, onLoadUserNamespaces, onLoadSelectUsers, onLoadUserUsers, onLoadResources, onLoadSingleUdf } = this.props
     let roleTypeTemp = localStorage.getItem('loginRoleType')
 
-    if (key === 'flow') {
-      if (roleTypeTemp === 'admin') {
-        onLoadAdminSingleFlow(projectId, () => {})
-      } else if (roleTypeTemp === 'user') {
-        onLoadUserAllFlows(projectId, () => {})
-      }
-    } else if (key === 'stream') {
-      if (roleTypeTemp === 'admin') {
-        onLoadAdminSingleStream(projectId, () => {})
-      } else if (roleTypeTemp === 'user') {
-        onLoadUserStreams(projectId, () => {})
-      }
-    } else if (key === 'namespace') {
-      if (roleTypeTemp === 'admin') {
-        onLoadSelectNamespaces(projectId, () => {})
-      } else if (roleTypeTemp === 'user') {
-        onLoadUserNamespaces(projectId, () => {})
-      }
-    } else if (key === 'user') {
-      if (roleTypeTemp === 'admin') {
-        onLoadSelectUsers(projectId, () => {})
-      } else if (roleTypeTemp === 'user') {
-        onLoadUserUsers(projectId, () => {})
-      }
-    } else if (key === 'resource') {
-      if (roleTypeTemp === 'admin') {
-        onLoadResources(projectId, 'admin')
-      } else if (roleTypeTemp === 'user') {
-        onLoadResources(projectId, 'user')
-      }
-    } else if (key === 'udf') {
-      if (roleTypeTemp === 'admin') {
-        onLoadSingleUdf(projectId, 'admin', () => {})
-      } else if (roleTypeTemp === 'user') {
-        onLoadSingleUdf(projectId, 'user', () => {})
-      }
+    switch (key) {
+      case 'flow':
+        if (roleTypeTemp === 'admin') {
+          onLoadAdminSingleFlow(projectId, () => {})
+        } else if (roleTypeTemp === 'user') {
+          onLoadUserAllFlows(projectId, () => {})
+        }
+        break
+      case 'stream':
+        if (roleTypeTemp === 'admin') {
+          onLoadAdminSingleStream(projectId, () => {})
+        } else if (roleTypeTemp === 'user') {
+          onLoadUserStreams(projectId, () => {})
+        }
+        break
+      case 'namespace':
+        if (roleTypeTemp === 'admin') {
+          onLoadSelectNamespaces(projectId, () => {})
+        } else if (roleTypeTemp === 'user') {
+          onLoadUserNamespaces(projectId, () => {})
+        }
+        break
+      case 'user':
+        if (roleTypeTemp === 'admin') {
+          onLoadSelectUsers(projectId, () => {})
+        } else if (roleTypeTemp === 'user') {
+          onLoadUserUsers(projectId, () => {})
+        }
+        break
+      case 'resource':
+        if (roleTypeTemp === 'admin') {
+          onLoadResources(projectId, 'admin')
+        } else if (roleTypeTemp === 'user') {
+          onLoadResources(projectId, 'user')
+        }
+        break
+      case 'udf':
+        if (roleTypeTemp === 'admin') {
+          onLoadSingleUdf(projectId, 'admin', () => {})
+        } else if (roleTypeTemp === 'user') {
+          onLoadSingleUdf(projectId, 'user', () => {})
+        }
+        break
     }
 
     this.setState({
@@ -250,9 +265,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  /***
-   * 新增Stream时，验证 stream name 是否存在
-   * */
+  // 新增Stream时，验证 stream name 是否存在
   onInitStreamNameValue = (value) => {
     this.props.onLoadStreamNameValue(this.state.projectId, value, () => {}, () => {
       this.workbenchStreamForm.setFields({
@@ -380,13 +393,17 @@ export class Workbench extends React.Component {
 
   showSinkConfigMsg (value) {
     let sinkConfigMsgTemp = ''
-    if (value === 'hbase') {
-      const temp = "'_'"
-      sinkConfigMsgTemp = `For example: {"hbase.columnFamily":"cf","hbase.saveAsString": true, "hbase.rowKey":"hash(id1)+${temp}+value(id2)"}`
+    if (value === 'cassandra') {
+      sinkConfigMsgTemp = 'For example: {"mutation_type":"iud"}'
     } else if (value === 'mysql' || value === 'oracle' || value === 'postgresql') {
       sinkConfigMsgTemp = 'For example: {"mutation_type":"iud"}'
     } else if (value === 'es') {
-      sinkConfigMsgTemp = 'For example: {"mutation_type":"iud"}'
+      sinkConfigMsgTemp = 'For example: {"mutation_type":"iud", "_id": "id,name"}'
+    } else if (value === 'hbase') {
+      const temp = "'_'"
+      sinkConfigMsgTemp = `For example: {"mutation_type":"iud","hbase.columnFamily":"cf","hbase.saveAsString": true, "hbase.rowKey":"hash(id1)+${temp}+value(id2)"}`
+    } else if (value === 'mongodb') {
+      sinkConfigMsgTemp = 'For example: {"mutation_type":"iud", "_id": "id,name"}'
     } else {
       sinkConfigMsgTemp = ''
     }
@@ -696,17 +713,6 @@ export class Workbench extends React.Component {
     this.queryFlowInfo(flow)
   }
 
-  // YYYYMMDDHHmmss 转换成 YYYY-MM-DD HH:mm:ss, 再转成 YYYY/MM/DD HH:mm:ss
-  formatString (dateString) {
-    let dateTemp = ''
-
-    dateTemp += `${dateString.slice(0, 4)}-${dateString.slice(4, 6)}-${dateString.slice(6, 8)} ${dateString.slice(8, 10)}:${dateString.slice(10, 12)}:${dateString.slice(12)}`
-
-    dateTemp = dateTemp.replace(new RegExp('-', 'gm'), '/')
-    const dateTempHaoMiao = (new Date(dateTemp)).getTime()
-    return dateTempHaoMiao
-  }
-
   showEditJobWorkbench = (job) => () => {
     this.setState({
       jobMode: 'edit'
@@ -725,8 +731,8 @@ export class Workbench extends React.Component {
         this.workbenchJobForm.setFieldsValue({
           jobName: resultFinal.name,
           type: resultFinal.sourceType,
-          eventStartTs: resultFinal.eventTsStart === '' ? null : Moment(this.formatString(resultFinal.eventTsStart)),
-          eventEndTs: resultFinal.eventTsEnd === '' ? null : Moment(this.formatString(resultFinal.eventTsEnd))
+          eventStartTs: resultFinal.eventTsStart === '' ? null : Moment(formatString(resultFinal.eventTsStart)),
+          eventEndTs: resultFinal.eventTsEnd === '' ? null : Moment(formatString(resultFinal.eventTsEnd))
         })
 
         this.setState({
@@ -773,7 +779,7 @@ export class Workbench extends React.Component {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepm = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
 
-                tranConfigInfoTemp = sparkAfterPartTepm
+                tranConfigInfoTemp = `${sparkAfterPartTepm};`
                 tranTypeTepm = 'sparkSql'
               }
 
@@ -786,7 +792,7 @@ export class Workbench extends React.Component {
               }
 
               tranTableSourceTemp.order = index + 1
-              tranTableSourceTemp.transformConfigInfo = `${tranConfigInfoTemp};`
+              tranTableSourceTemp.transformConfigInfo = tranConfigInfoTemp
               tranTableSourceTemp.transformConfigInfoRequest = `${i};`
               tranTableSourceTemp.transformType = tranTypeTepm
               return tranTableSourceTemp
@@ -880,9 +886,7 @@ export class Workbench extends React.Component {
       })
   }
 
-  /**
-   *  Flow 调单条查询的接口，回显数据
-   * */
+  // Flow 调单条查询的接口，回显数据
   queryFlowInfo = (flow) => {
     this.setState({
       streamDiffType: flow.streamType
@@ -1008,8 +1012,9 @@ export class Workbench extends React.Component {
                 const lookupAfterPartTepmTemp = lookupAfterPart.replace(/(^\s*)|(\s*$)/g, '') // 去字符串前后的空白；sql语句回显
                 const lookupAfterPartTepm = preProcessSql(lookupAfterPartTepmTemp)
 
-                tranConfigInfoTemp = [lookupBeforePartTemp[1], lookupBeforePartTemp[3], lookupAfterPartTepm].join('.')
-                tranConfigInfoSqlTemp = lookupAfterPartTepm
+                const tranConfigInfoTempTemp = [lookupBeforePartTemp[1], lookupBeforePartTemp[3], lookupAfterPartTepm].join('.')
+                tranConfigInfoTemp = `${tranConfigInfoTempTemp};`
+                tranConfigInfoSqlTemp = `${lookupAfterPartTepm};`
                 tranTypeTepm = 'lookupSql'
 
                 const tmpObj = tranConfigVal.pushdown_connection.find(g => g.name_space === lookupBeforePartTemp[3])
@@ -1041,8 +1046,9 @@ export class Workbench extends React.Component {
 
                 const iTemp3Temp = streamJoinBeforePartTemp[3].substring(streamJoinBeforePartTemp[3].indexOf('(') + 1)
                 const iTemp3Val = iTemp3Temp.substring(0, iTemp3Temp.indexOf(')'))
-                tranConfigInfoTemp = [streamJoinBeforePartTemp[1], iTemp3Val, streamJoinAfterPartTepm].join('.')
-                tranConfigInfoSqlTemp = streamJoinAfterPartTepm
+                const tranConfigInfoTempTemp = [streamJoinBeforePartTemp[1], iTemp3Val, streamJoinAfterPartTepm].join('.')
+                tranConfigInfoTemp = `${tranConfigInfoTempTemp};`
+                tranConfigInfoSqlTemp = `${streamJoinAfterPartTepm};`
                 tranTypeTepm = 'streamJoinSql'
                 pushdownConTepm = ''
               }
@@ -1052,8 +1058,8 @@ export class Workbench extends React.Component {
                 const sparkAfterPartTepmTemp = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
                 const sparkAfterPartTepm = preProcessSql(sparkAfterPartTepmTemp)
 
-                tranConfigInfoTemp = sparkAfterPartTepm
-                tranConfigInfoSqlTemp = sparkAfterPartTepm
+                tranConfigInfoTemp = `${sparkAfterPartTepm};`
+                tranConfigInfoSqlTemp = `${sparkAfterPartTepm};`
                 tranTypeTepm = 'sparkSql'
                 pushdownConTepm = ''
               }
@@ -1070,7 +1076,7 @@ export class Workbench extends React.Component {
               }
 
               tranTableSourceTemp.order = index + 1
-              tranTableSourceTemp.transformConfigInfo = `${tranConfigInfoTemp};`
+              tranTableSourceTemp.transformConfigInfo = tranConfigInfoTemp
               tranTableSourceTemp.tranConfigInfoSql = tranConfigInfoSqlTemp
               tranTableSourceTemp.transformConfigInfoRequest = `${i};`
               tranTableSourceTemp.transformType = tranTypeTepm
@@ -1358,14 +1364,8 @@ export class Workbench extends React.Component {
     })
   }
 
-  hideConfigModal = () => {
-    this.streamConfigForm.resetFields()
-    this.setState({ streamConfigModalVisible: false })
-  }
-  hideSparkConfigModal = () => {
-    this.streamConfigForm.resetFields()
-    this.setState({ sparkConfigModalVisible: false })
-  }
+  hideConfigModal = () => this.setState({ streamConfigModalVisible: false })
+  hideSparkConfigModal = () => this.setState({ sparkConfigModalVisible: false })
 
   onConfigModalOk = () => {
     this.streamConfigForm.validateFieldsAndScroll((err, values) => {
@@ -1379,17 +1379,15 @@ export class Workbench extends React.Component {
           jvmValTemp = values.jvm.replace(/\n/g, ',')
 
           let sparkConfigValue = ''
-          if (values.personalConf === undefined || values.personalConf === '') {
+          if (!values.personalConf) {
             sparkConfigValue = jvmValTemp
           } else {
             const nOthers = (values.jvm.split('=')).length - 1
 
-            let personalConfTemp = ''
-            if (nOthers === 1) {
-              personalConfTemp = values.personalConf
-            } else {
-              personalConfTemp = values.personalConf.replace(/\n/g, ',')
-            }
+            const personalConfTemp = nOthers === 1
+              ? values.personalConf
+              : values.personalConf.replace(/\n/g, ',')
+
             sparkConfigValue = `${jvmValTemp},${personalConfTemp}`
           }
 
@@ -1435,17 +1433,15 @@ export class Workbench extends React.Component {
           jvmValTemp = values.jvm.replace(/\n/g, ',')
 
           let sparkConfigVal = ''
-          if (values.personalConf === undefined || values.personalConf === '') {
+          if (!values.personalConf) {
             sparkConfigVal = jvmValTemp
           } else {
             const nOthers = (values.jvm.split('=')).length - 1
 
-            let personalConfTemp = ''
-            if (nOthers === 1) {
-              personalConfTemp = values.personalConf
-            } else {
-              personalConfTemp = values.personalConf.replace(/\n/g, ',')
-            }
+            const personalConfTemp = nOthers === 1
+              ? values.personalConf
+              : values.personalConf.replace(/\n/g, ',')
+
             sparkConfigVal = `${jvmValTemp},${personalConfTemp}`
           }
 
@@ -1475,31 +1471,6 @@ export class Workbench extends React.Component {
   hideFlowWorkbench = () => this.setState({ flowMode: '' })
   hideStreamWorkbench = () => this.setState({ streamMode: '' })
   hideJobWorkbench = () => this.setState({ jobMode: '' })
-
-  /**
-   *  JSON 格式校验
-   *  如果JSON.parse能转换成功；并且字符串中包含 { 时，那么该字符串就是JSON格式的字符串。
-   *  另：sink config 可为空
-   */
-  isJSON (str) {
-    if (typeof str === 'string') {
-      if (str === '') {
-        return true
-      } else {
-        try {
-          JSON.parse(str)
-          if (str.indexOf('{') > -1) {
-            return true
-          } else {
-            return false
-          }
-        } catch (e) {
-          return false
-        }
-      }
-    }
-    return false
-  }
 
   forwardStep = () => {
     const { tabPanelKey, streamDiffType } = this.state
@@ -1547,7 +1518,7 @@ export class Workbench extends React.Component {
     let tranRequestTempArr = []
     flowFormTranTableSource.map(i => tranRequestTempArr.push(preProcessSql(i.transformConfigInfoRequest)))
     const tranRequestTempString = tranRequestTempArr.join('')
-    this.setState({ //
+    this.setState({
       transformTableRequestValue: tranRequestTempString === '' ? '' : `"action": "${tranRequestTempString}"`,
       transformTableConfirmValue: tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`
     })
@@ -1569,21 +1540,15 @@ export class Workbench extends React.Component {
         switch (this.state.formStep) {
           case 0:
             const values = this.workbenchFlowForm.getFieldsValue()
-            if (values.sinkConfig === undefined || values.sinkConfig === '') {
-              // 是否是 hbase/mysql/oracle.postgresql
-              if (values.sinkDataSystem === 'hbase' || values.sinkDataSystem === 'mysql' || values.sinkDataSystem === 'oracle' || values.sinkDataSystem === 'postgresql') {
-                message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
-              } else {
-                this.loadSTSExit(values)
-              }
+            if (!values.sinkConfig) {
+              values.sinkDataSystem === 'hbase'
+                ? message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
+                : this.loadSTSExit(values)
             } else {
               // json 校验
-              if (this.isJSON(values.sinkConfig) === false) {
-                message.error('Sink Config 应为 JSON格式！', 3)
-                return
-              } else {
-                this.loadSTSExit(values)
-              }
+              isJSON(values.sinkConfig)
+                ? this.loadSTSExit(values)
+                : message.error('Sink Config 应为 JSON格式！', 3)
             }
 
             const rfSelect = this.workbenchFlowForm.getFieldValue('resultFields')
@@ -1693,19 +1658,14 @@ export class Workbench extends React.Component {
               })
               message.error('该 Job Name 已存在！', 3)
             } else {
-              if (values.sinkConfig === undefined || values.sinkConfig === '') {
-                if (values.sinkDataSystem === 'hbase' || values.sinkDataSystem === 'mysql' || values.sinkDataSystem === 'oracle' || values.sinkDataSystem === 'postgresql') {
-                  message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
-                } else {
-                  this.loadJobSTSExit(values)
-                }
+              if (!values.sinkConfig) {
+                values.sinkDataSystem === 'hbase'
+                  ? message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
+                  : this.loadJobSTSExit(values)
               } else {
-                if (this.isJSON(values.sinkConfig) === false) {
-                  message.error('Sink Config 应为 JSON格式！', 3)
-                  return
-                } else {
-                  this.loadJobSTSExit(values)
-                }
+                isJSON(values.sinkConfig)
+                  ? this.loadJobSTSExit(values)
+                  : message.error('Sink Config 应为 JSON格式！', 3)
               }
             }
 
@@ -1733,13 +1693,6 @@ export class Workbench extends React.Component {
               ? ''
               : JSON.stringify({ action: tranRequestTempString })
 
-            // if (values.specialConfig === undefined || values.specialConfig === '') {
-            //   tempRequestVal = tranRequestTempString === '' ? '' : JSON.stringify({ action: tranRequestTempString })
-            // } else {
-            //   tempRequestVal = tranRequestTempString === ''
-            //     ? JSON.stringify({ specialConfig: values.specialConfig })
-            //     : JSON.stringify({ specialConfig: values.specialConfig, action: tranRequestTempString })
-            // }
             this.setState({
               formStep: formStep + 1,
               jobTranTableRequestValue: tempRequestVal,
@@ -1800,9 +1753,7 @@ export class Workbench extends React.Component {
   initStartTS = (val) => {
     // 将 YYYY-MM-DD HH:mm:ss 转换成 YYYYMMDDHHmmss 格式
     const startTs = val.replace(/-| |:/g, '')
-    this.setState({
-      startTsVal: startTs
-    })
+    this.setState({ startTsVal: startTs })
   }
 
   initEndTS = (val) => {
@@ -1822,11 +1773,11 @@ export class Workbench extends React.Component {
 
     let sinkConfigRequest = ''
     if (values.resultFields === 'all') {
-      sinkConfigRequest = (values.sinkConfig === undefined || values.sinkConfig === '')
+      sinkConfigRequest = (!values.sinkConfig)
         ? maxRecord
         : `{"maxRecordPerPartitionProcessed":${Number(values.maxRecordPerPartitionProcessed)},"sink_specific_config":${values.sinkConfig}}`
     } else {
-      sinkConfigRequest = (values.sinkConfig === undefined || values.sinkConfig === '')
+      sinkConfigRequest = (!values.sinkConfig)
         ? maxRecordAndResult
         : `{"maxRecordPerPartitionProcessed":${values.maxRecordPerPartitionProcessed},"sink_specific_config":${values.sinkConfig},"sink_output":"${values.resultFieldsSelected}"}`
     }
@@ -1834,8 +1785,8 @@ export class Workbench extends React.Component {
     const tranConfigRequest = jobTranTableRequestValue === '' ? '' : `${jobTranTableRequestValue}`
 
     const requestCommon = {
-      eventTsStart: (values.eventStartTs === undefined || values.eventStartTs === null || values.eventStartTs === '') ? '' : startTsVal,
-      eventTsEnd: (values.eventEndTs === undefined || values.eventEndTs === null || values.eventEndTs === '') ? '' : endTsVal,
+      eventTsStart: (!values.eventStartTs) ? '' : startTsVal,
+      eventTsEnd: (!values.eventEndTs) ? '' : endTsVal,
       sinkConfig: sinkConfigRequest,
       tranConfig: tranConfigRequest
     }
@@ -1908,11 +1859,11 @@ export class Workbench extends React.Component {
 
     let sinkConfigRequest = ''
     if (values.resultFields === 'all') {
-      sinkConfigRequest = (values.sinkConfig === undefined || values.sinkConfig === '')
+      sinkConfigRequest = (!values.sinkConfig)
         ? ''
         : `{"sink_specific_config":${values.sinkConfig}}`
     } else {
-      sinkConfigRequest = (values.sinkConfig === undefined || values.sinkConfig === '')
+      sinkConfigRequest = (!values.sinkConfig)
         ? JSON.stringify(resultFiledsOutput)
         : `{"sink_specific_config":${values.sinkConfig},"sink_output":"${values.resultFieldsSelected}"}`
     }
@@ -1959,7 +1910,6 @@ export class Workbench extends React.Component {
         })
       })
         .then(() => {
-          // onchange 事件影响，Promise 解决
           this.workbenchFlowForm.resetFields()
           this.setState({
             flowKafkaInstanceValue: '',
@@ -2010,7 +1960,7 @@ export class Workbench extends React.Component {
 
       const submitFlowData = {
         projectId: Number(projectId),
-        streamId: Number(values.flowStreamId),
+        streamId: Number(values.streamName),
         sourceNs: sourceDataInfo,
         sinkNs: sourceDataInfo,
         consumedProtocol: 'all',
@@ -2018,7 +1968,7 @@ export class Workbench extends React.Component {
         tranConfig: ''
       }
 
-      if (sourceToSinkExited === true) {
+      if (sourceToSinkExited) {
         message.error('Source to Sink 已存在！', 3)
       } else {
         new Promise((resolve) => {
@@ -2076,7 +2026,7 @@ export class Workbench extends React.Component {
             streamType: values.type
           }
 
-          if (streamNameExited === true) {
+          if (streamNameExited) {
             this.workbenchStreamForm.setFields({
               streamName: {
                 value: values.streamName,
@@ -2091,7 +2041,7 @@ export class Workbench extends React.Component {
                 streamMode: ''
               })
               this.workbenchStreamForm.resetFields()
-              if (streamConfigCheck === true) {
+              if (streamConfigCheck) {
                 this.streamConfigForm.resetFields()
               }
               this.hideStreamSubmit()
@@ -2127,10 +2077,97 @@ export class Workbench extends React.Component {
   onShowJobTransModal = () => this.setState({ jobTransModalVisible: true })
 
   // flow transformation type 显示不同的内容
-  onInitTransformValue = (value) => this.setState({ transformValue: value })
+  onInitTransformValue = (value) => {
+    this.setState({
+      transformValue: value
+    }, () => {
+      if (this.state.transformValue !== 'transformClassName') {
+        this.makeSqlCodeMirrorInstance(value)
+
+        switch (this.state.transformValue) {
+          case 'lookupSql':
+            this.cmLookupSql.doc.setValue(this.cmLookupSql.doc.getValue() || '')
+            break
+          case 'sparkSql':
+            this.cmSparkSql.doc.setValue(this.cmSparkSql.doc.getValue() || '')
+            break
+          case 'streamJoinSql':
+            this.cmStreamJoinSql.doc.setValue(this.cmStreamJoinSql.doc.getValue() || '')
+            break
+        }
+      }
+    })
+  }
+
+  makeSqlCodeMirrorInstance (value) {
+    switch (value) {
+      case 'lookupSql':
+        if (!this.cmLookupSql) {
+          const temp = document.getElementById('lookupSqlTextarea')
+          this.cmLookupSql = CodeMirror.fromTextArea(temp, {
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            mode: 'text/x-sql',
+            lineWrapping: true
+          })
+          this.cmLookupSql.setSize('100%', '208px')
+        }
+        break
+      case 'sparkSql':
+        if (!this.cmSparkSql) {
+          const temp = document.getElementById('sparkSqlTextarea')
+          this.cmSparkSql = CodeMirror.fromTextArea(temp, {
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            mode: 'text/x-sql',
+            lineWrapping: true
+          })
+          this.cmSparkSql.setSize('100%', '238px')
+        }
+        break
+      case 'streamJoinSql':
+        if (!this.cmStreamJoinSql) {
+          const temp = document.getElementById('streamJoinSqlTextarea')
+          this.cmStreamJoinSql = CodeMirror.fromTextArea(temp, {
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            mode: 'text/x-sql',
+            lineWrapping: true
+          })
+          this.cmStreamJoinSql.setSize('100%', '238px')
+        }
+        break
+    }
+  }
 
   // job transformation type 显示不同的内容
-  onInitJobTransValue = (value) => this.setState({ jobTransValue: value })
+  onInitJobTransValue = (value) => {
+    this.setState({
+      jobTransValue: value
+    }, () => {
+      if (this.state.jobTransValue === 'sparkSql') {
+        this.makeJobSqlCodeMirrorInstance()
+        this.cmJobSparkSql.doc.setValue(this.cmJobSparkSql.doc.getValue() || '')
+      }
+    })
+  }
+
+  makeJobSqlCodeMirrorInstance () {
+    if (!this.cmJobSparkSql) {
+      const temp = document.getElementById('jobSparkSqlTextarea')
+      this.cmJobSparkSql = CodeMirror.fromTextArea(temp, {
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        mode: 'text/x-sql',
+        lineWrapping: true
+      })
+      this.cmJobSparkSql.setSize('100%', '238px')
+    }
+  }
 
   onEditTransform = (record) => (e) => {
     // 加隐藏字段获得 record.transformType
@@ -2144,44 +2181,52 @@ export class Workbench extends React.Component {
         transformation: record.transformType
       })
 
-      if (record.transformType === 'lookupSql') {
-        // 以"." 为分界线(注：sql语句中可能会出现 ".")
-        const tranLookupVal1 = record.transformConfigInfo.substring(record.transformConfigInfo.indexOf('.') + 1) // 去除第一项后的字符串
-        const tranLookupVal2 = tranLookupVal1.substring(tranLookupVal1.indexOf('.') + 1)  // 去除第二项后的字符串
-        const tranLookupVal3 = tranLookupVal2.substring(tranLookupVal2.indexOf('.') + 1)  // 去除第三项后的字符串
-        const tranLookupVal4 = tranLookupVal3.substring(tranLookupVal3.indexOf('.') + 1)  // 去除第四项后的字符串
+      if (record.transformType !== 'transformClassName') {
+        this.makeSqlCodeMirrorInstance(record.transformType)
+      }
 
-        this.flowTransformForm.setFieldsValue({
-          lookupSqlType: record.transformConfigInfo.substring(0, record.transformConfigInfo.indexOf('.')),
-          transformSinkDataSystem: tranLookupVal1.substring(0, tranLookupVal1.indexOf('.')),
-          lookupSql: tranLookupVal4
-        })
-        setTimeout(() => {
+      switch (record.transformType) {
+        case 'lookupSql':
+          // 以"." 为分界线(注：sql语句中可能会出现 ".")
+          const tranLookupVal1 = record.transformConfigInfo.substring(record.transformConfigInfo.indexOf('.') + 1) // 去除第一项后的字符串
+          const tranLookupVal2 = tranLookupVal1.substring(tranLookupVal1.indexOf('.') + 1)  // 去除第二项后的字符串
+          const tranLookupVal3 = tranLookupVal2.substring(tranLookupVal2.indexOf('.') + 1)  // 去除第三项后的字符串
+          const tranLookupVal4 = tranLookupVal3.substring(tranLookupVal3.indexOf('.') + 1)  // 去除第四项后的字符串
+
           this.flowTransformForm.setFieldsValue({
-            transformSinkNamespace: [
-              tranLookupVal2.substring(0, tranLookupVal2.indexOf('.')),
-              tranLookupVal3.substring(0, tranLookupVal3.indexOf('.'))
-            ]
+            lookupSqlType: record.transformConfigInfo.substring(0, record.transformConfigInfo.indexOf('.')),
+            transformSinkDataSystem: tranLookupVal1.substring(0, tranLookupVal1.indexOf('.'))
           })
-        }, 50)
-      } else if (record.transformType === 'sparkSql') {
-        this.flowTransformForm.setFieldsValue({
-          sparkSql: record.transformConfigInfo
-        })
-      } else if (record.transformType === 'streamJoinSql') {
-        // 以"."为分界线
-        const tranStreamJoinVal1 = record.transformConfigInfo.substring(record.transformConfigInfo.indexOf('.') + 1) // 去除第一项后的字符串
-        const tranStreamJoinVal2 = tranStreamJoinVal1.substring(tranStreamJoinVal1.indexOf('.') + 1)  // 去除第二项后的字符串
+          this.cmLookupSql.doc.setValue(tranLookupVal4)
 
-        this.flowTransformForm.setFieldsValue({
-          streamJoinSqlType: record.transformConfigInfo.substring(0, record.transformConfigInfo.indexOf('.')),
-          timeout: tranStreamJoinVal1.substring(0, tranStreamJoinVal1.indexOf('.')),
-          streamJoinSql: tranStreamJoinVal2
-        })
-      } else if (record.transformType === 'transformClassName') {
-        this.flowTransformForm.setFieldsValue({
-          transformClassName: record.transformConfigInfo
-        })
+          setTimeout(() => {
+            this.flowTransformForm.setFieldsValue({
+              transformSinkNamespace: [
+                tranLookupVal2.substring(0, tranLookupVal2.indexOf('.')),
+                tranLookupVal3.substring(0, tranLookupVal3.indexOf('.'))
+              ]
+            })
+          }, 50)
+          break
+        case 'sparkSql':
+          this.cmSparkSql.doc.setValue(record.transformConfigInfo)
+          break
+        case 'streamJoinSql':
+          // 以"."为分界线
+          const tranStreamJoinVal1 = record.transformConfigInfo.substring(record.transformConfigInfo.indexOf('.') + 1) // 去除第一项后的字符串
+          const tranStreamJoinVal2 = tranStreamJoinVal1.substring(tranStreamJoinVal1.indexOf('.') + 1)  // 去除第二项后的字符串
+
+          this.flowTransformForm.setFieldsValue({
+            streamJoinSqlType: record.transformConfigInfo.substring(0, record.transformConfigInfo.indexOf('.')),
+            timeout: tranStreamJoinVal1.substring(0, tranStreamJoinVal1.indexOf('.'))
+          })
+          this.cmStreamJoinSql.doc.setValue(tranStreamJoinVal2)
+          break
+        case 'transformClassName':
+          this.flowTransformForm.setFieldsValue({
+            transformClassName: record.transformConfigInfo
+          })
+          break
       }
     })
   }
@@ -2189,21 +2234,20 @@ export class Workbench extends React.Component {
   onJobEditTransform = (record) => (e) => {
     // 加隐藏字段获得 record.transformType
     this.setState({
-      transformMode: 'edit',
+      jobTransformMode: 'edit',
       jobTransModalVisible: true,
       jobTransValue: record.transformType
     }, () => {
-      this.flowTransformForm.setFieldsValue({
+      this.jobTransformForm.setFieldsValue({
         editTransformId: record.order,
         transformation: record.transformType
       })
 
-      if (record.transformType === 'sparkSql') {
-        this.flowTransformForm.setFieldsValue({
-          sparkSql: record.transformConfigInfo
-        })
-      } else if (record.transformType === 'transformClassName') {
-        this.flowTransformForm.setFieldsValue({
+      if (this.state.jobTransValue === 'sparkSql') {
+        this.makeJobSqlCodeMirrorInstance()
+        this.cmJobSparkSql.doc.setValue(record.transformConfigInfo)
+      } else if (this.state.jobTransValue === 'transformClassName') {
+        this.jobTransformForm.setFieldsValue({
           transformClassName: record.transformConfigInfo
         })
       }
@@ -2225,12 +2269,12 @@ export class Workbench extends React.Component {
 
   onJobAddTransform = (record) => (e) => {
     this.setState({
-      transformMode: 'add',
+      jobTransformMode: 'add',
       jobTransModalVisible: true,
       jobTransValue: ''
     }, () => {
-      this.flowTransformForm.resetFields()
-      this.flowTransformForm.setFieldsValue({
+      this.jobTransformForm.resetFields()
+      this.jobTransformForm.setFieldsValue({
         editTransformId: record.order
       })
     })
@@ -2242,95 +2286,134 @@ export class Workbench extends React.Component {
       transformValue: ''
     })
     this.flowTransformForm.resetFields()
+    if (this.cmLookupSql) {
+      this.cmLookupSql.doc.setValue('')
+    }
+    if (this.cmSparkSql) {
+      this.cmSparkSql.doc.setValue('')
+    }
+    if (this.cmStreamJoinSql) {
+      this.cmStreamJoinSql.doc.setValue('')
+    }
   }
 
   hideJobTransModal = () => {
     this.setState({
       jobTransModalVisible: false,
       jobTransValue: ''
+    }, () => {
+      this.jobTransformForm.resetFields()
+
+      if (this.cmJobSparkSql) {
+        this.cmJobSparkSql.doc.setValue('')
+      }
     })
-    this.flowTransformForm.resetFields()
   }
 
   onJobTransModalOk = () => {
-    const { transformMode } = this.state
+    const { jobTransformMode } = this.state
 
-    this.flowTransformForm.validateFieldsAndScroll((err, values) => {
+    this.jobTransformForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         let transformConfigInfoString = ''
         let transformConfigInfoRequestString = ''
 
-        let num = 0
-        let valLength = 0
+        let num = -1
         let finalVal = ''
 
-        if (values.transformation === 'sparkSql') {
-          const sparkSqlVal = values.sparkSql.replace(/(^\s*)|(\s*$)/g, '')
+        switch (values.transformation) {
+          case 'sparkSql':
+            const cmJobSparkSqlVal = this.cmJobSparkSql.doc.getValue()
+            if (!cmJobSparkSqlVal) {
+              message.error('请填写 SQL！', 3)
+            } else {
+              const sparkSqlVal = cmJobSparkSqlVal.replace(/(^\s*)|(\s*$)/g, '')
 
-          transformConfigInfoString = sparkSqlVal
-          transformConfigInfoRequestString = `spark_sql = ${sparkSqlVal}`
+              transformConfigInfoString = sparkSqlVal
+              transformConfigInfoRequestString = `spark_sql = ${sparkSqlVal}`
 
-          num = (sparkSqlVal.split(';')).length - 1
-          valLength = sparkSqlVal.length
-          finalVal = sparkSqlVal.substring(sparkSqlVal.length - 1)
-        } else if (values.transformation === 'transformClassName') {
-          const transformClassNameVal = values.transformClassName.replace(/(^\s*)|(\s*$)/g, '')
+              num = (sparkSqlVal.split(';')).length - 1
+              finalVal = sparkSqlVal.substring(sparkSqlVal.length - 1)
+            }
+            break
+          case 'transformClassName':
+            const transformClassNameVal = values.transformClassName.replace(/(^\s*)|(\s*$)/g, '')
 
-          transformConfigInfoString = transformClassNameVal
-          transformConfigInfoRequestString = `custom_class = ${transformClassNameVal}`
+            num = (transformClassNameVal.split(';')).length - 1
+            finalVal = transformClassNameVal.substring(transformClassNameVal.length - 1)
 
-          num = (transformClassNameVal.split(';')).length - 1
-          valLength = transformClassNameVal.length
-          finalVal = transformClassNameVal.substring(transformClassNameVal.length - 1)
+            if (finalVal === ';') {
+              transformConfigInfoString = transformClassNameVal.substring(0, transformClassNameVal.length - 1)
+              transformConfigInfoRequestString = `custom_class = ${transformClassNameVal}`
+            } else {
+              transformConfigInfoString = transformClassNameVal
+              transformConfigInfoRequestString = `custom_class = ${transformClassNameVal};`
+            }
+
+            break
         }
 
-        if (num === 0) {
-          message.warning('SQL语句应以一个分号结束！', 3)
-        } else if (num > 1) {
-          message.warning('SQL语句应只有一个分号！', 3)
-        } else if (num === 1 && finalVal !== ';') {
-          message.warning('SQL语句应以一个分号结束！', 3)
-        } else if (num === 1 && finalVal === ';') {
-          if (valLength === 1) {
-            message.warning('请填写 SQL语句内容！', 3)
-          } else {
-            // 加隐藏字段 transformType, 获得每次选中的transformation type
-            if (transformMode === '') {
-              // 第一次添加数据时
-              this.state.jobFormTranTableSource.push({
-                transformType: values.transformation,
-                order: 1,
-                transformConfigInfo: transformConfigInfoString,
-                transformConfigInfoRequest: transformConfigInfoRequestString
-              })
-            } else if (transformMode === 'edit') {
-              this.state.jobFormTranTableSource[values.editTransformId - 1] = {
-                transformType: values.transformation,
-                order: values.editTransformId,
-                transformConfigInfo: transformConfigInfoString,
-                transformConfigInfoRequest: transformConfigInfoRequestString
-              }
-            } else if (transformMode === 'add') {
-              const tableSourceArr = this.state.jobFormTranTableSource
-              // 当前插入的数据
-              tableSourceArr.splice(values.editTransformId, 0, {
-                transformType: values.transformation,
-                order: values.editTransformId + 1,
-                transformConfigInfo: transformConfigInfoString,
-                transformConfigInfoRequest: transformConfigInfoRequestString
-              })
-              // 当前数据的下一条开始，order+1
-              for (let i = values.editTransformId + 1; i < tableSourceArr.length; i++) {
-                tableSourceArr[i].order = tableSourceArr[i].order + 1
-              }
-              // 重新setState数组
-              this.setState({ jobFormTranTableSource: tableSourceArr })
-            }
-            this.jobTranModalOkSuccess()
+        if (values.transformation === 'transformClassName') {
+          if (num > 1) {
+            message.warning('ClassName 最多以一个分号结束，但其他地方不应有分号！', 3)
+          } else if (num === 1 && finalVal !== ';') {
+            message.warning('ClassName 最多以一个分号结束，但其他地方不应有分号！', 3)
+          } else if (num === 0 || (num === 1 && finalVal === ';')) {
+            this.jobTransSetState(jobTransformMode, values, transformConfigInfoString, transformConfigInfoRequestString)
+          }
+        } else {
+          if (num === 0) {
+            message.warning('SQL语句应以一个分号结束！', 3)
+          } else if (num > 1) {
+            message.warning('SQL语句应只有一个分号！', 3)
+          } else if (num === 1 && finalVal !== ';') {
+            message.warning('SQL语句应以一个分号结束！', 3)
+          } else if (num === 1 && finalVal === ';') {
+            this.jobTransSetState(jobTransformMode, values, transformConfigInfoString, transformConfigInfoRequestString)
           }
         }
       }
     })
+  }
+
+  jobTransSetState (jobTransformMode, values, transformConfigInfoString, transformConfigInfoRequestString) {
+    // 加隐藏字段 transformType, 获得每次选中的transformation type
+    switch (jobTransformMode) {
+      case '':
+        // 第一次添加数据时
+        this.state.jobFormTranTableSource.push({
+          transformType: values.transformation,
+          order: 1,
+          transformConfigInfo: transformConfigInfoString,
+          transformConfigInfoRequest: transformConfigInfoRequestString
+        })
+        break
+      case 'edit':
+        this.state.jobFormTranTableSource[values.editTransformId - 1] = {
+          transformType: values.transformation,
+          order: values.editTransformId,
+          transformConfigInfo: transformConfigInfoString,
+          transformConfigInfoRequest: transformConfigInfoRequestString
+        }
+        break
+      case 'add':
+        const tableSourceArr = this.state.jobFormTranTableSource
+        // 当前插入的数据
+        tableSourceArr.splice(values.editTransformId, 0, {
+          transformType: values.transformation,
+          order: values.editTransformId + 1,
+          transformConfigInfo: transformConfigInfoString,
+          transformConfigInfoRequest: transformConfigInfoRequestString
+        })
+        // 当前数据的下一条开始，order+1
+        for (let i = values.editTransformId + 1; i < tableSourceArr.length; i++) {
+          tableSourceArr[i].order = tableSourceArr[i].order + 1
+        }
+        // 重新setState数组
+        this.setState({ jobFormTranTableSource: tableSourceArr })
+        break
+    }
+    this.jobTranModalOkSuccess()
   }
 
   jobTranModalOkSuccess () {
@@ -2351,156 +2434,186 @@ export class Workbench extends React.Component {
         let transformConfigInfoRequestString = ''
         let pushdownConnectionString = ''
 
-        let num = 0
-        let valLength = 0
+        let num = -1
         let finalVal = ''
 
-        if (values.transformation === 'lookupSql') {
-          // values.transformSinkNamespace 为 []
-          // 去掉字符串前后的空格
-          const lookupSqlValTemp = values.lookupSql.replace(/(^\s*)|(\s*$)/g, '')
-          const lookupSqlVal = preProcessSql(lookupSqlValTemp)
+        switch (values.transformation) {
+          case 'lookupSql':
+            const cmLookupSqlVal = this.cmLookupSql.doc.getValue()
+            if (!cmLookupSqlVal) {
+              message.error('请填写 SQL！', 3)
+            } else {
+              // 去掉字符串前后的空格
+              const lookupSqlValTemp = cmLookupSqlVal.replace(/(^\s*)|(\s*$)/g, '')
+              const lookupSqlVal = preProcessSql(lookupSqlValTemp)
 
-          let lookupSqlTypeOrigin = ''
-          if (values.lookupSqlType === 'leftJoin') {
-            lookupSqlTypeOrigin = 'left join'
-          } else if (values.lookupSqlType === 'union') {
-            lookupSqlTypeOrigin = 'union'
-          }
+              let lookupSqlTypeOrigin = ''
+              if (values.lookupSqlType === 'leftJoin') {
+                lookupSqlTypeOrigin = 'left join'
+              } else if (values.lookupSqlType === 'union') {
+                lookupSqlTypeOrigin = 'union'
+              }
 
-          const sysInsDb = [values.transformSinkDataSystem, values.transformSinkNamespace[0], values.transformSinkNamespace[1]].join('.')
-          transformConfigInfoString = `${values.lookupSqlType}.${values.transformSinkDataSystem}.${values.transformSinkNamespace.join('.')}.${lookupSqlVal}`
-          tranConfigInfoSqlString = lookupSqlVal
-          transformConfigInfoRequestString = `pushdown_sql ${lookupSqlTypeOrigin} with ${sysInsDb} = ${lookupSqlVal}`
-          const tmp = transformSinkNamespaceArray.find(i => [i.nsSys, i.nsInstance, i.nsDatabase].join('.') === sysInsDb)
+              const sysInsDb = [values.transformSinkDataSystem, values.transformSinkNamespace[0], values.transformSinkNamespace[1]].join('.')
+              transformConfigInfoString = `${values.lookupSqlType}.${values.transformSinkDataSystem}.${values.transformSinkNamespace.join('.')}.${lookupSqlVal}`
+              tranConfigInfoSqlString = lookupSqlVal
+              transformConfigInfoRequestString = `pushdown_sql ${lookupSqlTypeOrigin} with ${sysInsDb} = ${lookupSqlVal}`
+              const tmp = transformSinkNamespaceArray.find(i => [i.nsSys, i.nsInstance, i.nsDatabase].join('.') === sysInsDb)
 
-          const pushdownConnectJson = tmp.connection_config === null
-            ? {
-              name_space: `${tmp.nsSys}.${tmp.nsInstance}.${tmp.nsDatabase}`,
-              jdbc_url: tmp.conn_url,
-              username: tmp.user,
-              password: tmp.pwd
+              const pushdownConnectJson = tmp.connection_config === null
+                ? {
+                  name_space: `${tmp.nsSys}.${tmp.nsInstance}.${tmp.nsDatabase}`,
+                  jdbc_url: tmp.conn_url,
+                  username: tmp.user,
+                  password: tmp.pwd
+                }
+                : {
+                  name_space: `${tmp.nsSys}.${tmp.nsInstance}.${tmp.nsDatabase}`,
+                  jdbc_url: tmp.conn_url,
+                  username: tmp.user,
+                  password: tmp.pwd,
+                  connection_config: tmp.connection_config
+                }
+
+              pushdownConnectionString = JSON.stringify(pushdownConnectJson)
+
+              num = (lookupSqlVal.split(';')).length - 1
+              finalVal = lookupSqlVal.substring(lookupSqlVal.length - 1)
             }
-            : {
-              name_space: `${tmp.nsSys}.${tmp.nsInstance}.${tmp.nsDatabase}`,
-              jdbc_url: tmp.conn_url,
-              username: tmp.user,
-              password: tmp.pwd,
-              connection_config: tmp.connection_config
+            break
+          case 'sparkSql':
+            const cmSparkSqlVal = this.cmSparkSql.doc.getValue()
+            if (!cmSparkSqlVal) {
+              message.error('请填写 SQL！', 3)
+            } else {
+              const sparkSqlValTemp = cmSparkSqlVal.replace(/(^\s*)|(\s*$)/g, '')
+              const sparkSqlVal = preProcessSql(sparkSqlValTemp)
+
+              transformConfigInfoString = sparkSqlVal
+              tranConfigInfoSqlString = sparkSqlVal
+              transformConfigInfoRequestString = `spark_sql = ${sparkSqlVal}`
+              pushdownConnectionString = ''
+
+              num = (sparkSqlVal.split(';')).length - 1
+              finalVal = sparkSqlVal.substring(sparkSqlVal.length - 1)
             }
+            break
+          case 'streamJoinSql':
+            const cmStreamJoinSqlVal = this.cmStreamJoinSql.doc.getValue()
+            if (!cmStreamJoinSqlVal) {
+              message.error('请填写 SQL！', 3)
+            } else {
+              const streamJoinSqlValTemp = cmStreamJoinSqlVal.replace(/(^\s*)|(\s*$)/g, '')
+              const streamJoinSqlVal = preProcessSql(streamJoinSqlValTemp)
 
-          pushdownConnectionString = JSON.stringify(pushdownConnectJson)
+              let streamJoinSqlTypeOrigin = ''
+              if (values.streamJoinSqlType === 'leftJoin') {
+                streamJoinSqlTypeOrigin = 'left join'
+              } else if (values.streamJoinSqlType === 'innerJoin') {
+                streamJoinSqlTypeOrigin = 'inner join'
+              }
+              transformConfigInfoString = `${values.streamJoinSqlType}.${values.timeout}.${streamJoinSqlVal}`
+              tranConfigInfoSqlString = streamJoinSqlVal
+              transformConfigInfoRequestString = `parquet_sql ${streamJoinSqlTypeOrigin} with ${step2SourceNamespace}.*.*.*(${values.timeout}) = ${streamJoinSqlVal}`
+              pushdownConnectionString = ''
 
-          num = (lookupSqlVal.split(';')).length - 1
-          valLength = lookupSqlVal.length
-          finalVal = lookupSqlVal.substring(lookupSqlVal.length - 1)
-        } else if (values.transformation === 'sparkSql') {
-          const sparkSqlValTemp = values.sparkSql.replace(/(^\s*)|(\s*$)/g, '')
-          const sparkSqlVal = preProcessSql(sparkSqlValTemp)
+              num = (streamJoinSqlVal.split(';')).length - 1
+              finalVal = streamJoinSqlVal.substring(streamJoinSqlVal.length - 1)
+            }
+            break
+          case 'transformClassName':
+            const transformClassNameValTemp = values.transformClassName.replace(/(^\s*)|(\s*$)/g, '')
+            const transformClassNameVal = preProcessSql(transformClassNameValTemp)
 
-          transformConfigInfoString = sparkSqlVal
-          tranConfigInfoSqlString = sparkSqlVal
-          transformConfigInfoRequestString = `spark_sql = ${sparkSqlVal}`
-          pushdownConnectionString = ''
+            pushdownConnectionString = ''
 
-          num = (sparkSqlVal.split(';')).length - 1
-          valLength = sparkSqlVal.length
-          finalVal = sparkSqlVal.substring(sparkSqlVal.length - 1)
-        } else if (values.transformation === 'streamJoinSql') {
-          const streamJoinSqlValTemp = values.streamJoinSql.replace(/(^\s*)|(\s*$)/g, '')
-          const streamJoinSqlVal = preProcessSql(streamJoinSqlValTemp)
+            num = (transformClassNameVal.split(';')).length - 1
+            finalVal = transformClassNameVal.substring(transformClassNameVal.length - 1)
 
-          let streamJoinSqlTypeOrigin = ''
-          if (values.streamJoinSqlType === 'leftJoin') {
-            streamJoinSqlTypeOrigin = 'left join'
-          } else if (values.streamJoinSqlType === 'innerJoin') {
-            streamJoinSqlTypeOrigin = 'inner join'
-          }
-          // transformConfigInfoString = `${values.streamJoinSqlType}.${values.streamJoinSqlConfig}.${values.timeout}.${streamJoinSqlVal}`
-          transformConfigInfoString = `${values.streamJoinSqlType}.${values.timeout}.${streamJoinSqlVal}`
-          tranConfigInfoSqlString = streamJoinSqlVal
-          transformConfigInfoRequestString = `parquet_sql ${streamJoinSqlTypeOrigin} with ${step2SourceNamespace}.*.*.*(${values.timeout}) = ${streamJoinSqlVal}`
-          pushdownConnectionString = ''
-
-          num = (streamJoinSqlVal.split(';')).length - 1
-          valLength = streamJoinSqlVal.length
-          finalVal = streamJoinSqlVal.substring(streamJoinSqlVal.length - 1)
-        } else if (values.transformation === 'transformClassName') {
-          const transformClassNameValTemp = values.transformClassName.replace(/(^\s*)|(\s*$)/g, '')
-          const transformClassNameVal = preProcessSql(transformClassNameValTemp)
-
-          transformConfigInfoString = transformClassNameVal
-          tranConfigInfoSqlString = transformClassNameVal
-          transformConfigInfoRequestString = `custom_class = ${transformClassNameVal}`
-          pushdownConnectionString = ''
-
-          num = (transformClassNameVal.split(';')).length - 1
-          valLength = transformClassNameVal.length
-          finalVal = transformClassNameVal.substring(transformClassNameVal.length - 1)
+            if (finalVal === ';') {
+              tranConfigInfoSqlString = transformClassNameVal.substring(0, transformClassNameVal.length - 1)
+              transformConfigInfoString = transformClassNameVal.substring(0, transformClassNameVal.length - 1)
+              transformConfigInfoRequestString = `custom_class = ${transformClassNameVal}`
+            } else {
+              tranConfigInfoSqlString = transformClassNameVal
+              transformConfigInfoString = transformClassNameVal
+              transformConfigInfoRequestString = `custom_class = ${transformClassNameVal};`
+            }
+            break
         }
 
-        if (num === 0) {
-          message.warning('SQL语句应以一个分号结束！', 3)
-        } else if (num > 1) {
-          message.warning('SQL语句应只有一个分号！', 3)
-        } else if (num === 1 && finalVal !== ';') {
-          message.warning('SQL语句应以一个分号结束！', 3)
-        } else if (num === 1 && finalVal === ';') {
-          if (valLength === 1) {
-            message.warning('请填写 SQL语句内容！', 3)
-          } else {
-            // 加隐藏字段 transformType, 获得每次选中的transformation type
-            if (transformMode === '') {
-              // 第一次添加数据时
-              this.state.flowFormTranTableSource.push({
-                transformType: values.transformation,
-                order: 1,
-                transformConfigInfo: transformConfigInfoString,
-                tranConfigInfoSql: tranConfigInfoSqlString,
-                transformConfigInfoRequest: transformConfigInfoRequestString,
-                pushdownConnection: pushdownConnectionString
-              })
-
-              this.setState({
-                dataframeShowSelected: 'hide'
-              }, () => {
-                this.workbenchFlowForm.setFieldsValue({
-                  dataframeShow: 'false',
-                  dataframeShowNum: 10
-                })
-              })
-            } else if (transformMode === 'edit') {
-              this.state.flowFormTranTableSource[values.editTransformId - 1] = {
-                transformType: values.transformation,
-                order: values.editTransformId,
-                transformConfigInfo: transformConfigInfoString,
-                tranConfigInfoSql: tranConfigInfoSqlString,
-                transformConfigInfoRequest: transformConfigInfoRequestString,
-                pushdownConnection: pushdownConnectionString
-              }
-            } else if (transformMode === 'add') {
-              const tableSourceArr = this.state.flowFormTranTableSource
-              // 当前插入的数据
-              tableSourceArr.splice(values.editTransformId, 0, {
-                transformType: values.transformation,
-                order: values.editTransformId + 1,
-                transformConfigInfo: transformConfigInfoString,
-                tranConfigInfoSql: tranConfigInfoSqlString,
-                transformConfigInfoRequest: transformConfigInfoRequestString,
-                pushdownConnection: pushdownConnectionString
-              })
-              // 当前数据的下一条开始，order+1
-              for (let i = values.editTransformId + 1; i < tableSourceArr.length; i++) {
-                tableSourceArr[i].order = tableSourceArr[i].order + 1
-              }
-              // 重新setState数组
-              this.setState({ flowFormTranTableSource: tableSourceArr })
-            }
-            this.tranModalOkSuccess()
+        if (values.transformation === 'transformClassName') {
+          if (num > 1) {
+            message.warning('ClassName 最多以一个分号结束，但其他地方不应有分号！', 3)
+          } else if (num === 1 && finalVal !== ';') {
+            message.warning('ClassName 最多以一个分号结束，但其他地方不应有分号！', 3)
+          } else if (num === 0 || (num === 1 && finalVal === ';')) {
+            this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionString)
+          }
+        } else {
+          if (num === 0) {
+            message.warning('SQL语句应以一个分号结束！', 3)
+          } else if (num > 1) {
+            message.warning('SQL语句应只有一个分号！', 3)
+          } else if (num === 1 && finalVal !== ';') {
+            message.warning('SQL语句应以一个分号结束！', 3)
+          } else if (num === 1 && finalVal === ';') {
+            this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionString)
           }
         }
       }
     })
+  }
+
+  flowTransSetState (transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionString) {
+    // 加隐藏字段 transformType, 获得每次选中的transformation type
+    if (transformMode === '') {
+      // 第一次添加数据时
+      this.state.flowFormTranTableSource.push({
+        transformType: values.transformation,
+        order: 1,
+        transformConfigInfo: transformConfigInfoString,
+        tranConfigInfoSql: tranConfigInfoSqlString,
+        transformConfigInfoRequest: transformConfigInfoRequestString,
+        pushdownConnection: pushdownConnectionString
+      })
+
+      this.setState({
+        dataframeShowSelected: 'hide'
+      }, () => {
+        this.workbenchFlowForm.setFieldsValue({
+          dataframeShow: 'false',
+          dataframeShowNum: 10
+        })
+      })
+    } else if (transformMode === 'edit') {
+      this.state.flowFormTranTableSource[values.editTransformId - 1] = {
+        transformType: values.transformation,
+        order: values.editTransformId,
+        transformConfigInfo: transformConfigInfoString,
+        tranConfigInfoSql: tranConfigInfoSqlString,
+        transformConfigInfoRequest: transformConfigInfoRequestString,
+        pushdownConnection: pushdownConnectionString
+      }
+    } else if (transformMode === 'add') {
+      const tableSourceArr = this.state.flowFormTranTableSource
+      // 当前插入的数据
+      tableSourceArr.splice(values.editTransformId, 0, {
+        transformType: values.transformation,
+        order: values.editTransformId + 1,
+        transformConfigInfo: transformConfigInfoString,
+        tranConfigInfoSql: tranConfigInfoSqlString,
+        transformConfigInfoRequest: transformConfigInfoRequestString,
+        pushdownConnection: pushdownConnectionString
+      })
+      // 当前数据的下一条开始，order+1
+      for (let i = values.editTransformId + 1; i < tableSourceArr.length; i++) {
+        tableSourceArr[i].order = tableSourceArr[i].order + 1
+      }
+      // 重新setState数组
+      this.setState({ flowFormTranTableSource: tableSourceArr })
+    }
+    this.tranModalOkSuccess()
   }
 
   tranModalOkSuccess () {
@@ -2552,7 +2665,7 @@ export class Workbench extends React.Component {
         jobTranTableClassName: 'hide',
         jobTranConnectClass: 'hide',
         fieldSelected: 'hide',
-        transformMode: '',
+        jobTransformMode: '',
         jobTransValue: ''
       })
     }
@@ -2723,7 +2836,7 @@ export class Workbench extends React.Component {
     this.setState({
       etpStrategyModalVisible: true
     }, () => {
-      if (etpStrategyCheck === true) {
+      if (etpStrategyCheck) {
         this.flowEtpStrategyForm.setFieldsValue({
           checkColumns: etpStrategyResponseValue.check_columns,
           checkRule: etpStrategyResponseValue.check_rule,
@@ -2781,9 +2894,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  hideSinkConfigModal = () => {
-    this.setState({ sinkConfigModalVisible: false })
-  }
+  hideSinkConfigModal = () => this.setState({ sinkConfigModalVisible: false })
 
   onSinkConfigModalOk = () => {
     this.workbenchFlowForm.setFieldsValue({
@@ -2813,9 +2924,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  hideJobSinkConfigModal = () => {
-    this.setState({ jobSinkConfigModalVisible: false })
-  }
+  hideJobSinkConfigModal = () => this.setState({ jobSinkConfigModalVisible: false })
 
   onJobSinkConfigModalOk = () => {
     this.workbenchJobForm.setFieldsValue({
@@ -2863,9 +2972,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  /***
-   *  验证 Job name 是否存在
-   * */
+  // 验证 Job name 是否存在
   onInitJobNameValue = (value) => {
     this.props.onLoadJobName(this.state.projectId, value, () => {}, () => {
       this.workbenchJobForm.setFields({
@@ -3199,7 +3306,7 @@ export class Workbench extends React.Component {
                     jobTranTableClassName={this.state.jobTranTableClassName}
 
                     onEditTransform={this.onJobEditTransform}
-                    onAddTransform={this.onJobAddTransform}
+                    onJobAddTransform={this.onJobAddTransform}
                     onDeleteSingleTransform={this.onJobDeleteSingleTransform}
                     onUpTransform={this.onJobUpTransform}
                     onDownTransform={this.onJobDownTransform}
@@ -3241,15 +3348,15 @@ export class Workbench extends React.Component {
                   <Modal
                     title="Transformation"
                     okText="保存"
-                    wrapClassName="transform-form-style"
+                    wrapClassName="job-transform-form-style"
                     visible={this.state.jobTransModalVisible}
                     onOk={this.onJobTransModalOk}
                     onCancel={this.hideJobTransModal}>
-                    <FlowTransformForm
-                      ref={(f) => { this.flowTransformForm = f }}
+                    <JobTransformForm
+                      ref={(f) => { this.jobTransformForm = f }}
                       projectIdGeted={this.state.projectId}
                       tabPanelKey={this.state.tabPanelKey}
-                      onInitTransformValue={this.onInitJobTransValue}
+                      onInitJobTransValue={this.onInitJobTransValue}
                       transformValue={this.state.jobTransValue}
                       step2SinkNamespace={this.state.jobStepSinkNs}
                       step2SourceNamespace={this.state.jobStepSourceNs}

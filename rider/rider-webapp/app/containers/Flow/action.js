@@ -42,6 +42,8 @@ import {
   OPERATE_USER_FLOW,
   OPERATE_USER_FLOW_SUCCESS,
   OPERATE_FLOW_ERROR,
+  LOAD_FLOW_DETAIL,
+  LOAD_FLOW_DETAIL_SUCCESS,
   CHUCKAWAY_FLOW,
 
   LOAD_SOURCELOG_DETAIL,
@@ -572,6 +574,26 @@ export function flowsLoadingError (error) {
     type: LOAD_FLOWS_ERROR,
     payload: {
       error
+    }
+  }
+}
+
+export function loadFlowDetail (value, resolve) {
+  return {
+    type: LOAD_FLOW_DETAIL,
+    payload: {
+      value,
+      resolve
+    }
+  }
+}
+
+export function flowDetailLoad (result, resolve) {
+  return {
+    type: LOAD_FLOW_DETAIL_SUCCESS,
+    payload: {
+      result,
+      resolve
     }
   }
 }

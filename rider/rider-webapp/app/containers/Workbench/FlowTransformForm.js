@@ -71,7 +71,7 @@ export class FlowTransformForm extends React.Component {
 
   render () {
     const { form } = this.props
-    const { tabPanelKey, transformValue, transformSinkTypeNamespaceData } = this.props
+    const { transformValue, transformSinkTypeNamespaceData } = this.props
     const { dsHideOrNot } = this.state
     const { getFieldDecorator } = form
 
@@ -114,20 +114,23 @@ export class FlowTransformForm extends React.Component {
 
     const sinkDataSystemData = dsHideOrNot
       ? [
-        { value: 'oracle', icon: 'icon-amy-db-oracle' },
         { value: 'mysql', icon: 'icon-mysql' },
-        { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
+        { value: 'oracle', icon: 'icon-amy-db-oracle' },
+        { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
+        { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
+        { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
         { value: 'phoenix', text: 'Phoenix' },
-        { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} }
+        { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} }
       ]
       : [
-        { value: 'oracle', icon: 'icon-amy-db-oracle' },
         { value: 'mysql', icon: 'icon-mysql' },
-        { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
-        { value: 'hbase', icon: 'icon-hbase1' },
-        { value: 'phoenix', text: 'Phoenix' },
-        // { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
+        { value: 'oracle', icon: 'icon-amy-db-oracle' },
         { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
+        { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
+        { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
+        { value: 'phoenix', text: 'Phoenix' },
+        { value: 'hbase', icon: 'icon-hbase1' },
+        { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
         { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} }
       ]
 
@@ -138,7 +141,8 @@ export class FlowTransformForm extends React.Component {
           <Popover
             placement="top"
             content={<div style={{ width: '400px', height: '90px' }}>
-              <p>若 where 条件含有 source 数据中某字段值, table 为 source namespace, for example: source namespace 为kafka.test.test.test.*.*.*, 含有字段 id,name, look up时选择source namespace 中的 id 和 name, SQL 语句为 select * from look_up_table where (id,name) in (kafka.test.test.test.*.*.*.id, kafka.test.test.test.*.*.*.name);</p>
+              <p>若 where 条件含有 source 数据中某字段值, table 为 source namespace, for example: source namespace 为 kafka.test.test.test.*.*.*,</p>
+              <p>含有字段 id, name, look up 时选择 source namespace 中的 id 和 name, SQL 语句为: select * from look_up_table where (id,name) in (kafka.test.test.test.*.*.*.id, kafka.test.test.test.*.*.*.name);</p>
             </div>}
             title={<h3>帮助</h3>}
             trigger="click">
@@ -155,7 +159,8 @@ export class FlowTransformForm extends React.Component {
           <Popover
             placement="top"
             content={<div style={{ width: '400px', height: '90px' }}>
-              <p>sql 语句中的 table 为 source namespace 中第四层，for example: source namespace 为kafka.test.test1.test2.*.*.*, sql 语句为 select * from test2;</p>
+              <p>sql 语句中的 table 为 source namespace 中第四层, </p>
+              <p>for example: source namespace 为 kafka.test.test1.test2.*.*.*, sql 语句为 select * from test2;</p>
             </div>}
             title={<h3>帮助</h3>}
             trigger="click">
@@ -196,9 +201,9 @@ export class FlowTransformForm extends React.Component {
                 }]
               })(
                 <RadioGroup onChange={this.onTransformTypeSelect}>
-                  <RadioButton value="lookupSql" className={tabPanelKey === 'job' ? 'hide' : ''}>Lookup SQL</RadioButton>
+                  <RadioButton value="lookupSql">Lookup SQL</RadioButton>
                   <RadioButton value="sparkSql">Spark SQL</RadioButton>
-                  <RadioButton value="streamJoinSql" className={tabPanelKey === 'job' ? 'hide' : ''}>Stream Join SQL</RadioButton>
+                  <RadioButton value="streamJoinSql">Stream Join SQL</RadioButton>
                   <RadioButton value="transformClassName">ClassName</RadioButton>
                 </RadioGroup>
               )}
@@ -253,51 +258,42 @@ export class FlowTransformForm extends React.Component {
                   options={transformSinkTypeNamespaceData}
                   expandTrigger="hover"
                   displayRender={(labels) => labels.join('.')}
-                  // onChange={(labels, options) => {
-                  //   const { topicName, topicId, type } = options[options.length - 1]
-                  //   this.props.form.setFieldsValue({
-                  //     sourceTopicName: topicName,
-                  //     sourceTopicId: topicId,
-                  //     sourceType: type
-                  //   })
-                  // }}
                 />
               )}
             </FormItem>
           </Col>
-          <Col span={24} className={transformTypeClassNames[0]}>
-            <FormItem label={lookUpSqlMsg} {...itemStyle}>
+          <Col span={7} className={transformTypeClassNames[0]}>
+            <FormItem label={lookUpSqlMsg} className="tran-sql-label">
               {getFieldDecorator('lookupSql', {
-                rules: [{
-                  required: true,
-                  message: '请填写 Lookup SQL'
-                }],
                 hidden: transformTypeHiddens[0]
               })(
-                <Input
-                  type="textarea"
-                  placeholder="Lookup Sql"
-                  autosize={{ minRows: 5, maxRows: 8 }} />
+                <Input className="hide" />
               )}
             </FormItem>
           </Col>
+          <Col span={16} className={`${transformTypeClassNames[0]} cm-sql-textarea`}>
+            <textarea
+              id="lookupSqlTextarea"
+              placeholder="Lookup SQL"
+            />
+          </Col>
 
           {/* 设置 Spark Sql */}
-          <Col span={24} className={transformTypeClassNames[1]}>
-            <FormItem label={sparkSqlMsg} {...itemStyle}>
+          <Col span={7} className={transformTypeClassNames[1]}>
+            <FormItem label={sparkSqlMsg} className="tran-sql-label">
               {getFieldDecorator('sparkSql', {
-                rules: [{
-                  required: true,
-                  message: '请填写 Spark SQL'
-                }],
                 hidden: transformTypeHiddens[1]
               })(
-                <Input
-                  type="textarea"
-                  placeholder="Spark Sql"
-                  autosize={{ minRows: 5, maxRows: 8 }} />
+                <Input className="hide" />
               )}
             </FormItem>
+
+          </Col>
+          <Col span={16} className={`${transformTypeClassNames[1]} cm-sql-textarea`}>
+            <textarea
+              id="sparkSqlTextarea"
+              placeholder="Spark SQL"
+            />
           </Col>
 
           {/* 设置 Stream Join Sql */}
@@ -317,40 +313,6 @@ export class FlowTransformForm extends React.Component {
               )}
             </FormItem>
           </Col>
-          {/* <Col span={15} className={transformTypeClassNames[2]} style={{width: '63.5%'}}>
-            <FormItem label="Config" {...itemStyleNs}>
-              {getFieldDecorator('streamJoinSqlConfig', {
-                rules: [{
-                  required: true,
-                  message: '请选择一个 Config'
-                }],
-                hidden: transformTypeHiddens[2]
-              })(
-                <Select
-                  placeholder="Config"
-                  dropdownClassName="ri-workbench-select-dropdown"
-                  onSelect={this.onStreamJoinSqlConfigTypeSelect}
-                >
-                  <Option value="config01">Config01</Option>
-                  <Option value="config02">Config02</Option>
-                  <Option value="config03">Config03</Option>
-                </Select>
-              )}
-            </FormItem>
-          </Col>
-          <Col span={8} className={transformTypeClassNames[2]} style={{width: '32.5%'}}>
-            <FormItem label="Timeout" {...itemStyleTable}>
-              {getFieldDecorator('timeout', {
-                rules: [{
-                  required: true,
-                  message: '请填写 Timeout'
-                }],
-                hidden: transformTypeHiddens[2]
-              })(
-                <Input placeholder="Timeout" />
-              )}
-            </FormItem>
-          </Col> */}
           <Col span={24} className={transformTypeClassNames[2]}>
             <FormItem label="Timeout (Sec)" {...itemStyleTimeout}>
               {getFieldDecorator('timeout', {
@@ -366,18 +328,21 @@ export class FlowTransformForm extends React.Component {
               )}
             </FormItem>
           </Col>
-          <Col span={24} className={transformTypeClassNames[2]}>
-            <FormItem label="SQL" {...itemStyle}>
+          <Col span={7} className={transformTypeClassNames[2]}>
+            <FormItem label="SQL" className="tran-sql-label">
               {getFieldDecorator('streamJoinSql', {
-                rules: [{
-                  required: true,
-                  message: '请填写 Stream Join SQL'
-                }],
                 hidden: transformTypeHiddens[2]
               })(
-                <Input type="textarea" placeholder="Stream Join SQL" autosize={{ minRows: 5, maxRows: 8 }} />
+                <Input className="hide" />
               )}
             </FormItem>
+
+          </Col>
+          <Col span={16} className={`${transformTypeClassNames[2]} cm-sql-textarea`}>
+            <textarea
+              id="streamJoinSqlTextarea"
+              placeholder="Stream Join SQL"
+            />
           </Col>
 
           {/* 设置 ClassName */}
@@ -405,7 +370,6 @@ FlowTransformForm.propTypes = {
   form: React.PropTypes.any,
   transformSinkTypeNamespaceData: React.PropTypes.array,
   projectIdGeted: React.PropTypes.string,
-  tabPanelKey: React.PropTypes.string,
   transformValue: React.PropTypes.string,
   step2SinkNamespace: React.PropTypes.string,
   step2SourceNamespace: React.PropTypes.string,
