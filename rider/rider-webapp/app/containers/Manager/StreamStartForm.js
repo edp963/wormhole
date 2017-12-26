@@ -87,7 +87,7 @@ export class StreamStartForm extends React.Component {
     // },{
     //   id: 24,
     //   rate: 200,
-    //   partitionOffsets: '0:100,1:200,2:300,3:77'
+    //   partitionOffsets: '0:100,1:111,2:222'
     // },
     //   {
     //     id: 25,
@@ -240,7 +240,7 @@ export class StreamStartForm extends React.Component {
                   <Col span={24} className="card-content required-offset">Rate (条/秒)</Col>
                   <Col span={24}>
                     <FormItem>
-                      {getFieldDecorator(`${i.rate}`, {
+                      {getFieldDecorator(`${i.id}_${i.rate}`, {
                         rules: [{
                           required: true,
                           message: '请填写 Rate'
