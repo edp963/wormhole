@@ -68,21 +68,6 @@ object FlowUtils extends RiderLogger {
           caseClass2json[Seq[KVConfig]](dbConfig.get)
         else "\"\""
       if (sinkSchema.nonEmpty && sinkSchema.get != "") {
-        s"""
-           |{
-           |"sink_connection_url": "${getConnUrl(instance, db)}",
-           |"sink_connection_username": "${db.user.getOrElse("")}",
-           |"sink_connection_password": "${db.pwd.getOrElse("")}",
-           |"sink_table_keys": "${ns.keys.getOrElse("")}",
-           |"sink_output": "$sink_output",
-           |"sink_connection_config": $sinkConnectionConfig,
-           |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys, ns.sinkSchema)}",
-           |"sink_specific_config": $specialConfig,
-           |"sink_retry_times": "3",
-           |"sink_retry_seconds": "300"
-           |}
-       """.stripMargin.replaceAll("\n", "")
-      } else {
         val schema = caseClass2json[Object](json2caseClass[SinkSchema](sinkSchema.get).schema)
         val base64 = base64byte2s(schema.trim.getBytes)
         s"""
@@ -98,6 +83,21 @@ object FlowUtils extends RiderLogger {
            |"sink_retry_times": "3",
            |"sink_retry_seconds": "300",
            |"sink_schema": "$base64"
+           |}
+       """.stripMargin.replaceAll("\n", "")
+      } else {
+        s"""
+           |{
+           |"sink_connection_url": "${getConnUrl(instance, db)}",
+           |"sink_connection_username": "${db.user.getOrElse("")}",
+           |"sink_connection_password": "${db.pwd.getOrElse("")}",
+           |"sink_table_keys": "${ns.keys.getOrElse("")}",
+           |"sink_output": "$sink_output",
+           |"sink_connection_config": $sinkConnectionConfig,
+           |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys, ns.sinkSchema)}",
+           |"sink_specific_config": $specialConfig,
+           |"sink_retry_times": "3",
+           |"sink_retry_seconds": "300"
            |}
        """.stripMargin.replaceAll("\n", "")
       }
