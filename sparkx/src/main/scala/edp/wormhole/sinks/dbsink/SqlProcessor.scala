@@ -82,7 +82,7 @@ object SqlProcessor extends EdpLogging {
       }).mkString(s" OR ($keysString) IN ")
   }
 
-  def splitInsertAndUpdate(rsKeyUmsTsMap :mutable.Map[String, Long], keysTupleMap: mutable.HashMap[String, Seq[String]], tableKeyNames: Seq[String], sysIdName: String,
+  def splitInsertAndUpdate(rsKeyUmsTsMap: mutable.Map[String, Long], keysTupleMap: mutable.HashMap[String, Seq[String]], tableKeyNames: Seq[String], sysIdName: String,
                            renameSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): (List[Seq[String]], List[Seq[String]]) = {
     //    val rsKeyUmsTsMap = mutable.HashMap.empty[String, Long]
     val updateList = mutable.ListBuffer.empty[Seq[String]]
@@ -122,76 +122,82 @@ object SqlProcessor extends EdpLogging {
   def selectDataFromDbList(keysTupleMap: mutable.HashMap[String, Seq[String]], sinkNamespace: String, tableKeyNames: Seq[String],
                            sysIdName: String, dataSys: UmsDataSystem, tableName: String, connectionConfig: ConnectionConfig,
                            schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): mutable.Map[String, Long] = {
-    var ps: PreparedStatement = null
-    var rs: ResultSet = null
-    var conn:Connection = null
-    try {
-      val tupleList = keysTupleMap.values.toList
-      val sql = dataSys match {
-        case UmsDataSystem.MYSQL => selectMysqlSql(tupleList.size, tableKeyNames, tableName, sysIdName)
-        case UmsDataSystem.ORACLE => selectOracleSql(tupleList.size, tableKeyNames, tableName, sysIdName)
-        case UmsDataSystem.POSTGRESQL => selectPostgresSql(tupleList.size, tableKeyNames, tableName, sysIdName)
-        case _ => selectOtherSql(tupleList.size, tableKeyNames, tableName, sysIdName)
-      }
-      logInfo("select sql:" + sql)
-      conn = DbConnection.getConnection(connectionConfig)
-      ps = conn.prepareStatement(sql)
-      var parameterIndex = 1
-      for (tuple <- tupleList)
-        for (key <- tableKeyNames) {
-          psSetValue(key, parameterIndex, tuple, ps, schemaMap)
-          parameterIndex += 1
+    val tupleList = keysTupleMap.values.toList
+    val rsKeyUmsTsMap: mutable.Map[String, Long] = mutable.HashMap.empty[String, Long]
+    if (tupleList.nonEmpty) {
+      var ps: PreparedStatement = null
+      var rs: ResultSet = null
+      var conn: Connection = null
+      try {
+
+        val sql = dataSys match {
+          case UmsDataSystem.MYSQL => selectMysqlSql(tupleList.size, tableKeyNames, tableName, sysIdName)
+          case UmsDataSystem.ORACLE => selectOracleSql(tupleList.size, tableKeyNames, tableName, sysIdName)
+          case UmsDataSystem.POSTGRESQL => selectPostgresSql(tupleList.size, tableKeyNames, tableName, sysIdName)
+          case _ => selectOtherSql(tupleList.size, tableKeyNames, tableName, sysIdName)
         }
-      logInfo("before query")
-      rs = ps.executeQuery()
-      logInfo("finish query")
+        logInfo("select sql:" + sql)
+        conn = DbConnection.getConnection(connectionConfig)
+        ps = conn.prepareStatement(sql)
+        var parameterIndex = 1
+        for (tuple <- tupleList)
+          for (key <- tableKeyNames) {
+            psSetValue(key, parameterIndex, tuple, ps, schemaMap)
+            parameterIndex += 1
+          }
+        logInfo("before query")
+        rs = ps.executeQuery()
+        logInfo("finish query")
 
-      val columnTypeMap = mutable.HashMap.empty[String, String]
-      val metaData = rs.getMetaData
-      val columnCount = metaData.getColumnCount
-      val rsKeyUmsTsMap: mutable.Map[String, Long] = mutable.HashMap.empty[String, Long]
-      for (i <- 1 to columnCount) {
-        val columnName = metaData.getColumnLabel(i)
-        val columnType = metaData.getColumnClassName(i)
-        columnTypeMap(columnName.toLowerCase) = columnType
-      }
+        val columnTypeMap = mutable.HashMap.empty[String, String]
+        val metaData = rs.getMetaData
+        val columnCount = metaData.getColumnCount
 
-      while (rs.next) {
-        val keysId = tableKeyNames.map(keyName => {
-          if (columnTypeMap(keyName) == "java.math.BigDecimal") rs.getBigDecimal(keyName).stripTrailingZeros.toPlainString
-          else rs.getObject(keyName).toString
-        }).mkString("_")
-        val umsId = rs.getLong(sysIdName)
-        rsKeyUmsTsMap(keysId) = umsId
+        for (i <- 1 to columnCount) {
+          val columnName = metaData.getColumnLabel(i)
+          val columnType = metaData.getColumnClassName(i)
+          columnTypeMap(columnName.toLowerCase) = columnType
+        }
+
+        while (rs.next) {
+          val keysId = tableKeyNames.map(keyName => {
+            if (columnTypeMap(keyName) == "java.math.BigDecimal") rs.getBigDecimal(keyName).stripTrailingZeros.toPlainString
+            else rs.getObject(keyName).toString
+          }).mkString("_")
+          val umsId = rs.getLong(sysIdName)
+          rsKeyUmsTsMap(keysId) = umsId
+        }
+        rsKeyUmsTsMap
+      } catch {
+        case e: SQLTransientConnectionException => DbConnection.resetConnection(connectionConfig)
+          logError("SQLTransientConnectionException", e)
+          throw e
+        case e: Throwable =>
+          logError("execute select failed", e)
+          throw e
+      } finally {
+        if (rs != null)
+          try {
+            rs.close()
+          } catch {
+            case e: Throwable => logError("resultSet.close", e)
+          }
+        if (ps != null)
+          try {
+            ps.close()
+          } catch {
+            case e: Throwable => logError("ps.close", e)
+          }
+        if (null != conn)
+          try {
+            conn.close()
+            conn == null
+          } catch {
+            case e: Throwable => logError("conn.close", e)
+          }
       }
+    } else {
       rsKeyUmsTsMap
-    } catch {
-      case e: SQLTransientConnectionException => DbConnection.resetConnection(connectionConfig)
-        logError("SQLTransientConnectionException", e)
-        throw e
-      case e: Throwable =>
-        logError("execute select failed", e)
-        throw e
-    } finally {
-      if (rs != null)
-        try {
-          rs.close()
-        } catch {
-          case e: Throwable => logError("resultSet.close", e)
-        }
-      if (ps != null)
-        try {
-          ps.close()
-        } catch {
-          case e: Throwable => logError("ps.close", e)
-        }
-      if (null != conn)
-        try {
-          conn.close()
-          conn == null
-        } catch {
-          case e: Throwable => logError("conn.close", e)
-        }
     }
   }
 
@@ -268,14 +274,14 @@ object SqlProcessor extends EdpLogging {
   }
 
   def executeProcess(tupleList: Seq[Seq[String]], sql: String, batchSize: Int, optType: UmsOpType, sourceMutationType: SourceMutationType,
-                     connectionConfig: ConnectionConfig,fieldNames:Seq[String],renameSchema: collection.Map[String, (Int, UmsFieldType, Boolean)],
+                     connectionConfig: ConnectionConfig, fieldNames: Seq[String], renameSchema: collection.Map[String, (Int, UmsFieldType, Boolean)],
                      systemRenameMap: Map[String, String], tableKeyNames: Seq[String], sysIdName: String): Seq[Seq[String]] = {
     if (tupleList.nonEmpty) {
       val errorTupleList = executeSql(tupleList, sql, optType, batchSize, sourceMutationType,
-        connectionConfig,fieldNames,renameSchema, systemRenameMap, tableKeyNames, sysIdName)
+        connectionConfig, fieldNames, renameSchema, systemRenameMap, tableKeyNames, sysIdName)
       if (errorTupleList.nonEmpty) {
         val newErrorTupleList = if (batchSize == 1) errorTupleList else executeSql(errorTupleList, sql, optType, 1, sourceMutationType,
-          connectionConfig,fieldNames,renameSchema, systemRenameMap, tableKeyNames, sysIdName)
+          connectionConfig, fieldNames, renameSchema, systemRenameMap, tableKeyNames, sysIdName)
         newErrorTupleList.foreach(data => logInfo(optType + ",data:" + data))
         newErrorTupleList
       } else ListBuffer.empty[List[String]]
@@ -296,7 +302,7 @@ object SqlProcessor extends EdpLogging {
 
 
   private def psSetValue(fieldName: String, parameterIndex: Int, tuple: Seq[String], ps: PreparedStatement,
-                         schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]):Unit = {
+                         schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): Unit = {
     val value = fieldValue(fieldName, schemaMap, tuple)
     if (value == null) ps.setNull(parameterIndex, ums2dbType(schemaMap(fieldName)._2))
     else ps.setObject(parameterIndex, value, ums2dbType(schemaMap(fieldName)._2))
@@ -304,7 +310,7 @@ object SqlProcessor extends EdpLogging {
 
   def setPlaceholder(opType: UmsOpType, tuple: Seq[String], ps: PreparedStatement, fieldNames: Seq[String],
                      renameSchema: collection.Map[String, (Int, UmsFieldType, Boolean)], systemRenameMap: Map[String, String],
-                     tableKeyNames: Seq[String], sysIdName: String):Unit = {
+                     tableKeyNames: Seq[String], sysIdName: String): Unit = {
     var parameterIndex: Int = 1
     for (field <- fieldNames) {
       if (field == UmsSysField.OP.toString) {
@@ -327,7 +333,7 @@ object SqlProcessor extends EdpLogging {
 
 
   def executeSql(tupleList: Seq[Seq[String]], sql: String, opType: UmsOpType, batchSize: Int, sourceMutationType: SourceMutationType,
-                 connectionConfig: ConnectionConfig,fieldNames:Seq[String],renameSchema: collection.Map[String, (Int, UmsFieldType, Boolean)],
+                 connectionConfig: ConnectionConfig, fieldNames: Seq[String], renameSchema: collection.Map[String, (Int, UmsFieldType, Boolean)],
                  systemRenameMap: Map[String, String], tableKeyNames: Seq[String], sysIdName: String): List[Seq[String]] = {
     var ps: PreparedStatement = null
     val errorTupleList: mutable.ListBuffer[Seq[String]] = mutable.ListBuffer.empty[Seq[String]]
@@ -341,7 +347,7 @@ object SqlProcessor extends EdpLogging {
       tupleList.sliding(batchSize, batchSize).foreach(tuples => {
         index += batchSize
         for (i <- tuples.indices) {
-          setPlaceholder(opType,tuples(i), ps,fieldNames,renameSchema,  systemRenameMap, tableKeyNames, sysIdName)
+          setPlaceholder(opType, tuples(i), ps, fieldNames, renameSchema, systemRenameMap, tableKeyNames, sysIdName)
           ps.addBatch()
         }
         try {
