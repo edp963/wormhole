@@ -59,7 +59,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
       }
   }
 
-  def getSchemaByIdRoute(route: String): Route = path(route / LongNumber / "schema") {
+  def getUmsInfoByIdRoute(route: String): Route = path(route / LongNumber / "schema" / "source") {
     id =>
       get {
         authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
@@ -69,18 +69,35 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
               complete(OK, getHeader(403, session))
             }
             else {
-              try {
-                namespaceDal.getSchema(id) match {
-                  case Some(schema) =>
-                    riderLogger.info(s"user ${session.userId} select namespace schema by $id success")
-                    complete(OK, ResponseJson[NsSchema](getHeader(200, session), schema))
-                  case None =>
-                    riderLogger.info(s"user ${session.userId} select namespace schema by $id success, but not found")
-                    complete(OK, ResponseJson[String](getHeader(200, session), ""))
-                }
-              } catch {
-                case ex: Exception =>
-                  riderLogger.error(s"user ${session.userId} select namespace schema by $id failed", ex)
+              onComplete(namespaceDal.getUmsInfo(id).mapTo[Option[SourceSchema]]) {
+                case Success(umsInfo) =>
+                  riderLogger.info(s"user ${session.userId} select namespace source schema by $id success")
+                  complete(OK, ResponseJson[Option[SourceSchema]](getHeader(200, session), umsInfo))
+                case Failure(ex) =>
+                  riderLogger.error(s"user ${session.userId} select namespace source schema by $id failed", ex)
+                  complete(OK, getHeader(451, ex.getMessage, session))
+              }
+            }
+        }
+      }
+  }
+
+  def getSinkInfoByIdRoute(route: String): Route = path(route / LongNumber / "schema" / "sink") {
+    id =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              onComplete(namespaceDal.getSinkInfo(id).mapTo[Option[SinkSchema]]) {
+                case Success(sinkInfo) =>
+                  riderLogger.info(s"user ${session.userId} select namespace sink schema by $id success")
+                  complete(OK, ResponseJson[Option[SinkSchema]](getHeader(200, session), sinkInfo))
+                case Failure(ex) =>
+                  riderLogger.error(s"user ${session.userId} select namespace sink schema by $id failed", ex)
                   complete(OK, getHeader(451, ex.getMessage, session))
               }
             }
