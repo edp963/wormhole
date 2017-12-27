@@ -37,7 +37,7 @@ object SinkCommonUtils extends SinkCommonUtils
 
 
 trait SinkCommonUtils {
-  def keys2keyList(keys: String): List[String] = if (keys == null) Nil else keys.split(",").map(trimBothBlank).toList
+  def keys2keyList(keys: String): List[String] = if (keys == null) Nil else keys.split(",").map(_.trim.toLowerCase).toList
 
   def getIncrementByTs(df: DataFrame, keys: List[String], from_yyyyMMddHHmmss: String, to_yyyyMMddHHmmss: String): DataFrame = {
     val fromTs = dt2timestamp(from_yyyyMMddHHmmss)
