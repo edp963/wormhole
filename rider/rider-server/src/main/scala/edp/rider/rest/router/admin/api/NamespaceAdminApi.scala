@@ -59,7 +59,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
       }
   }
 
-  def getUmsInfoByIdRoute(route: String): Route = path(route / LongNumber / "schema" / "source") {
+  def getSchemaByIdRoute(route: String): Route = path(route / LongNumber / "schema") {
     id =>
       get {
         authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
@@ -69,12 +69,18 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
               complete(OK, getHeader(403, session))
             }
             else {
-              onComplete(namespaceDal.getUmsInfo(id).mapTo[Option[SourceSchema]]) {
-                case Success(umsInfo) =>
-                  riderLogger.info(s"user ${session.userId} select namespace source schema by $id success")
-                  complete(OK, ResponseJson[Option[SourceSchema]](getHeader(200, session), umsInfo))
-                case Failure(ex) =>
-                  riderLogger.error(s"user ${session.userId} select namespace source schema by $id failed", ex)
+              try {
+                namespaceDal.getSchema(id) match {
+                  case Some(schema) =>
+                    riderLogger.info(s"user ${session.userId} select namespace schema by $id success")
+                    complete(OK, ResponseJson[NsSchema](getHeader(200, session), schema))
+                  case None =>
+                    riderLogger.info(s"user ${session.userId} select namespace schema by $id success, but not found")
+                    complete(OK, ResponseJson[String](getHeader(200, session), ""))
+                }
+              } catch {
+                case ex: Exception =>
+                  riderLogger.error(s"user ${session.userId} select namespace schema by $id failed", ex)
                   complete(OK, getHeader(451, ex.getMessage, session))
               }
             }
@@ -82,30 +88,9 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
       }
   }
 
-  def getSinkInfoByIdRoute(route: String): Route = path(route / LongNumber / "schema" / "sink") {
-    id =>
-      get {
-        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
-          session =>
-            if (session.roleType != "admin") {
-              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-              complete(OK, getHeader(403, session))
-            }
-            else {
-              onComplete(namespaceDal.getSinkInfo(id).mapTo[Option[SinkSchema]]) {
-                case Success(sinkInfo) =>
-                  riderLogger.info(s"user ${session.userId} select namespace sink schema by $id success")
-                  complete(OK, ResponseJson[Option[SinkSchema]](getHeader(200, session), sinkInfo))
-                case Failure(ex) =>
-                  riderLogger.error(s"user ${session.userId} select namespace sink schema by $id failed", ex)
-                  complete(OK, getHeader(451, ex.getMessage, session))
-              }
-            }
-        }
-      }
-  }
 
-  override def getByAllRoute(route: String): Route = path(route) {
+  override def getByAllRoute(route: String): Route
+  = path(route) {
     get {
       parameter('visible.as[Boolean].?, 'instanceId.as[Long].?, 'databaseId.as[Long].?, 'tableNames.as[String].?) {
         (visible, instanceIdOpt, databaseIdOpt, tableNamesOpt) =>
@@ -248,7 +233,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
 
   }
 
-  def putUmsInfoRoute(route: String): Route = path(route / LongNumber / "schema" / "source") {
+  def putSourceInfoRoute(route: String): Route = path(route / LongNumber / "schema" / "source") {
     id =>
       put {
         entity(as[SourceSchema]) {
@@ -342,7 +327,9 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
   }
 
 
-  private def getNsRoute(session: SessionClass, visible: Boolean): Route = {
+  private def getNsRoute(session: SessionClass, visible: Boolean): Route
+
+  = {
     onComplete(relProjectNsDal.getNamespaceAdmin(_.active === visible).mapTo[Seq[NamespaceAdmin]]) {
       case Success(res) =>
         riderLogger.info(s"user ${session.userId} select all namespaces success.")
@@ -355,7 +342,9 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
 
   }
 
-  private def synchronizeNs(session: SessionClass, visible: Boolean): Route = {
+  private def synchronizeNs(session: SessionClass, visible: Boolean): Route
+
+  = {
     onComplete(namespaceDal.dbusInsert(session).mapTo[Seq[Dbus]]) {
       case Success(dbusUpsert) =>
         riderLogger.info(s"user ${session.userId} insertOrUpdate dbus table success.")
@@ -374,7 +363,9 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
     }
   }
 
-  override def deleteRoute(route: String): Route = path(route / LongNumber) {
+  override def deleteRoute(route: String): Route
+
+  = path(route / LongNumber) {
     id =>
       delete {
         authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {

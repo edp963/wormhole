@@ -56,6 +56,8 @@ case class SinkSchema(jsonSample: Option[Object],
                       schemaTable: Option[Object],
                       schema: Option[Object])
 
+case class NsSchema(source: Option[SourceSchema], sink: Option[SinkSchema])
+
 case class NamespaceInfo(id: Long,
                          nsSys: String,
                          nsInstance: String,
