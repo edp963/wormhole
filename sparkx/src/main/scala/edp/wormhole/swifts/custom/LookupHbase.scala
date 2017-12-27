@@ -99,7 +99,7 @@ object LookupHbase extends EdpLogging {
         HbaseConnection.initHbaseConfig(null, null, connectionConfig)
         val (ips, port, _) = HbaseConnection.getZookeeperInfo(connectionConfig.connectionUrl)
 
-        val hbaseDatas = HbaseConnection.getDatasFromHbase(tablename, cf, keys, selectFields, ips, port)
+        val hbaseDatas = HbaseConnection.getDatasFromHbase(tablename, cf, true,keys, selectFields, ips, port)
 
         for (i <- originalData.indices) {
           val ori = originalData(i)
