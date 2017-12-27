@@ -72,9 +72,9 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
 //  }
 
   def matchNameSpace(namespace1: String, namespace2: String): Boolean = {
-    if (flowConfigMap.contains(namespace2)) {
-      return true
-    }
+//    if (flowConfigMap.contains(namespace2)) {
+//      return true
+//    }
     val namespaceArray1 = namespace1.split("\\.")
     val namespaceArray2 = namespace2.split("\\.")
     namespaceArray1(0) == namespaceArray2(0) && namespaceArray1(1) == namespaceArray2(1) && namespaceArray1(2) == namespaceArray2(2) && namespaceArray1(3) == namespaceArray2(3)
