@@ -21,16 +21,19 @@
 
 package edp.rider.rest.persistence.dal
 
+import edp.rider.common.RiderLogger
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities.{NsDatabase, _}
+import edp.rider.rest.util.CommonUtils.minTimeOut
+import edp.rider.rest.util.NamespaceUtils
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
-
+import edp.rider.RiderStarter.modules._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 
-class NsDatabaseDal(databaseTable: TableQuery[NsDatabaseTable], instanceTable: TableQuery[InstanceTable]) extends BaseDalImpl[NsDatabaseTable, NsDatabase](databaseTable) {
+class NsDatabaseDal(databaseTable: TableQuery[NsDatabaseTable], instanceTable: TableQuery[InstanceTable]) extends BaseDalImpl[NsDatabaseTable, NsDatabase](databaseTable) with RiderLogger {
 
   def getDs(visible: Boolean = true, idOpt: Option[Long] = None): Future[Seq[DatabaseInstance]] = {
     val databaseQuery = idOpt match {
@@ -55,5 +58,22 @@ class NsDatabaseDal(databaseTable: TableQuery[NsDatabaseTable], instanceTable: T
       .map {
         case (database, instance) => (database.id, database.nsDatabase, instance.id, instance.nsInstance, instance.connUrl, instance.nsSys) <>(NsDatabaseInstance.tupled, NsDatabaseInstance.unapply)
       }.result).mapTo[Seq[NsDatabaseInstance]]
+  }
+
+  def delete(id: Long): (Boolean, String) = {
+    try {
+      val nsSeq = Await.result(namespaceDal.findByFilter(_.nsDatabaseId === id), minTimeOut).map(ns => NamespaceUtils.generateStandardNs(ns))
+      if (nsSeq.nonEmpty) {
+        riderLogger.info(s"database $id still has namespace ${nsSeq.mkString(",")}, can't delete it")
+        (false, s"please delete namespace ${nsSeq.mkString(",")} first")
+      } else {
+        Await.result(super.deleteById(id), minTimeOut)
+        (true, "success")
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"delete database $id failed", ex)
+        throw new Exception(s"delete database $id failed", ex)
+    }
   }
 }

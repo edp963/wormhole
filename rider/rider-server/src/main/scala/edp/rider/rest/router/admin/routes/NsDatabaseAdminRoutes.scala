@@ -31,7 +31,7 @@ import io.swagger.annotations._
 @Path("/admin/databases")
 class NsDatabaseAdminRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
-  lazy val routes: Route = getDatabaseByFilterRoute ~ postDatabaseRoute ~ putDatabaseRoute ~ getDatabaseByIdRoute
+  lazy val routes: Route = getDatabaseByFilterRoute ~ postDatabaseRoute ~ putDatabaseRoute ~ getDatabaseByIdRoute ~ deleteByIdRoute
 
   lazy val basePath = "databases"
 
@@ -98,6 +98,19 @@ class NsDatabaseAdminRoutes(modules: ConfigurationModule with PersistenceModule 
   ))
   def putDatabaseRoute: Route = modules.databaseAdminService.putRoute(basePath)
 
-
+  @Path("/{id}/")
+  @ApiOperation(value = "delete one database from system by id", notes = "", nickname = "", httpMethod = "DELETE")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "database id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not admin user"),
+    new ApiResponse(code = 412, message = "user still has some projects"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def deleteByIdRoute: Route = modules.databaseAdminService.deleteRoute(basePath)
 }
 

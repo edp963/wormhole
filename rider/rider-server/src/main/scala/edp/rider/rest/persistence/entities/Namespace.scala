@@ -35,7 +35,8 @@ case class Namespace(id: Long,
                      nsDbpar: String,
                      nsTablepar: String,
                      keys: Option[String],
-                     umsInfo: Option[String],
+                     sourceSchema: Option[String],
+                     sinkSchema: Option[String],
                      nsDatabaseId: Long,
                      nsInstanceId: Long,
                      active: Boolean,
@@ -44,33 +45,18 @@ case class Namespace(id: Long,
                      updateTime: String,
                      updateBy: Long) extends BaseEntity
 
-case class JsonParse(fieldName: String, fieldType: String, value: Object)
+case class SourceSchema(umsType: Option[String],
+                        jsonSample: Option[Object],
+                        jsonParseArray: Option[Object],
+                        umsSchemaTable: Option[Object],
+                        umsSchema: Option[Object])
 
-case class UmsSchemaTable(selected: Boolean,
-                          fieldName: String,
-                          rename: String,
-                          fieldType: String,
-                          `ums_id_`: Boolean,
-                          `ums_ts_`: Boolean,
-                          `ums_op_`: String,
-                          forbidden: Boolean,
-                          value: Object)
+case class SinkSchema(jsonSample: Option[Object],
+                      jsonParseArray: Option[Object],
+                      schemaTable: Option[Object],
+                      schema: Option[Object])
 
-case class UmsSchema(fields: Seq[Field])
-
-case class Field(name: String,
-                 `type`: String,
-                 nullable: Boolean,
-                 rename: Option[String],
-                 ums_sys_mapping: Option[String],
-                 tuple_sep: Option[String],
-                 sub_fields: Option[Field])
-
-case class UmsInfo(umsType: Option[String],
-                   jsonSample: Option[Object],
-                   jsonParseArray: Option[Object],
-                   umsSchemaTable: Option[Object],
-                   umsSchema: Option[Object])
+case class NsSchema(source: Option[SourceSchema], sink: Option[SinkSchema])
 
 case class NamespaceInfo(id: Long,
                          nsSys: String,
@@ -183,7 +169,7 @@ case class PushDownConnection(name_space: String,
 
 class NamespaceTable(_tableTag: Tag) extends BaseTable[Namespace](_tableTag, "namespace") {
   def * = (id, nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar, keys,
-    umsInfo, nsDatabaseId, nsInstanceId, active, createTime, createBy, updateTime, updateBy) <> (Namespace.tupled, Namespace.unapply)
+    umsInfo, sinkInfo, nsDatabaseId, nsInstanceId, active, createTime, createBy, updateTime, updateBy) <> (Namespace.tupled, Namespace.unapply)
 
   val nsSys: Rep[String] = column[String]("ns_sys", O.Length(100, varying = true))
   /** Database column ns_instance SqlType(VARCHAR), Length(100,true) */
@@ -200,7 +186,8 @@ class NamespaceTable(_tableTag: Tag) extends BaseTable[Namespace](_tableTag, "na
   val nsTablepar: Rep[String] = column[String]("ns_tablepar", O.Length(100, varying = true))
   /** Database column keys SqlType(VARCHAR), Length(1000,true), Default(None) */
   val keys: Rep[Option[String]] = column[Option[String]]("keys", O.Length(1000, varying = true), O.Default(None))
-  val umsInfo: Rep[Option[String]] = column[Option[String]]("ums_info", O.Length(5000, varying = true), O.Default(None))
+  val umsInfo: Rep[Option[String]] = column[Option[String]]("ums_info")
+  val sinkInfo: Rep[Option[String]] = column[Option[String]]("sink_info")
   /** Database column ns_database_id SqlType(BIGINT) */
   val nsDatabaseId: Rep[Long] = column[Long]("ns_database_id")
   /** Database column ns_instance_id SqlType(BIGINT) */

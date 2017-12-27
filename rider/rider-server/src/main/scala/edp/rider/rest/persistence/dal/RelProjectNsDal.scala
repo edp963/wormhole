@@ -85,7 +85,7 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
       nsSeq =>
         nsSeq.map {
           ns =>
-            val topic = if (ns.topic == ns.nsDatabase) "" else ns.topic
+            val topic = if (ns.nsSys != "kafka" && ns.topic == ns.nsDatabase) "" else ns.topic
             NamespaceTopic(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.keys,
               ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy, topic)
         }
@@ -162,7 +162,7 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
         namespaces =>
           val nsProjectSeq = new ArrayBuffer[NamespaceAdmin]
           namespaces.foreach(ns => {
-            val topic = if (ns.topic == ns.nsDatabase) "" else ns.topic
+            val topic = if (ns.nsSys != "kafka" && ns.topic == ns.nsDatabase) "" else ns.topic
             if (nsProjectMap.contains(ns.id))
               nsProjectSeq += NamespaceAdmin(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar,
                 ns.keys, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy,

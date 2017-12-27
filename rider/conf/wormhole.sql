@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS `namespace` (
   `ns_tablepar` VARCHAR(100) NOT NULL,
   `keys` VARCHAR(1000) NULL,
   `ums_info` LONGTEXT NULL,
+  `sink_info` LONGTEXT NULL,
   `ns_database_id` BIGINT NOT NULL,
   `ns_instance_id` BIGINT NOT NULL,
   `active` TINYINT(1) NOT NULL,
@@ -76,7 +77,8 @@ CREATE TABLE IF NOT EXISTS `namespace` (
 ENGINE = InnoDB;
 
 alter table `namespace` drop column `permission`;
-alter table `namespace` add column `ums_info` varchar(5000) default null;
+alter table `namespace` add column `ums_info` LONGTEXT default null;
+alter table `namespace` add column `sink_info` LONGTEXT default null;
 alter table `namespace`  modify column `ums_info` LONGTEXT;
 drop index `namespace_UNIQUE` on `namespace`;
 alter table `namespace` add index `namespace_UNIQUE` (`ns_sys` ASC, `ns_instance` ASC, `ns_database` ASC, `ns_table` ASC, `ns_version` ASC, `ns_dbpar` ASC, `ns_tablepar` ASC);

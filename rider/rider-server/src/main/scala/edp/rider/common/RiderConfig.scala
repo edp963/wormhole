@@ -72,6 +72,8 @@ case class RiderSpark(user: String,
                       jarPath: String,
                       kafka08JarPath: String,
                       kafka08StreamNames: String,
+                      kafka11JarPath: String,
+                      kafka11StreamNames: String,
                       wormholeHeartBeatTopic: String,
                       driverMemory: Int,
                       driverCores: Int,
@@ -150,7 +152,7 @@ object RiderConfig {
     heartbeatTopic,
     4,
     "wormhole_rider_group",
-    "wormhole_rider_group_consumer1",
+    "wormhole_rider_group_consumer",
     false,
     new ByteArrayDeserializer, new StringDeserializer,
     pollInterval,
@@ -170,6 +172,8 @@ object RiderConfig {
   lazy val wormholeJarPath = getStringConfig("spark.wormhole.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.4.0-SNAPSHOTS-jar-with-dependencies.jar")
   lazy val wormholeKafka08JarPath = getStringConfig("spark.wormhole.kafka08.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.4.0-SNAPSHOTS-jar-with-dependencies-kafka08.jar")
   lazy val kafka08StreamNames = getStringConfig("spark.wormhole.kafka08.streams", "")
+  lazy val wormholeKafka11JarPath = getStringConfig("spark.wormhole.kafka11.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.4.0-SNAPSHOTS-jar-with-dependencies-kafka11.jar")
+  lazy val kafka11StreamNames = getStringConfig("spark.wormhole.kafka11.streams", "")
   lazy val wormholeUser = config.getString("spark.wormholeServer.user")
   lazy val sshPort = config.getInt("spark.wormholeServer.ssh.port")
   lazy val rm1Url = config.getString("spark.yarn.rm1.http.url")
@@ -199,8 +203,8 @@ object RiderConfig {
     wormholeClientLogPath,
     s"${RiderConfig.riderRootPath}/conf/sparkx.log4j.properties",
     wormholeJarPath,
-    wormholeKafka08JarPath,
-    kafka08StreamNames, consumer.heartbeatTopic, 2, 1, 6, 4, 2, 100, 600,
+    wormholeKafka08JarPath, kafka08StreamNames, wormholeKafka11JarPath, kafka11StreamNames,
+    consumer.heartbeatTopic, 2, 1, 6, 4, 2, 100, 600,
     "spark.driver.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc/",
     "spark.executor.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc",
     "spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3"
