@@ -116,7 +116,7 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
         logInfo("hbase iud:")
         logInfo("before select:" + rowkey2IdTuples.size)
         val columnList = List((ID.toString, LONG.toString))
-        val rowkey2IdMap: Map[String, Map[String, Any]] = HbaseConnection.getDatasFromHbase(namespace.database + ":" + namespace.table, hbaseConfig.`hbase.columnFamily.get`, rowkey2IdTuples.map(_._1), columnList, zk._1, zk._2)
+        val rowkey2IdMap: Map[String, Map[String, Any]] = HbaseConnection.getDatasFromHbase(namespace.database + ":" + namespace.table, hbaseConfig.`hbase.columnFamily.get`,hbaseConfig.`hbase.valueType.get`, rowkey2IdTuples.map(_._1), columnList, zk._1, zk._2)
         logInfo("before filter:" + rowkey2IdMap.size)
         if (rowkey2IdMap.nonEmpty) {
           rowkey2IdTuples.filter(row => {
