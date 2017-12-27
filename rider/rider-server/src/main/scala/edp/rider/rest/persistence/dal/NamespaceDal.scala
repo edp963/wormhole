@@ -33,7 +33,7 @@ import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.SessionClass
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.NamespaceUtils
-import edp.wormhole.common.util.JsonUtils._
+import edp.wormhole.common.util.JsonUtils.{json2caseClass, _}
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
@@ -239,30 +239,22 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         throw ex
     }
 
-  def getUmsInfo(id: Long): Future[Option[SourceSchema]] = {
-    super.findById(id).map[Option[SourceSchema]](
-      namespaceOpt => namespaceOpt match {
-        case Some(namespace) =>
-          namespace.sourceSchema match {
-            case Some(umsInfo) => Some(json2caseClass[SourceSchema](umsInfo))
-            case None => None
-          }
-        case None => None
-      }
-    )
-  }
+  def getSchema(id: Long): Option[NsSchema] = {
+    val nsOpt = Await.result(super.findById(id), minTimeOut)
+    nsOpt match {
+      case Some(ns) =>
+        (ns.sourceSchema, ns.sinkSchema) match {
+          case (Some(source), Some(sink)) =>
+            Some(NsSchema(Some(json2caseClass[SourceSchema](source)), Some(json2caseClass[SinkSchema](sink))))
+          case (Some(source), None) =>
+            Some(NsSchema(Some(json2caseClass[SourceSchema](source)), None))
+          case (None, Some(sink)) =>
+            Some(NsSchema(None, Some(json2caseClass[SinkSchema](sink))))
+          case (None, None) => None
+        }
+      case None => None
+    }
 
-  def getSinkInfo(id: Long): Future[Option[SinkSchema]] = {
-    super.findById(id).map[Option[SinkSchema]](
-      namespaceOpt => namespaceOpt match {
-        case Some(namespace) =>
-          namespace.sinkSchema match {
-            case Some(sinkInfo) => Some(json2caseClass[SinkSchema](sinkInfo))
-            case None => None
-          }
-        case None => None
-      }
-    )
   }
 
   def delete(id: Long): (Boolean, String) = {
