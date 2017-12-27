@@ -115,7 +115,7 @@ trait PersistenceModule {
 trait PersistenceModuleImpl extends PersistenceModule {
   this: ConfigurationModule =>
 
-  override lazy val instanceDal = new InstanceDal(instanceQuery)
+  override lazy val instanceDal = new InstanceDal(instanceQuery, databaseDal)
   override lazy val databaseDal = new NsDatabaseDal(databaseQuery, instanceQuery)
   override lazy val namespaceDal = new NamespaceDal(namespaceQuery, databaseDal, instanceDal, dbusDal)
   override lazy val userDal = new UserDal(userQuery, relProjectUserDal, projectDal)
@@ -130,7 +130,7 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val inTopicDal = new StreamInTopicDal(streamInTopicQuery, databaseQuery, feedbackOffsetQuery)
 
   override lazy val jobDal = new JobDal(jobQuery, projectQuery)
-  override lazy val udfDal = new UdfDal(udfQuery, relProjectUdfDal)
+  override lazy val udfDal = new UdfDal(udfQuery, relProjectUdfDal, relStreamUdfDal, projectDal, streamDal)
   override lazy val relProjectUdfDal = new RelProjectUdfDal(udfQuery, projectQuery, relProjectUdfQuery)
 
   override lazy val feedbackHeartbeatDal = new FeedbackHeartbeatDal(feedbackHeartBeatQuery, streamDal)

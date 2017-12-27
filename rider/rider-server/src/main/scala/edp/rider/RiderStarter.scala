@@ -68,6 +68,4 @@ object RiderStarter extends App with RiderLogger {
   riderLogger.info(s"WormholeServer Consumer started")
   Scheduler.start
   riderLogger.info(s"Wormhole Scheduler started")
-
-
 }

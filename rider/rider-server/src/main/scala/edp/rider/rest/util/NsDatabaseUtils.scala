@@ -126,7 +126,7 @@ object NsDatabaseUtils {
                   if (dbInfo.nonEmpty) {
                     val head = dbInfo.head
                     val connInfo =
-                      if (head.instance.nsSys == "cassandra" || head.instance.nsSys == "es")
+                      if (head.instance.nsSys == "cassandra" || head.instance.nsSys == "es" || head.instance.nsSys == "mongodb")
                         getConnUrl(head.instance, head.db, "lookup")
                       else getConnUrl(head.instance, head.db)
                     seq += PushDownConnection(db, connInfo, head.db.user, head.db.pwd, getDbConfig(head.nsSys, head.db.config.getOrElse("")))
