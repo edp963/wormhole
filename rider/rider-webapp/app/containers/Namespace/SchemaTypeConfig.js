@@ -641,14 +641,13 @@ export class SchemaTypeConfig extends React.Component {
     return (
       <Form>
         <Row>
-          <Col span={24}>
+          <Col span={24} className="ums-type">
             <FormItem label="UMS Type" {...itemStyle}>
               {getFieldDecorator('umsType', {
                 rules: [{
                   required: true,
                   message: '请选择 UMS Type'
                 }]
-                // initialValue: 'ums'
               })(
                 <RadioGroup className="radio-group-style" size="default" onChange={this.onChangeUmsType}>
                   <RadioButton value="ums" className="radio-btn-style radio-btn-extra">UMS</RadioButton>
@@ -657,6 +656,11 @@ export class SchemaTypeConfig extends React.Component {
               )}
             </FormItem>
           </Col>
+        </Row>
+        <Row>
+          <Col span={7} className="schema-json-title"><span>Source JSON Sample：</span></Col>
+          <Col span={1}></Col>
+          <Col span={16} className="schema-table-title"><span>Source Schema Table：</span></Col>
         </Row>
         <Row className={umsTypeSeleted === 'ums_extension' ? '' : 'hide'}>
           <Col span={7}>
