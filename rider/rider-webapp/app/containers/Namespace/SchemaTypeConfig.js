@@ -92,25 +92,15 @@ export class SchemaTypeConfig extends React.Component {
     }
   }
 
-  onChangeRowSelect = (record) => (e) => {
-    this.props.initChangeSelected(record)
-  }
+  onChangeRowSelect = (record) => (e) => this.props.initChangeSelected(record)
 
-  onChangeUmsType = (e) => {
-    this.props.initChangeUmsType(e.target.value)
-  }
+  onChangeUmsType = (e) => this.props.initChangeUmsType(e.target.value)
 
-  onChangeUmsId = (record) => (e) => {
-    this.props.initSelectUmsIdTs(record, 'ums_id_')
-  }
+  onChangeUmsId = (record) => (e) => this.props.initSelectUmsIdTs(record, 'ums_id_')
 
-  onChangeUmsTs = (record) => (e) => {
-    this.props.initSelectUmsIdTs(record, 'ums_ts_')
-  }
+  onChangeUmsTs = (record) => (e) => this.props.initSelectUmsIdTs(record, 'ums_ts_')
 
-  onRowSelectAll = () => {
-    this.props.initRowSelectedAll()
-  }
+  onRowSelectAll = () => this.props.initRowSelectedAll()
 
   handleChangeFieldType = (record) => (afterType) => {
     const originType = record.fieldType
@@ -168,11 +158,7 @@ export class SchemaTypeConfig extends React.Component {
     }
   }
 
-  onChangeSizeValue = (value) => {
-    this.setState({
-      tupleSizeValue: value
-    })
-  }
+  onChangeSizeValue = (value) => this.setState({ tupleSizeValue: value })
 
   checkFieldType = (record) => (e) => {
     const sepTemp = document.getElementById('sep')
@@ -198,11 +184,7 @@ export class SchemaTypeConfig extends React.Component {
     }
   }
 
-  editFieldType = () => {
-    this.setState({
-      tupleForm: 'edit'
-    })
-  }
+  editFieldType = () => this.setState({ tupleForm: 'edit' })
 
   handleChangeRename = (record) => (e) => {
     const val = e.target.value

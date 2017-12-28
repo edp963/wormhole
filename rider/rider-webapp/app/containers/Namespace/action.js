@@ -234,12 +234,13 @@ export function projectNsAllLoaded (result, resolve) {
   }
 }
 
-export function setSchema (namespaceId, value, resolve) {
+export function setSchema (namespaceId, value, type, resolve) {
   return {
     type: SET_SCHEMA,
     payload: {
       namespaceId,
       value,
+      type,
       resolve
     }
   }
@@ -255,11 +256,12 @@ export function schemaSetted (result, resolve) {
   }
 }
 
-export function querySchemaConfig (namespaceId, resolve) {
+export function querySchemaConfig (namespaceId, type, resolve) {
   return {
     type: QUERY_SCHEMA_CONFIG,
     payload: {
       namespaceId,
+      type,
       resolve
     }
   }
