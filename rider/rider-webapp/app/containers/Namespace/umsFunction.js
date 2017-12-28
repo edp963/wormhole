@@ -71,23 +71,35 @@ function copyArray (array) {
 
 // fieldType修改,用户选中修改类型后，不要修改原数组该index的fieldType值，直接调用该方法
 // 选择的类型为tuple时，alterType="tuple##/##10"
-export function fieldTypeAlter (array, index, alterType) {
+export function fieldTypeAlter (array, index, alterType, type) {
   var newArray = copyArray(array)
 
-  if (array[index].fieldType.startsWith(TUPLE) && alterType.startsWith(TUPLE)) {
-    newArray = tuple2tuple(newArray, index, alterType)
-  } else {
-    if (newArray[index].fieldType.startsWith(TUPLE)) {
-      newArray = tuple2other(newArray, index, index + 1)
-    } else if (newArray[index].fieldType.startsWith('json')) {
-      newArray = jsonType2other(newArray, index)
-    }
+  switch (type) {
+    case 'source':
+      if (array[index].fieldType.startsWith(TUPLE) && alterType.startsWith(TUPLE)) {
+        newArray = tuple2tuple(newArray, index, alterType)
+      } else {
+        if (newArray[index].fieldType.startsWith(TUPLE)) {
+          newArray = tuple2other(newArray, index, index + 1)
+        } else if (newArray[index].fieldType.startsWith('json')) {
+          newArray = jsonType2other(newArray, index, 'source')
+        }
 
-    if (alterType.startsWith(TUPLE)) {
-      newArray = other2tuple(newArray, index, 0, alterType)
-    } else if (alterType.startsWith('json')) {
-      newArray = other2jsonType(newArray, index)
-    }
+        if (alterType.startsWith(TUPLE)) {
+          newArray = other2tuple(newArray, index, 0, alterType)
+        } else if (alterType.startsWith('json')) {
+          newArray = other2jsonType(newArray, index)
+        }
+      }
+      break
+    case 'sink':
+      if (newArray[index].fieldType.startsWith('json')) {
+        newArray = jsonType2other(newArray, index, 'sink')
+      }
+      if (alterType.startsWith('json')) {
+        newArray = other2jsonType(newArray, index)
+      }
+      break
   }
   newArray[index].fieldType = alterType
   return newArray
@@ -153,18 +165,30 @@ function other2tuple (array, index, preSize, alterType) {
 }
 
 // jsonobject/jsonarray类型修改为其他类型时，原嵌套子字段forbidden设置为true
-function jsonType2other (array, index) {
+function jsonType2other (array, index, type) {
   var newArray = copyArray(array)
   var prefix = `${newArray[index].fieldName}#`
   for (var i = index + 1; i < newArray.length; i++) {
-    if (newArray[i].fieldName.startsWith(prefix)) {
-      newArray[i].forbidden = true
-      newArray[i].selected = false
-      newArray[i].ums_id_ = false
-      newArray[i].ums_ts_ = false
-      newArray[i].ums_op_ = ''
-    } else {
-      break
+    switch (type) {
+      case 'source':
+        if (newArray[i].fieldName.startsWith(prefix)) {
+          newArray[i].forbidden = true
+          newArray[i].selected = false
+          newArray[i].ums_id_ = false
+          newArray[i].ums_ts_ = false
+          newArray[i].ums_op_ = ''
+        } else {
+          break
+        }
+        break
+      case 'sink':
+        if (newArray[i].fieldName.startsWith(prefix)) {
+          newArray[i].forbidden = true
+          newArray[i].selected = false
+        } else {
+          break
+        }
+        break
     }
   }
   return newArray
@@ -252,24 +276,25 @@ function genUmsField (array) {
   return umsArray
 }
 
-function genBaseField (fieldInfo) {
+function genBaseField (fieldInfo, type) {
   var fieldObject = {}
   fieldObject['name'] = fieldInfo.fieldName.split('#').pop()
   fieldObject['type'] = fieldInfo.fieldType
   fieldObject['nullable'] = true
-  if (fieldInfo.rename !== '' && fieldInfo.fieldName.split('#').pop() !== fieldInfo.rename) {
-    fieldObject['rename'] = fieldInfo.rename
+  if (type === 'source') {
+    if (fieldInfo.rename !== '' && fieldInfo.fieldName.split('#').pop() !== fieldInfo.rename) {
+      fieldObject['rename'] = fieldInfo.rename
+    }
+    if (fieldInfo.fieldType.startsWith(TUPLE)) {
+      fieldObject['type'] = TUPLE
+      fieldObject['tuple_sep'] = fieldInfo.fieldType.split('##')[1]
+    }
   }
-  if (fieldInfo.fieldType.startsWith(TUPLE)) {
-    fieldObject['type'] = TUPLE
-    fieldObject['tuple_sep'] = fieldInfo.fieldType.split('##')[1]
-  }
-
   return fieldObject
 }
 
 // 用户点保存后，最终table数组为array2，调用genSchema方法，生成Json
-export function genSchema (array) {
+export function genSchema (array, type) {
   var fieldsObject = {}
   var fieldsArray = []
   fieldsObject['fields'] = fieldsArray
@@ -278,14 +303,16 @@ export function genSchema (array) {
     if (selectedArray[i].hasOwnProperty('fieldName') && selectedArray[i].fieldName.indexOf('#') === -1) {
       var fieldObject = genBaseField(selectedArray[i])
       if (fieldObject.type === JSONARRAY || fieldObject.type === JSONOBJECT || fieldObject.type.startsWith('tuple')) {
-        fieldObject = genSubField(array.slice(i + 1, selectedArray.length), fieldObject, '')
+        fieldObject = genSubField(array.slice(i + 1, selectedArray.length), fieldObject, '', type)
       }
       fieldsArray.push(fieldObject)
     }
   }
-  var umsArray = genUmsField(array)
-  for (let i = 0; i < umsArray.length; i++) {
-    fieldsArray.push(umsArray[i])
+  if (type === 'source') {
+    var umsArray = genUmsField(array)
+    for (let i = 0; i < umsArray.length; i++) {
+      fieldsArray.push(umsArray[i])
+    }
   }
   return fieldsObject
 }
@@ -444,22 +471,33 @@ function genFinalNameAndType (array) {
 }
 
 // 生成带有默认字段的完整数组，展示在表格中
-export function genDefaultSchemaTable (array) {
-  var arrayFinal = array.map(i => {
-    var temp = Object.assign({}, i, {
-      selected: true,
-      rename: i.fieldName.split('#').pop(),
-      ums_id_: false,
-      ums_ts_: false,
-      ums_op_: '',
-      forbidden: false
+export function genDefaultSchemaTable (array, type) {
+  if (type === 'source') {
+    let arrayFinal = array.map(i => {
+      var temp = Object.assign({}, i, {
+        selected: true,
+        rename: i.fieldName.split('#').pop(),
+        ums_id_: false,
+        ums_ts_: false,
+        ums_op_: '',
+        forbidden: false
+      })
+      return temp
     })
-    return temp
-  })
-  return arrayFinal
+    return arrayFinal
+  } else {
+    let arrayFinal = array.map(i => {
+      var temp = Object.assign({}, i, {
+        selected: true,
+        forbidden: false
+      })
+      return temp
+    })
+    return arrayFinal
+  }
 }
 
-function genSubField (array, fieldObject, prefix) {
+function genSubField (array, fieldObject, prefix, type) {
   if (prefix === '') prefix = `${fieldObject.name}#`
   else prefix = `${prefix}${fieldObject.name}#`
   if (fieldObject.hasOwnProperty('sub_fields')) var subFieldsArray = fieldObject['sub_fields']
@@ -469,7 +507,7 @@ function genSubField (array, fieldObject, prefix) {
       if (array[i].fieldType !== JSONARRAY && array[i].fieldType !== JSONOBJECT && !array[i].fieldType.startsWith('tuple')) {
         subFieldsArray.push(genBaseField(array[i]))
       } else {
-        var object = genBaseField(array[i])
+        var object = genBaseField(array[i], type)
         object = genSubField(array.slice(i + 1, array.length), object, prefix)
         subFieldsArray.push(object)
         if (object.hasOwnProperty('sub_fields')) var step = object.sub_fields.length
