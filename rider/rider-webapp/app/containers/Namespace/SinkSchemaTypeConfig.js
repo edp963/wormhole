@@ -176,6 +176,11 @@ export class SinkSchemaTypeConfig extends React.Component {
     return (
       <Form>
         <Row>
+          <Col span={15} className="schema-table-title"><span>Sink Schema Table：</span></Col>
+          <Col span={2}></Col>
+          <Col span={7} className="schema-json-title"><span>Sink JSON Sample：</span></Col>
+        </Row>
+        <Row>
           <Col span={15} className="schema-config-table">
             <Table
               dataSource={this.state.currentSinkTableData}
