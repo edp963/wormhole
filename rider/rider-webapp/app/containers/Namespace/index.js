@@ -32,6 +32,7 @@ import { isJSONNotEmpty } from '../../utils/util'
 
 import NamespaceForm from './NamespaceForm'
 import SchemaTypeConfig from './SchemaTypeConfig'
+import SinkSchemaTypeConfig from './SinkSchemaTypeConfig'
 import Table from 'antd/lib/table'
 import Icon from 'antd/lib/icon'
 import Input from 'antd/lib/input'
@@ -101,7 +102,6 @@ export class Namespace extends React.PureComponent {
       nsInstanceVal: '',
 
       schemaModalVisible: false,
-      schemaModalLoading: false,
       jsonSampleValue: [],
       umsTableDataSource: [],
       umsTypeSeleted: 'ums',
@@ -109,7 +109,12 @@ export class Namespace extends React.PureComponent {
       repeatRenameArr: [],
       selectAllState: 'all',
       beforesepratorValue: '',
-      umsopRecordValue: -1
+      umsopRecordValue: -1,
+
+      sinkSchemaModalVisible: false,
+      sinkTableDataSource: [],
+      sinkJsonSampleValue: [],
+      sinkSelectAllState: 'all'
     }
   }
 
@@ -190,11 +195,7 @@ export class Namespace extends React.PureComponent {
 
   onInputChange = (value) => (e) => this.setState({ [value]: e.target.value })
 
-  handleEndOpenChange = (status) => {
-    this.setState({
-      filterDatepickerShown: status
-    })
-  }
+  handleEndOpenChange = (status) => this.setState({ filterDatepickerShown: status })
 
   onRangeTimeChange = (value, dateString) => {
     this.setState({
@@ -303,11 +304,7 @@ export class Namespace extends React.PureComponent {
   }
 
   // 点击遮罩层或右上角叉或取消按钮的回调
-  hideForm = () => {
-    this.setState({
-      formVisible: false
-    })
-  }
+  hideForm = () => this.setState({ formVisible: false })
 
   // Modal 完全关闭后的回调
   resetModal = () => {
@@ -422,7 +419,7 @@ export class Namespace extends React.PureComponent {
                   })
                   this.nsKeyAdd(addTableValue, addKeyValue, requestOthers)
                 } else {
-                  if (addKeyValue === undefined || addKeyValue === '') {
+                  if (!addKeyValue) {
                     this.nsErrorMsg('请填写 Key')
                   } else {
                     this.nsKeyAdd(addTableValue, addKeyValue, requestOthers)
@@ -554,7 +551,7 @@ export class Namespace extends React.PureComponent {
       if (nsDsVal === 'redis') {
         this.addTableTemp('')
       } else {
-        if (moadlTempVal.nsSingleKeyValue === '' || moadlTempVal.nsSingleKeyValue === undefined) {
+        if (!moadlTempVal.nsSingleKeyValue) {
           this.nsErrorMsg('请填写 Key')
         } else {
           this.addTableTemp(moadlTempVal.nsSingleKeyValue)
@@ -634,16 +631,13 @@ export class Namespace extends React.PureComponent {
       nsIdValue: record.id
     }, () => {
       if (this.cmSample) {
-        this.cmSample.doc.setValue('')
+        this.cmSample.doc.setValue(this.cmSample.doc.getValue() || '')
       }
-
       this.makeCodeMirrorInstance()
 
-      this.props.onQuerySchemaConfig(record.id, (result) => {
-        if (result === null) {
-          this.schemaTypeConfig.setFieldsValue({
-            umsType: 'ums'
-          })
+      this.props.onQuerySchemaConfig(record.id, 'source', (result) => {
+        if (!result) {
+          this.schemaTypeConfig.setFieldsValue({ umsType: 'ums' })
           this.setState({ umsTypeSeleted: 'ums' })
         } else {
           this.schemaTypeConfig.setFieldsValue({
@@ -655,7 +649,7 @@ export class Namespace extends React.PureComponent {
             if (this.state.umsTypeSeleted === 'ums_extension') {
               this.cmSample.doc.setValue(result.jsonSample)
 
-              setTimeout(() => this.onJsonFormat(), 205)
+              setTimeout(() => this.onJsonFormat, 205)
 
               const tableData = result.umsSchemaTable.map((s, index) => {
                 s.key = index
@@ -685,11 +679,49 @@ export class Namespace extends React.PureComponent {
     })
   }
 
-  initChangeUmsType = (value) => {
+  showEditSink = (record) => (e) => {
     this.setState({
-      umsTypeSeleted: value
+      sinkSchemaModalVisible: true,
+      nsIdValue: record.id
+    }, () => {
+      if (this.cmSinkSample) {
+        this.cmSinkSample.doc.setValue(this.cmSinkSample.doc.getValue() || '')
+      }
+      this.makeSinkCodeMirrorInstance()
+
+      this.props.onQuerySchemaConfig(record.id, 'sink', (result) => {
+        if (result) {
+          this.cmSinkSample.doc.setValue(result.jsonSample)
+
+          setTimeout(() => this.onSinkJsonFormat, 205)
+
+          const tableData = result.schemaTable.map((s, index) => {
+            s.key = index
+            return s
+          })
+          this.setState({
+            sinkTableDataSource: tableData,
+            sinkJsonSampleValue: result.jsonSample
+          }, () => {
+            const tempArr = this.state.sinkTableDataSource.filter(s => !s.forbidden)
+            const selectedArr = tempArr.filter(s => s.selected)
+
+            let tempState = ''
+            if (selectedArr.length !== 0) {
+              tempState = selectedArr.length === tempArr.length ? 'all' : 'part'
+            } else {
+              tempState = 'not'
+            }
+            this.setState({
+              sinkSelectAllState: tempState
+            })
+          })
+        }
+      })
     })
   }
+
+  initChangeUmsType = (value) => this.setState({ umsTypeSeleted: value })
 
   makeCodeMirrorInstance = () => {
     if (!this.cmSample) {
@@ -703,6 +735,21 @@ export class Namespace extends React.PureComponent {
         lineWrapping: true
       })
       this.cmSample.setSize('100%', '528.8px')
+    }
+  }
+
+  makeSinkCodeMirrorInstance = () => {
+    if (!this.cmSinkSample) {
+      const temp = document.getElementById('sinkJsonSampleTextarea')
+
+      this.cmSinkSample = CodeMirror.fromTextArea(temp, {
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        mode: 'application/ld+json',
+        lineWrapping: true
+      })
+      this.cmSinkSample.setSize('100%', '528.8px')
     }
   }
 
@@ -724,11 +771,21 @@ export class Namespace extends React.PureComponent {
     })
   }
 
-  initSelectUmsop = (key) => {
+  hideSinkSchemaModal = () => {
     this.setState({
-      umsopRecordValue: key
+      sinkSchemaModalVisible: false
+    }, () => {
+      this.setState({
+        sinkTableDataSource: []
+      }, () => {
+        if (this.cmSinkSample) {
+          this.cmSinkSample.doc.setValue('')
+        }
+      })
     })
   }
+
+  initSelectUmsop = (key) => this.setState({ umsopRecordValue: key })
 
   onSchemaModalOk = () => {
     if (document.getElementById('sep')) {
@@ -741,92 +798,99 @@ export class Namespace extends React.PureComponent {
         switch (values.umsType) {
           case 'ums':
             const requestValue = {umsType: 'ums'}
-            this.props.onSetSchema(nsIdValue, requestValue, () => {
-              message.success('Schema 配置成功！', 3)
+            this.props.onSetSchema(nsIdValue, requestValue, 'source', () => {
+              message.success('Source Schema 配置成功！', 3)
               this.hideSchemaModal()
             })
             break
           case 'ums_extension':
             const { jsonSampleValue, umsTableDataSource } = this.state
 
-            // 检查rename字段是否有重复, 提示rename重复的位置，数组中的值为rename重复的index
-            const repeatArr = getRepeatFieldIndex(umsTableDataSource)
-
-            const spaceRename = umsTableDataSource.find(s => !s.rename)
-
-            if (spaceRename) {
-              message.error('Rename 不为空！', 3)
-            } else if (repeatArr.length !== 0) {
-              message.error('请修改 Rename 重复项！', 3)
-              this.setState({
-                repeatRenameArr: repeatArr
-              })
+            const jsontemp = this.cmSample.doc.getValue()
+            if (!jsontemp) {
+              message.error('JSON Sample 不为空！', 3)
             } else {
-              this.setState({
-                repeatRenameArr: []
-              })
-
-              // 检查ums_ts_，分别必须得有一个
-              const umsTsExit = umsTableDataSource.find(i => i.ums_ts_ === true)
-              if (!umsTsExit) {
-                message.error('请选择 ums_ts！', 3)
+              if (umsTableDataSource.length === 0) {
+                message.error('Table 不为空！', 3)
               } else {
-                if (document.getElementById('insert')) {
-                  const opInsert = document.getElementById('insert').value
-                  const opUpdate = document.getElementById('update').value
-                  const opDelete = document.getElementById('delete').value
+                // 检查rename字段是否有重复, 提示rename重复的位置，数组中的值为rename重复的index
+                const repeatArr = getRepeatFieldIndex(umsTableDataSource)
 
-                  if (opInsert && opUpdate && opDelete) {
-                    const { umsTableDataSource, umsopRecordValue } = this.state
-                    const originUmsop = umsTableDataSource.find(s => s.ums_op_ !== '')
+                const spaceRename = umsTableDataSource.find(s => !s.rename)
 
-                    const umsopKeyTemp = umsopRecordValue === -1 ? originUmsop.key : umsopRecordValue
-
-                    const textVal = `i:${opInsert},u:${opUpdate},d:${opDelete}`
-                    const tempArr = umsSysFieldSelected(umsTableDataSource, umsopKeyTemp, 'ums_op_', textVal)
-                    this.setState({
-                      umsTableDataSource: tempArr
-                    }, () => {
-                      const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
-
-                      const requestValue = {
-                        umsType: 'ums_extension',
-                        jsonSample: this.cmSample.doc.getValue(),
-                        jsonParseArray: jsonSampleValue,
-                        umsSchemaTable: JSON.parse(tableDataString),
-                        umsSchema: genSchema(this.state.umsTableDataSource) // 生成 umsSchema json
-                      }
-
-                      this.props.onSetSchema(nsIdValue, requestValue, () => {
-                        message.success('Schema 配置成功！', 3)
-                        this.hideSchemaModal()
-                      })
-                    })
-                  } else {
-                    message.error('ums_op_ 配置错误！', 3)
-                  }
-                } else {
-                  const { umsTableDataSource } = this.state
-
-                  const umsArr = umsSysFieldCanceled(umsTableDataSource, 'ums_op_')
+                if (spaceRename) {
+                  message.error('Rename 不为空！', 3)
+                } else if (repeatArr.length !== 0) {
+                  message.error('请修改 Rename 重复项！', 3)
                   this.setState({
-                    umsTableDataSource: umsArr
-                  }, () => {
-                    const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
-
-                    const requestValue = {
-                      umsType: 'ums_extension',
-                      jsonSample: this.cmSample.doc.getValue(),
-                      jsonParseArray: jsonSampleValue,
-                      umsSchemaTable: JSON.parse(tableDataString),
-                      umsSchema: genSchema(umsTableDataSource) // 生成 umsSchema json
-                    }
-
-                    this.props.onSetSchema(nsIdValue, requestValue, () => {
-                      message.success('Schema 配置成功！', 3)
-                      this.hideSchemaModal()
-                    })
+                    repeatRenameArr: repeatArr
                   })
+                } else {
+                  this.setState({ repeatRenameArr: [] })
+
+                  // 检查ums_ts_，分别必须得有一个
+                  const umsTsExit = umsTableDataSource.find(i => i.ums_ts_ === true)
+                  if (!umsTsExit) {
+                    message.error('请选择 ums_ts！', 3)
+                  } else {
+                    if (document.getElementById('insert')) {
+                      const opInsert = document.getElementById('insert').value
+                      const opUpdate = document.getElementById('update').value
+                      const opDelete = document.getElementById('delete').value
+
+                      if (opInsert && opUpdate && opDelete) {
+                        const { umsTableDataSource, umsopRecordValue } = this.state
+                        const originUmsop = umsTableDataSource.find(s => s.ums_op_ !== '')
+
+                        const umsopKeyTemp = umsopRecordValue === -1 ? originUmsop.key : umsopRecordValue
+
+                        const textVal = `i:${opInsert},u:${opUpdate},d:${opDelete}`
+                        const tempArr = umsSysFieldSelected(umsTableDataSource, umsopKeyTemp, 'ums_op_', textVal)
+                        this.setState({
+                          umsTableDataSource: tempArr
+                        }, () => {
+                          const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+
+                          const requestValue = {
+                            umsType: 'ums_extension',
+                            jsonSample: this.cmSample.doc.getValue(),
+                            jsonParseArray: jsonSampleValue,
+                            umsSchemaTable: JSON.parse(tableDataString),
+                            umsSchema: genSchema(this.state.umsTableDataSource, 'source') // 生成 umsSchema json
+                          }
+
+                          this.props.onSetSchema(nsIdValue, requestValue, 'source', () => {
+                            message.success('Source Schema 配置成功！', 3)
+                            this.hideSchemaModal()
+                          })
+                        })
+                      } else {
+                        message.error('ums_op_ 配置错误！', 3)
+                      }
+                    } else {
+                      const { umsTableDataSource } = this.state
+
+                      const umsArr = umsSysFieldCanceled(umsTableDataSource, 'ums_op_')
+                      this.setState({
+                        umsTableDataSource: umsArr
+                      }, () => {
+                        const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+
+                        const requestValue = {
+                          umsType: 'ums_extension',
+                          jsonSample: this.cmSample.doc.getValue(),
+                          jsonParseArray: jsonSampleValue,
+                          umsSchemaTable: JSON.parse(tableDataString),
+                          umsSchema: genSchema(umsTableDataSource, 'source') // 生成 umsSchema json
+                        }
+
+                        this.props.onSetSchema(nsIdValue, requestValue, 'source', () => {
+                          message.success('Source Schema 配置成功！', 3)
+                          this.hideSchemaModal()
+                        })
+                      })
+                    }
+                  }
                 }
               }
             }
@@ -836,8 +900,35 @@ export class Namespace extends React.PureComponent {
     })
   }
 
+  onSinkSchemaModalOk = () => {
+    const { sinkTableDataSource, nsIdValue, sinkJsonSampleValue } = this.state
+
+    if (!this.cmSinkSample.doc.getValue()) {
+      message.error('JSON Sample 不为空！', 3)
+    } else {
+      if (sinkTableDataSource.length === 0) {
+        message.error('Table 不为空！', 3)
+      } else {
+        const tableDataString = JSON.stringify(sinkTableDataSource, ['selected', 'fieldName', 'fieldType', 'forbidden'])
+
+        const requestValue = {
+          jsonSample: this.cmSinkSample.doc.getValue(),
+          jsonParseArray: sinkJsonSampleValue,
+          schemaTable: JSON.parse(tableDataString),
+          schema: genSchema(sinkTableDataSource, 'sink') // 生成 Schema json
+        }
+
+        this.props.onSetSchema(nsIdValue, requestValue, 'sink', () => {
+          message.success('Sink Schema 配置成功！', 3)
+          this.hideSinkSchemaModal()
+        })
+      }
+    }
+  }
+
   onJsonFormat = () => {
     const cmJsonvalue = this.cmSample.doc.getValue()
+
     if (cmJsonvalue === '') {
       message.error('JSON Sample 为空！', 3)
     } else if (!isJSONNotEmpty(cmJsonvalue)) {
@@ -845,6 +936,19 @@ export class Namespace extends React.PureComponent {
     } else {
       const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, 1)
       this.cmSample.doc.setValue(cmJsonvalueFormat || '')
+    }
+  }
+
+  onSinkJsonFormat = () => {
+    const cmJsonvalue = this.cmSinkSample.doc.getValue()
+
+    if (cmJsonvalue === '') {
+      message.error('JSON Sample 为空！', 3)
+    } else if (!isJSONNotEmpty(cmJsonvalue)) {
+      message.error('非 JSON格式！', 3)
+    } else {
+      const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, 1)
+      this.cmSinkSample.doc.setValue(cmJsonvalueFormat || '')
     }
   }
 
@@ -859,11 +963,34 @@ export class Namespace extends React.PureComponent {
       const cmJsonvalue = JSON.parse(this.cmSample.doc.getValue())
       const jsonSmaple = jsonParse(cmJsonvalue, '', [])
 
-      const tableArray = genDefaultSchemaTable(jsonSmaple)
+      const tableArray = genDefaultSchemaTable(jsonSmaple, 'source')
 
       this.setState({
         jsonSampleValue: jsonSmaple,
         umsTableDataSource: tableArray.map((s, index) => {
+          s.key = index
+          return s
+        })
+      })
+    }
+  }
+
+  onChangeSinkJsonToTable = () => {
+    const cmVal = this.cmSinkSample.doc.getValue()
+
+    if (cmVal === '') {
+      message.error('请填写 JSON Sample', 3)
+    } else if (!isJSONNotEmpty(cmVal)) {
+      message.error('非 JSON格式！', 3)
+    } else {
+      const cmJsonvalue = JSON.parse(this.cmSinkSample.doc.getValue())
+      const jsonSmaple = jsonParse(cmJsonvalue, '', [])
+
+      const tableArray = genDefaultSchemaTable(jsonSmaple, 'sink')
+
+      this.setState({
+        sinkJsonSampleValue: jsonSmaple,
+        sinkTableDataSource: tableArray.map((s, index) => {
           s.key = index
           return s
         })
@@ -892,6 +1019,50 @@ export class Namespace extends React.PureComponent {
     })
     this.setState({
       umsTableDataSource: tempData
+    }, () => {
+      const exceptForbidden = this.state.umsTableDataSource.filter(s => !s.forbidden)
+      const exceptSelect = exceptForbidden.filter(s => s.selected)
+      if (exceptSelect) {
+        this.setState({
+          selectAllState: exceptSelect.length === exceptForbidden.length ? 'all' : 'part'
+        })
+      } else {
+        this.setState({
+          selectAllState: 'no'
+        })
+      }
+    })
+  }
+
+  initSinkChangeSelected = (record) => {
+    const { sinkTableDataSource } = this.state
+
+    const tempData = sinkTableDataSource.map(s => {
+      const temp = s.key === record.key
+        ? {
+          fieldName: s.fieldName,
+          fieldType: s.fieldType,
+          forbidden: s.forbidden,
+          key: s.key,
+          selected: !s.selected
+        }
+        : s
+      return temp
+    })
+    this.setState({
+      sinkTableDataSource: tempData
+    }, () => {
+      const exceptForbidden = this.state.sinkTableDataSource.filter(s => !s.forbidden)
+      const exceptSelect = exceptForbidden.filter(s => s.selected)
+      if (exceptSelect) {
+        this.setState({
+          sinkSelectAllState: exceptSelect.length === exceptForbidden.length ? 'all' : 'part'
+        })
+      } else {
+        this.setState({
+          sinkSelectAllState: 'no'
+        })
+      }
     })
   }
 
@@ -911,62 +1082,133 @@ export class Namespace extends React.PureComponent {
       selectAllState: temp
     }, () => {
       let tempArr = []
-      if (this.state.selectAllState === 'all') {
-        tempArr = umsTableDataSource.map(s => {
-          let tempObj = {}
-          if (!s.forbidden) {
-            tempObj = !s.selected
-              ? {
-                fieldName: s.fieldName,
-                fieldType: s.fieldType,
-                forbidden: s.forbidden,
-                key: s.key,
-                rename: s.rename,
-                selected: true,
-                ums_id_: s.ums_id_,
-                ums_op_: s.ums_op_,
-                ums_ts_: s.ums_ts_
-              }
-              : s
-          } else {
-            tempObj = s
-          }
-          return tempObj
-        })
-      } else if (this.state.selectAllState === 'not') {
-        tempArr = umsTableDataSource.map(s => {
-          let tempObj = {}
-          if (!s.forbidden) {
-            tempObj = s.selected
-              ? {
-                fieldName: s.fieldName,
-                fieldType: s.fieldType,
-                forbidden: s.forbidden,
-                key: s.key,
-                rename: s.rename,
-                selected: false,
-                ums_id_: s.ums_id_,
-                ums_op_: s.ums_op_,
-                ums_ts_: s.ums_ts_
-              }
-              : s
-          } else {
-            tempObj = s
-          }
-          return tempObj
-        })
-      } else if (this.state.selectAllState === 'part') {
-        tempArr = umsTableDataSource
+      switch (this.state.selectAllState) {
+        case 'all':
+          tempArr = umsTableDataSource.map(s => {
+            let tempObj = {}
+            if (!s.forbidden) {
+              tempObj = !s.selected
+                ? {
+                  fieldName: s.fieldName,
+                  fieldType: s.fieldType,
+                  forbidden: s.forbidden,
+                  key: s.key,
+                  rename: s.rename,
+                  selected: true,
+                  ums_id_: s.ums_id_,
+                  ums_op_: s.ums_op_,
+                  ums_ts_: s.ums_ts_
+                }
+                : s
+            } else {
+              tempObj = s
+            }
+            return tempObj
+          })
+          break
+        case 'not':
+          tempArr = umsTableDataSource.map(s => {
+            let tempObj = {}
+            if (!s.forbidden) {
+              tempObj = s.selected
+                ? {
+                  fieldName: s.fieldName,
+                  fieldType: s.fieldType,
+                  forbidden: s.forbidden,
+                  key: s.key,
+                  rename: s.rename,
+                  selected: false,
+                  ums_id_: s.ums_id_,
+                  ums_op_: s.ums_op_,
+                  ums_ts_: s.ums_ts_
+                }
+                : s
+            } else {
+              tempObj = s
+            }
+            return tempObj
+          })
+          break
+        case 'part':
+          tempArr = umsTableDataSource
+          break
       }
+
       this.setState({
         umsTableDataSource: tempArr
       })
     })
   }
 
+  initSinkRowSelectedAll = () => {
+    const { sinkTableDataSource, sinkSelectAllState } = this.state
+
+    let temp = ''
+    if (sinkSelectAllState === 'all') {
+      temp = 'not'
+    } else if (sinkSelectAllState === 'not') {
+      temp = 'all'
+    } else if (sinkSelectAllState === 'part') {
+      temp = 'all'
+    }
+
+    this.setState({
+      sinkSelectAllState: temp
+    }, () => {
+      let tempArr = []
+      switch (this.state.sinkSelectAllState) {
+        case 'all':
+          tempArr = sinkTableDataSource.map(s => {
+            let tempObj = {}
+            if (!s.forbidden) {
+              tempObj = !s.selected
+                ? {
+                  fieldName: s.fieldName,
+                  fieldType: s.fieldType,
+                  forbidden: s.forbidden,
+                  key: s.key,
+                  selected: true
+                }
+                : s
+            } else {
+              tempObj = s
+            }
+            return tempObj
+          })
+          break
+        case 'not':
+          tempArr = sinkTableDataSource.map(s => {
+            let tempObj = {}
+            if (!s.forbidden) {
+              tempObj = s.selected
+                ? {
+                  fieldName: s.fieldName,
+                  fieldType: s.fieldType,
+                  forbidden: s.forbidden,
+                  key: s.key,
+                  selected: false
+                }
+                : s
+            } else {
+              tempObj = s
+            }
+            return tempObj
+          })
+          break
+        case 'part':
+          tempArr = sinkTableDataSource
+          break
+      }
+
+      this.setState({
+        sinkTableDataSource: tempArr
+      })
+    })
+  }
+
   umsFieldTypeSelectOk = (recordKey, selectTypeVal) => {
     const { umsTableDataSource } = this.state
-    const umsArr = fieldTypeAlter(umsTableDataSource, recordKey, selectTypeVal)
+    const umsArr = fieldTypeAlter(umsTableDataSource, recordKey, selectTypeVal, 'source')
     this.setState({
       umsTableDataSource: umsArr
     })
@@ -976,7 +1218,7 @@ export class Namespace extends React.PureComponent {
     const { umsTableDataSource } = this.state
 
     const textVal = `tuple##${delimiterValue}##${sizeValue}`
-    const tempArr = fieldTypeAlter(umsTableDataSource, record.key, textVal)
+    const tempArr = fieldTypeAlter(umsTableDataSource, record.key, textVal, 'source')
     this.setState({
       umsTableDataSource: tempArr
     })
@@ -1015,6 +1257,15 @@ export class Namespace extends React.PureComponent {
         })
       })
     }
+  }
+
+  initChangeSinkType = (index, afterType) => {
+    const { sinkTableDataSource } = this.state
+
+    const arr = fieldTypeAlter(sinkTableDataSource, index, afterType, 'sink')
+    this.setState({
+      sinkTableDataSource: arr
+    })
   }
 
   render () {
@@ -1255,13 +1506,33 @@ export class Namespace extends React.PureComponent {
         key: 'action',
         className: `text-align-center ${this.props.namespaceClassHide}`,
         render: (text, record) => {
-          const umsAction = record.nsSys === 'kafka'
-            ? (
-              <Tooltip title="Schema 配置">
-                <Button icon="setting" shape="circle" type="ghost" onClick={this.showEditUms(record)}></Button>
+          let umsAction = ''
+          if (record.nsSys === 'kafka') {
+            umsAction = (
+              <span>
+                <Tooltip title="Source Schema 配置">
+                  <Button shape="circle" type="ghost" onClick={this.showEditUms(record)}>
+                    <i className="iconfont icon-icos"></i>
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Sink Schema 配置">
+                  <Button shape="circle" type="ghost" onClick={this.showEditSink(record)}>
+                    <i className="iconfont icon-ic_Heatsink"></i>
+                  </Button>
+                </Tooltip>
+              </span>
+            )
+          } else if (record.nsSys === 'es' || record.nsSys === 'mongodb') {
+            umsAction = (
+              <Tooltip title="Sink Schema 配置">
+                <Button shape="circle" type="ghost" onClick={this.showEditSink(record)}>
+                  <i className="iconfont icon-ic_Heatsink"></i>
+                </Button>
               </Tooltip>
             )
-            : ''
+          } else {
+            umsAction = ''
+          }
 
           return (
             <span className="ant-table-action-column">
@@ -1374,9 +1645,9 @@ export class Namespace extends React.PureComponent {
             ref={(f) => { this.namespaceForm = f }}
           />
         </Modal>
-        {/* Schema Config Modal */}
+        {/* Source Schema Config Modal */}
         <Modal
-          title="Schema Config"
+          title="Source Schema Config"
           okText="保存"
           wrapClassName="schema-config-modal ums-modal"
           visible={this.state.schemaModalVisible}
@@ -1401,7 +1672,6 @@ export class Namespace extends React.PureComponent {
               key="submit"
               size="large"
               type="primary"
-              loading={this.state.schemaModalLoading}
               onClick={this.onSchemaModalOk}
             >
               保存
@@ -1427,6 +1697,49 @@ export class Namespace extends React.PureComponent {
             repeatRenameArr={this.state.repeatRenameArr}
             selectAllState={this.state.selectAllState}
             ref={(f) => { this.schemaTypeConfig = f }}
+          />
+        </Modal>
+        {/* Sink Schema Config Modal */}
+        <Modal
+          title="Sink Schema Config"
+          okText="保存"
+          wrapClassName="schema-config-modal ums-modal"
+          visible={this.state.sinkSchemaModalVisible}
+          onCancel={this.hideSinkSchemaModal}
+          footer={[
+            <Button
+              key="jsonFormat"
+              type="primary"
+              className="sink-json-format"
+              onClick={this.onSinkJsonFormat}
+            >
+              JSON 格式化
+            </Button>,
+            <Button
+              key="cancel"
+              size="large"
+              onClick={this.hideSinkSchemaModal}
+            >
+              取 消
+            </Button>,
+            <Button
+              key="submit"
+              size="large"
+              type="primary"
+              onClick={this.onSinkSchemaModalOk}
+            >
+              保存
+            </Button>
+          ]}
+        >
+          <SinkSchemaTypeConfig
+            sinkTableDataSource={this.state.sinkTableDataSource}
+            sinkSelectAllState={this.state.sinkSelectAllState}
+            initSinkRowSelectedAll={this.initSinkRowSelectedAll}
+            initSinkChangeSelected={this.initSinkChangeSelected}
+            onChangeSinkJsonToTable={this.onChangeSinkJsonToTable}
+            initChangeSinkType={this.initChangeSinkType}
+            ref={(f) => { this.sinkSchemaTypeConfig = f }}
           />
         </Modal>
       </div>
@@ -1469,8 +1782,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadTableNameExist: (value, resolve, reject) => dispatch(loadTableNameExist(value, resolve, reject)),
     onLoadSingleNamespace: (namespaceId, resolve) => dispatch(loadSingleNamespace(namespaceId, resolve)),
     onLoadSingleInstance: (namespaceId, resolve) => dispatch(loadSingleInstance(namespaceId, resolve)),
-    onSetSchema: (namespaceId, value, resolve) => dispatch(setSchema(namespaceId, value, resolve)),
-    onQuerySchemaConfig: (namespaceId, value, resolve) => dispatch(querySchemaConfig(namespaceId, value, resolve))
+    onSetSchema: (namespaceId, value, type, resolve) => dispatch(setSchema(namespaceId, value, type, resolve)),
+    onQuerySchemaConfig: (namespaceId, value, type, resolve) => dispatch(querySchemaConfig(namespaceId, value, type, resolve))
   }
 }
 
