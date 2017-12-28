@@ -23,7 +23,6 @@ package edp.wormhole.sinks.mongosink
 
 import java.text.SimpleDateFormat
 import java.util
-import java.util.UUID
 
 import edp.wormhole.sinks.mongosink.MongoHelper._
 import com.mongodb.ConnectionString
@@ -90,12 +89,14 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
         val insertDocuments = ListBuffer[Document]()
         tupleList.foreach(payload => {
           val builder = getDocument(schemaMap, payload)
-          if (sinkSpecificConfig._id.nonEmpty && sinkSpecificConfig._id.get.nonEmpty) {
-            val f = sinkSpecificConfig._id.get.split(",").map(keyname => {
-              payload(schemaMap(keyname)._1)
-            }).mkString("_")
-            builder += "_id" -> BsonString(f)
-          }else builder += "_id" -> BsonString(UUID.randomUUID().toString)
+          val f = MongoHelper.getMongoId(payload,sinkSpecificConfig,schemaMap)
+          builder += "_id" -> BsonString(f)
+//          if (sinkSpecificConfig._id.nonEmpty && sinkSpecificConfig._id.get.nonEmpty) {
+//            val f = sinkSpecificConfig._id.get.split(",").map(keyname => {
+//              payload(schemaMap(keyname)._1)
+//            }).mkString("_")
+//            builder += "_id" -> BsonString(f)
+//          }else builder += "_id" -> BsonString(UUID.randomUUID().toString)
           insertDocuments += builder.result()
         })
         if (insertDocuments.nonEmpty) {

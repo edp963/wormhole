@@ -1,4 +1,24 @@
-package edp.wormhole.sinks.jsonsink.mongojsonsink
+/*-
+ * <<
+ * wormhole
+ * ==
+ * Copyright (C) 2016 - 2017 EDP
+ * ==
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * >>
+ */
+
+package edp.wormhole.sinks.mongosink
 
 import javax.net.SocketFactory
 
@@ -6,10 +26,9 @@ import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import com.mongodb.casbah._
 import com.mongodb.casbah.commons.{Imports, MongoDBList, MongoDBObject}
 import com.mongodb.{ReadPreference, WriteConcern, casbah}
-import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.common.util.JsonUtils.json2caseClass
+import edp.wormhole.common.{ConnectionConfig, JsonParseHelper}
 import edp.wormhole.sinks.SourceMutationType.INSERT_ONLY
-import edp.wormhole.sinks.jsonsink.JsonParseHelper
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
@@ -85,20 +104,22 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
     val targetSchemaStr = sinkProcessConfig.jsonSchema.get
     val targetSchemaArr = JSON.parseObject(targetSchemaStr).getJSONArray("fields")
     val keys = sinkProcessConfig.tableKeyList
-    val sinkSpecificConfig = json2caseClass[MongoJsonConfig](sinkProcessConfig.specialConfig.get)
+    val sinkSpecificConfig = json2caseClass[MongoConfig](sinkProcessConfig.specialConfig.get)
     try {
       SourceMutationType.sourceMutationType(sinkSpecificConfig.`mutation_type.get`) match {
         case INSERT_ONLY =>
           logInfo("INSERT_ONLY: " + sinkSpecificConfig.`mutation_type.get`)
           tupleList.foreach(tuple => {
             val result: JSONObject = JsonParseHelper.jsonObjHelper(tuple, sinkMap, targetSchemaArr)
-            save2MongoByI(result, targetSchemaArr, collection)
+            val _id: String = MongoHelper.getMongoId(tuple, sinkSpecificConfig, schemaMap)
+            save2MongoByI(result, targetSchemaArr, collection, _id)
           })
         case _ =>
           logInfo("iud: " + sinkSpecificConfig.`mutation_type.get`)
           tupleList.foreach(tuple => {
             val result: JSONObject = JsonParseHelper.jsonObjHelper(tuple, sinkMap, targetSchemaArr)
-            save2MongoByIud(result, targetSchemaArr, collection, keys)
+            val _id: String = MongoHelper.getMongoId(tuple, sinkSpecificConfig, schemaMap)
+            save2MongoByIud(result, targetSchemaArr, collection, keys, _id)
           })
       }
     } catch {
@@ -134,15 +155,15 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
         }
         builder += name -> list(toUpsert: _*)
       } else if (dataType.endsWith("array")) {
-          val jsonArray = jsonData.getJSONArray(name)
-          val toUpsert = ListBuffer.empty[Any]
-          val size = jsonArray.size()
-          for (i <- 0 until size) {
-            toUpsert.append(jsonArray.get(i))
-          }
-          builder += name -> toUpsert
+        val jsonArray = jsonData.getJSONArray(name)
+        val toUpsert = ListBuffer.empty[Any]
+        val size = jsonArray.size()
+        for (i <- 0 until size) {
+          toUpsert.append(jsonArray.get(i))
+        }
+        builder += name -> toUpsert
       } else {
-       builder += name -> JsonParseHelper.parseData2CorrectType(dataType, jsonData.getString(name))
+        builder += name -> JsonParseHelper.parseData2CorrectType(UmsFieldType.umsFieldType(dataType), jsonData.getString(name), name)._2
       }
     }
   }
@@ -155,33 +176,28 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
       constructBuilder(jsonData, jsonObj, builder)
 
     }
-    // builder += "_id" -> 123
+
     builder.result()
   }
 
-  private def save2MongoByIud(jsonData: JSONObject, subFields: JSONArray, collection: MongoCollection, keys: Seq[String]) = {
+  private def save2MongoByIud(jsonData: JSONObject, subFields: JSONArray, collection: MongoCollection, keys: Seq[String], _id: String) = {
     val result: casbah.commons.Imports.DBObject = constructBuilder(jsonData: JSONObject, subFields: JSONArray)
     val builder = MongoDBObject.newBuilder
-    keys.foreach(key => {
-      builder += key -> result.get(key)
-    })
+    builder += "_id" -> _id
     val condition = builder.result
     val findResult = collection.findOne(condition)
     if (findResult.isDefined) {
       val umsIdInMongo = findResult.get.get(UmsSysField.ID.toString).toString.toLong
-      val _idInMongo = findResult.get.get("_id")
       val umsIdInStream = result.get(UmsSysField.ID.toString).toString.toLong
-      if (umsIdInStream > umsIdInMongo) {
-        result.put("_id",_idInMongo)
-        collection.save(result)
-      }
+      if (umsIdInStream > umsIdInMongo)  collection.save(result)
     } else {
       collection.save(result)
     }
   }
 
-  private def save2MongoByI(jsonData: JSONObject, subFields: JSONArray, collection: MongoCollection) = {
+  private def save2MongoByI(jsonData: JSONObject, subFields: JSONArray, collection: MongoCollection, _id: String) = {
     val result: casbah.commons.Imports.DBObject = constructBuilder(jsonData: JSONObject, subFields: JSONArray)
+    result.put("_id", _id)
     collection.insert(result)
   }
 }
