@@ -50,7 +50,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     val columnNumber: Int = schemaStringAndColumnNumber._2
     val valueStrByPlaceHolder: String = getStrByPlaceHolder(columnNumber) //format (?,?,?,?,?)
     val tableKeys=sinkProcessConfig.tableKeyList
-    val tableKeysIndex =tableKeys.map(key=>schemaMap(key)._1)
+    val tableKeysInfo: List[(Int, UmsFieldType)] =tableKeys.map(key=>(schemaMap(key)._1,schemaMap(key)._2))
     // val connectionConfig = getDataStoreConnectionsMap(sinkNamespace)
     val cassandraSpecialConfig =json2caseClass[CassandraConfig](sinkProcessConfig.specialConfig.get)
     val user: String = if (connectionConfig.username.isDefined) connectionConfig.username.get else null
@@ -70,7 +70,8 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     val session = CassandraConnection.getSession(sortedAddressList, user, password)
     val tupleFilterList: Seq[Seq[String]] =SourceMutationType.sourceMutationType(cassandraSpecialConfig.`mutation_type.get`) match {
       case SourceMutationType.I_U_D =>
-        val filterableStatement=checkTableBykey(keyspace,table,tableKeys,tableKeysIndex,tupleList)
+        val filterableStatement=checkTableBykey(keyspace,table,tableKeys,tableKeysInfo,tupleList)
+        logInfo("==================filtersql=============="+filterableStatement)
         val filterRes=session.execute(filterableStatement).all()
         val dataMap = mutable.HashMap.empty[String,Long]
         import collection.JavaConversions._
@@ -192,25 +193,35 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     temp
   }
 
-  private def checkTableBykey(keyspace: String, table: String,tableKeys:List[String],valueList:List[Int],tupleList:Seq[Seq[String]])={
+  private def checkTableBykey(keyspace: String, table: String,tableKeys:List[String],tableKeysInfo:List[(Int, UmsFieldType)],tupleList:Seq[Seq[String]])={
     val firstPk=tableKeys.head
-    val firstPkValues=tupleList.map(tuple=>tuple(valueList.head)).mkString("(",",",")")
+    val firstPkValues=tupleList.map(tuple=>{
+      if(tableKeysInfo.head._2==UmsFieldType.STRING) "'"+tuple(tableKeysInfo.head._1)+"'"
+      else tuple(tableKeysInfo.head._1)
+    }).mkString("(",",",")")
     val selectColumns=tableKeys.mkString(",")+","+UmsSysField.ID.toString
     val tableKeySize=tableKeys.size
     if (tableKeySize==1){
       "SELECT "+selectColumns+" from "+keyspace+"."+table+" where "+firstPk+" in "+firstPkValues+";"
     }
-    else{
-      val otherPks=tableKeys.slice(1,tableKeySize).mkString("(",",",")")
+    else if (tableKeySize==2){
+      val otherPks=tableKeys(1)
       val otherPkValue=tupleList.map(tuple=>{
-        var tupleRes="("
-        for (i<- 1 to valueList.size){
-          tupleRes=tupleRes+tuple(valueList(i))
-        }
-        tupleRes=tupleRes+")"
-        tupleRes
+          if(tableKeysInfo(1)._2==UmsFieldType.STRING) "'"+tuple(tableKeysInfo(1)._1)+"'"
+          else tuple(tableKeysInfo(1)._1)
       }).mkString("(",",",")")
 
+      "SELECT "+selectColumns+" from "+keyspace+"."+table+" where "+firstPk+" in "+firstPkValues+" and "+otherPks+" in "+otherPkValue+";"
+    }
+    else {
+      val otherPks=tableKeys.slice(1,tableKeySize).mkString("(",",",")")
+      val otherPkValue=tupleList.map(tuple=>{
+        val tmpValue=for (i<- 1 until tableKeysInfo.size){
+          if(tableKeysInfo(i)._2==UmsFieldType.STRING) "'"+tuple(tableKeysInfo(i)._1)+"'"
+          else tuple(tableKeysInfo(i)._1)
+        }.mkString("(",",",")")
+        tmpValue
+      }).mkString("(",",",")")
 
       "SELECT "+selectColumns+" from "+keyspace+"."+table+" where "+firstPk+" in "+firstPkValues+" and "+otherPks+" in "+otherPkValue+";"
     }
