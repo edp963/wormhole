@@ -408,7 +408,7 @@ export class Namespace extends React.PureComponent {
             }
 
             if (namespaceTableSource.length === 0) {
-              if (addTableValue === undefined || addTableValue === '') {
+              if (!addTableValue) {
                 this.nsErrorMsg(values.dataBaseDataSystem === 'es' ? '请填写 Type' : '请填写 Table')
               } else {
                 if (values.dataBaseDataSystem === 'redis') {
@@ -539,7 +539,8 @@ export class Namespace extends React.PureComponent {
 
     const moadlTempVal = this.namespaceForm.getFieldsValue()
 
-    if (moadlTempVal.dataBaseDataSystem === undefined || moadlTempVal.connectionUrl === undefined || moadlTempVal.instance === undefined || moadlTempVal.nsDatabase === undefined) {
+    if (moadlTempVal.dataBaseDataSystem === undefined || moadlTempVal.connectionUrl === undefined ||
+      moadlTempVal.instance === undefined || moadlTempVal.nsDatabase === undefined) {
       this.nsErrorMsg('请先选择其他项')
     } else if (moadlTempVal.nsSingleTableName === '' || moadlTempVal.nsSingleTableName === undefined) {
       this.nsErrorMsg(nsDsVal === 'es' ? '请填写 Type' : '请填写 Table')
@@ -649,7 +650,7 @@ export class Namespace extends React.PureComponent {
             if (this.state.umsTypeSeleted === 'ums_extension') {
               this.cmSample.doc.setValue(result.jsonSample)
 
-              setTimeout(() => this.onJsonFormat, 205)
+              setTimeout(() => this.onJsonFormat(), 205)
 
               const tableData = result.umsSchemaTable.map((s, index) => {
                 s.key = index
@@ -693,7 +694,7 @@ export class Namespace extends React.PureComponent {
         if (result) {
           this.cmSinkSample.doc.setValue(result.jsonSample)
 
-          setTimeout(() => this.onSinkJsonFormat, 205)
+          setTimeout(() => this.onSinkJsonFormat(), 205)
 
           const tableData = result.schemaTable.map((s, index) => {
             s.key = index
@@ -762,10 +763,6 @@ export class Namespace extends React.PureComponent {
         umsTypeSeleted: 'ums',
         umsopRecordValue: -1,
         repeatRenameArr: []
-      }, () => {
-        if (this.cmSample) {
-          this.cmSample.doc.setValue('')
-        }
       })
       this.schemaTypeConfig.resetFields()
     })
@@ -777,10 +774,6 @@ export class Namespace extends React.PureComponent {
     }, () => {
       this.setState({
         sinkTableDataSource: []
-      }, () => {
-        if (this.cmSinkSample) {
-          this.cmSinkSample.doc.setValue('')
-        }
       })
     })
   }
@@ -850,13 +843,14 @@ export class Namespace extends React.PureComponent {
                           umsTableDataSource: tempArr
                         }, () => {
                           const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+                          const tableDataStringTemp = JSON.stringify(this.state.umsTableDataSource, ['key', 'selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
 
                           const requestValue = {
                             umsType: 'ums_extension',
                             jsonSample: this.cmSample.doc.getValue(),
                             jsonParseArray: jsonSampleValue,
                             umsSchemaTable: JSON.parse(tableDataString),
-                            umsSchema: genSchema(this.state.umsTableDataSource, 'source') // 生成 umsSchema json
+                            umsSchema: genSchema(JSON.parse(tableDataStringTemp), 'source') // 生成 umsSchema json
                           }
 
                           this.props.onSetSchema(nsIdValue, requestValue, 'source', () => {
@@ -875,13 +869,14 @@ export class Namespace extends React.PureComponent {
                         umsTableDataSource: umsArr
                       }, () => {
                         const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+                        const tableDataStringTemp = JSON.stringify(this.state.umsTableDataSource, ['key', 'selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
 
                         const requestValue = {
                           umsType: 'ums_extension',
                           jsonSample: this.cmSample.doc.getValue(),
                           jsonParseArray: jsonSampleValue,
                           umsSchemaTable: JSON.parse(tableDataString),
-                          umsSchema: genSchema(umsTableDataSource, 'source') // 生成 umsSchema json
+                          umsSchema: genSchema(JSON.parse(tableDataStringTemp), 'source') // 生成 umsSchema json
                         }
 
                         this.props.onSetSchema(nsIdValue, requestValue, 'source', () => {
@@ -911,11 +906,14 @@ export class Namespace extends React.PureComponent {
       } else {
         const tableDataString = JSON.stringify(sinkTableDataSource, ['selected', 'fieldName', 'fieldType', 'forbidden'])
 
+        // 调用genSchema函数后，不改变原this.stata.sinkTableDataSource
+        const tableDataStringTemp = JSON.stringify(sinkTableDataSource, ['selected', 'fieldName', 'fieldType', 'forbidden', 'key'])
+
         const requestValue = {
           jsonSample: this.cmSinkSample.doc.getValue(),
           jsonParseArray: sinkJsonSampleValue,
           schemaTable: JSON.parse(tableDataString),
-          schema: genSchema(sinkTableDataSource, 'sink') // 生成 Schema json
+          schema: genSchema(JSON.parse(tableDataStringTemp), 'sink') // 生成 Schema json
         }
 
         this.props.onSetSchema(nsIdValue, requestValue, 'sink', () => {
