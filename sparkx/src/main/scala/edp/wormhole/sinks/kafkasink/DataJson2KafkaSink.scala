@@ -1,13 +1,12 @@
-package edp.wormhole.sinks.jsonsink.kafkajsonsink
+package edp.wormhole.sinks.kafkasink
 
-import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.common.ConnectionConfig
+import com.alibaba.fastjson.JSON
+import edp.wormhole.common.{ConnectionConfig, JsonParseHelper}
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.sinks.jsonsink.JsonParseHelper
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
-import edp.wormhole.ums.{UmsFieldType, UmsProtocol}
+import edp.wormhole.ums.UmsProtocol
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 
 class DataJson2KafkaSink extends SinkProcessor with EdpLogging {
