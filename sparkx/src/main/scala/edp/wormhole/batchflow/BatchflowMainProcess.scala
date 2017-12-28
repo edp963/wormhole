@@ -496,7 +496,13 @@ object BatchflowMainProcess extends EdpLogging {
 
         //  sendList.foreach(data=>logInfo("before merge:"+data))
         logInfo(uuid + ",@sendList size: " + sendList.size + " saveList size: " + saveList.size)
-        val mergeSendList: Seq[Seq[String]] = if (sinkProcessConfig.specialConfig.isDefined && sinkProcessConfig.specialConfig.get.indexOf("\"i\"") < 0) mergeTuple(sendList, resultSchemaMap, sinkProcessConfig.tableKeyList) else sendList
+        val mergeSendList: Seq[Seq[String]] = if (sinkProcessConfig.specialConfig.isDefined && sinkProcessConfig.specialConfig.get.indexOf("\"i\"") < 0) {
+          logInfo(uuid + "special config not i, merge happen")
+          mergeTuple(sendList, resultSchemaMap, sinkProcessConfig.tableKeyList)
+        } else {
+          logInfo(uuid + "special config is i, merge not happen")
+          sendList
+        }
         logInfo(uuid + ",@mergeSendList size: " + mergeSendList.size)
         //        mergeSendList.foreach(data=>logInfo("after merge:"+data))
 
