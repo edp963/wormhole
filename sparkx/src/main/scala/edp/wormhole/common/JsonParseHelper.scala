@@ -1,11 +1,13 @@
-package edp.wormhole.sinks.jsonsink
+package edp.wormhole.common
 
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
+import edp.wormhole.common.WormholeDefault.isNull
+import edp.wormhole.common.util.CommonUtils
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
-import edp.wormhole.ums.UmsSysField
+import edp.wormhole.ums.{UmsActiveType, UmsFieldType, UmsOpType, UmsSysField}
 
 object JsonParseHelper {
-   def jsonObjHelper(tuple: Seq[String], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], subFields: JSONArray): JSONObject = {
+  def jsonObjHelper(tuple: Seq[String], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], subFields: JSONArray): JSONObject = {
     val outputJson = new JSONObject()
     val size = subFields.size()
     for (i <- 0 until size) {
@@ -61,24 +63,31 @@ object JsonParseHelper {
     } else if (dataType.endsWith("array")) {
       JSON.parseArray(data)
     } else {
-      if (outerName == UmsSysField.ACTIVE.toString)
-        data match {
-          case "i" | "u" => 1
-          case "d" => 0
-          case _ => -1
-        } else {
-        parseData2CorrectType(dataType, data)
-      }
+      parseData2CorrectType(UmsFieldType.umsFieldType(dataType), data, outerName)._2
     }
   }
-   def parseData2CorrectType(dataType: String, data: String): Any = {
-    dataType.toLowerCase match {
-      case "int" => data.toInt
-      case "long" => data.toLong
-      case "double" => data.toDouble
-      case "float" => data.toFloat
-      case "boolean" => data.toBoolean
-      case _ => data
+
+  def parseData2CorrectType(dataType: UmsFieldType, field: String, name: String): (String,Any) = {
+    dataType match {
+      case UmsFieldType.STRING =>
+        if (name == UmsSysField.OP.toString) {
+          UmsOpType.umsOpType(field) match {
+            case UmsOpType.UPDATE => (UmsSysField.ACTIVE.toString,UmsActiveType.ACTIVE)
+            case UmsOpType.INSERT => (UmsSysField.ACTIVE.toString,UmsActiveType.ACTIVE)
+            case UmsOpType.DELETE => (UmsSysField.ACTIVE.toString,UmsActiveType.INACTIVE)
+          }
+        } else (name,field)
+      case UmsFieldType.INT => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim.toInt)
+      case UmsFieldType.BINARY => if (isNull(field) || field.isEmpty) (name,null) else (name,CommonUtils.base64byte2s(field.trim.getBytes()))
+      case UmsFieldType.LONG =>
+        if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim.toLong)
+      case UmsFieldType.FLOAT => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim.toFloat)
+      case UmsFieldType.DOUBLE => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim.toDouble)
+      case UmsFieldType.DECIMAL => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim.toDouble)
+      case UmsFieldType.BOOLEAN => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim.toBoolean)
+      case UmsFieldType.DATE => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim)
+      case UmsFieldType.DATETIME => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim)
+      case _ => if (isNull(field) || field.isEmpty) (name,null ) else (name,field.trim)
     }
   }
 }
