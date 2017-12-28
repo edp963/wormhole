@@ -188,7 +188,7 @@ export function* setSchema ({ payload }) {
   try {
     const result = yield call(request, {
       method: 'put',
-      url: `${api.namespace}/${payload.namespaceId}/schema`,
+      url: `${api.namespace}/${payload.namespaceId}/schema/${payload.type}`,
       data: payload.value
     })
     yield put(schemaSetted(result.payload, payload.resolve))
@@ -203,7 +203,7 @@ export function* setSchemaWatcher () {
 
 export function* querySchema ({ payload }) {
   try {
-    const result = yield call(request, `${api.namespace}/${payload.namespaceId}/schema`)
+    const result = yield call(request, `${api.namespace}/${payload.namespaceId}/schema/${payload.type}`)
     yield put(schemaConfigQueried(result.payload, payload.resolve))
   } catch (err) {
     yield put(getError())
