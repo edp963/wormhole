@@ -1,5 +1,7 @@
 package edp.wormhole.sinks.kafkasink
 
+import java.util.UUID
+
 import com.alibaba.fastjson.JSON
 import edp.wormhole.common.{ConnectionConfig, JsonParseHelper}
 import edp.wormhole.kafka.WormholeKafkaProducer
@@ -25,7 +27,7 @@ class DataJson2KafkaSink extends SinkProcessor with EdpLogging {
     val targetSchemaArr = JSON.parseObject(targetSchemaStr).getJSONArray("fields")
     tupleList.foreach(tuple => {
       val value = JsonParseHelper.jsonObjHelper(tuple, schemaMap, targetSchemaArr)
-      WormholeKafkaProducer.sendMessage(kafkaTopic, value.toJSONString, Some(protocol + "." + sinkNamespace), connectionConfig.connectionUrl)
+      WormholeKafkaProducer.sendMessage(kafkaTopic, value.toJSONString, Some(protocol + "." + sinkNamespace+"..."+UUID.randomUUID().toString), connectionConfig.connectionUrl)
     }
     )
   }
