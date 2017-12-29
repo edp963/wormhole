@@ -60,7 +60,7 @@ object MongoHelper {
   def getMongoId(tuple:Seq[String],sinkSpecificConfig: MongoConfig,schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): String ={
     val _ids = ListBuffer.empty[String]
     if (sinkSpecificConfig._id.nonEmpty&&sinkSpecificConfig._id.get.nonEmpty){
-      sinkSpecificConfig._id.get.toLowerCase.split(",").foreach(keyname => {
+      sinkSpecificConfig._id.get.split(",").foreach(keyname => {
         val (index, _, _) = schemaMap(keyname)
         _ids += tuple(index)
       })
