@@ -78,11 +78,11 @@ object RouterMainProcess extends EdpLogging {
                   val messageBuf = new StringBuilder
                   messageBuf ++= prefix ++= sinkNamespace ++= suffix
                   val kafkaMessage = messageBuf.toString
-                  WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + sinkNamespace), kafkaBroker)
+                  WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + sinkNamespace+"..."+UUID.randomUUID().toString), kafkaBroker)
                 }
               } else {
                 routerMap(namespace.toLowerCase)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
-                  WormholeKafkaProducer.sendMessage(kafkaTopic, value, Some(protocolType + "." + sinkNamespace), kafkaBroker)
+                  WormholeKafkaProducer.sendMessage(kafkaTopic, value, Some(protocolType + "." + sinkNamespace+"..."+UUID.randomUUID().toString), kafkaBroker)
                 }
               }
             }
