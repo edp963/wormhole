@@ -44,7 +44,7 @@ object EsTools extends EdpLogging{
   def getEsId(tuple:Seq[String],sinkSpecificConfig: EsConfig,schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): String ={
     val _ids = ListBuffer.empty[String]
     if (sinkSpecificConfig._id.nonEmpty&&sinkSpecificConfig._id.get.nonEmpty){
-      sinkSpecificConfig._id.get.toLowerCase.split(",").foreach(keyname => {
+      sinkSpecificConfig._id.get.split(",").foreach(keyname => {
         val (index, _, _) = schemaMap(keyname)
         _ids += tuple(index)
       })
