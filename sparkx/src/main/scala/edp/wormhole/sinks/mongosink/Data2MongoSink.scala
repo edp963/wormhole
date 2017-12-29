@@ -65,9 +65,10 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
           val builder = getDocument(schemaMap, payload)
           try {
             val keyFilter = {
-              val f = sinkSpecificConfig._id.get.split(",").map(keyname => {
-                payload(schemaMap(keyname)._1)
-              }).mkString("_")
+//              val f = sinkSpecificConfig._id.get.split(",").map(keyname => {
+//                payload(schemaMap(keyname)._1)
+//              }).mkString("_")
+              val f = MongoHelper.getMongoId(payload,sinkSpecificConfig,schemaMap)
               builder += "_id" -> BsonString(f)
               and(equal("_id", f))
             }
