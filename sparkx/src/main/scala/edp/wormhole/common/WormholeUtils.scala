@@ -135,7 +135,7 @@ object WormholeUtils extends EdpLogging {
       }
       else if (dataTypeProcessed == "jsonarray") {
         val subFieldsInfo: Seq[FieldInfo] = fieldInfo.subFields.get
-        val arrayParse = jsonParse.getJSONArray(name)
+        val arrayParse = jsonValue.getJSONArray(name)
         for (i <- 0 until arrayParse.size()) {
           val jsonDetail = subFieldsInfo(i)
           val content = arrayParse.getJSONObject(i)
