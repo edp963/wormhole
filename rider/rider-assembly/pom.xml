@@ -28,11 +28,11 @@
             <artifactId>wormhole-rider-server_${ums.version}</artifactId>
             <version>0.4.0-SNAPSHOTS</version>
         </dependency>
-        <dependency>
-            <groupId>edp.wormhole</groupId>
-            <artifactId>wormhole-mad-server_${ums.version}</artifactId>
-            <version>0.4.0-SNAPSHOTS</version>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>edp.wormhole</groupId>-->
+            <!--<artifactId>wormhole-mad-server_${ums.version}</artifactId>-->
+            <!--<version>0.4.0-SNAPSHOTS</version>-->
+        <!--</dependency>-->
     </dependencies>
 
     <build>
