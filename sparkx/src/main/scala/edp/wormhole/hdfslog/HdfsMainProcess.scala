@@ -72,8 +72,6 @@ object HdfsMainProcess extends EdpLogging {
         if (SparkUtils.isLocalMode(config.spark_config.master)) logWarning("rdd count ===> " + streamRdd.count())
         val directiveTs = System.currentTimeMillis
         HdfsDirective.doDirectiveTopic(config, stream)
-
-
         streamRdd.asInstanceOf[HasOffsetRanges].offsetRanges.copyToBuffer(offsetInfo)
 
         val streamTransformedRdd: RDD[((String, String), String)] = streamRdd.map(message => {
@@ -89,12 +87,11 @@ object HdfsMainProcess extends EdpLogging {
         val validNameSpaceMap: Map[String, Int] = directiveNamespaceRule.toMap //validNamespaceMap is NOT real namespace, has *
         val jsonInfoMap: Map[String, (Seq[FieldInfo], ArrayBuffer[(String, String)], Seq[UmsField])] = jsonSourceMap.toMap
         val mainDataTs = System.currentTimeMillis
-        val partitionResultRdd = dataParRdd.mapPartitions(partition => {
+        val partitionResultRdd = dataParRdd.mapPartitionsWithIndex { case (index, partition) =>
           // partition: ((protocol,namespace), message.value)
           val resultList = ListBuffer.empty[PartitionResult]
           val namespaceMap = mutable.HashMap.empty[(String, String), Int] //real namespace, do not have *
           val dataList = partition.toList
-
           dataList.foreach(data => {
             val result: Map[String, Int] = checkValidNamespace(data._1._2, validNameSpaceMap)
             if (result.nonEmpty && (data._1._1 == UmsProtocolType.DATA_INITIAL_DATA.toString || data._1._1 == UmsProtocolType.DATA_INCREMENT_DATA.toString)) {
@@ -105,19 +102,21 @@ object HdfsMainProcess extends EdpLogging {
                 namespaceMap((UmsProtocolType.DATA_INCREMENT_DATA.toString, data._1._2)) = hour
             }
           })
+          logInfo("check namespace ok. all data num="+dataList.size)
 
           namespaceMap.foreach { case ((protocol, namespace), hour) =>
             val namespaceDataList = ListBuffer.empty[String]
             dataList.foreach(data => {
               if (data._1._1 == protocol && data._1._2 == namespace) namespaceDataList.append(data._2)
             })
+            logInfo("protocol="+protocol+",namespace="+namespace+",data num="+namespaceDataList.size)
             var tmpMinTs = ""
             var tmpMaxTs = ""
             var tmpCount = 0
             try {
               if (namespaceDataList.nonEmpty) {
                 val tmpResult: PartitionResult =
-                  doMainData(protocol, namespace, namespaceDataList, config, hour, namespace2FileMap, zookeeperPath, jsonInfoMap)
+                  doMainData(protocol, namespace, namespaceDataList, config, hour, namespace2FileMap, zookeeperPath, jsonInfoMap, index)
                 tmpMinTs = tmpResult.minTs
                 tmpMaxTs = tmpResult.maxTs
                 tmpCount = tmpResult.allCount
@@ -130,7 +129,7 @@ object HdfsMainProcess extends EdpLogging {
             }
           }
           resultList.toIterator
-        }).cache
+        }.cache
 
         partitionResultRdd.collect.foreach(eachResult => {
           if (!namespace2FileStore.contains((eachResult.protocol, eachResult.namespace)))
@@ -160,17 +159,20 @@ object HdfsMainProcess extends EdpLogging {
   }
 
 
-  private def createFile(message: String, filePrefixShardingSlash: String, configuration: Configuration, minTs: String, maxTs: String, zookeeperPath: String): (String, String) = {
+  private def createFile(message: String, filePrefixShardingSlash: String, configuration: Configuration, minTs: String,
+                         maxTs: String, zookeeperPath: String, index: Int): (String, String) = {
 
     //    val filePrefixShardingSlashSplit = filePrefixShardingSlash.split("/")
     //    val length = filePrefixShardingSlashSplit.length
     //    val nodePath = WormholeConstants.CheckpointRootPath + hdfsLog + filePrefixShardingSlashSplit.slice(length - 5, length).mkString("/")
     val processTime = currentyyyyMMddHHmmssmls
-    val incrementalId = currentyyyyMMddHHmmss
+    val incrementalId = currentyyyyMMddHHmmss + "" + index
     //WormholeZkClient.getNextAtomicIncrement(zookeeperPath, nodePath)
     val metaName = if (minTs == null) filePrefixShardingSlash + "wrong" + "/" + "metadata_" + incrementalId else filePrefixShardingSlash + "right" + "/" + "metadata_" + incrementalId
     val metaContent: String = if (minTs == null) incrementalId + "_" + "0_" + processTime + "_" + processTime else incrementalId + "_" + "0_" + processTime + "_" + minTs + "_" + maxTs
     val dataName = if (minTs == null) filePrefixShardingSlash + "wrong" + "/" + incrementalId else filePrefixShardingSlash + "right" + "/" + incrementalId
+    logInfo("dataName:" + dataName)
+    logInfo("metaName:" + metaName)
     createPath(configuration, metaName)
     createPath(configuration, dataName)
     writeString(metaContent, metaName)
@@ -219,7 +221,7 @@ object HdfsMainProcess extends EdpLogging {
 
   private def writeAndCreateFile(currentMetaContent: String, fileName: String, configuration: Configuration, input: ByteArrayOutputStream,
                                  content: Array[Byte], message: String, minTs: String, maxTs: String, finalMinTs: String, finalMaxTs: String,
-                                 splitMark: Array[Byte], zookeeperPath: String) = {
+                                 splitMark: Array[Byte], zookeeperPath: String, index: Int) = {
     val metaName = getMetaName(fileName)
     setMetaDataFinished(metaName, currentMetaContent, configuration, minTs, finalMinTs, finalMaxTs)
     val bytes = input.toByteArray
@@ -231,7 +233,7 @@ object HdfsMainProcess extends EdpLogging {
     val slashPosition = fileName.lastIndexOf("/")
     val filePrefix = fileName.substring(0, slashPosition + 1)
     val filePrefixShardingSlash = filePrefix.substring(0, filePrefix.length - 6)
-    val (newMeta, newFileName) = createFile(message, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath)
+    val (newMeta, newFileName) = createFile(message, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
     currentSize += content.length + splitMark.length
     input.write(content)
     input.write(splitMark)
@@ -240,7 +242,7 @@ object HdfsMainProcess extends EdpLogging {
 
   private def doMainData(protocol: String, namespace: String, dataList: Seq[String], config: WormholeConfig, hour: Int,
                          namespace2FileMap: Map[(String, String), mutable.HashMap[String, (String, Int, String)]],
-                         zookeeperPath: String, jsonInfoMap: Map[String, (Seq[FieldInfo], ArrayBuffer[(String, String)], Seq[UmsField])]): PartitionResult = {
+                         zookeeperPath: String, jsonInfoMap: Map[String, (Seq[FieldInfo], ArrayBuffer[(String, String)], Seq[UmsField])], index: Int): PartitionResult = {
     var valid = true
     val namespaceSplit = namespace.split("\\.")
     val namespaceDb = namespaceSplit.slice(0, 3).mkString(".")
@@ -290,7 +292,7 @@ object HdfsMainProcess extends EdpLogging {
         }
 
         if (minTs == null && errorFileName == null) {
-          val (meta, name) = createFile(data, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath)
+          val (meta, name) = createFile(data, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
           errorFileName = name
           currentErrorMetaContent = meta
           errorCurrentSize = 0
@@ -304,7 +306,7 @@ object HdfsMainProcess extends EdpLogging {
           val originalProcessTime = metaContentSplit(length - 2)
           if (dt2timestamp(dt2dateTime(originalProcessTime).plusHours(hour)).compareTo(dt2timestamp(dt2dateTime(currentyyyyMMddHHmmssmls))) < 0) {
             setMetaDataFinished(errorMetaName, metaContent, configuration, minTs, finalMinTs, finalMaxTs)
-            val (meta, name) = createFile(data, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath)
+            val (meta, name) = createFile(data, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
             errorFileName = name
             currentErrorMetaContent = meta
             errorCurrentSize = 0
@@ -312,7 +314,7 @@ object HdfsMainProcess extends EdpLogging {
         }
 
         if (minTs != null && correctFileName == null) {
-          val (meta, name) = createFile(data, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath)
+          val (meta, name) = createFile(data, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
           correctFileName = name
           currentCorrectMetaContent = meta
           correctCurrentSize = 0
@@ -328,7 +330,7 @@ object HdfsMainProcess extends EdpLogging {
           val originalProcessTime = metaContentSplit(length - 3)
           if (dt2timestamp(dt2dateTime(originalProcessTime).plusHours(hour)).compareTo(dt2timestamp(dt2dateTime(currentyyyyMMddHHmmssmls))) < 0) {
             setMetaDataFinished(correctMetaName, metaContent, configuration, minTs, finalMinTs, finalMaxTs)
-            val (meta, name) = createFile(data, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath)
+            val (meta, name) = createFile(data, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
             correctFileName = name
             currentCorrectMetaContent = meta
             correctCurrentSize = 0
@@ -348,7 +350,7 @@ object HdfsMainProcess extends EdpLogging {
             currentErrorMetaContent = currentErrorMetaContent.substring(0, indexLastUnderScore + 1) + currentyyyyMMddHHmmssmls
           } else {
             val errorTuple = writeAndCreateFile(currentErrorMetaContent, errorFileName, configuration, inputError,
-              content, data, minTs, maxTs, finalMinTs, finalMaxTs, splitMark, zookeeperPath)
+              content, data, minTs, maxTs, finalMinTs, finalMaxTs, splitMark, zookeeperPath, index)
             errorFileName = errorTuple._1
             currentErrorMetaContent = errorTuple._2
             errorCurrentSize = errorTuple._3
@@ -364,7 +366,7 @@ object HdfsMainProcess extends EdpLogging {
             currentCorrectMetaContent = currentCorrectMetaContentSplit(0) + "_0_" + currentCorrectMetaContentSplit(2) + "_" + finalMinTs + "_" + finalMaxTs
           } else {
             val correctTuple = writeAndCreateFile(currentCorrectMetaContent, correctFileName, configuration, inputCorrect, content,
-              data, minTs, maxTs, finalMinTs, finalMaxTs, splitMark, zookeeperPath)
+              data, minTs, maxTs, finalMinTs, finalMaxTs, splitMark, zookeeperPath, index)
             correctFileName = correctTuple._1
             currentCorrectMetaContent = correctTuple._2
             correctCurrentSize = correctTuple._3
