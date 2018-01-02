@@ -78,10 +78,10 @@ export class WorkbenchFlowForm extends React.Component {
 
   // 通过不同的 Source Data System 显示不同的 Source Namespace 的内容
   onSourceDataSystemItemSelect = (val) => {
-    const { streamDiffType, flowMode } = this.props
+    const { streamDiffType, flowMode, projectIdGeted } = this.props
 
     if (streamDiffType === 'default') {
-      this.props.onInitSourceTypeNamespace(this.props.projectIdGeted, val, 'sourceType')
+      this.props.onInitSourceTypeNamespace(projectIdGeted, val, 'sourceType')
     } else if (streamDiffType === 'hdfslog') {
       // placeholder 和单条数据回显
       if (flowMode === 'add' || flowMode === 'copy') {
@@ -89,7 +89,9 @@ export class WorkbenchFlowForm extends React.Component {
           hdfslogNamespace: undefined
         })
       }
-      this.props.onInitHdfslogNamespace(this.props.projectIdGeted, val, 'sourceType')
+      this.props.onInitHdfslogNamespace(projectIdGeted, val, 'sourceType')
+    } else if (streamDiffType === 'routing') {
+      this.props.onInitRoutingNamespace(projectIdGeted, val, 'sourceType')
     }
   }
 
@@ -114,13 +116,16 @@ export class WorkbenchFlowForm extends React.Component {
 
   onHandleHdfslogCascader = (value) => this.props.initialHdfslogCascader(value)
 
+  onHandleRoutingCascader = (value) => this.props.initialRoutingCascader(value)
+
   render () {
-    const { step, form, fieldSelected, dataframeShowSelected, streamDiffType, hdfslogSinkDataSysValue, hdfslogSinkNsValue, transformTableConfirmValue, flowKafkaTopicValue } = this.props
+    const { step, form, fieldSelected, dataframeShowSelected, streamDiffType } = this.props
+    const { hdfslogSinkDataSysValue, hdfslogSinkNsValue, routingSinkNsValue, transformTableConfirmValue, flowKafkaTopicValue } = this.props
     const { getFieldDecorator } = form
     const { onShowTransformModal, onShowEtpStrategyModal, onShowSinkConfigModal } = this.props
     const { transformTableSource, onDeleteSingleTransform, onAddTransform, onEditTransform, onUpTransform, onDownTransform } = this.props
     const { step2SourceNamespace, step2SinkNamespace, etpStrategyCheck, transformTagClassName, transformTableClassName, transConnectClass } = this.props
-    const { selectStreamKafkaTopicValue, sourceTypeNamespaceData, hdfslogNsData, sinkTypeNamespaceData } = this.props
+    const { selectStreamKafkaTopicValue, sourceTypeNamespaceData, hdfslogNsData, routingNsData, sinkTypeNamespaceData, routingSinkTypeNsData } = this.props
     const { flowMode, sinkConfigClass } = this.state
 
     // edit 时，不能修改部分元素
@@ -145,12 +150,14 @@ export class WorkbenchFlowForm extends React.Component {
 
     const streamTypeClass = [
       streamDiffType === 'default' ? '' : 'hide',
-      streamDiffType === 'hdfslog' ? '' : 'hide'
+      streamDiffType === 'hdfslog' ? '' : 'hide',
+      streamDiffType === 'routing' ? '' : 'hide'
     ]
 
     const streamTypeHiddens = [
       streamDiffType !== 'default',
-      streamDiffType !== 'hdfslog'
+      streamDiffType !== 'hdfslog',
+      streamDiffType !== 'routing'
     ]
 
     const itemStyle = {
@@ -191,18 +198,10 @@ export class WorkbenchFlowForm extends React.Component {
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} }
     ]
 
-    let formValues = ''
-    if (streamDiffType === 'default') {
-      formValues = this.props.form.getFieldsValue([
-        'streamName',
-        'streamType'
-      ])
-    } else if (streamDiffType === 'hdfslog') {
-      formValues = this.props.form.getFieldsValue([
-        'streamName',
-        'streamType'
-      ])
-    }
+    let formValues = this.props.form.getFieldsValue([
+      'streamName',
+      'streamType'
+    ])
 
     const step3ConfirmContent = Object.keys(formValues).map(key => (
       <Col span={24} key={key}>
@@ -227,12 +226,17 @@ export class WorkbenchFlowForm extends React.Component {
 
     let formDSNSValues = ''
     if (streamDiffType === 'default') {
-      formValues = this.props.form.getFieldsValue([
+      formDSNSValues = this.props.form.getFieldsValue([
         'sourceDataSystem',
         'sourceNamespace',
         'sinkDataSystem',
         'sinkNamespace',
         'sinkConfig'
+      ])
+    } else if (streamDiffType === 'routing') {
+      formDSNSValues = this.props.form.getFieldsValue([
+        'sourceDataSystem',
+        'routingNamespace'
       ])
     }
 
@@ -246,9 +250,9 @@ export class WorkbenchFlowForm extends React.Component {
             <Col span={15} className="value-font-style">
               <div className="ant-form-item-control" style={{font: 'bolder'}}>
                 <p>
-                  {Object.prototype.toString.call(formValues[key]) === '[object Array]'
-                    ? formValues[key].join('.')
-                    : formValues[key]}
+                  {Object.prototype.toString.call(formDSNSValues[key]) === '[object Array]'
+                    ? formDSNSValues[key].join('.')
+                    : formDSNSValues[key]}
                 </p>
               </div>
             </Col>
@@ -385,7 +389,7 @@ export class WorkbenchFlowForm extends React.Component {
                   <RadioGroup className="radio-group-style" onChange={this.onHandleChangeStreamType} size="default">
                     <RadioButton value="default" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Default</RadioButton>
                     <RadioButton value="hdfslog" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Hdfslog</RadioButton>
-                    <RadioButton value="routing" className="radio-btn-style" disabled>Routing</RadioButton>
+                    <RadioButton value="routing" className="radio-btn-style" disabled={flowDisabledOrNot}>Routing</RadioButton>
                   </RadioGroup>
                 )}
               </FormItem>
@@ -492,6 +496,28 @@ export class WorkbenchFlowForm extends React.Component {
               </FormItem>
             </Col>
 
+            <Col span={24} className={streamTypeClass[2]}>
+              <FormItem label="Namespace" {...itemStyle}>
+                {getFieldDecorator('routingNamespace', {
+                  rules: [{
+                    required: true,
+                    message: '请选择 Namespace'
+                  }],
+                  hidden: streamTypeHiddens[2]
+                })(
+                  <Cascader
+                    disabled={flowDisabledOrNot}
+                    placeholder="Select a Source Namespace"
+                    popupClassName="ri-workbench-select-dropdown"
+                    options={routingNsData}
+                    expandTrigger="hover"
+                    displayRender={(labels) => labels.join('.')}
+                    onChange={this.onHandleRoutingCascader}
+                  />
+                )}
+              </FormItem>
+            </Col>
+
             <Col span={24} className={streamTypeClass[0]}>
               <FormItem label="Protocol" {...itemStyle}>
                 {getFieldDecorator('protocol', {
@@ -530,6 +556,15 @@ export class WorkbenchFlowForm extends React.Component {
                 )}
               </FormItem>
             </Col>
+            <Col span={24} className={streamTypeClass[2]}>
+              <FormItem label="Data System" {...itemStyle} style={{lineHeight: '36px'}}>
+                {getFieldDecorator('routingSinkDataSystem', {
+                  hidden: streamTypeHiddens[2]
+                })(
+                  <p>kafka</p>
+                )}
+              </FormItem>
+            </Col>
             <Col span={24} className={streamTypeClass[0]}>
               <FormItem label="Namespace" {...itemStyle}>
                 {getFieldDecorator('sinkNamespace', {
@@ -544,6 +579,26 @@ export class WorkbenchFlowForm extends React.Component {
                     placeholder="Select a Sink Namespace"
                     popupClassName="ri-workbench-select-dropdown"
                     options={sinkTypeNamespaceData}
+                    expandTrigger="hover"
+                    displayRender={(labels) => labels.join('.')}
+                  />
+                )}
+              </FormItem>
+            </Col>
+            <Col span={24} className={streamTypeClass[2]}>
+              <FormItem label="Namespace" {...itemStyle}>
+                {getFieldDecorator('routingSinkNs', {
+                  rules: [{
+                    required: true,
+                    message: '请选择 Namespace'
+                  }],
+                  hidden: streamTypeHiddens[2]
+                })(
+                  <Cascader
+                    disabled={flowDisabledOrNot}
+                    placeholder="Select a Sink Namespace"
+                    popupClassName="ri-workbench-select-dropdown"
+                    options={routingSinkTypeNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
                   />
@@ -614,7 +669,6 @@ export class WorkbenchFlowForm extends React.Component {
                 )}
               </FormItem>
             </Col>
-
           </Card>
         </Row>
         {/* Step 2 */}
@@ -742,7 +796,7 @@ export class WorkbenchFlowForm extends React.Component {
             <div className="ant-row ant-form-item">
               <Row>
                 <Col span={8} className="ant-form-item-label">
-                  <label htmlFor="#">Kafka Topics</label>
+                  <label htmlFor="#">Exist Kafka Topics</label>
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
@@ -866,6 +920,34 @@ export class WorkbenchFlowForm extends React.Component {
               </Row>
             </div>
           </Col>
+          <Col span={24} className={streamTypeClass[2]}>
+            <div className="ant-row ant-form-item">
+              <Row>
+                <Col span={8} className="ant-form-item-label">
+                  <label htmlFor="#">Sink Data System</label>
+                </Col>
+                <Col span={15}>
+                  <div className="ant-form-item-control">
+                    <p className="value-font-style">kafka</p>
+                  </div>
+                </Col>
+              </Row>
+            </div>
+          </Col>
+          <Col span={24} className={streamTypeClass[2]}>
+            <div className="ant-row ant-form-item">
+              <Row>
+                <Col span={8} className="ant-form-item-label">
+                  <label htmlFor="#">Sink Namespace</label>
+                </Col>
+                <Col span={15}>
+                  <div className="ant-form-item-control">
+                    <p className="value-font-style">{routingSinkNsValue}</p>
+                  </div>
+                </Col>
+              </Row>
+            </div>
+          </Col>
         </Row>
       </Form>
     )
@@ -896,9 +978,12 @@ WorkbenchFlowForm.propTypes = {
   selectStreamKafkaTopicValue: React.PropTypes.array,
   sourceTypeNamespaceData: React.PropTypes.array,
   hdfslogNsData: React.PropTypes.array,
+  routingNsData: React.PropTypes.array,
   sinkTypeNamespaceData: React.PropTypes.array,
+  routingSinkTypeNsData: React.PropTypes.array,
   onInitSourceTypeNamespace: React.PropTypes.func,
   onInitHdfslogNamespace: React.PropTypes.func,
+  onInitRoutingNamespace: React.PropTypes.func,
   onInitSinkTypeNamespace: React.PropTypes.func,
   onInitStreamNameSelect: React.PropTypes.func,
   resultFieldsValue: React.PropTypes.string,
@@ -910,10 +995,12 @@ WorkbenchFlowForm.propTypes = {
   streamDiffType: React.PropTypes.string,
   hdfslogSinkDataSysValue: React.PropTypes.string,
   hdfslogSinkNsValue: React.PropTypes.string,
+  routingSinkNsValue: React.PropTypes.string,
   initResultFieldClass: React.PropTypes.func,
   initDataShowClass: React.PropTypes.func,
   onInitStreamTypeSelect: React.PropTypes.func,
   initialHdfslogCascader: React.PropTypes.func,
+  initialRoutingCascader: React.PropTypes.func,
   flowKafkaTopicValue: React.PropTypes.string,
   flowKafkaInstanceValue: React.PropTypes.string
 }
