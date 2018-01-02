@@ -46,7 +46,9 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
     val password = connectionConfig.password.getOrElse("")
 
     val kvConfig = connectionConfig.parameters
-    val credential = MongoCredential.createCredential(user, db, password.toCharArray)
+    val credential =
+      if (user != "") MongoCredential.createCredential(user, db, password.toCharArray)
+      else null
     val serverList = connectionConfig.connectionUrl.split(",").map(conn => {
       val ip2port = conn.split("\\:")
       new ServerAddress(ip2port(0).trim, ip2port(1).trim.toInt)
@@ -78,10 +80,19 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
       val minConnectionsPerHost: Int = if (configMap.contains("minConnectionsPerHost")) configMap("minConnectionsPerHost").toInt else MongoClientOptions.Defaults.getMinConnectionsPerHost
       val requiredReplicaSetName: String = if (configMap.contains("requiredReplicaSetName")) configMap("requiredReplicaSetName") else MongoClientOptions.Defaults.getRequiredReplicaSetName
       val minHeartbeatFrequency: Int = if (configMap.contains("minHeartbeatFrequency")) configMap("minHeartbeatFrequency").toInt else MongoClientOptions.Defaults.getMinHeartbeatFrequency
-      MongoClient(serverList, List(credential), MongoClientOptions(connectionsPerHost, connectTimeout, cursorFinalizerEnabled, dbDecoderFactory, DBEncoderFactory,
-        description, maxWaitTime, readPreference, socketFactory, socketKeepAlive, socketTimeout, threadsAllowedToBlockForConnectionMultiplier, writeConcern, alwaysUseMBeans,
-        heartbeatConnectTimeout, heartbeatFrequency, heartbeatSocketTimeout, maxConnectionIdleTime, maxConnectionLifeTime, minConnectionsPerHost, requiredReplicaSetName, minHeartbeatFrequency))
-    } else MongoClient(serverList)
+      if (credential != null)
+        MongoClient(serverList, List(credential), MongoClientOptions(connectionsPerHost, connectTimeout, cursorFinalizerEnabled, dbDecoderFactory, DBEncoderFactory,
+          description, maxWaitTime, readPreference, socketFactory, socketKeepAlive, socketTimeout, threadsAllowedToBlockForConnectionMultiplier, writeConcern, alwaysUseMBeans,
+          heartbeatConnectTimeout, heartbeatFrequency, heartbeatSocketTimeout, maxConnectionIdleTime, maxConnectionLifeTime, minConnectionsPerHost, requiredReplicaSetName, minHeartbeatFrequency))
+      else
+        MongoClient(serverList, MongoClientOptions(connectionsPerHost, connectTimeout, cursorFinalizerEnabled, dbDecoderFactory, DBEncoderFactory,
+          description, maxWaitTime, readPreference, socketFactory, socketKeepAlive, socketTimeout, threadsAllowedToBlockForConnectionMultiplier, writeConcern, alwaysUseMBeans,
+          heartbeatConnectTimeout, heartbeatFrequency, heartbeatSocketTimeout, maxConnectionIdleTime, maxConnectionLifeTime, minConnectionsPerHost, requiredReplicaSetName, minHeartbeatFrequency))
+
+    } else {
+      if (credential != null) MongoClient(serverList, List(credential))
+      else MongoClient(serverList)
+    }
   }
 
   override def process(protocolType: UmsProtocolType,
@@ -189,7 +200,7 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
     if (findResult.isDefined) {
       val umsIdInMongo = findResult.get.get(UmsSysField.ID.toString).toString.toLong
       val umsIdInStream = result.get(UmsSysField.ID.toString).toString.toLong
-      if (umsIdInStream > umsIdInMongo)  collection.save(result)
+      if (umsIdInStream > umsIdInMongo) collection.save(result)
     } else {
       collection.save(result)
     }
