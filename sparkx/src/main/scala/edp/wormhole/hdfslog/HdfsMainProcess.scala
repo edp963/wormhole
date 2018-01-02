@@ -76,7 +76,7 @@ object HdfsMainProcess extends EdpLogging {
 
         val streamTransformedRdd: RDD[((String, String), String)] = streamRdd.map(message => {
           val (protocol, namespace) = WormholeUtils.getTypeNamespaceFromKafkaKey(message.key)
-          ((namespace, protocol.toString), message.value)
+          ((protocol.toString,namespace), message.value)
         })
 
         val dataParRdd = if (config.rdd_partition_number != -1) {
@@ -85,6 +85,7 @@ object HdfsMainProcess extends EdpLogging {
 
         val namespace2FileMap: Map[(String, String), mutable.HashMap[String, (String, Int, String)]] = namespace2FileStore.toMap
         val validNameSpaceMap: Map[String, Int] = directiveNamespaceRule.toMap //validNamespaceMap is NOT real namespace, has *
+        logInfo("validNameSpaceMap:"+validNameSpaceMap)
         val jsonInfoMap: Map[String, (Seq[FieldInfo], ArrayBuffer[(String, String)], Seq[UmsField])] = jsonSourceMap.toMap
         val mainDataTs = System.currentTimeMillis
         val partitionResultRdd = dataParRdd.mapPartitionsWithIndex { case (index, partition) =>
@@ -102,7 +103,7 @@ object HdfsMainProcess extends EdpLogging {
                 namespaceMap((UmsProtocolType.DATA_INCREMENT_DATA.toString, data._1._2)) = hour
             }
           })
-          logInfo("check namespace ok. all data num="+dataList.size)
+          logInfo("check namespace ok. all data num="+dataList.size+",namespaceMap="+namespaceMap)
 
           namespaceMap.foreach { case ((protocol, namespace), hour) =>
             val namespaceDataList = ListBuffer.empty[String]
@@ -166,7 +167,9 @@ object HdfsMainProcess extends EdpLogging {
     //    val length = filePrefixShardingSlashSplit.length
     //    val nodePath = WormholeConstants.CheckpointRootPath + hdfsLog + filePrefixShardingSlashSplit.slice(length - 5, length).mkString("/")
     val processTime = currentyyyyMMddHHmmssmls
-    val incrementalId = currentyyyyMMddHHmmss + "" + index
+    val indexStr = "000"+index
+
+    val incrementalId = currentyyyyMMddHHmmss + indexStr.substring(indexStr.length-4,indexStr.length)
     //WormholeZkClient.getNextAtomicIncrement(zookeeperPath, nodePath)
     val metaName = if (minTs == null) filePrefixShardingSlash + "wrong" + "/" + "metadata_" + incrementalId else filePrefixShardingSlash + "right" + "/" + "metadata_" + incrementalId
     val metaContent: String = if (minTs == null) incrementalId + "_" + "0_" + processTime + "_" + processTime else incrementalId + "_" + "0_" + processTime + "_" + minTs + "_" + maxTs
