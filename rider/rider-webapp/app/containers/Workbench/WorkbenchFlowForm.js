@@ -118,9 +118,11 @@ export class WorkbenchFlowForm extends React.Component {
 
   onHandleRoutingCascader = (value) => this.props.initialRoutingCascader(value)
 
+  onHandleRoutingSinkCascader = (value) => this.props.initialRoutingSinkCascader(value)
+
   render () {
     const { step, form, fieldSelected, dataframeShowSelected, streamDiffType } = this.props
-    const { hdfslogSinkDataSysValue, hdfslogSinkNsValue, routingSinkNsValue, transformTableConfirmValue, flowKafkaTopicValue } = this.props
+    const { hdfslogSinkDataSysValue, hdfslogSinkNsValue, routingSourceNsValue, routingSinkNsValue, transformTableConfirmValue, flowKafkaTopicValue } = this.props
     const { getFieldDecorator } = form
     const { onShowTransformModal, onShowEtpStrategyModal, onShowSinkConfigModal } = this.props
     const { transformTableSource, onDeleteSingleTransform, onAddTransform, onEditTransform, onUpTransform, onDownTransform } = this.props
@@ -235,8 +237,7 @@ export class WorkbenchFlowForm extends React.Component {
       ])
     } else if (streamDiffType === 'routing') {
       formDSNSValues = this.props.form.getFieldsValue([
-        'sourceDataSystem',
-        'routingNamespace'
+        'sourceDataSystem'
       ])
     }
 
@@ -601,6 +602,7 @@ export class WorkbenchFlowForm extends React.Component {
                     options={routingSinkTypeNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
+                    onChange={this.onHandleRoutingSinkCascader}
                   />
                 )}
               </FormItem>
@@ -924,6 +926,20 @@ export class WorkbenchFlowForm extends React.Component {
             <div className="ant-row ant-form-item">
               <Row>
                 <Col span={8} className="ant-form-item-label">
+                  <label htmlFor="#">Source Namespace</label>
+                </Col>
+                <Col span={15}>
+                  <div className="ant-form-item-control">
+                    <p className="value-font-style">{routingSourceNsValue}</p>
+                  </div>
+                </Col>
+              </Row>
+            </div>
+          </Col>
+          <Col span={24} className={streamTypeClass[2]}>
+            <div className="ant-row ant-form-item">
+              <Row>
+                <Col span={8} className="ant-form-item-label">
                   <label htmlFor="#">Sink Data System</label>
                 </Col>
                 <Col span={15}>
@@ -995,11 +1011,13 @@ WorkbenchFlowForm.propTypes = {
   streamDiffType: React.PropTypes.string,
   hdfslogSinkDataSysValue: React.PropTypes.string,
   hdfslogSinkNsValue: React.PropTypes.string,
+  routingSourceNsValue: React.PropTypes.string,
   routingSinkNsValue: React.PropTypes.string,
   initResultFieldClass: React.PropTypes.func,
   initDataShowClass: React.PropTypes.func,
   onInitStreamTypeSelect: React.PropTypes.func,
   initialHdfslogCascader: React.PropTypes.func,
+  initialRoutingSinkCascader: React.PropTypes.func,
   initialRoutingCascader: React.PropTypes.func,
   flowKafkaTopicValue: React.PropTypes.string,
   flowKafkaInstanceValue: React.PropTypes.string
