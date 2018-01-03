@@ -26,14 +26,14 @@ import akka.http.scaladsl.server.{Directives, Route}
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{FlowDal, StreamDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.{ActionClass, ResponseJson, ResponseSeqJson, SessionClass}
+//import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.router._
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils._
 
 import scala.util.{Failure, Success}
 
-class ActionUserApi(streamDal: StreamDal, flowDal: FlowDal) extends Directives with RiderLogger {
+class ActionUserApi(streamDal: StreamDal, flowDal: FlowDal) extends Directives with RiderLogger with JsonSerializer {
 
   def putRoute(route: String): Route = path(route / LongNumber / "actions") {
     id =>
@@ -48,15 +48,7 @@ class ActionUserApi(streamDal: StreamDal, flowDal: FlowDal) extends Directives w
                 }
                 else {
                   if (session.projectIdList.contains(id)) {
-                    if (actionClass.flowIds == "") {
-                      actionClass.action match {
-                        case "start" =>
-                        case "stop" =>
-                        case "refresh" =>
-                        case "update" =>
-                      }
-                      complete(OK, getHeader(200, session))
-                    } else if (actionClass.flowIds != "") {
+                    if (actionClass.flowIds != "") {
                       riderLogger.info(s"user ${session.userId} refresh streams.")
                       onComplete(flowDal.flowAction(actionClass, session.userId)) {
                         case Success(flowStreams) =>
@@ -66,7 +58,6 @@ class ActionUserApi(streamDal: StreamDal, flowDal: FlowDal) extends Directives w
                           riderLogger.error(s"user ${session.userId} ${actionClass.action} ${actionClass.flowIds} failed", ex)
                           complete(OK, getHeader(451, ex.getMessage, session))
                       }
-
                     } else {
                       riderLogger.info(s"user ${session.userId} do nothing on streams and flows.")
                       complete(OK, ResponseJson[String](getHeader(200, session), ""))
@@ -79,6 +70,5 @@ class ActionUserApi(streamDal: StreamDal, flowDal: FlowDal) extends Directives w
             }
         }
       }
-     
   }
 }

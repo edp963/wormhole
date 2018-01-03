@@ -3,6 +3,7 @@ package edp.rider.service.util
 import edp.rider.common.RiderLogger
 import edp.rider.module.{ConfigurationModuleImpl, PersistenceModuleImpl}
 import edp.rider.rest.persistence.entities._
+import edp.rider.rest.util.CommonUtils.maxTimeOut
 import org.apache.kafka.common.TopicPartition
 
 import scala.collection.mutable.ListBuffer
@@ -20,7 +21,7 @@ object FeedbackOffsetUtil extends RiderLogger with ConfigurationModuleImpl with 
           topic.partitionOffsets.split(",").map(
             offset => {
               val parOffset = offset.split(":")
-                list += FeedbackOffsetInfo(streamId, topic.topicName, parOffset(0).toInt, parOffset(1).toLong)
+              list += FeedbackOffsetInfo(streamId, topic.topicName, parOffset(0).toInt, parOffset(1).toLong)
             }
           )
         }
@@ -60,22 +61,6 @@ object FeedbackOffsetUtil extends RiderLogger with ConfigurationModuleImpl with 
     topicList.toList
   }
 
-  def getPartitionOffsetStrFromMap(streamId: Long, topicName: String, partitionNum: Int): String = {
-    var pid: Int = 0
-    var partitionOffsetStr = ""
-    while (pid < partitionNum) {
-      val offset = CacheMap.getOffsetValue(streamId, topicName, pid)
-      if (offset >= 0) {
-        if (pid == 0)
-          partitionOffsetStr = partitionOffsetStr + s"$pid:$offset"
-        else
-          partitionOffsetStr = partitionOffsetStr + s",$pid:$offset"
-      }
-      pid += 1
-    }
-    partitionOffsetStr
-  }
-
   def getTopicMapForDB(streamId: Long, topicName: String, partitions: Int): scala.collection.mutable.Map[TopicPartition, Long] = {
     val topicMap = scala.collection.mutable.Map[TopicPartition, Long]()
     riderLogger.info(s"Rider Feedback Topic: $topicName, partition num: $partitions")
@@ -101,10 +86,12 @@ object FeedbackOffsetUtil extends RiderLogger with ConfigurationModuleImpl with 
   def deleteFeedbackOffsetHistory(pastNdays: String) = {
     val topics = Await.result(feedbackOffsetDal.getDistinctList, Duration.Inf)
     val topicList: ListBuffer[Long] = new ListBuffer()
-    topics.foreach { topic =>
-      val record = Await.result(feedbackOffsetDal.getLatestOffset(topic.streamId, topic.topicName), Duration.Inf)
-      if (record.nonEmpty && record.get.id > 0) topicList.append(record.get.id)
-    }
+    val streamIds = Await.result(streamDal.findAll, maxTimeOut).map(_.id)
+    topics.filter(topic => topic.streamId == 0 || streamIds.contains(topic.streamId))
+      .foreach { topic =>
+        val record = Await.result(feedbackOffsetDal.getLatestOffset(topic.streamId, topic.topicName), Duration.Inf)
+        if (record.nonEmpty && record.get.id > 0) topicList.append(record.get.id)
+      }
     feedbackOffsetDal.deleteHistory(pastNdays, topicList.toList)
   }
 }

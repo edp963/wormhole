@@ -23,6 +23,7 @@ package edp.wormhole.common
 
 import edp.wormhole.common.SparkSchemaUtils.ss2sparkTuple
 import edp.wormhole.spark.log.EdpLogging
+import edp.wormhole.ums
 import edp.wormhole.ums.{UmsField, UmsFieldType, UmsSysField}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import org.apache.spark.sql.Row
@@ -33,9 +34,9 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.NonFatal
 
-object SparkUtils extends EdpLogging{
+object SparkUtils extends EdpLogging {
 
-  def getAppId:String={
+  def getAppId: String = {
     var appId = System.getProperty("spark.yarn.app.id")
     if (appId == null) {
       val tmpPath = System.getProperty("user.dir")
@@ -75,6 +76,47 @@ object SparkUtils extends EdpLogging{
     schemaMap.toMap
   }
 
+  def getSchemaMap(sinkFields: Seq[UmsField], outputField: String): (Map[String, (Int, UmsFieldType, Boolean)], Map[String, (Int, UmsFieldType, Boolean)], Option[Map[String, String]]) = {
+    val schemaArr = sinkFields.zipWithIndex.map(t => (t._1.name, (t._2, t._1.`type`, t._1.nullable.get)))
+    val tmpSchema = schemaArr.toMap
+    if (outputField.nonEmpty) {
+      val resultMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
+      val renameMap  = mutable.HashMap.empty[String,String]
+      outputField.split(",").foreach { case nameField =>
+        if (!nameField.contains(":")) {
+          if (!tmpSchema.contains(nameField)) {
+            throw new Exception("output Fields DO NOT contains field " + nameField + " you configure at sink step.")
+          } else {
+            resultMap(nameField) = tmpSchema(nameField)
+          }
+        } else {
+          val colonIndex = nameField.indexOf(":")
+          val (beforeName, afterName) = (nameField.substring(0, colonIndex), nameField.substring(colonIndex + 1))
+          if (!tmpSchema.contains(beforeName)) {
+            throw new Exception("output Fields DO NOT contains field " + beforeName + " you configure at sink step.")
+          } else {
+            renameMap(afterName) = beforeName
+            resultMap(afterName) = tmpSchema(beforeName)
+          }
+        }
+      }
+      var index = -1
+      (resultMap.map(t => {
+        index += 1
+        (t._1, (index, t._2._2, t._2._3))
+      }).toMap, tmpSchema, if(renameMap.isEmpty) None else Some(renameMap.toMap))
+    } else {
+      var index = -1
+      (schemaArr.filter(_._1 != UmsSysField.UID.toString).map(t => {
+        index += 1
+        (t._1, (index, t._2._2, t._2._3))
+      }).toMap, tmpSchema,None)
+    }
+  }
+
+
+  //
+
   def getRowData(row: Row, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): ArrayBuffer[String] = {
     val dataArray = ArrayBuffer.fill(schemaMap.size) {
       ""
@@ -89,5 +131,35 @@ object SparkUtils extends EdpLogging{
       } else dataArray(column._2._1) = if (data != null) data.toString else null.asInstanceOf[String]
     })
     dataArray
+  }
+
+  def getRowData(row: Seq[String], resultSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], originalSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],renameMap:Option[Map[String, String]]): ArrayBuffer[String] = {
+    val dataArray = ArrayBuffer.fill(resultSchemaMap.size) {""}
+    resultSchemaMap.foreach { case (columnName, (index, fieldType, _)) => {
+      val data = if (renameMap.isDefined && renameMap.get.contains(columnName)) row(originalSchemaMap(renameMap.get(columnName))._1) else row(originalSchemaMap(columnName)._1)
+//      if (fieldType == UmsFieldType.BINARY) {
+//        dataArray(index) = if (null != data) {
+//          if (data != null) new String(data.asInstanceOf[Array[Byte]]) else null.asInstanceOf[String]
+//        } else null.asInstanceOf[String]
+//      } else
+        dataArray(index) = if (data != null) data.toString else null.asInstanceOf[String]
+    }
+    }
+    dataArray
+  }
+
+  def sparkSqlType2UmsFieldType(dataType: String): ums.UmsFieldType.Value = {
+    dataType match {
+      case "DoubleType" => UmsFieldType.DOUBLE
+      case "FloatType" => UmsFieldType.FLOAT
+      case "LongType" => UmsFieldType.LONG
+      case "IntegerType" => UmsFieldType.INT
+      case "DecimalType" => UmsFieldType.DECIMAL
+      case "DecimalType(38,18)" => UmsFieldType.DECIMAL
+      case "StringType" => UmsFieldType.STRING
+      case "DateType" => UmsFieldType.DATETIME
+      case "TimestampType" => UmsFieldType.DATETIME
+      case "BinaryType" => UmsFieldType.BINARY
+    }
   }
 }

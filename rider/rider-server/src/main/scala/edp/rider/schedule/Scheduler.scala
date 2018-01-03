@@ -40,6 +40,7 @@ object Scheduler extends ConfigurationModuleImpl with RiderLogger {
   }
 
   class SchedulerActor extends Actor {
+    riderLogger.info("start delete history")
     def receive = {
       case "databaseMaintenance" => {
         ScheduledTask.deleteHistory

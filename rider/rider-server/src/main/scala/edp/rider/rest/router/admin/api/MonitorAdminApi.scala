@@ -27,12 +27,12 @@ import edp.rider.common.{GrafanaConnectionInfo, RiderLogger}
 import edp.rider.monitor.Dashboard
 import edp.rider.rest.persistence.dal.StreamDal
 import edp.rider.rest.router.admin.api.BaseAdminApiImpl
-import edp.rider.rest.router.{ResponseJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.rest.router.JsonProtocol._
+//import edp.rider.rest.router.JsonProtocol._
 
-class MonitorAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) with RiderLogger {
+class MonitorAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) with RiderLogger with JsonSerializer {
   def getDashboardByProjectIdRoute(route: String): Route = path(route / LongNumber / "monitors") {
     id =>
       get {

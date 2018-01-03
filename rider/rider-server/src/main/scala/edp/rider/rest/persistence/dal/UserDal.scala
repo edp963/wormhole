@@ -26,12 +26,12 @@ import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import slick.lifted.{CanBeQueryCondition, TableQuery}
-
+import slick.jdbc.MySQLProfile.api._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 
-class UserDal(userTable: TableQuery[UserTable], relProjectUserDal: RelProjectUserDal) extends BaseDalImpl[UserTable, User](userTable) with RiderLogger {
+class UserDal(userTable: TableQuery[UserTable], relProjectUserDal: RelProjectUserDal, projectDal: ProjectDal) extends BaseDalImpl[UserTable, User](userTable) with RiderLogger {
 
   def getUserProject[C: CanBeQueryCondition](f: (UserTable) => C): Future[Seq[UserProject]] = {
     try {
@@ -39,21 +39,40 @@ class UserDal(userTable: TableQuery[UserTable], relProjectUserDal: RelProjectUse
       val users = super.findByFilter(f)
       users.map[Seq[UserProject]] {
         val userProjectSeq = new ArrayBuffer[UserProject]
-        users => users.foreach(
-          user =>
-            if (userProjectMap.contains(user.id))
-              userProjectSeq += UserProject(user.id, user.email, user.password, user.name, user.roleType, user.active,
-                user.createTime, user.createBy, user.updateTime, user.updateBy, userProjectMap(user.id).sorted.mkString(","))
-            else
-              userProjectSeq += UserProject(user.id, user.email, user.password, user.name, user.roleType, user.active,
-                user.createTime, user.createBy, user.updateTime, user.updateBy, "")
-        )
+        users =>
+          users.foreach(
+            user =>
+              if (userProjectMap.contains(user.id))
+                userProjectSeq += UserProject(user.id, user.email, user.password, user.name, user.roleType, user.active,
+                  user.createTime, user.createBy, user.updateTime, user.updateBy, userProjectMap(user.id).sorted.mkString(","))
+              else
+                userProjectSeq += UserProject(user.id, user.email, user.password, user.name, user.roleType, user.active,
+                  user.createTime, user.createBy, user.updateTime, user.updateBy, "")
+          )
           userProjectSeq
       }
     } catch {
       case ex: Exception =>
         riderLogger.error(s"admin refresh users failed", ex)
         throw ex
+    }
+  }
+
+  def delete(id: Long): (Boolean, String) = {
+    try {
+      val rel = Await.result(relProjectUserDal.findByFilter(_.userId === id), minTimeOut)
+      val projects = Await.result(projectDal.findByFilter(_.id inSet rel.map(_.projectId)), minTimeOut).map(_.name)
+      if (projects.nonEmpty) {
+        riderLogger.info(s"user $id still has project ${projects.mkString(",")}, can't delete it")
+        (false, s"please revoke project ${projects.mkString(",")} and user binding relation first")
+      } else {
+        Await.result(super.deleteById(id), minTimeOut)
+        (true, "success")
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"delete user $id failed", ex)
+        throw new Exception(s"delete user $id failed", ex)
     }
   }
 }

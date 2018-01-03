@@ -38,7 +38,7 @@ object UdfUtils extends EdpLogging {
       var callMethod: Method = null
       for (i <- methods.indices) {
         val m: Method = methods(i)
-        if (m.getName.equals("udf")) {
+        if (m.getName.equals(udfName)) {
           callMethod = m
         }
       }

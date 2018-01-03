@@ -26,15 +26,14 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{FlowDal, StreamDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.{ResponseSeqJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.rest.router.JsonProtocol._
 import slick.jdbc.MySQLProfile.api._
 
 import scala.util.{Failure, Success}
 
-class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiImpl(flowDal) with RiderLogger {
+class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiImpl(flowDal) with RiderLogger with JsonSerializer {
 
   override def getByAllRoute(route: String): Route = path(route) {
     get {
@@ -47,7 +46,7 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
                 complete(OK, getHeader(403, session))
               }
               else {
-                streamDal.refreshStreamsByProjectId()
+                streamDal.refreshStreamStatus()
                 riderLogger.info(s"user ${session.userId} refresh streams.")
                 onComplete(flowDal.adminGetAll(visible.getOrElse(true)).mapTo[Seq[FlowStreamAdmin]]) {
                   case Success(flowStreams) =>
@@ -64,6 +63,40 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
 
   }
 
+  def getById(route: String): Route = path(route / LongNumber / "flows" / LongNumber) {
+    (id, flowId) =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              streamDal.refreshStreamStatus()
+              riderLogger.info(s"user ${session.userId} refresh streams.")
+              onComplete(flowDal.adminGetById(id, flowId).mapTo[Option[FlowStreamAdmin]]) {
+                case Success(flowOpt) =>
+                  flowOpt match {
+                    case Some(flow) =>
+                      riderLogger.info(s"user ${session.userId} select flow $flowId success.")
+                      complete(OK, ResponseJson[FlowStreamAdmin](getHeader(200, session), flow))
+                    case None =>
+                      riderLogger.info(s"user ${session.userId} select flow $flowId success, but it doesn't exist.")
+                      complete(OK, ResponseJson[String](getHeader(200, session), ""))
+                  }
+
+                case Failure(ex) =>
+                  riderLogger.error(s"user ${session.userId} select all $route failed", ex)
+                  complete(OK, getHeader(451, ex.getMessage, session))
+              }
+            }
+        }
+
+      }
+
+  }
+
 
   def getByProjectIdRoute(route: String): Route = path(route / LongNumber / "flows") {
     id =>
@@ -75,7 +108,7 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
               complete(OK, getHeader(403, session))
             }
             else {
-              streamDal.refreshStreamsByProjectId(Some(id))
+              streamDal.refreshStreamStatus(Some(id))
               riderLogger.info(s"user ${session.userId} refresh streams.")
               onComplete(flowDal.defaultGetAll(flow => flow.active === true && flow.projectId === id).mapTo[Seq[FlowStream]]) {
                 case Success(flowStreams) =>

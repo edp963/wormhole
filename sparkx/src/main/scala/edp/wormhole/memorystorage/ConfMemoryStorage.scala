@@ -28,13 +28,15 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 import scala.collection.mutable
 import java.lang.reflect.Method
 
-import edp.wormhole.common.{ConnectionConfig, KVConfig}
+import edp.wormhole.common.{ConnectionConfig, FieldInfo, KVConfig}
 import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils.firstTimeAfterSecond
+import edp.wormhole.ums.UmsField
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType._
+import org.apache.spark.rdd.RDD
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 object ConfMemoryStorage extends Serializable with EdpLogging {
 
@@ -44,23 +46,47 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   //[lookupNamespace,Seq[sourceNamespace,sinkNamespace]
   val lookup2SourceSinkNamespaceMap = mutable.HashMap.empty[String, mutable.HashSet[(String, String)]]
 
-  //[sourceNamespace, [sinkNamespace, (SwiftsProcessConfig, SinkProcessConfig, directiveId, swiftsConfigStr,sinkConfigStr,consumption_data_type)]]
-  val flowConfigMap = mutable.HashMap.empty[String, mutable.LinkedHashMap[String, (Option[SwiftsProcessConfig], SinkProcessConfig, Long, String, String,Map[String,Boolean])]]
+  //[sourceNamespace, [sinkNamespace, (SwiftsProcessConfig, SinkProcessConfig, directiveId, swiftsConfigStr,sinkConfigStr,consumption_data_type,ums/json)]]
+  val flowConfigMap = mutable.LinkedHashMap.empty[String, mutable.LinkedHashMap[String, (Option[SwiftsProcessConfig], SinkProcessConfig, Long, String, String, Map[String, Boolean])]]
 
   //sourceNamespace,sinkNamespace,minTs
   val eventTsMap = mutable.HashMap.empty[(String, String), String]
 
+  val JsonSourceParseMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])]
+  //val JsonSourceSinkSchema = mutable.HashMap.empty[(String, String), String]//[(source, sink), schema]
   //[className, (object, method)]
   private val swiftsTransformReflectMap = mutable.HashMap.empty[String, (Any, Method)]
 
   //[className, (object, method)]
   private val sinkTransformReflectMap = mutable.HashMap.empty[String, (Any, Method)]
 
+  def existJsonSourceParseMap(protocol: UmsProtocolType, namespace: String) = {
+    JsonSourceParseMap.contains((protocol, namespace))
+  }
+
+//  def getJsonUmsFieldsName(protocol: UmsProtocolType, namespace: String): UmsSysRename = {
+//    if (JsonSourceParseMap.contains((protocol, namespace)))
+//      JsonSourceParseMap((protocol, namespace))._4
+//    else
+//      throw new Exception("get Json Source Ts Name failed")
+//  }
+
   def matchNameSpace(namespace1: String, namespace2: String): Boolean = {
+//    if (flowConfigMap.contains(namespace2)) {
+//      return true
+//    }
     val namespaceArray1 = namespace1.split("\\.")
     val namespaceArray2 = namespace2.split("\\.")
     namespaceArray1(0) == namespaceArray2(0) && namespaceArray1(1) == namespaceArray2(1) && namespaceArray1(2) == namespaceArray2(2) && namespaceArray1(3) == namespaceArray2(3)
   }
+
+  def registerJsonSourceParseMap(protocolType: UmsProtocolType, namespace: String, umsField: Seq[UmsField], fieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)]) = {
+    JsonSourceParseMap((protocolType, namespace)) = (umsField, fieldsInfo, twoFieldsArr)
+  }
+
+//  def registerJsonSourceSinkSchema(sourceNamespace:String, sinkNamespace:String, sinkSchema:String): Unit = {
+//    JsonSourceSinkSchema((sourceNamespace, sinkNamespace)) = sinkSchema
+//  }
 
   def getMatchSourceNamespaceRule(namespace: String): String = {
     var result: String = null
@@ -100,27 +126,28 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
       if (!sinkTransformReflectMap.contains(className)) {
         val clazz = Class.forName(className)
         val obj = clazz.newInstance()
-        val method = clazz.getDeclaredMethod("process",
+        val method = clazz.getMethod("publicProcess",
+          classOf[SparkSession],
           classOf[UmsProtocolType],
           classOf[String],
           classOf[String],
           classOf[SinkProcessConfig],
           classOf[collection.Map[String, (Int, UmsFieldType, Boolean)]],
-          classOf[Seq[Seq[String]]],
+          classOf[RDD[Seq[String]]],
           classOf[ConnectionConfig])
         sinkTransformReflectMap(className) = (obj, method)
       }
     }
   }
 
-  def getStreamLookupNamespaceAndTimeout(matchSourceNamespace:String, sinkNamespace:String): Seq[(String,Int)] ={
-    val lookupNamespace2TimeoutList = ListBuffer.empty[(String,Int)]
-    if(flowConfigMap.contains(matchSourceNamespace)&&flowConfigMap(matchSourceNamespace).contains(sinkNamespace)){
+  def getStreamLookupNamespaceAndTimeout(matchSourceNamespace: String, sinkNamespace: String): Seq[(String, Int)] = {
+    val lookupNamespace2TimeoutList = ListBuffer.empty[(String, Int)]
+    if (flowConfigMap.contains(matchSourceNamespace) && flowConfigMap(matchSourceNamespace).contains(sinkNamespace)) {
       val flowConfig = flowConfigMap(matchSourceNamespace)(sinkNamespace)._1
-      if(flowConfig.nonEmpty&&flowConfig.get.swiftsSql.nonEmpty){
+      if (flowConfig.nonEmpty && flowConfig.get.swiftsSql.nonEmpty) {
         val swiftsSql = flowConfig.get.swiftsSql.get
-        swiftsSql.foreach(sqlConfig=>{
-          if(sqlConfig.lookupNamespace.nonEmpty&&sqlConfig.timeout.nonEmpty) lookupNamespace2TimeoutList += ((sqlConfig.lookupNamespace.get,sqlConfig.timeout.get))
+        swiftsSql.foreach(sqlConfig => {
+          if (sqlConfig.lookupNamespace.nonEmpty && sqlConfig.timeout.nonEmpty) lookupNamespace2TimeoutList += ((sqlConfig.lookupNamespace.get, sqlConfig.timeout.get))
         })
       }
     }
@@ -160,13 +187,15 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
                             directiveId: Long,
                             swiftsConfigStr: String,
                             sinkConfigStr: String,
-                            consumptionDataTypeMap:Map[String, Boolean]): Unit = {
+                            consumptionDataTypeMap: Map[String, Boolean]
+                           ): Unit = {
     synchronized {
-      if (flowConfigMap.contains(sourceNamespace)) flowConfigMap(sourceNamespace) += (sinkNamespace -> (swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsConfigStr, sinkConfigStr,consumptionDataTypeMap))
-      else flowConfigMap(sourceNamespace) = mutable.LinkedHashMap(sinkNamespace -> (swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsConfigStr, sinkConfigStr,consumptionDataTypeMap))
+      if (flowConfigMap.contains(sourceNamespace)) flowConfigMap(sourceNamespace) += (sinkNamespace -> (swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsConfigStr, sinkConfigStr, consumptionDataTypeMap))
+      else flowConfigMap(sourceNamespace) = mutable.LinkedHashMap(sinkNamespace -> (swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsConfigStr, sinkConfigStr, consumptionDataTypeMap))
 
       val tmpLinkedHashMap = mutable.LinkedHashMap(flowConfigMap(sourceNamespace).toSeq.sortBy(_._2._3): _*)
       flowConfigMap(sourceNamespace) = tmpLinkedHashMap
+      //flowConfigMap  = mutable.LinkedHashMap(flowConfigMap.toSeq.sortBy(_._2.last._2._3): _*)
     }
   }
 
@@ -197,10 +226,12 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   }
 
 
-  def registerDataStoreConnectionsMap(lookupNamespace: String, connectionUrl: String, usrname: Option[String], password: Option[String], parameters: Option[Seq[KVConfig]]) {
+  def registerDataStoreConnectionsMap(lookupNamespace: String, connectionUrl: String, username: Option[String], password: Option[String], parameters: Option[Seq[KVConfig]]) {
+    logInfo("register datastore,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
     val connectionNamespace = lookupNamespace.split("\\.").slice(0, 3).mkString(".")
     if (!dataStoreConnectionsMap.contains(connectionNamespace)) {
-      dataStoreConnectionsMap(connectionNamespace) = ConnectionConfig(connectionUrl, usrname, password, parameters)
+      dataStoreConnectionsMap(connectionNamespace) = ConnectionConfig(connectionUrl, username, password, parameters)
+      logInfo("register datastore success,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
     }
   }
 
@@ -237,45 +268,53 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
     }
   }
 
-//  def existconnectionNamespace(connectionNamespace: String): Boolean = {
-//    dataStoreConnectionsMap.contains(connectionNamespace)
-//  }
+  //  def existconnectionNamespace(connectionNamespace: String): Boolean = {
+  //    dataStoreConnectionsMap.contains(connectionNamespace)
+  //  }
 
-  def getFlowConfigMap(sourceNamespace: String): mutable.Map[String, (Option[SwiftsProcessConfig], SinkProcessConfig, Long, String, String,Map[String,Boolean])] = {
+  def getFlowConfigMap(sourceNamespace: String): mutable.Map[String, (Option[SwiftsProcessConfig], SinkProcessConfig, Long, String, String, Map[String, Boolean])] = {
     flowConfigMap(sourceNamespace)
   }
 
-//  def existSourceNamespace(namespace: String): Boolean = {
-//    flowConfigMap.contains(namespace)
-//  }
 
-  def existSourceNamespace(namespaceSet: Set[String], realNamespace: String): Boolean = {
+  //  def existSourceNamespace(namespace: String): Boolean = {
+  //    flowConfigMap.contains(namespace)
+  //  }
+
+  def existNamespace(namespaceSet: Set[String], realNamespace: String): Boolean = {
+    //var matchNs:String = null
     var hitCount = 0
     namespaceSet.foreach(k => {
       if (matchNameSpace(k, realNamespace)) {
         hitCount += 1
+        //  matchNs = k
       }
     })
     if (hitCount == 0) false
     else if (hitCount == 1) true
-    else throw new Exception("you register sourceNamespace more than 1")
+    else throw new Exception("you register namespace more than 1")
   }
 
-  def existLookupNamespace(namespaceSet: Set[String], realNamespace: String): Boolean = {
-    var hitCount = 0
-    namespaceSet.foreach(k => {
-      if (matchNameSpace(k, realNamespace)) {
-        hitCount += 1
-      }
-    })
-    if (hitCount == 0) false
-    else if (hitCount == 1) true
-    else throw new Exception("you register lookupNamespace more than 1")
+  //  def existLookupNamespace(namespaceSet: Set[String], realNamespace: String): Boolean = {
+  //    var hitCount = 0
+  //    namespaceSet.foreach(k => {
+  //      if (matchNameSpace(k, realNamespace)) {
+  //        hitCount += 1
+  //      }
+  //    })
+  //    if (hitCount == 0) false
+  //    else if (hitCount == 1) true
+  //    else throw new Exception("you register lookupNamespace more than 1")
+  //  }
+
+  //  def existLookupNamespace(namespace: String): Boolean = {
+  //    lookup2SourceSinkNamespaceMap.contains(namespace)
+  //  }
+
+  def getAllSourceParseMap = {
+    JsonSourceParseMap.toMap
   }
 
-//  def existLookupNamespace(namespace: String): Boolean = {
-//    lookup2SourceSinkNamespaceMap.contains(namespace)
-//  }
 
   def getAllLookupNamespaceSet: Set[String] = {
     lookup2SourceSinkNamespaceMap.keySet.toSet
@@ -285,9 +324,9 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
     flowConfigMap.keySet.toSet
   }
 
-//  def getAllFlowConfigMap: mutable.Map[String, mutable.LinkedHashMap[String, (Option[SwiftsProcessConfig], SinkProcessConfig, Long, String, String)]] = {
-//    flowConfigMap
-//  }
+  //  def getAllFlowConfigMap: mutable.Map[String, mutable.LinkedHashMap[String, (Option[SwiftsProcessConfig], SinkProcessConfig, Long, String, String)]] = {
+  //    flowConfigMap
+  //  }
 
   def existEventTs(sourceNamespace: String, sinkNamespace: String): Boolean = {
     eventTsMap.contains((sourceNamespace, sinkNamespace))
