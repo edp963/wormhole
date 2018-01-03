@@ -209,9 +209,7 @@ export class Workbench extends React.Component {
   }
 
   loadData (projectId) {
-    this.setState({
-      projectId: projectId
-    })
+    this.setState({ projectId: projectId })
   }
 
   changeTag = (key) => {
@@ -265,9 +263,7 @@ export class Workbench extends React.Component {
         break
     }
 
-    this.setState({
-      tabPanelKey: key
-    })
+    this.setState({ tabPanelKey: key })
   }
 
   // 新增Stream时，验证 stream name 是否存在
@@ -742,28 +738,32 @@ export class Workbench extends React.Component {
       flowKafkaTopicValue: topicTemp.map(j => j.name).join(',')
     })
 
-    if (streamDiffType === 'default') {
-      this.workbenchFlowForm.setFieldsValue({
-        flowStreamId: Number(valId),
-        sourceDataSystem: '',
-        sinkDataSystem: '',
-        sourceNamespace: undefined,
-        sinkNamespace: undefined
-      })
-    } else if (streamDiffType === 'hdfslog') {
-      this.setState({
-        hdfslogSinkDataSysValue: '',
-        hdfslogSinkNsValue: ''
-      })
-      this.workbenchFlowForm.setFieldsValue({
-        sourceDataSystem: '',
-        hdfslogNamespace: undefined
-      })
-    } else if (streamDiffType === 'routing') {
-      this.setState({
-        routingSourceNsValue: '',
-        routingSinkNsValue: ''
-      })
+    switch (streamDiffType) {
+      case 'default':
+        this.workbenchFlowForm.setFieldsValue({
+          flowStreamId: Number(valId),
+          sourceDataSystem: '',
+          sinkDataSystem: '',
+          sourceNamespace: undefined,
+          sinkNamespace: undefined
+        })
+        break
+      case 'hdfslog':
+        this.setState({
+          hdfslogSinkDataSysValue: '',
+          hdfslogSinkNsValue: ''
+        })
+        this.workbenchFlowForm.setFieldsValue({
+          sourceDataSystem: '',
+          hdfslogNamespace: undefined
+        })
+        break
+      case 'routing':
+        this.setState({
+          routingSourceNsValue: '',
+          routingSinkNsValue: ''
+        })
+        break
     }
   }
 
@@ -1934,44 +1934,32 @@ export class Workbench extends React.Component {
         sourceNs: sourceDataInfo,
         sinkNs: sinkDataInfo,
         sourceType: values.type,
-        sourceConfig: 'all'
+        sourceConfig: values.protocol
       }
 
-      new Promise((resolve) => {
-        this.props.onAddJob(Object.assign({}, submitJobData, jobSparkConfigValues, requestCommon), () => {
-          resolve()
-          message.success('Job 添加成功！', 3)
-        }, () => {
-          this.hideJobSubmit()
-          this.setState({
-            jobTranTagClassName: '',
-            jobTranTableClassName: 'hide',
-            fieldSelected: 'hide',
-            jobFormTranTableSource: []
-          })
+      this.props.onAddJob(Object.assign({}, submitJobData, jobSparkConfigValues, requestCommon), () => {
+        message.success('Job 添加成功！', 3)
+      }, () => {
+        this.hideJobSubmit()
+        this.setState({
+          jobTranTagClassName: '',
+          jobTranTableClassName: 'hide',
+          fieldSelected: 'hide',
+          jobFormTranTableSource: []
         })
       })
-        .then(() => {
-          this.workbenchJobForm.resetFields()
-        })
     } else if (jobMode === 'edit') {
-      new Promise((resolve) => {
-        this.props.onEditJob(Object.assign({}, singleJobResult, jobSparkConfigValues, requestCommon), () => {
-          resolve()
-          message.success('Job 修改成功！', 3)
-        }, () => {
-          this.hideJobSubmit()
-          this.setState({
-            jobTranTagClassName: '',
-            jobTranformTableClassName: 'hide',
-            fieldSelected: 'hide',
-            jobFormTranTableSource: []
-          })
+      this.props.onEditJob(Object.assign({}, singleJobResult, jobSparkConfigValues, requestCommon), () => {
+        message.success('Job 修改成功！', 3)
+      }, () => {
+        this.hideJobSubmit()
+        this.setState({
+          jobTranTagClassName: '',
+          jobTranformTableClassName: 'hide',
+          fieldSelected: 'hide',
+          jobFormTranTableSource: []
         })
       })
-        .then(() => {
-          this.workbenchJobForm.resetFields()
-        })
     }
   }
 
@@ -1979,12 +1967,17 @@ export class Workbench extends React.Component {
 
   submitFlowForm = () => {
     const { streamDiffType } = this.state
-    if (streamDiffType === 'default') {
-      this.handleSubmitFlowDefault()
-    } else if (streamDiffType === 'hdfslog') {
-      this.handleSubmitFlowHdfslog()
-    } else if (streamDiffType === 'routing') {
-      this.handleSubmitFlowRouting()
+
+    switch (streamDiffType) {
+      case 'default':
+        this.handleSubmitFlowDefault()
+        break
+      case 'hdfslog':
+        this.handleSubmitFlowHdfslog()
+        break
+      case 'routing':
+        this.handleSubmitFlowRouting()
+        break
     }
   }
 
@@ -2024,33 +2017,24 @@ export class Workbench extends React.Component {
         tranConfig: tranConfigRequest
       }
 
-      new Promise((resolve) => {
-        this.props.onAddFlow(submitFlowData, () => {
-          resolve()
-          if (flowMode === 'add') {
-            message.success('Flow 添加成功！', 3)
-          } else if (flowMode === 'copy') {
-            message.success('Flow 复制成功！', 3)
-          }
-        }, () => {
-          this.hideFlowSubmit()
-          this.setState({
-            transformTagClassName: '',
-            transformTableClassName: 'hide',
-            transConnectClass: 'hide',
-            fieldSelected: 'hide',
-            etpStrategyCheck: false,
-            dataframeShowSelected: 'hide',
-            flowFormTranTableSource: []
-          })
+      this.props.onAddFlow(submitFlowData, () => {
+        if (flowMode === 'add') {
+          message.success('Flow 添加成功！', 3)
+        } else if (flowMode === 'copy') {
+          message.success('Flow 复制成功！', 3)
+        }
+      }, () => {
+        this.hideFlowSubmit()
+        this.setState({
+          transformTagClassName: '',
+          transformTableClassName: 'hide',
+          transConnectClass: 'hide',
+          fieldSelected: 'hide',
+          etpStrategyCheck: false,
+          dataframeShowSelected: 'hide',
+          flowFormTranTableSource: []
         })
       })
-        .then(() => {
-          this.setState({
-            // flowKafkaInstanceValue: '',
-            // flowKafkaTopicValue: ''
-          })
-        })
     } else if (flowMode === 'edit') {
       const editData = {
         sinkConfig: `${sinkConfigRequest}`,
@@ -2058,29 +2042,20 @@ export class Workbench extends React.Component {
         consumedProtocol: values.protocol
       }
 
-      new Promise((resolve) => {
-        this.props.onEditFlow(Object.assign({}, editData, singleFlowResult), () => {
-          resolve()
-          message.success('Flow 修改成功！', 3)
-        }, () => {
-          this.hideFlowSubmit()
-          this.setState({
-            transformTagClassName: '',
-            transformTableClassName: 'hide',
-            transConnectClass: 'hide',
-            fieldSelected: 'hide',
-            etpStrategyCheck: false,
-            dataframeShowSelected: 'hide',
-            flowFormTranTableSource: []
-          })
+      this.props.onEditFlow(Object.assign({}, editData, singleFlowResult), () => {
+        message.success('Flow 修改成功！', 3)
+      }, () => {
+        this.hideFlowSubmit()
+        this.setState({
+          transformTagClassName: '',
+          transformTableClassName: 'hide',
+          transConnectClass: 'hide',
+          fieldSelected: 'hide',
+          etpStrategyCheck: false,
+          dataframeShowSelected: 'hide',
+          flowFormTranTableSource: []
         })
       })
-        .then(() => {
-          this.setState({
-            // flowKafkaInstanceValue: '',
-            // flowKafkaTopicValue: ''
-          })
-        })
     }
   }
 
