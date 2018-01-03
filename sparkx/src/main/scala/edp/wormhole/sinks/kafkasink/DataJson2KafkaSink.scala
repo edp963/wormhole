@@ -22,12 +22,12 @@ class DataJson2KafkaSink extends SinkProcessor with EdpLogging {
     logInfo("In DataJson2KafkaSink")
     WormholeKafkaProducer.init(connectionConfig.connectionUrl, connectionConfig.parameters)
     val kafkaTopic = sinkNamespace.split("\\.")(2)
-    val protocol: UmsProtocol = UmsProtocol(protocolType)
+    //val protocol: UmsProtocol = UmsProtocol(protocolType)
     val targetSchemaStr = sinkProcessConfig.jsonSchema.get
     val targetSchemaArr = JSON.parseObject(targetSchemaStr).getJSONArray("fields")
     tupleList.foreach(tuple => {
       val value = JsonParseHelper.jsonObjHelper(tuple, schemaMap, targetSchemaArr)
-      WormholeKafkaProducer.sendMessage(kafkaTopic, value.toJSONString, Some(protocol + "." + sinkNamespace+"..."+UUID.randomUUID().toString), connectionConfig.connectionUrl)
+      WormholeKafkaProducer.sendMessage(kafkaTopic, value.toJSONString, Some(protocolType.toString + "." + sinkNamespace+"..."+UUID.randomUUID().toString), connectionConfig.connectionUrl)
     }
     )
   }
