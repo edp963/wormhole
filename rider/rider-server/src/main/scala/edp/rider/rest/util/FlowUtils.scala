@@ -132,14 +132,14 @@ object FlowUtils extends RiderLogger {
       case "cassandra" => "edp.wormhole.sinks.cassandrasink.Data2CassandraSink"
       case "mysql" | "oracle" | "postgresql" => "edp.wormhole.sinks.dbsink.Data2DbSink"
       case "es" =>
-        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.jsonsink.elasticsearchjsonsink.DataJson2EsSink"
+        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.elasticsearchsink.DataJson2EsSink"
         else "edp.wormhole.sinks.elasticsearchsink.Data2EsSink"
       case "hbase" => "edp.wormhole.sinks.hbasesink.Data2HbaseSink"
       case "kafka" =>
-        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.kafkasink.Data2KafkaSink"
+        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.kafkasink.DataJson2KafkaSink"
         else "edp.wormhole.sinks.kafkasink.Data2KafkaSink"
       case "mongodb" =>
-        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.jsonsink.mongojsonsink.DataJson2MongoSink"
+        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.mongosink.DataJson2MongoSink"
         else "edp.wormhole.sinks.mongosink.Data2MongoSink"
       case "phoenix" => "edp.wormhole.sinks.phoenixsink.Data2PhoenixSink"
     }

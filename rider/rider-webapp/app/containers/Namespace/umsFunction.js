@@ -355,19 +355,22 @@ function getRenameIndex (renameArray, rename) {
 // 用户点保存时，调用getRepeatFieldIndex方法，返回重复rename数组，检查rename字段是否有重复，
 // 若数组的length为0，表示无重复，否则提示rename重复的位置，数组中的值为rename重复的index
 export function getRepeatFieldIndex (array) {
+  var newArray = copyArray(array)
+  var temp = newArray.filter(s => s.selected)
+
   var renameArray = []
   var repeatIndexArray = []
-  for (var i = 0; i < array.length; i++) {
-    var p = getRenameIndex(renameArray, array[i].rename)
+  for (var i = 0; i < temp.length; i++) {
+    var p = getRenameIndex(renameArray, temp[i].rename)
 
     if (p === -1) {
       var renameObj = {}
-      renameObj['index'] = i
-      renameObj['rename'] = array[i].rename
+      renameObj['index'] = temp[i].key
+      renameObj['rename'] = temp[i].rename
       renameArray.push(renameObj)
     } else {
-      if (repeatIndexArray.indexOf(i) === -1) {
-        repeatIndexArray.push(i)
+      if (repeatIndexArray.indexOf(temp[i].key) === -1) {
+        repeatIndexArray.push(temp[i].key)
       }
       if (repeatIndexArray.indexOf(renameArray[p].index) === -1) {
         repeatIndexArray.push(renameArray[p].index)

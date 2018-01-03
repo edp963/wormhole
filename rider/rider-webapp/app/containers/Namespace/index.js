@@ -806,10 +806,9 @@ export class Namespace extends React.PureComponent {
               if (umsTableDataSource.length === 0) {
                 message.error('Table 不为空！', 3)
               } else {
-                // 检查rename字段是否有重复, 提示rename重复的位置，数组中的值为rename重复的index
-                const repeatArr = getRepeatFieldIndex(umsTableDataSource)
-
                 const spaceRename = umsTableDataSource.find(s => !s.rename)
+                // 除去selected的项，检查rename字段是否有重复, 提示rename重复的位置，数组中的值为rename重复的index
+                const repeatArr = getRepeatFieldIndex(umsTableDataSource)
 
                 if (spaceRename) {
                   message.error('Rename 不为空！', 3)
