@@ -158,6 +158,7 @@ export class WorkbenchJobForm extends React.Component {
       // 'eventEndTs',
       'sourceDataSystem',
       'sourceNamespace',
+      'protocol',
       'sinkDataSystem',
       'sinkNamespace',
       'maxRecordPerPartitionProcessed'
@@ -419,6 +420,22 @@ export class WorkbenchJobForm extends React.Component {
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
                   />
+                )}
+              </FormItem>
+            </Col>
+            <Col span={24}>
+              <FormItem label="Protocol" {...itemStyle}>
+                {getFieldDecorator('protocol', {
+                  rules: [{
+                    required: true,
+                    message: '请选择 Protocol'
+                  }]
+                })(
+                  <RadioGroup className="radio-group-style" size="default">
+                    <RadioButton value="all" className="radio-btn-style radio-btn-extra">All</RadioButton>
+                    <RadioButton value="increment" className="radio-btn-style radio-btn-extra">Increment</RadioButton>
+                    <RadioButton value="initial" className="radio-btn-style radio-btn-extra">Initial</RadioButton>
+                  </RadioGroup>
                 )}
               </FormItem>
             </Col>
