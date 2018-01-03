@@ -7,11 +7,11 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.3.0-SNAPSHOTS</version>
+        <version>0.4.0-SNAPSHOTS</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>wormhole-rider-server_1.2</artifactId>
+    <artifactId>wormhole-rider-server_${ums.version}</artifactId>
     <packaging>jar</packaging>
 
     <properties>
@@ -130,10 +130,35 @@
             <version>${slick.version}</version>
         </dependency>
 
+
         <dependency>
             <groupId>com.pauldijou</groupId>
             <artifactId>jwt-core_${scala.binary.version}</artifactId>
             <version>${jwt.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-jackson_2.11</artifactId>
+            <version>3.2.11</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>de.heikoseeberger</groupId>
+            <artifactId>akka-http-json4s_2.11</artifactId>
+            <version>1.11.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>5.1.41</version>
         </dependency>
 
         <!--kafka dependencies-->
@@ -156,21 +181,29 @@
             <version>2.3.0</version>
         </dependency>
 
-
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
             <artifactId>rest</artifactId>
             <version>5.3.2</version>
         </dependency>
 
-    </dependencies>
 
+    </dependencies>
 
     <!--<build>-->
         <!--<plugins>-->
             <!--<plugin>-->
                 <!--<groupId>org.apache.maven.plugins</groupId>-->
                 <!--<artifactId>maven-shade-plugin</artifactId>-->
+                <!--<configuration>-->
+                    <!--<relocations>-->
+                        <!--<relocation>-->
+                            <!--<pattern>com.google.common</pattern>-->
+                            <!--<shadedPattern>com.foo.com.google.common</shadedPattern>-->
+                        <!--</relocation>-->
+                    <!--</relocations>-->
+                    <!--<finalName>${project.artifactId}-${project.version}-jar-with-dependencies</finalName>-->
+                <!--</configuration>-->
                 <!--<executions>-->
                     <!--<execution>-->
                         <!--<phase>package</phase>-->
@@ -178,13 +211,6 @@
                             <!--<goal>shade</goal>-->
                         <!--</goals>-->
                         <!--<configuration>-->
-                            <!--&lt;!&ndash;<shadedArtifactAttached>true</shadedArtifactAttached>&ndash;&gt;-->
-                            <!--&lt;!&ndash;<shadedClassifierName>allinone</shadedClassifierName>&ndash;&gt;-->
-                            <!--<artifactSet>-->
-                                <!--<includes>-->
-                                    <!--<include>*:*</include>-->
-                                <!--</includes>-->
-                            <!--</artifactSet>-->
                             <!--<filters>-->
                                 <!--<filter>-->
                                     <!--<artifact>*:*</artifact>-->
@@ -195,6 +221,7 @@
                                     <!--</excludes>-->
                                 <!--</filter>-->
                             <!--</filters>-->
+                            <!--<promoteTransitiveDependencies>true</promoteTransitiveDependencies>-->
                             <!--<transformers>-->
                                 <!--<transformer-->
                                         <!--implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">-->
@@ -202,9 +229,7 @@
                                 <!--</transformer>-->
                                 <!--<transformer-->
                                         <!--implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
-                                    <!--<manifestEntries>-->
-                                        <!--<Main-Class>edp.rider.RiderStarter</Main-Class>-->
-                                    <!--</manifestEntries>-->
+                                    <!--<mainClass>edp.rider.RiderStarter</mainClass>-->
                                 <!--</transformer>-->
                             <!--</transformers>-->
                         <!--</configuration>-->
@@ -213,6 +238,4 @@
             <!--</plugin>-->
         <!--</plugins>-->
     <!--</build>-->
-
-
 </project>

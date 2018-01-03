@@ -24,16 +24,18 @@ package edp.rider.rest.router.admin.api
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server._
 import edp.rider.common.RiderLogger
-import edp.rider.rest.persistence.dal.StreamDal
+import edp.rider.rest.persistence.dal.{JobDal, ProjectDal, StreamDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
+import edp.rider.rest.util.CommonUtils.minTimeOut
 import edp.rider.rest.util.ResponseUtils._
 import edp.rider.spark.SparkJobClientLog
-import edp.rider.rest.router.JsonProtocol._
+
+import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
-class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) with RiderLogger {
+class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal) extends BaseAdminApiImpl(streamDal) with RiderLogger with JsonSerializer {
   override def getByAllRoute(route: String): Route = path(route) {
     get {
       parameter('visible.as[Boolean].?) {
@@ -45,14 +47,9 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
                 complete(OK, getHeader(403, session))
               }
               else {
-                onComplete(streamDal.adminGetAll.mapTo[Seq[StreamAdmin]]) {
-                  case Success(streamAdmins) =>
-                    riderLogger.info(s"user ${session.userId} select all $route success.")
-                    complete(OK, ResponseSeqJson[StreamAdmin](getHeader(200, session), streamAdmins.sortBy(_.stream.id)))
-                  case Failure(ex) =>
-                    riderLogger.error(s"user ${session.userId} select all $route failed", ex)
-                    complete(OK, getHeader(451, ex.getMessage, session))
-                }
+                val streams = streamDal.getBriefDetail()
+                riderLogger.info(s"user ${session.userId} select all streams success.")
+                complete(OK, ResponseSeqJson[StreamDetail](getHeader(200, session), streams))
               }
           }
       }
@@ -71,23 +68,13 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
               complete(OK, getHeader(403, session))
             }
             else {
-              returnStreamRes(id, None, session)
+              val streams = streamDal.getBriefDetail(Some(id))
+              riderLogger.info(s"user ${session.userId} select all streams success.")
+              complete(OK, ResponseSeqJson[StreamDetail](getHeader(200, session), streams))
             }
         }
       }
 
-  }
-
-  def returnStreamRes(projectId: Long, streamId: Option[Long], session: SessionClass) = {
-    onComplete(streamDal.getStreamsByProjectId(Some(projectId), streamId).mapTo[Seq[StreamSeqTopic]]) {
-      case Success(streams) =>
-        val allStreams: Seq[(Stream, StreamSeqTopic)] = streamDal.getUpdateStream(streams)
-        val realReturns = allStreams.map(stream => stream._2)
-        val realRes = realReturns.map(returnStream => streamDal.getReturnRes(returnStream))
-        riderLogger.info(s"user ${session.userId} update streams after refresh the yarn/spark rest api or log success.")
-        complete(OK, ResponseSeqJson[StreamSeqTopicActions](getHeader(200, session), realRes.sortBy(_.stream.id)))
-      case Failure(ex) => complete(OK, getHeader(451, ex.getMessage, session))
-    }
   }
 
   def getResourceByProjectIdRoute(route: String): Route = path(route / LongNumber / "resources") {
@@ -100,14 +87,28 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
               complete(OK, getHeader(403, session))
             }
             else {
-              onComplete(streamDal.getResource(id).mapTo[Resource]) {
-                case Success(resources) =>
+
+
+
+                try {
+                  val project: Project = Await.result(projectDal.findById(id), minTimeOut).head
+                  val (projectTotalCore, projectTotalMemory) = (project.resCores, project.resMemoryG)
+                  val (jobUsedCore, jobUsedMemory, jobSeq) = jobDal.getProjectJobsUsedResource(id)
+                  val (streamUsedCore, streamUsedMemory, streamSeq) = streamDal.getProjectStreamsUsedResource(id)
+                  val appResources = jobSeq ++ streamSeq
+                  val resources = Resource(projectTotalCore, projectTotalMemory, projectTotalCore - jobUsedCore - streamUsedCore, projectTotalMemory - jobUsedMemory - streamUsedMemory, appResources)
                   riderLogger.info(s"user ${session.userId} select all resources success where project id is $id.")
                   complete(OK, ResponseJson[Resource](getHeader(200, session), resources))
-                case Failure(ex) =>
-                  riderLogger.error(s"user ${session.userId} select all resources failed where project id is $id", ex)
-                  complete(OK, getHeader(451, ex.getMessage, session))
-              }
+                } catch {
+                  case ex: Exception =>
+                    riderLogger.error(s"user ${session.userId} get resources for project ${id}  failed", ex)
+                    complete(OK, getHeader(451, ex.getMessage, session))
+                }
+
+
+
+
+
             }
         }
       }
@@ -137,33 +138,22 @@ class StreamAdminApi(streamDal: StreamDal) extends BaseAdminApiImpl(streamDal) w
       }
   }
 
-  def getTopicsByStreamId(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "intopics") {
+  override def getByIdRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber) {
     (id, streamId) =>
       get {
         authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
           session =>
             if (session.roleType != "admin") {
-              riderLogger.warn(s"${
-                session.userId
-              } has no permission to access it.")
+              riderLogger.warn(s"${session.userId} has no permission to access it.")
               complete(OK, getHeader(403, session))
             }
             else {
-              try {
-                val topics = streamDal.refreshTopicByStreamId(streamId, session.userId)
-                riderLogger.info(s"user ${
-                  session.userId
-                } select topics where stream id is $streamId success.")
-                complete(OK, ResponseSeqJson[TopicDetail](getHeader(200, session), topics))
-              } catch {
-                case ex: Exception =>
-                  riderLogger.error(s"user ${
-                    session.userId
-                  } select topics where stream id is $streamId failed", ex)
-                  complete(OK, getHeader(451, ex.getMessage, session))
-              }
+              val stream = streamDal.getStreamDetail(Some(id), Some(streamId)).head
+              riderLogger.info(s"user ${session.userId} select streams where project id is $id success.")
+              complete(OK, ResponseJson[StreamDetail](getHeader(200, session), stream))
             }
         }
       }
   }
+
 }

@@ -25,8 +25,7 @@ import com.alibaba.fastjson.JSON
 import edp.wormhole.common.SparkSchemaUtils.createDf
 import edp.wormhole.common.hadoop.HdfsUtils
 import edp.wormhole.common.util.DateUtils
-import edp.wormhole.common.{ConnectionConfig, SparkUtils}
-import edp.wormhole.core.InputDataRequirement
+import edp.wormhole.common.{ConnectionConfig, InputDataRequirement, SparkUtils}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums._
 import org.apache.spark.rdd.RDD
@@ -37,7 +36,7 @@ import scala.collection.mutable.ListBuffer
 
 class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
   override def process(session: SparkSession, fromTime: String, toTime: String, sourceNamespace: String, connectionConfig: ConnectionConfig, specialConfig: Option[String]): DataFrame = {
-    val specialConfigStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(specialConfig.get.toString))
+    val specialConfigStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(specialConfig.get.toString.split(" ").mkString("")))
     val specialConfigObject = JSON.parseObject(specialConfigStr)
     val initial = specialConfigObject.getBoolean(InputDataRequirement.INITIAL.toString)
     val increment = specialConfigObject.getBoolean(InputDataRequirement.INCREMENT.toString)

@@ -22,8 +22,9 @@
 package edp.rider.rest.persistence.entities
 
 import edp.rider.rest.persistence.base.{BaseEntity, BaseTable, SimpleBaseEntity}
-import slick.lifted.{Rep, Tag}
+import edp.wormhole.common.KVConfig
 import slick.jdbc.MySQLProfile.api._
+import slick.lifted.{Rep, Tag}
 
 case class Namespace(id: Long,
                      nsSys: String,
@@ -33,8 +34,9 @@ case class Namespace(id: Long,
                      nsVersion: String,
                      nsDbpar: String,
                      nsTablepar: String,
-                     permission: String,
                      keys: Option[String],
+                     sourceSchema: Option[String],
+                     sinkSchema: Option[String],
                      nsDatabaseId: Long,
                      nsInstanceId: Long,
                      active: Boolean,
@@ -42,6 +44,36 @@ case class Namespace(id: Long,
                      createBy: Long,
                      updateTime: String,
                      updateBy: Long) extends BaseEntity
+
+case class SourceSchema(umsType: Option[String],
+                        jsonSample: Option[Object],
+                        jsonParseArray: Option[Object],
+                        umsSchemaTable: Option[Object],
+                        umsSchema: Option[Object])
+
+case class SinkSchema(jsonSample: Option[Object],
+                      jsonParseArray: Option[Object],
+                      schemaTable: Option[Object],
+                      schema: Option[Object])
+
+case class NsSchema(source: Option[SourceSchema], sink: Option[SinkSchema])
+
+case class NamespaceInfo(id: Long,
+                         nsSys: String,
+                         nsInstance: String,
+                         nsDatabase: String,
+                         nsTable: String,
+                         nsVersion: String,
+                         nsDbpar: String,
+                         nsTablepar: String,
+                         keys: Option[String],
+                         nsDatabaseId: Long,
+                         nsInstanceId: Long,
+                         active: Boolean,
+                         createTime: String,
+                         createBy: Long,
+                         updateTime: String,
+                         updateBy: Long)
 
 case class NamespaceTopic(id: Long,
                           nsSys: String,
@@ -51,7 +83,6 @@ case class NamespaceTopic(id: Long,
                           nsVersion: String,
                           nsDbpar: String,
                           nsTablepar: String,
-                          permission: String,
                           keys: Option[String],
                           nsDatabaseId: Long,
                           nsInstanceId: Long,
@@ -70,7 +101,6 @@ case class NamespaceTemp(id: Long,
                          nsVersion: String,
                          nsDbpar: String,
                          nsTablepar: String,
-                         permission: String,
                          keys: Option[String],
                          nsDatabaseId: Long,
                          nsInstanceId: Long,
@@ -81,7 +111,8 @@ case class NamespaceTemp(id: Long,
                          updateBy: Long,
                          nsInstanceSys: String)
 
-case class NsTable(table: String, key: Option[String])
+case class NsTable(table: String,
+                   key: Option[String])
 
 case class SimpleNamespace(nsSys: String,
                            nsInstance: String,
@@ -92,7 +123,6 @@ case class SimpleNamespace(nsSys: String,
 
 case class NsDatabaseInstance(nsDatabaseId: Long,
                               nsDatabase: String,
-                              permission: String,
                               nsInstanceId: Long,
                               nsInstance: String,
                               nsUrl: String,
@@ -103,9 +133,10 @@ case class TransNamespace(nsSys: String,
                           nsDatabase: String,
                           conn_url: String,
                           user: Option[String],
-                          pwd: Option[String])
+                          pwd: Option[String],
+                          connection_config: Option[Seq[KVConfig]])
 
-case class TransNamespaceTemp(instance: Instance, db: NsDatabase, nsSys: String)
+case class TransNamespaceTemp(instance: Instance, db: NsDatabase, dbConfig: Option[String], nsSys: String)
 
 case class NamespaceAdmin(id: Long,
                           nsSys: String,
@@ -115,7 +146,6 @@ case class NamespaceAdmin(id: Long,
                           nsVersion: String,
                           nsDbpar: String,
                           nsTablepar: String,
-                          permission: String,
                           keys: Option[String],
                           nsDatabaseId: Long,
                           nsInstanceId: Long,
@@ -130,9 +160,16 @@ case class NamespaceAdmin(id: Long,
 case class NamespaceProjectName(nsId: Long,
                                 name: String)
 
+case class PushDownConnection(name_space: String,
+                              jdbc_url: String,
+                              username: Option[String],
+                              password: Option[String],
+                              connection_config: Option[Seq[KVConfig]])
+
 
 class NamespaceTable(_tableTag: Tag) extends BaseTable[Namespace](_tableTag, "namespace") {
-  def * = (id, nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar, permission, keys, nsDatabaseId, nsInstanceId, active, createTime, createBy, updateTime, updateBy) <> (Namespace.tupled, Namespace.unapply)
+  def * = (id, nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar, keys,
+    umsInfo, sinkInfo, nsDatabaseId, nsInstanceId, active, createTime, createBy, updateTime, updateBy) <> (Namespace.tupled, Namespace.unapply)
 
   val nsSys: Rep[String] = column[String]("ns_sys", O.Length(100, varying = true))
   /** Database column ns_instance SqlType(VARCHAR), Length(100,true) */
@@ -147,15 +184,15 @@ class NamespaceTable(_tableTag: Tag) extends BaseTable[Namespace](_tableTag, "na
   val nsDbpar: Rep[String] = column[String]("ns_dbpar", O.Length(100, varying = true))
   /** Database column ns_tablepar SqlType(VARCHAR), Length(100,true) */
   val nsTablepar: Rep[String] = column[String]("ns_tablepar", O.Length(100, varying = true))
-  /** Database column permission SqlType(VARCHAR), Length(20,true) */
-  val permission: Rep[String] = column[String]("permission", O.Length(20, varying = true))
   /** Database column keys SqlType(VARCHAR), Length(1000,true), Default(None) */
   val keys: Rep[Option[String]] = column[Option[String]]("keys", O.Length(1000, varying = true), O.Default(None))
+  val umsInfo: Rep[Option[String]] = column[Option[String]]("ums_info")
+  val sinkInfo: Rep[Option[String]] = column[Option[String]]("sink_info")
   /** Database column ns_database_id SqlType(BIGINT) */
   val nsDatabaseId: Rep[Long] = column[Long]("ns_database_id")
   /** Database column ns_instance_id SqlType(BIGINT) */
   val nsInstanceId: Rep[Long] = column[Long]("ns_instance_id")
 
-  /** Uniqueness Index over (nsSys,nsInstance,nsDatabase,nsTable,nsVersion,nsDbpar,nsTablepar,permission,origin) (database name namespace_UNIQUE) */
-  val index1 = index("namespace_UNIQUE", (nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar, permission), unique = true)
+  /** Uniqueness Index over (nsSys,nsInstance,nsDatabase,nsTable,nsVersion,nsDbpar,nsTablepar) (database name namespace_UNIQUE) */
+  val index1 = index("namespace_UNIQUE", (nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar), unique = true)
 }

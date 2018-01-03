@@ -29,8 +29,10 @@ case class FeedbackHeartbeat(id: Long,
                              protocolType: String,
                              streamId: Long,
                              namespace: String,
-                             umsTS: String,
+                             umsTs: String,
                              feedbackTime: String) extends BaseEntity
+
+case class StreamNamespace(streamId: Long, ns: String)
 
 class FeedbackHeartbeatTable(_tableTag: Tag) extends BaseTable[FeedbackHeartbeat](_tableTag, "feedback_heartbeat") {
   def * = (id, projectType, streamId, namespace, umsTs, feedbackTime) <> (FeedbackHeartbeat.tupled, FeedbackHeartbeat.unapply)

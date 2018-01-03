@@ -38,6 +38,9 @@ object SqlOptType extends Enumeration {
   val PARQUET_SQL = Value("parquet_sql")
   val CUSTOM_CLASS = Value("custom_class")
 
+//  val PUSHDOWN_HBASE = Value("pushdown_hbase")
+//  val PUSHDOWN_REDIS = Value("pushdown_redis")
+
   val UNION = Value("union")
   val INNER_JOIN = Value("inner join")
   val JOIN = Value("join")
