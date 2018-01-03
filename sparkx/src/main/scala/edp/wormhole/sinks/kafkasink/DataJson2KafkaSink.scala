@@ -25,7 +25,7 @@ class DataJson2KafkaSink extends SinkProcessor with EdpLogging {
     val targetSchemaArr = JSON.parseObject(targetSchemaStr).getJSONArray("fields")
     tupleList.foreach(tuple => {
       val value = JsonParseHelper.jsonObjHelper(tuple, schemaMap, targetSchemaArr)
-      WormholeKafkaProducer.sendMessage(kafkaTopic, value.toJSONString, Some(protocol + "." + sinkNamespace), connectionConfig.connectionUrl)
+      WormholeKafkaProducer.sendMessage(kafkaTopic, value.toJSONString, Some(protocolType.toString + "." + sinkNamespace), connectionConfig.connectionUrl)
     }
     )
   }
