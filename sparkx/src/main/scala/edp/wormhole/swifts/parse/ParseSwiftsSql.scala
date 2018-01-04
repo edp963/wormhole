@@ -40,7 +40,8 @@ object ParseSwiftsSql extends EdpLogging {
   def parse(sqlStr: String,
             sourceNamespace: String, //sourceNamespace is rule
             sinkNamespace: String,
-            validity: Boolean): Option[Array[SwiftsSql]] = {
+            validity: Boolean,
+            dataType:String): Option[Array[SwiftsSql]] = {
     if (sqlStr.trim.nonEmpty) {
       val sqlStrArray = sqlStr.trim.replaceAll("\r", " ").replaceAll("\n", " ").replaceAll("\t", " ").split(";").map(str => {
         val trimStr = str.trim
@@ -48,7 +49,7 @@ object ParseSwiftsSql extends EdpLogging {
         else if (trimStr.startsWith(SqlOptType.PARQUET_SQL.toString)) trimStr.substring(11).trim
         else trimStr
       })
-      val swiftsSqlArr = getSwiftsSql(sqlStrArray, sourceNamespace, sinkNamespace,validity)//sourcenamespace is rule
+      val swiftsSqlArr = getSwiftsSql(sqlStrArray, sourceNamespace, sinkNamespace,validity,dataType)//sourcenamespace is rule
       swiftsSqlArr
     } else {
       None
@@ -58,7 +59,8 @@ object ParseSwiftsSql extends EdpLogging {
   private def getSwiftsSql(sqlStrArray: Array[String],
                            sourceNamespace: String,//sourcenamespace is rule
                            sinkNamespace: String,
-                           validity:Boolean): Option[Array[SwiftsSql]] = {
+                           validity:Boolean,
+                           dataType:String): Option[Array[SwiftsSql]] = {
     val swiftsSqlList = Some(sqlStrArray.map(sqlStrEle => {
       val sqlStrEleTrim = sqlStrEle.trim + " " //to fix no where clause bug, e.g select a, b from table;
       logInfo("sqlStrEle:::" + sqlStrEleTrim)
@@ -69,11 +71,15 @@ object ParseSwiftsSql extends EdpLogging {
       } else if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.RIGHT_JOIN.toString)) {
         getJoin(SqlOptType.RIGHT_JOIN.toString, sqlStrEleTrim, sourceNamespace, sinkNamespace)
       } else if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.UNION.toString)) {
-        getUnion(sqlStrEleTrim, sourceNamespace, sinkNamespace,validity)
+        getUnion(sqlStrEleTrim, sourceNamespace, sinkNamespace,validity,dataType)
       } else if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.SPARK_SQL.toString)) {
-        getSparkSql(sqlStrEleTrim, sourceNamespace,validity)
+        getSparkSql(sqlStrEleTrim, sourceNamespace,validity,dataType)
       } else if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.CUSTOM_CLASS.toString)) {
         getCustomClass(sqlStrEleTrim)
+//      } else if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.PUSHDOWN_REDIS_SIMPLE.toString) || sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.PUSHDOWN_REDIS_JSON.toString)) {
+//        getPushdownRedis(sqlStrEleTrim)
+//      } else if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.PUSHDOWN_HBASE.toString)) {
+//        getPushdownHbase(sqlStrEleTrim)
       } else {
         logError("optType:" + sqlStrEleTrim + " is not supported")
         throw new Exception("wong operation data type:" + sqlStrEleTrim)
@@ -82,6 +88,43 @@ object ParseSwiftsSql extends EdpLogging {
     )
     swiftsSqlList
   }
+
+//  private def getPushdownRedis(sqlStrEle: String): SwiftsSql = {
+//    val selectFieldFrom = sqlStrEle.indexOf("=") + 1
+//    val selectFieldEnd = sqlStrEle.toLowerCase.indexOf(" from ")
+//    val joinByPosition = sqlStrEle.toLowerCase.indexOf(" joinby ")
+//
+//    val selectFields = sqlStrEle.substring(selectFieldFrom,selectFieldEnd)//.split(",").map(_.trim)
+//    val pushdownNamespace = sqlStrEle.substring(selectFieldEnd+1,joinByPosition).trim
+//    val joinbyFileds = sqlStrEle.substring(joinByPosition+1).split("+").map(_.trim)
+//
+//    SwiftsSql(SqlOptType.PUSHDOWN_REDIS_SIMPLE.toString, Some(selectFields), "", None, Some(pushdownNamespace), Some(joinbyFileds), None,None)
+//  }
+
+  private def getFieldsFromHbaseOrRedis(sqlStrEle: String): String = {
+    val selectFieldFrom = sqlStrEle.indexOf("select ") + 7
+    val selectFieldEnd = sqlStrEle.toLowerCase.indexOf(" from ")
+    sqlStrEle.substring(selectFieldFrom,selectFieldEnd)//.split(",").map(_.trim)
+  }
+
+//  private def getJoinfieldsFromHbaseOrRedis(sqlStrEle: String): Array[String] = {
+//    val joinByPosition = sqlStrEle.toLowerCase.indexOf(" joinby ")
+//    val joinbyFileds: Array[String] = Array(sqlStrEle.substring(joinByPosition+1))
+//
+//    joinbyFileds
+//  }
+
+//  private def getPushdownHbase(sqlStrEle: String): SwiftsSql = {
+//    val selectFieldFrom = sqlStrEle.indexOf("=") + 1
+//    val selectFieldEnd = sqlStrEle.toLowerCase.indexOf(" from ")
+//    val joinByPosition = sqlStrEle.toLowerCase.indexOf(" joinby ")
+//
+//    val selectFields = sqlStrEle.substring(selectFieldFrom,selectFieldEnd)//.split(",").map(_.trim)
+//    val pushdownNamespace = sqlStrEle.substring(selectFieldEnd+1,joinByPosition).trim
+//    val joinbyFileds: Array[String] = Array(sqlStrEle.substring(joinByPosition+1))
+//
+//    SwiftsSql(SqlOptType.PUSHDOWN_REDIS_SIMPLE.toString, Some(selectFields), "", None, Some(pushdownNamespace), Some(joinbyFileds), None,None)
+//  }
 
   private def getCustomClass(sqlStrEle: String): SwiftsSql = {
     val classFullName = sqlStrEle.substring(sqlStrEle.indexOf("=") + 1).trim
@@ -92,27 +135,26 @@ object ParseSwiftsSql extends EdpLogging {
   private def getUnion(sqlStrEle: String,
                        sourceNamespace: String,
                        sinkNamespace: String,
-                       validity:Boolean): SwiftsSql = {
+                       validity:Boolean,
+                       dataType:String): SwiftsSql = {
     val unionNamespace = sqlStrEle.substring(sqlStrEle.indexOf(" with ") + 5, sqlStrEle.indexOf("=")).trim
     val sqlStr = sqlStrEle.substring(sqlStrEle.indexOf("=") + 1).trim
-    val (sql, lookupFields, valuesFields) = getFieldsAndSql(sourceNamespace, sqlStr)
+    val (sql, lookupFields, valuesFields) = getFieldsAndSql(sourceNamespace, sqlStr,unionNamespace)
     var sqlSecondPart = sql.substring(sql.trim.toLowerCase.indexOf("select ") + 7)
     val selectSqlFields = sql.substring(0, sql.trim.toLowerCase.indexOf(" from "))
       .toLowerCase.split(",").map(field => {
       (field.trim, true)
     }).toMap
-    if (!selectSqlFields.contains(UmsSysField.TS.toString)) {
+    if (dataType == "ums" && !selectSqlFields.contains(UmsSysField.TS.toString)) {
       sqlSecondPart = UmsSysField.TS.toString + "," + sqlSecondPart
     }
-    if (!selectSqlFields.contains(UmsSysField.ID.toString)) {
+    if (dataType == "ums" && !selectSqlFields.contains(UmsSysField.ID.toString)) {
       sqlSecondPart = UmsSysField.ID.toString + "," + sqlSecondPart
     }
-    if (validity && !selectSqlFields.contains(UmsSysField.UID.toString)) {
+    if (dataType == "ums" && validity && !selectSqlFields.contains(UmsSysField.UID.toString)) {
       sqlSecondPart = UmsSysField.UID.toString + "," + sqlSecondPart
     }
-//    if (!selectSqlFields.contains(UmsSysField.OP.toString)) {
-//      sqlSecondPart = "'i' as ums_op_," + sqlSecondPart
-//    }
+
     sqlSecondPart = "select " + sqlSecondPart
     val lookupNSArr: Array[String] = unionNamespace.split("\\.")
     UmsDataSystem.dataSystem(lookupNSArr(0).toLowerCase()) match {
@@ -122,7 +164,6 @@ object ParseSwiftsSql extends EdpLogging {
     }
     val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(unionNamespace)
     val selectSchema = getSchema(sqlSecondPart, connectionConfig)
-
 
     val selectFieldsList = getIndependentFieldsFromSql(sqlSecondPart)
     val selectFieldsSet = selectFieldsList.map(fieldName => {
@@ -173,7 +214,7 @@ object ParseSwiftsSql extends EdpLogging {
   }
 
 
-  def getSparkSql(sqlStrEle: String, sourceNamespace: String,validity:Boolean): SwiftsSql = {//sourcenamespace is rule
+  def getSparkSql(sqlStrEle: String, sourceNamespace: String,validity:Boolean,dataType:String): SwiftsSql = {//sourcenamespace is rule
   val tableName = sourceNamespace.split("\\.")(3)
     val unionSqlArray = getSqlArray(sqlStrEle, " union ", 7)
     val sqlArray = unionSqlArray.map(singleSql => {
@@ -185,16 +226,16 @@ object ParseSwiftsSql extends EdpLogging {
           (field.trim.split(" ").last, true)
         }).toMap
       if (!selectFields.contains("*")) {
-        if (!selectFields.contains(UmsSysField.TS.toString)) {
+        if (dataType == "ums" && !selectFields.contains(UmsSysField.TS.toString)) {
           sql = sql + UmsSysField.TS.toString + ", "
         }
-        if (!selectFields.contains(UmsSysField.ID.toString)) {
+        if (dataType == "ums" && !selectFields.contains(UmsSysField.ID.toString)) {
           sql = sql + UmsSysField.ID.toString + ", "
         }
-        if (!selectFields.contains(UmsSysField.OP.toString)) {
+        if (dataType == "ums" && !selectFields.contains(UmsSysField.OP.toString)) {
           sql = sql + UmsSysField.OP.toString + ", "
         }
-        if (validity && !selectFields.contains(UmsSysField.UID.toString)) {
+        if (dataType == "ums" && validity && !selectFields.contains(UmsSysField.UID.toString)) {
           sql = sql + UmsSysField.UID.toString + ", "
         }
       }
@@ -240,7 +281,11 @@ object ParseSwiftsSql extends EdpLogging {
                       sinkNamespace: String): SwiftsSql = {
     var joinNamespace = sqlStrEle.substring(sqlStrEle.toLowerCase.indexOf(" with ") + 5, sqlStrEle.indexOf("=")).trim.toLowerCase
     val sqlStr = sqlStrEle.substring(sqlStrEle.indexOf("=") + 1)
-    var (sql, lookupFields, valuesFields) = getFieldsAndSql(sourceNamespace, sqlStr)
+    var (sql, lookupFields, valuesFields) = if(joinNamespace.startsWith(UmsDataSystem.HBASE.toString)||joinNamespace.startsWith(UmsDataSystem.REDIS.toString)){
+      getFieldsAndSqlFromHbaseOrRedis(sourceNamespace, sqlStr,joinNamespace)
+    }else{
+      getFieldsAndSql(sourceNamespace, sqlStr,joinNamespace)
+    }
     val lookupNamespaceArr = joinNamespace.split(",").map(_.trim)
     var fieldsStr:Option[String] = None
     var timeout:Option[Int] = None
@@ -251,15 +296,14 @@ object ParseSwiftsSql extends EdpLogging {
         namespace
       }).mkString(",")
       sql = replaceTableNameMD5(sql, sourceNamespace, joinNamespace, sinkNamespace)
-    } else {
-      val lookupNamespaceArray: Array[String] = joinNamespace.split("\\.")
-      UmsDataSystem.dataSystem(lookupNamespaceArray(0).toLowerCase()) match {
-        case UmsDataSystem.CASSANDRA =>
-          sql = ParseCassandraSql.getCassandraSql(sql, lookupNamespaceArray(2))
-        case _ =>
+    }else{
+      val lookupNamespacesArr = joinNamespace.split(",").map(_.trim)
+      val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(lookupNamespacesArr(0))
+      fieldsStr = if(joinNamespace.startsWith(UmsDataSystem.HBASE.toString)||joinNamespace.startsWith(UmsDataSystem.REDIS.toString)){
+        Some(getFieldsFromHbaseOrRedis(sql))
+      }else{
+        Some(getSchema(sql, connectionConfig))
       }
-      val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(lookupNamespaceArr(0))
-      fieldsStr = Some(getSchema(sql, connectionConfig))
     }
 
     val lowerCaseSql = sql.toLowerCase.trim
@@ -302,6 +346,13 @@ object ParseSwiftsSql extends EdpLogging {
       if (!selectFieldsSet.contains(name)) throw new Exception("select fields must contains lookup fields(where in fields)  ")
     })
     val lookupFieldsAlias = resetLookupTableFields(lookupFields, selectFieldsList)
+
+//    val newOptType = if(joinNamespace.startsWith(UmsDataSystem.HBASE.toString)) {
+//      SqlOptType.PUSHDOWN_HBASE.toString
+//    }else if(joinNamespace.startsWith(UmsDataSystem.REDIS.toString)){
+//      SqlOptType.PUSHDOWN_REDIS.toString
+//    }else optType
+
     SwiftsSql(optType, fieldsStr, sql, timeout,Some(joinNamespace), Some(valuesFields), Some(lookupFields), Some(lookupFieldsAlias))
   }
 
@@ -374,19 +425,28 @@ object ParseSwiftsSql extends EdpLogging {
     "select " + result.mkString(",") + suffix
   }
 
-  private def getFieldsAndSql(namespace: String, userSqlStr: String): (String, Array[String], Array[String]) = {
+  private def getFieldsAndSqlFromHbaseOrRedis(sourceNamespace: String, userSqlStr: String,joinNamespace:String): (String, Array[String], Array[String]) = {
+    val joinByPosition = userSqlStr.toLowerCase.indexOf(" joinby ")+8
+//    val left = userSqlStr.toLowerCase.indexOf("(",joinByPosition)
+//    val right = userSqlStr.toLowerCase.lastIndexOf(")")
+//    val joinbyFileds = userSqlStr.substring(left+1,right)
+    val joinbyFileds = userSqlStr.substring(joinByPosition)
+    (userSqlStr,Array.empty[String],Array[String](joinbyFileds))
+
+  }
+
+  private def getFieldsAndSql(sourceNamespace: String, userSqlStr: String,joinNamespace:String): (String, Array[String], Array[String]) = {
     val sqlStr: String = getJoinSql(userSqlStr)
-    val namespaceArray = namespace.split("\\.")
+    val namespaceArray = sourceNamespace.split("\\.")
     val fourDigitNamespace = (for (i <- 0 until 4) yield namespaceArray(i)).mkString(".")
     val joinPosition = sqlStr.toLowerCase.indexOf(fourDigitNamespace)
     val inPosition = sqlStr.toLowerCase.lastIndexOf(" in ", joinPosition)
     val valueLeftPosition = sqlStr.indexOf("(", inPosition)
     val valueRightPosition = sqlStr.indexOf(")", inPosition)
     val valueFieldsStr = sqlStr.substring(valueLeftPosition + 1, valueRightPosition).toLowerCase
-    val valuesFields = if (valueFieldsStr.indexOf(namespace) > -1) {
-      valueFieldsStr.trim.replace(namespace + ".", "").split(",").map(_.trim)
-    }
-    else {
+    val valuesFields = if (valueFieldsStr.indexOf(sourceNamespace) > -1) {
+      valueFieldsStr.trim.replace(sourceNamespace + ".", "").split(",").map(_.trim)
+    } else {
       valueFieldsStr.trim.replaceAll(fourDigitNamespace + "\\.", "").split(",").map(_.trim)
     }
     var joinLeftPosition: Int = 0
@@ -416,7 +476,17 @@ object ParseSwiftsSql extends EdpLogging {
     val joinFieldsStr = sqlStr.substring(joinLeftPosition + 1, joinRightPosition).replace(")", "").trim.toLowerCase
     val joinFields = joinFieldsStr.trim.split(",").map(_.trim)
 
-    val sql = sqlStr.substring(0, joinLeftPosition) + " " + SwiftsConstants.REPLACE_STRING_INSQL + " " + sqlStr.substring(valueRightPosition + 1)
+    val lookupNamespaceContentArray: Array[String] = joinNamespace.split("\\.")
+    val sql =
+//      if(joinNamespace.startsWith(UmsDataSystem.CASSANDRA.toString)){
+//      ParseCassandraSql.getCassandraSql(sqlStr, lookupNamespaceContentArray(2))
+//    }else{
+      sqlStr.substring(0, joinLeftPosition) + " " + SwiftsConstants.REPLACE_STRING_INSQL + " " + sqlStr.substring(valueRightPosition + 1)
+
+//    val lookupNamespacesArr = joinNamespace.split(",").map(_.trim)
+//    val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(lookupNamespacesArr(0))
+//    val fieldsStr = getSchema(sql, connectionConfig)
+
     (sql, joinFields, valuesFields)
   }
 }

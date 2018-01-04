@@ -21,11 +21,11 @@
 
 package edp.wormhole.router
 
-import edp.wormhole.common.{SparkContextUtils, SparkUtils, WormholeConstants}
+import edp.wormhole.common._
 import edp.wormhole.common.SparkContextUtils.createKafkaStream
 import edp.wormhole.common.util.JsonUtils
 import edp.wormhole.common.zookeeper.WormholeZkClient
-import edp.wormhole.core.{DirectiveFlowWatch, KafkaInputConfig, WormholeConfig}
+import edp.wormhole.directive.DirectiveFlowWatch
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.OffsetPersistenceManager
 import edp.wormhole.spark.log.EdpLogging

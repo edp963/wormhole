@@ -27,8 +27,8 @@ import edp.rider.RiderStarter._
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{FlowDal, ProjectDal, StreamDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.{ActionClass, ResponseHeader, ResponseJson, SessionClass}
+//import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.router._
 import edp.rider.rest.util.AppUtils._
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils._
@@ -37,7 +37,7 @@ import edp.rider.rest.util.CommonUtils._
 
 import scala.concurrent.Await
 
-class FlowAppApi(flowDal: FlowDal, streamDal: StreamDal, projectDal: ProjectDal) extends BaseAppApiImpl(flowDal) with RiderLogger {
+class FlowAppApi(flowDal: FlowDal, streamDal: StreamDal, projectDal: ProjectDal) extends BaseAppApiImpl(flowDal) with RiderLogger with JsonSerializer {
 
   def postRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows") {
     (projectId, streamId) =>
@@ -56,7 +56,7 @@ class FlowAppApi(flowDal: FlowDal, streamDal: StreamDal, projectDal: ProjectDal)
                         val flow = tuple._2.get
                         try {
                           autoRegisterTopic(streamId, flow.sourceNs, session.userId)
-                          val stream = streamDal.refreshStreamsByProjectId(Some(projectId), Some(streamId)).head.stream
+                          val stream = Await.result(streamDal.findById(streamId), minTimeOut).head
                           if (startFlow(stream.id, stream.streamType, flow.id, flow.sourceNs, flow.sinkNs, flow.consumedProtocol, flow.sinkConfig.getOrElse(""), flow.tranConfig.getOrElse(""), flow.updateBy)) {
                             riderLogger.info(s"user ${session.userId} start flow ${flow.id} success.")
                             complete(OK, ResponseJson[AppFlowResponse](getHeader(200, null), AppFlowResponse(flow.id, flow.status)))
@@ -101,7 +101,7 @@ class FlowAppApi(flowDal: FlowDal, streamDal: StreamDal, projectDal: ProjectDal)
                   riderLogger.error(s"user ${session.userId} request to stop project $projectId, stream $streamId, flow $flowId, but the project $projectId doesn't exist.")
                   complete(OK, getHeader(403, s"project $projectId doesn't exist", null))
                 }
-                val streamInfo = streamDal.refreshStreamsByProjectId(Some(projectId), Some(streamId))
+                val streamInfo = Await.result(streamDal.findById(streamId), minTimeOut)
                 if (streamInfo.isEmpty) {
                   riderLogger.error(s"user ${session.userId} request stop flow $flowId, but the stream $streamId doesn't exist")
                   complete(OK, getHeader(403, s"stream $streamId doesn't exist", null))
@@ -111,7 +111,7 @@ class FlowAppApi(flowDal: FlowDal, streamDal: StreamDal, projectDal: ProjectDal)
                   riderLogger.error(s"user ${session.userId} request stop flow $flowId, but it doesn't exist")
                   complete(OK, getHeader(403, s"flow $streamId doesn't exist", null))
                 }
-                val stream = streamInfo.head.stream
+                val stream = streamInfo.head
                 val flow = flowSearch.head
                 if (flow.status != "stopped") {
                   if (stopFlow(stream.id, flowId, flow.updateBy, stream.streamType, flow.sourceNs, flow.sinkNs)) {

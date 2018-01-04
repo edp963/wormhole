@@ -21,6 +21,8 @@
 
 package edp.wormhole.sinks.kafkasink
 
+import java.util.UUID
+
 import com.alibaba.fastjson.JSONObject
 import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
@@ -42,7 +44,7 @@ class Data2KafkaSink extends SinkProcessor with EdpLogging {
                        connectionConfig: ConnectionConfig): Unit = {
     logInfo("In Data2KafkaSink")
     WormholeKafkaProducer.init(connectionConfig.connectionUrl, connectionConfig.parameters)
-    val sinkSpecificConfig = json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get)
+    val sinkSpecificConfig = if (sinkProcessConfig.specialConfig.isDefined) json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get) else KafkaConfig(None, None, None)
     val kafkaTopic = sinkNamespace.split("\\.")(2)
     val schemaList: Seq[(String, (Int, UmsFieldType, Boolean))] = schemaMap.toSeq.sortBy(_._2._1)
     val protocol: UmsProtocol = UmsProtocol(protocolType)
@@ -55,8 +57,8 @@ class Data2KafkaSink extends SinkProcessor with EdpLogging {
         ums2Kafka(tupleList, kafkaLimitNum, protocol, schema, protocolType, sinkNamespace, kafkaTopic, connectionConfig)
       case "flattenJson" =>
         val hasSystemField = sinkSpecificConfig.hasSystemField
-        if (hasSystemField) flattenJson2KafkaWithSystemValue(tupleList, schemaList, sinkNamespace, kafkaTopic, connectionConfig,protocol.`type`.toString)
-        else flattenJson2KafkaWithoutSystemValue(tupleList, schemaList, sinkNamespace, kafkaTopic, connectionConfig)
+        if (hasSystemField) flattenJson2KafkaWithSystemValue(tupleList, schemaList, sinkNamespace, kafkaTopic, connectionConfig, protocol.`type`.toString)
+        else flattenJson2KafkaWithoutSystemValue(tupleList, schemaList, sinkNamespace, kafkaTopic, connectionConfig, protocol.`type`.toString)
       case "userDefinedJson" =>
         logError("not support yet")
       case _ =>
@@ -64,7 +66,7 @@ class Data2KafkaSink extends SinkProcessor with EdpLogging {
     }
   }
 
-  private def flattenJson2KafkaWithSystemValue(tupleList: Seq[Seq[String]], schemaList: Seq[(String, (Int, UmsFieldType, Boolean))], sinkNamespace: String, kafkaTopic: String, connectionConfig: ConnectionConfig,protocol:String): Unit = {
+  private def flattenJson2KafkaWithSystemValue(tupleList: Seq[Seq[String]], schemaList: Seq[(String, (Int, UmsFieldType, Boolean))], sinkNamespace: String, kafkaTopic: String, connectionConfig: ConnectionConfig, protocol: String): Unit = {
     tupleList.foreach(tuple => {
       val flattenJson = new JSONObject
       var index = 0
@@ -74,26 +76,27 @@ class Data2KafkaSink extends SinkProcessor with EdpLogging {
       })
       flattenJson.put("namespace", sinkNamespace)
       flattenJson.put("protocol", protocol)
-      WormholeKafkaProducer.sendMessage(kafkaTopic, flattenJson.toJSONString, None, connectionConfig.connectionUrl)
+      WormholeKafkaProducer.sendMessage(kafkaTopic, flattenJson.toJSONString, Some(protocol + "." + sinkNamespace+"..."+UUID.randomUUID().toString), connectionConfig.connectionUrl)
     }
     )
   }
 
 
-  private def flattenJson2KafkaWithoutSystemValue(tupleList: Seq[Seq[String]], schemaList: Seq[(String, (Int, UmsFieldType, Boolean))], sinkNamespace: String, kafkaTopic: String, connectionConfig: ConnectionConfig): Unit = {
+  private def flattenJson2KafkaWithoutSystemValue(tupleList: Seq[Seq[String]], schemaList: Seq[(String, (Int, UmsFieldType, Boolean))], sinkNamespace: String, kafkaTopic: String, connectionConfig: ConnectionConfig, protocol: String): Unit = {
     tupleList.foreach(tuple => {
       val flattenJson = new JSONObject
       var index = 0
       tuple.foreach(t => {
         if (!schemaList(index)._1.startsWith("ums_")) {
-          flattenJson.put(schemaList(index)._1,UmsFieldType.umsFieldValue(t,  schemaList(index)._2._2))
+          flattenJson.put(schemaList(index)._1, UmsFieldType.umsFieldValue(t, schemaList(index)._2._2))
         }
         index += 1
       })
-      WormholeKafkaProducer.sendMessage(kafkaTopic, flattenJson.toJSONString, None, connectionConfig.connectionUrl)
+      WormholeKafkaProducer.sendMessage(kafkaTopic, flattenJson.toJSONString, Some(protocol + "." + sinkNamespace+"..."+UUID.randomUUID().toString), connectionConfig.connectionUrl)
     }
     )
   }
+
 
   private def ums2Kafka(tupleList: Seq[Seq[String]], kafkaLimitNum: Int, protocol: UmsProtocol, schema: UmsSchema, protocolType: UmsProtocolType, sinkNamespace: String, kafkaTopic: String, connectionConfig: ConnectionConfig): Unit = {
     tupleList.sliding(kafkaLimitNum, kafkaLimitNum).foreach(tuple => {
@@ -102,7 +105,7 @@ class Data2KafkaSink extends SinkProcessor with EdpLogging {
         protocol,
         schema,
         payload = Some(seqUmsTuple)))
-      WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + sinkNamespace), connectionConfig.connectionUrl)
+      WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + sinkNamespace+"..."+UUID.randomUUID().toString), connectionConfig.connectionUrl)
     })
   }
 }

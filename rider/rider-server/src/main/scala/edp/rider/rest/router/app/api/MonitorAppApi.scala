@@ -27,20 +27,20 @@ import edp.rider.common.RiderLogger
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.dal._
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.{ResponseJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, SessionClass}
 import edp.rider.rest.util.{AuthorizationProvider, StreamUtils}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.JobUtils._
 import edp.rider.rest.util.ResponseUtils._
 import edp.rider.service.util.FeedbackOffsetUtil
 import edp.wormhole.common.util.JsonUtils
-import edp.rider.rest.router.JsonProtocol._
+//import edp.rider.rest.router.JsonProtocol._
 import edp.wormhole.common.util.DateUtils._
 
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
-class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamDal, jobDal: JobDal, feedbackFlowErrDal: FeedbackFlowErrDal, feedbackOffsetDal: FeedbackOffsetDal) extends BaseAppApiImpl(flowDal) with RiderLogger {
+class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamDal, jobDal: JobDal, feedbackFlowErrDal: FeedbackFlowErrDal, feedbackOffsetDal: FeedbackOffsetDal) extends BaseAppApiImpl(flowDal) with RiderLogger with JsonSerializer {
 
   def getFlowHealthByIdRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows" / LongNumber / "health") {
     (projectId, streamId, flowId) =>
@@ -56,12 +56,11 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                 riderLogger.error(s"user ${session.userId} request to get project $projectId, stream $streamId, flow $flowId health information, but the project $projectId doesn't exist.")
                 complete(OK, getHeader(403, s"project $projectId doesn't exist", null))
               }
-              val streamInfo = streamDal.refreshStreamsByProjectId(Some(projectId), Some(streamId))
+              val streamInfo = Await.result(streamDal.findById(streamId), minTimeOut)
               if (streamInfo.isEmpty) {
                 riderLogger.error(s"user ${session.userId} request to get flow $flowId health information, but the stream $streamId doesn't exist")
                 complete(OK, getHeader(403, s"stream $streamId doesn't exist", null))
               }
-              //              Await.result(streamDal.getStreamsByProjectId(Some(projectId), Some(streamId)), minTimeOut)
               onComplete(flowDal.getById(projectId, flowId).mapTo[Option[FlowStreamInfo]]) {
                 case Success(flowStreamOpt) =>
                   riderLogger.info(s"user ${session.userId} select flow where project id is $projectId and flow id is $flowId success.")
@@ -126,7 +125,7 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                           projectOpt match {
                             case Some(project) =>
                               try {
-                                val streamInfo = streamDal.refreshStreamsByProjectId(Some(projectId), Some(streamId)).head.stream
+                                val streamInfo = Await.result(streamDal.findById(streamId), minTimeOut).head
                                 val sparkApplicationId = streamInfo.sparkAppid.get
                                 val sLatestWatermark = ElasticSearch.queryESStreamMax(projectId, streamId, "dataGeneratedTs")._2
                                 val launchConfig = JsonUtils.json2caseClass[LaunchConfig](stream.launchConfig)

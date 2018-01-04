@@ -63,15 +63,34 @@
             </directory>
             <outputDirectory>logs</outputDirectory>
         </fileSet>
+        <fileSet>
+            <directory>
+                ${project.parent.basedir}/rider/logs/streams
+            </directory>
+            <outputDirectory>logs/streams</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>${project.build.directory}</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>bc*.jar</include>
+            </includes>
+        </fileSet>
     </fileSets>
 
     <files>
         <file>
             <source>
-                ${project.parent.basedir}/sparkx/target/wormhole-ums_1.3-sparkx_2.2.0-0.3.0-SNAPSHOTS-jar-with-dependencies.jar
+                ${project.parent.basedir}/sparkx/target/wormhole-ums_1.3-sparkx_2.2.0-0.4.0-SNAPSHOTS-jar-with-dependencies.jar
             </source>
             <outputDirectory>lib</outputDirectory>
         </file>
+        <!--<file>-->
+            <!--<source>-->
+                <!--${project.parent.basedir}/rider/rider-server/target/wormhole-rider-server-0.4.0-SNAPSHOTS-jar-with-dependencies.jar-->
+            <!--</source>-->
+            <!--<outputDirectory>lib</outputDirectory>-->
+        <!--</file>-->
     </files>
 
     <dependencySets>
@@ -83,5 +102,6 @@
             <useProjectArtifact>false</useProjectArtifact>
         </dependencySet>
     </dependencySets>
+
 
 </assembly>

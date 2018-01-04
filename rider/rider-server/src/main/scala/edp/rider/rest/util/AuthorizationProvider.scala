@@ -28,10 +28,10 @@ import edp.rider.module.{ConfigurationModuleImpl, PersistenceModuleImpl}
 import edp.rider.rest.persistence.entities.User
 import edp.rider.rest.router.{LoginClass, LoginResult, SessionClass}
 import slick.jdbc.MySQLProfile.api._
-
+import edp.rider.rest.util.CommonUtils._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 
 sealed abstract class AuthorizationError extends Exception {
   val statusCode = Unauthorized
@@ -73,6 +73,11 @@ object AuthorizationProvider extends ConfigurationModuleImpl with PersistenceMod
       case e: AuthorizationError => Future.successful(Left(e))
     }
 
+  }
+
+  def genCurrentSession(session: SessionClass): SessionClass = {
+    val projectIds = Await.result(relProjectUserDal.findByFilter(_.userId === session.userId), minTimeOut).map(_.projectId)
+    SessionClass(session.userId, projectIds.toList, session.roleType)
   }
 
   def authorize(credentials: Credentials): Future[Option[SessionClass]] =

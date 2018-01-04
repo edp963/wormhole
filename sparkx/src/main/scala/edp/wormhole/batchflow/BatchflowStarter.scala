@@ -24,8 +24,8 @@ package edp.wormhole.batchflow
 import edp.wormhole.common.SparkContextUtils.createKafkaStream
 import edp.wormhole.common.util.JsonUtils
 import edp.wormhole.common.zookeeper.WormholeZkClient
-import edp.wormhole.common.{SparkContextUtils, SparkUtils, WormholeConstants}
-import edp.wormhole.core.{DirectiveFlowWatch, KafkaInputConfig, WormholeConfig}
+import edp.wormhole.common._
+import edp.wormhole.directive.DirectiveFlowWatch
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.OffsetPersistenceManager
 import edp.wormhole.spark.log.EdpLogging
@@ -36,6 +36,7 @@ import edp.wormhole.udf.UdfWatch
 
 object BatchflowStarter extends App with EdpLogging {
   SparkContextUtils.setLoggerLevel()
+
 
   logInfo("swiftsConfig:" + args(0))
   val config: WormholeConfig = JsonUtils.json2caseClass[WormholeConfig](args(0))

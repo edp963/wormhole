@@ -25,17 +25,18 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.base.BaseDal
+import edp.rider.rest.persistence.dal.InstanceDal
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.JsonProtocol._
-import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
+import edp.rider.rest.util.InstanceUtils._
 import edp.rider.rest.util.ResponseUtils._
 import slick.jdbc.MySQLProfile.api._
-import edp.rider.rest.util.InstanceUtils._
+
 import scala.util.{Failure, Success}
 
-class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends BaseAdminApiImpl(instanceDal) with RiderLogger {
+class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instanceDal) with RiderLogger with JsonSerializer {
 
   def getByFilterRoute(route: String): Route = path(route) {
     get {
@@ -59,13 +60,12 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
                         complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   case (None, Some(sys), Some(url), None) =>
-                    val nsInstance = generateNsInstance(url)
                     onComplete(instanceDal.findByFilter(_.connUrl === conn_url).mapTo[Seq[Instance]]) {
                       case Success(instances) =>
                         if (instances.isEmpty) {
                           if (checkFormat(sys, url)) {
                             riderLogger.info(s"user ${session.userId} check instance url $url doesn't exist, and fits the url format.")
-                            complete(OK, ResponseJson[String](getHeader(200, session), nsInstance))
+                            complete(OK, ResponseJson[String](getHeader(200, session), url))
                           }
                           else {
                             riderLogger.info(s"user ${session.userId} check instance url $url doesn't exist, but doesn't fit the url format.")
@@ -129,7 +129,7 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
               }
               else {
                 if (checkFormat(simple.nsSys, simple.connUrl)) {
-                  val instance = Instance(0, simple.nsInstance, simple.desc, simple.nsSys, simple.connUrl, active = true, currentSec, session.userId, currentSec, session.userId)
+                  val instance = Instance(0, simple.nsInstance.trim, simple.desc, simple.nsSys.trim, simple.connUrl.trim, active = true, currentSec, session.userId, currentSec, session.userId)
                   onComplete(instanceDal.insert(instance).mapTo[Instance]) {
                     case Success(row) =>
                       riderLogger.info(s"user ${session.userId} inserted instance $row success.")
@@ -167,7 +167,7 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
               }
               else {
                 if (checkFormat(instance.nsSys, instance.connUrl)) {
-                  val instanceUpdate = Instance(instance.id, instance.nsInstance, instance.desc, instance.nsSys, instance.connUrl, instance.active, instance.createTime, instance.createBy, currentSec, session.userId)
+                  val instanceUpdate = Instance(instance.id, instance.nsInstance.trim, instance.desc, instance.nsSys.trim, instance.connUrl.trim, instance.active, instance.createTime, instance.createBy, currentSec, session.userId)
                   onComplete(instanceDal.update(instanceUpdate).mapTo[Int]) {
                     case Success(_) =>
                       riderLogger.info(s"user ${session.userId} update instance success.")
@@ -192,6 +192,33 @@ class InstanceAdminApi(instanceDal: BaseDal[InstanceTable, Instance]) extends Ba
       }
     }
 
+  }
+
+  override def deleteRoute(route: String): Route = path(route / LongNumber) {
+    id =>
+      delete {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              try {
+                val result = instanceDal.delete(id)
+                if (result._1) {
+                  riderLogger.error(s"user ${session.userId} delete instance $id success.")
+                  complete(OK, getHeader(200, session))
+                }
+                else complete(OK, getHeader(412, result._2, session))
+              } catch {
+                case ex: Exception =>
+                  riderLogger.error(s"user ${session.userId} delete instance $id failed", ex)
+                  complete(OK, getHeader(451, session))
+              }
+            }
+        }
+      }
   }
 
 }
