@@ -23,6 +23,8 @@ import {connect} from 'react-redux'
 import {createStructuredSelector} from 'reselect'
 import Helmet from 'react-helmet'
 import { preProcessSql, formatString, isJSON } from '../../utils/util'
+import { generateSourceSinkNamespaceHierarchy, generateHdfslogNamespaceHierarchy, generateTransformSinkNamespaceHierarchy,
+  showSinkConfigMsg} from './workbenchFunction'
 import CodeMirror from 'codemirror'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
@@ -262,7 +264,6 @@ export class Workbench extends React.Component {
         }
         break
     }
-
     this.setState({ tabPanelKey: key })
   }
 
@@ -278,7 +279,6 @@ export class Workbench extends React.Component {
     })
   }
 
-  // hdfslog namespace
   initialHdfslogCascader = (value) => this.setState({ hdfslogSinkNsValue: value.join('.') })
 
   initialRoutingCascader = (value) => {
@@ -292,7 +292,7 @@ export class Workbench extends React.Component {
         const exceptValue = result.filter(s => [s.nsInstance, s.nsDatabase, s.nsTable].join('.') !== this.state.routingSourceNsValue)
 
         this.setState({
-          routingSinkTypeNsData: this.generateSourceSinkNamespaceHierarchy('kafka', exceptValue)
+          routingSinkTypeNsData: generateSourceSinkNamespaceHierarchy('kafka', exceptValue)
         })
       })
     })
@@ -311,7 +311,7 @@ export class Workbench extends React.Component {
     if (pipelineStreamId !== 0) {
       this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, value, type, (result) => {
         this.setState({
-          sourceTypeNamespaceData: this.generateSourceSinkNamespaceHierarchy(value, result)
+          sourceTypeNamespaceData: generateSourceSinkNamespaceHierarchy(value, result)
         })
         // default source ns 和 sink ns 同时调同一个接口获得，保证两处的 placeholder 和单条数据回显都能正常
         if (flowMode === 'add' || flowMode === 'copy') {
@@ -333,7 +333,7 @@ export class Workbench extends React.Component {
 
     this.props.onLoadJobSourceNs(projectId, value, type, (result) => {
       this.setState({
-        jobSourceNsData: this.generateSourceSinkNamespaceHierarchy(value, result)
+        jobSourceNsData: generateSourceSinkNamespaceHierarchy(value, result)
       })
       if (jobMode === 'add') {
         this.workbenchJobForm.setFieldsValue({
@@ -358,7 +358,7 @@ export class Workbench extends React.Component {
     if (pipelineStreamId !== 0) {
       this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, value, type, (result) => {
         this.setState({
-          hdfslogNsData: this.generateHdfslogNamespaceHierarchy(value, result),
+          hdfslogNsData: generateHdfslogNamespaceHierarchy(value, result),
           hdfslogSinkDataSysValue: value
         })
       })
@@ -379,7 +379,7 @@ export class Workbench extends React.Component {
     if (pipelineStreamId !== 0) {
       this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, value, type, (result) => {
         this.setState({
-          routingNsData: this.generateSourceSinkNamespaceHierarchy(value, result),
+          routingNsData: generateSourceSinkNamespaceHierarchy(value, result),
           routingSinkDataSysValue: value
         })
         if (flowMode === 'add' || flowMode === 'copy') {
@@ -400,12 +400,12 @@ export class Workbench extends React.Component {
 
     this.setState({
       sinkTypeNamespaceData: [],
-      sinkConfigMsg: this.showSinkConfigMsg(value)
+      sinkConfigMsg: showSinkConfigMsg(value)
     })
     if (pipelineStreamId !== 0) {
       this.props.onLoadSinkTypeNamespace(projectId, pipelineStreamId, value, type, (result) => {
         this.setState({
-          sinkTypeNamespaceData: this.generateSourceSinkNamespaceHierarchy(value, result)
+          sinkTypeNamespaceData: generateSourceSinkNamespaceHierarchy(value, result)
         })
         if (flowMode === 'add' || flowMode === 'copy') {
           this.workbenchFlowForm.setFieldsValue({
@@ -424,11 +424,11 @@ export class Workbench extends React.Component {
 
     this.setState({
       jobSinkNsData: [],
-      jobSinkConfigMsg: this.showSinkConfigMsg(value)
+      jobSinkConfigMsg: showSinkConfigMsg(value)
     })
     this.props.onLoadJobSinkNs(projectId, value, type, (result) => {
       this.setState({
-        jobSinkNsData: this.generateSourceSinkNamespaceHierarchy(value, result)
+        jobSinkNsData: generateSourceSinkNamespaceHierarchy(value, result)
       })
       if (jobMode === 'add') {
         this.workbenchJobForm.setFieldsValue({
@@ -438,25 +438,6 @@ export class Workbench extends React.Component {
     }, (result) => {
       message.error(`Sink 异常：${result}`, 5)
     })
-  }
-
-  showSinkConfigMsg (value) {
-    let sinkConfigMsgTemp = ''
-    if (value === 'cassandra') {
-      sinkConfigMsgTemp = 'For example: {"mutation_type":"iud"}'
-    } else if (value === 'mysql' || value === 'oracle' || value === 'postgresql') {
-      sinkConfigMsgTemp = 'For example: {"mutation_type":"iud"}'
-    } else if (value === 'es') {
-      sinkConfigMsgTemp = 'For example: {"mutation_type":"iud", "_id": "id,name"}'
-    } else if (value === 'hbase') {
-      const temp = "'_'"
-      sinkConfigMsgTemp = `For example: {"mutation_type":"iud","hbase.columnFamily":"cf","hbase.saveAsString": true, "hbase.rowKey":"hash(id1)+${temp}+value(id2)"}`
-    } else if (value === 'mongodb') {
-      sinkConfigMsgTemp = 'For example: {"mutation_type":"iud", "_id": "id,name"}'
-    } else {
-      sinkConfigMsgTemp = ''
-    }
-    return sinkConfigMsgTemp
   }
 
   /**
@@ -471,178 +452,29 @@ export class Workbench extends React.Component {
       this.props.onLoadTranSinkTypeNamespace(projectId, this.state.pipelineStreamId, value, type, (result) => {
         this.setState({
           transformSinkNamespaceArray: result,
-          transformSinkTypeNamespaceData: this.generateTransformSinkNamespaceHierarchy(value, result)
+          transformSinkTypeNamespaceData: generateTransformSinkNamespaceHierarchy(value, result)
         })
       })
     }
   }
 
-  /**
-   * 生成 step1 的 Source/Sink Namespace Cascader 所需数据源
-   */
-  generateSourceSinkNamespaceHierarchy = (system, result) => {
-    const snsHierarchy = []
-    result.forEach(item => {
-      if (item.nsSys === system) {
-        let instance = snsHierarchy.find(i => i.value === item.nsInstance)
-        if (!instance) {
-          const newInstance = {
-            value: item.nsInstance,
-            label: item.nsInstance,
-            children: []
-          }
-          snsHierarchy.push(newInstance)
-          instance = newInstance
-        }
-
-        let database = instance.children.find(i => i.value === item.nsDatabase)
-        if (!database) {
-          const newDatabase = {
-            value: item.nsDatabase,
-            label: item.nsDatabase,
-            children: []
-          }
-          instance.children.push(newDatabase)
-          database = newDatabase
-        }
-
-        let table = database.children.find(i => i.value === item.nsTable)
-        if (!table) {
-          const newTable = {
-            value: item.nsTable,
-            label: item.nsTable
-          }
-          database.children.push(newTable)
-        }
-      }
-    })
-    return snsHierarchy
-  }
-
-  /**
-   * 生成 step1 的 Hdfslog Source/Sink Namespace Cascader 所需数据源
-   */
-  generateHdfslogNamespaceHierarchy = (system, result) => {
-    const snsHierarchy = result.length === 0
-      ? []
-      : [{
-        value: '*',
-        label: '*',
-        children: [{
-          value: '*',
-          label: '*',
-          children: [{
-            value: '*',
-            label: '*'
-          }]
-        }]
-      }]
-
-    result.forEach(item => {
-      if (item.nsSys === system) {
-        let instance = snsHierarchy.find(i => i.value === item.nsInstance)
-        if (!instance) {
-          const newInstance = {
-            value: item.nsInstance,
-            label: item.nsInstance,
-            children: [{
-              value: '*',
-              label: '*',
-              children: [{
-                value: '*',
-                label: '*'
-              }]
-            }]
-          }
-          snsHierarchy.push(newInstance)
-          instance = newInstance
-        }
-
-        let database = instance.children.find(i => i.value === item.nsDatabase)
-        if (!database) {
-          const newDatabase = {
-            value: item.nsDatabase,
-            label: item.nsDatabase,
-            children: [{
-              value: '*',
-              label: '*'
-            }]
-          }
-          instance.children.push(newDatabase)
-          database = newDatabase
-        }
-
-        let table = database.children.find(i => i.value === item.nsTable)
-        if (!table) {
-          const newTable = {
-            value: item.nsTable,
-            label: item.nsTable
-          }
-          database.children.push(newTable)
-        }
-      }
-    })
-    return snsHierarchy
-  }
-
-  /**
-   * 生成 transformation 中 的 Sink Namespace Cascader 所需数据源
-   */
-  generateTransformSinkNamespaceHierarchy = (system, result) => {
-    const snsHierarchy = []
-    result.forEach(item => {
-      if (item.nsSys === system) {
-        let instance = snsHierarchy.find(i => i.value === item.nsInstance)
-        if (!instance) {
-          const newInstance = {
-            value: item.nsInstance,
-            label: item.nsInstance,
-            children: []
-          }
-          snsHierarchy.push(newInstance)
-          instance = newInstance
-        }
-
-        let database = instance.children.find(i => i.value === item.nsDatabase)
-        if (!database) {
-          const newDatabase = {
-            value: item.nsDatabase,
-            label: item.nsDatabase
-            // children: []
-          }
-          instance.children.push(newDatabase)
-          // database = newDatabase
-        }
-
-        // let permission = database.children.find(i => i.value === item.permission)
-        // if (!permission) {
-        //   const newPermission = {
-        //     value: item.permission,
-        //     label: item.permission
-        //   }
-        //   database.children.push(newPermission)
-        // }
-      }
-    })
-    return snsHierarchy
-  }
-
   // 控制 result field show／hide
   initResultFieldClass = (e) => {
-    if (e.target.value === 'selected') {
-      this.setState({ fieldSelected: '' })
-    } else if (e.target.value === 'all') {
-      this.setState({ fieldSelected: 'hide' })
+    switch (e.target.value) {
+      case 'selected':
+        this.setState({ fieldSelected: '' })
+        break
+      case 'all':
+        this.setState({ fieldSelected: 'hide' })
+        break
     }
   }
 
   // 控制 data frame number show／hide
   initDataShowClass = (e) => {
-    if (e.target.value === 'true') {
-      this.setState({ dataframeShowSelected: '' })
-    } else {
-      this.setState({ dataframeShowSelected: 'hide' })
-    }
+    this.setState({
+      dataframeShowSelected: e.target.value === 'true' ? '' : 'hide'
+    })
   }
 
   showAddFlowWorkbench = () => {
@@ -671,13 +503,7 @@ export class Workbench extends React.Component {
   }
 
   onInitStreamTypeSelect = (val) => {
-    if (val === 'default') {
-      this.setState({ streamDiffType: 'default' })
-    } else if (val === 'hdfslog') {
-      this.setState({ streamDiffType: 'hdfslog' })
-    } else if (val === 'routing') {
-      this.setState({ streamDiffType: 'routing' })
-    }
+    this.setState({ streamDiffType: val })
 
     // 显示 Stream 信息
     this.props.onLoadSelectStreamKafkaTopic(this.state.projectId, val, (result) => {
@@ -1328,7 +1154,7 @@ export class Workbench extends React.Component {
         this.props.onLoadSinkTypeNamespace(projectId, pipelineStreamId, 'kafka', 'sinkType', (resultRespone) => {
           const exceptValue = resultRespone.filter(s => [s.nsInstance, s.nsDatabase, s.nsTable].join('.') !== [sourceNsArr[0], sourceNsArr[1], sourceNsArr[2]].join('.'))
           this.setState({
-            routingSinkTypeNsData: this.generateSourceSinkNamespaceHierarchy('kafka', exceptValue)
+            routingSinkTypeNsData: generateSourceSinkNamespaceHierarchy('kafka', exceptValue)
           })
         })
 
@@ -2224,10 +2050,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  // flow Transformation Modal
   onShowTransformModal = () => this.setState({ transformModalVisible: true })
-
-  // Job Transformation Modal
   onShowJobTransModal = () => this.setState({ jobTransModalVisible: true })
 
   // flow transformation type 显示不同的内容
@@ -2721,51 +2544,55 @@ export class Workbench extends React.Component {
 
   flowTransSetState (transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionString) {
     // 加隐藏字段 transformType, 获得每次选中的transformation type
-    if (transformMode === '') {
-      // 第一次添加数据时
-      this.state.flowFormTranTableSource.push({
-        transformType: values.transformation,
-        order: 1,
-        transformConfigInfo: transformConfigInfoString,
-        tranConfigInfoSql: tranConfigInfoSqlString,
-        transformConfigInfoRequest: transformConfigInfoRequestString,
-        pushdownConnection: pushdownConnectionString
-      })
-
-      this.setState({
-        dataframeShowSelected: 'hide'
-      }, () => {
-        this.workbenchFlowForm.setFieldsValue({
-          dataframeShow: 'false',
-          dataframeShowNum: 10
+    switch (transformMode) {
+      case '':
+        // 第一次添加数据时
+        this.state.flowFormTranTableSource.push({
+          transformType: values.transformation,
+          order: 1,
+          transformConfigInfo: transformConfigInfoString,
+          tranConfigInfoSql: tranConfigInfoSqlString,
+          transformConfigInfoRequest: transformConfigInfoRequestString,
+          pushdownConnection: pushdownConnectionString
         })
-      })
-    } else if (transformMode === 'edit') {
-      this.state.flowFormTranTableSource[values.editTransformId - 1] = {
-        transformType: values.transformation,
-        order: values.editTransformId,
-        transformConfigInfo: transformConfigInfoString,
-        tranConfigInfoSql: tranConfigInfoSqlString,
-        transformConfigInfoRequest: transformConfigInfoRequestString,
-        pushdownConnection: pushdownConnectionString
-      }
-    } else if (transformMode === 'add') {
-      const tableSourceArr = this.state.flowFormTranTableSource
-      // 当前插入的数据
-      tableSourceArr.splice(values.editTransformId, 0, {
-        transformType: values.transformation,
-        order: values.editTransformId + 1,
-        transformConfigInfo: transformConfigInfoString,
-        tranConfigInfoSql: tranConfigInfoSqlString,
-        transformConfigInfoRequest: transformConfigInfoRequestString,
-        pushdownConnection: pushdownConnectionString
-      })
-      // 当前数据的下一条开始，order+1
-      for (let i = values.editTransformId + 1; i < tableSourceArr.length; i++) {
-        tableSourceArr[i].order = tableSourceArr[i].order + 1
-      }
-      // 重新setState数组
-      this.setState({ flowFormTranTableSource: tableSourceArr })
+
+        this.setState({
+          dataframeShowSelected: 'hide'
+        }, () => {
+          this.workbenchFlowForm.setFieldsValue({
+            dataframeShow: 'false',
+            dataframeShowNum: 10
+          })
+        })
+        break
+      case 'edit':
+        this.state.flowFormTranTableSource[values.editTransformId - 1] = {
+          transformType: values.transformation,
+          order: values.editTransformId,
+          transformConfigInfo: transformConfigInfoString,
+          tranConfigInfoSql: tranConfigInfoSqlString,
+          transformConfigInfoRequest: transformConfigInfoRequestString,
+          pushdownConnection: pushdownConnectionString
+        }
+        break
+      case 'add':
+        const tableSourceArr = this.state.flowFormTranTableSource
+        // 当前插入的数据
+        tableSourceArr.splice(values.editTransformId, 0, {
+          transformType: values.transformation,
+          order: values.editTransformId + 1,
+          transformConfigInfo: transformConfigInfoString,
+          tranConfigInfoSql: tranConfigInfoSqlString,
+          transformConfigInfoRequest: transformConfigInfoRequestString,
+          pushdownConnection: pushdownConnectionString
+        })
+        // 当前数据的下一条开始，order+1
+        for (let i = values.editTransformId + 1; i < tableSourceArr.length; i++) {
+          tableSourceArr[i].order = tableSourceArr[i].order + 1
+        }
+        // 重新setState数组
+        this.setState({ flowFormTranTableSource: tableSourceArr })
+        break
     }
     this.tranModalOkSuccess()
   }
@@ -2801,8 +2628,7 @@ export class Workbench extends React.Component {
       })
     }
 
-    // 删除当条数据
-    tableSourceArr.splice(record.order - 1, 1)
+    tableSourceArr.splice(record.order - 1, 1)  // 删除当条数据
 
     // 当条下的数据 order-1
     for (let i = record.order - 1; i < tableSourceArr.length; i++) {
@@ -2824,8 +2650,7 @@ export class Workbench extends React.Component {
       })
     }
 
-    // 删除当条数据
-    tableSourceArr.splice(record.order - 1, 1)
+    tableSourceArr.splice(record.order - 1, 1)  // 删除当条数据
 
     // 当条下的数据 order-1
     for (let i = record.order - 1; i < tableSourceArr.length; i++) {
