@@ -309,7 +309,6 @@ export class WorkbenchFlowForm extends React.Component {
     }, {
       title: 'Action',
       key: 'action',
-      // width: '23%',
       render: (text, record) => {
         const transformUpHide = record.order === 1 ? 'hide' : ''
         const transformDownHide = record.order === transformTableSource.length ? 'hide' : ''
