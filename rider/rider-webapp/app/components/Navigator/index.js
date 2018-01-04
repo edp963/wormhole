@@ -47,7 +47,9 @@ class Navigator extends React.Component {
     super(props)
     this.state = {
       selectedKey: '',
-      formVisible: false
+      formVisible: false,
+      paneWidthValue: -1,
+      menuInlineShow: false // menu inline 是否展开
     }
   }
 
@@ -59,6 +61,18 @@ class Navigator extends React.Component {
   componentWillReceiveProps (props) {
     if (this.props.currentProject !== props.params.projectId) {
       this.handleProjectState(props)
+    }
+  }
+
+  componentDidMount () {
+    // 自动获取浏览器窗口大小
+    window.onresize = () => {
+      const paneWidth = document.documentElement.clientWidth - 228 - 198
+
+      this.setState({
+        paneWidthValue: paneWidth,
+        menuInlineShow: false
+      })
     }
   }
 
@@ -125,11 +139,7 @@ class Navigator extends React.Component {
     this.props.router.push('/projects')
   }
 
-  showEditPsw = () => {
-    this.setState({
-      formVisible: true
-    })
-  }
+  showEditPsw = () => this.setState({ formVisible: true })
 
   hideForm = () => {
     this.setState({
@@ -158,8 +168,26 @@ class Navigator extends React.Component {
     })
   }
 
+  toggleCollapsed = () => {
+    this.setState({
+      menuInlineShow: !this.state.menuInlineShow
+    })
+  }
+
+  logoImgStyle (width) {
+    let logoImgClass = ''
+    if (width > -12 || width === -12 || width > 414 || width === 414) {
+      logoImgClass = 'ri-logo-img'
+    } else if ((width < -12 && width > -106) || (width < 414 && width > 320)) {
+      logoImgClass = 'ri-logo-img-reduce'
+    } else if (width < -106 || width === -106 || width < 320 || width === 320) {
+      logoImgClass = 'ri-logo-img-reduce-reduce'
+    }
+    return logoImgClass
+  }
+
   render () {
-    const { selectedKey } = this.state
+    const { selectedKey, paneWidthValue, menuInlineShow } = this.state
 
     // SubMenu 高亮
     let dataSystemSelectedClass = ''
@@ -172,73 +200,169 @@ class Navigator extends React.Component {
       projectSelectedClass = 'ant-menu-item-selected'
     }
 
-    let node = ''
-    if (localStorage.getItem('loginRoleType') === 'admin') {
-      node = (
-        <Menu
-          className="ri-menu"
-          mode="horizontal"
-          theme="dark"
-          selectedKeys={[selectedKey]}
-          onClick={this.navClick}
+    const logNameShow = localStorage.getItem('loginName')
+
+    const menuHtml = (
+      <Menu
+        className="ri-menu"
+        mode="horizontal"
+        theme="dark"
+        selectedKeys={[selectedKey]}
+        onClick={this.navClick}
+      >
+        <MenuItem key="projects" className={`ri-menu-item ${projectSelectedClass} ri-menu-item-icon`}>
+          <Icon type="appstore-o" className="item-icon-extra" />Project
+        </MenuItem>
+        <MenuItem key="flows" className="ri-menu-item ri-menu-item-icon">
+          <i className="iconfont icon-flow item-i-extra"></i>Flow
+        </MenuItem>
+        <MenuItem key="streams" className="ri-menu-item ri-menu-item-icon">
+          <Icon type="barcode" className="item-icon-extra" />Stream
+        </MenuItem>
+
+        <MenuItem key="jobs" className="ri-menu-item ri-menu-item-icon">
+          <i className="iconfont icon-job item-i-extra"></i>Job
+        </MenuItem>
+
+        <SubMenu
+          onTitleClick={this.navClickSubmenu}
+          key="dataSystem"
+          className={`ri-menu-item ${dataSystemSelectedClass}`}
+          title={
+            <span>
+              <i className="iconfont icon-system-copy item-i-extra"></i>Namespace<Icon type="down" className="arrow" />
+            </span>
+          }>
+          <MenuItem key="namespaces">
+            <Icon type="menu-unfold" className="item-icon-extra" />Namespace
+          </MenuItem>
+          <MenuItem key="instance">
+            <i className="iconfont icon-instanceobjgcroot item-i-extra"></i>Instance
+          </MenuItem>
+          <MenuItem key="database">
+            <Icon type="database" className="item-icon-extra" />Database
+          </MenuItem>
+        </SubMenu>
+
+        <MenuItem key="users" className="ri-menu-item ri-menu-item-icon">
+          <Icon type="solution" className="item-icon-extra" />User
+        </MenuItem>
+        <MenuItem key="udf" className="ri-menu-item ri-menu-item-icon">
+          <Icon type="menu-fold" className="item-icon-extra" />UDF
+        </MenuItem>
+
+        <MenuItem key="riderInfo" className="ri-menu-item ri-menu-item-icon">
+          <i className="iconfont icon-infor item-i-extra"></i>Rider Info
+        </MenuItem>
+      </Menu>
+    )
+
+    const menuInlineHtml = (
+      <Menu
+        className="ri-menu-inline"
+        mode="inline"
+        theme="dark"
+        selectedKeys={[selectedKey]}
+        onClick={this.navClick}
+      >
+        <MenuItem key="projects" className={`ri-menu-item ${projectSelectedClass} ri-menu-item-icon`}>
+          <Icon type="appstore-o" className="item-icon-extra" />Project
+        </MenuItem>
+        <MenuItem key="flows" className="ri-menu-item ri-menu-item-icon">
+          <i className="iconfont icon-flow item-i-extra"></i>Flow
+        </MenuItem>
+        <MenuItem key="streams" className="ri-menu-item ri-menu-item-icon">
+          <Icon type="barcode" className="item-icon-extra" />Stream
+        </MenuItem>
+
+        <MenuItem key="jobs" className="ri-menu-item ri-menu-item-icon">
+          <i className="iconfont icon-job item-i-extra"></i>Job
+        </MenuItem>
+
+        <SubMenu
+          onTitleClick={this.navClickSubmenu}
+          key="dataSystem"
+          className={`ri-menu-item ${dataSystemSelectedClass}`}
+          title={
+            <span>
+              <i className="iconfont icon-system-copy item-i-extra"></i>Namespace
+            </span>
+          }
         >
-          <MenuItem key="projects" className={`ri-menu-item ${projectSelectedClass}`} style={{ marginTop: 0 }}>
-            <Icon type="appstore-o" />Project
+          <MenuItem key="namespaces" style={{ backgroundColor: '#424242' }}>
+            <Icon type="menu-unfold" className="item-icon-extra" />Namespace
           </MenuItem>
-          <MenuItem key="flows" className="ri-menu-item" style={{ marginTop: 0 }}>
-            <i className="iconfont icon-flow"></i>Flow
+          <MenuItem key="instance" style={{ backgroundColor: '#424242' }}>
+            <i className="iconfont icon-instanceobjgcroot item-i-extra"></i>Instance
           </MenuItem>
-          <MenuItem key="streams" className="ri-menu-item" style={{ marginTop: 0 }}>
-            <i className="iconfont icon-318stream-copy"></i>Stream
+          <MenuItem key="database" style={{ backgroundColor: '#424242' }}>
+            <Icon type="database" className="item-icon-extra" />Database
           </MenuItem>
-          <MenuItem key="jobs" className="ri-menu-item" style={{ marginTop: 0 }}>
-            <i className="iconfont icon-job"></i>Job
-          </MenuItem>
+        </SubMenu>
 
-          <SubMenu
-            onTitleClick={this.navClickSubmenu}
-            key="dataSystem"
-            className={`ri-menu-item ${dataSystemSelectedClass}`}
-            title={
-              <span>
-                <i className="iconfont icon-system-copy"></i>Namespace<Icon type="down" className="arrow" />
-              </span>
-            }>
-            <MenuItem key="namespaces">
-              <Icon type="menu-unfold" />Namespace
-            </MenuItem>
-            <MenuItem key="instance">
-              <i className="iconfont icon-instanceobjgcroot"></i>Instance
-            </MenuItem>
-            <MenuItem key="database">
-              <Icon type="database" />Database
-            </MenuItem>
-          </SubMenu>
+        <MenuItem key="users" className="ri-menu-item ri-menu-item-icon">
+          <Icon type="solution" className="item-icon-extra" />User
+        </MenuItem>
+        <MenuItem key="udf" className="ri-menu-item ri-menu-item-icon">
+          <Icon type="menu-fold" className="item-icon-extra" />UDF
+        </MenuItem>
 
-          <MenuItem key="users" className="ri-menu-item" style={{ marginTop: 0 }}>
-            <Icon type="solution" />User
-          </MenuItem>
+        <MenuItem key="riderInfo" className="ri-menu-item ri-menu-item-icon">
+          <i className="iconfont icon-infor item-i-extra"></i>Rider Info
+        </MenuItem>
+      </Menu>
+    )
 
-          <MenuItem key="udf" className="ri-menu-item" style={{ marginTop: 0 }}>
-            <i className="iconfont icon-function" style={{ marginRight: '6px' }}></i>UDF
-          </MenuItem>
+    const paneWidth = document.documentElement.clientWidth - 228 - 198
 
-          <MenuItem key="riderInfo" className="ri-menu-item" style={{ marginTop: 0 }}>
-            <i className="iconfont icon-infor"></i>Rider Info
-          </MenuItem>
-        </Menu>
-      )
+    let node = ''
+    let logoImgClass = ''
+    if (localStorage.getItem('loginRoleType') === 'admin') {
+      if (paneWidthValue === -1) {
+        if (paneWidth < 824) {
+          node = (
+            <span>
+              <div className="nav--window-reduce" onClick={this.toggleCollapsed}>
+                <i className="iconfont icon-1111111"></i>
+              </div>
+              {menuInlineShow ? menuInlineHtml : ''}
+            </span>
+          )
+          logoImgClass = this.logoImgStyle(paneWidth)
+        } else {
+          node = menuHtml
+          logoImgClass = 'ri-logo-img'
+        }
+      } else {
+        if (paneWidthValue < 824) {
+          node = (
+            <span>
+              <div className="nav--window-reduce" onClick={this.toggleCollapsed}>
+                <i className="iconfont icon-1111111"></i>
+              </div>
+              {menuInlineShow ? menuInlineHtml : ''}
+            </span>
+          )
+          logoImgClass = this.logoImgStyle(paneWidthValue)
+        } else {
+          node = menuHtml
+          logoImgClass = 'ri-logo-img'
+        }
+      }
     } else if (localStorage.getItem('loginRoleType') === 'user') {
       node = ''
+      if (paneWidthValue === -1) {
+        logoImgClass = paneWidth < 824 ? this.logoImgStyle(paneWidth) : 'ri-logo-img'
+      } else {
+        logoImgClass = paneWidthValue < 824 ? this.logoImgStyle(paneWidthValue) : 'ri-logo-img'
+      }
     }
-
-    const logNameShow = localStorage.getItem('loginName')
 
     return (
       <header className="ri-header">
         <nav>
           <div className="ri-logo-href" onClick={this.logoChange}>
-            <img src={require(`../../assets/images/logo.png`)} alt="Wormhole" className="ri-logo-img" />
+            <img src={require(`../../assets/images/logo.png`)} alt="Wormhole" className={logoImgClass} />
           </div>
           {node}
           <div>
@@ -284,7 +408,6 @@ class Navigator extends React.Component {
               ref={(f) => { this.userPswForm = f }}
             />
           </Modal>
-
         </nav>
       </header>
     )
