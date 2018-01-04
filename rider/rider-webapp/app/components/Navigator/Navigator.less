@@ -55,11 +55,28 @@
 //  }
 //}
 
+// > 414
 .ri-logo-img {
   margin-top: 14px;
   margin-left: 15px;
   width: 198px;
   height: 36px;
+}
+
+// 320-414
+.ri-logo-img-reduce {
+  margin-top: 16px;
+  margin-left: 15px;
+  width: 176px;
+  height: 32px;
+}
+
+// < 320
+.ri-logo-img-reduce-reduce {
+  margin-top: 19px;
+  margin-left: 15px;
+  width: 140px;
+  height: 26px;
 }
 
 .ri-menu {
@@ -95,6 +112,10 @@
   & > .ri-menu-item.ant-menu-item-selected {
     background-color: darken(@ri-nav-bg, 3%);
   }
+
+  .ri-menu-item-icon {
+    top: 1px !important;
+  }
 }
 
 .ri-logout {
@@ -118,7 +139,7 @@
 }
 
 .user-login {
-  width: 100px;
+  width: 90px;
   float: right;
   margin-top: -43px;
   color: @modal-border-color;
@@ -134,4 +155,34 @@
 .ant-menu-item-active, .ant-menu-submenu-title:hover, .ant-menu-submenu:hover {
   background-color: #3a3a3a !important;
 }
+
+.nav--window-reduce {
+  width: 64px;
+  height: 64px;
+  position: absolute;
+  top: 20px;
+  right: 120px;
+  text-align: center;
+  color: #d9d9d9;
+  cursor: pointer;
+}
+
+.ri-menu-inline {
+  position: absolute;
+  right: 0;
+  width: 220px;
+  .ri-menu-item-icon {
+    top: 1px !important;
+  }
+
+  .item-icon-extra {
+    font-size: 14px;
+  }
+
+  .item-i-extra {
+    font-size: 14px !important;
+    margin-right: 8px;
+  }
+}
+
 

@@ -64,9 +64,7 @@ export class WorkbenchJobForm extends React.Component {
 
   onNameInputChange = (e) => this.props.onInitJobNameValue(e.target.value)
 
-  onAllOrNotSelect = (e) => {
-    this.props.initResultFieldClass(e)
-  }
+  onAllOrNotSelect = (e) => this.props.initResultFieldClass(e)
 
   onShowDataFrame = (e) => this.props.initDataShowClass(e)
 
@@ -80,9 +78,7 @@ export class WorkbenchJobForm extends React.Component {
   }
 
   // 通过不同的 Source Data System 显示不同的 Source Namespace 的内容
-  onSourceDataSystemItemSelect = (val) => {
-    this.props.onInitJobSourceNs(this.props.projectIdGeted, val, 'sourceType')
-  }
+  onSourceDataSystemItemSelect = (val) => this.props.onInitJobSourceNs(this.props.projectIdGeted, val, 'sourceType')
 
   // 通过不同的 Sink Data System 显示不同的 Sink Namespace 的内容
   onSinkDataSystemItemSelect = (val) => {
@@ -92,13 +88,9 @@ export class WorkbenchJobForm extends React.Component {
     })
   }
 
-  onChangeStartTs = (value, dateString) => {
-    this.props.initStartTS(dateString)
-  }
+  onChangeStartTs = (value, dateString) => this.props.initStartTS(dateString)
 
-  onChangeEndTs = (value, dateString) => {
-    this.props.initEndTS(dateString)
-  }
+  onChangeEndTs = (value, dateString) => this.props.initEndTS(dateString)
 
   render () {
     const { step, form, jobMode, fieldSelected, jobTranTableConfirmValue } = this.props
@@ -280,7 +272,7 @@ export class WorkbenchJobForm extends React.Component {
 
     const { jobResultFieldsValue, sparkConfigCheck, onShowSparkConfigModal } = this.props
 
-    const jobConfigTag = sparkConfigCheck === true
+    const jobConfigTag = sparkConfigCheck
       ? (
         <Tag color="#7CB342" onClick={onShowSparkConfigModal}>
           <Icon type="check-circle-o" /> 点击修改
