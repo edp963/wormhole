@@ -26,20 +26,20 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.RelProjectNsDal
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.{ResponseSeqJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.rest.router.JsonProtocol._
+//import edp.rider.rest.router.JsonProtocol._
 
 import scala.util.{Failure, Success}
 
 class InstanceUserApi(relProjectNsDal: RelProjectNsDal)
-  extends BaseUserApiImpl[RelProjectNsTable, RelProjectNs](relProjectNsDal) with RiderLogger {
+  extends BaseUserApiImpl[RelProjectNsTable, RelProjectNs](relProjectNsDal) with RiderLogger with JsonSerializer {
 
   def getByFilterRoute(route: String): Route = path(route / LongNumber / "instances") {
     id =>
       get {
-        parameter('type.as[String]) {
+        parameter('nsSys.as[String]) {
           nsSys =>
             authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
               session =>
@@ -65,7 +65,7 @@ class InstanceUserApi(relProjectNsDal: RelProjectNsDal)
             }
         }
       }
-     
+
   }
 
 }

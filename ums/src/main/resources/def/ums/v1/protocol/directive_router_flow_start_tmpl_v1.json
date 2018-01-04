@@ -21,6 +21,11 @@
         "nullable": false
       },
       {
+        "name": "data_type",
+        "type": "string",
+        "nullable": false
+      },
+      {
         "name": "sink_namespace",
         "type": "string",
         "nullable": false
@@ -39,7 +44,7 @@
   },
   "payload": [
     {
-      "tuple": [ 3,1,"2016-04-11 12:23:34.345123", "oracle.oracle02.db.table.v2.dbpar01.tablepar01",
+      "tuple": [ 3,1,"2016-04-11 12:23:34.345123","ums", "oracle.oracle02.db.table.v2.dbpar01.tablepar01",
         "localhost:9092,localhost:9092,","wh3test2" ]
     }
   ]

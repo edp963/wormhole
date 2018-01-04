@@ -26,15 +26,14 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.{Directives, Route}
 import edp.rider.common.{RiderConfig, RiderInfo, RiderLogger}
 import edp.rider.module._
-import edp.rider.rest.router.{ResponseJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils._
 import io.swagger.annotations._
-import edp.rider.rest.router.JsonProtocol._
 
 @Api(value = "/riderInfo", consumes = "application/json", produces = "application/json")
 @Path("/admin/riderInfo")
-class RiderInfoAdminRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives with RiderLogger {
+class RiderInfoAdminRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives with RiderLogger with JsonSerializer {
 
   lazy val routes: Route = getRiderInfo
 

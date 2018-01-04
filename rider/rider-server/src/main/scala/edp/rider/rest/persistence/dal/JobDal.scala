@@ -26,20 +26,65 @@ import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.common.AppInfo
+import edp.wormhole.common.util.JsonUtils.json2caseClass
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 
-class JobDal(jobTable: TableQuery[JobTable]) extends BaseDalImpl[JobTable, Job](jobTable) {
+class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTable]) extends BaseDalImpl[JobTable, Job](jobTable) {
 
-  def updateJobStatus(jobId: Long, appInfo: AppInfo) = {
+  def updateJobStatus(jobId: Long, appInfo: AppInfo): Int = {
     Await.result(db.run(jobTable.filter(_.id === jobId).map(c => (c.sparkAppid, c.status, c.startedTime, c.stoppedTime, c.updateTime))
-      .update(Option(appInfo.appId), appInfo.appState, Option(appInfo.startedTime), Option(appInfo.startedTime), currentSec)), minTimeOut)
+      .update(Option(appInfo.appId), appInfo.appState, Option(appInfo.startedTime), Option(appInfo.finishedTime), currentSec)), minTimeOut)
   }
 
-  def updateJobStatus(jobId: Long, status: String) = {
-    Await.result(db.run(jobTable.filter(_.id === jobId).map(c => (c.status,c.updateTime))
+  def updateJobStatus(jobId: Long, status: String): Int = {
+    Await.result(db.run(jobTable.filter(_.id === jobId).map(c => (c.status, c.updateTime))
       .update(status, currentSec)), minTimeOut)
+  }
+
+  //  def getJobNameByJobID(jobId: Long): Future[Job] = {
+  //    db.run(jobTable.filter(_.id === jobId).result.head)
+  //  }
+
+
+  //def updateJobStatusList(appInfoSeq: Seq[(Int, AppInfo)]) = appInfoSeq.foreach { case (jobId, appInfo) => updateJobStatus(jobId, appInfo) }
+
+
+  def adminGetRow(projectId: Long): String = {
+    Await.result(db.run(projectTable.filter(_.id === projectId).result), maxTimeOut).head.name
+  }
+
+  def getAllJobs4Project(projectId: Long): Seq[Job] = {
+    Await.result(db.run(jobTable.filter(_.projectId === projectId).result), maxTimeOut)
+  }
+
+  def checkJobNameUnique(jobName: String): Future[Seq[Job]] = {
+    db.run(jobTable.filter(_.name === jobName).result)
+  }
+
+  def getAllJobs: Seq[Job] = {
+    Await.result(super.findAll, minTimeOut)
+  }
+
+  def getAllUniqueProjectIdAndName(uniqueProjectIds: Seq[Long]): Map[Long, String] = {
+    Await.result(db.run(projectTable.filter(_.id inSet uniqueProjectIds).result), maxTimeOut).map(p => (p.id, p.name)).toMap
+  }
+
+
+  def getProjectJobsUsedResource(projectId: Long) = {
+    val jobSeq: Seq[Job] = Await.result(super.findByFilter(job => job.projectId === projectId && (job.status === "running" || job.status === "waiting" || job.status === "starting" || job.status === "stopping")), minTimeOut)
+    var usedCores = 0
+    var usedMemory = 0
+    val jobResources: Seq[AppResource] = jobSeq.map(
+      job => {
+        val config = json2caseClass[StartConfig](job.startConfig)
+        usedCores += config.driverCores + config.executorNums * config.perExecutorCores
+        usedMemory += config.driverMemory + config.executorNums * config.perExecutorMemory
+        AppResource(job.name, config.driverCores, config.driverMemory, config.executorNums, config.perExecutorMemory, config.perExecutorCores)
+      }
+    )
+    (usedCores, usedMemory, jobResources)
   }
 }

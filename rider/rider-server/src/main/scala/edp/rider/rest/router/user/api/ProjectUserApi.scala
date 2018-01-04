@@ -26,14 +26,14 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{ProjectDal, RelProjectUserDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.rest.router.JsonProtocol._
+//import edp.rider.rest.router.JsonProtocol._
 
 import scala.util.{Failure, Success}
 
-class ProjectUserApi(projectDal: ProjectDal, relProjectUserDal: RelProjectUserDal) extends BaseUserApiImpl[ProjectTable, Project](projectDal) with RiderLogger {
+class ProjectUserApi(projectDal: ProjectDal, relProjectUserDal: RelProjectUserDal) extends BaseUserApiImpl[ProjectTable, Project](projectDal) with RiderLogger with JsonSerializer {
 
   override def getByIdRoute(route: String): Route = path(route / LongNumber) {
     id =>
@@ -66,7 +66,7 @@ class ProjectUserApi(projectDal: ProjectDal, relProjectUserDal: RelProjectUserDa
             }
         }
       }
-     
+
   }
 
 
@@ -90,7 +90,7 @@ class ProjectUserApi(projectDal: ProjectDal, relProjectUserDal: RelProjectUserDa
           }
       }
     }
-   
+
   }
 
 

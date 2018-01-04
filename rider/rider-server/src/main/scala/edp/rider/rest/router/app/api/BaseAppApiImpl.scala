@@ -27,16 +27,17 @@ import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.base.{BaseDal, BaseEntity, BaseTable, SimpleBaseEntity}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.admin.api.BaseRoutesApi
-import edp.rider.rest.router.{ResponseJson, ResponseSeqJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
 import slick.jdbc.MySQLProfile.api._
-import edp.rider.rest.router.JsonProtocol._
+//import edp.rider.rest.router.JsonProtocol._
+
 import scala.util.{Failure, Success}
 
 
-class BaseAppApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A]) extends BaseRoutesApi with RiderLogger {
+class BaseAppApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A]) extends BaseRoutesApi with RiderLogger with JsonSerializer {
 
   override def getByIdRoute(route: String): Route = path(route / LongNumber) {
     id =>
@@ -168,6 +169,28 @@ class BaseAppApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A])
       }
     }
 
+  }
+
+  override def deleteRoute(route: String): Route = path(route / LongNumber) {
+    id =>
+      delete {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "app") {
+              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            } else {
+              onComplete(baseDal.deleteById(id).mapTo[Int]) {
+                case Success(result) =>
+                  riderLogger.info(s"user ${session.userId} delete $route $id success")
+                  complete(OK, getHeader(200, session))
+                case Failure(ex) =>
+                  riderLogger.error(s"user ${session.userId} delete $route $id failed", ex)
+                  complete(OK, getHeader(451, session))
+              }
+            }
+        }
+      }
   }
 
 

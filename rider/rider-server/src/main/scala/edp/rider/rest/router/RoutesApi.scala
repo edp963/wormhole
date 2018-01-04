@@ -42,7 +42,9 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
   lazy val userAdmin = new UserAdminRoutes(modules)
   lazy val projectAdmin = new ProjectAdminRoutes(modules)
   lazy val riderInfoAdmin = new RiderInfoAdminRoutes(modules)
+  lazy val udfAdmin = new UdfAdminRoutes(modules)
   lazy val riderUI = new RiderRoutes
+  lazy val jobAdmin = new JobAdminRoutes(modules)
 
   lazy val projectUser = new ProjectUserRoutes(modules)
   lazy val namespaceUser = new NamespaceUserRoutes(modules)
@@ -50,6 +52,9 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
   lazy val flowUser = new FlowUserRoutes(modules)
   lazy val actionUser = new ActionUserRoutes(modules)
   lazy val databaseUser = new NsDatabaseUserRoutes(modules)
+  lazy val jobUser = new JobUserRoutes(modules)
+  lazy val instanceUser = new InstanceUserRoutes(modules)
+  lazy val udfUser = new UdfUserRoutes(modules)
 
   lazy val flowApp = new FlowAppRoutes(modules)
   lazy val jobApp = new JobAppRoutes(modules)
@@ -70,7 +75,9 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
               crossDomainHandler(flowAdmin.routes) ~
               crossDomainHandler(userAdmin.routes) ~
               crossDomainHandler(projectAdmin.routes) ~
-              crossDomainHandler(riderInfoAdmin.routes)
+              crossDomainHandler(riderInfoAdmin.routes) ~
+              crossDomainHandler(udfAdmin.routes) ~
+              crossDomainHandler(jobAdmin.routes)
           } ~
           pathPrefix("user") {
             crossDomainHandler(projectUser.routes) ~
@@ -78,7 +85,10 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
               crossDomainHandler(streamUser.routes) ~
               crossDomainHandler(flowUser.routes) ~
               crossDomainHandler(actionUser.routes) ~
-              crossDomainHandler(databaseUser.routes)
+              crossDomainHandler(databaseUser.routes) ~
+              crossDomainHandler(instanceUser.routes) ~
+              crossDomainHandler(udfUser.routes) ~
+              crossDomainHandler(jobUser.routes)
           } ~
           pathPrefix("app") {
             crossDomainHandler(flowApp.routes) ~
