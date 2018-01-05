@@ -37,18 +37,6 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 object SqlProcessor extends EdpLogging {
-  //(sinkProcessConfig: SinkProcessConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], specificConfig: DbConfig, sinkNamespace: String, connectionConfig: ConnectionConfig, systemRenameMap: Map[String, String])
-  //  private lazy val tableKeyNames: Seq[String] = sinkProcessConfig.tableKeyList
-
-  //  private lazy val namespace = UmsNamespace(sinkNamespace)
-  //  private lazy val tableName = namespace.table
-  //  private lazy val metaIdName = if (systemRenameMap == null) ID.toString else systemRenameMap(ID.toString)
-  //  private lazy val allFieldNames: Seq[String] = schemaMap.keySet.toList
-  //  private lazy val baseFieldNames = removeFieldNames(allFieldNames, Set(OP.toString).contains)
-  //
-  //  private lazy val fieldNamesWithoutParNames = removeFieldNames(baseFieldNames, specificConfig.partitionKeyList.contains)
-  //  private lazy val updateFieldNames = removeFieldNames(fieldNamesWithoutParNames, tableKeyNames.contains)
-  //    private lazy val fieldSqlTypeMap = schemaMap.map(kv => (kv._1, ums2dbType(kv._2._2)))
 
   def selectMysqlSql(tupleCount: Int, tableKeyNames: Seq[String], tableName: String, sysIdName: String): String = {
     val keysString = tableKeyNames.map(tk =>s"""`$tk`""").mkString(",")
@@ -82,35 +70,16 @@ object SqlProcessor extends EdpLogging {
       }).mkString(s" OR ($keysString) IN ")
   }
 
-  def splitInsertAndUpdate(rsKeyUmsTsMap: mutable.Map[String, Long], keysTupleMap: mutable.HashMap[String, Seq[String]], tableKeyNames: Seq[String], sysIdName: String,
+  def splitInsertAndUpdate(rsKeyUmsIdMap: mutable.Map[String, Long], keysTupleMap: mutable.HashMap[String, Seq[String]], tableKeyNames: Seq[String], sysIdName: String,
                            renameSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): (List[Seq[String]], List[Seq[String]]) = {
-    //    val rsKeyUmsTsMap = mutable.HashMap.empty[String, Long]
     val updateList = mutable.ListBuffer.empty[Seq[String]]
     val insertList = mutable.ListBuffer.empty[Seq[String]]
-    //    val columnTypeMap = mutable.HashMap.empty[String, String]
-    //    val metaData = rs.getMetaData
-    //    val columnCount = metaData.getColumnCount
-    //    for (i <- 1 to columnCount) {
-    //      val columnName = metaData.getColumnLabel(i)
-    //      val columnType = metaData.getColumnClassName(i)
-    //      columnTypeMap(columnName.toLowerCase) = columnType
-    //    }
-    //
-    //    while (rs.next) {
-    //      val keysId = tableKeyNames.map(keyName => {
-    //        if (columnTypeMap(keyName) == "java.math.BigDecimal") rs.getBigDecimal(keyName).stripTrailingZeros.toPlainString
-    //        else rs.getObject(keyName).toString
-    //      }).mkString("_")
-    //      val umsId = rs.getLong(sysIdName)
-    //      rsKeyUmsTsMap(keysId) = umsId
-    //    }
-    //    logInfo("rs finish")
 
     keysTupleMap.foreach(keysTuple => {
       val (keysId, tuple) = keysTuple
-      if (rsKeyUmsTsMap.contains(keysId)) {
+      if (rsKeyUmsIdMap.contains(keysId)) {
         val tupleId = umsFieldValue(tuple(renameSchemaMap(sysIdName)._1), UmsFieldType.LONG).asInstanceOf[Long]
-        val rsId = rsKeyUmsTsMap(keysId)
+        val rsId = rsKeyUmsIdMap(keysId)
         if (tupleId > rsId)
           updateList.append(tuple)
       } else
@@ -123,7 +92,7 @@ object SqlProcessor extends EdpLogging {
                            sysIdName: String, dataSys: UmsDataSystem, tableName: String, connectionConfig: ConnectionConfig,
                            schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): mutable.Map[String, Long] = {
     val tupleList = keysTupleMap.values.toList
-    val rsKeyUmsTsMap: mutable.Map[String, Long] = mutable.HashMap.empty[String, Long]
+    val rsKeyUmsIdMap: mutable.Map[String, Long] = mutable.HashMap.empty[String, Long]
     if (tupleList.nonEmpty) {
       var ps: PreparedStatement = null
       var rs: ResultSet = null
@@ -165,9 +134,9 @@ object SqlProcessor extends EdpLogging {
             else rs.getObject(keyName).toString
           }).mkString("_")
           val umsId = rs.getLong(sysIdName)
-          rsKeyUmsTsMap(keysId) = umsId
+          rsKeyUmsIdMap(keysId) = umsId
         }
-        rsKeyUmsTsMap
+        rsKeyUmsIdMap
       } catch {
         case e: SQLTransientConnectionException => DbConnection.resetConnection(connectionConfig)
           logError("SQLTransientConnectionException", e)
@@ -197,46 +166,12 @@ object SqlProcessor extends EdpLogging {
           }
       }
     } else {
-      rsKeyUmsTsMap
+      rsKeyUmsIdMap
     }
   }
 
   def getInsertSql(sourceMutationType: SourceMutationType, dataSys: UmsDataSystem, tableName: String, systemRenameMap: Map[String, String],
                    allFieldNames: Seq[String]): String = {
-    //    val sql = sourceMutationType match {
-    //      case SourceMutationType.INSERT_ONLY =>
-    //        UmsDataSystem.dataSystem(dataSys) match {
-    //          case UmsDataSystem.MYSQL =>
-    //            val columnNames = allFieldNames.map(n => {
-    //              if (n == UmsSysField.OP.toString) {
-    //                val newn = systemRenameMap(UmsSysField.ACTIVE.toString)
-    //                s"""`$newn`"""
-    //              } else if (n == UmsSysField.ID.toString) {
-    //                val newn = systemRenameMap(UmsSysField.ID.toString)
-    //                s"""`$newn`"""
-    //              } else if (n == UmsSysField.TS.toString) {
-    //                val newn = systemRenameMap(UmsSysField.TS.toString)
-    //                s"""`$newn`"""
-    //              }else s"""`$n`"""
-    //            }).mkString(", ")
-    //            s"INSERT INTO `$tableName` ($columnNames) VALUES " + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
-    //          case _ =>
-    //            val oracleColumnNames = allFieldNames.map(n =>{
-    //              if (n == UmsSysField.OP.toString) {
-    //                val newn = systemRenameMap(UmsSysField.ACTIVE.toString)
-    //                s"""$newn"""
-    //              } else if (n == UmsSysField.ID.toString) {
-    //                val newn = systemRenameMap(UmsSysField.ID.toString)
-    //                s"""$newn"""
-    //              } else if (n == UmsSysField.TS.toString) {
-    //                val newn = systemRenameMap(UmsSysField.TS.toString)
-    //                s"""$newn"""
-    //              } else s"""$n"""
-    //            }).mkString(",")
-    //            s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames) VALUES """ + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
-    //        }
-    //      case _ => //iud
-    //        val newn = systemRenameMap(UmsSysField.ACTIVE.toString)
     val columnNames = getSqlField(allFieldNames, systemRenameMap, UmsOpType.INSERT, dataSys)
     val oracleColumnNames = getSqlField(allFieldNames, systemRenameMap, UmsOpType.INSERT, dataSys)
     val sql = dataSys match {
@@ -246,7 +181,6 @@ object SqlProcessor extends EdpLogging {
 
     logInfo("insert sql " + sql)
     sql
-    //executeProcess(tupleList, sql, batchSize, UmsOpType.INSERT.toString, sourceMutationType)
   }
 
   def getSqlField(allFieldNames: Seq[String], systemRenameMap: Map[String, String], opType: UmsOpType, dataSys: UmsDataSystem): String = {
@@ -297,7 +231,6 @@ object SqlProcessor extends EdpLogging {
     }
     logInfo("@update sql " + sql)
     sql
-    //    executeProcess(tupleList, sql, batchSize, UmsOpType.UPDATE.toString, SourceMutationType.I_U_D)
   }
 
 
