@@ -53,7 +53,6 @@ export function instanceReducer (state = initialState, { type, payload }) {
     case LOAD_INSTANCES:
       return state.set('error', false)
     case LOAD_INSTANCES_SUCCESS:
-      payload.resolve()
       return state.set('instances', payload.instances)
     case ADD_INSTANCE:
       return state
