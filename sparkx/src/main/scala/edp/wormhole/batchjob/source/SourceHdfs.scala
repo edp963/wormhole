@@ -30,36 +30,37 @@ import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
-import org.apache.spark.storage.StorageLevel
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
-  override def process(session: SparkSession, fromTime: String, toTime: String, sourceNamespace: String, connectionConfig: ConnectionConfig, specialConfig: Option[String]): DataFrame = {
+  override def process(session: SparkSession, fromTime: String, toTime: String,
+                       sourceNamespace: String, connectionConfig: ConnectionConfig,
+                       specialConfig: Option[String]): DataFrame = {
     val specialConfigStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(specialConfig.get.toString.split(" ").mkString("")))
     val specialConfigObject = JSON.parseObject(specialConfigStr)
     val initial = specialConfigObject.getBoolean(InputDataRequirement.INITIAL.toString)
     val increment = specialConfigObject.getBoolean(InputDataRequirement.INCREMENT.toString)
     assert((!initial && !increment) != true, "initial and increment should not be false at the same time.")
-    val dataType: Array[String] = if (initial && increment) Array(UmsProtocolType.DATA_INITIAL_DATA.toString, UmsProtocolType.DATA_INCREMENT_DATA.toString)
-    else if (!initial && increment) Array(UmsProtocolType.DATA_INCREMENT_DATA.toString)
-    else Array(UmsProtocolType.DATA_INITIAL_DATA.toString)
+    val protocolTypeSet = mutable.HashSet.empty[String]
+    if (initial) protocolTypeSet += UmsProtocolType.DATA_INITIAL_DATA.toString
+    if (increment) protocolTypeSet += UmsProtocolType.DATA_INCREMENT_DATA.toString
 
 
     val startTime = if (fromTime == "19700101000000") null else fromTime
     val endTime = if (toTime == "30000101000000") null else toTime
-    val hdfsPathList = HdfsLogReadUtil.getHdfsPathList(connectionConfig.connectionUrl, UmsNamespace(sourceNamespace))
+    val hdfsPathList = HdfsLogReadUtil.getHdfsPathList(connectionConfig.connectionUrl, UmsNamespace(sourceNamespace), protocolTypeSet.toSet)
     val dataPathList: Seq[String] = HdfsLogReadUtil.getHdfsFileList(hdfsPathList)
     logInfo("dataPathList.length=" + dataPathList.length + ",namespace=" + sourceNamespace)
     val filteredPathList = HdfsLogReadUtil.getHdfsLogPathListBetween(dataPathList, startTime, endTime)
-    filteredPathList.foreach(t => println("@@@@@@@@@@@" + t))
+    //    filteredPathList.foreach(t => println("@@@@@@@@@@@" + t))
     var ums: Ums = null
     var i = 1
     var umsContent = HdfsUtils.readFileByLineNum(filteredPathList.head, i)
     val umsContentList = ListBuffer.empty[String]
     while (ums == null && umsContent != null) {
       try {
-        println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
         if (i == 1) {
           umsContentList += umsContent.substring(umsContent.indexOf("{"))
         } else {
@@ -88,41 +89,52 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
           fileArray(index) = strRdd.mapPartitionsWithIndex((indexparitition, lineIt) => {
             println("arrayIndex:" + index + "   " + "partition index:" + indexparitition + "    " + "start:")
             val successList = ListBuffer.empty[Ums]
-            val contentList = ListBuffer.empty[String]
-            var kafkaKey = ""
+            //            val contentList = ListBuffer.empty[String]
+            var rowContent = ""
+            //            var kafkaKey = ""
+            //            var firstCondition = true
+            //            var secondCondition = false
             lineIt.foreach(line => {
               try {
-                val conditionArr = dataType.map(str => line.startsWith(str))
-                var condition = false
-                conditionArr.foreach(bool => condition = condition || bool)
-                if (condition) {
-                  if (contentList.nonEmpty) {
-                    try {
-                      successList += UmsSchemaUtils.toUms(contentList.mkString(" "))
-                    } catch {
-                      case e: Throwable => logAlert("contentList=" + contentList, e)
-                    }
-                  }
-                  kafkaKey = ""
-                  contentList.clear()
-                  val splitIndex = line.indexOf("{")
-                  kafkaKey = line.substring(0, splitIndex)
-                  contentList += line.substring(splitIndex)
-                } else {
-                  contentList += line
+                rowContent = rowContent + line
+                if (rowContent.startsWith("{") && rowContent.endsWith("}")) {
+                  successList += UmsSchemaUtils.toUms(rowContent)
+                  rowContent = ""
                 }
+
+
+                //                secondCondition = line.endsWith("}")
+                //                var condition = false
+                //                conditionArr.foreach(bool => condition = condition || bool)
+                //                if (condition) {
+                //                  if (contentList.nonEmpty) {
+                //                contentList += line
+                //                    try {
+                //                      successList += UmsSchemaUtils.toUms(line)
+                //                    } catch {
+                //                      case e: Throwable => logAlert("json2caseClass content=" + line, e)
+                //                    }
+                //                  }
+                //                  kafkaKey = ""
+                //                  contentList.clear()
+                //                  val splitIndex = line.indexOf("{")
+                //                  kafkaKey = line.substring(0, splitIndex)
+                //                  contentList += line.substring(splitIndex)
+                //                } else {
+                //                  contentList += line
+                //                }
               } catch {
-                case _: Throwable => logAlert("json2caseClass content=" + contentList.mkString("\n"))
+                case _: Throwable => logAlert("json2caseClass content=" + rowContent.mkString("\n"))
               }
             })
-            if (contentList.nonEmpty) {
-              try {
-                if (contentList.length == 1) successList += UmsSchemaUtils.toUms(contentList.head)
-                else successList += UmsSchemaUtils.toUms(contentList.mkString(" "))
-              } catch {
-                case e: Throwable => logAlert("contentList=" + contentList, e)
-              }
-            }
+            //            if (contentList.nonEmpty) {
+            //              try {
+            //                if (contentList.length == 1) successList += UmsSchemaUtils.toUms(contentList.head)
+            //                else successList += UmsSchemaUtils.toUms(contentList.mkString(" "))
+            //              } catch {
+            //                case e: Throwable => logAlert("contentList=" + contentList, e)
+            //              }
+            //            }
 
             logInfo("successList.length=" + successList.length)
             successList.toIterator

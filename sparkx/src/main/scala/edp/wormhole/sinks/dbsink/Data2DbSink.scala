@@ -21,10 +21,7 @@
 
 package edp.wormhole.sinks.dbsink
 
-import java.sql.{Connection, ResultSet}
-
 import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.common.db.DbConnection
 import edp.wormhole.sinks.{DbHelper, SinkProcessConfig, SinkProcessor, SourceMutationType}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType._
@@ -138,8 +135,8 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
           keysTupleMap(keys) = tuple
         }
 
-        val rsKeyUmsTsMap: mutable.Map[String, Long] = SqlProcessor.selectDataFromDbList(keysTupleMap, sinkNamespace, tableKeyNames, sysIdName, dataSys, tableName, connectionConfig, schemaMap)
-        val (insertList, updateList) = SqlProcessor.splitInsertAndUpdate(rsKeyUmsTsMap, keysTupleMap, tableKeyNames, sysIdName, renameSchema)
+        val rsKeyUmsIdMap: mutable.Map[String, Long] = SqlProcessor.selectDataFromDbList(keysTupleMap, sinkNamespace, tableKeyNames, sysIdName, dataSys, tableName, connectionConfig, schemaMap)
+        val (insertList, updateList) = SqlProcessor.splitInsertAndUpdate(rsKeyUmsIdMap, keysTupleMap, tableKeyNames, sysIdName, renameSchema)
 
         logInfo("insertList all:" + insertList.size)
         val insertSql = SqlProcessor.getInsertSql(sourceMutationType, dataSys, tableName, systemRenameMap, allFieldNames)
