@@ -126,6 +126,10 @@ class Navigator extends React.Component {
       default:
         break
     }
+
+    this.setState({
+      menuInlineShow: false
+    })
   }
 
   logout = () => {
