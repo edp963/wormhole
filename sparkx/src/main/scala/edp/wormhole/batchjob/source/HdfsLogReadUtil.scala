@@ -104,8 +104,13 @@ object HdfsLogReadUtil extends EdpLogging {
     val config = new Configuration()
     val fileSystem = FileSystem.newInstance(config)
     val fullPathList: Seq[String] = hdfsPathList.map(pfRight(_))
-    fullPathList.foreach(fullPath => assert(isPathExist(config, fullPath), s"The $fullPath does not exist"))
-    fullPathList.flatMap(fullPath => fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString))
+    val checkedPathList = fullPathList.filter(fullPath => {
+      val exist = isPathExist(config, fullPath)
+      if(!exist) logError("path is not exist,path="+ fullPath)
+      else logInfo("path exist,path="+fullPath)
+      exist
+    })
+    checkedPathList.flatMap(fullPath => fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString))
   }
 
   def getSnapshotSqlByTs(keys: String, fromTs: Timestamp, toTs: Timestamp): String = {
