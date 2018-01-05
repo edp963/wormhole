@@ -50,7 +50,7 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
 
     val startTime = if (fromTime == "19700101000000") null else fromTime
     val endTime = if (toTime == "30000101000000") null else toTime
-    val hdfsPathList = HdfsLogReadUtil.getHdfsPathList(connectionConfig.connectionUrl, UmsNamespace(sourceNamespace), protocolTypeSet.toSet)
+    val hdfsPathList = HdfsLogReadUtil.getHdfsPathList(connectionConfig.connectionUrl, UmsNamespace(sourceNamespace.toLowerCase), protocolTypeSet.toSet)
     val dataPathList: Seq[String] = HdfsLogReadUtil.getHdfsFileList(hdfsPathList)
     logInfo("dataPathList.length=" + dataPathList.length + ",namespace=" + sourceNamespace)
     val filteredPathList = HdfsLogReadUtil.getHdfsLogPathListBetween(dataPathList, startTime, endTime)
