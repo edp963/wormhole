@@ -70,7 +70,10 @@ export class Instance extends React.PureComponent {
 
       editInstanceData: {},
       eidtConnUrl: '',
-      InstanceSourceDsVal: ''
+      InstanceSourceDsVal: '',
+      columnNameText: '',
+      valueText: '',
+      visibleBool: false
     }
   }
 
@@ -78,17 +81,15 @@ export class Instance extends React.PureComponent {
     this.refreshInstance()
   }
 
-  componentWillReceiveProps (props) {
+  componentWillUpdate (props) {
     if (props.instances) {
       const originInstances = props.instances.map(s => {
         s.key = s.id
         s.visible = false
         return s
       })
-      this.setState({
-        originInstances: originInstances.slice(),
-        currentInstances: originInstances.slice()
-      })
+      this.state.originInstances = originInstances.slice()
+      this.state.currentInstances = originInstances.slice()
     }
   }
 
@@ -97,7 +98,11 @@ export class Instance extends React.PureComponent {
       refreshInstanceLoading: true,
       refreshInstanceText: 'Refreshing'
     })
-    this.props.onLoadInstances(() => { this.instanceRefreshState() })
+    this.props.onLoadInstances(() => {
+      this.instanceRefreshState()
+      const { columnNameText, valueText, visibleBool } = this.state
+      this.onSearch(columnNameText, valueText, visibleBool)()
+    })
   }
 
   instanceRefreshState () {
@@ -186,6 +191,9 @@ export class Instance extends React.PureComponent {
 
     this.setState({
       [visible]: false,
+      columnNameText: columnName,
+      valueText: value,
+      visibleBool: visible,
       currentInstances: this.state.originInstances.map((record) => {
         const match = String(record[columnName]).match(reg)
         if (!match) {
@@ -198,7 +206,7 @@ export class Instance extends React.PureComponent {
             <span>
               {String(record[columnName]).split(reg).map((text, i) => (
                 i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
-              ))}
+                ))}
             </span>
           )
         }
