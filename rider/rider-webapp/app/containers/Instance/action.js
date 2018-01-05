@@ -45,12 +45,11 @@ export function loadInstances (resolve) {
   }
 }
 
-export function instancesLoaded (instances, resolve) {
+export function instancesLoaded (instances) {
   return {
     type: LOAD_INSTANCES_SUCCESS,
     payload: {
-      instances,
-      resolve
+      instances
     }
   }
 }
