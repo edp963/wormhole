@@ -80,22 +80,6 @@ export class StreamStartForm extends React.Component {
   }
 
   render () {
-    // const data = [{
-    //   id: 8,
-    //   rate: 100,
-    //   partitionOffsets: '0:100,1:111,2:222'
-    // },{
-    //   id: 24,
-    //   rate: 200,
-    //   partitionOffsets: '0:100,1:111,2:222'
-    // },
-    //   {
-    //     id: 25,
-    //     rate: 300,
-    //     partitionOffsets: '0:200,1:300'
-    //   }
-    // ]
-
     const { form, streamActionType, startUdfValsOption, renewUdfValsOption, currentUdfVal } = this.props
     const { getFieldDecorator } = form
     const { data } = this.state
@@ -152,68 +136,83 @@ export class StreamStartForm extends React.Component {
           ))
         } else {
           const partitionOffsetsArr = i.partitionOffsets.split(',')
-          const consumerOffsetFinal = i.conOffsetVal
-            ? i.conOffsetVal.substring(i.conOffsetVal.indexOf(':') + 1)
-            : ''
-          const kafkaOffsetFinal = i.kafOffsetVal
-            ? i.kafOffsetVal.substring(i.kafOffsetVal.indexOf(':') + 1)
-            : ''
 
-          parOffInput = partitionOffsetsArr.map((g, index) => (
-            <Row key={`${i.id}_${index}`}>
-              <Col span={3} className="partition-content">{g.substring(0, g.indexOf(':'))}</Col>
-              <Col span={7} className="offset-content">
-                <FormItem>
-                  <ol key={g}>
-                    {getFieldDecorator(`${i.id}_${index}`, {
-                      rules: [{
-                        required: true,
-                        message: '请填写 Offset'
-                      }, {
-                        validator: this.forceCheckTopic
-                      }],
-                      initialValue: g.substring(g.indexOf(':') + 1)
-                    })(
-                      <InputNumber size="medium" className="conform-table-input" />
-                    )}
-                  </ol>
-                </FormItem>
-              </Col>
-              <Col span={7} className="stream-start-offset-class">
-                <FormItem>
-                  <ol key={g}>
-                    {getFieldDecorator(`consumedLatest_${i.id}_${index}`, {})(
-                      <div className="stream-start-lastest-consumed-offset">
-                        <span style={{ marginRight: '5px' }}>{consumerOffsetFinal}</span>
-                        <Tooltip title="应用">
-                          <Button shape="circle" type="ghost" onClick={this.onApplyConOffset(i, index, consumerOffsetFinal)}>
-                            <i className="iconfont icon-apply_icon_-copy-copy-copy"></i>
-                          </Button>
-                        </Tooltip>
-                      </div>
+          parOffInput = partitionOffsetsArr.map((g, index) => {
+            const gKey = g.substring(0, g.indexOf(':'))
 
-                    )}
-                  </ol>
-                </FormItem>
-              </Col>
-              <Col span={7} className="stream-start-offset-class">
-                <FormItem>
-                  <ol key={g}>
-                    {getFieldDecorator(`kafkaLatest_${i.id}_${index}`, {})(
-                      <div className="stream-start-lastest-kafka-offset">
-                        <span style={{ marginRight: '5px' }}>{kafkaOffsetFinal}</span>
-                        <Tooltip title="应用">
-                          <Button shape="circle" type="ghost" onClick={this.onApplyKafkaOffset(i, index, kafkaOffsetFinal)}>
-                            <i className="iconfont icon-apply_icon_-copy-copy-copy"></i>
-                          </Button>
-                        </Tooltip>
-                      </div>
-                    )}
-                  </ol>
-                </FormItem>
-              </Col>
-            </Row>
-          ))
+            let conOffFinal = ''
+            let kafOffFinal = ''
+            if (i.conOffsetVal) {
+              const conOffArr = i.conOffsetVal.split(',')
+              const conOffFilter = conOffArr.filter(s => s.substring(0, s.indexOf(':')) === gKey)
+              conOffFinal = conOffFilter[0].substring(conOffFilter[0].indexOf(':') + 1)
+            } else {
+              conOffFinal = ''
+            }
+            if (i.kafOffsetVal) {
+              const kafOffArr = i.kafOffsetVal.split(',')
+              const kafOffFilter = kafOffArr.filter(s => s.substring(0, s.indexOf(':')) === gKey)
+              kafOffFinal = kafOffFilter[0].substring(kafOffFilter[0].indexOf(':') + 1)
+            } else {
+              kafOffFinal = ''
+            }
+
+            return (
+              <Row key={`${i.id}_${index}`}>
+                <Col span={3} className="partition-content">{g.substring(0, g.indexOf(':'))}</Col>
+                <Col span={7} className="offset-content">
+                  <FormItem>
+                    <ol key={g}>
+                      {getFieldDecorator(`${i.id}_${index}`, {
+                        rules: [{
+                          required: true,
+                          message: '请填写 Offset'
+                        }, {
+                          validator: this.forceCheckTopic
+                        }],
+                        initialValue: g.substring(g.indexOf(':') + 1)
+                      })(
+                        <InputNumber size="medium" className="conform-table-input" />
+                      )}
+                    </ol>
+                  </FormItem>
+                </Col>
+                <Col span={7} className="stream-start-offset-class">
+                  <FormItem>
+                    <ol key={g}>
+                      {getFieldDecorator(`consumedLatest_${i.id}_${index}`, {})(
+                        <div className="stream-start-lastest-consumed-offset">
+                          <span style={{ marginRight: '5px' }}>{conOffFinal}</span>
+                          <Tooltip title="应用">
+                            <Button shape="circle" type="ghost" onClick={this.onApplyConOffset(i, index, conOffFinal)}>
+                              <i className="iconfont icon-apply_icon_-copy-copy"></i>
+                            </Button>
+                          </Tooltip>
+                        </div>
+
+                      )}
+                    </ol>
+                  </FormItem>
+                </Col>
+                <Col span={7} className="stream-start-offset-class">
+                  <FormItem>
+                    <ol key={g}>
+                      {getFieldDecorator(`kafkaLatest_${i.id}_${index}`, {})(
+                        <div className="stream-start-lastest-kafka-offset">
+                          <span style={{ marginRight: '5px' }}>{kafOffFinal}</span>
+                          <Tooltip title="应用">
+                            <Button shape="circle" type="ghost" onClick={this.onApplyKafkaOffset(i, index, kafOffFinal)}>
+                              <i className="iconfont icon-apply_icon_-copy-copy"></i>
+                            </Button>
+                          </Tooltip>
+                        </div>
+                      )}
+                    </ol>
+                  </FormItem>
+                </Col>
+              </Row>
+            )
+          })
         }
 
         const cardTitle = (
