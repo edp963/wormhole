@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# check if we have a valid WORMHOLE_HOME and if java is not available
+if [ -z "${WORMHOLE_HOME}" ]; then
+    echo "WARNING!!: WORMHOLE_HOME is not defined correctly, please specify WORMHOLE_HOME first."
+    exit 1
+fi
+
 echo "set hdfs permission for wormholeServer user"
 #source /etc/profile
 #source ~/.bash_profile
