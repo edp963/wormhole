@@ -1,5 +1,12 @@
 #!/bin/bash
 # sed wormholeServer host and port to index.html
+
+# check if we have a valid WORMHOLE_HOME and if java is not available
+if [ -z "${WORMHOLE_HOME}" ]; then
+    echo "WARNING!!: WORMHOLE_HOME is not defined correctly, please specify WORMHOLE_HOME first."
+    exit 1
+fi
+
 # domain.url
 DORMAIN=`grep "domain.url" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
 echo "wormholeServer domainUrl: $DORMAIN"
