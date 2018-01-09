@@ -26,7 +26,7 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{NamespaceDal, RelProjectNsDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.{JsonSerializer, ResponseSeqJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils._
 
@@ -155,6 +155,64 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
         }
       }
 
+  }
+
+  def getUmsInfoByIdRoute(route: String): Route = path(route / LongNumber / "namespace" / LongNumber / "schema" / "source") {
+    (id, nsId) =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "user") {
+              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              if (session.projectIdList.contains(id)) {
+                onComplete(namespaceDal.getUmsInfo(nsId).mapTo[Option[SourceSchema]]) {
+                  case Success(umsInfo) =>
+                    riderLogger.info(s"user ${session.userId} select namespace source schema by $nsId success")
+                    complete(OK, ResponseJson[Option[SourceSchema]](getHeader(200, session), umsInfo))
+                  case Failure(ex) =>
+                    riderLogger.error(s"user ${session.userId} select namespace source schema by $nsId failed", ex)
+                    complete(OK, getHeader(451, ex.getMessage, session))
+                }
+              } else {
+                riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
+                complete(OK, getHeader(501, session))
+              }
+            }
+        }
+      }
+  }
+
+  def getSinkInfoByIdRoute(route: String): Route = path(route / LongNumber / "namespace" / LongNumber / "schema" / "sink") {
+    (id, nsId) =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "user") {
+              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              if (session.projectIdList.contains(id)) {
+
+                onComplete(namespaceDal.getSinkInfo(nsId).mapTo[Option[SinkSchema]]) {
+                  case Success(sinkInfo) =>
+                    riderLogger.info(s"user ${session.userId} select namespace sink schema by $nsId success")
+                    complete(OK, ResponseJson[Option[SinkSchema]](getHeader(200, session), sinkInfo))
+                  case Failure(ex) =>
+                    riderLogger.error(s"user ${session.userId} select namespace sink schema by $nsId failed", ex)
+                    complete(OK, getHeader(451, ex.getMessage, session))
+                }
+              } else {
+                riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
+                complete(OK, getHeader(501, session))
+              }
+
+            }
+        }
+      }
   }
 
 }
