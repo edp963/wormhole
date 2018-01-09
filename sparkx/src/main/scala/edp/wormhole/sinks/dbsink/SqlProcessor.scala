@@ -290,7 +290,7 @@ object SqlProcessor extends EdpLogging {
           conn.commit()
         } catch {
           case e: Throwable =>
-            logWarning("executeBatch error" + e)
+            logError("executeBatch error " + e)
             errorTupleList ++= tuples
             if (batchSize == 1)
               logInfo("violate tuple -----------" + tuples)
