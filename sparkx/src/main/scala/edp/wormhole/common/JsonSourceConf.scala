@@ -55,7 +55,6 @@ object JsonSourceConf extends EdpLogging{
 
       schemaArr.append(fieldInfo)
     }
-   // val umsSysRename = UmsSysRename(umsTsField, judgeIfIsDefined(umsIdField), judgeIfIsDefined(umsOpField), judgeIfIsDefined(umsUidField))
     RegularJsonSchema(schemaArr, twoFieldArr, seqField)
   }
 
