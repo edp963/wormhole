@@ -74,6 +74,13 @@ export class Udf extends React.PureComponent {
       searchEndByText: '',
       filterDropdownVisibleBy: false,
 
+      columnNameText: '',
+      valueText: '',
+      visibleBool: false,
+      startTimeTextState: '',
+      endTimeTextState: '',
+      paginationInfo: null,
+
       queryUdfVal: {},
       showUdfDetail: {}
     }
@@ -106,13 +113,6 @@ export class Udf extends React.PureComponent {
     this.loadUdfData()
   }
 
-  udfRefreshState () {
-    this.setState({
-      refreshUdfLoading: false,
-      refreshUdfText: 'Refresh'
-    })
-  }
-
   loadUdfData () {
     const { projectIdGeted, udfClassHide } = this.props
     if (localStorage.getItem('loginRoleType') === 'admin') {
@@ -121,6 +121,25 @@ export class Udf extends React.PureComponent {
         : this.props.onLoadUdfs(() => { this.udfRefreshState() })
     } else if (localStorage.getItem('loginRoleType') === 'user') {
       this.props.onLoadSingleUdf(projectIdGeted, 'user', () => { this.udfRefreshState() })
+    }
+  }
+
+  udfRefreshState () {
+    this.setState({
+      refreshUdfLoading: false,
+      refreshUdfText: 'Refresh'
+    })
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { paginationInfo, filteredInfo, sortedInfo } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    this.handleUdfChange(paginationInfo, filteredInfo, sortedInfo)
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
     }
   }
 
@@ -226,41 +245,52 @@ export class Udf extends React.PureComponent {
     const reg = new RegExp(this.state[value], 'gi')
 
     this.setState({
-      [visible]: false,
-      currentudfs: this.state.originUdfs.map((record) => {
-        const match = String(record[columnName]).match(reg)
-        if (!match) {
-          return null
-        }
-        return {
-          ...record,
-          [`${columnName}Origin`]: record[columnName],
-          [columnName]: (
-            <span>
-              {String(record[columnName]).split(reg).map((text, i) => (
-                i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
-              ))}
-            </span>
-          )
-        }
-      }).filter(record => !!record)
+      filteredInfo: {pubic: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        valueText: value,
+        visibleBool: visible,
+        currentudfs: this.state.originUdfs.map((record) => {
+          const match = String(record[columnName]).match(reg)
+          if (!match) {
+            return null
+          }
+          return {
+            ...record,
+            [`${columnName}Origin`]: record[columnName],
+            [columnName]: (
+              <span>
+                {String(record[columnName]).split(reg).map((text, i) => (
+                  i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
+                ))}
+              </span>
+            )
+          }
+        }).filter(record => !!record)
+      })
     })
   }
 
   handleUdfChange = (pagination, filters, sorter) => {
+    if (filters) {
+      if (filters.pubic) {
+        if (filters.pubic.length !== 0) {
+          this.onSearch('', '', false)()
+        }
+      }
+    }
     this.setState({
       filteredInfo: filters,
-      sortedInfo: sorter
+      sortedInfo: sorter,
+      paginationInfo: pagination
     })
   }
 
   onInputChange = (value) => (e) => this.setState({ [value]: e.target.value })
 
-  handleEndOpenChange = (status) => {
-    this.setState({
-      filterDatepickerShown: status
-    })
-  }
+  handleEndOpenChange = (status) => this.setState({ filterDatepickerShown: status })
 
   onRangeTimeChange = (value, dateString) => {
     this.setState({
@@ -281,36 +311,30 @@ export class Udf extends React.PureComponent {
     }
 
     this.setState({
-      [visible]: false,
-      currentUdfs: this.state.originUdfs.map((record) => {
-        const match = (new Date(record[columnName])).getTime()
-        if ((match < startSearchTime) || (match > endSearchTime)) {
-          return null
-        }
-        return {
-          ...record,
-          [columnName]: (
-            this.state.startTimeText === ''
-              ? <span>{record[columnName]}</span>
-              : <span className="highlight">{record[columnName]}</span>
-          )
-        }
-      }).filter(record => !!record),
-      filteredInfo: startOrEnd
-    })
-  }
-
-  onRangeBySearch = (columnName, startText, endText, visible) => () => {
-    this.setState({
-      [visible]: false,
-      currentUdfs: this.state.originUdfs.map((record) => {
-        const match = record[columnName]
-        if ((match < parseInt(this.state[startText])) || (match > parseInt(this.state[endText]))) {
-          return null
-        }
-        return record
-      }).filter(record => !!record),
-      filteredInfo: this.state[startText] || this.state[endText] ? {createBy: [0]} : {createBy: []}
+      filteredInfo: {pubic: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        startTimeTextState: startTimeText,
+        endTimeTextState: endTimeText,
+        visibleBool: visible,
+        currentUdfs: this.state.originUdfs.map((record) => {
+          const match = (new Date(record[columnName])).getTime()
+          if ((match < startSearchTime) || (match > endSearchTime)) {
+            return null
+          }
+          return {
+            ...record,
+            [columnName]: (
+              this.state.startTimeText === ''
+                ? <span>{record[columnName]}</span>
+                : <span className="highlight">{record[columnName]}</span>
+            )
+          }
+        }).filter(record => !!record),
+        filteredInfo: startOrEnd
+      })
     })
   }
 
@@ -319,11 +343,7 @@ export class Udf extends React.PureComponent {
       this.setState({
         visible
       }, () => {
-        this.props.onLoadUdfDetail(record.id, (result) => {
-          this.setState({
-            showUdfDetail: result
-          })
-        })
+        this.props.onLoadUdfDetail(record.id, (result) => this.setState({ showUdfDetail: result }))
       })
     }
   }
@@ -473,7 +493,7 @@ export class Udf extends React.PureComponent {
         }
       },
       sortOrder: sortedInfo.columnKey === 'createTime' && sortedInfo.order,
-      filteredValue: filteredInfo.createTime,
+      // filteredValue: filteredInfo.createTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -505,7 +525,7 @@ export class Udf extends React.PureComponent {
         }
       },
       sortOrder: sortedInfo.columnKey === 'updateTime' && sortedInfo.order,
-      filteredValue: filteredInfo.updateTime,
+      // filteredValue: filteredInfo.updateTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker

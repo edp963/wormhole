@@ -51,8 +51,7 @@ import {
   EDIT_JOB,
   EDIT_JOB_SUCCESS,
   LOAD_JOB_DETAIL,
-  LOAD_JOB_DETAIL_SUCCESS,
-  CHUCKAWAY_JOB
+  LOAD_JOB_DETAIL_SUCCESS
 } from './constants'
 import { fromJS } from 'immutable'
 
@@ -71,17 +70,14 @@ function jobReducer (state = initialState, { type, payload }) {
     case LOAD_ADMIN_ALL_JOBS:
       return state.set('error', false)
     case LOAD_ADMIN_ALL_JOBS_SUCCESS:
-      payload.resolve()
       return state.set('jobs', payload.jobs)
     case LOAD_USER_ALL_JOBS:
       return state.set('error', false)
     case LOAD_USER_ALL_JOBS_SUCCESS:
-      payload.resolve()
       return state.set('jobs', payload.jobs)
     case LOAD_ADMIN_SINGLE_JOB:
       return state.set('error', false)
     case LOAD_ADMIN_SINGLE_JOB_SUCCESS:
-      payload.resolve()
       return state.set('jobs', payload.job)
     case LOAD_ADMIN_JOB_LOGS:
       return state
@@ -167,9 +163,6 @@ function jobReducer (state = initialState, { type, payload }) {
     case LOAD_JOB_DETAIL_SUCCESS:
       payload.resolve(payload.result)
       return state
-
-    case CHUCKAWAY_JOB:
-      return state.set('jobs', false)
     default:
       return state
   }

@@ -47,12 +47,11 @@ export function loadUdfs (resolve) {
   }
 }
 
-export function udfsLoaded (udfs, resolve) {
+export function udfsLoaded (udfs) {
   return {
     type: LOAD_UDFS_SUCCESS,
     payload: {
-      udfs,
-      resolve
+      udfs
     }
   }
 }
@@ -87,12 +86,11 @@ export function loadSingleUdf (projectId, roleType, resolve) {
   }
 }
 
-export function singleUdfLoaded (udf, resolve) {
+export function singleUdfLoaded (udf) {
   return {
     type: LOAD_SINGLE_UDF_SUCCESS,
     payload: {
-      udf,
-      resolve
+      udf
     }
   }
 }

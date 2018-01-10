@@ -87,17 +87,14 @@ function flowReducer (state = initialState, { type, payload }) {
     case LOAD_ADMIN_ALL_FLOWS:
       return state.set('error', false)
     case LOAD_ADMIN_ALL_FLOWS_SUCCESS:
-      payload.resolve()
       return state.set('flows', payload.flows)
     case LOAD_USER_ALL_FLOWS:
       return state.set('error', false)
     case LOAD_USER_ALL_FLOWS_SUCCESS:
-      payload.resolve()
       return state.set('flows', payload.flows)
     case LOAD_ADMIN_SINGLE_FLOW:
       return state.set('error', false)
     case LOAD_ADMIN_SINGLE_FLOW_SUCCESS:
-      payload.resolve()
       return state.set('flows', payload.flow)
     case LOAD_SELECT_STREAM_KAFKA_TOPIC:
       return state.set('error', false)

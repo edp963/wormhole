@@ -53,7 +53,6 @@ export function udfReducer (state = initialState, { type, payload }) {
     case LOAD_UDFS:
       return state.set('error', false)
     case LOAD_UDFS_SUCCESS:
-      payload.resolve(payload.udfs)
       return state.set('udfs', payload.udfs)
     case LOAD_PROJECT_UDFS:
       return state.set('error', false)
@@ -63,7 +62,6 @@ export function udfReducer (state = initialState, { type, payload }) {
     case LOAD_SINGLE_UDF:
       return state.set('error', false)
     case LOAD_SINGLE_UDF_SUCCESS:
-      payload.resolve(payload.udf)
       return state.set('udfs', payload.udf)
     case ADD_UDF:
       return state
