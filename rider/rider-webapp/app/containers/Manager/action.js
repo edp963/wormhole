@@ -63,12 +63,11 @@ export function loadUserStreams (projectId, resolve) {
   }
 }
 
-export function userStreamsLoaded (streams, resolve) {
+export function userStreamsLoaded (streams) {
   return {
     type: LOAD_USER_STREAMS_SUCCESS,
     payload: {
-      streams,
-      resolve
+      streams
     }
   }
 }
@@ -82,12 +81,11 @@ export function loadAdminAllStreams (resolve) {
   }
 }
 
-export function adminAllStreamsLoaded (streams, resolve) {
+export function adminAllStreamsLoaded (streams) {
   return {
     type: LOAD_ADMIN_ALL_STREAMS_SUCCESS,
     payload: {
-      streams,
-      resolve
+      streams
     }
   }
 }
@@ -102,12 +100,11 @@ export function loadAdminSingleStream (projectId, resolve) {
   }
 }
 
-export function adminSingleStreamLoaded (stream, resolve) {
+export function adminSingleStreamLoaded (stream) {
   return {
     type: LOAD_ADMIN_SINGLE_STREAM_SUCCESS,
     payload: {
-      stream,
-      resolve
+      stream
     }
   }
 }
