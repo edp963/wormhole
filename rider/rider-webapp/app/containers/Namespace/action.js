@@ -54,12 +54,11 @@ export function loadAdminAllNamespaces (resolve) {
   }
 }
 
-export function adminAllNamespacesLoaded (namespaces, resolve) {
+export function adminAllNamespacesLoaded (namespaces) {
   return {
     type: LOAD_ADMIN_ALL_NAMESPACES_SUCCESS,
     payload: {
-      namespaces,
-      resolve
+      namespaces
     }
   }
 }
@@ -74,12 +73,11 @@ export function loadSelectNamespaces (projectId, resolve) {
   }
 }
 
-export function selectNamespacesLoaded (namespaces, resolve) {
+export function selectNamespacesLoaded (namespaces) {
   return {
     type: LOAD_SELECT_NAMESPACES_SUCCESS,
     payload: {
-      namespaces,
-      resolve
+      namespaces
     }
   }
 }
@@ -94,12 +92,11 @@ export function loadUserNamespaces (projectId, resolve) {
   }
 }
 
-export function userNamespacesLoaded (namespaces, resolve) {
+export function userNamespacesLoaded (namespaces) {
   return {
     type: LOAD_USER_NAMESPACES_SUCCESS,
     payload: {
-      namespaces,
-      resolve
+      namespaces
     }
   }
 }

@@ -66,17 +66,14 @@ function streamReducer (state = initialState, { type, payload }) {
     case LOAD_USER_STREAMS:
       return state
     case LOAD_USER_STREAMS_SUCCESS:
-      payload.resolve()
       return state.set('streams', payload.streams)
     case LOAD_ADMIN_ALL_STREAMS:
       return state.set('error', false)
     case LOAD_ADMIN_ALL_STREAMS_SUCCESS:
-      payload.resolve()
       return state.set('streams', payload.streams)
     case LOAD_ADMIN_SINGLE_STREAM:
       return state.set('error', false)
     case LOAD_ADMIN_SINGLE_STREAM_SUCCESS:
-      payload.resolve()
       return state.set('streams', payload.stream)
     case LOAD_STREAM_DETAIL:
       return state

@@ -52,12 +52,11 @@ export function loadAdminAllUsers (resolve) {
   }
 }
 
-export function adminAllUsersLoaded (users, resolve) {
+export function adminAllUsersLoaded (users) {
   return {
     type: LOAD_ADMIN_ALL_USERS_SUCCESS,
     payload: {
-      users,
-      resolve
+      users
     }
   }
 }
@@ -72,12 +71,11 @@ export function loadUserUsers (projectId, resolve) {
   }
 }
 
-export function userUsersLoaded (users, resolve) {
+export function userUsersLoaded (users) {
   return {
     type: LOAD_USER_USERS_SUCCESS,
     payload: {
-      users,
-      resolve
+      users
     }
   }
 }
@@ -92,12 +90,11 @@ export function loadSelectUsers (projectId, resolve) {
   }
 }
 
-export function selectUsersLoaded (users, resolve) {
+export function selectUsersLoaded (users) {
   return {
     type: LOAD_SELECT_USERS_SUCCESS,
     payload: {
-      users,
-      resolve
+      users
     }
   }
 }

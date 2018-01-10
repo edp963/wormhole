@@ -55,7 +55,8 @@ import api from '../../utils/api'
 export function* getAdminAllNamespaces ({ payload }) {
   try {
     const namespaces = yield call(request, api.namespace)
-    yield put(adminAllNamespacesLoaded(namespaces.payload, payload.resolve))
+    yield put(adminAllNamespacesLoaded(namespaces.payload))
+    payload.resolve()
   } catch (err) {
     yield put(getError(err))
   }
@@ -68,7 +69,8 @@ export function* getAdminAllNamespacesWatcher () {
 export function* getUserNamespaces ({ payload }) {
   try {
     const namespaces = yield call(request, `${api.projectUserList}/${payload.projectId}/namespaces`)
-    yield put(userNamespacesLoaded(namespaces.payload, payload.resolve))
+    yield put(userNamespacesLoaded(namespaces.payload))
+    payload.resolve()
   } catch (err) {
     yield put(getError(err))
   }
@@ -81,7 +83,8 @@ export function* getUserNamespacesWatcher () {
 export function* getSelectNamespaces ({ payload }) {
   try {
     const namespaces = yield call(request, `${api.projectList}/${payload.projectId}/namespaces`)
-    yield put(selectNamespacesLoaded(namespaces.payload, payload.resolve))
+    yield put(selectNamespacesLoaded(namespaces.payload))
+    payload.resolve(namespaces.payload)
   } catch (err) {
     yield put(getError(err))
   }

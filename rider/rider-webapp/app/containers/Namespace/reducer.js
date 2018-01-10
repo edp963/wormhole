@@ -60,17 +60,14 @@ export function namespaceReducer (state = initialState, { type, payload }) {
     case LOAD_ADMIN_ALL_NAMESPACES:
       return state.set('error', false)
     case LOAD_ADMIN_ALL_NAMESPACES_SUCCESS:
-      payload.resolve()
       return state.set('namespaces', payload.namespaces)
     case LOAD_USER_NAMESPACES:
       return state.set('error', false)
     case LOAD_USER_NAMESPACES_SUCCESS:
-      payload.resolve()
       return state.set('namespaces', payload.namespaces)
     case LOAD_SELECT_NAMESPACES:
       return state
     case LOAD_SELECT_NAMESPACES_SUCCESS:
-      payload.resolve(payload.namespaces)
       return state.set('namespaces', payload.namespaces)
     case LOAD_NAMESPACE_DATABASE:
       return state

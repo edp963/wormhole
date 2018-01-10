@@ -51,8 +51,7 @@ import {
   QUERY_JOB,
   QUERY_JOB_SUCCESS,
   LOAD_JOB_DETAIL,
-  LOAD_JOB_DETAIL_SUCCESS,
-  CHUCKAWAY_JOB
+  LOAD_JOB_DETAIL_SUCCESS
 } from './constants'
 
 export function loadAdminAllJobs (resolve) {
@@ -64,12 +63,11 @@ export function loadAdminAllJobs (resolve) {
   }
 }
 
-export function adminAllJobsLoaded (jobs, resolve) {
+export function adminAllJobsLoaded (jobs) {
   return {
     type: LOAD_ADMIN_ALL_JOBS_SUCCESS,
     payload: {
-      jobs,
-      resolve
+      jobs
     }
   }
 }
@@ -84,12 +82,11 @@ export function loadUserAllJobs (projectId, resolve) {
   }
 }
 
-export function userAllJobsLoaded (jobs, resolve) {
+export function userAllJobsLoaded (jobs) {
   return {
     type: LOAD_USER_ALL_JOBS_SUCCESS,
     payload: {
-      jobs,
-      resolve
+      jobs
     }
   }
 }
@@ -104,12 +101,11 @@ export function loadAdminSingleJob (projectId, resolve) {
   }
 }
 
-export function adminSingleJobLoaded (job, resolve) {
+export function adminSingleJobLoaded (job) {
   return {
     type: LOAD_ADMIN_SINGLE_JOB_SUCCESS,
     payload: {
-      job,
-      resolve
+      job
     }
   }
 }
@@ -398,12 +394,6 @@ export function jobDetailLoaded (result, resolve) {
       result,
       resolve
     }
-  }
-}
-
-export function chuckAwayJob () {
-  return {
-    type: CHUCKAWAY_JOB
   }
 }
 
