@@ -70,6 +70,13 @@ export class DataBase extends React.PureComponent {
       updateEndTimeText: '',
       filterDropdownVisibleUpdateTime: false,
 
+      columnNameText: '',
+      valueText: '',
+      visibleBool: false,
+      startTimeTextState: '',
+      endTimeTextState: '',
+      paginationInfo: null,
+
       editDatabaseData: {},
       databaseDSType: ''
     }
@@ -98,7 +105,7 @@ export class DataBase extends React.PureComponent {
       refreshDbLoading: true,
       refreshDbText: 'Refreshing'
     })
-    this.props.onLoadDatabases(() => { this.refreshDbState() })
+    this.props.onLoadDatabases(() => this.refreshDbState())
   }
 
   refreshDbState () {
@@ -106,6 +113,19 @@ export class DataBase extends React.PureComponent {
       refreshDbLoading: false,
       refreshDbText: 'Refresh'
     })
+
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { paginationInfo, filteredInfo, sortedInfo } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    this.handleDatabaseChange(paginationInfo, filteredInfo, sortedInfo)
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
+    }
   }
 
   showAddDB = () => {
@@ -352,31 +372,46 @@ export class DataBase extends React.PureComponent {
     const reg = new RegExp(this.state[value], 'gi')
 
     this.setState({
-      [visible]: false,
-      currentDatabases: this.state.originDatabases.map((record) => {
-        const match = String(record[columnName]).match(reg)
-        if (!match) {
-          return null
-        }
-        return {
-          ...record,
-          [`${columnName}Origin`]: record[columnName],
-          [columnName]: (
-            <span>
-              {String(record[columnName]).split(reg).map((text, i) => (
-                i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
-              ))}
-            </span>
-          )
-        }
-      }).filter(record => !!record)
+      filteredInfo: {nsSys: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        valueText: value,
+        visibleBool: visible,
+        currentDatabases: this.state.originDatabases.map((record) => {
+          const match = String(record[columnName]).match(reg)
+          if (!match) {
+            return null
+          }
+          return {
+            ...record,
+            [`${columnName}Origin`]: record[columnName],
+            [columnName]: (
+              <span>
+                {String(record[columnName]).split(reg).map((text, i) => (
+                  i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
+                ))}
+              </span>
+            )
+          }
+        }).filter(record => !!record)
+      })
     })
   }
 
   handleDatabaseChange = (pagination, filters, sorter) => {
+    if (filters) {
+      if (filters.nsSys) {
+        if (filters.nsSys.length !== 0) {
+          this.onSearch('', '', false)()
+        }
+      }
+    }
     this.setState({
       filteredInfo: filters,
-      sortedInfo: sorter
+      sortedInfo: sorter,
+      paginationInfo: pagination
     })
   }
 
@@ -480,22 +515,30 @@ export class DataBase extends React.PureComponent {
     }
 
     this.setState({
-      [visible]: false,
-      currentDatabases: this.state.originDatabases.map((record) => {
-        const match = (new Date(record[columnName])).getTime()
-        if ((match < startSearchTime) || (match > endSearchTime)) {
-          return null
-        }
-        return {
-          ...record,
-          [columnName]: (
-            this.state.startTimeText === ''
-              ? <span>{record[columnName]}</span>
-              : <span className="highlight">{record[columnName]}</span>
-          )
-        }
-      }).filter(record => !!record),
-      filteredInfo: startOrEnd
+      filteredInfo: {nsSys: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        startTimeTextState: startTimeText,
+        endTimeTextState: endTimeText,
+        visibleBool: visible,
+        currentDatabases: this.state.originDatabases.map((record) => {
+          const match = (new Date(record[columnName])).getTime()
+          if ((match < startSearchTime) || (match > endSearchTime)) {
+            return null
+          }
+          return {
+            ...record,
+            [columnName]: (
+              this.state.startTimeText === ''
+                ? <span>{record[columnName]}</span>
+                : <span className="highlight">{record[columnName]}</span>
+            )
+          }
+        }).filter(record => !!record),
+        filteredInfo: startOrEnd
+      })
     })
   }
 
@@ -643,7 +686,7 @@ export class DataBase extends React.PureComponent {
         }
       },
       sortOrder: sortedInfo.columnKey === 'createTime' && sortedInfo.order,
-      filteredValue: filteredInfo.createTime,
+      // filteredValue: filteredInfo.createTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -675,7 +718,7 @@ export class DataBase extends React.PureComponent {
         }
       },
       sortOrder: sortedInfo.columnKey === 'updateTime' && sortedInfo.order,
-      filteredValue: filteredInfo.updateTime,
+      // filteredValue: filteredInfo.updateTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -737,18 +780,9 @@ export class DataBase extends React.PureComponent {
     }]
 
     const pagination = {
-      defaultPageSize: this.state.pageSize,
       showSizeChanger: true,
-      onShowSizeChange: (current, pageSize) => {
-        this.setState({
-          pageIndex: current,
-          pageSize: pageSize
-        })
-      },
       onChange: (current) => {
-        this.setState({
-          pageIndex: current
-        })
+        console.log('current', current)
       }
     }
 

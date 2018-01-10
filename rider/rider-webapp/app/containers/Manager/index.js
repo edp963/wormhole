@@ -27,9 +27,6 @@ import StreamLogs from './StreamLogs'
 import StreamStartForm from './StreamStartForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
-import Form from 'antd/lib/form'
-import Row from 'antd/lib/row'
-import Col from 'antd/lib/col'
 import Icon from 'antd/lib/icon'
 import Popover from 'antd/lib/popover'
 import Input from 'antd/lib/input'
@@ -74,9 +71,6 @@ export class Manager extends React.Component {
       filteredInfo: null,
       sortedInfo: null,
 
-      searchStartIdText: '',
-      searchEndIdText: '',
-      filterDropdownVisibleId: false,
       searchTextStreamProject: '',
       filterDropdownVisibleStreamProject: false,
       searchTextName: '',
@@ -94,6 +88,13 @@ export class Manager extends React.Component {
       endStartTimeText: '',
       endEndTimeText: '',
       filterDropdownVisibleEndTime: false,
+
+      columnNameText: '',
+      valueText: '',
+      visibleBool: false,
+      startTimeTextState: '',
+      endTimeTextState: '',
+      paginationInfo: null,
 
       logsContent: '',
       logsProjectId: 0,
@@ -159,6 +160,18 @@ export class Manager extends React.Component {
       refreshStreamLoading: false,
       refreshStreamText: 'Refresh'
     })
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { paginationInfo, filteredInfo, sortedInfo } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      } else {
+        this.handleStreamChange(paginationInfo, filteredInfo, sortedInfo)
+        this.onSearch(columnNameText, valueText, visibleBool)()
+      }
+    }
   }
 
   handleVisibleChange = (stream) => (visible) => {
@@ -528,7 +541,6 @@ export class Manager extends React.Component {
     this.streamStartForm.resetFields()
   }
 
-  // stop
   stopStreamBtn = (record, action) => (e) => {
     this.props.onOperateStream(this.props.projectIdGeted, record.id, 'stop', () => {
       message.success('停止成功！', 3)
@@ -537,7 +549,6 @@ export class Manager extends React.Component {
     })
   }
 
-  // delete
   deleteStreambtn = (record, action) => (e) => {
     this.props.onDeleteStream(this.props.projectIdGeted, record.id, 'delete', () => {
       message.success('删除成功！', 3)
@@ -606,30 +617,34 @@ export class Manager extends React.Component {
     }
 
     this.setState({
-      [visible]: false,
-      currentStreams: this.state.originStreams.map((record) => {
-        const match = (new Date(record[columnName])).getTime()
-        if ((match < startSearchTime) || (match > endSearchTime)) {
-          return null
-        }
-        return {
-          ...record,
-          [columnName]: (
-            this.state.startTimeText === ''
-              ? <span>{record[columnName]}</span>
-              : <span className="highlight">{record[columnName]}</span>
-          )
-        }
-      }).filter(record => !!record),
-      filteredInfo: startOrEnd
+      filteredInfo: {status: [], streamType: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        startTimeTextState: startTimeText,
+        endTimeTextState: endTimeText,
+        visibleBool: visible,
+        currentStreams: this.state.originStreams.map((record) => {
+          const match = (new Date(record[columnName])).getTime()
+          if ((match < startSearchTime) || (match > endSearchTime)) {
+            return null
+          }
+          return {
+            ...record,
+            [columnName]: (
+              this.state.startTimeText === ''
+                ? <span>{record[columnName]}</span>
+                : <span className="highlight">{record[columnName]}</span>
+            )
+          }
+        }).filter(record => !!record),
+        filteredInfo: startOrEnd
+      })
     })
   }
 
-  handleEndOpenChange = (status) => {
-    this.setState({
-      filterDatepickerShown: status
-    })
-  }
+  handleEndOpenChange = (status) => this.setState({ filterDatepickerShown: status })
 
   onRangeTimeChange = (value, dateString) => {
     this.setState({
@@ -639,9 +654,42 @@ export class Manager extends React.Component {
   }
 
   handleStreamChange = (pagination, filters, sorter) => {
+    const { filteredInfo } = this.state
+
+    let filterValue = {}
+    if (filteredInfo !== null) {
+      if (filteredInfo) {
+        if (filters.status && filters.streamType) {
+          if (filters.status.length === 0 && filters.streamType.length === 0) {
+            return
+          } else {
+            this.onSearch('', '', false)()
+            if (filteredInfo.status && filteredInfo.streamType) {
+              if (filteredInfo.status.length !== 0 && filters.streamType.length !== 0) {
+                filterValue = {status: [], streamType: filters.streamType}
+              } else if (filteredInfo.streamType.length !== 0 && filters.status.length !== 0) {
+                filterValue = {status: filters.status, streamType: []}
+              } else {
+                filterValue = filters
+              }
+            } else {
+              filterValue = filters
+            }
+          }
+        } else {
+          filterValue = filters
+        }
+      } else {
+        filterValue = filters
+      }
+    } else {
+      filterValue = filters
+    }
+
     this.setState({
-      filteredInfo: filters,
-      sortedInfo: sorter
+      filteredInfo: filterValue,
+      sortedInfo: sorter,
+      paginationInfo: pagination
     })
   }
 
@@ -651,38 +699,31 @@ export class Manager extends React.Component {
     const reg = new RegExp(this.state[value], 'gi')
 
     this.setState({
-      [visible]: false,
-      currentStreams: this.state.originStreams.map((record) => {
-        const match = String(record[columnName]).match(reg)
-        if (!match) {
-          return null
-        }
-        return {
-          ...record,
-          [`${columnName}Origin`]: record[columnName],
-          [columnName]: (
-            <span>
-              {String(record[columnName]).split(reg).map((text, i) => (
-                i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
-              ))}
-            </span>
-          )
-        }
-      }).filter(record => !!record)
-    })
-  }
-
-  onRangeIdSearch = (columnName, startText, endText, visible) => () => {
-    this.setState({
-      [visible]: false,
-      currentStreams: this.state.originStreams.map((record) => {
-        const match = record[columnName]
-        if ((match < parseInt(this.state[startText])) || (match > parseInt(this.state[endText]))) {
-          return null
-        }
-        return record
-      }).filter(record => !!record),
-      filteredInfo: this.state[startText] || this.state[endText] ? {id: [0]} : {id: []}
+      filteredInfo: {status: [], streamType: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        valueText: value,
+        visibleBool: visible,
+        currentStreams: this.state.originStreams.map((record) => {
+          const match = String(record[columnName]).match(reg)
+          if (!match) {
+            return null
+          }
+          return {
+            ...record,
+            [`${columnName}Origin`]: record[columnName],
+            [columnName]: (
+              <span>
+                {String(record[columnName]).split(reg).map((text, i) => (
+                  i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
+                ))}
+              </span>
+            )
+          }
+        }).filter(record => !!record)
+      })
     })
   }
 
@@ -704,39 +745,7 @@ export class Manager extends React.Component {
       dataIndex: 'id',
       key: 'id',
       sorter: (a, b) => a.id - b.id,
-      sortOrder: sortedInfo.columnKey === 'id' && sortedInfo.order,
-      filteredValue: filteredInfo.id,
-      filterDropdown: (
-        <div className="custom-filter-dropdown custom-filter-dropdown-ps">
-          <Form>
-            <Row>
-              <Col span={9}>
-                <Input
-                  ref={ele => { this.searchInput = ele }}
-                  placeholder="Start ID"
-                  onChange={this.onInputChange('searchStartIdText')}
-                />
-              </Col>
-              <Col span={1}>
-                <p className="ant-form-split">-</p>
-              </Col>
-              <Col span={9}>
-                <Input
-                  placeholder="End ID"
-                  onChange={this.onInputChange('searchEndIdText')}
-                />
-              </Col>
-              <Col span={5} className="text-align-center">
-                <Button type="primary" onClick={this.onRangeIdSearch('id', 'searchStartIdText', 'searchEndIdText', 'filterDropdownVisibleId')}>Search</Button>
-              </Col>
-            </Row>
-          </Form>
-        </div>
-      ),
-      filterDropdownVisible: this.state.filterDropdownVisibleId,
-      onFilterDropdownVisibleChange: visible => this.setState({
-        filterDropdownVisibleId: visible
-      }, () => this.searchInput.focus())
+      sortOrder: sortedInfo.columnKey === 'id' && sortedInfo.order
     }, {
       title: 'Project',
       dataIndex: 'projectName',
@@ -926,7 +935,7 @@ export class Manager extends React.Component {
         }
       },
       sortOrder: sortedInfo.columnKey === 'startedTime' && sortedInfo.order,
-      filteredValue: filteredInfo.startedTime,
+      // filteredValue: filteredInfo.startedTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -958,7 +967,7 @@ export class Manager extends React.Component {
         }
       },
       sortOrder: sortedInfo.columnKey === 'stoppedTime' && sortedInfo.order,
-      filteredValue: filteredInfo.stoppedTime,
+      // filteredValue: filteredInfo.stoppedTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -1165,9 +1174,6 @@ export class Manager extends React.Component {
     const pagination = {
       defaultPageSize: 10,
       showSizeChanger: true,
-      onShowSizeChange: (current, pageSize) => {
-        console.log('Current: ', current, '; PageSize: ', pageSize)
-      },
       onChange: (current) => {
         console.log('Current: ', current)
       }

@@ -46,12 +46,11 @@ export function loadDatabases (resolve) {
   }
 }
 
-export function databasesLoaded (databases, resolve) {
+export function databasesLoaded (databases) {
   return {
     type: LOAD_DATABASES_SUCCESS,
     payload: {
-      databases,
-      resolve
+      databases
     }
   }
 }

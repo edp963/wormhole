@@ -82,12 +82,11 @@ export function loadAdminAllFlows (resolve) {
   }
 }
 
-export function adminAllFlowsLoaded (flows, resolve) {
+export function adminAllFlowsLoaded (flows) {
   return {
     type: LOAD_ADMIN_ALL_FLOWS_SUCCESS,
     payload: {
-      flows,
-      resolve
+      flows
     }
   }
 }
@@ -102,12 +101,11 @@ export function loadUserAllFlows (projectId, resolve) {
   }
 }
 
-export function userAllFlowsLoaded (flows, resolve) {
+export function userAllFlowsLoaded (flows) {
   return {
     type: LOAD_USER_ALL_FLOWS_SUCCESS,
     payload: {
-      flows,
-      resolve
+      flows
     }
   }
 }
@@ -122,12 +120,11 @@ export function loadAdminSingleFlow (projectId, resolve) {
   }
 }
 
-export function adminSingleFlowLoaded (flow, resolve) {
+export function adminSingleFlowLoaded (flow) {
   return {
     type: LOAD_ADMIN_SINGLE_FLOW_SUCCESS,
     payload: {
-      flow,
-      resolve
+      flow
     }
   }
 }
