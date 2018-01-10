@@ -58,17 +58,14 @@ export function userReducer (state = initialState, { type, payload }) {
     case LOAD_ADMIN_ALL_USERS:
       return state.set('error', false)
     case LOAD_ADMIN_ALL_USERS_SUCCESS:
-      payload.resolve()
       return state.set('users', payload.users)
     case LOAD_USER_USERS:
       return state.set('error', false)
     case LOAD_USER_USERS_SUCCESS:
-      payload.resolve()
       return state.set('users', payload.users)
     case LOAD_SELECT_USERS:
       return state.set('error', false)
     case LOAD_SELECT_USERS_SUCCESS:
-      payload.resolve(payload.users)
       return state.set('users', payload.users)
     case ADD_USER:
       return state

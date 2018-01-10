@@ -30,9 +30,6 @@ import Button from 'antd/lib/button'
 import Icon from 'antd/lib/icon'
 import Dropdown from 'antd/lib/dropdown'
 import Menu from 'antd/lib/menu'
-import Form from 'antd/lib/form'
-import Row from 'antd/lib/row'
-import Col from 'antd/lib/col'
 import Input from 'antd/lib/input'
 import Tooltip from 'antd/lib/tooltip'
 import Modal from 'antd/lib/modal'
@@ -71,9 +68,6 @@ export class Flow extends React.Component {
       filteredInfo: null,
       sortedInfo: null,
 
-      searchStartIdText: '',
-      searchEndIdText: '',
-      filterDropdownVisibleId: false,
       searchTextFlowProject: '',
       filterDropdownVisibleFlowProject: false,
       searchTextSourceNs: '',
@@ -81,6 +75,10 @@ export class Flow extends React.Component {
       searchTextSinkNs: '',
       filterDropdownVisibleSinkNs: false,
       filterDatepickerShown: false,
+      searchTextStreamId: '',
+      filterDropdownVisibleStreamId: false,
+      searchTextStreamType: '',
+      filterDropdownVisibleStreamType: false,
       startTimeText: '',
       endTimeText: '',
       startedStartTimeText: '',
@@ -88,7 +86,16 @@ export class Flow extends React.Component {
       filterDropdownVisibleStartedTime: false,
       stoppedStartTimeText: '',
       stoppedEndTimeText: '',
-      filterDropdownVisibleStoppedTime: false
+      filterDropdownVisibleStoppedTime: false,
+
+      columnNameText: '',
+      valueText: '',
+      visibleBool: false,
+      startTimeTextState: '',
+      endTimeTextState: '',
+      paginationInfo: null,
+      startTextState: '',
+      endTextState: ''
     }
   }
 
@@ -128,9 +135,7 @@ export class Flow extends React.Component {
         ? this.props.onLoadAdminSingleFlow(this.props.projectIdGeted, () => { this.flowRefreshState() })
         : this.props.onLoadAdminAllFlows(() => { this.flowRefreshState() })
     } else if (localStorage.getItem('loginRoleType') === 'user') {
-      this.props.onLoadUserAllFlows(this.props.projectIdGeted, () => {
-        this.flowRefreshState()
-      })
+      this.props.onLoadUserAllFlows(this.props.projectIdGeted, () => { this.flowRefreshState() })
     }
   }
 
@@ -139,6 +144,23 @@ export class Flow extends React.Component {
       refreshFlowLoading: false,
       refreshFlowText: 'Refresh'
     })
+
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { paginationInfo, filteredInfo, sortedInfo } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+    // const { startTextState, endTextState } = this.state
+
+    if (columnNameText !== '') {
+      if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      } else {
+        this.handleFlowChange(paginationInfo, filteredInfo, sortedInfo)
+        this.onSearch(columnNameText, valueText, visibleBool)()
+        // if (columnNameText === 'id') {
+        //   this.onRangeIdSearch(columnNameText, startTextState, endTextState, visibleBool)()
+        // }
+      }
+    }
   }
 
   onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
@@ -151,15 +173,19 @@ export class Flow extends React.Component {
     if (selectedRowKeys.length > 0) {
       let menuAction = ''
       let menuMsg = ''
-      if (e.key === 'menuStart') {
-        menuAction = 'start'
-        menuMsg = '启动'
-      } else if (e.key === 'menuStop') {
-        menuAction = 'stop'
-        menuMsg = '停止'
-      } else if (e.key === 'menuDelete') {
-        menuAction = 'delete'
-        menuMsg = '删除'
+      switch (e.key) {
+        case 'menuStart':
+          menuAction = 'start'
+          menuMsg = '启动'
+          break
+        case 'menuStop':
+          menuAction = 'stop'
+          menuMsg = '停止'
+          break
+        case 'menuDelete':
+          menuAction = 'delete'
+          menuMsg = '删除'
+          break
       }
 
       const requestValue = {
@@ -212,12 +238,16 @@ export class Flow extends React.Component {
     }
 
     let singleMsg = ''
-    if (action === 'start') {
-      singleMsg = '启动'
-    } else if (action === 'stop') {
-      singleMsg = '停止'
-    } else if (action === 'delete') {
-      singleMsg = '删除'
+    switch (action) {
+      case 'start':
+        singleMsg = '启动'
+        break
+      case 'stop':
+        singleMsg = '停止'
+        break
+      case 'delete':
+        singleMsg = '删除'
+        break
     }
 
     this.props.onOperateUserFlow(requestValue, (result) => {
@@ -227,11 +257,9 @@ export class Flow extends React.Component {
         if (result.msg.indexOf('failed') > -1) {
           message.error(`Flow ID ${result.id} ${singleMsg}失败！`, 3)
         } else {
-          if (action === 'renew') {
-            message.success('生效！', 3)
-          } else {
-            message.success(`${singleMsg}成功！`, 3)
-          }
+          action === 'renew'
+            ? message.success('生效！', 3)
+            : message.success(`${singleMsg}成功！`, 3)
         }
       }
     }, (result) => {
@@ -239,31 +267,58 @@ export class Flow extends React.Component {
     })
   }
 
-  // start
   onShowFlowStart = (record, action) => (e) => this.singleOpreateFlow(record, action)
 
-  // stop
   stopFlowBtn = (record, action) => (e) => this.singleOpreateFlow(record, action)
 
-  // renew
   updateFlow = (record, action) => (e) => this.singleOpreateFlow(record, action)
 
-  // delete
   onSingleDeleteFlow = (record, action) => (e) => this.singleOpreateFlow(record, action)
 
-  // backfill
   onShowBackfill =(record) => (e) => {
     this.showTimeModal()
     this.setState({ flowIdTemp: record.id })
   }
 
-  // copy
   onCopyFlow = (record) => (e) => this.props.onShowCopyFlow(record)
 
   handleFlowChange = (pagination, filters, sorter) => {
+    const { filteredInfo } = this.state
+
+    let filterValue = {}
+    if (filteredInfo !== null) {
+      if (filteredInfo) {
+        if (filters.status && filters.streamStatus) {
+          if (filters.status.length === 0 && filters.streamStatus.length === 0) {
+            return
+          } else {
+            this.onSearch('', '', false)()
+            if (filteredInfo.status && filteredInfo.streamStatus) {
+              if (filteredInfo.status.length !== 0 && filters.streamStatus.length !== 0) {
+                filterValue = {status: [], streamStatus: filters.streamStatus}
+              } else if (filteredInfo.streamStatus.length !== 0 && filters.status.length !== 0) {
+                filterValue = {status: filters.status, streamStatus: []}
+              } else {
+                filterValue = filters
+              }
+            } else {
+              filterValue = filters
+            }
+          }
+        } else {
+          filterValue = filters
+        }
+      } else {
+        filterValue = filters
+      }
+    } else {
+      filterValue = filters
+    }
+
     this.setState({
-      filteredInfo: filters,
-      sortedInfo: sorter
+      filteredInfo: filterValue,
+      sortedInfo: sorter,
+      paginationInfo: pagination
     })
   }
 
@@ -273,24 +328,31 @@ export class Flow extends React.Component {
     const reg = new RegExp(this.state[value], 'gi')
 
     this.setState({
-      [visible]: false,
-      currentFlows: this.state.originFlows.map((record) => {
-        const match = String(record[columnName]).match(reg)
-        if (!match) {
-          return null
-        }
-        return {
-          ...record,
-          [`${columnName}Origin`]: record[columnName],
-          [columnName]: (
-            <span>
-              {String(record[columnName]).split(reg).map((text, i) => (
-                i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
-              ))}
-            </span>
-          )
-        }
-      }).filter(record => !!record)
+      filteredInfo: { status: [], streamStatus: [] }
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        valueText: value,
+        visibleBool: visible,
+        currentFlows: this.state.originFlows.map((record) => {
+          const match = String(record[columnName]).match(reg)
+          if (!match) {
+            return null
+          }
+          return {
+            ...record,
+            [`${columnName}Origin`]: record[columnName],
+            [columnName]: (
+              <span>
+                {String(record[columnName]).split(reg).map((text, i) => (
+                  i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
+                ))}
+              </span>
+            )
+          }
+        }).filter(record => !!record)
+      })
     })
   }
 
@@ -410,52 +472,61 @@ export class Flow extends React.Component {
     const endSearchTime = (new Date(this.state.endTimeText)).getTime()
 
     let startOrEnd = ''
-    if (columnName === 'createTime') {
-      startOrEnd = startSearchTime || endSearchTime ? { createTime: [0] } : { createTime: [] }
-    } else if (columnName === 'updateTime') {
-      startOrEnd = startSearchTime || endSearchTime ? { updateTime: [0] } : { updateTime: [] }
+    if (columnName === 'startedTime') {
+      startOrEnd = startSearchTime || endSearchTime ? { startedTime: [0] } : { startedTime: [] }
+    } else if (columnName === 'stoppedTime') {
+      startOrEnd = startSearchTime || endSearchTime ? { stoppedTime: [0] } : { stoppedTime: [] }
     }
 
     this.setState({
-      [visible]: false,
-      currentFlows: this.state.originFlows.map((record) => {
-        const match = (new Date(record[columnName])).getTime()
-        if ((match < startSearchTime) || (match > endSearchTime)) {
-          return null
-        }
-        return {
-          ...record,
-          [columnName]: (
-            this.state.startTimeText === ''
-              ? <span>{record[columnName]}</span>
-              : <span className="highlight">{record[columnName]}</span>
-          )
-        }
-      }).filter(record => !!record),
-      filteredInfo: startOrEnd
+      filteredInfo: { status: [], streamStatus: [] }
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        startTimeTextState: startTimeText,
+        endTimeTextState: endTimeText,
+        visibleBool: visible,
+        currentFlows: this.state.originFlows.map((record) => {
+          const match = (new Date(record[columnName])).getTime()
+          if ((match < startSearchTime) || (match > endSearchTime)) {
+            return null
+          }
+          return {
+            ...record,
+            [columnName]: (
+              this.state.startTimeText === ''
+                ? <span>{record[columnName]}</span>
+                : <span className="highlight">{record[columnName]}</span>
+            )
+          }
+        }).filter(record => !!record),
+        filteredInfo: startOrEnd
+      })
     })
   }
 
-  onRangeIdSearch = (columnName, startText, endText, visible) => () => {
-    let infoFinal = ''
-    if (columnName === 'id') {
-      infoFinal = this.state[startText] || this.state[endText] ? { id: [0] } : { id: [] }
-    } else if (columnName === 'streamId') {
-      infoFinal = this.state[startText] || this.state[endText] ? { streamId: [0] } : { streamId: [] }
-    }
-
-    this.setState({
-      [visible]: false,
-      currentFlows: this.state.originFlows.map((record) => {
-        const match = record[columnName]
-        if ((match < parseInt(this.state[startText])) || (match > parseInt(this.state[endText]))) {
-          return null
-        }
-        return record
-      }).filter(record => !!record),
-      filteredInfo: infoFinal
-    })
-  }
+  // onRangeIdSearch = (columnName, startText, endText, visible) => () => {
+  //   this.setState({
+  //     filteredInfo: {roleType: []}
+  //   }, () => {
+  //     this.setState({
+  //       [visible]: false,
+  //       columnNameText: columnName,
+  //       startTextState: startText,
+  //       endTextState: endText,
+  //       visibleBool: visible,
+  //       currentFlows: this.state.originFlows.map((record) => {
+  //         const match = record[columnName]
+  //         if ((match < parseInt(this.state[startText])) || (match > parseInt(this.state[endText]))) {
+  //           return null
+  //         }
+  //         return record
+  //       }).filter(record => !!record),
+  //       filteredInfo: this.state[startText] || this.state[endText] ? { streamId: [0] } : { streamId: [] }
+  //     })
+  //   })
+  // }
 
   handleVisibleChangeFlow = (record) => (visible) => {
     if (visible) {
@@ -476,11 +547,7 @@ export class Flow extends React.Component {
           roleType: roleType
         }
 
-        this.props.onLoadFlowDetail(requestValue, (result) => {
-          this.setState({
-            showFlowDetails: result
-          })
-        })
+        this.props.onLoadFlowDetail(requestValue, (result) => this.setState({ showFlowDetails: result }))
       })
     }
   }
@@ -498,39 +565,7 @@ export class Flow extends React.Component {
       dataIndex: 'id',
       key: 'id',
       sorter: (a, b) => a.id - b.id,
-      sortOrder: sortedInfo.columnKey === 'id' && sortedInfo.order,
-      filteredValue: filteredInfo.id,
-      filterDropdown: (
-        <div className="custom-filter-dropdown custom-filter-dropdown-ps">
-          <Form>
-            <Row>
-              <Col span={9}>
-                <Input
-                  ref={ele => { this.searchInput = ele }}
-                  placeholder="Start ID"
-                  onChange={this.onInputChange('searchStartIdText')}
-                />
-              </Col>
-              <Col span={1}>
-                <p className="ant-form-split">-</p>
-              </Col>
-              <Col span={9}>
-                <Input
-                  placeholder="End ID"
-                  onChange={this.onInputChange('searchEndIdText')}
-                />
-              </Col>
-              <Col span={5} className="text-align-center">
-                <Button type="primary" onClick={this.onRangeIdSearch('id', 'searchStartIdText', 'searchEndIdText', 'filterDropdownVisibleId')}>Search</Button>
-              </Col>
-            </Row>
-          </Form>
-        </div>
-      ),
-      filterDropdownVisible: this.state.filterDropdownVisibleId,
-      onFilterDropdownVisibleChange: visible => this.setState({
-        filterDropdownVisibleId: visible
-      }, () => this.searchInput.focus())
+      sortOrder: sortedInfo.columnKey === 'id' && sortedInfo.order
     }, {
       title: 'Project',
       dataIndex: 'projectName',
@@ -644,24 +679,34 @@ export class Flow extends React.Component {
       onFilter: (value, record) => record.status.includes(value),
       render: (text, record) => {
         let flowStatusColor = ''
-        if (record.status === 'new') {
-          flowStatusColor = 'orange'
-        } else if (record.status === 'starting') {
-          flowStatusColor = 'green'
-        } else if (record.status === 'running') {
-          flowStatusColor = 'green-inverse'
-        } else if (record.status === 'updating') {
-          flowStatusColor = 'cyan'
-        } else if (record.status === 'stopping') {
-          flowStatusColor = 'gray'
-        } else if (record.status === 'stopped') {
-          flowStatusColor = '#545252'
-        } else if (record.status === 'suspending') {
-          flowStatusColor = 'red'
-        } else if (record.status === 'failed') {
-          flowStatusColor = 'red-inverse'
-        } else if (record.status === 'deleting') {
-          flowStatusColor = 'purple'
+        switch (record.status) {
+          case 'new':
+            flowStatusColor = 'orange'
+            break
+          case 'starting':
+            flowStatusColor = 'green'
+            break
+          case 'running':
+            flowStatusColor = 'green-inverse'
+            break
+          case 'updating':
+            flowStatusColor = 'cyan'
+            break
+          case 'stopping':
+            flowStatusColor = 'gray'
+            break
+          case 'stopped':
+            flowStatusColor = '#545252'
+            break
+          case 'suspending':
+            flowStatusColor = 'red'
+            break
+          case 'failed':
+            flowStatusColor = 'red-inverse'
+            break
+          case 'deleting':
+            flowStatusColor = 'purple'
+            break
         }
         return (
           <div>
@@ -688,18 +733,25 @@ export class Flow extends React.Component {
       onFilter: (value, record) => record.streamStatus.includes(value),
       render: (text, record) => {
         let streamStatusColor = ''
-        if (record.streamStatus === 'new') {
-          streamStatusColor = 'orange'
-        } else if (record.streamStatus === 'starting') {
-          streamStatusColor = 'green'
-        } else if (record.streamStatus === 'running') {
-          streamStatusColor = 'green-inverse'
-        } else if (record.streamStatus === 'stopping') {
-          streamStatusColor = 'gray'
-        } else if (record.streamStatus === 'stopped') {
-          streamStatusColor = '#545252'
-        } else if (record.streamStatus === 'failed') {
-          streamStatusColor = 'red-inverse'
+        switch (record.streamStatus) {
+          case 'new':
+            streamStatusColor = 'orange'
+            break
+          case 'starting':
+            streamStatusColor = 'green'
+            break
+          case 'running':
+            streamStatusColor = 'green-inverse'
+            break
+          case 'stopping':
+            streamStatusColor = 'gray'
+            break
+          case 'stopped':
+            streamStatusColor = '#545252'
+            break
+          case 'failed':
+            streamStatusColor = 'red-inverse'
+            break
         }
         return (
           <div>
@@ -713,32 +765,18 @@ export class Flow extends React.Component {
       key: 'streamId',
       sorter: (a, b) => a.streamId - b.streamId,
       sortOrder: sortedInfo.columnKey === 'streamId' && sortedInfo.order,
-      filteredValue: filteredInfo.streamId,
       filterDropdown: (
-        <div className="custom-filter-dropdown custom-filter-dropdown-ps">
-          <Form>
-            <Row>
-              <Col span={9}>
-                <Input
-                  ref={ele => { this.searchInput = ele }}
-                  placeholder="Start ID"
-                  onChange={this.onInputChange('searchStartStreamIdText')}
-                />
-              </Col>
-              <Col span={1}>
-                <p className="ant-form-split">-</p>
-              </Col>
-              <Col span={9}>
-                <Input
-                  placeholder="End ID"
-                  onChange={this.onInputChange('searchEndStreamIdText')}
-                />
-              </Col>
-              <Col span={5} className="text-align-center">
-                <Button type="primary" onClick={this.onRangeIdSearch('streamId', 'searchStartStreamIdText', 'searchEndStreamIdText', 'filterDropdownVisibleStreamId')}>Search</Button>
-              </Col>
-            </Row>
-          </Form>
+        <div className="custom-filter-dropdown">
+          <Input
+            ref={ele => { this.searchInput = ele }}
+            placeholder="Stream Id"
+            value={this.state.searchTextStreamId}
+            onChange={this.onInputChange('searchTextStreamId')}
+            onPressEnter={this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')}
+          />
+          <Button
+            type="primary"
+            onClick={this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')}>Search</Button>
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleStreamId,
@@ -752,13 +790,24 @@ export class Flow extends React.Component {
       // className: 'text-align-center',
       sorter: (a, b) => a.streamType < b.streamType ? -1 : 1,
       sortOrder: sortedInfo.columnKey === 'streamType' && sortedInfo.order,
-      filters: [
-        {text: 'default', value: 'default'},
-        {text: 'hdfslog', value: 'hdfslog'},
-        {text: 'routing', value: 'routing'}
-      ],
-      filteredValue: filteredInfo.streamType,
-      onFilter: (value, record) => record.streamType.includes(value)
+      filterDropdown: (
+        <div className="custom-filter-dropdown">
+          <Input
+            ref={ele => { this.searchInput = ele }}
+            placeholder="Stream Type"
+            value={this.state.searchTextStreamType}
+            onChange={this.onInputChange('searchTextStreamType')}
+            onPressEnter={this.onSearch('streamType', 'searchTextStreamType', 'filterDropdownVisibleStreamType')}
+          />
+          <Button
+            type="primary"
+            onClick={this.onSearch('streamType', 'searchTextStreamType', 'filterDropdownVisibleStreamType')}>Search</Button>
+        </div>
+      ),
+      filterDropdownVisible: this.state.filterDropdownVisibleStreamType,
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleStreamType: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Start Time',
       dataIndex: 'startedTime',
@@ -771,7 +820,7 @@ export class Flow extends React.Component {
         }
       },
       sortOrder: sortedInfo.columnKey === 'startedTime' && sortedInfo.order,
-      filteredValue: filteredInfo.startedTime,
+      // filteredValue: filteredInfo.startedTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -796,14 +845,14 @@ export class Flow extends React.Component {
       dataIndex: 'stoppedTime',
       key: 'stoppedTime',
       sorter: (a, b) => {
-        if (typeof a.updateTime === 'object') {
+        if (typeof a.stoppedTime === 'object') {
           return a.stoppedTimeOrigin < b.stoppedTimeOrigin ? -1 : 1
         } else {
           return a.stoppedTime < b.stoppedTime ? -1 : 1
         }
       },
       sortOrder: sortedInfo.columnKey === 'stoppedTime' && sortedInfo.order,
-      filteredValue: filteredInfo.stoppedTime,
+      // filteredValue: filteredInfo.stoppedTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -974,19 +1023,8 @@ export class Flow extends React.Component {
     }]
 
     const pagination = {
-      defaultPageSize: this.state.pageSize,
       showSizeChanger: true,
-      onShowSizeChange: (current, pageSize) => {
-        this.setState({
-          pageIndex: current,
-          pageSize: pageSize
-        })
-      },
-      onChange: (current) => {
-        this.setState({
-          pageIndex: current
-        })
-      }
+      onChange: (current) => this.setState({ pageIndex: current })
     }
 
     const { selectedRowKeys } = this.state

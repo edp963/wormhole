@@ -48,7 +48,8 @@ import api from '../../utils/api'
 export function* getUdfs ({ payload }) {
   try {
     const result = yield call(request, api.udf)
-    yield put(udfsLoaded(result.payload, payload.resolve))
+    yield put(udfsLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(getError(err))
   }
@@ -83,7 +84,8 @@ export function* getSingleUdf ({ payload }) {
 
   try {
     const result = yield call(request, urlTemp)
-    yield put(singleUdfLoaded(result.payload, payload.resolve))
+    yield put(singleUdfLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(getError(err))
   }
