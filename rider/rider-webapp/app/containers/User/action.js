@@ -37,6 +37,9 @@ import {
   EDIT_ROLETYPE_USERPSW_ERROR,
   LOAD_USER_DETAIL,
   LOAD_USER_DETAIL_SUCCESS,
+  DELETE_USER,
+  DELETE_USER_SUCCESS,
+  DELETE_USER_ERROR,
 
   LOAD_PROJECT_USER_ALL,
   LOAD_PROJECT_USER_ALL_SUCCESS,
@@ -236,6 +239,35 @@ export function userDetailLoaded (result, resolve) {
     payload: {
       result,
       resolve
+    }
+  }
+}
+
+export function deleteUser (userId, resolve, reject) {
+  return {
+    type: DELETE_USER,
+    payload: {
+      userId,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function userDeleted (result) {
+  return {
+    type: DELETE_USER_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function userDeletedError (result) {
+  return {
+    type: DELETE_USER_ERROR,
+    payload: {
+      result
     }
   }
 }

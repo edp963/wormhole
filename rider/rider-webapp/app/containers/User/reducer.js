@@ -39,6 +39,9 @@ import {
   EDIT_ROLETYPE_USERPSW_ERROR,
   LOAD_USER_DETAIL,
   LOAD_USER_DETAIL_SUCCESS,
+  DELETE_USER,
+  DELETE_USER_SUCCESS,
+  DELETE_USER_ERROR,
 
   LOAD_PROJECT_USER_ALL,
   LOAD_PROJECT_USER_ALL_SUCCESS,
@@ -116,6 +119,12 @@ export function userReducer (state = initialState, { type, payload }) {
     case LOAD_PROJECT_USER_ALL_SUCCESS:
       payload.resolve(payload.result)
       return state.set('users', payload.result)
+    case DELETE_USER:
+      return state
+    case DELETE_USER_SUCCESS:
+      return state.set('users', users.filter(g => g.id !== payload.result))
+    case DELETE_USER_ERROR:
+      return state
     case GET_ERROR:
       return state.set('error', payload.error)
     default:

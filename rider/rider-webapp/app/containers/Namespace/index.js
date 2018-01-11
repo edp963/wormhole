@@ -26,8 +26,8 @@ import CodeMirror from 'codemirror'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
 
-import { jsonParse, fieldTypeAlter, renameAlter, genDefaultSchemaTable, umsSysFieldSelected, umsSysFieldCanceled,
-  getRepeatFieldIndex, genSchema } from './umsFunction'
+import { jsonParse, fieldTypeAlter, renameAlter, genDefaultSchemaTable, umsSysFieldSelected,
+  umsSysFieldCanceled, getRepeatFieldIndex, genSchema } from './umsFunction'
 import { isJSONNotEmpty } from '../../utils/util'
 
 import NamespaceForm from './NamespaceForm'
@@ -39,6 +39,7 @@ import Input from 'antd/lib/input'
 import Button from 'antd/lib/button'
 import Tooltip from 'antd/lib/tooltip'
 import Popover from 'antd/lib/popover'
+import Popconfirm from 'antd/lib/popconfirm'
 import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import DatePicker from 'antd/lib/date-picker'
@@ -48,7 +49,7 @@ import { loadDatabasesInstance } from '../../containers/DataBase/action'
 import { selectDbUrlValue } from '../../containers/DataBase/selectors'
 import { loadSingleInstance } from '../../containers/Instance/action'
 import { loadAdminAllNamespaces, loadUserNamespaces, loadSelectNamespaces, loadNamespaceDatabase,
-  addNamespace, editNamespace, loadTableNameExist, loadSingleNamespace, setSchema, querySchemaConfig } from './action'
+  addNamespace, editNamespace, loadTableNameExist, loadSingleNamespace, setSchema, querySchemaConfig, deleteNs } from './action'
 import { selectNamespaces, selectError, selectModalLoading, selectTableNameExited } from './selectors'
 
 export class Namespace extends React.PureComponent {
@@ -1308,6 +1309,14 @@ export class Namespace extends React.PureComponent {
     })
   }
 
+  deleteNsBtn = (record) => (e) => {
+    this.props.onDeleteNs(record.id, () => {
+      message.success('删除成功！', 3)
+    }, (result) => {
+      message.error(`删除失败： ${result}`, 5)
+    })
+  }
+
   render () {
     const { refreshNsLoading, refreshNsText, showNsDetail } = this.state
 
@@ -1593,6 +1602,17 @@ export class Namespace extends React.PureComponent {
                 <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditNamespace(record)}></Button>
               </Tooltip>
               {umsAction}
+              {
+                localStorage.getItem('loginRoleType') === 'admin'
+                  ? (
+                    <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteNsBtn(record)}>
+                      <Tooltip title="删除">
+                        <Button icon="delete" shape="circle" type="ghost"></Button>
+                      </Tooltip>
+                    </Popconfirm>
+                  )
+                  : ''
+              }
             </span>
           )
         }
@@ -1807,7 +1827,8 @@ Namespace.propTypes = {
   onLoadSingleNamespace: React.PropTypes.func,
   onLoadSingleInstance: React.PropTypes.func,
   onSetSchema: React.PropTypes.func,
-  onQuerySchemaConfig: React.PropTypes.func
+  onQuerySchemaConfig: React.PropTypes.func,
+  onDeleteNs: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1823,7 +1844,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadSingleNamespace: (namespaceId, resolve) => dispatch(loadSingleNamespace(namespaceId, resolve)),
     onLoadSingleInstance: (namespaceId, resolve) => dispatch(loadSingleInstance(namespaceId, resolve)),
     onSetSchema: (namespaceId, value, type, resolve) => dispatch(setSchema(namespaceId, value, type, resolve)),
-    onQuerySchemaConfig: (namespaceId, value, type, resolve) => dispatch(querySchemaConfig(namespaceId, value, type, resolve))
+    onQuerySchemaConfig: (namespaceId, value, type, resolve) => dispatch(querySchemaConfig(namespaceId, value, type, resolve)),
+    onDeleteNs: (namespaceId, resolve, reject) => dispatch(deleteNs(namespaceId, resolve, reject))
   }
 }
 

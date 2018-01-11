@@ -42,6 +42,9 @@ import {
   SET_SCHEMA_SUCCESS,
   QUERY_SCHEMA_CONFIG,
   QUERY_SCHEMA_CONFIG_SUCCESS,
+  DELETE_NS,
+  DELETE_NS_SUCCESS,
+  DELETE_NS_ERROR,
   GET_ERROR
 } from './constants'
 
@@ -270,6 +273,35 @@ export function schemaConfigQueried (result, resolve) {
     payload: {
       result,
       resolve
+    }
+  }
+}
+
+export function deleteNs (namespaceId, resolve, reject) {
+  return {
+    type: DELETE_NS,
+    payload: {
+      namespaceId,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function nsDeleted (result) {
+  return {
+    type: DELETE_NS_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function nsDeletedError (result) {
+  return {
+    type: DELETE_NS_ERROR,
+    payload: {
+      result
     }
   }
 }

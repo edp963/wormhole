@@ -32,10 +32,12 @@ import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import Input from 'antd/lib/input'
 import Popover from 'antd/lib/popover'
+import Popconfirm from 'antd/lib/popconfirm'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { loadDatabases, addDatabase, editDatabase, loadDatabasesInstance, loadNameExist, loadSingleDatabase } from './action'
+import { loadDatabases, addDatabase, editDatabase, loadDatabasesInstance,
+  loadNameExist, loadSingleDatabase, deleteDB } from './action'
 import { selectDatabases, selectError, selectModalLoading, selectDatabaseNameExited, selectDbUrlValue } from './selectors'
 
 export class DataBase extends React.PureComponent {
@@ -556,6 +558,14 @@ export class DataBase extends React.PureComponent {
     }
   }
 
+  deleteDBBtn = (record) => (e) => {
+    this.props.onDeleteDB(record.id, () => {
+      message.success('删除成功！', 3)
+    }, (result) => {
+      message.error(`删除失败： ${result}`, 5)
+    })
+  }
+
   render () {
     const { refreshDbLoading, refreshDbText, showDBDetails } = this.state
 
@@ -774,6 +784,17 @@ export class DataBase extends React.PureComponent {
             <Tooltip title="修改">
               <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditDB(record)} />
             </Tooltip>
+            {
+              localStorage.getItem('loginRoleType') === 'admin'
+                ? (
+                  <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteDBBtn(record)}>
+                    <Tooltip title="删除">
+                      <Button icon="delete" shape="circle" type="ghost"></Button>
+                    </Tooltip>
+                  </Popconfirm>
+                )
+                : ''
+            }
           </span>
         )
       }
@@ -859,7 +880,8 @@ DataBase.propTypes = {
   onEditDatabase: React.PropTypes.func,
   onLoadDatabasesInstance: React.PropTypes.func,
   onLoadNameExist: React.PropTypes.func,
-  onLoadSingleDatabase: React.PropTypes.func
+  onLoadSingleDatabase: React.PropTypes.func,
+  onDeleteDB: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -869,7 +891,8 @@ export function mapDispatchToProps (dispatch) {
     onEditDatabase: (database, resolve, reject) => dispatch(editDatabase(database, resolve, reject)),
     onLoadDatabasesInstance: (value, resolve) => dispatch(loadDatabasesInstance(value, resolve)),
     onLoadNameExist: (value, resolve, reject) => dispatch(loadNameExist(value, resolve, reject)),
-    onLoadSingleDatabase: (databaseId, resolve) => dispatch(loadSingleDatabase(databaseId, resolve))
+    onLoadSingleDatabase: (databaseId, resolve) => dispatch(loadSingleDatabase(databaseId, resolve)),
+    onDeleteDB: (databaseId, resolve, reject) => dispatch(deleteDB(databaseId, resolve, reject))
   }
 }
 

@@ -29,13 +29,15 @@ import Button from 'antd/lib/button'
 import Icon from 'antd/lib/icon'
 import Tooltip from 'antd/lib/tooltip'
 import Popover from 'antd/lib/popover'
+import Popconfirm from 'antd/lib/popconfirm'
 import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import Input from 'antd/lib/input'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { loadAdminAllUsers, loadUserUsers, addUser, editUser, loadEmailInputValue, loadSelectUsers, loadUserDetail } from './action'
+import { loadAdminAllUsers, loadUserUsers, addUser, editUser, loadEmailInputValue,
+  loadSelectUsers, loadUserDetail, deleteUser } from './action'
 import { selectUsers, selectError, selectModalLoading, selectEmailExited } from './selectors'
 
 export class User extends React.PureComponent {
@@ -365,6 +367,14 @@ export class User extends React.PureComponent {
     }
   }
 
+  deleteUserBtn = (record) => (e) => {
+    this.props.onDeleteUser(record.id, () => {
+      message.success('删除成功！', 3)
+    }, (result) => {
+      message.error(`删除失败： ${result}`, 5)
+    })
+  }
+
   render () {
     const { refreshUserLoading, refreshUserText, formType, showUserDetail } = this.state
 
@@ -540,6 +550,18 @@ export class User extends React.PureComponent {
             <Tooltip title="修改密码">
               <Button icon="key" shape="circle" type="ghost" onClick={this.showDetailPsw(record)} />
             </Tooltip>
+
+            {
+              localStorage.getItem('loginRoleType') === 'admin'
+                ? (
+                  <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteUserBtn(record)}>
+                    <Tooltip title="删除">
+                      <Button icon="delete" shape="circle" type="ghost"></Button>
+                    </Tooltip>
+                  </Popconfirm>
+                )
+                : ''
+            }
           </span>
         )
       }]
@@ -646,7 +668,8 @@ User.propTypes = {
   onAddUser: React.PropTypes.func,
   onEditUser: React.PropTypes.func,
   onLoadEmailInputValue: React.PropTypes.func,
-  onLoadUserDetail: React.PropTypes.func
+  onLoadUserDetail: React.PropTypes.func,
+  onDeleteUser: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -657,7 +680,8 @@ export function mapDispatchToProps (dispatch) {
     onAddUser: (user, resolve) => dispatch(addUser(user, resolve)),
     onEditUser: (user, resolve) => dispatch(editUser(user, resolve)),
     onLoadEmailInputValue: (value, resolve, reject) => dispatch(loadEmailInputValue(value, resolve, reject)),
-    onLoadUserDetail: (userId, resolve) => dispatch(loadUserDetail(userId, resolve))
+    onLoadUserDetail: (userId, resolve) => dispatch(loadUserDetail(userId, resolve)),
+    onDeleteUser: (userId, resolve, reject) => dispatch(deleteUser(userId, resolve, reject))
   }
 }
 
