@@ -33,6 +33,9 @@ import {
   LOAD_SINGLE_INSTANCE_SUCCESS,
   EDIT_INSTANCE,
   EDIT_INSTANCE_SUCCESS,
+  DELETE_INSTANCE,
+  DELETE_INSTANCE_SUCCESS,
+  DELETE_INSTANCE_ERROR,
   GET_ERROR
 } from './constants'
 
@@ -172,6 +175,35 @@ export function instanceExitErrorLoaded (result, reject) {
     payload: {
       result,
       reject
+    }
+  }
+}
+
+export function deleteInstace (instanceId, resolve, reject) {
+  return {
+    type: DELETE_INSTANCE,
+    payload: {
+      instanceId,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function instanceDeleted (result) {
+  return {
+    type: DELETE_INSTANCE_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function instanceDeletedError (result) {
+  return {
+    type: DELETE_INSTANCE_ERROR,
+    payload: {
+      result
     }
   }
 }

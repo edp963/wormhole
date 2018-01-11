@@ -37,6 +37,7 @@ import {
   EDIT_UDF_ERROR,
   DELETE_UDF,
   DELETE_UDF_SUCCESS,
+  DELETE_UDF_ERROR,
   GET_ERROR
 } from './constants'
 
@@ -97,8 +98,9 @@ export function udfReducer (state = initialState, { type, payload }) {
     case DELETE_UDF:
       return state
     case DELETE_UDF_SUCCESS:
-      payload.resolve()
-      return state.set('udfs', udfs.filter(g => g.udfs.id !== payload.result))
+      return state.set('udfs', udfs.filter(g => g.id !== payload.result))
+    case DELETE_UDF_ERROR:
+      return state
     case GET_ERROR:
       return state.set('error', payload.error)
     default:

@@ -33,6 +33,7 @@ import {
   EDIT_UDF_ERROR,
   DELETE_UDF,
   DELETE_UDF_SUCCESS,
+  DELETE_UDF_ERROR,
   LOAD_UDF_DETAIL,
   LOAD_UDF_DETAIL_SUCCESS,
   GET_ERROR
@@ -177,22 +178,31 @@ export function udfEditedError (result, reject) {
   }
 }
 
-export function deleteUdf (values, resolve) {
+export function deleteUdf (udfId, resolve, reject) {
   return {
     type: DELETE_UDF,
     payload: {
-      values,
-      resolve
+      udfId,
+      resolve,
+      reject
     }
   }
 }
 
-export function udfDeleted (result, resolve) {
+export function udfDeleted (result) {
   return {
     type: DELETE_UDF_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
+    }
+  }
+}
+
+export function udfDeletedError (result) {
+  return {
+    type: DELETE_UDF_ERROR,
+    payload: {
+      result
     }
   }
 }

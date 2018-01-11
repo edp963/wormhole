@@ -32,10 +32,12 @@ import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import Input from 'antd/lib/input'
 import Popover from 'antd/lib/popover'
+import Popconfirm from 'antd/lib/popconfirm'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { loadInstances, addInstance, loadInstanceInputValue, loadInstanceExit, loadSingleInstance, editInstance } from './action'
+import { loadInstances, addInstance, loadInstanceInputValue, loadInstanceExit,
+  loadSingleInstance, editInstance, deleteInstace } from './action'
 import { selectInstances, selectError, selectModalLoading, selectConnectUrlExisted, selectInstanceExisted } from './selectors'
 
 export class Instance extends React.PureComponent {
@@ -386,13 +388,17 @@ export class Instance extends React.PureComponent {
       this.setState({
         visible
       }, () => {
-        this.props.onLoadSingleInstance(record.id, (result) => {
-          this.setState({
-            showInstanceDetails: result
-          })
-        })
+        this.props.onLoadSingleInstance(record.id, (result) => this.setState({ showInstanceDetails: result }))
       })
     }
+  }
+
+  deleteInstanceBtn = (record) => (e) => {
+    this.props.onDeleteInstace(record.id, () => {
+      message.success('删除成功！', 3)
+    }, (result) => {
+      message.error(`删除失败： ${result}`, 5)
+    })
   }
 
   render () {
@@ -574,6 +580,18 @@ export class Instance extends React.PureComponent {
             <Tooltip title="修改">
               <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditInstance(record)} />
             </Tooltip>
+
+            {
+              localStorage.getItem('loginRoleType') === 'admin'
+                ? (
+                  <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteInstanceBtn(record)}>
+                    <Tooltip title="删除">
+                      <Button icon="delete" shape="circle" type="ghost"></Button>
+                    </Tooltip>
+                  </Popconfirm>
+                )
+                : ''
+            }
           </span>
         )
       }
@@ -654,7 +672,8 @@ Instance.propTypes = {
   onLoadInstanceInputValue: React.PropTypes.func,
   onLoadInstanceExit: React.PropTypes.func,
   onLoadSingleInstance: React.PropTypes.func,
-  onEditInstance: React.PropTypes.func
+  onEditInstance: React.PropTypes.func,
+  onDeleteInstace: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -664,7 +683,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadInstanceInputValue: (value, resolve, reject) => dispatch(loadInstanceInputValue(value, resolve, reject)),
     onLoadInstanceExit: (value, resolve, reject) => dispatch(loadInstanceExit(value, resolve, reject)),
     onLoadSingleInstance: (instanceId, resolve) => dispatch(loadSingleInstance(instanceId, resolve)),
-    onEditInstance: (value, resolve) => dispatch(editInstance(value, resolve))
+    onEditInstance: (value, resolve) => dispatch(editInstance(value, resolve)),
+    onDeleteInstace: (value, resolve, reject) => dispatch(deleteInstace(value, resolve, reject))
   }
 }
 
