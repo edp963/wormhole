@@ -29,14 +29,14 @@ import Button from 'antd/lib/button'
 import Icon from 'antd/lib/icon'
 import Tooltip from 'antd/lib/tooltip'
 import Popover from 'antd/lib/popover'
-// import Popconfirm from 'antd/lib/popconfirm'
+import Popconfirm from 'antd/lib/popconfirm'
 import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import Input from 'antd/lib/input'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { loadUdfs, loadSingleUdf, addUdf, loadUdfDetail, editUdf } from './action'
+import { loadUdfs, loadSingleUdf, addUdf, loadUdfDetail, editUdf, deleteUdf } from './action'
 import { selectUdfs, selectError, selectModalLoading } from './selectors'
 
 export class Udf extends React.PureComponent {
@@ -93,7 +93,6 @@ export class Udf extends React.PureComponent {
   componentWillReceiveProps (props) {
     if (props.udfs) {
       const originUdfs = props.udfs.map(s => {
-        s.pubic = s.pubic ? 'true' : 'false'
         s.key = s.id
         s.visible = false
         return s
@@ -193,20 +192,6 @@ export class Udf extends React.PureComponent {
     })
   }
 
-  // deleteSingleUdf = (record) => (e) => {
-  //   const requestParam = {
-  //     id: record.id,
-  //     functionName: record.functionName,
-  //     fullClassName: record.fullClassName,
-  //     jarName: record.jarName,
-  //     createTime: record.createTime,
-  //     createBy: record.createBy
-  //   }
-  //   this.props.onDeleteUdf(requestParam, () => {
-  //
-  //   })
-  // }
-
   // 点击遮罩层或右上角叉或取消按钮的回调
   hideForm = () => this.setState({ formVisible: false })
 
@@ -238,6 +223,14 @@ export class Udf extends React.PureComponent {
           })
         }
       }
+    })
+  }
+
+  deleteUdfBtn = (record) => (e) => {
+    this.props.onDeleteUdf(record.id, () => {
+      message.success('删除成功！', 3)
+    }, (result) => {
+      message.error(`删除失败： ${result}`, 5)
     })
   }
 
@@ -480,7 +473,8 @@ export class Udf extends React.PureComponent {
         {text: 'false', value: 'false'}
       ],
       filteredValue: filteredInfo.pubic,
-      onFilter: (value, record) => record.pubic.includes(value)
+      onFilter: (value, record) => record.pubic.includes(value),
+      render: (text, record) => text ? 'true' : 'false'
     }, {
       title: 'Create Time',
       dataIndex: 'createTime',
@@ -573,11 +567,17 @@ export class Udf extends React.PureComponent {
           <Tooltip title="修改">
             <Button icon="edit" shape="circle" type="ghost" onClick={this.onShowEditUdf(record)}></Button>
           </Tooltip>
-          {/* <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteSingleUdf(record)}>
-            <Tooltip title="删除">
-              <Button icon="delete" shape="circle" type="ghost"></Button>
-            </Tooltip>
-          </Popconfirm> */}
+          {
+            localStorage.getItem('loginRoleType') === 'admin'
+              ? (
+                <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteUdfBtn(record)}>
+                  <Tooltip title="删除">
+                    <Button icon="delete" shape="circle" type="ghost"></Button>
+                  </Tooltip>
+                </Popconfirm>
+              )
+              : ''
+          }
         </span>
       )
     }]
@@ -677,8 +677,8 @@ Udf.propTypes = {
   onLoadSingleUdf: React.PropTypes.func,
   onAddUdf: React.PropTypes.func,
   onLoadUdfDetail: React.PropTypes.func,
-  onEditUdf: React.PropTypes.func
-  // onDeleteUdf: React.PropTypes.func
+  onEditUdf: React.PropTypes.func,
+  onDeleteUdf: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -687,8 +687,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
     onAddUdf: (values, resolve, reject) => dispatch(addUdf(values, resolve, reject)),
     onLoadUdfDetail: (udfId, resolve) => dispatch(loadUdfDetail(udfId, resolve)),
-    onEditUdf: (values, resolve, reject) => dispatch(editUdf(values, resolve, reject))
-    // onDeleteUdf: (values, resolve) => dispatch(deleteUdf(values, resolve))
+    onEditUdf: (values, resolve, reject) => dispatch(editUdf(values, resolve, reject)),
+    onDeleteUdf: (udfId, resolve, reject) => dispatch(deleteUdf(udfId, resolve, reject))
   }
 }
 
