@@ -39,6 +39,7 @@ import {
   udfEdited,
   udfEditedError,
   udfDeleted,
+  udfDeletedError,
   getError
 } from './action'
 
@@ -173,10 +174,15 @@ export function* deleteUdf ({ payload }) {
   try {
     const result = yield call(request, {
       method: 'delete',
-      url: api.udf,
-      data: payload.values
+      url: `${api.udf}/${payload.udfId}`
     })
-    yield put(udfDeleted(result, payload.resolve))
+    if (result.code === 412) {
+      yield put(udfDeletedError(result.msg))
+      payload.reject(result.msg)
+    } else if (result.code === 200) {
+      yield put(udfDeleted(payload.udfId))
+      payload.resolve()
+    }
   } catch (err) {
     yield put(getError(err))
   }

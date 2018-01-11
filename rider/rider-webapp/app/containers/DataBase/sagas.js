@@ -26,7 +26,8 @@ import {
   LOAD_SINGLE_DATABASE,
   EDIT_DATABASE,
   LOAD_DATABASES_INSTANCE,
-  LOAD_NAME_EXIST
+  LOAD_NAME_EXIST,
+  DELETE_DB
 } from './constants'
 import {
   databasesLoaded,
@@ -38,6 +39,8 @@ import {
   databasesInstanceLoaded,
   nameExistLoaded,
   nameExistErrorLoaded,
+  dBDeleted,
+  dBDeletedError,
   getError
 } from './action'
 
@@ -143,11 +146,34 @@ export function* getNameWatcher () {
   yield fork(throttle, 500, LOAD_NAME_EXIST, getName)
 }
 
+export function* deleteDBAction ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'delete',
+      url: `${api.database}/${payload.databaseId}`
+    })
+    if (result.code === 412) {
+      yield put(dBDeletedError(result.msg))
+      payload.reject(result.msg)
+    } else if (result.code === 200) {
+      yield put(dBDeleted(payload.databaseId))
+      payload.resolve()
+    }
+  } catch (err) {
+    yield put(getError(err))
+  }
+}
+
+export function* deleteDBActionWatcher () {
+  yield fork(takeEvery, DELETE_DB, deleteDBAction)
+}
+
 export default [
   getDatabasesWatcher,
   addDatabaseWatcher,
   singleDatabaseWatcher,
   editDatabaseWatcher,
   getDatabaseInstanceWatcher,
-  getNameWatcher
+  getNameWatcher,
+  deleteDBActionWatcher
 ]

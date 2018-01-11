@@ -44,6 +44,9 @@ import {
   SET_SCHEMA_SUCCESS,
   QUERY_SCHEMA_CONFIG,
   QUERY_SCHEMA_CONFIG_SUCCESS,
+  DELETE_NS,
+  DELETE_NS_SUCCESS,
+  DELETE_NS_ERROR,
   GET_ERROR
 } from './constants'
 
@@ -125,6 +128,12 @@ export function namespaceReducer (state = initialState, { type, payload }) {
       return state.set('error', false)
     case QUERY_SCHEMA_CONFIG_SUCCESS:
       payload.resolve(payload.result)
+      return state
+    case DELETE_NS:
+      return state
+    case DELETE_NS_SUCCESS:
+      return state.set('namespaces', namespaces.filter(g => g.id !== payload.result))
+    case DELETE_NS_ERROR:
       return state
     case GET_ERROR:
       return state.set('error', payload.error)
