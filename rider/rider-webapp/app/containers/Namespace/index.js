@@ -717,6 +717,9 @@ export class Namespace extends React.PureComponent {
                   selectAllState: tempState
                 })
               })
+            } else {
+              this.makeCodeMirrorInstance()
+              this.cmSample.doc.setValue('')
             }
           })
         }
@@ -736,37 +739,56 @@ export class Namespace extends React.PureComponent {
 
       this.props.onQuerySchemaConfig(record.id, 'sink', (result) => {
         if (result) {
-          this.cmSinkSample.doc.setValue(result.jsonSample)
+          if (result.jsonSample === null && result.jsonParseArray === null &&
+            result.schema === null && result.schemaTable === null
+          ) {
+            this.makeSinkCodeMirrorInstance()
+            this.cmSinkSample.doc.setValue('')
+          } else {
+            this.cmSinkSample.doc.setValue(result.jsonSample)
 
-          setTimeout(() => this.onSinkJsonFormat(), 205)
+            setTimeout(() => this.onSinkJsonFormat(), 205)
 
-          const tableData = result.schemaTable.map((s, index) => {
-            s.key = index
-            return s
-          })
-          this.setState({
-            sinkTableDataSource: tableData,
-            sinkJsonSampleValue: result.jsonSample
-          }, () => {
-            const tempArr = this.state.sinkTableDataSource.filter(s => !s.forbidden)
-            const selectedArr = tempArr.filter(s => s.selected)
-
-            let tempState = ''
-            if (selectedArr.length !== 0) {
-              tempState = selectedArr.length === tempArr.length ? 'all' : 'part'
-            } else {
-              tempState = 'not'
-            }
-            this.setState({
-              sinkSelectAllState: tempState
+            const tableData = result.schemaTable.map((s, index) => {
+              s.key = index
+              return s
             })
-          })
+            this.setState({
+              sinkTableDataSource: tableData,
+              sinkJsonSampleValue: result.jsonSample
+            }, () => {
+              const tempArr = this.state.sinkTableDataSource.filter(s => !s.forbidden)
+              const selectedArr = tempArr.filter(s => s.selected)
+
+              let tempState = ''
+              if (selectedArr.length !== 0) {
+                tempState = selectedArr.length === tempArr.length ? 'all' : 'part'
+              } else {
+                tempState = 'not'
+              }
+              this.setState({
+                sinkSelectAllState: tempState
+              })
+            })
+          }
+        } else {
+          this.makeSinkCodeMirrorInstance()
+          this.cmSinkSample.doc.setValue('')
         }
       })
     })
   }
 
-  initChangeUmsType = (value) => this.setState({ umsTypeSeleted: value })
+  initChangeUmsType = (value) => {
+    this.setState({
+      umsTypeSeleted: value
+    }, () => {
+      if (this.state.umsTypeSeleted === 'ums_extension') {
+        this.makeCodeMirrorInstance()
+        this.cmSample.doc.setValue(this.cmSample.doc.getValue() || '')
+      }
+    })
+  }
 
   makeCodeMirrorInstance = () => {
     if (!this.cmSample) {
@@ -942,7 +964,10 @@ export class Namespace extends React.PureComponent {
     const { sinkTableDataSource, nsIdValue, sinkJsonSampleValue } = this.state
 
     if (!this.cmSinkSample.doc.getValue()) {
-      message.error('JSON Sample 不为空！', 3)
+      this.props.onSetSchema(nsIdValue, {}, 'sink', () => {
+        message.success('Sink Schema 配置成功！', 3)
+        this.hideSinkSchemaModal()
+      })
     } else {
       if (sinkTableDataSource.length === 0) {
         message.error('Table 不为空！', 3)
@@ -991,6 +1016,13 @@ export class Namespace extends React.PureComponent {
       const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, 1)
       this.cmSinkSample.doc.setValue(cmJsonvalueFormat || '')
     }
+  }
+
+  onSinkNoJson = () => {
+    this.cmSinkSample.doc.setValue('')
+    this.setState({
+      sinkTableDataSource: []
+    })
   }
 
   onChangeUmsJsonToTable = () => {
@@ -1770,10 +1802,16 @@ export class Namespace extends React.PureComponent {
             <Button
               key="jsonFormat"
               type="primary"
-              className="sink-json-format"
               onClick={this.onSinkJsonFormat}
             >
-              JSON 格式化
+              JSON格式化
+            </Button>,
+            <Button
+              key="noJson"
+              type="primary"
+              onClick={this.onSinkNoJson}
+            >
+              JSON置空
             </Button>,
             <Button
               key="cancel"
