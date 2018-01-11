@@ -455,7 +455,7 @@ object BatchflowMainProcess extends EdpLogging {
                                      uuid: String) = {
     val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(sinkNamespace)
     val (resultSchemaMap: Map[String, (Int, UmsFieldType, Boolean)], originalSchemaMap, renameMap) = SparkUtils.getSchemaMap(sinkFields, sinkProcessConfig.sinkOutput)
-    logInfo(uuid + ",schemaMap:" + resultSchemaMap)
+    logInfo(uuid + s",$sinkNamespace schemaMap:" + resultSchemaMap)
     val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
 
     val dataSysType = UmsDataSystem.dataSystem(sinkNamespace.split("\\.")(0))
