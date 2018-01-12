@@ -80,7 +80,8 @@ export class DataBase extends React.PureComponent {
       paginationInfo: null,
 
       editDatabaseData: {},
-      databaseDSType: ''
+      databaseDSType: '',
+      queryConnUrl: ''
     }
   }
 
@@ -147,6 +148,7 @@ export class DataBase extends React.PureComponent {
       this.setState({
         formVisible: true,
         formType: 'edit',
+        queryConnUrl: result.connUrl,
         editDatabaseData: {
           active: result.active,
           createBy: result.createBy,
@@ -154,7 +156,8 @@ export class DataBase extends React.PureComponent {
           id: result.id,
           nsInstanceId: result.nsInstanceId,
           updateBy: result.updateBy,
-          updateTime: result.updateTime
+          updateTime: result.updateTime,
+          connectionUrl: result.connUrl
         }
       }, () => {
         if (result.nsSys === 'oracle' || result.nsSys === 'mysql' || result.nsSys === 'postgresql' || result.nsSys === 'mongodb') {
@@ -179,8 +182,6 @@ export class DataBase extends React.PureComponent {
         this.dBForm.setFieldsValue({
           dataBaseDataSystem: result.nsSys,
           instance: result.nsInstance,
-          connectionUrl: result.connUrl,
-          // permission: result.permission,
           nsDatabase: result.nsDatabase,
           config: conFinal,
           description: result.desc,
@@ -254,7 +255,6 @@ export class DataBase extends React.PureComponent {
                 nsDatabase: values.nsDatabase,
                 desc: values.description === undefined ? '' : values.description,
                 nsInstanceId: Number(values.instance),
-                // permission: values.permission,
                 user: values.userRequired,
                 pwd: values.passwordRequired,
                 partitions: 0,
@@ -297,7 +297,6 @@ export class DataBase extends React.PureComponent {
               nsDatabase: values.nsDatabase,
               desc: values.description === undefined ? '' : values.description,
               nsInstanceId: Number(values.instance),
-              // permission: values.dataBaseDataSystem === 'kafka' ? 'ReadWrite' : values.permission,
               user: valuesUser,
               pwd: valuesPwd,
               partitions: values.dataBaseDataSystem === 'kafka' ? Number(values.partition) : 0,
@@ -322,7 +321,6 @@ export class DataBase extends React.PureComponent {
               })
             } else {
               const editValues = {
-                // permission: values.permission,
                 user: values.userRequired,
                 pwd: values.passwordRequired,
                 config: this.onConfigValue(values.config),
@@ -353,7 +351,6 @@ export class DataBase extends React.PureComponent {
             }
 
             const editValues = {
-              // permission: values.dataBaseDataSystem === 'kafka' ? 'ReadWrite' : values.permission,
               user: editUser,
               pwd: editPwd,
               config: this.onConfigValue(values.config),
@@ -449,8 +446,6 @@ export class DataBase extends React.PureComponent {
       this.dBForm.setFieldsValue({
         connectionUrl: '',
         instance: undefined,
-        // permission: '',
-        // nsDatabase: value === 'hbase' ? 'default' : '',
         nsDatabase: '',
         user: '',
         password: '',
@@ -470,7 +465,6 @@ export class DataBase extends React.PureComponent {
     const formValues = this.dBForm.getFieldsValue()
     const requestValues = {
       nsInstanceId: Number(formValues.instance),
-      // permission: formValues.permission,
       nsDatabaseName: value,
       dsType: formValues.dataBaseDataSystem
     }
@@ -860,6 +854,7 @@ export class DataBase extends React.PureComponent {
         >
           <DBForm
             databaseFormType={this.state.formType}
+            queryConnUrl={this.state.queryConnUrl}
             onInitDatabaseUrlValue={this.onInitDatabaseUrlValue}
             databaseUrlValue={this.props.dbUrlValue}
             onInitDatabaseInputValue={this.onInitDatabaseInputValue}
