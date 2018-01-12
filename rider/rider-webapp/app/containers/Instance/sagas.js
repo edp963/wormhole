@@ -103,7 +103,8 @@ export function* editInstance ({ payload }) {
       url: api.instance,
       data: payload.value
     })
-    yield put(instanceEdited(result.payload, payload.resolve))
+    yield put(instanceEdited(result.payload))
+    payload.resolve()
   } catch (err) {
     yield put(getError(err))
   }
