@@ -41,7 +41,8 @@ export class NamespaceForm extends React.Component {
     this.state = {
       namespaceDSValue: '',
       instanceIdGeted: 0,
-      currentNamespaceUrlValue: []
+      currentNamespaceUrlValue: [],
+      connUrlText: ''
     }
   }
 
@@ -71,7 +72,8 @@ export class NamespaceForm extends React.Component {
     })
     this.props.cleanNsTableData()
     this.setState({
-      instanceIdGeted: selUrl.id
+      instanceIdGeted: selUrl.id,
+      connUrlText: selUrl.connUrl
     }, () => {
       // 通过 instance id 显示 database 下拉框
       this.props.onInitDatabaseSelectValue(this.state.instanceIdGeted)
@@ -92,8 +94,8 @@ export class NamespaceForm extends React.Component {
 
   render () {
     const { getFieldDecorator } = this.props.form
-    const { currentNamespaceUrlValue, namespaceDSValue } = this.state
-    const { namespaceFormType, databaseSelectValue } = this.props
+    const { currentNamespaceUrlValue, namespaceDSValue, connUrlText } = this.state
+    const { namespaceFormType, databaseSelectValue, queryConnUrl } = this.props
     const { namespaceTableSource, onDeleteTable, onAddTable, deleteTableClass, addTableClass, addTableClassTable, addBtnDisabled } = this.props
 
     const itemStyle = {
@@ -117,10 +119,13 @@ export class NamespaceForm extends React.Component {
 
     // edit 时，不能修改部分元素
     let disabledOrNot = false
+    let urlText = ''
     if (namespaceFormType === 'add') {
       disabledOrNot = false
+      urlText = connUrlText
     } else if (namespaceFormType === 'edit') {
       disabledOrNot = true
+      urlText = queryConnUrl
     }
 
     const instanceOptions = currentNamespaceUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.nsInstance}</Option>))
@@ -279,13 +284,8 @@ export class NamespaceForm extends React.Component {
 
           <Col span={24}>
             <FormItem label="Connection URL" {...itemStyle}>
-              {getFieldDecorator('connectionUrl', {
-                rules: [{
-                  required: true,
-                  message: '请选择 Connection URL'
-                }]
-              })(
-                <Input placeholder="Connection URL" disabled />
+              {getFieldDecorator('connectionUrl', {})(
+                <strong>{urlText}</strong>
               )}
             </FormItem>
           </Col>
@@ -381,6 +381,7 @@ NamespaceForm.propTypes = {
   deleteTableClass: React.PropTypes.string,
   addTableClass: React.PropTypes.string,
   addTableClassTable: React.PropTypes.string,
+  queryConnUrl: React.PropTypes.string,
   addBtnDisabled: React.PropTypes.bool,
   onInitNamespaceUrlValue: React.PropTypes.func,
   onInitDatabaseSelectValue: React.PropTypes.func,

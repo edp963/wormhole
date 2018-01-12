@@ -615,6 +615,7 @@ export class Workbench extends React.Component {
         resolve(resultFinal)
 
         this.workbenchJobForm.setFieldsValue({
+          protocol: resultFinal.sourceConfig,
           jobName: resultFinal.name,
           type: resultFinal.sourceType,
           eventStartTs: resultFinal.eventTsStart === '' ? null : Moment(formatString(resultFinal.eventTsStart)),
