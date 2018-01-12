@@ -97,10 +97,23 @@ export class Udf extends React.PureComponent {
         s.visible = false
         return s
       })
-      this.setState({
-        originUdfs: originUdfs.slice(),
-        currentudfs: originUdfs.slice()
-      })
+      this.setState({ originUdfs: originUdfs.slice() })
+      this.state.columnNameText === ''
+        ? this.setState({ currentudfs: originUdfs.slice() })
+        : this.searchOperater()
+    }
+  }
+
+  searchOperater () {
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
     }
   }
 
@@ -128,18 +141,8 @@ export class Udf extends React.PureComponent {
       refreshUdfLoading: false,
       refreshUdfText: 'Refresh'
     })
-    const { columnNameText, valueText, visibleBool } = this.state
     const { paginationInfo, filteredInfo, sortedInfo } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
-
     this.handleUdfChange(paginationInfo, filteredInfo, sortedInfo)
-    if (columnNameText !== '') {
-      this.onSearch(columnNameText, valueText, visibleBool)()
-
-      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
-        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
-      }
-    }
   }
 
   showAddUdf = () => {
@@ -473,7 +476,10 @@ export class Udf extends React.PureComponent {
         {text: 'false', value: 'false'}
       ],
       filteredValue: filteredInfo.pubic,
-      onFilter: (value, record) => record.pubic.includes(value),
+      onFilter: (value, record) => {
+        const recordPubic = record.pubic ? 'true' : 'false'
+        return recordPubic.includes(value)
+      },
       render: (text, record) => text ? 'true' : 'false'
     }, {
       title: 'Create Time',

@@ -131,9 +131,24 @@ export class Manager extends React.Component {
       })
 
       this.setState({
-        originStreams: originStreams.slice(),
-        currentStreams: originStreams.slice()
+        originStreams: originStreams.slice()
       })
+      this.state.columnNameText === ''
+        ? this.setState({ currentStreams: originStreams.slice() })
+        : this.searchOperater()
+    }
+  }
+
+  searchOperater () {
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
     }
   }
 

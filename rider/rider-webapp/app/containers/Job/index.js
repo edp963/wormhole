@@ -107,10 +107,24 @@ export class Job extends React.Component {
         responseOriginJob.key = responseOriginJob.id
         return responseOriginJob
       })
-      this.setState({
-        originJobs: originJobs.slice(),
-        currentJobs: originJobs.slice()
-      })
+      this.setState({ originJobs: originJobs.slice() })
+
+      this.state.columnNameText === ''
+        ? this.setState({ currentJobs: originJobs.slice() })
+        : this.searchOperater()
+    }
+  }
+
+  searchOperater () {
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
     }
   }
 

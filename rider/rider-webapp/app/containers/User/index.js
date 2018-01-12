@@ -98,10 +98,23 @@ export class User extends React.PureComponent {
         s.visible = false
         return s
       })
-      this.setState({
-        originUsers: originUsers.slice(),
-        currentUsers: originUsers.slice()
-      })
+      this.setState({ originUsers: originUsers.slice() })
+      this.state.columnNameText === ''
+        ? this.setState({ currentUsers: originUsers.slice() })
+        : this.searchOperater()
+    }
+  }
+
+  searchOperater () {
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
     }
   }
 
@@ -129,18 +142,9 @@ export class User extends React.PureComponent {
       refreshUserText: 'Refresh'
     })
 
-    const { columnNameText, valueText, visibleBool } = this.state
     const { paginationInfo, filteredInfo, sortedInfo } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
-
     this.handleUserChange(paginationInfo, filteredInfo, sortedInfo)
-    if (columnNameText !== '') {
-      this.onSearch(columnNameText, valueText, visibleBool)()
-
-      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
-        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
-      }
-    }
+    this.searchOperater()
   }
 
   showAdd = () => {
