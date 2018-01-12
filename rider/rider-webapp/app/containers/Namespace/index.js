@@ -122,7 +122,9 @@ export class Namespace extends React.PureComponent {
       sinkSchemaModalVisible: false,
       sinkTableDataSource: [],
       sinkJsonSampleValue: [],
-      sinkSelectAllState: 'all'
+      sinkSelectAllState: 'all',
+
+      queryConnUrl: ''
     }
   }
 
@@ -309,10 +311,7 @@ export class Namespace extends React.PureComponent {
           resolve(result)
           this.namespaceForm.setFieldsValue({
             dataBaseDataSystem: result.nsSys,
-            nsDatabase: [
-              result.nsDatabase
-              // result.permission
-            ],
+            nsDatabase: [result.nsDatabase],
             instance: result.nsInstance,
             nsSingleTableName: result.nsTable,
             nsSingleKeyValue: result.keys
@@ -328,7 +327,6 @@ export class Namespace extends React.PureComponent {
               nsVersion: result.nsVersion,
               nsDbpar: result.nsDbpar,
               nsTablepar: result.nsTablepar,
-              // permission: result.permission,
               nsDatabaseId: result.nsDatabaseId,
               nsInstanceId: result.nsInstanceId,
               active: result.active,
@@ -345,8 +343,8 @@ export class Namespace extends React.PureComponent {
       })
         .then((result) => {
           this.props.onLoadSingleInstance(result.nsInstanceId, (result) => {
-            this.namespaceForm.setFieldsValue({
-              connectionUrl: result.connUrl
+            this.setState({
+              queryConnUrl: result.connUrl
             })
           })
         })
@@ -433,7 +431,8 @@ export class Namespace extends React.PureComponent {
   }
 
   onModalOk = () => {
-    const { namespaceTableSource, databaseSelectValue, namespaceFormType, exitedNsTableValue, editNamespaceData, nsInstanceVal } = this.state
+    const { namespaceTableSource, databaseSelectValue, namespaceFormType, exitedNsTableValue,
+      editNamespaceData, queryConnUrl, nsInstanceVal } = this.state
     const { tableNameExited } = this.props
 
     this.namespaceForm.validateFieldsAndScroll((err, values) => {
@@ -511,7 +510,7 @@ export class Namespace extends React.PureComponent {
             const editKeysValue = values.nsSingleKeyValue
 
             if (values.dataBaseDataSystem === 'redis') {
-              this.props.onEditNamespace(Object.assign({}, editNamespaceData, { keys: '' }), () => {
+              this.props.onEditNamespace(Object.assign({}, editNamespaceData, queryConnUrl, { keys: '' }), () => {
                 this.hideForm()
                 message.success('Namespace 修改成功！', 3)
               })
@@ -519,7 +518,7 @@ export class Namespace extends React.PureComponent {
               if (editKeysValue === '') {
                 this.nsErrorMsg('请填写 Key')
               } else {
-                this.props.onEditNamespace(Object.assign({}, editNamespaceData, { keys: editKeysValue }), () => {
+                this.props.onEditNamespace(Object.assign({}, editNamespaceData, queryConnUrl, { keys: editKeysValue }), () => {
                   this.hideForm()
                   message.success('Namespace 修改成功！', 3)
                 })
@@ -1725,6 +1724,7 @@ export class Namespace extends React.PureComponent {
         >
           <NamespaceForm
             namespaceFormType={this.state.namespaceFormType}
+            queryConnUrl={this.state.queryConnUrl}
             onInitNamespaceUrlValue={this.onInitNamespaceUrlValue}
             namespaceUrlValue={this.props.dbUrlValue}
             onInitDatabaseSelectValue={this.onInitDatabaseSelectValue}
