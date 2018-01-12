@@ -166,11 +166,11 @@ export class WorkbenchJobForm extends React.Component {
             </Col>
             <Col span={15} className="value-font-style">
               <div className="ant-form-item-control" style={{font: 'bolder'}}>
-                <p>
+                <strong>
                   {Object.prototype.toString.call(formValues[key]) === '[object Array]'
                     ? formValues[key].join('.')
                     : formValues[key]}
-                </p>
+                </strong>
               </div>
             </Col>
           </Row>
@@ -539,7 +539,7 @@ export class WorkbenchJobForm extends React.Component {
               {getFieldDecorator('jobStepSourceNs', {
                 hidden: stepHiddens[1]
               })(
-                <p className="value-font-style">{jobStepSourceNs}</p>
+                <strong className="value-font-style">{jobStepSourceNs}</strong>
               )}
             </FormItem>
           </Col>
@@ -548,7 +548,7 @@ export class WorkbenchJobForm extends React.Component {
               {getFieldDecorator('jobStepSinkNs', {
                 hidden: stepHiddens[1]
               })(
-                <p className="value-font-style">{jobStepSinkNs}</p>
+                <strong className="value-font-style">{jobStepSinkNs}</strong>
               )}
             </FormItem>
           </Col>
@@ -598,7 +598,7 @@ export class WorkbenchJobForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">{jobResultFieldsValue}</p>
+                    <strong className="value-font-style">{jobResultFieldsValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -612,7 +612,7 @@ export class WorkbenchJobForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">{jobTranTableConfirmValue}</p>
+                    <strong className="value-font-style">{jobTranTableConfirmValue}</strong>
                   </div>
                 </Col>
               </Row>
