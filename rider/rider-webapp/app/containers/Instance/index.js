@@ -87,15 +87,44 @@ export class Instance extends React.PureComponent {
     this.refreshInstance()
   }
 
-  componentWillUpdate (props) {
+  // componentWillUpdate (props) {
+  //   console.log('props', props.instances)
+  //   if (props.instances) {
+  //     const originInstances = props.instances.map(s => {
+  //       s.key = s.id
+  //       s.visible = false
+  //       return s
+  //     })
+  //     this.state.originInstances = originInstances.slice()
+  //     this.state.currentInstances = originInstances.slice()
+  //   }
+  // }
+
+  componentWillReceiveProps (props) {
     if (props.instances) {
       const originInstances = props.instances.map(s => {
         s.key = s.id
         s.visible = false
         return s
       })
-      this.state.originInstances = originInstances.slice()
-      this.state.currentInstances = originInstances.slice()
+      this.setState({ originInstances: originInstances.slice() })
+
+      this.state.columnNameText === ''
+        ? this.setState({ currentInstances: originInstances.slice() })
+        : this.searchOperater()  // action 后仍显示table搜索后的数据
+    }
+  }
+
+  searchOperater () {
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
     }
   }
 
@@ -112,18 +141,9 @@ export class Instance extends React.PureComponent {
       refreshInstanceLoading: false,
       refreshInstanceText: 'Refresh'
     })
-    const { columnNameText, valueText, visibleBool } = this.state
     const { paginationInfo, filteredInfo, sortedInfo } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
-
     this.handleInstanceChange(paginationInfo, filteredInfo, sortedInfo)
-    if (columnNameText !== '') {
-      this.onSearch(columnNameText, valueText, visibleBool)()
-
-      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
-        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
-      }
-    }
+    this.searchOperater()
   }
 
   showAddInstance = () => {

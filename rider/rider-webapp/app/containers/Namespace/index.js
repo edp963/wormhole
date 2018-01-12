@@ -138,9 +138,24 @@ export class Namespace extends React.PureComponent {
         return s
       })
       this.setState({
-        originNamespaces: originNamespaces.slice(),
-        currentNamespaces: originNamespaces.slice()
+        originNamespaces: originNamespaces.slice()
       })
+      this.state.columnNameText === ''
+        ? this.setState({ currentNamespaces: originNamespaces.slice() })
+        : this.searchOperater()
+    }
+  }
+
+  searchOperater () {
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
     }
   }
 
@@ -168,18 +183,9 @@ export class Namespace extends React.PureComponent {
       refreshNsText: 'Refresh'
     })
 
-    const { columnNameText, valueText, visibleBool } = this.state
     const { paginationInfo, filteredInfo, sortedInfo } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
-
     this.handleNamespaceChange(paginationInfo, filteredInfo, sortedInfo)
-    if (columnNameText !== '') {
-      this.onSearch(columnNameText, valueText, visibleBool)()
-
-      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
-        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
-      }
-    }
+    this.searchOperater()
   }
 
   handleNamespaceChange = (pagination, filters, sorter) => {
