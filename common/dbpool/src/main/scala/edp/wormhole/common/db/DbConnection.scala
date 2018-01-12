@@ -55,9 +55,11 @@ object DbConnection extends Serializable {
     val tmpJdbcUrl = jdbcUrl.toLowerCase
     if (tmpJdbcUrl.indexOf("mysql") > -1) {
       println("mysql")
+      config.setConnectionTestQuery("SELECT 1")
       config.setDriverClassName("com.mysql.jdbc.Driver")
     } else if (tmpJdbcUrl.indexOf("oracle") > -1) {
       println("oracle")
+      config.setConnectionTestQuery("SELECT 1 from dual")
       config.setDriverClassName("oracle.jdbc.driver.OracleDriver")
     } else if (tmpJdbcUrl.indexOf("postgresql") > -1) {
       println("postgresql")
@@ -87,11 +89,6 @@ object DbConnection extends Serializable {
     config.setJdbcUrl(jdbcUrl)
     //    config.setMaximumPoolSize(maxPoolSize)
     config.setMinimumIdle(1)
-    // config.setConnectionTestQuery("SELECT 1")
-
-    if (tmpJdbcUrl.indexOf("oracle") > -1){
-      config.setConnectionTestQuery("SELECT 1 from dual")
-    }
 
     if(tmpJdbcUrl.indexOf("sql4es") < 0){
       config.addDataSourceProperty("cachePrepStmts", "true")
