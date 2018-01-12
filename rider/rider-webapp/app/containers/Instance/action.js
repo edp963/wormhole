@@ -107,12 +107,11 @@ export function editInstance (value, resolve) {
   }
 }
 
-export function instanceEdited (result, resolve) {
+export function instanceEdited (result) {
   return {
     type: EDIT_INSTANCE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }

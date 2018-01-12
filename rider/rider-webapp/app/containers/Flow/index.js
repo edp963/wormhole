@@ -111,14 +111,29 @@ export class Flow extends React.Component {
         return s
       })
       this.setState({
-        originFlows: originFlows.slice(),
-        currentFlows: originFlows.slice()
+        originFlows: originFlows.slice()
       })
+      this.state.columnNameText === ''
+        ? this.setState({ currentFlows: originFlows.slice() })
+        : this.searchOperater()
     }
   }
   componentWillUnmount () {
     // 频繁使用的组件，手动清除数据，避免出现闪现上一条数据
     this.props.onChuckAwayFlow()
+  }
+
+  searchOperater () {
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
+    }
   }
 
   refreshFlow = () => {
