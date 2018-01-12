@@ -95,10 +95,24 @@ export class DataBase extends React.PureComponent {
         s.visible = false
         return s
       })
-      this.setState({
-        originDatabases: originDatabases.slice(),
-        currentDatabases: originDatabases.slice()
-      })
+      this.setState({ originDatabases: originDatabases.slice() })
+
+      this.state.columnNameText === ''
+        ? this.setState({ currentDatabases: originDatabases.slice() })
+        : this.searchOperater()
+    }
+  }
+
+  searchOperater () {
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
     }
   }
 
@@ -116,18 +130,8 @@ export class DataBase extends React.PureComponent {
       refreshDbText: 'Refresh'
     })
 
-    const { columnNameText, valueText, visibleBool } = this.state
     const { paginationInfo, filteredInfo, sortedInfo } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
-
     this.handleDatabaseChange(paginationInfo, filteredInfo, sortedInfo)
-    if (columnNameText !== '') {
-      this.onSearch(columnNameText, valueText, visibleBool)()
-
-      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
-        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
-      }
-    }
   }
 
   showAddDB = () => {
