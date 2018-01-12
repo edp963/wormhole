@@ -30,7 +30,6 @@ import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.swifts.parse.{ParseSwiftsSql, SwiftsProcessConfig}
 import edp.wormhole.swifts.validity.ValidityConfig
-import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
 import edp.wormhole.ums._
 
@@ -77,7 +76,9 @@ object BatchflowDirective extends Directive {
         else Some(false)
         val dataframe_show_num: Option[Int] = if (swifts.containsKey("dataframe_show_num"))
           Some(swifts.getInteger("dataframe_show_num")) else Some(20)
-        val specialConfigMap = mutable.HashMap.empty[String, String]
+        val swiftsSpecialConfig = if(swifts.containsKey("swifts_specific_config")) swifts.getString("swifts_specific_config")
+        else ""
+
         val pushdown_connection = if (swifts.containsKey("pushdown_connection") && swifts.getString("pushdown_connection").trim.nonEmpty && swifts.getJSONArray("pushdown_connection").size > 0) swifts.getJSONArray("pushdown_connection") else null
         if (pushdown_connection != null) {
           val connectionListSize = pushdown_connection.size()
@@ -102,7 +103,7 @@ object BatchflowDirective extends Directive {
           val sqlStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(action))
           ParseSwiftsSql.parse(sqlStr, sourceNamespace, fullsinkNamespace, if (validity == null) false else true, dataType)
         } else None
-        Some(SwiftsProcessConfig(SwiftsSqlArr, validityConfig, dataframe_show, dataframe_show_num, Some(specialConfigMap.toMap)))
+        Some(SwiftsProcessConfig(SwiftsSqlArr, validityConfig, dataframe_show, dataframe_show_num, Some(swiftsSpecialConfig)))
       } else {
         None
       }

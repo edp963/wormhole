@@ -28,7 +28,7 @@ case class SwiftsProcessConfig(//projection:String,
                                validityConfig: Option[ValidityConfig],
                                datasetShow:Option[Boolean],
                                datasetShowNum:Option[Int],
-                               specialConfig:Option[Map[String,String]])
+                               specialConfig:Option[String])
 
 
 
