@@ -227,7 +227,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
               }
               else {
                 val namespace = Namespace(ns.id, ns.nsSys.trim, ns.nsInstance.trim, ns.nsDatabase.trim, ns.nsTable.trim, ns.nsVersion, ns.nsDbpar, ns.nsTablepar,
-                  ns.keys, ns.sourceSchema, None, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, currentSec, session.userId)
+                  ns.keys, ns.sourceSchema, ns.sinkSchema, ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, currentSec, session.userId)
                 onComplete(namespaceDal.update(namespace).mapTo[Int]) {
                   case Success(_) =>
                     riderLogger.info(s"user ${session.userId} update namespace success.")
