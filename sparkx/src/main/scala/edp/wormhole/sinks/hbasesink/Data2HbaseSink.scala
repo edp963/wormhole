@@ -66,7 +66,7 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
       RowkeyTool.generatePatternKey(keydatas, rowkeyConfig)
     }
 
-    def gerneratePuts(columnFamily: String, saveAsString: Boolean, versionColumn: String, filterRowkey2idTuples: Seq[(String, Long, Seq[String])]): ListBuffer[Put] = {
+    def gerneratePuts(hbaseConfig:HbaseConfig, filterRowkey2idTuples: Seq[(String, Long, Seq[String])]): ListBuffer[Put] = {
       val puts: ListBuffer[Put] = new mutable.ListBuffer[Put]
       for (tuple <- filterRowkey2idTuples) {
         try {
@@ -79,12 +79,12 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
             val (index, fieldType, _) = schemaMap(column)
             val valueString = tuple._3(index)
             if (OP.toString != column) {
-              if (saveAsString) put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), s2hbaseStringValue(fieldType, valueString, column))
-              else put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), s2hbaseValue(fieldType, valueString))
+              if (hbaseConfig.`hbase.valueType.get`) put.addColumn(Bytes.toBytes(hbaseConfig.`hbase.columnFamily.get`), Bytes.toBytes(column), s2hbaseStringValue(fieldType, valueString, column,hbaseConfig.`umsTs.valueType.get`))
+              else put.addColumn(Bytes.toBytes(hbaseConfig.`hbase.columnFamily.get`), Bytes.toBytes(column), s2hbaseValue(fieldType, valueString))
             } else {
-              if (saveAsString)
-                put.addColumn(Bytes.toBytes(columnFamily), activeColBytes, if (DELETE.toString == umsOpValue.toLowerCase) inactiveString else activeString)
-              else put.addColumn(Bytes.toBytes(columnFamily), activeColBytes, if (DELETE.toString == umsOpValue.toLowerCase) inactiveBytes else activeBytes)
+              if (hbaseConfig.`hbase.valueType.get`)
+                put.addColumn(Bytes.toBytes(hbaseConfig.`hbase.columnFamily.get`), activeColBytes, if (DELETE.toString == umsOpValue.toLowerCase) inactiveString else activeString)
+              else put.addColumn(Bytes.toBytes(hbaseConfig.`hbase.columnFamily.get`), activeColBytes, if (DELETE.toString == umsOpValue.toLowerCase) inactiveBytes else activeBytes)
             }
           }
           puts += put
@@ -129,7 +129,7 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
     }
 
     //    logInfo("before generate puts:" + filterRowkey2idTuples.size)
-    val puts = gerneratePuts(hbaseConfig.`hbase.columnFamily.get`, hbaseConfig.`hbase.valueType.get`, hbaseConfig.`hbase.version.column.get`, filterRowkey2idTuples)
+    val puts = gerneratePuts( hbaseConfig, filterRowkey2idTuples)
     //    logInfo("before put:" + puts.size)
     if (puts.nonEmpty) {
       HbaseConnection.dataPut(namespace.database + ":" + namespace.table, puts, zk._1, zk._2)
