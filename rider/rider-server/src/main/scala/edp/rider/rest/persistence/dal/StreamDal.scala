@@ -28,20 +28,24 @@ import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.StreamUtils._
-import edp.rider.spark.SparkJobClientLog
-import edp.rider.spark.SparkStatusQuery._
+import edp.wormhole.common.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
-import edp.wormhole.common.util.JsonUtils._
+
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration.Inf
 import scala.concurrent.{Await, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class StreamDal(streamTable: TableQuery[StreamTable],
                 instanceDal: InstanceDal,
                 streamInTopicDal: StreamInTopicDal,
                 streamUdfDal: RelStreamUdfDal,
                 projectTable: TableQuery[ProjectTable]) extends BaseDalImpl[StreamTable, Stream](streamTable) with RiderLogger {
+
+  def getStreamProjectMap(streamSeq: Seq[Stream]): Map[Long, String] = {
+    val projectSeq = Await.result(db.run(projectTable.filter(_.id inSet streamSeq.map(_.projectId)).result).mapTo[Seq[Project]], minTimeOut)
+    projectSeq.map(project => (project.id, project.name)).toMap
+  }
 
   def refreshStreamStatus(projectIdOpt: Option[Long] = None, streamIdOpt: Option[Long] = None, action: String = REFRESH.toString): Seq[Stream] = {
     val streamSeq = getStreamSeq(projectIdOpt, streamIdOpt)
@@ -63,9 +67,10 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     try {
       val streamSeq = refreshStreamStatus(projectIdOpt, streamIdOpt, action)
       val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
+      val projectMap = getStreamProjectMap(streamSeq)
       streamSeq.map(
         stream => {
-          StreamDetail(stream, getProjectNameByStreamName(stream.name), streamKafkaMap(stream.id), Seq[StreamTopic](), Seq[StreamUdf](), Seq[StreamZkUdf](), getDisableActions(stream.status))
+          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), Seq[StreamTopic](), Seq[StreamUdf](), Seq[StreamZkUdf](), getDisableActions(stream.status))
         }
       )
     } catch {
@@ -83,6 +88,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       val streamTopicSeq = streamInTopicDal.getStreamTopic(streamIds)
       val streamUdfSeq = streamUdfDal.getStreamUdf(streamIds)
       val streamZkUdfSeq = getZkStreamUdf(streamIds)
+      val projectMap = getStreamProjectMap(streamSeq)
 
       streamSeq.map(
         stream => {
@@ -95,7 +101,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
           val zkUdfs = streamZkUdfSeq.filter(_.streamId == stream.id).map(
             udf => StreamZkUdf(udf.functionName, udf.fullClassName, udf.jarName)
           )
-          StreamDetail(stream, getProjectNameByStreamName(stream.name), streamKafkaMap(stream.id), topics, udfs, zkUdfs, getDisableActions(stream.status))
+          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), topics, udfs, zkUdfs, getDisableActions(stream.status))
         }
       )
     } catch {
