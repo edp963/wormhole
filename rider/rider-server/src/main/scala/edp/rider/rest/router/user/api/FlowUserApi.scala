@@ -206,8 +206,10 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                   if (session.projectIdList.contains(projectId)) {
                     val checkFormat = FlowUtils.checkConfigFormat(flow.sinkConfig.getOrElse(""), flow.tranConfig.getOrElse(""))
                     if (checkFormat._1) {
+                      val startedTime = if(flow.startedTime.getOrElse("") == "") null else flow.startedTime
+                      val stoppedTime = if(flow.stoppedTime.getOrElse("") == "") null else flow.stoppedTime
                       val updateFlow = Flow(flow.id, flow.projectId, flow.streamId, flow.sourceNs.trim, flow.sinkNs.trim, flow.consumedProtocol.trim, flow.sinkConfig,
-                        flow.tranConfig, flow.status, flow.startedTime, flow.stoppedTime, flow.active, flow.createTime, flow.createBy, currentSec, session.userId)
+                        flow.tranConfig, flow.status, startedTime, stoppedTime, flow.active, flow.createTime, flow.createBy, currentSec, session.userId)
 
                       val stream = Await.result(streamDal.findById(streamId), minTimeOut).head
                       val existFlow = Await.result(flowDal.findById(flow.id), minTimeOut).head
