@@ -28,6 +28,7 @@ import edp.wormhole.ums.UmsSysField
 case class HbaseConfig(`hbase.columnFamily`: Option[String],
                        `hbase.znParent`: Option[String],
                        `hbase.saveAsString`: Option[Boolean],
+                       `umsTs.saveAsString`: Option[Boolean],
                        `hbase.version.column`:Option[String],
                        `mutation_type`:Option[String],
                        `hbase.rowKey`: String //separator","
@@ -36,6 +37,7 @@ case class HbaseConfig(`hbase.columnFamily`: Option[String],
   lazy val `hbase.columnFamily.get` = `hbase.columnFamily`.getOrElse("cf")
  // lazy val `hbase.znParent.get` = `hbase.znParent`.getOrElse("/hbase")
   lazy val `hbase.valueType.get` = `hbase.saveAsString`.getOrElse(false)
+  lazy val `umsTs.valueType.get` = `umsTs.saveAsString`.getOrElse(true)
   lazy val `mutation_type.get` = `mutation_type`.getOrElse(SourceMutationType.I_U_D.toString)
   lazy val `hbase.version.column.get` = `hbase.version.column`.getOrElse(UmsSysField.TS.toString)
 }
