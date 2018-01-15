@@ -146,9 +146,6 @@ object StreamUtils extends RiderLogger {
       })
   }
 
-  def getProjectNameByStreamName(streamName: String) = {
-    streamName.split("_")(1)
-  }
 
   def genStreamNameByProjectName(projectName: String, name: String): String = s"wormhole_${projectName}_$name"
 
