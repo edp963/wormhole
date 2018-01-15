@@ -169,7 +169,7 @@ class NamespaceAdminRoutes(modules: ConfigurationModule with PersistenceModule w
   ))
   def getSinkInfoRoute: Route = modules.namespaceAdminService.getSinkInfoByIdRoute(basePath)
 
-  @Path("/{id}/")
+  @Path("/namespaces/{id}/")
   @ApiOperation(value = "delete one namespace from system by id", notes = "", nickname = "", httpMethod = "DELETE")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "namespace id", required = true, dataType = "integer", paramType = "path")

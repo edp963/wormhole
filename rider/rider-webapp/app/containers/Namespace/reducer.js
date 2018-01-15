@@ -44,6 +44,9 @@ import {
   SET_SCHEMA_SUCCESS,
   QUERY_SCHEMA_CONFIG,
   QUERY_SCHEMA_CONFIG_SUCCESS,
+  DELETE_NS,
+  DELETE_NS_SUCCESS,
+  DELETE_NS_ERROR,
   GET_ERROR
 } from './constants'
 
@@ -60,17 +63,14 @@ export function namespaceReducer (state = initialState, { type, payload }) {
     case LOAD_ADMIN_ALL_NAMESPACES:
       return state.set('error', false)
     case LOAD_ADMIN_ALL_NAMESPACES_SUCCESS:
-      payload.resolve()
       return state.set('namespaces', payload.namespaces)
     case LOAD_USER_NAMESPACES:
       return state.set('error', false)
     case LOAD_USER_NAMESPACES_SUCCESS:
-      payload.resolve()
       return state.set('namespaces', payload.namespaces)
     case LOAD_SELECT_NAMESPACES:
       return state
     case LOAD_SELECT_NAMESPACES_SUCCESS:
-      payload.resolve(payload.namespaces)
       return state.set('namespaces', payload.namespaces)
     case LOAD_NAMESPACE_DATABASE:
       return state
@@ -128,6 +128,12 @@ export function namespaceReducer (state = initialState, { type, payload }) {
       return state.set('error', false)
     case QUERY_SCHEMA_CONFIG_SUCCESS:
       payload.resolve(payload.result)
+      return state
+    case DELETE_NS:
+      return state
+    case DELETE_NS_SUCCESS:
+      return state.set('namespaces', namespaces.filter(g => g.id !== payload.result))
+    case DELETE_NS_ERROR:
       return state
     case GET_ERROR:
       return state.set('error', payload.error)

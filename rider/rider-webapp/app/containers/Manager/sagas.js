@@ -65,7 +65,8 @@ import { notifySagasError } from '../../utils/util'
 export function* getUserStreams ({ payload }) {
   try {
     const streams = yield call(request, `${api.projectStream}/${payload.projectId}/streams`)
-    yield put(userStreamsLoaded(streams.payload, payload.resolve))
+    yield put(userStreamsLoaded(streams.payload))
+    payload.resolve()
   } catch (err) {
     notifySagasError(err, 'getUserStreams')
   }
@@ -78,7 +79,8 @@ export function* getUserStreamsWatcher () {
 export function* getAdminAllStreams ({ payload }) {
   try {
     const streams = yield call(request, api.stream)
-    yield put(adminAllStreamsLoaded(streams.payload, payload.resolve))
+    yield put(adminAllStreamsLoaded(streams.payload))
+    payload.resolve()
   } catch (err) {
     notifySagasError(err, 'getAdminAllStreams')
   }
@@ -91,7 +93,8 @@ export function* getAdminAllFlowsWatcher () {
 export function* getAdminSingleStream ({ payload }) {
   try {
     const streams = yield call(request, `${api.projectAdminStream}/${payload.projectId}/streams`)
-    yield put(adminSingleStreamLoaded(streams.payload, payload.resolve))
+    yield put(adminSingleStreamLoaded(streams.payload))
+    payload.resolve()
   } catch (err) {
     notifySagasError(err, 'getAdminSingleStream')
   }

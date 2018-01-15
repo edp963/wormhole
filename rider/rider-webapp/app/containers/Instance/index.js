@@ -32,10 +32,12 @@ import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import Input from 'antd/lib/input'
 import Popover from 'antd/lib/popover'
+import Popconfirm from 'antd/lib/popconfirm'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { loadInstances, addInstance, loadInstanceInputValue, loadInstanceExit, loadSingleInstance, editInstance } from './action'
+import { loadInstances, addInstance, loadInstanceInputValue, loadInstanceExit,
+  loadSingleInstance, editInstance, deleteInstace } from './action'
 import { selectInstances, selectError, selectModalLoading, selectConnectUrlExisted, selectInstanceExisted } from './selectors'
 
 export class Instance extends React.PureComponent {
@@ -68,12 +70,16 @@ export class Instance extends React.PureComponent {
       updateEndTimeText: '',
       filterDropdownVisibleUpdateTime: false,
 
-      editInstanceData: {},
-      eidtConnUrl: '',
-      InstanceSourceDsVal: '',
       columnNameText: '',
       valueText: '',
-      visibleBool: false
+      visibleBool: false,
+      startTimeTextState: '',
+      endTimeTextState: '',
+      paginationInfo: null,
+
+      editInstanceData: {},
+      eidtConnUrl: '',
+      InstanceSourceDsVal: ''
     }
   }
 
@@ -81,15 +87,44 @@ export class Instance extends React.PureComponent {
     this.refreshInstance()
   }
 
-  componentWillUpdate (props) {
+  // componentWillUpdate (props) {
+  //   console.log('props', props.instances)
+  //   if (props.instances) {
+  //     const originInstances = props.instances.map(s => {
+  //       s.key = s.id
+  //       s.visible = false
+  //       return s
+  //     })
+  //     this.state.originInstances = originInstances.slice()
+  //     this.state.currentInstances = originInstances.slice()
+  //   }
+  // }
+
+  componentWillReceiveProps (props) {
     if (props.instances) {
       const originInstances = props.instances.map(s => {
         s.key = s.id
         s.visible = false
         return s
       })
-      this.state.originInstances = originInstances.slice()
-      this.state.currentInstances = originInstances.slice()
+      this.setState({ originInstances: originInstances.slice() })
+
+      this.state.columnNameText === ''
+        ? this.setState({ currentInstances: originInstances.slice() })
+        : this.searchOperater()  // action 后仍显示table搜索后的数据
+    }
+  }
+
+  searchOperater () {
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
     }
   }
 
@@ -98,11 +133,7 @@ export class Instance extends React.PureComponent {
       refreshInstanceLoading: true,
       refreshInstanceText: 'Refreshing'
     })
-    this.props.onLoadInstances(() => {
-      this.instanceRefreshState()
-      const { columnNameText, valueText, visibleBool } = this.state
-      this.onSearch(columnNameText, valueText, visibleBool)()
-    })
+    this.props.onLoadInstances(() => this.instanceRefreshState())
   }
 
   instanceRefreshState () {
@@ -110,6 +141,9 @@ export class Instance extends React.PureComponent {
       refreshInstanceLoading: false,
       refreshInstanceText: 'Refresh'
     })
+    const { paginationInfo, filteredInfo, sortedInfo } = this.state
+    this.handleInstanceChange(paginationInfo, filteredInfo, sortedInfo)
+    this.searchOperater()
   }
 
   showAddInstance = () => {
@@ -187,37 +221,52 @@ export class Instance extends React.PureComponent {
   }
 
   onSearch = (columnName, value, visible) => () => {
-    const reg = new RegExp(this.state[value], 'gi')
-
     this.setState({
-      [visible]: false,
-      columnNameText: columnName,
-      valueText: value,
-      visibleBool: visible,
-      currentInstances: this.state.originInstances.map((record) => {
-        const match = String(record[columnName]).match(reg)
-        if (!match) {
-          return null
-        }
-        return {
-          ...record,
-          [`${columnName}Origin`]: record[columnName],
-          [columnName]: (
-            <span>
-              {String(record[columnName]).split(reg).map((text, i) => (
-                i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
+      filteredInfo: {nsSys: []} // 清除 type filter
+    }, () => {
+      const reg = new RegExp(this.state[value], 'gi')
+
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        valueText: value,
+        visibleBool: visible,
+        currentInstances: this.state.originInstances.map((record) => {
+          const match = String(record[columnName]).match(reg)
+          if (!match) {
+            return null
+          }
+          return {
+            ...record,
+            [`${columnName}Origin`]: record[columnName],
+            [columnName]: (
+              <span>
+                {String(record[columnName]).split(reg).map((text, i) => (
+                  i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
                 ))}
-            </span>
-          )
-        }
-      }).filter(record => !!record)
+              </span>
+            )
+          }
+        }).filter(record => !!record)
+      })
     })
   }
 
   handleInstanceChange = (pagination, filters, sorter) => {
+    // 不影响分页和排序的数据源，数据源是搜索后的
+    // 清除 text search，否则当文本搜索后，再类型搜索时的数据源是文本搜索的
+    if (filters) {
+      if (filters.nsSys) {
+        if (filters.nsSys.length !== 0) {
+          this.onSearch('', '', false)()
+        }
+      }
+    }
+
     this.setState({
       filteredInfo: filters,
-      sortedInfo: sorter
+      sortedInfo: sorter,
+      paginationInfo: pagination
     })
   }
 
@@ -306,11 +355,7 @@ export class Instance extends React.PureComponent {
     })
   }
 
-  handleEndOpenChange = (status) => {
-    this.setState({
-      filterDatepickerShown: status
-    })
-  }
+  handleEndOpenChange = (status) => this.setState({ filterDatepickerShown: status })
 
   onRangeTimeChange = (value, dateString) => {
     this.setState({
@@ -331,22 +376,30 @@ export class Instance extends React.PureComponent {
     }
 
     this.setState({
-      [visible]: false,
-      currentInstances: this.state.originInstances.map((record) => {
-        const match = (new Date(record[columnName])).getTime()
-        if ((match < startSearchTime) || (match > endSearchTime)) {
-          return null
-        }
-        return {
-          ...record,
-          [columnName]: (
-            this.state.startTimeText === ''
-              ? <span>{record[columnName]}</span>
-              : <span className="highlight">{record[columnName]}</span>
-          )
-        }
-      }).filter(record => !!record),
-      filteredInfo: startOrEnd
+      filteredInfo: {nsSys: []} // 清除 type filter
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        startTimeTextState: startTimeText,
+        endTimeTextState: endTimeText,
+        visibleBool: visible,
+        currentInstances: this.state.originInstances.map((record) => {
+          const match = (new Date(record[columnName])).getTime()
+          if ((match < startSearchTime) || (match > endSearchTime)) {
+            return null
+          }
+          return {
+            ...record,
+            [columnName]: (
+              this.state.startTimeText === ''
+                ? <span>{record[columnName]}</span>
+                : <span className="highlight">{record[columnName]}</span>
+            )
+          }
+        }).filter(record => !!record),
+        filteredInfo: startOrEnd
+      })
     })
   }
 
@@ -355,13 +408,17 @@ export class Instance extends React.PureComponent {
       this.setState({
         visible
       }, () => {
-        this.props.onLoadSingleInstance(record.id, (result) => {
-          this.setState({
-            showInstanceDetails: result
-          })
-        })
+        this.props.onLoadSingleInstance(record.id, (result) => this.setState({ showInstanceDetails: result }))
       })
     }
+  }
+
+  deleteInstanceBtn = (record) => (e) => {
+    this.props.onDeleteInstace(record.id, () => {
+      message.success('删除成功！', 3)
+    }, (result) => {
+      message.error(`删除失败： ${result}`, 5)
+    })
   }
 
   render () {
@@ -424,9 +481,12 @@ export class Instance extends React.PureComponent {
           </div>
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleInstance,
-        onFilterDropdownVisibleChange: visible => this.setState({
-          filterDropdownVisibleInstance: visible
-        }, () => this.searchInput.focus())
+        onFilterDropdownVisibleChange: visible => {
+          this.setState({
+            // searchTextInstance: '', // 搜索框弹出时，清除内容
+            filterDropdownVisibleInstance: visible
+          }, () => this.searchInput.focus())
+        }
       }, {
         title: 'Connection URL',
         dataIndex: 'connUrl',
@@ -453,6 +513,7 @@ export class Instance extends React.PureComponent {
         ),
         filterDropdownVisible: this.state.filterDropdownVisibleConnUrl,
         onFilterDropdownVisibleChange: visible => this.setState({
+          // searchTextConnUrl: '',
           filterDropdownVisibleConnUrl: visible
         }, () => this.searchInput.focus())
       }, {
@@ -467,7 +528,7 @@ export class Instance extends React.PureComponent {
           }
         },
         sortOrder: sortedInfo.columnKey === 'createTime' && sortedInfo.order,
-        filteredValue: filteredInfo.createTime,
+        // filteredValue: filteredInfo.createTime,
         filterDropdown: (
           <div className="custom-filter-dropdown-style">
             <RangePicker
@@ -499,7 +560,7 @@ export class Instance extends React.PureComponent {
           }
         },
         sortOrder: sortedInfo.columnKey === 'updateTime' && sortedInfo.order,
-        filteredValue: filteredInfo.updateTime,
+        // filteredValue: filteredInfo.updateTime,
         filterDropdown: (
           <div className="custom-filter-dropdown-style">
             <RangePicker
@@ -539,25 +600,26 @@ export class Instance extends React.PureComponent {
             <Tooltip title="修改">
               <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditInstance(record)} />
             </Tooltip>
+
+            {
+              localStorage.getItem('loginRoleType') === 'admin'
+                ? (
+                  <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteInstanceBtn(record)}>
+                    <Tooltip title="删除">
+                      <Button icon="delete" shape="circle" type="ghost"></Button>
+                    </Tooltip>
+                  </Popconfirm>
+                )
+                : ''
+            }
           </span>
         )
       }
     ]
 
     const pagination = {
-      defaultPageSize: this.state.pageSize,
       showSizeChanger: true,
-      onShowSizeChange: (current, pageSize) => {
-        this.setState({
-          pageIndex: current,
-          pageSize: pageSize
-        })
-      },
-      onChange: (current) => {
-        this.setState({
-          pageIndex: current
-        })
-      }
+      onChange: (current) => this.setState({ pageIndex: current })
     }
 
     const { currentInstances, instanceFormType, formVisible } = this.state
@@ -630,7 +692,8 @@ Instance.propTypes = {
   onLoadInstanceInputValue: React.PropTypes.func,
   onLoadInstanceExit: React.PropTypes.func,
   onLoadSingleInstance: React.PropTypes.func,
-  onEditInstance: React.PropTypes.func
+  onEditInstance: React.PropTypes.func,
+  onDeleteInstace: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -640,7 +703,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadInstanceInputValue: (value, resolve, reject) => dispatch(loadInstanceInputValue(value, resolve, reject)),
     onLoadInstanceExit: (value, resolve, reject) => dispatch(loadInstanceExit(value, resolve, reject)),
     onLoadSingleInstance: (instanceId, resolve) => dispatch(loadSingleInstance(instanceId, resolve)),
-    onEditInstance: (value, resolve) => dispatch(editInstance(value, resolve))
+    onEditInstance: (value, resolve) => dispatch(editInstance(value, resolve)),
+    onDeleteInstace: (value, resolve, reject) => dispatch(deleteInstace(value, resolve, reject))
   }
 }
 

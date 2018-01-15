@@ -214,11 +214,11 @@ export class WorkbenchFlowForm extends React.Component {
             </Col>
             <Col span={15} className="value-font-style">
               <div className="ant-form-item-control">
-                <p>
+                <strong>
                   {Object.prototype.toString.call(formValues[key]) === '[object Array]'
                     ? formValues[key].join('.')
                     : formValues[key]}
-                </p>
+                </strong>
               </div>
             </Col>
           </Row>
@@ -250,11 +250,11 @@ export class WorkbenchFlowForm extends React.Component {
             </Col>
             <Col span={15} className="value-font-style">
               <div className="ant-form-item-control" style={{font: 'bolder'}}>
-                <p>
+                <strong>
                   {Object.prototype.toString.call(formDSNSValues[key]) === '[object Array]'
                     ? formDSNSValues[key].join('.')
                     : formDSNSValues[key]}
-                </p>
+                </strong>
               </div>
             </Col>
           </Row>
@@ -423,14 +423,14 @@ export class WorkbenchFlowForm extends React.Component {
             <Col span={24} className="ri-input-text">
               <FormItem label="Kafka Instance" {...itemStyle} >
                 {getFieldDecorator('kafkaInstance', {})(
-                  <p className="value-font-style">{flowKafkaInstanceValue}</p>
+                  <strong className="value-font-style">{flowKafkaInstanceValue}</strong>
                 )}
               </FormItem>
             </Col>
             <Col span={24} className="ri-input-text">
               <FormItem label="Exist Kafka Topics" {...itemStyle}>
                 {getFieldDecorator('kafkaTopic', {})(
-                  <p className="value-font-style">{flowKafkaTopicValue}</p>
+                  <strong className="value-font-style">{flowKafkaTopicValue}</strong>
                 )}
               </FormItem>
             </Col>
@@ -657,7 +657,7 @@ export class WorkbenchFlowForm extends React.Component {
                 {getFieldDecorator('hdfslogDataSys', {
                   hidden: streamTypeHiddens[1]
                 })(
-                  <p className="value-font-style">{hdfslogSinkDataSysValue}</p>
+                  <strong className="value-font-style">{hdfslogSinkDataSysValue}</strong>
                 )}
               </FormItem>
             </Col>
@@ -666,7 +666,7 @@ export class WorkbenchFlowForm extends React.Component {
                 {getFieldDecorator('hdfslogSinkNs', {
                   hidden: streamTypeHiddens[1]
                 })(
-                  <p className="value-font-style">{hdfslogSinkNsValue}</p>
+                  <strong className="value-font-style">{hdfslogSinkNsValue}</strong>
                 )}
               </FormItem>
             </Col>
@@ -679,7 +679,7 @@ export class WorkbenchFlowForm extends React.Component {
               {getFieldDecorator('step2SourceNamespace', {
                 hidden: stepHiddens[1] || streamTypeHiddens[0]
               })(
-                <p className="value-font-style">{step2SourceNamespace}</p>
+                <strong className="value-font-style">{step2SourceNamespace}</strong>
               )}
             </FormItem>
           </Col>
@@ -688,7 +688,7 @@ export class WorkbenchFlowForm extends React.Component {
               {getFieldDecorator('step2SinkNamespace', {
                 hidden: stepHiddens[1] || streamTypeHiddens[0]
               })(
-                <p className="value-font-style">{step2SinkNamespace}</p>
+                <strong className="value-font-style">{step2SinkNamespace}</strong>
               )}
             </FormItem>
           </Col>
@@ -787,7 +787,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">{flowKafkaInstanceValue}</p>
+                    <strong className="value-font-style">{flowKafkaInstanceValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -801,7 +801,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">{flowKafkaTopicValue}</p>
+                    <strong className="value-font-style">{flowKafkaTopicValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -816,7 +816,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">{resultFieldsValue}</p>
+                    <strong className="value-font-style">{resultFieldsValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -830,7 +830,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">{transformTableConfirmValue}</p>
+                    <strong className="value-font-style">{transformTableConfirmValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -844,7 +844,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">{etpStrategyConfirmValue}</p>
+                    <strong className="value-font-style">{etpStrategyConfirmValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -858,7 +858,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">{this.props.dataframeShowNumValue}</p>
+                    <strong className="value-font-style">{this.props.dataframeShowNumValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -873,7 +873,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">{hdfslogSinkDataSysValue}</p>
+                    <strong className="value-font-style">{hdfslogSinkDataSysValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -887,7 +887,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">{hdfslogSinkNsValue}</p>
+                    <strong className="value-font-style">{hdfslogSinkNsValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -901,7 +901,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">{hdfslogSinkDataSysValue}</p>
+                    <strong className="value-font-style">{hdfslogSinkDataSysValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -915,7 +915,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">{hdfslogSinkNsValue}</p>
+                    <strong className="value-font-style">{hdfslogSinkNsValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -929,7 +929,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">{routingSourceNsValue}</p>
+                    <strong className="value-font-style">{routingSourceNsValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -943,7 +943,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">kafka</p>
+                    <strong className="value-font-style">kafka</strong>
                   </div>
                 </Col>
               </Row>
@@ -957,7 +957,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <p className="value-font-style">{routingSinkNsValue}</p>
+                    <strong className="value-font-style">{routingSinkNsValue}</strong>
                   </div>
                 </Col>
               </Row>

@@ -657,7 +657,7 @@ export class SchemaTypeConfig extends React.Component {
             </FormItem>
           </Col>
         </Row>
-        <Row>
+        <Row className={umsTypeSeleted === 'ums_extension' ? '' : 'hide'}>
           <Col span={7} className="schema-json-title"><span>Source JSON Sample：</span></Col>
           <Col span={1}></Col>
           <Col span={16} className="schema-table-title"><span>Source Schema Table：</span></Col>

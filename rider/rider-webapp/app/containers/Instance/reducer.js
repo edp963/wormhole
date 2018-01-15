@@ -35,6 +35,9 @@ import {
   LOAD_INSTANCES_EXIT,
   LOAD_INSTANCES_EXIT_SUCCESS,
   LOAD_INSTANCES_EXIT_ERROR,
+  DELETE_INSTANCE,
+  DELETE_INSTANCE_SUCCESS,
+  DELETE_INSTANCE_ERROR,
   GET_ERROR
 } from './constants'
 
@@ -74,7 +77,6 @@ export function instanceReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_INSTANCE_SUCCESS:
-      payload.resolve()
       instances.splice(instances.indexOf(instances.find(p => p.id === payload.result.id)), 1, payload.result)
       return state
         .set('instances', instances.slice())
@@ -95,6 +97,12 @@ export function instanceReducer (state = initialState, { type, payload }) {
     case LOAD_INSTANCES_EXIT_ERROR:
       payload.reject(payload.result)
       return state.set('instanceExisted', true)
+    case DELETE_INSTANCE:
+      return state
+    case DELETE_INSTANCE_SUCCESS:
+      return state.set('instances', instances.filter(g => g.id !== payload.result))
+    case DELETE_INSTANCE_ERROR:
+      return state
     case GET_ERROR:
       return state.set('error', payload.error)
     default:

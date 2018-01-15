@@ -37,6 +37,9 @@ import {
   EDIT_ROLETYPE_USERPSW_ERROR,
   LOAD_USER_DETAIL,
   LOAD_USER_DETAIL_SUCCESS,
+  DELETE_USER,
+  DELETE_USER_SUCCESS,
+  DELETE_USER_ERROR,
 
   LOAD_PROJECT_USER_ALL,
   LOAD_PROJECT_USER_ALL_SUCCESS,
@@ -52,12 +55,11 @@ export function loadAdminAllUsers (resolve) {
   }
 }
 
-export function adminAllUsersLoaded (users, resolve) {
+export function adminAllUsersLoaded (users) {
   return {
     type: LOAD_ADMIN_ALL_USERS_SUCCESS,
     payload: {
-      users,
-      resolve
+      users
     }
   }
 }
@@ -72,12 +74,11 @@ export function loadUserUsers (projectId, resolve) {
   }
 }
 
-export function userUsersLoaded (users, resolve) {
+export function userUsersLoaded (users) {
   return {
     type: LOAD_USER_USERS_SUCCESS,
     payload: {
-      users,
-      resolve
+      users
     }
   }
 }
@@ -92,12 +93,11 @@ export function loadSelectUsers (projectId, resolve) {
   }
 }
 
-export function selectUsersLoaded (users, resolve) {
+export function selectUsersLoaded (users) {
   return {
     type: LOAD_SELECT_USERS_SUCCESS,
     payload: {
-      users,
-      resolve
+      users
     }
   }
 }
@@ -239,6 +239,35 @@ export function userDetailLoaded (result, resolve) {
     payload: {
       result,
       resolve
+    }
+  }
+}
+
+export function deleteUser (userId, resolve, reject) {
+  return {
+    type: DELETE_USER,
+    payload: {
+      userId,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function userDeleted (result) {
+  return {
+    type: DELETE_USER_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function userDeletedError (result) {
+  return {
+    type: DELETE_USER_ERROR,
+    payload: {
+      result
     }
   }
 }

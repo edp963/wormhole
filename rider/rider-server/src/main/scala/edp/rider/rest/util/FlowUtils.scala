@@ -51,7 +51,7 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def getSinkConfig(sinkNs: String, sinkConfig: String, sinkSchema: Option[String]): String = {
+  def getSinkConfig(sinkNs: String, sinkConfig: String): String = {
     try {
       val (instance, db, ns) = modules.namespaceDal.getNsDetail(sinkNs)
       val specialConfig =
@@ -67,9 +67,11 @@ object FlowUtils extends RiderLogger {
         if (dbConfig.nonEmpty && dbConfig.get.nonEmpty)
           caseClass2json[Seq[KVConfig]](dbConfig.get)
         else "\"\""
-      if (sinkSchema.nonEmpty && sinkSchema.get != "") {
-        val schema = caseClass2json[Object](json2caseClass[SinkSchema](sinkSchema.get).schema)
+
+      if (ns.sinkSchema.nonEmpty && ns.sinkSchema.get != "") {
+        val schema = caseClass2json[Object](json2caseClass[SinkSchema](ns.sinkSchema.get).schema)
         val base64 = base64byte2s(schema.trim.getBytes)
+
         s"""
            |{
            |"sink_connection_url": "${getConnUrl(instance, db)}",
@@ -217,9 +219,10 @@ object FlowUtils extends RiderLogger {
 
   def startFlow(streamId: Long, streamType: String, flowId: Long, sourceNs: String, sinkNs: String, consumedProtocol: String, sinkConfig: String, tranConfig: String, userId: Long): Boolean = {
     try {
-      val ns = modules.namespaceDal.getNamespaceByNs(sourceNs)
+      val sourceNsObj = modules.namespaceDal.getNamespaceByNs(sourceNs)
+
       val umsInfoOpt =
-        if (ns.sourceSchema.nonEmpty)
+        if (sourceNsObj.sourceSchema.nonEmpty)
           json2caseClass[Option[SourceSchema]](modules.namespaceDal.getNamespaceByNs(sourceNs).sourceSchema.get)
         else None
       val umsType = umsInfoOpt match {
@@ -235,7 +238,7 @@ object FlowUtils extends RiderLogger {
       }
       if (streamType == "default") {
         val consumedProtocolSet = getConsumptionType(consumedProtocol)
-        val sinkConfigSet = getSinkConfig(sinkNs, sinkConfig, ns.sinkSchema)
+        val sinkConfigSet = getSinkConfig(sinkNs, sinkConfig)
         val tranConfigFinal = getTranConfig(tranConfig)
         val tuple = Seq(streamId, currentMicroSec, umsType, umsSchema, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
         val base64Tuple = Seq(streamId, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),

@@ -39,7 +39,12 @@ export class ProjectUsersTable extends React.Component {
       searchTextEmail: '',
       filterDropdownVisibleEmail: false,
       searchTextName: '',
-      filterDropdownVisibleName: false
+      filterDropdownVisibleName: false,
+
+      columnNameText: '',
+      valueText: '',
+      visibleBool: false,
+      paginationInfo: null
     }
   }
 
@@ -63,6 +68,13 @@ export class ProjectUsersTable extends React.Component {
   }
 
   handleChange = (pagination, filters, sorter) => {
+    if (filters) {
+      if (filters.roleType) {
+        if (filters.roleType.length !== 0) {
+          this.onSearch('', '', false)()
+        }
+      }
+    }
     this.setState({
       filteredInfo: filters,
       sortedInfo: sorter
@@ -75,24 +87,31 @@ export class ProjectUsersTable extends React.Component {
     const reg = new RegExp(this.state[value], 'gi')
 
     this.setState({
-      [visible]: false,
-      currentUsers: this.state.originUsers.map((record) => {
-        const match = String(record[columnName]).match(reg)
-        if (!match) {
-          return null
-        }
-        return {
-          ...record,
-          [`${columnName}Origin`]: record[columnName],
-          [columnName]: (
-            <span>
-              {String(record[columnName]).split(reg).map((text, i) => (
-                i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
-              ))}
-            </span>
-          )
-        }
-      }).filter(record => !!record)
+      filteredInfo: {roleType: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        valueText: value,
+        visibleBool: visible,
+        currentUsers: this.state.originUsers.map((record) => {
+          const match = String(record[columnName]).match(reg)
+          if (!match) {
+            return null
+          }
+          return {
+            ...record,
+            [`${columnName}Origin`]: record[columnName],
+            [columnName]: (
+              <span>
+                {String(record[columnName]).split(reg).map((text, i) => (
+                  i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
+                ))}
+              </span>
+            )
+          }
+        }).filter(record => !!record)
+      })
     })
   }
 
