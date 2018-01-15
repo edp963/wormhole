@@ -39,6 +39,7 @@ import {
   udfEdited,
   udfEditedError,
   udfDeleted,
+  udfDeletedError,
   getError
 } from './action'
 
@@ -48,7 +49,8 @@ import api from '../../utils/api'
 export function* getUdfs ({ payload }) {
   try {
     const result = yield call(request, api.udf)
-    yield put(udfsLoaded(result.payload, payload.resolve))
+    yield put(udfsLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(getError(err))
   }
@@ -83,7 +85,8 @@ export function* getSingleUdf ({ payload }) {
 
   try {
     const result = yield call(request, urlTemp)
-    yield put(singleUdfLoaded(result.payload, payload.resolve))
+    yield put(singleUdfLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(getError(err))
   }
@@ -171,10 +174,15 @@ export function* deleteUdf ({ payload }) {
   try {
     const result = yield call(request, {
       method: 'delete',
-      url: api.udf,
-      data: payload.values
+      url: `${api.udf}/${payload.udfId}`
     })
-    yield put(udfDeleted(result, payload.resolve))
+    if (result.code === 412) {
+      yield put(udfDeletedError(result.msg))
+      payload.reject(result.msg)
+    } else if (result.code === 200) {
+      yield put(udfDeleted(payload.udfId))
+      payload.resolve()
+    }
   } catch (err) {
     yield put(getError(err))
   }

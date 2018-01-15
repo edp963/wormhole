@@ -32,10 +32,12 @@ import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import Input from 'antd/lib/input'
 import Popover from 'antd/lib/popover'
+import Popconfirm from 'antd/lib/popconfirm'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { loadDatabases, addDatabase, editDatabase, loadDatabasesInstance, loadNameExist, loadSingleDatabase } from './action'
+import { loadDatabases, addDatabase, editDatabase, loadDatabasesInstance,
+  loadNameExist, loadSingleDatabase, deleteDB } from './action'
 import { selectDatabases, selectError, selectModalLoading, selectDatabaseNameExited, selectDbUrlValue } from './selectors'
 
 export class DataBase extends React.PureComponent {
@@ -70,8 +72,16 @@ export class DataBase extends React.PureComponent {
       updateEndTimeText: '',
       filterDropdownVisibleUpdateTime: false,
 
+      columnNameText: '',
+      valueText: '',
+      visibleBool: false,
+      startTimeTextState: '',
+      endTimeTextState: '',
+      paginationInfo: null,
+
       editDatabaseData: {},
-      databaseDSType: ''
+      databaseDSType: '',
+      queryConnUrl: ''
     }
   }
 
@@ -86,10 +96,24 @@ export class DataBase extends React.PureComponent {
         s.visible = false
         return s
       })
-      this.setState({
-        originDatabases: originDatabases.slice(),
-        currentDatabases: originDatabases.slice()
-      })
+      this.setState({ originDatabases: originDatabases.slice() })
+
+      this.state.columnNameText === ''
+        ? this.setState({ currentDatabases: originDatabases.slice() })
+        : this.searchOperater()
+    }
+  }
+
+  searchOperater () {
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
     }
   }
 
@@ -98,7 +122,7 @@ export class DataBase extends React.PureComponent {
       refreshDbLoading: true,
       refreshDbText: 'Refreshing'
     })
-    this.props.onLoadDatabases(() => { this.refreshDbState() })
+    this.props.onLoadDatabases(() => this.refreshDbState())
   }
 
   refreshDbState () {
@@ -106,6 +130,9 @@ export class DataBase extends React.PureComponent {
       refreshDbLoading: false,
       refreshDbText: 'Refresh'
     })
+
+    const { paginationInfo, filteredInfo, sortedInfo } = this.state
+    this.handleDatabaseChange(paginationInfo, filteredInfo, sortedInfo)
   }
 
   showAddDB = () => {
@@ -121,6 +148,7 @@ export class DataBase extends React.PureComponent {
       this.setState({
         formVisible: true,
         formType: 'edit',
+        queryConnUrl: result.connUrl,
         editDatabaseData: {
           active: result.active,
           createBy: result.createBy,
@@ -128,7 +156,8 @@ export class DataBase extends React.PureComponent {
           id: result.id,
           nsInstanceId: result.nsInstanceId,
           updateBy: result.updateBy,
-          updateTime: result.updateTime
+          updateTime: result.updateTime,
+          connectionUrl: result.connUrl
         }
       }, () => {
         if (result.nsSys === 'oracle' || result.nsSys === 'mysql' || result.nsSys === 'postgresql' || result.nsSys === 'mongodb') {
@@ -153,8 +182,6 @@ export class DataBase extends React.PureComponent {
         this.dBForm.setFieldsValue({
           dataBaseDataSystem: result.nsSys,
           instance: result.nsInstance,
-          connectionUrl: result.connUrl,
-          // permission: result.permission,
           nsDatabase: result.nsDatabase,
           config: conFinal,
           description: result.desc,
@@ -228,7 +255,6 @@ export class DataBase extends React.PureComponent {
                 nsDatabase: values.nsDatabase,
                 desc: values.description === undefined ? '' : values.description,
                 nsInstanceId: Number(values.instance),
-                // permission: values.permission,
                 user: values.userRequired,
                 pwd: values.passwordRequired,
                 partitions: 0,
@@ -271,7 +297,6 @@ export class DataBase extends React.PureComponent {
               nsDatabase: values.nsDatabase,
               desc: values.description === undefined ? '' : values.description,
               nsInstanceId: Number(values.instance),
-              // permission: values.dataBaseDataSystem === 'kafka' ? 'ReadWrite' : values.permission,
               user: valuesUser,
               pwd: valuesPwd,
               partitions: values.dataBaseDataSystem === 'kafka' ? Number(values.partition) : 0,
@@ -296,7 +321,6 @@ export class DataBase extends React.PureComponent {
               })
             } else {
               const editValues = {
-                // permission: values.permission,
                 user: values.userRequired,
                 pwd: values.passwordRequired,
                 config: this.onConfigValue(values.config),
@@ -327,7 +351,6 @@ export class DataBase extends React.PureComponent {
             }
 
             const editValues = {
-              // permission: values.dataBaseDataSystem === 'kafka' ? 'ReadWrite' : values.permission,
               user: editUser,
               pwd: editPwd,
               config: this.onConfigValue(values.config),
@@ -352,31 +375,46 @@ export class DataBase extends React.PureComponent {
     const reg = new RegExp(this.state[value], 'gi')
 
     this.setState({
-      [visible]: false,
-      currentDatabases: this.state.originDatabases.map((record) => {
-        const match = String(record[columnName]).match(reg)
-        if (!match) {
-          return null
-        }
-        return {
-          ...record,
-          [`${columnName}Origin`]: record[columnName],
-          [columnName]: (
-            <span>
-              {String(record[columnName]).split(reg).map((text, i) => (
-                i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
-              ))}
-            </span>
-          )
-        }
-      }).filter(record => !!record)
+      filteredInfo: {nsSys: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        valueText: value,
+        visibleBool: visible,
+        currentDatabases: this.state.originDatabases.map((record) => {
+          const match = String(record[columnName]).match(reg)
+          if (!match) {
+            return null
+          }
+          return {
+            ...record,
+            [`${columnName}Origin`]: record[columnName],
+            [columnName]: (
+              <span>
+                {String(record[columnName]).split(reg).map((text, i) => (
+                  i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
+                ))}
+              </span>
+            )
+          }
+        }).filter(record => !!record)
+      })
     })
   }
 
   handleDatabaseChange = (pagination, filters, sorter) => {
+    if (filters) {
+      if (filters.nsSys) {
+        if (filters.nsSys.length !== 0) {
+          this.onSearch('', '', false)()
+        }
+      }
+    }
     this.setState({
       filteredInfo: filters,
-      sortedInfo: sorter
+      sortedInfo: sorter,
+      paginationInfo: pagination
     })
   }
 
@@ -408,8 +446,6 @@ export class DataBase extends React.PureComponent {
       this.dBForm.setFieldsValue({
         connectionUrl: '',
         instance: undefined,
-        // permission: '',
-        // nsDatabase: value === 'hbase' ? 'default' : '',
         nsDatabase: '',
         user: '',
         password: '',
@@ -429,7 +465,6 @@ export class DataBase extends React.PureComponent {
     const formValues = this.dBForm.getFieldsValue()
     const requestValues = {
       nsInstanceId: Number(formValues.instance),
-      // permission: formValues.permission,
       nsDatabaseName: value,
       dsType: formValues.dataBaseDataSystem
     }
@@ -480,22 +515,30 @@ export class DataBase extends React.PureComponent {
     }
 
     this.setState({
-      [visible]: false,
-      currentDatabases: this.state.originDatabases.map((record) => {
-        const match = (new Date(record[columnName])).getTime()
-        if ((match < startSearchTime) || (match > endSearchTime)) {
-          return null
-        }
-        return {
-          ...record,
-          [columnName]: (
-            this.state.startTimeText === ''
-              ? <span>{record[columnName]}</span>
-              : <span className="highlight">{record[columnName]}</span>
-          )
-        }
-      }).filter(record => !!record),
-      filteredInfo: startOrEnd
+      filteredInfo: {nsSys: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        startTimeTextState: startTimeText,
+        endTimeTextState: endTimeText,
+        visibleBool: visible,
+        currentDatabases: this.state.originDatabases.map((record) => {
+          const match = (new Date(record[columnName])).getTime()
+          if ((match < startSearchTime) || (match > endSearchTime)) {
+            return null
+          }
+          return {
+            ...record,
+            [columnName]: (
+              this.state.startTimeText === ''
+                ? <span>{record[columnName]}</span>
+                : <span className="highlight">{record[columnName]}</span>
+            )
+          }
+        }).filter(record => !!record),
+        filteredInfo: startOrEnd
+      })
     })
   }
 
@@ -511,6 +554,14 @@ export class DataBase extends React.PureComponent {
         })
       })
     }
+  }
+
+  deleteDBBtn = (record) => (e) => {
+    this.props.onDeleteDB(record.id, () => {
+      message.success('删除成功！', 3)
+    }, (result) => {
+      message.error(`删除失败： ${result}`, 5)
+    })
   }
 
   render () {
@@ -643,7 +694,7 @@ export class DataBase extends React.PureComponent {
         }
       },
       sortOrder: sortedInfo.columnKey === 'createTime' && sortedInfo.order,
-      filteredValue: filteredInfo.createTime,
+      // filteredValue: filteredInfo.createTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -675,7 +726,7 @@ export class DataBase extends React.PureComponent {
         }
       },
       sortOrder: sortedInfo.columnKey === 'updateTime' && sortedInfo.order,
-      filteredValue: filteredInfo.updateTime,
+      // filteredValue: filteredInfo.updateTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -731,24 +782,26 @@ export class DataBase extends React.PureComponent {
             <Tooltip title="修改">
               <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditDB(record)} />
             </Tooltip>
+            {
+              localStorage.getItem('loginRoleType') === 'admin'
+                ? (
+                  <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteDBBtn(record)}>
+                    <Tooltip title="删除">
+                      <Button icon="delete" shape="circle" type="ghost"></Button>
+                    </Tooltip>
+                  </Popconfirm>
+                )
+                : ''
+            }
           </span>
         )
       }
     }]
 
     const pagination = {
-      defaultPageSize: this.state.pageSize,
       showSizeChanger: true,
-      onShowSizeChange: (current, pageSize) => {
-        this.setState({
-          pageIndex: current,
-          pageSize: pageSize
-        })
-      },
       onChange: (current) => {
-        this.setState({
-          pageIndex: current
-        })
+        console.log('current', current)
       }
     }
 
@@ -801,6 +854,7 @@ export class DataBase extends React.PureComponent {
         >
           <DBForm
             databaseFormType={this.state.formType}
+            queryConnUrl={this.state.queryConnUrl}
             onInitDatabaseUrlValue={this.onInitDatabaseUrlValue}
             databaseUrlValue={this.props.dbUrlValue}
             onInitDatabaseInputValue={this.onInitDatabaseInputValue}
@@ -825,7 +879,8 @@ DataBase.propTypes = {
   onEditDatabase: React.PropTypes.func,
   onLoadDatabasesInstance: React.PropTypes.func,
   onLoadNameExist: React.PropTypes.func,
-  onLoadSingleDatabase: React.PropTypes.func
+  onLoadSingleDatabase: React.PropTypes.func,
+  onDeleteDB: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -835,7 +890,8 @@ export function mapDispatchToProps (dispatch) {
     onEditDatabase: (database, resolve, reject) => dispatch(editDatabase(database, resolve, reject)),
     onLoadDatabasesInstance: (value, resolve) => dispatch(loadDatabasesInstance(value, resolve)),
     onLoadNameExist: (value, resolve, reject) => dispatch(loadNameExist(value, resolve, reject)),
-    onLoadSingleDatabase: (databaseId, resolve) => dispatch(loadSingleDatabase(databaseId, resolve))
+    onLoadSingleDatabase: (databaseId, resolve) => dispatch(loadSingleDatabase(databaseId, resolve)),
+    onDeleteDB: (databaseId, resolve, reject) => dispatch(deleteDB(databaseId, resolve, reject))
   }
 }
 

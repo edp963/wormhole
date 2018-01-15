@@ -29,16 +29,15 @@ import Button from 'antd/lib/button'
 import Icon from 'antd/lib/icon'
 import Tooltip from 'antd/lib/tooltip'
 import Popover from 'antd/lib/popover'
+import Popconfirm from 'antd/lib/popconfirm'
 import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
-import Form from 'antd/lib/form'
-import Row from 'antd/lib/row'
-import Col from 'antd/lib/col'
 import Input from 'antd/lib/input'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { loadAdminAllUsers, loadUserUsers, addUser, editUser, loadEmailInputValue, loadSelectUsers, loadUserDetail } from './action'
+import { loadAdminAllUsers, loadUserUsers, addUser, editUser, loadEmailInputValue,
+  loadSelectUsers, loadUserDetail, deleteUser } from './action'
 import { selectUsers, selectError, selectModalLoading, selectEmailExited } from './selectors'
 
 export class User extends React.PureComponent {
@@ -75,6 +74,13 @@ export class User extends React.PureComponent {
       updateEndTimeText: '',
       filterDropdownVisibleUpdateTime: false,
 
+      columnNameText: '',
+      valueText: '',
+      visibleBool: false,
+      startTimeTextState: '',
+      endTimeTextState: '',
+      paginationInfo: null,
+
       editUsersMsgData: {},
       editUsersPswData: {},
       showUserDetail: {}
@@ -92,10 +98,23 @@ export class User extends React.PureComponent {
         s.visible = false
         return s
       })
-      this.setState({
-        originUsers: originUsers.slice(),
-        currentUsers: originUsers.slice()
-      })
+      this.setState({ originUsers: originUsers.slice() })
+      this.state.columnNameText === ''
+        ? this.setState({ currentUsers: originUsers.slice() })
+        : this.searchOperater()
+    }
+  }
+
+  searchOperater () {
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
     }
   }
 
@@ -122,6 +141,10 @@ export class User extends React.PureComponent {
       refreshUserLoading: false,
       refreshUserText: 'Refresh'
     })
+
+    const { paginationInfo, filteredInfo, sortedInfo } = this.state
+    this.handleUserChange(paginationInfo, filteredInfo, sortedInfo)
+    this.searchOperater()
   }
 
   showAdd = () => {
@@ -246,55 +269,52 @@ export class User extends React.PureComponent {
     const reg = new RegExp(this.state[value], 'gi')
 
     this.setState({
-      [visible]: false,
-      currentUsers: this.state.originUsers.map((record) => {
-        const match = String(record[columnName]).match(reg)
-        if (!match) {
-          return null
-        }
-        return {
-          ...record,
-          [`${columnName}Origin`]: record[columnName],
-          [columnName]: (
-            <span>
-              {String(record[columnName]).split(reg).map((text, i) => (
-                i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
-              ))}
-            </span>
-          )
-        }
-      }).filter(record => !!record)
+      filteredInfo: {roleType: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        valueText: value,
+        visibleBool: visible,
+        currentUsers: this.state.originUsers.map((record) => {
+          const match = String(record[columnName]).match(reg)
+          if (!match) {
+            return null
+          }
+          return {
+            ...record,
+            [`${columnName}Origin`]: record[columnName],
+            [columnName]: (
+              <span>
+                {String(record[columnName]).split(reg).map((text, i) => (
+                  i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
+                ))}
+              </span>
+            )
+          }
+        }).filter(record => !!record)
+      })
     })
   }
 
   handleUserChange = (pagination, filters, sorter) => {
+    if (filters) {
+      if (filters.roleType) {
+        if (filters.roleType.length !== 0) {
+          this.onSearch('', '', false)()
+        }
+      }
+    }
     this.setState({
       filteredInfo: filters,
-      sortedInfo: sorter
-    })
-  }
-
-  onRangeIdSearch = (columnName, startText, endText, visible) => () => {
-    this.setState({
-      [visible]: false,
-      currentUsers: this.state.originUsers.map((record) => {
-        const match = record[columnName]
-        if ((match < parseInt(this.state[startText])) || (match > parseInt(this.state[endText]))) {
-          return null
-        }
-        return record
-      }).filter(record => !!record),
-      filteredInfo: this.state[startText] || this.state[endText] ? { id: [0] } : { id: [] }
+      sortedInfo: sorter,
+      paginationInfo: pagination
     })
   }
 
   onInputChange = (value) => (e) => this.setState({ [value]: e.target.value })
 
-  handleEndOpenChange = (status) => {
-    this.setState({
-      filterDatepickerShown: status
-    })
-  }
+  handleEndOpenChange = (status) => this.setState({ filterDatepickerShown: status })
 
   onRangeTimeChange = (value, dateString) => {
     this.setState({
@@ -313,24 +333,31 @@ export class User extends React.PureComponent {
     } else if (columnName === 'updateTime') {
       startOrEnd = startSearchTime || endSearchTime ? { updateTime: [0] } : { updateTime: [] }
     }
-
     this.setState({
-      [visible]: false,
-      currentUsers: this.state.originUsers.map((record) => {
-        const match = (new Date(record[columnName])).getTime()
-        if ((match < startSearchTime) || (match > endSearchTime)) {
-          return null
-        }
-        return {
-          ...record,
-          [columnName]: (
-            this.state.startTimeText === ''
-              ? <span>{record[columnName]}</span>
-              : <span className="highlight">{record[columnName]}</span>
-          )
-        }
-      }).filter(record => !!record),
-      filteredInfo: startOrEnd
+      filteredInfo: {roleType: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        startTimeTextState: startTimeText,
+        endTimeTextState: endTimeText,
+        visibleBool: visible,
+        currentUsers: this.state.originUsers.map((record) => {
+          const match = (new Date(record[columnName])).getTime()
+          if ((match < startSearchTime) || (match > endSearchTime)) {
+            return null
+          }
+          return {
+            ...record,
+            [columnName]: (
+              this.state.startTimeText === ''
+                ? <span>{record[columnName]}</span>
+                : <span className="highlight">{record[columnName]}</span>
+            )
+          }
+        }).filter(record => !!record),
+        filteredInfo: startOrEnd
+      })
     })
   }
 
@@ -339,13 +366,17 @@ export class User extends React.PureComponent {
       this.setState({
         visible
       }, () => {
-        this.props.onLoadUserDetail(record.id, (result) => {
-          this.setState({
-            showUserDetail: result
-          })
-        })
+        this.props.onLoadUserDetail(record.id, (result) => this.setState({ showUserDetail: result }))
       })
     }
+  }
+
+  deleteUserBtn = (record) => (e) => {
+    this.props.onDeleteUser(record.id, () => {
+      message.success('删除成功！', 3)
+    }, (result) => {
+      message.error(`删除失败： ${result}`, 5)
+    })
   }
 
   render () {
@@ -362,39 +393,7 @@ export class User extends React.PureComponent {
         dataIndex: 'id',
         key: 'id',
         sorter: (a, b) => a.id - b.id,
-        sortOrder: sortedInfo.columnKey === 'id' && sortedInfo.order,
-        filteredValue: filteredInfo.id,
-        filterDropdown: (
-          <div className="custom-filter-dropdown custom-filter-dropdown-ps">
-            <Form>
-              <Row>
-                <Col span={9}>
-                  <Input
-                    ref={ele => { this.searchInput = ele }}
-                    placeholder="Start ID"
-                    onChange={this.onInputChange('searchStartIdText')}
-                  />
-                </Col>
-                <Col span={1}>
-                  <p className="ant-form-split">-</p>
-                </Col>
-                <Col span={9}>
-                  <Input
-                    placeholder="End ID"
-                    onChange={this.onInputChange('searchEndIdText')}
-                  />
-                </Col>
-                <Col span={5} className="text-align-center">
-                  <Button type="primary" onClick={this.onRangeIdSearch('id', 'searchStartIdText', 'searchEndIdText', 'filterDropdownVisibleId')}>Search</Button>
-                </Col>
-              </Row>
-            </Form>
-          </div>
-        ),
-        filterDropdownVisible: this.state.filterDropdownVisibleId,
-        onFilterDropdownVisibleChange: visible => this.setState({
-          filterDropdownVisibleId: visible
-        }, () => this.searchInput.focus())
+        sortOrder: sortedInfo.columnKey === 'id' && sortedInfo.order
       }, {
         title: 'Name',
         dataIndex: 'name',
@@ -477,7 +476,7 @@ export class User extends React.PureComponent {
           }
         },
         sortOrder: sortedInfo.columnKey === 'createTime' && sortedInfo.order,
-        filteredValue: filteredInfo.createTime,
+        // filteredValue: filteredInfo.createTime,
         filterDropdown: (
           <div className="custom-filter-dropdown-style">
             <RangePicker
@@ -509,7 +508,7 @@ export class User extends React.PureComponent {
           }
         },
         sortOrder: sortedInfo.columnKey === 'updateTime' && sortedInfo.order,
-        filteredValue: filteredInfo.updateTime,
+        // filteredValue: filteredInfo.updateTime,
         filterDropdown: (
           <div className="custom-filter-dropdown-style">
             <RangePicker
@@ -555,6 +554,18 @@ export class User extends React.PureComponent {
             <Tooltip title="修改密码">
               <Button icon="key" shape="circle" type="ghost" onClick={this.showDetailPsw(record)} />
             </Tooltip>
+
+            {
+              localStorage.getItem('loginRoleType') === 'admin'
+                ? (
+                  <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteUserBtn(record)}>
+                    <Tooltip title="删除">
+                      <Button icon="delete" shape="circle" type="ghost"></Button>
+                    </Tooltip>
+                  </Popconfirm>
+                )
+                : ''
+            }
           </span>
         )
       }]
@@ -661,7 +672,8 @@ User.propTypes = {
   onAddUser: React.PropTypes.func,
   onEditUser: React.PropTypes.func,
   onLoadEmailInputValue: React.PropTypes.func,
-  onLoadUserDetail: React.PropTypes.func
+  onLoadUserDetail: React.PropTypes.func,
+  onDeleteUser: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -672,7 +684,8 @@ export function mapDispatchToProps (dispatch) {
     onAddUser: (user, resolve) => dispatch(addUser(user, resolve)),
     onEditUser: (user, resolve) => dispatch(editUser(user, resolve)),
     onLoadEmailInputValue: (value, resolve, reject) => dispatch(loadEmailInputValue(value, resolve, reject)),
-    onLoadUserDetail: (userId, resolve) => dispatch(loadUserDetail(userId, resolve))
+    onLoadUserDetail: (userId, resolve) => dispatch(loadUserDetail(userId, resolve)),
+    onDeleteUser: (userId, resolve, reject) => dispatch(deleteUser(userId, resolve, reject))
   }
 }
 

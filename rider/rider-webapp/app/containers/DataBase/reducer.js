@@ -36,6 +36,9 @@ import {
   LOAD_NAME_EXIST,
   LOAD_NAME_EXIST_SUCCESS,
   LOAD_NAME_EXIST_ERROR,
+  DELETE_DB,
+  DELETE_DB_SUCCESS,
+  DELETE_DB_ERROR,
   GET_ERROR
 } from './constants'
 
@@ -54,7 +57,6 @@ export function databaseReducer (state = initialState, { type, payload }) {
     case LOAD_DATABASES:
       return state.set('error', false)
     case LOAD_DATABASES_SUCCESS:
-      payload.resolve()
       return state.set('databases', payload.databases)
     case ADD_DATABASE:
       return state.set('modalLoading', true)
@@ -98,6 +100,12 @@ export function databaseReducer (state = initialState, { type, payload }) {
     case LOAD_NAME_EXIST_ERROR:
       payload.reject()
       return state.set('databaseNameExited', true)
+    case DELETE_DB:
+      return state
+    case DELETE_DB_SUCCESS:
+      return state.set('databases', databases.filter(g => g.id !== payload.result))
+    case DELETE_DB_ERROR:
+      return state
     case GET_ERROR:
       return state.set('error', payload.error)
     default:

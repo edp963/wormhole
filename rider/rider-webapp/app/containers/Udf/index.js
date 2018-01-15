@@ -29,14 +29,14 @@ import Button from 'antd/lib/button'
 import Icon from 'antd/lib/icon'
 import Tooltip from 'antd/lib/tooltip'
 import Popover from 'antd/lib/popover'
-// import Popconfirm from 'antd/lib/popconfirm'
+import Popconfirm from 'antd/lib/popconfirm'
 import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import Input from 'antd/lib/input'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { loadUdfs, loadSingleUdf, addUdf, loadUdfDetail, editUdf } from './action'
+import { loadUdfs, loadSingleUdf, addUdf, loadUdfDetail, editUdf, deleteUdf } from './action'
 import { selectUdfs, selectError, selectModalLoading } from './selectors'
 
 export class Udf extends React.PureComponent {
@@ -74,6 +74,13 @@ export class Udf extends React.PureComponent {
       searchEndByText: '',
       filterDropdownVisibleBy: false,
 
+      columnNameText: '',
+      valueText: '',
+      visibleBool: false,
+      startTimeTextState: '',
+      endTimeTextState: '',
+      paginationInfo: null,
+
       queryUdfVal: {},
       showUdfDetail: {}
     }
@@ -86,15 +93,27 @@ export class Udf extends React.PureComponent {
   componentWillReceiveProps (props) {
     if (props.udfs) {
       const originUdfs = props.udfs.map(s => {
-        s.pubic = s.pubic ? 'true' : 'false'
         s.key = s.id
         s.visible = false
         return s
       })
-      this.setState({
-        originUdfs: originUdfs.slice(),
-        currentudfs: originUdfs.slice()
-      })
+      this.setState({ originUdfs: originUdfs.slice() })
+      this.state.columnNameText === ''
+        ? this.setState({ currentudfs: originUdfs.slice() })
+        : this.searchOperater()
+    }
+  }
+
+  searchOperater () {
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
     }
   }
 
@@ -106,13 +125,6 @@ export class Udf extends React.PureComponent {
     this.loadUdfData()
   }
 
-  udfRefreshState () {
-    this.setState({
-      refreshUdfLoading: false,
-      refreshUdfText: 'Refresh'
-    })
-  }
-
   loadUdfData () {
     const { projectIdGeted, udfClassHide } = this.props
     if (localStorage.getItem('loginRoleType') === 'admin') {
@@ -122,6 +134,15 @@ export class Udf extends React.PureComponent {
     } else if (localStorage.getItem('loginRoleType') === 'user') {
       this.props.onLoadSingleUdf(projectIdGeted, 'user', () => { this.udfRefreshState() })
     }
+  }
+
+  udfRefreshState () {
+    this.setState({
+      refreshUdfLoading: false,
+      refreshUdfText: 'Refresh'
+    })
+    const { paginationInfo, filteredInfo, sortedInfo } = this.state
+    this.handleUdfChange(paginationInfo, filteredInfo, sortedInfo)
   }
 
   showAddUdf = () => {
@@ -174,20 +195,6 @@ export class Udf extends React.PureComponent {
     })
   }
 
-  // deleteSingleUdf = (record) => (e) => {
-  //   const requestParam = {
-  //     id: record.id,
-  //     functionName: record.functionName,
-  //     fullClassName: record.fullClassName,
-  //     jarName: record.jarName,
-  //     createTime: record.createTime,
-  //     createBy: record.createBy
-  //   }
-  //   this.props.onDeleteUdf(requestParam, () => {
-  //
-  //   })
-  // }
-
   // 点击遮罩层或右上角叉或取消按钮的回调
   hideForm = () => this.setState({ formVisible: false })
 
@@ -222,45 +229,64 @@ export class Udf extends React.PureComponent {
     })
   }
 
+  deleteUdfBtn = (record) => (e) => {
+    this.props.onDeleteUdf(record.id, () => {
+      message.success('删除成功！', 3)
+    }, (result) => {
+      message.error(`删除失败： ${result}`, 5)
+    })
+  }
+
   onSearch = (columnName, value, visible) => () => {
     const reg = new RegExp(this.state[value], 'gi')
 
     this.setState({
-      [visible]: false,
-      currentudfs: this.state.originUdfs.map((record) => {
-        const match = String(record[columnName]).match(reg)
-        if (!match) {
-          return null
-        }
-        return {
-          ...record,
-          [`${columnName}Origin`]: record[columnName],
-          [columnName]: (
-            <span>
-              {String(record[columnName]).split(reg).map((text, i) => (
-                i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
-              ))}
-            </span>
-          )
-        }
-      }).filter(record => !!record)
+      filteredInfo: {pubic: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        valueText: value,
+        visibleBool: visible,
+        currentudfs: this.state.originUdfs.map((record) => {
+          const match = String(record[columnName]).match(reg)
+          if (!match) {
+            return null
+          }
+          return {
+            ...record,
+            [`${columnName}Origin`]: record[columnName],
+            [columnName]: (
+              <span>
+                {String(record[columnName]).split(reg).map((text, i) => (
+                  i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
+                ))}
+              </span>
+            )
+          }
+        }).filter(record => !!record)
+      })
     })
   }
 
   handleUdfChange = (pagination, filters, sorter) => {
+    if (filters) {
+      if (filters.pubic) {
+        if (filters.pubic.length !== 0) {
+          this.onSearch('', '', false)()
+        }
+      }
+    }
     this.setState({
       filteredInfo: filters,
-      sortedInfo: sorter
+      sortedInfo: sorter,
+      paginationInfo: pagination
     })
   }
 
   onInputChange = (value) => (e) => this.setState({ [value]: e.target.value })
 
-  handleEndOpenChange = (status) => {
-    this.setState({
-      filterDatepickerShown: status
-    })
-  }
+  handleEndOpenChange = (status) => this.setState({ filterDatepickerShown: status })
 
   onRangeTimeChange = (value, dateString) => {
     this.setState({
@@ -281,36 +307,30 @@ export class Udf extends React.PureComponent {
     }
 
     this.setState({
-      [visible]: false,
-      currentUdfs: this.state.originUdfs.map((record) => {
-        const match = (new Date(record[columnName])).getTime()
-        if ((match < startSearchTime) || (match > endSearchTime)) {
-          return null
-        }
-        return {
-          ...record,
-          [columnName]: (
-            this.state.startTimeText === ''
-              ? <span>{record[columnName]}</span>
-              : <span className="highlight">{record[columnName]}</span>
-          )
-        }
-      }).filter(record => !!record),
-      filteredInfo: startOrEnd
-    })
-  }
-
-  onRangeBySearch = (columnName, startText, endText, visible) => () => {
-    this.setState({
-      [visible]: false,
-      currentUdfs: this.state.originUdfs.map((record) => {
-        const match = record[columnName]
-        if ((match < parseInt(this.state[startText])) || (match > parseInt(this.state[endText]))) {
-          return null
-        }
-        return record
-      }).filter(record => !!record),
-      filteredInfo: this.state[startText] || this.state[endText] ? {createBy: [0]} : {createBy: []}
+      filteredInfo: {pubic: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        startTimeTextState: startTimeText,
+        endTimeTextState: endTimeText,
+        visibleBool: visible,
+        currentUdfs: this.state.originUdfs.map((record) => {
+          const match = (new Date(record[columnName])).getTime()
+          if ((match < startSearchTime) || (match > endSearchTime)) {
+            return null
+          }
+          return {
+            ...record,
+            [columnName]: (
+              this.state.startTimeText === ''
+                ? <span>{record[columnName]}</span>
+                : <span className="highlight">{record[columnName]}</span>
+            )
+          }
+        }).filter(record => !!record),
+        filteredInfo: startOrEnd
+      })
     })
   }
 
@@ -319,11 +339,7 @@ export class Udf extends React.PureComponent {
       this.setState({
         visible
       }, () => {
-        this.props.onLoadUdfDetail(record.id, (result) => {
-          this.setState({
-            showUdfDetail: result
-          })
-        })
+        this.props.onLoadUdfDetail(record.id, (result) => this.setState({ showUdfDetail: result }))
       })
     }
   }
@@ -460,7 +476,11 @@ export class Udf extends React.PureComponent {
         {text: 'false', value: 'false'}
       ],
       filteredValue: filteredInfo.pubic,
-      onFilter: (value, record) => record.pubic.includes(value)
+      onFilter: (value, record) => {
+        const recordPubic = record.pubic ? 'true' : 'false'
+        return recordPubic.includes(value)
+      },
+      render: (text, record) => text ? 'true' : 'false'
     }, {
       title: 'Create Time',
       dataIndex: 'createTime',
@@ -473,7 +493,7 @@ export class Udf extends React.PureComponent {
         }
       },
       sortOrder: sortedInfo.columnKey === 'createTime' && sortedInfo.order,
-      filteredValue: filteredInfo.createTime,
+      // filteredValue: filteredInfo.createTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -505,7 +525,7 @@ export class Udf extends React.PureComponent {
         }
       },
       sortOrder: sortedInfo.columnKey === 'updateTime' && sortedInfo.order,
-      filteredValue: filteredInfo.updateTime,
+      // filteredValue: filteredInfo.updateTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -553,11 +573,17 @@ export class Udf extends React.PureComponent {
           <Tooltip title="修改">
             <Button icon="edit" shape="circle" type="ghost" onClick={this.onShowEditUdf(record)}></Button>
           </Tooltip>
-          {/* <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteSingleUdf(record)}>
-            <Tooltip title="删除">
-              <Button icon="delete" shape="circle" type="ghost"></Button>
-            </Tooltip>
-          </Popconfirm> */}
+          {
+            localStorage.getItem('loginRoleType') === 'admin'
+              ? (
+                <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteUdfBtn(record)}>
+                  <Tooltip title="删除">
+                    <Button icon="delete" shape="circle" type="ghost"></Button>
+                  </Tooltip>
+                </Popconfirm>
+              )
+              : ''
+          }
         </span>
       )
     }]
@@ -657,8 +683,8 @@ Udf.propTypes = {
   onLoadSingleUdf: React.PropTypes.func,
   onAddUdf: React.PropTypes.func,
   onLoadUdfDetail: React.PropTypes.func,
-  onEditUdf: React.PropTypes.func
-  // onDeleteUdf: React.PropTypes.func
+  onEditUdf: React.PropTypes.func,
+  onDeleteUdf: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -667,8 +693,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
     onAddUdf: (values, resolve, reject) => dispatch(addUdf(values, resolve, reject)),
     onLoadUdfDetail: (udfId, resolve) => dispatch(loadUdfDetail(udfId, resolve)),
-    onEditUdf: (values, resolve, reject) => dispatch(editUdf(values, resolve, reject))
-    // onDeleteUdf: (values, resolve) => dispatch(deleteUdf(values, resolve))
+    onEditUdf: (values, resolve, reject) => dispatch(editUdf(values, resolve, reject)),
+    onDeleteUdf: (udfId, resolve, reject) => dispatch(deleteUdf(udfId, resolve, reject))
   }
 }
 

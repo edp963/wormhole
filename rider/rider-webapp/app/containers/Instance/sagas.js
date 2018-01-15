@@ -27,7 +27,8 @@ import {
   LOAD_INSTANCES_INPUT_VALUE,
   LOAD_INSTANCES_EXIT,
   LOAD_SINGLE_INSTANCE,
-  EDIT_INSTANCE
+  EDIT_INSTANCE,
+  DELETE_INSTANCE
 } from './constants'
 import {
   instancesLoaded,
@@ -38,6 +39,8 @@ import {
   instanceExitErrorLoaded,
   singleInstanceLoaded,
   instanceEdited,
+  instanceDeleted,
+  instanceDeletedError,
   getError
 } from './action'
 
@@ -100,7 +103,8 @@ export function* editInstance ({ payload }) {
       url: api.instance,
       data: payload.value
     })
-    yield put(instanceEdited(result.payload, payload.resolve))
+    yield put(instanceEdited(result.payload))
+    payload.resolve()
   } catch (err) {
     yield put(getError(err))
   }
@@ -145,11 +149,34 @@ export function* getInstanceValExitWatcher () {
   yield throttle(800, LOAD_INSTANCES_EXIT, getInstanceValExit)
 }
 
+export function* deleteInstanceAction ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'delete',
+      url: `${api.instance}/${payload.instanceId}`
+    })
+    if (result.code === 412) {
+      yield put(instanceDeletedError(result.msg))
+      payload.reject(result.msg)
+    } else if (result.code === 200) {
+      yield put(instanceDeleted(payload.instanceId))
+      payload.resolve()
+    }
+  } catch (err) {
+    yield put(getError(err))
+  }
+}
+
+export function* deleteInstanceActionWatcher () {
+  yield fork(takeEvery, DELETE_INSTANCE, deleteInstanceAction)
+}
+
 export default [
   getInstancesWatcher,
   addInstanceWatcher,
   singleInstanceWatcher,
   editInstanceWatcher,
   getInstanceInputValueWatcher,
-  getInstanceValExitWatcher
+  getInstanceValExitWatcher,
+  deleteInstanceActionWatcher
 ]

@@ -34,6 +34,9 @@ import {
   LOAD_NAME_EXIST_ERROR,
   LOAD_SINGLE_DATABASE,
   LOAD_SINGLE_DATABASE_SUCCESS,
+  DELETE_DB,
+  DELETE_DB_SUCCESS,
+  DELETE_DB_ERROR,
   GET_ERROR
 } from './constants'
 
@@ -46,12 +49,11 @@ export function loadDatabases (resolve) {
   }
 }
 
-export function databasesLoaded (databases, resolve) {
+export function databasesLoaded (databases) {
   return {
     type: LOAD_DATABASES_SUCCESS,
     payload: {
-      databases,
-      resolve
+      databases
     }
   }
 }
@@ -185,6 +187,35 @@ export function singleDatabaseLoaded (result, resolve) {
     payload: {
       result,
       resolve
+    }
+  }
+}
+
+export function deleteDB (databaseId, resolve, reject) {
+  return {
+    type: DELETE_DB,
+    payload: {
+      databaseId,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function dBDeleted (result) {
+  return {
+    type: DELETE_DB_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function dBDeletedError (result) {
+  return {
+    type: DELETE_DB_ERROR,
+    payload: {
+      result
     }
   }
 }

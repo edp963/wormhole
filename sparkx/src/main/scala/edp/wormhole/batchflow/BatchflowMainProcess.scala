@@ -73,20 +73,22 @@ object BatchflowMainProcess extends EdpLogging {
         val rddTs = System.currentTimeMillis
         // val session = SparkSession.builder().config(streamRdd.sparkContext.getConf).getOrCreate()
 
-        logInfo("star" +
-          "t doDirectiveTopic")
+        logInfo("start doDirectiveTopic")
         val directiveTs = System.currentTimeMillis
         BatchflowDirective.doDirectiveTopic(config, stream)
 
         logInfo("start Repartition")
         val mainDataTs = System.currentTimeMillis
         //val dt1 =  dt2dateTime(currentyyyyMMddHHmmss)
+
         val dataRepartitionRdd: RDD[(String, String)] = if (config.rdd_partition_number != -1) streamRdd.map(row => (row.key, row.value)).repartition(config.rdd_partition_number) else streamRdd.map(row => (row.key, row.value))
         UdfDirective.registerUdfProcess(config.kafka_output.feedback_topic_name, config.kafka_output.brokers, session)
         //        dataRepartitionRdd.cache()
         //        dataRepartitionRdd.count()
         //        val dt2: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
         //        println("repartition dataRepartitionRdd duration:   " + dt2 + " - "+ dt1 +" = " + (Seconds.secondsBetween(dt1, dt2).getSeconds() % 60 + " seconds."))
+
+
         logInfo("start create classifyRdd")
         val classifyRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])] = getClassifyRdd(dataRepartitionRdd).cache()
         val distinctSchema: mutable.Map[(UmsProtocolType, String), (Seq[UmsField], Long)] = getDistinctSchema(classifyRdd)
@@ -198,7 +200,7 @@ object BatchflowMainProcess extends EdpLogging {
   }
 
 
-  private def doStreamLookupData(session: SparkSession, allDataRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])], config: WormholeConfig, distinctSchema: mutable.Map[(UmsProtocolType, String), (Seq[UmsField], Long)] ) = {
+  private def doStreamLookupData(session: SparkSession, allDataRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])], config: WormholeConfig, distinctSchema: mutable.Map[(UmsProtocolType, String), (Seq[UmsField], Long)]) = {
     try { // join in streaming, file name： sourcenamespace 4 fields _ sinknamespace_lookup namespace 4 fields
       val umsRdd: RDD[(UmsProtocolType, String, ArrayBuffer[Seq[String]])] = formatRdd(allDataRdd, "lookup")
       distinctSchema.foreach(schema => {
@@ -228,7 +230,7 @@ object BatchflowMainProcess extends EdpLogging {
                          rddTs: Long,
                          directiveTs: Long,
                          mainDataTs: Long,
-                         distinctSchema: mutable.Map[(UmsProtocolType, String), (Seq[UmsField], Long)] ): Set[String] = {
+                         distinctSchema: mutable.Map[(UmsProtocolType, String), (Seq[UmsField], Long)]): Set[String] = {
     val processedSourceNamespace = mutable.HashSet.empty[String]
     // val dt1: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
     val umsRdd: RDD[(UmsProtocolType, String, ArrayBuffer[Seq[String]])] = formatRdd(mainDataRdd, "main").cache
@@ -392,12 +394,12 @@ object BatchflowMainProcess extends EdpLogging {
   }
 
   private def getDistinctSchema(umsRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])]): mutable.Map[(UmsProtocolType.UmsProtocolType, String), (Seq[UmsField], Long)] = {
-    val schemaMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField],Long)]
+    val schemaMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], Long)]
     umsRdd.map(_._4).collect().foreach(_.foreach { case ((protocol, ns), schema) =>
       if (!schemaMap.contains((protocol, ns))) {
         val matchSourceNs = ConfMemoryStorage.getMatchSourceNamespaceRule(ns)
         val directiveId = ConfMemoryStorage.getFlowConfigMap(matchSourceNs).head._2._3
-        schemaMap((protocol, ns)) = (schema,directiveId)
+        schemaMap((protocol, ns)) = (schema, directiveId)
       }
     })
     mutable.LinkedHashMap(schemaMap.toSeq.sortBy(_._2._2): _*)
@@ -455,37 +457,28 @@ object BatchflowMainProcess extends EdpLogging {
                                      uuid: String) = {
     val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(sinkNamespace)
     val (resultSchemaMap: Map[String, (Int, UmsFieldType, Boolean)], originalSchemaMap, renameMap) = SparkUtils.getSchemaMap(sinkFields, sinkProcessConfig.sinkOutput)
-    logInfo(uuid + ",schemaMap:" + resultSchemaMap)
+    logInfo(uuid + s",$sinkNamespace schemaMap:" + resultSchemaMap)
     val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
 
-    val dataSysType = UmsDataSystem.dataSystem(sinkNamespace.split("\\.")(0))
-    val repartitionRDD = if (dataSysType == UmsDataSystem.MYSQL || dataSysType == UmsDataSystem.ORACLE || dataSysType == UmsDataSystem.POSTGRESQL) {
-      val specialConfigJson: JSONObject = if (sinkProcessConfig.specialConfig.isDefined) JSON.parseObject(sinkProcessConfig.specialConfig.get) else new JSONObject()
+    val specialConfigJson: JSONObject = if (sinkProcessConfig.specialConfig.isDefined) JSON.parseObject(sinkProcessConfig.specialConfig.get) else new JSONObject()
 
-      if (specialConfigJson.containsKey("mutation_type") && specialConfigJson.getString("mutation_type").nonEmpty) {
-        val mutationType = specialConfigJson.getString("mutation_type").trim
-        if (SourceMutationType.INSERT_ONLY.toString != mutationType) {
-          if (sinkProcessConfig.tableKeys.nonEmpty) {
-            logInfo("sinkProcessConfig.tableKeys.nonEmpty")
-            val columnsIndex: Array[Int] = sinkProcessConfig.tableKeys.get.split(",").map(name => originalSchemaMap(name)._1)
-            sinkRDD.map(t => (columnsIndex.map(x => t(x)).mkString("_"), t)).partitionBy(new HashPartitioner(config.rdd_partition_number)).map(_._2)
-          } else {
-            logInfo("sinkProcessConfig.tableKeys.isEmpty")
-            sinkRDD
-          }
-        } else {
-          logInfo("SourceMutationType.INSERT_ONLY.toString == mutationType")
-          sinkRDD
-        }
+    val mutationType =
+      if (specialConfigJson.containsKey("mutation_type")) specialConfigJson.getString("mutation_type").trim
+      else SourceMutationType.I_U_D.toString
+
+    val repartitionRDD = if (SourceMutationType.INSERT_ONLY.toString != mutationType) {
+      if (sinkProcessConfig.tableKeys.nonEmpty) {
+        logInfo("sinkProcessConfig.tableKeys.nonEmpty")
+        val columnsIndex: Array[Int] = sinkProcessConfig.tableKeys.get.split(",").map(name => originalSchemaMap(name)._1)
+        sinkRDD.map(t => (columnsIndex.map(x => t(x)).mkString("_"), t)).partitionBy(new HashPartitioner(config.rdd_partition_number)).map(_._2)
       } else {
-        logInfo("specialConfigJson.containsKey(mutation_type)")
+        logInfo("sinkProcessConfig.tableKeys.isEmpty")
         sinkRDD
       }
     } else {
-      logInfo("dataSysType is not db")
+      logInfo("SourceMutationType.INSERT_ONLY.toString == mutationType")
       sinkRDD
     }
-
 
     val send2saveData: RDD[(ListBuffer[Seq[String]], ListBuffer[String])] = repartitionRDD.mapPartitions((partition: Iterator[Seq[String]]) => {
 
@@ -494,7 +487,7 @@ object BatchflowMainProcess extends EdpLogging {
 
         val (sendList: ListBuffer[Seq[String]], saveList: ListBuffer[String]) = doValidityAndGetData(swiftsProcessConfig, partition, resultSchemaMap, originalSchemaMap, renameMap, minTs, sourceNamespace, sinkNamespace) //,jsonUmsSysFields)
 
-        //  sendList.foreach(data=>logInfo("before merge:"+data))
+//        sendList.foreach(data => logInfo("before merge:" + data))
         logInfo(uuid + ",@sendList size: " + sendList.size + " saveList size: " + saveList.size)
         val mergeSendList: Seq[Seq[String]] = if (sinkProcessConfig.specialConfig.isDefined && sinkProcessConfig.specialConfig.get.indexOf("\"i\"") < 0) {
           logInfo(uuid + "special config not i, merge happen")
@@ -504,7 +497,7 @@ object BatchflowMainProcess extends EdpLogging {
           sendList
         }
         logInfo(uuid + ",@mergeSendList size: " + mergeSendList.size)
-        //        mergeSendList.foreach(data=>logInfo("after merge:"+data))
+//        mergeSendList.foreach(data => logInfo("after merge:" + data))
 
         //        val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
         //
@@ -516,11 +509,12 @@ object BatchflowMainProcess extends EdpLogging {
         logInfo(uuid + ",partition data(payload) size is 0,do not process sink")
         List.empty[(ListBuffer[Seq[String]], ListBuffer[String])].toIterator
       }
-    }) //.collect()
+    }).cache()
 
     val sendData: RDD[Seq[String]] = send2saveData.mapPartitions(par => {
       par.flatMap(_._1)
     })
+
 
     val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
     sinkMethod.invoke(sinkObject, session, protocolType, sourceNamespace, sinkNamespace, sinkProcessConfig, resultSchemaMap, sendData, connectionConfig)
@@ -528,6 +522,9 @@ object BatchflowMainProcess extends EdpLogging {
     val nonTimeoutUids: Array[String] = send2saveData.mapPartitions(par => {
       par.flatMap(_._2)
     }).collect()
+
+
+    send2saveData.unpersist()
 
     // val dt3: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
     //  println("In validityAndSinkProcess, writetoSInk duration:   " + dt3 + " - "+ dt2 +" = " + (Seconds.secondsBetween(dt2, dt3).getSeconds() % 60 + " seconds."))
@@ -682,13 +679,14 @@ object BatchflowMainProcess extends EdpLogging {
               val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(namespace)
               if (matchSourceNamespace != null) {
                 val sinkNamespaceMap = ConfMemoryStorage.getFlowConfigMap(matchSourceNamespace)
-                sinkNamespaceMap.foreach { case (sinkNamespace, _) =>
-                  if (!processedsourceNamespace(namespace)) {
-                    val currentTs = System.currentTimeMillis()
-                    WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-                      UmsProtocolUtils.feedbackFlowStats(namespace, UmsProtocolType.DATA_INCREMENT_DATA.toString, currentDateTime, config.spark_config.stream_id, statsId, sinkNamespace,
-                        0, DateUtils.dt2date(umsts).getTime, currentTs, currentTs, currentTs, currentTs, currentTs, currentTs), None, config.kafka_output.brokers)
-                  }
+                sinkNamespaceMap.foreach {
+                  case (sinkNamespace, _) =>
+                    if (!processedsourceNamespace(namespace)) {
+                      val currentTs = System.currentTimeMillis()
+                      WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
+                        UmsProtocolUtils.feedbackFlowStats(namespace, UmsProtocolType.DATA_INCREMENT_DATA.toString, currentDateTime, config.spark_config.stream_id, statsId, sinkNamespace,
+                          0, DateUtils.dt2date(umsts).getTime, currentTs, currentTs, currentTs, currentTs, currentTs, currentTs), None, config.kafka_output.brokers)
+                    }
                 }
               }
               WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority2,

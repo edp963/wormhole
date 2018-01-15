@@ -67,7 +67,8 @@ import { notifySagasError } from '../../utils/util'
 export function* getAdminAllJobs ({ payload }) {
   try {
     const result = yield call(request, api.job)
-    yield put(adminAllJobsLoaded(result.payload, payload.resolve))
+    yield put(adminAllJobsLoaded(result.payload))
+    payload.resolve()
   } catch (err) {
     notifySagasError(err, 'getAdminAllJobs')
   }
@@ -80,7 +81,8 @@ export function* getAdminAllJobsWatcher () {
 export function* getUserAllJobs ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/jobs`)
-    yield put(userAllJobsLoaded(result.payload, payload.resolve))
+    yield put(userAllJobsLoaded(result.payload))
+    payload.resolve()
   } catch (err) {
     notifySagasError(err, 'getUserAllJobs')
   }
@@ -93,7 +95,8 @@ export function* getUserAllJobsWatcher () {
 export function* getAdminSingleJob ({ payload }) {
   try {
     const result = yield call(request, `${api.projectList}/${payload.projectId}/jobs`)
-    yield put(adminSingleJobLoaded(result.payload, payload.resolve))
+    yield put(adminSingleJobLoaded(result.payload))
+    payload.resolve()
   } catch (err) {
     notifySagasError(err, 'getAdminSingleJob')
   }

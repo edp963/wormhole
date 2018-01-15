@@ -26,8 +26,8 @@ import CodeMirror from 'codemirror'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
 
-import { jsonParse, fieldTypeAlter, renameAlter, genDefaultSchemaTable, umsSysFieldSelected, umsSysFieldCanceled,
-  getRepeatFieldIndex, genSchema } from './umsFunction'
+import { jsonParse, fieldTypeAlter, renameAlter, genDefaultSchemaTable, umsSysFieldSelected,
+  umsSysFieldCanceled, getRepeatFieldIndex, genSchema } from './umsFunction'
 import { isJSONNotEmpty } from '../../utils/util'
 
 import NamespaceForm from './NamespaceForm'
@@ -39,6 +39,7 @@ import Input from 'antd/lib/input'
 import Button from 'antd/lib/button'
 import Tooltip from 'antd/lib/tooltip'
 import Popover from 'antd/lib/popover'
+import Popconfirm from 'antd/lib/popconfirm'
 import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import DatePicker from 'antd/lib/date-picker'
@@ -48,7 +49,7 @@ import { loadDatabasesInstance } from '../../containers/DataBase/action'
 import { selectDbUrlValue } from '../../containers/DataBase/selectors'
 import { loadSingleInstance } from '../../containers/Instance/action'
 import { loadAdminAllNamespaces, loadUserNamespaces, loadSelectNamespaces, loadNamespaceDatabase,
-  addNamespace, editNamespace, loadTableNameExist, loadSingleNamespace, setSchema, querySchemaConfig } from './action'
+  addNamespace, editNamespace, loadTableNameExist, loadSingleNamespace, setSchema, querySchemaConfig, deleteNs } from './action'
 import { selectNamespaces, selectError, selectModalLoading, selectTableNameExited } from './selectors'
 
 export class Namespace extends React.PureComponent {
@@ -87,6 +88,13 @@ export class Namespace extends React.PureComponent {
       updateEndTimeText: '',
       filterDropdownVisibleUpdateTime: false,
 
+      columnNameText: '',
+      valueText: '',
+      visibleBool: false,
+      startTimeTextState: '',
+      endTimeTextState: '',
+      paginationInfo: null,
+
       databaseSelectValue: [],
       deleteTableClass: 'hide',
       addTableClass: '',
@@ -114,7 +122,9 @@ export class Namespace extends React.PureComponent {
       sinkSchemaModalVisible: false,
       sinkTableDataSource: [],
       sinkJsonSampleValue: [],
-      sinkSelectAllState: 'all'
+      sinkSelectAllState: 'all',
+
+      queryConnUrl: ''
     }
   }
 
@@ -130,9 +140,24 @@ export class Namespace extends React.PureComponent {
         return s
       })
       this.setState({
-        originNamespaces: originNamespaces.slice(),
-        currentNamespaces: originNamespaces.slice()
+        originNamespaces: originNamespaces.slice()
       })
+      this.state.columnNameText === ''
+        ? this.setState({ currentNamespaces: originNamespaces.slice() })
+        : this.searchOperater()
+    }
+  }
+
+  searchOperater () {
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'createTime' || columnNameText === 'updateTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
     }
   }
 
@@ -159,12 +184,24 @@ export class Namespace extends React.PureComponent {
       refreshNsLoading: false,
       refreshNsText: 'Refresh'
     })
+
+    const { paginationInfo, filteredInfo, sortedInfo } = this.state
+    this.handleNamespaceChange(paginationInfo, filteredInfo, sortedInfo)
+    this.searchOperater()
   }
 
   handleNamespaceChange = (pagination, filters, sorter) => {
+    if (filters) {
+      if (filters.nsSys) {
+        if (filters.nsSys.length !== 0) {
+          this.onSearch('', '', false)()
+        }
+      }
+    }
     this.setState({
       filteredInfo: filters,
-      sortedInfo: sorter
+      sortedInfo: sorter,
+      paginationInfo: pagination
     })
   }
 
@@ -172,24 +209,31 @@ export class Namespace extends React.PureComponent {
     const reg = new RegExp(this.state[value], 'gi')
 
     this.setState({
-      [visible]: false,
-      currentNamespaces: this.state.originNamespaces.map((record) => {
-        const match = String(record[columnName]).match(reg)
-        if (!match) {
-          return null
-        }
-        return {
-          ...record,
-          [`${columnName}Origin`]: record[columnName],
-          [columnName]: (
-            <span>
-              {String(record[columnName]).split(reg).map((text, i) => (
-                i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
-              ))}
-            </span>
-          )
-        }
-      }).filter(record => !!record)
+      filteredInfo: {nsSys: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        valueText: value,
+        visibleBool: visible,
+        currentNamespaces: this.state.originNamespaces.map((record) => {
+          const match = String(record[columnName]).match(reg)
+          if (!match) {
+            return null
+          }
+          return {
+            ...record,
+            [`${columnName}Origin`]: record[columnName],
+            [columnName]: (
+              <span>
+                {String(record[columnName]).split(reg).map((text, i) => (
+                  i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
+                ))}
+              </span>
+            )
+          }
+        }).filter(record => !!record)
+      })
     })
   }
 
@@ -216,22 +260,30 @@ export class Namespace extends React.PureComponent {
     }
 
     this.setState({
-      [visible]: false,
-      currentNamespaces: this.state.originNamespaces.map((record) => {
-        const match = (new Date(record[columnName])).getTime()
-        if ((match < startSearchTime) || (match > endSearchTime)) {
-          return null
-        }
-        return {
-          ...record,
-          [columnName]: (
-            this.state.startTimeText === ''
-              ? <span>{record[columnName]}</span>
-              : <span className="highlight">{record[columnName]}</span>
-          )
-        }
-      }).filter(record => !!record),
-      filteredInfo: startOrEnd
+      filteredInfo: {nsSys: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        startTimeTextState: startTimeText,
+        endTimeTextState: endTimeText,
+        visibleBool: visible,
+        currentNamespaces: this.state.originNamespaces.map((record) => {
+          const match = (new Date(record[columnName])).getTime()
+          if ((match < startSearchTime) || (match > endSearchTime)) {
+            return null
+          }
+          return {
+            ...record,
+            [columnName]: (
+              this.state.startTimeText === ''
+                ? <span>{record[columnName]}</span>
+                : <span className="highlight">{record[columnName]}</span>
+            )
+          }
+        }).filter(record => !!record),
+        filteredInfo: startOrEnd
+      })
     })
   }
 
@@ -259,10 +311,7 @@ export class Namespace extends React.PureComponent {
           resolve(result)
           this.namespaceForm.setFieldsValue({
             dataBaseDataSystem: result.nsSys,
-            nsDatabase: [
-              result.nsDatabase
-              // result.permission
-            ],
+            nsDatabase: [result.nsDatabase],
             instance: result.nsInstance,
             nsSingleTableName: result.nsTable,
             nsSingleKeyValue: result.keys
@@ -278,7 +327,6 @@ export class Namespace extends React.PureComponent {
               nsVersion: result.nsVersion,
               nsDbpar: result.nsDbpar,
               nsTablepar: result.nsTablepar,
-              // permission: result.permission,
               nsDatabaseId: result.nsDatabaseId,
               nsInstanceId: result.nsInstanceId,
               active: result.active,
@@ -295,8 +343,8 @@ export class Namespace extends React.PureComponent {
       })
         .then((result) => {
           this.props.onLoadSingleInstance(result.nsInstanceId, (result) => {
-            this.namespaceForm.setFieldsValue({
-              connectionUrl: result.connUrl
+            this.setState({
+              queryConnUrl: result.connUrl
             })
           })
         })
@@ -383,7 +431,8 @@ export class Namespace extends React.PureComponent {
   }
 
   onModalOk = () => {
-    const { namespaceTableSource, databaseSelectValue, namespaceFormType, exitedNsTableValue, editNamespaceData, nsInstanceVal } = this.state
+    const { namespaceTableSource, databaseSelectValue, namespaceFormType, exitedNsTableValue,
+      editNamespaceData, queryConnUrl, nsInstanceVal } = this.state
     const { tableNameExited } = this.props
 
     this.namespaceForm.validateFieldsAndScroll((err, values) => {
@@ -461,7 +510,7 @@ export class Namespace extends React.PureComponent {
             const editKeysValue = values.nsSingleKeyValue
 
             if (values.dataBaseDataSystem === 'redis') {
-              this.props.onEditNamespace(Object.assign({}, editNamespaceData, { keys: '' }), () => {
+              this.props.onEditNamespace(Object.assign({}, editNamespaceData, queryConnUrl, { keys: '' }), () => {
                 this.hideForm()
                 message.success('Namespace 修改成功！', 3)
               })
@@ -469,7 +518,7 @@ export class Namespace extends React.PureComponent {
               if (editKeysValue === '') {
                 this.nsErrorMsg('请填写 Key')
               } else {
-                this.props.onEditNamespace(Object.assign({}, editNamespaceData, { keys: editKeysValue }), () => {
+                this.props.onEditNamespace(Object.assign({}, editNamespaceData, queryConnUrl, { keys: editKeysValue }), () => {
                   this.hideForm()
                   message.success('Namespace 修改成功！', 3)
                 })
@@ -673,6 +722,9 @@ export class Namespace extends React.PureComponent {
                   selectAllState: tempState
                 })
               })
+            } else {
+              this.makeCodeMirrorInstance()
+              this.cmSample.doc.setValue('')
             }
           })
         }
@@ -692,37 +744,56 @@ export class Namespace extends React.PureComponent {
 
       this.props.onQuerySchemaConfig(record.id, 'sink', (result) => {
         if (result) {
-          this.cmSinkSample.doc.setValue(result.jsonSample)
+          if (result.jsonSample === null && result.jsonParseArray === null &&
+            result.schema === null && result.schemaTable === null
+          ) {
+            this.makeSinkCodeMirrorInstance()
+            this.cmSinkSample.doc.setValue('')
+          } else {
+            this.cmSinkSample.doc.setValue(result.jsonSample)
 
-          setTimeout(() => this.onSinkJsonFormat(), 205)
+            setTimeout(() => this.onSinkJsonFormat(), 205)
 
-          const tableData = result.schemaTable.map((s, index) => {
-            s.key = index
-            return s
-          })
-          this.setState({
-            sinkTableDataSource: tableData,
-            sinkJsonSampleValue: result.jsonSample
-          }, () => {
-            const tempArr = this.state.sinkTableDataSource.filter(s => !s.forbidden)
-            const selectedArr = tempArr.filter(s => s.selected)
-
-            let tempState = ''
-            if (selectedArr.length !== 0) {
-              tempState = selectedArr.length === tempArr.length ? 'all' : 'part'
-            } else {
-              tempState = 'not'
-            }
-            this.setState({
-              sinkSelectAllState: tempState
+            const tableData = result.schemaTable.map((s, index) => {
+              s.key = index
+              return s
             })
-          })
+            this.setState({
+              sinkTableDataSource: tableData,
+              sinkJsonSampleValue: result.jsonSample
+            }, () => {
+              const tempArr = this.state.sinkTableDataSource.filter(s => !s.forbidden)
+              const selectedArr = tempArr.filter(s => s.selected)
+
+              let tempState = ''
+              if (selectedArr.length !== 0) {
+                tempState = selectedArr.length === tempArr.length ? 'all' : 'part'
+              } else {
+                tempState = 'not'
+              }
+              this.setState({
+                sinkSelectAllState: tempState
+              })
+            })
+          }
+        } else {
+          this.makeSinkCodeMirrorInstance()
+          this.cmSinkSample.doc.setValue('')
         }
       })
     })
   }
 
-  initChangeUmsType = (value) => this.setState({ umsTypeSeleted: value })
+  initChangeUmsType = (value) => {
+    this.setState({
+      umsTypeSeleted: value
+    }, () => {
+      if (this.state.umsTypeSeleted === 'ums_extension') {
+        this.makeCodeMirrorInstance()
+        this.cmSample.doc.setValue(this.cmSample.doc.getValue() || '')
+      }
+    })
+  }
 
   makeCodeMirrorInstance = () => {
     if (!this.cmSample) {
@@ -898,7 +969,10 @@ export class Namespace extends React.PureComponent {
     const { sinkTableDataSource, nsIdValue, sinkJsonSampleValue } = this.state
 
     if (!this.cmSinkSample.doc.getValue()) {
-      message.error('JSON Sample 不为空！', 3)
+      this.props.onSetSchema(nsIdValue, {}, 'sink', () => {
+        message.success('Sink Schema 配置成功！', 3)
+        this.hideSinkSchemaModal()
+      })
     } else {
       if (sinkTableDataSource.length === 0) {
         message.error('Table 不为空！', 3)
@@ -947,6 +1021,13 @@ export class Namespace extends React.PureComponent {
       const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, 1)
       this.cmSinkSample.doc.setValue(cmJsonvalueFormat || '')
     }
+  }
+
+  onSinkNoJson = () => {
+    this.cmSinkSample.doc.setValue('')
+    this.setState({
+      sinkTableDataSource: []
+    })
   }
 
   onChangeUmsJsonToTable = () => {
@@ -1265,6 +1346,14 @@ export class Namespace extends React.PureComponent {
     })
   }
 
+  deleteNsBtn = (record) => (e) => {
+    this.props.onDeleteNs(record.id, () => {
+      message.success('删除成功！', 3)
+    }, (result) => {
+      message.error(`删除失败： ${result}`, 5)
+    })
+  }
+
   render () {
     const { refreshNsLoading, refreshNsText, showNsDetail } = this.state
 
@@ -1446,7 +1535,7 @@ export class Namespace extends React.PureComponent {
           }
         },
         sortOrder: sortedInfo.columnKey === 'createTime' && sortedInfo.order,
-        filteredValue: filteredInfo.createTime,
+        // filteredValue: filteredInfo.createTime,
         filterDropdown: (
           <div className="custom-filter-dropdown-style">
             <RangePicker
@@ -1478,7 +1567,7 @@ export class Namespace extends React.PureComponent {
           }
         },
         sortOrder: sortedInfo.columnKey === 'updateTime' && sortedInfo.order,
-        filteredValue: filteredInfo.updateTime,
+        // filteredValue: filteredInfo.updateTime,
         filterDropdown: (
           <div className="custom-filter-dropdown-style">
             <RangePicker
@@ -1550,6 +1639,17 @@ export class Namespace extends React.PureComponent {
                 <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditNamespace(record)}></Button>
               </Tooltip>
               {umsAction}
+              {
+                localStorage.getItem('loginRoleType') === 'admin'
+                  ? (
+                    <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteNsBtn(record)}>
+                      <Tooltip title="删除">
+                        <Button icon="delete" shape="circle" type="ghost"></Button>
+                      </Tooltip>
+                    </Popconfirm>
+                  )
+                  : ''
+              }
             </span>
           )
         }
@@ -1624,6 +1724,7 @@ export class Namespace extends React.PureComponent {
         >
           <NamespaceForm
             namespaceFormType={this.state.namespaceFormType}
+            queryConnUrl={this.state.queryConnUrl}
             onInitNamespaceUrlValue={this.onInitNamespaceUrlValue}
             namespaceUrlValue={this.props.dbUrlValue}
             onInitDatabaseSelectValue={this.onInitDatabaseSelectValue}
@@ -1707,10 +1808,16 @@ export class Namespace extends React.PureComponent {
             <Button
               key="jsonFormat"
               type="primary"
-              className="sink-json-format"
               onClick={this.onSinkJsonFormat}
             >
-              JSON 格式化
+              JSON格式化
+            </Button>,
+            <Button
+              key="noJson"
+              type="primary"
+              onClick={this.onSinkNoJson}
+            >
+              JSON置空
             </Button>,
             <Button
               key="cancel"
@@ -1764,7 +1871,8 @@ Namespace.propTypes = {
   onLoadSingleNamespace: React.PropTypes.func,
   onLoadSingleInstance: React.PropTypes.func,
   onSetSchema: React.PropTypes.func,
-  onQuerySchemaConfig: React.PropTypes.func
+  onQuerySchemaConfig: React.PropTypes.func,
+  onDeleteNs: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1780,7 +1888,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadSingleNamespace: (namespaceId, resolve) => dispatch(loadSingleNamespace(namespaceId, resolve)),
     onLoadSingleInstance: (namespaceId, resolve) => dispatch(loadSingleInstance(namespaceId, resolve)),
     onSetSchema: (namespaceId, value, type, resolve) => dispatch(setSchema(namespaceId, value, type, resolve)),
-    onQuerySchemaConfig: (namespaceId, value, type, resolve) => dispatch(querySchemaConfig(namespaceId, value, type, resolve))
+    onQuerySchemaConfig: (namespaceId, value, type, resolve) => dispatch(querySchemaConfig(namespaceId, value, type, resolve)),
+    onDeleteNs: (namespaceId, resolve, reject) => dispatch(deleteNs(namespaceId, resolve, reject))
   }
 }
 

@@ -29,17 +29,14 @@ import InputNumber from 'antd/lib/input-number'
 const FormItem = Form.Item
 import Select from 'antd/lib/select'
 const Option = Select.Option
-// import Radio from 'antd/lib/radio'
-// const RadioGroup = Radio.Group
-// const RadioButton = Radio.Button
 
 export class DBForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
       databaseDSValue: '',
-      // permissionValue: '',
-      currentDatabaseUrlValue: []
+      currentDatabaseUrlValue: [],
+      connUrlText: ''
     }
   }
 
@@ -50,16 +47,6 @@ export class DBForm extends React.Component {
       })
     }
   }
-
-  // onChangeDBROOrRW = (e) => {
-  //   // const { databaseDSValue } = this.state
-  //   this.setState({
-  //     permissionValue: e.target.value
-  //   })
-  //   // this.props.form.setFieldsValue({
-  //   //   nsDatabase: databaseDSValue === 'hbase' ? 'default' : ''
-  //   // })
-  // }
 
   // 显示 instance 下拉框的内容
   onDatabaseDataSystemItemSelect = (value) => {
@@ -74,8 +61,12 @@ export class DBForm extends React.Component {
   // 选择不同的 instance 显示不同的 connection url
   onHandleChangeInstance = (e) => {
     const selUrl = this.state.currentDatabaseUrlValue.find(s => s.id === Number(e))
+
     this.props.form.setFieldsValue({
       connectionUrl: selUrl.connUrl
+    })
+    this.setState({
+      connUrlText: selUrl.connUrl
     })
   }
 
@@ -96,8 +87,8 @@ export class DBForm extends React.Component {
 
   render () {
     const { getFieldDecorator } = this.props.form
-    const { databaseFormType } = this.props
-    const { databaseDSValue, currentDatabaseUrlValue } = this.state
+    const { databaseFormType, queryConnUrl } = this.props
+    const { databaseDSValue, currentDatabaseUrlValue, connUrlText } = this.state
 
     const itemStyle = {
       labelCol: { span: 6 },
@@ -120,7 +111,6 @@ export class DBForm extends React.Component {
 
     // kafka 独立样式 hide /show
     const databaseDSKafkaShowClass = databaseDSValue === 'kafka' ? '' : 'hide'
-    // const databaseDSKafkaHideClass = databaseDSValue === 'kafka' ? 'hide' : ''
 
     // kafka 实际隐藏(必填hide/show)
     const kafkaTypeHiddens = [
@@ -141,7 +131,8 @@ export class DBForm extends React.Component {
 
     let uerPwdClass = ''
     let userPwdHiddens = false
-    if (databaseDSValue === 'oracle' || databaseDSValue === 'mysql' || databaseDSValue === 'postgresql' || databaseDSValue === 'kafka') {
+    if (databaseDSValue === 'oracle' || databaseDSValue === 'mysql' ||
+      databaseDSValue === 'postgresql' || databaseDSValue === 'kafka') {
       uerPwdClass = 'hide'
       userPwdHiddens = true
     } else {
@@ -149,7 +140,6 @@ export class DBForm extends React.Component {
       userPwdHiddens = false
     }
 
-    // const databaseDSLabel = databaseDSValue === 'kafka' ? 'Topic Name' : 'Database Name'
     let databaseDSLabel = ''
     let databaseDSPlace = ''
     if (databaseDSValue === 'kafka') {
@@ -175,10 +165,13 @@ export class DBForm extends React.Component {
 
     // edit 时，不能修改部分元素
     let disabledOrNot = false
+    let urlText = ''
     if (databaseFormType === 'add') {
       disabledOrNot = false
+      urlText = connUrlText
     } else if (databaseFormType === 'edit') {
       disabledOrNot = true
+      urlText = queryConnUrl
     }
 
     // oracle config 显示必填
@@ -235,33 +228,11 @@ export class DBForm extends React.Component {
 
           <Col span={24}>
             <FormItem label="Connection URL" {...itemStyle}>
-              {getFieldDecorator('connectionUrl', {
-                rules: [{
-                  required: true,
-                  message: '请选择 Connection URL'
-                }]
-              })(
-                <Input placeholder="Connection URL" disabled />
+              {getFieldDecorator('connectionUrl', {})(
+                <strong>{urlText}</strong>
               )}
             </FormItem>
           </Col>
-
-          {/* <Col span={24} className={databaseDSKafkaHideClass}>
-            <FormItem label="Permission" {...itemStyle}>
-              {getFieldDecorator('permission', {
-                rules: [{
-                  required: true,
-                  message: '请填写 Permission'
-                }],
-                hidden: kafkaTypeHiddens[1]
-              })(
-                <RadioGroup className="ro-rw-style" onChange={this.onChangeDBROOrRW} disabled={disabledOrNot}>
-                  <RadioButton value="ReadOnly" className="read-only-style">ReadOnly</RadioButton>
-                  <RadioButton value="ReadWrite" className="read-write-style">ReadWrite</RadioButton>
-                </RadioGroup>
-              )}
-            </FormItem>
-          </Col> */}
 
           <Col span={24}>
             <FormItem label={databaseDSLabel} {...itemStyle}>
@@ -372,6 +343,7 @@ DBForm.propTypes = {
   form: React.PropTypes.any,
   type: React.PropTypes.string,
   databaseFormType: React.PropTypes.string,
+  queryConnUrl: React.PropTypes.string,
   onInitDatabaseInputValue: React.PropTypes.func,
   onInitDatabaseConfigValue: React.PropTypes.func,
   onInitDatabaseUrlValue: React.PropTypes.func

@@ -29,6 +29,7 @@ import {
   LOAD_EMAIL_INPUT_VALUE,
   EDIT_ROLETYPE_USERPSW,
   LOAD_USER_DETAIL,
+  DELETE_USER,
 
   LOAD_PROJECT_USER_ALL
 } from './constants'
@@ -43,6 +44,8 @@ import {
   roleTypeUserPswEdited,
   roleTypeUserPswErrorEdited,
   userDetailLoaded,
+  userDeleted,
+  userDeletedError,
 
   projectUserAllLoaded,
   getError
@@ -54,7 +57,8 @@ import api from '../../utils/api'
 export function* getAdminAllUsers ({ payload }) {
   try {
     const users = yield call(request, api.user)
-    yield put(adminAllUsersLoaded(users.payload, payload.resolve))
+    yield put(adminAllUsersLoaded(users.payload))
+    payload.resolve()
   } catch (err) {
     yield put(getError(err))
   }
@@ -67,7 +71,8 @@ export function* getAdminAllUsersWatcher () {
 export function* getUserUsers ({ payload }) {
   try {
     const users = yield call(request, `${api.projectUserList}/${payload.projectId}/users`)
-    yield put(userUsersLoaded(users.payload, payload.resolve))
+    yield put(userUsersLoaded(users.payload))
+    payload.resolve()
   } catch (err) {
     yield put(getError(err))
   }
@@ -80,7 +85,8 @@ export function* getUserUsersWatcher () {
 export function* getSelectUsers ({ payload }) {
   try {
     const users = yield call(request, `${api.projectList}/${payload.projectId}/users`)
-    yield put(selectUsersLoaded(users.payload, payload.resolve))
+    yield put(selectUsersLoaded(users.payload))
+    payload.resolve(users.payload)
   } catch (err) {
     yield put(getError(err))
   }
@@ -192,6 +198,28 @@ export function* queryUserWatcher () {
   yield fork(takeLatest, LOAD_USER_DETAIL, queryUser)
 }
 
+export function* deleteUserAction ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'delete',
+      url: `${api.user}/${payload.userId}`
+    })
+    if (result.code === 412) {
+      yield put(userDeletedError(result.msg))
+      payload.reject(result.msg)
+    } else if (result.code === 200) {
+      yield put(userDeleted(payload.userId))
+      payload.resolve()
+    }
+  } catch (err) {
+    yield put(getError(err))
+  }
+}
+
+export function* deleteNsActionWatcher () {
+  yield fork(takeEvery, DELETE_USER, deleteUserAction)
+}
+
 export default [
   getAdminAllUsersWatcher,
   getUserUsersWatcher,
@@ -201,6 +229,7 @@ export default [
   getEmailInputValueWatcher,
   editroleTypeUserPswWatcher,
   queryUserWatcher,
+  deleteNsActionWatcher,
 
   getProjectUserAllWatcher
 ]

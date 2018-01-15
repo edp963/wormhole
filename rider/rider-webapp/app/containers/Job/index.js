@@ -28,9 +28,6 @@ import Table from 'antd/lib/table'
 import Modal from 'antd/lib/modal'
 import Button from 'antd/lib/button'
 import Icon from 'antd/lib/icon'
-import Form from 'antd/lib/form'
-import Row from 'antd/lib/row'
-import Col from 'antd/lib/col'
 import Input from 'antd/lib/input'
 import Tooltip from 'antd/lib/tooltip'
 import message from 'antd/lib/message'
@@ -69,9 +66,6 @@ export class Job extends React.Component {
       filteredInfo: null,
       sortedInfo: null,
 
-      searchStartIdText: '',
-      searchEndIdText: '',
-      filterDropdownVisibleId: false,
       searchTextName: '',
       filterDropdownVisibleName: false,
       searchTextSourceNs: '',
@@ -88,7 +82,14 @@ export class Job extends React.Component {
       filterDropdownVisibleStartedTime: false,
       stoppedStartTimeText: '',
       stoppedEndTimeText: '',
-      filterDropdownVisibleStoppedTime: false
+      filterDropdownVisibleStoppedTime: false,
+
+      columnNameText: '',
+      valueText: '',
+      visibleBool: false,
+      startTimeTextState: '',
+      endTimeTextState: '',
+      paginationInfo: null
     }
   }
 
@@ -104,18 +105,27 @@ export class Job extends React.Component {
           projectName: s.projectName
         })
         responseOriginJob.key = responseOriginJob.id
-        // responseOriginJob.visible = false
         return responseOriginJob
       })
-      this.setState({
-        originJobs: originJobs.slice(),
-        currentJobs: originJobs.slice()
-      })
+      this.setState({ originJobs: originJobs.slice() })
+
+      this.state.columnNameText === ''
+        ? this.setState({ currentJobs: originJobs.slice() })
+        : this.searchOperater()
     }
   }
-  componentWillUnmount () {
-    // 频繁使用的组件，手动清除数据，避免出现闪现上一条数据
-    // this.props.onChuckAwayJob()
+
+  searchOperater () {
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      this.onSearch(columnNameText, valueText, visibleBool)()
+
+      if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      }
+    }
   }
 
   refreshJob = () => {
@@ -141,6 +151,18 @@ export class Job extends React.Component {
       refreshJobLoading: false,
       refreshJobText: 'Refresh'
     })
+    const { columnNameText, valueText, visibleBool } = this.state
+    const { paginationInfo, filteredInfo, sortedInfo } = this.state
+    const { startTimeTextState, endTimeTextState } = this.state
+
+    if (columnNameText !== '') {
+      if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
+        this.onRangeTimeSearch(columnNameText, startTimeTextState, endTimeTextState, visibleBool)()
+      } else {
+        this.handleJobChange(paginationInfo, filteredInfo, sortedInfo)
+        this.onSearch(columnNameText, valueText, visibleBool)()
+      }
+    }
   }
 
   onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
@@ -211,14 +233,45 @@ export class Job extends React.Component {
     })
   }
 
-  handleLogsCancel = (e) => {
-    this.setState({ logsJobModalVisible: false })
-  }
+  handleLogsCancel = (e) => this.setState({ logsJobModalVisible: false })
 
   handleJobChange = (pagination, filters, sorter) => {
+    const { filteredInfo } = this.state
+
+    let filterValue = {}
+    if (filteredInfo !== null) {
+      if (filteredInfo) {
+        if (filters.status && filters.sourceType) {
+          if (filters.status.length === 0 && filters.sourceType.length === 0) {
+            return
+          } else {
+            this.onSearch('', '', false)()
+            if (filteredInfo.status && filteredInfo.sourceType) {
+              if (filteredInfo.status.length !== 0 && filters.sourceType.length !== 0) {
+                filterValue = {status: [], sourceType: filters.sourceType}
+              } else if (filteredInfo.sourceType.length !== 0 && filters.status.length !== 0) {
+                filterValue = {status: filters.status, sourceType: []}
+              } else {
+                filterValue = filters
+              }
+            } else {
+              filterValue = filters
+            }
+          }
+        } else {
+          filterValue = filters
+        }
+      } else {
+        filterValue = filters
+      }
+    } else {
+      filterValue = filters
+    }
+
     this.setState({
-      filteredInfo: filters,
-      sortedInfo: sorter
+      filteredInfo: filterValue,
+      sortedInfo: sorter,
+      paginationInfo: pagination
     })
   }
 
@@ -228,24 +281,31 @@ export class Job extends React.Component {
     const reg = new RegExp(this.state[value], 'gi')
 
     this.setState({
-      [visible]: false,
-      currentJobs: this.state.originJobs.map((record) => {
-        const match = String(record[columnName]).match(reg)
-        if (!match) {
-          return null
-        }
-        return {
-          ...record,
-          [`${columnName}Origin`]: record[columnName],
-          [columnName]: (
-            <span>
-              {String(record[columnName]).split(reg).map((text, i) => (
-                i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
-              ))}
-            </span>
-          )
-        }
-      }).filter(record => !!record)
+      filteredInfo: {status: [], sourceType: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        valueText: value,
+        visibleBool: visible,
+        currentJobs: this.state.originJobs.map((record) => {
+          const match = String(record[columnName]).match(reg)
+          if (!match) {
+            return null
+          }
+          return {
+            ...record,
+            [`${columnName}Origin`]: record[columnName],
+            [columnName]: (
+              <span>
+                {String(record[columnName]).split(reg).map((text, i) => (
+                  i > 0 ? [<span className="highlight">{match[0]}</span>, text] : text
+                ))}
+              </span>
+            )
+          }
+        }).filter(record => !!record)
+      })
     })
   }
 
@@ -270,43 +330,30 @@ export class Job extends React.Component {
     }
 
     this.setState({
-      [visible]: false,
-      currentJobs: this.state.originJobs.map((record) => {
-        const match = (new Date(record[columnName])).getTime()
-        if ((match < startSearchTime) || (match > endSearchTime)) {
-          return null
-        }
-        return {
-          ...record,
-          [columnName]: (
-            this.state.startTimeText === ''
-              ? <span>{record[columnName]}</span>
-              : <span className="highlight">{record[columnName]}</span>
-          )
-        }
-      }).filter(record => !!record),
-      filteredInfo: startOrEnd
-    })
-  }
-
-  onRangeIdSearch = (columnName, startText, endText, visible) => () => {
-    let infoFinal = ''
-    if (columnName === 'id') {
-      infoFinal = this.state[startText] || this.state[endText] ? { id: [0] } : { id: [] }
-    } else if (columnName === 'streamId') {
-      infoFinal = this.state[startText] || this.state[endText] ? { streamId: [0] } : { streamId: [] }
-    }
-
-    this.setState({
-      [visible]: false,
-      currentJobs: this.state.originJobs.map((record) => {
-        const match = record[columnName]
-        if ((match < parseInt(this.state[startText])) || (match > parseInt(this.state[endText]))) {
-          return null
-        }
-        return record
-      }).filter(record => !!record),
-      filteredInfo: infoFinal
+      filteredInfo: {status: [], sourceType: []}
+    }, () => {
+      this.setState({
+        [visible]: false,
+        columnNameText: columnName,
+        startTimeTextState: startTimeText,
+        endTimeTextState: endTimeText,
+        visibleBool: visible,
+        currentJobs: this.state.originJobs.map((record) => {
+          const match = (new Date(record[columnName])).getTime()
+          if ((match < startSearchTime) || (match > endSearchTime)) {
+            return null
+          }
+          return {
+            ...record,
+            [columnName]: (
+              this.state.startTimeText === ''
+                ? <span>{record[columnName]}</span>
+                : <span className="highlight">{record[columnName]}</span>
+            )
+          }
+        }).filter(record => !!record),
+        filteredInfo: startOrEnd
+      })
     })
   }
 
@@ -351,39 +398,7 @@ export class Job extends React.Component {
       dataIndex: 'id',
       key: 'id',
       sorter: (a, b) => a.id - b.id,
-      sortOrder: sortedInfo.columnKey === 'id' && sortedInfo.order,
-      filteredValue: filteredInfo.id,
-      filterDropdown: (
-        <div className="custom-filter-dropdown custom-filter-dropdown-ps">
-          <Form>
-            <Row>
-              <Col span={9}>
-                <Input
-                  ref={ele => { this.searchInput = ele }}
-                  placeholder="Start ID"
-                  onChange={this.onInputChange('searchStartIdText')}
-                />
-              </Col>
-              <Col span={1}>
-                <p className="ant-form-split">-</p>
-              </Col>
-              <Col span={9}>
-                <Input
-                  placeholder="End ID"
-                  onChange={this.onInputChange('searchEndIdText')}
-                />
-              </Col>
-              <Col span={5} className="text-align-center">
-                <Button type="primary" onClick={this.onRangeIdSearch('id', 'searchStartIdText', 'searchEndIdText', 'filterDropdownVisibleId')}>Search</Button>
-              </Col>
-            </Row>
-          </Form>
-        </div>
-      ),
-      filterDropdownVisible: this.state.filterDropdownVisibleId,
-      onFilterDropdownVisibleChange: visible => this.setState({
-        filterDropdownVisibleId: visible
-      }, () => this.searchInput.focus())
+      sortOrder: sortedInfo.columnKey === 'id' && sortedInfo.order
     }, {
       title: 'Name',
       dataIndex: 'name',
@@ -745,14 +760,8 @@ export class Job extends React.Component {
     }]
 
     const pagination = {
-      defaultPageSize: this.state.pageSize,
+      defaultPageSize: 10,
       showSizeChanger: true,
-      onShowSizeChange: (current, pageSize) => {
-        this.setState({
-          pageIndex: current,
-          pageSize: pageSize
-        })
-      },
       onChange: (current) => {
         this.setState({
           pageIndex: current
@@ -814,10 +823,6 @@ export class Job extends React.Component {
 }
 
 Job.propTypes = {
-  // jobs: React.PropTypes.oneOfType([
-  //   React.PropTypes.array,
-  //   React.PropTypes.bool
-  // ]),
   projectIdGeted: React.PropTypes.string,
   jobClassHide: React.PropTypes.string,
   className: React.PropTypes.string,
@@ -826,7 +831,6 @@ Job.propTypes = {
   onLoadAdminAllJobs: React.PropTypes.func,
   onLoadUserAllJobs: React.PropTypes.func,
   onLoadAdminSingleJob: React.PropTypes.func,
-  // onChuckAwayJob: React.PropTypes.func
   onLoadAdminJobLogs: React.PropTypes.func,
   onLoadUserJobLogs: React.PropTypes.func,
   onOperateJob: React.PropTypes.func,
@@ -839,7 +843,6 @@ export function mapDispatchToProps (dispatch) {
     onLoadAdminAllJobs: (resolve) => dispatch(loadAdminAllJobs(resolve)),
     onLoadUserAllJobs: (projectId, resolve) => dispatch(loadUserAllJobs(projectId, resolve)),
     onLoadAdminSingleJob: (projectId, resolve) => dispatch(loadAdminSingleJob(projectId, resolve)),
-    // onChuckAwayJob: () => dispatch(chuckAwayJob()),
     onLoadAdminJobLogs: (projectId, jobId, resolve) => dispatch(loadAdminJobLogs(projectId, jobId, resolve)),
     onLoadUserJobLogs: (projectId, jobId, resolve) => dispatch(loadUserJobLogs(projectId, jobId, resolve)),
     onOperateJob: (values, resolve, reject) => dispatch(operateJob(values, resolve, reject)),

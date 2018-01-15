@@ -176,14 +176,14 @@ export class FlowTransformForm extends React.Component {
           <Col span={24}>
             <FormItem label="Source Namespace" {...itemStyle}>
               {getFieldDecorator('step2SourceNamespace', {})(
-                <p className="value-font-style">{this.props.step2SourceNamespace}</p>
+                <strong className="value-font-style">{this.props.step2SourceNamespace}</strong>
               )}
             </FormItem>
           </Col>
           <Col span={24}>
             <FormItem label="Sink Namespace" {...itemStyle}>
               {getFieldDecorator('step2SinkNamespace', {})(
-                <p className="value-font-style">{this.props.step2SinkNamespace}</p>
+                <strong className="value-font-style">{this.props.step2SinkNamespace}</strong>
               )}
             </FormItem>
           </Col>

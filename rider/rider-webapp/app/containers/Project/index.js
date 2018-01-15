@@ -161,30 +161,18 @@ export class Project extends React.Component {
           })
 
           // 回显 project modal 所有的 namespaces & 选中的 namespaces
-          this.props.onLoadProjectNsAll((result) => {
-            this.setState({
-              projectNsTableDataSource: result
-            })
-          })
+          this.props.onLoadProjectNsAll((result) => this.setState({ projectNsTableDataSource: result }))
 
           this.props.onLoadSelectNamespaces(project.id, (selectNamespaces) => {
-            this.projectNSTable.setState({
-              selectedRowKeys: selectNamespaces.map(n => n.id)
-            })
+            this.projectNSTable.setState({ selectedRowKeys: selectNamespaces.map(n => n.id) })
           })
         })
 
         // 回显 project modal 所有的 udfs & 选中的 udfs
-        this.props.onLoadProjectUdfs((result) => {
-          this.setState({
-            projectUdfTableDataSource: result
-          })
-        })
+        this.props.onLoadProjectUdfs((result) => this.setState({ projectUdfTableDataSource: result }))
 
         this.props.onLoadSingleUdf(project.id, 'adminSelect', (result) => {
-          this.projectUdfTable.setState({
-            selectedRowKeys: result.map(n => n.id)
-          })
+          this.projectUdfTable.setState({ selectedRowKeys: result.map(n => n.id) })
         })
       })
   }

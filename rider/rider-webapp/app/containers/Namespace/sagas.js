@@ -31,7 +31,8 @@ import {
   EDIT_NAMESPACE,
   LOAD_PROJECT_NS_ALL,
   SET_SCHEMA,
-  QUERY_SCHEMA_CONFIG
+  QUERY_SCHEMA_CONFIG,
+  DELETE_NS
 } from './constants'
 import {
   adminAllNamespacesLoaded,
@@ -46,6 +47,8 @@ import {
   projectNsAllLoaded,
   schemaSetted,
   schemaConfigQueried,
+  nsDeleted,
+  nsDeletedError,
   getError
 } from './action'
 
@@ -55,7 +58,8 @@ import api from '../../utils/api'
 export function* getAdminAllNamespaces ({ payload }) {
   try {
     const namespaces = yield call(request, api.namespace)
-    yield put(adminAllNamespacesLoaded(namespaces.payload, payload.resolve))
+    yield put(adminAllNamespacesLoaded(namespaces.payload))
+    payload.resolve()
   } catch (err) {
     yield put(getError(err))
   }
@@ -68,7 +72,8 @@ export function* getAdminAllNamespacesWatcher () {
 export function* getUserNamespaces ({ payload }) {
   try {
     const namespaces = yield call(request, `${api.projectUserList}/${payload.projectId}/namespaces`)
-    yield put(userNamespacesLoaded(namespaces.payload, payload.resolve))
+    yield put(userNamespacesLoaded(namespaces.payload))
+    payload.resolve()
   } catch (err) {
     yield put(getError(err))
   }
@@ -81,7 +86,8 @@ export function* getUserNamespacesWatcher () {
 export function* getSelectNamespaces ({ payload }) {
   try {
     const namespaces = yield call(request, `${api.projectList}/${payload.projectId}/namespaces`)
-    yield put(selectNamespacesLoaded(namespaces.payload, payload.resolve))
+    yield put(selectNamespacesLoaded(namespaces.payload))
+    payload.resolve(namespaces.payload)
   } catch (err) {
     yield put(getError(err))
   }
@@ -214,6 +220,28 @@ export function* querySchemaWatcher () {
   yield fork(takeLatest, QUERY_SCHEMA_CONFIG, querySchema)
 }
 
+export function* deleteNsAction ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'delete',
+      url: `${api.namespace}/${payload.namespaceId}`
+    })
+    if (result.code === 412) {
+      yield put(nsDeletedError(result.msg))
+      payload.reject(result.msg)
+    } else if (result.code === 200) {
+      yield put(nsDeleted(payload.namespaceId))
+      payload.resolve()
+    }
+  } catch (err) {
+    yield put(getError(err))
+  }
+}
+
+export function* deleteNsActionWatcher () {
+  yield fork(takeEvery, DELETE_NS, deleteNsAction)
+}
+
 export default [
   getAdminAllNamespacesWatcher,
   getUserNamespacesWatcher,
@@ -225,5 +253,6 @@ export default [
   editNamespaceWatcher,
   getProjectNsAllWatcher,
   setSchemaWatcher,
-  querySchemaWatcher
+  querySchemaWatcher,
+  deleteNsActionWatcher
 ]
