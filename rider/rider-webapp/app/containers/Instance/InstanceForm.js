@@ -101,6 +101,8 @@ export class InstanceForm extends React.Component {
       questionDS = 'Cassandra时, ip:port, 多条用逗号隔开。'
     } else if (instanceDSValue === 'redis') {
       questionDS = 'redis时, 为 localhost:6379, 多条用逗号隔开。'
+    } else if (instanceDSValue === 'mongodb') {
+      questionDS = 'Cassandra时, ip:port, 多条用逗号隔开。'
     } else {
       questionDS = '请选择 Data System。'
     }
@@ -111,7 +113,7 @@ export class InstanceForm extends React.Component {
         <Tooltip title="帮助">
           <Popover
             placement="top"
-            content={<div style={{ width: '260px', height: '32px' }}>
+            content={<div style={{ width: '260px', height: '55px' }}>
               <p>{questionDS}</p>
             </div>}
             title={<h3>帮助</h3>}

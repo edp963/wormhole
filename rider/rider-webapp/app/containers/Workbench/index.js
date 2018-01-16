@@ -166,6 +166,7 @@ export class Workbench extends React.Component {
       hdfslogSinkDataSysValue: '',
       hdfslogSinkNsValue: '',
       routingSinkNsValue: '',
+      flowSourceResult: [],
 
       // job
       jobStepSourceNs: '',
@@ -193,6 +194,7 @@ export class Workbench extends React.Component {
       jobSpecialConfigModalVisible: false,
       jobSinkConfigModalVisible: false,
       jobTranConfigConfirmValue: '',
+      jobSourceResult: [],
 
       routingSinkTypeNsData: [],
       routingSourceNsValue: '',
@@ -314,6 +316,7 @@ export class Workbench extends React.Component {
     if (pipelineStreamId !== 0) {
       this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, value, type, (result) => {
         this.setState({
+          flowSourceResult: result,
           sourceTypeNamespaceData: generateSourceSinkNamespaceHierarchy(value, result)
         })
         // default source ns 和 sink ns 同时调同一个接口获得，保证两处的 placeholder 和单条数据回显都能正常
@@ -336,6 +339,7 @@ export class Workbench extends React.Component {
 
     this.props.onLoadJobSourceNs(projectId, value, type, (result) => {
       this.setState({
+        jobSourceResult: result,
         jobSourceNsData: generateSourceSinkNamespaceHierarchy(value, result)
       })
       if (jobMode === 'add') {
@@ -361,6 +365,7 @@ export class Workbench extends React.Component {
     if (pipelineStreamId !== 0) {
       this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, value, type, (result) => {
         this.setState({
+          flowSourceResult: result,
           hdfslogNsData: generateHdfslogNamespaceHierarchy(value, result),
           hdfslogSinkDataSysValue: value
         })
@@ -382,6 +387,7 @@ export class Workbench extends React.Component {
     if (pipelineStreamId !== 0) {
       this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, value, type, (result) => {
         this.setState({
+          flowSourceResult: result,
           routingNsData: generateSourceSinkNamespaceHierarchy(value, result),
           routingSinkDataSysValue: value
         })
@@ -609,9 +615,9 @@ export class Workbench extends React.Component {
       this.props.onQueryJob(requestData, (result) => {
         const resultFinal = result.job
         resolve(resultFinal)
-
+        const sourceConfigTemp = resultFinal.sourceConfig
         this.workbenchJobForm.setFieldsValue({
-          protocol: resultFinal.sourceConfig,
+          protocol: JSON.parse(sourceConfigTemp).protocol,
           jobName: resultFinal.name,
           type: resultFinal.sourceType,
           eventStartTs: resultFinal.eventTsStart === '' ? null : Moment(formatString(resultFinal.eventTsStart)),
@@ -631,7 +637,6 @@ export class Workbench extends React.Component {
             sourceNs: resultFinal.sourceNs,
             sinkNs: resultFinal.sinkNs,
             sourceType: resultFinal.sourceType,
-            sourceConfig: resultFinal.sourceConfig,
             sparkAppid: resultFinal.sparkAppid,
             logPath: resultFinal.logPath,
             startedTime: resultFinal.startedTime,
@@ -1769,7 +1774,11 @@ export class Workbench extends React.Component {
     }
 
     if (jobMode === 'add') {
-      const sourceDataInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
+      const { jobSourceResult } = this.state
+      // source data system 选择log后，根据接口返回的nsSys值，拼接 sourceDataInfo
+      const InsDBTable = [values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2]]
+      const sourceDataSys = jobSourceResult.filter(s => [s.nsInstance, s.nsDatabase, s.nsTable].join(',') === InsDBTable.join(','))
+      const sourceDataInfo = [sourceDataSys[0].nsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
       const sinkDataInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
 
       const submitJobData = {
@@ -1778,7 +1787,7 @@ export class Workbench extends React.Component {
         sourceNs: sourceDataInfo,
         sinkNs: sinkDataInfo,
         sourceType: values.type,
-        sourceConfig: values.protocol
+        sourceConfig: `{"protocol":"${values.protocol}"}`
       }
 
       this.props.onAddJob(Object.assign({}, submitJobData, jobSparkConfigValues, requestCommon), () => {
@@ -1787,7 +1796,9 @@ export class Workbench extends React.Component {
         this.hideJobSubmit()
       })
     } else if (jobMode === 'edit') {
-      this.props.onEditJob(Object.assign({}, singleJobResult, jobSparkConfigValues, requestCommon), () => {
+      this.props.onEditJob(Object.assign({}, singleJobResult, jobSparkConfigValues, requestCommon, {
+        sourceConfig: `{"protocol":"${values.protocol}"}`
+      }), () => {
         message.success('Job 修改成功！', 3)
       }, () => {
         this.hideJobSubmit()
@@ -1853,7 +1864,11 @@ export class Workbench extends React.Component {
     }
 
     if (flowMode === 'add' || flowMode === 'copy') {
-      const sourceDataInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
+      const { flowSourceResult } = this.state
+
+      const insDBTable = [values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2]]
+      const sourceDataSys = flowSourceResult.filter(s => [s.nsInstance, s.nsDatabase, s.nsTable].join(',') === insDBTable.join(','))
+      const sourceDataInfo = [sourceDataSys[0].nsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
       const sinkDataInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
 
       const submitFlowData = {
@@ -1910,9 +1925,16 @@ export class Workbench extends React.Component {
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (flowMode === 'add' || flowMode === 'copy') {
-          const sourceDataInfo = streamDiffType === 'hdfslog'
-            ? [values.sourceDataSystem, values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2], '*', '*', '*'].join('.')
-            : ['kafka', values.routingSinkNs[0], values.routingSinkNs[1], values.routingSinkNs[2], '*', '*', '*'].join('.')
+          const { flowSourceResult } = this.state
+
+          let sourceDataInfo = ''
+          if (streamDiffType === 'hdfslog') {
+            const insDBTable = [values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2]]
+            const sourceDataSys = flowSourceResult.filter(s => [s.nsInstance, s.nsDatabase, s.nsTable].join(',') === insDBTable.join(','))
+            sourceDataInfo = [sourceDataSys[0].nsSys, values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2], '*', '*', '*'].join('.')
+          } else {
+            sourceDataInfo = ['kafka', values.routingSinkNs[0], values.routingSinkNs[1], values.routingSinkNs[2], '*', '*', '*'].join('.')
+          }
 
           const submitFlowData = {
             projectId: Number(projectId),
@@ -1963,7 +1985,10 @@ export class Workbench extends React.Component {
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (flowMode === 'add' || flowMode === 'copy') {
-          const sourceDataInfo = [values.sourceDataSystem, values.routingNamespace[0], values.routingNamespace[1], values.routingNamespace[2], '*', '*', '*'].join('.')
+          const { flowSourceResult } = this.state
+          const insDBTable = [values.routingNamespace[0], values.routingNamespace[1], values.routingNamespace[2]]
+          const sourceDataSys = flowSourceResult.filter(s => [s.nsInstance, s.nsDatabase, s.nsTable].join(',') === insDBTable.join(','))
+          const sourceDataInfo = [sourceDataSys[0].nsSys, values.routingNamespace[0], values.routingNamespace[1], values.routingNamespace[2], '*', '*', '*'].join('.')
           const sinkDataInfo = ['kafka', values.routingSinkNs[0], values.routingSinkNs[1], values.routingSinkNs[2], '*', '*', '*'].join('.')
 
           const submitFlowData = {

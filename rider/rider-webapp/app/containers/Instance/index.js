@@ -310,7 +310,7 @@ export class Instance extends React.PureComponent {
     } else {
       if (InstanceSourceDsVal === 'es') {
         errMsg = [new Error('作为 sink 端时，请填写 http 端口地址，如 http://localhost:9200；作为 lookup 系统时，请填写 tcp 端口地址，如 localhost:9300')]
-      } else if (InstanceSourceDsVal === 'oracle' || InstanceSourceDsVal === 'mysql' || InstanceSourceDsVal === 'postgresql' || InstanceSourceDsVal === 'mongodb') {
+      } else if (InstanceSourceDsVal === 'oracle' || InstanceSourceDsVal === 'mysql' || InstanceSourceDsVal === 'postgresql') {
         errMsg = [new Error('ip:port 格式')]
       } else if (InstanceSourceDsVal === 'hbase') {
         errMsg = [new Error('zookeeper url list, 如localhost:2181/hbase, 多条用逗号隔开')]
@@ -318,7 +318,7 @@ export class Instance extends React.PureComponent {
         errMsg = [new Error('zookeeper url, 如localhost:2181')]
       } else if (InstanceSourceDsVal === 'kafka') {
         errMsg = [new Error('borker list, localhost:9092, 多条用逗号隔开')]
-      } else if (InstanceSourceDsVal === 'cassandra') {
+      } else if (InstanceSourceDsVal === 'cassandra' || InstanceSourceDsVal === 'mongodb') {
         errMsg = [new Error('ip:port, 多条用逗号隔开')]
       } else if (InstanceSourceDsVal === 'redis') {
         errMsg = [new Error('localhost:6379, 多条用逗号隔开')]

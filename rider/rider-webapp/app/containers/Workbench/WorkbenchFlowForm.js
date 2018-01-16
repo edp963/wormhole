@@ -185,7 +185,7 @@ export class WorkbenchFlowForm extends React.Component {
       { value: 'log', text: 'Log' },
       { value: 'file', text: 'File' },
       { value: 'app', text: 'App' },
-      { value: 'presto', text: 'Presto' },
+      // { value: 'presto', text: 'Presto' },
       { value: 'mysql', icon: 'icon-mysql' },
       { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} }
