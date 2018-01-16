@@ -64,7 +64,6 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not normal user"),
     new ApiResponse(code = 501, message = "the request url is not supported"),
-    new ApiResponse(code = 409, message = "this source namespace to sink namespace already exists"),
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
@@ -102,6 +101,7 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
     new ApiResponse(code = 400, message = "config is not json type"),
     new ApiResponse(code = 401, message = "authorization error"),
     new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 409, message = "this source namespace to sink namespace already exists"),
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))

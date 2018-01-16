@@ -31,13 +31,12 @@ import io.swagger.annotations._
 import edp.rider.rest.util.ResponseUtils._
 
 import scala.util.{Failure, Success}
-import JsonProtocol._
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.entities.User
 
 @Api(value = "login", consumes = "application/json", produces = "application/json")
 @Path("/login")
-class LoginRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule) extends Directives with RiderLogger {
+class LoginRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule) extends Directives with RiderLogger with JsonSerializer {
 
   lazy val routes = accessTokenRoute
 

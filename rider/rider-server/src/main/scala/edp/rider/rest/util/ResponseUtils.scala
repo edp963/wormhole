@@ -36,7 +36,9 @@ object ResponseUtils {
     404 -> "Not found",
     418 -> "app type user has no permission to login",
     451 -> "Request process failed",
-    501 -> "Not supported")
+    501 -> "Not supported",
+    406 -> "action is forbidden",
+    507 -> "resource is not enough")
 
   def responseHeaderWithToken(session: SessionClass): Directive0 = {
     respondWithHeader(RawHeader("token", generateToken(session)))

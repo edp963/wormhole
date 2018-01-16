@@ -23,12 +23,12 @@ package edp.wormhole.swifts.parse
 
 import edp.wormhole.swifts.validity.ValidityConfig
 
-case class SwiftsProcessConfig(projection:String,
+case class SwiftsProcessConfig(//projection:String,
                                swiftsSql:Option[Array[SwiftsSql]],
                                validityConfig: Option[ValidityConfig],
                                datasetShow:Option[Boolean],
                                datasetShowNum:Option[Int],
-                               specialConfig:Option[Map[String,String]])
+                               specialConfig:Option[String])
 
 
 

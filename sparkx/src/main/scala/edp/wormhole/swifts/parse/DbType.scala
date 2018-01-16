@@ -22,7 +22,7 @@
 package edp.wormhole.swifts.parse
 
 object DbType {
-  def convert(dataTytpe: String): String = dataTytpe match {
+  def convert(dataTytpe: String): String = dataTytpe.toUpperCase match {
       //mysql type
     case "TIMESTAMP" => "datetime"
     case "DATE" => "date"
@@ -39,6 +39,7 @@ object DbType {
     case "BLOB" => "binary"
     case "LONGBLOB" => "binary"
     case "BINARY" => "binary"
+    case "CHAR" => "string"
 
     //oracle
     case "VARCHAR2" => "string"
@@ -48,17 +49,15 @@ object DbType {
     case "NUMBER" => "decimal"
     case "LONG RAW" => "binary"
 
-//    case "oracle.sql.TIMESTAMP" => "datetime"
-//    case "java.math.BigDecimal" => "decimal"
-//    case "java.sql.Timestamp" => "datetime"
-//    case "java.sql.Date" => "date"
-//    case "java.lang.Long" => "long"
-//    case "java.lang.Float" => "float"
-//    case "java.lang.Double" => "double"
-//    case "java.lang.Integer" => "int"
-//    case "java.lang.String" => "string"
-//    case "oracle.jdbc.OracleClob" => "string"
-//    case "oracle.sql.CLOB" => "string"
+      //cassandra
+    case "JAVA.MATH.BIGDECIMAL" => "decimal"
+    case "JAVA.SQL.TIMESTAMP" => "datetime"
+    case "JAVA.SQL.DATE" => "date"
+    case "JAVA.LANG.LONG" => "long"
+    case "JAVA.LANG.FLOAT" => "float"
+    case "JAVA.LANG.DOUBLE" => "double"
+    case "JAVA.LANG.INTEGER" => "int"
+    case "JAVA.LANG.STRING" => "string"
     case unknown =>
       throw new Exception("unknown type:"+unknown)
   }

@@ -38,7 +38,7 @@ import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
 class RiderConsumer(modules: ConfigurationModule with PersistenceModule with ActorModuleImpl)
@@ -50,13 +50,13 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
 
   override def preStart(): Unit = {
     try {
-      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.topic, RiderConfig.consumer.partitions)
-      riderLogger.info(s"initial create ${RiderConfig.consumer.topic} topic success")
+      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions)
+      riderLogger.info(s"initial create ${RiderConfig.consumer.feedbackTopic} topic success")
     } catch {
       case _: kafka.common.TopicExistsException =>
-        riderLogger.info(s"${RiderConfig.consumer.topic} topic already exists")
+        riderLogger.info(s"${RiderConfig.consumer.feedbackTopic} topic already exists")
       case ex: Exception =>
-        riderLogger.error(s"initial create ${RiderConfig.consumer.topic} topic failed", ex)
+        riderLogger.error(s"initial create ${RiderConfig.consumer.feedbackTopic} topic failed", ex)
     }
     try {
       WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic)
@@ -88,8 +88,9 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
 
       future.onFailure {
         case ex =>
-          riderLogger.error(s"RiderConsumer stream failed due to error, restarting ${ex.getMessage}")
+          riderLogger.error(s"RiderConsumer stream failed due to error", ex)
           throw ex
+          self ! Stop
       }
 
       riderLogger.info("RiderConsumer started")
@@ -128,8 +129,8 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
     val curTs = currentMillSec
     val defaultStreamIdForRider = 0
     CacheMap.setOffsetMap(defaultStreamIdForRider, msg.record.topic(), msg.record.partition(), msg.record.offset())
-    val partitionOffsetStr = FeedbackOffsetUtil.getPartitionOffsetStrFromMap(defaultStreamIdForRider, msg.record.topic(), RiderConfig.consumer.partitions)
-    modules.feedbackOffsetDal.insert(FeedbackOffset(1, UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET.toString, curTs, 0, msg.record.topic(), RiderConfig.consumer.partitions, partitionOffsetStr, curTs))
+    val partitionOffsetStr = CacheMap.getPartitionOffsetStrFromMap(defaultStreamIdForRider, msg.record.topic(), RiderConfig.consumer.partitions)
+    Await.result(modules.feedbackOffsetDal.insert(FeedbackOffset(1, UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET.toString, curTs, 0, msg.record.topic(), RiderConfig.consumer.partitions, partitionOffsetStr, curTs)), minTimeOut)
 
     if (msg.record.value() == null || msg.record.value() == "") {
       riderLogger.error(s"feedback message value is null: ${msg.toString}")

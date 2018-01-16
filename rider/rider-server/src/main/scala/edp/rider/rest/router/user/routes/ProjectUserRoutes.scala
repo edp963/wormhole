@@ -32,7 +32,7 @@ import io.swagger.annotations._
 class ProjectUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
   lazy val routes: Route = getProjectByIdRoute ~ getProjectByAllRoute ~ getResourceByProjectIdRoute ~
-    getNsByProjectIdRoute ~ getUserByProjectIdRoute ~ getMonitorDashboardRoute
+    getUserByProjectIdRoute ~ getMonitorDashboardRoute
 
   lazy val basePath = "projects"
 
@@ -74,19 +74,6 @@ class ProjectUserRoutes(modules: ConfigurationModule with PersistenceModule with
   ))
   def getResourceByProjectIdRoute: Route = modules.streamUserService.getResourceByProjectIdRoute(basePath)
 
-  @Path("/{id}/namespaces")
-  @ApiOperation(value = "get namespaces of the project", notes = "", nickname = "", httpMethod = "GET")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path")
-  ))
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "OK"),
-    new ApiResponse(code = 401, message = "authorization error"),
-    new ApiResponse(code = 403, message = "user is not normal user"),
-    new ApiResponse(code = 451, message = "request process failed"),
-    new ApiResponse(code = 500, message = "internal server error")
-  ))
-  def getNsByProjectIdRoute: Route = modules.namespaceUserService.getNsByProjectId(basePath)
 
   @Path("/{id}/users")
   @ApiOperation(value = "get users of the project", notes = "", nickname = "", httpMethod = "GET")
@@ -103,7 +90,7 @@ class ProjectUserRoutes(modules: ConfigurationModule with PersistenceModule with
   def getUserByProjectIdRoute: Route = modules.userService.getUserByProjectId("projects")
 
   @Path("/{id}/monitors")
-  @ApiOperation(value = "get one project's resource information from system by id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiOperation(value = "get one project's monitor dashboard from system by id", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path")
   ))

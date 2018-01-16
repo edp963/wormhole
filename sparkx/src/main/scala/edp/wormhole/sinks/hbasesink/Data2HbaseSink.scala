@@ -18,14 +18,12 @@
  * >>
  */
 
-
 package edp.wormhole.sinks.hbasesink
 
-import edp.wormhole.common.ConnectionConfig
+import edp.wormhole.common.{ConnectionConfig, RowkeyPatternContent, RowkeyPatternType, RowkeyTool}
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.sinks.hbasesink.HbaseConstants._
-import edp.wormhole.sinks.hbasesink.RowkeyPattern._
 import org.apache.hadoop.hbase.client._
 import org.apache.hadoop.hbase.util.Bytes
 import edp.wormhole.ums.UmsSysField._
@@ -35,9 +33,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable
 import edp.wormhole.sinks.utils.SinkDefault._
 import edp.wormhole.ums.UmsFieldType._
-import edp.wormhole.ums.{UmsFieldType, UmsNamespace}
-import edp.wormhole.common.util.CommonUtils._
-import edp.wormhole.common.util.DateUtils
+import edp.wormhole.ums.UmsNamespace
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.common.util.JsonUtils._
 
@@ -51,44 +47,45 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
                        connectionConfig: ConnectionConfig): Unit = {
     HbaseConnection.initHbaseConfig(sinkNamespace, sinkProcessConfig, connectionConfig)
 
-    def rowkey(rowkeyConfig: Seq[RowkeyInfo], recordValue: Seq[String]): String = rowkeyConfig.map(rowkey => {
-      val rkName = rowkey.name.toLowerCase
-      if (!schemaMap.contains(rkName)) {
-        logError("schemaMap does not containing " + rkName)
-        throw new Exception("schemaMap does not containing " + rkName)
-      }
-      val rkValue = recordValue(schemaMap(rkName)._1)
-      val rkPattern = rowkey.pattern
-      if (rkPattern == VALUE.toString) rkValue
-      else if (rkPattern == HASH.toString) {
-        val rkGet = rkHash(rkValue)
-        if (rkGet == null) null else rkGet.toString
-      } else if (rkPattern == REVERSE.toString) rkReverse(rkValue)
-      else if (rkPattern.startsWith(MD5.toString)) rkMod(rkValue, rkPattern)
-      else {
-        val rkGet = rkHash(rkReverse(rkValue))
-        if (rkGet == null) null else rkGet.toString
-      }
-    }).mkString("_")
+    def rowkey(rowkeyConfig: Seq[RowkeyPatternContent], recordValue: Seq[String]): String = {
+      val keydatas = rowkeyConfig.map(rowkey => {
 
+        val rkName = rowkey.fieldContent.toLowerCase
+        val rkType = rowkey.patternType
+        if (rkType == RowkeyPatternType.DELIMIER.toString) {
+          rowkey.fieldContent
+        } else {
+          if (!schemaMap.contains(rkName)) {
+            logError("schemaMap does not containing " + rkName)
+            throw new Exception("schemaMap does not containing " + rkName)
+          }
+          recordValue(schemaMap(rkName)._1)
 
-    def gerneratePuts(rkConfig: Seq[RowkeyInfo], columnFamily: String, saveAsString: Boolean, versionColumn: String, filterRowkey2idTuples: Seq[(String, Long, Seq[String])]): ListBuffer[Put] = {
+        }
+      })
+      RowkeyTool.generatePatternKey(keydatas, rowkeyConfig)
+    }
+
+    def gerneratePuts(hbaseConfig:HbaseConfig, filterRowkey2idTuples: Seq[(String, Long, Seq[String])]): ListBuffer[Put] = {
       val puts: ListBuffer[Put] = new mutable.ListBuffer[Put]
       for (tuple <- filterRowkey2idTuples) {
         try {
-          val umsOpValue: String = tuple._3(schemaMap(OP.toString)._1)
-          val versionValue = if (schemaMap(versionColumn)._2 == UmsFieldType.DATETIME) DateUtils.dt2long(tuple._3(schemaMap(versionColumn)._1))
-          else s2long(tuple._3(schemaMap(versionColumn)._1))
+          val umsOpValue: String = if(schemaMap.contains(OP.toString)){
+            tuple._3(schemaMap(OP.toString)._1)
+          }else ""
           val rowkeyBytes = Bytes.toBytes(tuple._1)
           val put = new Put(rowkeyBytes)
           schemaMap.keys.foreach { column =>
             val (index, fieldType, _) = schemaMap(column)
             val valueString = tuple._3(index)
             if (OP.toString != column) {
-              put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), versionValue, s2hbaseValue(fieldType, valueString))
-              if (saveAsString && !(ID.toString == column || TS.toString == column || UID.toString == column)) put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), versionValue, s2hbaseStringValue(fieldType, valueString, column))
-              else put.addColumn(Bytes.toBytes(columnFamily), Bytes.toBytes(column), versionValue, s2hbaseValue(fieldType, valueString))
-            } else put.addColumn(Bytes.toBytes(columnFamily), activeColBytes, versionValue, if (DELETE.toString == umsOpValue.toLowerCase) inactiveBytes else activeBytes)
+              if (hbaseConfig.`hbase.valueType.get`) put.addColumn(Bytes.toBytes(hbaseConfig.`hbase.columnFamily.get`), Bytes.toBytes(column), s2hbaseStringValue(fieldType, valueString, column,hbaseConfig.`umsTs.valueType.get`))
+              else put.addColumn(Bytes.toBytes(hbaseConfig.`hbase.columnFamily.get`), Bytes.toBytes(column), s2hbaseValue(fieldType, valueString))
+            } else {
+              if (hbaseConfig.`hbase.valueType.get`)
+                put.addColumn(Bytes.toBytes(hbaseConfig.`hbase.columnFamily.get`), activeColBytes, if (DELETE.toString == umsOpValue.toLowerCase) inactiveString else activeString)
+              else put.addColumn(Bytes.toBytes(hbaseConfig.`hbase.columnFamily.get`), activeColBytes, if (DELETE.toString == umsOpValue.toLowerCase) inactiveBytes else activeBytes)
+            }
           }
           puts += put
         } catch {
@@ -101,19 +98,25 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
     val namespace = UmsNamespace(sinkNamespace)
     val hbaseConfig = json2caseClass[HbaseConfig](sinkProcessConfig.specialConfig.get)
     val zk = HbaseConnection.getZookeeperInfo(connectionConfig.connectionUrl)
-    val rowkeyConfig: Seq[RowkeyInfo] = hbaseConfig.`hbase.rowKey`
+    val rowkeyConfig: String = hbaseConfig.`hbase.rowKey`
+
+    val patternContentList: mutable.Seq[RowkeyPatternContent] = RowkeyTool.parse(rowkeyConfig)
 
     //    logInfo("before format:" + tupleList.size)
     val rowkey2IdTuples: Seq[(String, Long, Seq[String])] = tupleList.map(tuple => {
-      (rowkey(rowkeyConfig, tuple), tuple(schemaMap(ID.toString)._1).toLong, tuple)
+      if(hbaseConfig.`mutation_type.get`==SourceMutationType.I_U_D.toString){
+        (rowkey(patternContentList, tuple), tuple(schemaMap(ID.toString)._1).toLong, tuple)
+      }else{
+        (rowkey(patternContentList, tuple), 0l, tuple)
+      }
     })
 
-    val filterRowkey2idTuples = SourceMutationType.sourceMutationType(hbaseConfig.`hbase.mutation.type.get`) match {
+    val filterRowkey2idTuples = SourceMutationType.sourceMutationType(hbaseConfig.`mutation_type.get`) match {
       case SourceMutationType.I_U_D =>
         logInfo("hbase iud:")
         logInfo("before select:" + rowkey2IdTuples.size)
         val columnList = List((ID.toString, LONG.toString))
-        val rowkey2IdMap: Map[String, Map[String, Any]] = HbaseConnection.getDatasFromHbase(namespace.database + ":" + namespace.table, hbaseConfig.`hbase.columnFamily.get`, rowkey2IdTuples.map(_._1), columnList, zk._1, zk._2)
+        val rowkey2IdMap: Map[String, Map[String, Any]] = HbaseConnection.getDatasFromHbase(namespace.database + ":" + namespace.table, hbaseConfig.`hbase.columnFamily.get`,hbaseConfig.`hbase.valueType.get`, rowkey2IdTuples.map(_._1), columnList, zk._1, zk._2)
         logInfo("before filter:" + rowkey2IdMap.size)
         if (rowkey2IdMap.nonEmpty) {
           rowkey2IdTuples.filter(row => {
@@ -126,7 +129,7 @@ class Data2HbaseSink extends SinkProcessor with EdpLogging {
     }
 
     //    logInfo("before generate puts:" + filterRowkey2idTuples.size)
-    val puts = gerneratePuts(rowkeyConfig, hbaseConfig.`hbase.columnFamily.get`, hbaseConfig.`hbase.valueType.get`, hbaseConfig.`hbase.version.column.get`, filterRowkey2idTuples)
+    val puts = gerneratePuts( hbaseConfig, filterRowkey2idTuples)
     //    logInfo("before put:" + puts.size)
     if (puts.nonEmpty) {
       HbaseConnection.dataPut(namespace.database + ":" + namespace.table, puts, zk._1, zk._2)

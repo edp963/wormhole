@@ -24,6 +24,8 @@ package edp.wormhole.sinks
 import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
 
 trait SinkProcessor {
 
@@ -34,6 +36,25 @@ trait SinkProcessor {
               schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
               tupleList: Seq[Seq[String]],
               connectionConfig:ConnectionConfig)
+
+  def publicProcess(session:SparkSession,
+                    protocolType:UmsProtocolType,
+                    sourceNamespace:String,
+                    sinkNamespace:String,
+                    sinkProcessConfig:SinkProcessConfig,
+                    schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
+                    data: RDD[Seq[String]],
+                    connectionConfig:ConnectionConfig): Unit ={
+    data.foreachPartition(partition=>{
+      process(protocolType,
+        sourceNamespace,
+        sinkNamespace,
+        sinkProcessConfig,
+        schemaMap,
+        partition.toList,
+        connectionConfig)
+    })
+  }
 
 
 }

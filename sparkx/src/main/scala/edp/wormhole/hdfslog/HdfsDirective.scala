@@ -21,14 +21,16 @@
 
 package edp.wormhole.hdfslog
 
-import edp.wormhole.common.FeedbackPriority
+import edp.wormhole.common.{FeedbackPriority, FieldInfo, JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.common.util.DateUtils
-import edp.wormhole.core.Directive
+import edp.wormhole.directive.Directive
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
 import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType}
 
-object HdfsDirective extends Directive  {
+import scala.collection.mutable
+
+object HdfsDirective extends Directive {
   override def flowStartProcess(ums: Ums, feedbackTopicName: String, brokers: String): Unit = {
     val payloads = ums.payload_get
     val schemas = ums.schema.fields_get
@@ -36,20 +38,25 @@ object HdfsDirective extends Directive  {
       val streamId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "stream_id").toString.toLong
       val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
       val namespace_rule = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "namespace_rule").toString.toLowerCase
-      try{
-      val hour_duration = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "hour_duration").toString.toLowerCase.toInt
-      HdfsMainProcess.directiveNamespaceRule(namespace_rule) = hour_duration
-      WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
+      val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
+      val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
+      try {
+        if (dataParseStr != null) {
+          val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
+          HdfsMainProcess.jsonSourceMap(namespace_rule) = (parseResult.fieldsInfo, parseResult.twoFieldsArr, parseResult.schemaField)
+        }
+        val hour_duration = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "hour_duration").toString.toLowerCase.toInt
+        HdfsMainProcess.directiveNamespaceRule(namespace_rule) = hour_duration
+        WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
 
       } catch {
         case e: Throwable =>
-          logAlert("registerFlowStartDirective,sourceNamespace:" + namespace_rule , e)
+          logAlert("registerFlowStartDirective,sourceNamespace:" + namespace_rule, e)
           WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, e.getMessage), None, brokers)
 
       }
     })
   }
-
 
 
 }

@@ -22,21 +22,25 @@
 package edp.rider.rest.persistence.entities
 
 
-case class AppJob(sourceSys: String,
+case class AppJob(name: Option[String],
+                  sourceSys: String,
                   sourceDatabase: String,
                   sourceTable: String,
                   sourceVersion: Option[String],
                   sourceType: Option[String],
-                  consumedProtocol: Option[String],
+                  sourceConfig: Option[String],
                   sinkSys: String,
                   sinkInstance: String,
                   sinkDatabase: String,
                   sinkTable: String,
                   sinkKeys: String,
-                  sinkColumns: String,
-                  sinkConfig: String,
-                  eventTsStart: String,
-                  eventTsEnd: String)
+                  sinkColumns: Option[String],
+                  sinkConfig: Option[String],
+                  tranConfig: Option[String],
+                  eventTsStart: Option[String],
+                  eventTsEnd: Option[String],
+                  sparkConfig: Option[String],
+                  startConfig: Option[String])
 
 case class AppFlow(sourceSys: String,
                    sourceDatabase: String,
