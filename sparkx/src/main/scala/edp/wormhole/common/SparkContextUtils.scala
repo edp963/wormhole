@@ -22,7 +22,6 @@
 package edp.wormhole.common
 
 import edp.wormhole.common.zookeeper.WormholeZkClient
-import edp.wormhole.core.KafkaInputConfig
 import edp.wormhole.spark.kafka010.WormholePerPartitionConfig
 import edp.wormhole.spark.log.EdpLogging
 import org.apache.kafka.common.TopicPartition

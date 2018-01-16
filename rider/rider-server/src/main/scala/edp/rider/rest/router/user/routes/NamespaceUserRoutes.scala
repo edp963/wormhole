@@ -31,7 +31,7 @@ import io.swagger.annotations._
 @Path("/user/projects")
 class NamespaceUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
-  lazy val routes: Route = FilterNsByProjectIdRoute
+  lazy val routes: Route = filterFlowNsByProjectIdRoute ~ getNsByProjectIdRoute ~ getUmsInfoRoute ~ getSinkInfoRoute
 
   lazy val basePath = "projects"
 
@@ -52,7 +52,54 @@ class NamespaceUserRoutes(modules: ConfigurationModule with PersistenceModule wi
     new ApiResponse(code = 501, message = "the request url is not supported"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def FilterNsByProjectIdRoute: Route = modules.namespaceUserService.FilterNsByProjectId(basePath)
+  def filterFlowNsByProjectIdRoute: Route = modules.namespaceUserService.filterFlowNsByProjectId(basePath)
 
+
+  @Path("/{id}/namespaces")
+  @ApiOperation(value = "get namespaces of the project", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "sourceType", value = "source namespace type", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "sinkType", value = "sink namespace type", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "transType", value = "transformation namespace type", required = false, dataType = "string", paramType = "query")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getNsByProjectIdRoute: Route = modules.namespaceUserService.getNsByProjectId(basePath)
+
+  @Path("/{id}/namespaces/{id}/schema/source")
+  @ApiOperation(value = "get namespace config in the system", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "nsId", value = "namespace id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "put success"),
+    new ApiResponse(code = 403, message = "user is not admin"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getUmsInfoRoute: Route = modules.namespaceUserService.getUmsInfoByIdRoute(basePath)
+
+  @Path("/{id}/namespaces/{nsId}/schema/sink")
+  @ApiOperation(value = "get namespace config in the system", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "nsId", value = "namespace id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "put success"),
+    new ApiResponse(code = 403, message = "user is not admin"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getSinkInfoRoute: Route = modules.namespaceUserService.getSinkInfoByIdRoute(basePath)
 }
 

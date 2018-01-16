@@ -21,23 +21,23 @@
 
 package edp.rider.rest.persistence.entities
 
-import edp.rider.rest.persistence.base.{BaseEntity, BaseTable}
+import edp.rider.rest.persistence.base.{BaseEntity, BaseTable, SimpleBaseEntity}
 import slick.lifted.{Rep, Tag}
 import slick.jdbc.MySQLProfile.api._
 
 case class Job(id: Long,
-               name: String,
-               projectId: Long,
-               sourceNs: String,
-               sinkNs: String,
-               sourceType: String,
-               consumedProtocol: String,
-               eventTsStart: String,
+               name: String, // 1
+               projectId: Long, // 1
+               sourceNs: String, // 1
+               sinkNs: String, // 1
+               sourceType: String, //1
+               sparkConfig: Option[String] = None,
+               startConfig: String,
+               eventTsStart: String, // 1
                eventTsEnd: String,
                sourceConfig: Option[String],
                sinkConfig: Option[String],
                tranConfig: Option[String],
-               jobConfig: Option[String],
                status: String,
                sparkAppid: Option[String] = None,
                logPath: Option[String] = None,
@@ -48,8 +48,43 @@ case class Job(id: Long,
                updateTime: String,
                updateBy: Long) extends BaseEntity
 
+case class SimpleJob(name: String,
+                     sourceNs: String,
+                     sinkNs: String,
+                     sourceType: String,
+                     sparkConfig: Option[String] = None,
+                     startConfig: String,
+                     eventTsStart: String,
+                     eventTsEnd: String,
+                     sourceConfig: Option[String],
+                     sinkConfig: Option[String],
+                     tranConfig: Option[String]) extends SimpleBaseEntity
+
+case class FullJobInfo(job:Job, projectName:String, disableActions:String)
+
 class JobTable(_tableTag: Tag) extends BaseTable[Job](_tableTag, "job") {
-  def * = (id, name, projectId, sourceNs, sinkNs, sourceType, consumedProtocol, eventTsStart, eventTsEnd, sourceConfig, sinkConfig, tranConfig, jobConfig, status, sparkAppid, logPath, startedTime, stoppedTime, createTime, createBy, updateTime, updateBy) <> (Job.tupled, Job.unapply)
+  def * = (id,
+    name,
+    projectId,
+    sourceNs,
+    sinkNs,
+    sourceType,
+    sparkConfig,
+    startConfig,
+    eventTsStart,
+    eventTsEnd,
+    sourceConfig,
+    sinkConfig,
+    tranConfig,
+    status,
+    sparkAppid,
+    logPath,
+    startedTime,
+    stoppedTime,
+    createTime,
+    createBy,
+    updateTime,
+    updateBy) <> (Job.tupled, Job.unapply)
 
   /** Database column name SqlType(VARCHAR), Length(200,true) */
   val name: Rep[String] = column[String]("name", O.Length(200, varying = true))
@@ -61,8 +96,10 @@ class JobTable(_tableTag: Tag) extends BaseTable[Job](_tableTag, "job") {
   val sinkNs: Rep[String] = column[String]("sink_ns", O.Length(200, varying = true))
   /** Database column source_type SqlType(VARCHAR), Length(30,true) */
   val sourceType: Rep[String] = column[String]("source_type", O.Length(30, varying = true))
-  /** Database column consumed_protocol SqlType(VARCHAR), Length(20,true) */
-  val consumedProtocol: Rep[String] = column[String]("consumed_protocol", O.Length(20, varying = true))
+  /** Database column spark_config SqlType(VARCHAR), Length(1000,true), Default(None) */
+  val sparkConfig: Rep[Option[String]] = column[Option[String]]("spark_config", O.Length(5000, varying = true))
+  /** Database column start_config SqlType(VARCHAR), Length(1000,true) */
+  val startConfig: Rep[String] = column[String]("start_config", O.Length(1000, varying = true))
   /** Database column event_ts_start SqlType(VARCHAR), Length(50,true) */
   val eventTsStart: Rep[String] = column[String]("event_ts_start", O.Length(50, varying = true))
   /** Database column event_ts_end SqlType(VARCHAR), Length(50,true) */
@@ -73,8 +110,6 @@ class JobTable(_tableTag: Tag) extends BaseTable[Job](_tableTag, "job") {
   val sinkConfig: Rep[Option[String]] = column[Option[String]]("sink_config", O.Length(5000, varying = true), O.Default(None))
   /** Database column tran_config SqlType(VARCHAR), Length(5000,true) */
   val tranConfig: Rep[Option[String]] = column[Option[String]]("tran_config", O.Length(5000, varying = true), O.Default(None))
-  /** Database column job_config SqlType(VARCHAR), Length(5000,true) */
-  val jobConfig: Rep[Option[String]] = column[Option[String]]("job_config", O.Length(5000, varying = true), O.Default(None))
   /** Database column status SqlType(VARCHAR), Length(200,true) */
   val status: Rep[String] = column[String]("status", O.Length(200, varying = true))
   /** Database column spark_appid SqlType(VARCHAR), Length(200,true) */
@@ -87,5 +122,6 @@ class JobTable(_tableTag: Tag) extends BaseTable[Job](_tableTag, "job") {
   val stoppedTime: Rep[Option[String]] = column[Option[String]]("stopped_time", O.Default(None))
 
   /** Uniqueness Index over (sourceNs,sinkNs) (database name job_UNIQUE) */
-  val index1 = index("job_UNIQUE", (sourceNs, sinkNs), unique = true)
+  val index1 = index("name_UNIQUE", name, unique = true)
+  val index2 = index("job_UNIQUE", (sourceNs, sinkNs), unique = true)
 }

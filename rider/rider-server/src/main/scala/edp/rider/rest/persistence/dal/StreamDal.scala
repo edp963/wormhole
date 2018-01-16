@@ -21,137 +21,132 @@
 
 package edp.rider.rest.persistence.dal
 
-import edp.rider.common.StreamRefresh._
-import edp.rider.common.{AppInfo, AppResult, RiderConfig, RiderLogger}
+import edp.rider.common.Action._
+import edp.rider.common._
 import edp.rider.module.DbModule._
-import edp.rider.rest.persistence.base.{BaseDal, BaseDalImpl}
+import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
-import edp.rider.spark.SparkJobClientLog
-import edp.rider.spark.SparkStatusQuery._
-import edp.rider.service.util._
+import edp.rider.rest.util.StreamUtils._
 import edp.wormhole.common.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.Duration.Inf
 import scala.concurrent.{Await, Future}
 
-class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[ProjectTable], feedbackOffsetTable: TableQuery[FeedbackOffsetTable], instanceTable: TableQuery[InstanceTable], nsDatabaseTable: TableQuery[NsDatabaseTable], relProjectNsTable: TableQuery[RelProjectNsTable], streamInTopicTable: TableQuery[StreamInTopicTable], namespaceTable: TableQuery[NamespaceTable], directiveDal: BaseDal[DirectiveTable, Directive]) extends BaseDalImpl[StreamTable, Stream](streamTable) with RiderLogger {
+class StreamDal(streamTable: TableQuery[StreamTable],
+                instanceDal: InstanceDal,
+                streamInTopicDal: StreamInTopicDal,
+                streamUdfDal: RelStreamUdfDal,
+                projectTable: TableQuery[ProjectTable]) extends BaseDalImpl[StreamTable, Stream](streamTable) with RiderLogger {
 
-  def adminGetAll: Future[Seq[StreamAdmin]] = {
-    try {
-      val streamTemp = refreshStreamsByProjectId()
-      val projectMap = mutable.HashMap.empty[Long, String]
-      val projectIds: List[Long] = streamTemp.map(_.stream.projectId).distinct.toList
-      val projectSeq = Await.result(db.run(projectTable.filter(_.id inSet projectIds).result).mapTo[Seq[Project]], minTimeOut)
-      projectSeq.foreach(project => projectMap(project.id) = project.name)
-      Future(streamTemp.map(stream => StreamAdmin(stream.stream, stream.disableActions, projectMap(stream.stream.projectId), stream.kafkaName, stream.kafkaConnection, stream.topicInfo)))
-    } catch {
-      case ex: Exception =>
-        riderLogger.error(s"admin get all streams failed", ex)
-        throw ex
+  def getStreamProjectMap(streamSeq: Seq[Stream]): Map[Long, String] = {
+    val projectSeq = Await.result(db.run(projectTable.filter(_.id inSet streamSeq.map(_.projectId)).result).mapTo[Seq[Project]], minTimeOut)
+    projectSeq.map(project => (project.id, project.name)).toMap
+  }
+
+  def refreshStreamStatus(projectIdOpt: Option[Long] = None, streamIdOpt: Option[Long] = None, action: String = REFRESH.toString): Seq[Stream] = {
+    val streamSeq = getStreamSeq(projectIdOpt, streamIdOpt)
+    val refreshStreamSeq = getStatus(action, streamSeq)
+    Await.result(super.update(refreshStreamSeq), Inf)
+    refreshStreamSeq
+  }
+
+  def getStreamSeq(projectIdOpt: Option[Long] = None, streamIdOpt: Option[Long] = None): Seq[Stream] = {
+    (projectIdOpt, streamIdOpt) match {
+      case (Some(projectId), Some(streamId)) => Await.result(super.findByFilter(stream => stream.projectId === projectId && stream.id === streamId), minTimeOut)
+      case (Some(projectId), None) => Await.result(super.findByFilter(_.projectId === projectId), minTimeOut)
+      case (None, Some(streamId)) => Await.result(super.findByFilter(_.id === streamId), minTimeOut)
+      case (None, None) => Await.result(super.findAll, minTimeOut)
     }
   }
 
-  def refreshStreamsByProjectId(id: Option[Long] = None, streamId: Option[Long] = None): Seq[StreamSeqTopicActions] = {
+  def getBriefDetail(projectIdOpt: Option[Long] = None, streamIdOpt: Option[Long] = None, action: String = REFRESH.toString): Seq[StreamDetail] = {
     try {
-      val streams = getUpdateStream(Await.result(getStreamsByProjectId(id, streamId), maxTimeOut))
-      Await.result(super.update(streams.map(_._1)), maxTimeOut)
-      streams.map(stream => {
-        //        val startTime = if (stream._1.startedTime.getOrElse("") == "") Some("") else stream._1.startedTime
-        //        val stopTime = if (stream._1.stoppedTime.getOrElse("") == "") Some("") else stream._1.stoppedTime
-        //        val newStream = Stream(stream._1.id, stream._1.name, stream._1.desc, stream._1.projectId, stream._1.instanceId, stream._1.streamType,
-        //          stream._1.sparkConfig, stream._1.startConfig, stream._1.launchConfig, stream._1.sparkAppid, stream._1.logpath, stream._1.status,
-        //          startTime, stopTime, stream._1.active, stream._1.createTime, stream._1.createBy, stream._1.updateTime, stream._1.updateBy)
-
-        getReturnRes(stream._2)
-      })
+      val streamSeq = refreshStreamStatus(projectIdOpt, streamIdOpt, action)
+      val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
+      val projectMap = getStreamProjectMap(streamSeq)
+      streamSeq.map(
+        stream => {
+          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), Seq[StreamTopic](), Seq[StreamUdf](), Seq[StreamZkUdf](), getDisableActions(stream.status))
+        }
+      )
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"get streams by project id $id, stream id $streamId failed", ex)
-        throw ex
+        riderLogger.error(s"get stream detail failed", ex)
+        throw GetStreamDetailException(ex.getMessage, ex.getCause)
     }
   }
 
-  def getStreamsByProjectId(idOpt: Option[Long] = None, streamIdOpt: Option[Long] = None): Future[Seq[StreamSeqTopic]] = {
+  def getStreamDetail(projectIdOpt: Option[Long] = None, streamIdOpt: Option[Long] = None, action: String = REFRESH.toString): Seq[StreamDetail] = {
     try {
-      val realStream: Query[StreamTable, Stream, Seq] = (idOpt, streamIdOpt) match {
-        case (Some(id), Some(streamId)) => streamTable.filter(stream => stream.active === true && stream.id === streamId && stream.projectId === id)
-        case (Some(id), None) => streamTable.filter(stream => stream.active === true && stream.projectId === id)
-        case (None, Some(streamId)) => streamTable.filter(stream => stream.active === true && stream.id === streamId)
-        case (None, None) => streamTable.filter(_.active === true)
-      }
-      db.run((realStream join instanceTable.filter(_.active === true) on (_.instanceId === _.id)).map {
-        case (stream, instance) => (stream, instance.nsInstance, instance.connUrl) <> (StreamTopicTem.tupled, StreamTopicTem.unapply)
-      }.result).map[Seq[StreamSeqTopic]] {
-        tempSeq =>
-          tempSeq.map(temp => {
-            val seqTopic: Seq[SimpleTopic] = getSimpleTopicSeq(temp.stream.id)
-            StreamSeqTopic(temp.stream, temp.kafkaName, temp.kafkaConnection, seqTopic)
-          })
-      }
+      val streamSeq = refreshStreamStatus(projectIdOpt, streamIdOpt, action)
+      val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
+      val streamIds = streamSeq.map(_.id)
+      val streamTopicSeq = streamInTopicDal.getStreamTopic(streamIds)
+      val streamUdfSeq = streamUdfDal.getStreamUdf(streamIds)
+      val streamZkUdfSeq = getZkStreamUdf(streamIds)
+      val projectMap = getStreamProjectMap(streamSeq)
+
+      streamSeq.map(
+        stream => {
+          val topics = streamTopicSeq.filter(_.streamId == stream.id).map(
+            topic => StreamTopic(topic.id, topic.name, topic.partitionOffsets, topic.rate)
+          )
+          val udfs = streamUdfSeq.filter(_.streamId == stream.id).map(
+            udf => StreamUdf(udf.id, udf.functionName, udf.fullClassName, udf.jarName)
+          )
+          val zkUdfs = streamZkUdfSeq.filter(_.streamId == stream.id).map(
+            udf => StreamZkUdf(udf.functionName, udf.fullClassName, udf.jarName)
+          )
+          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), topics, udfs, zkUdfs, getDisableActions(stream.status))
+        }
+      )
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"get streams by project id $idOpt, stream id $streamIdOpt failed", ex)
-        throw ex
+        riderLogger.error(s"get stream detail failed", ex)
+        throw GetStreamDetailException(ex.getMessage, ex.getCause)
     }
+
   }
 
-  def getSimpleTopicSeq(streamId: Long): Seq[SimpleTopic] =
-    Await.result(db.run((streamInTopicTable.filter(_.active === true).filter(_.streamId === streamId) join nsDatabaseTable.filter(_.active === true) on (_.nsDatabaseId === _.id)).map {
-      case (inTopic, database) => (database.id, database.nsDatabase, inTopic.partitionOffsets, inTopic.rate) <> (SimpleTopic.tupled, SimpleTopic.unapply)
-    }.result).mapTo[Seq[SimpleTopic]], minTimeOut)
+  def updateByPutRequest(putStream: PutStream, userId: Long): Future[Int] = {
+    db.run(streamTable.filter(_.id === putStream.id)
+      .map(stream => (stream.desc, stream.sparkConfig, stream.startConfig, stream.launchConfig, stream.updateTime, stream.updateBy))
+      .update(putStream.desc, putStream.sparkConfig, putStream.startConfig, putStream.launchConfig, currentSec, userId)).mapTo[Int]
+  }
 
-  def updateOffsetFromFeedback(streamId: Long, userId: Long): Seq[TopicDetail] = {
-    try {
-      val topicSeq = Await.result(getTopicDetailByStreamId(streamId), minTimeOut)
-      if (topicSeq.size != 0) {
-        val topicFeedbackSeq = Await.result(db.run(feedbackOffsetTable.filter(_.streamId === streamId).sortBy(_.feedbackTime.desc).take(topicSeq.size + 1).result).mapTo[Seq[FeedbackOffset]], minTimeOut)
-        val map = topicFeedbackSeq.map(topic => (topic.topicName, topic.partitionOffsets)).toMap
-        val updateSeq = new ArrayBuffer[StreamInTopic]
-        val latestOffset = topicSeq.map(
-          topic => {
-            if (map.contains(topic.name)) {
-              updateSeq += StreamInTopic(topic.id, topic.streamId, topic.nsInstanceId, topic.nsDatabaseId,
-                map.get(topic.name).get, topic.rate, topic.active, topic.createTime, topic.createBy, currentSec, userId)
-              TopicDetail(topic.id, topic.streamId, topic.nsInstanceId, topic.nsDatabaseId, topic.partition,
-                map.get(topic.name).get, topic.rate, topic.active, topic.createTime, topic.createBy, currentSec, userId, topic.name)
-            }
-            else topic
-          }
-        )
-        if (updateSeq.size != 0)
-          updateSeq.map(topic => Await.result(db.run(streamInTopicTable.filter(_.id === topic.id).update(topic)), minTimeOut))
-        latestOffset
-      }
-      else topicSeq
-    } catch {
-      case ex: Exception =>
-        riderLogger.error(s"get stream $streamId latest offset from stream_feedback_offset table failed", ex)
-        throw ex
+  def updateByStatus(streamId: Long, status: String, userId: Long): Future[Int] = {
+
+    if (status == StreamStatus.STARTING.toString) {
+      db.run(streamTable.filter(_.id === streamId)
+        .map(stream => (stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.updateTime, stream.updateBy))
+        .update(status, null, Some(currentSec), null, currentSec, userId)).mapTo[Int]
+    } else {
+      db.run(streamTable.filter(_.id === streamId)
+        .map(stream => (stream.status, stream.updateTime, stream.updateBy))
+        .update(status, currentSec, userId)).mapTo[Int]
     }
   }
 
   def getResource(projectId: Long): Future[Resource] = {
     try {
-      val project = Await.result(db.run(projectTable.filter(_.id === projectId).result.head).mapTo[Project], minTimeOut)
+      val project = Await.result(db.run(projectTable.filter(_.id === projectId).result).mapTo[Seq[Project]], minTimeOut).head
       val streamSeq = super.findByFilter(stream => stream.projectId === projectId && (stream.status === "running" || stream.status === "waiting" || stream.status === "starting" || stream.status === "stopping")).mapTo[Seq[Stream]]
       val totalCores = project.resCores
       val totalMemory = project.resMemoryG
       var usedCores = 0
       var usedMemory = 0
-      val streamResources = Await.result(streamSeq.map[Seq[StreamResource]] {
+      val streamResources = Await.result(streamSeq.map[Seq[AppResource]] {
         streamSeq =>
           streamSeq.sortBy(_.id).map {
             stream =>
               val config = json2caseClass[StartConfig](stream.startConfig)
               usedCores += config.driverCores + config.executorNums * config.perExecutorCores
               usedMemory += config.driverMemory + config.executorNums * config.perExecutorMemory
-              StreamResource(stream.name, config.driverCores, config.driverMemory, config.executorNums, config.perExecutorMemory, config.perExecutorCores)
+              AppResource(stream.name, config.driverCores, config.driverMemory, config.executorNums, config.perExecutorMemory, config.perExecutorCores)
           }
       }, minTimeOut)
       Future(Resource(totalCores, totalMemory, totalCores - usedCores, totalMemory - usedMemory, streamResources))
@@ -160,52 +155,6 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
         riderLogger.error(s"get stream resource information by project id $projectId failed", ex)
         throw ex
     }
-  }
-
-  def getUpdateStream(streamSeqTopic: Seq[StreamSeqTopic], action: String = "refresh"): Seq[(Stream, StreamSeqTopic)] = {
-    val streamsToProcess: Seq[(StreamSeqTopic, String)] = streamSeqTopic.map(streamTopic => {
-      val stream = streamTopic.stream
-      val nextAction = nextActionRule(stream, action)
-      (streamTopic, nextAction)
-    })
-    if (streamsToProcess.isEmpty) return Seq()
-    val streamWithInfo: Seq[(StreamSeqTopic, AppInfo)] = statusRuleStream(streamsToProcess)
-    val streamInfo = streamWithInfo.map(streamInfo => {
-      val nextStatus = streamInfo._2
-      val stream = streamInfo._1.stream
-      val returnStartTime = if (nextStatus.startedTime == "" || nextStatus.startedTime == null) Some("") else Some(nextStatus.startedTime)
-      val returnStopTime = if (nextStatus.finishedTime == "" || nextStatus.finishedTime == null) Some("") else Some(nextStatus.finishedTime)
-      val returnStream = Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, Some(nextStatus.appId), stream.logPath, nextStatus.appState, returnStartTime, returnStopTime, stream.active, stream.createTime, stream.createBy, stream.updateTime, stream.updateBy)
-
-      val updateStartTime = if (nextStatus.startedTime == "") null else Some(nextStatus.startedTime)
-      val updateStopTime = if (nextStatus.finishedTime == "") null else Some(nextStatus.finishedTime)
-      (Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, Some(nextStatus.appId), stream.logPath, nextStatus.appState, updateStartTime, updateStopTime, stream.active, stream.createTime, stream.createBy, stream.updateTime, stream.updateBy), StreamSeqTopic(returnStream, streamInfo._1.kafkaName, streamInfo._1.kafkaConnection, streamInfo._1.topicInfo))
-    })
-    streamInfo
-  }
-
-  def getReturnRes(streamSeqTopic: StreamSeqTopic): StreamSeqTopicActions = {
-    streamSeqTopic.stream.status match {
-      case "new" => StreamSeqTopicActions(streamSeqTopic.stream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "renew,stop")
-      case "waiting" =>
-        val disableActions =
-          if (streamSeqTopic.stream.sparkAppid.getOrElse("") == "")
-            "start,stop"
-          else "start"
-        StreamSeqTopicActions(streamSeqTopic.stream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, disableActions)
-      case "running" => StreamSeqTopicActions(streamSeqTopic.stream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "start")
-      case "stopping" => StreamSeqTopicActions(streamSeqTopic.stream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "start,renew")
-      case "stopped" => StreamSeqTopicActions(streamSeqTopic.stream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "stop,renew")
-      case "failed" => StreamSeqTopicActions(streamSeqTopic.stream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "stop")
-      case "starting" => StreamSeqTopicActions(streamSeqTopic.stream, streamSeqTopic.kafkaName, streamSeqTopic.kafkaConnection, streamSeqTopic.topicInfo, "renew,stop,start")
-    }
-  }
-
-  def getStreamById(streamId: Long) = {
-    db.run((streamTable.filter(_.active === true).filter(_.id === streamId) join instanceTable.filter(_.active === true) on (_.instanceId === _.id)).map {
-      case (stream, instance) =>
-        (stream, instance.connUrl) <> (StreamWithBrokers.tupled, StreamWithBrokers.unapply)
-    }.result.headOption).mapTo[Option[StreamWithBrokers]]
   }
 
   def getAllActiveStream: Future[Seq[StreamCacheMap]] = {
@@ -218,32 +167,10 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
     db.run(streamTable.filter(_.active === true).filter(_.id === streamId).result.head).mapTo[Stream]
   }
 
-  def insertIntoStreamInTopic(streamInTopics: Seq[StreamInTopic]): Future[Seq[Long]] = {
-    db.run(streamInTopicTable returning streamInTopicTable.map(_.id) ++= streamInTopics)
-  }
-
   def getActiveStreamByProjectId(projectId: Long): Future[Seq[StreamCacheMap]] = {
     db.run(streamTable.filter(_.active === true).filter(_.projectId === projectId).map { case (sTable) =>
       (sTable.id, sTable.name, sTable.projectId) <> (StreamCacheMap.tupled, StreamCacheMap.unapply)
     }.result).mapTo[Seq[StreamCacheMap]]
-  }
-
-  def insertStreamReturnRes(insertStreams: Seq[Stream]): Future[Seq[Stream]] = {
-    super.insert(insertStreams).map(streams => {
-      streams.map(stream =>
-        Stream(stream.id, stream.name, stream.desc, stream.projectId, stream.instanceId, stream.streamType, stream.sparkConfig, stream.startConfig, stream.launchConfig, Some(stream.sparkAppid.getOrElse("")), Some(stream.logPath.getOrElse("")), stream.status, Some(stream.startedTime.getOrElse("")), Some(stream.stoppedTime.getOrElse("")), stream.active, stream.createTime, stream.createBy, stream.updateTime, stream.updateBy))
-    })
-  }
-
-  def nextActionRule(stream: Stream, action: String): String = {
-    val currentStatus = stream.status
-    if (action == REFRESH.toString) {
-      if (currentStatus == "starting") REFRESHLOG.toString
-      else REFRESHSPARK.toString
-      //      REFRESHSPARK.toString
-    }
-    else
-      action
   }
 
   def getConfList = {
@@ -252,192 +179,33 @@ class StreamDal(streamTable: TableQuery[StreamTable], projectTable: TableQuery[P
     driverConf + "," + executorConf
   }
 
-  def statusRuleStream(streams: Seq[(StreamSeqTopic, String)]) = {
-    val fromTime =
-      if (streams.nonEmpty && streams.exists(_._1.stream.startedTime.getOrElse("") != ""))
-        streams.filter(_._1.stream.startedTime.getOrElse("") != "").map(_._1.stream.startedTime).min.getOrElse("")
-      else ""
-    //    riderLogger.info(s"fromTime: $fromTime")
-    val appInfoList: List[AppResult] =
-      if (fromTime == "") List() else getAllYarnAppStatus(fromTime).sortWith(_.appId < _.appId)
-    //    riderLogger.info(s"app info size: ${appInfoList.size}")
-    streams.map(
-      streamAction => {
-        val stream = streamAction._1.stream
-        val action = streamAction._2
-        val dbStatus = stream.status
-        val dbUpdateTime = stream.updateTime
-        val startedTime = if (stream.startedTime.getOrElse("") == "") null else stream.startedTime.get
-        val stoppedTime = if (stream.stoppedTime.getOrElse("") == "") null else stream.stoppedTime.get
-        val appInfo = {
-          if (action == "start") AppInfo("", "starting", currentSec, null)
-          else if (action == "stop") AppInfo("", "stopping", startedTime, stoppedTime)
-          else {
-            val sparkStatus: AppInfo = action match {
-              case "refresh_spark" =>
-                getAppStatusByRest(appInfoList, stream.name, stream.status, startedTime, stoppedTime)
-              case "refresh_log" =>
-                val logInfo = SparkJobClientLog.getAppStatusByLog(stream.name, dbStatus)
-                logInfo._2 match {
-                  case "running" =>
-                    getAppStatusByRest(appInfoList, stream.name, logInfo._2, startedTime, stoppedTime)
-                  case "waiting" =>
-                    val curInfo = getAppStatusByRest(appInfoList, stream.name, logInfo._2, startedTime, stoppedTime)
-                    AppInfo(curInfo.appId, curInfo.appState, startedTime, curInfo.finishedTime)
-                  case "starting" => getAppStatusByRest(appInfoList, stream.name, logInfo._2, startedTime, stoppedTime)
-                  case "failed" => AppInfo(logInfo._1, "failed", startedTime, currentSec)
-                }
-              case _ => AppInfo("", stream.status, startedTime, null)
-            }
-            if (sparkStatus == null) AppInfo(stream.sparkAppid.getOrElse(""), "failed", startedTime, stoppedTime)
-            else {
-              val resStatus = dbStatus match {
-                case "starting" =>
-                  sparkStatus.appState.toUpperCase match {
-                    case "RUNNING" => AppInfo(sparkStatus.appId, "running", sparkStatus.startedTime, sparkStatus.finishedTime)
-                    case "ACCEPTED" => AppInfo(sparkStatus.appId, "waiting", sparkStatus.startedTime, sparkStatus.finishedTime)
-                    case "KILLED" | "FINISHED" | "FAILED" => AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
-                    case _ => AppInfo(sparkStatus.appId, "starting", startedTime, stoppedTime)
-                  }
-                case "waiting" => sparkStatus.appState.toUpperCase match {
-                  case "RUNNING" => AppInfo(sparkStatus.appId, "running", sparkStatus.startedTime, sparkStatus.finishedTime)
-                  case "ACCEPTED" => AppInfo(sparkStatus.appId, "waiting", sparkStatus.startedTime, sparkStatus.finishedTime)
-                  case "KILLED" | "FINISHED" | "FAILED" => AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
-                  case _ => AppInfo(sparkStatus.appId, "waiting", startedTime, stoppedTime)
-                }
-                case "running" =>
-                  if (List("FAILED", "KILLED", "FINISHED").contains(sparkStatus.appState.toUpperCase)) {
-                    AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
-                  }
-                  else {
-                    AppInfo(sparkStatus.appId, "running", startedTime, stoppedTime)
-                  }
-                case "stopping" =>
-                  if (sparkStatus.appState == "KILLED") {
-                    AppInfo(sparkStatus.appId, "stopped", sparkStatus.startedTime, sparkStatus.finishedTime)
-                  }
-                  else {
-                    AppInfo(sparkStatus.appId, "stopping", startedTime, stoppedTime)
-                  }
-                case "new" =>
-                  AppInfo("", "new", startedTime, stoppedTime)
-                case "stopped" =>
-                  AppInfo(sparkStatus.appId, "stopped", startedTime, stoppedTime)
-                case "failed" =>
-                  sparkStatus.appState.toUpperCase match {
-                    case "RUNNING" => AppInfo(sparkStatus.appId, "running", sparkStatus.startedTime, sparkStatus.finishedTime)
-                    case "ACCEPTED" => AppInfo(sparkStatus.appId, "waiting", sparkStatus.startedTime, sparkStatus.finishedTime)
-                    case "KILLED" | "FINISHED" | "FAILED" | _ => AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
-
-                  }
-                case _ => AppInfo(sparkStatus.appId, dbStatus, startedTime, stoppedTime)
-              }
-              resStatus
-            }
-          }
-        }
-        (streamAction._1, appInfo)
-      })
-
-  }
-
   def updateStreamTable(stream: Stream): Future[Int] = {
     db.run(streamTable.filter(_.id === stream.id).update(stream))
-  }
-
-  def deleteStreamInTopicByStreamId(databaseIds: Seq[Long]): Future[Int] = {
-    db.run(streamInTopicTable.filter(_.nsDatabaseId inSet databaseIds).delete)
-  }
-
-  def getStreamInTopicByStreamId(streamId: Long) = {
-    db.run((streamInTopicTable.filter(_.streamId === streamId).filter(_.active === true) join nsDatabaseTable.filter(_.active === true) on (_.nsDatabaseId === _.id)).map {
-      case (streamInTopic, nsDatabase) => (streamInTopic.id,
-        streamInTopic.streamId,
-        streamInTopic.nsInstanceId,
-        streamInTopic.nsDatabaseId,
-        nsDatabase.nsDatabase,
-        nsDatabase.partitions.getOrElse(0),
-        streamInTopic.partitionOffsets,
-        streamInTopic.rate,
-        streamInTopic.active,
-        streamInTopic.createTime,
-        streamInTopic.createBy,
-        streamInTopic.updateTime,
-        streamInTopic.updateBy) <> (StreamInTopicName.tupled, StreamInTopicName.unapply)
-    }.result).mapTo[Seq[StreamInTopicName]]
-  }
-
-  def getStreamTopicPartition(streamId: Long): Future[Seq[StreamTopicPartition]] = {
-    db.run((streamInTopicTable.filter(_.streamId === streamId).filter(_.active === true) join nsDatabaseTable.filter(_.active === true) on (_.nsDatabaseId === _.id)).map {
-      case (streamInTopic, nsDatabase) => (
-        streamInTopic.streamId,
-        nsDatabase.nsDatabase,
-        nsDatabase.partitions) <> (StreamTopicPartition.tupled, StreamTopicPartition.unapply)
-    }.result).mapTo[Seq[StreamTopicPartition]]
-
-  }
-
-  def updateStreamInTopicTable(streamInTopics: Seq[StreamInTopic]) = {
-    db.run(DBIO.seq(streamInTopics.map(streamInTopic => streamInTopicTable.filter(_.id === streamInTopic.id).update(streamInTopic)): _*))
   }
 
   def updateStreamsTable(streams: Seq[Stream]) = {
     db.run(DBIO.seq(streams.map(stream => streamTable.filter(_.id === stream.id).update(stream)): _*))
   }
 
-
-  def getProjectNameById(id: Long): Future[Project] = {
-    db.run(projectTable.filter(_.id === id).result.head).mapTo[Project]
-  }
-
-  def getKafkaByProjectId(projectId: Long): Future[Seq[Kafka]] = {
-    db.run((relProjectNsTable.filter(_.projectId === projectId).filter(_.active === true) join namespaceTable.filter(_.active === true) on (_.nsId === _.id) join instanceTable.filter(_.active === true).filter(_.nsSys === "kafka") on (_._2.nsInstanceId === _.id)).map {
-      case (proNamespace, instance) => (instance.id, instance.nsInstance) <> (Kafka.tupled, Kafka.unapply)
-    }.distinct.result).mapTo[Seq[Kafka]]
-  }
-
-  def getTopicDetailByStreamId(streamId: Long) = {
-    db.run((streamTable.filter(_.active === true).filter(_.id === streamId) join streamInTopicTable.filter(_.active === true) on (_.id === _.streamId) join nsDatabaseTable.filter(_.active === true) on (_._2.nsDatabaseId === _.id)).map {
-      case (streamInTopic, database) => (streamInTopic._2.id, streamId, streamInTopic._2.nsInstanceId, database.id, database.partitions, streamInTopic._2.partitionOffsets, streamInTopic._2.rate, streamInTopic._2.active, streamInTopic._2.createTime, streamInTopic._2.createBy, streamInTopic._2.updateTime, streamInTopic._2.updateBy, database.nsDatabase) <> (TopicDetail.tupled, TopicDetail.unapply)
-    }.result).mapTo[Seq[TopicDetail]]
-  }
-
-  def refreshTopicByStreamId(streamId: Long, userId: Long) = {
-    updateOffsetFromFeedback(streamId, userId)
-  }
-
-  def getTopicByInstanceId(instanceId: Long) = {
-    db.run((instanceTable.filter(_.active === true).filter(_.id === instanceId) join namespaceTable.filter(_.active === true) on (_.id === _.nsInstanceId) join nsDatabaseTable.filter(_.active === true) on (_._2.nsDatabaseId === _.id)).map {
-      case (instance, database) => (database.id, database.nsDatabase, database.partitions.getOrElse(0)) <> (TopicSimple.tupled, TopicSimple.unapply)
-    }.distinct.result).mapTo[Seq[TopicSimple]]
-  }
-
-
-  def generateStreamNameByProject(projectName: String, name: String): String = s"wormhole_${projectName}_$name"
-
-
   def checkStreamNameUnique(streamName: String) = {
     db.run(streamTable.filter(_.name === streamName).result)
   }
 
-  def getStreamKafkaTopic(projectId: Long, streamId: Option[Long] = None, streamTypeOpt: Option[String] = None) = {
-    val streamQuery = (streamId, streamTypeOpt) match {
-      case (Some(id), None) => streamTable.filter(stream => stream.projectId === projectId && stream.active === true && stream.id === id)
-      case (None, Some(streamType)) => streamTable.filter(stream => stream.projectId === projectId && stream.active === true && stream.streamType === streamType)
-      case (_, _) => streamTable.filter(stream => stream.projectId === projectId && stream.active === true)
-    }
 
-    val streamSeq = db.run((streamQuery join instanceTable on (_.instanceId === _.id))
-      .map {
-        case (stream, instance) => (stream.id, stream.name, stream.streamType, instance.nsInstance, "") <> (StreamKafkaTopic.tupled, StreamKafkaTopic.unapply)
-      }.result).mapTo[Seq[StreamKafkaTopic]]
+  def getProjectStreamsUsedResource(projectId: Long) = {
+    val streamSeq: Seq[Stream] = Await.result(super.findByFilter(job => job.projectId === projectId && (job.status === "running" || job.status === "waiting" || job.status === "starting" || job.status === "stopping")), minTimeOut)
+    var usedCores = 0
+    var usedMemory = 0
+    val streamResources: Seq[AppResource] = streamSeq.map(
+      stream => {
+        val config = json2caseClass[StartConfig](stream.startConfig)
+        usedCores += config.driverCores + config.executorNums * config.perExecutorCores
+        usedMemory += config.driverMemory + config.executorNums * config.perExecutorMemory
+        AppResource(stream.name, config.driverCores, config.driverMemory, config.executorNums, config.perExecutorMemory, config.perExecutorCores)
 
-    streamSeq.map[Seq[StreamKafkaTopic]] {
-      streamSeq =>
-        streamSeq.map(stream => {
-          val topics = getSimpleTopicSeq(stream.id).map(_.name).mkString(",")
-          StreamKafkaTopic(stream.id, stream.name, stream.streamType, stream.kafka, topics)
-        })
-    }
+      }
+    )
+    (usedCores, usedMemory, streamResources)
   }
+
 }

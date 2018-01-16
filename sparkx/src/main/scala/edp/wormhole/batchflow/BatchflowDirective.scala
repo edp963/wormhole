@@ -23,22 +23,23 @@ package edp.wormhole.batchflow
 
 import com.alibaba.fastjson.JSON
 import edp.wormhole.common.util.{DateUtils, JsonUtils}
-import edp.wormhole.common.{FeedbackPriority, KVConfig}
-import edp.wormhole.core._
+import edp.wormhole.common._
+import edp.wormhole.directive._
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.swifts.parse.{ParseSwiftsSql, SwiftsProcessConfig}
 import edp.wormhole.swifts.validity.ValidityConfig
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
-import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType, UmsSysField}
+import edp.wormhole.ums._
 
 import scala.collection.mutable
 
 object BatchflowDirective extends Directive {
 
   private def registerFlowStartDirective(sourceNamespace: String, fullsinkNamespace: String, streamId: Long, directiveId: Long,
-                                         swiftsStr: String, sinksStr: String, feedbackTopicName: String, brokers: String, consumptionDataStr: String): Unit = {
+                                         swiftsStr: String, sinksStr: String, feedbackTopicName: String, brokers: String,
+                                         consumptionDataStr: String, dataType: String, dataParseStr: String): Unit = {
     val consumptionDataMap = mutable.HashMap.empty[String, Boolean]
     val consumption = JSON.parseObject(consumptionDataStr)
     val initial = consumption.getString(InputDataRequirement.INITIAL.toString).trim.toLowerCase.toBoolean
@@ -75,17 +76,10 @@ object BatchflowDirective extends Directive {
         else Some(false)
         val dataframe_show_num: Option[Int] = if (swifts.containsKey("dataframe_show_num"))
           Some(swifts.getInteger("dataframe_show_num")) else Some(20)
-        //      val specialConfig: JSONObject = if (swifts.containsKey("swifts_specific_config")) Some(swifts.getJSONObject("swifts_specific_config")) else None
-        val specialConfigMap = mutable.HashMap.empty[String, String]
-        //      if (specialConfig != null) {
-        //        val initial = specialConfig.getString(InputDataRequirement.INITIAL.toString).trim.toLowerCase
-        //        val increment = specialConfig.getString(InputDataRequirement.INCREMENT.toString).trim.toLowerCase
-        //        val batch = specialConfig.getString(InputDataRequirement.BATCH.toString).trim.toLowerCase
-        //        specialConfigMap(InputDataRequirement.INITIAL.toString) = initial
-        //        specialConfigMap(InputDataRequirement.INCREMENT.toString) = increment
-        //        specialConfigMap(InputDataRequirement.BATCH.toString) = batch
-        //      }
-        val pushdown_connection = if (swifts.containsKey("pushdown_connection") && swifts.getString("pushdown_connection").trim.nonEmpty && swifts.getJSONArray("pushdown_connection").size>0) swifts.getJSONArray("pushdown_connection") else null
+        val swiftsSpecialConfig = if(swifts.containsKey("swifts_specific_config")) swifts.getString("swifts_specific_config")
+        else ""
+
+        val pushdown_connection = if (swifts.containsKey("pushdown_connection") && swifts.getString("pushdown_connection").trim.nonEmpty && swifts.getJSONArray("pushdown_connection").size > 0) swifts.getJSONArray("pushdown_connection") else null
         if (pushdown_connection != null) {
           val connectionListSize = pushdown_connection.size()
           for (i <- 0 until connectionListSize) {
@@ -94,33 +88,22 @@ object BatchflowDirective extends Directive {
             val jdbc_url = jsonObj.getString("jdbc_url")
             val username = if (jsonObj.containsKey("username")) Some(jsonObj.getString("username")) else None
             val password = if (jsonObj.containsKey("password")) Some(jsonObj.getString("password")) else None
-            val parameters = if (jsonObj.containsKey("connection_config") && jsonObj.getString("connection_config").trim.nonEmpty) Some(JsonUtils.json2caseClass[Seq[KVConfig]](jsonObj.getString("connection_config"))) else None
+            val parameters = if (jsonObj.containsKey("connection_config") && jsonObj.getString("connection_config").trim.nonEmpty) {
+              logInfo("connection_config:"+jsonObj.getString("connection_config"))
+              Some(JsonUtils.json2caseClass[Seq[KVConfig]](jsonObj.getString("connection_config")))
+            } else {
+              logInfo("not contains connection_config")
+              None
+            }
             ConfMemoryStorage.registerDataStoreConnectionsMap(name_space, jdbc_url, username, password, parameters)
           }
         }
 
-        val output = if (swifts.containsKey("output") && swifts.getString("output").trim.nonEmpty) {
-          var tmpOutput = swifts.getString("output").trim.toLowerCase.split(",").map(_.trim).mkString(",")
-          if (tmpOutput.nonEmpty && tmpOutput.indexOf(UmsSysField.TS.toString) < 0) {
-            tmpOutput = tmpOutput + "," + UmsSysField.TS.toString
-          }
-          if (tmpOutput.nonEmpty && tmpOutput.indexOf(UmsSysField.ID.toString) < 0) {
-            tmpOutput = tmpOutput + "," + UmsSysField.ID.toString
-          }
-          if (tmpOutput.nonEmpty && tmpOutput.indexOf(UmsSysField.OP.toString) < 0) {
-            tmpOutput = tmpOutput + "," + UmsSysField.OP.toString
-          }
-          if (tmpOutput.nonEmpty && validity != null && tmpOutput.indexOf(UmsSysField.UID.toString) < 0) {
-            tmpOutput = tmpOutput + "," + UmsSysField.UID.toString
-          }
-          tmpOutput
-        } else ""
         val SwiftsSqlArr = if (action != null) {
           val sqlStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(action))
-          ParseSwiftsSql.parse(sqlStr, sourceNamespace, fullsinkNamespace, if (validity == null) false else true)
+          ParseSwiftsSql.parse(sqlStr, sourceNamespace, fullsinkNamespace, if (validity == null) false else true, dataType)
         } else None
-        //      val SwiftsSqlArr = ParseSwiftsSql.parse(sqlStr, sourceNamespace, fullsinkNamespace, if (validity == null) false else true)
-        Some(SwiftsProcessConfig(output, SwiftsSqlArr, validityConfig, dataframe_show, dataframe_show_num, Some(specialConfigMap.toMap)))
+        Some(SwiftsProcessConfig(SwiftsSqlArr, validityConfig, dataframe_show, dataframe_show_num, Some(swiftsSpecialConfig)))
       } else {
         None
       }
@@ -136,11 +119,44 @@ object BatchflowDirective extends Directive {
     val sink_process_class_fullname = sinks.getString("sink_process_class_fullname").trim
     val sink_retry_times = sinks.getString("sink_retry_times").trim.toLowerCase.toInt
     val sink_retry_seconds = sinks.getString("sink_retry_seconds").trim.toLowerCase.toInt
-    val sinkProcessConfig = SinkProcessConfig(sink_table_keys, sink_specific_config, sink_process_class_fullname, sink_retry_times, sink_retry_seconds)
+    val sink_output = if (sinks.containsKey("sink_output") && sinks.getString("sink_output").trim.nonEmpty) {
+      var tmpOutput = sinks.getString("sink_output").trim.toLowerCase.split(",").map(_.trim).mkString(",")
+      if (dataType == "ums" && tmpOutput.nonEmpty) {
+        if (tmpOutput.indexOf(UmsSysField.TS.toString) < 0) {
+          tmpOutput = tmpOutput + "," + UmsSysField.TS.toString
+        }
+        if (tmpOutput.indexOf(UmsSysField.ID.toString) < 0) {
+          tmpOutput = tmpOutput + "," + UmsSysField.ID.toString
+        }
+        if (tmpOutput.indexOf(UmsSysField.OP.toString) < 0) {
+          tmpOutput = tmpOutput + "," + UmsSysField.OP.toString
+        }
+      }
+      tmpOutput
+    } else ""
+
+    var sink_schema:Option[String] = None
+    if (dataType != "ums") {
+      if (sinks.containsKey("sink_schema") &&  sinks.getString("sink_schema").trim.nonEmpty) {
+        val sinkSchemaEncoded = sinks.getString("sink_schema").trim
+         sink_schema = Some(new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkSchemaEncoded.toString)))
+        //ConfMemoryStorage.registerJsonSourceSinkSchema(sourceNamespace, fullsinkNamespace, sink_schema)
+      }
+      val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
+      ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo,parseResult.twoFieldsArr)
+    }
+
+    val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_schema, sink_process_class_fullname, sink_retry_times, sink_retry_seconds)
+
+
     val swiftsStrCache = if (swiftsStr == null) "" else swiftsStr
+
 
     ConfMemoryStorage.registerStreamLookupNamespaceMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig)
     ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap)
+
+
+
     ConfMemoryStorage.registerDataStoreConnectionsMap(fullsinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
     WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
 
@@ -161,10 +177,11 @@ object BatchflowDirective extends Directive {
         val sinksStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(UmsFieldType.umsFieldValue(tuple.tuple, schemas, "sinks").toString))
         logInfo("sinksStr:" + sinksStr)
         val fullSinkNamespace = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "sink_namespace").toString.toLowerCase
-
-        val consumptionDataStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(UmsFieldType.umsFieldValue(tuple.tuple, schemas, "consumption_data_type").toString))
-
-        registerFlowStartDirective(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, feedbackTopicName, brokers, consumptionDataStr)
+        val consumptionDataStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(UmsFieldType.umsFieldValue(tuple.tuple, schemas, "consumption_protocol").toString))
+        val dataType = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_type").toString.toLowerCase
+        val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
+        val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
+        registerFlowStartDirective(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, feedbackTopicName, brokers, consumptionDataStr, dataType, dataParseStr)
       } catch {
         case e: Throwable =>
           logAlert("registerFlowStartDirective,sourceNamespace:" + sourceNamespace, e)

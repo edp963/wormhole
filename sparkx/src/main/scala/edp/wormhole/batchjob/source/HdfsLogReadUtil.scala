@@ -28,16 +28,16 @@ import edp.wormhole.common.hadoop.HdfsUtils._
 import edp.wormhole.common.util.DateUtils
 import edp.wormhole.common.util.FileUtils._
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.ums.{UmsNamespace, UmsOpType, UmsSysField}
+import edp.wormhole.ums.{UmsNamespace, UmsOpType, UmsProtocolType, UmsSysField}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 
 import scala.collection.mutable.ListBuffer
 
-object HdfsLogReadUtil extends EdpLogging{
+object HdfsLogReadUtil extends EdpLogging {
   def getHdfsLogPathListBetween(fullPathList: Seq[String], fromTsStr: String, toTsStr: String): Seq[String] = {
-    val fromTsLong:Long = if(fromTsStr!=null)DateUtils.dt2long(fromTsStr) else 0
-    val toTsLong: Long = if(toTsStr!=null)DateUtils.dt2long(toTsStr) else 0
+    val fromTsLong: Long = if (fromTsStr != null) DateUtils.dt2long(fromTsStr) else 0
+    val toTsLong: Long = if (toTsStr != null) DateUtils.dt2long(toTsStr) else 0
     println("fromTsLong:" + fromTsLong + "         " + fromTsStr)
     println("toTsLong:" + toTsLong + "     " + toTsStr)
     val conf = new Configuration()
@@ -45,8 +45,8 @@ object HdfsLogReadUtil extends EdpLogging{
     fullPathList.foreach(path => {
       val fileName = path.split("\\/").last
       if (fileName.startsWith("metadata")) {
-        val fileContent = HdfsUtils.readFileString(conf,path)
-        logInfo("****metadata,fileName="+fileName+",fileContent="+fileContent)
+        val fileContent = HdfsUtils.readFileString(conf, path)
+        logInfo("****metadata,fileName=" + fileName + ",fileContent=" + fileContent)
         val contentGrp = fileContent.split("_")
         var result = false
         val minTs = contentGrp(3)
@@ -59,29 +59,37 @@ object HdfsLogReadUtil extends EdpLogging{
           if (DateUtils.dt2long(maxTs) >= fromTsLong) result = true
         } else if (DateUtils.dt2long(minTs) <= fromTsLong && DateUtils.dt2long(maxTs) >= fromTsLong) {
           result = true
-          }else if (DateUtils.dt2long(minTs) <= toTsLong && DateUtils.dt2long(maxTs) >= toTsLong) {
+        } else if (DateUtils.dt2long(minTs) <= toTsLong && DateUtils.dt2long(maxTs) >= toTsLong) {
           result = true
-          }else if (DateUtils.dt2long(minTs) >= fromTsLong && DateUtils.dt2long(maxTs) <= toTsLong) {
+        } else if (DateUtils.dt2long(minTs) >= fromTsLong && DateUtils.dt2long(maxTs) <= toTsLong) {
           result = true
-          }
+        }
 
-        if(result) {
-          fileList += (path.substring(0, path.lastIndexOf("/"))+"/"+contentGrp(0))
+        if (result) {
+          fileList += (path.substring(0, path.lastIndexOf("/")) + "/" + contentGrp(0))
         }
       }
     })
     fileList
   }
 
-  def getHdfsPathList(hdfsRoot: String, namespace: UmsNamespace): Seq[String] = {
-    var prefix = hdfsRoot + "/" + namespace.dataSys + "." + namespace.instance + "." + namespace.database + "/" + namespace.table //+ "/" + namespace.version + "/" + namespace.databasePar + "/" + namespace.tablePar + "/" + "right"
+  def getHdfsPathList(hdfsRoot: String, namespace: UmsNamespace, protocolTypeSet: Set[String]): Seq[String] = {
+    var prefix = hdfsRoot + "/hdfslog/" + namespace.dataSys + "." + namespace.instance + "." + namespace.database + "/" + namespace.table //+ "/" + namespace.version + "/" + namespace.databasePar + "/" + namespace.tablePar + "/" + "protocoltype/right"
     val namespaceVersion = if (namespace.version == "*") {
       getHdfsFileList(prefix).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).head.toString
     } else {
       namespace.version
     }
+    val pathList = ListBuffer.empty[String]
     prefix = prefix + "/" + namespaceVersion
-    getHdfsFileList(prefix).flatMap(getHdfsFileList(_)).map(_ + "/right")
+    val parentPath = getHdfsFileList(prefix).flatMap(getHdfsFileList(_))
+
+    if (protocolTypeSet.contains(UmsProtocolType.DATA_INITIAL_DATA.toString))
+      parentPath.map(pathList += _ + "/" + UmsProtocolType.DATA_INITIAL_DATA.toString + "/right")
+    if (protocolTypeSet.contains(UmsProtocolType.DATA_INCREMENT_DATA.toString))
+      parentPath.map(pathList += _ + "/" + UmsProtocolType.DATA_INCREMENT_DATA.toString + "/right")
+
+    pathList.toList
   }
 
   def getHdfsFileList(hdfsPath: String): Seq[String] = {
@@ -96,8 +104,13 @@ object HdfsLogReadUtil extends EdpLogging{
     val config = new Configuration()
     val fileSystem = FileSystem.newInstance(config)
     val fullPathList: Seq[String] = hdfsPathList.map(pfRight(_))
-    fullPathList.foreach(fullPath => assert(isPathExist(config, fullPath), s"The $fullPath does not exist"))
-    fullPathList.flatMap(fullPath => fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString))
+    val checkedPathList = fullPathList.filter(fullPath => {
+      val exist = isPathExist(config, fullPath)
+      if(!exist) logError("path is not exist,path="+ fullPath)
+      else logInfo("path exist,path="+fullPath)
+      exist
+    })
+    checkedPathList.flatMap(fullPath => fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString))
   }
 
   def getSnapshotSqlByTs(keys: String, fromTs: Timestamp, toTs: Timestamp): String = {

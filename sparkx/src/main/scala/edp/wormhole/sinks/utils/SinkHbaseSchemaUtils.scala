@@ -73,11 +73,11 @@ trait SinkHbaseSchemaUtils {
 //      else Bytes.toBytes(value.trim)
 //    }
 
-  def s2hbaseStringValue(umsFieldType: UmsFieldType, value: String, column: String): Array[Byte] =
+  def s2hbaseStringValue(umsFieldType: UmsFieldType, value: String, column: String,umsTsSaveAsString:Boolean): Array[Byte] =
     if (column.toLowerCase == "ums_ts_") {
       umsFieldType match {
-        case UmsFieldType.DATE => if (value == null) null else Bytes.toBytes(dt2date(value).getTime.toString)
-        case UmsFieldType.DATETIME => if (value == null) null else Bytes.toBytes(dt2date(value).getTime.toString)
+        case UmsFieldType.DATE => if (value == null) null else if(umsTsSaveAsString) Bytes.toBytes(dt2date(value).getTime.toString) else Bytes.toBytes(dt2date(value).getTime)
+        case UmsFieldType.DATETIME => if (value == null) null else if(umsTsSaveAsString) Bytes.toBytes(dt2date(value).getTime.toString) else Bytes.toBytes(dt2date(value).getTime)
       }
     }
     //    else {

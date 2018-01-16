@@ -42,9 +42,20 @@ object CommonUtils extends RiderLogger {
 
   def streamSubmitTimeout = 120.seconds
 
-  val keyEqualValuePattern = "([a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*=[a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*(&[a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*=[a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*)*)".r.pattern
+  val keyEqualValuePattern = "([a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*=[a-zA-Z0-9]+[a-zA-z0-9\\_\\-\\.]*(&[a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*=[a-zA-Z0-9]+[a-zA-z0-9\\_\\-\\.]*)*)".r.pattern
 
   val streamSparkConfigPattern = "(.+=.+(,.+.+)*)".r.pattern
+
+  def formatResponseTimestamp(time: Option[String]): Option[String] = {
+    if (time.getOrElse("") == "") Some("")
+    else time
+  }
+
+  def formatRequestTimestamp(time: Option[String]): Option[String] = {
+    if (time.getOrElse("") == "")
+      null
+    else time
+  }
 
   def isJson(str: String): Boolean = {
     try {
