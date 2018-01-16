@@ -23,8 +23,8 @@ import {connect} from 'react-redux'
 import {createStructuredSelector} from 'reselect'
 import Helmet from 'react-helmet'
 import { preProcessSql, formatString, isJSON } from '../../utils/util'
-import { generateSourceSinkNamespaceHierarchy, generateHdfslogNamespaceHierarchy, generateTransformSinkNamespaceHierarchy,
-  showSinkConfigMsg} from './workbenchFunction'
+import { generateSourceSinkNamespaceHierarchy, generateHdfslogNamespaceHierarchy,
+  generateTransformSinkNamespaceHierarchy, showSinkConfigMsg} from './workbenchFunction'
 import CodeMirror from 'codemirror'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
@@ -68,7 +68,8 @@ import {loadSelectNamespaces, loadUserNamespaces} from '../Namespace/action'
 import {loadUserUsers, loadSelectUsers} from '../User/action'
 import {loadResources} from '../Resource/action'
 import {loadSingleUdf} from '../Udf/action'
-import {loadJobName, loadJobSourceNs, loadJobSinkNs, loadJobSourceToSinkExist, addJob, queryJob, editJob} from '../Job/action'
+import {loadJobName, loadJobSourceNs, loadJobSinkNs, loadJobSourceToSinkExist, addJob,
+  queryJob, editJob} from '../Job/action'
 
 import { selectFlows, selectFlowSubmitLoading, selectSourceToSinkExited } from '../Flow/selectors'
 import { selectStreams, selectStreamSubmitLoading, selectStreamNameExited } from '../Manager/selectors'
@@ -101,7 +102,7 @@ export class Workbench extends React.Component {
       transformModalVisible: false,
       etpStrategyModalVisible: false,
       sinkConfigModalVisible: false,
-      jobSinkConfigModalVisible: false,
+      flowSpecialConfigModalVisible: false,
 
       // Flow Modal Transform
       flowFormTranTableSource: [],
@@ -189,18 +190,20 @@ export class Workbench extends React.Component {
       startTsVal: '',
       endTsVal: '',
       jobTransformMode: '',
+      jobSpecialConfigModalVisible: false,
+      jobSinkConfigModalVisible: false,
+      jobTranConfigConfirmValue: '',
 
       routingSinkTypeNsData: [],
-      routingSourceNsValue: ''
+      routingSourceNsValue: '',
+      transConfigConfirmValue: ''
     }
   }
 
   componentWillMount () {
     const projectId = this.props.router.params.projectId
     this.loadData(projectId)
-    this.setState({
-      tabPanelKey: 'flow'
-    })
+    this.setState({ tabPanelKey: 'flow' })
   }
 
   componentWillReceiveProps (props) {
@@ -471,11 +474,7 @@ export class Workbench extends React.Component {
   }
 
   // 控制 data frame number show／hide
-  initDataShowClass = (e) => {
-    this.setState({
-      dataframeShowSelected: e.target.value === 'true' ? '' : 'hide'
-    })
-  }
+  initDataShowClass = (e) => this.setState({ dataframeShowSelected: e.target.value === 'true' ? '' : 'hide' })
 
   showAddFlowWorkbench = () => {
     this.workbenchFlowForm.resetFields()
@@ -600,10 +599,7 @@ export class Workbench extends React.Component {
   }
 
   showEditJobWorkbench = (job) => () => {
-    this.setState({
-      jobMode: 'edit'
-      // sparkConfigCheck: true
-    })
+    this.setState({ jobMode: 'edit' })
 
     new Promise((resolve) => {
       const requestData = {
@@ -690,16 +686,10 @@ export class Workbench extends React.Component {
               jobTranTableClassName: ''
             })
           } else {
-            this.setState({
-              jobTranTagClassName: '',
-              jobTranTableClassName: 'hide'
-            })
+            this.editJobFinal()
           }
         } else {
-          this.setState({
-            jobTranTagClassName: '',
-            jobTranTableClassName: 'hide'
-          })
+          this.editJobFinal()
         }
 
         let sinkConfigShow = ''
@@ -747,6 +737,9 @@ export class Workbench extends React.Component {
 
         const sourceNsArr = resultFinal.sourceNs.split('.')
         const sinkNsArr = resultFinal.sinkNs.split('.')
+        const jobSpecialConfigVal = resultFinal.tranConfig !== ''
+          ? JSON.stringify(JSON.parse(resultFinal.tranConfig).swifts_specific_config)
+          : ''
 
         this.workbenchJobForm.setFieldsValue({
           sourceDataSystem: sourceNsArr[0],
@@ -756,9 +749,17 @@ export class Workbench extends React.Component {
 
           sinkConfig: sinkConfigShow,
           maxRecordPerPartitionProcessed: maxRecordShow,
-          resultFields: resultFieldsVal
+          resultFields: resultFieldsVal,
+          jobSpecialConfig: jobSpecialConfigVal
         })
       })
+  }
+
+  editJobFinal () {
+    this.setState({
+      jobTranTagClassName: '',
+      jobTranTableClassName: 'hide'
+    })
   }
 
   showEditFlowWorkbench = (flow) => () => {
@@ -821,7 +822,9 @@ export class Workbench extends React.Component {
             createTime: result.createTime,
             createBy: result.createBy,
             updateTime: result.updateTime,
-            updateBy: result.updateBy
+            updateBy: result.updateBy,
+            startedTime: result.startedTime,
+            stoppedTime: result.stoppedTime
           }
         })
       })
@@ -831,16 +834,13 @@ export class Workbench extends React.Component {
         const sinkNsArr = result.sinkNs.split('.')
 
         let dataframeShowVal = ''
-
         if (result.tranConfig !== '') {
           if (result.tranConfig.indexOf('action') > -1) {
             const temp = JSON.parse(JSON.stringify(result.tranConfig))
-
             const tt = temp.replace(/\n/g, ' ')
             const tranConfigVal = JSON.parse(tt)
 
             let validityTemp = tranConfigVal.validity
-
             if (result.tranConfig.indexOf('validity') > -1) {
               const requestTempJson = {
                 check_columns: validityTemp.check_columns,
@@ -874,9 +874,7 @@ export class Workbench extends React.Component {
               })
             } else {
               dataframeShowVal = 'false'
-              this.setState({
-                dataframeShowSelected: 'hide'
-              })
+              this.setState({ dataframeShowSelected: 'hide' })
               this.workbenchFlowForm.setFieldsValue({
                 dataframeShow: 'false',
                 dataframeShowNum: 10
@@ -907,7 +905,6 @@ export class Workbench extends React.Component {
                 tranTypeTepm = 'lookupSql'
 
                 const tmpObj = tranConfigVal.pushdown_connection.find(g => g.name_space === lookupBeforePartTemp[3])
-
                 const pushdownConTepmJson = {
                   name_space: tmpObj.name_space,
                   jdbc_url: tmpObj.jdbc_url,
@@ -979,22 +976,10 @@ export class Workbench extends React.Component {
               transConnectClass: ''
             })
           } else {
-            this.setState({
-              transformTagClassName: '',
-              transformTableClassName: 'hide',
-              transConnectClass: 'hide',
-              etpStrategyCheck: false,
-              dataframeShowSelected: 'hide'
-            })
+            this.qureryFlowDefaultFinal()
           }
         } else {
-          this.setState({
-            transformTagClassName: '',
-            transformTableClassName: 'hide',
-            transConnectClass: 'hide',
-            etpStrategyCheck: false,
-            dataframeShowSelected: 'hide'
-          })
+          this.qureryFlowDefaultFinal()
         }
 
         let sinkConfigShow = ''
@@ -1037,6 +1022,10 @@ export class Workbench extends React.Component {
           })
         }
 
+        const flowSpecialConfigVal = result.tranConfig !== ''
+          ? JSON.stringify(JSON.parse(result.tranConfig).swifts_specific_config)
+          : ''
+
         this.workbenchFlowForm.setFieldsValue({
           sourceDataSystem: sourceNsArr[0],
           sourceNamespace: [sourceNsArr[1], sourceNsArr[2], sourceNsArr[3]],
@@ -1045,9 +1034,20 @@ export class Workbench extends React.Component {
 
           sinkConfig: this.state.flowMode === 'copy' ? '' : sinkConfigShow,
           resultFields: resultFieldsVal,
-          dataframeShow: dataframeShowVal
+          dataframeShow: dataframeShowVal,
+          flowSpecialConfig: flowSpecialConfigVal
         })
       })
+  }
+
+  qureryFlowDefaultFinal () {
+    this.setState({
+      transformTagClassName: '',
+      transformTableClassName: 'hide',
+      transConnectClass: 'hide',
+      etpStrategyCheck: false,
+      dataframeShowSelected: 'hide'
+    })
   }
 
   queryFlowHdfslog (flow) {
@@ -1083,7 +1083,9 @@ export class Workbench extends React.Component {
             createTime: result.createTime,
             createBy: result.createBy,
             updateTime: result.updateTime,
-            updateBy: result.updateBy
+            updateBy: result.updateBy,
+            startedTime: result.startedTime,
+            stoppedTime: result.stoppedTime
           }
         })
       })
@@ -1141,7 +1143,9 @@ export class Workbench extends React.Component {
             createTime: result.createTime,
             createBy: result.createBy,
             updateTime: result.updateTime,
-            updateBy: result.updateBy
+            updateBy: result.updateBy,
+            startedTime: result.startedTime,
+            stoppedTime: result.stoppedTime
           }
         })
       })
@@ -1291,6 +1295,7 @@ export class Workbench extends React.Component {
    * */
   onShowSparkConfigModal = () => {
     const { jobSparkConfigValues } = this.state
+
     this.setState({
       sparkConfigModalVisible: true
     }, () => {
@@ -1493,7 +1498,6 @@ export class Workbench extends React.Component {
       if (!err) {
         switch (this.state.formStep) {
           case 0:
-            const values = this.workbenchFlowForm.getFieldsValue()
             if (!values.sinkConfig) {
               values.sinkDataSystem === 'hbase'
                 ? message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
@@ -1525,17 +1529,18 @@ export class Workbench extends React.Component {
               if (dataframeShowSelect === 'true') {
                 const dataframeShowNum = this.workbenchFlowForm.getFieldValue('dataframeShowNum')
                 this.setState({
-                  dataframeShowOrNot: `"dataframe_show":"true","dataframe_show_num":"${dataframeShowNum}","swifts_specific_config":""`,
+                  dataframeShowOrNot: `"dataframe_show":"true","dataframe_show_num":"${dataframeShowNum}"`,
                   dataframeShowNumValue: `true; Number is ${dataframeShowNum}`
                 })
               } else {
                 this.setState({
-                  dataframeShowOrNot: `"dataframe_show":"false","swifts_specific_config":""`,
+                  dataframeShowOrNot: `"dataframe_show":"false"`,
                   dataframeShowNumValue: 'false'
                 })
               }
               this.setState({
-                formStep: this.state.formStep + 1
+                formStep: this.state.formStep + 1,
+                transConfigConfirmValue: values.flowSpecialConfig
               })
             } else if (streamDiffType === 'hdfslog') {
               this.setState({
@@ -1651,12 +1656,13 @@ export class Workbench extends React.Component {
             let tempRequestVal = ''
             tempRequestVal = tranRequestTempString === ''
               ? ''
-              : JSON.stringify({ action: tranRequestTempString })
+              : `"action": "${tranRequestTempString}"`
 
             this.setState({
               formStep: formStep + 1,
               jobTranTableRequestValue: tempRequestVal,
-              jobTranTableConfirmValue: tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`
+              jobTranTableConfirmValue: tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`,
+              jobTranConfigConfirmValue: values.jobSpecialConfig
             })
             break
         }
@@ -1742,7 +1748,18 @@ export class Workbench extends React.Component {
         : `{"maxRecordPerPartitionProcessed":${values.maxRecordPerPartitionProcessed},"sink_specific_config":${values.sinkConfig},"sink_output":"${values.resultFieldsSelected}"}`
     }
 
-    const tranConfigRequest = jobTranTableRequestValue === '' ? '' : `${jobTranTableRequestValue}`
+    const tempSpecial = typeof (values.jobSpecialConfig) === 'string'
+      ? values.jobSpecialConfig
+      : JSON.stringify(values.jobSpecialConfig)
+
+    let tranConfigRequest = ''
+    if (jobTranTableRequestValue === '') {
+      tranConfigRequest = ''
+    } else {
+      tranConfigRequest = !values.jobSpecialConfig
+        ? `{${jobTranTableRequestValue}}`
+        : `{${jobTranTableRequestValue},"swifts_specific_config":${tempSpecial}}`
+    }
 
     const requestCommon = {
       eventTsStart: (!values.eventStartTs) ? '' : startTsVal,
@@ -1768,29 +1785,25 @@ export class Workbench extends React.Component {
         message.success('Job 添加成功！', 3)
       }, () => {
         this.hideJobSubmit()
-        this.setState({
-          jobTranTagClassName: '',
-          jobTranTableClassName: 'hide',
-          fieldSelected: 'hide',
-          jobFormTranTableSource: []
-        })
       })
     } else if (jobMode === 'edit') {
       this.props.onEditJob(Object.assign({}, singleJobResult, jobSparkConfigValues, requestCommon), () => {
         message.success('Job 修改成功！', 3)
       }, () => {
         this.hideJobSubmit()
-        this.setState({
-          jobTranTagClassName: '',
-          jobTranformTableClassName: 'hide',
-          fieldSelected: 'hide',
-          jobFormTranTableSource: []
-        })
       })
     }
   }
 
-  hideJobSubmit = () => this.setState({ jobMode: '' })
+  hideJobSubmit = () => {
+    this.setState({
+      jobMode: '',
+      jobTranTagClassName: '',
+      jobTranTableClassName: 'hide',
+      fieldSelected: 'hide',
+      jobFormTranTableSource: []
+    })
+  }
 
   submitFlowForm = () => {
     const { streamDiffType } = this.state
@@ -1826,9 +1839,18 @@ export class Workbench extends React.Component {
 
     const etpStrategyRequestValFinal = etpStrategyRequestValue === '' ? etpStrategyRequestValue : `${etpStrategyRequestValue},`
 
-    const tranConfigRequest = transformTableRequestValue === ''
-      ? ''
-      : `{${etpStrategyRequestValFinal}${transformTableRequestValue},${pushdownConnectRequestValue}${dataframeShowOrNot}}`
+    const tempSpecial = typeof (values.flowSpecialConfig) === 'string'
+        ? values.flowSpecialConfig
+        : JSON.stringify(values.flowSpecialConfig)
+
+    let tranConfigRequest = ''
+    if (transformTableRequestValue === '') {
+      tranConfigRequest = ''
+    } else {
+      tranConfigRequest = !values.flowSpecialConfig
+        ? `{${etpStrategyRequestValFinal}${transformTableRequestValue},${pushdownConnectRequestValue}${dataframeShowOrNot}}`
+        : `{${etpStrategyRequestValFinal}${transformTableRequestValue},${pushdownConnectRequestValue}${dataframeShowOrNot},"swifts_specific_config":${tempSpecial}}`
+    }
 
     if (flowMode === 'add' || flowMode === 'copy') {
       const sourceDataInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
@@ -1852,15 +1874,7 @@ export class Workbench extends React.Component {
         }
       }, () => {
         this.hideFlowSubmit()
-        this.setState({
-          transformTagClassName: '',
-          transformTableClassName: 'hide',
-          transConnectClass: 'hide',
-          fieldSelected: 'hide',
-          etpStrategyCheck: false,
-          dataframeShowSelected: 'hide',
-          flowFormTranTableSource: []
-        })
+        this.hideFlowDefaultSubmit()
       })
     } else if (flowMode === 'edit') {
       const editData = {
@@ -1873,17 +1887,20 @@ export class Workbench extends React.Component {
         message.success('Flow 修改成功！', 3)
       }, () => {
         this.hideFlowSubmit()
-        this.setState({
-          transformTagClassName: '',
-          transformTableClassName: 'hide',
-          transConnectClass: 'hide',
-          fieldSelected: 'hide',
-          etpStrategyCheck: false,
-          dataframeShowSelected: 'hide',
-          flowFormTranTableSource: []
-        })
+        this.hideFlowDefaultSubmit()
       })
     }
+  }
+  hideFlowDefaultSubmit () {
+    this.setState({
+      transformTagClassName: '',
+      transformTableClassName: 'hide',
+      transConnectClass: 'hide',
+      fieldSelected: 'hide',
+      etpStrategyCheck: false,
+      dataframeShowSelected: 'hide',
+      flowFormTranTableSource: []
+    })
   }
 
   handleSubmitFlowHdfslog () {
@@ -2327,7 +2344,6 @@ export class Workbench extends React.Component {
               transformConfigInfoString = transformClassNameVal
               transformConfigInfoRequestString = `custom_class = ${transformClassNameVal};`
             }
-
             break
         }
 
@@ -2803,7 +2819,6 @@ export class Workbench extends React.Component {
     }
 
     tableSourceArr.splice(record.order - 1, 2, currentInfo[0], afterArr[0])
-
     this.setState({ jobFormTranTableSource: tableSourceArr })
   }
 
@@ -2874,13 +2889,86 @@ export class Workbench extends React.Component {
     })
   }
 
+  /**
+   * Flow Transformation Config Modal
+   * */
+  onShowSpecialConfigModal = () => {
+    this.setState({
+      flowSpecialConfigModalVisible: true
+    }, () => {
+      if (!this.cmFlowSpecial) {
+        this.cmFlowSpecial = CodeMirror.fromTextArea(this.flowSpecialConfigInput, {
+          lineNumbers: true,
+          matchBrackets: true,
+          autoCloseBrackets: true,
+          mode: 'application/ld+json',
+          lineWrapping: true
+        })
+        this.cmFlowSpecial.setSize('100%', '256px')
+      }
+      this.cmFlowSpecial.doc.setValue(this.workbenchFlowForm.getFieldValue('flowSpecialConfig') || '')
+    })
+  }
+
+  /**
+   * Job Transformation Config Modal
+   */
+  onShowJobSpecialConfigModal = () => {
+    this.setState({
+      jobSpecialConfigModalVisible: true
+    }, () => {
+      if (!this.cmJobSpecial) {
+        this.cmJobSpecial = CodeMirror.fromTextArea(this.jobSpecialConfigInput, {
+          lineNumbers: true,
+          matchBrackets: true,
+          autoCloseBrackets: true,
+          mode: 'application/ld+json',
+          lineWrapping: true
+        })
+        this.cmJobSpecial.setSize('100%', '256px')
+      }
+      this.cmJobSpecial.doc.setValue(this.workbenchJobForm.getFieldValue('jobSpecialConfig') || '')
+    })
+  }
+
   hideSinkConfigModal = () => this.setState({ sinkConfigModalVisible: false })
+  hideFlowSpecialConfigModal = () => this.setState({ flowSpecialConfigModalVisible: false })
+  hideJobSpecialConfigModal = () => this.setState({ jobSpecialConfigModalVisible: false })
 
   onSinkConfigModalOk = () => {
-    this.workbenchFlowForm.setFieldsValue({
-      sinkConfig: this.cm.doc.getValue()
-    })
-    this.hideSinkConfigModal()
+    const cmValue = this.cm.doc.getValue()
+    if (isJSON(cmValue)) {
+      this.workbenchFlowForm.setFieldsValue({
+        sinkConfig: this.cm.doc.getValue()
+      })
+      this.hideSinkConfigModal()
+    } else {
+      message.error('Sink Config 必须为 JSON格式！', 3)
+    }
+  }
+
+  onFlowSpecialConfigModalOk = () => {
+    const cmValue = this.cmFlowSpecial.doc.getValue()
+    if (isJSON(cmValue)) {
+      this.workbenchFlowForm.setFieldsValue({
+        flowSpecialConfig: cmValue
+      })
+      this.hideFlowSpecialConfigModal()
+    } else {
+      message.error('Transformation Config 必须为 JSON格式！', 3)
+    }
+  }
+
+  onJobSpecialConfigModalOk = () => {
+    const cmValue = this.cmJobSpecial.doc.getValue()
+    if (isJSON(cmValue)) {
+      this.workbenchJobForm.setFieldsValue({
+        jobSpecialConfig: cmValue
+      })
+      this.hideJobSpecialConfigModal()
+    } else {
+      message.error('Transformation Config 必须为 JSON格式！', 3)
+    }
   }
 
   /**
@@ -2907,10 +2995,15 @@ export class Workbench extends React.Component {
   hideJobSinkConfigModal = () => this.setState({ jobSinkConfigModalVisible: false })
 
   onJobSinkConfigModalOk = () => {
-    this.workbenchJobForm.setFieldsValue({
-      sinkConfig: this.cmJob.doc.getValue()
-    })
-    this.hideJobSinkConfigModal()
+    const cmValue = this.cmJob.doc.getValue()
+    if (isJSON(cmValue)) {
+      this.workbenchJobForm.setFieldsValue({
+        sinkConfig: this.cmJob.doc.getValue()
+      })
+      this.hideJobSinkConfigModal()
+    } else {
+      message.error('Sink Config 必须为 JSON格式！', 3)
+    }
   }
 
   showAddJobWorkbench = () => {
@@ -3050,9 +3143,9 @@ export class Workbench extends React.Component {
                     onShowTransformModal={this.onShowTransformModal}
                     onShowEtpStrategyModal={this.onShowEtpStrategyModal}
                     onShowSinkConfigModal={this.onShowSinkConfigModal}
+                    onShowSpecialConfigModal={this.onShowSpecialConfigModal}
 
                     transformTableSource={flowFormTranTableSource}
-                    // onStreamJoinSqlConfigTypeSelect={this.onStreamJoinSqlConfigTypeSelect}
                     transformTagClassName={this.state.transformTagClassName}
                     transformTableClassName={this.state.transformTableClassName}
                     transConnectClass={this.state.transConnectClass}
@@ -3087,6 +3180,7 @@ export class Workbench extends React.Component {
                     resultFieldsValue={this.state.resultFieldsValue}
                     dataframeShowNumValue={this.state.dataframeShowNumValue}
                     etpStrategyConfirmValue={this.state.etpStrategyConfirmValue}
+                    transConfigConfirmValue={this.state.transConfigConfirmValue}
                     transformTableConfirmValue={this.state.transformTableConfirmValue}
 
                     transformTableRequestValue={this.state.transformTableRequestValue}
@@ -3142,7 +3236,23 @@ export class Workbench extends React.Component {
                         rows="5">
                       </textarea>
                     </div>
-
+                  </Modal>
+                  {/* Flow Transformation Config Modal */}
+                  <Modal
+                    title="Transformation Config"
+                    okText="保存"
+                    wrapClassName="ant-modal-large"
+                    visible={this.state.flowSpecialConfigModalVisible}
+                    onOk={this.onFlowSpecialConfigModalOk}
+                    onCancel={this.hideFlowSpecialConfigModal}>
+                    <div>
+                      <textarea
+                        ref={(f) => { this.flowSpecialConfigInput = f }}
+                        placeholder="Paste your Transformation Config JSON here."
+                        className="ant-input ant-input-extra"
+                        rows="5">
+                      </textarea>
+                    </div>
                   </Modal>
                   {/* ETP Strategy Modal */}
                   <Modal
@@ -3283,6 +3393,7 @@ export class Workbench extends React.Component {
                     jobResultFieldsValue={this.state.jobResultFieldsValue}
                     initStartTS={this.initStartTS}
                     initEndTS={this.initEndTS}
+                    onShowJobSpecialConfigModal={this.onShowJobSpecialConfigModal}
 
                     jobStepSourceNs={this.state.jobStepSourceNs}
                     jobStepSinkNs={this.state.jobStepSinkNs}
@@ -3291,6 +3402,7 @@ export class Workbench extends React.Component {
                     jobTransTableSource={jobFormTranTableSource}
                     jobTranTagClassName={this.state.jobTranTagClassName}
                     jobTranTableClassName={this.state.jobTranTableClassName}
+                    jobTranConfigConfirmValue={this.state.jobTranConfigConfirmValue}
 
                     onEditTransform={this.onJobEditTransform}
                     onJobAddTransform={this.onJobAddTransform}
@@ -3348,6 +3460,23 @@ export class Workbench extends React.Component {
                       step2SinkNamespace={this.state.jobStepSinkNs}
                       step2SourceNamespace={this.state.jobStepSourceNs}
                     />
+                  </Modal>
+                  {/* Job Transformation Config Modal */}
+                  <Modal
+                    title="Transformation Config"
+                    okText="保存"
+                    wrapClassName="ant-modal-large"
+                    visible={this.state.jobSpecialConfigModalVisible}
+                    onOk={this.onJobSpecialConfigModalOk}
+                    onCancel={this.hideJobSpecialConfigModal}>
+                    <div>
+                      <textarea
+                        ref={(f) => { this.jobSpecialConfigInput = f }}
+                        placeholder="Paste your Transformation Config JSON here."
+                        className="ant-input ant-input-extra"
+                        rows="5">
+                      </textarea>
+                    </div>
                   </Modal>
                   {stepButtons}
                 </div>
