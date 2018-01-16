@@ -24,7 +24,7 @@
 export function generateSourceSinkNamespaceHierarchy (system, result) {
   const snsHierarchy = []
   result.forEach(item => {
-    if (item.nsSys === system) {
+    if (item.nsSys.indexOf(system) > -1) {
       let instance = snsHierarchy.find(i => i.value === item.nsInstance)
       if (!instance) {
         const newInstance = {
@@ -80,7 +80,7 @@ export function generateHdfslogNamespaceHierarchy (system, result) {
     }]
 
   result.forEach(item => {
-    if (item.nsSys === system) {
+    if (item.nsSys.indexOf(system) > -1) {
       let instance = snsHierarchy.find(i => i.value === item.nsInstance)
       if (!instance) {
         const newInstance = {
@@ -132,7 +132,7 @@ export function generateHdfslogNamespaceHierarchy (system, result) {
 export function generateTransformSinkNamespaceHierarchy (system, result) {
   const snsHierarchy = []
   result.forEach(item => {
-    if (item.nsSys === system) {
+    if (item.nsSys.indexOf(system) > -1) {
       let instance = snsHierarchy.find(i => i.value === item.nsInstance)
       if (!instance) {
         const newInstance = {
