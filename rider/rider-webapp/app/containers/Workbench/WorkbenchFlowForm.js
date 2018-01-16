@@ -53,7 +53,9 @@ export class WorkbenchFlowForm extends React.Component {
   }
 
   componentWillReceiveProps (props) {
-    this.setState({ flowMode: props.flowMode })
+    this.setState({
+      flowMode: props.flowMode
+    })
     if (props.transformTableSource) {
       props.transformTableSource.map(s => {
         s.key = uuid()
@@ -122,9 +124,10 @@ export class WorkbenchFlowForm extends React.Component {
 
   render () {
     const { step, form, fieldSelected, dataframeShowSelected, streamDiffType } = this.props
-    const { hdfslogSinkDataSysValue, hdfslogSinkNsValue, routingSourceNsValue, routingSinkNsValue, transformTableConfirmValue, flowKafkaTopicValue } = this.props
+    const { hdfslogSinkDataSysValue, hdfslogSinkNsValue, routingSourceNsValue, routingSinkNsValue,
+      transformTableConfirmValue, flowKafkaTopicValue } = this.props
     const { getFieldDecorator } = form
-    const { onShowTransformModal, onShowEtpStrategyModal, onShowSinkConfigModal } = this.props
+    const { onShowTransformModal, onShowEtpStrategyModal, onShowSinkConfigModal, onShowSpecialConfigModal } = this.props
     const { transformTableSource, onDeleteSingleTransform, onAddTransform, onEditTransform, onUpTransform, onDownTransform } = this.props
     const { step2SourceNamespace, step2SinkNamespace, etpStrategyCheck, transformTagClassName, transformTableClassName, transConnectClass } = this.props
     const { selectStreamKafkaTopicValue, sourceTypeNamespaceData, hdfslogNsData, routingNsData, sinkTypeNamespaceData, routingSinkTypeNsData } = this.props
@@ -274,7 +277,19 @@ export class WorkbenchFlowForm extends React.Component {
         </Tag>
       )
 
-    const etpStrategyTag = etpStrategyCheck === true
+    const flowSpecialConfigTag = form.getFieldValue('flowSpecialConfig')
+      ? (
+        <Tag color="#7CB342" onClick={onShowSpecialConfigModal}>
+          <Icon type="check-circle-o" /> 点击修改
+        </Tag>
+      )
+      : (
+        <Tag onClick={onShowSpecialConfigModal}>
+          <Icon type="minus-circle-o" /> 点击修改
+        </Tag>
+      )
+
+    const etpStrategyTag = etpStrategyCheck
       ? (
         <Tag color="#7CB342" onClick={onShowEtpStrategyModal}>
           <Icon type="check-circle-o" /> 点击修改
@@ -370,7 +385,7 @@ export class WorkbenchFlowForm extends React.Component {
       ? undefined
       : selectStreamKafkaTopicValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.name}</Option>))
 
-    const { etpStrategyConfirmValue, resultFieldsValue, flowKafkaInstanceValue } = this.props
+    const { etpStrategyConfirmValue, transConfigConfirmValue, resultFieldsValue, flowKafkaInstanceValue } = this.props
 
     return (
       <Form className="ri-workbench-form workbench-flow-form">
@@ -717,6 +732,24 @@ export class WorkbenchFlowForm extends React.Component {
             />
           </Col>
 
+          <Col span={24} className={transConnectClass} style={{marginBottom: '8px'}}>
+            <div className="ant-col-6 ant-form-item-label">
+              <label htmlFor="#">Transformation Config</label>
+            </div>
+            <div className="ant-col-17">
+              <div className="ant-form-item-control">
+                {flowSpecialConfigTag}
+              </div>
+            </div>
+          </Col>
+          <Col span={24} className="hide">
+            <FormItem>
+              {getFieldDecorator('flowSpecialConfig', {
+                hidden: streamTypeHiddens[0]
+              })(<Input />)}
+            </FormItem>
+          </Col>
+
           <Col span={24} className={transConnectClass}>
             <div className="ant-col-6 ant-form-item-label">
               <label htmlFor="#">Event Time Processing</label>
@@ -831,6 +864,20 @@ export class WorkbenchFlowForm extends React.Component {
                 <Col span={15}>
                   <div className="ant-form-item-control">
                     <strong className="value-font-style">{transformTableConfirmValue}</strong>
+                  </div>
+                </Col>
+              </Row>
+            </div>
+          </Col>
+          <Col span={24} className={streamTypeClass[0]}>
+            <div className="ant-row ant-form-item">
+              <Row>
+                <Col span={8} className="ant-form-item-label">
+                  <label htmlFor="#">Transformation Config</label>
+                </Col>
+                <Col span={15}>
+                  <div className="ant-form-item-control">
+                    <strong className="value-font-style">{transConfigConfirmValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -979,6 +1026,7 @@ WorkbenchFlowForm.propTypes = {
   onShowTransformModal: React.PropTypes.func,
   onShowEtpStrategyModal: React.PropTypes.func,
   onShowSinkConfigModal: React.PropTypes.func,
+  onShowSpecialConfigModal: React.PropTypes.func,
   onDeleteSingleTransform: React.PropTypes.func,
   onAddTransform: React.PropTypes.func,
   onEditTransform: React.PropTypes.func,
@@ -1004,6 +1052,7 @@ WorkbenchFlowForm.propTypes = {
   resultFieldsValue: React.PropTypes.string,
   dataframeShowNumValue: React.PropTypes.string,
   etpStrategyConfirmValue: React.PropTypes.string,
+  transConfigConfirmValue: React.PropTypes.string,
   transformTableConfirmValue: React.PropTypes.string,
   fieldSelected: React.PropTypes.string,
   dataframeShowSelected: React.PropTypes.string,
