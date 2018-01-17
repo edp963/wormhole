@@ -3,29 +3,18 @@ package edp.mad.rest.response
 
 import akka.http.scaladsl.model.HttpMethods
 import edp.mad.cache._
+import edp.mad.elasticsearch.AppInfos
+import edp.mad.elasticsearch.MadES.madES
+import edp.mad.elasticsearch.MadIndex._
 import edp.mad.module.ModuleObj
 import edp.mad.util.HttpClient
-import edp.wormhole.common.util.JsonUtils
+import edp.wormhole.common.util.DateUtils.{currentyyyyMMddHHmmss, yyyyMMddHHmmssToString}
+import edp.wormhole.common.util.{DateUtils, DtFormat, JsonUtils}
 import org.apache.log4j.Logger
 import org.json4s.{DefaultFormats, Formats, JNothing, JValue}
-/*
-import java.util.{Calendar, Date, GregorianCalendar}
-
-
-import edp.wormhole.common.util.DtFormat
-import edp.wormhole.common.util.DateUtils._
-import edp.mad.common._
-import com.alibaba.fastjson.JSON
-
-
-import spray.json.JsonParser
-import edp.mad.persistence.entities._
-import edp.mad.common.{CacheStreamInfo, _}
-
-import org.joda.time.DateTime
 
 import scala.collection.mutable.ListBuffer
-*/
+
 object YarnRMResponse{
   private val logger = Logger.getLogger(this.getClass)
   implicit val json4sFormats: Formats = DefaultFormats
@@ -64,8 +53,9 @@ object YarnRMResponse{
     }
   }
 
-   def getActiveAppsInfo() = {
+  def getActiveAppsInfo() = {
    //val url = s"${baseUrl}/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=$startedTimeBegin&&applicationTypes=spark"
+   val madProcessTime = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
     val url = s"${baseUrl}/apps?states=accepted,running&&applicationTypes=spark"
     val response = HttpClient.syncClientGetJValue("", url, HttpMethods.GET, "", "", "")
     if (response._1 == true) {
@@ -75,7 +65,7 @@ object YarnRMResponse{
           val appObjs = JsonUtils.getJValue( JsonUtils.getJValue(response._2, "apps"),"app")
           if( appObjs != null && appObjs != JNothing) {
             appObjs.extract[Array[JValue]].foreach { appObj =>
-              logger.debug(s" ===  ${appObj}\n")
+              logger.debug(s" ===  ${appObj} \n")
               val appId = JsonUtils.getString(appObj, "id")
               val streamName = JsonUtils.getString(appObj, "name")
               val state = JsonUtils.getString(appObj, "state")
@@ -85,21 +75,57 @@ object YarnRMResponse{
               val startedTime = JsonUtils.getLong(appObj, "startedTime")
               logger.debug(s" Application Map ${appId}   ${streamName} \n")
               modules.applicationMap.set(ApplicationMapKey(appId), ApplicationMapValue(streamName))
+
+              val appInfos = AppInfos( DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC), appId, streamName, state, finalStatus, user, queue, DateUtils.dt2string(startedTime * 1000, DtFormat.TS_DASH_SEC) )
+              val postBody: String = JsonUtils.caseClass2json(appInfos)
+              val rc =   madES.insertEs(postBody,INDEXAPPINFOS.toString)
+              logger.debug(s" app infos: response ${rc}")
             }
-          }else{
-            logger.error(s" failed to get apps/app  \n")
-          }
-        }else{
-            logger.error(s" failed to get apps \n")
-        }
+          }else{ logger.error(s" failed to get apps/app  \n") }
+        }else{ logger.error(s" failed to get apps \n") }
       }catch{
         case e:Exception =>
           logger.error(s"failed to parse response ${response._2} \n",e)
       }
-    }else{
-      logger.error(s"failed to get the response from yarn resource manager ${response}" )
-    }
+    }else{ logger.error(s"failed to get the response from yarn resource manager ${response}" ) }
     logger.info(s"  ${modules.applicationMap.mapPrint}")
   }
+
+  def getAllAppsInfo():List[AppInfos] = {
+    val madProcessTime = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
+    val bList = new ListBuffer[AppInfos]
+    val url = s"${baseUrl}/apps?states=accepted,running,killed,failed,finished&&applicationTypes=spark"
+    val response = HttpClient.syncClientGetJValue("", url, HttpMethods.GET, "", "", "")
+    if (response._1 == true) {
+      try {
+        logger.info(s" response body  ${response._2} \n")
+        if( JsonUtils.getJValue(response._2, "apps") != null ) {
+          val appObjs = JsonUtils.getJValue( JsonUtils.getJValue(response._2, "apps"),"app")
+          if( appObjs != null && appObjs != JNothing) {
+            appObjs.extract[Array[JValue]].foreach { appObj =>
+              logger.debug(s" ===  ${appObj} \n")
+              val appId = JsonUtils.getString(appObj, "id")
+              val streamName = JsonUtils.getString(appObj, "name")
+              val state = JsonUtils.getString(appObj, "state")
+              val finalStatus = JsonUtils.getString(appObj, "finalStatus")
+              val user = JsonUtils.getString(appObj, "user")
+              val queue = JsonUtils.getString(appObj, "queue")
+              val startedTime = JsonUtils.getLong(appObj, "startedTime")
+              logger.debug(s" Application Map ${appId}   ${streamName}  ${startedTime} \n")
+              val appInfos = AppInfos( DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC), appId, streamName, state, finalStatus, user, queue,
+                DateUtils.dt2string(startedTime*1000, DtFormat.TS_DASH_SEC) )
+              bList.append(appInfos)
+             }
+          }else{ logger.error(s" failed to get apps/app  \n") }
+        }else{ logger.error(s" failed to get apps \n") }
+      }catch{
+        case e:Exception =>
+          logger.error(s"failed to parse response ${response._2} \n",e)
+      }
+    }else{ logger.error(s"failed to get the response from yarn resource manager ${response}" ) }
+    logger.info(s"  ${bList.toList}")
+    bList.toList
+  }
+
 
 }
