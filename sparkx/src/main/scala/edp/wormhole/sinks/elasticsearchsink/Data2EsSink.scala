@@ -63,7 +63,9 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
                           sinkConfig: SinkProcessConfig,
                           sinkSpecificConfig: EsConfig): (String, Long, String) = {
     val json = new JSONObject
-    val umsid = row(schemaMap(UmsSysField.ID.toString)._1).toLong
+    val umsid =
+      if (sinkSpecificConfig.`mutation_type.get` == SourceMutationType.I_U_D.toString) row(schemaMap(UmsSysField.ID.toString)._1).toLong
+      else 1L
     for ((name, (index, fieldType, _)) <- schemaMap) {
       val field = row(index)
       val (cname, cvalue) = JsonParseHelper.parseData2CorrectType(fieldType, field: String, name)
