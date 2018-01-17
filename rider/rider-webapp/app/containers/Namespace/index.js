@@ -115,6 +115,7 @@ export class Namespace extends React.PureComponent {
       umsTypeSeleted: 'ums',
       nsIdValue: 0,
       repeatRenameArr: [],
+      repeatArrayArr: [],
       selectAllState: 'all',
       beforesepratorValue: '',
       umsopRecordValue: -1,
@@ -881,6 +882,9 @@ export class Namespace extends React.PureComponent {
                 // 除去selected的项，检查rename字段是否有重复, 提示rename重复的位置，数组中的值为rename重复的index
                 const repeatArr = getRepeatFieldIndex(umsTableDataSource)
 
+                const repeatTypeArr = umsTableDataSource.filter(s => s.fieldType.indexOf('array') > -1)
+                const repeatArrayIndex = repeatTypeArr.map(s => s.key)
+
                 if (spaceRename) {
                   message.error('Rename 不为空！', 3)
                 } else if (repeatArr.length !== 0) {
@@ -888,8 +892,16 @@ export class Namespace extends React.PureComponent {
                   this.setState({
                     repeatRenameArr: repeatArr
                   })
+                } else if (repeatTypeArr.length > 1) {
+                  message.error('只能包含一个array 类型！', 3)
+                  this.setState({
+                    repeatArrayArr: repeatArrayIndex
+                  })
                 } else {
-                  this.setState({ repeatRenameArr: [] })
+                  this.setState({
+                    repeatRenameArr: [],
+                    repeatArrayArr: []
+                  })
 
                   // 检查ums_ts_，分别必须得有一个
                   const umsTsExit = umsTableDataSource.find(i => i.ums_ts_ === true)
@@ -1375,7 +1387,7 @@ export class Namespace extends React.PureComponent {
           {text: 'hbase', value: 'hbase'},
           {text: 'phoenix', value: 'phoenix'},
           {text: 'cassandra', value: 'cassandra'},
-          // {text: 'log', value: 'log'},
+          {text: 'log', value: 'log'},
           {text: 'kafka', value: 'kafka'},
           {text: 'postgresql', value: 'postgresql'},
           {text: 'mongodb', value: 'mongodb'},
@@ -1793,6 +1805,7 @@ export class Namespace extends React.PureComponent {
             beforesepratorValue={this.state.beforesepratorValue}
             umsTypeSeleted={this.state.umsTypeSeleted}
             repeatRenameArr={this.state.repeatRenameArr}
+            repeatArrayArr={this.state.repeatArrayArr}
             selectAllState={this.state.selectAllState}
             ref={(f) => { this.schemaTypeConfig = f }}
           />
