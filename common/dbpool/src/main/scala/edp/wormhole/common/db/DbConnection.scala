@@ -82,7 +82,11 @@ object DbConnection extends Serializable {
     } else if (tmpJdbcUrl.indexOf("sql4es") > -1) {
       println("elasticSearch")
       config.setDriverClassName("nl.anchormen.sql4es.jdbc.ESDriver")
+    } else if (tmpJdbcUrl.indexOf("vertica") > -1) {
+      println("vertical")
+      config.setDriverClassName("com.vertica.jdbc.Driver")
     }
+
 
     config.setUsername(username.getOrElse(""))
     config.setPassword(password.getOrElse(""))
