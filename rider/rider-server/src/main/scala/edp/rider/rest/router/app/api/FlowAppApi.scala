@@ -55,7 +55,6 @@ class FlowAppApi(flowDal: FlowDal, streamDal: StreamDal, projectDal: ProjectDal)
                       case Right(tuple) =>
                         val flow = tuple._2.get
                         try {
-                          autoRegisterTopic(streamId, flow.sourceNs, session.userId)
                           val stream = Await.result(streamDal.findById(streamId), minTimeOut).head
                           if (startFlow(stream.id, stream.streamType, flow.id, flow.sourceNs, flow.sinkNs, flow.consumedProtocol, flow.sinkConfig.getOrElse(""), flow.tranConfig.getOrElse(""), flow.updateBy)) {
                             riderLogger.info(s"user ${session.userId} start flow ${flow.id} success.")

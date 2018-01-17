@@ -594,17 +594,23 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
   }
 
   private def getLatestOffsetResponse(projectId: Long, streamId: Long, session: SessionClass): Route = {
-    if (session.projectIdList.contains(projectId)) {
-      val streamDetail = streamDal.getStreamDetail(Some(projectId), Some(streamId)).head
-      val consumedOffset = streamDetail.topicInfo.map(topic => ConsumedLatestOffset(topic.id, topic.name, topic.partitionOffsets))
-      val topicSeq = inTopicDal.getStreamTopic(Seq(streamId))
-      val kafkaOffsets = topicSeq.map(topic =>
-        KafkaLatestOffset(topic.id, topic.name, getKafkaLatestOffset(streamDetail.kafkaInfo.connUrl, topic.name)))
-      riderLogger.info(s"user ${session.userId} get stream $streamId topics latest offset success")
-      complete(OK, ResponseJson[TopicLatestOffset](getHeader(200, session), TopicLatestOffset(consumedOffset, kafkaOffsets)))
-    } else {
-      riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
-      complete(OK, getHeader(403, session))
+    try {
+      if (session.projectIdList.contains(projectId)) {
+        val streamDetail = streamDal.getStreamDetail(Some(projectId), Some(streamId)).head
+        val consumedOffset = streamDetail.topicInfo.map(topic => ConsumedLatestOffset(topic.id, topic.name, topic.partitionOffsets))
+        val topicSeq = inTopicDal.getStreamTopic(Seq(streamId))
+        val kafkaOffsets = topicSeq.map(topic =>
+          KafkaLatestOffset(topic.id, topic.name, getKafkaLatestOffset(streamDetail.kafkaInfo.connUrl, topic.name)))
+        riderLogger.info(s"user ${session.userId} get stream $streamId topics latest offset success")
+        complete(OK, ResponseJson[TopicLatestOffset](getHeader(200, session), TopicLatestOffset(consumedOffset, kafkaOffsets)))
+      } else {
+        riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
+        complete(OK, getHeader(403, session))
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.info(s"user ${session.userId} get stream $streamId topics latest offset failed", ex)
+        complete(OK, getHeader(451, session))
     }
   }
 

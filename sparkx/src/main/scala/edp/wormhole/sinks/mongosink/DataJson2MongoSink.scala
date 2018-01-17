@@ -115,7 +115,10 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
     val targetSchemaStr = sinkProcessConfig.jsonSchema.get
     val targetSchemaArr = JSON.parseObject(targetSchemaStr).getJSONArray("fields")
     val keys = sinkProcessConfig.tableKeyList
-    val sinkSpecificConfig = json2caseClass[MongoConfig](sinkProcessConfig.specialConfig.get)
+    val sinkSpecificConfig =
+      if (sinkProcessConfig.specialConfig.isDefined)
+        json2caseClass[MongoConfig](sinkProcessConfig.specialConfig.get)
+      else MongoConfig()
     try {
       SourceMutationType.sourceMutationType(sinkSpecificConfig.`mutation_type.get`) match {
         case INSERT_ONLY =>
