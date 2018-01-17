@@ -47,23 +47,24 @@ object SwiftsTransform extends EdpLogging {
     val tmpTableNameList = ListBuffer.empty[String]
     if (swiftsSqlArr.isDefined) {
       val swiftsArr: Array[SwiftsSql] = swiftsSqlArr.get
-      swiftsArr.foreach(operate => {
+
+      swiftsArr.foreach(f = operate => {
         val lookupNamespace = if (operate.lookupNamespace.isDefined) operate.lookupNamespace.get else null
         val sourceTableFields = if (operate.sourceTableFields.isDefined) operate.sourceTableFields.get else null
         val lookupTableFields = if (operate.lookupTableFields.isDefined) operate.lookupTableFields.get else null
         val sql = operate.sql.trim
         SqlOptType.toSqlOptType(operate.optType) match {
-//          case SqlOptType.PUSHDOWN_HBASE =>
-//            currentDf = LookupHbase.transform(session,currentDf,operate,sourceNamespace,sinkNamespace)
-//          case SqlOptType.PUSHDOWN_REDIS =>
-//            currentDf = LookupRedis.transform(session,currentDf,operate,sourceNamespace,sinkNamespace)
+          //          case SqlOptType.PUSHDOWN_HBASE =>
+          //            currentDf = LookupHbase.transform(session,currentDf,operate,sourceNamespace,sinkNamespace)
+          //          case SqlOptType.PUSHDOWN_REDIS =>
+          //            currentDf = LookupRedis.transform(session,currentDf,operate,sourceNamespace,sinkNamespace)
           case SqlOptType.CUSTOM_CLASS =>
             val (obj, method) = ConfMemoryStorage.getSwiftsTransformReflectValue(operate.sql)
             currentDf = method.invoke(obj, session, currentDf, swiftsLogic).asInstanceOf[DataFrame]
           case SqlOptType.JOIN | SqlOptType.LEFT_JOIN | SqlOptType.RIGHT_JOIN =>
             if (ConfMemoryStorage.existStreamLookup(matchSourceNamespace, sinkNamespace, lookupNamespace)) {
               // lookup Namespace is also match rule format .*.*
-              val path = config.stream_hdfs_address.get +"/" + "swiftsparquet"+ "/" + config.spark_config.stream_id + "/" + matchSourceNamespace.replaceAll("\\*", "-") + "/" + sinkNamespace + "/streamLookupNamespace"
+              val path = config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/" + config.spark_config.stream_id + "/" + matchSourceNamespace.replaceAll("\\*", "-") + "/" + sinkNamespace + "/streamLookupNamespace"
               val (tableNameArrMD5, allTableReady) = DataframeObtain.createDfAndViewFromParquet(matchSourceNamespace, lookupNamespace, sinkNamespace, session, path)
               if (allTableReady) {
                 try {
@@ -88,18 +89,18 @@ object SwiftsTransform extends EdpLogging {
               val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(lookupNamespace)
               val lookupNameSpaceArr: Array[String] = lookupNamespace.split("\\.")
               assert(lookupNameSpaceArr.length == 3, "lookup namespace is invalid in pattern list sql")
-            //  val jsonSchema = JsonSchemaObtain.getJsonSchema(schema)
+              //  val jsonSchema = JsonSchemaObtain.getJsonSchema(schema)
               UmsDataSystem.dataSystem(lookupNameSpaceArr(0).toLowerCase()) match {
                 case UmsDataSystem.CASSANDRA =>
-                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate,UmsDataSystem.CASSANDRA)
+                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.CASSANDRA)
                 case UmsDataSystem.ORACLE =>
-                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate,UmsDataSystem.ORACLE)
-                case UmsDataSystem.HBASE=>
-                  currentDf = LookupHbase.transform(session,currentDf,operate,sourceNamespace,sinkNamespace,connectionConfig)
-                case UmsDataSystem.REDIS=>
-                  currentDf = LookupRedis.transform(session,currentDf,operate,sourceNamespace,sinkNamespace,connectionConfig)
+                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.ORACLE)
+                case UmsDataSystem.HBASE =>
+                  currentDf = LookupHbase.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig)
+                case UmsDataSystem.REDIS =>
+                  currentDf = LookupRedis.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig)
                 case _ =>
-                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate,UmsDataSystem.MYSQL)
+                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.MYSQL)
               }
             }
           case SqlOptType.SPARK_SQL =>
@@ -113,14 +114,14 @@ object SwiftsTransform extends EdpLogging {
             val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(lookupNamespace)
             val lookupNameSpaceArr = lookupNamespace.split("\\.")
             assert(lookupNameSpaceArr.size == 3, "lookup namespace is invalid in pattern list sql")
-     //       val jsonSchema = JsonSchemaObtain.getJsonSchema(schema)
+            //       val jsonSchema = JsonSchemaObtain.getJsonSchema(schema)
             UmsDataSystem.dataSystem(lookupNameSpaceArr(0).toLowerCase()) match {
               case UmsDataSystem.CASSANDRA =>
-                currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate,UmsDataSystem.CASSANDRA)
+                currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.CASSANDRA)
               case UmsDataSystem.ORACLE =>
-                currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate,UmsDataSystem.ORACLE)
+                currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.ORACLE)
               case _ =>
-                currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate,UmsDataSystem.MYSQL)
+                currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.MYSQL)
             }
           case _ => logWarning(uuid + ",operate.optType:" + operate.optType + " is not supported")
         }
