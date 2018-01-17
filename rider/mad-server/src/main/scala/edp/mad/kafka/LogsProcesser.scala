@@ -18,7 +18,7 @@ object LogsProcesser{
   val modules = ModuleObj.getModule
 
   def processMessage (msg: CommittableMessage[Array[Byte], String] ): Future[CommittableMessage[Array[Byte], String]] = {
-    logger.info(s"Consumed: [topic,partition,offset] \n [${msg.record.topic}, ${msg.record.partition}, ${msg.record.offset} ] \n ")
+    logger.info(s"Logs Consumed: [topic,partition,offset] \n [${msg.record.topic}, ${msg.record.partition}, ${msg.record.offset} ] \n ")
     //println(s"Consumed: [topic,partition,offset] \n [${msg.record.topic}, ${msg.record.partition}, ${msg.record.offset} ] \n ")
     if (msg.record.key() != null) logger.info(s"Consumed key: ${msg.record.key().toString}")
 
@@ -27,7 +27,7 @@ object LogsProcesser{
     if (msg.record.value() == null || msg.record.value() == "") {
       logger.error(s"Logs message value is null: ${msg.toString}")
     } else {
-      logger.info(s" message value : ${msg.toString}\n")
+      logger.info(s" Logs message value : ${msg.toString}\n")
        try {
          val madProcessTime = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
          val msgJsonStr = msg.record.value()
@@ -40,19 +40,18 @@ object LogsProcesser{
          var streamStatus = ""
          var streamName = ""
          val appMapV = modules.applicationMap.get(ApplicationMapKey(appId))
-         logger.info(s" applicationMap : ${modules.applicationMap.mapPrint}\n")
-         logger.info(s" appMapV : ${appMapV}\n")
-         if(null != appMapV ){
+         logger.info(s" Logs applicationMap : ${modules.applicationMap.mapPrint}\n")
+         logger.info(s" Logs appMapV : ${appMapV}\n")
+         if(null != appMapV && appMapV != None){
            streamName = appMapV.get.streamName
            val streamInfo = modules.streamNameMap.get(StreamNameMapKey(streamName))
-           logger.info(s" streamNameMap : ${modules.streamNameMap.mapPrint}\n")
-           logger.info(s" streamInfo : ${streamInfo}\n")
-           if(streamInfo != null) {
+           logger.info(s" Logs streamNameMap : ${modules.streamNameMap.mapPrint}\n")
+           logger.info(s" Logs streamInfo : ${streamInfo}\n")
+           if(streamInfo != null && streamInfo != None) {
              projectId = streamInfo.get.projectId.toLong
              projectName = streamInfo.get.projectName
              streamId = streamInfo.get.streamId.toLong
-             streamStatus = streamInfo.get.streamStatus
-           }
+            }
          }
 
          val host = JsonUtils.getString(msgObj, s"host")
@@ -66,14 +65,11 @@ object LogsProcesser{
          val container = JsonUtils.getString(msgObj, s"container")
          val message = JsonUtils.getString(msgObj, s"message")
 
-
-         val esMadlogs = EsMadLogs( projectId, projectName, streamId, streamName, streamStatus,
-           msg.record.offset.toString, appId, host, logTime,logstashTime, madTime,
-           loglevel, path, className, container, message )
+         val esMadlogs = AppLogs(madTime, projectId, projectName, streamId, streamName, streamStatus, msg.record.offset.toString, appId, host, logTime,logstashTime, loglevel, path, className, container, message )
          logger.info(s" esMadlogs ${esMadlogs} \n")
          val postBody: String = JsonUtils.caseClass2json(esMadlogs)
-         val rc =   madES.insertEs(postBody,INDEXLOGS.toString)
-         logger.info(s" EsMadStreams: response ${rc}")
+         val rc =   madES.insertEs(postBody,INDEXAPPLOGS.toString)
+         logger.info(s" Logs EsMadStreams: response ${rc}")
 
       }catch{
          case e: Exception =>
