@@ -301,8 +301,11 @@ CREATE TABLE IF NOT EXISTS `udf` (
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `function_name_UNIQUE` (`function_name` ASC),
-  UNIQUE INDEX `full_class_name_UNIQUE` (`full_class_name` ASC))
+  UNIQUE INDEX `udf_UNIQUE` (`function_name` ASC, `full_class_name` ASC, `jar_name` ASC))
 ENGINE = InnoDB;
+
+drop index `full_class_name_UNIQUE` on `udf`;
+
 
 CREATE TABLE IF NOT EXISTS `feedback_heartbeat` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
