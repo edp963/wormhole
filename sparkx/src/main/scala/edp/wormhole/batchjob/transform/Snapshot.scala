@@ -22,28 +22,36 @@
 package edp.wormhole.batchjob.transform
 
 import java.sql.Timestamp
+import java.util.UUID
 
 import com.alibaba.fastjson.JSON
 import edp.wormhole.common.util.DateUtils
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.ums.{UmsNamespace, UmsOpType, UmsSysField}
+import edp.wormhole.swifts.SwiftsInterface
+import edp.wormhole.swifts.parse.SwiftsProcessConfig
+import edp.wormhole.ums.{UmsOpType, UmsSysField}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
-class Snapshot extends CustomClassInterface with EdpLogging{
-  override def transform(session: SparkSession, inputDf: DataFrame, sourceNamespace: String, startTime:String, endTime:String, specialConfig: Option[String]): DataFrame = {
-    val tableName = UmsNamespace(sourceNamespace).table
+class Snapshot extends SwiftsInterface with EdpLogging {
+  override def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig): DataFrame = {
+    val tableName = "increment"
+    val specialConfig =
+      if (config != null && config.specialConfig.nonEmpty && config.specialConfig.getOrElse("") != "") JSON.parseObject(config.specialConfig.get)
+      else null
+    val startTime = if (specialConfig != null && specialConfig.containsKey("start_time")) specialConfig.getString("start_time").trim else null
+    val endTime = if (specialConfig != null && specialConfig.containsKey("end_time")) specialConfig.getString("end_time").trim else null
+    val keys = specialConfig.getString("table_keys").trim
+
     val fromTs = if (startTime == null) DateUtils.dt2timestamp(DateUtils.yyyyMMddHHmmss(DateUtils.unixEpochTimestamp)) else DateUtils.dt2timestamp(startTime)
     val toTs = if (endTime == null) DateUtils.dt2timestamp(DateUtils.currentDateTime) else DateUtils.dt2timestamp(DateUtils.dt2dateTime(endTime))
-    val specialConfigStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(specialConfig.get.toString))
-    val specialConfigObject = JSON.parseObject(specialConfigStr)
-    val keys = specialConfigObject.getString("table_keys").trim
-    inputDf.createOrReplaceTempView(tableName)
-    val resultDf = session.sql(getSnapshotSqlByTs(keys,fromTs,toTs,tableName))
+
+    df.createOrReplaceTempView(tableName)
+    val resultDf = session.sql(getSnapshotSqlByTs(keys, fromTs, toTs, tableName))
     session.sqlContext.dropTempTable(tableName)
     resultDf
   }
 
-  def getSnapshotSqlByTs(keys: String, fromTs: Timestamp, toTs: Timestamp,tableName: String): String = {
+  def getSnapshotSqlByTs(keys: String, fromTs: Timestamp, toTs: Timestamp, tableName: String): String = {
     s"""
        |select * from
        |    (select *, row_number() over
