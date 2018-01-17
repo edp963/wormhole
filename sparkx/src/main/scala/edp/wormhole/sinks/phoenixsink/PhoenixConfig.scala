@@ -22,7 +22,7 @@
 package edp.wormhole.sinks.phoenixsink
 
 
-case class PhoenixConfig(`phoenix.BatchSize`: Option[Int]
+case class PhoenixConfig(`phoenix.BatchSize`: Option[Int] = None
                         ) {
   lazy val `phoenix.BatchSize.get` = `phoenix.BatchSize`.getOrElse(200)
 }

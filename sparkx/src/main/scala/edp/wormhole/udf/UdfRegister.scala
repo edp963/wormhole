@@ -68,6 +68,15 @@ object UdfRegister extends EdpLogging {
   private def registerUdf(paramCount: Int, session: SparkSession, udfName: String, udfClassName: String, returnDataType: DataType): Unit = {
 
     paramCount match {
+      case 0 =>
+        val f = new Function0[Any] with Serializable {
+          lazy val (o, method) = UdfUtils.getObjectAndMethod(udfName, udfClassName)
+
+          def apply(): Any = method.invoke(o)
+        }
+        session.sessionState.functionRegistry.registerFunction(
+          udfName,
+          (e: Seq[Expression]) => ScalaUDF(f, returnDataType, e))
       case 1 =>
         val f = new Function1[Object, Any] with Serializable {
           lazy val (o, method) = UdfUtils.getObjectAndMethod(udfName, udfClassName)

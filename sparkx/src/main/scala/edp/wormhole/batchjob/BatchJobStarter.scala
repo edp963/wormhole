@@ -22,6 +22,7 @@
 package edp.wormhole.batchjob
 
 
+import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.{ConnectionConfig, SparkUtils}
 import edp.wormhole.common.util.JsonUtils.json2caseClass
 import edp.wormhole.batchjob.transform.Transform
@@ -39,6 +40,9 @@ object BatchJobStarter extends App with EdpLogging {
 
   println(args(0))
   val base64Decode = new String(new sun.misc.BASE64Decoder().decodeBuffer(args(0).toString.split(" ").mkString("")))
+
+  logInfo("config: " + base64Decode)
+
   val batchJobConfig = json2caseClass[BatchJobConfig](base64Decode)
   val sourceConfig = batchJobConfig.sourceConfig
   val transformationConfig = batchJobConfig.transformationConfig
@@ -48,6 +52,16 @@ object BatchJobStarter extends App with EdpLogging {
     new String(new sun.misc.BASE64Decoder().decodeBuffer(transformationConfig.get.action.get.toString.split(" ").mkString(""))).split(";").map(_.trim) else null
   if (transformationList != null) transformationList.foreach(c =>
     assert(c.startsWith("spark_sql") || c.startsWith("custom_class"), "your actions are not started with spark_sql or custom_class."))
+
+  val transformSpecialConfig =
+    if (transformationConfig.isDefined && transformationConfig.get.specialConfig.isDefined) {
+      JSON.parseObject(transformationConfig.get.specialConfig.get)
+    } else {
+      new JSONObject()
+    }
+  transformSpecialConfig.fluentPut("start_time", sourceConfig.startTime)
+  transformSpecialConfig.fluentPut("end_time", sourceConfig.endTime)
+
   val sparkConf = new SparkConf()
     .setMaster(batchJobConfig.jobConfig.master)
     .setAppName(batchJobConfig.jobConfig.appName)
@@ -65,9 +79,9 @@ object BatchJobStarter extends App with EdpLogging {
   val sourceDf = sourceTransformMethod.invoke(sourceReflectObject, sparkSession, sourceConfig.startTime, sourceConfig.endTime, sourceConfig.sourceNamespace, sourceConfig.connectionConfig, sourceConfig.specialConfig).asInstanceOf[DataFrame]
 
   val transformDf = if (transformationList == null) sourceDf else {
-    Transform.process(sparkSession, sourceDf, sourceConfig.sourceNamespace, transformationList, sourceConfig.startTime, sourceConfig.endTime, transformationConfig.get.specialConfig)
+    Transform.process(sparkSession, sourceDf, transformationList, Some(transformSpecialConfig.toString))
   }
-  val projectionFields: Array[String] = getProjectionFields(transformDf)
+  val projectionFields: Array[String] = getProjectionFields(transformDf).map(column => s"`$column`")
   var outPutTransformDf = transformDf.select(projectionFields.head, projectionFields.tail: _*)
   println("after!!!!!!!!!!! outPutTransformDf")
 

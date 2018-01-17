@@ -21,18 +21,20 @@
 
 package edp.wormhole.batchjob.transform
 
+import java.util.UUID
+
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.ums.UmsNamespace
+import edp.wormhole.swifts.parse.SwiftsProcessConfig
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.apache.spark.storage.StorageLevel
 
 object Transform extends EdpLogging {
-  def process(session: SparkSession, inputDf: DataFrame, sourceNamespace: String, actions: Array[String], startTime: String, endTime: String, specialConfig: Option[String]): DataFrame = {
-    val tableName = UmsNamespace(sourceNamespace).table
+  def process(session: SparkSession, inputDf: DataFrame, actions: Array[String], specialConfig: Option[String]): DataFrame = {
+    val tableName = "increment"
     //inputDf.persist(StorageLevel.MEMORY_AND_DISK_SER)
     var currentDf = inputDf
     //    var cacheDf = inputDf
     //    var firstInLoop = true
+
     actions.foreach { case action =>
       val equalMarkPosition = action.indexOf("=")
       val processingType = action.substring(0, equalMarkPosition).trim
@@ -45,8 +47,9 @@ object Transform extends EdpLogging {
         case "custom_class" =>
           val clazz = Class.forName(content)
           val reflectObject: Any = clazz.newInstance()
-          val transformMethod = clazz.getDeclaredMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[String], classOf[String], classOf[String], classOf[Option[String]])
-          currentDf = transformMethod.invoke(reflectObject, session, currentDf, sourceNamespace, startTime, endTime, specialConfig).asInstanceOf[DataFrame]
+          val transformMethod = clazz.getDeclaredMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig])
+
+          currentDf = transformMethod.invoke(reflectObject, session, currentDf, SwiftsProcessConfig(specialConfig = specialConfig)).asInstanceOf[DataFrame]
         case _ => logInfo("unsupported processing type, e.g. spark_sql, custom_class.")
       }
       //      currentDf.persist(StorageLevel.MEMORY_AND_DISK_SER)

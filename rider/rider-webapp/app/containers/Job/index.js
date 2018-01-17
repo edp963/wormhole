@@ -40,7 +40,6 @@ const { RangePicker } = DatePicker
 import { selectJobs, selectError } from './selectors'
 import {
   loadAdminAllJobs, loadUserAllJobs, loadAdminSingleJob,
-  // chuckAwayJob,
   loadAdminJobLogs, loadUserJobLogs, operateJob, loadJobDetail
 } from './action'
 

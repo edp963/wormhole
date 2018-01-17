@@ -54,27 +54,30 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
     val cc = EsTools.getAvailableConnection(connectionConfig)
     logInfo("random url:" + cc.connectionUrl)
     if (cc.connectionUrl.isEmpty) new Exception(connectionConfig.connectionUrl + " are all not available")
-    val sinkSpecificConfig: EsConfig = json2caseClass[EsConfig](sinkProcessConfig.specialConfig.get)
+    val sinkSpecificConfig: EsConfig =
+      if (sinkProcessConfig.specialConfig.isDefined)
+        json2caseClass[EsConfig](sinkProcessConfig.specialConfig.get)
+      else EsConfig()
     SourceMutationType.sourceMutationType(sinkSpecificConfig.`mutation_type.get`) match {
       case INSERT_ONLY =>
         logInfo("insert only process")
-        val result = insertOnly(tupleList, targetSchemaArr, sinkMap, sinkNamespace, cc, sinkSpecificConfig,schemaMap)
+        val result = insertOnly(tupleList, targetSchemaArr, sinkMap, sinkNamespace, cc, sinkSpecificConfig, schemaMap)
         if (!result) throw new Exception("has error row for insert only")
       case _ =>
         logInfo("insert and update process")
-        val result = insertOrUpdate(tupleList, targetSchemaArr, sinkMap, sinkSpecificConfig, sinkNamespace, cc,schemaMap)
+        val result = insertOrUpdate(tupleList, targetSchemaArr, sinkMap, sinkSpecificConfig, sinkNamespace, cc, schemaMap)
         if (!result) throw new Exception("has error row for insert or update")
     }
   }
 
   private def insertOrUpdate(tupleList: Seq[Seq[String]], targetSchemaArr: JSONArray, sinkMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
-                             sinkSpecificConfig: EsConfig, sinkNamespace: String, cc: ConnectionConfig,schemaMap:collection.Map[String, (Int, UmsFieldType, Boolean)]): Boolean = {
+                             sinkSpecificConfig: EsConfig, sinkNamespace: String, cc: ConnectionConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): Boolean = {
     val dataList = ListBuffer.empty[(String, Long, String)]
     for (row <- tupleList) {
       val jsonData = JsonParseHelper.jsonObjHelper(row, sinkMap, targetSchemaArr)
       val umsId = jsonData.getLong(UmsSysField.ID.toString)
       val data = jsonData.toJSONString
-      val _ids = EsTools.getEsId(row,sinkSpecificConfig,schemaMap)
+      val _ids = EsTools.getEsId(row, sinkSpecificConfig, schemaMap)
       dataList.append((_ids, umsId, data))
     }
 
@@ -126,12 +129,12 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
 
 
   private def insertOnly(tupleList: Seq[Seq[String]], targetSchemaArr: JSONArray, sinkMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
-                         sinkNamespace: String, connectionConfig: ConnectionConfig,sinkSpecificConfig: EsConfig,schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): Boolean = {
+                         sinkNamespace: String, connectionConfig: ConnectionConfig, sinkSpecificConfig: EsConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): Boolean = {
     val insertList = ListBuffer.empty[String]
     if (tupleList.nonEmpty) {
       for (row <- tupleList) {
         val data = JsonParseHelper.jsonObjHelper(row, sinkMap, targetSchemaArr).toJSONString
-        val _id = EsTools.getEsId(row,sinkSpecificConfig,schemaMap)
+        val _id = EsTools.getEsId(row, sinkSpecificConfig, schemaMap)
 
         insertList += s"""{ "$optNameInsert" : {"_id" : "${_id}" }}"""
         insertList += data
@@ -139,8 +142,6 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
       EsTools.write2Es(insertList, connectionConfig, sinkNamespace)
     } else true
   }
-
-
 
 
 }

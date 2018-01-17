@@ -21,7 +21,7 @@
 
 package edp.rider.rest.util
 
-import com.alibaba.fastjson.JSON
+import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.rider.RiderStarter.modules
 import edp.rider.common.JobStatus.JobStatus
 import edp.rider.common.{Action, JobStatus, RiderConfig, RiderLogger}
@@ -53,7 +53,7 @@ object JobUtils extends RiderLogger {
     val eventTsStartFinal = if (eventTsStart != null && eventTsStart != "") eventTsStart else "19700101000000"
     val eventTsEndFinal = if (eventTsEnd != null && eventTsEnd != "") eventTsEnd else "30000101000000"
     val sourceTypeFinal = if (sourceType != null && sourceType != "") sourceType else "hdfs_txt"
-    val specialConfig = if (sourceConfig.isDefined && sourceConfig.get != "") Some(base64byte2s(getConsumptionProtocol(sourceConfig.get).trim.getBytes())) else None
+    val specialConfig = if (sourceConfig.isDefined && sourceConfig.get != "" && sourceConfig.get.contains("protocol")) Some(base64byte2s(getConsumptionProtocol(sourceConfig.get).trim.getBytes())) else None
     val (instance, db, _) = modules.namespaceDal.getNsDetail(sourceNs)
     SourceConfig(eventTsStartFinal, eventTsEndFinal, sourceNs, getConnConfig(instance, db, sourceType), getSourceProcessClass(sourceTypeFinal), specialConfig)
   }
@@ -80,17 +80,19 @@ object JobUtils extends RiderLogger {
   def getTranConfig(tranConfig: String, sinkNs: String) = {
     if (tranConfig != "" && tranConfig != null) {
       val tranClass = JSON.parseObject(tranConfig)
-      val action = if (tranClass.containsKey("action") && tranClass.getString("action").nonEmpty) Some(base64byte2s(tranClass.getString("action").trim.getBytes)) else None
-      val specialConfig = if (action.isDefined && tranClass.getString("action").trim.indexOf("edp.wormhole.batchjob.transform.Snapshot") >= 0) { //todo dangers
-        val (_, _, ns) = modules.namespaceDal.getNsDetail(sinkNs)
-        val keys = ns.keys.get
-        val keystr = s"""{"table_keys":"${keys}"}"""
-        Some(base64byte2s(keystr.trim.getBytes))
-      } else if (tranClass.containsKey("specialConfig") && tranClass.getString("specialConfig").nonEmpty) {
-        Some(base64byte2s(tranClass.getJSONObject("specialConfig").toString.trim.getBytes))
-      } else {
-        None
-      }
+      val action = if (tranClass.containsKey("action") && tranClass.getString("action").nonEmpty) {
+        if (tranClass.getString("action").contains("edp.wormhole.batchjob.transform.Snapshot")) {
+          val ns = modules.namespaceDal.getNamespaceByNs(sinkNs)
+          val swiftsSpec =
+            if (tranClass.containsKey("swifts_specific_config"))
+              tranClass.getJSONObject("swifts_specific_config")
+            else new JSONObject()
+          swiftsSpec.fluentPut("table_keys", ns.keys.getOrElse(""))
+          tranClass.fluentPut("swifts_specific_config", swiftsSpec.toString)
+        }
+        Some(base64byte2s(tranClass.getString("action").trim.getBytes))
+      } else None
+      val specialConfig = if (tranClass.containsKey("swifts_specific_config")) Some(tranClass.getString("swifts_specific_config")) else None
       Some(TransformationConfig(action, specialConfig))
     }
     else None
@@ -126,7 +128,8 @@ object JobUtils extends RiderLogger {
     }
   }
 
-  def getConsumptionProtocol(protocol: String): String = {
+  def getConsumptionProtocol(sourceConfig: String): String = {
+    val protocol = JSON.parseObject(sourceConfig).getString("protocol")
     protocol match {
       case "increment" => "{\"initial\": false, \"increment\": true}"
       case "initial" => "{\"initial\": true, \"increment\": false}"
@@ -150,7 +153,7 @@ object JobUtils extends RiderLogger {
       if (job.sparkConfig.isDefined && !job.sparkConfig.get.isEmpty) job.sparkConfig.get else Seq(RiderConfig.spark.driverExtraConf, RiderConfig.spark.executorExtraConf).mkString(",").concat(RiderConfig.spark.sparkConfig),
       "job"
     )
-    riderLogger.info(s"start job command: $command")
+    riderLogger.info(s"start job ${job.id} command: ${command.replaceAll(" ", "")}")
     runShellCommand(command)
   }
 

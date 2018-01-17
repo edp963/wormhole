@@ -44,15 +44,18 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
                        sinkProcessConfig: SinkProcessConfig,
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        tupleList: Seq[Seq[String]],
-                       connectionConfig:ConnectionConfig) = {
+                       connectionConfig: ConnectionConfig) = {
     val schemaStringAndColumnNumber = getSchemaStringAndColumnNumber(schemaMap) //return format : ("(_ums_id_,key,value1,value2)", number)  Tuple2[String, Int]
     val schemaString: String = schemaStringAndColumnNumber._1
     val columnNumber: Int = schemaStringAndColumnNumber._2
     val valueStrByPlaceHolder: String = getStrByPlaceHolder(columnNumber) //format (?,?,?,?,?)
-    val tableKeys=sinkProcessConfig.tableKeyList
-    val tableKeysInfo: List[(Int, UmsFieldType)] =tableKeys.map(key=>(schemaMap(key)._1,schemaMap(key)._2))
+    val tableKeys = sinkProcessConfig.tableKeyList
+    val tableKeysInfo: List[(Int, UmsFieldType)] = tableKeys.map(key => (schemaMap(key)._1, schemaMap(key)._2))
     // val connectionConfig = getDataStoreConnectionsMap(sinkNamespace)
-    val cassandraSpecialConfig =json2caseClass[CassandraConfig](sinkProcessConfig.specialConfig.get)
+    val cassandraSpecialConfig =
+      if(sinkProcessConfig.specialConfig.isDefined)
+        json2caseClass[CassandraConfig](sinkProcessConfig.specialConfig.get)
+      else CassandraConfig()
     val user: String = if (connectionConfig.username.isDefined) connectionConfig.username.get else null
     val password: String = if (connectionConfig.password.isDefined) connectionConfig.password.get else null
     //    if (authentication.length != 0) {
@@ -68,25 +71,26 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     val prepareStatement: String = getPrepareStatement(keyspace, table, schemaString, valueStrByPlaceHolder)
     //INSERT INTO keyspace.table (a, b, c, d, e) VALUES(?, ?, ?, ?, ?) USING TIMESTAMP ?;
     val session = CassandraConnection.getSession(sortedAddressList, user, password)
-    val tupleFilterList: Seq[Seq[String]] =SourceMutationType.sourceMutationType(cassandraSpecialConfig.`mutation_type.get`) match {
+    val tupleFilterList: Seq[Seq[String]] = SourceMutationType.sourceMutationType(cassandraSpecialConfig.`mutation_type.get`) match {
       case SourceMutationType.I_U_D =>
-        val filterableStatement=checkTableBykey(keyspace,table,tableKeys,tableKeysInfo,tupleList)
-        logInfo("==================filtersql=============="+filterableStatement)
-        val filterRes=session.execute(filterableStatement).all()
-        val dataMap = mutable.HashMap.empty[String,Long]
+        val filterableStatement = checkTableBykey(keyspace, table, tableKeys, tableKeysInfo, tupleList)
+        logInfo("==================filtersql==============" + filterableStatement)
+        val filterRes = session.execute(filterableStatement).all()
+        val dataMap = mutable.HashMap.empty[String, Long]
         import collection.JavaConversions._
-        filterRes.foreach(row=>{
-          val umsId=row.getLong(UmsSysField.ID.toString)
-          val mapKey=tableKeys.map(key=>row.getObject(key).toString).mkString("_")
-          if (dataMap.contains(mapKey)) dataMap(mapKey)=if(dataMap(mapKey)>=umsId) dataMap(mapKey) else umsId
-          else dataMap(mapKey)=umsId
+        filterRes.foreach(row => {
+          val umsId = row.getLong(UmsSysField.ID.toString)
+          val mapKey = tableKeys.map(key => row.getObject(key).toString).mkString("_")
+          if (dataMap.contains(mapKey)) dataMap(mapKey) = if (dataMap(mapKey) >= umsId) dataMap(mapKey) else umsId
+          else dataMap(mapKey) = umsId
         })
-        if (dataMap.nonEmpty){
-          tupleList.filter(tuple=>{
+        if (dataMap.nonEmpty) {
+          tupleList.filter(tuple => {
             val umsIdValue: Long = tuple(schemaMap(UmsSysField.ID.toString)._1).toLong
-            val tableKeyVal=tableKeys.map(key=>tuple(schemaMap(key)._1).toString).mkString("_")
-            !dataMap.contains(tableKeyVal)||umsIdValue>dataMap(tableKeyVal)
-          })}
+            val tableKeyVal = tableKeys.map(key => tuple(schemaMap(key)._1).toString).mkString("_")
+            !dataMap.contains(tableKeyVal) || umsIdValue > dataMap(tableKeyVal)
+          })
+        }
         tupleList
 
       case SourceMutationType.INSERT_ONLY =>
@@ -103,12 +107,12 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     val batch = new BatchStatement()
     for (tuple <- tupleFilterList) {
       //      val umsIdValue: Long = tuple(schemaMap(ID.toString)._1).toLong
-//      val umsTsLong=dt2long(tuple(schemaMap(TS.toString)._1).split("\\+")(0).replace("T"," "))
+      //      val umsTsLong=dt2long(tuple(schemaMap(TS.toString)._1).split("\\+")(0).replace("T"," "))
       val bound: BoundStatement = prepareSchema.bind()
       schemaMap.keys.foreach { column: String =>
-//        if (!Set(OP.toString).contains(column)) {
+        //        if (!Set(OP.toString).contains(column)) {
         val (index, fieldType, _) = schemaMap(column)
-        if(UmsSysField.OP.toString!=column){
+        if (UmsSysField.OP.toString != column) {
           val valueString = tuple(index)
           if (valueString == null) {
             bound.setToNull(column)
@@ -119,7 +123,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
               case e: Throwable => logError("bindWithDifferentTypes:", e)
             }
           }
-        }else{
+        } else {
           if (UmsOpType.DELETE.toString == tuple(index).toLowerCase) {
             bound.setInt(UmsSysField.ACTIVE.toString, UmsActiveType.INACTIVE) //not active--d--false
           } else {
@@ -128,13 +132,13 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
         }
       }
 
-//      val umsOpValue: String = tuple(schemaMap(OP.toString)._1)
-//      if (UmsOpType.DELETE.toString == umsOpValue.toLowerCase) {
-//        bound.setBool(columnNumber - 1, java.lang.Boolean.valueOf("false")) //not active--d--false
-//      } else {
-//        bound.setBool(columnNumber - 1, java.lang.Boolean.valueOf("true")) // active--i,u--true
-//      }
-//      bound.setLong(columnNumber, umsIdValue) //set TS
+      //      val umsOpValue: String = tuple(schemaMap(OP.toString)._1)
+      //      if (UmsOpType.DELETE.toString == umsOpValue.toLowerCase) {
+      //        bound.setBool(columnNumber - 1, java.lang.Boolean.valueOf("false")) //not active--d--false
+      //      } else {
+      //        bound.setBool(columnNumber - 1, java.lang.Boolean.valueOf("true")) // active--i,u--true
+      //      }
+      //      bound.setLong(columnNumber, umsIdValue) //set TS
       if (batch.size() >= cassandraSpecialConfig.`cassandra.batchSize.get`) {
         session.execute(batch)
         batch.clear()
@@ -150,18 +154,18 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     val strBuilder = StringBuilder.newBuilder
     strBuilder.append("(")
     schemaMap.keys.foreach { column =>
-//      if (!Set(OP.toString).contains(column)) {
-      if(UmsSysField.OP.toString!=column){
+      //      if (!Set(OP.toString).contains(column)) {
+      if (UmsSysField.OP.toString != column) {
         columnCounter += 1
         strBuilder.append(column)
         strBuilder.append(", ")
-      }else{
+      } else {
         strBuilder.append(UmsSysField.ACTIVE.toString)
         strBuilder.append(", ")
         columnCounter += 1 // for "active"
       }
     }
-    val finalStr=strBuilder.delete(strBuilder.lastIndexOf(","),strBuilder.length).append(")").toString()
+    val finalStr = strBuilder.delete(strBuilder.lastIndexOf(","), strBuilder.length).append(")").toString()
     (finalStr, columnCounter)
   }
 
@@ -193,54 +197,55 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     temp
   }
 
-  private def checkTableBykey(keyspace: String, table: String,tableKeys:List[String],tableKeysInfo:List[(Int, UmsFieldType)],tupleList:Seq[Seq[String]])={
-    val firstPk=tableKeys.head
-    val firstPkValues=tupleList.map(tuple=>{
-      if(tableKeysInfo.head._2==UmsFieldType.STRING) "'"+tuple(tableKeysInfo.head._1)+"'"
+  private def checkTableBykey(keyspace: String, table: String, tableKeys: List[String], tableKeysInfo: List[(Int, UmsFieldType)], tupleList: Seq[Seq[String]]) = {
+    val firstPk = tableKeys.head
+    val firstPkValues = tupleList.map(tuple => {
+      if (tableKeysInfo.head._2 == UmsFieldType.STRING) "'" + tuple(tableKeysInfo.head._1) + "'"
       else tuple(tableKeysInfo.head._1)
-    }).mkString("(",",",")")
-    val selectColumns=tableKeys.mkString(",")+","+UmsSysField.ID.toString
-    val tableKeySize=tableKeys.size
-    if (tableKeySize==1){
-      "SELECT "+selectColumns+" from "+keyspace+"."+table+" where "+firstPk+" in "+firstPkValues+";"
+    }).mkString("(", ",", ")")
+    val selectColumns = tableKeys.mkString(",") + "," + UmsSysField.ID.toString
+    val tableKeySize = tableKeys.size
+    if (tableKeySize == 1) {
+      "SELECT " + selectColumns + " from " + keyspace + "." + table + " where " + firstPk + " in " + firstPkValues + ";"
     }
-    else if (tableKeySize==2){
-      val otherPks=tableKeys(1)
-      val otherPkValue=tupleList.map(tuple=>{
-          if(tableKeysInfo(1)._2==UmsFieldType.STRING) "'"+tuple(tableKeysInfo(1)._1)+"'"
-          else tuple(tableKeysInfo(1)._1)
-      }).mkString("(",",",")")
+    else if (tableKeySize == 2) {
+      val otherPks = tableKeys(1)
+      val otherPkValue = tupleList.map(tuple => {
+        if (tableKeysInfo(1)._2 == UmsFieldType.STRING) "'" + tuple(tableKeysInfo(1)._1) + "'"
+        else tuple(tableKeysInfo(1)._1)
+      }).mkString("(", ",", ")")
 
-      "SELECT "+selectColumns+" from "+keyspace+"."+table+" where "+firstPk+" in "+firstPkValues+" and "+otherPks+" in "+otherPkValue+";"
+      "SELECT " + selectColumns + " from " + keyspace + "." + table + " where " + firstPk + " in " + firstPkValues + " and " + otherPks + " in " + otherPkValue + ";"
     }
     else {
-      val otherPks=tableKeys.slice(1,tableKeySize).mkString("(",",",")")
-      val otherPkValue=tupleList.map(tuple=>{
-        val tmpValue=for (i<- 1 until tableKeysInfo.size){
-          if(tableKeysInfo(i)._2==UmsFieldType.STRING) "'"+tuple(tableKeysInfo(i)._1)+"'"
+      val otherPks = tableKeys.slice(1, tableKeySize).mkString("(", ",", ")")
+      val otherPkValue = tupleList.map(tuple => {
+        val tmpValue = for (i <- 1 until tableKeysInfo.size) {
+          if (tableKeysInfo(i)._2 == UmsFieldType.STRING) "'" + tuple(tableKeysInfo(i)._1) + "'"
           else tuple(tableKeysInfo(i)._1)
-        }.mkString("(",",",")")
+        }.mkString("(", ",", ")")
         tmpValue
-      }).mkString("(",",",")")
+      }).mkString("(", ",", ")")
 
-      "SELECT "+selectColumns+" from "+keyspace+"."+table+" where "+firstPk+" in "+firstPkValues+" and "+otherPks+" in "+otherPkValue+";"
+      "SELECT " + selectColumns + " from " + keyspace + "." + table + " where " + firstPk + " in " + firstPkValues + " and " + otherPks + " in " + otherPkValue + ";"
     }
   }
 
   private def bindWithDifferentTypes(bound: BoundStatement, columnName: String, fieldType: UmsFieldType, value: String): Unit =
-    if (columnName==UmsSysField.TS.toString)
-      bound.setTimestamp(columnName, dt2date(value.trim.split("\\+")(0).replace("T"," ")))
-      else{
-    fieldType match {
-    case UmsFieldType.STRING => bound.setString(columnName, value.trim)
-    case UmsFieldType.INT => bound.setInt(columnName, Integer.valueOf(value.trim))
-    case UmsFieldType.LONG => bound.setLong(columnName, Long.valueOf(value.trim))
-    case UmsFieldType.FLOAT => bound.setFloat(columnName, Float.valueOf(value.trim))
-    case UmsFieldType.DOUBLE => bound.setDouble(columnName, Double.valueOf(value.trim))
-    case UmsFieldType.BOOLEAN => bound.setBool(columnName, java.lang.Boolean.valueOf(value.trim))
-    case UmsFieldType.DATE => bound.setDate(columnName,  LocalDate.fromMillisSinceEpoch(dt2date(value.trim).getTime))
-    case UmsFieldType.DATETIME => bound.setTimestamp(columnName, dt2date(value.trim.split("\\+")(0).replace("T"," ")))
-    case UmsFieldType.DECIMAL => bound.setDecimal(columnName, new java.math.BigDecimal(value.trim).stripTrailingZeros())
-    case _ => throw new UnsupportedOperationException(s"Unknown Type: $fieldType")
-  }}
+    if (columnName == UmsSysField.TS.toString)
+      bound.setTimestamp(columnName, dt2date(value.trim.split("\\+")(0).replace("T", " ")))
+    else {
+      fieldType match {
+        case UmsFieldType.STRING => bound.setString(columnName, value.trim)
+        case UmsFieldType.INT => bound.setInt(columnName, Integer.valueOf(value.trim))
+        case UmsFieldType.LONG => bound.setLong(columnName, Long.valueOf(value.trim))
+        case UmsFieldType.FLOAT => bound.setFloat(columnName, Float.valueOf(value.trim))
+        case UmsFieldType.DOUBLE => bound.setDouble(columnName, Double.valueOf(value.trim))
+        case UmsFieldType.BOOLEAN => bound.setBool(columnName, java.lang.Boolean.valueOf(value.trim))
+        case UmsFieldType.DATE => bound.setDate(columnName, LocalDate.fromMillisSinceEpoch(dt2date(value.trim).getTime))
+        case UmsFieldType.DATETIME => bound.setTimestamp(columnName, dt2date(value.trim.split("\\+")(0).replace("T", " ")))
+        case UmsFieldType.DECIMAL => bound.setDecimal(columnName, new java.math.BigDecimal(value.trim).stripTrailingZeros())
+        case _ => throw new UnsupportedOperationException(s"Unknown Type: $fieldType")
+      }
+    }
 }

@@ -139,18 +139,16 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     try {
       val flowStatus = actionRule(flowStream, action)
 
-      val startedTime = if (action == "start" || action == "renew") Some(currentSec) else if (flowStream.startedTime.getOrElse("") == "") null else flowStream.startedTime
+      val startedTime = if (action == "start" || action == "renew") Some(currentSec) else flowStream.startedTime
       val stoppedTime =
         if (action == "stop" && flowStatus.flowStatus == "stopped") Some(currentSec)
         else if (action == "start") null
-        else if (flowStream.stoppedTime.getOrElse("") == "") null else flowStream.stoppedTime
+        else flowStream.stoppedTime
       val newFlow = Flow(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig,
         flowStream.tranConfig, flowStatus.flowStatus, startedTime, stoppedTime, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime, flowStream.updateBy)
       Await.result(super.update(newFlow), minTimeOut)
-      val returnStartedTime = if (startedTime != null) startedTime else Some("")
-      val returnStoppedTime = if (stoppedTime != null) stoppedTime else Some("")
       val flow = FlowStream(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol,
-        flowStream.sinkConfig, flowStream.tranConfig, flowStatus.flowStatus, returnStartedTime, returnStoppedTime, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
+        flowStream.sinkConfig, flowStream.tranConfig, flowStatus.flowStatus, startedTime, stoppedTime, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
         flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, flowStatus.disableActions, flowStatus.msg)
       flow
     } catch {
@@ -171,8 +169,6 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     try {
       val flowIdSeq = flowAction.flowIds.split(",").map(_.toLong)
       val flowSeq = Await.result(super.findByFilter(_.id inSet flowIdSeq), minTimeOut)
-      val streamMap = Await.result(streamDal.findByFilter(_.id inSet flowSeq.map(_.streamId)), minTimeOut).map(
-        stream => (stream.id, stream.streamType)).toMap
       if (flowAction.action == "delete") {
         deleteFlow(flowSeq, userId)
       } else {

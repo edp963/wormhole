@@ -57,6 +57,7 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
     //    filteredPathList.foreach(t => println("@@@@@@@@@@@" + t))
     var ums: Ums = null
     var i = 1
+    assert(filteredPathList.nonEmpty, "path list size is 0, there is no matched data")
     var umsContent = HdfsUtils.readFileByLineNum(filteredPathList.head, i)
     val umsContentList = ListBuffer.empty[String]
     while (ums == null && umsContent != null) {
