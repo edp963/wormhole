@@ -22,12 +22,14 @@
 package edp.mad.schedule
 
 import akka.actor.{Actor, ActorRef, Props}
+import edp.mad.alert.StreamDiagnosis
 import edp.mad.elasticsearch.MadES._
 import edp.mad.module._
 import edp.mad.persistence.entities._
 import edp.mad.util.OffsetUtils
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.common.util.DtFormat
+import edp.wormhole.common.util.JsonUtils
 import org.apache.log4j.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -64,6 +66,7 @@ object MadScheduler {
       }
       case "CacheRefresh" => {
         logger.info(s" Scheduler maintenance task ${new java.util.Date().toString} start")
+        cacheRefresh
       }
       case _ => {}
         logger.info(s"timer ${new java.util.Date().toString}")
@@ -95,7 +98,7 @@ object MadScheduler {
     if(modules.madMaintenance.cachePersistence == true && modules.madRedis.enable == false){
       modules.streamMap.getMapHandle.foreach{e=>
         logger.info(s"--------- Stream Map item ${e} \n")
-         modules.streamCacheDal.updateOrInsert(Seq(StreamCacheEntity(0,e._1, e._2, e._3, e._4, e._5,curTs,curTs)))
+         modules.streamCacheDal.updateOrInsert(Seq(StreamCacheEntity(0,e._1, e._2, "", JsonUtils.caseClass2json(e._3), JsonUtils.caseClass2json(e._4),curTs,curTs)))
         logger.info(s"---------  \n")
       }
 
@@ -117,9 +120,11 @@ object MadScheduler {
   def cacheRefresh={
     //  1  refresh
     modules.streamMap.refresh
-    modules.applicationMap.refresh
     modules.namespaceMap.refresh
+    modules.applicationMap.refresh
 
+    StreamDiagnosis.streamStatusDiagnosis()
+    logger.info(s" ---------  \n")
     // 2 delete expire map
     if(modules.madRedis.enable == false){
       // delete the streamMap  settings on rider, but the status is not running

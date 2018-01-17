@@ -21,142 +21,241 @@ class MadES extends ESIndexModule[String,IndexEntity]{
   lazy val esPwd = modules.madEs.pwd
   lazy val esToken = ""
 
-  val madFlowMapping = """{
-                         |  "mappings":{
-                         |    "flows":{
-                         |      "properties":{
-                         |       "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                         |        "feedbackTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                         |        "projectId": { "type":"long", "index":"not_analyzed" },
-                         |        "projectName": { "type":"keyword", "index":"not_analyzed" },
-                         |        "streamId":{ "type":"long", "index":"not_analyzed" },
-                         |        "streamName":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "sparkAppId":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "streamStatus":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "streamStartedTime":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                         |        "streamConsumerDuration":{ "type":"integer", "index":"not_analyzed" },
-                         |        "streamConsumerMaxRecords": { "type":"integer", "index":"not_analyzed" },
-                         |        "streamProcessRepartition": { "type":"integer", "index":"not_analyzed" },
-                         |        "streamDriverCores": { "type":"integer", "index":"not_analyzed" },
-                         |        "streamDriverMemory": { "type":"integer", "index":"not_analyzed" },
-                         |        "streamPerExecuterCores": { "type":"integer", "index":"not_analyzed" },
-                         |        "streamPerExecuterMemory": { "type":"integer", "index":"not_analyzed" },
-                         |        "kafkaConnection":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "topicName":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "flowId":{ "type":"long", "index":"not_analyzed" },
-                         |        "flowNamespace":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "sourceNamespace":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "sourceDataSystem":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "sourceInstance":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "sourceDatabase":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "sourceTable":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "sinkNamespace":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "sinkDataSystem":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "sinkInstance":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "sinkDatabase":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "sinkTable":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "flowStatus":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "flowStartedTime":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                         |        "flowUpdateTime":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                         |        "consumedProtocol":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "sinkSpecificConfig":{ "type":"text"},
-                         |        "tranConfig":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "tranActionCustomClass":{ "type":"keyword", "index":"not_analyzed" },
-                         |        "transPushdownNamespaces":{ "type":"text" },
-                         |        "flowErrorMaxWaterMarkTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                         |        "flowErrorMinWaterMarkTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                         |        "flowErrorCount": { "type":"integer", "index":"not_analyzed" },
-                         |        "flowErrorMessage":{ "type":"text" },
-                         |        "statsId": { "type":"keyword", "index":"not_analyzed" },
-                         |        "rddCount":{ "type":"long", "index":"not_analyzed" },
-                         |        "throughput":{ "type":"long", "index":"not_analyzed" },
-                         |        "originalDataTs ":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss.SSSSSS", "index":"not_analyzed" },
-                         |        "rddTransformStartTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss.SSSSSS", "index":"not_analyzed" },
-                         |        "directiveProcessStartTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss.SSSSSS", "index":"not_analyzed" },
-                         |        "mainProcessStartTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss.SSSSSS", "index":"not_analyzed" },
-                         |        "swiftsProcessStartTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss.SSSSSS", "index":"not_analyzed" },
-                         |        "sinkWriteStartTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss.SSSSSS", "index":"not_analyzed" },
-                         |        "processDoneTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss.SSSSSS", "index":"not_analyzed" },
-                         |        "intervalMainProcessToDataOriginalTs":{ "type":"long", "index":"not_analyzed" },
-                         |        "intervalMainProcessToDone ":{ "type":"long", "index":"not_analyzed" },
-                         |        "intervalMainProcessToSwifts":{ "type":"long", "index":"not_analyzed" },
-                         |        "intervalMainProcessToSink":{ "type":"long", "index":"not_analyzed" },
-                         |        "intervalSwiftsToSink":{ "type":"long", "index":"not_analyzed" },
-                         |        "intervalSinkToDone":{ "type":"long", "index":"not_analyzed" },
-                         |        "intervalRddToDone":{ "type":"long", "index":"not_analyzed" }
-                         |      }
-                         |    }
-                         |  }
-                         |}
-                         |""".stripMargin
+  val madProjectInfosMapping = """{
+                                 |"mappings":{
+                                 | "projects":{
+                                 |            "properties":{
+                                 |                "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                 |                "projectId": { "type":"long", "index":"not_analyzed" },
+                                 |                "projectName": { "type":"keyword" },
+                                 |                "projectResourceCores": { "type":"integer", "index":"not_analyzed" },
+                                 |                "projectResourceMemory": { "type":"integer", "index":"not_analyzed" },
+                                 |                "projectResourceMemory": { "type":"integer", "index":"not_analyzed" },
+                                 |                "projectCreatedTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                 |                "projectUpdatedTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" }
+                                 |           }
+                                 |        }
+                                 |}
+                                 |}""".stripMargin
 
-  val madStreamMapping = """{
-                           |"mappings":{
-                           | "streams":{
-                           |            "properties":{
-                           |                "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                           |                "projectId": { "type":"long", "index":"not_analyzed" },
-                           |                "projectName": { "type":"text", "index":"not_analyzed" },
-                           |                "projectResourceCores": { "type":"integer", "index":"not_analyzed" },
-                           |                "projectResourceMemory": { "type":"integer", "index":"not_analyzed" },
-                           |                "projectResourceMemory": { "type":"integer", "index":"not_analyzed" },
-                           |                "projectCreatedTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                           |                "projectUpdatedTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                           |                "streamId":{ "type":"long", "index":"not_analyzed" },
-                           |                "streamName": { "type":"text", "index":"not_analyzed" },
-                           |                "sparkAppId": { "type":"text", "index":"not_analyzed" },
-                           |                "streamStatus": { "type":"text", "index":"not_analyzed" },
-                           |                "streamStartedTime":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                           |                "sparkConfig":{ "type":"text" },
-                           |                "streamConsumerDuration": { "type":"integer", "index":"not_analyzed" },
-                           |                "streamConsumerMaxRecords": { "type":"integer", "index":"not_analyzed" },
-                           |                "streamProcessRepartition": { "type":"integer", "index":"not_analyzed" },
-                           |                "streamDriverCores": { "type":"integer", "index":"not_analyzed" },
-                           |                "streamDriverMemory": { "type":"integer", "index":"not_analyzed" },
-                           |                "streamPerExecuterCores": { "type":"integer", "index":"not_analyzed" },
-                           |                "streamPerExecuterMemory": { "type":"integer", "index":"not_analyzed" },
-                           |                "kafkaConnection":{ "type":"text", "index":"not_analyzed" },
-                           |                "streamStatTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                           |                "errorMessage":{ "type":"text"},
-                           |                "topicName":{ "type":"text", "index":"not_analyzed" },
-                           |                "partitionNum": { "type":"integer", "index":"not_analyzed" },
-                           |                "partitionId": { "type":"integer", "index":"not_analyzed" },
-                           |                "latestOffset":{"type": "long", "index": "not_analyzed"},
-                           |                "feedbackOffset":{"type": "long", "index": "not_analyzed"}
-                           |           }
-                           |        }
+  val madStreamInfosMapping = """{
+                               |"mappings":{
+                               | "streams":{
+                               |            "properties":{
+                               |                "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                               |                "projectId": { "type":"long", "index":"not_analyzed" },
+                               |                "projectName": { "type":"keyword" },
+                               |                "streamId":{ "type":"long", "index":"not_analyzed" },
+                               |                "streamName": { "type":"keyword" },
+                               |                "sparkAppId": { "type":"keyword"},
+                               |                "streamStatus": { "type":"text", "index":"not_analyzed" },
+                               |                "streamStartedTime":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                               |                "sparkConfig":{ "type":"text" },
+                               |                "streamConsumerDuration": { "type":"integer", "index":"not_analyzed" },
+                               |                "streamConsumerMaxRecords": { "type":"integer", "index":"not_analyzed" },
+                               |                "streamProcessRepartition": { "type":"integer", "index":"not_analyzed" },
+                               |                "streamDriverCores": { "type":"integer", "index":"not_analyzed" },
+                               |                "streamDriverMemory": { "type":"integer", "index":"not_analyzed" },
+                               |                "streamPerExecuterCores": { "type":"integer", "index":"not_analyzed" },
+                               |                "streamPerExecuterMemory": { "type":"integer", "index":"not_analyzed" },
+                               |                "executorNums": { "type":"integer", "index":"not_analyzed" },
+                               |                "useCores": { "type":"integer", "index":"not_analyzed" },
+                               |                "useMemoryG": { "type":"integer", "index":"not_analyzed" },
+                               |                "kafkaConnection":{ "type":"text", "index":"not_analyzed" },
+                               |                "topicName":{ "type":"keyword" }
+                               |           }
+                               |        }
+                               |}
+                               |}""".stripMargin
+
+  val madFlowInfosMapping = """{
+                             |  "mappings":{
+                             |    "flows":{
+                             |      "properties":{
+                             |       "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                             |       "projectId": { "type":"long", "index":"not_analyzed" },
+                             |        "projectName": { "type":"keyword" },
+                             |        "streamId":{ "type":"long", "index":"not_analyzed" },
+                             |        "streamName":{ "type":"keyword" },
+                             |        "flowId":{ "type":"long", "index":"not_analyzed" },
+                             |        "flowNamespace":{ "type":"keyword" },
+                             |        "sourceNamespace":{ "type":"keyword" },
+                             |        "sourceDataSystem":{ "type":"keyword"},
+                             |        "sourceInstance":{ "type":"keyword"},
+                             |        "sourceDatabase":{ "type":"keyword" },
+                             |        "sourceTable":{ "type":"keyword"},
+                             |        "sinkNamespace":{ "type":"keyword" },
+                             |        "sinkDataSystem":{ "type":"keyword" },
+                             |        "sinkInstance":{ "type":"keyword" },
+                             |        "sinkDatabase":{ "type":"keyword"},
+                             |        "sinkTable":{ "type":"keyword"},
+                             |        "flowStatus":{ "type":"keyword"},
+                             |        "flowStartedTime":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                             |        "flowUpdateTime":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                             |        "consumedProtocol":{ "type":"keyword" },
+                             |        "sinkSpecificConfig":{ "type":"text"},
+                             |        "tranConfig":{ "type":"keyword" },
+                             |        "tranActionCustomClass":{ "type":"keyword" },
+                             |        "transPushdownNamespaces":{ "type":"text" }
+                             |      }
+                             |    }
+                             |  }
+                             |}
+                             |""".stripMargin
+
+  val madAppInfosMapping = """{
+                              |  "mappings":{
+                              |    "flows":{
+                              |      "properties":{
+                              |       "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                              |        "appId": { "type":"keyword" },
+                              |        "streamName":{ "type":"keyword" },
+                              |        "state":{ "type":"keyword" },
+                              |        "finalStatus":{ "type":"keyword" },
+                              |        "user":{ "type":"keyword"},
+                              |        "queue":{ "type":"keyword"},
+                              |        "startedTime":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" }
+                              |      }
+                              |    }
+                              |  }
+                              |}
+                              |""".stripMargin
+
+  val madNamespaceInfosMapping = """{
+                              |  "mappings":{
+                              |    "flows":{
+                              |      "properties":{
+                              |       "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                              |        "namespace": { "type":"keyword" },
+                              |        "nsSys":{ "type":"keyword" },
+                              |        "nsInstance":{ "type":"keyword" },
+                              |        "nsDatabase":{ "type":"keyword" },
+                              |        "nsTable":{ "type":"keyword"},
+                              |        "topic":{ "type":"keyword"}
+                              |      }
+                              |    }
+                              |  }
+                              |}
+                              |""".stripMargin
+
+
+  val madFlowFeedbackMapping = """{
+                                |  "mappings":{
+                                |    "flows":{
+                                |      "properties":{
+                                |       "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                |        "feedbackTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                |        "projectId": { "type":"long", "index":"not_analyzed" },
+                                |        "projectName": { "type":"keyword" },
+                                |        "streamId":{ "type":"long", "index":"not_analyzed" },
+                                |        "streamName":{ "type":"keyword" },
+                                |        "flowId":{ "type":"long", "index":"not_analyzed" },
+                                |        "flowNamespace":{ "type":"keyword" },
+                                |        "flowErrorMaxWaterMarkTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                |        "flowErrorMinWaterMarkTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                |        "flowErrorCount": { "type":"integer", "index":"not_analyzed" },
+                                |        "flowErrorMessage":{ "type":"text" },
+                                |        "statsId": { "type":"keyword" },
+                                |        "rddCount":{ "type":"long", "index":"not_analyzed" },
+                                |        "throughput":{ "type":"long", "index":"not_analyzed" },
+                                |        "originalDataTs ":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss.SSSSSS", "index":"not_analyzed" },
+                                |        "rddTransformStartTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss.SSSSSS", "index":"not_analyzed" },
+                                |        "directiveProcessStartTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss.SSSSSS", "index":"not_analyzed" },
+                                |        "mainProcessStartTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss.SSSSSS", "index":"not_analyzed" },
+                                |        "swiftsProcessStartTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss.SSSSSS", "index":"not_analyzed" },
+                                |        "sinkWriteStartTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss.SSSSSS", "index":"not_analyzed" },
+                                |        "processDoneTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss.SSSSSS", "index":"not_analyzed" },
+                                |        "intervalMainProcessToDataOriginalTs":{ "type":"long", "index":"not_analyzed" },
+                                |        "intervalMainProcessToDone ":{ "type":"long", "index":"not_analyzed" },
+                                |        "intervalMainProcessToSwifts":{ "type":"long", "index":"not_analyzed" },
+                                |        "intervalMainProcessToSink":{ "type":"long", "index":"not_analyzed" },
+                                |        "intervalSwiftsToSink":{ "type":"long", "index":"not_analyzed" },
+                                |        "intervalSinkToDone":{ "type":"long", "index":"not_analyzed" },
+                                |        "intervalRddToDone":{ "type":"long", "index":"not_analyzed" }
+                                |      }
+                                |    }
+                                |  }
+                                |}
+                                |""".stripMargin
+
+  val madStreamFeedbackMapping = """{
+                                  |"mappings":{
+                                  | "streams":{
+                                  |   "properties":{
+                                  |     "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                  |     "projectId": { "type":"long", "index":"not_analyzed" },
+                                  |     "projectName": { "type":"keyword" },
+                                  |     "streamId":{ "type":"long", "index":"not_analyzed" },
+                                  |     "streamName": { "type":"keyword" },
+                                  |     "streamStatTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                  |     "errorMessage":{ "type":"text"},
+                                  |     "topicName":{ "type":"keyword" },
+                                  |     "partitionNum": { "type":"integer", "index":"not_analyzed" },
+                                  |     "partitionId": { "type":"integer", "index":"not_analyzed" },
+                                  |     "latestOffset":{"type": "long", "index": "not_analyzed"},
+                                  |     "feedbackOffset":{"type": "long", "index": "not_analyzed"}
+                                  |    }
+                                  |  }
+                                  |}
+                                  |}""".stripMargin
+
+  val madAppLogsMapping = """{
+                           | "mappings":{
+                           |  "logs":{
+                           |  "properties":{
+                           |    "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                           |    "projectId": { "type":"long", "index":"not_analyzed" },
+                           |    "projectName": { "type":"text", "index":"not_analyzed" },
+                           |    "streamId":{ "type":"long", "index":"not_analyzed" },
+                           |    "streamName": { "type":"text", "index":"not_analyzed" },
+                           |    "sparkAppId": { "type":"text", "index":"not_analyzed" },
+                           |    "streamStatus": { "type":"text", "index":"not_analyzed" },
+                           |    "logsOrder":{ "type":"keyword", "index":"not_analyzed" },
+                           |    "hostName":{"type": "keyword","index": "not_analyzed" },
+                           |    "logTime":{"type": "date", "format": "yyyy-MM-dd HH:mm:ss", "index": "not_analyzed" },
+                           |    "logLevel":{"type": "keyword","index": "not_analyzed" },
+                           |    "logPath":{"type": "text" },
+                           |    "className":{"type": "text" },
+                           |    "message":{"type": "text" }
+                           |  }
+                           |  }
                            |}
                            |}""".stripMargin
 
-  val madLogsMapping = """{
-                         |"mappings":{
-                         | "logs":{
-                         |            "properties":{
-                         |                "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                         |                "projectId": { "type":"long", "index":"not_analyzed" },
-                         |                "projectName": { "type":"text", "index":"not_analyzed" },
-                         |                "streamId":{ "type":"long", "index":"not_analyzed" },
-                         |                "streamName": { "type":"text", "index":"not_analyzed" },
-                         |                "sparkAppId": { "type":"text", "index":"not_analyzed" },
-                         |                "streamStatus": { "type":"text", "index":"not_analyzed" },
-                         |                "logsOrder":{ "type":"keyword", "index":"not_analyzed" },
-                         |                "hostName":{"type": "keyword","index": "not_analyzed" },
-                         |        	      "logTime":{"type": "date", "format": "yyyy-MM-dd HH:mm:ss", "index": "not_analyzed" },
-                         |                "logLevel":{"type": "keyword","index": "not_analyzed" },
-                         |                "logPath":{"type": "text" },
-                         |                "className":{"type": "text" },
-                         |                "message":{"type": "text" }
-                         |           }
-                         |        }
-                         |}
-                         |}""".stripMargin
+  val madStreamAlertMapping = """{
+                                   |"mappings":{
+                                   | "alert":{
+                                   |   "properties":{
+                                   |     "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                   |     "projectId": { "type":"long", "index":"not_analyzed" },
+                                   |     "projectName": { "type":"keyword" },
+                                   |     "streamId":{ "type":"long", "index":"not_analyzed" },
+                                   |     "streamName": { "type":"keyword" },
+                                   |     "streamStatus":{ "type":"keyword" },
+                                   |     "appId":{ "type":"keyword" },
+                                   |     "state":{ "type":"keyword" },
+                                   |     "finalStatus":{ "type":"keyword" },
+                                   |     "alertLevel":{ "type":"keyword" }
+                                   |    }
+                                   |  }
+                                   |}
+                                   |}""".stripMargin
+
 
   def initial() = {
     logger.info(s"  ES initial\n")
     try {
-      setIndexMap(INDEXFLOWS.toString, IndexEntity(INDEXFLOWS.toString, "flows", madFlowMapping, YYYYMMDD.toString,EVERYDAY.toString,  "7"))
-      setIndexMap(INDEXSTREAMS.toString, IndexEntity(INDEXSTREAMS.toString, "streams", madStreamMapping, YYYYMM.toString, EVERYMONTH.toString,  "3"))
-      setIndexMap(INDEXLOGS.toString, IndexEntity(INDEXLOGS.toString, "logs", madLogsMapping, YYYYMMDD.toString, EVERYDAY.toString,  "7"))
+      setIndexMap(INDEXPROJECTINFOS.toString, IndexEntity(INDEXPROJECTINFOS.toString, "projects", madProjectInfosMapping, NONEPARTITION.toString, NENVER.toString,  "365"))
+      setIndexMap(INDEXSTREAMINFOS.toString, IndexEntity(INDEXSTREAMINFOS.toString, "streams", madStreamInfosMapping, NONEPARTITION.toString, NENVER.toString,  "365"))
+      setIndexMap(INDEXFLOWINFOS.toString, IndexEntity(INDEXFLOWINFOS.toString, "flows", madFlowInfosMapping, NONEPARTITION.toString, NENVER.toString,  "365"))
+      setIndexMap(INDEXAPPINFOS.toString, IndexEntity(INDEXAPPINFOS.toString, "apps", madAppInfosMapping, NONEPARTITION.toString, NENVER.toString,  "365"))
+      setIndexMap(INDEXNAMESPACEINFOS.toString, IndexEntity(INDEXNAMESPACEINFOS.toString, "namespaces", madNamespaceInfosMapping, NONEPARTITION.toString, NENVER.toString,  "365"))
+
+      setIndexMap(INDEXSTREAMSFEEDBACK.toString, IndexEntity(INDEXSTREAMSFEEDBACK.toString, "streams", madStreamFeedbackMapping, YYYYMM.toString, EVERYMONTH.toString,  "90"))
+      setIndexMap(INDEXFLOWFEEDBACK.toString, IndexEntity(INDEXFLOWFEEDBACK.toString, "flows", madFlowFeedbackMapping, YYYYMMDD.toString, EVERYDAY.toString,  "7"))
+      setIndexMap(INDEXAPPLOGS.toString, IndexEntity(INDEXAPPLOGS.toString, "logs", madAppLogsMapping, YYYYMMDD.toString, EVERYDAY.toString,  "7"))
+
+      setIndexMap(INDEXSTREAMALERT.toString, IndexEntity(INDEXSTREAMALERT.toString, "alert", madStreamAlertMapping, NONEPARTITION.toString, NENVER.toString,  "365"))
 
       autoCreateIndexByPattern
     }catch{
@@ -250,7 +349,7 @@ class MadES extends ESIndexModule[String,IndexEntity]{
       getEntity(indexType) match {
         case Some(t) => {
             logger.info(s" ${t}\n")
-          logger.info(s" createIndexInterval ${t.createIndexInterval}   ${EVERYDAY.toString} \n")
+          logger.info(s" createIndexInterval ${t.createIndexInterval}   ${t.retainIndexDays.toString} \n")
             if( t.createIndexInterval == EVERYDAY.toString) {
               val dateStr = DateUtils.dt2string(new java.util.Date(), DATE_DASH)
               val indexName = s"${indexType.toString}_${dateStr}"
@@ -261,9 +360,15 @@ class MadES extends ESIndexModule[String,IndexEntity]{
               val dateStr = DateUtils.dt2string(new java.util.Date(), DATE_DASH).substring(0,7)
               val indexName = s"${indexType.toString}_${dateStr}"
               val url = s"${conUrl}/${indexName}"
-              createIndex("", url, esUser, esPwd, esToken)
+              createIndex(t.createIndexJson, url, esUser, esPwd, esToken)
               logger.info(s" create Index ${url} \n")
-            }else{
+            }else if(t.createIndexInterval == NENVER.toString ){
+              val indexName = s"${indexType.toString}"
+              val url = s"${conUrl}/${indexName}"
+              createIndex(t.createIndexJson, url, esUser, esPwd, esToken)
+              logger.info(s" create Index ${url} \n")
+            }
+            else{
               logger.info(s" createIndexInterval ${t.createIndexInterval}  \n")
             }
           }
@@ -286,6 +391,8 @@ class MadES extends ESIndexModule[String,IndexEntity]{
             }else if(t.createIndexInterval == EVERYMONTH.toString ){
               val dateStr = DateUtils.dt2string(new java.util.Date(), DATE_DASH).substring(0,7)
               indexName = s"${indexKey.toString}_${dateStr}"
+            }else{
+              indexName = s"${indexKey.toString}"
             }
           }
           case None => logger.info(s" can't found the setting for index ${indexKey}\n")
