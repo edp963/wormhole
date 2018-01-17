@@ -11,6 +11,7 @@ trait CacheImpl{
   val namespaceMap = new NamespaceImpl
   val streamNameMap = new StreamNameImpl
   val projectIdMap= new ProjectIdImpl
+//  val topicMap= new TopicImpl
 
   val offsetMap = new OffsetMap
   val streamFeedbackMap = new StreamFeedbackMap
