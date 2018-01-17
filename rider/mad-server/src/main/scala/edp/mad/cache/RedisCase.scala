@@ -6,24 +6,24 @@ import org.apache.log4j.Logger
 
 class StreamCache extends RedisModule[StreamMapKey,StreamMapValue]{
   private val logger = Logger.getLogger(this.getClass)
-  def updateProjectInfo(streamId: Long, cacheProjectInfo: CacheProjectInfo) = {
-    get(StreamMapKey(streamId)) match{
-      case Some(value) => set( StreamMapKey(streamId), StreamMapValue(cacheProjectInfo, value.cacheStreamInfo, value.listCacheFlowInfo) )
-      case None  => set( StreamMapKey(streamId), StreamMapValue(cacheProjectInfo,null,null) )
-    }
-  }
+//  def updateProjectInfo(streamId: Long, cacheProjectInfo: CacheProjectInfo) = {
+//    get(StreamMapKey(streamId)) match{
+//      case Some(value) => set( StreamMapKey(streamId), StreamMapValue(cacheProjectInfo, value.cacheStreamInfo, value.listCacheFlowInfo) )
+//      case None  => set( StreamMapKey(streamId), StreamMapValue(cacheProjectInfo,null,null) )
+//    }
+//  }
 
   def updateStreamInfo(streamId: Long, cacheStreamInfo: CacheStreamInfo) = {
     get(StreamMapKey(streamId)) match {
-      case Some(value) => set( StreamMapKey(streamId), StreamMapValue(value.cacheProjectInfo, cacheStreamInfo, value.listCacheFlowInfo) )
-      case None => set( StreamMapKey(streamId), StreamMapValue(null,cacheStreamInfo,null) )
+      case Some(value) => set( StreamMapKey(streamId), StreamMapValue( cacheStreamInfo, value.listCacheFlowInfo) )
+      case None => set( StreamMapKey(streamId), StreamMapValue(cacheStreamInfo,null) )
     }
   }
 
   def updateFlowInfo(streamId: Long, listCacheFlowInfo: List[CacheFlowInfo]) = {
     get(StreamMapKey(streamId)) match {
-      case Some(value) => set (StreamMapKey (streamId), StreamMapValue (value.cacheProjectInfo, value.cacheStreamInfo, listCacheFlowInfo) )
-      case None => set (StreamMapKey (streamId), StreamMapValue (null, null, listCacheFlowInfo) )
+      case Some(value) => set (StreamMapKey (streamId), StreamMapValue ( value.cacheStreamInfo, listCacheFlowInfo) )
+      case None => set (StreamMapKey (streamId), StreamMapValue ( null, listCacheFlowInfo) )
     }
   }
 
@@ -108,6 +108,7 @@ class StreamNameCache extends RedisModule[StreamNameMapKey,StreamNameMapValue]{
   }
 
 }
+
 class ProjectIdCache extends RedisModule[ProjectIdMapKey,ProjectIdMapValue] {
 
   def get( key: ProjectIdMapKey ): Option[ProjectIdMapValue] = {
@@ -118,3 +119,13 @@ class ProjectIdCache extends RedisModule[ProjectIdMapKey,ProjectIdMapValue] {
   }
 
 }
+
+//class TopicCache extends RedisModule[TopicMapKey,TopicMapValue]{
+//  def get( key: TopicMapKey ): Option[TopicMapValue] = {
+//    val vStr = getValueStr(key)
+//    if(vStr != null && vStr !="") {
+//      Option(JsonUtils.json2caseClass[TopicMapValue](vStr))
+//    }else None
+//  }
+//
+//}
