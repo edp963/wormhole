@@ -380,6 +380,9 @@ export class SchemaTypeConfig extends React.Component {
       width: '17%',
       render: (text, record) => {
         const { currentKey, tupleForm } = this.state
+        const { repeatArrayArr } = this.props
+
+        const repeatKey = repeatArrayArr.length === 0 ? undefined : repeatArrayArr.find(i => i === record.key)
 
         let fieldTypeHtml = ''
         if (record.fieldType.indexOf('tuple') > -1) {
@@ -450,7 +453,7 @@ export class SchemaTypeConfig extends React.Component {
         }
 
         return (
-          <div className="ums_field_type_class">
+          <div className={repeatKey === record.key ? 'repeat-array-class' : ''}>
             <Select
               value={initType}
               onChange={this.handleChangeFieldType(record)}
@@ -660,7 +663,9 @@ export class SchemaTypeConfig extends React.Component {
         <Row className={umsTypeSeleted === 'ums_extension' ? '' : 'hide'}>
           <Col span={7} className="schema-json-title"><span>Source JSON Sample：</span></Col>
           <Col span={1}></Col>
-          <Col span={16} className="schema-table-title"><span>Source Schema Table：</span></Col>
+          <Col span={16} className="schema-table-title">
+            <span>Source Schema Table [注: 只能包含一个 array 类型 (intarray等或jsonarray)，且须将其或某子字段设置为主键之一]：
+            </span></Col>
         </Row>
         <Row className={umsTypeSeleted === 'ums_extension' ? '' : 'hide'}>
           <Col span={7}>
@@ -703,7 +708,8 @@ SchemaTypeConfig.propTypes = {
   selectAllState: React.PropTypes.string,
   initRowSelectedAll: React.PropTypes.func,
   initSelectUmsop: React.PropTypes.func,
-  repeatRenameArr: React.PropTypes.array
+  repeatRenameArr: React.PropTypes.array,
+  repeatArrayArr: React.PropTypes.array
 }
 
 export default Form.create({wrappedComponentRef: true})(SchemaTypeConfig)

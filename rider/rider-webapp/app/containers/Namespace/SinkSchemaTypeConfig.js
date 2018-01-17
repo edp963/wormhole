@@ -137,7 +137,7 @@ export class SinkSchemaTypeConfig extends React.Component {
       dataIndex: 'fieldType',
       key: 'fieldType',
       render: (text, record) => (
-        <div className="ums_field_type_class">
+        <div>
           <Select
             value={record.fieldType}
             onChange={this.handleChangeFieldType(record)}
