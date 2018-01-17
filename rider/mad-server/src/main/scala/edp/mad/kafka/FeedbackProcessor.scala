@@ -1,7 +1,5 @@
 package edp.mad.kafka
 
-
-
 import akka.kafka.ConsumerMessage.CommittableMessage
 import edp.mad.elasticsearch.MadIndex._
 import edp.mad.elasticsearch.MadES._
@@ -76,29 +74,94 @@ object FeedbackProcessor{
 
   def doFeedbackFlowError(message: Ums) = {
     val protocolType = message.protocol.`type`.toString
+    val srcNamespace = message.schema.namespace.toLowerCase
+    val riderNamespace = namespaceRiderString(srcNamespace)
     val fields = message.schema.fields_get
-    val curTs = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
-    logger.debug(s"start process protocol: ${protocolType}")
-    try {
+    val madProcessTime = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
+    logger.debug(s"start process ${protocolType} feedback ${message.payload_get}")
+//    UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
+//    UmsField("sink_namespace", UmsFieldType.STRING),
+//    UmsField("stream_id", UmsFieldType.LONG),
+//    UmsField("error_max_watermark_ts", UmsFieldType.STRING),
+//    UmsField("error_min_watermark_ts", UmsFieldType.STRING),
+//    UmsField("error_count", UmsFieldType.INT),
+//    UmsField("error_info", UmsFieldType.STRING)))),
+    try{
       message.payload_get.foreach(tuple => {
         logger.debug(s"$tuple")
         val umsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
         val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
-        val topicNameValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "topic_name")
-        val partitionOffsetValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "partition_offsets")
-        if(umsTsValue != null && streamIdValue != null && topicNameValue != null && partitionOffsetValue != null) {
-          /*
-          val partitionOffset = partitionOffsetValue.toString
-          val partitionNum: Int = FeedbackOffsetUtil.getPartitionNumber(partitionOffset)
-          val future = modules.feedbackOffsetDal.insert(FeedbackOffset(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
-            topicNameValue.toString, partitionNum, partitionOffset, curTs))
-          val result = Await.ready(future, Duration.Inf).value.get
-          result match {
-            case Failure(e) =>
-              riderLogger.error(s"FeedbackStreamTopicOffset inserted ${tuple.toString} failed", e)
-            case Success(t) => riderLogger.debug("FeedbackStreamTopicOffset inserted success.")
+        val sinkNamespaceValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace")
+        val maxWatermark = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_max_watermark_ts")
+        val minWatermark = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_min_watermark_ts")
+        val errorCount = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_count")
+        val errorInfo = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info")
+        val topicV = modules.namespaceMap.get(NamespaceMapkey(riderNamespace))
+        val topicName = if(  null != topicV && topicV != None) topicV.get.topicName else ""
+        var flowId : Long = 0
+        var streamName = ""
+
+        if(umsTsValue != null && streamIdValue != null && sinkNamespaceValue != null && errorCount != null) {
+          val umsTs = umsTsValue.toString
+          val streamId = streamIdValue.toString.toLong
+          val sinkNamespace = sinkNamespaceValue.toString
+          val riderSinkNamespace = if (sinkNamespaceValue.toString == "") riderNamespace else namespaceRiderString(sinkNamespaceValue.toString)
+          val flowName = s"${riderNamespace}_${riderSinkNamespace}"
+
+          val streamMapV = modules.streamMap.get(StreamMapKey(streamId))
+          logger.debug(s" stream map of steam id ${streamId}:  ${streamMapV} \n")
+          if(  null != streamMapV && streamMapV != None) {
+            val infos = streamMapV.get
+            streamName = infos.cacheStreamInfo.name
+
+            val flowList = infos.listCacheFlowInfo
+            val flowInfos = flowList.filter(cacheFlowInfo => cacheFlowInfo.flowNamespace == flowName)
+            if (flowInfos != null && flowInfos != List()) {
+              val flowInfo = flowInfos.head
+              flowId = flowInfo.id
+              logger.debug(s" flowInfo: ${flowInfo}")
+            }
           }
-          */
+          logger.debug(s"\n")
+
+          val flowFeedback = FlowFeedback(
+            DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC),
+            DateUtils.dt2string(DateUtils.dt2dateTime(umsTsValue.toString) ,DtFormat.TS_DASH_SEC),
+            streamId,
+            streamName,
+            flowId,
+            flowName,
+            riderNamespace,
+            riderSinkNamespace,
+            topicName,
+            DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC),
+            DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC),
+            0,
+            "",
+            // Flow反馈的统计信息
+            "0",
+            0,
+            0,
+            DateUtils.dt2string(DateUtils.dt2dateTime(umsTsValue.toString) ,DtFormat.TS_DASH_SEC),
+            DateUtils.dt2string(DateUtils.dt2dateTime(umsTsValue.toString) ,DtFormat.TS_DASH_SEC),
+            DateUtils.dt2string(DateUtils.dt2dateTime(umsTsValue.toString) ,DtFormat.TS_DASH_SEC),
+            DateUtils.dt2string(DateUtils.dt2dateTime(umsTsValue.toString) ,DtFormat.TS_DASH_SEC),
+            DateUtils.dt2string(DateUtils.dt2dateTime(umsTsValue.toString) ,DtFormat.TS_DASH_SEC),
+            DateUtils.dt2string(DateUtils.dt2dateTime(umsTsValue.toString) ,DtFormat.TS_DASH_SEC),
+            DateUtils.dt2string(DateUtils.dt2dateTime(umsTsValue.toString) ,DtFormat.TS_DASH_SEC),
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0)
+
+          logger.info(s" esMadFlowFeedback: ${flowFeedback}")
+          val postBody = JsonUtils.caseClass2json(flowFeedback)
+          val rc =   madES.insertEs(postBody,INDEXFLOWFEEDBACK.toString)
+          logger.info(s" esMadFlowFeedback: response ${rc}")
+
         }else { logger.error(s"FeedbackStreamTopicOffset can't found the value")}
 
       })
@@ -135,7 +198,12 @@ object FeedbackProcessor{
         val swiftsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "swifts_start_ts")
         val sinkTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_start_ts")
         val doneTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "done_ts")
-        logger.debug(s"\n")
+        val topicV = modules.namespaceMap.get(NamespaceMapkey(riderNamespace))
+        val topicName = if(  null != topicV && topicV != None) topicV.get.topicName else ""
+        var flowId : Long = 0
+        var streamName = ""
+
+
         if(umsTsValue != null && streamIdValue != null && statsIdValue != null && sinkNamespaceValue != null && rddCountValue != null && dataOriginalTsValue != null && rddTsValue  != null &&
           directiveTsValue != null && mainProcessTsValue != null && swiftsTsValue != null && sinkTsValue != null && doneTsValue != null) {
           logger.debug(s"\n")
@@ -169,106 +237,131 @@ object FeedbackProcessor{
             throughput = rddCountValue.toString.toInt
           } else throughput = rddCountValue.toString.toInt /intervalRddToDone
 
+          modules.streamFeedbackMap.updateHitCount(streamId, 1,  DateUtils.dt2string(DateUtils.dt2dateTime(umsTs) ,DtFormat.TS_DASH_SEC))
+
           val streamMapV = modules.streamMap.get(StreamMapKey(streamId))
-          logger.debug(s"  streamMapV ${streamMapV} \n")
-          if(  null != streamMapV ){
+          logger.debug(s" stream map of steam id ${streamId}:  ${streamMapV} \n")
+          if(  null != streamMapV && streamMapV != None) {
             val infos = streamMapV.get
-            modules.streamFeedbackMap.updateHitCount(streamId, 1,  DateUtils.dt2string(DateUtils.dt2dateTime(umsTs) ,DtFormat.TS_DASH_SEC))
-            logger.debug(s" infos: ${infos}")
+            streamName = infos.cacheStreamInfo.name
+
             val flowList = infos.listCacheFlowInfo
-            logger.debug(s" flowList: ${flowList}")
             val flowInfos = flowList.filter(cacheFlowInfo => cacheFlowInfo.flowNamespace == flowName)
-            logger.debug(s" flowInfos: ${flowInfos}")
-            if(flowInfos != null && flowInfos != List()) {
+            if (flowInfos != null && flowInfos != List()) {
               val flowInfo = flowInfos.head
+              flowId = flowInfo.id
               logger.debug(s" flowInfo: ${flowInfo}")
-              val topicV = modules.namespaceMap.get(NamespaceMapkey(riderNamespace))
-              val topicName = if ( null != topicV )  topicV.get.topicName else ""
-              val esMadFlows = EsMadFlows(
+            }
+          }
+
+          val flowFeedback = FlowFeedback(
                 DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC),
                 DateUtils.dt2string(DateUtils.dt2dateTime(umsTs) ,DtFormat.TS_DASH_SEC),
-                      infos.cacheProjectInfo.id,
-                      infos.cacheProjectInfo.name,
-                      // stream
-                      infos.cacheStreamInfo.id,
-                      infos.cacheStreamInfo.name,
-                      infos.cacheStreamInfo.appId,
-                      infos.cacheStreamInfo.status,
-                      DateUtils.dt2string(DateUtils.dt2dateTime( infos.cacheStreamInfo.startedTime) ,DtFormat.TS_DASH_SEC),
-                      infos.cacheStreamInfo.consumerDuration,
-                      infos.cacheStreamInfo.consumerMaxRecords,
-                      infos.cacheStreamInfo.processRepartition,
-                      infos.cacheStreamInfo.driverCores,
-                      infos.cacheStreamInfo.driverMemory,
-                      infos.cacheStreamInfo.perExecuterCores,
-                      infos.cacheStreamInfo.perExecuterMemory,
-                      infos.cacheStreamInfo.kafkaConnection,
-              // Flow 相关配置和静态信息
-                      topicName,
-                      0,
-                      flowName,
-                      riderNamespace,
-                      sourceNs(0),
-                      sourceNs(1),
-                      sourceNs(2),
-                      sourceNs(3),
-                      riderSinkNamespace,
-                      sinkNs(0),
-                      sinkNs(1),
-                      sinkNs(2),
-                      sinkNs(3),
-                      flowInfo.flowStatus,
-                      DateUtils.dt2string(DateUtils.dt2dateTime(flowInfo.flowStartedTime), DtFormat.TS_DASH_SEC) ,
-                      DateUtils.dt2string(DateUtils.dt2dateTime(flowInfo.updateTime), DtFormat.TS_DASH_SEC),
-                      flowInfo.consumedProtocol,
-                      flowInfo.sinkSpecificConfig, //每种sink都不一样，无法拆分出有效字段
-                      flowInfo.tranConfig,
-                      flowInfo.tranActionCustomClass,
-                      flowInfo.transPushdownNamespaces,
-                      // Flow反馈的错误信息
-                      DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC),
-                      DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC),
-                      0,
-                      "",
-                      // Flow反馈的统计信息
-                      statsId,
-                      rddCount,
-                      throughput,
-                      DateUtils.dt2string(dataOriginalTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-                      DateUtils.dt2string(rddTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-                      DateUtils.dt2string(directiveTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-                      DateUtils.dt2string(mainProcessTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-                      DateUtils.dt2string(swiftsTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-                      DateUtils.dt2string(sinkTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-                      DateUtils.dt2string(doneTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-                      intervalMainProcessToDataOriginal,
-                      intervalMainProcessToDone,
-                      intervalMainProcessToSwifts,
-                      intervalMainProcessToSink,
-                      intervalSwiftsToSink,
-                      intervalSinkToDone,
-                      intervalRddToDone)
-              logger.debug(s" EsMadFlows: ${esMadFlows}")
-              val postBody: String = JsonUtils.caseClass2json(esMadFlows)
-              val rc =   madES.insertEs(postBody,INDEXFLOWS.toString)
-              logger.debug(s" EsMadFlows: response ${rc}")
+                streamId,
+                streamName,
+                flowId,
+                flowName,
+                riderNamespace,
+                riderSinkNamespace,
+                topicName,
+                DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC),
+                DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC),
+                0,
+                "",
+                // Flow反馈的统计信息
+                statsId,
+                rddCount,
+                throughput,
+                DateUtils.dt2string(dataOriginalTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+                DateUtils.dt2string(rddTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+                DateUtils.dt2string(directiveTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+                DateUtils.dt2string(mainProcessTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+                DateUtils.dt2string(swiftsTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+                DateUtils.dt2string(sinkTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+                DateUtils.dt2string(doneTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+                intervalMainProcessToDataOriginal,
+                intervalMainProcessToDone,
+                intervalMainProcessToSwifts,
+                intervalMainProcessToSink,
+                intervalSwiftsToSink,
+                intervalSinkToDone,
+                intervalRddToDone)
+
+          logger.info(s" esMadFlowFeedback: ${flowFeedback}")
+          val postBody = JsonUtils.caseClass2json(flowFeedback)
+          val rc =   madES.insertEs(postBody,INDEXFLOWFEEDBACK.toString)
+              logger.info(s" esMadFlowFeedback: response ${rc}")
+
               //    asyncToES(postBody, url, HttpMethods.POST)
             // ElasticSearch.insertFlowStatToES(monitorInfo)
-            }else{ logger.error(s" can't found the flow ${flowName} from Stream Map \n")}
-          }else{
-            modules.streamFeedbackMap.updateMissedCount(streamId, 1, DateUtils.dt2string(DateUtils.dt2dateTime(umsTs) ,DtFormat.TS_DASH_SEC))
-            logger.info(s" can't found the stream id in streamMap ${streamIdValue} \n ")}
-        }else {logger.error(s"Failed to get value from FeedbackFlowStats ${tuple}")}
+
+        }else{
+          modules.streamFeedbackMap.updateMissedCount(streamIdValue.toString.toLong, 1, DateUtils.dt2string(DateUtils.dt2dateTime(umsTsValue.toString) ,DtFormat.TS_DASH_SEC))
+            logger.info(s" can't found the stream id in streamMap ${streamIdValue} \n ")
+        }
       })
     } catch {
       case ex: Exception =>
         logger.error(s"Failed to parse FeedbackFlowStats feedback message",ex)
     }
-
   }
 
   def doFeedbackStreamBatchError(message: Ums) = {
     logger.info("start process")
+    val protocolType = message.protocol.`type`.toString
+    val fields = message.schema.fields_get
+    val madProcessTime = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
+    logger.debug(s"start process ${protocolType} feedback ${message.payload_get}")
+    try {
+      message.payload_get.foreach(tuple => {
+        logger.debug(s"\n")
+        val umsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
+        val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
+        val statusValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "status")
+        val resultValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc")
+        var pId: Long = 0
+        var pName: String = ""
+        var sName: String = ""
+
+
+        if (umsTsValue != null && streamIdValue != null && statusValue != null && resultValue != null) {
+          val umsTs = umsTsValue.toString
+          val streamId = streamIdValue.toString.toLong
+          val status = statusValue.toString
+          val result = resultValue.toString
+
+          val streamMapV = modules.streamMap.get(StreamMapKey(streamId))
+          if (streamMapV != null && streamMapV != None) {
+            val streamList = streamMapV.get.cacheStreamInfo
+            pId = streamList.projectId
+            pName = streamList.projectName
+            sName = streamList.name
+          }
+
+          logger.debug(s" streamMapV: ${streamMapV}")
+
+          val streamFeedback = StreamFeedback(
+              DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime), DtFormat.TS_DASH_SEC),
+              pId, pName, streamId, sName, DateUtils.dt2string(DateUtils.dt2dateTime(umsTs), DtFormat.TS_DASH_SEC),
+              s"${status}:${result}", "", 0, 0, 0, 0)
+          try {
+            logger.info(s" stream feedback: ${streamFeedback}")
+            val postBody = JsonUtils.caseClass2json(streamFeedback)
+              val rc = madES.insertEs(postBody, INDEXSTREAMSFEEDBACK.toString)
+              logger.info(s" stream feedback: response ${rc}")
+            } catch {
+              case e: Exception =>
+                logger.error(s"Failed to insert mad streams to ES", e)
+            }
+        }else{
+          logger.info(s" can't found the streamId in stream Map ${streamIdValue}" )
+        }
+      })
+    } catch {
+      case e: Exception =>
+        logger.error(s"Failed to process FeedbackFlowStats ${message} \n ",e)
+    }
+
   }
 
   def doFeedbackStreamTopicOffset(message: Ums) = {
@@ -283,80 +376,58 @@ object FeedbackProcessor{
         val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
         val topicNameValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "topic_name")
         val partitionOffsetValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "partition_offsets")
-        logger.debug(s"\n")
+        var pId: Long = 0
+        var pName: String = ""
+        var sName: String = ""
+
+
         if (umsTsValue != null && streamIdValue != null && topicNameValue != null && partitionOffsetValue != null) {
           val umsTs = umsTsValue.toString
           val streamId = streamIdValue.toString.toLong
           val topicName = topicNameValue.toString
           val partitionOffsets = partitionOffsetValue.toString
-          val streamMapV = modules.streamMap.get(StreamMapKey(streamId))
-          if (streamMapV != null) {
-            modules.streamFeedbackMap.updateHitCount(streamId, 1,  DateUtils.dt2string(DateUtils.dt2dateTime(umsTs) ,DtFormat.TS_DASH_SEC))
-            logger.debug(s" streamMapV: ${streamMapV}")
-            val infos = streamMapV.get
-            val projectList = infos.cacheProjectInfo
-            val streamList = infos.cacheStreamInfo
-            val partitionNum: Int = OffsetUtils.getPartitionNumber(partitionOffsets)
-            val topicList = streamList.topicList
-            logger.debug(s" topicList: ${topicList}")
-            val topicInfos = topicList.filter(CacheTopicInfo => CacheTopicInfo.topicName == topicName)
-            logger.debug(s" topicInfos: ${topicInfos}")
+          val partitionNum: Int = OffsetUtils.getPartitionNumber(partitionOffsets)
+          var topicLatestOffsetStr =""
 
-            if (topicInfos != null && topicInfos != List()) {
-              val topicInfo = topicInfos.head
-              var pid = 0
-              while (pid < partitionNum) {
-                var consumeredOffset = -1L
-                var latestOffset = -1L
-                  consumeredOffset = OffsetUtils.getOffsetFromPartitionOffsets(partitionOffsets, pid)
-                  latestOffset = OffsetUtils.getOffsetFromPartitionOffsets(topicInfo.latestPartitionOffsets, pid)
-                  val esMadStream = EsMadStreams(
-                    DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC),
-                    projectList.id,
-                    projectList.name,
-                    projectList.resourceCores,
-                    projectList.resourceMemory,
-                    DateUtils.dt2string(DateUtils.dt2dateTime(projectList.createdTime), DtFormat.TS_DASH_SEC),
-                    DateUtils.dt2string(DateUtils.dt2dateTime(projectList.updatedTime), DtFormat.TS_DASH_SEC),
-                    // Stream 相关配置和静态信息
-                    streamId,
-                    streamList.name,
-                    streamList.appId,
-                    streamList.status,
-                    DateUtils.dt2string(DateUtils.dt2dateTime(streamList.startedTime), DtFormat.TS_DASH_SEC),
-                    streamList.sparkConfig,
-                    streamList.consumerDuration,
-                    streamList.consumerMaxRecords,
-                    streamList.processRepartition,
-                    streamList.driverCores,
-                    streamList.driverMemory,
-                    streamList.perExecuterCores,
-                    streamList.perExecuterMemory,
-                    streamList.kafkaConnection,
-                    DateUtils.dt2string(DateUtils.dt2dateTime(umsTs), DtFormat.TS_DASH_SEC),
-                    "",
-                    topicName,
-                    partitionNum,
-                    pid,
-                    latestOffset,
-                    consumeredOffset
-                  )
-                try{
-                  logger.info(s" EsMadStreams: ${esMadStream}")
-                  val postBody: String = JsonUtils.caseClass2json(esMadStream)
-                  val rc =   madES.insertEs(postBody,INDEXSTREAMS.toString)
-                  logger.info(s" EsMadStreams: response ${rc}")
-                } catch {
-                  case e: Exception =>
-                    logger.error(s"Failed to insert mad streams to ES", e)
-                }
-                pid += 1
-              }
-            }
+          val streamMapV = modules.streamMap.get(StreamMapKey(streamId))
+          if (streamMapV != null && streamMapV != None) {
+            val streamList = streamMapV.get.cacheStreamInfo
+            pId = streamList.projectId
+            pName = streamList.projectName
+            sName = streamList.name
+            val topicInfos = streamList.topicList.filter(CacheTopicInfo => CacheTopicInfo.topicName == topicName)
+            if (topicInfos != null && topicInfos != List()) { topicLatestOffsetStr = topicInfos.head.latestPartitionOffsets }
+
+            modules.streamFeedbackMap.updateHitCount(streamId, 1, DateUtils.dt2string(DateUtils.dt2dateTime(umsTs), DtFormat.TS_DASH_SEC))
           }else{
             modules.streamFeedbackMap.updateMissedCount(streamId, 1,  DateUtils.dt2string(DateUtils.dt2dateTime(umsTs) ,DtFormat.TS_DASH_SEC))
-            logger.info(s" can't found the streamId in stream Map ${streamId}" )
           }
+
+          logger.debug(s" streamMapV: ${streamMapV}")
+          var pid = 0
+          while (pid < partitionNum) {
+            var consumeredOffset = -1L
+            var latestOffset = -1L
+            consumeredOffset = OffsetUtils.getOffsetFromPartitionOffsets(partitionOffsets, pid)
+            latestOffset = OffsetUtils.getOffsetFromPartitionOffsets(topicLatestOffsetStr, pid)
+            val streamFeedback = StreamFeedback(
+              DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime), DtFormat.TS_DASH_SEC),
+              pId, pName, streamId, sName, DateUtils.dt2string(DateUtils.dt2dateTime(umsTs), DtFormat.TS_DASH_SEC),
+              "", topicName, partitionNum, pid, latestOffset, consumeredOffset)
+            try {
+              logger.info(s" stream feedback: ${streamFeedback}")
+              var postBody = JsonUtils.caseClass2json(streamFeedback)
+              var rc = madES.insertEs(postBody, INDEXSTREAMSFEEDBACK.toString)
+              logger.info(s" stream feedback: response ${rc}")
+            } catch {
+              case e: Exception =>
+                logger.error(s"Failed to insert mad streams to ES", e)
+            }
+            pid += 1
+          }
+
+        }else{
+             logger.info(s" can't found the streamId in stream Map ${streamIdValue}" )
         }
       })
     } catch {
