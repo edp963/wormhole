@@ -68,15 +68,15 @@ object JsonParseHelper {
   }
 
   def parseData2CorrectType(dataType: UmsFieldType, field: String, name: String): (String,Any) = {
+    if (name == UmsSysField.OP.toString||name == UmsSysField.ACTIVE.toString) {
+      UmsOpType.umsOpType(field) match {
+        case UmsOpType.UPDATE => (UmsSysField.ACTIVE.toString,UmsActiveType.ACTIVE)
+        case UmsOpType.INSERT => (UmsSysField.ACTIVE.toString,UmsActiveType.ACTIVE)
+        case UmsOpType.DELETE => (UmsSysField.ACTIVE.toString,UmsActiveType.INACTIVE)
+      }
+    }else{
     dataType match {
-      case UmsFieldType.STRING =>
-        if (name == UmsSysField.OP.toString) {
-          UmsOpType.umsOpType(field) match {
-            case UmsOpType.UPDATE => (UmsSysField.ACTIVE.toString,UmsActiveType.ACTIVE)
-            case UmsOpType.INSERT => (UmsSysField.ACTIVE.toString,UmsActiveType.ACTIVE)
-            case UmsOpType.DELETE => (UmsSysField.ACTIVE.toString,UmsActiveType.INACTIVE)
-          }
-        } else (name,field)
+      case UmsFieldType.STRING =>if (isNull(field) || field.isEmpty) (name,null) else (name,field)
       case UmsFieldType.INT => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim.toInt)
       case UmsFieldType.BINARY => if (isNull(field) || field.isEmpty) (name,null) else (name,CommonUtils.base64byte2s(field.trim.getBytes()))
       case UmsFieldType.LONG =>
@@ -89,5 +89,5 @@ object JsonParseHelper {
       case UmsFieldType.DATETIME => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim)
       case _ => if (isNull(field) || field.isEmpty) (name,null ) else (name,field.trim)
     }
-  }
+  }}
 }
