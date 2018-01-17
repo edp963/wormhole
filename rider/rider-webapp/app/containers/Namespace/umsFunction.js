@@ -72,7 +72,7 @@ function copyArray (array) {
 // fieldType修改,用户选中修改类型后，不要修改原数组该index的fieldType值，直接调用该方法
 // 选择的类型为tuple时，alterType="tuple##/##10"
 export function fieldTypeAlter (array, index, alterType, type) {
-  var newArray = copyArray(array)
+  let newArray = copyArray(array)
 
   switch (type) {
     case 'source':
@@ -107,8 +107,9 @@ export function fieldTypeAlter (array, index, alterType, type) {
 
 // tuple类型修改为其他类型，删除原tuple子对象
 function tuple2other (array, index, deleteIndex) {
-  var newArray = copyArray(array)
-  var tupleSubFieldRegrex = new RegExp(`^${newArray[index].fieldName}#[0-9]+$`)
+  let newArray = copyArray(array)
+
+  const tupleSubFieldRegrex = new RegExp(`^${newArray[index].fieldName}#[0-9]+$`)
   for (let i = index + 1; i < newArray.length; i++) {
     if (newArray[i].fieldName.search(tupleSubFieldRegrex) !== -1) {
       if (i >= deleteIndex) {
@@ -124,11 +125,10 @@ function tuple2other (array, index, deleteIndex) {
 
 // tuple类型修改为tuple，根据size大小调整子对象的行数
 function tuple2tuple (array, index, alterType) {
-  var newArray = copyArray(array)
-  // var tupleSubFieldRegrex = new RegExp(`^${newArray[index].fieldName}#[0-9]+$`)
+  let newArray = copyArray(array)
 
-  var preSize = Number(newArray[index].fieldType.split('##').pop())
-  var alterSize = Number(alterType.split('##').pop())
+  const preSize = Number(newArray[index].fieldType.split('##').pop())
+  const alterSize = Number(alterType.split('##').pop())
 
   if (preSize === alterSize) {
     return newArray
@@ -143,11 +143,12 @@ function tuple2tuple (array, index, alterType) {
 
 // 其他类型修改为tuple
 function other2tuple (array, index, preSize, alterType) {
-  var newArray = copyArray(array)
-  var size = Number(alterType.split('##').pop())
-  var tupleArray = []
+  let newArray = copyArray(array)
+
+  const size = Number(alterType.split('##').pop())
+  const tupleArray = []
   for (let i = preSize; i < size; i++) {
-    var object = {}
+    const object = {}
     object['fieldName'] = `${newArray[index].fieldName}#${i}`
     object['fieldType'] = 'string'
     object['selected'] = true
@@ -166,9 +167,10 @@ function other2tuple (array, index, preSize, alterType) {
 
 // jsonobject/jsonarray类型修改为其他类型时，原嵌套子字段forbidden设置为true
 function jsonType2other (array, index, type) {
-  var newArray = copyArray(array)
-  var prefix = `${newArray[index].fieldName}#`
-  for (var i = index + 1; i < newArray.length; i++) {
+  let newArray = copyArray(array)
+
+  const prefix = `${newArray[index].fieldName}#`
+  for (let i = index + 1; i < newArray.length; i++) {
     switch (type) {
       case 'source':
         if (newArray[i].fieldName.startsWith(prefix)) {
@@ -196,9 +198,10 @@ function jsonType2other (array, index, type) {
 
 // 其他类型修改为jsonobject/jsonarray类型
 function other2jsonType (array, index) {
-  var newArray = copyArray(array)
-  var prefix = `${newArray[index].fieldName}#`
-  for (var i = index + 1; i < newArray.length; i++) {
+  let newArray = copyArray(array)
+
+  const prefix = `${newArray[index].fieldName}#`
+  for (let i = index + 1; i < newArray.length; i++) {
     if (newArray[i].fieldName.startsWith(prefix)) {
       newArray[i].forbidden = false
       newArray[i].selected = true
@@ -212,7 +215,7 @@ function other2jsonType (array, index) {
 // 若用户配置fieldName为 ums_id_或ums_ts_或ums_op_，将之前选为对应ums系统字段的行对象ums值设置为false，
 // 将新选择的index所对应行的ums对应字段设置为true.value为对应ums字段的值，true或i:1,u:2,d:3
 export function umsSysFieldSelected (array, index, umsSysField, value) {
-  var newArray = copyArray(array)
+  let newArray = copyArray(array)
 
   newArray = umsSysFieldCanceled(array, umsSysField)
   if (umsSysField === 'ums_id_') {
@@ -222,13 +225,13 @@ export function umsSysFieldSelected (array, index, umsSysField, value) {
   } else if (umsSysField === 'ums_op_') {
     newArray[index].ums_op_ = value
   }
-
   return newArray
 }
 
 // 若用户选择该行为ums_id_或ums_ts_或ums_op_后，又点了取消，调用 umsSysFieldCanceled 方法
 export function umsSysFieldCanceled (array, umsSysField) {
-  var newArray = copyArray(array)
+  let newArray = copyArray(array)
+
   for (let i = 0; i < newArray.length; i++) {
     if (umsSysField === 'ums_id_') {
       newArray[i].ums_id_ = false
@@ -243,23 +246,24 @@ export function umsSysFieldCanceled (array, umsSysField) {
 
 // 修改rename
 export function renameAlter (array, index, rename) {
-  var newArray = copyArray(array)
+  let newArray = copyArray(array)
   newArray[index].rename = rename
   return newArray
 }
 
 function genUmsField (array) {
-  var newArray = copyArray(array)
-  var umsArray = []
+  let newArray = copyArray(array)
+
+  const umsArray = []
   for (let i = 0; i < newArray.length; i++) {
-    if (newArray[i].ums_id_ === true || newArray[i].ums_ts_ === true || newArray[i].ums_op_ !== '') {
-      if (newArray[i].ums_id_ === true) {
+    if (newArray[i].ums_id_ || newArray[i].ums_ts_ || newArray[i].ums_op_ !== '') {
+      if (newArray[i].ums_id_) {
         const object = genBaseField(newArray[i])
         object.rename = 'ums_id_'
         object.type = LONG
         umsArray.push(object)
       }
-      if (newArray[i].ums_ts_ === true) {
+      if (newArray[i].ums_ts_) {
         const object = genBaseField(newArray[i])
         object.rename = 'ums_ts_'
         object.type = DATETIME
@@ -277,7 +281,7 @@ function genUmsField (array) {
 }
 
 function genBaseField (fieldInfo, type) {
-  var fieldObject = {}
+  const fieldObject = {}
   fieldObject['name'] = fieldInfo.fieldName.split('#').pop()
   fieldObject['type'] = fieldInfo.fieldType
   fieldObject['nullable'] = true
@@ -295,13 +299,13 @@ function genBaseField (fieldInfo, type) {
 
 // 用户点保存后，最终table数组为array2，调用genSchema方法，生成Json
 export function genSchema (array, type) {
-  var fieldsObject = {}
-  var fieldsArray = []
+  const fieldsObject = {}
+  const fieldsArray = []
   fieldsObject['fields'] = fieldsArray
-  var selectedArray = selectedFields(array)
-  for (var i = 0; i < selectedArray.length; i++) {
+  const selectedArray = selectedFields(array)
+  for (let i = 0; i < selectedArray.length; i++) {
     if (selectedArray[i].hasOwnProperty('fieldName') && selectedArray[i].fieldName.indexOf('#') === -1) {
-      var fieldObject = genBaseField(selectedArray[i])
+      let fieldObject = genBaseField(selectedArray[i])
       if (fieldObject.type === JSONARRAY || fieldObject.type === JSONOBJECT || fieldObject.type.startsWith('tuple')) {
         fieldObject = genSubField(array.slice(i + 1, selectedArray.length), fieldObject, '', type)
       }
@@ -309,20 +313,13 @@ export function genSchema (array, type) {
     }
   }
   if (type === 'source') {
-    var umsArray = genUmsField(array)
+    const umsArray = genUmsField(array)
     for (let i = 0; i < umsArray.length; i++) {
       fieldsArray.push(umsArray[i])
     }
   }
   return fieldsObject
 }
-//
-//
-//
-//
-//
-//
-//
 
 function getDefaultNumType (value) {
   value = `${value}`
@@ -331,7 +328,7 @@ function getDefaultNumType (value) {
 }
 
 function isExist (array, key) {
-  for (var i in array) {
+  for (let i in array) {
     if (array[i].fieldName === key) {
       return true
     }
@@ -355,16 +352,16 @@ function getRenameIndex (renameArray, rename) {
 // 用户点保存时，调用getRepeatFieldIndex方法，返回重复rename数组，检查rename字段是否有重复，
 // 若数组的length为0，表示无重复，否则提示rename重复的位置，数组中的值为rename重复的index
 export function getRepeatFieldIndex (array) {
-  var newArray = copyArray(array)
-  var temp = newArray.filter(s => s.selected)
+  let newArray = copyArray(array)
+  const temp = newArray.filter(s => s.selected)
 
-  var renameArray = []
-  var repeatIndexArray = []
-  for (var i = 0; i < temp.length; i++) {
-    var p = getRenameIndex(renameArray, temp[i].rename)
+  const renameArray = []
+  const repeatIndexArray = []
+  for (let i = 0; i < temp.length; i++) {
+    const p = getRenameIndex(renameArray, temp[i].rename)
 
     if (p === -1) {
-      var renameObj = {}
+      const renameObj = {}
       renameObj['index'] = temp[i].key
       renameObj['rename'] = temp[i].rename
       renameArray.push(renameObj)
@@ -381,10 +378,10 @@ export function getRepeatFieldIndex (array) {
 }
 
 function lastPositionOfKeyPrefix (array, key) {
-  var p = -1
-  var keyArray = key.split('#')
-  var prefix = keyArray.slice(0, keyArray.length - 1).join('#')
-  for (var i = 0; i < array.length; i++) {
+  let p = -1
+  const keyArray = key.split('#')
+  const prefix = keyArray.slice(0, keyArray.length - 1).join('#')
+  for (let i = 0; i < array.length; i++) {
     if (array[i].fieldName.startsWith(prefix)) {
       p = i
     }
@@ -394,7 +391,7 @@ function lastPositionOfKeyPrefix (array, key) {
 
 // 点击保存时，去除 selected === false的行
 function selectedFields (array) {
-  for (var i = 0; i < array.length; i++) {
+  for (let i = 0; i < array.length; i++) {
     if (array[i].selected === false) {
       array.splice(i, 1)
       i = i - 1
@@ -405,35 +402,28 @@ function selectedFields (array) {
 
 // 生成基本字段数组array1，"jsonParseArray":array1）
 export function jsonParse (jsonSample, prefix, array) {
-  for (var key in jsonSample) {
-    var data = {}
+  for (let key in jsonSample) {
+    let data = {}
     if (jsonSample[key] && typeof jsonSample[key] === 'object') {
       if (jsonSample[key] instanceof Array) {
-        if (prefix !== '') prefix = `${prefix}#${key}`
-        else prefix = key
+        prefix = prefix !== '' ? `${prefix}#${key}` : key
         data['fieldName'] = prefix
         data['fieldType'] = 'array'
       } else {
-        if (prefix !== '') prefix = `${prefix}#${key}`
-        else prefix = key
+        prefix = prefix !== '' ? `${prefix}#${key}` : key
         data['fieldName'] = prefix
         data['fieldType'] = JSONOBJECT
       }
       array.push(data)
       jsonParse(jsonSample[key], prefix, array)
-      var prefixArray = prefix.split('#')
+      const prefixArray = prefix.split('#')
       prefixArray.pop()
       prefix = prefixArray.join('#')
     } else {
-      if (prefix !== '') var fieldName = `${prefix}#${key}`
-      else fieldName = key
+      const fieldName = prefix !== '' ? `${prefix}#${key}` : key
       data['fieldName'] = fieldName
-      var fieldType = typeof jsonSample[key]
-      if (fieldType === 'number') {
-        data['fieldType'] = getDefaultNumType(jsonSample[key])
-      } else {
-        data['fieldType'] = fieldType
-      }
+      const fieldType = typeof jsonSample[key]
+      data['fieldType'] = fieldType === 'number' ? getDefaultNumType(jsonSample[key]) : fieldType
       array.push(data)
     }
   }
@@ -441,9 +431,9 @@ export function jsonParse (jsonSample, prefix, array) {
 }
 
 function genFinalNameAndType (array) {
-  var arrayTypeRegex = new RegExp('\\#\\d+$', 'g')
-  var jsonArrayTypeRegex = new RegExp('(\\#\\d+\\#)+', 'g')
-  for (var i = 0; i < array.length; i++) {
+  const arrayTypeRegex = new RegExp('\\#\\d+$', 'g')
+  const jsonArrayTypeRegex = new RegExp('(\\#\\d+\\#)+', 'g')
+  for (let i = 0; i < array.length; i++) {
     if (array[i].fieldType === 'array') {
       if (i + 1 < array.length && array[i + 1].fieldType !== JSONOBJECT) {
         array[i].fieldType = `${array[i + 1].fieldType}array`
@@ -457,12 +447,12 @@ function genFinalNameAndType (array) {
     }
     if (array[i].fieldName.search(jsonArrayTypeRegex) !== -1) {
       array[i].fieldName = array[i].fieldName.replace(jsonArrayTypeRegex, '#')
-      var subArray = array.slice(0, i)
+      const subArray = array.slice(0, i)
       if (isExist(subArray, array[i].fieldName)) {
         array.splice(i, 1)
         i = i - 1
       } else {
-        var position = lastPositionOfKeyPrefix(subArray, array[i].fieldName)
+        let position = lastPositionOfKeyPrefix(subArray, array[i].fieldName)
         if (position !== -1 && position !== i - 1) {
           array.splice(position + 1, 0, array[i])
           array.splice(i + 1, 1)
@@ -477,7 +467,7 @@ function genFinalNameAndType (array) {
 export function genDefaultSchemaTable (array, type) {
   if (type === 'source') {
     let arrayFinal = array.map(i => {
-      var temp = Object.assign({}, i, {
+      const temp = Object.assign({}, i, {
         selected: true,
         rename: i.fieldName.split('#').pop(),
         ums_id_: false,
@@ -490,7 +480,7 @@ export function genDefaultSchemaTable (array, type) {
     return arrayFinal
   } else {
     let arrayFinal = array.map(i => {
-      var temp = Object.assign({}, i, {
+      const temp = Object.assign({}, i, {
         selected: true,
         forbidden: false
       })
@@ -501,20 +491,19 @@ export function genDefaultSchemaTable (array, type) {
 }
 
 function genSubField (array, fieldObject, prefix, type) {
-  if (prefix === '') prefix = `${fieldObject.name}#`
-  else prefix = `${prefix}${fieldObject.name}#`
-  if (fieldObject.hasOwnProperty('sub_fields')) var subFieldsArray = fieldObject['sub_fields']
-  else subFieldsArray = []
-  for (var i = 0; i < array.length; i++) {
+  prefix = prefix === '' ? `${fieldObject.name}#` : `${prefix}${fieldObject.name}#`
+
+  const subFieldsArray = fieldObject.hasOwnProperty('sub_fields') ? fieldObject['sub_fields'] : []
+
+  for (let i = 0; i < array.length; i++) {
     if (array[i].hasOwnProperty('fieldName') && array[i].fieldName.startsWith(prefix)) {
       if (array[i].fieldType !== JSONARRAY && array[i].fieldType !== JSONOBJECT && !array[i].fieldType.startsWith('tuple')) {
         subFieldsArray.push(genBaseField(array[i]))
       } else {
-        var object = genBaseField(array[i], type)
+        let object = genBaseField(array[i], type)
         object = genSubField(array.slice(i + 1, array.length), object, prefix)
         subFieldsArray.push(object)
-        if (object.hasOwnProperty('sub_fields')) var step = object.sub_fields.length
-        else step = 0
+        const step = object.hasOwnProperty('sub_fields') ? object.sub_fields.length : 0
         i = i + step
       }
     } else {
