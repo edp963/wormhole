@@ -57,6 +57,26 @@ class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal)
 
   }
 
+  def getDetailRoute(route: String): Route = path(route / "detail") {
+    get {
+      parameter('visible.as[Boolean].?) {
+        visible =>
+          authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+            session =>
+              if (session.roleType != "admin") {
+                riderLogger.warn(s"${session.userId} has no permission to access it.")
+                complete(OK, getHeader(403, session))
+              }
+              else {
+                val streams = streamDal.getStreamDetail()
+                riderLogger.info(s"user ${session.userId} select all streams success.")
+                complete(OK, ResponseSeqJson[StreamDetail](getHeader(200, session), streams))
+              }
+          }
+      }
+    }
+
+  }
 
   def getByProjectIdRoute(route: String): Route = path(route / LongNumber / "streams") {
     id =>

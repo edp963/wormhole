@@ -25,12 +25,12 @@ import edp.wormhole.sinks.SourceMutationType
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsSysField
 
-case class HbaseConfig(`hbase.columnFamily`: Option[String],
-                       `hbase.znParent`: Option[String],
-                       `hbase.saveAsString`: Option[Boolean],
-                       `umsTs.saveAsString`: Option[Boolean],
-                       `hbase.version.column`:Option[String],
-                       `mutation_type`:Option[String],
+case class HbaseConfig(`hbase.columnFamily`: Option[String] = None,
+                       `hbase.znParent`: Option[String] = None,
+                       `hbase.saveAsString`: Option[Boolean] = None,
+                       `umsTs.saveAsString`: Option[Boolean] = None,
+                       `hbase.version.column`:Option[String] = None,
+                       `mutation_type`:Option[String] = None,
                        `hbase.rowKey`: String //separator","
 
                       ) {

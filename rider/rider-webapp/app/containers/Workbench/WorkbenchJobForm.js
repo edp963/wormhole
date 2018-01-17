@@ -97,7 +97,7 @@ export class WorkbenchJobForm extends React.Component {
     const { getFieldDecorator } = form
     const { onShowJobTransModal, onShowJobSinkConfigModal } = this.props
     const { jobTransTableSource, onDeleteSingleTransform, onJobAddTransform, onEditTransform, onUpTransform, onDownTransform } = this.props
-    const { jobStepSourceNs, jobStepSinkNs, jobTranTagClassName, jobTranTableClassName } = this.props
+    const { jobStepSourceNs, jobStepSinkNs, jobTranTagClassName, jobTranTableClassName, jobTranConfigConfirmValue } = this.props
     const { sourceTypeNamespaceData, sinkTypeNamespaceData } = this.props
     const { sinkConfigClass } = this.state
 
@@ -123,7 +123,7 @@ export class WorkbenchJobForm extends React.Component {
       { value: 'log', text: 'Log' },
       { value: 'file', text: 'File' },
       { value: 'app', text: 'App' },
-      { value: 'presto', text: 'Presto' },
+      // { value: 'presto', text: 'Presto' },
       { value: 'mysql', icon: 'icon-mysql' },
       { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} }
@@ -270,7 +270,7 @@ export class WorkbenchJobForm extends React.Component {
       }
     }
 
-    const { jobResultFieldsValue, sparkConfigCheck, onShowSparkConfigModal } = this.props
+    const { jobResultFieldsValue, sparkConfigCheck, onShowSparkConfigModal, onShowJobSpecialConfigModal } = this.props
 
     const jobConfigTag = sparkConfigCheck
       ? (
@@ -280,6 +280,18 @@ export class WorkbenchJobForm extends React.Component {
       )
       : (
         <Tag onClick={onShowSparkConfigModal}>
+          <Icon type="minus-circle-o" /> 点击修改
+        </Tag>
+      )
+
+    const jobSpecialConfigTag = form.getFieldValue('jobSpecialConfig')
+      ? (
+        <Tag color="#7CB342" onClick={onShowJobSpecialConfigModal}>
+          <Icon type="check-circle-o" /> 点击修改
+        </Tag>
+      )
+      : (
+        <Tag onClick={onShowJobSpecialConfigModal}>
           <Icon type="minus-circle-o" /> 点击修改
         </Tag>
       )
@@ -568,7 +580,6 @@ export class WorkbenchJobForm extends React.Component {
           <Col span={6}></Col>
           <Col span={18} className={jobTranTableClassName}>
             <Table
-              // rowKey={jobTransTableSource.order}
               dataSource={jobTransTableSource}
               columns={columns}
               pagination={pagination}
@@ -577,15 +588,23 @@ export class WorkbenchJobForm extends React.Component {
             />
           </Col>
 
-          {/* <Col span={24}>
-            <FormItem label="Specific Config" {...itemStyle}>
-              {getFieldDecorator('specialConfig', {
+          <Col span={24} className={jobTranTableClassName} style={{marginBottom: '8px'}}>
+            <div className="ant-col-6 ant-form-item-label">
+              <label htmlFor="#">Transformation Config</label>
+            </div>
+            <div className="ant-col-17">
+              <div className="ant-form-item-control">
+                {jobSpecialConfigTag}
+              </div>
+            </div>
+          </Col>
+          <Col span={24} className="hide">
+            <FormItem>
+              {getFieldDecorator('jobSpecialConfig', {
                 hidden: stepHiddens[1]
-              })(
-                <Input type="textarea" placeholder="Specific Config" />
-              )}
+              })(<Input />)}
             </FormItem>
-          </Col> */}
+          </Col>
         </Row>
         {/* Step 3 */}
         <Row gutter={8} className={`ri-workbench-confirm-step ${stepClassNames[2]}`}>
@@ -618,6 +637,20 @@ export class WorkbenchJobForm extends React.Component {
               </Row>
             </div>
           </Col>
+          <Col span={24}>
+            <div className="ant-row ant-form-item">
+              <Row>
+                <Col span={8} className="ant-form-item-label">
+                  <label htmlFor="#">Transformation Config</label>
+                </Col>
+                <Col span={15}>
+                  <div className="ant-form-item-control">
+                    <strong className="value-font-style">{jobTranConfigConfirmValue}</strong>
+                  </div>
+                </Col>
+              </Row>
+            </div>
+          </Col>
         </Row>
       </Form>
     )
@@ -637,6 +670,7 @@ WorkbenchJobForm.propTypes = {
   onInitJobNameValue: React.PropTypes.func,
   jobTranTagClassName: React.PropTypes.string,
   jobTranTableClassName: React.PropTypes.string,
+  jobTranConfigConfirmValue: React.PropTypes.string,
 
   onShowJobTransModal: React.PropTypes.func,
   onShowJobSinkConfigModal: React.PropTypes.func,
@@ -655,7 +689,8 @@ WorkbenchJobForm.propTypes = {
   initResultFieldClass: React.PropTypes.func,
   initDataShowClass: React.PropTypes.func,
   initStartTS: React.PropTypes.func,
-  initEndTS: React.PropTypes.func
+  initEndTS: React.PropTypes.func,
+  onShowJobSpecialConfigModal: React.PropTypes.func
 }
 
 export default Form.create({wrappedComponentRef: true})(WorkbenchJobForm)

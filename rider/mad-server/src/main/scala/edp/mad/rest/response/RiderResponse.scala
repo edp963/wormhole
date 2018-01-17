@@ -2,9 +2,13 @@ package edp.mad.rest.response
 
 import akka.http.scaladsl.model.HttpMethods
 import edp.mad.cache._
+import edp.mad.elasticsearch.MadES.madES
+import edp.mad.elasticsearch.MadIndex._
+import edp.mad.elasticsearch._
 import edp.mad.module.ModuleObj
 import edp.mad.util.{HttpClient, _}
-import edp.wormhole.common.util.JsonUtils
+import edp.wormhole.common.util.DateUtils.{currentyyyyMMddHHmmss, yyyyMMddHHmmssToString}
+import edp.wormhole.common.util.{DateUtils, DtFormat, JsonUtils}
 import org.apache.log4j.Logger
 import org.json4s.{DefaultFormats, Formats, JNothing, JValue}
 
@@ -15,11 +19,12 @@ object RiderResponse{
   implicit val json4sFormats: Formats = DefaultFormats
   val modules = ModuleObj.getModule
   case class ProjectId(projectId:Long, streamId:Long)
+  val defaultDateTime = "1970-01-01 00:00:00"
 
   def getStreamInfoFromRider = {
     val url = s"http://${modules.riderServer.host}:${modules.riderServer.port}/api/v1/admin/streams"
     logger.info(s" URL \n ${url} \n ")
-
+    val madProcessTime = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
     val projectIdList = new ListBuffer[ProjectId]
     val response = HttpClient.syncClientGetJValue("",url, HttpMethods.GET,modules.riderServer.adminUser, modules.riderServer.adminPwd, modules.riderServer.token )
     if (response._1 == true) {
@@ -39,7 +44,7 @@ object RiderResponse{
           val startConfig = JsonUtils.getString(JsonUtils.getJValue(streamObj,  "stream"), s"startConfig")
           val launchConfigObj = JsonUtils.json2jValue(launchConfig)
           val startConfigObj = JsonUtils.json2jValue(startConfig)
-          modules.streamNameMap.set(StreamNameMapKey(name), StreamNameMapValue(id,projectId,projectName,appId, status))
+          modules.streamNameMap.set(StreamNameMapKey(name), StreamNameMapValue(id,projectId,projectName))
 
           //modules.projectIdMap.set(ProjectIdMapKey(projectId), ProjectIdMapValue(id))
           logger.debug( s" == ${launchConfig} \n" )
@@ -80,7 +85,8 @@ object RiderResponse{
             tlist.foreach{ topicObj =>
               val topicName = JsonUtils.getJValue(topicObj,  "name").extract[String]
               val partitionOffset = JsonUtils.getJValue(topicObj,  "partitionOffsets").extract[String]
-              val latestPartitionOffset = if(kafkaConnection != "")OffsetUtils.getKafkaLatestOffset( kafkaConnection, topicName) else ""
+              val latestPartitionOffset = if(kafkaConnection != "") OffsetUtils.getKafkaLatestOffset( kafkaConnection, topicName) else ""
+              if(latestPartitionOffset == "") logger.error(s" failed to get latest offset from kafka connection: ${kafkaConnection}  topic: ${topicName} \n")
               topicList += CacheTopicInfo(topicName,partitionOffset, latestPartitionOffset)
               logger.debug( s" ${topicList.toList} \n" )
             }
@@ -88,10 +94,21 @@ object RiderResponse{
           }
           logger.debug( s" ==  \n" )
           projectIdList.append(ProjectId(projectId,id))
-          val cacheStreamInfo = CacheStreamInfo(id,projectId, projectName,name, appId, status, startedTime, sparkConfig, consumerDuration,consumerMaxRecords,processRepartition,
-                                driverCores, driverMemory, perExecuterCores, perExecuterMemory, executerNum, kafkaConnection, topicList.toList)
-          logger.debug( s" ==  \n" )
+
+          // insert stream info into ES
+          val useCores  = driverCores +  executerNum * perExecuterCores
+          val useMemoryG  = driverMemory +  executerNum * perExecuterMemory
+          val streamInfos = StreamInfos(
+            DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC), projectId, projectName, id, name,
+            appId, status, startedTime, sparkConfig, consumerDuration,consumerMaxRecords,processRepartition,
+            driverCores, driverMemory, perExecuterCores, perExecuterMemory, executerNum, useCores,useMemoryG,kafkaConnection, topicList.toList.toString )
+          val postBody: String = JsonUtils.caseClass2json(streamInfos)
+          val rc =   madES.insertEs(postBody,INDEXSTREAMINFOS.toString)
+          logger.debug(s" EsMadFlows: response ${rc}")
+
+          val cacheStreamInfo = CacheStreamInfo(id, projectId, projectName, name, status,kafkaConnection,topicList.toList)
           modules.streamMap.updateStreamInfo(id,cacheStreamInfo)
+
           logger.debug( s" ==  ${cacheStreamInfo}\n" )
         }
       }catch{
@@ -103,25 +120,26 @@ object RiderResponse{
       logger.error(s"Failed to get stream info from rider REST API ")
     }
 
-    projectIdList.groupBy(_.projectId).foreach{e =>
+//    projectIdList.groupBy(_.projectId).foreach{e =>
+//      modules.projectIdMap.set(ProjectIdMapKey(s"p${e._1}"),ProjectIdMapValue(e._2.map(_.streamId).toList))
+//      logger.info( s" projectId: List[StreamId] ${e._1}   ${e._2.toList.toString()}\n")
+//    }
+//    logger.info( s" ==  ${modules.projectIdMap.mapPrint}\n" )
 
-      modules.projectIdMap.set(ProjectIdMapKey(s"p${e._1}"),ProjectIdMapValue(e._2.map(_.streamId).toList))
-      logger.info( s" projectId: List[StreamId] ${e._1}   ${e._2.toList.toString()}\n")
-    }
-    logger.info( s" ==  ${modules.projectIdMap.mapPrint}\n" )
     logger.info( s" ==  ${modules.streamMap.mapPrint}\n" )
   }
 
   def getProjectInfoFromRider : List[CacheProjectInfo] = {
     val url = s"http://${modules.riderServer.host}:${modules.riderServer.port}/api/v1/admin/projects"
     logger.info(s" URL \n ${url} \n ")
+    val madProcessTime = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
     val projectList = new ListBuffer[CacheProjectInfo]
     val response = HttpClient.syncClientGetJValue("", url, HttpMethods.GET, modules.riderServer.adminUser, modules.riderServer.adminPwd, modules.riderServer.token)
     if (response._1 == true) {
-       try {
+      try {
         val plist = JsonUtils.getList(response._2, "payload")
         plist.foreach { projectObj =>
-          logger.info(s"\n projectObj  ${projectObj} \n")
+          logger.debug(s"\n projectObj  ${projectObj} \n")
           val projectId = JsonUtils.getJValue(projectObj, s"id").extract[Long]
           val projectName = JsonUtils.getJValue(projectObj, s"name").extract[String]
           val resourceCores = JsonUtils.getJValue(projectObj, s"resCores").extract[Int]
@@ -129,25 +147,36 @@ object RiderResponse{
           val createdTime = JsonUtils.getJValue(projectObj, s"createTime").extract[String]
           val updatedTime = JsonUtils.getJValue(projectObj, s"updateTime").extract[String]
 
-          val cacheProjectInfo = CacheProjectInfo(projectId, projectName, resourceCores, resourceMemory, createdTime, updatedTime)
-          projectList += cacheProjectInfo
+          // insert into ES
+          val esMadProjectInfos = ProjectInfos(
+            DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC),
+            projectId, projectName, resourceCores, resourceMemory,
+            DateUtils.dt2string(DateUtils.dt2dateTime(createdTime) ,DtFormat.TS_DASH_SEC),
+            DateUtils.dt2string(DateUtils.dt2dateTime(updatedTime) ,DtFormat.TS_DASH_SEC) )
+          val postBody: String = JsonUtils.caseClass2json(esMadProjectInfos)
+          val rc =   madES.insertEs(postBody,INDEXPROJECTINFOS.toString)
+          logger.debug(s" EsMadFlows: response ${rc}")
+          // cache the project Info
+//          val cacheProjectInfo = CacheProjectInfo(projectId, projectName, DateUtils.dt2string(DateUtils.dt2dateTime(createdTime) ,DtFormat.TS_DASH_SEC),
+//            DateUtils.dt2string(DateUtils.dt2dateTime(updatedTime) ,DtFormat.TS_DASH_SEC) )
+//          projectList += cacheProjectInfo
         }
       }catch {
           case e: Exception =>
             logger.error(s"Failed to get stream info from rider REST API ${JsonUtils.jValue2json(response._2)} ", e)
       }
-      logger.debug(s" projectSettingsInfo ${projectList} \n")
-      projectList.foreach{projecInfo =>
-        logger.debug(s" ${projecInfo} \n")
-        val value = modules.projectIdMap.get(ProjectIdMapKey(s"p${projecInfo.id}"))
-        if(null != value) {
-          value.get.streamIds.foreach{streamId=>
-            logger.debug(s" ${streamId} \n")
-            modules.streamMap.updateProjectInfo(streamId, projecInfo)
-          }
-        }
-      }
-      logger.info(s" ${modules.streamMap.mapPrint} \n")
+
+      //      projectList.foreach{projecInfo =>
+//        logger.debug(s" ${projecInfo} \n")
+//        val value = modules.projectIdMap.get(ProjectIdMapKey(s"p${projecInfo.id}"))
+//        if(null != value && value != None) {
+//          value.get.streamIds.foreach{streamId=>
+//            logger.debug(s" ${streamId} \n")
+//            modules.streamMap.updateProjectInfo(streamId, projecInfo)
+//          }
+//        }
+//      }
+//      logger.info(s" ${modules.streamMap.mapPrint} \n")
     }else{
       logger.error(s"Failed to get project info from rider REST API ")
     }
@@ -159,13 +188,14 @@ object RiderResponse{
   def getFlowInfoFromRider  = {
     val url = s"http://${modules.riderServer.host}:${modules.riderServer.port}/api/v1/admin/flows"
     logger.info(s" URL \n ${url} \n ")
+    val madProcessTime = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
     val flowList = new ListBuffer[CacheFlowInfo]
     val response = HttpClient.syncClientGetJValue("", url, HttpMethods.GET, modules.riderServer.adminUser, modules.riderServer.adminPwd, modules.riderServer.token)
     if (response._1 == true) {
       try {
         val plist = JsonUtils.getList(response._2, "payload")
         plist.foreach { flowObj =>
-          logger.info(s"\n flowObj  ${flowObj} \n")
+          logger.debug(s"\n flowObj  ${flowObj} \n")
           val id = JsonUtils.getJValue(flowObj, s"id").extract[Long]
           val projectId = JsonUtils.getJValue(flowObj, s"projectId").extract[Long]
           val streamId = JsonUtils.getJValue(flowObj, s"streamId").extract[Long]
@@ -197,8 +227,20 @@ object RiderResponse{
           logger.debug(s" == \n")
           val sourceNs = sourceNamespace.split("\\.")
           val sinkNs = sinkNamespace.split("\\.")
-          val cacheFlowInfo = CacheFlowInfo(id,projectId, projectName, streamId, streamName, flowNamespace,sourceNamespace,sourceNs(0),sourceNs(1), sourceNs(2),sourceNs(3),sinkNamespace,
-            sinkNs(0),sinkNs(1), sinkNs(2), sinkNs(3), flowStatus, flowStartedTime, updateTime, consumedProtocol,sinkSpecificConfig, tranConfig.extract[String], tranActionCustomClass, transPushdownNamespaces  )
+          // insert into ES
+          val esMadFlowInfos = FlowInfos(
+            DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC),
+            projectId, projectName, streamId, streamName,id, flowNamespace,sourceNamespace,
+            sourceNs(0),sourceNs(1), sourceNs(2),sourceNs(3),sinkNamespace,sinkNs(0),sinkNs(1), sinkNs(2), sinkNs(3), flowStatus,
+            if(flowStartedTime== "") defaultDateTime else DateUtils.dt2string(DateUtils.dt2dateTime(flowStartedTime) ,DtFormat.TS_DASH_SEC),
+            DateUtils.dt2string(DateUtils.dt2dateTime(updateTime) ,DtFormat.TS_DASH_SEC),
+            consumedProtocol,
+            sinkSpecificConfig, tranConfig.extract[String],tranActionCustomClass, transPushdownNamespaces)
+          val postBody: String = JsonUtils.caseClass2json(esMadFlowInfos)
+          val rc =   madES.insertEs(postBody,INDEXFLOWINFOS.toString)
+          logger.debug(s" EsMadFlows: response ${rc}")
+
+          val cacheFlowInfo = CacheFlowInfo( id,projectId, projectName, streamId, streamName, flowNamespace )
           logger.debug(s" == ${cacheFlowInfo}\n")
           flowList += cacheFlowInfo
         } //plist.foreach
@@ -219,10 +261,10 @@ object RiderResponse{
     logger.info(s" ${modules.streamMap.mapPrint} \n")
   }
 
-
   def getNamespaceInfoFromRider  = {
     val url = s"http://${modules.riderServer.host}:${modules.riderServer.port}/api/v1/admin/namespaces"
     logger.info(s" URL \n ${url} \n ")
+    val madProcessTime = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
 
     val response = HttpClient.syncClientGetJValue("", url, HttpMethods.GET, modules.riderServer.adminUser, modules.riderServer.adminPwd, modules.riderServer.token)
     if (response._1 == true) {
@@ -239,20 +281,21 @@ object RiderResponse{
 
           val ns = s"${nsSys}.${nsInstance}.${nsDatabase}.${nsTable}.*.*.*"
 
-          modules.namespaceMap.set(NamespaceMapkey(ns), NamespaceMapValue(topic))
+          val nsInfos = NamespaceInfos( DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC), ns,nsSys, nsInstance, nsDatabase, nsTable, topic )
+          val postBody: String = JsonUtils.caseClass2json(nsInfos)
+          val rc = madES.insertEs(postBody,INDEXNAMESPACEINFOS.toString)
+          logger.debug(s"insert namespace info response ${rc}")
 
+          modules.namespaceMap.set(NamespaceMapkey(ns), NamespaceMapValue(topic))
         }
       }catch {
         case e: Exception =>
           logger.error(s"Failed to get namespace info from rider REST API ${JsonUtils.jValue2json(response._2)} ", e)
       }
-
     }else{
       logger.error(s"Failed to get namespace info from rider REST API ")
     }
-
     logger.info(s"  ${modules.namespaceMap.mapPrint}")
   }
-
 
 }

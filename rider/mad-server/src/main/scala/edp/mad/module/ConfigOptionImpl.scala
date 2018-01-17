@@ -42,7 +42,7 @@ trait ConfigOptionImpl {
 
   case class MadTsql( dbDriver: String, dburl: String, user: String, pwd: String)
 
-  case class MadEs( url: String, user: String, pwd: String)
+  case class MadEs( url: String, user: String, pwd: String, infoRedundance: Boolean )
 
   case class MadDashboard(url: String, domain: String, esDataSourceName: String, adminToken: String)
 
@@ -140,7 +140,8 @@ trait ConfigOptionImpl {
     if (config.hasPath("elasticSearch") && config.getString("elasticSearch.http.url").nonEmpty) {
       MadEs(config.getString("elasticSearch.http.url"),
         getStringConfig("elasticSearch.http.user", ""),
-        getStringConfig("elasticSearch.http.password", ""))
+        getStringConfig("elasticSearch.http.password", ""),
+        getBooleanConfig("elasticSearch.http.infoRedundance",true))
     } else null
 
   lazy val grafanaDomain =
