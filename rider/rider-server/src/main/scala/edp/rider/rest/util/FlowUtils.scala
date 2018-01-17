@@ -123,9 +123,12 @@ object FlowUtils extends RiderLogger {
           seq.foreach(config => jsonArray.add(JSON.parseObject(caseClass2json[PushDownConnection](config))))
           json.fluentPut("pushdown_connection", jsonArray)
         }
+        if (json.containsKey("swifts_specific_config")) {
+          val swiftsSpecificConfig = json.get("swifts_specific_config")
+          json.fluentPut("swifts_specific_config", swiftsSpecificConfig.toString)
+        }
         json.toString
-      }
-      else tranConfig
+      } else tranConfig
     }
   }
 

@@ -25,5 +25,5 @@ import edp.wormhole.swifts.parse.SwiftsProcessConfig
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 trait SwiftsInterface {
-  def transform(session: SparkSession, df: DataFrame,config:SwiftsProcessConfig): DataFrame
+  def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig): DataFrame
 }
