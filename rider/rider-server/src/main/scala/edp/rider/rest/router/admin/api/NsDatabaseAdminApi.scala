@@ -117,7 +117,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
               }
               else {
                 if (isKeyEqualValue(simple.config.getOrElse(""))) {
-                  val database = NsDatabase(0, simple.nsDatabase.toLowerCase.trim, simple.desc, simple.nsInstanceId, simple.user, simple.pwd, simple.partitions, simple.config, active = true, currentSec, session.userId, currentSec, session.userId)
+                  val database = NsDatabase(0, simple.nsDatabase.trim, simple.desc, simple.nsInstanceId, simple.user, simple.pwd, simple.partitions, simple.config, active = true, currentSec, session.userId, currentSec, session.userId)
                   onComplete(databaseDal.insert(database).mapTo[NsDatabase]) {
                     case Success(db) =>
                       riderLogger.info(s"user ${session.userId} insert database success.")

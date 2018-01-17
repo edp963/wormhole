@@ -46,7 +46,11 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
     logInfo("process KafkaLog2DbSnapshot")
     val dt1: DateTime = dt2dateTime(currentyyyyMMddHHmmss)
 
-    val sinkSpecificConfig = json2caseClass[DbConfig](sinkProcessConfig.specialConfig.get)
+    val sinkSpecificConfig =
+      if (sinkProcessConfig.specialConfig.isDefined)
+        json2caseClass[DbConfig](sinkProcessConfig.specialConfig.get)
+      else DbConfig()
+
     val systemFieldsRename: String = sinkSpecificConfig.system_fields_rename
     val systemRenameMutableMap = mutable.HashMap.empty[String, String]
     if (systemFieldsRename.nonEmpty) {

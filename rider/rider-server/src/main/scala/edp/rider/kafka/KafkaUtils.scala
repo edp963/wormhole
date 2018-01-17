@@ -35,7 +35,7 @@ object KafkaUtils extends RiderLogger {
     } catch {
       case ex: Exception =>
         riderLogger.error(s"get kafka latest offset failed", ex)
-        ""
+        throw ex
     }
   }
 
