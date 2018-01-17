@@ -44,7 +44,10 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
     logInfo("process KafkaLog2ESSnapshot")
-    val sinkSpecificConfig: EsConfig = json2caseClass[EsConfig](sinkProcessConfig.specialConfig.get)
+    val sinkSpecificConfig: EsConfig =
+      if (sinkProcessConfig.specialConfig.isDefined)
+        json2caseClass[EsConfig](sinkProcessConfig.specialConfig.get)
+      else EsConfig()
     val dataList = ListBuffer.empty[(String, Long, String)]
     for (row <- tupleList) {
       val data = convertJson(row, schemaMap, sinkProcessConfig, sinkSpecificConfig)
@@ -63,10 +66,10 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
     val umsid = row(schemaMap(UmsSysField.ID.toString)._1).toLong
     for ((name, (index, fieldType, _)) <- schemaMap) {
       val field = row(index)
-      val (cname,cvalue) = JsonParseHelper.parseData2CorrectType(fieldType, field: String,name)
+      val (cname, cvalue) = JsonParseHelper.parseData2CorrectType(fieldType, field: String, name)
       json.put(cname, cvalue)
     }
-    val _ids = EsTools.getEsId(row,sinkSpecificConfig,schemaMap)
+    val _ids = EsTools.getEsId(row, sinkSpecificConfig, schemaMap)
     (_ids, umsid, json.toJSONString)
   }
 
@@ -84,7 +87,7 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
 
       val (result, esid2UmsidInEsMap) = {
         val idList = dataList.map(_._1)
-        EsTools.queryVersionByEsid(idList,  sinkNamespace, cc)
+        EsTools.queryVersionByEsid(idList, sinkNamespace, cc)
       }
 
       if (!result) false
@@ -122,7 +125,6 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
       EsTools.write2Es(insertList, connectionConfig, sinkNamespace)
     } else true
   }
-
 
 
   private def doBatchUpdate(updateId2JsonMap: mutable.HashMap[String, String],

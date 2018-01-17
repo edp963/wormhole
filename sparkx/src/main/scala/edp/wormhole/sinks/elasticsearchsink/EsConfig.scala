@@ -36,14 +36,14 @@ import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import scalaj.http.Http
 
-case class EsConfig(`mutation_type`: Option[String],_id:Option[String]) {
+case class EsConfig(`mutation_type`: Option[String] = None, _id: Option[String] = None) {
   lazy val `mutation_type.get` = `mutation_type`.getOrElse(SourceMutationType.I_U_D.toString)
 }
 
-object EsTools extends EdpLogging{
-  def getEsId(tuple:Seq[String],sinkSpecificConfig: EsConfig,schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): String ={
+object EsTools extends EdpLogging {
+  def getEsId(tuple: Seq[String], sinkSpecificConfig: EsConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): String = {
     val _ids = ListBuffer.empty[String]
-    if (sinkSpecificConfig._id.nonEmpty&&sinkSpecificConfig._id.get.nonEmpty){
+    if (sinkSpecificConfig._id.nonEmpty && sinkSpecificConfig._id.get.nonEmpty) {
       sinkSpecificConfig._id.get.split(",").foreach(keyname => {
         val (index, _, _) = schemaMap(keyname)
         _ids += tuple(index)
@@ -93,8 +93,8 @@ object EsTools extends EdpLogging{
   }
 
   def queryVersionByEsid(esids: Seq[String],
-                                 sinkNamespace: String,
-                                 connectionConfig: ConnectionConfig): (Boolean, mutable.HashMap[String, Long]) = {
+                         sinkNamespace: String,
+                         connectionConfig: ConnectionConfig): (Boolean, mutable.HashMap[String, Long]) = {
     val namespace = UmsNamespace(sinkNamespace)
     var queryResult = true
     val esid2VersionMap = mutable.HashMap.empty[String, Long]

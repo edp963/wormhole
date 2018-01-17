@@ -93,7 +93,7 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
   }
 
   def getFlowSourceNamespaceByProjectId(projectId: Long, streamId: Long, nsSys: String) =
-    db.run(((namespaceTable.filter(ns => ns.nsSys === nsSys && ns.active === true) join
+    db.run(((namespaceTable.filter(ns => ns.nsSys.startsWith(nsSys) && ns.active === true) join
       relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) on (_.id === _.nsId))
       join streamTable.filter(_.id === streamId) on (_._1.nsInstanceId === _.instanceId))
       .map {

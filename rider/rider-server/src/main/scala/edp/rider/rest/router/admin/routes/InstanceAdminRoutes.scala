@@ -102,16 +102,7 @@ class InstanceAdminRoutes(modules: ConfigurationModule with PersistenceModule wi
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def putInstanceRoute: Route = path(basePath) {
-    put {
-      entity(as[Instance]) {
-        ds_instance =>
-          authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
-            session => modules.instanceAdminService.putRoute(session, ds_instance)
-          }
-      }
-    }
-  }
+  def putInstanceRoute: Route = modules.instanceAdminService.putRoute(basePath)
 
   @Path("/{id}/databases")
   @ApiOperation(value = "get all database from system by instance id", notes = "", nickname = "", httpMethod = "GET")
