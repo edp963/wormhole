@@ -49,7 +49,8 @@ import { loadDatabasesInstance } from '../../containers/DataBase/action'
 import { selectDbUrlValue } from '../../containers/DataBase/selectors'
 import { loadSingleInstance } from '../../containers/Instance/action'
 import { loadAdminAllNamespaces, loadUserNamespaces, loadSelectNamespaces, loadNamespaceDatabase,
-  addNamespace, editNamespace, loadTableNameExist, loadSingleNamespace, setSchema, querySchemaConfig, deleteNs } from './action'
+  addNamespace, editNamespace, loadTableNameExist, loadSingleNamespace, setSchema,
+  querySchemaConfig, deleteNs } from './action'
 import { selectNamespaces, selectError, selectModalLoading, selectTableNameExited } from './selectors'
 
 export class Namespace extends React.PureComponent {
@@ -105,9 +106,9 @@ export class Namespace extends React.PureComponent {
 
       editNamespaceData: {},
       exitedNsTableValue: '',
-
       nsDsVal: '',
       nsInstanceVal: '',
+      queryConnUrl: '',
 
       schemaModalVisible: false,
       jsonSampleValue: [],
@@ -123,9 +124,7 @@ export class Namespace extends React.PureComponent {
       sinkSchemaModalVisible: false,
       sinkTableDataSource: [],
       sinkJsonSampleValue: [],
-      sinkSelectAllState: 'all',
-
-      queryConnUrl: ''
+      sinkSelectAllState: 'all'
     }
   }
 
@@ -140,9 +139,7 @@ export class Namespace extends React.PureComponent {
         s.visible = false
         return s
       })
-      this.setState({
-        originNamespaces: originNamespaces.slice()
-      })
+      this.setState({ originNamespaces: originNamespaces.slice() })
       this.state.columnNameText === ''
         ? this.setState({ currentNamespaces: originNamespaces.slice() })
         : this.searchOperater()
@@ -239,7 +236,6 @@ export class Namespace extends React.PureComponent {
   }
 
   onInputChange = (value) => (e) => this.setState({ [value]: e.target.value })
-
   handleEndOpenChange = (status) => this.setState({ filterDatepickerShown: status })
 
   onRangeTimeChange = (value, dateString) => {
@@ -686,14 +682,12 @@ export class Namespace extends React.PureComponent {
       }
       this.makeCodeMirrorInstance()
 
-      this.props.onQuerySchemaConfig(record.id, 'source', (result) => {
+      this.props.onQuerySchemaConfig(this.sourceSinkRequestParam(record), 'source', (result) => {
         if (!result) {
           this.schemaTypeConfig.setFieldsValue({ umsType: 'ums' })
           this.setState({ umsTypeSeleted: 'ums' })
         } else {
-          this.schemaTypeConfig.setFieldsValue({
-            umsType: result.umsType
-          })
+          this.schemaTypeConfig.setFieldsValue({ umsType: result.umsType })
           this.setState({
             umsTypeSeleted: result.umsType
           }, () => {
@@ -719,9 +713,7 @@ export class Namespace extends React.PureComponent {
                 } else {
                   tempState = 'not'
                 }
-                this.setState({
-                  selectAllState: tempState
-                })
+                this.setState({ selectAllState: tempState })
               })
             } else {
               this.makeCodeMirrorInstance()
@@ -731,6 +723,28 @@ export class Namespace extends React.PureComponent {
         }
       })
     })
+  }
+
+  sourceSinkRequestParam (record) {
+    const { projectIdGeted, namespaceClassHide } = this.props
+
+    let requestParam = {}
+    if (localStorage.getItem('loginRoleType') === 'admin') {
+      requestParam = namespaceClassHide === 'hide'
+        ? {
+          projectId: projectIdGeted,
+          namespaceId: record.id
+        }
+        : {
+          namespaceId: record.id
+        }
+    } else if (localStorage.getItem('loginRoleType') === 'user') {
+      requestParam = {
+        projectId: projectIdGeted,
+        namespaceId: record.id
+      }
+    }
+    return requestParam
   }
 
   showEditSink = (record) => (e) => {
@@ -743,7 +757,7 @@ export class Namespace extends React.PureComponent {
       }
       this.makeSinkCodeMirrorInstance()
 
-      this.props.onQuerySchemaConfig(record.id, 'sink', (result) => {
+      this.props.onQuerySchemaConfig(this.sourceSinkRequestParam(record), 'sink', (result) => {
         if (result) {
           if (result.jsonSample === null && result.jsonParseArray === null &&
             result.schema === null && result.schemaTable === null
@@ -772,9 +786,7 @@ export class Namespace extends React.PureComponent {
               } else {
                 tempState = 'not'
               }
-              this.setState({
-                sinkSelectAllState: tempState
-              })
+              this.setState({ sinkSelectAllState: tempState })
             })
           }
         } else {
@@ -796,6 +808,17 @@ export class Namespace extends React.PureComponent {
     })
   }
 
+  cmIsDisabled () {
+    const { namespaceClassHide } = this.props
+    let isDisabled = ''
+    if (localStorage.getItem('loginRoleType') === 'admin') {
+      isDisabled = namespaceClassHide === 'hide'
+    } else if (localStorage.getItem('loginRoleType') === 'user') {
+      isDisabled = true
+    }
+    return isDisabled
+  }
+
   makeCodeMirrorInstance = () => {
     if (!this.cmSample) {
       const temp = document.getElementById('jsonSampleTextarea')
@@ -805,7 +828,9 @@ export class Namespace extends React.PureComponent {
         matchBrackets: true,
         autoCloseBrackets: true,
         mode: 'application/ld+json',
-        lineWrapping: true
+        lineWrapping: true,
+        readOnly: this.cmIsDisabled(),
+        cursorBlinkRate: this.cmIsDisabled() ? -1 : 0 // 光标去掉
       })
       this.cmSample.setSize('100%', '528.8px')
     }
@@ -820,7 +845,9 @@ export class Namespace extends React.PureComponent {
         matchBrackets: true,
         autoCloseBrackets: true,
         mode: 'application/ld+json',
-        lineWrapping: true
+        lineWrapping: true,
+        readOnly: this.cmIsDisabled(),
+        cursorBlinkRate: this.cmIsDisabled() ? -1 : 0 // 光标去掉
       })
       this.cmSinkSample.setSize('100%', '528.8px')
     }
@@ -882,6 +909,7 @@ export class Namespace extends React.PureComponent {
                 // 除去selected的项，检查rename字段是否有重复, 提示rename重复的位置，数组中的值为rename重复的index
                 const repeatArr = getRepeatFieldIndex(umsTableDataSource)
 
+                // fieldType只能包含一个array类型
                 const repeatTypeArr = umsTableDataSource.filter(s => s.fieldType.indexOf('array') > -1)
                 const repeatArrayIndex = repeatTypeArr.map(s => s.key)
 
@@ -889,14 +917,10 @@ export class Namespace extends React.PureComponent {
                   message.error('Rename 不为空！', 3)
                 } else if (repeatArr.length !== 0) {
                   message.error('请修改 Rename 重复项！', 3)
-                  this.setState({
-                    repeatRenameArr: repeatArr
-                  })
+                  this.setState({ repeatRenameArr: repeatArr })
                 } else if (repeatTypeArr.length > 1) {
                   message.error('只能包含一个array 类型！', 3)
-                  this.setState({
-                    repeatArrayArr: repeatArrayIndex
-                  })
+                  this.setState({ repeatArrayArr: repeatArrayIndex })
                 } else {
                   this.setState({
                     repeatRenameArr: [],
@@ -1037,9 +1061,7 @@ export class Namespace extends React.PureComponent {
 
   onSinkNoJson = () => {
     this.cmSinkSample.doc.setValue('')
-    this.setState({
-      sinkTableDataSource: []
-    })
+    this.setState({ sinkTableDataSource: [] })
   }
 
   onChangeUmsJsonToTable = () => {
@@ -1113,13 +1135,9 @@ export class Namespace extends React.PureComponent {
       const exceptForbidden = this.state.umsTableDataSource.filter(s => !s.forbidden)
       const exceptSelect = exceptForbidden.filter(s => s.selected)
       if (exceptSelect) {
-        this.setState({
-          selectAllState: exceptSelect.length === exceptForbidden.length ? 'all' : 'part'
-        })
+        this.setState({ selectAllState: exceptSelect.length === exceptForbidden.length ? 'all' : 'part' })
       } else {
-        this.setState({
-          selectAllState: 'no'
-        })
+        this.setState({ selectAllState: 'no' })
       }
     })
   }
@@ -1145,13 +1163,9 @@ export class Namespace extends React.PureComponent {
       const exceptForbidden = this.state.sinkTableDataSource.filter(s => !s.forbidden)
       const exceptSelect = exceptForbidden.filter(s => s.selected)
       if (exceptSelect) {
-        this.setState({
-          sinkSelectAllState: exceptSelect.length === exceptForbidden.length ? 'all' : 'part'
-        })
+        this.setState({ sinkSelectAllState: exceptSelect.length === exceptForbidden.length ? 'all' : 'part' })
       } else {
-        this.setState({
-          sinkSelectAllState: 'no'
-        })
+        this.setState({ sinkSelectAllState: 'no' })
       }
     })
   }
@@ -1224,9 +1238,7 @@ export class Namespace extends React.PureComponent {
           break
       }
 
-      this.setState({
-        umsTableDataSource: tempArr
-      })
+      this.setState({ umsTableDataSource: tempArr })
     })
   }
 
@@ -1299,9 +1311,7 @@ export class Namespace extends React.PureComponent {
   umsFieldTypeSelectOk = (recordKey, selectTypeVal) => {
     const { umsTableDataSource } = this.state
     const umsArr = fieldTypeAlter(umsTableDataSource, recordKey, selectTypeVal, 'source')
-    this.setState({
-      umsTableDataSource: umsArr
-    })
+    this.setState({ umsTableDataSource: umsArr })
   }
 
   initUmsopOther2Tuple = (record, delimiterValue, sizeValue, tupleForm) => {
@@ -1309,18 +1319,14 @@ export class Namespace extends React.PureComponent {
 
     const textVal = `tuple##${delimiterValue}##${sizeValue}`
     const tempArr = fieldTypeAlter(umsTableDataSource, record.key, textVal, 'source')
-    this.setState({
-      umsTableDataSource: tempArr
-    })
+    this.setState({ umsTableDataSource: tempArr })
   }
 
   initEditRename = (recordKey, value) => {
     const { umsTableDataSource } = this.state
 
     const umsArr = renameAlter(umsTableDataSource, recordKey, value)
-    this.setState({
-      umsTableDataSource: umsArr
-    })
+    this.setState({ umsTableDataSource: umsArr })
   }
 
   initSelectUmsIdTs = (record, umsSysField) => {
@@ -1330,9 +1336,7 @@ export class Namespace extends React.PureComponent {
       ? umsSysFieldCanceled(umsTableDataSource, 'ums_id_')
       : umsSysFieldSelected(umsTableDataSource, record.key, umsSysField, true)
 
-    this.setState({
-      umsTableDataSource: tempArr
-    })
+    this.setState({ umsTableDataSource: tempArr })
   }
 
   handleVisibleChangeNs = (record) => (visible) => {
@@ -1340,11 +1344,7 @@ export class Namespace extends React.PureComponent {
       this.setState({
         visible
       }, () => {
-        this.props.onLoadSingleNamespace(record.id, (result) => {
-          this.setState({
-            showNsDetail: result
-          })
-        })
+        this.props.onLoadSingleNamespace(record.id, (result) => this.setState({ showNsDetail: result }))
       })
     }
   }
@@ -1353,9 +1353,7 @@ export class Namespace extends React.PureComponent {
     const { sinkTableDataSource } = this.state
 
     const arr = fieldTypeAlter(sinkTableDataSource, index, afterType, 'sink')
-    this.setState({
-      sinkTableDataSource: arr
-    })
+    this.setState({ sinkTableDataSource: arr })
   }
 
   deleteNsBtn = (record) => (e) => {
@@ -1602,12 +1600,14 @@ export class Namespace extends React.PureComponent {
       }, {
         title: 'Action',
         key: 'action',
-        className: `text-align-center ${this.props.namespaceClassHide}`,
+        className: `text-align-center`,
         render: (text, record) => {
+          const { namespaceClassHide } = this.props
+
           let umsAction = ''
           if (record.nsSys === 'kafka') {
             umsAction = (
-              <span>
+              <span className="ant-table-action-column">
                 <Tooltip title="Source Schema 配置">
                   <Button shape="circle" type="ghost" onClick={this.showEditUms(record)}>
                     <i className="iconfont icon-icos"></i>
@@ -1632,7 +1632,7 @@ export class Namespace extends React.PureComponent {
             umsAction = ''
           }
 
-          return (
+          const nsAction = (
             <span className="ant-table-action-column">
               <Tooltip title="查看详情">
                 <Popover
@@ -1651,41 +1651,100 @@ export class Namespace extends React.PureComponent {
                 <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditNamespace(record)}></Button>
               </Tooltip>
               {umsAction}
-              {
-                localStorage.getItem('loginRoleType') === 'admin'
-                  ? (
-                    <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteNsBtn(record)}>
-                      <Tooltip title="删除">
-                        <Button icon="delete" shape="circle" type="ghost"></Button>
-                      </Tooltip>
-                    </Popconfirm>
-                  )
-                  : ''
-              }
+              <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteNsBtn(record)}>
+                <Tooltip title="删除">
+                  <Button icon="delete" shape="circle" type="ghost"></Button>
+                </Tooltip>
+              </Popconfirm>
             </span>
           )
+
+          let actionHtml = ''
+          if (localStorage.getItem('loginRoleType') === 'admin') {
+            actionHtml = namespaceClassHide === 'hide' ? umsAction : nsAction
+          } else if (localStorage.getItem('loginRoleType') === 'user') {
+            actionHtml = umsAction
+          }
+          return actionHtml
         }
       }]
 
     const pagination = {
       defaultPageSize: this.state.pageSize,
       showSizeChanger: true,
-      onShowSizeChange: (current, pageSize) => {
-        this.setState({
-          pageIndex: current,
-          pageSize: pageSize
-        })
-      },
       onChange: (current) => {
-        this.setState({
-          pageIndex: current
-        })
+        console.log('current', current)
       }
     }
 
-    const helmetHide = this.props.namespaceClassHide !== 'hide'
+    const { namespaceClassHide } = this.props
+    const helmetHide = namespaceClassHide !== 'hide'
       ? (<Helmet title="Namespace" />)
       : (<Helmet title="Workbench" />)
+
+    let sourceFooter = null
+    let sinkFooter = null
+    if (localStorage.getItem('loginRoleType') === 'admin') {
+      sourceFooter = namespaceClassHide === 'hide'
+        ? null
+        : [
+          <Button
+            key="jsonFormat"
+            type="primary"
+            className={`json-format ${this.state.umsTypeSeleted === 'ums' ? 'hide' : ''}`}
+            onClick={this.onJsonFormat}
+          >
+            JSON 格式化
+          </Button>, <Button
+            key="cancel"
+            size="large"
+            onClick={this.hideSchemaModal}
+          >
+            取 消
+          </Button>, <Button
+            key="submit"
+            size="large"
+            type="primary"
+            onClick={this.onSchemaModalOk}
+          >
+            保存
+          </Button>
+        ]
+
+      sinkFooter = namespaceClassHide === 'hide'
+        ? null
+        : [
+          <Button
+            key="jsonFormat"
+            type="primary"
+            onClick={this.onSinkJsonFormat}
+          >
+            JSON格式化
+          </Button>, <Button
+            key="noJson"
+            type="primary"
+            onClick={this.onSinkNoJson}
+          >
+            JSON置空
+          </Button>, <Button
+            key="cancel"
+            size="large"
+            onClick={this.hideSinkSchemaModal}
+          >
+            取 消
+          </Button>, <Button
+            key="submit"
+            size="large"
+            type="primary"
+            onClick={this.onSinkSchemaModalOk}
+          >
+            保存
+          </Button>
+        ]
+    } else if (localStorage.getItem('loginRoleType') === 'user') {
+      sinkFooter = null
+      sourceFooter = null
+    }
 
     return (
       <div>
@@ -1762,31 +1821,7 @@ export class Namespace extends React.PureComponent {
           wrapClassName="schema-config-modal ums-modal"
           visible={this.state.schemaModalVisible}
           onCancel={this.hideSchemaModal} // "X" 按钮
-          footer={[
-            <Button
-              key="jsonFormat"
-              type="primary"
-              className={`json-format ${this.state.umsTypeSeleted === 'ums' ? 'hide' : ''}`}
-              onClick={this.onJsonFormat}
-            >
-              JSON 格式化
-            </Button>,
-            <Button
-              key="cancel"
-              size="large"
-              onClick={this.hideSchemaModal}
-            >
-              取 消
-            </Button>,
-            <Button
-              key="submit"
-              size="large"
-              type="primary"
-              onClick={this.onSchemaModalOk}
-            >
-              保存
-            </Button>
-          ]}
+          footer={sourceFooter}
         >
           <SchemaTypeConfig
             umsFieldTypeSelectOk={this.umsFieldTypeSelectOk}
@@ -1807,6 +1842,7 @@ export class Namespace extends React.PureComponent {
             repeatRenameArr={this.state.repeatRenameArr}
             repeatArrayArr={this.state.repeatArrayArr}
             selectAllState={this.state.selectAllState}
+            namespaceClassHide={this.props.namespaceClassHide}
             ref={(f) => { this.schemaTypeConfig = f }}
           />
         </Modal>
@@ -1817,37 +1853,7 @@ export class Namespace extends React.PureComponent {
           wrapClassName="schema-config-modal ums-modal"
           visible={this.state.sinkSchemaModalVisible}
           onCancel={this.hideSinkSchemaModal}
-          footer={[
-            <Button
-              key="jsonFormat"
-              type="primary"
-              onClick={this.onSinkJsonFormat}
-            >
-              JSON格式化
-            </Button>,
-            <Button
-              key="noJson"
-              type="primary"
-              onClick={this.onSinkNoJson}
-            >
-              JSON置空
-            </Button>,
-            <Button
-              key="cancel"
-              size="large"
-              onClick={this.hideSinkSchemaModal}
-            >
-              取 消
-            </Button>,
-            <Button
-              key="submit"
-              size="large"
-              type="primary"
-              onClick={this.onSinkSchemaModalOk}
-            >
-              保存
-            </Button>
-          ]}
+          footer={sinkFooter}
         >
           <SinkSchemaTypeConfig
             sinkTableDataSource={this.state.sinkTableDataSource}
@@ -1856,6 +1862,7 @@ export class Namespace extends React.PureComponent {
             initSinkChangeSelected={this.initSinkChangeSelected}
             onChangeSinkJsonToTable={this.onChangeSinkJsonToTable}
             initChangeSinkType={this.initChangeSinkType}
+            namespaceClassHide={this.props.namespaceClassHide}
             ref={(f) => { this.sinkSchemaTypeConfig = f }}
           />
         </Modal>
@@ -1901,7 +1908,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadSingleNamespace: (namespaceId, resolve) => dispatch(loadSingleNamespace(namespaceId, resolve)),
     onLoadSingleInstance: (namespaceId, resolve) => dispatch(loadSingleInstance(namespaceId, resolve)),
     onSetSchema: (namespaceId, value, type, resolve) => dispatch(setSchema(namespaceId, value, type, resolve)),
-    onQuerySchemaConfig: (namespaceId, value, type, resolve) => dispatch(querySchemaConfig(namespaceId, value, type, resolve)),
+    onQuerySchemaConfig: (ids, value, type, resolve) => dispatch(querySchemaConfig(ids, value, type, resolve)),
     onDeleteNs: (namespaceId, resolve, reject) => dispatch(deleteNs(namespaceId, resolve, reject))
   }
 }
