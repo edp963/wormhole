@@ -49,18 +49,18 @@
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-dbpool</artifactId>
             <version>${project.version}</version>
-            <!--<exclusions>-->
-            <!--<exclusion>-->
-                <!--<groupId>com.google.guava</groupId>-->
-                <!--<artifactId>guava</artifactId>-->
-            <!--</exclusion>-->
-            <!--</exclusions>-->
+            <exclusions>
+            <exclusion>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+            </exclusion>
+            </exclusions>
         </dependency>
-        <!--<dependency>-->
-            <!--<groupId>com.google.guava</groupId>-->
-            <!--<artifactId>guava</artifactId>-->
-            <!--<version>16.0.1</version>-->
-        <!--</dependency>-->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>16.0.1</version>
+        </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-hadoop</artifactId>
@@ -252,15 +252,15 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <!--<configuration>-->
-                    <!--<relocations>-->
-                        <!--<relocation>-->
-                            <!--<pattern>com.google.common</pattern>-->
-                            <!--<shadedPattern>com.foo.com.google.common</shadedPattern>-->
-                        <!--</relocation>-->
-                    <!--</relocations>-->
-                    <!--<finalName>${project.artifactId}-${project.version}-jar-with-dependencies</finalName>-->
-                <!--</configuration>-->
+                <configuration>
+                    <relocations>
+                        <relocation>
+                            <pattern>com.google.common</pattern>
+                            <shadedPattern>com.foo.com.google.common</shadedPattern>
+                        </relocation>
+                    </relocations>
+                    <finalName>${project.artifactId}-${project.version}-jar-with-dependencies</finalName>
+                </configuration>
                 <executions>
                     <execution>
                         <phase>package</phase>
