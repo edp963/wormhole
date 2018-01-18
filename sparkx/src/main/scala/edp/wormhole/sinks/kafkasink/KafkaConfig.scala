@@ -24,8 +24,8 @@ package edp.wormhole.sinks.kafkasink
 
 case class KafkaConfig(format: Option[String] = None,
                        preserveSystemField: Option[Boolean] = None,
-                       payloadLimitNum: Option[Int] = None) {
+                       `batch_size`: Option[Int] = None) {
   lazy val messageFormat = format.getOrElse("ums")
-  lazy val limitNum = payloadLimitNum.getOrElse(50)
+  lazy val limitNum = `batch_size`.getOrElse(50)
   lazy val hasSystemField = preserveSystemField.getOrElse(false)
 }
