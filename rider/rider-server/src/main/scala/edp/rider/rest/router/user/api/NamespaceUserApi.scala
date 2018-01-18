@@ -157,7 +157,7 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
 
   }
 
-  def getUmsInfoByIdRoute(route: String): Route = path(route / LongNumber / "namespace" / LongNumber / "schema" / "source") {
+  def getUmsInfoByIdRoute(route: String): Route = path(route / LongNumber / "namespaces" / LongNumber / "schema" / "source") {
     (id, nsId) =>
       get {
         authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
@@ -185,7 +185,7 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
       }
   }
 
-  def getSinkInfoByIdRoute(route: String): Route = path(route / LongNumber / "namespace" / LongNumber / "schema" / "sink") {
+  def getSinkInfoByIdRoute(route: String): Route = path(route / LongNumber / "namespaces" / LongNumber / "schema" / "sink") {
     (id, nsId) =>
       get {
         authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
