@@ -213,6 +213,18 @@ export class SchemaTypeConfig extends React.Component {
     }
   }
 
+  isDisabledLoad () {
+    const { namespaceClassHide } = this.props
+
+    let isDisabled = ''
+    if (localStorage.getItem('loginRoleType') === 'admin') {
+      isDisabled = namespaceClassHide === 'hide'
+    } else if (localStorage.getItem('loginRoleType') === 'user') {
+      isDisabled = true
+    }
+    return isDisabled
+  }
+
   render () {
     const { form } = this.props
     const { getFieldDecorator } = form
@@ -233,10 +245,16 @@ export class SchemaTypeConfig extends React.Component {
     }
 
     const selectAll = (
-      <div>
-        <span className="ant-checkbox-wrapper">
-          <span className={`ant-checkbox ${finalClass}`}>
-            <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onRowSelectAll} />
+      <div className="ums-select-class">
+        <span className={this.isDisabledLoad() ? '' : 'ant-checkbox-wrapper'}>
+          <span className={`ant-checkbox ${this.isDisabledLoad() ? 'ant-checkbox-disabled' : ''} ${finalClass}`}>
+            <input
+              type="checkbox"
+              className="ant-checkbox-input"
+              value="on"
+              disabled={this.isDisabledLoad()}
+              onChange={this.onRowSelectAll}
+            />
             <span className="ant-checkbox-inner"></span>
           </span>
         </span>
@@ -328,10 +346,10 @@ export class SchemaTypeConfig extends React.Component {
         <div className="editable-cell">
           {record.forbidden
             ? (
-              <div className="table-ums-class">
-                <span className="ant-checkbox-wrapper">
-                  <span className={`ant-checkbox ${record.selected ? 'ant-checkbox-checked' : ''}`}>
-                    <input type="checkbox" className="ant-checkbox-input" value="on" />
+              <div className="table-ums-class ums-select-class">
+                <span className={this.isDisabledLoad() ? '' : 'ant-checkbox-wrapper'}>
+                  <span className={`ant-checkbox ${this.isDisabledLoad() ? 'ant-checkbox-disabled' : ''} ${record.selected ? 'ant-checkbox-checked' : ''}`}>
+                    <input type="checkbox" className="ant-checkbox-input" value="on" disabled={this.isDisabledLoad()} />
                     <span className="ant-checkbox-inner"></span>
                   </span>
                 </span>
@@ -339,9 +357,15 @@ export class SchemaTypeConfig extends React.Component {
             )
             : (
               <div>
-                <span className="ant-checkbox-wrapper">
-                  <span className={`ant-checkbox ${record.selected ? 'ant-checkbox-checked' : ''}`}>
-                    <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeRowSelect(record)} />
+                <span className={this.isDisabledLoad() ? '' : 'ant-checkbox-wrapper'}>
+                  <span className={`ant-checkbox ${this.isDisabledLoad() ? 'ant-checkbox-disabled' : ''} ${record.selected ? 'ant-checkbox-checked' : ''}`}>
+                    <input
+                      type="checkbox"
+                      className="ant-checkbox-input"
+                      value="on"
+                      disabled={this.isDisabledLoad()}
+                      onChange={this.onChangeRowSelect(record)}
+                    />
                     <span className="ant-checkbox-inner"></span>
                   </span>
                 </span>
@@ -367,6 +391,7 @@ export class SchemaTypeConfig extends React.Component {
         return (
           <Row className={repeatKey === record.key ? 'rename-text-class' : ''}>
             <Input
+              disabled={this.isDisabledLoad()}
               value={record.rename}
               onChange={this.handleChangeRename(record)}
             />
@@ -455,6 +480,7 @@ export class SchemaTypeConfig extends React.Component {
         return (
           <div className={repeatKey === record.key ? 'repeat-array-class' : ''}>
             <Select
+              disabled={this.isDisabledLoad()}
               value={initType}
               onChange={this.handleChangeFieldType(record)}
             >
@@ -488,7 +514,6 @@ export class SchemaTypeConfig extends React.Component {
                 <Option value="tuple">tuple</Option>
               </OptGroup>
             </Select>
-
             {fieldTypeHtml}
           </div>
         )
@@ -503,9 +528,14 @@ export class SchemaTypeConfig extends React.Component {
         const tempHtml = (record.fieldType === 'long' || record.fieldType === 'datetime' ||
         record.fieldType === 'longarray' || record.fieldType === 'datetimearray')
           ? (
-            <span className={`ant-radio-wrapper`}>
-              <span className={`ant-radio ${record.ums_ts_ ? 'ant-radio-checked' : ''}`}>
-                <input type="radio" className="ant-radio-input" onClick={this.onChangeUmsTs(record)} />
+            <span className={this.isDisabledLoad() ? '' : 'ant-radio-wrapper'}>
+              <span className={`ant-radio ${this.isDisabledLoad() ? 'ant-radio-disabled' : ''} ${record.ums_ts_ ? 'ant-radio-checked' : ''}`}>
+                <input
+                  type="radio"
+                  className="ant-radio-input"
+                  disabled={this.isDisabledLoad()}
+                  onClick={this.onChangeUmsTs(record)}
+                />
                 <span className="ant-radio-inner"></span>
               </span>
             </span>
@@ -528,9 +558,15 @@ export class SchemaTypeConfig extends React.Component {
         const tempHtml = (record.fieldType === 'int' || record.fieldType === 'long' ||
         record.fieldType === 'intarray' || record.fieldType === 'longarray')
           ? (
-            <span className="ant-checkbox-wrapper">
-              <span className={`ant-checkbox ${record.ums_id_ ? 'ant-checkbox-checked' : ''}`}>
-                <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsId(record)} />
+            <span className={this.isDisabledLoad() ? '' : 'ant-checkbox-wrapper'}>
+              <span className={`ant-checkbox ${this.isDisabledLoad() ? 'ant-checkbox-disabled' : ''} ${record.ums_id_ ? 'ant-checkbox-checked' : ''}`}>
+                <input
+                  type="checkbox"
+                  className="ant-checkbox-input"
+                  value="on"
+                  disabled={this.isDisabledLoad()}
+                  onChange={this.onChangeUmsId(record)}
+                />
                 <span className="ant-checkbox-inner"></span>
               </span>
             </span>
@@ -567,26 +603,35 @@ export class SchemaTypeConfig extends React.Component {
 
         const selectedHtml = (
           <span>
-            <span className="ant-checkbox-wrapper">
-              <span className="ant-checkbox ant-checkbox-checked">
-                <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record.key)} />
+            <span className={this.isDisabledLoad() ? '' : 'ant-checkbox-wrapper'}>
+              <span className={`ant-checkbox ant-checkbox-checked ${this.isDisabledLoad() ? 'ant-checkbox-disabled' : ''}`}>
+                <input
+                  type="checkbox"
+                  className="ant-checkbox-input"
+                  value="on"
+                  disabled={this.isDisabledLoad()}
+                  onChange={this.onChangeUmsOp(record.key)}
+                />
                 <span className="ant-checkbox-inner"></span>
               </span>
             </span>
             <div style={{ marginTop: '4px' }}>
               <Input
+                disabled={this.isDisabledLoad()}
                 style={{ width: '33%' }}
                 defaultValue={iVal || ''}
                 id="insert"
                 placeholder="Ins"
               />
               <Input
+                disabled={this.isDisabledLoad()}
                 style={{ width: '33%' }}
                 defaultValue={uVal || ''}
                 id="update"
                 placeholder="Upd"
               />
               <Input
+                disabled={this.isDisabledLoad()}
                 style={{ width: '33%' }}
                 defaultValue={dVal || ''}
                 id="delete"
@@ -597,9 +642,15 @@ export class SchemaTypeConfig extends React.Component {
         )
 
         const noSelectHtml = (
-          <span className="ant-checkbox-wrapper">
-            <span className="ant-checkbox">
-              <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeUmsOp(record.key)} />
+          <span className={this.isDisabledLoad() ? '' : 'ant-checkbox-wrapper'}>
+            <span className={`ant-checkbox ${this.isDisabledLoad() ? 'ant-checkbox-disabled' : ''}`}>
+              <input
+                type="checkbox"
+                className="ant-checkbox-input"
+                value="on"
+                disabled={this.isDisabledLoad()}
+                onChange={this.onChangeUmsOp(record.key)}
+              />
               <span className="ant-checkbox-inner"></span>
             </span>
           </span>
@@ -611,18 +662,10 @@ export class SchemaTypeConfig extends React.Component {
         if (record.fieldType === 'int' || record.fieldType === 'long' || record.fieldType === 'string' ||
           record.fieldType === 'intarray' || record.fieldType === 'longarray' || record.fieldType === 'stringarray') {
           if (umsopKey < 0) {
-            if (record.ums_op_ !== '') {
-              umsopHtml = selectedHtml
-            } else {
-              umsopHtml = noSelectHtml
-            }
+            umsopHtml = record.ums_op_ !== '' ? selectedHtml : noSelectHtml
           } else {
             if (record.key === umsopKey) {
-              if (umsopable) {
-                umsopHtml = selectedHtml
-              } else {
-                umsopHtml = noSelectHtml
-              }
+              umsopHtml = umsopable ? selectedHtml : noSelectHtml
             } else {
               umsopHtml = noSelectHtml
             }
@@ -652,7 +695,7 @@ export class SchemaTypeConfig extends React.Component {
                   message: '请选择 UMS Type'
                 }]
               })(
-                <RadioGroup className="radio-group-style" size="default" onChange={this.onChangeUmsType}>
+                <RadioGroup className="radio-group-style" size="default" disabled={this.isDisabledLoad()} onChange={this.onChangeUmsType}>
                   <RadioButton value="ums" className="radio-btn-style radio-btn-extra">UMS</RadioButton>
                   <RadioButton value="ums_extension" className="ums-extension">UMS_Extension</RadioButton>
                 </RadioGroup>
@@ -675,7 +718,7 @@ export class SchemaTypeConfig extends React.Component {
             />
           </Col>
           <Col span={1} className="change-btn">
-            <Button type="primary" onClick={this.props.onChangeJsonToTable}>
+            <Button type="primary" onClick={this.props.onChangeJsonToTable} disabled={this.isDisabledLoad()}>
               <Icon type="caret-right" />
             </Button>
           </Col>
@@ -706,6 +749,7 @@ SchemaTypeConfig.propTypes = {
   initSelectUmsIdTs: React.PropTypes.func,
   umsTypeSeleted: React.PropTypes.string,
   selectAllState: React.PropTypes.string,
+  namespaceClassHide: React.PropTypes.string,
   initRowSelectedAll: React.PropTypes.func,
   initSelectUmsop: React.PropTypes.func,
   repeatRenameArr: React.PropTypes.array,

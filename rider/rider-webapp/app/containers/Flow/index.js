@@ -557,7 +557,7 @@ export class Flow extends React.Component {
 
         const requestValue = {
           projectId: record.projectId,
-          streamId: record.streamId,
+          streamId: typeof (record.streamId) === 'object' ? record.streamIdOrigin : record.streamId,
           flowId: record.id,
           roleType: roleType
         }

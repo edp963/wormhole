@@ -208,8 +208,15 @@ export function* setSchemaWatcher () {
 }
 
 export function* querySchema ({ payload }) {
+  let requestURL = ''
+  if (localStorage.getItem('loginRoleType') === 'admin') {
+    requestURL = api.namespace
+  } else if (localStorage.getItem('loginRoleType') === 'user') {
+    requestURL = `${api.projectUserList}/${payload.ids.projectId}/namespaces`
+  }
+
   try {
-    const result = yield call(request, `${api.namespace}/${payload.namespaceId}/schema/${payload.type}`)
+    const result = yield call(request, `${requestURL}/${payload.ids.namespaceId}/schema/${payload.type}`)
     yield put(schemaConfigQueried(result.payload, payload.resolve))
   } catch (err) {
     yield put(getError())
