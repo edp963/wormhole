@@ -88,8 +88,13 @@
   margin-top: 265px;
 }
 
-.ums-modal .ant-modal {
-  top: 40px !important;
+.ums-modal {
+  .ant-modal {
+    top: 40px !important;
+  }
+  .ant-modal-body {
+    padding-bottom: 25px !important;
+  }
 }
 
 .editable-cell-icon-check {
@@ -236,6 +241,13 @@
 .ums-type {
   .ant-form-item {
     margin-bottom: 15px !important;
+  }
+}
+
+.ums-select-class {
+  .ant-checkbox-disabled .ant-checkbox-inner {
+    border-color: #dad7d7 !important;
+    background-color: #dad7d7 !important;
   }
 }
 
