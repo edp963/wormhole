@@ -31,9 +31,9 @@
         <module>common/redispool</module>
         <module>common/hadoop</module>
         <module>sparkx</module>
-        <module>rider/common/haservice</module>
+        <!--<module>rider/common/haservice</module>-->
         <module>rider/rider-server</module>
-        <module>rider/mad-server</module>
+        <!--<module>rider/mad-server</module>-->
         <module>rider/rider-assembly</module>
     </modules>
 
