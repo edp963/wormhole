@@ -256,11 +256,11 @@ export function schemaSetted (result, resolve) {
   }
 }
 
-export function querySchemaConfig (namespaceId, type, resolve) {
+export function querySchemaConfig (ids, type, resolve) {
   return {
     type: QUERY_SCHEMA_CONFIG,
     payload: {
-      namespaceId,
+      ids,
       type,
       resolve
     }
