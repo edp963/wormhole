@@ -476,6 +476,7 @@ object BatchflowMainProcess extends EdpLogging {
 
     val mutationType =
       if (specialConfigJson.containsKey("mutation_type")) specialConfigJson.getString("mutation_type").trim
+      else if (sinkProcessConfig.classFullname.contains("Kafka")) SourceMutationType.INSERT_ONLY.toString
       else SourceMutationType.I_U_D.toString
 
     val repartitionRDD = if (SourceMutationType.INSERT_ONLY.toString != mutationType) {
