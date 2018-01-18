@@ -47,6 +47,18 @@ export class SinkSchemaTypeConfig extends React.Component {
     })
   }
 
+  isDisabledLoad () {
+    const { namespaceClassHide } = this.props
+
+    let isDisabled = ''
+    if (localStorage.getItem('loginRoleType') === 'admin') {
+      isDisabled = namespaceClassHide === 'hide'
+    } else if (localStorage.getItem('loginRoleType') === 'user') {
+      isDisabled = true
+    }
+    return isDisabled
+  }
+
   onChangeRowSelect = (record) => (e) => this.props.initSinkChangeSelected(record)
 
   onRowSelectAll = () => this.props.initSinkRowSelectedAll()
@@ -66,10 +78,16 @@ export class SinkSchemaTypeConfig extends React.Component {
     }
 
     const selectAll = (
-      <div>
-        <span className="ant-checkbox-wrapper">
-          <span className={`ant-checkbox ${finalClass}`}>
-            <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onRowSelectAll} />
+      <div className="ums-select-class">
+        <span className={this.isDisabledLoad() ? '' : 'ant-checkbox-wrapper'}>
+          <span className={`ant-checkbox ${finalClass} ${this.isDisabledLoad() ? 'ant-checkbox-disabled' : ''}`}>
+            <input
+              type="checkbox"
+              className="ant-checkbox-input"
+              value="on"
+              disabled={this.isDisabledLoad()}
+              onChange={this.onRowSelectAll}
+            />
             <span className="ant-checkbox-inner"></span>
           </span>
         </span>
@@ -105,20 +123,26 @@ export class SinkSchemaTypeConfig extends React.Component {
         <div className="editable-cell">
           {record.forbidden
             ? (
-              <div className="table-ums-class">
-                <span className="ant-checkbox-wrapper">
-                  <span className={`ant-checkbox ${record.selected ? 'ant-checkbox-checked' : ''}`}>
-                    <input type="checkbox" className="ant-checkbox-input" value="on" />
+              <div className="table-ums-class ums-select-class">
+                <span className={this.isDisabledLoad() ? '' : 'ant-checkbox-wrapper'}>
+                  <span className={`ant-checkbox ${this.isDisabledLoad() ? 'ant-checkbox-disabled' : ''} ${record.selected ? 'ant-checkbox-checked' : ''}`}>
+                    <input type="checkbox" className="ant-checkbox-input" value="on" disabled={this.isDisabledLoad()} />
                     <span className="ant-checkbox-inner"></span>
                   </span>
                 </span>
               </div>
             )
             : (
-              <div>
-                <span className="ant-checkbox-wrapper">
-                  <span className={`ant-checkbox ${record.selected ? 'ant-checkbox-checked' : ''}`}>
-                    <input type="checkbox" className="ant-checkbox-input" value="on" onChange={this.onChangeRowSelect(record)} />
+              <div className="ums-select-class">
+                <span className={this.isDisabledLoad() ? '' : 'ant-checkbox-wrapper'}>
+                  <span className={`ant-checkbox ${this.isDisabledLoad() ? 'ant-checkbox-disabled' : ''} ${record.selected ? 'ant-checkbox-checked' : ''}`}>
+                    <input
+                      type="checkbox"
+                      className="ant-checkbox-input"
+                      value="on"
+                      disabled={this.isDisabledLoad()}
+                      onChange={this.onChangeRowSelect(record)}
+                    />
                     <span className="ant-checkbox-inner"></span>
                   </span>
                 </span>
@@ -139,6 +163,7 @@ export class SinkSchemaTypeConfig extends React.Component {
       render: (text, record) => (
         <div>
           <Select
+            disabled={this.isDisabledLoad()}
             value={record.fieldType}
             onChange={this.handleChangeFieldType(record)}
           >
@@ -170,7 +195,7 @@ export class SinkSchemaTypeConfig extends React.Component {
             </OptGroup>
           </Select>
         </div>
-        )
+      )
     }]
 
     return (
@@ -192,12 +217,13 @@ export class SinkSchemaTypeConfig extends React.Component {
             />
           </Col>
           <Col span={2} className="sink-change-btn">
-            <Button type="primary" onClick={this.props.onChangeSinkJsonToTable}>
+            <Button type="primary" onClick={this.props.onChangeSinkJsonToTable} disabled={this.isDisabledLoad()}>
               <Icon type="caret-left" />反推
             </Button>
           </Col>
           <Col span={7}>
             <textarea
+              disabled={this.isDisabledLoad()}
               id="sinkJsonSampleTextarea"
               placeholder="Paste your JSON Sample here."
             />
@@ -212,6 +238,7 @@ SinkSchemaTypeConfig.propTypes = {
   initSinkChangeSelected: React.PropTypes.func,
   onChangeSinkJsonToTable: React.PropTypes.func,
   sinkSelectAllState: React.PropTypes.string,
+  namespaceClassHide: React.PropTypes.string,
   initSinkRowSelectedAll: React.PropTypes.func,
   initChangeSinkType: React.PropTypes.func
 }
