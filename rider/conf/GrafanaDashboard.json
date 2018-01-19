@@ -39,7 +39,7 @@
     "hideControls": false,
     "id": null,
     "links": [],
-    "refresh": "5s",
+    "refresh": "1d",
     "rows": [
       {
         "collapse": false,
@@ -359,7 +359,7 @@
                 "timeField": "rddTs"
               },
               {
-                "alias": "PreprocessDelay",
+                "alias": "{{streamName}}-PreprocessDelay",
                 "bucketAggs": [
                   {
                     "fake": true,
