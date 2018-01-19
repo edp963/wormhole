@@ -48,7 +48,6 @@ export class SchemaTypeConfig extends React.Component {
       delimiterValue: '',
       sizeValue: 0,
       umsTsSelect: '',
-      tupleNum: 0,
       selectTypeVal: '',
 
       insertValue: '',
@@ -70,18 +69,13 @@ export class SchemaTypeConfig extends React.Component {
         const temp = this.state.currentUmsTableData.find(i => i.fieldType.indexOf('##') > -1)
         if (temp) {
           this.setState({
-            tupleForm: 'text',
-            tupleNum: 1
+            tupleForm: 'text'
           }, () => {
             const tupleArr = temp.fieldType.split('##')
             this.setState({
               delimiterValue: tupleArr[1],
               sizeValue: Number(tupleArr[2])
             })
-          })
-        } else {
-          this.setState({
-            tupleNum: 0
           })
         }
       })
@@ -117,38 +111,32 @@ export class SchemaTypeConfig extends React.Component {
         tupleTypeTemp = ''
         this.props.umsFieldTypeSelectOk(record.key, afterType)
       } else if (currentType !== 'tuple' && afterType === 'tuple') {     // other to tuple
-        if (this.state.tupleNum === 1) {
-          message.error('最多有一个 Tuple！', 3)
-          tupleTypeTemp = 'text'
-        } else {
-          const { currentUmsTableData } = this.state
-          tupleTypeTemp = 'edit'
-          this.setState({
-            tupleNum: 1,
-            currentKey: record.key
-          }, () => {
-            const tumsArr = currentUmsTableData.map(s => {
-              let tempObject = {}
-              tempObject = (this.state.currentKey === s.key)
-                ? tempObject = {
-                  fieldName: s.fieldName,
-                  fieldType: 'tuple',
-                  forbidden: s.forbidden,
-                  key: s.key,
-                  rename: s.rename,
-                  selected: s.selected,
-                  ums_id_: s.ums_id_,
-                  ums_op_: s.ums_op_,
-                  ums_ts_: s.ums_ts_
-                }
-                : s
-              return tempObject
-            })
-            this.setState({
-              currentUmsTableData: tumsArr
-            })
+        const { currentUmsTableData } = this.state
+        tupleTypeTemp = 'edit'
+        this.setState({
+          currentKey: record.key
+        }, () => {
+          const tumsArr = currentUmsTableData.map(s => {
+            let tempObject = {}
+            tempObject = (this.state.currentKey === s.key)
+              ? tempObject = {
+                fieldName: s.fieldName,
+                fieldType: 'tuple',
+                forbidden: s.forbidden,
+                key: s.key,
+                rename: s.rename,
+                selected: s.selected,
+                ums_id_: s.ums_id_,
+                ums_op_: s.ums_op_,
+                ums_ts_: s.ums_ts_
+              }
+              : s
+            return tempObject
           })
-        }
+          this.setState({
+            currentUmsTableData: tumsArr
+          })
+        })
       }
 
       this.setState({
@@ -184,7 +172,14 @@ export class SchemaTypeConfig extends React.Component {
     }
   }
 
-  editFieldType = () => this.setState({ tupleForm: 'edit' })
+  editFieldType = (record) => (e) => {
+    const typeArr = record.fieldType.split('##')
+    this.setState({
+      tupleForm: 'edit',
+      currentKey: record.key,
+      tupleSizeValue: typeArr[2]
+    })
+  }
 
   handleChangeRename = (record) => (e) => {
     const val = e.target.value
@@ -417,10 +412,10 @@ export class SchemaTypeConfig extends React.Component {
             <div style={{ marginTop: '4px' }}>
               <Col span={10}><span >{`Sep: ${tupleVals[1]}`}</span></Col>
               <Col span={11}><span >{`Size: ${tupleVals[2]}`}</span></Col>
-              <Col span={3}>
+              <Col span={3} className={this.isDisabledLoad() ? 'hide' : ''}>
                 <Icon
                   type="edit"
-                  onClick={this.editFieldType}
+                  onClick={this.editFieldType(record)}
                 />
               </Col>
             </div>
@@ -449,12 +444,8 @@ export class SchemaTypeConfig extends React.Component {
             </div>
           )
 
-          if (currentKey < 0) {
-            if (tupleForm === 'text') {
-              fieldTypeHtml = textHtml
-            } else if (tupleForm === 'edit') {
-              fieldTypeHtml = inputhtml
-            }
+          if (record.fieldType === 'tuple') {
+            fieldTypeHtml = inputhtml
           } else {
             if (currentKey === record.key) {
               if (tupleForm === 'text') {
@@ -462,6 +453,8 @@ export class SchemaTypeConfig extends React.Component {
               } else if (tupleForm === 'edit') {
                 fieldTypeHtml = inputhtml
               }
+            } else {
+              fieldTypeHtml = textHtml
             }
           }
         } else {
@@ -704,10 +697,10 @@ export class SchemaTypeConfig extends React.Component {
           </Col>
         </Row>
         <Row className={umsTypeSeleted === 'ums_extension' ? '' : 'hide'}>
-          <Col span={7} className="schema-json-title"><span>Source JSON Sample：</span></Col>
+          <Col span={7} className="schema-json-title"><span>Source JSON Sample</span></Col>
           <Col span={1}></Col>
           <Col span={16} className="schema-table-title">
-            <span>Source Schema Table [注: 只能包含一个 array 类型 (intarray等或jsonarray)，且须将其或某子字段设置为主键之一]：
+            <span>Source Schema Table [注: 只能包含一个 array 类型 (intarray等或jsonarray)，且须将其或某子字段设置为主键之一]
             </span></Col>
         </Row>
         <Row className={umsTypeSeleted === 'ums_extension' ? '' : 'hide'}>

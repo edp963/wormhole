@@ -114,7 +114,9 @@ export class NamespaceForm extends React.Component {
       // { value: 'log', text: 'Log' },
       { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
-      { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} }
+      { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} },
+      { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
+      { value: 'hdfs', icon: 'icon-hdfs1', style: {fontSize: '67px'} }
     ]
 
     // edit 时，不能修改部分元素

@@ -74,7 +74,9 @@ export class InstanceForm extends React.Component {
       // { value: 'log', text: 'Log' },
       { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
-      { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} }
+      { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} },
+      { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
+      { value: 'hdfs', icon: 'icon-hdfs1', style: {fontSize: '67px'} }
     ]
 
     // edit 时，不能修改部分元素
@@ -87,7 +89,8 @@ export class InstanceForm extends React.Component {
 
     // help
     let questionDS = ''
-    if (instanceDSValue === 'oracle' || instanceDSValue === 'mysql' || instanceDSValue === 'postgresql') {
+    if (instanceDSValue === 'oracle' || instanceDSValue === 'mysql' ||
+      instanceDSValue === 'postgresql' || instanceDSValue === 'vertica') {
       questionDS = `${instanceDSValue.substring(0, 1).toUpperCase()}${instanceDSValue.substring(1)} 时, 为 ip:port 格式。`
     } else if (instanceDSValue === 'es') {
       questionDS = 'Elastic 时, 作为 sink 端，请填写 http 端口地址，如 http://localhost:9200；作为 lookup 系统，请填写 tcp 端口地址，如 localhost:9300。'
