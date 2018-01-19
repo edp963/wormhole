@@ -106,7 +106,9 @@ export class DBForm extends React.Component {
       // { value: 'log', text: 'Log' },
       { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
-      { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} }
+      { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} },
+      { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
+      { value: 'hdfs', icon: 'icon-hdfs1', style: {fontSize: '67px'} }
     ]
 
     // kafka 独立样式 hide /show
@@ -121,7 +123,8 @@ export class DBForm extends React.Component {
     // user/password 样式/实际数据的 hide/show
     let uerPwdRequiredClass = ''
     let userPwdHiddensRequired = false
-    if (databaseDSValue === 'oracle' || databaseDSValue === 'mysql' || databaseDSValue === 'postgresql') {
+    if (databaseDSValue === 'oracle' || databaseDSValue === 'mysql' ||
+      databaseDSValue === 'postgresql' || databaseDSValue === 'vertica') {
       uerPwdRequiredClass = ''
       userPwdHiddensRequired = false
     } else {
@@ -132,7 +135,8 @@ export class DBForm extends React.Component {
     let uerPwdClass = ''
     let userPwdHiddens = false
     if (databaseDSValue === 'oracle' || databaseDSValue === 'mysql' ||
-      databaseDSValue === 'postgresql' || databaseDSValue === 'kafka') {
+      databaseDSValue === 'postgresql' || databaseDSValue === 'kafka' ||
+      databaseDSValue === 'vertica') {
       uerPwdClass = 'hide'
       userPwdHiddens = true
     } else {

@@ -160,7 +160,9 @@ export class DataBase extends React.PureComponent {
           connectionUrl: result.connUrl
         }
       }, () => {
-        if (result.nsSys === 'oracle' || result.nsSys === 'mysql' || result.nsSys === 'postgresql' || result.nsSys === 'mongodb') {
+        if (result.nsSys === 'oracle' || result.nsSys === 'mysql' || result.nsSys === 'postgresql' ||
+          result.nsSys === 'mongodb' || result.nsSys === 'vertica'
+        ) {
           this.dBForm.setFieldsValue({
             userRequired: result.user,
             passwordRequired: result.pwd
@@ -275,7 +277,8 @@ export class DataBase extends React.PureComponent {
               valuesUser = ''
               valuesPwd = ''
               valuesConfig = values.config
-            } else if (values.dataBaseDataSystem === 'mysql' || values.dataBaseDataSystem === 'postgresql' || values.dataBaseDataSystem === 'mongodb') {
+            } else if (values.dataBaseDataSystem === 'mysql' || values.dataBaseDataSystem === 'postgresql' ||
+              values.dataBaseDataSystem === 'mongodb' || values.dataBaseDataSystem === 'vertica') {
               valuesUser = values.userRequired
               valuesPwd = values.passwordRequired
               valuesConfig = values.config
@@ -342,7 +345,8 @@ export class DataBase extends React.PureComponent {
             if (values.dataBaseDataSystem === 'kafka') {
               editUser = ''
               editPwd = ''
-            } else if (values.dataBaseDataSystem === 'mysql' || values.dataBaseDataSystem === 'postgresql' || values.dataBaseDataSystem === 'mongodb') {
+            } else if (values.dataBaseDataSystem === 'mysql' || values.dataBaseDataSystem === 'postgresql' ||
+              values.dataBaseDataSystem === 'mongodb' || values.dataBaseDataSystem === 'vertica') {
               editUser = values.userRequired
               editPwd = values.passwordRequired
             } else {
@@ -594,7 +598,8 @@ export class DataBase extends React.PureComponent {
         {text: 'kafka', value: 'kafka'},
         {text: 'postgresql', value: 'postgresql'},
         {text: 'mongodb', value: 'mongodb'},
-        {text: 'redis', value: 'redis'}
+        {text: 'redis', value: 'redis'},
+        {text: 'vertica', value: 'vertica'}
       ],
       filteredValue: filteredInfo.nsSys,
       onFilter: (value, record) => record.nsSys.includes(value)
