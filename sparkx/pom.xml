@@ -49,18 +49,18 @@
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-dbpool</artifactId>
             <version>${project.version}</version>
-            <exclusions>
-            <exclusion>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-            </exclusion>
-            </exclusions>
+            <!--<exclusions>-->
+            <!--<exclusion>-->
+                <!--<groupId>com.google.guava</groupId>-->
+                <!--<artifactId>guava</artifactId>-->
+            <!--</exclusion>-->
+            <!--</exclusions>-->
         </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>16.0.1</version>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>com.google.guava</groupId>-->
+            <!--<artifactId>guava</artifactId>-->
+            <!--<version>16.0.1</version>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-hadoop</artifactId>
