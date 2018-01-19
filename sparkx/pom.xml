@@ -252,15 +252,15 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <configuration>
-                    <relocations>
-                        <relocation>
-                            <pattern>com.google.common</pattern>
-                            <shadedPattern>com.foo.com.google.common</shadedPattern>
-                        </relocation>
-                    </relocations>
-                    <finalName>${project.artifactId}-${project.version}-jar-with-dependencies</finalName>
-                </configuration>
+                <!--<configuration>-->
+                    <!--<relocations>-->
+                        <!--<relocation>-->
+                            <!--<pattern>com.google.common</pattern>-->
+                            <!--<shadedPattern>com.foo.com.google.common</shadedPattern>-->
+                        <!--</relocation>-->
+                    <!--</relocations>-->
+                    <!--<finalName>${project.artifactId}-${project.version}-jar-with-dependencies</finalName>-->
+                <!--</configuration>-->
                 <executions>
                     <execution>
                         <phase>package</phase>
