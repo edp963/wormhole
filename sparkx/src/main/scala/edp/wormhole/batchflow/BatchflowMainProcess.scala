@@ -502,17 +502,15 @@ object BatchflowMainProcess extends EdpLogging {
 
         //        sendList.foreach(data => logInfo("before merge:" + data))
         logInfo(uuid + ",@sendList size: " + sendList.size + " saveList size: " + saveList.size)
-        val mergeSendList: Seq[Seq[String]] = if (sinkProcessConfig.specialConfig.isDefined && sinkProcessConfig.specialConfig.get.indexOf("\"i\"") < 0) {
-          logInfo(uuid + "special config not i, merge happen")
-          mergeTuple(sendList, resultSchemaMap, sinkProcessConfig.tableKeyList)
-        } else {
+        val mergeSendList: Seq[Seq[String]] = if (sinkProcessConfig.specialConfig.isDefined && sinkProcessConfig.specialConfig.contains("\"mutation_type\":\"i\"")) {
           logInfo(uuid + "special config is i, merge not happen")
           sendList
+        } else {
+          logInfo(uuid + "special config not i, merge happen")
+          mergeTuple(sendList, resultSchemaMap, sinkProcessConfig.tableKeyList)
         }
         logInfo(uuid + ",@mergeSendList size: " + mergeSendList.size)
 
-        if (sourceNamespace.startsWith("oracle.db4_3.CLIC.TC_BS_TRANSPORT".toLowerCase()))
-          mergeSendList.foreach(data => logInfo("after merge:" + data))
 
         //        val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
         //
