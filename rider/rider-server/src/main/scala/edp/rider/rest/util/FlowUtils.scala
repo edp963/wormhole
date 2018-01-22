@@ -417,7 +417,7 @@ object FlowUtils extends RiderLogger {
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
       } else if (streamType == "routing") {
         val (instance, db, _) = modules.namespaceDal.getNsDetail(sinkNs)
-        val tuple = Seq(streamId, currentMillSec,umsType, sinkNs, instance.connUrl, db.nsDatabase)
+        val tuple = Seq(streamId, currentMillSec, umsType, sinkNs, instance.connUrl, db.nsDatabase)
         val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_ROUTER_FLOW_START.toString, streamId, flowId, tuple.mkString(","), RiderConfig.zk, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
         val flow_start_ums =
@@ -538,7 +538,11 @@ object FlowUtils extends RiderLogger {
       if (topicSearch.isEmpty) {
         val instance = Await.result(modules.instanceDal.findByFilter(_.id === ns.nsInstanceId), minTimeOut).head
         val database = Await.result(modules.databaseDal.findByFilter(_.id === ns.nsDatabaseId), minTimeOut).head
-        val inTopicInsert = StreamInTopic(0, streamId, ns.nsInstanceId, ns.nsDatabaseId, KafkaUtils.getKafkaLatestOffset(instance.connUrl, database.nsDatabase), RiderConfig.spark.topicDefaultRate,
+        val lastConsumedOffset = Await.result(modules.feedbackOffsetDal.getLatestOffset(streamId, database.nsDatabase), minTimeOut)
+        val offset =
+          if (lastConsumedOffset.nonEmpty) lastConsumedOffset.get.partitionOffsets
+          else KafkaUtils.getKafkaLatestOffset(instance.connUrl, database.nsDatabase)
+        val inTopicInsert = StreamInTopic(0, streamId, ns.nsInstanceId, ns.nsDatabaseId, offset, RiderConfig.spark.topicDefaultRate,
           active = true, currentSec, userId, currentSec, userId)
         val inTopic = Await.result(modules.inTopicDal.insert(inTopicInsert), minTimeOut)
         sendTopicDirective(streamId, Seq(StreamTopicTemp(inTopic.id, streamId, database.nsDatabase, inTopic.partitionOffsets, inTopic.rate)), userId)
