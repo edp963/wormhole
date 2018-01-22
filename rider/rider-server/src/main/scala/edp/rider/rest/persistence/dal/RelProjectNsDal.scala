@@ -102,7 +102,7 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
       }.result).mapTo[Seq[NamespaceInfo]]
 
   def getJobSourceNamespaceByProjectId(projectId: Long, nsSys: String) =
-    db.run((namespaceTable.filter(ns => ns.nsSys === nsSys && ns.active === true) join
+    db.run((namespaceTable.filter(ns => ns.nsSys.startsWith(nsSys) && ns.active === true) join
       relProjectNsTable.filter(rel => rel.projectId === projectId && rel.active === true) on (_.id === _.nsId))
       .map {
         case (ns, _) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.keys,
