@@ -110,10 +110,14 @@ object EsTools extends EdpLogging {
       val docsJson = getList(responseJson, "docs")
       for (doc <- docsJson) {
         val id = getString(doc, "_id")
-        if (getBoolean(doc, "found")) {
-          val source = getJValue(doc, "_source")
-          esid2VersionMap(id) = getLong(source, UmsSysField.ID.toString)
-        } else esid2VersionMap(id) = -1
+        if(containsName(doc,"found")){
+          if (getBoolean(doc, "found")) {
+            val source = getJValue(doc, "_source")
+            esid2VersionMap(id) = getLong(source, UmsSysField.ID.toString)
+          } else esid2VersionMap(id) = -1
+        }else{
+          logError("response doc:"+doc)
+        }
       }
     }
     (queryResult, esid2VersionMap)
