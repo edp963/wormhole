@@ -35,7 +35,7 @@ object NsDatabaseUtils {
 
   def getDbConfig(nsSys: String, config: String): Option[Seq[KVConfig]] = {
     nsSys match {
-      case "mysql" | "postgresql" | "oracle" =>
+      case "mysql" | "postgresql" | "oracle" | "vertica" =>
         if (config == null || config == "") None
         //        else if (isJson(config)) {
         //          val seq = new ListBuffer[KVConfig]
