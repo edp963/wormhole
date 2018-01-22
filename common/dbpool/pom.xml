@@ -120,16 +120,16 @@
                                 </filter>
                             </filters>
                             <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
-                            <relocations>
-                                <relocation>
-                                    <pattern>com.google.common</pattern>
-                                    <shadedPattern>com.foo.com.google.common</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.google.guava</pattern>
-                                    <shadedPattern>com.foo.com.google.guava</shadedPattern>
-                                </relocation>
-                            </relocations>
+                            <!--<relocations>-->
+                                <!--<relocation>-->
+                                    <!--<pattern>com.google.common</pattern>-->
+                                    <!--<shadedPattern>com.foo.com.google.common</shadedPattern>-->
+                                <!--</relocation>-->
+                                <!--<relocation>-->
+                                    <!--<pattern>com.google.guava</pattern>-->
+                                    <!--<shadedPattern>com.foo.com.google.guava</shadedPattern>-->
+                                <!--</relocation>-->
+                            <!--</relocations>-->
                         </configuration>
                     </execution>
                 </executions>
