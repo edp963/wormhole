@@ -56,10 +56,7 @@ object RiderStarter extends App with RiderLogger {
   if (Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.adminUser), minTimeOut).isEmpty)
     Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.adminUser, RiderConfig.riderServer.adminPwd, RiderConfig.riderServer.adminUser, "admin", active = true, currentSec, 1, currentSec, 1)), minTimeOut)
 
-  val serverSetting = ServerSettings(system)
-  serverSetting.withRequestTimeout(RiderConfig.riderServer.requestTimeOut)
-  Http().bindAndHandle(new RoutesApi(modules).routes, RiderConfig.riderServer.host, RiderConfig.riderServer.port,
-    settings = serverSetting)
+  Http().bindAndHandle(new RoutesApi(modules).routes, RiderConfig.riderServer.host, RiderConfig.riderServer.port)
   riderLogger.info(s"WormholeServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
 
   CacheMap.cacheMapInit
