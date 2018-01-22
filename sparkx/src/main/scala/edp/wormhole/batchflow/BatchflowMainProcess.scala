@@ -502,7 +502,7 @@ object BatchflowMainProcess extends EdpLogging {
 
         //        sendList.foreach(data => logInfo("before merge:" + data))
         logInfo(uuid + ",@sendList size: " + sendList.size + " saveList size: " + saveList.size)
-        val mergeSendList: Seq[Seq[String]] = if (sinkProcessConfig.specialConfig.isDefined && sinkProcessConfig.specialConfig.contains("\"mutation_type\":\"i\"")) {
+        val mergeSendList: Seq[Seq[String]] = if (SourceMutationType.INSERT_ONLY.toString == mutationType) {
           logInfo(uuid + "special config is i, merge not happen")
           sendList
         } else {
