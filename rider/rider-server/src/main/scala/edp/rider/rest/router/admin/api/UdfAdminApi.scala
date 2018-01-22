@@ -172,23 +172,11 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
       } doesn't exist in hdfs", session))
     } else {
       val function = Await.result(udfDal.findByFilter(_.functionName === simpleUdf.functionName).mapTo[Seq[Udf]], minTimeOut)
-      val fullClass = Await.result(udfDal.findByFilter(_.fullClassName === simpleUdf.fullClassName).mapTo[Seq[Udf]], minTimeOut)
-//      val fullClass = Seq[Udf]()
 
       val msg =
-        if (function.nonEmpty && fullClass.nonEmpty)
+        if (function.nonEmpty)
           s"function_name ${
             simpleUdf.functionName
-          } and full_class_name ${
-            simpleUdf.fullClassName
-          } already exists"
-        else if (function.nonEmpty && fullClass.isEmpty)
-          s"function_name ${
-            simpleUdf.functionName
-          } already exists"
-        else if (function.isEmpty && fullClass.nonEmpty)
-          s"full_class_name ${
-            simpleUdf.fullClassName
           } already exists"
         else ""
       if (msg != "") {
@@ -228,7 +216,7 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
         udf.jarName
       } doesn't exist in hdfs", session))
     } else {
-      val udfSearch = Await.result(udfDal.findById(udf.id), minTimeOut).headOption
+      val udfSearch = Await.result(udfDal.findById(udf.id), minTimeOut)
       if (udfSearch.nonEmpty) {
         if (udfSearch.get.pubic != udf.pubic) {
           if (udf.pubic) {
