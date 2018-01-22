@@ -33,14 +33,11 @@ object NamespaceUtils extends RiderLogger {
 
   def getConnUrl(instance: Instance, db: NsDatabase, connType: String = "sink") = {
     instance.nsSys match {
-      case "mysql" | "postgresql" | "phoenix" =>
+      case "mysql" | "postgresql" | "phoenix" | "vertica" =>
         db.config match {
           case Some(conf) =>
             if (conf != "") {
               val confStr =
-              //                if (isJson(conf))
-              //                  JSON.parseObject(conf).keySet().toArray.map(key => s"$key=${JSON.parseObject(conf).get(key).toString}").mkString("&")
-              //                else
                 (keyEqualValuePattern.toString.r findAllIn conf.split(",").mkString("&")).toList.mkString("&")
               s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}?$confStr"
             } else s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}"
@@ -51,13 +48,6 @@ object NamespaceUtils extends RiderLogger {
         val serviceName = db.config match {
           case Some(conf) =>
             if (conf != "") {
-              //              if (isJson(conf)) {
-              //                if (JSON.parseObject(conf).containsKey("service_name"))
-              //                  JSON.parseObject(conf).getString("service_name")
-              //                else if (JSON.parseObject(conf).containsKey("SERVICE_NAME"))
-              //                  JSON.parseObject(conf).getString("SERVICE_NAME")
-              //                else ""
-              //              } else {
               if (conf.indexOf("service_name") >= 0) {
                 val index = conf.indexOf("service_name")
                 val length = "service_name".length
@@ -86,9 +76,6 @@ object NamespaceUtils extends RiderLogger {
             case Some(conf) =>
               if (conf != "") {
                 val confStr =
-                //                  if (isJson(conf))
-                //                    JSON.parseObject(conf).keySet().toArray.map(key => s"$key=${JSON.parseObject(conf).get(key).toString}").mkString("&")
-                //                  else
                   (keyEqualValuePattern.toString.r findAllIn conf.split(",").mkString("&")).toList.mkString("&")
                 s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}?$confStr"
               } else s"jdbc:${instance.nsSys}://${instance.connUrl}/${db.nsDatabase}"
@@ -99,7 +86,7 @@ object NamespaceUtils extends RiderLogger {
         if (connType == "lookup") {
           if (db.config.nonEmpty && db.config.get != "") {
             val confArray = (keyEqualValuePattern.toString.r findAllIn db.config.get.split(",").mkString("&")).toList
-            val connConf = confArray.filter(_.contains("cluster.name")).headOption
+            val connConf = confArray.find(_.contains("cluster.name"))
             if (connConf.nonEmpty)
               s"jdbc:sql4es://${instance.connUrl}/${db.nsDatabase}?${connConf.get}"
             else s"jdbc:sql4es://${instance.connUrl}/${db.nsDatabase}"

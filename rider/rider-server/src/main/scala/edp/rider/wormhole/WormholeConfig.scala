@@ -44,7 +44,7 @@ case class SinkConfig(sinkNamespace: String,
                       classFullName: Option[String],
                       specialConfig: Option[String],
                       tableKeys: Option[String],
-                      projection:Option[String])
+                      projection: Option[String])
 
 case class JobConfig(appName: String,
                      master: String,
@@ -78,8 +78,8 @@ case class KafkaInputBaseConfig(group_id: String,
                                 `max.partition.fetch.bytes`: Int = 52428800,
                                 `session.timeout.ms`: Int = 30000,
                                 `key.deserializer`: String = "org.apache.kafka.common.serialization.StringDeserializer",
-                                `value.deserializer`: String = "org.apache.kafka.common.serialization.StringDeserializer"
-                               )
+                                `value.deserializer`: String = "org.apache.kafka.common.serialization.StringDeserializer",
+                                `enable.auto.commit`: Boolean = false)
 
 
 case class KafkaTopicConfig(topic_name: String,
