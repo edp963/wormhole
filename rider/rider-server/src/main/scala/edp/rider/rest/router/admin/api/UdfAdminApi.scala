@@ -173,6 +173,8 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
     } else {
       val function = Await.result(udfDal.findByFilter(_.functionName === simpleUdf.functionName).mapTo[Seq[Udf]], minTimeOut)
       val fullClass = Await.result(udfDal.findByFilter(_.fullClassName === simpleUdf.fullClassName).mapTo[Seq[Udf]], minTimeOut)
+//      val fullClass = Seq[Udf]()
+
       val msg =
         if (function.nonEmpty && fullClass.nonEmpty)
           s"function_name ${

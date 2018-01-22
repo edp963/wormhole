@@ -39,7 +39,7 @@ import slick.lifted.TableQuery
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -290,5 +290,18 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         riderLogger.error(s"delete namespace $id failed", ex)
         throw new Exception(s"delete namespace $id failed", ex)
     }
+  }
+
+  def getFlowsByNsIds(ids: Seq[Long]): Seq[Long] = {
+    val nsSeq = Await.result(super.findByFilter(_.id inSet ids).mapTo[Seq[Namespace]], minTimeOut)
+      .map(ns => ns.nsSys + "." + ns.nsInstance + "." + ns.nsDatabase + "." + ns.nsTable + "." + ns.nsVersion
+        + "." + ns.nsDbpar + "." + ns.nsTablepar)
+    val flowIds = new ListBuffer[Long]
+    nsSeq.foreach(ns => {
+      val flow = Await.result(flowDal.findByFilter
+      (flow => flow.sourceNs === ns || flow.sinkNs === ns || flow.tranConfig.getOrElse("").like(s"%${ns.split("\\.").take(3).mkString(".")}%")), minTimeOut)
+      flowIds ++= flow.map(_.id)
+    })
+    flowIds
   }
 }
