@@ -25,17 +25,21 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.monitor.Dashboard
-import edp.rider.rest.persistence.dal.{ProjectDal, RelProjectNsDal, RelProjectUdfDal, RelProjectUserDal}
+import edp.rider.rest.persistence.dal._
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
-import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
+import edp.rider.rest.util.{AuthorizationProvider, FlowUtils}
 import slick.jdbc.MySQLProfile.api._
-import edp.rider.monitor.Dashboard._
+
 import scala.util.{Failure, Success}
 
-class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, relProjectUserDal: RelProjectUserDal, relProjectUdfDal: RelProjectUdfDal) extends BaseAdminApiImpl(projectDal) with RiderLogger with JsonSerializer {
+class ProjectAdminApi(projectDal: ProjectDal,
+                      relProjectNsDal: RelProjectNsDal,
+                      relProjectUserDal: RelProjectUserDal,
+                      relProjectUdfDal: RelProjectUdfDal,
+                      flowDal: FlowDal) extends BaseAdminApiImpl(projectDal) with RiderLogger with JsonSerializer {
 
   override def getByIdRoute(route: String): Route = path(route / LongNumber) {
     id =>
@@ -202,6 +206,8 @@ class ProjectAdminApi(projectDal: ProjectDal, relProjectNsDal: RelProjectNsDal, 
                         val existRelNsIds = existRelNsSeq.map(_.nsId)
                         val putRelNsIds = relNsEntity.map(_.nsId)
                         val deleteNsIds = existRelNsIds.filter(!putRelNsIds.contains(_))
+                        val flowIds = FlowUtils.getFlowsByNsIds(deleteNsIds)
+                        flowDal.defaultGetAll(_.id inSet(flowIds), "stop")
                         val insertNsSeq = relNsEntity.filter(relNs => !existRelNsIds.contains(relNs.nsId))
                         onComplete(relProjectNsDal.deleteByFilter(relNs => relNs.projectId === entity.id && relNs.nsId.inSet(deleteNsIds)).mapTo[Int]) {
                           case Success(_) =>
