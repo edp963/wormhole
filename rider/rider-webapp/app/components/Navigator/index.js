@@ -22,6 +22,9 @@ import React from 'react'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
+
 import UserPswForm from './UserPswForm'
 import Menu from 'antd/lib/menu'
 import Icon from 'antd/lib/icon'
@@ -33,9 +36,11 @@ const MenuItem = Menu.Item
 const SubMenu = Menu.SubMenu
 
 import { logOut } from '../../containers/Login/action'
+import { changeLocale } from '../../containers/LanguageProvider/actions'
 
 import { editroleTypeUserPsw } from '../../containers/User/action'
 import { selectModalLoading } from '../../containers/User/selectors'
+import { selectLocale } from '../../containers/LanguageProvider/selectors'
 
 import { selectCurrentProject } from '../../containers/App/selectors'
 import { setProject } from '../../containers/App/actions'
@@ -67,7 +72,7 @@ class Navigator extends React.Component {
   componentDidMount () {
     // 自动获取浏览器窗口大小
     window.onresize = () => {
-      const paneWidth = document.documentElement.clientWidth - 228 - 198
+      const paneWidth = document.documentElement.clientWidth - 228 - 198 - 64
 
       this.setState({
         paneWidthValue: paneWidth,
@@ -188,6 +193,13 @@ class Navigator extends React.Component {
       logoImgClass = 'ri-logo-img-reduce-reduce'
     }
     return logoImgClass
+  }
+
+  onChangeLanguageBtn = () => {
+    const { locale } = this.props
+
+    const langText = locale === 'zh' ? 'en' : 'zh'
+    this.props.onChangeLanguage(langText)
   }
 
   render () {
@@ -317,7 +329,7 @@ class Navigator extends React.Component {
       </Menu>
     )
 
-    const paneWidth = document.documentElement.clientWidth - 228 - 198
+    const paneWidth = document.documentElement.clientWidth - 228 - 198 - 64
 
     let node = ''
     let logoImgClass = ''
@@ -369,16 +381,23 @@ class Navigator extends React.Component {
             <img src={require(`../../assets/images/logo.png`)} alt="Wormhole" className={logoImgClass} />
           </div>
           {node}
-          <div>
-            <Tooltip title="修改密码">
-              <a title={logNameShow} className="user-login" onClick={this.showEditPsw}>{logNameShow}</a>
-            </Tooltip>
-            <div
-              className="ri-logout"
-              onClick={this.logout}
-            >
-              <Icon type="logout" />
-            </div>
+
+          <Button
+            type="primary"
+            size="small"
+            className="language-change"
+            onClick={this.onChangeLanguageBtn}
+          >
+            <FormattedMessage {...messages.navChangeLanguage} />
+          </Button>
+          <Tooltip title="修改密码">
+            <a title={logNameShow} className="user-login" onClick={this.showEditPsw}>{logNameShow}</a>
+          </Tooltip>
+          <div
+            className="ri-logout"
+            onClick={this.logout}
+          >
+            <Icon type="logout" />
           </div>
 
           <Modal
@@ -422,13 +441,15 @@ export function mapDispatchToProps (dispatch) {
   return {
     onSetProject: (projectId) => dispatch(setProject(projectId)),
     onLogOut: () => dispatch(logOut()),
-    onEditroleTypeUserPsw: (pwdValues, resolve, reject) => dispatch(editroleTypeUserPsw(pwdValues, resolve, reject))
+    onEditroleTypeUserPsw: (pwdValues, resolve, reject) => dispatch(editroleTypeUserPsw(pwdValues, resolve, reject)),
+    onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
 
 const mapStateToProps = createStructuredSelector({
   currentProject: selectCurrentProject(),
-  modalLoading: selectModalLoading()
+  modalLoading: selectModalLoading(),
+  locale: selectLocale()
 })
 
 Navigator.propTypes = {
@@ -436,7 +457,9 @@ Navigator.propTypes = {
   modalLoading: React.PropTypes.bool,
   router: React.PropTypes.any,
   onLogOut: React.PropTypes.func,
-  onEditroleTypeUserPsw: React.PropTypes.func
+  onEditroleTypeUserPsw: React.PropTypes.func,
+  onChangeLanguage: React.PropTypes.func,
+  locale: React.PropTypes.string
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Navigator)
