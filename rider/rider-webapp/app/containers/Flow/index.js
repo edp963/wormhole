@@ -893,77 +893,61 @@ export class Flow extends React.Component {
       key: 'action',
       className: 'text-align-center',
       render: (text, record) => {
-        let flowRenewDisabled = false
-
-        let flStart = ''
-        let flStartDisabled = (
-          <Tooltip title="开始">
-            <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
-          </Tooltip>
-        )
-        let flStartDisabledNot = (
-          <Popconfirm placement="bottom" title="确定开始吗？" okText="Yes" cancelText="No" onConfirm={this.onShowFlowStart(record, 'start')}>
-            <Tooltip title="开始">
-              <Button icon="caret-right" shape="circle" type="ghost"></Button>
+        const strEdit = record.disableActions.indexOf('modify') > -1
+          ? (
+            <Tooltip title="修改">
+              <Button icon="edit" shape="circle" type="ghost" disabled></Button>
             </Tooltip>
-          </Popconfirm>
-        )
+          )
+          : (
+            <Tooltip title="修改">
+              <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
+            </Tooltip>
+          )
 
-        let flStop = ''
-        let flStopDisabled = (
-          <Tooltip title="停止">
-            <Button shape="circle" type="ghost" disabled>
-              <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
-            </Button>
-          </Tooltip>
-        )
-        let flStopDisabledNot = (
-          <Popconfirm placement="bottom" title="确定停止吗？" okText="Yes" cancelText="No" onConfirm={this.stopFlowBtn(record, 'stop')}>
+        const strStart = record.disableActions.indexOf('start') > -1
+          ? (
+            <Tooltip title="开始">
+              <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
+            </Tooltip>
+          )
+          : (
+            <Popconfirm placement="bottom" title="确定开始吗？" okText="Yes" cancelText="No" onConfirm={this.onShowFlowStart(record, 'start')}>
+              <Tooltip title="开始">
+                <Button icon="caret-right" shape="circle" type="ghost"></Button>
+              </Tooltip>
+            </Popconfirm>
+          )
+
+        const strStop = record.disableActions.indexOf('stop') > -1
+          ? (
             <Tooltip title="停止">
-              <Button shape="circle" type="ghost">
+              <Button shape="circle" type="ghost" disabled>
                 <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
               </Button>
             </Tooltip>
-          </Popconfirm>
-        )
+          )
+          : (
+            <Popconfirm placement="bottom" title="确定停止吗？" okText="Yes" cancelText="No" onConfirm={this.stopFlowBtn(record, 'stop')}>
+              <Tooltip title="停止">
+                <Button shape="circle" type="ghost">
+                  <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
+                </Button>
+              </Tooltip>
+            </Popconfirm>
+          )
 
-        if (record.disableActions.indexOf('start') < 0 && record.disableActions.indexOf('renew') < 0) {
-          // disableActions === 'stop'
-          flStart = flStartDisabledNot
-          flStop = flStopDisabled
-        } else if (record.disableActions.indexOf('start') < 0 && record.disableActions.indexOf('stop') < 0) {
-          // disableActions === 'renew'
-          flowRenewDisabled = true
-          flStart = flStartDisabledNot
-          flStop = flStopDisabledNot
-        } else if (record.disableActions.indexOf('renew') < 0 && record.disableActions.indexOf('stop') < 0) {
-          // disableActions === 'start'
-          flStart = flStartDisabled
-          flStop = flStopDisabledNot
-        } else if (record.disableActions.indexOf('start') < 0) {
-          // disableActions === stop, renew
-          flowRenewDisabled = true
-          flStart = flStartDisabledNot
-          flStop = flStopDisabled
-        } else if (record.disableActions.indexOf('stop') < 0) {
-          // disableActions === start, renew
-          flowRenewDisabled = true
-          flStart = flStartDisabled
-          flStop = flStopDisabledNot
-        } else if (record.disableActions.indexOf('renew') < 0) {
-          // disableActions === start, stop
-          flStart = flStartDisabled
-          flStop = flStopDisabled
-        } else if (record.disableActions.indexOf('start') < 0 && record.disableActions.indexOf('stop') < 0 && record.disableActions.indexOf('renew') < 0) {
-          // disableActions === ''
-          flStart = flStartDisabledNot
-          flStop = flStopDisabledNot
-        } else {
-          // disableActions === start, stop, renew
-          flowRenewDisabled = true
-          flStart = flStartDisabled
-          flStop = flStopDisabled
-        }
+        const strRenew = record.disableActions.indexOf('renew') > -1
+          ? (
+            <Tooltip title="生效">
+              <Button icon="check" shape="circle" type="ghost" disabled></Button>
+            </Tooltip>
+          )
+          : (
+            <Tooltip title="生效">
+              <Button icon="check" shape="circle" type="ghost" onClick={this.updateFlow(record, 'renew')}></Button>
+            </Tooltip>
+          )
 
         let FlowActionSelect = ''
         if (localStorage.getItem('loginRoleType') === 'admin') {
@@ -975,20 +959,13 @@ export class Flow extends React.Component {
                 <Button icon="file-excel" shape="circle" type="ghost" onClick={this.showModal(record.id)}></Button>
               </Tooltip> */}
 
-              <Tooltip title="修改">
-                <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
-              </Tooltip>
-
+              {strEdit}
               <Tooltip title="复制">
                 <Button icon="copy" shape="circle" type="ghost" onClick={this.onCopyFlow(record)}></Button>
               </Tooltip>
-
-              {flStart}
-              {flStop}
-
-              <Tooltip title="生效">
-                <Button icon="check" shape="circle" type="ghost" onClick={this.updateFlow(record, 'renew')} disabled={flowRenewDisabled}></Button>
-              </Tooltip>
+              {strStart}
+              {strStop}
+              {strRenew}
 
               {/* <Tooltip title="backfill" onClick={this.onShowBackfill(record)}>
                <Button icon="rollback" shape="circle" type="ghost" ></Button>
