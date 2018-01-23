@@ -1026,76 +1026,56 @@ export class Manager extends React.Component {
               </Popconfirm>
             )
 
-          let streamStartDisabled = false
-          let streamRenewDisabled = false
-          let strStop = ''
-          let strStopDisabled = (
-            <Tooltip title="停止">
-              <Button shape="circle" type="ghost" disabled>
-                <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
-              </Button>
-            </Tooltip>
-          )
-          let strStopDisabledNot = (
-            <Popconfirm placement="bottom" title="确定停止吗？" okText="Yes" cancelText="No" onConfirm={this.stopStreamBtn(record, 'stop')}>
+          const strStart = record.disableActions.indexOf('start') > -1
+            ? (
+              <Tooltip title="开始">
+                <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
+              </Tooltip>
+            )
+            : (
+              <Tooltip title="开始">
+                <Button icon="caret-right" shape="circle" type="ghost" onClick={this.onShowEditStart(record, 'start')}></Button>
+              </Tooltip>
+            )
+
+          const strStop = record.disableActions.indexOf('stop') > -1
+            ? (
               <Tooltip title="停止">
-                <Button shape="circle" type="ghost">
+                <Button shape="circle" type="ghost" disabled>
                   <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
                 </Button>
               </Tooltip>
-            </Popconfirm>
-          )
+            )
+            : (
+              <Popconfirm placement="bottom" title="确定停止吗？" okText="Yes" cancelText="No" onConfirm={this.stopStreamBtn(record, 'stop')}>
+                <Tooltip title="停止">
+                  <Button shape="circle" type="ghost">
+                    <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
+                  </Button>
+                </Tooltip>
+              </Popconfirm>
+            )
 
-          if (record.disableActions.indexOf('start') < 0 && record.disableActions.indexOf('renew') < 0) {
-            // disableActions === 'stop'
-            strStop = strStopDisabled
-          } else if (record.disableActions.indexOf('start') < 0 && record.disableActions.indexOf('stop') < 0) {
-            // disableActions === 'renew'
-            streamRenewDisabled = true
-            strStop = strStopDisabledNot
-          } else if (record.disableActions.indexOf('renew') < 0 && record.disableActions.indexOf('stop') < 0) {
-            // disableActions === 'start'
-            streamStartDisabled = true
-            strStop = strStopDisabledNot
-          } else if (record.disableActions.indexOf('start') < 0) {
-            // disableActions === stop, renew
-            streamRenewDisabled = true
-            strStop = strStopDisabled
-          } else if (record.disableActions.indexOf('stop') < 0) {
-            // disableActions === start, renew
-            streamStartDisabled = true
-            streamRenewDisabled = true
-            strStop = strStopDisabledNot
-          } else if (record.disableActions.indexOf('renew') < 0) {
-            // disableActions === start, stop
-            streamStartDisabled = true
-            strStop = strStopDisabled
-          } else if (record.disableActions.indexOf('start') < 0 && record.disableActions.indexOf('stop') < 0 && record.disableActions.indexOf('renew') < 0) {
-            // disableActions === ''
-            strStop = strStopDisabledNot
-          } else {
-            // disableActions === start, stop, renew
-            streamStartDisabled = true
-            streamRenewDisabled = true
-            strStop = strStopDisabled
-          }
+          const strRenew = record.disableActions.indexOf('renew') > -1
+            ? (
+              <Tooltip title="生效">
+                <Button icon="check" shape="circle" type="ghost" disabled></Button>
+              </Tooltip>
+            )
+            : (
+              <Tooltip title="生效">
+                <Button icon="check" shape="circle" type="ghost" onClick={this.updateStream(record, 'renew')}></Button>
+              </Tooltip>
+            )
 
           streamActionSelect = (
             <span>
               <Tooltip title="修改">
                 <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditStream(record)}></Button>
               </Tooltip>
-
-              <Tooltip title="开始">
-                <Button icon="caret-right" shape="circle" type="ghost" onClick={this.onShowEditStart(record, 'start')} disabled={streamStartDisabled}></Button>
-              </Tooltip>
-
+              {strStart}
               {strStop}
-
-              <Tooltip title="生效">
-                <Button icon="check" shape="circle" type="ghost" onClick={this.updateStream(record, 'renew')} disabled={streamRenewDisabled}></Button>
-              </Tooltip>
-
+              {strRenew}
               {strDelete}
             </span>
           )
