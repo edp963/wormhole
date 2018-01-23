@@ -644,7 +644,18 @@ export class Job extends React.Component {
       key: 'action',
       className: 'text-align-center',
       render: (text, record) => {
-        // console.log('re', record.disableActions.indexOf('stop'))
+        const strEdit = record.disableActions.indexOf('modify') > -1
+          ? (
+            <Tooltip title="修改">
+              <Button icon="edit" shape="circle" type="ghost" disabled></Button>
+            </Tooltip>
+          )
+          : (
+            <Tooltip title="修改">
+              <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditJob(record)}></Button>
+            </Tooltip>
+          )
+
         const strStart = record.disableActions.indexOf('start') > -1
           ? (
             <Tooltip title="开始">
@@ -697,9 +708,7 @@ export class Job extends React.Component {
         } else if (localStorage.getItem('loginRoleType') === 'user') {
           jobActionSelect = (
             <span>
-              <Tooltip title="修改">
-                <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditJob(record)}></Button>
-              </Tooltip>
+              {strEdit}
               {strStart}
               {strStop}
               {strDelete}
@@ -724,6 +733,7 @@ export class Job extends React.Component {
                 <p><strong>   Update Time：</strong>{showJob.updateTime}</p>
                 <p><strong>   Create By：</strong>{showJob.createBy}</p>
                 <p><strong>   Update By：</strong>{showJob.updateBy}</p>
+                <p><strong>   Disable Actions：</strong>{showJobDetail.disableActions}</p>
               </div>
             )
           }

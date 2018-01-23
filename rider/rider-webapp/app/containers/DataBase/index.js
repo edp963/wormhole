@@ -23,6 +23,9 @@ import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
 
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
+
 import DBForm from './DBForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
@@ -576,7 +579,7 @@ export class DataBase extends React.PureComponent {
     filteredInfo = filteredInfo || {}
 
     const columns = [{
-      title: 'Data System',
+      title: <FormattedMessage {...messages.tableColumnDS} />,
       dataIndex: 'nsSys',
       key: 'nsSys',
       sorter: (a, b) => {
@@ -815,7 +818,7 @@ export class DataBase extends React.PureComponent {
         <Helmet title="Database" />
         <div className="ri-workbench-table ri-common-block">
           <h3 className="ri-common-block-title">
-            <Icon type="bars" /> Datebase 列表
+            <Icon type="bars" /> <FormattedMessage {...messages.tableTitle} />
           </h3>
           <div className="ri-common-block-tools">
             <Button icon="plus" type="primary" onClick={this.showAddDB}>新建</Button>

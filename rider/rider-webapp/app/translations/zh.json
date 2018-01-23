@@ -1,0 +1,21 @@
+{
+  "app.components.Navigator.zh.en": "中 文",
+  "rider.app.modal.cancel": "Cancel",
+  "rider.components.Navigator.project": "Project",
+  "rider.components.Navigator.flow": "Flow",
+  "rider.components.Navigator.stream": "Stream",
+  "rider.components.Navigator.job": "Job",
+  "rider.components.Navigator.namespace": "Namespace",
+  "rider.components.Navigator.instance": "Instance",
+  "rider.components.Navigator.database": "Database",
+  "rider.components.Navigator.user": "User",
+  "rider.components.Navigator.udf": "UDF",
+  "rider.components.Navigator.riderinfo": "RiderInfo",
+  "rider.components.Navigator.edit.password": "Edit Password",
+  "rider.containers.Project.add.project": "Add Project",
+  "rider.containers.Project.edit.project": "Edit and ???",
+  "rider.containers.Project.hide.project": "Hide",
+  "rider.containers.Project.delete.project": "Delete",
+  "rider.containers.Database.table.title": "Database List",
+  "rider.containers.Database.table.column.ds": "Data System"
+}
