@@ -141,9 +141,9 @@ export class Workbench extends React.Component {
 
       // request data
       resultFiledsOutput: {},
-      dataframeShowOrNot: '',
-      etpStrategyRequestValue: '',
-      transformTableRequestValue: '',
+      dataframeShowOrNot: {},
+      etpStrategyRequestValue: {},
+      transformTableRequestValue: {},
       pushdownConnectRequestValue: '',
 
       // add flow confirmation data
@@ -321,9 +321,7 @@ export class Workbench extends React.Component {
         })
         // default source ns 和 sink ns 同时调同一个接口获得，保证两处的 placeholder 和单条数据回显都能正常
         if (flowMode === 'add' || flowMode === 'copy') {
-          this.workbenchFlowForm.setFieldsValue({
-            sourceNamespace: undefined
-          })
+          this.workbenchFlowForm.setFieldsValue({ sourceNamespace: undefined })
         }
       })
     }
@@ -343,9 +341,7 @@ export class Workbench extends React.Component {
         jobSourceNsData: generateSourceSinkNamespaceHierarchy(value, result)
       })
       if (jobMode === 'add') {
-        this.workbenchJobForm.setFieldsValue({
-          sourceNamespace: undefined
-        })
+        this.workbenchJobForm.setFieldsValue({ sourceNamespace: undefined })
       }
     }, (result) => {
       message.error(`Source 异常：${result}`, 5)
@@ -417,9 +413,7 @@ export class Workbench extends React.Component {
           sinkTypeNamespaceData: generateSourceSinkNamespaceHierarchy(value, result)
         })
         if (flowMode === 'add' || flowMode === 'copy') {
-          this.workbenchFlowForm.setFieldsValue({
-            sinkNamespace: undefined
-          })
+          this.workbenchFlowForm.setFieldsValue({ sinkNamespace: undefined })
         }
       })
     }
@@ -440,9 +434,7 @@ export class Workbench extends React.Component {
         jobSinkNsData: generateSourceSinkNamespaceHierarchy(value, result)
       })
       if (jobMode === 'add') {
-        this.workbenchJobForm.setFieldsValue({
-          sinkNamespace: undefined
-        })
+        this.workbenchJobForm.setFieldsValue({ sinkNamespace: undefined })
       }
     }, (result) => {
       message.error(`Sink 异常：${result}`, 5)
@@ -496,7 +488,7 @@ export class Workbench extends React.Component {
       dataframeShowSelected: 'hide',
       resultFieldsValue: 'all',
       etpStrategyConfirmValue: '',
-      etpStrategyRequestValue: ''
+      etpStrategyRequestValue: {}
     }, () => {
       this.workbenchFlowForm.setFieldsValue({
         resultFields: 'all',
@@ -558,11 +550,12 @@ export class Workbench extends React.Component {
     })
   }
 
-  onInitStreamNameSelect = (valId) => {
+  onInitStreamNameSelect = (valName) => {
     const { streamDiffType, selectStreamKafkaTopicValue } = this.state
 
-    const selName = selectStreamKafkaTopicValue.find(s => s.id === Number(valId))
+    const selName = selectStreamKafkaTopicValue.find(s => s.name === valName)
     const topicTemp = selName.topicInfo
+    const valId = selName.id
     this.setState({
       pipelineStreamId: Number(valId),
       flowKafkaInstanceValue: selName.instance,
@@ -585,6 +578,7 @@ export class Workbench extends React.Component {
           hdfslogSinkNsValue: ''
         })
         this.workbenchFlowForm.setFieldsValue({
+          flowStreamId: Number(valId),
           sourceDataSystem: '',
           hdfslogNamespace: undefined
         })
@@ -594,6 +588,7 @@ export class Workbench extends React.Component {
           routingSourceNsValue: '',
           routingSinkNsValue: ''
         })
+        this.workbenchFlowForm.setFieldsValue({ flowStreamId: Number(valId) })
         break
     }
   }
@@ -858,7 +853,7 @@ export class Workbench extends React.Component {
               this.setState({
                 etpStrategyCheck: true,
                 etpStrategyResponseValue: validityTemp,
-                etpStrategyRequestValue: `"validity":${JSON.stringify(requestTempJson)}`,
+                etpStrategyRequestValue: {'validity': requestTempJson},
                 etpStrategyConfirmValue: JSON.stringify(requestTempJson)
               })
             } else {
@@ -873,9 +868,7 @@ export class Workbench extends React.Component {
               this.setState({
                 dataframeShowSelected: ''
               }, () => {
-                this.workbenchFlowForm.setFieldsValue({
-                  dataframeShowNum: tranConfigVal.dataframe_show_num
-                })
+                this.workbenchFlowForm.setFieldsValue({ dataframeShowNum: tranConfigVal.dataframe_show_num })
               })
             } else {
               dataframeShowVal = 'false'
@@ -894,7 +887,7 @@ export class Workbench extends React.Component {
               let tranConfigInfoTemp = ''
               let tranConfigInfoSqlTemp = ''
               let tranTypeTepm = ''
-              let pushdownConTepm = ''
+              let pushdownConTepm = {}
 
               if (i.indexOf('pushdown_sql') > -1) {
                 const iTmp = i.indexOf('left join') > -1 ? i.replace('left join', 'leftJoin') : i
@@ -916,7 +909,7 @@ export class Workbench extends React.Component {
                   username: tmpObj.username,
                   password: tmpObj.password
                 }
-                pushdownConTepm = JSON.stringify(pushdownConTepmJson)
+                pushdownConTepm = pushdownConTepmJson
               }
 
               if (i.indexOf('parquet_sql') > -1) {
@@ -941,7 +934,7 @@ export class Workbench extends React.Component {
                 tranConfigInfoTemp = `${tranConfigInfoTempTemp};`
                 tranConfigInfoSqlTemp = `${streamJoinAfterPartTepm};`
                 tranTypeTepm = 'streamJoinSql'
-                pushdownConTepm = ''
+                pushdownConTepm = {}
               }
 
               if (i.indexOf('spark_sql') > -1) {
@@ -952,7 +945,7 @@ export class Workbench extends React.Component {
                 tranConfigInfoTemp = `${sparkAfterPartTepm};`
                 tranConfigInfoSqlTemp = `${sparkAfterPartTepm};`
                 tranTypeTepm = 'sparkSql'
-                pushdownConTepm = ''
+                pushdownConTepm = {}
               }
 
               if (i.indexOf('custom_class') > -1) {
@@ -963,7 +956,7 @@ export class Workbench extends React.Component {
                 tranConfigInfoTemp = classAfterPartTepm
                 tranConfigInfoSqlTemp = classAfterPartTepm
                 tranTypeTepm = 'transformClassName'
-                pushdownConTepm = ''
+                pushdownConTepm = {}
               }
 
               tranTableSourceTemp.order = index + 1
@@ -1211,9 +1204,7 @@ export class Workbench extends React.Component {
     })
 
     // 显示 Kafka
-    this.props.onLoadkafka(this.state.projectId, 'kafka', (result) => {
-      this.setState({ kafkaValues: result })
-    })
+    this.props.onLoadkafka(this.state.projectId, 'kafka', (result) => this.setState({ kafkaValues: result }))
   }
 
   showEditStreamWorkbench = (stream) => () => {
@@ -1485,12 +1476,12 @@ export class Workbench extends React.Component {
     flowFormTranTableSource.map(i => tranRequestTempArr.push(preProcessSql(i.transformConfigInfoRequest)))
     const tranRequestTempString = tranRequestTempArr.join('')
     this.setState({
-      transformTableRequestValue: tranRequestTempString === '' ? '' : `"action": "${tranRequestTempString}"`,
+      transformTableRequestValue: tranRequestTempString === '' ? {} : {'action': tranRequestTempString},
       transformTableConfirmValue: tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`
     })
 
     // 只有 lookup sql 才有 pushdownConnection
-    let tempSource = flowFormTranTableSource.filter(s => s.pushdownConnection !== '')
+    let tempSource = flowFormTranTableSource.filter(s => s.pushdownConnection['name_space'])
 
     let pushConnTemp = []
     for (let i = 0; i < tempSource.length; i++) {
@@ -1498,7 +1489,7 @@ export class Workbench extends React.Component {
     }
 
     this.setState({
-      pushdownConnectRequestValue: pushConnTemp === '' ? '' : `"pushdown_connection":[${pushConnTemp}],`
+      pushdownConnectRequestValue: pushConnTemp === '' ? {} : {'pushdown_connection': pushConnTemp}
     })
 
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
@@ -1536,12 +1527,12 @@ export class Workbench extends React.Component {
               if (dataframeShowSelect === 'true') {
                 const dataframeShowNum = this.workbenchFlowForm.getFieldValue('dataframeShowNum')
                 this.setState({
-                  dataframeShowOrNot: `"dataframe_show":"true","dataframe_show_num":"${dataframeShowNum}"`,
+                  dataframeShowOrNot: {'dataframe_show': 'true', 'dataframe_show_num': dataframeShowNum},
                   dataframeShowNumValue: `true; Number is ${dataframeShowNum}`
                 })
               } else {
                 this.setState({
-                  dataframeShowOrNot: `"dataframe_show":"false"`,
+                  dataframeShowOrNot: {'dataframe_show': 'false'},
                   dataframeShowNumValue: 'false'
                 })
               }
@@ -1550,9 +1541,7 @@ export class Workbench extends React.Component {
                 transConfigConfirmValue: values.flowSpecialConfig
               })
             } else if (streamDiffType === 'hdfslog') {
-              this.setState({
-                formStep: this.state.formStep + 2
-              })
+              this.setState({ formStep: this.state.formStep + 2 })
             }
             break
         }
@@ -1660,10 +1649,10 @@ export class Workbench extends React.Component {
             jobFormTranTableSource.map(i => tranRequestTempArr.push(i.transformConfigInfoRequest))
             const tranRequestTempString = tranRequestTempArr.join('')
 
-            let tempRequestVal = ''
+            let tempRequestVal = {}
             tempRequestVal = tranRequestTempString === ''
-              ? ''
-              : `"action": "${tranRequestTempString}"`
+              ? {}
+              : {'action': tranRequestTempString}
 
             this.setState({
               formStep: formStep + 1,
@@ -1755,24 +1744,20 @@ export class Workbench extends React.Component {
         : `{"maxRecordPerPartitionProcessed":${values.maxRecordPerPartitionProcessed},"sink_specific_config":${values.sinkConfig},"sink_output":"${values.resultFieldsSelected}"}`
     }
 
-    const tempSpecial = typeof (values.jobSpecialConfig) === 'string'
-      ? values.jobSpecialConfig
-      : JSON.stringify(values.jobSpecialConfig)
-
-    let tranConfigRequest = ''
-    if (jobTranTableRequestValue === '') {
-      tranConfigRequest = ''
+    let tranConfigRequest = {}
+    if (jobTranTableRequestValue === {}) {
+      tranConfigRequest = {}
     } else {
       tranConfigRequest = !values.jobSpecialConfig
-        ? `{${jobTranTableRequestValue}}`
-        : `{${jobTranTableRequestValue},"swifts_specific_config":${tempSpecial}}`
+        ? jobTranTableRequestValue
+        : Object.assign({}, jobTranTableRequestValue, { 'swifts_specific_config': JSON.parse(values.jobSpecialConfig) })
     }
 
     const requestCommon = {
       eventTsStart: (!values.eventStartTs) ? '' : startTsVal,
       eventTsEnd: (!values.eventEndTs) ? '' : endTsVal,
       sinkConfig: sinkConfigRequest,
-      tranConfig: tranConfigRequest
+      tranConfig: JSON.stringify(tranConfigRequest)
     }
 
     if (jobMode === 'add') {
@@ -1850,19 +1835,14 @@ export class Workbench extends React.Component {
         : `{"sink_specific_config":${values.sinkConfig},"sink_output":"${values.resultFieldsSelected}"}`
     }
 
-    const etpStrategyRequestValFinal = etpStrategyRequestValue === '' ? etpStrategyRequestValue : `${etpStrategyRequestValue},`
-
-    const tempSpecial = typeof (values.flowSpecialConfig) === 'string'
-        ? values.flowSpecialConfig
-        : JSON.stringify(values.flowSpecialConfig)
-
-    let tranConfigRequest = ''
+    let tranConfigRequest = {}
     if (transformTableRequestValue === '') {
-      tranConfigRequest = ''
+      tranConfigRequest = {}
     } else {
+      const objectTemp = Object.assign({}, etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue, dataframeShowOrNot)
       tranConfigRequest = !values.flowSpecialConfig
-        ? `{${etpStrategyRequestValFinal}${transformTableRequestValue},${pushdownConnectRequestValue}${dataframeShowOrNot}}`
-        : `{${etpStrategyRequestValFinal}${transformTableRequestValue},${pushdownConnectRequestValue}${dataframeShowOrNot},"swifts_specific_config":${tempSpecial}}`
+        ? objectTemp
+        : Object.assign({}, objectTemp, {'swifts_specific_config': JSON.parse(values.flowSpecialConfig)})
     }
 
     if (flowMode === 'add' || flowMode === 'copy') {
@@ -1880,7 +1860,7 @@ export class Workbench extends React.Component {
         sinkNs: sinkDataInfo,
         consumedProtocol: values.protocol,
         sinkConfig: `${sinkConfigRequest}`,
-        tranConfig: tranConfigRequest
+        tranConfig: JSON.stringify(tranConfigRequest)
       }
 
       this.props.onAddFlow(submitFlowData, () => {
@@ -1896,7 +1876,7 @@ export class Workbench extends React.Component {
     } else if (flowMode === 'edit') {
       const editData = {
         sinkConfig: `${sinkConfigRequest}`,
-        tranConfig: tranConfigRequest,
+        tranConfig: JSON.stringify(tranConfigRequest),
         consumedProtocol: values.protocol
       }
 
@@ -2064,9 +2044,7 @@ export class Workbench extends React.Component {
             })
           }
         } else if (streamMode === 'edit') {
-          const editValues = {
-            desc: values.desc
-          }
+          const editValues = { desc: values.desc }
           const requestEditValues = Object.assign({}, editValues, streamQueryValues, streamConfigValues)
 
           this.props.onEditStream(requestEditValues, () => {
@@ -2236,9 +2214,7 @@ export class Workbench extends React.Component {
           this.cmStreamJoinSql.doc.setValue(tranStreamJoinVal2)
           break
         case 'transformClassName':
-          this.flowTransformForm.setFieldsValue({
-            transformClassName: record.transformConfigInfo
-          })
+          this.flowTransformForm.setFieldsValue({ transformClassName: record.transformConfigInfo })
           break
       }
     })
@@ -2260,9 +2236,7 @@ export class Workbench extends React.Component {
         this.makeJobSqlCodeMirrorInstance()
         this.cmJobSparkSql.doc.setValue(record.transformConfigInfo)
       } else if (this.state.jobTransValue === 'transformClassName') {
-        this.jobTransformForm.setFieldsValue({
-          transformClassName: record.transformConfigInfo
-        })
+        this.jobTransformForm.setFieldsValue({ transformClassName: record.transformConfigInfo })
       }
     })
   }
@@ -2274,9 +2248,7 @@ export class Workbench extends React.Component {
       transformValue: ''
     }, () => {
       this.flowTransformForm.resetFields()
-      this.flowTransformForm.setFieldsValue({
-        editTransformId: record.order
-      })
+      this.flowTransformForm.setFieldsValue({ editTransformId: record.order })
     })
   }
 
@@ -2340,7 +2312,7 @@ export class Workbench extends React.Component {
             if (!cmJobSparkSqlVal) {
               message.error('请填写 SQL！', 3)
             } else {
-              const sparkSqlVal = cmJobSparkSqlVal.replace(/(^\s*)|(\s*$)/g, '')
+              const sparkSqlVal = cmJobSparkSqlVal.replace(/(^\s*)|(\s*$)/g, '') // 去掉字符串前后空格
 
               transformConfigInfoString = sparkSqlVal
               transformConfigInfoRequestString = `spark_sql = ${sparkSqlVal}`
@@ -2444,7 +2416,7 @@ export class Workbench extends React.Component {
         let transformConfigInfoString = ''
         let tranConfigInfoSqlString = ''
         let transformConfigInfoRequestString = ''
-        let pushdownConnectionString = ''
+        let pushdownConnectionJson = {}
 
         let num = -1
         let finalVal = ''
@@ -2487,7 +2459,7 @@ export class Workbench extends React.Component {
                   connection_config: tmp.connection_config
                 }
 
-              pushdownConnectionString = JSON.stringify(pushdownConnectJson)
+              pushdownConnectionJson = pushdownConnectJson
 
               num = (lookupSqlVal.split(';')).length - 1
               finalVal = lookupSqlVal.substring(lookupSqlVal.length - 1)
@@ -2504,7 +2476,7 @@ export class Workbench extends React.Component {
               transformConfigInfoString = sparkSqlVal
               tranConfigInfoSqlString = sparkSqlVal
               transformConfigInfoRequestString = `spark_sql = ${sparkSqlVal}`
-              pushdownConnectionString = ''
+              pushdownConnectionJson = {}
 
               num = (sparkSqlVal.split(';')).length - 1
               finalVal = sparkSqlVal.substring(sparkSqlVal.length - 1)
@@ -2527,7 +2499,7 @@ export class Workbench extends React.Component {
               transformConfigInfoString = `${values.streamJoinSqlType}.${values.timeout}.${streamJoinSqlVal}`
               tranConfigInfoSqlString = streamJoinSqlVal
               transformConfigInfoRequestString = `parquet_sql ${streamJoinSqlTypeOrigin} with ${step2SourceNamespace}.*.*.*(${values.timeout}) = ${streamJoinSqlVal}`
-              pushdownConnectionString = ''
+              pushdownConnectionJson = {}
 
               num = (streamJoinSqlVal.split(';')).length - 1
               finalVal = streamJoinSqlVal.substring(streamJoinSqlVal.length - 1)
@@ -2537,7 +2509,7 @@ export class Workbench extends React.Component {
             const transformClassNameValTemp = values.transformClassName.replace(/(^\s*)|(\s*$)/g, '')
             const transformClassNameVal = preProcessSql(transformClassNameValTemp)
 
-            pushdownConnectionString = ''
+            pushdownConnectionJson = {}
 
             num = (transformClassNameVal.split(';')).length - 1
             finalVal = transformClassNameVal.substring(transformClassNameVal.length - 1)
@@ -2560,7 +2532,7 @@ export class Workbench extends React.Component {
           } else if (num === 1 && finalVal !== ';') {
             message.warning('ClassName 最多以一个分号结束，但其他地方不应有分号！', 3)
           } else if (num === 0 || (num === 1 && finalVal === ';')) {
-            this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionString)
+            this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionJson)
           }
         } else {
           if (num === 0) {
@@ -2570,14 +2542,14 @@ export class Workbench extends React.Component {
           } else if (num === 1 && finalVal !== ';') {
             message.warning('SQL语句应以一个分号结束！', 3)
           } else if (num === 1 && finalVal === ';') {
-            this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionString)
+            this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionJson)
           }
         }
       }
     })
   }
 
-  flowTransSetState (transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionString) {
+  flowTransSetState (transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionJson) {
     // 加隐藏字段 transformType, 获得每次选中的transformation type
     switch (transformMode) {
       case '':
@@ -2588,7 +2560,7 @@ export class Workbench extends React.Component {
           transformConfigInfo: transformConfigInfoString,
           tranConfigInfoSql: tranConfigInfoSqlString,
           transformConfigInfoRequest: transformConfigInfoRequestString,
-          pushdownConnection: pushdownConnectionString
+          pushdownConnection: pushdownConnectionJson
         })
 
         this.setState({
@@ -2607,7 +2579,7 @@ export class Workbench extends React.Component {
           transformConfigInfo: transformConfigInfoString,
           tranConfigInfoSql: tranConfigInfoSqlString,
           transformConfigInfoRequest: transformConfigInfoRequestString,
-          pushdownConnection: pushdownConnectionString
+          pushdownConnection: pushdownConnectionJson
         }
         break
       case 'add':
@@ -2619,7 +2591,7 @@ export class Workbench extends React.Component {
           transformConfigInfo: transformConfigInfoString,
           tranConfigInfoSql: tranConfigInfoSqlString,
           transformConfigInfoRequest: transformConfigInfoRequestString,
-          pushdownConnection: pushdownConnectionString
+          pushdownConnection: pushdownConnectionJson
         })
         // 当前数据的下一条开始，order+1
         for (let i = values.editTransformId + 1; i < tableSourceArr.length; i++) {
@@ -2878,7 +2850,7 @@ export class Workbench extends React.Component {
 
         this.setState({
           etpStrategyCheck: true,
-          etpStrategyRequestValue: `"validity":${JSON.stringify(valueJson)}`,
+          etpStrategyRequestValue: {'validity': valueJson},
           etpStrategyConfirmValue: JSON.stringify(valueJson)
         })
         this.hideEtpStrategyModal()
@@ -2968,9 +2940,7 @@ export class Workbench extends React.Component {
   onFlowSpecialConfigModalOk = () => {
     const cmValue = this.cmFlowSpecial.doc.getValue()
     if (isJSON(cmValue)) {
-      this.workbenchFlowForm.setFieldsValue({
-        flowSpecialConfig: cmValue
-      })
+      this.workbenchFlowForm.setFieldsValue({ flowSpecialConfig: cmValue })
       this.hideFlowSpecialConfigModal()
     } else {
       message.error('Transformation Config 必须为 JSON格式！', 3)
@@ -2980,9 +2950,7 @@ export class Workbench extends React.Component {
   onJobSpecialConfigModalOk = () => {
     const cmValue = this.cmJobSpecial.doc.getValue()
     if (isJSON(cmValue)) {
-      this.workbenchJobForm.setFieldsValue({
-        jobSpecialConfig: cmValue
-      })
+      this.workbenchJobForm.setFieldsValue({ jobSpecialConfig: cmValue })
       this.hideJobSpecialConfigModal()
     } else {
       message.error('Transformation Config 必须为 JSON格式！', 3)
@@ -3015,9 +2983,7 @@ export class Workbench extends React.Component {
   onJobSinkConfigModalOk = () => {
     const cmValue = this.cmJob.doc.getValue()
     if (isJSON(cmValue)) {
-      this.workbenchJobForm.setFieldsValue({
-        sinkConfig: this.cmJob.doc.getValue()
-      })
+      this.workbenchJobForm.setFieldsValue({ sinkConfig: this.cmJob.doc.getValue() })
       this.hideJobSinkConfigModal()
     } else {
       message.error('Sink Config 必须为 JSON格式！', 3)
