@@ -30,8 +30,9 @@ import edp.rider.rest.util.NamespaceUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.{CanBeQueryCondition, TableQuery}
 import edp.rider.common.DbPermission._
+
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 import edp.rider.rest.util.NsDatabaseUtils._
@@ -191,4 +192,13 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
         throw ex
     }
   }
+
+  def getNsByProjectId(projectId: Long): Seq[String] = {
+    val nsSeq = Await.result(db.run((namespaceTable join relProjectNsTable.filter(_.projectId === projectId))
+      .map {
+        case (ns, _) => ns
+      }.result).mapTo[Seq[Namespace]], minTimeOut)
+    nsSeq.map(ns => generateStandardNs(ns))
+  }
+
 }
