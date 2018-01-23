@@ -82,7 +82,7 @@ object JobUtils extends RiderLogger {
       val tranClass = JSON.parseObject(tranConfig)
       val action = if (tranClass.containsKey("action") && tranClass.getString("action").nonEmpty) {
         if (tranClass.getString("action").contains("edp.wormhole.batchjob.transform.Snapshot")) {
-          val ns = modules.namespaceDal.getNamespaceByNs(sinkNs)
+          val ns = modules.namespaceDal.getNamespaceByNs(sinkNs).get
           val swiftsSpec =
             if (tranClass.containsKey("swifts_specific_config"))
               tranClass.getJSONObject("swifts_specific_config")

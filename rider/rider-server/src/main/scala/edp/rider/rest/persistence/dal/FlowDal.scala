@@ -50,10 +50,11 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       }.result).mapTo[Seq[FlowStream]]
     flowStreams.map[Seq[FlowStream]] {
       flowStreams =>
+        val map = getDisableActions(flowStreams)
         flowStreams.map(flowStream => {
           newFlowStream(FlowStream(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol,
             flowStream.sinkConfig, flowStream.tranConfig, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.active, flowStream.createTime,
-            flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, flowStream.disableActions, flowStream.msg), action)
+            flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, map(flowStream.id), flowStream.msg), action)
         })
     }
   }
@@ -139,10 +140,16 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     try {
       val flowStatus = actionRule(flowStream, action)
 
-      val startedTime = if (action == "start" || action == "renew") Some(currentSec) else flowStream.startedTime
+      val startedTime =
+        if (flowStatus.disableActions.contains("start") || flowStatus.disableActions.contains("renew"))
+          flowStream.startedTime
+        else if (action == "start" || action == "renew") Some(currentSec) else flowStream.startedTime
       val stoppedTime =
-        if (action == "stop" && flowStatus.flowStatus == "stopped") Some(currentSec)
-        else if (action == "start") null
+        if (flowStatus.disableActions.contains("stop"))
+          flowStream.stoppedTime
+        else if (action == "stop" && flowStatus.flowStatus == "stopped") Some(currentSec)
+        else if (flowStatus.disableActions.contains("start") || flowStatus.disableActions.contains("renew")) flowStream.stoppedTime
+        else if (action == "start" || action == "renew") null
         else flowStream.stoppedTime
       val newFlow = Flow(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig,
         flowStream.tranConfig, flowStatus.flowStatus, startedTime, stoppedTime, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime, flowStream.updateBy)
