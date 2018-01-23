@@ -384,7 +384,7 @@ export class WorkbenchFlowForm extends React.Component {
 
     const streamNameOptions = selectStreamKafkaTopicValue.length === 0
       ? undefined
-      : selectStreamKafkaTopicValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.name}</Option>))
+      : selectStreamKafkaTopicValue.map(s => (<Option key={s.id} value={`${s.name}`}>{s.name}</Option>))
 
     const { etpStrategyConfirmValue, transConfigConfirmValue, resultFieldsValue, flowKafkaInstanceValue } = this.props
 
