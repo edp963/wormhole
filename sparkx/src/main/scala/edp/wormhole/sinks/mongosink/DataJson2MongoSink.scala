@@ -29,7 +29,7 @@ import com.mongodb.{ReadPreference, WriteConcern, casbah}
 import edp.wormhole.common.util.JsonUtils.json2caseClass
 import edp.wormhole.common.{ConnectionConfig, JsonParseHelper}
 import edp.wormhole.sinks.SourceMutationType.INSERT_ONLY
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
+import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType, _IDHelper}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
@@ -125,14 +125,14 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
           logInfo("INSERT_ONLY: " + sinkSpecificConfig.`mutation_type.get`)
           tupleList.foreach(tuple => {
             val result: JSONObject = JsonParseHelper.jsonObjHelper(tuple, sinkMap, targetSchemaArr)
-            val _id: String = MongoHelper.getMongoId(tuple, sinkSpecificConfig, schemaMap)
+            val _id: String = _IDHelper.get_Ids(tuple, sinkSpecificConfig.`_id.get`, schemaMap)
             save2MongoByI(result, targetSchemaArr, collection, _id)
           })
         case _ =>
           logInfo("iud: " + sinkSpecificConfig.`mutation_type.get`)
           tupleList.foreach(tuple => {
             val result: JSONObject = JsonParseHelper.jsonObjHelper(tuple, sinkMap, targetSchemaArr)
-            val _id: String = MongoHelper.getMongoId(tuple, sinkSpecificConfig, schemaMap)
+            val _id: String = _IDHelper.get_Ids(tuple, sinkSpecificConfig.`_id.get`, schemaMap)
             save2MongoByIud(result, targetSchemaArr, collection, keys, _id)
           })
       }
