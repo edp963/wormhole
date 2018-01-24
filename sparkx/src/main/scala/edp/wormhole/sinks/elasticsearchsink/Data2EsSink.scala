@@ -22,7 +22,7 @@ package edp.wormhole.sinks.elasticsearchsink
 
 import com.alibaba.fastjson.JSONObject
 import edp.wormhole.common.{ConnectionConfig, JsonParseHelper}
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
+import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType, _IDHelper}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsSysField
 import edp.wormhole.ums.UmsFieldType._
@@ -71,7 +71,7 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
       val (cname, cvalue) = JsonParseHelper.parseData2CorrectType(fieldType, field: String, name)
       json.put(cname, cvalue)
     }
-    val _ids = EsTools.getEsId(row, sinkSpecificConfig, schemaMap)
+    val _ids = _IDHelper.get_Ids(row, sinkSpecificConfig.`_id.get`, schemaMap)
     (_ids, umsid, json.toJSONString)
   }
 
