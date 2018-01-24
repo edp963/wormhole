@@ -21,7 +21,6 @@
 
 package edp.wormhole.batchflow
 
-import java.io.Serializable
 import java.util.UUID
 
 import com.alibaba.fastjson.{JSON, JSONObject}
@@ -31,9 +30,12 @@ import edp.wormhole.common._
 import edp.wormhole.common.hadoop.HdfsUtils
 import edp.wormhole.common.util.{CommonUtils, DateUtils}
 import edp.wormhole.common.util.DateUtils._
+import edp.wormhole.common.util.JsonUtils.json2caseClass
 import edp.wormhole.directive.UdfDirective
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
+import edp.wormhole.sinks.elasticsearchsink.EsConfig
+import edp.wormhole.sinks.mongosink.MongoConfig
 import edp.wormhole.sinks.{SinkProcessConfig, SourceMutationType}
 import org.apache.spark.HashPartitioner
 import edp.wormhole.sinks.utils.SinkCommonUtils
@@ -480,14 +482,12 @@ object BatchflowMainProcess extends EdpLogging {
       else SourceMutationType.I_U_D.toString
 
     val repartitionRDD = if (SourceMutationType.INSERT_ONLY.toString != mutationType) {
-      if (sinkProcessConfig.tableKeys.nonEmpty) {
-        logInfo("sinkProcessConfig.tableKeys.nonEmpty")
-        val columnsIndex: Array[Int] = sinkProcessConfig.tableKeys.get.split(",").map(name => originalSchemaMap(name)._1)
-        sinkRDD.map(t => (columnsIndex.map(x => t(x)).mkString("_"), t)).partitionBy(new HashPartitioner(config.rdd_partition_number)).map(_._2)
-      } else {
-        logInfo("sinkProcessConfig.tableKeys.isEmpty")
-        sinkRDD
-      }
+      val ids = if (sinkNamespace.startsWith(UmsDataSystem.ES.toString)) json2caseClass[EsConfig](sinkProcessConfig.specialConfig.get).`_id.get`.toList
+      else if (sinkNamespace.startsWith(UmsDataSystem.MONGODB.toString)) json2caseClass[MongoConfig](sinkProcessConfig.specialConfig.get).`_id.get`.toList
+      else sinkProcessConfig.tableKeyList
+      logInfo("sinkProcessConfig.tableKeys.nonEmpty")
+      val columnsIndex: List[Int] = ids.map(name => originalSchemaMap(name)._1)
+      sinkRDD.map(t => (columnsIndex.map(x => t(x)).mkString("_"), t)).partitionBy(new HashPartitioner(config.rdd_partition_number)).map(_._2)
     } else {
       logInfo("SourceMutationType.INSERT_ONLY.toString == mutationType")
       sinkRDD
