@@ -29,7 +29,7 @@ import com.mongodb.ConnectionString
 import com.mongodb.async.client.MongoClients
 import edp.wormhole.common.util.JsonUtils.json2caseClass
 import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
+import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType, _IDHelper}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
@@ -71,7 +71,7 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
               //              val f = sinkSpecificConfig._id.get.split(",").map(keyname => {
               //                payload(schemaMap(keyname)._1)
               //              }).mkString("_")
-              val f = MongoHelper.getMongoId(payload, sinkSpecificConfig, schemaMap)
+              val f = _IDHelper.get_Ids(payload, sinkSpecificConfig.`_id.get`, schemaMap)
               builder += "_id" -> BsonString(f)
               and(equal("_id", f))
             }
@@ -93,7 +93,7 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
         val insertDocuments = ListBuffer[Document]()
         tupleList.foreach(payload => {
           val builder = getDocument(schemaMap, payload)
-          val f = MongoHelper.getMongoId(payload, sinkSpecificConfig, schemaMap)
+          val f = _IDHelper.get_Ids(payload, sinkSpecificConfig.`_id.get`, schemaMap)
           builder += "_id" -> BsonString(f)
           //          if (sinkSpecificConfig._id.nonEmpty && sinkSpecificConfig._id.get.nonEmpty) {
           //            val f = sinkSpecificConfig._id.get.split(",").map(keyname => {

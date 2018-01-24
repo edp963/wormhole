@@ -21,7 +21,13 @@
 
 package edp.wormhole.sinks
 
+import java.util.UUID
+
+import edp.wormhole.sinks.elasticsearchsink.EsConfig
 import edp.wormhole.spark.log.EdpLogging
+import edp.wormhole.ums.UmsFieldType.UmsFieldType
+
+import scala.collection.mutable.ListBuffer
 
 object SourceMutationType extends Enumeration with EdpLogging {
   type SourceMutationType = Value
@@ -58,4 +64,17 @@ object DbHelper {
   def removeFieldNames(allFieldNames: List[String], removeFn: String => Boolean): List[String] = allFieldNames.filterNot(removeFn)
 
   def removeOtherFieldNames(allFieldNames: List[String], retainFn: String => Boolean): List[String] = allFieldNames.filter(retainFn)
+}
+
+object _IDHelper{
+  def get_Ids(tuple: Seq[String], _ids: Array[String], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): String = {
+    val _ids = ListBuffer.empty[String]
+    if (_ids.nonEmpty ) {
+      _ids.foreach(keyname => {
+        val (index, _, _) = schemaMap(keyname)
+        _ids += tuple(index)
+      })
+      _ids.mkString("_")
+    } else UUID.randomUUID().toString
+  }
 }

@@ -38,19 +38,20 @@ import scalaj.http.Http
 
 case class EsConfig(`mutation_type`: Option[String] = None, _id: Option[String] = None) {
   lazy val `mutation_type.get` = `mutation_type`.getOrElse(SourceMutationType.I_U_D.toString)
+  lazy val `_id.get` = if(_id.nonEmpty) _id.get.split(",") else Array.empty[String]
 }
 
 object EsTools extends EdpLogging {
-  def getEsId(tuple: Seq[String], sinkSpecificConfig: EsConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): String = {
-    val _ids = ListBuffer.empty[String]
-    if (sinkSpecificConfig._id.nonEmpty && sinkSpecificConfig._id.get.nonEmpty) {
-      sinkSpecificConfig._id.get.split(",").foreach(keyname => {
-        val (index, _, _) = schemaMap(keyname)
-        _ids += tuple(index)
-      })
-      _ids.mkString("_")
-    } else UUID.randomUUID().toString
-  }
+//  def getEsId(tuple: Seq[String], sinkSpecificConfig: EsConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): String = {
+//    val _ids = ListBuffer.empty[String]
+//    if (sinkSpecificConfig.`_id.get`.nonEmpty ) {
+//      sinkSpecificConfig.`_id.get`.foreach(keyname => {
+//        val (index, _, _) = schemaMap(keyname)
+//        _ids += tuple(index)
+//      })
+//      _ids.mkString("_")
+//    } else UUID.randomUUID().toString
+//  }
 
   def doHttp(url: String, username: Option[String], passwd: Option[String], requestContent: String): String = {
     if (username.nonEmpty && username.get.nonEmpty && passwd.nonEmpty && passwd.get.nonEmpty) {
