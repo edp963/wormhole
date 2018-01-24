@@ -893,66 +893,66 @@ export class Flow extends React.Component {
       key: 'action',
       className: 'text-align-center',
       render: (text, record) => {
-        const strEdit = record.disableActions.indexOf('modify') > -1
-          ? (
-            <Tooltip title="修改">
-              <Button icon="edit" shape="circle" type="ghost" disabled></Button>
-            </Tooltip>
-          )
-          : (
-            <Tooltip title="修改">
-              <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
-            </Tooltip>
-          )
-
-        const strStart = record.disableActions.indexOf('start') > -1
-          ? (
-            <Tooltip title="开始">
-              <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
-            </Tooltip>
-          )
-          : (
-            <Popconfirm placement="bottom" title="确定开始吗？" okText="Yes" cancelText="No" onConfirm={this.onShowFlowStart(record, 'start')}>
-              <Tooltip title="开始">
-                <Button icon="caret-right" shape="circle" type="ghost"></Button>
-              </Tooltip>
-            </Popconfirm>
-          )
-
-        const strStop = record.disableActions.indexOf('stop') > -1
-          ? (
-            <Tooltip title="停止">
-              <Button shape="circle" type="ghost" disabled>
-                <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
-              </Button>
-            </Tooltip>
-          )
-          : (
-            <Popconfirm placement="bottom" title="确定停止吗？" okText="Yes" cancelText="No" onConfirm={this.stopFlowBtn(record, 'stop')}>
-              <Tooltip title="停止">
-                <Button shape="circle" type="ghost">
-                  <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
-                </Button>
-              </Tooltip>
-            </Popconfirm>
-          )
-
-        const strRenew = record.disableActions.indexOf('renew') > -1
-          ? (
-            <Tooltip title="生效">
-              <Button icon="check" shape="circle" type="ghost" disabled></Button>
-            </Tooltip>
-          )
-          : (
-            <Tooltip title="生效">
-              <Button icon="check" shape="circle" type="ghost" onClick={this.updateFlow(record, 'renew')}></Button>
-            </Tooltip>
-          )
-
         let FlowActionSelect = ''
         if (localStorage.getItem('loginRoleType') === 'admin') {
           FlowActionSelect = ''
         } else if (localStorage.getItem('loginRoleType') === 'user') {
+          const strEdit = record.disableActions.indexOf('modify') > -1
+            ? (
+              <Tooltip title="修改">
+                <Button icon="edit" shape="circle" type="ghost" disabled></Button>
+              </Tooltip>
+            )
+            : (
+              <Tooltip title="修改">
+                <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
+              </Tooltip>
+            )
+
+          const strStart = record.disableActions.indexOf('start') > -1
+            ? (
+              <Tooltip title="开始">
+                <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
+              </Tooltip>
+            )
+            : (
+              <Popconfirm placement="bottom" title="确定开始吗？" okText="Yes" cancelText="No" onConfirm={this.onShowFlowStart(record, 'start')}>
+                <Tooltip title="开始">
+                  <Button icon="caret-right" shape="circle" type="ghost"></Button>
+                </Tooltip>
+              </Popconfirm>
+            )
+
+          const strStop = record.disableActions.indexOf('stop') > -1
+            ? (
+              <Tooltip title="停止">
+                <Button shape="circle" type="ghost" disabled>
+                  <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
+                </Button>
+              </Tooltip>
+            )
+            : (
+              <Popconfirm placement="bottom" title="确定停止吗？" okText="Yes" cancelText="No" onConfirm={this.stopFlowBtn(record, 'stop')}>
+                <Tooltip title="停止">
+                  <Button shape="circle" type="ghost">
+                    <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
+                  </Button>
+                </Tooltip>
+              </Popconfirm>
+            )
+
+          const strRenew = record.disableActions.indexOf('renew') > -1
+            ? (
+              <Tooltip title="生效">
+                <Button icon="check" shape="circle" type="ghost" disabled></Button>
+              </Tooltip>
+            )
+            : (
+              <Tooltip title="生效">
+                <Button icon="check" shape="circle" type="ghost" onClick={this.updateFlow(record, 'renew')}></Button>
+              </Tooltip>
+            )
+
           FlowActionSelect = (
             <span>
               {/* <Tooltip title="数据质量">
