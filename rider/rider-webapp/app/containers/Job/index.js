@@ -644,68 +644,68 @@ export class Job extends React.Component {
       key: 'action',
       className: 'text-align-center',
       render: (text, record) => {
-        const strEdit = record.disableActions.indexOf('modify') > -1
-          ? (
-            <Tooltip title="修改">
-              <Button icon="edit" shape="circle" type="ghost" disabled></Button>
-            </Tooltip>
-          )
-          : (
-            <Tooltip title="修改">
-              <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditJob(record)}></Button>
-            </Tooltip>
-          )
-
-        const strStart = record.disableActions.indexOf('start') > -1
-          ? (
-            <Tooltip title="开始">
-              <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
-            </Tooltip>
-          )
-          : (
-            <Popconfirm placement="bottom" title="确定开始吗？" okText="Yes" cancelText="No" onConfirm={this.startJobBtn(record, 'start')}>
-              <Tooltip title="开始">
-                <Button icon="caret-right" shape="circle" type="ghost"></Button>
-              </Tooltip>
-            </Popconfirm>
-          )
-
-        const strStop = record.disableActions.indexOf('stop') > -1
-          ? (
-            <Tooltip title="停止">
-              <Button shape="circle" type="ghost" disabled>
-                <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
-              </Button>
-            </Tooltip>
-          )
-          : (
-            <Popconfirm placement="bottom" title="确定停止吗？" okText="Yes" cancelText="No" onConfirm={this.stopJobBtn(record, 'stop')}>
-              <Tooltip title="停止">
-                <Button shape="circle" type="ghost">
-                  <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
-                </Button>
-              </Tooltip>
-            </Popconfirm>
-          )
-
-        const strDelete = record.disableActions.indexOf('delete') > -1
-          ? (
-            <Tooltip title="删除">
-              <Button icon="delete" shape="circle" type="ghost" disabled></Button>
-            </Tooltip>
-          )
-          : (
-            <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteJobBtn(record, 'delete')}>
-              <Tooltip title="删除">
-                <Button icon="delete" shape="circle" type="ghost"></Button>
-              </Tooltip>
-            </Popconfirm>
-          )
-
         let jobActionSelect = ''
         if (localStorage.getItem('loginRoleType') === 'admin') {
           jobActionSelect = ''
         } else if (localStorage.getItem('loginRoleType') === 'user') {
+          const strEdit = record.disableActions.indexOf('modify') > -1
+            ? (
+              <Tooltip title="修改">
+                <Button icon="edit" shape="circle" type="ghost" disabled></Button>
+              </Tooltip>
+            )
+            : (
+              <Tooltip title="修改">
+                <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditJob(record)}></Button>
+              </Tooltip>
+            )
+
+          const strStart = record.disableActions.indexOf('start') > -1
+            ? (
+              <Tooltip title="开始">
+                <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
+              </Tooltip>
+            )
+            : (
+              <Popconfirm placement="bottom" title="确定开始吗？" okText="Yes" cancelText="No" onConfirm={this.startJobBtn(record, 'start')}>
+                <Tooltip title="开始">
+                  <Button icon="caret-right" shape="circle" type="ghost"></Button>
+                </Tooltip>
+              </Popconfirm>
+            )
+
+          const strStop = record.disableActions.indexOf('stop') > -1
+            ? (
+              <Tooltip title="停止">
+                <Button shape="circle" type="ghost" disabled>
+                  <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
+                </Button>
+              </Tooltip>
+            )
+            : (
+              <Popconfirm placement="bottom" title="确定停止吗？" okText="Yes" cancelText="No" onConfirm={this.stopJobBtn(record, 'stop')}>
+                <Tooltip title="停止">
+                  <Button shape="circle" type="ghost">
+                    <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
+                  </Button>
+                </Tooltip>
+              </Popconfirm>
+            )
+
+          const strDelete = record.disableActions.indexOf('delete') > -1
+            ? (
+              <Tooltip title="删除">
+                <Button icon="delete" shape="circle" type="ghost" disabled></Button>
+              </Tooltip>
+            )
+            : (
+              <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteJobBtn(record, 'delete')}>
+                <Tooltip title="删除">
+                  <Button icon="delete" shape="circle" type="ghost"></Button>
+                </Tooltip>
+              </Popconfirm>
+            )
+
           jobActionSelect = (
             <span>
               {strEdit}
