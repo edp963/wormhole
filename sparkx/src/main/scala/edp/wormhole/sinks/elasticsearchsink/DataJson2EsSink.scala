@@ -24,7 +24,7 @@ import com.alibaba.fastjson.{JSON, JSONArray}
 import edp.wormhole.common.{ConnectionConfig, JsonParseHelper}
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.sinks.SourceMutationType.INSERT_ONLY
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
+import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType, _IDHelper}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
@@ -77,7 +77,7 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
       val jsonData = JsonParseHelper.jsonObjHelper(row, sinkMap, targetSchemaArr)
       val umsId = jsonData.getLong(UmsSysField.ID.toString)
       val data = jsonData.toJSONString
-      val _ids = EsTools.getEsId(row, sinkSpecificConfig, schemaMap)
+      val _ids = _IDHelper.get_Ids(row, sinkSpecificConfig.`_id.get`, schemaMap)
       dataList.append((_ids, umsId, data))
     }
 
@@ -134,7 +134,7 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
     if (tupleList.nonEmpty) {
       for (row <- tupleList) {
         val data = JsonParseHelper.jsonObjHelper(row, sinkMap, targetSchemaArr).toJSONString
-        val _id = EsTools.getEsId(row, sinkSpecificConfig, schemaMap)
+        val _id = _IDHelper.get_Ids(row, sinkSpecificConfig.`_id.get`, schemaMap)
 
         insertList += s"""{ "$optNameInsert" : {"_id" : "${_id}" }}"""
         insertList += data

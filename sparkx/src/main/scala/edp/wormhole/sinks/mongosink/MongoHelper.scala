@@ -57,15 +57,15 @@ object MongoHelper {
     def printHeadResult(initial: String = ""): Unit = println(s"${initial}${converter(headResult())}")
   }
 
-  def getMongoId(tuple:Seq[String],sinkSpecificConfig: MongoConfig,schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): String ={
-    val _ids = ListBuffer.empty[String]
-    if (sinkSpecificConfig._id.nonEmpty&&sinkSpecificConfig._id.get.nonEmpty){
-      sinkSpecificConfig._id.get.split(",").foreach(keyname => {
-        val (index, _, _) = schemaMap(keyname)
-        _ids += tuple(index)
-      })
-      _ids.mkString("_")
-    } else UUID.randomUUID().toString
-  }
+//  def getMongoId(tuple:Seq[String],sinkSpecificConfig: MongoConfig,schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): String ={
+//    val _ids = ListBuffer.empty[String]
+//    if (sinkSpecificConfig.`_id.get`.nonEmpty){
+//      sinkSpecificConfig.`_id.get`.foreach(keyname => {
+//        val (index, _, _) = schemaMap(keyname)
+//        _ids += tuple(index)
+//      })
+//      _ids.mkString("_")
+//    } else UUID.randomUUID().toString
+//  }
 
 }
