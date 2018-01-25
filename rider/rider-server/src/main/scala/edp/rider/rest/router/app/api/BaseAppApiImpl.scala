@@ -23,7 +23,7 @@ package edp.rider.rest.router.app.api
 
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
-import edp.rider.common.RiderLogger
+import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.base.{BaseDal, BaseEntity, BaseTable, SimpleBaseEntity}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.admin.api.BaseRoutesApi
@@ -196,14 +196,14 @@ class BaseAppApiImpl[T <: BaseTable[A], A <: BaseEntity](baseDal: BaseDal[T, A])
 
   private def generateEntity(simple: SimpleBaseEntity, session: SessionClass): BaseEntity = {
     simple match {
-      case user: SimpleUser => User(0, user.email, user.password, user.name, user.roleType, active = true, currentSec, session.userId, currentSec, session.userId)
+      case user: SimpleUser => User(0, user.email, user.password, user.name, user.roleType, RiderConfig.riderServer.defaultLanguage, active = true, currentSec, session.userId, currentSec, session.userId)
     }
   }
 
   private def generateEntity(base: BaseEntity, session: SessionClass): BaseEntity = {
     base match {
       case instance: Instance => Instance(instance.id, instance.nsInstance, Some(instance.desc.getOrElse("")), instance.nsSys, instance.connUrl, instance.active, instance.createTime, instance.createBy, currentSec, session.userId)
-      case user: User => User(user.id, user.email, user.password, user.name, user.roleType, user.active, user.createTime, user.createBy, currentSec, session.userId)
+      case user: User => User(user.id, user.email, user.password, user.name, user.roleType, user.preferredLanguage, user.active, user.createTime, user.createBy, currentSec, session.userId)
     }
   }
 

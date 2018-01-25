@@ -30,6 +30,7 @@ case class User(id: Long,
                 password: String,
                 name: String,
                 roleType: String,
+                preferredLanguage: String,
                 active: Boolean,
                 createTime: String,
                 createBy: Long,
@@ -47,6 +48,7 @@ case class UserProject(id: Long,
                        password: String,
                        name: String,
                        roleType: String,
+                       preferredLanguage: String,
                        active: Boolean,
                        createTime: String,
                        createBy: Long,
@@ -58,7 +60,7 @@ case class UserProjectName(userId: Long,
                            name: String)
 
 class UserTable(_tableTag: Tag) extends BaseTable[User](_tableTag, "user") {
-  def * = (id, email, password, name, roleType, active, createTime, createBy, updateTime, updateBy) <>(User.tupled, User.unapply)
+  def * = (id, email, password, name, roleType, preferredLanguage, active, createTime, createBy, updateTime, updateBy) <>(User.tupled, User.unapply)
 
   val email: Rep[String] = column[String]("email", O.Length(200, varying = true))
   /** Database column password SqlType(VARCHAR), Length(32,true) */
@@ -67,6 +69,8 @@ class UserTable(_tableTag: Tag) extends BaseTable[User](_tableTag, "user") {
   val name: Rep[String] = column[String]("name", O.Length(200, varying = true))
   /** Database column role_type SqlType(VARCHAR), Length(100,true) */
   val roleType: Rep[String] = column[String]("role_type", O.Length(100, varying = true))
+
+  val preferredLanguage: Rep[String] = column[String]("preferred_language", O.Length(20, varying = true))
 
   /** Uniqueness Index over (email) (database name email_UNIQUE) */
   val index1 = index("email_UNIQUE", email, unique = true)
