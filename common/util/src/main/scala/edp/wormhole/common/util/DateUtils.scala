@@ -78,9 +78,10 @@ trait DateUtils {
   def currentDateTime: DateTime = new DateTime()
 
   def currentyyyyMMddHHmmss: String = yyyyMMddHHmmss(currentDateTime)
+
   def currentyyyyMMddHHmmssmls: String = yyyyMMddHHmmssmls(currentDateTime)
 
-  private def getDateFormat(format: String) = {
+  def getDateFormat(format: String) = {
     val formatter = new SimpleDateFormat(format)
     formatter.setTimeZone(defaultTimeZone)
     formatter
@@ -210,6 +211,7 @@ trait DateUtils {
   def dt2string(sqlDate: SqlDate, dtFormat: DtFormat): String = if (sqlDate == null) null else dt2string(dt2date(sqlDate), dtFormat)
 
   def yyyyMMddHHmmssmls(timestamp: Timestamp): String = dt2string(timestamp, DtFormat.TS_NOD_MILLISEC)
+
   def yyyyMMddHHmmssmls(timeDateTime: DateTime): String = yyyyMMddHHmmssmls(dt2timestamp(timeDateTime))
 
   def yyyyMMddHHmmssmls(timeString: String): String = yyyyMMddHHmmssmls(dt2timestamp(timeString))
