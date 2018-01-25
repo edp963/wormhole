@@ -104,6 +104,10 @@
                                     <pattern>io</pattern>
                                     <shadedPattern>sql4es5.io</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>com.google</pattern>
+                                    <shadedPattern>sql4es2.com.google</shadedPattern>
+                                </relocation>
                             </relocations>
                         </configuration>
                     </execution>
