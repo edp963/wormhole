@@ -26,11 +26,11 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{RelProjectUserDal, UserDal}
 import edp.rider.rest.persistence.entities._
-import edp.rider.rest.router.{JsonSerializer, ResponseSeqJson, SessionClass}
+import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
+import edp.rider.rest.util.CommonUtils.currentSec
 import edp.rider.rest.util.ResponseUtils._
-//import edp.rider.rest.router.JsonProtocol._
-
+import slick.jdbc.MySQLProfile.api._
 import scala.util.{Failure, Success}
 
 class UserApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) extends BaseUserApiImpl[UserTable, User](userDal) with RiderLogger with JsonSerializer {
@@ -63,5 +63,91 @@ class UserApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) extends Ba
       }
 
   }
+
+
+  def getUserById(route: String): Route = path(route / LongNumber / "users" / LongNumber) {
+    (id, userId) =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "user") {
+              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              if (session.projectIdList.contains(id)) {
+                onComplete(userDal.findById(id).mapTo[Option[User]]) {
+                  case Success(userOpt) =>
+                    userOpt match {
+                      case Some(user) =>
+                        riderLogger.info(s"user ${session.userId} select user $userId where project id is $id success.")
+                        complete(OK, ResponseJson[User](getHeader(200, session), user))
+                      case None =>
+                        riderLogger.info(s"user ${session.userId} select user $userId where project id is $id success.")
+                        complete(OK, ResponseJson[String](getHeader(200, session), ""))
+                    }
+                  case Failure(ex) =>
+                    riderLogger.error(s"user ${session.userId} select user $userId where project id is $id failed", ex)
+                    complete(OK, getHeader(451, ex.getMessage, session))
+                }
+              } else {
+                riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
+                complete(OK, getHeader(403, session))
+              }
+            }
+        }
+      }
+
+  }
+
+  def putRoute(route: String): Route = path(route / LongNumber / "users" / LongNumber) {
+    (id, userId) =>
+      put {
+        entity(as[User]) {
+          user =>
+            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+              session =>
+                if (session.roleType != "user")
+                  complete(OK, getHeader(403, session))
+                else {
+                  if (session.projectIdList.contains(id)) {
+                    val userEntity = User(user.id, user.email.trim, user.password.trim, user.name.trim, user.roleType.trim, user.preferredLanguage, user.active, user.createTime, user.createBy, currentSec, session.userId)
+                    onComplete(userDal.update(userEntity)) {
+                      case Success(result) =>
+                        riderLogger.info(s"user ${
+                          session.userId
+                        } update user success.")
+                        onComplete(userDal.getUserProject(_.id === userId).mapTo[Seq[UserProject]]) {
+                          case Success(userProject) =>
+                            riderLogger.info(s"user ${
+                              session.userId
+                            } select user where id is ${
+                              userEntity.id
+                            } success.")
+                            complete(OK, ResponseJson[UserProject](getHeader(200, session), userProject.head))
+                          case Failure(ex) =>
+                            riderLogger.error(s"user ${
+                              session.userId
+                            } select user where id is ${
+                              userEntity.id
+                            } failed", ex)
+                            complete(OK, getHeader(451, ex.toString, session))
+                        }
+                      case Failure(ex) =>
+                        riderLogger.error(s"user ${
+                          session.userId
+                        } update user failed", ex)
+                        complete(OK, getHeader(451, ex.getMessage, session))
+                    }
+                  } else {
+                    riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
+                    complete(OK, getHeader(403, session))
+                  }
+                }
+            }
+        }
+      }
+  }
+
 
 }
