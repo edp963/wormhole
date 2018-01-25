@@ -104,19 +104,19 @@ object NsDatabaseUtils {
   }
 
   def getDbFromTrans(tranConfig: Option[String]): Seq[String] = {
-    val seq = new ListBuffer[String]
+    val dbSeq = new ListBuffer[String]
     if (tranConfig.nonEmpty && tranConfig.get != "") {
       val json = JSON.parseObject(tranConfig.get)
       if (json.containsKey("action")) {
         val seq = json.getString("action").split(";").find(_.contains("pushdown_sql"))
         if (seq.nonEmpty) {
           seq.foreach(sql => {
-            seq ++ sql.split("with")(1).split("=")(0).trim
+            dbSeq += sql.split("with")(1).split("=")(0).trim
           })
         }
       }
     }
-    seq
+    dbSeq
   }
 }
 
