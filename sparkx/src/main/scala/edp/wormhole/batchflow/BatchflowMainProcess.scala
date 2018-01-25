@@ -49,7 +49,7 @@ import edp.wormhole.ums._
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.types.{BinaryType, DataType}
+import org.apache.spark.sql.types._
 //import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 //import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, _}
@@ -374,10 +374,16 @@ object BatchflowMainProcess extends EdpLogging {
         row =>
           nameIndex.map {
             case (_, index, dataType) =>
-              val value = row.get(index)
+              val value: Any = row.get(index)
               if (value == null) null else {
                 if (dataType == BinaryType) {
                   CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
+                } else if (dataType == FloatType) {
+                  java.lang.Float.parseFloat(value.toString).toString
+                } else if (dataType == DoubleType) {
+                  java.lang.Double.parseDouble(value.toString).toString
+                } else if (dataType == DecimalType) {
+                  new  java.math.BigDecimal(value.toString).toPlainString()
                 } else {
                   value.toString
                 }
