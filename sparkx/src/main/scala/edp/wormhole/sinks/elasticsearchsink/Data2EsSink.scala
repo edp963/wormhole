@@ -24,7 +24,7 @@ import com.alibaba.fastjson.JSONObject
 import edp.wormhole.common.{ConnectionConfig, JsonParseHelper}
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType, _IDHelper}
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.ums.UmsSysField
+import edp.wormhole.ums.{UmsNamespace, UmsSysField}
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.common.util.JsonUtils._
@@ -53,7 +53,8 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
       val data = convertJson(row, schemaMap, sinkProcessConfig, sinkSpecificConfig)
       dataList += data
     }
-    if (!doSinkProcess(sinkProcessConfig, sinkNamespace, schemaMap, dataList, connectionConfig, sinkSpecificConfig)) {
+    val namespace = UmsNamespace(sinkNamespace)
+    if (!doSinkProcess(sinkProcessConfig, namespace, schemaMap, dataList, connectionConfig, sinkSpecificConfig)) {
       throw new Exception("has error row to insert or update")
     }
   }
@@ -76,7 +77,7 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
   }
 
   private def doSinkProcess(sinkConfig: SinkProcessConfig,
-                            sinkNamespace: String,
+                            sinkNamespace: UmsNamespace,
                             schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                             dataList: ListBuffer[(String, Long, String)],
                             connectionConfig: ConnectionConfig,
@@ -85,11 +86,14 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
     logInfo("random url:" + cc.connectionUrl)
     if (cc.connectionUrl.isEmpty) new Exception(connectionConfig.connectionUrl + " are all not available")
 
+    val indexName = if (sinkSpecificConfig.index_extend_config.nonEmpty) EsTools.getFullIndexNameByExtentConfig(sinkNamespace.database, sinkSpecificConfig.index_extend_config.get)
+    else sinkNamespace.database
+
     if (sinkSpecificConfig.`mutation_type.get` == SourceMutationType.I_U_D.toString) {
 
       val (result, esid2UmsidInEsMap) = {
         val idList = dataList.map(_._1)
-        EsTools.queryVersionByEsid(idList, sinkNamespace, cc)
+        EsTools.queryVersionByEsid(idList, sinkNamespace, cc, indexName)
       }
 
       if (!result) false
@@ -101,8 +105,8 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
           if (umsidInEs == -1) insertId2JsonMap(id) = json
           else if (umsidInEs < umsid) updateId2JsonMap(id) = json
         }
-        val insertFlag = doBatchInsert(insertId2JsonMap, sinkConfig, sinkNamespace, cc)
-        val updateFlag = doBatchUpdate(updateId2JsonMap, sinkConfig, sinkNamespace, cc)
+        val insertFlag = doBatchInsert(insertId2JsonMap, sinkConfig, sinkNamespace, cc, indexName)
+        val updateFlag = doBatchUpdate(updateId2JsonMap, sinkConfig, sinkNamespace, cc, indexName)
         insertFlag | updateFlag
       }
     } else {
@@ -110,35 +114,37 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
       dataList.foreach { case (id, _, json) =>
         insertId2JsonMap(id) = json
       }
-      val insertFlag = doBatchInsert(insertId2JsonMap, sinkConfig, sinkNamespace, cc)
+      val insertFlag = doBatchInsert(insertId2JsonMap, sinkConfig, sinkNamespace, cc,indexName)
       insertFlag
     }
   }
 
   private def doBatchInsert(insertId2JsonMap: mutable.HashMap[String, String],
-                            sinkConfig: SinkProcessConfig, sinkNamespace: String,
-                            connectionConfig: ConnectionConfig): Boolean = {
+                            sinkConfig: SinkProcessConfig, sinkNamespace: UmsNamespace,
+                            connectionConfig: ConnectionConfig,
+                            indexName: String): Boolean = {
     if (insertId2JsonMap.nonEmpty) {
       val insertList = ListBuffer.empty[String]
       insertId2JsonMap.foreach(item => {
         insertList += s"""{ "$optNameInsert" : {"_id" : "${item._1}" }}"""
         insertList += item._2
       })
-      EsTools.write2Es(insertList, connectionConfig, sinkNamespace)
+      EsTools.write2Es(insertList, connectionConfig, sinkNamespace, indexName)
     } else true
   }
 
 
   private def doBatchUpdate(updateId2JsonMap: mutable.HashMap[String, String],
-                            sinkConfig: SinkProcessConfig, sinkNamespace: String,
-                            connectionConfig: ConnectionConfig): Boolean = {
+                            sinkConfig: SinkProcessConfig, sinkNamespace: UmsNamespace,
+                            connectionConfig: ConnectionConfig,
+                            indexName: String): Boolean = {
     if (updateId2JsonMap.nonEmpty) {
       val updateList = ListBuffer.empty[String]
       updateId2JsonMap.foreach(item => {
         updateList += s"""{ "$optNameUpdate" : {"_id" : "${item._1}" }}"""
         updateList += "{\"doc\":" + item._2 + "}"
       })
-      EsTools.write2Es(updateList, connectionConfig, sinkNamespace)
+      EsTools.write2Es(updateList, connectionConfig, sinkNamespace, indexName)
     } else true
   }
 
