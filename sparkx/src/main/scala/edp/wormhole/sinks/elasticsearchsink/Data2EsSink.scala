@@ -89,6 +89,8 @@ class Data2EsSink extends SinkProcessor with EdpLogging {
     val indexName = if (sinkSpecificConfig.index_extend_config.nonEmpty) EsTools.getFullIndexNameByExtentConfig(sinkNamespace.database, sinkSpecificConfig.index_extend_config.get)
     else sinkNamespace.database
 
+    logInfo("index name: " + indexName)
+
     if (sinkSpecificConfig.`mutation_type.get` == SourceMutationType.I_U_D.toString) {
 
       val (result, esid2UmsidInEsMap) = {

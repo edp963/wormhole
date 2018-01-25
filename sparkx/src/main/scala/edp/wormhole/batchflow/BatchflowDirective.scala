@@ -76,7 +76,7 @@ object BatchflowDirective extends Directive {
         else Some(false)
         val dataframe_show_num: Option[Int] = if (swifts.containsKey("dataframe_show_num"))
           Some(swifts.getInteger("dataframe_show_num")) else Some(20)
-        val swiftsSpecialConfig = if(swifts.containsKey("swifts_specific_config")) swifts.getString("swifts_specific_config")
+        val swiftsSpecialConfig = if (swifts.containsKey("swifts_specific_config")) swifts.getString("swifts_specific_config")
         else ""
 
         val pushdown_connection = if (swifts.containsKey("pushdown_connection") && swifts.getString("pushdown_connection").trim.nonEmpty && swifts.getJSONArray("pushdown_connection").size > 0) swifts.getJSONArray("pushdown_connection") else null
@@ -89,7 +89,7 @@ object BatchflowDirective extends Directive {
             val username = if (jsonObj.containsKey("username")) Some(jsonObj.getString("username")) else None
             val password = if (jsonObj.containsKey("password")) Some(jsonObj.getString("password")) else None
             val parameters = if (jsonObj.containsKey("connection_config") && jsonObj.getString("connection_config").trim.nonEmpty) {
-              logInfo("connection_config:"+jsonObj.getString("connection_config"))
+              logInfo("connection_config:" + jsonObj.getString("connection_config"))
               Some(JsonUtils.json2caseClass[Seq[KVConfig]](jsonObj.getString("connection_config")))
             } else {
               logInfo("not contains connection_config")
@@ -135,15 +135,15 @@ object BatchflowDirective extends Directive {
       tmpOutput
     } else ""
 
-    var sink_schema:Option[String] = None
+    val sink_schema = if (sinks.containsKey("sink_schema") && sinks.getString("sink_schema").trim.nonEmpty) {
+      val sinkSchemaEncoded = sinks.getString("sink_schema").trim
+      Some(new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkSchemaEncoded.toString)))
+      //ConfMemoryStorage.registerJsonSourceSinkSchema(sourceNamespace, fullsinkNamespace, sink_schema)
+    } else None
+
     if (dataType != "ums") {
-      if (sinks.containsKey("sink_schema") &&  sinks.getString("sink_schema").trim.nonEmpty) {
-        val sinkSchemaEncoded = sinks.getString("sink_schema").trim
-         sink_schema = Some(new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkSchemaEncoded.toString)))
-        //ConfMemoryStorage.registerJsonSourceSinkSchema(sourceNamespace, fullsinkNamespace, sink_schema)
-      }
       val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
-      ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo,parseResult.twoFieldsArr)
+      ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
     }
 
     val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_schema, sink_process_class_fullname, sink_retry_times, sink_retry_seconds)
@@ -154,7 +154,6 @@ object BatchflowDirective extends Directive {
 
     ConfMemoryStorage.registerStreamLookupNamespaceMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig)
     ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap)
-
 
 
     ConfMemoryStorage.registerDataStoreConnectionsMap(fullsinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)

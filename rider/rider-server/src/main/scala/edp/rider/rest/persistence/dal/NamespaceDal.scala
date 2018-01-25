@@ -169,10 +169,10 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
     })
   }
 
-  def getNamespaceByNs(ns: String): Namespace = {
+  def getNamespaceByNs(ns: String):Option[Namespace] = {
     try {
       val nsSplit = ns.split("\\.")
-      Await.result(super.findByFilter(ns => ns.nsSys === nsSplit(0) && ns.nsInstance === nsSplit(1) && ns.nsDatabase === nsSplit(2) && ns.nsTable === nsSplit(3)), minTimeOut).head
+      Await.result(super.findByFilter(ns => ns.nsSys === nsSplit(0) && ns.nsInstance === nsSplit(1) && ns.nsDatabase === nsSplit(2) && ns.nsTable === nsSplit(3)), minTimeOut).headOption
     } catch {
       case ex: Exception =>
         riderLogger.error(s"get namespace object by $ns failed", ex)
@@ -218,7 +218,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
 
   def getNsDetail(ns: String): (Instance, NsDatabase, Namespace) = {
-    val namespace = getNamespaceByNs(ns)
+    val namespace = getNamespaceByNs(ns).get
     try {
       val instance = Await.result(instanceDal.findByFilter(_.id === namespace.nsInstanceId), minTimeOut).head
       val database = Await.result(databaseDal.findByFilter(_.id === namespace.nsDatabaseId), minTimeOut).head
@@ -292,16 +292,4 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
     }
   }
 
-  def getFlowsByNsIds(ids: Seq[Long]): Seq[Long] = {
-    val nsSeq = Await.result(super.findByFilter(_.id inSet ids).mapTo[Seq[Namespace]], minTimeOut)
-      .map(ns => ns.nsSys + "." + ns.nsInstance + "." + ns.nsDatabase + "." + ns.nsTable + "." + ns.nsVersion
-        + "." + ns.nsDbpar + "." + ns.nsTablepar)
-    val flowIds = new ListBuffer[Long]
-    nsSeq.foreach(ns => {
-      val flow = Await.result(flowDal.findByFilter
-      (flow => flow.sourceNs === ns || flow.sinkNs === ns || flow.tranConfig.getOrElse("").like(s"%${ns.split("\\.").take(3).mkString(".")}%")), minTimeOut)
-      flowIds ++= flow.map(_.id)
-    })
-    flowIds
-  }
 }

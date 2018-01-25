@@ -107,6 +107,9 @@ object EsTools extends EdpLogging {
     val requestContent = """{"docs":[{"_id":"""" + esids.mkString("\",\"_source\":\"" + UmsSysField.ID.toString + "\"},{\"_id\":\"") + "\",\"_source\":\"" + UmsSysField.ID.toString + "\"}]}"
     val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl + sinkIndex + "/" + namespace.table + "/_mget"
     else connectionConfig.connectionUrl + "/" + sinkIndex + "/" + namespace.table + "/_mget"
+
+    logInfo("query url: " + url)
+
     val responseContent = EsTools.doHttp(url, connectionConfig.username, connectionConfig.password, requestContent)
     val responseJson: JValue = json2jValue(responseContent)
     if (!EsTools.checkResponseSuccess(responseJson)) {

@@ -23,7 +23,7 @@ package edp.rider.rest.router.admin.api
 
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
-import edp.rider.common.RiderLogger
+import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.dal.{RelProjectUserDal, UserDal}
 import edp.rider.rest.persistence.entities._
 //import edp.rider.rest.router.JsonProtocol._
@@ -142,7 +142,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                 complete(OK, getHeader(403, session))
               }
               else {
-                val user = User(0, simple.email.trim, simple.password.trim, simple.name.trim, simple.roleType.trim, active = true, currentSec, session.userId, currentSec, session.userId)
+                val user = User(0, simple.email.trim, simple.password.trim, simple.name.trim, simple.roleType.trim, RiderConfig.riderServer.defaultLanguage, active = true, currentSec, session.userId, currentSec, session.userId)
                 onComplete(userDal.insert(user).mapTo[User]) {
                   case Success(row) =>
                     riderLogger.info(s"user ${
@@ -192,7 +192,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
               if (session.roleType != "admin")
                 complete(OK, getHeader(403, session))
               else {
-                val userEntity = User(user.id, user.email.trim, user.password.trim, user.name.trim, user.roleType.trim, user.active, user.createTime, user.createBy, currentSec, session.userId)
+                val userEntity = User(user.id, user.email.trim, user.password.trim, user.name.trim, user.roleType.trim, user.preferredLanguage, user.active, user.createTime, user.createBy, currentSec, session.userId)
                 onComplete(userDal.update(userEntity)) {
                   case Success(result) =>
                     riderLogger.info(s"user ${
@@ -224,7 +224,6 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
           }
       }
     }
-
   }
 
   def getNormalUserRoute(route: String): Route = path(route / "users") {
