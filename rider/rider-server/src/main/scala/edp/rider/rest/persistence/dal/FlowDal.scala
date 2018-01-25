@@ -66,9 +66,10 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       flowStreamOpt match {
         case Some(flowStream) =>
           val stream = streamDal.getStreamDetail(Some(projectId), Some(flowStream.streamId)).head
+          val map = getDisableActions(Seq(flowStream))
           Future(Some(FlowStreamInfo(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol,
             flowStream.sinkConfig, flowStream.tranConfig, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
-            flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, flowStream.disableActions, stream.kafkaInfo.instance, stream.topicInfo.map(_.name).mkString(","))))
+            flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, map(flowStream.id), stream.kafkaInfo.instance, stream.topicInfo.map(_.name).mkString(","))))
         case None => Future(None)
       }
     } catch {
@@ -104,10 +105,10 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
           flowStreams.map {
             flowStream =>
               val project = Await.result(db.run(projectTable.filter(_.id === flowStream.projectId).result).mapTo[Seq[Project]], maxTimeOut).head
-              val returnStartedTime = if (flowStream.startedTime.getOrElse("") == "") Some("") else flowStream.startedTime
-              val returnStoppedTime = if (flowStream.stoppedTime.getOrElse("") == "") Some("") else flowStream.stoppedTime
+              //              val returnStartedTime = if (flowStream.startedTime.getOrElse("") == "") Some("") else flowStream.startedTime
+              //              val returnStoppedTime = if (flowStream.stoppedTime.getOrElse("") == "") Some("") else flowStream.stoppedTime
               FlowStreamAdmin(flowStream.id, flowStream.projectId, project.name, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol,
-                flowStream.sinkConfig, flowStream.tranConfig, returnStartedTime, returnStoppedTime, flowStream.status, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
+                flowStream.sinkConfig, flowStream.tranConfig, flowStream.startedTime, flowStream.stoppedTime, flowStream.status, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
                 flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, flowStream.disableActions, flowStream.msg)
           }
       }
@@ -139,18 +140,11 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
   def newFlowStream(flowStream: FlowStream, action: String): FlowStream = {
     try {
       val flowStatus = actionRule(flowStream, action)
+      val startedTime = if (action == "start" || action == "renew") Some(currentSec) else flowStream.startedTime
+      val stoppedTime = if (action == "stop") Some(currentSec)
+      else if (action == "start" || action == "renew") null
+      else flowStream.stoppedTime
 
-      val startedTime =
-        if (flowStatus.disableActions.contains("start") || flowStatus.disableActions.contains("renew"))
-          flowStream.startedTime
-        else if (action == "start" || action == "renew") Some(currentSec) else flowStream.startedTime
-      val stoppedTime =
-        if (flowStatus.disableActions.contains("stop"))
-          flowStream.stoppedTime
-        else if (action == "stop" && flowStatus.flowStatus == "stopped") Some(currentSec)
-        else if (flowStatus.disableActions.contains("start") || flowStatus.disableActions.contains("renew")) flowStream.stoppedTime
-        else if (action == "start" || action == "renew") null
-        else flowStream.stoppedTime
       val newFlow = Flow(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig,
         flowStream.tranConfig, flowStatus.flowStatus, startedTime, stoppedTime, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime, flowStream.updateBy)
       Await.result(super.update(newFlow), minTimeOut)
