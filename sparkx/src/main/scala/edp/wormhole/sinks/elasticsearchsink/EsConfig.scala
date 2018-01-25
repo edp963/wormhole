@@ -21,13 +21,13 @@
 
 package edp.wormhole.sinks.elasticsearchsink
 
-import java.util.UUID
+import java.util.Date
 
 import edp.wormhole.common.ConnectionConfig
+import edp.wormhole.common.util.DateUtils
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.sinks.SourceMutationType
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.{UmsNamespace, UmsSysField}
 import org.json4s.JValue
 
@@ -36,22 +36,27 @@ import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import scalaj.http.Http
 
-case class EsConfig(`mutation_type`: Option[String] = None, _id: Option[String] = None) {
+case class EsConfig(`mutation_type`: Option[String] = None, _id: Option[String] = None, index_extend_config: Option[String] = None) {
   lazy val `mutation_type.get` = `mutation_type`.getOrElse(SourceMutationType.I_U_D.toString)
-  lazy val `_id.get` = if(_id.nonEmpty) _id.get.split(",") else Array.empty[String]
+  lazy val `_id.get` = if (_id.nonEmpty) _id.get.split(",") else Array.empty[String]
 }
 
 object EsTools extends EdpLogging {
-//  def getEsId(tuple: Seq[String], sinkSpecificConfig: EsConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): String = {
-//    val _ids = ListBuffer.empty[String]
-//    if (sinkSpecificConfig.`_id.get`.nonEmpty ) {
-//      sinkSpecificConfig.`_id.get`.foreach(keyname => {
-//        val (index, _, _) = schemaMap(keyname)
-//        _ids += tuple(index)
-//      })
-//      _ids.mkString("_")
-//    } else UUID.randomUUID().toString
-//  }
+  //  def getEsId(tuple: Seq[String], sinkSpecificConfig: EsConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): String = {
+  //    val _ids = ListBuffer.empty[String]
+  //    if (sinkSpecificConfig.`_id.get`.nonEmpty ) {
+  //      sinkSpecificConfig.`_id.get`.foreach(keyname => {
+  //        val (index, _, _) = schemaMap(keyname)
+  //        _ids += tuple(index)
+  //      })
+  //      _ids.mkString("_")
+  //    } else UUID.randomUUID().toString
+  //  }
+
+  def getFullIndexNameByExtentConfig(indexName: String, indexname_extend_config: String): String = {
+    val extendContent: String = DateUtils.getDateFormat(indexname_extend_config).format(new Date())
+    indexName + extendContent
+  }
 
   def doHttp(url: String, username: Option[String], passwd: Option[String], requestContent: String): String = {
     if (username.nonEmpty && username.get.nonEmpty && passwd.nonEmpty && passwd.get.nonEmpty) {
@@ -94,14 +99,14 @@ object EsTools extends EdpLogging {
   }
 
   def queryVersionByEsid(esids: Seq[String],
-                         sinkNamespace: String,
-                         connectionConfig: ConnectionConfig): (Boolean, mutable.HashMap[String, Long]) = {
-    val namespace = UmsNamespace(sinkNamespace)
+                         namespace: UmsNamespace,
+                         connectionConfig: ConnectionConfig,
+                         sinkIndex: String): (Boolean, mutable.HashMap[String, Long]) = {
     var queryResult = true
     val esid2VersionMap = mutable.HashMap.empty[String, Long]
     val requestContent = """{"docs":[{"_id":"""" + esids.mkString("\",\"_source\":\"" + UmsSysField.ID.toString + "\"},{\"_id\":\"") + "\",\"_source\":\"" + UmsSysField.ID.toString + "\"}]}"
-    val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl + namespace.database + "/" + namespace.table + "/_mget"
-    else connectionConfig.connectionUrl + "/" + namespace.database + "/" + namespace.table + "/_mget"
+    val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl + sinkIndex + "/" + namespace.table + "/_mget"
+    else connectionConfig.connectionUrl + "/" + sinkIndex + "/" + namespace.table + "/_mget"
     val responseContent = EsTools.doHttp(url, connectionConfig.username, connectionConfig.password, requestContent)
     val responseJson: JValue = json2jValue(responseContent)
     if (!EsTools.checkResponseSuccess(responseJson)) {
@@ -111,24 +116,23 @@ object EsTools extends EdpLogging {
       val docsJson = getList(responseJson, "docs")
       for (doc <- docsJson) {
         val id = getString(doc, "_id")
-        if(containsName(doc,"found")){
+        if (containsName(doc, "found")) {
           if (getBoolean(doc, "found")) {
             val source = getJValue(doc, "_source")
             esid2VersionMap(id) = getLong(source, UmsSysField.ID.toString)
           } else esid2VersionMap(id) = -1
-        }else{
-          logError("response doc:"+doc)
+        } else {
+          logError("response doc:" + doc)
         }
       }
     }
     (queryResult, esid2VersionMap)
   }
 
-  def write2Es(list: ListBuffer[String], connectionConfig: ConnectionConfig, sinkNamespace: String): Boolean = {
-    val namespace = UmsNamespace(sinkNamespace)
+  def write2Es(list: ListBuffer[String], connectionConfig: ConnectionConfig, namespace: UmsNamespace, sinkIndex: String): Boolean = {
     val requestContent = list.mkString("\n") + "\n"
-    val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl.trim + namespace.database + "/" + namespace.table + "/_bulk"
-    else connectionConfig.connectionUrl.trim + "/" + namespace.database + "/" + namespace.table + "/_bulk"
+    val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl.trim + sinkIndex + "/" + namespace.table + "/_bulk"
+    else connectionConfig.connectionUrl.trim + "/" + sinkIndex + "/" + namespace.table + "/_bulk"
     logInfo("doBatch url:" + url)
     val responseContent = EsTools.doHttp(url, connectionConfig.username, connectionConfig.password, requestContent)
     val responseJson: JValue = json2jValue(responseContent)

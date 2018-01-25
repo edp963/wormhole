@@ -28,7 +28,7 @@ import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType,
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
-import edp.wormhole.ums.{UmsFieldType, UmsSysField}
+import edp.wormhole.ums.{UmsFieldType, UmsNamespace, UmsSysField}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -58,20 +58,26 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
       if (sinkProcessConfig.specialConfig.isDefined)
         json2caseClass[EsConfig](sinkProcessConfig.specialConfig.get)
       else EsConfig()
+
+    val namespace = UmsNamespace(sinkNamespace)
+    val indexName = if (sinkSpecificConfig.index_extend_config.nonEmpty) EsTools.getFullIndexNameByExtentConfig(namespace.database, sinkSpecificConfig.index_extend_config.get)
+    else namespace.database
+
     SourceMutationType.sourceMutationType(sinkSpecificConfig.`mutation_type.get`) match {
       case INSERT_ONLY =>
         logInfo("insert only process")
-        val result = insertOnly(tupleList, targetSchemaArr, sinkMap, sinkNamespace, cc, sinkSpecificConfig, schemaMap)
+        val result = insertOnly(tupleList, targetSchemaArr, sinkMap, namespace, cc, sinkSpecificConfig, schemaMap,indexName)
         if (!result) throw new Exception("has error row for insert only")
       case _ =>
         logInfo("insert and update process")
-        val result = insertOrUpdate(tupleList, targetSchemaArr, sinkMap, sinkSpecificConfig, sinkNamespace, cc, schemaMap)
+        val result = insertOrUpdate(tupleList, targetSchemaArr, sinkMap, sinkSpecificConfig, namespace, cc, schemaMap,indexName)
         if (!result) throw new Exception("has error row for insert or update")
     }
   }
 
   private def insertOrUpdate(tupleList: Seq[Seq[String]], targetSchemaArr: JSONArray, sinkMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
-                             sinkSpecificConfig: EsConfig, sinkNamespace: String, cc: ConnectionConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): Boolean = {
+                             sinkSpecificConfig: EsConfig, sinkNamespace: UmsNamespace, cc: ConnectionConfig,
+                             schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],indexName:String): Boolean = {
     val dataList = ListBuffer.empty[(String, Long, String)]
     for (row <- tupleList) {
       val jsonData = JsonParseHelper.jsonObjHelper(row, sinkMap, targetSchemaArr)
@@ -83,7 +89,7 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
 
     val (result, esid2UmsidInEsMap) = {
       val idList = dataList.map(_._1)
-      EsTools.queryVersionByEsid(idList, sinkNamespace, cc)
+      EsTools.queryVersionByEsid(idList, sinkNamespace, cc,indexName)
     }
 
     if (!result) false
@@ -95,41 +101,45 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
         if (umsidInEs == -1) insertId2JsonMap(id) = json
         else if (umsidInEs < umsid) updateId2JsonMap(id) = json
       }
-      val insertFlag = doBatchInsert(insertId2JsonMap, sinkNamespace, cc)
-      val updateFlag = doBatchUpdate(updateId2JsonMap, sinkNamespace, cc)
+      val insertFlag = doBatchInsert(insertId2JsonMap, sinkNamespace, cc,indexName)
+      val updateFlag = doBatchUpdate(updateId2JsonMap, sinkNamespace, cc,indexName)
       insertFlag | updateFlag
     }
   }
 
   private def doBatchInsert(insertId2JsonMap: mutable.HashMap[String, String],
-                            sinkNamespace: String,
-                            connectionConfig: ConnectionConfig): Boolean = {
+                            sinkNamespace: UmsNamespace,
+                            connectionConfig: ConnectionConfig,
+                            indexName:String): Boolean = {
     if (insertId2JsonMap.nonEmpty) {
       val insertList = ListBuffer.empty[String]
       insertId2JsonMap.foreach(item => {
         insertList += s"""{ "$optNameInsert" : {"_id" : "${item._1}" }}"""
         insertList += item._2
       })
-      EsTools.write2Es(insertList, connectionConfig, sinkNamespace)
+      EsTools.write2Es(insertList, connectionConfig, sinkNamespace,indexName)
     } else true
   }
 
   private def doBatchUpdate(updateId2JsonMap: mutable.HashMap[String, String],
-                            sinkNamespace: String,
-                            connectionConfig: ConnectionConfig): Boolean = {
+                            sinkNamespace: UmsNamespace,
+                            connectionConfig: ConnectionConfig,
+                            indexName:String): Boolean = {
     if (updateId2JsonMap.nonEmpty) {
       val updateList = ListBuffer.empty[String]
       updateId2JsonMap.foreach(item => {
         updateList += s"""{ "$optNameUpdate" : {"_id" : "${item._1}" }}"""
         updateList += "{\"doc\":" + item._2 + "}"
       })
-      EsTools.write2Es(updateList, connectionConfig, sinkNamespace)
+      EsTools.write2Es(updateList, connectionConfig, sinkNamespace,indexName)
     } else true
   }
 
 
   private def insertOnly(tupleList: Seq[Seq[String]], targetSchemaArr: JSONArray, sinkMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
-                         sinkNamespace: String, connectionConfig: ConnectionConfig, sinkSpecificConfig: EsConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): Boolean = {
+                         sinkNamespace: UmsNamespace, connectionConfig: ConnectionConfig, sinkSpecificConfig: EsConfig,
+                         schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
+                         indexName:String): Boolean = {
     val insertList = ListBuffer.empty[String]
     if (tupleList.nonEmpty) {
       for (row <- tupleList) {
@@ -139,7 +149,7 @@ class DataJson2EsSink extends SinkProcessor with EdpLogging {
         insertList += s"""{ "$optNameInsert" : {"_id" : "${_id}" }}"""
         insertList += data
       }
-      EsTools.write2Es(insertList, connectionConfig, sinkNamespace)
+      EsTools.write2Es(insertList, connectionConfig, sinkNamespace,indexName)
     } else true
   }
 
