@@ -151,7 +151,9 @@ object FlowUtils extends RiderLogger {
   }
 
   def actionRule(flowStream: FlowStream, action: String): FlowInfo = {
-    if (flowStream.disableActions.split(",").contains(action)) {
+    if (flowStream.disableActions.contains("modify") && action == "refresh")
+      FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, s"$action success.")
+    else if (flowStream.disableActions.contains(action)) {
       FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, s"$action operation is refused.")
     }
     else (flowStream.streamStatus, flowStream.status, action) match {
@@ -229,6 +231,8 @@ object FlowUtils extends RiderLogger {
     flowSeq.foreach(flow =>
       map(flow.id) = getDisableActions(flow, projectNsMap(flow.projectId)))
     map
+    riderLogger.info("flow disableActions map: " + map)
+    map
   }
 
   def getDisableActions(flow: FlowStream, projectNsSeq: Seq[String]): String = {
@@ -238,9 +242,11 @@ object FlowUtils extends RiderLogger {
     nsSeq += flow.sinkNs
     nsSeq ++ getDbFromTrans(flow.tranConfig).distinct
     var flag = true
+    riderLogger.info("flow ns: " + nsSeq)
+    riderLogger.info("project ns: " + projectNsSeq)
     for (i <- nsSeq.indices) {
       if (i < 2) {
-        if (!projectNsSeq.contains(nsSeq(i))) {
+        if (!projectNsSeq.exists(_.startsWith(nsSeq(i).split("\\.").slice(0, 4).mkString(".")))) {
           flag = false
         }
       } else {
@@ -248,6 +254,7 @@ object FlowUtils extends RiderLogger {
           flag = false
       }
     }
+    riderLogger.info("flag: " + flag)
     if (!flag) {
       "modify,start,renew,stop"
     } else {

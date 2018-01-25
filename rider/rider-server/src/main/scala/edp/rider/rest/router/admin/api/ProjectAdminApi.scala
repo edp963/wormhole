@@ -207,7 +207,8 @@ class ProjectAdminApi(projectDal: ProjectDal,
                         val putRelNsIds = relNsEntity.map(_.nsId)
                         val deleteNsIds = existRelNsIds.filter(!putRelNsIds.contains(_))
                         val flowIds = FlowUtils.getFlowsByNsIds(deleteNsIds)
-                        flowDal.defaultGetAll(_.id inSet(flowIds), "stop")
+                        riderLogger.info(s"project ${projectEntity.id} remove $deleteNsIds namespace permission, should stop flow $flowIds")
+//                        flowDal.defaultGetAll(_.id inSet(flowIds), "stop")
                         val insertNsSeq = relNsEntity.filter(relNs => !existRelNsIds.contains(relNs.nsId))
                         onComplete(relProjectNsDal.deleteByFilter(relNs => relNs.projectId === entity.id && relNs.nsId.inSet(deleteNsIds)).mapTo[Int]) {
                           case Success(_) =>
