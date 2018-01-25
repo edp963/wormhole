@@ -68,13 +68,14 @@ object DbHelper {
 
 object _IDHelper{
   def get_Ids(tuple: Seq[String], _ids: Array[String], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)]): String = {
-    val _ids = ListBuffer.empty[String]
+
+    val tmp_ids = ListBuffer.empty[String]
     if (_ids.nonEmpty ) {
       _ids.foreach(keyname => {
         val (index, _, _) = schemaMap(keyname)
-        _ids += tuple(index)
+        tmp_ids += tuple(index)
       })
-      _ids.mkString("_")
+      tmp_ids.mkString("_")
     } else UUID.randomUUID().toString
   }
 }
