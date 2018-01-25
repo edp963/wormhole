@@ -194,9 +194,9 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
   }
 
   def getNsByProjectId(projectId: Long): Seq[String] = {
-    val nsSeq = Await.result(db.run((namespaceTable join relProjectNsTable.filter(_.projectId === projectId))
+    val nsSeq = Await.result(db.run((relProjectNsTable.filter(_.projectId === projectId) join namespaceTable on (_.nsId === _.id))
       .map {
-        case (ns, _) => ns
+        case (_, ns) => ns
       }.result).mapTo[Seq[Namespace]], minTimeOut)
     nsSeq.map(ns => generateStandardNs(ns))
   }

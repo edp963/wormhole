@@ -86,8 +86,7 @@ class ChangePwdRoutes(modules: ConfigurationModule with PersistenceModule with B
   }
 
   private def updatePass(user: User, password: String): User = {
-    User(user.id, user.email, password, user.name, user.roleType,
-      user.active, user.createTime, user.createBy, user.updateTime, user.updateBy)
+    User(user.id, user.email, password, user.name, user.roleType, user.preferredLanguage, user.active, user.createTime, user.createBy, user.updateTime, user.updateBy)
   }
 
 }
