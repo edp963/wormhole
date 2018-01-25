@@ -30,16 +30,16 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
 import edp.rider.rest.util.StreamUtils._
-import edp.rider.service.util.CacheMap
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.common.KVConfig
 import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.common.util.JsonUtils._
-import edp.wormhole.ums.UmsProtocol
 import edp.wormhole.ums.UmsProtocolType._
 import slick.jdbc.MySQLProfile.api._
 
-import scala.concurrent.{Await, Future}
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.Await
 
 object FlowUtils extends RiderLogger {
 
@@ -151,7 +151,9 @@ object FlowUtils extends RiderLogger {
   }
 
   def actionRule(flowStream: FlowStream, action: String): FlowInfo = {
-    if (flowStream.disableActions.split(",").contains(action)) {
+    if (flowStream.disableActions.contains("modify") && action == "refresh")
+      FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, s"$action success.")
+    else if (flowStream.disableActions.contains(action)) {
       FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, s"$action operation is refused.")
     }
     else (flowStream.streamStatus, flowStream.status, action) match {
@@ -220,13 +222,63 @@ object FlowUtils extends RiderLogger {
     }
   }
 
+  def getDisableActions(flowSeq: Seq[FlowStream]): mutable.HashMap[Long, String] = {
+    val map = new mutable.HashMap[Long, String]()
+    val projectNsMap = new mutable.HashMap[Long, Seq[String]]
+    flowSeq.map(_.projectId).distinct.foreach(projectId =>
+      projectNsMap(projectId) = modules.relProjectNsDal.getNsByProjectId(projectId)
+    )
+    flowSeq.foreach(flow =>
+      map(flow.id) = getDisableActions(flow, projectNsMap(flow.projectId)))
+    map
+    riderLogger.info("flow disableActions map: " + map)
+    map
+  }
+
+  def getDisableActions(flow: FlowStream, projectNsSeq: Seq[String]): String = {
+
+    val nsSeq = new ListBuffer[String]
+    nsSeq += flow.sourceNs
+    nsSeq += flow.sinkNs
+    nsSeq ++ getDbFromTrans(flow.tranConfig).distinct
+    var flag = true
+    riderLogger.info("flow ns: " + nsSeq)
+    riderLogger.info("project ns: " + projectNsSeq)
+    for (i <- nsSeq.indices) {
+      if (i < 2) {
+        if (!projectNsSeq.exists(_.startsWith(nsSeq(i).split("\\.").slice(0, 4).mkString(".")))) {
+          flag = false
+        }
+      } else {
+        if (!projectNsSeq.exists(_.startsWith(nsSeq(i))))
+          flag = false
+      }
+    }
+    riderLogger.info("flag: " + flag)
+    if (!flag) {
+      "modify,start,renew,stop"
+    } else {
+      flow.status match {
+        case "new" => "renew,stop"
+        case "starting" => "start,stop"
+        case "running" => "start"
+        case "updating" => "start,stop"
+        case "suspending" => "start"
+        case "stopping" => "start,renew,stop"
+        case "stopped" => "renew,stop"
+        case "failed" => ""
+      }
+    }
+  }
+
+
   def startFlow(streamId: Long, streamType: String, flowId: Long, sourceNs: String, sinkNs: String, consumedProtocol: String, sinkConfig: String, tranConfig: String, userId: Long): Boolean = {
     try {
-      val sourceNsObj = modules.namespaceDal.getNamespaceByNs(sourceNs)
+      val sourceNsObj = modules.namespaceDal.getNamespaceByNs(sourceNs).get
 
       val umsInfoOpt =
         if (sourceNsObj.sourceSchema.nonEmpty)
-          json2caseClass[Option[SourceSchema]](modules.namespaceDal.getNamespaceByNs(sourceNs).sourceSchema.get)
+          json2caseClass[Option[SourceSchema]](modules.namespaceDal.getNamespaceByNs(sourceNs).get.sourceSchema.get)
         else None
       val umsType = umsInfoOpt match {
         case Some(umsInfo) => umsInfo.umsType.getOrElse("ums")
@@ -533,7 +585,7 @@ object FlowUtils extends RiderLogger {
 
   def autoRegisterTopic(streamId: Long, sourceNs: String, userId: Long) = {
     try {
-      val ns = modules.namespaceDal.getNamespaceByNs(sourceNs)
+      val ns = modules.namespaceDal.getNamespaceByNs(sourceNs).get
       val topicSearch = Await.result(modules.inTopicDal.findByFilter(rel => rel.streamId === streamId && rel.nsDatabaseId === ns.nsDatabaseId), minTimeOut)
       if (topicSearch.isEmpty) {
         val instance = Await.result(modules.instanceDal.findByFilter(_.id === ns.nsInstanceId), minTimeOut).head
@@ -581,11 +633,23 @@ object FlowUtils extends RiderLogger {
     val flows = Await.result(modules.flowDal
       .findByFilter(flow => flow.streamId === streamId && flow.status =!= "new" && flow.status =!= "stopping" && flow.status =!= "stopped")
       , minTimeOut)
-    val ns = modules.namespaceDal.getNamespaceByNs(sourceNs)
+    val ns = modules.namespaceDal.getNamespaceByNs(sourceNs).get
     val topicName = Await.result(modules.databaseDal.findById(ns.nsDatabaseId), minTimeOut).get.nsDatabase
-    val ids = flows.map(flow => modules.namespaceDal.getNamespaceByNs(flow.sourceNs)).filter(_.nsDatabaseId == ns.nsDatabaseId)
+    val ids = flows.map(flow => modules.namespaceDal.getNamespaceByNs(flow.sourceNs).get).filter(_.nsDatabaseId == ns.nsDatabaseId)
     if (ids.size > 1) (false, ns.nsDatabaseId, topicName)
     else (true, ns.nsDatabaseId, topicName)
+  }
+
+  def getFlowsByNsIds(ids: Seq[Long]): Seq[Long] = {
+    val nsSeq = Await.result(modules.namespaceDal.findByFilter(_.id inSet ids).mapTo[Seq[Namespace]], minTimeOut)
+      .map(ns => generateStandardNs(ns))
+    val flowIds = new ListBuffer[Long]
+    nsSeq.foreach(ns => {
+      val flow = Await.result(modules.flowDal.findByFilter
+      (flow => flow.sourceNs === ns || flow.sinkNs === ns), minTimeOut)
+      flowIds ++= flow.map(_.id)
+    })
+    flowIds
   }
 
 }

@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   `password` VARCHAR(32) NOT NULL,
   `name` VARCHAR(200) NOT NULL,
   `role_type` VARCHAR(100) NOT NULL,
+  `preferred_language` VARCHAR(20) NOT NULL,
   `active` TINYINT(1) NOT NULL,
   `create_time` TIMESTAMP NOT NULL,
   `create_by` BIGINT NOT NULL,
@@ -12,6 +13,9 @@ CREATE TABLE IF NOT EXISTS `user` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `email_UNIQUE` (`email` ASC))
 ENGINE = InnoDB;
+
+alter table `user` add column `preferred_language` VARCHAR(20) default "chinese";
+
 
 CREATE TABLE IF NOT EXISTS `instance` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,

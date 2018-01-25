@@ -30,6 +30,7 @@ import scala.concurrent.duration.{FiniteDuration, _}
 case class RiderServer(host: String,
                        port: Int,
                        requestTimeOut: Duration,
+                       defaultLanguage: String = "Chinese",
                        adminUser: String,
                        adminPwd: String,
                        normalUser: String,
@@ -118,6 +119,7 @@ object RiderConfig {
   lazy val riderServer = RiderServer(
     config.getString("wormholeServer.host"), config.getInt("wormholeServer.port"),
     getDurationConfig("wormholeServer.request.timeout", 120.seconds),
+    getStringConfig("wormholeServer.ui.default.language", "Chinese").toLowerCase(),
     getStringConfig("wormholeServer.admin.username", "admin"),
     getStringConfig("wormholeServer.admin.password", "admin"),
     getStringConfig("wormholeServer.normal.username", "normal"),
