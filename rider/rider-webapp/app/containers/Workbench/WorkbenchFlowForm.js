@@ -87,9 +87,7 @@ export class WorkbenchFlowForm extends React.Component {
     } else if (streamDiffType === 'hdfslog') {
       // placeholder 和单条数据回显
       if (flowMode === 'add' || flowMode === 'copy') {
-        this.props.form.setFieldsValue({
-          hdfslogNamespace: undefined
-        })
+        this.props.form.setFieldsValue({ hdfslogNamespace: undefined })
       }
       this.props.onInitHdfslogNamespace(projectIdGeted, val, 'sourceType')
     } else if (streamDiffType === 'routing') {
@@ -266,19 +264,22 @@ export class WorkbenchFlowForm extends React.Component {
       </Col>
     ))
 
-    console.log('ssss', form.getFieldValue('sinkConfig'))
-    console.log('1111', form.getFieldValue('flowSpecialConfig'))
-    const sinkConfigTag = form.getFieldValue('sinkConfig')
-      ? (
-        <Tag color="#7CB342" onClick={onShowSinkConfigModal}>
-          <Icon type="check-circle-o" /> 点击修改
-        </Tag>
-      )
-      : (
-        <Tag onClick={onShowSinkConfigModal}>
-          <Icon type="minus-circle-o" /> 点击修改
-        </Tag>
-      )
+    const sinkConfigColor = (
+      <Tag color="#7CB342" onClick={onShowSinkConfigModal}>
+        <Icon type="check-circle-o" /> 点击修改
+      </Tag>
+    )
+    const sinkConfigNoColor = (
+      <Tag onClick={onShowSinkConfigModal}>
+        <Icon type="minus-circle-o" /> 点击修改
+      </Tag>
+    )
+    let sinkConfigTag = ''
+    if (flowMode === 'copy') {
+      sinkConfigTag = this.props.sinkConfigCopy ? sinkConfigColor : sinkConfigNoColor
+    } else {
+      sinkConfigTag = form.getFieldValue('sinkConfig') ? sinkConfigColor : sinkConfigNoColor
+    }
 
     const flowSpecialConfigTag = form.getFieldValue('flowSpecialConfig')
       ? (
@@ -1071,7 +1072,8 @@ WorkbenchFlowForm.propTypes = {
   initialRoutingSinkCascader: React.PropTypes.func,
   initialRoutingCascader: React.PropTypes.func,
   flowKafkaTopicValue: React.PropTypes.string,
-  flowKafkaInstanceValue: React.PropTypes.string
+  flowKafkaInstanceValue: React.PropTypes.string,
+  sinkConfigCopy: React.PropTypes.string
 }
 
 export default Form.create({wrappedComponentRef: true})(WorkbenchFlowForm)

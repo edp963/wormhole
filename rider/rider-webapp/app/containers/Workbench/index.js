@@ -198,7 +198,9 @@ export class Workbench extends React.Component {
 
       routingSinkTypeNsData: [],
       routingSourceNsValue: '',
-      transConfigConfirmValue: ''
+      transConfigConfirmValue: '',
+      sinkConfigCopy: '',
+      sinkDSCopy: ''
     }
   }
 
@@ -401,7 +403,11 @@ export class Workbench extends React.Component {
    * 新增Flow时，获取 default type sink namespace 下拉框
    * */
   onInitSinkTypeNamespace = (projectId, value, type) => {
-    const { flowMode, pipelineStreamId } = this.state
+    const { flowMode, pipelineStreamId, sinkDSCopy } = this.state
+
+    this.setState({
+      sinkConfigCopy: sinkDSCopy === value ? this.state.sinkConfigCopy : ''
+    })
 
     this.setState({
       sinkTypeNamespaceData: [],
@@ -1035,7 +1041,10 @@ export class Workbench extends React.Component {
           ? JSON.stringify(JSON.parse(result.tranConfig).swifts_specific_config)
           : ''
 
-        console.log('sinkConfigShow', sinkConfigShow)
+        this.setState({
+          sinkConfigCopy: sinkConfigShow,
+          sinkDSCopy: sinkNsArr[0]
+        })
 
         this.workbenchFlowForm.setFieldsValue({
           sourceDataSystem: sourceNsArr[0],
@@ -2890,7 +2899,10 @@ export class Workbench extends React.Component {
         })
         this.cm.setSize('100%', '256px')
       }
-      this.cm.doc.setValue(this.workbenchFlowForm.getFieldValue('sinkConfig') || '')
+      const { flowMode, sinkConfigCopy } = this.state
+      flowMode === 'copy'
+        ? this.cm.doc.setValue(sinkConfigCopy)
+        : this.cm.doc.setValue(this.workbenchFlowForm.getFieldValue('sinkConfig') || '')
     })
   }
 
@@ -3194,6 +3206,7 @@ export class Workbench extends React.Component {
 
                     flowKafkaInstanceValue={this.state.flowKafkaInstanceValue}
                     flowKafkaTopicValue={this.state.flowKafkaTopicValue}
+                    sinkConfigCopy={this.state.sinkConfigCopy}
 
                     ref={(f) => { this.workbenchFlowForm = f }}
                   />
