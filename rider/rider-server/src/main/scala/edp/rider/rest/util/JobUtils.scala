@@ -69,12 +69,14 @@ object JobUtils extends RiderLogger {
         Some(base64byte2s(JSON.parseObject(sinkConfig).getString("sink_specific_config").trim.getBytes()))
       else None
 
+    val sinkKeys = if(ns.nsSys == "hbase") Some(FlowUtils.getRowkey(specialConfig.get)) else ns.keys
+
     val projection = if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_output")) {
       Some(JSON.parseObject(sinkConfig).getString("sink_output").trim)
     } else {
       None
     }
-    SinkConfig(sinkNs, getConnConfig(instance, db), maxRecord, Some(getSinkProcessClass(ns.nsSys, ns.sinkSchema)), specialConfig, ns.keys, projection)
+    SinkConfig(sinkNs, getConnConfig(instance, db), maxRecord, Some(getSinkProcessClass(ns.nsSys, ns.sinkSchema)), specialConfig, sinkKeys, projection)
   }
 
   def getTranConfig(tranConfig: String, sinkNs: String) = {
