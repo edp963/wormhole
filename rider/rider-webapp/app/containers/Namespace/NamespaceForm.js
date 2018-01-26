@@ -41,8 +41,7 @@ export class NamespaceForm extends React.Component {
     this.state = {
       namespaceDSValue: '',
       instanceIdGeted: 0,
-      currentNamespaceUrlValue: [],
-      connUrlText: ''
+      currentNamespaceUrlValue: []
     }
   }
 
@@ -72,11 +71,10 @@ export class NamespaceForm extends React.Component {
     })
     this.props.cleanNsTableData()
     this.setState({
-      instanceIdGeted: selUrl.id,
-      connUrlText: selUrl.connUrl
+      instanceIdGeted: selUrl.id
     }, () => {
       // 通过 instance id 显示 database 下拉框
-      this.props.onInitDatabaseSelectValue(this.state.instanceIdGeted)
+      this.props.onInitDatabaseSelectValue(this.state.instanceIdGeted, selUrl.connUrl)
     })
   }
 
@@ -94,7 +92,7 @@ export class NamespaceForm extends React.Component {
 
   render () {
     const { getFieldDecorator } = this.props.form
-    const { currentNamespaceUrlValue, namespaceDSValue, connUrlText } = this.state
+    const { currentNamespaceUrlValue, namespaceDSValue } = this.state
     const { namespaceFormType, databaseSelectValue, queryConnUrl } = this.props
     const { namespaceTableSource, onDeleteTable, onAddTable, deleteTableClass, addTableClass, addTableClassTable, addBtnDisabled } = this.props
 
@@ -121,13 +119,10 @@ export class NamespaceForm extends React.Component {
 
     // edit 时，不能修改部分元素
     let disabledOrNot = false
-    let urlText = ''
     if (namespaceFormType === 'add') {
       disabledOrNot = false
-      urlText = connUrlText
     } else if (namespaceFormType === 'edit') {
       disabledOrNot = true
-      urlText = queryConnUrl
     }
 
     const instanceOptions = currentNamespaceUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.nsInstance}</Option>))
@@ -287,7 +282,7 @@ export class NamespaceForm extends React.Component {
           <Col span={24}>
             <FormItem label="Connection URL" {...itemStyle}>
               {getFieldDecorator('connectionUrl', {})(
-                <strong>{urlText}</strong>
+                <strong>{queryConnUrl}</strong>
               )}
             </FormItem>
           </Col>

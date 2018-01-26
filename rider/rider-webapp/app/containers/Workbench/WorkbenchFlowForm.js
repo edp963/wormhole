@@ -266,6 +266,8 @@ export class WorkbenchFlowForm extends React.Component {
       </Col>
     ))
 
+    console.log('ssss', form.getFieldValue('sinkConfig'))
+    console.log('1111', form.getFieldValue('flowSpecialConfig'))
     const sinkConfigTag = form.getFieldValue('sinkConfig')
       ? (
         <Tag color="#7CB342" onClick={onShowSinkConfigModal}>
