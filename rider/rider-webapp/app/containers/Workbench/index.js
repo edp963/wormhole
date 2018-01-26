@@ -595,8 +595,14 @@ export class Workbench extends React.Component {
 
   showCopyFlowWorkbench = (flow) => {
     this.setState({ flowMode: 'copy' })
-    this.workbenchFlowForm.resetFields()
-    this.queryFlowInfo(flow)
+
+    new Promise((resolve) => {
+      resolve(flow)
+      this.workbenchFlowForm.resetFields()
+    })
+      .then((flow) => {
+        this.queryFlowInfo(flow)
+      })
   }
 
   showEditJobWorkbench = (job) => () => {
@@ -777,14 +783,19 @@ export class Workbench extends React.Component {
   // Flow 调单条查询的接口，回显数据
   queryFlowInfo = (flow) => {
     this.setState({
-      streamDiffType: flow.streamType
+      streamDiffType: typeof (flow.streamType) === 'object' ? flow.streamTypeOrigin : flow.streamType
     }, () => {
-      if (flow.streamType === 'default') {
-        this.queryFlowDefault(flow)
-      } else if (flow.streamType === 'hdfslog') {
-        this.queryFlowHdfslog(flow)
-      } else if (flow.streamType === 'routing') {
-        this.queryFlowRouting(flow)
+      const { streamDiffType } = this.state
+      switch (streamDiffType) {
+        case 'default':
+          this.queryFlowDefault(flow)
+          break
+        case 'hdfslog':
+          this.queryFlowHdfslog(flow)
+          break
+        case 'routing':
+          this.queryFlowRouting(flow)
+          break
       }
     })
   }
@@ -1024,13 +1035,15 @@ export class Workbench extends React.Component {
           ? JSON.stringify(JSON.parse(result.tranConfig).swifts_specific_config)
           : ''
 
+        console.log('sinkConfigShow', sinkConfigShow)
+
         this.workbenchFlowForm.setFieldsValue({
           sourceDataSystem: sourceNsArr[0],
           sourceNamespace: [sourceNsArr[1], sourceNsArr[2], sourceNsArr[3]],
           sinkDataSystem: sinkNsArr[0],
           sinkNamespace: [sinkNsArr[1], sinkNsArr[2], sinkNsArr[3]],
 
-          sinkConfig: this.state.flowMode === 'copy' ? '' : sinkConfigShow,
+          sinkConfig: sinkConfigShow,
           resultFields: resultFieldsVal,
           dataframeShow: dataframeShowVal,
           flowSpecialConfig: flowSpecialConfigVal
@@ -1745,19 +1758,20 @@ export class Workbench extends React.Component {
     }
 
     let tranConfigRequest = {}
-    if (jobTranTableRequestValue === {}) {
-      tranConfigRequest = {}
+    if (!jobTranTableRequestValue['action']) {
+      tranConfigRequest = ''
     } else {
-      tranConfigRequest = !values.jobSpecialConfig
+      const tranConfigRequestTemp = !values.jobSpecialConfig
         ? jobTranTableRequestValue
         : Object.assign({}, jobTranTableRequestValue, { 'swifts_specific_config': JSON.parse(values.jobSpecialConfig) })
+      tranConfigRequest = JSON.stringify(tranConfigRequestTemp)
     }
 
     const requestCommon = {
       eventTsStart: (!values.eventStartTs) ? '' : startTsVal,
       eventTsEnd: (!values.eventEndTs) ? '' : endTsVal,
       sinkConfig: sinkConfigRequest,
-      tranConfig: JSON.stringify(tranConfigRequest)
+      tranConfig: tranConfigRequest
     }
 
     if (jobMode === 'add') {
@@ -1836,13 +1850,14 @@ export class Workbench extends React.Component {
     }
 
     let tranConfigRequest = {}
-    if (transformTableRequestValue === '') {
-      tranConfigRequest = {}
+    if (!transformTableRequestValue['action']) {
+      tranConfigRequest = ''
     } else {
       const objectTemp = Object.assign({}, etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue, dataframeShowOrNot)
-      tranConfigRequest = !values.flowSpecialConfig
+      const tranConfigRequestTemp = !values.flowSpecialConfig
         ? objectTemp
         : Object.assign({}, objectTemp, {'swifts_specific_config': JSON.parse(values.flowSpecialConfig)})
+      tranConfigRequest = JSON.stringify(tranConfigRequestTemp)
     }
 
     if (flowMode === 'add' || flowMode === 'copy') {
@@ -1860,7 +1875,7 @@ export class Workbench extends React.Component {
         sinkNs: sinkDataInfo,
         consumedProtocol: values.protocol,
         sinkConfig: `${sinkConfigRequest}`,
-        tranConfig: JSON.stringify(tranConfigRequest)
+        tranConfig: tranConfigRequest
       }
 
       this.props.onAddFlow(submitFlowData, () => {
@@ -1876,7 +1891,7 @@ export class Workbench extends React.Component {
     } else if (flowMode === 'edit') {
       const editData = {
         sinkConfig: `${sinkConfigRequest}`,
-        tranConfig: JSON.stringify(tranConfigRequest),
+        tranConfig: tranConfigRequest,
         consumedProtocol: values.protocol
       }
 

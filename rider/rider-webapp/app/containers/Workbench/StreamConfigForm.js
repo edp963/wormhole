@@ -189,7 +189,7 @@ export class StreamConfigForm extends React.Component {
                 }],
                 initialValue: 50
               })(
-                <InputNumber min={1} step={1} />
+                <InputNumber min={10} max={50} />
               )}
             </FormItem>
           </Col>
