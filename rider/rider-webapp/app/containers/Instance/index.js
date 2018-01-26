@@ -317,7 +317,7 @@ export class Instance extends React.PureComponent {
       } else if (InstanceSourceDsVal === 'phoenix') {
         errMsg = [new Error('zookeeper url, 如localhost:2181')]
       } else if (InstanceSourceDsVal === 'kafka') {
-        errMsg = [new Error('borker list, localhost:9092, 多条用逗号隔开')]
+        errMsg = [new Error('broker list, localhost:9092, 多条用逗号隔开')]
       } else if (InstanceSourceDsVal === 'cassandra' || InstanceSourceDsVal === 'mongodb') {
         errMsg = [new Error('ip:port, 多条用逗号隔开')]
       } else if (InstanceSourceDsVal === 'redis') {

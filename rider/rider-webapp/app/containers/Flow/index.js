@@ -982,6 +982,14 @@ export class Flow extends React.Component {
 
         const { showFlowDetails } = this.state
 
+        let sinkConfigFinal = ''
+        if (!showFlowDetails.sinkConfig) {
+          sinkConfigFinal = ''
+        } else {
+          const sinkJson = JSON.parse(showFlowDetails.sinkConfig)
+          sinkConfigFinal = JSON.stringify(sinkJson['sink_specific_config'])
+        }
+
         return (
           <span className="ant-table-action-column">
             <Tooltip title="查看详情">
@@ -992,7 +1000,7 @@ export class Flow extends React.Component {
                   <p><strong>   Protocol：</strong>{showFlowDetails.consumedProtocol}</p>
                   <p><strong>   Stream Name：</strong>{showFlowDetails.streamName}</p>
 
-                  <p><strong>   Sink Config：</strong>{showFlowDetails.sinkConfig}</p>
+                  <p><strong>   Sink Config：</strong>{sinkConfigFinal}</p>
                   <p><strong>   Transformation Config：</strong>{showFlowDetails.tranConfig}</p>
 
                   <p><strong>   Create Time：</strong>{showFlowDetails.createTime}</p>
