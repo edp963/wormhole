@@ -349,7 +349,12 @@ export class Namespace extends React.PureComponent {
   }
 
   // 点击遮罩层或右上角叉或取消按钮的回调
-  hideForm = () => this.setState({ formVisible: false })
+  hideForm = () => {
+    this.setState({
+      formVisible: false,
+      queryConnUrl: ''
+    })
+  }
 
   // Modal 完全关闭后的回调
   resetModal = () => {
@@ -551,10 +556,11 @@ export class Namespace extends React.PureComponent {
     })
   }
 
-  onInitDatabaseSelectValue = (value) => {
+  onInitDatabaseSelectValue = (value, url) => {
     this.props.onLoadNamespaceDatabase(value, (result) => {
       this.setState({
-        databaseSelectValue: result
+        databaseSelectValue: result,
+        queryConnUrl: url
       })
       this.cleanNsTableData()
     })
