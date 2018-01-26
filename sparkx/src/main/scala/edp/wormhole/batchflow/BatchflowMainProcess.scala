@@ -375,6 +375,7 @@ object BatchflowMainProcess extends EdpLogging {
           nameIndex.map {
             case (_, index, dataType) =>
               val value: Any = row.get(index)
+              logInfo("-----dataType:"+dataType+",value="+value)
               if (value == null) null else {
                 if (dataType == BinaryType) {
                   CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
@@ -383,7 +384,7 @@ object BatchflowMainProcess extends EdpLogging {
                 } else if (dataType == DoubleType) {
                   java.lang.Double.parseDouble(value.toString).toString
                 } else if (dataType == DecimalType) {
-                  new  java.math.BigDecimal(value.toString).toPlainString()
+                  new java.math.BigDecimal(value.toString).toPlainString()
                 } else {
                   value.toString
                 }
