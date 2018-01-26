@@ -68,6 +68,8 @@ object FlowUtils extends RiderLogger {
           caseClass2json[Seq[KVConfig]](dbConfig.get)
         else "\"\""
 
+      val sinkKeys = if (ns.nsSys == "hbase") getRowkey(specialConfig) else ns.keys.getOrElse("")
+
       if (ns.sinkSchema.nonEmpty && ns.sinkSchema.get != "") {
         val schema = caseClass2json[Object](json2caseClass[SinkSchema](ns.sinkSchema.get).schema)
         val base64 = base64byte2s(schema.trim.getBytes)
@@ -77,7 +79,7 @@ object FlowUtils extends RiderLogger {
            |"sink_connection_url": "${getConnUrl(instance, db)}",
            |"sink_connection_username": "${db.user.getOrElse("")}",
            |"sink_connection_password": "${db.pwd.getOrElse("")}",
-           |"sink_table_keys": "${ns.keys.getOrElse("")}",
+           |"sink_table_keys": "$sinkKeys",
            |"sink_output": "$sink_output",
            |"sink_connection_config": $sinkConnectionConfig,
            |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys, ns.sinkSchema)}",
@@ -93,7 +95,7 @@ object FlowUtils extends RiderLogger {
            |"sink_connection_url": "${getConnUrl(instance, db)}",
            |"sink_connection_username": "${db.user.getOrElse("")}",
            |"sink_connection_password": "${db.pwd.getOrElse("")}",
-           |"sink_table_keys": "${ns.keys.getOrElse("")}",
+           |"sink_table_keys": "$sinkKeys",
            |"sink_output": "$sink_output",
            |"sink_connection_config": $sinkConnectionConfig,
            |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys, ns.sinkSchema)}",
@@ -650,6 +652,43 @@ object FlowUtils extends RiderLogger {
       flowIds ++= flow.map(_.id)
     })
     flowIds
+  }
+
+  def getRowkey(sinkConfig: String): String = {
+    val joinGrp = sinkConfig.split("\\+").map(_.trim)
+    val rowKey = ListBuffer.empty[String]
+    joinGrp.foreach(oneFieldPattern => {
+      var subPatternContent = oneFieldPattern
+      val keyOpts = ListBuffer.empty[(String, String)]
+      if (subPatternContent.contains("(")) {
+        while (subPatternContent.contains("(")) {
+          val firstIndex = subPatternContent.indexOf("(")
+          val keyOpt = subPatternContent.substring(0, firstIndex).trim
+          val lastIndex = subPatternContent.lastIndexOf(")")
+          subPatternContent = subPatternContent.substring(firstIndex + 1, lastIndex)
+          val param = if (subPatternContent.trim.endsWith(")")) null.asInstanceOf[String]
+          else {
+            if (subPatternContent.contains("(")) {
+              val subLastIndex = subPatternContent.lastIndexOf(")", lastIndex)
+              val part = subPatternContent.substring(subLastIndex + 1)
+              subPatternContent = subPatternContent.substring(0, subLastIndex + 1)
+              if (part.contains(",")) part.trim.substring(1)
+              else null.asInstanceOf[String]
+            } else if (subPatternContent.contains(",")) {
+              val tmpIndex = subPatternContent.indexOf(",")
+              val tmp = subPatternContent.substring(tmpIndex + 1)
+              subPatternContent = subPatternContent.substring(0, tmpIndex)
+              tmp
+            } else null.asInstanceOf[String]
+          }
+          keyOpts += ((keyOpt.toLowerCase, param))
+        }
+        rowKey += subPatternContent
+      } else {
+        rowKey += subPatternContent.replace("'", "").trim
+      }
+    })
+    rowKey.distinct.filter(_ != "_").mkString(",")
   }
 
 }
