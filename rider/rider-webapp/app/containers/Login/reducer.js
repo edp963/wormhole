@@ -20,9 +20,11 @@
 
 import { fromJS } from 'immutable'
 import { LOGIN, LOGIN_SUCCESS, LOGIN_FAILURE, LOG_PSW_ERROR } from './constants'
+import { DEFAULT_LOCALE } from '../App/constants'
 
 const initialState = fromJS({
-  error: false
+  error: false,
+  locale: DEFAULT_LOCALE
 })
 
 export function loginReducer (state = initialState, { type, payload }) {
@@ -32,6 +34,7 @@ export function loginReducer (state = initialState, { type, payload }) {
     case LOGIN_SUCCESS:
       // trigger LOCATION_CHANGE action, should async
       // 存储数据到 localStorage 对象里
+      const lanType = payload.result.preferredLanguage === 'chinese' ? 'zh' : 'en'
       localStorage.setItem('loginCreateBy', payload.result.createBy)
       localStorage.setItem('loginCreateTime', payload.result.createTime)
       localStorage.setItem('loginEmail', payload.result.email)
@@ -41,12 +44,14 @@ export function loginReducer (state = initialState, { type, payload }) {
       localStorage.setItem('loginRoleType', payload.result.roleType)
       localStorage.setItem('loginUpdateBy', payload.result.updateBy)
       localStorage.setItem('loginUpdateTime', payload.result.updateTime)
+      localStorage.setItem('preferredLanguage', lanType)
+      localStorage.setItem('loginActive', payload.result.active)
 
       setTimeout(() => {
-        payload.resolve()
+        payload.resolve(payload.result)
       }, 10)
 
-      return state
+      return state.set('locale', lanType)
     case LOGIN_FAILURE:
       payload.reject()
       return state

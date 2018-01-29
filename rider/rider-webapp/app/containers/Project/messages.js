@@ -20,4 +20,25 @@
 
 import { defineMessages } from 'react-intl'
 
-export default defineMessages({})
+export default defineMessages({
+  projectDeleteProject: { id: 'rider.app.table.delete.action' },
+  projectCancelProject: { id: 'rider.app.modal.cancel' },
+  projectSaveProject: { id: 'rider.app.modal.save' },
+  projectAddProject: { id: 'rider.containers.Project.add.project' },
+  projectAddAuthorize: { id: 'rider.containers.Project.add.authorize.project' },
+  projectEditAuthorize: { id: 'rider.containers.Project.edit.project' },
+  projectHideProject: { id: 'rider.containers.Project.hide.project' },
+  projectShowProject: { id: 'rider.containers.Project.show.project' },
+  projectInformation: { id: 'rider.containers.Project.project.information' },
+  projectIdentification: { id: 'rider.containers.Project.project.identification' },
+  projectDescription: { id: 'rider.containers.Project.project.description' },
+  projectResource: { id: 'rider.containers.Project.project.resource' },
+  projectCpu: { id: 'rider.containers.Project.project.cpu' },
+  projectMemory: { id: 'rider.containers.Project.project.memory' },
+  projectNsAuthority: { id: 'rider.containers.Project.project.ns.authority' },
+  projectPaging: { id: 'rider.containers.Project.project.paging' },
+  projectAll: { id: 'rider.containers.Project.project.all' },
+  projectUserAuthorit: { id: 'rider.containers.Project.project.user.authority' },
+  projectNameWarning1: { id: 'rider.containers.Project.project.name.warning1' },
+  projectNameWarning2: { id: 'rider.containers.Project.project.name.warning2' }
+})

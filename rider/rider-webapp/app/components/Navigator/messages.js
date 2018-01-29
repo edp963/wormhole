@@ -24,5 +24,8 @@ export default defineMessages({
   navChangeLanguage: {
     id: 'app.components.Navigator.zh.en',
     defaultMessage: '中 文'
+  },
+  navChangePsw: {
+    id: 'rider.components.Navigator.edit.password'
   }
 })

@@ -120,7 +120,8 @@ export function* editUser ({ payload }) {
       url: api.user,
       data: payload.user
     })
-    yield put(userEdited(result.payload, payload.resolve))
+    yield put(userEdited(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(getError(err))
   }
@@ -188,7 +189,8 @@ export function* getProjectUserAllWatcher () {
 export function* queryUser ({payload}) {
   try {
     const result = yield call(request, `${api.user}/${payload.userId}`)
-    yield put(userDetailLoaded(result.payload, payload.resolve))
+    yield put(userDetailLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(getError(err))
   }
