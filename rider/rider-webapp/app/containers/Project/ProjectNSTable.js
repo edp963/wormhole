@@ -19,6 +19,8 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import Table from 'antd/lib/table'
 import Input from 'antd/lib/input'
@@ -40,7 +42,7 @@ export class ProjectNSTable extends React.Component {
 
       selectedRowKeys: [],
       selectIcon: 'check',
-      selectText: '分页',
+      selectText: <FormattedMessage {...messages.projectPaging} />,
       paginationOrNot: {
         defaultPageSize: 10,
         showSizeChanger: true,
@@ -67,7 +69,6 @@ export class ProjectNSTable extends React.Component {
           nsInstanceId: s.nsInstanceId,
           nsTablepar: s.nsTablepar,
           nsVersion: s.nsVersion,
-          // permission: s.permission,
           projectName: s.projectName,
           updateBy: s.updateBy,
           updateTime: s.updateTime,
@@ -129,7 +130,7 @@ export class ProjectNSTable extends React.Component {
     if (selectIcon === 'close') {
       this.setState({
         selectIcon: 'check',
-        selectText: '分页',
+        selectText: <FormattedMessage {...messages.projectPaging} />,
         paginationOrNot: {
           defaultPageSize: 10,
           showSizeChanger: true,
@@ -141,7 +142,7 @@ export class ProjectNSTable extends React.Component {
     } else if (selectIcon === 'check') {
       this.setState({
         selectIcon: 'close',
-        selectText: '全部',
+        selectText: <FormattedMessage {...messages.projectAll} />,
         paginationOrNot: false
       })
     }
@@ -197,7 +198,7 @@ export class ProjectNSTable extends React.Component {
     return (
       <Table
         bordered
-        title={() => (<div className="required-style"><span className="project-ns-h3">Namespace 权限</span>
+        title={() => (<div className="required-style"><span className="project-ns-h3"><FormattedMessage {...messages.projectNsAuthority} /></span>
           <span className="project-ns-switch">
             <Button icon={selectIcon} type="default" onClick={this.onChangeAllSelect} size="small">{selectText}</Button>
           </span>

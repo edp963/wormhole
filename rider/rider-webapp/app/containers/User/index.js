@@ -222,6 +222,7 @@ export class User extends React.PureComponent {
 
     this.userForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
+        const preferLanguage = localStorage.getItem('preferredLanguage')
         if (formType === 'add') {
           if (emailExited) {
             this.userForm.setFields({
@@ -237,12 +238,17 @@ export class User extends React.PureComponent {
             })
           }
         } else if (formType === 'editMsg') {
-          onEditUser(Object.assign({}, editUsersMsgData, values), () => {
+          onEditUser(Object.assign({}, editUsersMsgData, values, {
+            preferredLanguage: preferLanguage
+          }), () => {
             this.hideForm()
             message.success('用户信息修改成功！', 3)
           })
         } else if (formType === 'editPsw') {
-          onEditUser(Object.assign({}, editUsersPswData, { password: values.password }), () => {
+          onEditUser(Object.assign({}, editUsersPswData, {
+            password: values.password,
+            preferredLanguage: preferLanguage
+          }), () => {
             this.hideForm()
             message.success('密码修改成功！', 3)
           })
