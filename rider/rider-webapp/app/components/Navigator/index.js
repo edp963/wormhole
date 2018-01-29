@@ -38,7 +38,7 @@ const SubMenu = Menu.SubMenu
 import { logOut } from '../../containers/Login/action'
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 
-import { editroleTypeUserPsw } from '../../containers/User/action'
+import { editroleTypeUserPsw, loadUserDetail, editUser } from '../../containers/User/action'
 import { selectModalLoading } from '../../containers/User/selectors'
 import { selectLocale } from '../../containers/LanguageProvider/selectors'
 
@@ -197,9 +197,35 @@ class Navigator extends React.Component {
 
   onChangeLanguageBtn = () => {
     const { locale } = this.props
+    const userId = localStorage.getItem('loginId')
+
+    new Promise((resolve) => {
+      // 获取最新的user信息
+      this.props.onLoadUserDetail(userId, (result) => {
+        resolve(result)
+      })
+    }).then((result) => {
+      const requestValue = {
+        id: result.id,
+        email: result.email,
+        password: result.password,
+        name: result.name,
+        roleType: result.roleType,
+        preferredLanguage: result.preferredLanguage === 'chinese' ? 'english' : 'chinese',
+        active: result.active,
+        createTime: result.createTime,
+        createBy: result.createBy,
+        updateTime: result.updateTime,
+        updateBy: result.updateBy
+      }
+
+      // 相当于更改用户信息
+      this.props.onEditUser(requestValue, () => {})
+    })
 
     const langText = locale === 'zh' ? 'en' : 'zh'
     this.props.onChangeLanguage(langText)
+    localStorage.setItem('preferredLanguage', langText)
   }
 
   render () {
@@ -390,7 +416,7 @@ class Navigator extends React.Component {
           >
             <FormattedMessage {...messages.navChangeLanguage} />
           </Button>
-          <Tooltip title="修改密码">
+          <Tooltip title={<FormattedMessage {...messages.navChangePsw} />}>
             <a title={logNameShow} className="user-login" onClick={this.showEditPsw}>{logNameShow}</a>
           </Tooltip>
           <div
@@ -442,6 +468,8 @@ export function mapDispatchToProps (dispatch) {
     onSetProject: (projectId) => dispatch(setProject(projectId)),
     onLogOut: () => dispatch(logOut()),
     onEditroleTypeUserPsw: (pwdValues, resolve, reject) => dispatch(editroleTypeUserPsw(pwdValues, resolve, reject)),
+    onLoadUserDetail: (userId, resolve) => dispatch(loadUserDetail(userId, resolve)),
+    onEditUser: (values, resolve) => dispatch(editUser(values, resolve)),
     onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
@@ -458,6 +486,8 @@ Navigator.propTypes = {
   router: React.PropTypes.any,
   onLogOut: React.PropTypes.func,
   onEditroleTypeUserPsw: React.PropTypes.func,
+  onLoadUserDetail: React.PropTypes.func,
+  onEditUser: React.PropTypes.func,
   onChangeLanguage: React.PropTypes.func,
   locale: React.PropTypes.string
 }

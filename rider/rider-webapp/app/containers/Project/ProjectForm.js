@@ -19,6 +19,10 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
+import PlaceholderInputIntl from '../../components/PlaceholderInputIntl'
+import PlaceholderInputNumberIntl from '../../components/PlaceholderInputNumberIntl'
 
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
@@ -73,7 +77,7 @@ export class ProjectForm extends React.Component {
       <Form>
         <Row gutter={8}>
           <Col span={24}>
-            <Card title="项目信息" className="project-form-card-style project-form-card-style-left">
+            <Card title={<FormattedMessage {...messages.projectInformation} />} className="project-form-card-style project-form-card-style-left">
               <FormItem className="hide">
                 {getFieldDecorator('id', {
                   hidden: projectFormType === 'add'
@@ -88,7 +92,7 @@ export class ProjectForm extends React.Component {
                   <Input />
                 )}
               </FormItem>
-              <FormItem label="项目标识" {...itemStyle}>
+              <FormItem label={<FormattedMessage {...messages.projectIdentification} />} {...itemStyle}>
                 {getFieldDecorator('name', {
                   rules: [{
                     required: true,
@@ -97,24 +101,26 @@ export class ProjectForm extends React.Component {
                     validator: this.forceCheckProjectName
                   }]
                 })(
-                  <Input
-                    placeholder="由大小写字母、中划线、下划线、数字组成"
-                    onChange={this.onProjectNameInputChange}
-                    disabled={disabledOrNot}
+                  <PlaceholderInputIntl
+                    idValue="rider.containers.Project.project.identification.placeholder"
+                    onChangeEvent={this.onProjectNameInputChange}
+                    disabledValue={disabledOrNot}
                   />
                 )}
               </FormItem>
-              <FormItem label="项目描述" {...itemStyle}>
+              <FormItem label={<FormattedMessage {...messages.projectDescription} />} {...itemStyle}>
                 {getFieldDecorator('desc', {})(
-                  <Input placeholder="项目详情描述" />
+                  <PlaceholderInputIntl
+                    idValue="rider.containers.Project.project.description.placeholder"
+                  />
                 )}
               </FormItem>
             </Card>
           </Col>
 
           <Col span={24}>
-            <Card title="项目资源" className="project-form-card-style project-form-card-style-right">
-              <FormItem label="CPU上限" {...itemStyle}>
+            <Card title={<FormattedMessage {...messages.projectResource} />} className="project-form-card-style project-form-card-style-right">
+              <FormItem label={<FormattedMessage {...messages.projectCpu} />} {...itemStyle}>
                 {getFieldDecorator('resCores', {
                   rules: [{
                     required: true,
@@ -123,10 +129,14 @@ export class ProjectForm extends React.Component {
                     validator: this.forceCheckRes
                   }]
                 })(
-                  <InputNumber min={1} step={1} placeholder="VCores 个数" />
+                  <PlaceholderInputNumberIntl
+                    idValue="rider.containers.Project.project.vcores"
+                    minValue={1}
+                    stepValue={1}
+                  />
                 )}
               </FormItem>
-              <FormItem label="内存上限" {...itemStyle}>
+              <FormItem label={<FormattedMessage {...messages.projectMemory} />} {...itemStyle}>
                 {getFieldDecorator('resMemoryG', {
                   rules: [{
                     required: true,

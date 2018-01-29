@@ -23,6 +23,9 @@ import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
 
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
+
 import ProjectForm from './ProjectForm'
 import ProjectNSTable from './ProjectNSTable'
 import ProjectUdfTable from './ProjectUdfTable'
@@ -46,6 +49,7 @@ import { loadProjects, loadUserProjects, addProject, editProject, loadProjectNam
 import { loadSelectNamespaces, loadProjectNsAll } from '../Namespace/action'
 import { loadSelectUsers, loadProjectUserAll } from '../User/action'
 import { loadSingleUdf, loadProjectUdfs } from '../Udf/action'
+import { changeLocale } from '../../containers/LanguageProvider/actions'
 
 export class Project extends React.Component {
   constructor (props) {
@@ -70,6 +74,10 @@ export class Project extends React.Component {
     } else if (localStorage.getItem('loginRoleType') === 'user') {
       this.props.onLoadUserProjects()
     }
+
+    // 刷新浏览器后不改变 language
+    const languageType = localStorage.getItem('preferredLanguage')
+    this.props.onChangeLanguage(languageType)
   }
 
   getIntoProject = (project) => () => {
@@ -98,22 +106,9 @@ export class Project extends React.Component {
       projectFormType: 'add'
     })
     // 显示 project modal 所有的 namespaces & users & udfs
-    this.props.onLoadProjectNsAll((result) => {
-      this.setState({
-        projectNsTableDataSource: result
-      })
-    })
-    this.props.onLoadProjectUserAll((result) => {
-      this.setState({
-        projectUsersTableDataSource: result
-      })
-    })
-
-    this.props.onLoadProjectUdfs((result) => {
-      this.setState({
-        projectUdfTableDataSource: result
-      })
-    })
+    this.props.onLoadProjectNsAll((result) => this.setState({ projectNsTableDataSource: result }))
+    this.props.onLoadProjectUserAll((result) => this.setState({ projectUsersTableDataSource: result }))
+    this.props.onLoadProjectUdfs((result) => this.setState({ projectUdfTableDataSource: result }))
   }
 
   showDetail = (project) => (e) => {
@@ -148,21 +143,13 @@ export class Project extends React.Component {
           })
 
           // 回显 project modal 所有的 users & 选中的 users
-          this.props.onLoadProjectUserAll((result) => {
-            this.setState({
-              projectUsersTableDataSource: result
-            })
-          })
-
+          this.props.onLoadProjectUserAll((result) => this.setState({ projectUsersTableDataSource: result }))
           this.props.onLoadSelectUsers(project.id, (selectUsers) => {
-            this.projectUsersTable.setState({
-              selectedRowKeys: selectUsers.map(n => n.id)
-            })
+            this.projectUsersTable.setState({ selectedRowKeys: selectUsers.map(n => n.id) })
           })
 
           // 回显 project modal 所有的 namespaces & 选中的 namespaces
           this.props.onLoadProjectNsAll((result) => this.setState({ projectNsTableDataSource: result }))
-
           this.props.onLoadSelectNamespaces(project.id, (selectNamespaces) => {
             this.projectNSTable.setState({ selectedRowKeys: selectNamespaces.map(n => n.id) })
           })
@@ -170,7 +157,6 @@ export class Project extends React.Component {
 
         // 回显 project modal 所有的 udfs & 选中的 udfs
         this.props.onLoadProjectUdfs((result) => this.setState({ projectUdfTableDataSource: result }))
-
         this.props.onLoadSingleUdf(project.id, 'adminSelect', (result) => {
           this.projectUdfTable.setState({ selectedRowKeys: result.map(n => n.id) })
         })
@@ -178,16 +164,10 @@ export class Project extends React.Component {
   }
 
   hideForm = () => {
-    this.setState({
-      formVisible: false
-    })
+    this.setState({ formVisible: false })
     this.projectForm.resetFields()
-    this.projectNSTable.setState({
-      selectedRowKeys: []
-    })
-    this.projectUsersTable.setState({
-      selectedRowKeys: []
-    })
+    this.projectNSTable.setState({ selectedRowKeys: [] })
+    this.projectUsersTable.setState({ selectedRowKeys: [] })
   }
 
   onModalOk = () => {
@@ -288,9 +268,7 @@ export class Project extends React.Component {
   }
 
   // 阻止事件的传播，避免点击后进入项目内
-  deletePro = (e) => {
-    e.stopPropagation()
-  }
+  deletePro = (e) => e.stopPropagation()
 
   deleteAdminProject = (p) => (e) => {
     this.props.onDeleteSingleProject(p.id, () => {}, (result) => {
@@ -305,14 +283,14 @@ export class Project extends React.Component {
       ? this.props.projects.map((p) => {
         const showOrHideBtn = p.active
           ? (
-            <Tooltip title="隐藏">
+            <Tooltip title={<FormattedMessage {...messages.projectHideProject} />}>
               <Button shape="circle" type="ghost" onClick={this.editProjectShowOrHide(p)}>
                 <i className="iconfont icon-yincang"></i>
               </Button>
             </Tooltip>
           )
           : (
-            <Tooltip title="显示">
+            <Tooltip title={<FormattedMessage {...messages.projectShowProject} />}>
               <Button shape="circle" type="ghost" onClick={this.editProjectShowOrHide(p)}>
                 <i className="iconfont icon-show1"></i>
               </Button>
@@ -323,12 +301,12 @@ export class Project extends React.Component {
         if (localStorage.getItem('loginRoleType') === 'admin') {
           projectAction = (
             <div className="ri-project-item-tools">
-              <Tooltip title="修改 & 授权">
+              <Tooltip title={<FormattedMessage {...messages.projectEditAuthorize} />}>
                 <Button icon="edit" shape="circle" type="ghost" onClick={this.showDetail(p)} />
               </Tooltip>
               {showOrHideBtn}
               <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteAdminProject(p)}>
-                <Tooltip title="删除" onClick={this.deletePro}>
+                <Tooltip title={<FormattedMessage {...messages.projectDeleteProject} />} onClick={this.deletePro}>
                   <Button icon="delete" shape="circle" type="ghost"></Button>
                 </Tooltip>
               </Popconfirm>
@@ -345,7 +323,6 @@ export class Project extends React.Component {
           >
             <div
               className={`ri-project-item active ${!p.active ? 'project-hide-style' : ''}`}
-              // style={{backgroundImage: `url(${require(`../../assets/images/bg20.png`)})`}}
               style={{backgroundImage: `url(${require(`../../assets/images/bg${Number(p.pic)}.png`)})`}}
               onClick={this.getIntoProject(p)}
             >
@@ -373,7 +350,7 @@ export class Project extends React.Component {
             <div style={{width: '100%', height: '100%'}}>
               <div className="add-project">
                 <Icon type="plus-circle" />
-                <h3>新建项目</h3>
+                <h3><FormattedMessage {...messages.projectAddProject} /></h3>
               </div>
             </div>
           </div>
@@ -404,6 +381,10 @@ export class Project extends React.Component {
 
     const { projectFormType, formVisible, projectNsTableDataSource, projectUsersTableDataSource, projectUdfTableDataSource } = this.state
 
+    const modalTitle = projectFormType === 'add'
+      ? <FormattedMessage {...messages.projectAddAuthorize} />
+      : <FormattedMessage {...messages.projectEditAuthorize} />
+
     return (
       <div>
         <Helmet title="Project" />
@@ -411,7 +392,7 @@ export class Project extends React.Component {
           {projectContent}
         </div>
         <Modal
-          title={`${projectFormType === 'add' ? '新建' : '修改'} & 授权`}
+          title={modalTitle}
           okText="保存"
           wrapClassName="ant-modal-small ant-modal-xlarge project-modal"
           visible={formVisible}
@@ -423,7 +404,7 @@ export class Project extends React.Component {
               type="ghost"
               onClick={this.hideForm}
             >
-              取消
+              <FormattedMessage {...messages.projectCancelProject} />
             </Button>,
             <Button
               key="submit"
@@ -432,7 +413,7 @@ export class Project extends React.Component {
               loading={this.props.modalLoading}
               onClick={this.onModalOk}
             >
-              保存
+              <FormattedMessage {...messages.projectSaveProject} />
             </Button>
           ]}
         >
@@ -495,7 +476,8 @@ Project.propTypes = {
 
   onLoadProjectNsAll: React.PropTypes.func,
   onLoadProjectUserAll: React.PropTypes.func,
-  onLoadProjectUdfs: React.PropTypes.func
+  onLoadProjectUdfs: React.PropTypes.func,
+  onChangeLanguage: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -513,7 +495,8 @@ export function mapDispatchToProps (dispatch) {
 
     onLoadProjectNsAll: (resolve) => dispatch(loadProjectNsAll(resolve)),
     onLoadProjectUserAll: (resolve) => dispatch(loadProjectUserAll(resolve)),
-    onLoadProjectUdfs: (resolve) => dispatch(loadProjectUdfs(resolve))
+    onLoadProjectUdfs: (resolve) => dispatch(loadProjectUdfs(resolve)),
+    onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
 
