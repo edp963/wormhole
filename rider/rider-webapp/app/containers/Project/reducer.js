@@ -92,7 +92,6 @@ export function projectReducer (state = initialState, { type, payload }) {
     case DELETE_SINGLE_PROJECT:
       return state
     case DELETE_SINGLE_PROJECT_SUCCESS:
-      console.log('1', payload)
       payload.resolve()
       return state.set('projects', projects.filter(g => g.id !== payload.result))
     case DELETE_SINGLE_PROJECT_ERROR:

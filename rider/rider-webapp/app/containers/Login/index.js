@@ -20,6 +20,7 @@
 
 import React from 'react'
 import { connect } from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 
 import '../../../node_modules/particles.js/particles'
 import Form from 'antd/lib/form'
@@ -29,6 +30,8 @@ import Button from 'antd/lib/button'
 import message from 'antd/lib/message'
 
 import { login } from './action'
+import { selectLocale } from '../../containers/LanguageProvider/selectors'
+import { changeLocale } from '../../containers/LanguageProvider/actions'
 
 export class Login extends React.PureComponent {
   componentWillMount () {
@@ -82,8 +85,11 @@ export class Login extends React.PureComponent {
   }
 
   loginRequestApi (logoInfo) {
-    this.props.onLogin(logoInfo, () => {
+    this.props.onLogin(logoInfo, (result) => {
       this.props.router.push('/projects')
+
+      const langText = result.preferredLanguage === 'chinese' ? 'zh' : 'en'
+      this.props.onChangeLanguage(langText)
     }, (result) => {
       if (result === 'Not found') {
         message.error('用户不存在！', 3)
@@ -101,7 +107,7 @@ export class Login extends React.PureComponent {
     return (
       <div className="login-container">
         <div className="login-panel">
-          <h2 className="login-title">Wormhole Rider 登录</h2>
+          <h2 className="login-title">Wormhole Rider</h2>
           <Form name="Form1">
             <FormItem>
               {getFieldDecorator('userName', {
@@ -110,7 +116,7 @@ export class Login extends React.PureComponent {
                   message: '用户名不能为空'
                 }]
               })(
-                <Input placeholder="用户名" onKeyDown={this.handleKeyDown} />
+                <Input placeholder="User Name" onKeyDown={this.handleKeyDown} />
               )}
             </FormItem>
             <FormItem>
@@ -120,11 +126,11 @@ export class Login extends React.PureComponent {
                   message: '密码不能为空'
                 }]
               })(
-                <Input type="password" placeholder="密码" onKeyDown={this.handleKeyDown} />
+                <Input type="password" placeholder="Password" onKeyDown={this.handleKeyDown} />
               )}
             </FormItem>
           </Form>
-          <Button size="large" onClick={this.doLogin}>登 录</Button>
+          <Button size="large" onClick={this.doLogin}>Sign in</Button>
 
         </div>
         <div id="loginBg"></div>
@@ -136,13 +142,20 @@ export class Login extends React.PureComponent {
 Login.propTypes = {
   form: React.PropTypes.any,
   router: React.PropTypes.any,
-  onLogin: React.PropTypes.func
+  onLogin: React.PropTypes.func,
+  onChangeLanguage: React.PropTypes.func
+  // locale: React.PropTypes.string
 }
+
+const mapStateToProps = createStructuredSelector({
+  locale: selectLocale()
+})
 
 export function mapDispatchToProps (dispatch) {
   return {
-    onLogin: (logoInfo, resolve, reject) => dispatch(login(logoInfo, resolve, reject))
+    onLogin: (logoInfo, resolve, reject) => dispatch(login(logoInfo, resolve, reject)),
+    onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
 
-export default connect(null, mapDispatchToProps)(Form.create()(Login))
+export default connect(mapStateToProps, mapDispatchToProps)(Form.create()(Login))
