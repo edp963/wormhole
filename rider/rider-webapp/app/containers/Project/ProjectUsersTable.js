@@ -19,6 +19,8 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import Table from 'antd/lib/table'
 import Input from 'antd/lib/input'
@@ -209,7 +211,7 @@ export class ProjectUsersTable extends React.Component {
     return (
       <Table
         bordered
-        title={() => (<h3 className="required-style">用户权限</h3>)}
+        title={() => (<h3 className="required-style">{<FormattedMessage {...messages.projectUserAuthorit} />}</h3>)}
         columns={columnsProject}
         dataSource={this.state.currentUsers}
         pagination={pagination}

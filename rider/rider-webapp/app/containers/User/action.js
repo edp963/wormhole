@@ -132,12 +132,11 @@ export function editUser (user, resolve) {
   }
 }
 
-export function userEdited (result, resolve) {
+export function userEdited (result) {
   return {
     type: EDIT_USER_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -233,12 +232,11 @@ export function loadUserDetail (userId, resolve) {
   }
 }
 
-export function userDetailLoaded (result, resolve) {
+export function userDetailLoaded (result) {
   return {
     type: LOAD_USER_DETAIL_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }

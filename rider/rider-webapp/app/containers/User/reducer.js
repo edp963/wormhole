@@ -47,12 +47,14 @@ import {
   LOAD_PROJECT_USER_ALL_SUCCESS,
   GET_ERROR
 } from './constants'
+import { DEFAULT_LOCALE } from '../App/constants'
 
 const initialState = fromJS({
   users: false,
   error: false,
   modalLoading: false,
-  emailExited: false
+  emailExited: false,
+  locale: DEFAULT_LOCALE
 })
 
 export function userReducer (state = initialState, { type, payload }) {
@@ -85,11 +87,11 @@ export function userReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_USER_SUCCESS:
-      payload.resolve()
       users.splice(users.indexOf(users.find(p => p.id === payload.result.id)), 1, payload.result)
       return state
         .set('users', users.slice())
         .set('modalLoading', false)
+        .set('locale', payload.result.preferredLanguage)
     case LOAD_EMAIL_INPUT_VALUE:
       return state.set('emailExited', false)
     case LOAD_EMAIL_INPUT_VALUE_SUCCESS:
@@ -111,7 +113,6 @@ export function userReducer (state = initialState, { type, payload }) {
     case LOAD_USER_DETAIL:
       return state
     case LOAD_USER_DETAIL_SUCCESS:
-      payload.resolve(payload.result)
       return state
 
     case LOAD_PROJECT_USER_ALL:
