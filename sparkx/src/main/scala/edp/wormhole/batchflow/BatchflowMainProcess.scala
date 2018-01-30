@@ -36,13 +36,14 @@ import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.sinks.elasticsearchsink.EsConfig
 import edp.wormhole.sinks.mongosink.MongoConfig
-import edp.wormhole.sinks.{SinkProcessConfig, SourceMutationType}
+import edp.wormhole.sinks.SourceMutationType
 import org.apache.spark.HashPartitioner
 import edp.wormhole.sinks.utils.SinkCommonUtils
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.swifts.parse.SwiftsProcessConfig
+import edp.wormhole.sparkxinterface.sinks.SinkProcessConfig
+import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, ValidityConfig}
 import edp.wormhole.swifts.transform.SwiftsTransform
-import edp.wormhole.swifts.validity.{ValidityAgainstAction, ValidityCheckRule, ValidityConfig}
+import edp.wormhole.swifts.validity.{ValidityAgainstAction, ValidityCheckRule}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._

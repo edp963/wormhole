@@ -28,8 +28,9 @@ import edp.wormhole.common.{ConnectionConfig, WormholeUtils}
 import edp.wormhole.common.SparkSchemaUtils._
 import edp.wormhole.common.db.DbConnection
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.swifts.parse.{SqlOptType, SwiftsSql}
-import edp.wormhole.ums.{UmsDataSystem,  UmsSysField}
+import edp.wormhole.sparkxinterface.swifts.SwiftsSql
+import edp.wormhole.swifts.parse.SqlOptType
+import edp.wormhole.ums.{UmsDataSystem, UmsSysField}
 import edp.wormhole.ums.UmsFieldType._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema

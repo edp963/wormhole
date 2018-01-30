@@ -26,11 +26,11 @@ import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.{ConnectionConfig, SparkUtils}
 import edp.wormhole.common.util.JsonUtils.json2caseClass
 import edp.wormhole.batchjob.transform.Transform
-import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
-import edp.wormhole.ums.{UmsNamespace, UmsProtocolType, UmsSysField}
+import edp.wormhole.ums.{UmsDataSystem, UmsNamespace, UmsProtocolType, UmsSysField}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
@@ -85,7 +85,7 @@ object BatchJobStarter extends App with EdpLogging {
   var outPutTransformDf = transformDf.select(projectionFields.head, projectionFields.tail: _*)
   println("after!!!!!!!!!!! outPutTransformDf")
 
-  if (UmsNamespace(sinkConfig.sinkNamespace).dataSys.toString == "parquet") {
+  if (UmsNamespace(sinkConfig.sinkNamespace).dataSys == UmsDataSystem.PARQUET) {
     outPutTransformDf.write.parquet(sinkConfig.connectionConfig.connectionUrl)
   } else {
     val schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)] = SparkUtils.getSchemaMap(outPutTransformDf.schema)

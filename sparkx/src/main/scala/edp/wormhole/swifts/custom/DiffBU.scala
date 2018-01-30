@@ -22,8 +22,7 @@
 package edp.wormhole.swifts.custom
 
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.swifts.SwiftsInterface
-import edp.wormhole.swifts.parse.SwiftsProcessConfig
+import edp.wormhole.sparkxinterface.swifts.{SwiftsInterface, SwiftsProcessConfig}
 import edp.wormhole.ums.UmsSysField
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
