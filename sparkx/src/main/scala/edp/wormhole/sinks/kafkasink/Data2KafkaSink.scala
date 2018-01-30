@@ -25,12 +25,12 @@ import java.util.UUID
 
 import com.alibaba.fastjson.JSONObject
 import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.WormholeUms._
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.kafka.WormholeKafkaProducer
+import edp.wormhole.sparkxinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.ums._
 import edp.wormhole.ums.UmsFieldType._
 

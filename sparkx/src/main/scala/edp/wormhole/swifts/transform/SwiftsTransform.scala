@@ -29,6 +29,7 @@ import edp.wormhole.swifts.parse.{SqlOptType, _}
 import edp.wormhole.ums.UmsDataSystem
 import org.apache.spark.sql._
 import edp.wormhole.memorystorage.ConfMemoryStorage
+import edp.wormhole.sparkxinterface.swifts.SwiftsSql
 import edp.wormhole.swifts.custom.{LookupHbase, LookupRedis}
 
 import scala.collection.mutable.ListBuffer

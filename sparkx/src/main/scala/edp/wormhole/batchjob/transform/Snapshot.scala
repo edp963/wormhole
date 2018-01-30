@@ -27,8 +27,7 @@ import java.util.UUID
 import com.alibaba.fastjson.JSON
 import edp.wormhole.common.util.DateUtils
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.swifts.SwiftsInterface
-import edp.wormhole.swifts.parse.SwiftsProcessConfig
+import edp.wormhole.sparkxinterface.swifts.{SwiftsInterface, SwiftsProcessConfig}
 import edp.wormhole.ums.{UmsOpType, UmsSysField}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 

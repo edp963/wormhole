@@ -22,9 +22,9 @@
 package edp.wormhole.sinks.phoenixsink
 
 import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType._
 
