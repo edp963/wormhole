@@ -24,7 +24,7 @@ import edp.wormhole.common._
 import edp.wormhole.common.SparkSchemaUtils.ums2sparkType
 import edp.wormhole.sinks.hbasesink.HbaseConnection
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.swifts.parse.SwiftsSql
+import edp.wormhole.sparkxinterface.swifts.SwiftsSql
 import edp.wormhole.ums.UmsFieldType.umsFieldType
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema

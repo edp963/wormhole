@@ -29,8 +29,9 @@ import com.mongodb.{ReadPreference, WriteConcern, casbah}
 import edp.wormhole.common.util.JsonUtils.json2caseClass
 import edp.wormhole.common.{ConnectionConfig, JsonParseHelper}
 import edp.wormhole.sinks.SourceMutationType.INSERT_ONLY
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType, _IDHelper}
+import edp.wormhole.sinks.{SourceMutationType, _IDHelper}
 import edp.wormhole.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.{UmsFieldType, UmsNamespace, UmsSysField}

@@ -25,7 +25,6 @@ import java.sql.{Connection, PreparedStatement, SQLTransientConnectionException}
 
 import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.common.db.DbConnection
-import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.ums.{UmsNamespace, _}
 import edp.wormhole.ums.UmsSysField._
 import edp.wormhole.ums.UmsOpType._
@@ -33,6 +32,7 @@ import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.sinks.utils.SinkDefault._
 import edp.wormhole.memorystorage.ConfMemoryStorage._
+import edp.wormhole.sparkxinterface.sinks.SinkProcessConfig
 
 
 class PhoenixProcess(sinkNamespace: String, sinkProcessConfig: SinkProcessConfig, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], specificConfig: PhoenixConfig

@@ -25,7 +25,7 @@ import com.datastax.driver.core._
 import com.datastax.driver.core.exceptions.NoHostAvailableException
 import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
+import edp.wormhole.sinks.SourceMutationType
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.{UmsActiveType, UmsFieldType, UmsOpType}
@@ -34,6 +34,7 @@ import java.lang.{Double, Float, Long}
 
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.common.util.DateUtils._
+import edp.wormhole.sparkxinterface.sinks.{SinkProcessConfig, SinkProcessor}
 
 import scala.collection.mutable
 

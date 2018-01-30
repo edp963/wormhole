@@ -24,6 +24,9 @@ package edp.wormhole.swifts.transform
 import java.math.BigInteger
 import java.security.MessageDigest
 
+import edp.wormhole.sparkxinterface.swifts.SwiftsSql
+import edp.wormhole.swifts.parse.SqlOptType
+
 //import edp.wormhole.common.ConnectionConfig
 //import edp.wormhole.common.JdbcPushdown.jdbcDf
 import edp.wormhole.common.hadoop.HdfsUtils._
@@ -33,7 +36,6 @@ import org.apache.spark.sql._
 
 import scala.collection.mutable
 //import scala.collection.mutable.ListBuffer
-import edp.wormhole.swifts.parse.{SqlOptType, SwiftsSql}
 
 
 object DataframeObtain extends EdpLogging {

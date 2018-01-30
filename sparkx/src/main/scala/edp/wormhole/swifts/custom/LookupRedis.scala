@@ -25,7 +25,7 @@ import edp.wormhole.common.{ConnectionConfig, KVConfig, SparkSchemaUtils, Wormho
 import edp.wormhole.common.SparkSchemaUtils.ums2sparkType
 import edp.wormhole.redis.JedisConnection
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.swifts.parse.SwiftsSql
+import edp.wormhole.sparkxinterface.swifts.SwiftsSql
 import edp.wormhole.ums.UmsFieldType.umsFieldType
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types.{StructField, StructType}
