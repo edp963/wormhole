@@ -22,6 +22,8 @@ import React from 'react'
 import {connect} from 'react-redux'
 import {createStructuredSelector} from 'reselect'
 import Helmet from 'react-helmet'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import StreamLogs from './StreamLogs'
 import StreamStartForm from './StreamStartForm'
@@ -130,9 +132,7 @@ export class Manager extends React.Component {
         return responseOriginStream
       })
 
-      this.setState({
-        originStreams: originStreams.slice()
-      })
+      this.setState({ originStreams: originStreams.slice() })
       this.state.columnNameText === ''
         ? this.setState({ currentStreams: originStreams.slice() })
         : this.searchOperater()
@@ -203,9 +203,7 @@ export class Manager extends React.Component {
         }
 
         this.props.onLoadStreamDetail(stream.projectId, stream.id, roleType, (result) => {
-          this.setState({
-            showStreamdetails: result
-          })
+          this.setState({ showStreamdetails: result })
         })
       })
     }
@@ -226,7 +224,6 @@ export class Manager extends React.Component {
 
         this.setState({
           topicInfoModal: result.topicInfo.length === 0 ? 'hide' : '',
-          streamStartFormData: result.topicInfo,
           currentUdfVal: result.currentUdf
         })
       })
@@ -265,17 +262,28 @@ export class Manager extends React.Component {
             }
           }
 
-          this.setState({
-            renewUdfVals: renewUdfValFinal
-          })
+          this.setState({ renewUdfVals: renewUdfValFinal })
         })
 
         // 显示 lastest offset
         this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
           this.setState({
             consumedOffsetValue: result.consumedLatestOffset,
-            kafkaOffsetValue: result.kafkaLatestOffset
+            kafkaOffsetValue: result.kafkaLatestOffset,
+            streamStartFormData: result.consumedLatestOffset
+          }, () => {
+            const { streamStartFormData } = this.state
+            if (streamStartFormData.length !== 0) {
+              const partitionAndOffset = streamStartFormData[0].partitionOffsets.split(',')
 
+              for (let j = 0; j < partitionAndOffset.length; j++) {
+                this.streamStartForm.setFieldsValue({
+                  [`${streamStartFormData[0].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1)
+                })
+              }
+            } else {
+              return
+            }
           })
         })
       })
@@ -297,8 +305,7 @@ export class Manager extends React.Component {
     // 单条查询接口获得回显的topic Info，回显选中的UDFs
     this.props.onLoadStreamDetail(projectIdGeted, record.id, 'user', (result) => {
       this.setState({
-        topicInfoModal: result.topicInfo.length === 0 ? 'hide' : '',
-        streamStartFormData: result.topicInfo
+        topicInfoModal: result.topicInfo.length === 0 ? 'hide' : ''
       })
 
       // 回显选中的 topic，必须有 id
@@ -308,9 +315,7 @@ export class Manager extends React.Component {
         topicsSelectValue.push(`${currentUdfTemp[i].id}`)
       }
 
-      this.streamStartForm.setFieldsValue({
-        udfs: topicsSelectValue
-      })
+      this.streamStartForm.setFieldsValue({ udfs: topicsSelectValue })
     })
 
     // 与user UDF table相同的接口获得全部的UDFs
@@ -328,16 +333,28 @@ export class Manager extends React.Component {
         updateTime: ''
       }
       result.unshift(allOptionVal)
-      this.setState({
-        startUdfVals: result
-      })
+      this.setState({ startUdfVals: result })
     })
 
     // 显示 lastest offset
     this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
       this.setState({
         consumedOffsetValue: result.consumedLatestOffset,
-        kafkaOffsetValue: result.kafkaLatestOffset
+        kafkaOffsetValue: result.kafkaLatestOffset,
+        streamStartFormData: result.consumedLatestOffset
+      }, () => {
+        const { streamStartFormData } = this.state
+        if (streamStartFormData.length !== 0) {
+          const partitionAndOffset = streamStartFormData[0].partitionOffsets.split(',')
+
+          for (let j = 0; j < partitionAndOffset.length; j++) {
+            this.streamStartForm.setFieldsValue({
+              [`${streamStartFormData[0].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1)
+            })
+          }
+        } else {
+          return
+        }
       })
     })
   }
@@ -356,29 +373,19 @@ export class Manager extends React.Component {
         consumedOffsetValue: result.consumedLatestOffset,
         kafkaOffsetValue: result.kafkaLatestOffset
       })
-      // for (let k = 0; k < result.length; k++) {
-      //   const partitionAndOffset = result[k].partitionOffsets.split(',')
-      //   for (let j = 0; j < partitionAndOffset.length; j++) {
-      //     this.streamStartForm.setFieldsValue({
-      //       [`latest_${result[k].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1)
-      //     })
-      //   }
-      // }
     })
   }
 
   onChangeEditSelect = () => {
     const { streamStartFormData } = this.state
 
-    for (let k = 0; k < streamStartFormData.length; k++) {
-      const partitionAndOffset = streamStartFormData[k].partitionOffsets.split(',')
+    const partitionAndOffset = streamStartFormData[0].partitionOffsets.split(',')
 
-      for (let j = 0; j < partitionAndOffset.length; j++) {
-        this.streamStartForm.setFieldsValue({
-          [`${streamStartFormData[k].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
-          [`${streamStartFormData[k].rate}`]: streamStartFormData[k].rate
-        })
-      }
+    for (let j = 0; j < partitionAndOffset.length; j++) {
+      this.streamStartForm.setFieldsValue({
+        [`${streamStartFormData[0].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
+        [`${streamStartFormData[0].rate}`]: streamStartFormData[0].rate
+      })
     }
   }
 
@@ -615,9 +622,7 @@ export class Manager extends React.Component {
   }
 
   handleLogsCancel = (e) => {
-    this.setState({
-      logsModalVisible: false
-    })
+    this.setState({ logsModalVisible: false })
   }
 
   onRangeTimeSearch = (columnName, startTimeText, endTimeText, visible) => () => {
@@ -1012,15 +1017,23 @@ export class Manager extends React.Component {
         if (localStorage.getItem('loginRoleType') === 'admin') {
           streamActionSelect = ''
         } else if (localStorage.getItem('loginRoleType') === 'user') {
+          const deleteFormat = <FormattedMessage {...messages.streamDelete} />
+          const sureDeleteFormat = <FormattedMessage {...messages.streamSureDelete} />
+          const startFormat = <FormattedMessage {...messages.streamTableStart} />
+          const renewFormat = <FormattedMessage {...messages.streamTableRenew} />
+          const stopFormat = <FormattedMessage {...messages.streamTableStop} />
+          const sureStopFormat = <FormattedMessage {...messages.streamSureStop} />
+          const modifyFormat = <FormattedMessage {...messages.streamModify} />
+
           const strDelete = record.disableActions.indexOf('delete') > -1
             ? (
-              <Tooltip title="删除">
+              <Tooltip title={deleteFormat}>
                 <Button icon="delete" shape="circle" type="ghost" disabled></Button>
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteStreambtn(record, 'delete')}>
-                <Tooltip title="删除">
+              <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.deleteStreambtn(record, 'delete')}>
+                <Tooltip title={deleteFormat}>
                   <Button icon="delete" shape="circle" type="ghost"></Button>
                 </Tooltip>
               </Popconfirm>
@@ -1028,27 +1041,27 @@ export class Manager extends React.Component {
 
           const strStart = record.disableActions.indexOf('start') > -1
             ? (
-              <Tooltip title="开始">
+              <Tooltip title={startFormat}>
                 <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
               </Tooltip>
             )
             : (
-              <Tooltip title="开始">
+              <Tooltip title={startFormat}>
                 <Button icon="caret-right" shape="circle" type="ghost" onClick={this.onShowEditStart(record, 'start')}></Button>
               </Tooltip>
             )
 
           const strStop = record.disableActions.indexOf('stop') > -1
             ? (
-              <Tooltip title="停止">
+              <Tooltip title={stopFormat}>
                 <Button shape="circle" type="ghost" disabled>
                   <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
                 </Button>
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title="确定停止吗？" okText="Yes" cancelText="No" onConfirm={this.stopStreamBtn(record, 'stop')}>
-                <Tooltip title="停止">
+              <Popconfirm placement="bottom" title={sureStopFormat} okText="Yes" cancelText="No" onConfirm={this.stopStreamBtn(record, 'stop')}>
+                <Tooltip title={stopFormat}>
                   <Button shape="circle" type="ghost">
                     <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
                   </Button>
@@ -1058,19 +1071,19 @@ export class Manager extends React.Component {
 
           const strRenew = record.disableActions.indexOf('renew') > -1
             ? (
-              <Tooltip title="生效">
+              <Tooltip title={renewFormat}>
                 <Button icon="check" shape="circle" type="ghost" disabled></Button>
               </Tooltip>
             )
             : (
-              <Tooltip title="生效">
+              <Tooltip title={renewFormat}>
                 <Button icon="check" shape="circle" type="ghost" onClick={this.updateStream(record, 'renew')}></Button>
               </Tooltip>
             )
 
           streamActionSelect = (
             <span>
-              <Tooltip title="修改">
+              <Tooltip title={modifyFormat}>
                 <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditStream(record)}></Button>
               </Tooltip>
               {strStart}
@@ -1139,11 +1152,11 @@ export class Manager extends React.Component {
 
         return (
           <span className="ant-table-action-column">
-            <Tooltip title="查看详情">
+            <Tooltip title={<FormattedMessage {...messages.streamViewDetailsBtn} />}>
               <Popover
                 placement="left"
                 content={streamDetailContent}
-                title={<h3>详情</h3>}
+                title={<h3><FormattedMessage {...messages.streamDetails} /></h3>}
                 trigger="click"
                 onVisibleChange={this.handleVisibleChange(stream)}>
                 <Button icon="file-text" shape="circle" type="ghost"></Button>
@@ -1202,14 +1215,18 @@ export class Manager extends React.Component {
       ? (<Helmet title="Stream" />)
       : (<Helmet title="Workbench" />)
 
-    const { topicInfoModal } = this.state
+    const { topicInfoModal, actionType } = this.state
     const editBtn = topicInfoModal === '' ? '' : 'hide'
+
+    const modalTitle = actionType === 'start'
+      ? <FormattedMessage {...messages.streamSureStart} />
+      : <FormattedMessage {...messages.streamSureRenew} />
 
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>
         {helmetHide}
         <h3 className="ri-common-block-title">
-          <Icon type="bars" /> Stream 列表
+          <Icon type="bars" /> Stream <FormattedMessage {...messages.streamTableList} />
         </h3>
         <div className="ri-common-block-tools">
           {StreamAddOrNot}
@@ -1225,7 +1242,7 @@ export class Manager extends React.Component {
         </Table>
 
         <Modal
-          title={`确定${this.state.actionType === 'start' ? '开始' : '生效'}吗？`}
+          title={modalTitle}
           visible={startModalVisible}
           wrapClassName="ant-modal-large stream-start-renew-modal"
           onCancel={this.handleEditStartCancel}
@@ -1236,7 +1253,7 @@ export class Manager extends React.Component {
               size="large"
               onClick={this.queryLastestoffset}
             >
-              查看 Lastest Offset
+              <FormattedMessage {...messages.streamModalView} /> Lastest Offset
             </Button>,
             <Button
               className={`edit-topic-btn ${editBtn}`}
@@ -1244,14 +1261,14 @@ export class Manager extends React.Component {
               onClick={this.onChangeEditSelect}
               key="renewEdit"
               size="large">
-              还原
+              <FormattedMessage {...messages.streamModalReset} />
             </Button>,
             <Button
               key="cancel"
               size="large"
               onClick={this.handleEditStartCancel}
             >
-              取 消
+              <FormattedMessage {...messages.streamModalCancel} />
             </Button>,
             <Button
               key="submit"
@@ -1260,7 +1277,7 @@ export class Manager extends React.Component {
               loading={modalLoading}
               onClick={this.handleEditStartOk}
             >
-              开 始
+              <FormattedMessage {...messages.streamTableStart} />
             </Button>
           ]}
         >

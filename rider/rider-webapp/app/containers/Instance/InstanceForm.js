@@ -19,6 +19,8 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import DataSystemSelector from '../../components/DataSystemSelector'
 import Form from 'antd/lib/form'
@@ -33,23 +35,15 @@ const FormItem = Form.Item
 export class InstanceForm extends React.Component {
   constructor (props) {
     super(props)
-    this.state = {
-      instanceDSValue: ''
-    }
+    this.state = { instanceDSValue: '' }
   }
 
-  onUrlInputChange = (e) => {
-    this.props.onInitInstanceInputValue(e.target.value)
-  }
+  onUrlInputChange = (e) => this.props.onInitInstanceInputValue(e.target.value)
 
-  onInstanceInputChange = (e) => {
-    this.props.onInitInstanceExited(e.target.value)
-  }
+  onInstanceInputChange = (e) => this.props.onInitInstanceExited(e.target.value)
 
   onSourceDataSystemItemSelect = (e) => {
-    this.setState({
-      instanceDSValue: e
-    })
+    this.setState({ instanceDSValue: e })
     this.props.onInitInstanceSourceDs(e)
   }
 
@@ -91,35 +85,35 @@ export class InstanceForm extends React.Component {
     let questionDS = ''
     if (instanceDSValue === 'oracle' || instanceDSValue === 'mysql' ||
       instanceDSValue === 'postgresql' || instanceDSValue === 'vertica') {
-      questionDS = `${instanceDSValue.substring(0, 1).toUpperCase()}${instanceDSValue.substring(1)} 时, 为 ip:port 格式。`
+      questionDS = <FormattedMessage {...messages.instanceModalUrlOracleMsg} />
     } else if (instanceDSValue === 'es') {
-      questionDS = 'Elastic 时, 作为 sink 端，请填写 http 端口地址，如 http://localhost:9200；作为 lookup 系统，请填写 tcp 端口地址，如 localhost:9300。'
+      questionDS = <FormattedMessage {...messages.instanceModalUrlEsMsg} />
     } else if (instanceDSValue === 'hbase') {
-      questionDS = 'Hbase 时, 为 zookeeper url list, 如localhost:2181/hbase, 多条用逗号隔开。'
+      questionDS = <FormattedMessage {...messages.instanceModalUrlHbaseMsg} />
     } else if (instanceDSValue === 'phoenix') {
-      questionDS = 'Phoenix 时, 为 zookeeper url, 如localhost:2181。'
+      questionDS = <FormattedMessage {...messages.instanceModalUrlPhienixMsg} />
     } else if (instanceDSValue === 'kafka') {
-      questionDS = 'Kafka 时, 为 borker list, localhost:9092, 多条用逗号隔开。'
+      questionDS = <FormattedMessage {...messages.instanceModalUrlKafkaMsg} />
     } else if (instanceDSValue === 'cassandra') {
-      questionDS = 'Cassandra时, ip:port, 多条用逗号隔开。'
+      questionDS = <FormattedMessage {...messages.instanceModalUrlCassandraMsg} />
     } else if (instanceDSValue === 'redis') {
-      questionDS = 'redis时, 为 localhost:6379, 多条用逗号隔开。'
+      questionDS = <FormattedMessage {...messages.instanceModalUrlRedisMsg} />
     } else if (instanceDSValue === 'mongodb') {
-      questionDS = 'Cassandra时, ip:port, 多条用逗号隔开。'
+      questionDS = <FormattedMessage {...messages.instanceModalUrlMongodbMsg} />
     } else {
-      questionDS = '请选择 Data System。'
+      questionDS = <FormattedMessage {...messages.instanceModalUrlOthersMsg} />
     }
 
     const connectionURLMsg = (
       <span>
         Connection URL
-        <Tooltip title="帮助">
+        <Tooltip title={<FormattedMessage {...messages.instanceHelp} />}>
           <Popover
             placement="top"
             content={<div style={{ width: '260px', height: '55px' }}>
               <p>{questionDS}</p>
             </div>}
-            title={<h3>帮助</h3>}
+            title={<h3><FormattedMessage {...messages.instanceHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>

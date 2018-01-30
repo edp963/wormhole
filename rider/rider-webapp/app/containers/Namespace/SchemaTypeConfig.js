@@ -19,6 +19,8 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import Form from 'antd/lib/form'
 import Input from 'antd/lib/input'
@@ -80,9 +82,7 @@ export class SchemaTypeConfig extends React.Component {
         }
       })
     } else {
-      this.setState({
-        currentUmsTableData: []
-      })
+      this.setState({ currentUmsTableData: [] })
     }
   }
 
@@ -133,9 +133,7 @@ export class SchemaTypeConfig extends React.Component {
               : s
             return tempObject
           })
-          this.setState({
-            currentUmsTableData: tumsArr
-          })
+          this.setState({ currentUmsTableData: tumsArr })
         })
       }
 
@@ -259,16 +257,16 @@ export class SchemaTypeConfig extends React.Component {
     const fieldTypeMsg = (
       <span>
         FieldType
-        <Tooltip title="帮助">
+        <Tooltip title={<FormattedMessage {...messages.nsHelp} />}>
           <Popover
             placement="top"
             content={<div style={{ width: '450px', height: '185px' }}>
-              <p className="schema-msg-class">{`1. **array 举例说明：字段 classid 为 intarray，数据格式：{"classid":[1,4,7,9]}；`}</p>
-              <p className="schema-msg-class">{`2. jsonobject 举例说明：字段address为jsonobject类型，数据格式：{"province": "北京", "city": "北京", "area": "朝阳区"}；`}</p>
-              <p className="schema-msg-class">{`3. jsonarray 举例说明：字段contracts为jsonarray类型，数据格式："contracts": [{"name": "Jack", "phone": "18012345423"}, {"name": "Tom", "phone": "18012346423"}]；`}</p>
-              <p>{`4. tuple 举例说明：字段message为tuple类型，数据格式为： {"message": "2017-06-27 14:14:04,557|INFO"}，数据中有特殊字符作为分隔符，且需要分别处理分隔之后的字符串。`}</p>
+              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaFieldTypeMsg1} /></p>
+              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaFieldTypeMsg2} /></p>
+              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaFieldTypeMsg3} /></p>
+              <p><FormattedMessage {...messages.nsShemaFieldTypeMsg4} /></p>
             </div>}
-            title={<h3>帮助</h3>}
+            title={<h3><FormattedMessage {...messages.nsHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>
@@ -279,14 +277,14 @@ export class SchemaTypeConfig extends React.Component {
     const umstsMsg = (
       <span>
         ums_ts_
-        <Tooltip title="帮助">
+        <Tooltip title={<FormattedMessage {...messages.nsHelp} />}>
           <Popover
             placement="top"
             content={<div style={{ width: '420px', height: '85px' }}>
-              <p className="schema-msg-class">ums_ts_的类型限制: long，datetime，longarray，datetimearray。</p>
-              <p>若为 datatime 或 datatimearray 类型，数据格式须为: yyyy/MM/dd HH:mm:ss[.SSS000/SSS] 或 yyyy-MM-dd HH:mm:ss[.SSS000/SSS] 或 yyyyMMddHHmmss[SSS000/SSS]。</p>
+              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaUmsTsMsg1} /></p>
+              <p><FormattedMessage {...messages.nsShemaUmsTsMsg2} /></p>
             </div>}
-            title={<h3>帮助</h3>}
+            title={<h3><FormattedMessage {...messages.nsHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>
@@ -297,14 +295,14 @@ export class SchemaTypeConfig extends React.Component {
     const umsidMsg = (
       <span>
         ums_id_
-        <Tooltip title="帮助">
+        <Tooltip title={<FormattedMessage {...messages.nsHelp} />}>
           <Popover
             placement="top"
             content={<div style={{ width: '420px', height: '65px' }}>
-              <p className="schema-msg-class">ums_id_ 的类型限制: int，long，intarray，longarray。</p>
-              <p>若向 sink 端写数据时，只有插入操作，可不配置 ums_id_ 字段，若有增删改操作，必须配置。</p>
+              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaUmsIdMsg1} /></p>
+              <p><FormattedMessage {...messages.nsShemaUmsIdMsg2} /></p>
             </div>}
-            title={<h3>帮助</h3>}
+            title={<h3><FormattedMessage {...messages.nsHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>
@@ -315,15 +313,15 @@ export class SchemaTypeConfig extends React.Component {
     const umsopMsg = (
       <span>
         ums_op_
-        <Tooltip title="帮助">
+        <Tooltip title={<FormattedMessage {...messages.nsHelp} />}>
           <Popover
             placement="top"
             content={<div style={{ width: '450px', height: '90px' }}>
-              <p className="schema-msg-class">ums_op_ 的类型限制：int，long，string，intarray，longarray，stringarray。</p>
-              <p className="schema-msg-class">配置 insert 操作，update 操作，delete 操作对应的值。</p>
-              <p>若向 sink 端写数据时，只有插入操作，可不配置 ums_op_ 字段；若有增删改操作，必须配置。</p>
+              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaUmsOpMsg1} /></p>
+              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaUmsOpMsg2} /></p>
+              <p><FormattedMessage {...messages.nsShemaUmsOpMsg3} /></p>
             </div>}
-            title={<h3>帮助</h3>}
+            title={<h3><FormattedMessage {...messages.nsHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>
@@ -700,7 +698,7 @@ export class SchemaTypeConfig extends React.Component {
           <Col span={7} className="schema-json-title"><span>Source JSON Sample</span></Col>
           <Col span={1}></Col>
           <Col span={16} className="schema-table-title">
-            <span>Source Schema Table [注: 只能包含一个 array 类型 (intarray等或jsonarray)，且须将其或某子字段设置为主键之一]
+            <span>Source Schema Table [<FormattedMessage {...messages.nsShemaTableTitle} />]
             </span></Col>
         </Row>
         <Row className={umsTypeSeleted === 'ums_extension' ? '' : 'hide'}>

@@ -19,6 +19,8 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
@@ -97,15 +99,15 @@ export class SinkSchemaTypeConfig extends React.Component {
     const fieldTypeMsg = (
       <span>
         FieldType
-        <Tooltip title="帮助">
+        <Tooltip title={<FormattedMessage {...messages.nsHelp} />}>
           <Popover
             placement="top"
             content={<div style={{ width: '450px', height: '125px' }}>
-              <p className="schema-msg-class">{`1. **array 举例说明：字段 classid 为 intarray，数据格式：{"classid":[1,4,7,9]}；`}</p>
-              <p className="schema-msg-class">{`2. jsonobject 举例说明：字段address为jsonobject类型，数据格式：{"province": "北京", "city": "北京", "area": "朝阳区"}；`}</p>
-              <p className="schema-msg-class">{`3. jsonarray 举例说明：字段contracts为jsonarray类型，数据格式："contracts": [{"name": "Jack", "phone": "18012345423"}, {"name": "Tom", "phone": "18012346423"}]；`}</p>
+              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaFieldTypeMsg1} /></p>
+              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaFieldTypeMsg2} /></p>
+              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaFieldTypeMsg3} /></p>
             </div>}
-            title={<h3>帮助</h3>}
+            title={<h3><FormattedMessage {...messages.nsHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>
@@ -218,7 +220,7 @@ export class SinkSchemaTypeConfig extends React.Component {
           </Col>
           <Col span={2} className="sink-change-btn">
             <Button type="primary" onClick={this.props.onChangeSinkJsonToTable} disabled={this.isDisabledLoad()}>
-              <Icon type="caret-left" />反推
+              <Icon type="caret-left" /><FormattedMessage {...messages.nsShemaBtn} />
             </Button>
           </Col>
           <Col span={7}>

@@ -20,6 +20,10 @@
 
 import React from 'react'
 
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
+import PlaceholderInputIntl from '../../components/PlaceholderInputIntl'
+
 import DataSystemSelector from '../../components/DataSystemSelector'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
@@ -47,17 +51,13 @@ export class NamespaceForm extends React.Component {
 
   componentWillReceiveProps (props) {
     if (props.namespaceUrlValue) {
-      this.setState({
-        currentNamespaceUrlValue: props.namespaceUrlValue
-      })
+      this.setState({ currentNamespaceUrlValue: props.namespaceUrlValue })
     }
   }
 
   // 显示 connection url 下拉框的内容
   onDatabaseDataSystemItemSelect = (value) => {
-    this.setState({
-      namespaceDSValue: value
-    })
+    this.setState({ namespaceDSValue: value })
     if (this.props.namespaceFormType === 'add') {
       this.props.onInitNamespaceUrlValue(value)
     }
@@ -66,9 +66,7 @@ export class NamespaceForm extends React.Component {
   // 选择 instance 显示不同的 connection url
   onHandleChangeInstance = (e) => {
     const selUrl = this.state.currentNamespaceUrlValue.find(s => s.id === Number(e))
-    this.props.form.setFieldsValue({
-      connectionUrl: selUrl.connUrl
-    })
+    this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
     this.props.cleanNsTableData()
     this.setState({
       instanceIdGeted: selUrl.id
@@ -78,17 +76,11 @@ export class NamespaceForm extends React.Component {
     })
   }
 
-  onHandleChangeDatabase = (e) => {
-    this.props.cleanNsTableData()
-  }
+  onHandleChangeDatabase = (e) => this.props.cleanNsTableData()
 
-  onHandleNsTableName = (e) => {
-    this.props.onInitNsNameInputValue(e.target.value)
-  }
+  onHandleNsTableName = (e) => this.props.onInitNsNameInputValue(e.target.value)
 
-  onHandleNsKey = (e) => {
-    this.props.onInitNsKeyInputValue(e.target.value)
-  }
+  onHandleNsKey = (e) => this.props.onInitNsKeyInputValue(e.target.value)
 
   render () {
     const { getFieldDecorator } = this.props.form
@@ -146,35 +138,30 @@ export class NamespaceForm extends React.Component {
 
     let namespaceTablePlace = ''
     if (namespaceDSValue === 'es') {
-      namespaceTablePlace = 'Type'
+      namespaceTablePlace = 'rider.containers.Namespace.Modal.tables.table6'
     } else if (namespaceDSValue === 'redis') {
-      namespaceTablePlace = '可填写 default'
+      namespaceTablePlace = 'rider.containers.Namespace.Modal.tables.table1'
     } else {
-      namespaceTablePlace = 'table'
+      namespaceTablePlace = 'rider.containers.Namespace.Modal.tables.table7'
     }
 
     const namespaceTableLabel = namespaceDSValue === 'es' ? 'Types' : 'Tables'
 
     const disabledKeyOrNot = namespaceDSValue === 'redis'
 
-    let namespaceKeyPlaceholder = ''
-    if (namespaceDSValue === 'kafka') {
-      namespaceKeyPlaceholder = '多个数据主键用逗号隔开'
-    } else if (namespaceDSValue === 'redis') {
-      namespaceKeyPlaceholder = 'Key 无需配置'
-    } else {
-      namespaceKeyPlaceholder = '多个业务主键用逗号隔开'
-    }
+    const namespaceKeyPlaceholder = namespaceDSValue === 'redis'
+      ? 'rider.containers.Namespace.Modal.tables.key'
+      : 'rider.containers.Namespace.Modal.tables.multiple.key'
 
     const questionOrNot = namespaceDSValue === 'kafka'
       ? (
-        <Tooltip title="帮助">
+        <Tooltip title={<FormattedMessage {...messages.nsHelp} />}>
           <Popover
             placement="top"
             content={<div style={{ width: '400px', height: '38px' }}>
-              <p>Kafka 时，Table 为 ums schema.namespace 中的第四层，如: ums schema.namespace 为 kafka.test.test1.test2.*.*.*， table 为 test2</p>
+              <p><FormattedMessage {...messages.nsModalTablesTablesKafkaMsg} /></p>
             </div>}
-            title={<h3>帮助</h3>}
+            title={<h3><FormattedMessage {...messages.nsHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>
@@ -204,8 +191,8 @@ export class NamespaceForm extends React.Component {
       className: `${deleteTableClass} ns-table-delete-btn`,
       render: (text, record, index) => (
         <span className="ant-table-action-column">
-          <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={onDeleteTable(index)}>
-            <Tooltip title="删除">
+          <Popconfirm placement="bottom" title={<FormattedMessage {...messages.nsModalSureDeleteTable} />} okText="Yes" cancelText="No" onConfirm={onDeleteTable(index)}>
+            <Tooltip title={<FormattedMessage {...messages.nsModalDeleteTable} />}>
               <Button shape="circle" type="ghost">
                 <i className="iconfont icon-jian"></i>
               </Button>
@@ -310,12 +297,7 @@ export class NamespaceForm extends React.Component {
           <span>
             <Col span={6} className="ns-add-table-label-class">
               <FormItem label={namespaceTableMsg} style={{ marginRight: '-2px' }}>
-                {getFieldDecorator('nsTables', {
-                  // rules: [{
-                  //   required: true,
-                  //   message: '请填写 Tables'
-                  // }]
-                })(
+                {getFieldDecorator('nsTables', {})(
                   <Input className="hide" />
                 )}
               </FormItem>
@@ -324,10 +306,10 @@ export class NamespaceForm extends React.Component {
             <Col span={7}>
               <FormItem label="" style={{ marginLeft: '2px' }}>
                 {getFieldDecorator('nsSingleTableName', {})(
-                  <Input
-                    placeholder={namespaceTablePlace}
-                    onChange={this.onHandleNsTableName}
-                    disabled={disabledOrNot}
+                  <PlaceholderInputIntl
+                    idValue={namespaceTablePlace}
+                    onChangeEvent={this.onHandleNsTableName}
+                    disabledValue={disabledOrNot}
                   />
                 )}
               </FormItem>
@@ -335,17 +317,17 @@ export class NamespaceForm extends React.Component {
             <Col span={7}>
               <FormItem label="">
                 {getFieldDecorator('nsSingleKeyValue', {})(
-                  <Input
-                    placeholder={namespaceKeyPlaceholder}
-                    onChange={this.onHandleNsKey}
-                    disabled={disabledKeyOrNot}
+                  <PlaceholderInputIntl
+                    idValue={namespaceKeyPlaceholder}
+                    onChangeEvent={this.onHandleNsKey}
+                    disabledValue={disabledKeyOrNot}
                   />
                 )}
               </FormItem>
             </Col>
             <Col span={1} style={{width: '2.7%'}}></Col>
             <Col span={2} className={addTableClass}>
-              <Tooltip title="添加">
+              <Tooltip title={<FormattedMessage {...messages.nsModalAddTable} />}>
                 <Button shape="circle" type="ghost" style={{ borderColor: '#cfcfcf', marginTop: '2px' }} onClick={onAddTable} disabled={addBtnDisabled}>
                   <i className="iconfont icon-jia"></i>
                 </Button>

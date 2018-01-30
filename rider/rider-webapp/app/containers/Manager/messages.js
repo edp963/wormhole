@@ -20,4 +20,24 @@
 
 import { defineMessages } from 'react-intl'
 
-export default defineMessages({})
+export default defineMessages({
+  streamTableList: { id: 'rider.app.table.list' },
+  streamViewDetailsBtn: { id: 'rider.app.table.view.details' },
+  streamDetails: { id: 'rider.app.table.details' },
+  streamCreate: { id: 'rider.app.table.create.action' },
+  streamModify: { id: 'rider.app.table.modify.action' },
+  streamDelete: { id: 'rider.app.table.delete.action' },
+  streamSureDelete: { id: 'rider.app.table.sure.delete' },
+  streamSureStop: { id: 'rider.app.table.sure.stop' },
+  streamModalCancel: { id: 'rider.app.modal.cancel' },
+  streamModalSave: { id: 'rider.app.modal.save' },
+  streamTableStart: { id: 'rider.app.table.start.action' },
+  streamSureStart: { id: 'rider.app.table.sure.start' },
+  streamTableStop: { id: 'rider.app.table.stop.action' },
+  streamTableRenew: { id: 'rider.app.table.sure.renew' },
+  streamSureRenew: { id: 'rider.app.table.renew.action' },
+  streamModalView: { id: 'rider.containers.Stream.view.btn' },
+  streamModalReset: { id: 'rider.containers.Stream.reset.btn' },
+  streamModalRate: { id: 'rider.containers.Stream.modal.rate' },
+  streamModalApply: { id: 'rider.containers.Stream.modal.apply' }
+})

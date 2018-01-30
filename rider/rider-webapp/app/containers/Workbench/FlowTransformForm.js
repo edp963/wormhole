@@ -19,6 +19,8 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import DataSystemSelector from '../../components/DataSystemSelector'
 import Form from 'antd/lib/form'
@@ -137,14 +139,14 @@ export class FlowTransformForm extends React.Component {
     const lookUpSqlMsg = (
       <span>
         SQL
-        <Tooltip title="帮助">
+        <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />}>
           <Popover
             placement="top"
             content={<div style={{ width: '400px', height: '90px' }}>
               <p>若 where 条件含有 source 数据中某字段值, table 为 source namespace, for example: source namespace 为 kafka.test.test.test.*.*.*,</p>
               <p>含有字段 id, name, look up 时选择 source namespace 中的 id 和 name, SQL 语句为: select * from look_up_table where (id,name) in (kafka.test.test.test.*.*.*.id, kafka.test.test.test.*.*.*.name);</p>
             </div>}
-            title={<h3>帮助</h3>}
+            title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>
@@ -155,14 +157,14 @@ export class FlowTransformForm extends React.Component {
     const sparkSqlMsg = (
       <span>
         SQL
-        <Tooltip title="帮助">
+        <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />}>
           <Popover
             placement="top"
             content={<div style={{ width: '400px', height: '90px' }}>
               <p>sql 语句中的 table 为 source namespace 中第四层, </p>
               <p>for example: source namespace 为 kafka.test.test1.test2.*.*.*, sql 语句为 select * from test2;</p>
             </div>}
-            title={<h3>帮助</h3>}
+            title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>
