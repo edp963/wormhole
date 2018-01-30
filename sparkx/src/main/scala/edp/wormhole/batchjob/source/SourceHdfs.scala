@@ -27,6 +27,7 @@ import edp.wormhole.common.hadoop.HdfsUtils
 import edp.wormhole.common.util.DateUtils
 import edp.wormhole.common.{ConnectionConfig, InputDataRequirement, SparkUtils}
 import edp.wormhole.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.batchjob.source.ObtainSourceDataInterface
 import edp.wormhole.ums._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}

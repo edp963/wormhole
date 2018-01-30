@@ -1,3 +1,8 @@
+package edp.wormhole.sparkxinterface.batchjob.source
+
+import edp.wormhole.common.ConnectionConfig
+import org.apache.spark.sql.{DataFrame, SparkSession}
+
 /*-
  * <<
  * wormhole
@@ -18,12 +23,6 @@
  * >>
  */
 
-
-package edp.wormhole.swifts
-
-import edp.wormhole.swifts.parse.SwiftsProcessConfig
-import org.apache.spark.sql.{DataFrame, SparkSession}
-
-trait SwiftsInterface {
-  def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig): DataFrame
+trait ObtainSourceDataInterface {
+  def process(session: SparkSession, startTime: String, endTime: String, sourceNamespace: String,  connectionConfig: ConnectionConfig, specialConfig: Option[String]): DataFrame
 }

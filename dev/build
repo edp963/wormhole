@@ -39,6 +39,9 @@ cd ../../
 cd ums
 mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
 cd ../
+cd common/sparkxinterface
+mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true
+cd ../../
 cd sparkx
 mvn clean package -U -Dmaven.test.skip=true
 cd ../
@@ -72,6 +75,9 @@ cd ../../
 cd ums
 mvn clean install
 cd ../
+cd common/sparkxinterface
+mvn clean install
+cd ../../
 cd sparkx
 mvn clean package -Dmaven.test.skip=true
 cd ../

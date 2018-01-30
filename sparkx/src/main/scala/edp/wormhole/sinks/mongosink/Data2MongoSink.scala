@@ -29,8 +29,9 @@ import com.mongodb.ConnectionString
 import com.mongodb.async.client.MongoClients
 import edp.wormhole.common.util.JsonUtils.json2caseClass
 import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType, _IDHelper}
+import edp.wormhole.sinks.{SourceMutationType, _IDHelper}
 import edp.wormhole.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.{UmsFieldType, _}

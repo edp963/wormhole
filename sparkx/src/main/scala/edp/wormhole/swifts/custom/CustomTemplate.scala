@@ -21,8 +21,7 @@
 
 package edp.wormhole.swifts.custom
 
-import edp.wormhole.swifts.SwiftsInterface
-import edp.wormhole.swifts.parse.SwiftsProcessConfig
+import edp.wormhole.sparkxinterface.swifts.{SwiftsInterface, SwiftsProcessConfig}
 import org.apache.spark.sql._
 
 class CustomTemplate extends SwiftsInterface {

@@ -22,15 +22,15 @@
 package edp.wormhole.memorystorage
 
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.swifts.parse.SwiftsProcessConfig
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.mutable
 import java.lang.reflect.Method
 
 import edp.wormhole.common.{ConnectionConfig, FieldInfo, KVConfig}
-import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils.firstTimeAfterSecond
+import edp.wormhole.sparkxinterface.sinks.SinkProcessConfig
+import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
 import edp.wormhole.ums.UmsField
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType._

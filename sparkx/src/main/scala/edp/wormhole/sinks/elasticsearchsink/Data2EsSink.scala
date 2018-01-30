@@ -22,12 +22,13 @@ package edp.wormhole.sinks.elasticsearchsink
 
 import com.alibaba.fastjson.JSONObject
 import edp.wormhole.common.{ConnectionConfig, JsonParseHelper}
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType, _IDHelper}
+import edp.wormhole.sinks.{SourceMutationType, _IDHelper}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.{UmsNamespace, UmsSysField}
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.common.util.JsonUtils._
+import edp.wormhole.sparkxinterface.sinks.{SinkProcessConfig, SinkProcessor}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer

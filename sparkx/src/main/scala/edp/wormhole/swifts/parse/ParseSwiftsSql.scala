@@ -29,6 +29,7 @@ import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.common.db.DbConnection
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.spark.log.EdpLogging
+import edp.wormhole.sparkxinterface.swifts.SwiftsSql
 import edp.wormhole.swifts._
 import edp.wormhole.ums.{UmsDataSystem, UmsSysField}
 
