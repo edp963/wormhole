@@ -21,6 +21,8 @@
 import React from 'react'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import Form from 'antd/lib/form'
 const FormItem = Form.Item
@@ -98,13 +100,13 @@ export class WorkbenchStreamForm extends React.PureComponent {
     const warningMsg = (
       <span>
         Configs
-        <Tooltip title="帮助" placement="bottom">
+        <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />} placement="bottom">
           <Popover
             placement="top"
             content={<div style={{ width: '200px', height: '25px' }}>
               <p>Dirver / Execotor 资源配置</p>
             </div>}
-            title={<h3>帮助</h3>}
+            title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>

@@ -23,6 +23,8 @@ import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
 import { uuid } from '../../utils/util'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import Icon from 'antd/lib/icon'
 import Table from 'antd/lib/table'
@@ -39,25 +41,8 @@ export class Resource extends React.Component {
       visible: false,
       originResources: [],
       currentResources: [],
-
       searchResourceName: '',
       filterDropdownVisibleResourceName: false
-
-      // searchStartDCText: '',
-      // searchEndDCText: '',
-      // filterDropdownVisibleDC: false,
-      // searchStartPECText: '',
-      // searchEndPECText: '',
-      // filterDropdownVisiblePEC: false,
-      // searchStartDMText: '',
-      // searchEndDMText: '',
-      // filterDropdownVisibleDM: false,
-      // searchStartPEMText: '',
-      // searchEndPEMText: '',
-      // filterDropdownVisiblePEM: false,
-      // searchStartENText: '',
-      // searchEndENText: '',
-      // filterDropdownVisibleEN: false
     }
   }
 
@@ -120,16 +105,22 @@ export class Resource extends React.Component {
 
   onRangeNumSearch = (columnName, startText, endText, visible) => () => {
     let filteredInfoFinal = ''
-    if (columnName === 'driverCores') {
-      filteredInfoFinal = this.state[startText] || this.state[endText] ? {driverCores: [0]} : {driverCores: []}
-    } else if (columnName === 'perExecutorCores') {
-      filteredInfoFinal = this.state[startText] || this.state[endText] ? {perExecutorCores: [0]} : {perExecutorCores: []}
-    } else if (columnName === 'driverMemory') {
-      filteredInfoFinal = this.state[startText] || this.state[endText] ? {driverMemory: [0]} : {driverMemory: []}
-    } else if (columnName === 'perExecutorMemory') {
-      filteredInfoFinal = this.state[startText] || this.state[endText] ? {perExecutorMemory: [0]} : {perExecutorMemory: []}
-    } else if (columnName === 'executorNums') {
-      filteredInfoFinal = this.state[startText] || this.state[endText] ? {executorNums: [0]} : {executorNums: []}
+    switch (columnName) {
+      case 'driverCores':
+        filteredInfoFinal = this.state[startText] || this.state[endText] ? {driverCores: [0]} : {driverCores: []}
+        break
+      case 'perExecutorCores':
+        filteredInfoFinal = this.state[startText] || this.state[endText] ? {perExecutorCores: [0]} : {perExecutorCores: []}
+        break
+      case 'driverMemory':
+        filteredInfoFinal = this.state[startText] || this.state[endText] ? {driverMemory: [0]} : {driverMemory: []}
+        break
+      case 'perExecutorMemory':
+        filteredInfoFinal = this.state[startText] || this.state[endText] ? {perExecutorMemory: [0]} : {perExecutorMemory: []}
+        break
+      case 'executorNums':
+        filteredInfoFinal = this.state[startText] || this.state[endText] ? {executorNums: [0]} : {executorNums: []}
+        break
     }
 
     this.setState({
@@ -147,11 +138,8 @@ export class Resource extends React.Component {
 
   render () {
     const { resources } = this.props
-    let { sortedInfo
-      // filteredInfo
-    } = this.state
+    let { sortedInfo } = this.state
     sortedInfo = sortedInfo || {}
-    // filteredInfo = filteredInfo || {}
 
     const columns = [
       {
@@ -188,190 +176,30 @@ export class Resource extends React.Component {
         key: 'driverCores',
         sorter: (a, b) => a.driverCores - b.driverCores,
         sortOrder: sortedInfo.columnKey === 'driverCores' && sortedInfo.order
-        // filteredValue: filteredInfo.driverCores,
-        // filterDropdown: (
-        //   <div className="custom-filter-dropdown custom-filter-dropdown-ps">
-        //     <Form>
-        //       <Row>
-        //         <Col span={9}>
-        //           <Input
-        //             ref={ele => { this.searchInput = ele }}
-        //             placeholder="Start"
-        //             onChange={this.onInputChange('searchStartDCText')}
-        //           />
-        //         </Col>
-        //         <Col span={1}>
-        //           <p className="ant-form-split">-</p>
-        //         </Col>
-        //         <Col span={9}>
-        //           <Input
-        //             placeholder="End"
-        //             onChange={this.onInputChange('searchEndDCText')}
-        //           />
-        //         </Col>
-        //         <Col span={5} className="text-align-center">
-        //           <Button type="primary" onClick={this.onRangeNumSearch('driverCores', 'searchStartDCText', 'searchEndDCText', 'filterDropdownVisibleDC')}>Search</Button>
-        //         </Col>
-        //       </Row>
-        //     </Form>
-        //   </div>
-        // ),
-        // filterDropdownVisible: this.state.filterDropdownVisibleDC,
-        // onFilterDropdownVisibleChange: visible => this.setState({
-        //   filterDropdownVisibleDC: visible
-        // }, () => this.searchInput.focus())
       }, {
         title: 'Driver Memory',
         dataIndex: 'driverMemory',
         key: 'driverMemory',
         sorter: (a, b) => a.driverMemory - b.driverMemory,
         sortOrder: sortedInfo.columnKey === 'driverMemory' && sortedInfo.order
-        // filteredValue: filteredInfo.driverMemory,
-        // filterDropdown: (
-        //   <div className="custom-filter-dropdown custom-filter-dropdown-ps">
-        //     <Form>
-        //       <Row>
-        //         <Col span={9}>
-        //           <Input
-        //             ref={ele => { this.searchInput = ele }}
-        //             placeholder="Start"
-        //             onChange={this.onInputChange('searchStartDMText')}
-        //           />
-        //         </Col>
-        //         <Col span={1}>
-        //           <p className="ant-form-split">-</p>
-        //         </Col>
-        //         <Col span={9}>
-        //           <Input
-        //             placeholder="End"
-        //             onChange={this.onInputChange('searchEndDMText')}
-        //           />
-        //         </Col>
-        //         <Col span={5} className="text-align-center">
-        //           <Button type="primary" onClick={this.onRangeNumSearch('driverMemory', 'searchStartDMText', 'searchEndDMText', 'filterDropdownVisibleDM')}>Search</Button>
-        //         </Col>
-        //       </Row>
-        //     </Form>
-        //   </div>
-        // ),
-        // filterDropdownVisible: this.state.filterDropdownVisibleDM,
-        // onFilterDropdownVisibleChange: visible => this.setState({
-        //   filterDropdownVisibleDM: visible
-        // }, () => this.searchInput.focus())
       }, {
         title: 'Per Executor Cores',
         dataIndex: 'perExecutorCores',
         key: 'perExecutorCores',
         sorter: (a, b) => a.perExecutorCores - b.perExecutorCores,
         sortOrder: sortedInfo.columnKey === 'perExecutorCores' && sortedInfo.order
-        // filteredValue: filteredInfo.perExecutorCores,
-        // filterDropdown: (
-        //   <div className="custom-filter-dropdown custom-filter-dropdown-ps">
-        //     <Form>
-        //       <Row>
-        //         <Col span={9}>
-        //           <Input
-        //             ref={ele => { this.searchInput = ele }}
-        //             placeholder="Start"
-        //             onChange={this.onInputChange('searchStartPECText')}
-        //           />
-        //         </Col>
-        //         <Col span={1}>
-        //           <p className="ant-form-split">-</p>
-        //         </Col>
-        //         <Col span={9}>
-        //           <Input
-        //             placeholder="End"
-        //             onChange={this.onInputChange('searchEndPECText')}
-        //           />
-        //         </Col>
-        //         <Col span={5} className="text-align-center">
-        //           <Button type="primary" onClick={this.onRangeNumSearch('perExecutorCores', 'searchStartPECText', 'searchEndPECText', 'filterDropdownVisiblePEC')}>Search</Button>
-        //         </Col>
-        //       </Row>
-        //     </Form>
-        //   </div>
-        // ),
-        // filterDropdownVisible: this.state.filterDropdownVisiblePEC,
-        // onFilterDropdownVisibleChange: visible => this.setState({
-        //   filterDropdownVisiblePEC: visible
-        // }, () => this.searchInput.focus())
       }, {
         title: 'Per Executor Memory',
         dataIndex: 'perExecutorMemory',
         key: 'perExecutorMemory',
         sorter: (a, b) => a.perExecutorMemory - b.perExecutorMemory,
         sortOrder: sortedInfo.columnKey === 'perExecutorMemory' && sortedInfo.order
-        // filteredValue: filteredInfo.perExecutorMemory,
-        // filterDropdown: (
-        //   <div className="custom-filter-dropdown custom-filter-dropdown-ps">
-        //     <Form>
-        //       <Row>
-        //         <Col span={9}>
-        //           <Input
-        //             ref={ele => { this.searchInput = ele }}
-        //             placeholder="Start"
-        //             onChange={this.onInputChange('searchStartPEMText')}
-        //           />
-        //         </Col>
-        //         <Col span={1}>
-        //           <p className="ant-form-split">-</p>
-        //         </Col>
-        //         <Col span={9}>
-        //           <Input
-        //             placeholder="End"
-        //             onChange={this.onInputChange('searchEndPEMText')}
-        //           />
-        //         </Col>
-        //         <Col span={5} className="text-align-center">
-        //           <Button type="primary" onClick={this.onRangeNumSearch('perExecutorMemory', 'searchStartPEMText', 'searchEndPEMText', 'filterDropdownVisiblePEM')}>Search</Button>
-        //         </Col>
-        //       </Row>
-        //     </Form>
-        //   </div>
-        // ),
-        // filterDropdownVisible: this.state.filterDropdownVisiblePEM,
-        // onFilterDropdownVisibleChange: visible => this.setState({
-        //   filterDropdownVisiblePEM: visible
-        // }, () => this.searchInput.focus())
       }, {
         title: 'Executor Numbers',
         dataIndex: 'executorNums',
         key: 'executorNums',
         sorter: (a, b) => a.executorNums - b.executorNums,
         sortOrder: sortedInfo.columnKey === 'executorNums' && sortedInfo.order
-        // filteredValue: filteredInfo.executorNums,
-        // filterDropdown: (
-        //   <div className="custom-filter-dropdown custom-filter-dropdown-ps">
-        //     <Form>
-        //       <Row>
-        //         <Col span={9}>
-        //           <Input
-        //             ref={ele => { this.searchInput = ele }}
-        //             placeholder="Start"
-        //             onChange={this.onInputChange('searchStartENText')}
-        //           />
-        //         </Col>
-        //         <Col span={1}>
-        //           <p className="ant-form-split">-</p>
-        //         </Col>
-        //         <Col span={9}>
-        //           <Input
-        //             placeholder="End"
-        //             onChange={this.onInputChange('searchEndENText')}
-        //           />
-        //         </Col>
-        //         <Col span={5} className="text-align-center">
-        //           <Button type="primary" onClick={this.onRangeNumSearch('executorNums', 'searchStartENText', 'searchEndENText', 'filterDropdownVisibleEN')}>Search</Button>
-        //         </Col>
-        //       </Row>
-        //     </Form>
-        //   </div>
-        // ),
-        // filterDropdownVisible: this.state.filterDropdownVisibleEN,
-        // onFilterDropdownVisibleChange: visible => this.setState({
-        //   filterDropdownVisibleEN: visible
-        // }, () => this.searchInput.focus())
       }]
 
     const pagination = {
@@ -384,7 +212,7 @@ export class Resource extends React.Component {
       <div className={`ri-workbench-table ri-common-block`}>
         <Helmet title="Workbench" />
         <h3 className="ri-common-block-title">
-          <Icon type="bars" /> Resource 列表
+          <Icon type="bars" /> Resource <FormattedMessage {...messages.resourceTableList} />
         </h3>
 
         <Table

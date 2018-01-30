@@ -33,6 +33,7 @@ const PlaceholderInputIntl = ({ intl: { formatMessage }, idValue, disabledValue,
       placeholder={placeholder}
       disabled={disabledValue}
       onChange={onChangeEvent}
+      style={{ height: '32px' }}
     />
   )
 }
