@@ -24,7 +24,7 @@ package edp.rider.rest.util
 import com.alibaba.fastjson.JSON
 import edp.rider.RiderStarter.modules
 import edp.rider.rest.persistence.entities.PushDownConnection
-import edp.rider.rest.util.CommonUtils.{isJson, isKeyEqualValue, _}
+import edp.rider.rest.util.CommonUtils.{isKeyEqualValue, _}
 import edp.rider.rest.util.NamespaceUtils._
 import edp.wormhole.common.KVConfig
 
@@ -118,6 +118,7 @@ object NsDatabaseUtils {
     }
     dbSeq
   }
+
 }
 
 
