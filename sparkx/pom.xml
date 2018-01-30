@@ -47,6 +47,11 @@
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-sparkxinterface</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-dbpool</artifactId>
             <version>${project.version}</version>
             <!--<exclusions>-->

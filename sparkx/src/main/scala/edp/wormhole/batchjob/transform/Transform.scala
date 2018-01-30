@@ -24,7 +24,7 @@ package edp.wormhole.batchjob.transform
 import java.util.UUID
 
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.swifts.parse.SwiftsProcessConfig
+import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object Transform extends EdpLogging {
