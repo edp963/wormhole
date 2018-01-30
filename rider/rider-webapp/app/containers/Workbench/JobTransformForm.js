@@ -19,6 +19,8 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import Form from 'antd/lib/form'
 const FormItem = Form.Item
@@ -74,14 +76,14 @@ export class JobTransformForm extends React.Component {
     const sparkSqlMsg = (
       <span>
         SQL
-        <Tooltip title="帮助">
+        <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />}>
           <Popover
             placement="top"
             content={<div style={{ width: '400px', height: '90px' }}>
               <p>sql 语句中的 table 为 source namespace 中第四层, </p>
               <p>for example: source namespace 为 kafka.test.test1.test2.*.*.*, sql 语句为 select * from test2;</p>
             </div>}
-            title={<h3>帮助</h3>}
+            title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>

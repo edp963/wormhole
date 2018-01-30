@@ -20,4 +20,18 @@
 
 import { defineMessages } from 'react-intl'
 
-export default defineMessages({})
+export default defineMessages({
+  jobTableList: { id: 'rider.app.table.list' },
+  jobViewDetailsBtn: { id: 'rider.app.table.view.details' },
+  jobDetails: { id: 'rider.app.table.details' },
+  jobCreate: { id: 'rider.app.table.create.action' },
+  jobModify: { id: 'rider.app.table.modify.action' },
+  jobDelete: { id: 'rider.app.table.delete.action' },
+  jobSureDelete: { id: 'rider.app.table.sure.delete' },
+  jobSureStop: { id: 'rider.app.table.sure.stop' },
+  jobSureStart: { id: 'rider.app.table.sure.start' },
+  jobModalCancel: { id: 'rider.app.modal.cancel' },
+  jobModalSave: { id: 'rider.app.modal.save' },
+  jobTableStart: { id: 'rider.app.table.start.action' },
+  jobTableStop: { id: 'rider.app.table.stop.action' }
+})

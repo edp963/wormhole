@@ -22,6 +22,8 @@ import React from 'react'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import InstanceForm from './InstanceForm'
 import Table from 'antd/lib/table'
@@ -181,9 +183,7 @@ export class Instance extends React.PureComponent {
   }
 
   hideForm = () => {
-    this.setState({
-      formVisible: false
-    })
+    this.setState({ formVisible: false })
     this.instanceForm.resetFields()
   }
 
@@ -586,26 +586,26 @@ export class Instance extends React.PureComponent {
         className: 'text-align-center',
         render: (text, record) => (
           <span className="ant-table-action-column">
-            <Tooltip title="查看详情">
+            <Tooltip title={<FormattedMessage {...messages.instanceViewDetailsBtn} />}>
               <Popover
                 placement="left"
                 content={<p><strong>Description：</strong>{showInstanceDetails.desc}</p>}
-                title={<h3>详情</h3>}
+                title={<h3><FormattedMessage {...messages.instanceDetails} /></h3>}
                 trigger="click"
                 onVisibleChange={this.handleVisibleChangeInstance(record)}>
                 <Button icon="file-text" shape="circle" type="ghost"></Button>
               </Popover>
             </Tooltip>
 
-            <Tooltip title="修改">
+            <Tooltip title={<FormattedMessage {...messages.instanceModify} />}>
               <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditInstance(record)} />
             </Tooltip>
 
             {
               localStorage.getItem('loginRoleType') === 'admin'
                 ? (
-                  <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteInstanceBtn(record)}>
-                    <Tooltip title="删除">
+                  <Popconfirm placement="bottom" title={<FormattedMessage {...messages.instanceSureDelete} />} okText="Yes" cancelText="No" onConfirm={this.deleteInstanceBtn(record)}>
+                    <Tooltip title={<FormattedMessage {...messages.instanceDelete} />}>
                       <Button icon="delete" shape="circle" type="ghost"></Button>
                     </Tooltip>
                   </Popconfirm>
@@ -625,15 +625,21 @@ export class Instance extends React.PureComponent {
     const { currentInstances, instanceFormType, formVisible } = this.state
     const { modalLoading } = this.props
 
+    const modalTitle = instanceFormType === 'add'
+      ? <FormattedMessage {...messages.instanceTableCreate} />
+      : <FormattedMessage {...messages.instanceTableModify} />
+
     return (
       <div>
         <Helmet title="Instance" />
         <div className="ri-workbench-table ri-common-block">
           <h3 className="ri-common-block-title">
-            <Icon type="bars" /> Instance 列表
+            <Icon type="bars" /> Instance <FormattedMessage {...messages.instanceTableList} />
           </h3>
           <div className="ri-common-block-tools">
-            <Button icon="plus" type="primary" onClick={this.showAddInstance}>新建</Button>
+            <Button icon="plus" type="primary" onClick={this.showAddInstance}>
+              <FormattedMessage {...messages.instanceCreate} />
+            </Button>
             <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshInstanceLoading} onClick={this.refreshInstance}>{refreshInstanceText}</Button>
           </div>
           <Table
@@ -646,7 +652,7 @@ export class Instance extends React.PureComponent {
           </Table>
         </div>
         <Modal
-          title={`${instanceFormType === 'add' ? '新建' : '修改'} Instance`}
+          title={modalTitle}
           okText="保存"
           wrapClassName="instance-form-style"
           visible={formVisible}
@@ -658,7 +664,7 @@ export class Instance extends React.PureComponent {
               type="ghost"
               onClick={this.hideForm}
             >
-              取消
+              <FormattedMessage {...messages.instanceModalCancel} />
             </Button>,
             <Button
               key="submit"
@@ -667,7 +673,7 @@ export class Instance extends React.PureComponent {
               loading={modalLoading}
               onClick={this.onModalOk}
             >
-              保存
+              <FormattedMessage {...messages.instanceModalSave} />
             </Button>
           ]}
         >

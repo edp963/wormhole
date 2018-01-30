@@ -19,6 +19,8 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import DataSystemSelector from '../../components/DataSystemSelector'
 import Form from 'antd/lib/form'
@@ -301,13 +303,13 @@ export class WorkbenchJobForm extends React.Component {
     const warningMsg = (
       <span>
         Spark Configs
-        <Tooltip title="帮助" placement="bottom">
+        <Tooltip title={<FormattedMessage {...messages.nsHelp} />} placement="bottom">
           <Popover
             placement="top"
             content={<div style={{ width: '200px', height: '25px' }}>
               <p>Dirver / Execotor 资源配置</p>
             </div>}
-            title={<h3>帮助</h3>}
+            title={<h3><FormattedMessage {...messages.nsHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>
