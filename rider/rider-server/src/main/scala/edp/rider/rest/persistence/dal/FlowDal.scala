@@ -173,11 +173,11 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       if (flowAction.action == "delete") {
         deleteFlow(flowSeq, userId)
       } else {
-        flowSeq.map(flow => {
+        val updateSeq = flowSeq.map(flow => {
           Flow(flow.id, flow.projectId, flow.streamId, flow.sourceNs, flow.sinkNs, flow.consumedProtocol, flow.sinkConfig, flow.tranConfig,
             flow.status, flow.startedTime, flow.stoppedTime, flow.active, flow.createTime, flow.createBy, currentSec, userId)
         })
-        Await.result(super.update(flowSeq), minTimeOut)
+        Await.result(super.update(updateSeq), minTimeOut)
         val flowStreamSeq = defaultGetAll(_.id inSet flowIdSeq)
         flowStreamSeq.map[Seq[FlowStream]] {
           flowStreamSeq =>

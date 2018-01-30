@@ -21,6 +21,8 @@
 
 package edp.rider.rest.util
 
+import java.io.Serializable
+
 import com.alibaba.fastjson.{JSON, JSONArray}
 import edp.rider.RiderStarter.modules
 import edp.rider.common.{RiderConfig, RiderLogger}
@@ -35,8 +37,12 @@ import edp.wormhole.common.KVConfig
 import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.ums.UmsProtocolType._
+import jdk.nashorn.internal.parser.JSONParser
+import net.sf.jsqlparser.parser.CCJSqlParserUtil
+import net.sf.jsqlparser.util.TablesNamesFinder
 import slick.jdbc.MySQLProfile.api._
 
+import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -68,7 +74,7 @@ object FlowUtils extends RiderLogger {
           caseClass2json[Seq[KVConfig]](dbConfig.get)
         else "\"\""
 
-      val sinkKeys = if (ns.nsSys == "hbase") getRowkey(specialConfig) else ns.keys.getOrElse("")
+      val sinkKeys = if (ns.nsSys == "hbase") getRowKey(specialConfig) else ns.keys.getOrElse("")
 
       if (ns.sinkSchema.nonEmpty && ns.sinkSchema.get != "") {
         val schema = caseClass2json[Object](json2caseClass[SinkSchema](ns.sinkSchema.get).schema)
@@ -646,15 +652,17 @@ object FlowUtils extends RiderLogger {
     val nsSeq = Await.result(modules.namespaceDal.findByFilter(_.id inSet ids).mapTo[Seq[Namespace]], minTimeOut)
       .map(ns => generateStandardNs(ns))
     val flowIds = new ListBuffer[Long]
-    nsSeq.foreach(ns => {
+    val
+    nsSeq
+    .foreach(ns => {
       val flow = Await.result(modules.flowDal.findByFilter
-      (flow => flow.sourceNs === ns || flow.sinkNs === ns), minTimeOut)
+      (flow => flow.sourceNs === ns || flow.sinkNs === ns && (flow.status =!= "stopped" || flow.status =!= "new" || flow.status =!= "failed")), minTimeOut)
       flowIds ++= flow.map(_.id)
     })
     flowIds
   }
 
-  def getRowkey(sinkConfig: String): String = {
+  def getRowKey(sinkConfig: String): String = {
     val joinGrp = sinkConfig.split("\\+").map(_.trim)
     val rowKey = ListBuffer.empty[String]
     joinGrp.foreach(oneFieldPattern => {
@@ -690,5 +698,33 @@ object FlowUtils extends RiderLogger {
     })
     rowKey.distinct.filter(_ != "_").mkString(",")
   }
+
+
+  def getNsSeqBySinkConfig(tranConfig: String): Seq[String] = {
+    val tableSeq = new ListBuffer[String]
+    val sqls = if (tranConfig != "" && tranConfig != null) {
+      val json = JSON.parseObject(tranConfig)
+      if (json.containsKey("action")) {
+        json.getString("action").split(";").filter(_.contains("pushdown_sql")).toList
+      } else List()
+    } else List()
+    sqls.foreach(sql => tableSeq ++ getNsSeqByLookupSql(sql))
+    tableSeq
+  }
+
+  def getNsSeqByLookupSql(sql: String): List[String] = {
+    val sqlSplit = sql.split("with")(1).split("=")
+    val db = sqlSplit(0).trim
+    val pureSql = sqlSplit(1).trim
+    getTables(pureSql).map(table => db + "." + table + ".*.*.*")
+  }
+
+  def getTables(sql: String): List[String] = {
+    val regex = "([A-Za-z]+[A-Za-z0-9_-]*\\.){4,7}[A-Za-z0-9_-]+(,([A-Za-z]+[A-Za-z0-9_-]*\\.){4,7}[A-Za-z0-9_-]+)*".r.pattern
+    val statement = CCJSqlParserUtil.parse(regex.matcher(sql).replaceAll("aaaaaaaaaaaaaaa"))
+    val tablesNamesFinder = new TablesNamesFinder
+    tablesNamesFinder.getTableList(statement).toList.distinct
+  }
+
 
 }
