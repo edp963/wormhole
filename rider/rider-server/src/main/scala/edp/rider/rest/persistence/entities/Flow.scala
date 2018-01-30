@@ -128,10 +128,12 @@ case class FlowCacheMap(flowName: String, flowId: Long)
 
 case class FlowHealth(flowStatus: String,
                       latestSinkWaterMark: String,
-                      latesthdfslogWaterMark:String,
+                      latesthdfslogWaterMark: String,
                       sinkErrorMinWatermark: String,
                       sinkErrorMaxWatermark: String,
-                      sinkErrorCount: Long )
+                      sinkErrorCount: Long)
+
+case class Sql(sql: String)
 
 class FlowTable(_tableTag: Tag) extends BaseTable[Flow](_tableTag, "flow") {
   def * = (id, projectId, streamId, sourceNs, sinkNs, consumedProtocol, sinkConfig, tranConfig, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <> (Flow.tupled, Flow.unapply)

@@ -28,11 +28,10 @@ import edp.rider.rest.persistence.dal.{FlowDal, StreamDal}
 import edp.rider.rest.persistence.entities._
 
 import scala.concurrent.Await
-//import edp.rider.rest.router.JsonProtocol._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.rest.util.{AuthorizationProvider, FlowUtils}
+import edp.rider.rest.util.{AuthorizationProvider, FlowUtils, NamespaceUtils, NsDatabaseUtils}
 import edp.rider.service.util.CacheMap
 import slick.jdbc.MySQLProfile.api._
 
@@ -206,8 +205,8 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                   if (session.projectIdList.contains(projectId)) {
                     val checkFormat = FlowUtils.checkConfigFormat(flow.sinkConfig.getOrElse(""), flow.tranConfig.getOrElse(""))
                     if (checkFormat._1) {
-                      val startedTime = if(flow.startedTime.getOrElse("") == "") null else flow.startedTime
-                      val stoppedTime = if(flow.stoppedTime.getOrElse("") == "") null else flow.stoppedTime
+                      val startedTime = if (flow.startedTime.getOrElse("") == "") null else flow.startedTime
+                      val stoppedTime = if (flow.stoppedTime.getOrElse("") == "") null else flow.stoppedTime
                       val updateFlow = Flow(flow.id, flow.projectId, flow.streamId, flow.sourceNs.trim, flow.sinkNs.trim, flow.consumedProtocol.trim, flow.sinkConfig,
                         flow.tranConfig, flow.status, startedTime, stoppedTime, flow.active, flow.createTime, flow.createBy, currentSec, session.userId)
 
@@ -232,13 +231,51 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                           complete(OK, getHeader(451, ex.getMessage, session))
                       }
                     } else {
-                      riderLogger.warn(s"user ${session.userId} update flow failed, casued by ${checkFormat._2}")
+                      riderLogger.warn(s"user ${session.userId} update flow failed, caused by ${checkFormat._2}")
                       complete(OK, getHeader(400, checkFormat._2, session))
                     }
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
                     complete(OK, getHeader(403, session))
                   }
+                }
+            }
+        }
+      }
+
+  }
+
+  def lookupSqlVerifyRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows" / LongNumber / "sqls" / "lookup") {
+    (projectId, _, flowId) =>
+      put {
+        entity(as[Sql]) {
+          sql =>
+            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+              session =>
+                if (session.roleType != "user")
+                  complete(OK, getHeader(403, session))
+                else {
+                  try {
+                    if (session.projectIdList.contains(projectId)) {
+                      val tables = FlowUtils.getNsSeqByLookupSql(sql.sql)
+                      val nonPermTables = NamespaceUtils.permCheck(projectId, tables)
+                      if (nonPermTables.isEmpty) {
+                        riderLogger.info(s"user ${session.userId} verify flow $flowId lookup sql all tables have permission")
+                        complete(OK, getHeader(200, session))
+                      } else {
+                        riderLogger.info(s"user ${session.userId} verify flow $flowId lookup sql ${nonPermTables.mkString(",")} tables have non permission")
+                        complete(OK, getHeader(406, s"none permission to visit ${nonPermTables.mkString(",")} tables", session))
+                      }
+                    } else {
+                      riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
+                      complete(OK, getHeader(403, session))
+                    }
+                  } catch {
+                    case ex: Exception =>
+                      riderLogger.error(s"user ${session.userId} verify flow $flowId sql tables permission failed", ex)
+                      complete(OK, getHeader(451, ex.getMessage, session))
+                  }
+
                 }
             }
         }
