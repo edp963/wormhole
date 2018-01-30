@@ -21,15 +21,7 @@
 
 package edp.wormhole.swifts.parse
 
-case class SwiftsSql(optType: String, // MAP, UNION, FILTER, JOIN... //can add key word "code" for wh3 to reflect
-                 fields: Option[String], //fields get from database (join)
-                 sql: String, // with constant to replace
-                 timeout:Option[Int],
-                 lookupNamespace: Option[String], // string after "from" before "=" in sql
-                 sourceTableFields: Option[Array[String]], //where () in (@@@) @@@ --> sourceTableFields
-                 lookupTableFields: Option[Array[String]], // where (@@@) in ... @@@ --> lookupTableFields
-                 lookupTableFieldsAlias: Option[Array[String]]) {// final fileds name get from database ,e.g. select a as b, c from... --> get b,c
-}
+
 object SqlOptType extends Enumeration {
   type SqlOptType = Value
 

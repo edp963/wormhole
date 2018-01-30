@@ -25,12 +25,12 @@ import java.sql.{Connection, PreparedStatement, ResultSet, SQLTransientConnectio
 
 import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.common.db.DbConnection
-import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.sinks.utils.SinkDefault._
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.{UmsFieldType, _}
 import edp.wormhole.ums.UmsSysField._
 import edp.wormhole.sinks.DbHelper._
+import edp.wormhole.sparkxinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 
 import scala.collection.mutable

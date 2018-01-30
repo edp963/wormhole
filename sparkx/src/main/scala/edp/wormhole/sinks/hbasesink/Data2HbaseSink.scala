@@ -21,7 +21,7 @@
 package edp.wormhole.sinks.hbasesink
 
 import edp.wormhole.common.{ConnectionConfig, RowkeyPatternContent, RowkeyPatternType, RowkeyTool}
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor, SourceMutationType}
+import edp.wormhole.sinks.SourceMutationType
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.sinks.hbasesink.HbaseConstants._
 import org.apache.hadoop.hbase.client._
@@ -36,6 +36,7 @@ import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsNamespace
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.common.util.JsonUtils._
+import edp.wormhole.sparkxinterface.sinks.{SinkProcessConfig, SinkProcessor}
 
 class Data2HbaseSink extends SinkProcessor with EdpLogging {
   override def process(protocolType: UmsProtocolType,

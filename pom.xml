@@ -25,6 +25,7 @@
         <module>common/util</module>
         <module>common/zookeeper</module>
         <module>common/dbpool</module>
+        <module>common/sparkxinterface</module>
         <!--<module>common/phoenix-jdbc</module>-->
         <module>common/sql4es5</module>
         <module>common/sql4es2</module>
