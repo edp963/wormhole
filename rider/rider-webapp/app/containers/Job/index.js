@@ -22,6 +22,8 @@ import React from 'react'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import JobLogs from './JobLogs'
 import Table from 'antd/lib/table'
@@ -376,9 +378,7 @@ export class Job extends React.Component {
         }
 
         this.props.onLoadJobDetail(requestValue, (result) => {
-          this.setState({
-            showJobDetail: result
-          })
+          this.setState({ showJobDetail: result })
         })
       })
     }
@@ -648,27 +648,35 @@ export class Job extends React.Component {
         if (localStorage.getItem('loginRoleType') === 'admin') {
           jobActionSelect = ''
         } else if (localStorage.getItem('loginRoleType') === 'user') {
+          const editFormat = <FormattedMessage {...messages.jobModify} />
+          const startFormat = <FormattedMessage {...messages.jobTableStart} />
+          const sureStartFormat = <FormattedMessage {...messages.jobSureStart} />
+          const stopFormat = <FormattedMessage {...messages.jobTableStop} />
+          const sureStopFormat = <FormattedMessage {...messages.jobSureStop} />
+          const deleteFormat = <FormattedMessage {...messages.jobDelete} />
+          const sureDeleteFormat = <FormattedMessage {...messages.jobSureDelete} />
+
           const strEdit = record.disableActions.indexOf('modify') > -1
             ? (
-              <Tooltip title="修改">
+              <Tooltip title={editFormat}>
                 <Button icon="edit" shape="circle" type="ghost" disabled></Button>
               </Tooltip>
             )
             : (
-              <Tooltip title="修改">
+              <Tooltip title={editFormat}>
                 <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditJob(record)}></Button>
               </Tooltip>
             )
 
           const strStart = record.disableActions.indexOf('start') > -1
             ? (
-              <Tooltip title="开始">
+              <Tooltip title={startFormat}>
                 <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title="确定开始吗？" okText="Yes" cancelText="No" onConfirm={this.startJobBtn(record, 'start')}>
-                <Tooltip title="开始">
+              <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.startJobBtn(record, 'start')}>
+                <Tooltip title={startFormat}>
                   <Button icon="caret-right" shape="circle" type="ghost"></Button>
                 </Tooltip>
               </Popconfirm>
@@ -676,15 +684,15 @@ export class Job extends React.Component {
 
           const strStop = record.disableActions.indexOf('stop') > -1
             ? (
-              <Tooltip title="停止">
+              <Tooltip title={stopFormat}>
                 <Button shape="circle" type="ghost" disabled>
                   <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
                 </Button>
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title="确定停止吗？" okText="Yes" cancelText="No" onConfirm={this.stopJobBtn(record, 'stop')}>
-                <Tooltip title="停止">
+              <Popconfirm placement="bottom" title={sureStopFormat} okText="Yes" cancelText="No" onConfirm={this.stopJobBtn(record, 'stop')}>
+                <Tooltip title={stopFormat}>
                   <Button shape="circle" type="ghost">
                     <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
                   </Button>
@@ -694,13 +702,13 @@ export class Job extends React.Component {
 
           const strDelete = record.disableActions.indexOf('delete') > -1
             ? (
-              <Tooltip title="删除">
+              <Tooltip title={deleteFormat}>
                 <Button icon="delete" shape="circle" type="ghost" disabled></Button>
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteJobBtn(record, 'delete')}>
-                <Tooltip title="删除">
+              <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.deleteJobBtn(record, 'delete')}>
+                <Tooltip title={deleteFormat}>
                   <Button icon="delete" shape="circle" type="ghost"></Button>
                 </Tooltip>
               </Popconfirm>
@@ -741,11 +749,11 @@ export class Job extends React.Component {
 
         return (
           <span className="ant-table-action-column">
-            <Tooltip title="查看详情">
+            <Tooltip title={<FormattedMessage {...messages.jobViewDetailsBtn} />}>
               <Popover
                 placement="left"
                 content={jobDetailContent}
-                title={<h3>详情</h3>}
+                title={<h3><FormattedMessage {...messages.jobDetails} /></h3>}
                 trigger="click"
                 onVisibleChange={this.handleVisibleChangeJob(record)}>
                 <Button icon="file-text" shape="circle" type="ghost"></Button>
@@ -783,7 +791,9 @@ export class Job extends React.Component {
       jobAddOrNot = ''
     } else if (localStorage.getItem('loginRoleType') === 'user') {
       jobAddOrNot = (
-        <Button icon="plus" type="primary" onClick={onShowAddJob}>新建</Button>
+        <Button icon="plus" type="primary" onClick={onShowAddJob}>
+          <FormattedMessage {...messages.jobCreate} />
+        </Button>
       )
     }
 
@@ -795,7 +805,7 @@ export class Job extends React.Component {
       <div className={`ri-workbench-table ri-common-block ${className}`}>
         {helmetHide}
         <h3 className="ri-common-block-title">
-          <Icon type="bars" /> Job 列表
+          <Icon type="bars" /> Job <FormattedMessage {...messages.jobTableList} />
         </h3>
         <div className="ri-common-block-tools">
           {jobAddOrNot}

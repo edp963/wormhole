@@ -96,7 +96,7 @@ export class ProjectForm extends React.Component {
                 {getFieldDecorator('name', {
                   rules: [{
                     required: true,
-                    message: '项目名称不能为空'
+                    message: '项目标识不能为空'
                   }, {
                     validator: this.forceCheckProjectName
                   }]

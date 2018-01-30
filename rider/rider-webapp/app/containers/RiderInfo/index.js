@@ -22,6 +22,8 @@ import React from 'react'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import Icon from 'antd/lib/icon'
 import Form from 'antd/lib/form'
@@ -44,7 +46,7 @@ export class RiderInfo extends React.Component {
       <div className={`ri-workbench-table ri-common-block`}>
         <Helmet title="Rider Info" />
         <h3 className="ri-common-block-title">
-          <Icon type="bars" /> Rider Info 列表
+          <Icon type="bars" /> Rider Info <FormattedMessage {...messages.riderInfoTableList} />
         </h3>
         <Form className="rider-info-class">
           <Row>

@@ -37,6 +37,15 @@ export class StreamConfigForm extends React.Component {
     }
   }
 
+  forceCheckNumsPart = (rule, value, callback) => {
+    const reg = /^[0-9]*$/
+    if (reg.test(value) || value === -1) {
+      callback()
+    } else {
+      callback('不小于-1')
+    }
+  }
+
   render () {
     const { form, tabPanelKey } = this.props
     const { getFieldDecorator } = form
@@ -170,11 +179,11 @@ export class StreamConfigForm extends React.Component {
                   required: true,
                   message: '不能为空'
                 }, {
-                  validator: this.forceCheckNums
+                  validator: this.forceCheckNumsPart
                 }],
                 initialValue: 6
               })(
-                <InputNumber min={1} step={1} />
+                <InputNumber min={-1} step={1} />
               )}
             </FormItem>
           </Col>
