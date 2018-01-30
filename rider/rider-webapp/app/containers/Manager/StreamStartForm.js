@@ -19,6 +19,8 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
@@ -33,16 +35,20 @@ const FormItem = Form.Item
 export class StreamStartForm extends React.Component {
   constructor (props) {
     super(props)
-    this.state = {
-      data: []
-    }
+    this.state = { data: [] }
   }
 
   componentWillReceiveProps (props) {
     const dataFinal = props.data.map(s => {
       const conTemp = props.consumedOffsetValue.find(i => i.id === s.id)
       const conTempObject = conTemp
-        ? {conOffsetVal: conTemp.partitionOffsets}
+        ? {
+          id: conTemp.id,
+          name: conTemp.name,
+          conOffsetVal: conTemp.partitionOffsets,
+          rate: conTemp.rate,
+          key: conTemp.id
+        }
         : {}
 
       const kafTemp = props.kafkaOffsetValue.find(i => i.id === s.id)
@@ -50,12 +56,10 @@ export class StreamStartForm extends React.Component {
         ? {kafOffsetVal: kafTemp.partitionOffsets}
         : {}
 
-      return Object.assign({}, s, conTempObject, kafTempObject)
+      return Object.assign({}, conTempObject, kafTempObject)
     })
 
-    this.setState({
-      data: dataFinal
-    })
+    this.setState({ data: dataFinal })
   }
 
   forceCheckTopic = (rule, value, callback) => {
@@ -92,7 +96,9 @@ export class StreamStartForm extends React.Component {
           <Card title={noTopicCardTitle} className="stream-start-form-card-style">
             <div className="rate-topic-info-wrapper">
               <div className="rate-class">
-                <Col span={24} className="card-content required-offset">Rate (条/秒)</Col>
+                <Col span={24} className="card-content required-offset">
+                  Rate (<FormattedMessage {...messages.streamModalRate} />)
+                </Col>
               </div>
               <div className="topic-info-class">
                 <Col span={3} className="card-content">Partition</Col>
@@ -108,47 +114,14 @@ export class StreamStartForm extends React.Component {
       : data.map(i => {
         let parOffInput = ''
 
-        if (i.partitionOffsets === '') {
-          const partitionArr = []
-          for (let m = 0; m < i.partition; m++) {
-            partitionArr.push(m)
-          }
-          parOffInput = partitionArr.map((k, index) => (
-            <Row key={`${i.id}_${index}`}>
-              <Col span={12} className="partition-content">{k}</Col>
-              <Col span={12} className="offset-content">
-                <FormItem>
-                  <ol key={k}>
-                    {getFieldDecorator(`${i.id}_${index}`, {
-                      rules: [{
-                        required: true,
-                        message: '请填写 Offset'
-                      }, {
-                        validator: this.forceCheckTopic
-                      }]
-                    })(
-                      <InputNumber className="conform-table-input" />
-                    )}
-                  </ol>
-                </FormItem>
-              </Col>
-            </Row>
-          ))
-        } else {
-          const partitionOffsetsArr = i.partitionOffsets.split(',')
+        if (i.conOffsetVal) {
+          const partitionOffsetsArr = i.conOffsetVal.split(',')
 
           parOffInput = partitionOffsetsArr.map((g, index) => {
             const gKey = g.substring(0, g.indexOf(':'))
+            const conOffFinal = g.substring(g.indexOf(':') + 1)
 
-            let conOffFinal = ''
             let kafOffFinal = ''
-            if (i.conOffsetVal) {
-              const conOffArr = i.conOffsetVal.split(',')
-              const conOffFilter = conOffArr.filter(s => s.substring(0, s.indexOf(':')) === gKey)
-              conOffFinal = conOffFilter[0].substring(conOffFilter[0].indexOf(':') + 1)
-            } else {
-              conOffFinal = ''
-            }
             if (i.kafOffsetVal) {
               const kafOffArr = i.kafOffsetVal.split(',')
               const kafOffFilter = kafOffArr.filter(s => s.substring(0, s.indexOf(':')) === gKey)
@@ -157,6 +130,7 @@ export class StreamStartForm extends React.Component {
               kafOffFinal = ''
             }
 
+            const applyFormat = <FormattedMessage {...messages.streamModalApply} />
             return (
               <Row key={`${i.id}_${index}`}>
                 <Col span={3} className="partition-content">{g.substring(0, g.indexOf(':'))}</Col>
@@ -169,8 +143,8 @@ export class StreamStartForm extends React.Component {
                           message: '请填写 Offset'
                         }, {
                           validator: this.forceCheckTopic
-                        }],
-                        initialValue: g.substring(g.indexOf(':') + 1)
+                        }]
+                        // initialValue: g.substring(g.indexOf(':') + 1)
                       })(
                         <InputNumber size="medium" className="conform-table-input" />
                       )}
@@ -183,13 +157,12 @@ export class StreamStartForm extends React.Component {
                       {getFieldDecorator(`consumedLatest_${i.id}_${index}`, {})(
                         <div className="stream-start-lastest-consumed-offset">
                           <span style={{ marginRight: '5px' }}>{conOffFinal}</span>
-                          <Tooltip title="应用">
+                          <Tooltip title={applyFormat}>
                             <Button shape="circle" type="ghost" onClick={this.onApplyConOffset(i, index, conOffFinal)}>
                               <i className="iconfont icon-apply_icon_-copy-copy"></i>
                             </Button>
                           </Tooltip>
                         </div>
-
                       )}
                     </ol>
                   </FormItem>
@@ -200,7 +173,7 @@ export class StreamStartForm extends React.Component {
                       {getFieldDecorator(`kafkaLatest_${i.id}_${index}`, {})(
                         <div className="stream-start-lastest-kafka-offset">
                           <span style={{ marginRight: '5px' }}>{kafOffFinal}</span>
-                          <Tooltip title="应用">
+                          <Tooltip title={applyFormat}>
                             <Button shape="circle" type="ghost" onClick={this.onApplyKafkaOffset(i, index, kafOffFinal)}>
                               <i className="iconfont icon-apply_icon_-copy-copy"></i>
                             </Button>
@@ -213,11 +186,16 @@ export class StreamStartForm extends React.Component {
               </Row>
             )
           })
+        } else {
+          return
         }
 
         const cardTitle = (
           <Row key={i.id}>
-            <Col span={24} style={{fontWeight: '500'}}><span className="modal-topic-name">Topic Name</span>{i.name}</Col>
+            <Col span={24} style={{fontWeight: '500'}}>
+              <span className="modal-topic-name">Topic Name</span>
+              {i.name}
+            </Col>
           </Row>
         )
 
@@ -236,7 +214,9 @@ export class StreamStartForm extends React.Component {
             <Card title={cardTitle} className="stream-start-form-card-style">
               <div className="rate-topic-info-wrapper">
                 <div className="rate-class">
-                  <Col span={24} className="card-content required-offset">Rate (条/秒)</Col>
+                  <Col span={24} className="card-content required-offset">
+                    Rate (<FormattedMessage {...messages.streamModalRate} />)
+                  </Col>
                   <Col span={24}>
                     <FormItem>
                       {getFieldDecorator(`${i.id}_${i.rate}`, {
@@ -263,7 +243,6 @@ export class StreamStartForm extends React.Component {
       })
 
     const itemStyleUdf = {
-      // labelCol: { span:  },
       wrapperCol: { span: 24 }
     }
 

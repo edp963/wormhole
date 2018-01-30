@@ -26,6 +26,9 @@ import CodeMirror from 'codemirror'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
 
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
+
 import { jsonParse, fieldTypeAlter, renameAlter, genDefaultSchemaTable, umsSysFieldSelected,
   umsSysFieldCanceled, getRepeatFieldIndex, genSchema } from './umsFunction'
 import { isJSONNotEmpty } from '../../utils/util'
@@ -1614,12 +1617,12 @@ export class Namespace extends React.PureComponent {
           if (record.nsSys === 'kafka') {
             umsAction = (
               <span className="ant-table-action-column">
-                <Tooltip title="Source Schema 配置">
+                <Tooltip title={<FormattedMessage {...messages.nsTableSourceSchemaConfig} />}>
                   <Button shape="circle" type="ghost" onClick={this.showEditUms(record)}>
                     <i className="iconfont icon-icos"></i>
                   </Button>
                 </Tooltip>
-                <Tooltip title="Sink Schema 配置">
+                <Tooltip title={<FormattedMessage {...messages.nsTableSinkSchemaConfig} />}>
                   <Button shape="circle" type="ghost" onClick={this.showEditSink(record)}>
                     <i className="iconfont icon-ic_Heatsink"></i>
                   </Button>
@@ -1628,7 +1631,7 @@ export class Namespace extends React.PureComponent {
             )
           } else if (record.nsSys === 'es' || record.nsSys === 'mongodb') {
             umsAction = (
-              <Tooltip title="Sink Schema 配置">
+              <Tooltip title={<FormattedMessage {...messages.nsTableSinkSchemaConfig} />}>
                 <Button shape="circle" type="ghost" onClick={this.showEditSink(record)}>
                   <i className="iconfont icon-ic_Heatsink"></i>
                 </Button>
@@ -1640,25 +1643,25 @@ export class Namespace extends React.PureComponent {
 
           const nsAction = (
             <span className="ant-table-action-column">
-              <Tooltip title="查看详情">
+              <Tooltip title={<FormattedMessage {...messages.nsTableViewDetails} />}>
                 <Popover
                   placement="left"
                   content={<div className="project-name-detail">
                     <p><strong>   Project Names：</strong>{showNsDetail.projectName}</p>
                   </div>}
-                  title={<h3>详情</h3>}
+                  title={<h3><FormattedMessage {...messages.nsTableDetails} /></h3>}
                   trigger="click"
                   onVisibleChange={this.handleVisibleChangeNs(record)}
                 >
                   <Button icon="file-text" shape="circle" type="ghost"></Button>
                 </Popover>
               </Tooltip>
-              <Tooltip title="修改">
+              <Tooltip title={<FormattedMessage {...messages.nsTableModifyAction} />}>
                 <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditNamespace(record)}></Button>
               </Tooltip>
               {umsAction}
-              <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteNsBtn(record)}>
-                <Tooltip title="删除">
+              <Popconfirm placement="bottom" title={<FormattedMessage {...messages.nsModalSureDeleteTable} />} okText="Yes" cancelText="No" onConfirm={this.deleteNsBtn(record)}>
+                <Tooltip title={<FormattedMessage {...messages.nsModalDeleteTable} />}>
                   <Button icon="delete" shape="circle" type="ghost"></Button>
                 </Tooltip>
               </Popconfirm>
@@ -1700,20 +1703,20 @@ export class Namespace extends React.PureComponent {
             className={`json-format ${this.state.umsTypeSeleted === 'ums' ? 'hide' : ''}`}
             onClick={this.onJsonFormat}
           >
-            JSON 格式化
+            <FormattedMessage {...messages.nsTableJsonFormat} />
           </Button>, <Button
             key="cancel"
             size="large"
             onClick={this.hideSchemaModal}
           >
-            取 消
+            <FormattedMessage {...messages.nsModalCancel} />
           </Button>, <Button
             key="submit"
             size="large"
             type="primary"
             onClick={this.onSchemaModalOk}
           >
-            保存
+            <FormattedMessage {...messages.nsModalSave} />
           </Button>
         ]
 
@@ -1725,26 +1728,26 @@ export class Namespace extends React.PureComponent {
             type="primary"
             onClick={this.onSinkJsonFormat}
           >
-            JSON格式化
+            <FormattedMessage {...messages.nsTableJsonFormat} />
           </Button>, <Button
             key="noJson"
             type="primary"
             onClick={this.onSinkNoJson}
           >
-            JSON置空
+            <FormattedMessage {...messages.nsTableJsonClear} />
           </Button>, <Button
             key="cancel"
             size="large"
             onClick={this.hideSinkSchemaModal}
           >
-            取 消
+            <FormattedMessage {...messages.nsModalCancel} />
           </Button>, <Button
             key="submit"
             size="large"
             type="primary"
             onClick={this.onSinkSchemaModalOk}
           >
-            保存
+            <FormattedMessage {...messages.nsModalSave} />
           </Button>
         ]
     } else if (localStorage.getItem('loginRoleType') === 'user') {
@@ -1752,12 +1755,16 @@ export class Namespace extends React.PureComponent {
       sourceFooter = null
     }
 
+    const modalTitle = this.state.namespaceFormType === 'add'
+      ? <FormattedMessage {...messages.nsTableCreate} />
+      : <FormattedMessage {...messages.nsTableModify} />
+
     return (
       <div>
         {helmetHide}
         <div className="ri-workbench-table ri-common-block">
           <h3 className="ri-common-block-title">
-            <Icon type="bars" /> Namespace 列表
+            <Icon type="bars" /> Namespace <FormattedMessage {...messages.nsTableTitle} />
           </h3>
           <div className="ri-common-block-tools">
             <Button icon="plus" type="primary" className={this.props.namespaceClassHide} onClick={this.showAddNamespace}>新建</Button>
@@ -1773,7 +1780,7 @@ export class Namespace extends React.PureComponent {
           </Table>
         </div>
         <Modal
-          title={`${this.state.namespaceFormType === 'add' ? '新建' : '修改'} Namespace`}
+          title={modalTitle}
           okText="保存"
           wrapClassName="db-form-style"
           visible={this.state.formVisible}
@@ -1786,7 +1793,7 @@ export class Namespace extends React.PureComponent {
               type="ghost"
               onClick={this.hideForm}
             >
-              取消
+              {<FormattedMessage {...messages.nsModalCancel} />}
             </Button>,
             <Button
               key="submit"
@@ -1795,7 +1802,7 @@ export class Namespace extends React.PureComponent {
               loading={this.props.modalLoading}
               onClick={this.onModalOk}
             >
-              保存
+              {<FormattedMessage {...messages.nsModalSave} />}
             </Button>
           ]}
         >
