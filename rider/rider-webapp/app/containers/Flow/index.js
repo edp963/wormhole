@@ -42,6 +42,7 @@ import Popover from 'antd/lib/popover'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
+import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { selectFlows, selectError } from './selectors'
 import { loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm,
   saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail,
@@ -103,6 +104,7 @@ export class Flow extends React.Component {
 
   componentWillMount () {
     this.refreshFlow()
+    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   componentWillReceiveProps (props) {
@@ -899,27 +901,37 @@ export class Flow extends React.Component {
         if (localStorage.getItem('loginRoleType') === 'admin') {
           FlowActionSelect = ''
         } else if (localStorage.getItem('loginRoleType') === 'user') {
+          const modifyFormat = <FormattedMessage {...messages.flowTableModify} />
+          const startFormat = <FormattedMessage {...messages.flowTableStart} />
+          const sureStartFormat = <FormattedMessage {...messages.flowSureStart} />
+          const stopFormat = <FormattedMessage {...messages.flowTableStop} />
+          const sureStopFormat = <FormattedMessage {...messages.flowSureStop} />
+          const renewFormat = <FormattedMessage {...messages.flowTableRenew} />
+          const copyFormat = <FormattedMessage {...messages.flowTableCopy} />
+          const deleteFormat = <FormattedMessage {...messages.flowTableDelete} />
+          const sureDeleteFormat = <FormattedMessage {...messages.flowSureDelete} />
+
           const strEdit = record.disableActions.indexOf('modify') > -1
             ? (
-              <Tooltip title="修改">
+              <Tooltip title={modifyFormat}>
                 <Button icon="edit" shape="circle" type="ghost" disabled></Button>
               </Tooltip>
             )
             : (
-              <Tooltip title="修改">
+              <Tooltip title={modifyFormat}>
                 <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
               </Tooltip>
             )
 
           const strStart = record.disableActions.indexOf('start') > -1
             ? (
-              <Tooltip title="开始">
+              <Tooltip title={startFormat}>
                 <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title="确定开始吗？" okText="Yes" cancelText="No" onConfirm={this.onShowFlowStart(record, 'start')}>
-                <Tooltip title="开始">
+              <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.onShowFlowStart(record, 'start')}>
+                <Tooltip title={startFormat}>
                   <Button icon="caret-right" shape="circle" type="ghost"></Button>
                 </Tooltip>
               </Popconfirm>
@@ -927,15 +939,15 @@ export class Flow extends React.Component {
 
           const strStop = record.disableActions.indexOf('stop') > -1
             ? (
-              <Tooltip title="停止">
+              <Tooltip title={stopFormat}>
                 <Button shape="circle" type="ghost" disabled>
                   <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
                 </Button>
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title="确定停止吗？" okText="Yes" cancelText="No" onConfirm={this.stopFlowBtn(record, 'stop')}>
-                <Tooltip title="停止">
+              <Popconfirm placement="bottom" title={sureStopFormat} okText="Yes" cancelText="No" onConfirm={this.stopFlowBtn(record, 'stop')}>
+                <Tooltip title={stopFormat}>
                   <Button shape="circle" type="ghost">
                     <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
                   </Button>
@@ -945,12 +957,12 @@ export class Flow extends React.Component {
 
           const strRenew = record.disableActions.indexOf('renew') > -1
             ? (
-              <Tooltip title="生效">
+              <Tooltip title={renewFormat}>
                 <Button icon="check" shape="circle" type="ghost" disabled></Button>
               </Tooltip>
             )
             : (
-              <Tooltip title="生效">
+              <Tooltip title={renewFormat}>
                 <Button icon="check" shape="circle" type="ghost" onClick={this.updateFlow(record, 'renew')}></Button>
               </Tooltip>
             )
@@ -962,7 +974,7 @@ export class Flow extends React.Component {
               </Tooltip> */}
 
               {strEdit}
-              <Tooltip title="复制">
+              <Tooltip title={copyFormat}>
                 <Button icon="copy" shape="circle" type="ghost" onClick={this.onCopyFlow(record)}></Button>
               </Tooltip>
               {strStart}
@@ -973,8 +985,8 @@ export class Flow extends React.Component {
                <Button icon="rollback" shape="circle" type="ghost" ></Button>
                </Tooltip> */}
 
-              <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.onSingleDeleteFlow(record, 'delete')}>
-                <Tooltip title="删除">
+              <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.onSingleDeleteFlow(record, 'delete')}>
+                <Tooltip title={deleteFormat}>
                   <Button icon="delete" shape="circle" type="ghost"></Button>
                 </Tooltip>
               </Popconfirm>
@@ -994,7 +1006,7 @@ export class Flow extends React.Component {
 
         return (
           <span className="ant-table-action-column">
-            <Tooltip title="查看详情">
+            <Tooltip title={<FormattedMessage {...messages.flowViewDetails} />}>
               <Popover
                 placement="left"
                 content={<div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
@@ -1013,7 +1025,7 @@ export class Flow extends React.Component {
 
                   <p><strong>   Message：</strong>{showFlowDetails.msg}</p>
                 </div>}
-                title={<h3>详情</h3>}
+                title={<h3><FormattedMessage {...messages.flowDetails} /></h3>}
                 trigger="click"
                 onVisibleChange={this.handleVisibleChangeFlow(record)}>
                 <Button icon="file-text" shape="circle" type="ghost"></Button>
@@ -1045,10 +1057,16 @@ export class Flow extends React.Component {
 
     const menuItems = (
       <Menu onClick={this.handleMenuClick(selectedRowKeys)} className="ri-workbench-select-dropdown">
-        <Menu.Item key="menuStart"><Icon type="caret-right" />  开始</Menu.Item>
+        <Menu.Item key="menuStart"><Icon type="caret-right" />
+          <FormattedMessage {...messages.flowTableStart} />
+        </Menu.Item>
         <Menu.Item key="menuStop">
-          <i className="iconfont icon-8080pxtubiaokuozhan100" style={{ fontSize: '12px' }}></i>  停止</Menu.Item>
-        <Menu.Item key="menuDelete"><Icon type="delete" />  删除</Menu.Item>
+          <i className="iconfont icon-8080pxtubiaokuozhan100" style={{ fontSize: '12px' }}></i>
+          <FormattedMessage {...messages.flowTableStop} />
+        </Menu.Item>
+        <Menu.Item key="menuDelete"><Icon type="delete" />
+          <FormattedMessage {...messages.flowTableDelete} />
+        </Menu.Item>
       </Menu>
       )
 
@@ -1058,10 +1076,12 @@ export class Flow extends React.Component {
     } else if (localStorage.getItem('loginRoleType') === 'user') {
       FlowAddOrNot = (
         <span>
-          <Button icon="plus" type="primary" onClick={onShowAddFlow}>新建</Button>
+          <Button icon="plus" type="primary" onClick={onShowAddFlow}>
+            <FormattedMessage {...messages.flowTableCreate} />
+          </Button>
           <Dropdown trigger={['click']} overlay={menuItems}>
             <Button type="ghost" className="flow-action-btn">
-              批量操作 <Icon type="down" />
+              <FormattedMessage {...messages.flowBatchAction} /> <Icon type="down" />
             </Button>
           </Dropdown>
         </span>
@@ -1150,7 +1170,8 @@ Flow.propTypes = {
   onLoadUserAllFlows: React.PropTypes.func,
   onLoadAdminSingleFlow: React.PropTypes.func,
   onOperateUserFlow: React.PropTypes.func,
-  onChuckAwayFlow: React.PropTypes.func
+  onChuckAwayFlow: React.PropTypes.func,
+  onChangeLanguage: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1168,7 +1189,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadSinkWriteRrrorDetail: (id, pageIndex, pageSize, resolve) => dispatch(loadSinkWriteRrrorDetail(id, pageIndex, pageSize, resolve)),
     onLoadSourceInput: (flowId, taskType, resolve) => dispatch(loadSourceInput(flowId, taskType, resolve)),
     onLoadFlowDetail: (requestValue, resolve) => dispatch(loadFlowDetail(requestValue, resolve)),
-    onChuckAwayFlow: () => dispatch(chuckAwayFlow())
+    onChuckAwayFlow: () => dispatch(chuckAwayFlow()),
+    onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
 

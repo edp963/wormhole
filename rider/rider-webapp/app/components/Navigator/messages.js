@@ -25,7 +25,10 @@ export default defineMessages({
     id: 'app.components.Navigator.zh.en',
     defaultMessage: '中 文'
   },
-  navChangePsw: {
-    id: 'rider.components.Navigator.edit.password'
-  }
+  navChangePsw: { id: 'rider.components.Navigator.edit.password' },
+  navNewPsw: { id: 'rider.components.Navigator.new.password' },
+  navSureNewPsw: { id: 'rider.components.Navigator.sure.new.password' },
+  navOldPsw: { id: 'rider.components.Navigator.old.password' },
+  navModalCancel: { id: 'rider.app.modal.cancel' },
+  navModalSave: { id: 'rider.app.modal.save' }
 })

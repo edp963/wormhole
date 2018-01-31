@@ -39,6 +39,7 @@ import Popover from 'antd/lib/popover'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
+import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { selectJobs, selectError } from './selectors'
 import {
   loadAdminAllJobs, loadUserAllJobs, loadAdminSingleJob,
@@ -96,6 +97,7 @@ export class Job extends React.Component {
 
   componentWillMount () {
     this.refreshJob()
+    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   componentWillReceiveProps (props) {
@@ -854,7 +856,8 @@ Job.propTypes = {
   onLoadUserJobLogs: React.PropTypes.func,
   onOperateJob: React.PropTypes.func,
   onShowEditJob: React.PropTypes.func,
-  onLoadJobDetail: React.PropTypes.func
+  onLoadJobDetail: React.PropTypes.func,
+  onChangeLanguage: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -865,7 +868,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadAdminJobLogs: (projectId, jobId, resolve) => dispatch(loadAdminJobLogs(projectId, jobId, resolve)),
     onLoadUserJobLogs: (projectId, jobId, resolve) => dispatch(loadUserJobLogs(projectId, jobId, resolve)),
     onOperateJob: (values, resolve, reject) => dispatch(operateJob(values, resolve, reject)),
-    onLoadJobDetail: (value, resolve) => dispatch(loadJobDetail(value, resolve))
+    onLoadJobDetail: (value, resolve) => dispatch(loadJobDetail(value, resolve)),
+    onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
 

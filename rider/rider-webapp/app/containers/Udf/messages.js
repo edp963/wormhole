@@ -21,5 +21,17 @@
 import { defineMessages } from 'react-intl'
 
 export default defineMessages({
-  udfTableList: {id: 'rider.app.table.list'}
+  udfTableList: {id: 'rider.app.table.list'},
+  udfViewDetails: { id: 'rider.app.table.view.details' },
+  udfDetails: { id: 'rider.app.table.details' },
+  udfTableCreate: { id: 'rider.app.table.create.action' },
+  udfTableModify: { id: 'rider.app.table.modify.action' },
+  udfTableDelete: { id: 'rider.app.table.delete.action' },
+  udfSureDelete: { id: 'rider.app.table.sure.delete' },
+  udfCancel: { id: 'rider.app.modal.cancel' },
+  udfSave: { id: 'rider.app.modal.save' },
+  udfTableCopy: { id: 'rider.app.table.copy.action' },
+  udfModalAdd: { id: 'rider.containers.Udf.modal.title.add' },
+  udfModalEdit: { id: 'rider.containers.Udf.modal.title.edit' },
+  udfModalCopy: { id: 'rider.containers.Udf.modal.title.copy' }
 })

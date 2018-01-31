@@ -38,6 +38,7 @@ import Input from 'antd/lib/input'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
+import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadAdminAllUsers, loadUserUsers, addUser, editUser, loadEmailInputValue,
   loadSelectUsers, loadUserDetail, deleteUser } from './action'
 import { selectUsers, selectError, selectModalLoading, selectEmailExited } from './selectors'
@@ -91,6 +92,7 @@ export class User extends React.PureComponent {
 
   componentWillMount () {
     this.refreshUser()
+    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   componentWillReceiveProps (props) {
@@ -204,9 +206,7 @@ export class User extends React.PureComponent {
           }
         })
 
-        this.userForm.setFieldsValue({
-          email: result.email
-        })
+        this.userForm.setFieldsValue({ email: result.email })
       })
     })
   }
@@ -542,32 +542,32 @@ export class User extends React.PureComponent {
         className: `text-align-center ${userClassHide}`,
         render: (text, record) => (
           <span className="ant-table-action-column">
-            <Tooltip title="查看详情">
+            <Tooltip title={<FormattedMessage {...messages.userViewDetails} />}>
               <Popover
                 placement="left"
                 content={<div className="project-name-detail">
                   <p><strong>   Project Names：</strong>{showUserDetail.projectNames}</p>
                 </div>}
-                title={<h3>详情</h3>}
+                title={<h3><FormattedMessage {...messages.userDetails} /></h3>}
                 trigger="click"
                 onVisibleChange={this.handleVisibleChangeUser(record)}
               >
                 <Button icon="file-text" shape="circle" type="ghost"></Button>
               </Popover>
             </Tooltip>
-            <Tooltip title="修改用户信息">
+            <Tooltip title={<FormattedMessage {...messages.userEditUserInfo} />}>
               <Button icon="user" shape="circle" type="ghost" onClick={this.showDetail(record)} />
             </Tooltip>
 
-            <Tooltip title="修改密码">
+            <Tooltip title={<FormattedMessage {...messages.userEditPsw} />}>
               <Button icon="key" shape="circle" type="ghost" onClick={this.showDetailPsw(record)} />
             </Tooltip>
 
             {
               localStorage.getItem('loginRoleType') === 'admin'
                 ? (
-                  <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteUserBtn(record)}>
-                    <Tooltip title="删除">
+                  <Popconfirm placement="bottom" title={<FormattedMessage {...messages.userSureDelete} />} okText="Yes" cancelText="No" onConfirm={this.deleteUserBtn(record)}>
+                    <Tooltip title={<FormattedMessage {...messages.userTableDelete} />}>
                       <Button icon="delete" shape="circle" type="ghost"></Button>
                     </Tooltip>
                   </Popconfirm>
@@ -600,11 +600,11 @@ export class User extends React.PureComponent {
 
     let userTitle = ''
     if (formType === 'add') {
-      userTitle = '新建 User'
+      userTitle = <FormattedMessage {...messages.userCreateUser} />
     } else if (formType === 'editMsg') {
-      userTitle = '修改用户信息'
+      userTitle = <FormattedMessage {...messages.userEditUserInfo} />
     } else if (formType === 'editPsw') {
-      userTitle = '修改密码'
+      userTitle = <FormattedMessage {...messages.userEditPsw} />
     }
 
     return (
@@ -615,7 +615,9 @@ export class User extends React.PureComponent {
             <Icon type="bars" /> User <FormattedMessage {...messages.userTableList} />
           </h3>
           <div className="ri-common-block-tools">
-            <Button icon="plus" type="primary" onClick={this.showAdd} className={userClassHide}>新建</Button>
+            <Button icon="plus" type="primary" onClick={this.showAdd} className={userClassHide}>
+              <FormattedMessage {...messages.userTableCreate} />
+            </Button>
             <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshUserLoading} onClick={this.refreshUser}>{refreshUserText}</Button>
           </div>
           <Table
@@ -630,7 +632,7 @@ export class User extends React.PureComponent {
         <Modal
           title={userTitle}
           okText="保存"
-          wrapClassName="ant-modal-small"
+          wrapClassName="db-form-style"
           visible={this.state.formVisible}
           onCancel={this.hideForm}
           footer={[
@@ -640,7 +642,7 @@ export class User extends React.PureComponent {
               type="ghost"
               onClick={this.hideForm}
             >
-              取消
+              <FormattedMessage {...messages.userCancel} />
             </Button>,
             <Button
               key="submit"
@@ -649,7 +651,7 @@ export class User extends React.PureComponent {
               loading={this.props.modalLoading}
               onClick={this.onModalOk}
             >
-              保存
+              <FormattedMessage {...messages.userSave} />
             </Button>
           ]}
         >
@@ -681,7 +683,8 @@ User.propTypes = {
   onEditUser: React.PropTypes.func,
   onLoadEmailInputValue: React.PropTypes.func,
   onLoadUserDetail: React.PropTypes.func,
-  onDeleteUser: React.PropTypes.func
+  onDeleteUser: React.PropTypes.func,
+  onChangeLanguage: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -693,7 +696,8 @@ export function mapDispatchToProps (dispatch) {
     onEditUser: (user, resolve) => dispatch(editUser(user, resolve)),
     onLoadEmailInputValue: (value, resolve, reject) => dispatch(loadEmailInputValue(value, resolve, reject)),
     onLoadUserDetail: (userId, resolve) => dispatch(loadUserDetail(userId, resolve)),
-    onDeleteUser: (userId, resolve, reject) => dispatch(deleteUser(userId, resolve, reject))
+    onDeleteUser: (userId, resolve, reject) => dispatch(deleteUser(userId, resolve, reject)),
+    onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
 
