@@ -20,4 +20,6 @@
 
 import { defineMessages } from 'react-intl'
 
-export default defineMessages({})
+export default defineMessages({
+  flowTableList: { id: 'rider.app.table.list' }
+})

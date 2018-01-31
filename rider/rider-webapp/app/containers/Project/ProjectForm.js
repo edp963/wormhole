@@ -21,8 +21,8 @@
 import React from 'react'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
-import PlaceholderInputIntl from '../../components/PlaceholderInputIntl'
-import PlaceholderInputNumberIntl from '../../components/PlaceholderInputNumberIntl'
+// import PlaceholderInputIntl from '../../components/PlaceholderInputIntl'
+// import PlaceholderInputNumberIntl from '../../components/PlaceholderInputNumberIntl'
 
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
@@ -101,18 +101,16 @@ export class ProjectForm extends React.Component {
                     validator: this.forceCheckProjectName
                   }]
                 })(
-                  <PlaceholderInputIntl
-                    idValue="rider.containers.Project.project.identification.placeholder"
-                    onChangeEvent={this.onProjectNameInputChange}
-                    disabledValue={disabledOrNot}
+                  <Input
+                    placeholder="由大小写字母、中划线、下划线、数字组成"
+                    onChange={this.onProjectNameInputChange}
+                    disabled={disabledOrNot}
                   />
                 )}
               </FormItem>
               <FormItem label={<FormattedMessage {...messages.projectDescription} />} {...itemStyle}>
                 {getFieldDecorator('desc', {})(
-                  <PlaceholderInputIntl
-                    idValue="rider.containers.Project.project.description.placeholder"
-                  />
+                  <Input placeholder="项目详情描述" />
                 )}
               </FormItem>
             </Card>
@@ -129,11 +127,7 @@ export class ProjectForm extends React.Component {
                     validator: this.forceCheckRes
                   }]
                 })(
-                  <PlaceholderInputNumberIntl
-                    idValue="rider.containers.Project.project.vcores"
-                    minValue={1}
-                    stepValue={1}
-                  />
+                  <InputNumber min={1} step={1} placeholder="VCores 个数" />
                 )}
               </FormItem>
               <FormItem label={<FormattedMessage {...messages.projectMemory} />} {...itemStyle}>
@@ -160,6 +154,7 @@ ProjectForm.propTypes = {
   form: React.PropTypes.any,
   projectFormType: React.PropTypes.string,
   onInitProjectNameInputValue: React.PropTypes.func
+  // intl: intlShape.isRequired
 }
 
 export default Form.create({wrappedComponentRef: true})(ProjectForm)

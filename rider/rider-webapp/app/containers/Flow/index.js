@@ -22,6 +22,8 @@ import React from 'react'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import FlowsDetail from './FlowsDetail'
 import FlowsTime from './FlowsTime'
@@ -1074,7 +1076,7 @@ export class Flow extends React.Component {
       <div className={`ri-workbench-table ri-common-block ${className}`}>
         {helmetHide}
         <h3 className="ri-common-block-title">
-          <Icon type="bars" /> Flow 列表
+          <Icon type="bars" /> Flow <FormattedMessage {...messages.flowTableList} />
         </h3>
         <div className="ri-common-block-tools">
           {FlowAddOrNot}
