@@ -21,5 +21,18 @@
 import { defineMessages } from 'react-intl'
 
 export default defineMessages({
-  flowTableList: { id: 'rider.app.table.list' }
+  flowTableList: { id: 'rider.app.table.list' },
+  flowBatchAction: { id: 'rider.containers.Flow.batch.action' },
+  flowViewDetails: { id: 'rider.app.table.view.details' },
+  flowDetails: { id: 'rider.app.table.details' },
+  flowTableCreate: { id: 'rider.app.table.create.action' },
+  flowTableModify: { id: 'rider.app.table.modify.action' },
+  flowTableDelete: { id: 'rider.app.table.delete.action' },
+  flowSureDelete: { id: 'rider.app.table.sure.delete' },
+  flowTableStart: { id: 'rider.app.table.start.action' },
+  flowSureStart: { id: 'rider.app.table.sure.start' },
+  flowTableStop: { id: 'rider.app.table.stop.action' },
+  flowSureStop: { id: 'rider.app.table.sure.stop' },
+  flowTableRenew: { id: 'rider.app.table.renew.action' },
+  flowTableCopy: { id: 'rider.app.table.copy.action' }
 })

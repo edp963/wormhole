@@ -19,6 +19,8 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
@@ -49,10 +51,6 @@ export class UserForm extends React.Component {
     callback()
   }
 
-  handleChange = (value) => {
-    // console.log('select:', value)
-  }
-
   render () {
     const { getFieldDecorator } = this.props.form
     const { type } = this.props
@@ -74,8 +72,8 @@ export class UserForm extends React.Component {
     const rolrTypeDisabledOrNot = type !== 'add'
 
     const itemStyle = {
-      labelCol: { span: 6 },
-      wrapperCol: { span: 16 }
+      labelCol: { span: 7 },
+      wrapperCol: { span: 15 }
     }
 
     return (
@@ -108,7 +106,7 @@ export class UserForm extends React.Component {
             </FormItem>
           </Col>
           <Col span={24}>
-            <FormItem label="密 码" {...itemStyle} className={msgModalInputClassName}>
+            <FormItem label={<FormattedMessage {...messages.userPassword} />} {...itemStyle} className={msgModalInputClassName}>
               {getFieldDecorator('password', {
                 rules: [{
                   required: true,
@@ -127,7 +125,7 @@ export class UserForm extends React.Component {
             </FormItem>
           </Col>
           <Col span={24}>
-            <FormItem label="确认密码" {...itemStyle} className={msgModalInputClassName}>
+            <FormItem label={<FormattedMessage {...messages.userSurePassword} />} {...itemStyle} className={msgModalInputClassName}>
               {getFieldDecorator('confirmPassword', {
                 rules: [{
                   required: true,
@@ -142,7 +140,7 @@ export class UserForm extends React.Component {
             </FormItem>
           </Col>
           <Col span={24}>
-            <FormItem label="姓 名" {...itemStyle} className={pswModalInputClassName}>
+            <FormItem label={<FormattedMessage {...messages.userModalName} />} {...itemStyle} className={pswModalInputClassName}>
               {getFieldDecorator('name', {
                 rules: [{
                   required: true,
@@ -156,7 +154,7 @@ export class UserForm extends React.Component {
             </FormItem>
           </Col>
           <Col span={24}>
-            <FormItem label="用户类型" {...itemStyle} className={pswModalInputClassName}>
+            <FormItem label={<FormattedMessage {...messages.userModalRoleType} />} {...itemStyle} className={pswModalInputClassName}>
               {getFieldDecorator('roleType', {
                 rules: [{
                   required: true,
@@ -164,7 +162,7 @@ export class UserForm extends React.Component {
                 }],
                 hidden: pswModalInput
               })(
-                <Select style={{ width: '246px' }} placeholder="选择用户类型" onChange={this.handleChange} disabled={rolrTypeDisabledOrNot}>
+                <Select style={{ width: '305px' }} placeholder="选择用户类型" disabled={rolrTypeDisabledOrNot}>
                   <Option value="admin">admin</Option>
                   <Option value="user">user</Option>
                   <Option value="app">app</Option>

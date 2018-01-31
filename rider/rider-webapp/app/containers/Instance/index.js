@@ -38,6 +38,7 @@ import Popconfirm from 'antd/lib/popconfirm'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
+import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadInstances, addInstance, loadInstanceInputValue, loadInstanceExit,
   loadSingleInstance, editInstance, deleteInstace } from './action'
 import { selectInstances, selectError, selectModalLoading, selectConnectUrlExisted, selectInstanceExisted } from './selectors'
@@ -87,6 +88,7 @@ export class Instance extends React.PureComponent {
 
   componentWillMount () {
     this.refreshInstance()
+    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   // componentWillUpdate (props) {
@@ -699,7 +701,8 @@ Instance.propTypes = {
   onLoadInstanceExit: React.PropTypes.func,
   onLoadSingleInstance: React.PropTypes.func,
   onEditInstance: React.PropTypes.func,
-  onDeleteInstace: React.PropTypes.func
+  onDeleteInstace: React.PropTypes.func,
+  onChangeLanguage: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -710,7 +713,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadInstanceExit: (value, resolve, reject) => dispatch(loadInstanceExit(value, resolve, reject)),
     onLoadSingleInstance: (instanceId, resolve) => dispatch(loadSingleInstance(instanceId, resolve)),
     onEditInstance: (value, resolve) => dispatch(editInstance(value, resolve)),
-    onDeleteInstace: (value, resolve, reject) => dispatch(deleteInstace(value, resolve, reject))
+    onDeleteInstace: (value, resolve, reject) => dispatch(deleteInstace(value, resolve, reject)),
+    onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
 

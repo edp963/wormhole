@@ -103,14 +103,11 @@ export class FlowTransformForm extends React.Component {
 
     const flowLookupSqlType = [
       { value: 'leftJoin', text: 'Left Join' },
-      // { value: 'rightJoin', text: 'Right Join' },
-      // { value: 'innerJoin', text: 'Inner Join' },
       { value: 'union', text: 'Union' }
     ]
 
     const flowStreamJoinSqlType = [
       { value: 'leftJoin', text: 'Left Join' },
-      // { value: 'rightJoin', text: 'Right Join' },
       { value: 'innerJoin', text: 'Inner Join' }
     ]
 
@@ -143,8 +140,7 @@ export class FlowTransformForm extends React.Component {
           <Popover
             placement="top"
             content={<div style={{ width: '400px', height: '90px' }}>
-              <p>若 where 条件含有 source 数据中某字段值, table 为 source namespace, for example: source namespace 为 kafka.test.test.test.*.*.*,</p>
-              <p>含有字段 id, name, look up 时选择 source namespace 中的 id 和 name, SQL 语句为: select * from look_up_table where (id,name) in (kafka.test.test.test.*.*.*.id, kafka.test.test.test.*.*.*.name);</p>
+              <p><FormattedMessage {...messages.workbenchTransLookup} /></p>
             </div>}
             title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
@@ -161,8 +157,7 @@ export class FlowTransformForm extends React.Component {
           <Popover
             placement="top"
             content={<div style={{ width: '400px', height: '90px' }}>
-              <p>sql 语句中的 table 为 source namespace 中第四层, </p>
-              <p>for example: source namespace 为 kafka.test.test1.test2.*.*.*, sql 语句为 select * from test2;</p>
+              <p><FormattedMessage {...messages.workbenchTransSpark} /></p>
             </div>}
             title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">

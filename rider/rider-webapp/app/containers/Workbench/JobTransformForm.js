@@ -35,14 +35,7 @@ const RadioButton = Radio.Button
 const RadioGroup = Radio.Group
 
 export class JobTransformForm extends React.Component {
-  constructor (props) {
-    super(props)
-    this.state = {
-    }
-  }
-  onJobTransTypeSelect = (e) => {
-    this.props.onInitJobTransValue(e.target.value)
-  }
+  onJobTransTypeSelect = (e) => this.props.onInitJobTransValue(e.target.value)
 
   forceCheckTimeoutSave = (rule, value, callback) => {
     const reg = /^\d+$/
@@ -80,8 +73,7 @@ export class JobTransformForm extends React.Component {
           <Popover
             placement="top"
             content={<div style={{ width: '400px', height: '90px' }}>
-              <p>sql 语句中的 table 为 source namespace 中第四层, </p>
-              <p>for example: source namespace 为 kafka.test.test1.test2.*.*.*, sql 语句为 select * from test2;</p>
+              <p><FormattedMessage {...messages.workbenchTransSpark} /></p>
             </div>}
             title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
