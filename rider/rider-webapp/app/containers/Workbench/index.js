@@ -30,6 +30,9 @@ require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
 require('../../../node_modules/codemirror/mode/sql/sql')
 
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
+
 import Flow from '../Flow'
 import Manager from '../Manager'
 import Job from '../Job'
@@ -57,6 +60,7 @@ const Step = Steps.Step
 import message from 'antd/lib/message'
 import Moment from 'moment'
 
+import { changeLocale } from '../../containers/LanguageProvider/actions'
 import {loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic,
   loadSourceSinkTypeNamespace, loadSinkTypeNamespace, loadTranSinkTypeNamespace,
   loadSourceToSinkExist, addFlow, editFlow, queryFlow} from '../Flow/action'
@@ -208,6 +212,7 @@ export class Workbench extends React.Component {
     const projectId = this.props.router.params.projectId
     this.loadData(projectId)
     this.setState({ tabPanelKey: 'flow' })
+    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   componentWillReceiveProps (props) {
@@ -3100,10 +3105,11 @@ export class Workbench extends React.Component {
     const { flowFormTranTableSource, jobFormTranTableSource } = this.state
     const { streams, projectNamespaces, streamSubmitLoading } = this.props
 
+    const languagetext = localStorage.getItem('preferredLanguage')
     const sidebarPrefixes = {
-      add: '新增',
-      edit: '修改',
-      copy: '复制'
+      add: languagetext === 'zh' ? '新增' : 'Create',
+      edit: languagetext === 'zh' ? '修改' : 'Modify',
+      copy: languagetext === 'zh' ? '复制' : 'Copy'
     }
 
     const stepButtons = this.generateStepButtons()
@@ -3345,7 +3351,7 @@ export class Workbench extends React.Component {
                       onClick={this.submitStreamForm}
                       loading={streamSubmitLoading}
                     >
-                      保存
+                      <FormattedMessage {...messages.workbenchSave} />
                     </Button>
                   </div>
                 </div>
@@ -3583,6 +3589,7 @@ Workbench.propTypes = {
   onLoadJobName: React.PropTypes.func,
   onLoadJobSourceNs: React.PropTypes.func,
   onLoadJobSinkNs: React.PropTypes.func,
+  onChangeLanguage: React.PropTypes.func,
   jobNameExited: React.PropTypes.bool,
   jobSubmitLoading: React.PropTypes.bool
 }
@@ -3620,7 +3627,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadJobSinkNs: (projectId, value, type, resolve, reject) => dispatch(loadJobSinkNs(projectId, value, type, resolve, reject)),
     onAddJob: (values, resolve, final) => dispatch(addJob(values, resolve, final)),
     onQueryJob: (values, resolve, final) => dispatch(queryJob(values, resolve, final)),
-    onEditJob: (values, resolve, final) => dispatch(editJob(values, resolve, final))
+    onEditJob: (values, resolve, final) => dispatch(editJob(values, resolve, final)),
+    onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
 

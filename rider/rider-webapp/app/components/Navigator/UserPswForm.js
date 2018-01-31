@@ -19,6 +19,8 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
@@ -47,15 +49,15 @@ export class UserPswForm extends React.Component {
     const { getFieldDecorator } = this.props.form
 
     const itemStyle = {
-      labelCol: { span: 6 },
-      wrapperCol: { span: 16 }
+      labelCol: { span: 8 },
+      wrapperCol: { span: 15 }
     }
 
     return (
       <Form>
         <Row gutter={8}>
           <Col span={24}>
-            <FormItem label="旧密码" {...itemStyle}>
+            <FormItem label={<FormattedMessage {...messages.navOldPsw} />} {...itemStyle}>
               {getFieldDecorator('oldPassword', {
                 rules: [{
                   required: true,
@@ -73,7 +75,7 @@ export class UserPswForm extends React.Component {
             </FormItem>
           </Col>
           <Col span={24}>
-            <FormItem label="新密码" {...itemStyle}>
+            <FormItem label={<FormattedMessage {...messages.navNewPsw} />} {...itemStyle}>
               {getFieldDecorator('password', {
                 rules: [{
                   required: true,
@@ -91,7 +93,7 @@ export class UserPswForm extends React.Component {
             </FormItem>
           </Col>
           <Col span={24}>
-            <FormItem label="确认新密码" {...itemStyle}>
+            <FormItem label={<FormattedMessage {...messages.navSureNewPsw} />} {...itemStyle}>
               {getFieldDecorator('confirmPassword', {
                 rules: [{
                   required: true,

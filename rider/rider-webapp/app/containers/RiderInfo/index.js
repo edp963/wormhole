@@ -31,12 +31,14 @@ import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 const FormItem = Form.Item
 
+import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadRiderInfos } from './action'
 import { selectRiderInfos } from './selectors'
 
 export class RiderInfo extends React.Component {
   componentWillMount () {
     this.props.onLoadRiderInfos()
+    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   render () {
@@ -75,6 +77,7 @@ export class RiderInfo extends React.Component {
 
 RiderInfo.propTypes = {
   onLoadRiderInfos: React.PropTypes.func,
+  onChangeLanguage: React.PropTypes.func,
   riderInfos: React.PropTypes.oneOfType([
     React.PropTypes.object,
     React.PropTypes.bool
@@ -83,7 +86,8 @@ RiderInfo.propTypes = {
 
 export function mapDispatchToProps (dispatch) {
   return {
-    onLoadRiderInfos: () => dispatch(loadRiderInfos())
+    onLoadRiderInfos: () => dispatch(loadRiderInfos()),
+    onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
 
