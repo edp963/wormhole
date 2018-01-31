@@ -25,12 +25,16 @@ import {
   LOAD_ADMIN_ALL_USERS_SUCCESS,
   LOAD_USER_USERS,
   LOAD_USER_USERS_SUCCESS,
+  LOAD_NORMAL_USER,
+  LOAD_NORMAL_USER_SUCCESS,
   LOAD_SELECT_USERS,
   LOAD_SELECT_USERS_SUCCESS,
   ADD_USER,
   ADD_USER_SUCCESS,
   EDIT_USER,
   EDIT_USER_SUCCESS,
+  EDIT_NORMAL_USER,
+  EDIT_NORMAL_USER_SUCCESS,
   LOAD_EMAIL_INPUT_VALUE,
   LOAD_EMAIL_INPUT_VALUE_SUCCESS,
   LOAD_EMAIL_INPUT_VALUE_ERROR,
@@ -70,6 +74,10 @@ export function userReducer (state = initialState, { type, payload }) {
       return state.set('users', payload.users)
     case LOAD_SELECT_USERS:
       return state.set('error', false)
+    case LOAD_NORMAL_USER:
+      return state.set('users', payload.users)
+    case LOAD_NORMAL_USER_SUCCESS:
+      return state.set('error', false)
     case LOAD_SELECT_USERS_SUCCESS:
       return state.set('users', payload.users)
     case ADD_USER:
@@ -91,6 +99,11 @@ export function userReducer (state = initialState, { type, payload }) {
       return state
         .set('users', users.slice())
         .set('modalLoading', false)
+        .set('locale', payload.result.preferredLanguage)
+    case EDIT_NORMAL_USER:
+      return state
+    case EDIT_NORMAL_USER_SUCCESS:
+      return state
         .set('locale', payload.result.preferredLanguage)
     case LOAD_EMAIL_INPUT_VALUE:
       return state.set('emailExited', false)

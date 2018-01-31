@@ -22,6 +22,8 @@ import React from 'react'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import UserForm from './UserForm'
 import Table from 'antd/lib/table'
@@ -610,7 +612,7 @@ export class User extends React.PureComponent {
         {helmetHide}
         <div className="ri-workbench-table ri-common-block">
           <h3 className="ri-common-block-title">
-            <Icon type="bars" /> User 列表
+            <Icon type="bars" /> User <FormattedMessage {...messages.userTableList} />
           </h3>
           <div className="ri-common-block-tools">
             <Button icon="plus" type="primary" onClick={this.showAdd} className={userClassHide}>新建</Button>
