@@ -31,6 +31,7 @@ import Table from 'antd/lib/table'
 import Input from 'antd/lib/input'
 import Button from 'antd/lib/button'
 
+import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadResources } from './action'
 import { selectResources } from './selectors'
 
@@ -52,6 +53,7 @@ export class Resource extends React.Component {
     } else if (localStorage.getItem('loginRoleType') === 'user') {
       this.props.onLoadResources(this.props.projectIdGeted, 'user')
     }
+    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   componentWillReceiveProps (props) {
@@ -238,6 +240,7 @@ Resource.propTypes = {
   projectIdGeted: React.PropTypes.string,
 
   onLoadResources: React.PropTypes.func,
+  onChangeLanguage: React.PropTypes.func,
   resources: React.PropTypes.oneOfType([
     React.PropTypes.object,
     React.PropTypes.bool
@@ -246,7 +249,8 @@ Resource.propTypes = {
 
 export function mapDispatchToProps (dispatch) {
   return {
-    onLoadResources: (projectId, roleType) => dispatch(loadResources(projectId, roleType))
+    onLoadResources: (projectId, roleType) => dispatch(loadResources(projectId, roleType)),
+    onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
 

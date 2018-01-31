@@ -41,6 +41,7 @@ import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 import { uuid, isEquivalent } from '../../utils/util'
 
+import { changeLocale } from '../../containers/LanguageProvider/actions'
 import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
   deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset} from './action'
 import {loadSingleUdf} from '../Udf/action'
@@ -113,6 +114,7 @@ export class Manager extends React.Component {
 
   componentWillMount () {
     this.refreshStream()
+    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   componentWillReceiveProps (props) {
@@ -1323,7 +1325,8 @@ Manager.propTypes = {
   onLoadAdminLogsInfo: React.PropTypes.func,
   onShowEditStream: React.PropTypes.func,
   onLoadSingleUdf: React.PropTypes.func,
-  onLoadLastestOffset: React.PropTypes.func
+  onLoadLastestOffset: React.PropTypes.func,
+  onChangeLanguage: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1338,7 +1341,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadLogsInfo: (projectId, streamId, resolve) => dispatch(loadLogsInfo(projectId, streamId, resolve)),
     onLoadAdminLogsInfo: (projectId, streamId, resolve) => dispatch(loadAdminLogsInfo(projectId, streamId, resolve)),
     onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
-    onLoadLastestOffset: (projectId, streamId, resolve) => dispatch(loadLastestOffset(projectId, streamId, resolve))
+    onLoadLastestOffset: (projectId, streamId, resolve) => dispatch(loadLastestOffset(projectId, streamId, resolve)),
+    onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
 

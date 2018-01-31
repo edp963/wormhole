@@ -29,6 +29,7 @@ require('../../../node_modules/codemirror/mode/javascript/javascript')
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
+import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { jsonParse, fieldTypeAlter, renameAlter, genDefaultSchemaTable, umsSysFieldSelected,
   umsSysFieldCanceled, getRepeatFieldIndex, genSchema } from './umsFunction'
 import { isJSONNotEmpty } from '../../utils/util'
@@ -133,6 +134,7 @@ export class Namespace extends React.PureComponent {
 
   componentWillMount () {
     this.refreshNamespace()
+    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   componentWillReceiveProps (props) {
@@ -343,9 +345,7 @@ export class Namespace extends React.PureComponent {
       })
         .then((result) => {
           this.props.onLoadSingleInstance(result.nsInstanceId, (result) => {
-            this.setState({
-              queryConnUrl: result.connUrl
-            })
+            this.setState({ queryConnUrl: result.connUrl })
           })
         })
     })
@@ -375,9 +375,7 @@ export class Namespace extends React.PureComponent {
         errors: []
       }
     })
-    this.setState({
-      namespaceTableSource: []
-    })
+    this.setState({ namespaceTableSource: [] })
   }
 
   nsErrorMsg = (msg) => {
@@ -539,9 +537,7 @@ export class Namespace extends React.PureComponent {
    *  新增时，通过选择不同的 data system 显示不同的 Instance 内容
    * */
   onInitNamespaceUrlValue = (value) => {
-    this.setState({
-      addTableClassTable: 'hide'
-    })
+    this.setState({ addTableClassTable: 'hide' })
 
     this.props.onLoadDatabasesInstance(value, (result) => {
       this.setState({
@@ -581,9 +577,7 @@ export class Namespace extends React.PureComponent {
       namespaceTableSource: [...namespaceTableSource]
     }, () => {
       if (namespaceTableSource.length === 0) {
-        this.setState({
-          addTableClassTable: 'hide'
-        })
+        this.setState({ addTableClassTable: 'hide' })
       }
     })
   }
@@ -880,9 +874,7 @@ export class Namespace extends React.PureComponent {
     this.setState({
       sinkSchemaModalVisible: false
     }, () => {
-      this.setState({
-        sinkTableDataSource: []
-      })
+      this.setState({ sinkTableDataSource: [] })
     })
   }
 
@@ -1905,7 +1897,8 @@ Namespace.propTypes = {
   onLoadSingleInstance: React.PropTypes.func,
   onSetSchema: React.PropTypes.func,
   onQuerySchemaConfig: React.PropTypes.func,
-  onDeleteNs: React.PropTypes.func
+  onDeleteNs: React.PropTypes.func,
+  onChangeLanguage: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1922,7 +1915,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadSingleInstance: (namespaceId, resolve) => dispatch(loadSingleInstance(namespaceId, resolve)),
     onSetSchema: (namespaceId, value, type, resolve) => dispatch(setSchema(namespaceId, value, type, resolve)),
     onQuerySchemaConfig: (ids, value, type, resolve) => dispatch(querySchemaConfig(ids, value, type, resolve)),
-    onDeleteNs: (namespaceId, resolve, reject) => dispatch(deleteNs(namespaceId, resolve, reject))
+    onDeleteNs: (namespaceId, resolve, reject) => dispatch(deleteNs(namespaceId, resolve, reject)),
+    onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
 

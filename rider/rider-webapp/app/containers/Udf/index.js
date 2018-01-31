@@ -38,6 +38,7 @@ import Input from 'antd/lib/input'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
+import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadUdfs, loadSingleUdf, addUdf, loadUdfDetail, editUdf, deleteUdf } from './action'
 import { selectUdfs, selectError, selectModalLoading } from './selectors'
 
@@ -90,6 +91,7 @@ export class Udf extends React.PureComponent {
 
   componentWillMount () {
     this.refreshUdf()
+    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   componentWillReceiveProps (props) {
@@ -553,7 +555,7 @@ export class Udf extends React.PureComponent {
       className: `text-align-center ${udfClassHide}`,
       render: (text, record) => (
         <span className="ant-table-action-column">
-          <Tooltip title="查看详情">
+          <Tooltip title={<FormattedMessage {...messages.udfViewDetails} />}>
             <Popover
               placement="left"
               content={<div className="project-name-detail">
@@ -561,7 +563,7 @@ export class Udf extends React.PureComponent {
                 <p><strong>   Create By：</strong>{showUdfDetail.createBy}</p>
                 <p><strong>   Update By：</strong>{showUdfDetail.updateBy}</p>
               </div>}
-              title={<h3>详情</h3>}
+              title={<h3>{<FormattedMessage {...messages.udfDetails} />}</h3>}
               trigger="click"
               onVisibleChange={this.handleVisibleChangeUdf(record)}
             >
@@ -569,17 +571,17 @@ export class Udf extends React.PureComponent {
             </Popover>
           </Tooltip>
 
-          <Tooltip title="复制">
+          <Tooltip title={<FormattedMessage {...messages.udfTableCopy} />}>
             <Button icon="copy" shape="circle" type="ghost" onClick={this.copySingleUdf(record)}></Button>
           </Tooltip>
-          <Tooltip title="修改">
+          <Tooltip title={<FormattedMessage {...messages.udfTableModify} />}>
             <Button icon="edit" shape="circle" type="ghost" onClick={this.onShowEditUdf(record)}></Button>
           </Tooltip>
           {
             localStorage.getItem('loginRoleType') === 'admin'
               ? (
-                <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteUdfBtn(record)}>
-                  <Tooltip title="删除">
+                <Popconfirm placement="bottom" title={<FormattedMessage {...messages.udfSureDelete} />} okText="Yes" cancelText="No" onConfirm={this.deleteUdfBtn(record)}>
+                  <Tooltip title={<FormattedMessage {...messages.udfTableDelete} />}>
                     <Button icon="delete" shape="circle" type="ghost"></Button>
                   </Tooltip>
                 </Popconfirm>
@@ -609,11 +611,11 @@ export class Udf extends React.PureComponent {
     const { formType } = this.state
     let udfModalTitle = ''
     if (formType === 'add') {
-      udfModalTitle = '新建'
+      udfModalTitle = <FormattedMessage {...messages.udfModalAdd} />
     } else if (formType === 'edit') {
-      udfModalTitle = '修改'
+      udfModalTitle = <FormattedMessage {...messages.udfModalEdit} />
     } else if (formType === 'copy') {
-      udfModalTitle = '复制'
+      udfModalTitle = <FormattedMessage {...messages.udfModalCopy} />
     }
 
     return (
@@ -624,7 +626,9 @@ export class Udf extends React.PureComponent {
             <Icon type="bars" /> UDF <FormattedMessage {...messages.udfTableList} />
           </h3>
           <div className="ri-common-block-tools">
-            <Button icon="plus" type="primary" onClick={this.showAddUdf} className={udfClassHide}>新建</Button>
+            <Button icon="plus" type="primary" onClick={this.showAddUdf} className={udfClassHide}>
+              <FormattedMessage {...messages.udfTableCreate} />
+            </Button>
             <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshUdfLoading} onClick={this.refreshUdf}>{refreshUdfText}</Button>
           </div>
           <Table
@@ -637,7 +641,7 @@ export class Udf extends React.PureComponent {
           </Table>
         </div>
         <Modal
-          title={`${udfModalTitle} UDF`}
+          title={udfModalTitle}
           okText="保存"
           wrapClassName="db-form-style"
           visible={this.state.formVisible}
@@ -650,7 +654,7 @@ export class Udf extends React.PureComponent {
               type="ghost"
               onClick={this.hideForm}
             >
-              取消
+              <FormattedMessage {...messages.udfCancel} />
             </Button>,
             <Button
               key="submit"
@@ -659,7 +663,7 @@ export class Udf extends React.PureComponent {
               loading={this.props.modalLoading}
               onClick={this.onModalOk}
             >
-              保存
+              <FormattedMessage {...messages.udfSave} />
             </Button>
           ]}
         >
@@ -686,7 +690,8 @@ Udf.propTypes = {
   onAddUdf: React.PropTypes.func,
   onLoadUdfDetail: React.PropTypes.func,
   onEditUdf: React.PropTypes.func,
-  onDeleteUdf: React.PropTypes.func
+  onDeleteUdf: React.PropTypes.func,
+  onChangeLanguage: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -696,7 +701,8 @@ export function mapDispatchToProps (dispatch) {
     onAddUdf: (values, resolve, reject) => dispatch(addUdf(values, resolve, reject)),
     onLoadUdfDetail: (udfId, resolve) => dispatch(loadUdfDetail(udfId, resolve)),
     onEditUdf: (values, resolve, reject) => dispatch(editUdf(values, resolve, reject)),
-    onDeleteUdf: (udfId, resolve, reject) => dispatch(deleteUdf(udfId, resolve, reject))
+    onDeleteUdf: (udfId, resolve, reject) => dispatch(deleteUdf(udfId, resolve, reject)),
+    onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
 
