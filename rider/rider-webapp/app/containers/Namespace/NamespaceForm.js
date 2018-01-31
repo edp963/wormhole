@@ -22,7 +22,7 @@ import React from 'react'
 
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
-import PlaceholderInputIntl from '../../components/PlaceholderInputIntl'
+// import PlaceholderInputIntl from '../../components/PlaceholderInputIntl'
 
 import DataSystemSelector from '../../components/DataSystemSelector'
 import Form from 'antd/lib/form'
@@ -306,10 +306,10 @@ export class NamespaceForm extends React.Component {
             <Col span={7}>
               <FormItem label="" style={{ marginLeft: '2px' }}>
                 {getFieldDecorator('nsSingleTableName', {})(
-                  <PlaceholderInputIntl
-                    idValue={namespaceTablePlace}
-                    onChangeEvent={this.onHandleNsTableName}
-                    disabledValue={disabledOrNot}
+                  <Input
+                    placeholder={namespaceTablePlace}
+                    onChange={this.onHandleNsTableName}
+                    disabled={disabledOrNot}
                   />
                 )}
               </FormItem>
@@ -317,10 +317,10 @@ export class NamespaceForm extends React.Component {
             <Col span={7}>
               <FormItem label="">
                 {getFieldDecorator('nsSingleKeyValue', {})(
-                  <PlaceholderInputIntl
-                    idValue={namespaceKeyPlaceholder}
-                    onChangeEvent={this.onHandleNsKey}
-                    disabledValue={disabledKeyOrNot}
+                  <Input
+                    placeholder={namespaceKeyPlaceholder}
+                    onChange={this.onHandleNsKey}
+                    disabled={disabledKeyOrNot}
                   />
                 )}
               </FormItem>
