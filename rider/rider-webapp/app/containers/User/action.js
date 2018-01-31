@@ -23,12 +23,16 @@ import {
   LOAD_ADMIN_ALL_USERS_SUCCESS,
   LOAD_USER_USERS,
   LOAD_USER_USERS_SUCCESS,
+  LOAD_NORMAL_USER,
+  LOAD_NORMAL_USER_SUCCESS,
   LOAD_SELECT_USERS,
   LOAD_SELECT_USERS_SUCCESS,
   ADD_USER,
   ADD_USER_SUCCESS,
   EDIT_USER,
   EDIT_USER_SUCCESS,
+  EDIT_NORMAL_USER,
+  EDIT_NORMAL_USER_SUCCESS,
   LOAD_EMAIL_INPUT_VALUE,
   LOAD_EMAIL_INPUT_VALUE_SUCCESS,
   LOAD_EMAIL_INPUT_VALUE_ERROR,
@@ -77,6 +81,26 @@ export function loadUserUsers (projectId, resolve) {
 export function userUsersLoaded (users) {
   return {
     type: LOAD_USER_USERS_SUCCESS,
+    payload: {
+      users
+    }
+  }
+}
+
+export function loadNormalUserDetail (projectId, userId, resolve) {
+  return {
+    type: LOAD_NORMAL_USER,
+    payload: {
+      projectId,
+      userId,
+      resolve
+    }
+  }
+}
+
+export function normalUserDetailLoaded (users) {
+  return {
+    type: LOAD_NORMAL_USER_SUCCESS,
     payload: {
       users
     }
@@ -135,6 +159,26 @@ export function editUser (user, resolve) {
 export function userEdited (result) {
   return {
     type: EDIT_USER_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function editNormalUser (projectId, value, resolve) {
+  return {
+    type: EDIT_NORMAL_USER,
+    payload: {
+      projectId,
+      value,
+      resolve
+    }
+  }
+}
+
+export function normalUserEdited (result) {
+  return {
+    type: EDIT_NORMAL_USER_SUCCESS,
     payload: {
       result
     }
