@@ -21,7 +21,15 @@
 import { defineMessages } from 'react-intl'
 
 export default defineMessages({
-  workbenchHelp: {
-    id: 'rider.app.help'
-  }
+  workbenchHelp: { id: 'rider.app.help' },
+  workbenchSave: { id: 'rider.app.modal.save' },
+  workbenchConfigBtn: { id: 'rider.containers.Workbench.config.btn' },
+  workbenchTransAdd: { id: 'rider.containers.Workbench.transformation.add' },
+  workbenchTransModify: { id: 'rider.app.table.modify.action' },
+  workbenchTransDelete: { id: 'rider.app.table.delete.action' },
+  workbenchTransSureDelete: { id: 'rider.app.table.sure.delete' },
+  workbenchTransUp: { id: 'rider.containers.Workbench.transformation.up' },
+  workbenchTransDown: { id: 'rider.containers.Workbench.transformation.down' },
+  workbenchTransLookup: { id: 'rider.containers.Workbench.transformation.lookup.msg' },
+  workbenchTransSpark: { id: 'rider.containers.Workbench.transformation.spark.msg' }
 })

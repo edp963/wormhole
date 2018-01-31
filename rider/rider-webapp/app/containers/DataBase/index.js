@@ -39,6 +39,7 @@ import Popconfirm from 'antd/lib/popconfirm'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
+import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadDatabases, addDatabase, editDatabase, loadDatabasesInstance,
   loadNameExist, loadSingleDatabase, deleteDB } from './action'
 import { selectDatabases, selectError, selectModalLoading, selectDatabaseNameExited, selectDbUrlValue } from './selectors'
@@ -90,6 +91,7 @@ export class DataBase extends React.PureComponent {
 
   componentWillMount () {
     this.refreshDatabase()
+    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   componentWillReceiveProps (props) {
@@ -888,7 +890,8 @@ DataBase.propTypes = {
   onLoadDatabasesInstance: React.PropTypes.func,
   onLoadNameExist: React.PropTypes.func,
   onLoadSingleDatabase: React.PropTypes.func,
-  onDeleteDB: React.PropTypes.func
+  onDeleteDB: React.PropTypes.func,
+  onChangeLanguage: React.PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -899,7 +902,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadDatabasesInstance: (value, resolve) => dispatch(loadDatabasesInstance(value, resolve)),
     onLoadNameExist: (value, resolve, reject) => dispatch(loadNameExist(value, resolve, reject)),
     onLoadSingleDatabase: (databaseId, resolve) => dispatch(loadSingleDatabase(databaseId, resolve)),
-    onDeleteDB: (databaseId, resolve, reject) => dispatch(deleteDB(databaseId, resolve, reject))
+    onDeleteDB: (databaseId, resolve, reject) => dispatch(deleteDB(databaseId, resolve, reject)),
+    onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
 

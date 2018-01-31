@@ -19,6 +19,8 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import DataSystemSelector from '../../components/DataSystemSelector'
 import Form from 'antd/lib/form'
@@ -102,9 +104,7 @@ export class WorkbenchFlowForm extends React.Component {
       sinkConfigClass: val === 'hbase' ? 'sink-config-class' : ''
     })
     if (this.state.flowMode !== 'edit') {
-      this.props.form.setFieldsValue({
-        sinkConfig: ''
-      })
+      this.props.form.setFieldsValue({ sinkConfig: '' })
     }
   }
 
@@ -266,12 +266,12 @@ export class WorkbenchFlowForm extends React.Component {
 
     const sinkConfigColor = (
       <Tag color="#7CB342" onClick={onShowSinkConfigModal}>
-        <Icon type="check-circle-o" /> 点击修改
+        <Icon type="check-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
       </Tag>
     )
     const sinkConfigNoColor = (
       <Tag onClick={onShowSinkConfigModal}>
-        <Icon type="minus-circle-o" /> 点击修改
+        <Icon type="minus-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
       </Tag>
     )
     let sinkConfigTag = ''
@@ -284,24 +284,24 @@ export class WorkbenchFlowForm extends React.Component {
     const flowSpecialConfigTag = form.getFieldValue('flowSpecialConfig')
       ? (
         <Tag color="#7CB342" onClick={onShowSpecialConfigModal}>
-          <Icon type="check-circle-o" /> 点击修改
+          <Icon type="check-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
         </Tag>
       )
       : (
         <Tag onClick={onShowSpecialConfigModal}>
-          <Icon type="minus-circle-o" /> 点击修改
+          <Icon type="minus-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
         </Tag>
       )
 
     const etpStrategyTag = etpStrategyCheck
       ? (
         <Tag color="#7CB342" onClick={onShowEtpStrategyModal}>
-          <Icon type="check-circle-o" /> 点击修改
+          <Icon type="check-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
         </Tag>
       )
       : (
         <Tag onClick={onShowEtpStrategyModal}>
-          <Icon type="minus-circle-o" /> 点击修改
+          <Icon type="minus-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
         </Tag>
       )
 
@@ -331,34 +331,40 @@ export class WorkbenchFlowForm extends React.Component {
       render: (text, record) => {
         const transformUpHide = record.order === 1 ? 'hide' : ''
         const transformDownHide = record.order === transformTableSource.length ? 'hide' : ''
+        const addFormat = <FormattedMessage {...messages.workbenchTransAdd} />
+        const modifyFormat = <FormattedMessage {...messages.workbenchTransModify} />
+        const deleteFormat = <FormattedMessage {...messages.workbenchTransDelete} />
+        const sureDeleteFormat = <FormattedMessage {...messages.workbenchTransSureDelete} />
+        const upFormat = <FormattedMessage {...messages.workbenchTransUp} />
+        const downFormat = <FormattedMessage {...messages.workbenchTransDown} />
 
         return (
           <span className="ant-table-action-column">
-            <Tooltip title="编辑">
+            <Tooltip title={modifyFormat}>
               <Button icon="edit" shape="circle" type="ghost" onClick={onEditTransform(record)}></Button>
             </Tooltip>
 
-            <Tooltip title="添加">
+            <Tooltip title={addFormat}>
               <Button shape="circle" type="ghost" onClick={onAddTransform(record)}>
                 <i className="iconfont icon-jia"></i>
               </Button>
             </Tooltip>
 
-            <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={onDeleteSingleTransform(record)}>
-              <Tooltip title="删除">
+            <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={onDeleteSingleTransform(record)}>
+              <Tooltip title={deleteFormat}>
                 <Button shape="circle" type="ghost">
                   <i className="iconfont icon-jian"></i>
                 </Button>
               </Tooltip>
             </Popconfirm>
 
-            <Tooltip title="向上">
+            <Tooltip title={upFormat}>
               <Button shape="circle" type="ghost" onClick={onUpTransform(record)} className={transformUpHide}>
                 <i className="iconfont icon-up"></i>
               </Button>
             </Tooltip>
 
-            <Tooltip title="向下">
+            <Tooltip title={downFormat}>
               <Button shape="circle" type="ghost" onClick={onDownTransform(record)} className={transformDownHide}>
                 <i className="iconfont icon-down"></i>
               </Button>
@@ -379,9 +385,7 @@ export class WorkbenchFlowForm extends React.Component {
         })
       },
       onChange: (current) => {
-        this.setState({
-          pageIndex: current
-        })
+        this.setState({ pageIndex: current })
       }
     }
 
@@ -718,7 +722,7 @@ export class WorkbenchFlowForm extends React.Component {
                 hidden: stepHiddens[1] || streamTypeHiddens[0]
               })(
                 <Tag className={transformTagClassName} onClick={onShowTransformModal}>
-                  <Icon type="minus-circle-o" /> 点击修改
+                  <Icon type="minus-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
                 </Tag>
               )}
             </FormItem>

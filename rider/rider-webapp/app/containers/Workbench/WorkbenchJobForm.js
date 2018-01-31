@@ -185,12 +185,12 @@ export class WorkbenchJobForm extends React.Component {
     const sinkConfigTag = form.getFieldValue('sinkConfig')
       ? (
         <Tag color="#7CB342" onClick={onShowJobSinkConfigModal}>
-          <Icon type="check-circle-o" /> 点击修改
+          <Icon type="check-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
         </Tag>
       )
       : (
         <Tag onClick={onShowJobSinkConfigModal}>
-          <Icon type="minus-circle-o" /> 点击修改
+          <Icon type="minus-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
         </Tag>
       )
 
@@ -279,24 +279,24 @@ export class WorkbenchJobForm extends React.Component {
     const jobConfigTag = sparkConfigCheck
       ? (
         <Tag color="#7CB342" onClick={onShowSparkConfigModal}>
-          <Icon type="check-circle-o" /> 点击修改
+          <Icon type="check-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
         </Tag>
       )
       : (
         <Tag onClick={onShowSparkConfigModal}>
-          <Icon type="minus-circle-o" /> 点击修改
+          <Icon type="minus-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
         </Tag>
       )
 
     const jobSpecialConfigTag = form.getFieldValue('jobSpecialConfig')
       ? (
         <Tag color="#7CB342" onClick={onShowJobSpecialConfigModal}>
-          <Icon type="check-circle-o" /> 点击修改
+          <Icon type="check-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
         </Tag>
       )
       : (
         <Tag onClick={onShowJobSpecialConfigModal}>
-          <Icon type="minus-circle-o" /> 点击修改
+          <Icon type="minus-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
         </Tag>
       )
 
@@ -575,7 +575,7 @@ export class WorkbenchJobForm extends React.Component {
                 hidden: stepHiddens[1]
               })(
                 <Tag className={jobTranTagClassName} onClick={onShowJobTransModal}>
-                  <Icon type="minus-circle-o" /> 点击修改
+                  <Icon type="minus-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
                 </Tag>
               )}
             </FormItem>

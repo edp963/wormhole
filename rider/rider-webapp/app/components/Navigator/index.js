@@ -465,7 +465,7 @@ class Navigator extends React.Component {
           <Modal
             title="修改密码"
             okText="保存"
-            wrapClassName="ant-modal-small"
+            wrapClassName="db-form-style"
             visible={this.state.formVisible}
             onCancel={this.hideForm}
             footer={[
@@ -475,7 +475,7 @@ class Navigator extends React.Component {
                 type="ghost"
                 onClick={this.hideForm}
               >
-                取消
+                <FormattedMessage {...messages.navModalCancel} />
               </Button>,
               <Button
                 key="submit"
@@ -484,7 +484,7 @@ class Navigator extends React.Component {
                 loading={this.props.modalLoading}
                 onClick={this.onModalOk}
               >
-                保存
+                <FormattedMessage {...messages.navModalSave} />
               </Button>
             ]}
           >

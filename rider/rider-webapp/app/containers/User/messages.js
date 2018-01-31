@@ -21,5 +21,20 @@
 import { defineMessages } from 'react-intl'
 
 export default defineMessages({
-  userTableList: {id: 'rider.app.table.list'}
+  userTableList: {id: 'rider.app.table.list'},
+  userViewDetails: { id: 'rider.app.table.view.details' },
+  userDetails: { id: 'rider.app.table.details' },
+  userTableCreate: { id: 'rider.app.table.create.action' },
+  userTableModify: { id: 'rider.app.table.modify.action' },
+  userTableDelete: { id: 'rider.app.table.delete.action' },
+  userSureDelete: { id: 'rider.app.table.sure.delete' },
+  userEditPsw: { id: 'rider.components.Navigator.edit.password' },
+  userEditUserInfo: { id: 'rider.containers.User.table.modify.user.information' },
+  userCreateUser: { id: 'rider.containers.User.table.user.user' },
+  userCancel: { id: 'rider.app.modal.cancel' },
+  userSave: { id: 'rider.app.modal.save' },
+  userPassword: { id: 'rider.containers.User.table.user.password' },
+  userSurePassword: { id: 'rider.containers.User.table.user.sure.password' },
+  userModalName: { id: 'rider.containers.User.table.user.name' },
+  userModalRoleType: { id: 'rider.containers.User.table.user.roletype' }
 })

@@ -88,12 +88,12 @@ export class WorkbenchStreamForm extends React.PureComponent {
     const streamConfigTag = streamConfigCheck === true
       ? (
         <Tag color="#7CB342" onClick={onShowConfigModal}>
-          <Icon type="check-circle-o" /> 点击修改
+          <Icon type="check-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
         </Tag>
       )
       : (
         <Tag onClick={onShowConfigModal}>
-          <Icon type="minus-circle-o" /> 点击修改
+          <Icon type="minus-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
         </Tag>
       )
 
