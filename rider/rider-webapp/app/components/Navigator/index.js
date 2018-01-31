@@ -38,7 +38,7 @@ const SubMenu = Menu.SubMenu
 import { logOut } from '../../containers/Login/action'
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 
-import { editroleTypeUserPsw, loadUserDetail, editUser } from '../../containers/User/action'
+import { editroleTypeUserPsw, loadUserDetail, editUser, loadNormalUserDetail, editNormalUser } from '../../containers/User/action'
 import { selectModalLoading } from '../../containers/User/selectors'
 import { selectLocale } from '../../containers/LanguageProvider/selectors'
 
@@ -197,31 +197,67 @@ class Navigator extends React.Component {
 
   onChangeLanguageBtn = () => {
     const { locale } = this.props
+
+    const userRoleType = localStorage.getItem('loginRoleType')
     const userId = localStorage.getItem('loginId')
+    console.log('userId', userId)
 
-    new Promise((resolve) => {
-      // 获取最新的user信息
-      this.props.onLoadUserDetail(userId, (result) => {
-        resolve(result)
-      })
-    }).then((result) => {
-      const requestValue = {
-        id: result.id,
-        email: result.email,
-        password: result.password,
-        name: result.name,
-        roleType: result.roleType,
-        preferredLanguage: result.preferredLanguage === 'chinese' ? 'english' : 'chinese',
-        active: result.active,
-        createTime: result.createTime,
-        createBy: result.createBy,
-        updateTime: result.updateTime,
-        updateBy: result.updateBy
-      }
+    switch (userRoleType) {
+      case 'admin':
+        new Promise((resolve) => {
+          // 获取最新的user信息
+          this.props.onLoadUserDetail(userId, (result) => {
+            resolve(result)
+          })
+        }).then((result) => {
+          const requestValue = {
+            id: result.id,
+            email: result.email,
+            password: result.password,
+            name: result.name,
+            roleType: result.roleType,
+            preferredLanguage: result.preferredLanguage === 'chinese' ? 'english' : 'chinese',
+            active: result.active,
+            createTime: result.createTime,
+            createBy: result.createBy,
+            updateTime: result.updateTime,
+            updateBy: result.updateBy
+          }
 
-      // 相当于更改用户信息
-      this.props.onEditUser(requestValue, () => {})
-    })
+          // 相当于更改用户信息
+          this.props.onEditUser(requestValue, () => {})
+        })
+        break
+      case 'user':
+        const projectId = this.props.router.params.projectId
+        if (projectId) {
+          new Promise((resolve) => {
+            // 获取最新的user信息
+            this.props.onLoadNormalUserDetail(projectId, userId, (result) => {
+              resolve(result)
+            })
+          }).then((result) => {
+            const requestValue = {
+              id: result.id,
+              email: result.email,
+              password: result.password,
+              name: result.name,
+              roleType: result.roleType,
+              preferredLanguage: result.preferredLanguage === 'chinese' ? 'english' : 'chinese',
+              active: result.active,
+              createTime: result.createTime,
+              createBy: result.createBy,
+              updateTime: result.updateTime,
+              updateBy: result.updateBy
+            }
+
+            this.props.onEditNormalUser(projectId, requestValue, () => {})
+          })
+        } else {
+          // todo:
+        }
+        break
+    }
 
     const langText = locale === 'zh' ? 'en' : 'zh'
     this.props.onChangeLanguage(langText)
@@ -469,7 +505,9 @@ export function mapDispatchToProps (dispatch) {
     onLogOut: () => dispatch(logOut()),
     onEditroleTypeUserPsw: (pwdValues, resolve, reject) => dispatch(editroleTypeUserPsw(pwdValues, resolve, reject)),
     onLoadUserDetail: (userId, resolve) => dispatch(loadUserDetail(userId, resolve)),
+    onLoadNormalUserDetail: (projectId, userId, resolve) => dispatch(loadNormalUserDetail(projectId, userId, resolve)),
     onEditUser: (values, resolve) => dispatch(editUser(values, resolve)),
+    onEditNormalUser: (projectId, values, resolve) => dispatch(editNormalUser(projectId, values, resolve)),
     onChangeLanguage: (type) => dispatch(changeLocale(type))
   }
 }
@@ -487,8 +525,10 @@ Navigator.propTypes = {
   onLogOut: React.PropTypes.func,
   onEditroleTypeUserPsw: React.PropTypes.func,
   onLoadUserDetail: React.PropTypes.func,
+  onLoadNormalUserDetail: React.PropTypes.func,
   onEditUser: React.PropTypes.func,
   onChangeLanguage: React.PropTypes.func,
+  onEditNormalUser: React.PropTypes.func,
   locale: React.PropTypes.string
 }
 

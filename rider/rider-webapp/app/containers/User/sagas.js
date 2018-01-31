@@ -23,11 +23,13 @@ import { call, fork, put } from 'redux-saga/effects'
 import {
   LOAD_ADMIN_ALL_USERS,
   LOAD_USER_USERS,
+  LOAD_NORMAL_USER,
   LOAD_SELECT_USERS,
   ADD_USER,
   EDIT_USER,
   LOAD_EMAIL_INPUT_VALUE,
   EDIT_ROLETYPE_USERPSW,
+  EDIT_NORMAL_USER,
   LOAD_USER_DETAIL,
   DELETE_USER,
 
@@ -36,9 +38,11 @@ import {
 import {
   adminAllUsersLoaded,
   userUsersLoaded,
+  normalUserDetailLoaded,
   selectUsersLoaded,
   userAdded,
   userEdited,
+  normalUserEdited,
   emailInputValueLoaded,
   emailInputValueErrorLoaded,
   roleTypeUserPswEdited,
@@ -80,6 +84,20 @@ export function* getUserUsers ({ payload }) {
 
 export function* getUserUsersWatcher () {
   yield fork(takeLatest, LOAD_USER_USERS, getUserUsers)
+}
+
+export function* getNormalUser ({ payload }) {
+  try {
+    const users = yield call(request, `${api.projectUserList}/${payload.projectId}/users/${payload.userId}`)
+    yield put(normalUserDetailLoaded(users.payload))
+    payload.resolve(users.payload)
+  } catch (err) {
+    yield put(getError(err))
+  }
+}
+
+export function* getNormalUserWatcher () {
+  yield fork(takeLatest, LOAD_NORMAL_USER, getNormalUser)
 }
 
 export function* getSelectUsers ({ payload }) {
@@ -129,6 +147,24 @@ export function* editUser ({ payload }) {
 
 export function* editUserWatcher () {
   yield fork(takeEvery, EDIT_USER, editUser)
+}
+
+export function* editNormalUser ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'put',
+      url: `${api.projectUserList}/${payload.projectId}/users/${payload.value.id}`,
+      data: payload.value
+    })
+    yield put(normalUserEdited(result.payload))
+    payload.resolve(result.payload)
+  } catch (err) {
+    yield put(getError(err))
+  }
+}
+
+export function* editNormalUserWatcher () {
+  yield fork(takeEvery, EDIT_NORMAL_USER, editNormalUser)
 }
 
 export function* getEmailInputValue ({ payload }) {
@@ -225,9 +261,11 @@ export function* deleteNsActionWatcher () {
 export default [
   getAdminAllUsersWatcher,
   getUserUsersWatcher,
+  getNormalUserWatcher,
   getSelectUsersWatcher,
   addUserWatcher,
   editUserWatcher,
+  editNormalUserWatcher,
   getEmailInputValueWatcher,
   editroleTypeUserPswWatcher,
   queryUserWatcher,

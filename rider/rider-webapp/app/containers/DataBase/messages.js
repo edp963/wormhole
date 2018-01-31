@@ -21,12 +21,5 @@
 import { defineMessages } from 'react-intl'
 
 export default defineMessages({
-  tableTitle: {
-    id: 'rider.containers.Database.table.title',
-    defaultMessage: '基础数据列表'
-  },
-  tableColumnDS: {
-    id: 'rider.containers.Database.table.column.ds',
-    defaultMessage: '数据系统'
-  }
+  dbTableList: { id: 'rider.app.table.list' }
 })

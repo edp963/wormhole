@@ -579,7 +579,7 @@ export class DataBase extends React.PureComponent {
     filteredInfo = filteredInfo || {}
 
     const columns = [{
-      title: <FormattedMessage {...messages.tableColumnDS} />,
+      title: 'Data System',
       dataIndex: 'nsSys',
       key: 'nsSys',
       sorter: (a, b) => {
@@ -818,7 +818,7 @@ export class DataBase extends React.PureComponent {
         <Helmet title="Database" />
         <div className="ri-workbench-table ri-common-block">
           <h3 className="ri-common-block-title">
-            <Icon type="bars" /> <FormattedMessage {...messages.tableTitle} />
+            <Icon type="bars" /> DataBase <FormattedMessage {...messages.dbTableList} />
           </h3>
           <div className="ri-common-block-tools">
             <Button icon="plus" type="primary" onClick={this.showAddDB}>新建</Button>
