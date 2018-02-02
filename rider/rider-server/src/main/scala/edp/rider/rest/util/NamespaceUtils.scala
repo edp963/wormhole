@@ -118,7 +118,7 @@ object NamespaceUtils extends RiderLogger {
     nsSeq.foreach(ns => {
       val namespace = modules.namespaceDal.getNamespaceByNs(ns)
       if (namespace.nonEmpty) existList += namespace.get
-      else nonPermList += ns.split(".")(3)
+      else nonPermList += ns.split("\\.")(3)
     })
     val nsIds = Await.result(modules.relProjectNsDal.findByFilter(_.projectId === projectId), minTimeOut).map(_.nsId)
     nonPermList ++ existList.filterNot(ns => nsIds.contains(ns.id)).map(_.nsTable)
