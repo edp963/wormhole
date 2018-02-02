@@ -20,6 +20,7 @@
 
 import React from 'react'
 
+import { forceCheckNum, forceCheckNumsPart } from '../../utils/util'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -28,24 +29,6 @@ import InputNumber from 'antd/lib/input-number'
 const FormItem = Form.Item
 
 export class StreamConfigForm extends React.Component {
-  forceCheckNums = (rule, value, callback) => {
-    const reg = /^[0-9]*$/
-    if (reg.test(value)) {
-      callback()
-    } else {
-      callback('必须是数字')
-    }
-  }
-
-  forceCheckNumsPart = (rule, value, callback) => {
-    const reg = /^[0-9]*$/
-    if (reg.test(value) || value === -1) {
-      callback()
-    } else {
-      callback('不小于-1')
-    }
-  }
-
   render () {
     const { form, tabPanelKey } = this.props
     const { getFieldDecorator } = form
@@ -85,7 +68,7 @@ export class StreamConfigForm extends React.Component {
                   required: true,
                   message: '不能为空'
                 }, {
-                  validator: this.forceCheckNums
+                  validator: forceCheckNum
                 }],
                 initialValue: 1
               })(
@@ -100,7 +83,7 @@ export class StreamConfigForm extends React.Component {
                   required: true,
                   message: '不能为空'
                 }, {
-                  validator: this.forceCheckNums
+                  validator: forceCheckNum
                 }],
                 initialValue: 2
               })(
@@ -117,7 +100,7 @@ export class StreamConfigForm extends React.Component {
                   required: true,
                   message: '不能为空'
                 }, {
-                  validator: this.forceCheckNums
+                  validator: forceCheckNum
                 }],
                 initialValue: 6
               })(
@@ -132,7 +115,7 @@ export class StreamConfigForm extends React.Component {
                   required: true,
                   message: '不能为空'
                 }, {
-                  validator: this.forceCheckNums
+                  validator: forceCheckNum
                 }],
                 initialValue: 1
               })(
@@ -147,7 +130,7 @@ export class StreamConfigForm extends React.Component {
                   required: true,
                   message: '不能为空'
                 }, {
-                  validator: this.forceCheckNums
+                  validator: forceCheckNum
                 }],
                 initialValue: 2
               })(
@@ -164,7 +147,7 @@ export class StreamConfigForm extends React.Component {
                   required: true,
                   message: '不能为空'
                 }, {
-                  validator: this.forceCheckNums
+                  validator: forceCheckNum
                 }],
                 initialValue: 10
               })(
@@ -179,7 +162,7 @@ export class StreamConfigForm extends React.Component {
                   required: true,
                   message: '不能为空'
                 }, {
-                  validator: this.forceCheckNumsPart
+                  validator: forceCheckNumsPart
                 }],
                 initialValue: 6
               })(
@@ -194,7 +177,7 @@ export class StreamConfigForm extends React.Component {
                   required: true,
                   message: '不能为空'
                 }, {
-                  validator: this.forceCheckNums
+                  validator: forceCheckNum
                 }],
                 initialValue: 50
               })(

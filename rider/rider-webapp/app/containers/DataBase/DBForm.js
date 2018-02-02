@@ -19,7 +19,10 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
+import { forceCheckNum } from '../../utils/util'
 import DataSystemSelector from '../../components/DataSystemSelector'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
@@ -42,17 +45,13 @@ export class DBForm extends React.Component {
 
   componentWillReceiveProps (props) {
     if (props.databaseUrlValue) {
-      this.setState({
-        currentDatabaseUrlValue: props.databaseUrlValue
-      })
+      this.setState({ currentDatabaseUrlValue: props.databaseUrlValue })
     }
   }
 
   // 显示 instance 下拉框的内容
   onDatabaseDataSystemItemSelect = (value) => {
-    this.setState({
-      databaseDSValue: value
-    })
+    this.setState({ databaseDSValue: value })
     if (this.props.databaseFormType === 'add') {
       this.props.onInitDatabaseUrlValue(value)
     }
@@ -62,12 +61,8 @@ export class DBForm extends React.Component {
   onHandleChangeInstance = (e) => {
     const selUrl = this.state.currentDatabaseUrlValue.find(s => s.id === Number(e))
 
-    this.props.form.setFieldsValue({
-      connectionUrl: selUrl.connUrl
-    })
-    this.setState({
-      connUrlText: selUrl.connUrl
-    })
+    this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
+    this.setState({ connUrlText: selUrl.connUrl })
   }
 
   // 验证 name 是否存在
@@ -75,15 +70,6 @@ export class DBForm extends React.Component {
 
   // config 是否包含必须的字段
   onConfigValChange = (e) => this.props.onInitDatabaseConfigValue(e.target.value)
-
-  forceCheckNumSave = (rule, value, callback) => {
-    const reg = /^\d+$/
-    if (reg.test(value)) {
-      callback()
-    } else {
-      callback('必须是数字')
-    }
-  }
 
   render () {
     const { getFieldDecorator } = this.props.form
@@ -103,7 +89,6 @@ export class DBForm extends React.Component {
       { value: 'hbase', icon: 'icon-hbase1' },
       { value: 'phoenix', text: 'Phoenix' },
       { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
-      // { value: 'log', text: 'Log' },
       { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
       { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} },
@@ -198,7 +183,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('dataBaseDataSystem', {
                 rules: [{
                   required: true,
-                  message: '请选择 Data System'
+                  message: <FormattedMessage {...messages.dbTableList} />
                 }]
               })(
                 <DataSystemSelector
@@ -308,7 +293,7 @@ export class DBForm extends React.Component {
                   required: true,
                   message: '请填写 Partition'
                 }, {
-                  validator: this.forceCheckNumSave
+                  validator: forceCheckNum
                 }],
                 hidden: kafkaTypeHiddens[0]
               })(

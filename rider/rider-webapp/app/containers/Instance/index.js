@@ -642,7 +642,7 @@ export class Instance extends React.PureComponent {
             <Button icon="plus" type="primary" onClick={this.showAddInstance}>
               <FormattedMessage {...messages.instanceCreate} />
             </Button>
-            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshInstanceLoading} onClick={this.refreshInstance}>{refreshInstanceText}</Button>
+            <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshInstanceLoading} onClick={this.refreshInstance}>{refreshInstanceText}</Button>
           </div>
           <Table
             dataSource={currentInstances}

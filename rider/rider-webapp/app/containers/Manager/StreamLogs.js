@@ -38,7 +38,7 @@ export class StreamLogs extends React.Component {
         <div className="logs-modal-style">
           <span className="logs-btn-style">
             <Button
-              icon="poweroff"
+              icon="reload"
               type="ghost"
               loading={refreshLogLoading}
               onClick={this.refreshLogs}

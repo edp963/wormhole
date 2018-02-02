@@ -41,7 +41,7 @@ export class JobLogs extends React.Component {
         <div className="logs-modal-style">
           <span className="logs-btn-style">
             <Button
-              icon="poweroff"
+              icon="reload"
               type="ghost"
               loading={refreshJobLogLoading}
               onClick={this.refreshLogs}

@@ -20,6 +20,7 @@
 
 import React from 'react'
 
+import { forceCheckNum } from '../../utils/util'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -44,15 +45,6 @@ export class FlowEtpConfigForm extends React.Component {
   onRuleModeChange = (e) => this.setState({ ruleModeValue: e.target.value })
 
   onAgainstActionChange = (e) => this.setState({ againstActionValue: e.target.value })
-
-  forceCheckNumSave = (rule, value, callback) => {
-    const reg = /^\d+$/
-    if (reg.test(value)) {
-      callback()
-    } else {
-      callback('必须是数字')
-    }
-  }
 
   forceChecColumnSave = (rule, value, callback) => {
     if (value.indexOf('，')) {
@@ -123,7 +115,7 @@ export class FlowEtpConfigForm extends React.Component {
                   required: true,
                   message: '请填写 Rule Params'
                 }, {
-                  validator: this.forceCheckNumSave
+                  validator: forceCheckNum
                 }]
               })(
                 <InputNumber min={10} max={1800} step={1} placeholder="超时时间" style={{width: '50%'}} />
