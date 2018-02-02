@@ -21,8 +21,6 @@
 
 package edp.rider.rest.util
 
-import java.io.Serializable
-
 import com.alibaba.fastjson.{JSON, JSONArray}
 import edp.rider.RiderStarter.modules
 import edp.rider.common.{RiderConfig, RiderLogger}
@@ -37,7 +35,6 @@ import edp.wormhole.common.KVConfig
 import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.ums.UmsProtocolType._
-import jdk.nashorn.internal.parser.JSONParser
 import net.sf.jsqlparser.parser.CCJSqlParserUtil
 import net.sf.jsqlparser.util.TablesNamesFinder
 import slick.jdbc.MySQLProfile.api._
@@ -648,18 +645,36 @@ object FlowUtils extends RiderLogger {
     else (true, ns.nsDatabaseId, topicName)
   }
 
-  def getFlowsByNsIds(ids: Seq[Long]): Seq[Long] = {
-    val nsSeq = Await.result(modules.namespaceDal.findByFilter(_.id inSet ids).mapTo[Seq[Namespace]], minTimeOut)
-      .map(ns => generateStandardNs(ns))
-    val flowIds = new ListBuffer[Long]
-    val
-    nsSeq
-    .foreach(ns => {
-      val flow = Await.result(modules.flowDal.findByFilter
-      (flow => flow.sourceNs === ns || flow.sinkNs === ns && (flow.status =!= "stopped" || flow.status =!= "new" || flow.status =!= "failed")), minTimeOut)
-      flowIds ++= flow.map(_.id)
+  def getFlowsByNsIds(projectId: Long, ids: Seq[Long]): (mutable.HashMap[Long, Seq[String]], Seq[Long]) = {
+    val nsMap = Await.result(modules.namespaceDal.findByFilter(_.id inSet ids).mapTo[Seq[Namespace]], minTimeOut)
+      .map(ns => (generateStandardNs(ns), ns.id)).toMap[String, Long]
+    val nsSeq = nsMap.values.toList
+    val notDeleteNsIds = new ListBuffer[Long]
+    val flows = Await.result(modules.flowDal.findByFilter(flow => flow.projectId === projectId && (flow.status =!= "stopped" || flow.status =!= "new" || flow.status =!= "failed")), minTimeOut)
+    val flowNsMap = mutable.HashMap.empty[Long, Seq[String]]
+    flows.foreach(flow => {
+      val lookupTables =
+        if (flow.tranConfig.nonEmpty)
+          getNsSeqByTranConfig(flow.tranConfig.get)
+        else Seq()
+      val notDeleteNsSeq = new ListBuffer[String]
+      if (nsSeq.contains(flow.sourceNs)) {
+        notDeleteNsSeq += flow.sourceNs
+        notDeleteNsIds += nsMap(flow.sourceNs)
+      }
+      if (nsSeq.contains(flow.sinkNs)) {
+        notDeleteNsSeq += flow.sinkNs
+        notDeleteNsIds += nsMap(flow.sinkNs)
+      }
+      lookupTables.foreach(ns => {
+        if (nsSeq.contains(ns)) {
+          notDeleteNsSeq += ns
+          notDeleteNsIds += nsMap(ns)
+        }
+      })
+      flowNsMap(flow.id) = notDeleteNsSeq.distinct
     })
-    flowIds
+    (flowNsMap, notDeleteNsIds.distinct)
   }
 
   def getRowKey(sinkConfig: String): String = {
@@ -700,7 +715,7 @@ object FlowUtils extends RiderLogger {
   }
 
 
-  def getNsSeqBySinkConfig(tranConfig: String): Seq[String] = {
+  def getNsSeqByTranConfig(tranConfig: String): Seq[String] = {
     val tableSeq = new ListBuffer[String]
     val sqls = if (tranConfig != "" && tranConfig != null) {
       val json = JSON.parseObject(tranConfig)
@@ -713,10 +728,13 @@ object FlowUtils extends RiderLogger {
   }
 
   def getNsSeqByLookupSql(sql: String): List[String] = {
-    val sqlSplit = sql.split("with")(1).split("=")
-    val db = sqlSplit(0).trim
-    val pureSql = sqlSplit(1).trim
-    getTables(pureSql).map(table => db + "." + table + ".*.*.*")
+    if (sql.contains("pushdown_sql")) {
+      val sqlSplit = sql.split("with")(1).split("=")
+
+      val db = sqlSplit(0).trim
+      val pureSql = sqlSplit(1).trim
+      getTables(pureSql).map(table => db + "." + table + ".*.*.*")
+    } else List()
   }
 
   def getTables(sql: String): List[String] = {
