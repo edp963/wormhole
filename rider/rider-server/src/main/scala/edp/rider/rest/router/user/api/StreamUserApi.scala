@@ -606,7 +606,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           val kafkaOffset = kafkaOffsets.filter(_.id == topic.id).head
           val kafkaPart = kafkaOffset.partitionOffsets.split(",").length
           val offset = if (kafkaPart > consumedPart) {
-            topic.partitionOffsets + "," + (consumedPart to kafkaPart).toList.mkString(":0,")
+            topic.partitionOffsets + "," + (consumedPart until kafkaPart).toList.mkString(":0,") + ":0"
           } else if (kafkaPart < consumedPart) {
             topic.partitionOffsets.split(":").sortBy(offset => offset.split(":")(0)).take(kafkaPart).mkString(",")
           } else topic.partitionOffsets

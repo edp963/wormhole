@@ -76,7 +76,7 @@ class UserApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) extends Ba
             }
             else {
               if (session.projectIdList.contains(id)) {
-                onComplete(userDal.findById(id).mapTo[Option[User]]) {
+                onComplete(userDal.findById(userId).mapTo[Option[User]]) {
                   case Success(userOpt) =>
                     userOpt match {
                       case Some(user) =>
