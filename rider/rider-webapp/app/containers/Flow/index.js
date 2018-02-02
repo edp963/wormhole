@@ -1057,15 +1057,12 @@ export class Flow extends React.Component {
 
     const menuItems = (
       <Menu onClick={this.handleMenuClick(selectedRowKeys)} className="ri-workbench-select-dropdown">
-        <Menu.Item key="menuStart"><Icon type="caret-right" />
-          <FormattedMessage {...messages.flowTableStart} />
+        <Menu.Item key="menuStart"><Icon type="caret-right" /> <FormattedMessage {...messages.flowTableStart} />
         </Menu.Item>
         <Menu.Item key="menuStop">
-          <i className="iconfont icon-8080pxtubiaokuozhan100" style={{ fontSize: '12px' }}></i>
-          <FormattedMessage {...messages.flowTableStop} />
+          <i className="iconfont icon-8080pxtubiaokuozhan100" style={{ fontSize: '12px' }}></i> <FormattedMessage {...messages.flowTableStop} />
         </Menu.Item>
-        <Menu.Item key="menuDelete"><Icon type="delete" />
-          <FormattedMessage {...messages.flowTableDelete} />
+        <Menu.Item key="menuDelete"><Icon type="delete" /> <FormattedMessage {...messages.flowTableDelete} />
         </Menu.Item>
       </Menu>
       )
@@ -1100,7 +1097,7 @@ export class Flow extends React.Component {
         </h3>
         <div className="ri-common-block-tools">
           {FlowAddOrNot}
-          <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshFlowLoading} onClick={this.refreshFlow}>{refreshFlowText}</Button>
+          <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshFlowLoading} onClick={this.refreshFlow}>{refreshFlowText}</Button>
         </div>
         <Table
           dataSource={this.state.currentFlows}

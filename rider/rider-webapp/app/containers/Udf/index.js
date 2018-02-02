@@ -629,7 +629,7 @@ export class Udf extends React.PureComponent {
             <Button icon="plus" type="primary" onClick={this.showAddUdf} className={udfClassHide}>
               <FormattedMessage {...messages.udfTableCreate} />
             </Button>
-            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshUdfLoading} onClick={this.refreshUdf}>{refreshUdfText}</Button>
+            <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshUdfLoading} onClick={this.refreshUdf}>{refreshUdfText}</Button>
           </div>
           <Table
             dataSource={this.state.currentudfs}

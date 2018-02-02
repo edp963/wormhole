@@ -410,9 +410,7 @@ export class Workbench extends React.Component {
   onInitSinkTypeNamespace = (projectId, value, type) => {
     const { flowMode, pipelineStreamId, sinkDSCopy } = this.state
 
-    this.setState({
-      sinkConfigCopy: sinkDSCopy === value ? this.state.sinkConfigCopy : ''
-    })
+    this.setState({ sinkConfigCopy: sinkDSCopy === value ? this.state.sinkConfigCopy : '' })
 
     this.setState({
       sinkTypeNamespaceData: [],
@@ -420,9 +418,7 @@ export class Workbench extends React.Component {
     })
     if (pipelineStreamId !== 0) {
       this.props.onLoadSinkTypeNamespace(projectId, pipelineStreamId, value, type, (result) => {
-        this.setState({
-          sinkTypeNamespaceData: generateSourceSinkNamespaceHierarchy(value, result)
-        })
+        this.setState({ sinkTypeNamespaceData: generateSourceSinkNamespaceHierarchy(value, result) })
         if (flowMode === 'add' || flowMode === 'copy') {
           this.workbenchFlowForm.setFieldsValue({ sinkNamespace: undefined })
         }
@@ -441,9 +437,7 @@ export class Workbench extends React.Component {
       jobSinkConfigMsg: showSinkConfigMsg(value)
     })
     this.props.onLoadJobSinkNs(projectId, value, type, (result) => {
-      this.setState({
-        jobSinkNsData: generateSourceSinkNamespaceHierarchy(value, result)
-      })
+      this.setState({ jobSinkNsData: generateSourceSinkNamespaceHierarchy(value, result) })
       if (jobMode === 'add') {
         this.workbenchJobForm.setFieldsValue({ sinkNamespace: undefined })
       }

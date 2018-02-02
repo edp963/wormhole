@@ -21,5 +21,15 @@
 import { defineMessages } from 'react-intl'
 
 export default defineMessages({
-  dbTableList: { id: 'rider.app.table.list' }
+  dbTableList: { id: 'rider.app.table.list' },
+  dbTableCreate: { id: 'rider.app.table.create.action' },
+  dbTableViewDetail: { id: 'rider.app.table.view.details' },
+  dbTableDetail: { id: 'rider.app.table.details' },
+  dbTableModify: { id: 'rider.app.table.modify.action' },
+  dbTableDelete: { id: 'rider.app.table.delete.action' },
+  dbTableSureDelete: { id: 'rider.app.table.sure.delete' },
+  dbModalCreate: { id: 'rider.containers.Database.modal.create.db' },
+  dbModalModify: { id: 'rider.containers.Database.modal.modify.db' },
+  dbModalCancel: { id: 'rider.app.modal.cancel' },
+  dbModalSave: { id: 'rider.app.modal.save' }
 })
