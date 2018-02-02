@@ -89,11 +89,10 @@ class ProjectUserRoutes(modules: ConfigurationModule with PersistenceModule with
   ))
   def getUserByProjectIdRoute: Route = modules.userService.getUserByProjectId("projects")
 
-  @Path("/{id}/users/{userId}")
+  @Path("/users/{id}")
   @ApiOperation(value = "get user by id", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "userId", value = "user id", required = true, dataType = "integer", paramType = "path")
+    new ApiImplicitParam(name = "id", value = "user id", required = true, dataType = "integer", paramType = "path")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),
@@ -102,13 +101,12 @@ class ProjectUserRoutes(modules: ConfigurationModule with PersistenceModule with
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getUserByIdRoute: Route = modules.userService.getUserById("projects")
+  def getUserByIdRoute: Route = modules.userService.getUserById("users")
 
-  @Path("/{id}/users/{userId}")
+  @Path("/users/{id}")
   @ApiOperation(value = "change user language", notes = "", nickname = "", httpMethod = "PUT")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "userId", value = "user id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "id", value = "user id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "user", value = "User object to be updated", required = true, dataType = "edp.rider.rest.persistence.entities.User", paramType = "body")
   ))
   @ApiResponses(Array(
@@ -118,7 +116,7 @@ class ProjectUserRoutes(modules: ConfigurationModule with PersistenceModule with
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def putUserByProjectIdRoute: Route = modules.userService.putRoute("projects")
+  def putUserByProjectIdRoute: Route = modules.userService.putRoute("users")
 
   @Path("/{id}/monitors")
   @ApiOperation(value = "get one project's monitor dashboard from system by id", notes = "", nickname = "", httpMethod = "GET")
