@@ -47,7 +47,7 @@ object JsonSourceConf extends EdpLogging{
         } else {
           twoFieldArr.append(actualName)
           val realType=`type`.split("array")(0)
-          seqField.append(UmsField(actualName._2, UmsFieldType.withName(realType.toLowerCase)))
+          seqField.append(UmsField(actualName._2, UmsFieldType.withName(realType.toLowerCase),nullable))
           FieldInfo(name, `type`, umsOpMapping, nullable, None, rename, None)
         }
       }
