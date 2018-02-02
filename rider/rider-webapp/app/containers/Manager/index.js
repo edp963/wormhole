@@ -1232,7 +1232,7 @@ export class Manager extends React.Component {
         </h3>
         <div className="ri-common-block-tools">
           {StreamAddOrNot}
-          <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshStreamLoading} onClick={this.refreshStream}>{refreshStreamText}</Button>
+          <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshStreamLoading} onClick={this.refreshStream}>{refreshStreamText}</Button>
         </div>
         <Table
           dataSource={this.state.currentStreams}

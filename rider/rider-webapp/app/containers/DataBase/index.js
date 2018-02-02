@@ -772,7 +772,7 @@ export class DataBase extends React.PureComponent {
 
         return (
           <span className="ant-table-action-column">
-            <Tooltip title="查看详情">
+            <Tooltip title={<FormattedMessage {...messages.dbTableViewDetail} />}>
               <Popover
                 placement="left"
                 content={<div>
@@ -782,21 +782,21 @@ export class DataBase extends React.PureComponent {
                   {nsSysKafka}
                 </div>
                 }
-                title={<h3>详情</h3>}
+                title={<h3><FormattedMessage {...messages.dbTableDetail} /></h3>}
                 trigger="click"
                 onVisibleChange={this.handleVisibleChangeDatabase(record)}>
                 <Button icon="file-text" shape="circle" type="ghost"></Button>
               </Popover>
             </Tooltip>
 
-            <Tooltip title="修改">
+            <Tooltip title={<FormattedMessage {...messages.dbTableModify} />}>
               <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditDB(record)} />
             </Tooltip>
             {
               localStorage.getItem('loginRoleType') === 'admin'
                 ? (
-                  <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={this.deleteDBBtn(record)}>
-                    <Tooltip title="删除">
+                  <Popconfirm placement="bottom" title={<FormattedMessage {...messages.dbTableSureDelete} />} okText="Yes" cancelText="No" onConfirm={this.deleteDBBtn(record)}>
+                    <Tooltip title={<FormattedMessage {...messages.dbTableDelete} />}>
                       <Button icon="delete" shape="circle" type="ghost"></Button>
                     </Tooltip>
                   </Popconfirm>
@@ -815,6 +815,10 @@ export class DataBase extends React.PureComponent {
       }
     }
 
+    const modalTitle = this.state.formType === 'add'
+      ? <FormattedMessage {...messages.dbModalCreate} />
+      : <FormattedMessage {...messages.dbModalModify} />
+
     return (
       <div>
         <Helmet title="Database" />
@@ -823,8 +827,10 @@ export class DataBase extends React.PureComponent {
             <Icon type="bars" /> DataBase <FormattedMessage {...messages.dbTableList} />
           </h3>
           <div className="ri-common-block-tools">
-            <Button icon="plus" type="primary" onClick={this.showAddDB}>新建</Button>
-            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshDbLoading} onClick={this.refreshDatabase}>{refreshDbText}</Button>
+            <Button icon="plus" type="primary" onClick={this.showAddDB}>
+              <FormattedMessage {...messages.dbTableCreate} />
+            </Button>
+            <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshDbLoading} onClick={this.refreshDatabase}>{refreshDbText}</Button>
           </div>
           <Table
             dataSource={this.state.currentDatabases}
@@ -836,7 +842,7 @@ export class DataBase extends React.PureComponent {
           </Table>
         </div>
         <Modal
-          title={`${this.state.formType === 'add' ? '新建' : '修改'} Database`}
+          title={modalTitle}
           okText="保存"
           wrapClassName="db-form-style"
           visible={this.state.formVisible}
@@ -849,7 +855,7 @@ export class DataBase extends React.PureComponent {
               type="ghost"
               onClick={this.hideForm}
             >
-              取消
+              <FormattedMessage {...messages.dbModalCancel} />
             </Button>,
             <Button
               key="submit"
@@ -858,7 +864,7 @@ export class DataBase extends React.PureComponent {
               loading={this.props.modalLoading}
               onClick={this.onModalOk}
             >
-              保存
+              <FormattedMessage {...messages.dbModalSave} />
             </Button>
           ]}
         >

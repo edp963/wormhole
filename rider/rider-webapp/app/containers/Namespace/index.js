@@ -1760,7 +1760,7 @@ export class Namespace extends React.PureComponent {
           </h3>
           <div className="ri-common-block-tools">
             <Button icon="plus" type="primary" className={this.props.namespaceClassHide} onClick={this.showAddNamespace}>新建</Button>
-            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshNsLoading} onClick={this.refreshNamespace}>{refreshNsText}</Button>
+            <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshNsLoading} onClick={this.refreshNamespace}>{refreshNsText}</Button>
           </div>
           <Table
             dataSource={this.state.currentNamespaces || []}

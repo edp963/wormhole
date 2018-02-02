@@ -618,7 +618,7 @@ export class User extends React.PureComponent {
             <Button icon="plus" type="primary" onClick={this.showAdd} className={userClassHide}>
               <FormattedMessage {...messages.userTableCreate} />
             </Button>
-            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshUserLoading} onClick={this.refreshUser}>{refreshUserText}</Button>
+            <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshUserLoading} onClick={this.refreshUser}>{refreshUserText}</Button>
           </div>
           <Table
             dataSource={this.state.currentUsers}

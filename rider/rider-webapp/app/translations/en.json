@@ -123,6 +123,8 @@
   "rider.containers.Instance.Modal.url.others.msg": "Please Select Data System",
 
   "rider.containers.Database.table.column.ds": "Data System",
+  "rider.containers.Database.modal.create.db": "Create Database",
+  "rider.containers.Database.modal.modify.db": "Modify Database",
 
   "rider.containers.User.table.modify.user.information": "Modify User Information",
   "rider.containers.User.table.user.user": "Create User",

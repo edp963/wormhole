@@ -24,6 +24,7 @@ require('../../../node_modules/codemirror/mode/javascript/javascript')
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
+import { forceCheckSave } from '../../utils/util'
 import Form from 'antd/lib/form'
 const FormItem = Form.Item
 import Row from 'antd/lib/row'
@@ -43,28 +44,15 @@ const Option = Select.Option
 export class WorkbenchStreamForm extends React.PureComponent {
   constructor (props) {
     super(props)
-    this.state = {
-      streamMode: ''
-    }
+    this.state = { streamMode: '' }
   }
 
   componentWillReceiveProps (props) {
-    this.setState({
-      streamMode: props.streamMode
-    })
+    this.setState({ streamMode: props.streamMode })
   }
 
   // 验证 stream name 是否存在
   onNameInputChange = (e) => this.props.onInitStreamNameValue(e.target.value)
-
-  forceCheckSave = (rule, value, callback) => {
-    const reg = /^\w+$/
-    if (reg.test(value)) {
-      callback()
-    } else {
-      callback('必须是字母、数字或下划线')
-    }
-  }
 
   render () {
     const { isWormhole, onShowConfigModal, streamConfigCheck, kafkaValues } = this.props
@@ -124,7 +112,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
                   required: true,
                   message: 'Name 不能为空'
                 }, {
-                  validator: this.forceCheckSave
+                  validator: forceCheckSave
                 }]
               })(
                 <Input placeholder="Name" disabled={disabledOrNot} onChange={this.onNameInputChange} />
