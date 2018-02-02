@@ -32,7 +32,7 @@ import messages from './messages'
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { jsonParse, fieldTypeAlter, renameAlter, genDefaultSchemaTable, umsSysFieldSelected,
   umsSysFieldCanceled, getRepeatFieldIndex, genSchema } from './umsFunction'
-import { isJSONNotEmpty } from '../../utils/util'
+import { isJSONNotEmpty, operateLanguageText } from '../../utils/util'
 
 import NamespaceForm from './NamespaceForm'
 import SchemaTypeConfig from './SchemaTypeConfig'
@@ -1359,9 +1359,9 @@ export class Namespace extends React.PureComponent {
 
   deleteNsBtn = (record) => (e) => {
     this.props.onDeleteNs(record.id, () => {
-      message.success('删除成功！', 3)
+      message.success(operateLanguageText('success', 'delete'), 3)
     }, (result) => {
-      message.error(`删除失败： ${result}`, 5)
+      message.error(`${operateLanguageText('fail', 'delete')} ${result}`, 5)
     })
   }
 
@@ -1609,12 +1609,12 @@ export class Namespace extends React.PureComponent {
           if (record.nsSys === 'kafka') {
             umsAction = (
               <span className="ant-table-action-column">
-                <Tooltip title={<FormattedMessage {...messages.nsTableSourceSchemaConfig} />}>
+                <Tooltip title="Source Schema">
                   <Button shape="circle" type="ghost" onClick={this.showEditUms(record)}>
                     <i className="iconfont icon-icos"></i>
                   </Button>
                 </Tooltip>
-                <Tooltip title={<FormattedMessage {...messages.nsTableSinkSchemaConfig} />}>
+                <Tooltip title="Sink Schema">
                   <Button shape="circle" type="ghost" onClick={this.showEditSink(record)}>
                     <i className="iconfont icon-ic_Heatsink"></i>
                   </Button>
@@ -1760,7 +1760,7 @@ export class Namespace extends React.PureComponent {
           </h3>
           <div className="ri-common-block-tools">
             <Button icon="plus" type="primary" className={this.props.namespaceClassHide} onClick={this.showAddNamespace}>新建</Button>
-            <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshNsLoading} onClick={this.refreshNamespace}>{refreshNsText}</Button>
+            <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshNsLoading} onClick={this.refreshNamespace}>{refreshNsText}</Button>
           </div>
           <Table
             dataSource={this.state.currentNamespaces || []}

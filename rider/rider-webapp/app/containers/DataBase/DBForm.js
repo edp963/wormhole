@@ -75,6 +75,7 @@ export class DBForm extends React.Component {
     const { getFieldDecorator } = this.props.form
     const { databaseFormType, queryConnUrl } = this.props
     const { databaseDSValue, currentDatabaseUrlValue, connUrlText } = this.state
+    const languageText = localStorage.getItem('preferredLanguage')
 
     const itemStyle = {
       labelCol: { span: 6 },
@@ -139,18 +140,25 @@ export class DBForm extends React.Component {
       databaseDSPlace = 'Index Name'
     } else if (databaseDSValue === 'hbase') {
       databaseDSLabel = 'Namespace Name'
-      databaseDSPlace = 'Namespace Name（若无, 填写 default）'
+      databaseDSPlace = `Namespace Name（${languageText === 'en' ? 'Fill in "default" if it is missing' : '若无, 填写 default'}）`
     } else if (databaseDSValue === 'redis') {
       databaseDSLabel = 'Database Name'
-      databaseDSPlace = '可填写 default）'
+      databaseDSPlace = `${languageText === 'en' ? 'You can fill in "default"' : '可填写 default'}`
     } else {
       databaseDSLabel = 'Database Name'
       databaseDSPlace = 'Database Name'
     }
 
-    const diffPlacehodler = databaseDSValue === 'oracle'
-      ? '格式为: 多行key=value 或 一行key=value&key=value。Oracle时, 必须包含"service_name"字段'
-      : '格式为: 多行key=value 或 一行key=value&key=value'
+    let diffPlacehodler = ''
+    if (languageText === 'en') {
+      diffPlacehodler = databaseDSValue === 'oracle'
+        ? 'Form: multiple lines of key=value or one line of key=value&key=value. When you select Oracle, "service_name" should be contained in Config.'
+        : 'Form: multiple lines of key=value or one line of key=value&key=value'
+    } else {
+      diffPlacehodler = databaseDSValue === 'oracle'
+        ? '格式为: 多行key=value 或 一行key=value&key=value。Oracle时, 必须包含"service_name"字段'
+        : '格式为: 多行key=value 或 一行key=value&key=value'
+    }
 
     // edit 时，不能修改部分元素
     let disabledOrNot = false
@@ -200,7 +208,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('instance', {
                 rules: [{
                   required: true,
-                  message: '请填写 Instance'
+                  message: `${languageText === 'en' ? 'Please select Instance' : '请填写 Instance'}`
                 }]
               })(
                 <Select
@@ -228,7 +236,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('nsDatabase', {
                 rules: [{
                   required: true,
-                  message: `请填写 ${databaseDSLabel}`
+                  message: `${languageText === 'en' ? 'Please fill in the' : '请填写'} ${databaseDSLabel}`
                 }]
               })(
                 <Input
@@ -264,7 +272,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('userRequired', {
                 rules: [{
                   required: true,
-                  message: '请填写 User'
+                  message: `${languageText === 'en' ? 'Please fill in the User' : '请填写 User'}`
                 }],
                 hidden: userPwdHiddensRequired
               })(
@@ -277,7 +285,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('passwordRequired', {
                 rules: [{
                   required: true,
-                  message: '请填写 Password'
+                  message: `${languageText === 'en' ? 'Please fill in the Password' : '请填写 Password'}`
                 }],
                 hidden: userPwdHiddensRequired
               })(
@@ -291,7 +299,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('partition', {
                 rules: [{
                   required: true,
-                  message: '请填写 Partition'
+                  message: `${languageText === 'en' ? 'Please fill in the Partition' : '请填写 Partition'}`
                 }, {
                   validator: forceCheckNum
                 }],

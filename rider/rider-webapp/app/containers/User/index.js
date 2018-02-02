@@ -25,6 +25,7 @@ import Helmet from 'react-helmet'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
+import { operateLanguageText } from '../../utils/util'
 import UserForm from './UserForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
@@ -381,9 +382,9 @@ export class User extends React.PureComponent {
 
   deleteUserBtn = (record) => (e) => {
     this.props.onDeleteUser(record.id, () => {
-      message.success('删除成功！', 3)
+      message.success(operateLanguageText('success', 'delete'), 3)
     }, (result) => {
-      message.error(`删除失败： ${result}`, 5)
+      message.error(`${operateLanguageText('fail', 'delete')} ${result}`, 5)
     })
   }
 

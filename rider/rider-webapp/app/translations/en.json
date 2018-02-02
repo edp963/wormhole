@@ -60,8 +60,6 @@
   "rider.containers.Stream.modal.rate": "items/second",
   "rider.containers.Stream.modal.apply": "Apply",
 
-  "rider.containers.Namespace.table.source.configuration": "Source Configuration",
-  "rider.containers.Namespace.table.sink.configuration": "Sink Configuration",
   "rider.containers.Namespace.Modal.tables.multiple.key": "Sep keys with commas",
   "rider.containers.Namespace.Modal.tables.key": "No config for Key",
   "rider.containers.Namespace.Modal.tables.table1": "You can fill in \"default\"",
