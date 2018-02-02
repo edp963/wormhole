@@ -108,7 +108,7 @@ object NsDatabaseUtils {
     if (tranConfig.nonEmpty && tranConfig.get != "") {
       val json = JSON.parseObject(tranConfig.get)
       if (json.containsKey("action")) {
-        val seq = json.getString("action").split(";").find(_.contains("pushdown_sql"))
+        val seq = json.getString("action").split(";").filter(_.contains("pushdown_sql"))
         if (seq.nonEmpty) {
           seq.foreach(sql => {
             dbSeq += sql.split("with")(1).split("=")(0).trim

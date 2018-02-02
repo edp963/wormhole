@@ -235,8 +235,8 @@ object FlowUtils extends RiderLogger {
     )
     flowSeq.foreach(flow =>
       map(flow.id) = getDisableActions(flow, projectNsMap(flow.projectId)))
-    map
-    riderLogger.info("flow disableActions map: " + map)
+//    map
+//    riderLogger.info("flow disableActions map: " + map)
     map
   }
 
@@ -247,8 +247,8 @@ object FlowUtils extends RiderLogger {
     nsSeq += flow.sinkNs
     nsSeq ++ getDbFromTrans(flow.tranConfig).distinct
     var flag = true
-    riderLogger.info("flow ns: " + nsSeq)
-    riderLogger.info("project ns: " + projectNsSeq)
+//    riderLogger.info("flow ns: " + nsSeq)
+//    riderLogger.info("project ns: " + projectNsSeq)
     for (i <- nsSeq.indices) {
       if (i < 2) {
         if (!projectNsSeq.exists(_.startsWith(nsSeq(i).split("\\.").slice(0, 4).mkString(".")))) {

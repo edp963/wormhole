@@ -32,6 +32,12 @@
                 </filter>
               </filters>
               <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
+              <relocations>
+                <relocation>
+                  <pattern>com.google</pattern>
+                  <shadedPattern>dbpool.com.google</shadedPattern>
+                </relocation>
+              </relocations>
             </configuration>
           </execution>
         </executions>
