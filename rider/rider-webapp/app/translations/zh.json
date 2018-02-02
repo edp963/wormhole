@@ -63,8 +63,6 @@
   "rider.containers.Stream.modal.rate": "条/秒",
   "rider.containers.Stream.modal.apply": "应用",
 
-  "rider.containers.Namespace.table.source.configuration": "Source Schema 配置",
-  "rider.containers.Namespace.table.sink.configuration": "Sink Schema 配置",
   "rider.containers.Namespace.Modal.tables.multiple.key": "多个主键用逗号隔开",
   "rider.containers.Namespace.Modal.tables.key": "Key 无需配置",
   "rider.containers.Namespace.Modal.tables.table1": "可填写 default",

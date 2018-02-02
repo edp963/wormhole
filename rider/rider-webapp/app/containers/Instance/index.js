@@ -25,6 +25,7 @@ import Helmet from 'react-helmet'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
+import { operateLanguageText } from '../../utils/util'
 import InstanceForm from './InstanceForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
@@ -192,6 +193,10 @@ export class Instance extends React.PureComponent {
   onModalOk = () => {
     const { instanceFormType } = this.state
     const { instanceExisted } = this.props
+    const languageText = localStorage.getItem('preferredLanguage')
+    const instanceExist = languageText === 'en' ? 'This instance already exists.' : '该 Instance 已存在。'
+    const createFormat = languageText === 'en' ? 'Instance is created successfully!' : 'Instance 新建成功！'
+    const modifyFormat = languageText === 'en' ? 'Instance is modified successfully!' : 'Instance 修改成功！'
 
     this.instanceForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -200,13 +205,13 @@ export class Instance extends React.PureComponent {
             this.instanceForm.setFields({
               instance: {
                 value: values.instance,
-                errors: [new Error('该 Instance 已存在')]
+                errors: [new Error(instanceExist)]
               }
             })
           } else {
             this.props.onAddInstance(values, () => {
               this.hideForm()
-              message.success('Instance 添加成功！', 3)
+              message.success(createFormat, 3)
             })
           }
         } else if (instanceFormType === 'edit') {
@@ -215,7 +220,7 @@ export class Instance extends React.PureComponent {
             connUrl: values.connectionUrl
           }), () => {
             this.hideForm()
-            message.success('Instance 修改成功！', 3)
+            message.success(modifyFormat, 3)
           })
         }
       }
@@ -306,24 +311,36 @@ export class Instance extends React.PureComponent {
 
   loadResult (value, result) {
     const { instanceFormType, InstanceSourceDsVal } = this.state
+    const languageText = localStorage.getItem('preferredLanguage')
+    const existText = languageText === 'en'
+      ? `The connection url already exists, confirm ${instanceFormType === 'add' ? 'create' : 'modify'}?`
+      : `该 Connection URL 已存在，确定${instanceFormType === 'add' ? '新建' : '修改'}吗？`
+    const esText = languageText === 'en'
+      ? 'if it acts as sink, fill in http://localhost:9200; if it acts as lookup, fill in localhost:9300'
+      : '作为sink，填写 http://localhost:9200；作为lookup，填写localhost:9300'
+
     let errMsg = ''
     if (result.indexOf('exists') > 0) {
-      errMsg = [new Error(`该 Connection URL 已存在，确定${instanceFormType === 'add' ? '新建' : '修改'}吗？`)]
+      errMsg = [new Error(existText)]
     } else {
       if (InstanceSourceDsVal === 'es') {
-        errMsg = [new Error('作为 sink 端时，请填写 http 端口地址，如 http://localhost:9200；作为 lookup 系统时，请填写 tcp 端口地址，如 localhost:9300')]
-      } else if (InstanceSourceDsVal === 'oracle' || InstanceSourceDsVal === 'mysql' || InstanceSourceDsVal === 'postgresql') {
-        errMsg = [new Error('ip:port 格式')]
+        errMsg = [new Error(esText)]
+      } else if (InstanceSourceDsVal === 'oracle' ||
+        InstanceSourceDsVal === 'mysql' ||
+        InstanceSourceDsVal === 'postgresql'
+      ) {
+        errMsg = [new Error('ip:port')]
       } else if (InstanceSourceDsVal === 'hbase') {
-        errMsg = [new Error('zookeeper url list, 如localhost:2181/hbase, 多条用逗号隔开')]
+        errMsg = [new Error('zookeeper url list, localhost:2181/hbase,localhost1:2181/hbase')]
       } else if (InstanceSourceDsVal === 'phoenix') {
-        errMsg = [new Error('zookeeper url, 如localhost:2181')]
+        errMsg = [new Error('zookeeper url list')]
       } else if (InstanceSourceDsVal === 'kafka') {
-        errMsg = [new Error('broker list, localhost:9092, 多条用逗号隔开')]
-      } else if (InstanceSourceDsVal === 'cassandra' || InstanceSourceDsVal === 'mongodb') {
-        errMsg = [new Error('ip:port, 多条用逗号隔开')]
-      } else if (InstanceSourceDsVal === 'redis') {
-        errMsg = [new Error('localhost:6379, 多条用逗号隔开')]
+        errMsg = [new Error('localhost:9092,localhost1:9092')]
+      } else if (InstanceSourceDsVal === 'cassandra' ||
+        InstanceSourceDsVal === 'mongodb' ||
+        InstanceSourceDsVal === 'redis'
+      ) {
+        errMsg = [new Error('ip:port list')]
       }
 
       // else if (InstanceSourceDsVal === 'log') {
@@ -348,10 +365,11 @@ export class Instance extends React.PureComponent {
       nsInstance: value
     }
     this.props.onLoadInstanceExit(requestVal, () => {}, (result) => {
+      const languageText = localStorage.getItem('preferredLanguage')
       this.instanceForm.setFields({
         instance: {
           value: value,
-          errors: [new Error('该 Instance 已存在')]
+          errors: [new Error(languageText === 'en' ? 'The instance already exists.' : '该 Instance 已存在。')]
         }
       })
     })
@@ -417,9 +435,9 @@ export class Instance extends React.PureComponent {
 
   deleteInstanceBtn = (record) => (e) => {
     this.props.onDeleteInstace(record.id, () => {
-      message.success('删除成功！', 3)
+      message.success(operateLanguageText('success', 'delete'), 3)
     }, (result) => {
-      message.error(`删除失败： ${result}`, 5)
+      message.error(`${operateLanguageText('fail', 'delete')} ${result}`, 5)
     })
   }
 
@@ -450,7 +468,6 @@ export class Instance extends React.PureComponent {
           {text: 'hbase', value: 'hbase'},
           {text: 'phoenix', value: 'phoenix'},
           {text: 'cassandra', value: 'cassandra'},
-          // {text: 'log', value: 'log'},
           {text: 'kafka', value: 'kafka'},
           {text: 'postgresql', value: 'postgresql'},
           {text: 'mongodb', value: 'mongodb'},

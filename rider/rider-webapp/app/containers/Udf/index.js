@@ -25,6 +25,7 @@ import Helmet from 'react-helmet'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
+import { operateLanguageText } from '../../utils/util'
 import UdfForm from './UdfForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
@@ -221,12 +222,12 @@ export class Udf extends React.PureComponent {
           })
         } else if (formType === 'edit') {
           this.props.onEditUdf(Object.assign({}, values, queryUdfVal), () => {
-            message.success('修改成功！', 3)
+            message.success(operateLanguageText('success', 'modify'), 3)
             this.setState({
               formVisible: false
             })
           }, (result) => {
-            message.error(`修改失败：${result}`, 3)
+            message.error(`${operateLanguageText('fail', 'modify')} ${result}`, 3)
           })
         }
       }
@@ -235,9 +236,9 @@ export class Udf extends React.PureComponent {
 
   deleteUdfBtn = (record) => (e) => {
     this.props.onDeleteUdf(record.id, () => {
-      message.success('删除成功！', 3)
+      message.success(operateLanguageText('success', 'delete'), 3)
     }, (result) => {
-      message.error(`删除失败： ${result}`, 5)
+      message.error(`${operateLanguageText('fail', 'delete')} ${result}`, 5)
     })
   }
 
