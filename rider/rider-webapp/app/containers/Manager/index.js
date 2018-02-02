@@ -39,7 +39,7 @@ import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
-import { uuid, isEquivalent } from '../../utils/util'
+import { uuid, isEquivalent, operateLanguageText } from '../../utils/util'
 
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
@@ -575,9 +575,9 @@ export class Manager extends React.Component {
 
   deleteStreambtn = (record, action) => (e) => {
     this.props.onDeleteStream(this.props.projectIdGeted, record.id, 'delete', () => {
-      message.success('删除成功！', 3)
+      message.success(operateLanguageText('success', 'delete'), 3)
     }, (result) => {
-      message.error(`操作失败：${result}`, 3)
+      message.error(`${operateLanguageText('fail', 'delete')} ${result}`, 3)
     })
   }
 
@@ -1232,7 +1232,7 @@ export class Manager extends React.Component {
         </h3>
         <div className="ri-common-block-tools">
           {StreamAddOrNot}
-          <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshStreamLoading} onClick={this.refreshStream}>{refreshStreamText}</Button>
+          <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshStreamLoading} onClick={this.refreshStream}>{refreshStreamText}</Button>
         </div>
         <Table
           dataSource={this.state.currentStreams}
