@@ -37,15 +37,6 @@ const RadioGroup = Radio.Group
 export class JobTransformForm extends React.Component {
   onJobTransTypeSelect = (e) => this.props.onInitJobTransValue(e.target.value)
 
-  forceCheckTimeoutSave = (rule, value, callback) => {
-    const reg = /^\d+$/
-    if (reg.test(value)) {
-      callback()
-    } else {
-      callback('必须是数字')
-    }
-  }
-
   render () {
     const { form } = this.props
     const { transformValue } = this.props

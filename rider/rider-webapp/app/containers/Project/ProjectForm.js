@@ -24,6 +24,7 @@ import messages from './messages'
 // import PlaceholderInputIntl from '../../components/PlaceholderInputIntl'
 // import PlaceholderInputNumberIntl from '../../components/PlaceholderInputNumberIntl'
 
+import { forceCheckNum, forceCheckProjectName } from '../../utils/util'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -33,28 +34,8 @@ import Card from 'antd/lib/card'
 const FormItem = Form.Item
 
 export class ProjectForm extends React.Component {
-  forceCheckProjectName = (rule, value, callback) => {
-    const reg = /^[\w-]+$/
-    if (reg.test(value)) {
-      callback()
-    } else {
-      callback('必须是字母、数字、中划线或下划线')
-    }
-  }
-
-  forceCheckRes = (rule, value, callback) => {
-    const reg = /^[0-9]*$/
-    if (reg.test(value)) {
-      callback()
-    } else {
-      callback('必须是数字')
-    }
-  }
-
   // 验证project name 是否存在
-  onProjectNameInputChange = (e) => {
-    this.props.onInitProjectNameInputValue(e.target.value)
-  }
+  onProjectNameInputChange = (e) => this.props.onInitProjectNameInputValue(e.target.value)
 
   render () {
     const { getFieldDecorator } = this.props.form
@@ -98,7 +79,7 @@ export class ProjectForm extends React.Component {
                     required: true,
                     message: '项目标识不能为空'
                   }, {
-                    validator: this.forceCheckProjectName
+                    validator: forceCheckProjectName
                   }]
                 })(
                   <Input
@@ -124,7 +105,7 @@ export class ProjectForm extends React.Component {
                     required: true,
                     message: 'CPU上限不能为空'
                   }, {
-                    validator: this.forceCheckRes
+                    validator: forceCheckNum
                   }]
                 })(
                   <InputNumber min={1} step={1} placeholder="VCores 个数" />
@@ -136,7 +117,7 @@ export class ProjectForm extends React.Component {
                     required: true,
                     message: '内存上限不能为空'
                   }, {
-                    validator: this.forceCheckRes
+                    validator: forceCheckNum
                   }]
                 })(
                   <InputNumber min={1} step={1} placeholder="GB" />

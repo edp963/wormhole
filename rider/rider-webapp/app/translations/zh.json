@@ -127,6 +127,8 @@
   "rider.containers.Instance.Modal.url.others.msg": "请选择 Data System",
 
   "rider.containers.Database.table.column.ds": "数据系统",
+  "rider.containers.Database.modal.create.db": "新建 Database",
+  "rider.containers.Database.modal.modify.db": "修改 Database",
 
   "rider.containers.User.table.modify.user.information": "修改用户信息",
   "rider.containers.User.table.user.user": "新建 User",

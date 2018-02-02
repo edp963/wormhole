@@ -22,6 +22,7 @@ import React from 'react'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
+import { forceCheckNum } from '../../utils/util'
 import DataSystemSelector from '../../components/DataSystemSelector'
 import Form from 'antd/lib/form'
 const FormItem = Form.Item
@@ -40,35 +41,17 @@ const RadioGroup = Radio.Group
 export class FlowTransformForm extends React.Component {
   constructor (props) {
     super(props)
-    this.state = {
-      dsHideOrNot: ''
-    }
-  }
-  onTransformTypeSelect = (e) => {
-    this.props.onInitTransformValue(e.target.value)
+    this.state = { dsHideOrNot: '' }
   }
 
-  onLookupSqlTypeItemSelect = (val) => {
-    this.setState({
-      dsHideOrNot: val === 'union' ? 'hide' : ''
-    })
-  }
+  onTransformTypeSelect = (e) => this.props.onInitTransformValue(e.target.value)
+
+  onLookupSqlTypeItemSelect = (val) => this.setState({ dsHideOrNot: val === 'union' ? 'hide' : '' })
 
   // 通过不同的Transformation里的 Sink Data System 显示不同的 Sink Namespace 的内容
   onTransformSinkDataSystemItemSelect = (val) => {
-    this.props.form.setFieldsValue({
-      transformSinkNamespace: undefined
-    })
+    this.props.form.setFieldsValue({ transformSinkNamespace: undefined })
     this.props.onInitTransformSinkTypeNamespace(this.props.projectIdGeted, val, 'transType')
-  }
-
-  forceCheckTimeoutSave = (rule, value, callback) => {
-    const reg = /^\d+$/
-    if (reg.test(value)) {
-      callback()
-    } else {
-      callback('必须是数字')
-    }
   }
 
   render () {
@@ -317,7 +300,7 @@ export class FlowTransformForm extends React.Component {
                   required: true,
                   message: '请填写 Timeout'
                 }, {
-                  validator: this.forceCheckTimeoutSave
+                  validator: forceCheckNum
                 }],
                 hidden: transformTypeHiddens[2]
               })(

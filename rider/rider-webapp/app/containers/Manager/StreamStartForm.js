@@ -22,6 +22,7 @@ import React from 'react'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
+import { forceCheckNum } from '../../utils/util'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -60,15 +61,6 @@ export class StreamStartForm extends React.Component {
     })
 
     this.setState({ data: dataFinal })
-  }
-
-  forceCheckTopic = (rule, value, callback) => {
-    const reg = /^[0-9]*$/
-    if (reg.test(value)) {
-      callback()
-    } else {
-      callback('必须是数字')
-    }
   }
 
   onApplyConOffset = (i, index, consumerOffsetFinal) => (e) => {
@@ -142,9 +134,8 @@ export class StreamStartForm extends React.Component {
                           required: true,
                           message: '请填写 Offset'
                         }, {
-                          validator: this.forceCheckTopic
+                          validator: forceCheckNum
                         }]
-                        // initialValue: g.substring(g.indexOf(':') + 1)
                       })(
                         <InputNumber size="medium" className="conform-table-input" />
                       )}
@@ -224,7 +215,7 @@ export class StreamStartForm extends React.Component {
                           required: true,
                           message: '请填写 Rate'
                         }, {
-                          validator: this.forceCheckTopic
+                          validator: forceCheckNum
                         }],
                         initialValue: `${i.rate}`
                       })(
