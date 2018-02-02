@@ -114,9 +114,7 @@ export class Flow extends React.Component {
         s.visible = false
         return s
       })
-      this.setState({
-        originFlows: originFlows.slice()
-      })
+      this.setState({ originFlows: originFlows.slice() })
       this.state.columnNameText === ''
         ? this.setState({ currentFlows: originFlows.slice() })
         : this.searchOperater()
@@ -167,7 +165,6 @@ export class Flow extends React.Component {
     const { columnNameText, valueText, visibleBool } = this.state
     const { paginationInfo, filteredInfo, sortedInfo } = this.state
     const { startTimeTextState, endTimeTextState } = this.state
-    // const { startTextState, endTextState } = this.state
 
     if (columnNameText !== '') {
       if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
@@ -175,9 +172,6 @@ export class Flow extends React.Component {
       } else {
         this.handleFlowChange(paginationInfo, filteredInfo, sortedInfo)
         this.onSearch(columnNameText, valueText, visibleBool)()
-        // if (columnNameText === 'id') {
-        //   this.onRangeIdSearch(columnNameText, startTextState, endTextState, visibleBool)()
-        // }
       }
     }
   }
@@ -189,21 +183,22 @@ export class Flow extends React.Component {
    * @param selectedRowKeys
    */
   handleMenuClick = (selectedRowKeys) => (e) => {
+    const languagetext = localStorage.getItem('preferredLanguage')
     if (selectedRowKeys.length > 0) {
       let menuAction = ''
       let menuMsg = ''
       switch (e.key) {
         case 'menuStart':
           menuAction = 'start'
-          menuMsg = '启动'
+          menuMsg = languagetext === 'en' ? 'Start' : '启动'
           break
         case 'menuStop':
           menuAction = 'stop'
-          menuMsg = '停止'
+          menuMsg = languagetext === 'en' ? 'Stop' : '停止'
           break
         case 'menuDelete':
           menuAction = 'delete'
-          menuMsg = '删除'
+          menuMsg = languagetext === 'en' ? 'Delete' : '删除'
           break
       }
 
@@ -214,27 +209,30 @@ export class Flow extends React.Component {
       }
 
       this.props.onOperateUserFlow(requestValue, (result) => {
-        this.setState({
-          selectedRowKeys: []
-        })
+        this.setState({ selectedRowKeys: [] })
+        const languagetextSuccess = languagetext === 'en' ? 'successfully!' : '成功！'
 
         if (typeof (result) === 'object') {
           const resultFailed = result.filter(i => i.msg.indexOf('failed') > -1)
           if (resultFailed.length > 0) {
             const resultFailedIdArr = resultFailed.map(i => i.id)
             const resultFailedIdStr = resultFailedIdArr.join('、')
-            message.error(`Flow ID ${resultFailedIdStr} ${menuMsg}失败！`, 5)
+
+            const languagetextFailFlowId = languagetext === 'en'
+              ? `It fails to ${menuMsg} Flow ID ${resultFailedIdStr}!`
+              : `Flow ID ${resultFailedIdStr} ${menuMsg}失败！`
+            message.error(languagetextFailFlowId, 5)
           } else {
-            message.success(`${menuMsg}成功！`, 3)
+            message.success(`${menuMsg}${languagetextSuccess}`, 3)
           }
         } else {
-          message.success(`${menuMsg}成功！`, 3)
+          message.success(`${menuMsg}${languagetextSuccess}`, 3)
         }
       }, (result) => {
-        message.error(`操作失败：${result}`, 3)
+        message.error(`${languagetext === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
       })
     } else {
-      message.warning('请选择 Flow！', 3)
+      message.warning(`${languagetext === 'en' ? 'Please select Flow!' : '请选择 Flow！'}`, 3)
     }
   }
 
@@ -250,6 +248,7 @@ export class Flow extends React.Component {
    * @param record
    */
   singleOpreateFlow (record, action) {
+    const languagetext = localStorage.getItem('preferredLanguage')
     const requestValue = {
       projectId: record.projectId,
       action: action,
@@ -259,30 +258,35 @@ export class Flow extends React.Component {
     let singleMsg = ''
     switch (action) {
       case 'start':
-        singleMsg = '启动'
+        singleMsg = languagetext === 'en' ? 'Start' : '启动'
         break
       case 'stop':
-        singleMsg = '停止'
+        singleMsg = languagetext === 'en' ? 'Stop' : '停止'
         break
       case 'delete':
-        singleMsg = '删除'
+        singleMsg = languagetext === 'en' ? 'Delete' : '删除'
         break
     }
 
     this.props.onOperateUserFlow(requestValue, (result) => {
+      const languagetextSuccess = languagetext === 'en' ? 'successfully!' : '成功！'
       if (action === 'delete') {
-        message.success(`${singleMsg}成功！`, 3)
+        message.success(`${singleMsg}${languagetextSuccess}`, 3)
       } else {
         if (result.msg.indexOf('failed') > -1) {
-          message.error(`Flow ID ${result.id} ${singleMsg}失败！`, 3)
+          const languagetextFail = languagetext === 'en'
+            ? `It fails to ${singleMsg} Flow ID ${result.id}!`
+            : `Flow ID ${result.id} ${singleMsg}失败！`
+
+          message.error(languagetextFail, 3)
         } else {
           action === 'renew'
-            ? message.success('生效！', 3)
-            : message.success(`${singleMsg}成功！`, 3)
+            ? message.success(languagetext === 'en' ? 'Renew successfully！' : '生效！', 3)
+            : message.success(`${singleMsg}${languagetextSuccess}`, 3)
         }
       }
     }, (result) => {
-      message.error(`操作失败：${result}`, 3)
+      message.error(`${languagetext === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
     })
   }
 
@@ -380,8 +384,6 @@ export class Flow extends React.Component {
       modalVisible: true,
       flowDetail: null,
       flowId: id
-    }, () => {
-      // this.flowsDetail.onLoadData(id)
     })
   }
 
@@ -471,9 +473,7 @@ export class Flow extends React.Component {
       //   ? `${this.state.flowIdTemp}`
       //   : this.state.selectedRowKeys.join(',')
 
-      this.setState({
-        timeModalVisible: false
-      })
+      this.setState({ timeModalVisible: false })
     }
   }
 
@@ -524,28 +524,6 @@ export class Flow extends React.Component {
       })
     })
   }
-
-  // onRangeIdSearch = (columnName, startText, endText, visible) => () => {
-  //   this.setState({
-  //     filteredInfo: {roleType: []}
-  //   }, () => {
-  //     this.setState({
-  //       [visible]: false,
-  //       columnNameText: columnName,
-  //       startTextState: startText,
-  //       endTextState: endText,
-  //       visibleBool: visible,
-  //       currentFlows: this.state.originFlows.map((record) => {
-  //         const match = record[columnName]
-  //         if ((match < parseInt(this.state[startText])) || (match > parseInt(this.state[endText]))) {
-  //           return null
-  //         }
-  //         return record
-  //       }).filter(record => !!record),
-  //       filteredInfo: this.state[startText] || this.state[endText] ? { streamId: [0] } : { streamId: [] }
-  //     })
-  //   })
-  // }
 
   handleVisibleChangeFlow = (record) => (visible) => {
     if (visible) {

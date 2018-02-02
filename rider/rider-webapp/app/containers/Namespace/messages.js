@@ -33,8 +33,6 @@ export default defineMessages({
   nsTableViewDetails: { id: 'rider.app.table.view.details' },
   nsTableDetails: { id: 'rider.app.table.details' },
   nsTableModifyAction: { id: 'rider.app.table.modify.action' },
-  nsTableSourceSchemaConfig: { id: 'rider.containers.Namespace.table.source.configuration' },
-  nsTableSinkSchemaConfig: { id: 'rider.containers.Namespace.table.sink.configuration' },
   nsTableJsonFormat: { id: 'rider.containers.Namespace.Modal.configure.json.sample.format' },
   nsTableJsonClear: { id: 'rider.containers.Namespace.Modal.configure.json.sample.clear' },
   nsModalTablesTables1: { id: 'rider.containers.Namespace.Modal.tables.table1' },

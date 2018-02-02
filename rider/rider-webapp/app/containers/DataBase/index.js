@@ -26,6 +26,7 @@ import Helmet from 'react-helmet'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
+import { operateLanguageText } from '../../utils/util'
 import DBForm from './DBForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
@@ -212,22 +213,13 @@ export class DataBase extends React.PureComponent {
     let configVal = ''
     if (val.indexOf('&') > -1) {
       // key=value&key=value
-      if (val.indexOf('=') > -1) {
-        configVal = val.replace(/\n/g, '&')
-      } else {
-        configVal = val
-      }
+      configVal = val.indexOf('=') > -1 ? val.replace(/\n/g, '&') : val
     } else {
       if (val.indexOf('=') > -1) {
         // 多行输入 key=value
         const conTempStr = val.trim()
         const numArr = (conTempStr.split('=')).length - 1
-
-        if (numArr === 1) {
-          configVal = val
-        } else {
-          configVal = val.replace(/\n/g, ',')
-        }
+        configVal = numArr === 1 ? val : val.replace(/\n/g, ',')
       } else {
         configVal = val
       }
@@ -238,6 +230,10 @@ export class DataBase extends React.PureComponent {
   onModalOk = () => {
     const { formType, editDatabaseData } = this.state
     const { databaseNameExited } = this.props
+    const languageText = localStorage.getItem('preferredLanguage')
+    const createFormat = languageText === 'en' ? 'Database is created successfully!' : 'Database 新建成功！'
+    const modifyFormat = languageText === 'en' ? 'Database is modified successfully!' : 'Database 修改成功！'
+    const oracleErrorFormat = languageText === 'en' ? 'When you select Oracle, "service_name" should be contained in Config.' : 'Oracle时, 必须包含"service_name"字段'
 
     this.dBForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -246,7 +242,7 @@ export class DataBase extends React.PureComponent {
             this.dBForm.setFields({
               nsDatabase: {
                 value: values.nsDatabase,
-                errors: [new Error('该 Name 已存在')]
+                errors: [new Error(languageText === 'en' ? 'This name already exists.' : '该 Name 已存在。')]
               }
             })
           } else if (values.dataBaseDataSystem === 'oracle') {
@@ -254,7 +250,7 @@ export class DataBase extends React.PureComponent {
               this.dBForm.setFields({
                 config: {
                   value: values.config,
-                  errors: [new Error('Oracle时, 必须包含"service_name"字段')]
+                  errors: [new Error(oracleErrorFormat)]
                 }
               })
             } else {
@@ -269,7 +265,7 @@ export class DataBase extends React.PureComponent {
               }
               this.props.onAddDatabase(addValues, () => {
                 this.hideForm()
-                message.success('Database 添加成功！', 3)
+                message.success(createFormat, 3)
               }, (result) => {
                 message.error(result, 3)
               })
@@ -313,7 +309,7 @@ export class DataBase extends React.PureComponent {
 
             this.props.onAddDatabase(addValues, () => {
               this.hideForm()
-              message.success('Database 添加成功！', 3)
+              message.success(createFormat, 3)
             }, (result) => {
               message.error(result, 3)
             })
@@ -324,7 +320,7 @@ export class DataBase extends React.PureComponent {
               this.dBForm.setFields({
                 config: {
                   value: values.config,
-                  errors: [new Error('Oracle时, 必须包含"service_name"字段')]
+                  errors: [new Error(oracleErrorFormat)]
                 }
               })
             } else {
@@ -339,7 +335,7 @@ export class DataBase extends React.PureComponent {
 
               this.props.onEditDatabase(Object.assign({}, editDatabaseData, editValues), () => {
                 this.hideForm()
-                message.success('Database 修改成功！', 3)
+                message.success(modifyFormat, 3)
               }, (result) => {
                 message.error(result, 3)
               })
@@ -370,7 +366,7 @@ export class DataBase extends React.PureComponent {
 
             this.props.onEditDatabase(Object.assign({}, editDatabaseData, editValues), () => {
               this.hideForm()
-              message.success('Database 修改成功！', 3)
+              message.success(modifyFormat, 3)
             }, (result) => {
               message.error(result, 3)
             })
@@ -448,9 +444,7 @@ export class DataBase extends React.PureComponent {
    * */
   onInitDatabaseUrlValue = (value) => {
     this.props.onLoadDatabasesInstance(value, () => {
-      this.setState({
-        databaseDSType: value
-      })
+      this.setState({ databaseDSType: value })
       // dbForm 的 placeholder
       this.dBForm.setFieldsValue({
         connectionUrl: '',
@@ -472,6 +466,7 @@ export class DataBase extends React.PureComponent {
    * */
   onInitDatabaseInputValue = (value) => {
     const formValues = this.dBForm.getFieldsValue()
+    const languageText = localStorage.getItem('preferredLanguage')
     const requestValues = {
       nsInstanceId: Number(formValues.instance),
       nsDatabaseName: value,
@@ -481,7 +476,7 @@ export class DataBase extends React.PureComponent {
       this.dBForm.setFields({
         nsDatabase: {
           value: value,
-          errors: [new Error('该 Name 已存在')]
+          errors: [new Error(languageText === 'en' ? 'This name already exists.' : '该 Name 已存在。')]
         }
       })
     })
@@ -492,18 +487,12 @@ export class DataBase extends React.PureComponent {
     const formValues = this.dBForm.getFieldsValue()
     if (formValues.dataBaseDataSystem === 'oracle') {
       if (value.indexOf('service_name') > 0 || value.indexOf('service_name') === 0) {
-        this.dBForm.setFieldsValue({
-          config: value
-        })
+        this.dBForm.setFieldsValue({ config: value })
       }
     }
   }
 
-  handleEndOpenChange = (status) => {
-    this.setState({
-      filterDatepickerShown: status
-    })
-  }
+  handleEndOpenChange = (status) => this.setState({ filterDatepickerShown: status })
 
   onRangeTimeChange = (value, dateString) => {
     this.setState({
@@ -556,20 +545,16 @@ export class DataBase extends React.PureComponent {
       this.setState({
         visible
       }, () => {
-        this.props.onLoadSingleDatabase(record.id, (result) => {
-          this.setState({
-            showDBDetails: result
-          })
-        })
+        this.props.onLoadSingleDatabase(record.id, (result) => this.setState({ showDBDetails: result }))
       })
     }
   }
 
   deleteDBBtn = (record) => (e) => {
     this.props.onDeleteDB(record.id, () => {
-      message.success('删除成功！', 3)
+      message.success(operateLanguageText('success', 'delete'), 3)
     }, (result) => {
-      message.error(`删除失败： ${result}`, 5)
+      message.error(`${operateLanguageText('fail', 'delete')} ${result}`, 5)
     })
   }
 
@@ -599,7 +584,6 @@ export class DataBase extends React.PureComponent {
         {text: 'hbase', value: 'hbase'},
         {text: 'phoenix', value: 'phoenix'},
         {text: 'cassandra', value: 'cassandra'},
-        // {text: 'log', value: 'log'},
         {text: 'kafka', value: 'kafka'},
         {text: 'postgresql', value: 'postgresql'},
         {text: 'mongodb', value: 'mongodb'},
