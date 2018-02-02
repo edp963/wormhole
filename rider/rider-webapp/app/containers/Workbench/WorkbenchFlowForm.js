@@ -43,7 +43,7 @@ import Radio from 'antd/lib/radio'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 
-import { prettyShownText, uuid } from '../../utils/util'
+import { prettyShownText, uuid, forceCheckNum } from '../../utils/util'
 
 export class WorkbenchFlowForm extends React.Component {
   constructor (props) {
@@ -70,15 +70,6 @@ export class WorkbenchFlowForm extends React.Component {
   onAllOrNotSelect = (e) => this.props.initResultFieldClass(e)
 
   onShowDataFrame = (e) => this.props.initDataShowClass(e)
-
-  forceCheckDataframeNum = (rule, value, callback) => {
-    const reg = /^[0-9]+$/
-    if (reg.test(value)) {
-      callback()
-    } else {
-      callback('必须是数字')
-    }
-  }
 
   // 通过不同的 Source Data System 显示不同的 Source Namespace 的内容
   onSourceDataSystemItemSelect = (val) => {
@@ -797,7 +788,7 @@ export class WorkbenchFlowForm extends React.Component {
                   required: true,
                   message: '请填写 Number'
                 }, {
-                  validator: this.forceCheckDataframeNum
+                  validator: forceCheckNum
                 }],
                 initialValue: 10,
                 hidden: stepHiddens[1] || streamTypeHiddens[0]

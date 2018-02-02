@@ -44,14 +44,12 @@ const RadioButton = Radio.Button
 import DatePicker from 'antd/lib/date-picker'
 // const { RangePicker } = DatePicker
 
-import { prettyShownText, uuid } from '../../utils/util'
+import { prettyShownText, uuid, forceCheckNum } from '../../utils/util'
 
 export class WorkbenchJobForm extends React.Component {
   constructor (props) {
     super(props)
-    this.state = {
-      sinkConfigClass: ''
-    }
+    this.state = { sinkConfigClass: '' }
   }
 
   componentWillReceiveProps (props) {
@@ -70,24 +68,13 @@ export class WorkbenchJobForm extends React.Component {
 
   onShowDataFrame = (e) => this.props.initDataShowClass(e)
 
-  forceCheckNum = (rule, value, callback) => {
-    const reg = /^[0-9]+$/
-    if (reg.test(value)) {
-      callback()
-    } else {
-      callback('必须是数字')
-    }
-  }
-
   // 通过不同的 Source Data System 显示不同的 Source Namespace 的内容
   onSourceDataSystemItemSelect = (val) => this.props.onInitJobSourceNs(this.props.projectIdGeted, val, 'sourceType')
 
   // 通过不同的 Sink Data System 显示不同的 Sink Namespace 的内容
   onSinkDataSystemItemSelect = (val) => {
     this.props.onInitJobSinkNs(this.props.projectIdGeted, val, 'sinkType')
-    this.setState({
-      sinkConfigClass: val === 'hbase' ? 'sink-config-class' : ''
-    })
+    this.setState({ sinkConfigClass: val === 'hbase' ? 'sink-config-class' : '' })
   }
 
   onChangeStartTs = (value, dateString) => this.props.initStartTS(dateString)
@@ -520,7 +507,7 @@ export class WorkbenchJobForm extends React.Component {
                     required: true,
                     message: '请填写 Batch Record Num'
                   }, {
-                    validator: this.forceCheckNum
+                    validator: forceCheckNum
                   }],
                   initialValue: 5000,
                   hidden: stepHiddens[1]

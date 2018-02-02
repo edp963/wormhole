@@ -204,3 +204,54 @@ export function formatString (dateString) {
   return dateTempHaoMiao
 }
 
+/**
+ * 纯数字验证
+ */
+export function forceCheckNum (rule, value, callback) {
+  const reg = /^\d+$/
+  if (reg.test(value)) {
+    callback()
+  } else {
+    callback(localStorage.getItem('preferredLanguage') === 'en' ? 'Figures only' : '必须是数字')
+  }
+}
+
+/**
+ * 不小于-1 的数字
+ */
+export function forceCheckNumsPart (rule, value, callback) {
+  const reg = /^[0-9]*$/
+  if (reg.test(value) || value === -1) {
+    callback()
+  } else {
+    callback(localStorage.getItem('preferredLanguage') === 'en' ? 'Not less than -1' : '不小于-1')
+  }
+}
+
+/**
+ * 必须是字母、数字、中划线或下划线
+ */
+export function forceCheckProjectName (rule, value, callback) {
+  const reg = /^[\w-]+$/
+  if (reg.test(value)) {
+    callback()
+  } else {
+    const textZh = '必须是字母、数字、中划线或下划线！'
+    const textEn = 'It should be letters, figures, hyphen or underscore!'
+    callback(localStorage.getItem('preferredLanguage') === 'en' ? textEn : textZh)
+  }
+}
+
+/**
+ * 必须是字母、数字或下划线
+ */
+export function forceCheckSave (rule, value, callback) {
+  const reg = /^\w+$/
+  if (reg.test(value)) {
+    callback()
+  } else {
+    const textZh = '必须是字母、数字或下划线！'
+    const textEn = 'It should be letters, figures or underscore!'
+    callback(localStorage.getItem('preferredLanguage') === 'en' ? textEn : textZh)
+  }
+}

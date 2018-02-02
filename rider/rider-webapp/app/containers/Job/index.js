@@ -811,7 +811,7 @@ export class Job extends React.Component {
         </h3>
         <div className="ri-common-block-tools">
           {jobAddOrNot}
-          <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshJobLoading} onClick={this.refreshJob}>{refreshJobText}</Button>
+          <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshJobLoading} onClick={this.refreshJob}>{refreshJobText}</Button>
         </div>
         <Table
           dataSource={this.state.currentJobs}
