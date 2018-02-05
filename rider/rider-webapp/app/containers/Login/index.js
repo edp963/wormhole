@@ -91,18 +91,27 @@ export class Login extends React.PureComponent {
       const langText = result.preferredLanguage === 'chinese' ? 'zh' : 'en'
       this.props.onChangeLanguage(langText)
     }, (result) => {
-      if (result === 'Not found') {
-        message.error('用户不存在！', 3)
-      } else if (result === 'Wrong password') {
-        message.error('密码错误！', 3)
-      } else if (result === 'app type user has no permission to login') {
-        message.error('App 类型的用户不能登录！', 3)
+      const userText = result.preferredLanguage === 'english' ? 'User does not exist!' : '用户不存在！'
+      const pswText = result.preferredLanguage === 'english' ? 'Incorrect password!' : '密码错误！'
+      const typeText = result.preferredLanguage === 'english' ? 'User of App type cannot login!' : 'App 类型的用户不能登录！'
+
+      switch (result) {
+        case 'Not found':
+          message.error(userText, 3)
+          break
+        case 'Wrong password':
+          message.error(pswText, 3)
+          break
+        case 'app type user has no permission to login':
+          message.error(typeText, 3)
+          break
       }
     })
   }
 
   render () {
     const { getFieldDecorator } = this.props.form
+    const languageText = localStorage.getItem('preferredLanguage')
 
     return (
       <div className="login-container">
@@ -113,7 +122,7 @@ export class Login extends React.PureComponent {
               {getFieldDecorator('userName', {
                 rules: [{
                   required: true,
-                  message: '用户名不能为空'
+                  message: languageText === 'en' ? 'User name cannot be empty' : '用户名不能为空'
                 }]
               })(
                 <Input placeholder="User Name" onKeyDown={this.handleKeyDown} />
@@ -123,7 +132,7 @@ export class Login extends React.PureComponent {
               {getFieldDecorator('password', {
                 rules: [{
                   required: true,
-                  message: '密码不能为空'
+                  message: languageText === 'en' ? 'Password cannot be empty' : '密码不能为空'
                 }]
               })(
                 <Input type="password" placeholder="Password" onKeyDown={this.handleKeyDown} />
@@ -144,7 +153,6 @@ Login.propTypes = {
   router: React.PropTypes.any,
   onLogin: React.PropTypes.func,
   onChangeLanguage: React.PropTypes.func
-  // locale: React.PropTypes.string
 }
 
 const mapStateToProps = createStructuredSelector({

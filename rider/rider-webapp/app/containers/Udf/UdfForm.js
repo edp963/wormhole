@@ -33,6 +33,7 @@ export class UdfForm extends React.Component {
   render () {
     const { getFieldDecorator } = this.props.form
     const { type } = this.props
+    const languageText = localStorage.getItem('preferredLanguage')
 
     const itemStyle = {
       labelCol: { span: 6 },
@@ -56,7 +57,7 @@ export class UdfForm extends React.Component {
               {getFieldDecorator('functionName', {
                 rules: [{
                   required: true,
-                  message: 'Function Name 不能为空'
+                  message: languageText === 'en' ? 'Function Name cannot be empty' : 'Function Name 不能为空'
                 }]
               })(
                 <Input placeholder="Function Name" disabled={disabledOrNot} />
@@ -77,7 +78,7 @@ export class UdfForm extends React.Component {
               {getFieldDecorator('fullName', {
                 rules: [{
                   required: true,
-                  message: '请输入 Full Class Name'
+                  message: languageText === 'en' ? 'Please fill in full class name' : '请填写 Full Class Name'
                 }]
               })(
                 <Input placeholder="Full Class Name" disabled={disabledOrNot} />
@@ -90,7 +91,7 @@ export class UdfForm extends React.Component {
               {getFieldDecorator('jarName', {
                 rules: [{
                   required: true,
-                  message: '请输入 Jar Name'
+                  message: languageText === 'en' ? 'Please fill in jar name' : '请填写 Jar Name'
                 }]
               })(
                 <Input placeholder="Jar Name" />
@@ -103,7 +104,7 @@ export class UdfForm extends React.Component {
               {getFieldDecorator('public', {
                 rules: [{
                   required: true,
-                  message: '请填写 Public'
+                  message: languageText === 'en' ? 'Please fill in public' : '请填写 Public'
                 }],
                 initialValue: 'true'
               })(

@@ -87,6 +87,7 @@ export class NamespaceForm extends React.Component {
     const { currentNamespaceUrlValue, namespaceDSValue } = this.state
     const { namespaceFormType, databaseSelectValue, queryConnUrl } = this.props
     const { namespaceTableSource, onDeleteTable, onAddTable, deleteTableClass, addTableClass, addTableClassTable, addBtnDisabled } = this.props
+    const languageText = localStorage.getItem('preferredLanguage')
 
     const itemStyle = {
       labelCol: { span: 6 },
@@ -101,7 +102,6 @@ export class NamespaceForm extends React.Component {
       { value: 'hbase', icon: 'icon-hbase1' },
       { value: 'phoenix', text: 'Phoenix' },
       { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
-      // { value: 'log', text: 'Log' },
       { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
       { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} },
@@ -213,9 +213,7 @@ export class NamespaceForm extends React.Component {
         })
       },
       onChange: (current) => {
-        this.setState({
-          pageIndex: current
-        })
+        this.setState({ pageIndex: current })
       }
     }
 
@@ -234,7 +232,7 @@ export class NamespaceForm extends React.Component {
               {getFieldDecorator('dataBaseDataSystem', {
                 rules: [{
                   required: true,
-                  message: '请选择 Data System'
+                  message: languageText === 'en' ? 'Please select Data System' : '请选择 Data System'
                 }]
               })(
                 <DataSystemSelector
@@ -251,7 +249,7 @@ export class NamespaceForm extends React.Component {
               {getFieldDecorator('instance', {
                 rules: [{
                   required: true,
-                  message: '请填写 Instance'
+                  message: languageText === 'en' ? 'Please fill in the Instance' : '请填写 Instance'
                 }]
               })(
                 <Select
@@ -279,7 +277,7 @@ export class NamespaceForm extends React.Component {
               {getFieldDecorator('nsDatabase', {
                 rules: [{
                   required: true,
-                  message: `请选择 ${namespaceDBLabel}`
+                  message: `${languageText === 'en' ? '' : ''}请选择 ${namespaceDBLabel}`
                 }]
               })(
                 <Select

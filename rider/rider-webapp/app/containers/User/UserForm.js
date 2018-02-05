@@ -31,13 +31,12 @@ import Select from 'antd/lib/select'
 const Option = Select.Option
 
 export class UserForm extends React.Component {
-  onEmailInputChange = (e) => {
-    this.props.onInitEmailInputValue(e.target.value)
-  }
+  onEmailInputChange = (e) => this.props.onInitEmailInputValue(e.target.value)
 
   checkPasswordConfirm = (rule, value, callback) => {
+    const languageText = localStorage.getItem('preferredLanguage')
     if (value && value !== this.props.form.getFieldValue('password')) {
-      callback('两次输入的密码不一致')
+      callback(languageText === 'en' ? 'The password you entered is inconsistent with the former' : '两次输入的密码不一致')
     } else {
       callback()
     }
@@ -54,6 +53,7 @@ export class UserForm extends React.Component {
   render () {
     const { getFieldDecorator } = this.props.form
     const { type } = this.props
+    const languageText = localStorage.getItem('preferredLanguage')
 
     let msgModalInput = false
     let pswModalInput = false
@@ -91,14 +91,14 @@ export class UserForm extends React.Component {
               {getFieldDecorator('email', {
                 rules: [{
                   required: true,
-                  message: 'Email 不能为空'
+                  message: languageText === 'en' ? 'Email cannot be empty' : 'Email 不能为空'
                 }, {
                   type: 'email',
-                  message: 'Email 格式不正确'
+                  message: languageText === 'en' ? 'Incorrect Email format' : 'Email 格式不正确'
                 }]
               })(
                 <Input
-                  placeholder="用于登录的 Email 地址"
+                  placeholder={languageText === 'en' ? 'Email for login' : '用于登录的 Email 地址'}
                   disabled={type === 'editMsg'}
                   onChange={this.onEmailInputChange}
                 />
@@ -110,17 +110,20 @@ export class UserForm extends React.Component {
               {getFieldDecorator('password', {
                 rules: [{
                   required: true,
-                  message: '密码不能为空'
+                  message: languageText === 'en' ? 'Password cannot be empty' : 'Password 不能为空'
                 }, {
                   min: 6,
                   max: 20,
-                  message: '密码长度为6-20位'
+                  message: languageText === 'en' ? 'The password length should be 6-20 characters' : '密码长度为6-20位'
                 }, {
                   validator: this.forceCheckConfirm
                 }],
                 hidden: msgModalInput
               })(
-                <Input type="password" placeholder="密码长度为 6-20 位" />
+                <Input
+                  type="password"
+                  placeholder={languageText === 'en' ? 'The password length should be 6-20 characters' : '密码长度为6-20位'}
+                />
               )}
             </FormItem>
           </Col>
@@ -129,13 +132,16 @@ export class UserForm extends React.Component {
               {getFieldDecorator('confirmPassword', {
                 rules: [{
                   required: true,
-                  message: '请确认密码'
+                  message: languageText === 'en' ? 'Please Re-enter password' : '请确认密码'
                 }, {
                   validator: this.checkPasswordConfirm
                 }],
                 hidden: msgModalInput
               })(
-                <Input type="password" placeholder="确认密码" />
+                <Input
+                  type="password"
+                  placeholder={languageText === 'en' ? 'enter your password again' : '确认密码'}
+                />
               )}
             </FormItem>
           </Col>
@@ -144,12 +150,14 @@ export class UserForm extends React.Component {
               {getFieldDecorator('name', {
                 rules: [{
                   required: true,
-                  message: '请输入姓名'
+                  message: languageText === 'en' ? 'Please fill in name' : '请输入姓名'
                 }],
                 initialValue: '',
                 hidden: pswModalInput
               })(
-                <Input placeholder="用户姓名" />
+                <Input
+                  placeholder={languageText === 'en' ? 'User Name' : '用户姓名'}
+                />
               )}
             </FormItem>
           </Col>
@@ -158,11 +166,14 @@ export class UserForm extends React.Component {
               {getFieldDecorator('roleType', {
                 rules: [{
                   required: true,
-                  message: '请选择用户类型'
+                  message: languageText === 'en' ? 'Please select user type' : '请选择用户类型'
                 }],
                 hidden: pswModalInput
               })(
-                <Select style={{ width: '305px' }} placeholder="选择用户类型" disabled={rolrTypeDisabledOrNot}>
+                <Select
+                  style={{ width: '305px' }}
+                  placeholder={languageText === 'en' ? 'Select user type' : '选择用户类型'}
+                  disabled={rolrTypeDisabledOrNot}>
                   <Option value="admin">admin</Option>
                   <Option value="user">user</Option>
                   <Option value="app">app</Option>

@@ -22,7 +22,7 @@ import React from 'react'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import { forceCheckNum } from '../../utils/util'
+import { forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
 import DataSystemSelector from '../../components/DataSystemSelector'
 import Form from 'antd/lib/form'
 const FormItem = Form.Item
@@ -177,7 +177,7 @@ export class FlowTransformForm extends React.Component {
               {getFieldDecorator('transformation', {
                 rules: [{
                   required: true,
-                  message: '请选择 Transformation'
+                  message: operateLanguageSelect('transformation', 'Transformation')
                 }]
               })(
                 <RadioGroup onChange={this.onTransformTypeSelect}>
@@ -196,7 +196,7 @@ export class FlowTransformForm extends React.Component {
               {getFieldDecorator('lookupSqlType', {
                 rules: [{
                   required: true,
-                  message: '请选择 Type'
+                  message: operateLanguageSelect('type', 'Type')
                 }],
                 hidden: transformTypeHiddens[0]
               })(
@@ -212,7 +212,7 @@ export class FlowTransformForm extends React.Component {
               {getFieldDecorator('transformSinkDataSystem', {
                 rules: [{
                   required: true,
-                  message: '请选择 Data System'
+                  message: operateLanguageSelect('data system', 'Data System')
                 }],
                 hidden: transformTypeHiddens[0]
               })(
@@ -228,7 +228,7 @@ export class FlowTransformForm extends React.Component {
               {getFieldDecorator('transformSinkNamespace', {
                 rules: [{
                   required: true,
-                  message: '请选择 Database'
+                  message: operateLanguageSelect('Database', 'Database')
                 }],
                 hidden: transformTypeHiddens[0]
               })(
@@ -282,7 +282,7 @@ export class FlowTransformForm extends React.Component {
               {getFieldDecorator('streamJoinSqlType', {
                 rules: [{
                   required: true,
-                  message: '请选择 Type'
+                  message: operateLanguageSelect('type', 'Type')
                 }],
                 hidden: transformTypeHiddens[2]
               })(
@@ -298,7 +298,7 @@ export class FlowTransformForm extends React.Component {
               {getFieldDecorator('timeout', {
                 rules: [{
                   required: true,
-                  message: '请填写 Timeout'
+                  message: operateLanguageFillIn('timeout', 'Timeout')
                 }, {
                   validator: forceCheckNum
                 }],
@@ -331,7 +331,7 @@ export class FlowTransformForm extends React.Component {
               {getFieldDecorator('transformClassName', {
                 rules: [{
                   required: true,
-                  message: '请填写 ClassName'
+                  message: operateLanguageFillIn('className', 'ClassName')
                 }],
                 hidden: transformTypeHiddens[3]
               })(

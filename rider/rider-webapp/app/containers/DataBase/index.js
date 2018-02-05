@@ -26,7 +26,7 @@ import Helmet from 'react-helmet'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import { operateLanguageText } from '../../utils/util'
+import { operateLanguageText, operateLanguageNameExist } from '../../utils/util'
 import DBForm from './DBForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
@@ -242,7 +242,7 @@ export class DataBase extends React.PureComponent {
             this.dBForm.setFields({
               nsDatabase: {
                 value: values.nsDatabase,
-                errors: [new Error(languageText === 'en' ? 'This name already exists.' : '该 Name 已存在。')]
+                errors: [new Error(operateLanguageNameExist())]
               }
             })
           } else if (values.dataBaseDataSystem === 'oracle') {
@@ -466,7 +466,6 @@ export class DataBase extends React.PureComponent {
    * */
   onInitDatabaseInputValue = (value) => {
     const formValues = this.dBForm.getFieldsValue()
-    const languageText = localStorage.getItem('preferredLanguage')
     const requestValues = {
       nsInstanceId: Number(formValues.instance),
       nsDatabaseName: value,
@@ -476,7 +475,7 @@ export class DataBase extends React.PureComponent {
       this.dBForm.setFields({
         nsDatabase: {
           value: value,
-          errors: [new Error(languageText === 'en' ? 'This name already exists.' : '该 Name 已存在。')]
+          errors: [new Error(operateLanguageNameExist())]
         }
       })
     })

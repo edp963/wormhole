@@ -51,6 +51,7 @@ export class InstanceForm extends React.Component {
     const { getFieldDecorator } = this.props.form
     const { instanceFormType } = this.props
     const { instanceDSValue } = this.state
+    const languageText = localStorage.getItem('preferredLanguage')
 
     const itemStyle = {
       labelCol: { span: 6 },
@@ -93,12 +94,9 @@ export class InstanceForm extends React.Component {
       questionDS = <FormattedMessage {...messages.instanceModalUrlPhienixMsg} />
     } else if (instanceDSValue === 'kafka') {
       questionDS = <FormattedMessage {...messages.instanceModalUrlKafkaMsg} />
-    } else if (instanceDSValue === 'cassandra') {
+    } else if (instanceDSValue === 'cassandra' || instanceDSValue === 'redis' ||
+      instanceDSValue === 'mongodb') {
       questionDS = <FormattedMessage {...messages.instanceModalUrlCassandraMsg} />
-    } else if (instanceDSValue === 'redis') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlRedisMsg} />
-    } else if (instanceDSValue === 'mongodb') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlMongodbMsg} />
     } else {
       questionDS = <FormattedMessage {...messages.instanceModalUrlOthersMsg} />
     }
@@ -135,7 +133,7 @@ export class InstanceForm extends React.Component {
               {getFieldDecorator('instanceDataSystem', {
                 rules: [{
                   required: true,
-                  message: '请选择 Data System'
+                  message: `${languageText === 'en' ? 'Please select Data System' : '请选择 Data System'}`
                 }]
               })(
                 <DataSystemSelector
@@ -152,7 +150,7 @@ export class InstanceForm extends React.Component {
               {getFieldDecorator('instance', {
                 rules: [{
                   required: true,
-                  message: '请填写 Instance'
+                  message: `${languageText === 'en' ? 'Please fill in instance' : '请填写 Instance'}`
                 }]
               })(
                 <Input
@@ -169,7 +167,7 @@ export class InstanceForm extends React.Component {
               {getFieldDecorator('connectionUrl', {
                 rules: [{
                   required: true,
-                  message: '请填写 Connection URL'
+                  message: `${languageText === 'en' ? 'Please fill in connection url' : '请填写 Connection Url'}`
                 }]
               })(
                 <Input

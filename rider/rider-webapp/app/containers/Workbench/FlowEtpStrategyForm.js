@@ -47,16 +47,19 @@ export class FlowEtpConfigForm extends React.Component {
   onAgainstActionChange = (e) => this.setState({ againstActionValue: e.target.value })
 
   forceChecColumnSave = (rule, value, callback) => {
+    const languageText = localStorage.getItem('preferredLanguage')
     if (value.indexOf('，')) {
       callback()
     } else {
-      callback('不允许出现中文逗号')
+      callback(languageText === 'en' ? 'No full-shaped comma' : '不允许出现中文逗号')
     }
   }
 
   render () {
     const { form } = this.props
     const { getFieldDecorator } = form
+    const languageText = localStorage.getItem('preferredLanguage')
+
     const itemStyle = {
       labelCol: { span: 7 },
       wrapperCol: { span: 16 }
@@ -70,12 +73,12 @@ export class FlowEtpConfigForm extends React.Component {
               {getFieldDecorator('checkColumns', {
                 rules: [{
                   required: true,
-                  message: '请填写 Check Columns'
+                  message: languageText === 'en' ? 'Please fill in check columns' : '请填写 Check Columns'
                 }, {
                   validator: this.forceChecColumnSave
                 }]
               })(
-                <Input placeholder="字段名，用英文逗号隔开" />
+                <Input placeholder={languageText === 'en' ? 'separate field names with half-angle commas' : '字段名，用英文逗号隔开'} />
               )}
             </FormItem>
           </Col>
@@ -84,7 +87,7 @@ export class FlowEtpConfigForm extends React.Component {
               {getFieldDecorator('checkRule', {
                 rules: [{
                   required: true,
-                  message: '请选择 Check Rule'
+                  message: languageText === 'en' ? 'Please select check rule' : '请选择 Check Rule'
                 }]
               })(
                 <RadioGroup onChange={this.onCheckRuleChange}>
@@ -99,7 +102,7 @@ export class FlowEtpConfigForm extends React.Component {
               {getFieldDecorator('ruleMode', {
                 rules: [{
                   required: true,
-                  message: '请选择 Rule Mode'
+                  message: languageText === 'en' ? 'Please select rule mode' : '请选择 Rule Mode'
                 }]
               })(
                 <RadioGroup onChange={this.onRuleModeChange}>
@@ -113,12 +116,18 @@ export class FlowEtpConfigForm extends React.Component {
               {getFieldDecorator('ruleParams', {
                 rules: [{
                   required: true,
-                  message: '请填写 Rule Params'
+                  message: languageText === 'en' ? 'Please fill in rule params' : '请填写 Rule Params'
                 }, {
                   validator: forceCheckNum
                 }]
               })(
-                <InputNumber min={10} max={1800} step={1} placeholder="超时时间" style={{width: '50%'}} />
+                <InputNumber
+                  min={10}
+                  max={1800}
+                  step={1}
+                  placeholder={languageText === 'en' ? 'Timeout' : '超时时间'}
+                  style={{width: '50%'}}
+                />
               )}
             </FormItem>
           </Col>
@@ -128,7 +137,7 @@ export class FlowEtpConfigForm extends React.Component {
               {getFieldDecorator('againstAction', {
                 rules: [{
                   required: true,
-                  message: '请选择 Against Action'
+                  message: languageText === 'en' ? 'Please select against action' : '请选择 Against Action'
                 }]
               })(
                 <RadioGroup onChange={this.onAgainstActionChange}>

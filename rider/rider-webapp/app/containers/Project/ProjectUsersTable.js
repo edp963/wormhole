@@ -65,9 +65,7 @@ export class ProjectUsersTable extends React.Component {
     }
   }
 
-  onSelectChange = (selectedRowKeys) => {
-    this.setState({ selectedRowKeys })
-  }
+  onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
 
   handleChange = (pagination, filters, sorter) => {
     if (filters) {

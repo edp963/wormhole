@@ -113,11 +113,9 @@
   "rider.containers.Instance.Modal.url.oracle.msg": "ip:port",
   "rider.containers.Instance.Modal.url.es.msg": "if it acts as sink, fill in http://localhost:9200; if it acts as lookup, fill in localhost:9300.",
   "rider.containers.Instance.Modal.url.hbase.msg": "zookeeper url list, localhost:2181/hbase,localhost1:2181/hbase.",
-  "rider.containers.Instance.Modal.url.phoenix.msg": "1",
+  "rider.containers.Instance.Modal.url.phoenix.msg": "zookeeper url list",
   "rider.containers.Instance.Modal.url.kafka.msg": "localhost:9092,localhost1:9092",
-  "rider.containers.Instance.Modal.url.cassandra.msg": "2",
-  "rider.containers.Instance.Modal.url.redis.msg": "3",
-  "rider.containers.Instance.Modal.url.mongodb.msg": "4",
+  "rider.containers.Instance.Modal.url.cassandra.msg": "ip:port list",
   "rider.containers.Instance.Modal.url.others.msg": "Please Select Data System",
 
   "rider.containers.Database.table.column.ds": "Data System",
@@ -140,5 +138,6 @@
   "rider.containers.Workbench.transformation.up": "Up",
   "rider.containers.Workbench.transformation.down": "Down",
   "rider.containers.Workbench.transformation.lookup.msg": "if lookup table is user, source namespace is kafka.test.test.test, SQL sentence for example: select id as id1, name as name1 from user where (id,name) in (kafka.test.test.test.id, kafka.test.test.test.name);",
-  "rider.containers.Workbench.transformation.spark.msg": "Table in SQL sentence is the fourth layer in source namespace; for example, if source namespace is kafka.test.test1.test2.*.*.*,  SQL sentence should be select * from test2;"
+  "rider.containers.Workbench.transformation.spark.msg": "Table in SQL sentence is the fourth layer in source namespace; for example, if source namespace is kafka.test.test1.test2.*.*.*,  SQL sentence should be select * from test2;",
+  "rider.containers.Workbench.transformation.resource.configuration": "Dirver/Executor resource configuration"
 }
