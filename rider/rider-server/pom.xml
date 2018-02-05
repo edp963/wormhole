@@ -149,6 +149,7 @@
             </exclusions>
         </dependency>
 
+
         <dependency>
             <groupId>de.heikoseeberger</groupId>
             <artifactId>akka-http-json4s_2.11</artifactId>
