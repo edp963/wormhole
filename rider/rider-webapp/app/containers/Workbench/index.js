@@ -22,7 +22,9 @@ import React from 'react'
 import {connect} from 'react-redux'
 import {createStructuredSelector} from 'reselect'
 import Helmet from 'react-helmet'
-import { preProcessSql, formatString, isJSON } from '../../utils/util'
+import { preProcessSql, formatString, isJSON, operateLanguageSuccessMessage,
+  operateLanguageSourceToSink, operateLanguageNameExist, operateLanguageSinkConfig,
+  operateLanguageSql } from '../../utils/util'
 import { generateSourceSinkNamespaceHierarchy, generateHdfslogNamespaceHierarchy,
   generateTransformSinkNamespaceHierarchy, showSinkConfigMsg} from './workbenchFunction'
 import CodeMirror from 'codemirror'
@@ -285,7 +287,7 @@ export class Workbench extends React.Component {
       this.workbenchStreamForm.setFields({
         streamName: {
           value: value,
-          errors: [new Error('该 Name 已存在')]
+          errors: [new Error(operateLanguageNameExist())]
         }
       })
     })
@@ -339,6 +341,7 @@ export class Workbench extends React.Component {
    * */
   onInitJobSourceNs = (projectId, value, type) => {
     const { jobMode } = this.state
+    const languageText = localStorage.getItem('preferredLanguage')
 
     this.setState({ jobSourceNsData: [] })
 
@@ -351,7 +354,7 @@ export class Workbench extends React.Component {
         this.workbenchJobForm.setFieldsValue({ sourceNamespace: undefined })
       }
     }, (result) => {
-      message.error(`Source 异常：${result}`, 5)
+      message.error(`Source ${languageText === 'en' ? 'exception:' : '异常：'} ${result}`, 5)
     })
   }
 
@@ -431,6 +434,7 @@ export class Workbench extends React.Component {
    * */
   onInitJobSinkNs = (projectId, value, type) => {
     const { jobMode } = this.state
+    const languageText = localStorage.getItem('preferredLanguage')
 
     this.setState({
       jobSinkNsData: [],
@@ -442,7 +446,7 @@ export class Workbench extends React.Component {
         this.workbenchJobForm.setFieldsValue({ sinkNamespace: undefined })
       }
     }, (result) => {
-      message.error(`Sink 异常：${result}`, 5)
+      message.error(`Sink ${languageText === 'en' ? 'exception:' : '异常：'} ${result}`, 5)
     })
   }
 
@@ -506,6 +510,7 @@ export class Workbench extends React.Component {
 
   onInitStreamTypeSelect = (val) => {
     this.setState({ streamDiffType: val })
+    const languageText = localStorage.getItem('preferredLanguage')
 
     // 显示 Stream 信息
     this.props.onLoadSelectStreamKafkaTopic(this.state.projectId, val, (result) => {
@@ -529,7 +534,7 @@ export class Workbench extends React.Component {
         hdfslogSinkNsValue: ''
       })
       if (result.length === 0) {
-        message.warning('请先新建相应类型的 Stream！', 3)
+        message.warning(languageText === 'en' ? 'Please create a Stream with corresponding type first!' : '请先新建相应类型的 Stream！', 3)
         this.setState({
           pipelineStreamId: 0,
           flowKafkaInstanceValue: '',
@@ -1344,6 +1349,7 @@ export class Workbench extends React.Component {
   hideSparkConfigModal = () => this.setState({ sparkConfigModalVisible: false })
 
   onConfigModalOk = () => {
+    const languageText = localStorage.getItem('preferredLanguage')
     this.streamConfigForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         values.personalConf = values.personalConf.trim()
@@ -1391,13 +1397,14 @@ export class Workbench extends React.Component {
           })
           this.hideConfigModal()
         } else {
-          message.warning('请正确配置 JVM！', 3)
+          message.warning(languageText === 'en' ? 'Please configure JVM correctly!' : '请正确配置 JVM！', 3)
         }
       }
     })
   }
 
   onSparkConfigModalOk = () => {
+    const languageText = localStorage.getItem('preferredLanguage')
     this.streamConfigForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         values.personalConf = values.personalConf.trim()
@@ -1438,7 +1445,7 @@ export class Workbench extends React.Component {
           })
           this.hideSparkConfigModal()
         } else {
-          message.warning('请正确配置 JVM！', 3)
+          message.warning(languageText === 'en' ? 'Please configure JVM correctly!' : '请正确配置 JVM！', 3)
         }
       }
     })
@@ -1479,7 +1486,7 @@ export class Workbench extends React.Component {
           step2SinkNamespace: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
         })
       }, () => {
-        message.error('Source to Sink 已存在！', 3)
+        message.error(operateLanguageSourceToSink(), 3)
       })
     } else if (flowMode === 'edit') {
       this.setState({
@@ -1492,6 +1499,7 @@ export class Workbench extends React.Component {
 
   handleForwardDefault () {
     const { flowFormTranTableSource, streamDiffType } = this.state
+    const languageText = localStorage.getItem('preferredLanguage')
 
     let tranRequestTempArr = []
     flowFormTranTableSource.map(i => tranRequestTempArr.push(preProcessSql(i.transformConfigInfoRequest)))
@@ -1518,14 +1526,16 @@ export class Workbench extends React.Component {
         switch (this.state.formStep) {
           case 0:
             if (!values.sinkConfig) {
+              const dataText = languageText === 'en' ? 'When Data System is ' : 'Data System 为 '
+              const emptyText = languageText === 'en' ? ', Sink Config cannot be empty!' : ' 时，Sink Config 不能为空！'
               values.sinkDataSystem === 'hbase'
-                ? message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
+                ? message.error(`${dataText}${values.sinkDataSystem}${emptyText}`, 3)
                 : this.loadSTSExit(values)
             } else {
               // json 校验
               isJSON(values.sinkConfig)
                 ? this.loadSTSExit(values)
-                : message.error('Sink Config 应为 JSON格式！', 3)
+                : message.error(languageText === 'en' ? 'Sink Config should be JSON format!' : 'Sink Config 应为 JSON格式！', 3)
             }
 
             const rfSelect = this.workbenchFlowForm.getFieldValue('resultFields')
@@ -1588,7 +1598,7 @@ export class Workbench extends React.Component {
           this.props.onLoadSourceToSinkExist(projectId, sourceInfo, sinkInfo, () => {
             this.setState({ formStep: this.state.formStep + 2 })
           }, () => {
-            message.error('Source to Sink 已存在！', 3)
+            message.error(operateLanguageSourceToSink(), 3)
           })
         } else if (flowMode === 'edit') {
           this.setState({ formStep: this.state.formStep + 2 })
@@ -1612,7 +1622,7 @@ export class Workbench extends React.Component {
           jobStepSinkNs: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
         })
       }, () => {
-        message.error('Source to Sink 已存在！', 3)
+        message.error(operateLanguageSourceToSink, 3)
       })
     } else if (jobMode === 'edit') {
       this.setState({
@@ -1626,6 +1636,7 @@ export class Workbench extends React.Component {
   handleForwardJob () {
     const { formStep, jobFormTranTableSource } = this.state
     const { jobNameExited } = this.props
+    const languageText = localStorage.getItem('preferredLanguage')
 
     this.workbenchJobForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -1635,19 +1646,21 @@ export class Workbench extends React.Component {
               this.workbenchJobForm.setFields({
                 jobName: {
                   value: values.jobName,
-                  errors: [new Error('该 Name 已存在')]
+                  errors: [new Error(operateLanguageNameExist())]
                 }
               })
-              message.error('该 Job Name 已存在！', 3)
+              message.error(operateLanguageNameExist(), 3)
             } else {
               if (!values.sinkConfig) {
+                const dataText = languageText === 'en' ? 'When Data System is ' : 'Data System 为 '
+                const emptyText = languageText === 'en' ? ', Sink Config cannot be empty!' : ' 时，Sink Config 不能为空！'
                 values.sinkDataSystem === 'hbase'
-                  ? message.error(`Data System 为 ${values.sinkDataSystem} 时，Sink Config 不能为空！`, 3)
+                  ? message.error(`${dataText}${values.sinkDataSystem}${emptyText}`, 3)
                   : this.loadJobSTSExit(values)
               } else {
                 isJSON(values.sinkConfig)
                   ? this.loadJobSTSExit(values)
-                  : message.error('Sink Config 应为 JSON格式！', 3)
+                  : message.error(languageText === 'en' ? 'Sink Config should be JSON format!' : 'Sink Config 应为 JSON格式！', 3)
               }
             }
 
@@ -1707,25 +1720,35 @@ export class Workbench extends React.Component {
       case 0:
         return (
           <div className="ri-workbench-step-button-area">
-            <Button type="primary" className="next" onClick={this.forwardStep}>下一步</Button>
+            <Button type="primary" className="next" onClick={this.forwardStep}>
+              <FormattedMessage {...messages.workbenchNext} />
+            </Button>
           </div>
         )
       case 1:
         return (
           <div className="ri-workbench-step-button-area">
-            <Button type="ghost" onClick={this.backwardStep}>上一步</Button>
-            <Button type="primary" className="next" onClick={this.forwardStep}>下一步</Button>
+            <Button type="ghost" onClick={this.backwardStep}>
+              <FormattedMessage {...messages.workbenchBack} />
+            </Button>
+            <Button type="primary" className="next" onClick={this.forwardStep}>
+              <FormattedMessage {...messages.workbenchNext} />
+            </Button>
           </div>
         )
       case 2:
         return (
           <div className="ri-workbench-step-button-area">
-            <Button type="ghost" onClick={this.backwardStep}>上一步</Button>
+            <Button type="ghost" onClick={this.backwardStep}>
+              <FormattedMessage {...messages.workbenchBack} />
+            </Button>
             <Button
               type="primary"
               className="next"
               loading={tabPanelKey === 'flow' ? this.props.flowSubmitLoading : this.props.jobSubmitLoading}
-              onClick={tabPanelKey === 'flow' ? this.submitFlowForm : this.submitJobForm}>提交</Button>
+              onClick={tabPanelKey === 'flow' ? this.submitFlowForm : this.submitJobForm}>
+              <FormattedMessage {...messages.workbenchSubmit} />
+            </Button>
           </div>
         )
       default:
@@ -1746,6 +1769,7 @@ export class Workbench extends React.Component {
 
   submitJobForm = () => {
     const values = this.workbenchJobForm.getFieldsValue()
+    const languageText = localStorage.getItem('preferredLanguage')
 
     const { projectId, jobMode, startTsVal, endTsVal, singleJobResult } = this.state
     const { jobResultFiledsOutput, jobTranTableRequestValue, jobSparkConfigValues } = this.state
@@ -1800,7 +1824,7 @@ export class Workbench extends React.Component {
       }
 
       this.props.onAddJob(Object.assign({}, submitJobData, jobSparkConfigValues, requestCommon), () => {
-        message.success('Job 添加成功！', 3)
+        message.success(languageText === 'en' ? 'Job is created successfully!' : 'Job 添加成功！', 3)
       }, () => {
         this.hideJobSubmit()
       })
@@ -1808,7 +1832,7 @@ export class Workbench extends React.Component {
       this.props.onEditJob(Object.assign({}, singleJobResult, jobSparkConfigValues, requestCommon, {
         sourceConfig: `{"protocol":"${values.protocol}"}`
       }), () => {
-        message.success('Job 修改成功！', 3)
+        message.success(languageText === 'en' ? 'Job is modified successfully!' : 'Job 修改成功！', 3)
       }, () => {
         this.hideJobSubmit()
       })
@@ -1845,6 +1869,7 @@ export class Workbench extends React.Component {
     const values = this.workbenchFlowForm.getFieldsValue()
     const { projectId, flowMode, singleFlowResult } = this.state
     const { resultFiledsOutput, dataframeShowOrNot, etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue } = this.state
+    const languageText = localStorage.getItem('preferredLanguage')
 
     let sinkConfigRequest = ''
     if (values.resultFields === 'all') {
@@ -1888,9 +1913,9 @@ export class Workbench extends React.Component {
 
       this.props.onAddFlow(submitFlowData, () => {
         if (flowMode === 'add') {
-          message.success('Flow 添加成功！', 3)
+          message.success(languageText === 'en' ? 'Flow is created successfully!' : 'Flow 添加成功！', 3)
         } else if (flowMode === 'copy') {
-          message.success('Flow 复制成功！', 3)
+          message.success(languageText === 'en' ? 'Flow is copied successfully!' : 'Flow 复制成功！', 3)
         }
       }, () => {
         this.hideFlowSubmit()
@@ -1904,7 +1929,7 @@ export class Workbench extends React.Component {
       }
 
       this.props.onEditFlow(Object.assign({}, editData, singleFlowResult), () => {
-        message.success('Flow 修改成功！', 3)
+        message.success(languageText === 'en' ? 'Flow is modified successfully!' : 'Flow 修改成功！', 3)
       }, () => {
         this.hideFlowSubmit()
         this.hideFlowDefaultSubmit()
@@ -1943,15 +1968,15 @@ export class Workbench extends React.Component {
           }
 
           if (sourceToSinkExited) {
-            message.error('Source to Sink 已存在！', 3)
+            message.error(operateLanguageSourceToSink(), 3)
           } else {
             this.props.onAddFlow(submitFlowData, (result) => {
               if (result.length === 0) {
-                message.success('该 Flow 已被创建！', 3)
+                message.success(operateLanguageSuccessMessage('Flow', 'existed'), 3)
               } else if (flowMode === 'add') {
-                message.success('Flow 添加成功！', 3)
+                message.success(operateLanguageSuccessMessage('Flow', 'create'), 3)
               } else if (flowMode === 'copy') {
-                message.success('Flow 复制成功！', 3)
+                message.success(operateLanguageSuccessMessage('Flow', 'copy'), 3)
               }
             }, () => {
               this.hideFlowSubmit()
@@ -1965,7 +1990,7 @@ export class Workbench extends React.Component {
           }
 
           this.props.onEditFlow(Object.assign({}, editData, singleFlowResult), () => {
-            message.success('Flow 修改成功！', 3)
+            message.success(operateLanguageSuccessMessage('Flow', 'modify'), 3)
           }, () => {
             this.hideFlowSubmit()
           })
@@ -1998,15 +2023,15 @@ export class Workbench extends React.Component {
           }
 
           if (sourceToSinkExited) {
-            message.error('Source to Sink 已存在！', 3)
+            message.error(operateLanguageSourceToSink(), 3)
           } else {
             this.props.onAddFlow(submitFlowData, (result) => {
               if (result.length === 0) {
-                message.success('该 Flow 已被创建！', 3)
+                message.success(operateLanguageSuccessMessage('Flow', 'existed'), 3)
               } else if (flowMode === 'add') {
-                message.success('Flow 添加成功！', 3)
+                message.success(operateLanguageSuccessMessage('Flow', 'create'), 3)
               } else if (flowMode === 'copy') {
-                message.success('Flow 复制成功！', 3)
+                message.success(operateLanguageSuccessMessage('Flow', 'copy'), 3)
               }
             }, () => {
               this.hideFlowSubmit()
@@ -2020,7 +2045,7 @@ export class Workbench extends React.Component {
           }
 
           this.props.onEditFlow(Object.assign({}, editData, singleFlowResult), () => {
-            message.success('Flow 修改成功！', 3)
+            message.success(operateLanguageSuccessMessage('Flow', 'modify'), 3)
           }, () => {
             this.hideFlowSubmit()
           })
@@ -2049,13 +2074,13 @@ export class Workbench extends React.Component {
             this.workbenchStreamForm.setFields({
               streamName: {
                 value: values.streamName,
-                errors: [new Error('该 Name 已存在')]
+                errors: [new Error(operateLanguageNameExist())]
               }
             })
             this.hideStreamSubmit()
           } else {
             this.props.onAddStream(projectId, Object.assign({}, requestValues, streamConfigValues), () => {
-              message.success('Stream 添加成功！', 3)
+              message.success(operateLanguageSuccessMessage('Stream', 'create'), 3)
               this.setState({
                 streamMode: ''
               })
@@ -2071,7 +2096,7 @@ export class Workbench extends React.Component {
           const requestEditValues = Object.assign({}, editValues, streamQueryValues, streamConfigValues)
 
           this.props.onEditStream(requestEditValues, () => {
-            message.success('Stream 修改成功！', 3)
+            message.success(operateLanguageSuccessMessage('Stream', 'modify'), 3)
             this.setState({ streamMode: '' })
             this.hideStreamSubmit()
           })
@@ -2333,7 +2358,7 @@ export class Workbench extends React.Component {
           case 'sparkSql':
             const cmJobSparkSqlVal = this.cmJobSparkSql.doc.getValue()
             if (!cmJobSparkSqlVal) {
-              message.error('请填写 SQL！', 3)
+              message.error(operateLanguageSql('fillIn'), 3)
             } else {
               const sparkSqlVal = cmJobSparkSqlVal.replace(/(^\s*)|(\s*$)/g, '') // 去掉字符串前后空格
 
@@ -2362,19 +2387,19 @@ export class Workbench extends React.Component {
 
         if (values.transformation === 'transformClassName') {
           if (num > 1) {
-            message.warning('ClassName 最多以一个分号结束，但其他地方不应有分号！', 3)
+            message.warning(operateLanguageSql('className'), 3)
           } else if (num === 1 && finalVal !== ';') {
-            message.warning('ClassName 最多以一个分号结束，但其他地方不应有分号！', 3)
+            message.warning(operateLanguageSql('className'), 3)
           } else if (num === 0 || (num === 1 && finalVal === ';')) {
             this.jobTransSetState(jobTransformMode, values, transformConfigInfoString, transformConfigInfoRequestString)
           }
         } else {
           if (num === 0) {
-            message.warning('SQL语句应以一个分号结束！', 3)
+            message.warning(operateLanguageSql('unique'), 3)
           } else if (num > 1) {
-            message.warning('SQL语句应只有一个分号！', 3)
+            message.warning(operateLanguageSql('onlyOne'), 3)
           } else if (num === 1 && finalVal !== ';') {
-            message.warning('SQL语句应以一个分号结束！', 3)
+            message.warning(operateLanguageSql('unique'), 3)
           } else if (num === 1 && finalVal === ';') {
             this.jobTransSetState(jobTransformMode, values, transformConfigInfoString, transformConfigInfoRequestString)
           }
@@ -2448,7 +2473,7 @@ export class Workbench extends React.Component {
           case 'lookupSql':
             const cmLookupSqlVal = this.cmLookupSql.doc.getValue()
             if (!cmLookupSqlVal) {
-              message.error('请填写 SQL！', 3)
+              message.error(operateLanguageSql('fillIn'), 3)
             } else {
               // 去掉字符串前后的空格
               const lookupSqlValTemp = cmLookupSqlVal.replace(/(^\s*)|(\s*$)/g, '')
@@ -2491,7 +2516,7 @@ export class Workbench extends React.Component {
           case 'sparkSql':
             const cmSparkSqlVal = this.cmSparkSql.doc.getValue()
             if (!cmSparkSqlVal) {
-              message.error('请填写 SQL！', 3)
+              message.error(operateLanguageSql('fillIn'), 3)
             } else {
               const sparkSqlValTemp = cmSparkSqlVal.replace(/(^\s*)|(\s*$)/g, '')
               const sparkSqlVal = preProcessSql(sparkSqlValTemp)
@@ -2508,7 +2533,7 @@ export class Workbench extends React.Component {
           case 'streamJoinSql':
             const cmStreamJoinSqlVal = this.cmStreamJoinSql.doc.getValue()
             if (!cmStreamJoinSqlVal) {
-              message.error('请填写 SQL！', 3)
+              message.error(operateLanguageSql('fillIn'), 3)
             } else {
               const streamJoinSqlValTemp = cmStreamJoinSqlVal.replace(/(^\s*)|(\s*$)/g, '')
               const streamJoinSqlVal = preProcessSql(streamJoinSqlValTemp)
@@ -2551,19 +2576,19 @@ export class Workbench extends React.Component {
 
         if (values.transformation === 'transformClassName') {
           if (num > 1) {
-            message.warning('ClassName 最多以一个分号结束，但其他地方不应有分号！', 3)
+            message.warning(operateLanguageSql('className'), 3)
           } else if (num === 1 && finalVal !== ';') {
-            message.warning('ClassName 最多以一个分号结束，但其他地方不应有分号！', 3)
+            message.warning(operateLanguageSql('className'), 3)
           } else if (num === 0 || (num === 1 && finalVal === ';')) {
             this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionJson)
           }
         } else {
           if (num === 0) {
-            message.warning('SQL语句应以一个分号结束！', 3)
+            message.warning(operateLanguageSql('unique'), 3)
           } else if (num > 1) {
-            message.warning('SQL语句应只有一个分号！', 3)
+            message.warning(operateLanguageSql('onlyOne'), 3)
           } else if (num === 1 && finalVal !== ';') {
-            message.warning('SQL语句应以一个分号结束！', 3)
+            message.warning(operateLanguageSql('unique'), 3)
           } else if (num === 1 && finalVal === ';') {
             this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionJson)
           }
@@ -2959,7 +2984,7 @@ export class Workbench extends React.Component {
       })
       this.hideSinkConfigModal()
     } else {
-      message.error('Sink Config 必须为 JSON格式！', 3)
+      message.error(operateLanguageSinkConfig('Sink'), 3)
     }
   }
 
@@ -2969,7 +2994,7 @@ export class Workbench extends React.Component {
       this.workbenchFlowForm.setFieldsValue({ flowSpecialConfig: cmValue })
       this.hideFlowSpecialConfigModal()
     } else {
-      message.error('Transformation Config 必须为 JSON格式！', 3)
+      message.error(operateLanguageSinkConfig('Transformation'), 3)
     }
   }
 
@@ -2979,7 +3004,7 @@ export class Workbench extends React.Component {
       this.workbenchJobForm.setFieldsValue({ jobSpecialConfig: cmValue })
       this.hideJobSpecialConfigModal()
     } else {
-      message.error('Transformation Config 必须为 JSON格式！', 3)
+      message.error(operateLanguageSinkConfig('Transformation'), 3)
     }
   }
 
@@ -3012,7 +3037,7 @@ export class Workbench extends React.Component {
       this.workbenchJobForm.setFieldsValue({ sinkConfig: this.cmJob.doc.getValue() })
       this.hideJobSinkConfigModal()
     } else {
-      message.error('Sink Config 必须为 JSON格式！', 3)
+      message.error(operateLanguageSinkConfig('Sink'), 3)
     }
   }
 
@@ -3061,7 +3086,7 @@ export class Workbench extends React.Component {
       this.workbenchJobForm.setFields({
         jobName: {
           value: value,
-          errors: [new Error('该 Name 已存在')]
+          errors: [new Error(operateLanguageNameExist())]
         }
       })
     })

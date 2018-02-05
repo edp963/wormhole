@@ -213,9 +213,7 @@ export class User extends React.PureComponent {
   }
 
   hideForm = () => {
-    this.setState({
-      formVisible: false
-    })
+    this.setState({ formVisible: false })
     this.userForm.resetFields()
   }
 
@@ -226,35 +224,44 @@ export class User extends React.PureComponent {
     this.userForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         const preferLanguage = localStorage.getItem('preferredLanguage')
-        if (formType === 'add') {
-          if (emailExited) {
-            this.userForm.setFields({
-              email: {
-                value: values.email,
-                errors: [new Error('该 Email 已存在')]
-              }
-            })
-          } else {
-            onAddUser(values, () => {
+        const emailtext = preferLanguage === 'en' ? 'This email already exists' : '该 Email 已存在'
+        const userSuccesstext = preferLanguage === 'en' ? 'User is created successfully!' : 'User 添加成功！'
+        const userInfoSuccesstext = preferLanguage === 'en' ? 'User information is modified successfully!' : '用户信息修改成功！'
+        const pwdSuccesstext = preferLanguage === 'en' ? 'Password is modified successfully!' : '密码修改成功！'
+
+        switch (formType) {
+          case 'add':
+            if (emailExited) {
+              this.userForm.setFields({
+                email: {
+                  value: values.email,
+                  errors: [new Error(emailtext)]
+                }
+              })
+            } else {
+              onAddUser(values, () => {
+                this.hideForm()
+                message.success(userSuccesstext, 3)
+              })
+            }
+            break
+          case 'editMsg':
+            onEditUser(Object.assign({}, editUsersMsgData, values, {
+              preferredLanguage: preferLanguage
+            }), () => {
               this.hideForm()
-              message.success('User 添加成功！', 3)
+              message.success(userInfoSuccesstext, 3)
             })
-          }
-        } else if (formType === 'editMsg') {
-          onEditUser(Object.assign({}, editUsersMsgData, values, {
-            preferredLanguage: preferLanguage
-          }), () => {
-            this.hideForm()
-            message.success('用户信息修改成功！', 3)
-          })
-        } else if (formType === 'editPsw') {
-          onEditUser(Object.assign({}, editUsersPswData, {
-            password: values.password,
-            preferredLanguage: preferLanguage
-          }), () => {
-            this.hideForm()
-            message.success('密码修改成功！', 3)
-          })
+            break
+          case 'editPsw':
+            onEditUser(Object.assign({}, editUsersPswData, {
+              password: values.password,
+              preferredLanguage: preferLanguage
+            }), () => {
+              this.hideForm()
+              message.success(pwdSuccesstext, 3)
+            })
+            break
         }
       }
     })
@@ -264,11 +271,13 @@ export class User extends React.PureComponent {
    * 新增时，判断email是否已存在
    * */
   onInitEmailInputValue = (value) => {
+    const preferLanguage = localStorage.getItem('preferredLanguage')
+    const emailtext = preferLanguage === 'en' ? 'This email already exists' : '该 Email 已存在'
     this.props.onLoadEmailInputValue(value, () => {}, () => {
       this.userForm.setFields({
         email: {
           value: value,
-          errors: [new Error('该 Email 已存在')]
+          errors: [new Error(emailtext)]
         }
       })
     })

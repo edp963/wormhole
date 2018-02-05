@@ -21,6 +21,7 @@
 import React from 'react'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
+import { operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
 
 import Form from 'antd/lib/form'
 const FormItem = Form.Item
@@ -101,7 +102,7 @@ export class JobTransformForm extends React.Component {
               {getFieldDecorator('transformation', {
                 rules: [{
                   required: true,
-                  message: '请选择 Transformation'
+                  message: operateLanguageSelect('transformation', 'Transformation')
                 }]
               })(
                 <RadioGroup onChange={this.onJobTransTypeSelect}>
@@ -136,7 +137,7 @@ export class JobTransformForm extends React.Component {
               {getFieldDecorator('transformClassName', {
                 rules: [{
                   required: true,
-                  message: '请填写 ClassName'
+                  message: operateLanguageFillIn('className', 'ClassName')
                 }],
                 hidden: transformTypeHiddens[1]
               })(

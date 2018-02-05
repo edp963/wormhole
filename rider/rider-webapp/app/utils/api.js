@@ -29,6 +29,7 @@ export default {
   instance: `${productionHost}/admin/instances`,
   database: `${productionHost}/admin/databases`,
   user: `${productionHost}/admin/users`,
+  userNormal: `${productionHost}/user/users`,
   namespace: `${productionHost}/admin/namespaces`,
   flow: `${productionHost}/admin/flows`,
   stream: `${productionHost}/admin/streams`,
