@@ -79,6 +79,7 @@ export class StreamStartForm extends React.Component {
     const { form, streamActionType, startUdfValsOption, renewUdfValsOption, currentUdfVal } = this.props
     const { getFieldDecorator } = form
     const { data } = this.state
+    const languageText = localStorage.getItem('preferredLanguage')
 
     const noTopicCardTitle = (<Col span={24} style={{fontWeight: '500'}}><span className="modal-topic-name">Topic Name</span></Col>)
 
@@ -132,7 +133,7 @@ export class StreamStartForm extends React.Component {
                       {getFieldDecorator(`${i.id}_${index}`, {
                         rules: [{
                           required: true,
-                          message: '请填写 Offset'
+                          message: languageText === 'en' ? 'Please fill in offset' : '请填写 Offset'
                         }, {
                           validator: forceCheckNum
                         }]
@@ -213,7 +214,7 @@ export class StreamStartForm extends React.Component {
                       {getFieldDecorator(`${i.id}_${i.rate}`, {
                         rules: [{
                           required: true,
-                          message: '请填写 Rate'
+                          message: languageText === 'en' ? 'Please fill in rate' : '请填写 Rate'
                         }, {
                           validator: forceCheckNum
                         }],

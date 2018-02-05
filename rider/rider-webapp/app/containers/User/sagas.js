@@ -23,13 +23,13 @@ import { call, fork, put } from 'redux-saga/effects'
 import {
   LOAD_ADMIN_ALL_USERS,
   LOAD_USER_USERS,
-  LOAD_NORMAL_USER,
+  LOAD_NORMAL,
   LOAD_SELECT_USERS,
   ADD_USER,
   EDIT_USER,
   LOAD_EMAIL_INPUT_VALUE,
   EDIT_ROLETYPE_USERPSW,
-  EDIT_NORMAL_USER,
+  EDIT_NORMAL,
   LOAD_USER_DETAIL,
   DELETE_USER,
 
@@ -38,11 +38,11 @@ import {
 import {
   adminAllUsersLoaded,
   userUsersLoaded,
-  normalUserDetailLoaded,
+  normalDetailLoaded,
   selectUsersLoaded,
   userAdded,
   userEdited,
-  normalUserEdited,
+  normalEdited,
   emailInputValueLoaded,
   emailInputValueErrorLoaded,
   roleTypeUserPswEdited,
@@ -86,18 +86,18 @@ export function* getUserUsersWatcher () {
   yield fork(takeLatest, LOAD_USER_USERS, getUserUsers)
 }
 
-export function* getNormalUser ({ payload }) {
+export function* getNormal ({ payload }) {
   try {
-    const users = yield call(request, `${api.projectUserList}/${payload.projectId}/users/${payload.userId}`)
-    yield put(normalUserDetailLoaded(users.payload))
+    const users = yield call(request, `${api.userNormal}/${payload.userId}`)
+    yield put(normalDetailLoaded(users.payload))
     payload.resolve(users.payload)
   } catch (err) {
     yield put(getError(err))
   }
 }
 
-export function* getNormalUserWatcher () {
-  yield fork(takeLatest, LOAD_NORMAL_USER, getNormalUser)
+export function* getNormalWatcher () {
+  yield fork(takeLatest, LOAD_NORMAL, getNormal)
 }
 
 export function* getSelectUsers ({ payload }) {
@@ -149,22 +149,22 @@ export function* editUserWatcher () {
   yield fork(takeEvery, EDIT_USER, editUser)
 }
 
-export function* editNormalUser ({ payload }) {
+export function* editNormal ({ payload }) {
   try {
     const result = yield call(request, {
       method: 'put',
-      url: `${api.projectUserList}/${payload.projectId}/users/${payload.value.id}`,
+      url: `${api.userNormal}/${payload.value.id}`,
       data: payload.value
     })
-    yield put(normalUserEdited(result.payload))
+    yield put(normalEdited(result.payload))
     payload.resolve(result.payload)
   } catch (err) {
     yield put(getError(err))
   }
 }
 
-export function* editNormalUserWatcher () {
-  yield fork(takeEvery, EDIT_NORMAL_USER, editNormalUser)
+export function* editNormalWatcher () {
+  yield fork(takeEvery, EDIT_NORMAL, editNormal)
 }
 
 export function* getEmailInputValue ({ payload }) {
@@ -261,15 +261,14 @@ export function* deleteNsActionWatcher () {
 export default [
   getAdminAllUsersWatcher,
   getUserUsersWatcher,
-  getNormalUserWatcher,
+  getNormalWatcher,
   getSelectUsersWatcher,
   addUserWatcher,
   editUserWatcher,
-  editNormalUserWatcher,
+  editNormalWatcher,
   getEmailInputValueWatcher,
   editroleTypeUserPswWatcher,
   queryUserWatcher,
   deleteNsActionWatcher,
-
   getProjectUserAllWatcher
 ]

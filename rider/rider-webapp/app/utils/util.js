@@ -262,17 +262,14 @@ export function forceCheckSave (rule, value, callback) {
 export function operateLanguageText (resultType, actionType) {
   const languageType = localStorage.getItem('preferredLanguage')
   let languageTextEnTemp = ''
-  let languageTextEnLowerTemp = ''
   let languageTextZhTemp = ''
   switch (actionType) {
     case 'delete':
       languageTextEnTemp = 'Delete'
-      languageTextEnLowerTemp = 'delete'
       languageTextZhTemp = '删除'
       break
     case 'modify':
       languageTextEnTemp = 'Modify'
-      languageTextEnLowerTemp = 'modify'
       languageTextZhTemp = '修改'
       break
   }
@@ -280,8 +277,71 @@ export function operateLanguageText (resultType, actionType) {
   if (resultType === 'success') {
     languageText = languageType === 'en' ? `${languageTextEnTemp} successfully！` : `${languageTextZhTemp}成功！`
   } else {
-    languageText = languageType === 'en' ? `Failed to ${languageTextEnLowerTemp}:` : `${languageTextZhTemp}失败：`
+    languageText = languageType === 'en' ? `Failed to ${resultType}:` : `${languageTextZhTemp}失败：`
   }
-
   return languageText
+}
+
+/**
+ * change language
+ */
+export function operateLanguageSuccessMessage (languageTextTemp, action) {
+  const languageType = localStorage.getItem('preferredLanguage')
+  let languageText = ''
+  if (action === 'create') {
+    languageText = languageType === 'en' ? `${languageTextTemp} is created successfully!` : `${languageTextTemp} 添加成功！`
+  } else if (action === 'modify') {
+    languageText = languageType === 'en' ? `${languageTextTemp} is modified successfully!` : `${languageTextTemp} 修改成功！`
+  } else if (action === 'copy') {
+    languageText = languageType === 'en' ? `${languageTextTemp} is copid successfully!` : `${languageTextTemp} 复制成功！`
+  } else if (action === 'existed') {
+    languageText = languageType === 'en' ? `This ${languageTextTemp} has been created!` : `该 ${languageTextTemp} 已被创建！`
+  }
+  return languageText
+}
+
+export function operateLanguageSourceToSink () {
+  const languageType = localStorage.getItem('preferredLanguage')
+  return languageType === 'en' ? 'Source to Sink already exists!' : 'Source to Sink 已存在！'
+}
+
+export function operateLanguageNameExist () {
+  const languageType = localStorage.getItem('preferredLanguage')
+  return languageType === 'en' ? 'This name already exists' : '该 Name 已存在'
+}
+
+export function operateLanguageSinkConfig (languageTextTemp) {
+  const languageType = localStorage.getItem('preferredLanguage')
+  const languageText = languageType === 'en' ? `${languageTextTemp} Config should be JSON format! ` : `${languageTextTemp} Config 必须为 JSON格式！`
+  return languageText
+}
+
+export function operateLanguageSql (type) {
+  const languageType = localStorage.getItem('preferredLanguage')
+  let languageText = ''
+  switch (type) {
+    case 'fillIn':
+      languageType === 'en' ? 'Please fill in sql' : '请填写 SQL！'
+      break
+    case 'className':
+      languageType === 'en' ? '' : 'ClassName 最多以一个分号结束，但其他地方不应有分号！'
+      break
+    case 'unique':
+      languageType === 'en' ? '' : 'SQL语句应以一个分号结束！'
+      break
+    case 'onlyOne':
+      languageType === 'en' ? '' : 'SQL语句应只有一个分号！'
+      break
+  }
+  return languageText
+}
+
+export function operateLanguageSelect (typeEn, typeZh) {
+  const languageType = localStorage.getItem('preferredLanguage')
+  return languageType === 'en' ? `Please select ${typeEn}` : `请选择${typeZh}`
+}
+
+export function operateLanguageFillIn (typeEn, typeZh) {
+  const languageType = localStorage.getItem('preferredLanguage')
+  return languageType === 'en' ? `Please fill in ${typeEn}` : `请填写${typeZh}`
 }

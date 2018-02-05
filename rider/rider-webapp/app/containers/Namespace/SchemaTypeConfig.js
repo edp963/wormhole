@@ -97,11 +97,13 @@ export class SchemaTypeConfig extends React.Component {
   onRowSelectAll = () => this.props.initRowSelectedAll()
 
   handleChangeFieldType = (record) => (afterType) => {
+    const languageText = localStorage.getItem('preferredLanguage')
+
     const originType = record.fieldType
     const currentType = originType.indexOf('##') > -1 ? 'tuple' : originType
 
     if (this.state.tupleForm === 'edit') {
-      message.error('Tuple 配置失败！', 3)
+      message.error(languageText === 'en' ? 'Tuple configuration has error!' : 'Tuple 配置失败！', 3)
     } else {
       let tupleTypeTemp = ''
       if (currentType !== 'tuple' && afterType !== 'tuple') { // other to other
@@ -147,6 +149,7 @@ export class SchemaTypeConfig extends React.Component {
   onChangeSizeValue = (value) => this.setState({ tupleSizeValue: value })
 
   checkFieldType = (record) => (e) => {
+    const languageText = localStorage.getItem('preferredLanguage')
     const sepTemp = document.getElementById('sep')
 
     if (sepTemp) {
@@ -155,11 +158,11 @@ export class SchemaTypeConfig extends React.Component {
 
       const reg = /^[0-9]*$/
       if (!sepValue) {
-        message.error('请填写分隔符！', 3)
+        message.error(languageText === 'en' ? 'Please fill in separator!' : '请填写分隔符！', 3)
       } else if (!tupleSizeValue) {
-        message.error('请填写长度！', 3)
+        message.error(languageText === 'en' ? 'Please fill in length!' : '请填写长度！', 3)
       } else if (!reg.test(tupleSizeValue)) {
-        message.error('长度应为数字！', 3)
+        message.error(languageText === 'en' ? 'Length should be figures!' : '长度应为数字！', 3)
       } else {
         this.setState({
           tupleForm: 'text'

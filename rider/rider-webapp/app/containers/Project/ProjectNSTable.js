@@ -148,9 +148,7 @@ export class ProjectNSTable extends React.Component {
     }
   }
 
-  onSelectChange = (selectedRowKeys) => {
-    this.setState({ selectedRowKeys })
-  }
+  onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
 
   render () {
     const { selectedRowKeys } = this.state

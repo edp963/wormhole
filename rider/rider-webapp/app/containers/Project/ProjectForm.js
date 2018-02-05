@@ -40,6 +40,7 @@ export class ProjectForm extends React.Component {
   render () {
     const { getFieldDecorator } = this.props.form
     const { projectFormType } = this.props
+    const languageText = localStorage.getItem('preferredLanguage')
 
     const itemStyle = {
       labelCol: { span: 6 },
@@ -77,13 +78,13 @@ export class ProjectForm extends React.Component {
                 {getFieldDecorator('name', {
                   rules: [{
                     required: true,
-                    message: '项目标识不能为空'
+                    message: languageText === 'en' ? 'Project name cannot be empty' : '项目标识不能为空'
                   }, {
                     validator: forceCheckProjectName
                   }]
                 })(
                   <Input
-                    placeholder="由大小写字母、中划线、下划线、数字组成"
+                    placeholder={languageText === 'en' ? 'composed of capital/lowercase letters, hyphen, underscore or number' : '由大小写字母、中划线、下划线、数字组成'}
                     onChange={this.onProjectNameInputChange}
                     disabled={disabledOrNot}
                   />
@@ -91,7 +92,7 @@ export class ProjectForm extends React.Component {
               </FormItem>
               <FormItem label={<FormattedMessage {...messages.projectDescription} />} {...itemStyle}>
                 {getFieldDecorator('desc', {})(
-                  <Input placeholder="项目详情描述" />
+                  <Input placeholder={languageText === 'en' ? 'description of project details' : '项目详情描述'} />
                 )}
               </FormItem>
             </Card>
@@ -103,19 +104,22 @@ export class ProjectForm extends React.Component {
                 {getFieldDecorator('resCores', {
                   rules: [{
                     required: true,
-                    message: 'CPU上限不能为空'
+                    message: languageText === 'en' ? 'Upper Limit of CPU cannot be empty' : 'CPU上限不能为空'
                   }, {
                     validator: forceCheckNum
                   }]
                 })(
-                  <InputNumber min={1} step={1} placeholder="VCores 个数" />
+                  <InputNumber
+                    min={1}
+                    step={1}
+                    placeholder={languageText === 'en' ? 'Number of VCores' : 'VCores 个数'} />
                 )}
               </FormItem>
               <FormItem label={<FormattedMessage {...messages.projectMemory} />} {...itemStyle}>
                 {getFieldDecorator('resMemoryG', {
                   rules: [{
                     required: true,
-                    message: '内存上限不能为空'
+                    message: languageText === 'en' ? 'Upper Limit of Memory cannot be empty' : '内存上限不能为空'
                   }, {
                     validator: forceCheckNum
                   }]
@@ -135,7 +139,6 @@ ProjectForm.propTypes = {
   form: React.PropTypes.any,
   projectFormType: React.PropTypes.string,
   onInitProjectNameInputValue: React.PropTypes.func
-  // intl: intlShape.isRequired
 }
 
 export default Form.create({wrappedComponentRef: true})(ProjectForm)

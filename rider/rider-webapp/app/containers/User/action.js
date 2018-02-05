@@ -23,16 +23,16 @@ import {
   LOAD_ADMIN_ALL_USERS_SUCCESS,
   LOAD_USER_USERS,
   LOAD_USER_USERS_SUCCESS,
-  LOAD_NORMAL_USER,
-  LOAD_NORMAL_USER_SUCCESS,
+  LOAD_NORMAL,
+  LOAD_NORMAL_SUCCESS,
   LOAD_SELECT_USERS,
   LOAD_SELECT_USERS_SUCCESS,
   ADD_USER,
   ADD_USER_SUCCESS,
   EDIT_USER,
   EDIT_USER_SUCCESS,
-  EDIT_NORMAL_USER,
-  EDIT_NORMAL_USER_SUCCESS,
+  EDIT_NORMAL,
+  EDIT_NORMAL_SUCCESS,
   LOAD_EMAIL_INPUT_VALUE,
   LOAD_EMAIL_INPUT_VALUE_SUCCESS,
   LOAD_EMAIL_INPUT_VALUE_ERROR,
@@ -87,20 +87,19 @@ export function userUsersLoaded (users) {
   }
 }
 
-export function loadNormalUserDetail (projectId, userId, resolve) {
+export function loadNormalDetail (userId, resolve) {
   return {
-    type: LOAD_NORMAL_USER,
+    type: LOAD_NORMAL,
     payload: {
-      projectId,
       userId,
       resolve
     }
   }
 }
 
-export function normalUserDetailLoaded (users) {
+export function normalDetailLoaded (users) {
   return {
-    type: LOAD_NORMAL_USER_SUCCESS,
+    type: LOAD_NORMAL_SUCCESS,
     payload: {
       users
     }
@@ -165,20 +164,19 @@ export function userEdited (result) {
   }
 }
 
-export function editNormalUser (projectId, value, resolve) {
+export function editNormal (value, resolve) {
   return {
-    type: EDIT_NORMAL_USER,
+    type: EDIT_NORMAL,
     payload: {
-      projectId,
       value,
       resolve
     }
   }
 }
 
-export function normalUserEdited (result) {
+export function normalEdited (result) {
   return {
-    type: EDIT_NORMAL_USER_SUCCESS,
+    type: EDIT_NORMAL_SUCCESS,
     payload: {
       result
     }

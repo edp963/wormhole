@@ -177,18 +177,29 @@ export class Job extends React.Component {
       jobId: `${record.id}`
     }
 
+    const languageText = localStorage.getItem('preferredLanguage')
+    const startText = languageText === 'en' ? 'Start' : '启动'
+    const stopText = languageText === 'en' ? 'Stop' : '停止'
+    const deleteText = languageText === 'en' ? 'Delete' : '删除'
+    const successText = languageText === 'en' ? 'successfully!' : '成功！'
+    const failText = languageText === 'en' ? 'Operation failed:' : '操作失败：'
+
     this.props.onOperateJob(requestValue, (result) => {
       let singleMsg = ''
-      if (action === 'start') {
-        singleMsg = '启动'
-      } else if (action === 'stop') {
-        singleMsg = '停止'
-      } else if (action === 'delete') {
-        singleMsg = '删除'
+      switch (action) {
+        case 'start':
+          singleMsg = startText
+          break
+        case 'stop':
+          singleMsg = stopText
+          break
+        case 'delete':
+          singleMsg = deleteText
+          break
       }
-      message.success(`${singleMsg} 成功！`, 3)
+      message.success(`${singleMsg} ${successText}`, 3)
     }, (result) => {
-      message.error(`操作失败：${result}`, 5)
+      message.error(`${failText} ${result}`, 5)
     })
   }
 
@@ -379,9 +390,7 @@ export class Job extends React.Component {
           roleType: roleType
         }
 
-        this.props.onLoadJobDetail(requestValue, (result) => {
-          this.setState({ showJobDetail: result })
-        })
+        this.props.onLoadJobDetail(requestValue, (result) => this.setState({ showJobDetail: result }))
       })
     }
   }

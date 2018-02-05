@@ -90,11 +90,12 @@ export class Project extends React.Component {
    * 新增时，验证 project name 是否存在
    * */
   onInitProjectNameInputValue = (value) => {
+    const languageText = localStorage.getItem('preferredLanguage')
     this.props.onLoadProjectNameInputValue(value, () => {}, () => {
       this.projectForm.setFields({
         name: {
           value: value,
-          errors: [new Error('该 Project Name 已存在')]
+          errors: [new Error(languageText === 'en' ? 'This Project Name already exists' : '该 Project Name 已存在')]
         }
       })
     })
@@ -173,6 +174,7 @@ export class Project extends React.Component {
   onModalOk = () => {
     const { projectFormType, projectResult } = this.state
     const { projectNameExited } = this.props
+    const languageText = localStorage.getItem('preferredLanguage')
 
     const userIds = this.projectUsersTable.state.selectedRowKeys.join(',')
 
@@ -183,9 +185,9 @@ export class Project extends React.Component {
     const { selectedRowKeys } = this.projectNSTable.state
 
     if (selectedRowKeys.length === 0) {
-      message.warning('请选择源表！', 3)
+      message.warning(languageText === 'en' ? 'Please select Namespace' : '请选择源表！', 3)
     } else if (userIds.length === 0) {
-      message.warning('请选择用户！', 3)
+      message.warning(languageText === 'en' ? 'Please select User' : '请选择用户！', 3)
     } else {
       const namespaceIds = selectedRowKeys.join(',')
 
@@ -200,7 +202,7 @@ export class Project extends React.Component {
               this.projectForm.setFields({
                 name: {
                   value: values.name,
-                  errors: [new Error('该 Project Name 已存在')]
+                  errors: [new Error(languageText === 'en' ? 'This Project Name already exists' : '该 Project Name 已存在')]
                 }
               })
             } else {
@@ -212,7 +214,7 @@ export class Project extends React.Component {
               }), () => {
                 this.hideForm()
               }, () => {
-                message.success('Project 添加成功！', 3)
+                message.success(languageText === 'en' ? 'Project is created successfully!' : 'Project 添加成功！', 3)
               })
             }
           } else if (projectFormType === 'edit') {
@@ -223,7 +225,7 @@ export class Project extends React.Component {
             }, projectResult), () => {
               this.hideForm()
             }, () => {
-              message.success('Project 修改成功！', 3)
+              message.success(languageText === 'en' ? 'Project is modified successfully!' : 'Project 修改成功！', 3)
             })
           }
         }
@@ -271,8 +273,9 @@ export class Project extends React.Component {
   deletePro = (e) => e.stopPropagation()
 
   deleteAdminProject = (p) => (e) => {
+    const languageText = localStorage.getItem('preferredLanguage')
     this.props.onDeleteSingleProject(p.id, () => {}, (result) => {
-      message.warning(`不能删除：${result}`, 5)
+      message.warning(`${languageText === 'en' ? 'This item cannot be deleted:' : '不能删除：'} ${result}`, 5)
     })
   }
 

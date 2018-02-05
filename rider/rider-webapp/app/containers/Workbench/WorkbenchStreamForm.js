@@ -24,7 +24,7 @@ require('../../../node_modules/codemirror/mode/javascript/javascript')
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import { forceCheckSave } from '../../utils/util'
+import { forceCheckSave, operateLanguageSelect } from '../../utils/util'
 import Form from 'antd/lib/form'
 const FormItem = Form.Item
 import Row from 'antd/lib/row'
@@ -92,7 +92,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
           <Popover
             placement="top"
             content={<div style={{ width: '200px', height: '25px' }}>
-              <p>Dirver / Execotor 资源配置</p>
+              <p><FormattedMessage {...messages.workbenchTransResource} /></p>
             </div>}
             title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
@@ -102,6 +102,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
       </span>
     )
 
+    const languageText = localStorage.getItem('preferredLanguage')
     return (
       <Form className="ri-workbench-form workbench-stream-form">
         <Row gutter={8}>
@@ -110,7 +111,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
               {getFieldDecorator('streamName', {
                 rules: [{
                   required: true,
-                  message: 'Name 不能为空'
+                  message: languageText === 'en' ? 'Name cannot be empty' : 'Name 不能为空'
                 }, {
                   validator: forceCheckSave
                 }]
@@ -125,7 +126,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
               {getFieldDecorator('type', {
                 rules: [{
                   required: true,
-                  message: '请选择 Type'
+                  message: operateLanguageSelect('type', 'Type')
                 }]
               })(
                 <RadioGroup className="radio-group-style" disabled={disabledOrNot} size="default">
@@ -152,7 +153,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
               {getFieldDecorator('kafka', {
                 rules: [{
                   required: true,
-                  message: '请选择一个 Kafka'
+                  message: operateLanguageSelect('type', 'Type')
                 }]
               })(
                 <Select
@@ -187,7 +188,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
               {getFieldDecorator('sourceTopicName', {
                 rules: [{
                   required: true,
-                  message: 'Source Topic Name 不能为空'
+                  message: languageText === 'en' ? 'Source topic name cannot be empty' : 'Source Topic Name 不能为空'
                 }],
                 hidden: isWormhole
               })(
@@ -210,7 +211,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
               {getFieldDecorator('sinkTopicName', {
                 rules: [{
                   required: true,
-                  message: 'Sink Topic Name 不能为空'
+                  message: languageText === 'en' ? 'Sink topic name cannot be empty' : 'Sink Topic Name 不能为空'
                 }],
                 hidden: isWormhole
               })(

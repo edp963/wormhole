@@ -32,6 +32,8 @@ export class StreamConfigForm extends React.Component {
   render () {
     const { form, tabPanelKey } = this.props
     const { getFieldDecorator } = form
+    const languageText = localStorage.getItem('preferredLanguage')
+    const textMessage = languageText === 'en' ? 'It cannot be empty' : '不能为空'
 
     const itemStyle = {
       labelCol: { span: 4 },
@@ -54,7 +56,7 @@ export class StreamConfigForm extends React.Component {
               {getFieldDecorator('jvm', {
                 rules: [{
                   required: true,
-                  message: '不能为空'
+                  message: textMessage
                 }]
               })(
                 <Input type="textarea" placeholder="JVM" autosize={{ minRows: 4, maxRows: 6 }} />
@@ -66,7 +68,7 @@ export class StreamConfigForm extends React.Component {
               {getFieldDecorator('driverCores', {
                 rules: [{
                   required: true,
-                  message: '不能为空'
+                  message: textMessage
                 }, {
                   validator: forceCheckNum
                 }],
@@ -81,7 +83,7 @@ export class StreamConfigForm extends React.Component {
               {getFieldDecorator('driverMemory', {
                 rules: [{
                   required: true,
-                  message: '不能为空'
+                  message: textMessage
                 }, {
                   validator: forceCheckNum
                 }],
@@ -98,7 +100,7 @@ export class StreamConfigForm extends React.Component {
               {getFieldDecorator('executorNums', {
                 rules: [{
                   required: true,
-                  message: '不能为空'
+                  message: textMessage
                 }, {
                   validator: forceCheckNum
                 }],
@@ -113,7 +115,7 @@ export class StreamConfigForm extends React.Component {
               {getFieldDecorator('perExecutorCores', {
                 rules: [{
                   required: true,
-                  message: '不能为空'
+                  message: textMessage
                 }, {
                   validator: forceCheckNum
                 }],
@@ -128,7 +130,7 @@ export class StreamConfigForm extends React.Component {
               {getFieldDecorator('perExecutorMemory', {
                 rules: [{
                   required: true,
-                  message: '不能为空'
+                  message: textMessage
                 }, {
                   validator: forceCheckNum
                 }],
@@ -145,7 +147,7 @@ export class StreamConfigForm extends React.Component {
               {getFieldDecorator('durations', {
                 rules: [{
                   required: true,
-                  message: '不能为空'
+                  message: textMessage
                 }, {
                   validator: forceCheckNum
                 }],
@@ -160,7 +162,7 @@ export class StreamConfigForm extends React.Component {
               {getFieldDecorator('partitions', {
                 rules: [{
                   required: true,
-                  message: '不能为空'
+                  message: textMessage
                 }, {
                   validator: forceCheckNumsPart
                 }],
@@ -175,7 +177,7 @@ export class StreamConfigForm extends React.Component {
               {getFieldDecorator('maxRecords', {
                 rules: [{
                   required: true,
-                  message: '不能为空'
+                  message: textMessage
                 }, {
                   validator: forceCheckNum
                 }],
@@ -188,7 +190,11 @@ export class StreamConfigForm extends React.Component {
           <Col span={24}>
             <FormItem label="Others：" {...itemStyle}>
               {getFieldDecorator('personalConf', {})(
-                <Input type="textarea" placeholder="格式如：key=value，多条时换行输入" autosize={{ minRows: 6, maxRows: 10 }} />
+                <Input
+                  type="textarea"
+                  placeholder={languageText === 'en' ? 'Format: key=value; enter into a new line as long as there is a new item' : '格式如：key=value，多条时换行输入'}
+                  autosize={{ minRows: 6, maxRows: 10 }}
+                />
               )}
             </FormItem>
           </Col>

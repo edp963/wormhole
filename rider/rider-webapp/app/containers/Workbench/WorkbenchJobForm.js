@@ -44,7 +44,7 @@ const RadioButton = Radio.Button
 import DatePicker from 'antd/lib/date-picker'
 // const { RangePicker } = DatePicker
 
-import { prettyShownText, uuid, forceCheckNum } from '../../utils/util'
+import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
 
 export class WorkbenchJobForm extends React.Component {
   constructor (props) {
@@ -56,7 +56,6 @@ export class WorkbenchJobForm extends React.Component {
     if (props.jobTransTableSource) {
       props.jobTransTableSource.map(s => {
         s.key = uuid()
-        // s.visible = false
         return s
       })
     }
@@ -112,7 +111,6 @@ export class WorkbenchJobForm extends React.Component {
       { value: 'log', text: 'Log' },
       { value: 'file', text: 'File' },
       { value: 'app', text: 'App' },
-      // { value: 'presto', text: 'Presto' },
       { value: 'mysql', icon: 'icon-mysql' },
       { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} }
@@ -136,16 +134,12 @@ export class WorkbenchJobForm extends React.Component {
     formValues = this.props.form.getFieldsValue([
       'jobName',
       'type',
-      // Spark Configs
-      // 'eventStartTs',
-      // 'eventEndTs',
       'sourceDataSystem',
       'sourceNamespace',
       'protocol',
       'sinkDataSystem',
       'sinkNamespace',
       'maxRecordPerPartitionProcessed'
-      // 'sinkConfig'
     ])
 
     const step3ConfirmDSNS = Object.keys(formValues).map(key => (
@@ -210,31 +204,31 @@ export class WorkbenchJobForm extends React.Component {
 
         return (
           <span className="ant-table-action-column">
-            <Tooltip title="编辑">
+            <Tooltip title={<FormattedMessage {...messages.workbenchTransModify} />}>
               <Button icon="edit" shape="circle" type="ghost" onClick={onEditTransform(record)}></Button>
             </Tooltip>
 
-            <Tooltip title="添加">
+            <Tooltip title={<FormattedMessage {...messages.workbenchJobFormAdd} />}>
               <Button shape="circle" type="ghost" onClick={onJobAddTransform(record)}>
                 <i className="iconfont icon-jia"></i>
               </Button>
             </Tooltip>
 
-            <Popconfirm placement="bottom" title="确定删除吗？" okText="Yes" cancelText="No" onConfirm={onDeleteSingleTransform(record)}>
-              <Tooltip title="删除">
+            <Popconfirm placement="bottom" title={<FormattedMessage {...messages.workbenchTransSureDelete} />} okText="Yes" cancelText="No" onConfirm={onDeleteSingleTransform(record)}>
+              <Tooltip title={<FormattedMessage {...messages.workbenchTransDelete} />}>
                 <Button shape="circle" type="ghost">
                   <i className="iconfont icon-jian"></i>
                 </Button>
               </Tooltip>
             </Popconfirm>
 
-            <Tooltip title="向上">
+            <Tooltip title={<FormattedMessage {...messages.workbenchTransUp} />}>
               <Button shape="circle" type="ghost" onClick={onUpTransform(record)} className={transformUpHide}>
                 <i className="iconfont icon-up"></i>
               </Button>
             </Tooltip>
 
-            <Tooltip title="向下">
+            <Tooltip title={<FormattedMessage {...messages.workbenchTransDown} />}>
               <Button shape="circle" type="ghost" onClick={onDownTransform(record)} className={transformDownHide}>
                 <i className="iconfont icon-down"></i>
               </Button>
@@ -290,13 +284,13 @@ export class WorkbenchJobForm extends React.Component {
     const warningMsg = (
       <span>
         Spark Configs
-        <Tooltip title={<FormattedMessage {...messages.nsHelp} />} placement="bottom">
+        <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />} placement="bottom">
           <Popover
             placement="top"
             content={<div style={{ width: '200px', height: '25px' }}>
-              <p>Dirver / Execotor 资源配置</p>
+              <p><FormattedMessage {...messages.workbenchTransResource} /></p>
             </div>}
-            title={<h3><FormattedMessage {...messages.nsHelp} /></h3>}
+            title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>
@@ -304,6 +298,7 @@ export class WorkbenchJobForm extends React.Component {
       </span>
     )
 
+    const languageText = localStorage.getItem('preferredLanguage')
     return (
       <Form className="ri-workbench-form workbench-flow-form">
         {/* Step 1 */}
@@ -314,7 +309,7 @@ export class WorkbenchJobForm extends React.Component {
                 {getFieldDecorator('jobName', {
                   rules: [{
                     required: true,
-                    message: 'Name 不能为空'
+                    message: languageText === 'en' ? 'Name cannot be empty' : 'Name 不能为空'
                   }, {
                     validator: this.forceCheckSave
                   }]
@@ -329,7 +324,7 @@ export class WorkbenchJobForm extends React.Component {
                 {getFieldDecorator('type', {
                   rules: [{
                     required: true,
-                    message: '请选择 Type'
+                    message: operateLanguageSelect('type', 'Type')
                   }]
                 })(
                   <RadioGroup className="radio-group-style" size="default" disabled={jobMode === 'edit'}>
@@ -388,7 +383,7 @@ export class WorkbenchJobForm extends React.Component {
                 {getFieldDecorator('sourceDataSystem', {
                   rules: [{
                     required: true,
-                    message: '请选择 Data System'
+                    message: operateLanguageSelect('data dystem', 'Data System')
                   }]
                 })(
                   <DataSystemSelector
@@ -404,7 +399,7 @@ export class WorkbenchJobForm extends React.Component {
                 {getFieldDecorator('sourceNamespace', {
                   rules: [{
                     required: true,
-                    message: '请选择 Namespace'
+                    message: operateLanguageSelect('namespace', 'Namespace')
                   }]
                 })(
                   <Cascader
@@ -423,7 +418,7 @@ export class WorkbenchJobForm extends React.Component {
                 {getFieldDecorator('protocol', {
                   rules: [{
                     required: true,
-                    message: '请选择 Protocol'
+                    message: operateLanguageSelect('protocol', 'Protocol')
                   }]
                 })(
                   <RadioGroup className="radio-group-style" size="default">
@@ -442,7 +437,7 @@ export class WorkbenchJobForm extends React.Component {
                 {getFieldDecorator('sinkDataSystem', {
                   rules: [{
                     required: true,
-                    message: '请选择 Data System'
+                    message: operateLanguageSelect('data system', 'Data System')
                   }]
                 })(
                   <DataSystemSelector
@@ -458,7 +453,7 @@ export class WorkbenchJobForm extends React.Component {
                 {getFieldDecorator('sinkNamespace', {
                   rules: [{
                     required: true,
-                    message: '请选择 Namespace'
+                    message: operateLanguageSelect('namespace', 'Namespace')
                   }]
                 })(
                   <Cascader
@@ -478,7 +473,7 @@ export class WorkbenchJobForm extends React.Component {
                 {getFieldDecorator('resultFields', {
                   rules: [{
                     required: true,
-                    message: '请选择 Result Fields'
+                    message: operateLanguageSelect('result fields', 'Result Fields')
                   }],
                   hidden: stepHiddens[1]
                 })(
@@ -505,7 +500,7 @@ export class WorkbenchJobForm extends React.Component {
                 {getFieldDecorator('maxRecordPerPartitionProcessed', {
                   rules: [{
                     required: true,
-                    message: '请填写 Batch Record Num'
+                    message: operateLanguageFillIn('batch record number', 'Batch Record Number')
                   }, {
                     validator: forceCheckNum
                   }],

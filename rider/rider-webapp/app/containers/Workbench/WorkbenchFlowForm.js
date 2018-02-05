@@ -43,7 +43,7 @@ import Radio from 'antd/lib/radio'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 
-import { prettyShownText, uuid, forceCheckNum } from '../../utils/util'
+import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
 
 export class WorkbenchFlowForm extends React.Component {
   constructor (props) {
@@ -174,7 +174,6 @@ export class WorkbenchFlowForm extends React.Component {
       { value: 'log', text: 'Log' },
       { value: 'file', text: 'File' },
       { value: 'app', text: 'App' },
-      // { value: 'presto', text: 'Presto' },
       { value: 'mysql', icon: 'icon-mysql' },
       { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} }
@@ -396,7 +395,7 @@ export class WorkbenchFlowForm extends React.Component {
                 {getFieldDecorator('streamType', {
                   rules: [{
                     required: true,
-                    message: '请选择 Stream Type'
+                    message: operateLanguageSelect('stream type', 'Stream Type')
                   }],
                   initialValue: 'default'
                 })(
@@ -420,7 +419,7 @@ export class WorkbenchFlowForm extends React.Component {
                 {getFieldDecorator('streamName', {
                   rules: [{
                     required: true,
-                    message: '请选择 Stream Name'
+                    message: operateLanguageSelect('stream name', 'Stream Name')
                   }]
                 })(
                   <Select
@@ -455,7 +454,7 @@ export class WorkbenchFlowForm extends React.Component {
                 {getFieldDecorator('sourceDataSystem', {
                   rules: [{
                     required: true,
-                    message: '请选择 Data System'
+                    message: operateLanguageSelect('data system', 'Data System')
                   }]
                 })(
                   <DataSystemSelector
@@ -472,7 +471,7 @@ export class WorkbenchFlowForm extends React.Component {
                 {getFieldDecorator('sourceNamespace', {
                   rules: [{
                     required: true,
-                    message: '请选择 Namespace'
+                    message: operateLanguageSelect('namespace', 'Namespace')
                   }],
                   hidden: streamTypeHiddens[0]
                 })(
@@ -493,7 +492,7 @@ export class WorkbenchFlowForm extends React.Component {
                 {getFieldDecorator('hdfslogNamespace', {
                   rules: [{
                     required: true,
-                    message: '请选择 Namespace'
+                    message: operateLanguageSelect('namespace', 'Namespace')
                   }],
                   hidden: streamTypeHiddens[1]
                 })(
@@ -515,7 +514,7 @@ export class WorkbenchFlowForm extends React.Component {
                 {getFieldDecorator('routingNamespace', {
                   rules: [{
                     required: true,
-                    message: '请选择 Namespace'
+                    message: operateLanguageSelect('namespace', 'Namespace')
                   }],
                   hidden: streamTypeHiddens[2]
                 })(
@@ -537,7 +536,7 @@ export class WorkbenchFlowForm extends React.Component {
                 {getFieldDecorator('protocol', {
                   rules: [{
                     required: true,
-                    message: '请选择 Protocol'
+                    message: operateLanguageSelect('protocol', 'Protocol')
                   }],
                   hidden: streamTypeHiddens[0]
                 })(
@@ -557,7 +556,7 @@ export class WorkbenchFlowForm extends React.Component {
                 {getFieldDecorator('sinkDataSystem', {
                   rules: [{
                     required: true,
-                    message: '请选择 Data System'
+                    message: operateLanguageSelect('data system', 'Data System')
                   }],
                   hidden: streamTypeHiddens[0]
                 })(
@@ -584,7 +583,7 @@ export class WorkbenchFlowForm extends React.Component {
                 {getFieldDecorator('sinkNamespace', {
                   rules: [{
                     required: true,
-                    message: '请选择 Namespace'
+                    message: operateLanguageSelect('namespace', 'Namespace')
                   }],
                   hidden: streamTypeHiddens[0]
                 })(
@@ -604,7 +603,7 @@ export class WorkbenchFlowForm extends React.Component {
                 {getFieldDecorator('routingSinkNs', {
                   rules: [{
                     required: true,
-                    message: '请选择 Namespace'
+                    message: operateLanguageSelect('namespace', 'Namespace')
                   }],
                   hidden: streamTypeHiddens[2]
                 })(
@@ -626,7 +625,7 @@ export class WorkbenchFlowForm extends React.Component {
                 {getFieldDecorator('resultFields', {
                   rules: [{
                     required: true,
-                    message: '请选择 Result Fields'
+                    message: operateLanguageSelect('result fields', 'Result Fields')
                   }],
                   hidden: stepHiddens[1] || streamTypeHiddens[0]
                 })(
@@ -770,7 +769,7 @@ export class WorkbenchFlowForm extends React.Component {
               {getFieldDecorator('dataframeShow', {
                 rules: [{
                   required: true,
-                  message: '请选择 Dataframe Show'
+                  message: operateLanguageSelect('sample show', 'Sample Show')
                 }],
                 hidden: stepHiddens[1] || transformTableClassName || streamTypeHiddens[0]
               })(
@@ -786,7 +785,7 @@ export class WorkbenchFlowForm extends React.Component {
               {getFieldDecorator('dataframeShowNum', {
                 rules: [{
                   required: true,
-                  message: '请填写 Number'
+                  message: operateLanguageFillIn('number', 'Number')
                 }, {
                   validator: forceCheckNum
                 }],
