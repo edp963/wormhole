@@ -25,16 +25,16 @@ import {
   LOAD_ADMIN_ALL_USERS_SUCCESS,
   LOAD_USER_USERS,
   LOAD_USER_USERS_SUCCESS,
-  LOAD_NORMAL_USER,
-  LOAD_NORMAL_USER_SUCCESS,
+  LOAD_NORMAL,
+  LOAD_NORMAL_SUCCESS,
   LOAD_SELECT_USERS,
   LOAD_SELECT_USERS_SUCCESS,
   ADD_USER,
   ADD_USER_SUCCESS,
   EDIT_USER,
   EDIT_USER_SUCCESS,
-  EDIT_NORMAL_USER,
-  EDIT_NORMAL_USER_SUCCESS,
+  EDIT_NORMAL,
+  EDIT_NORMAL_SUCCESS,
   LOAD_EMAIL_INPUT_VALUE,
   LOAD_EMAIL_INPUT_VALUE_SUCCESS,
   LOAD_EMAIL_INPUT_VALUE_ERROR,
@@ -74,9 +74,9 @@ export function userReducer (state = initialState, { type, payload }) {
       return state.set('users', payload.users)
     case LOAD_SELECT_USERS:
       return state.set('error', false)
-    case LOAD_NORMAL_USER:
+    case LOAD_NORMAL:
       return state.set('users', payload.users)
-    case LOAD_NORMAL_USER_SUCCESS:
+    case LOAD_NORMAL_SUCCESS:
       return state.set('error', false)
     case LOAD_SELECT_USERS_SUCCESS:
       return state.set('users', payload.users)
@@ -100,9 +100,9 @@ export function userReducer (state = initialState, { type, payload }) {
         .set('users', users.slice())
         .set('modalLoading', false)
         .set('locale', payload.result.preferredLanguage)
-    case EDIT_NORMAL_USER:
+    case EDIT_NORMAL:
       return state
-    case EDIT_NORMAL_USER_SUCCESS:
+    case EDIT_NORMAL_SUCCESS:
       return state
         .set('locale', payload.result.preferredLanguage)
     case LOAD_EMAIL_INPUT_VALUE:

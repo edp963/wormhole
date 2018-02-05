@@ -19,8 +19,6 @@
  */
 
 import React from 'react'
-import { FormattedMessage } from 'react-intl'
-import messages from './messages'
 
 import { forceCheckNum } from '../../utils/util'
 import DataSystemSelector from '../../components/DataSystemSelector'
@@ -191,7 +189,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('dataBaseDataSystem', {
                 rules: [{
                   required: true,
-                  message: <FormattedMessage {...messages.dbTableList} />
+                  message: `${languageText === 'en' ? 'Please select Data System' : '请选择 Data System'}`
                 }]
               })(
                 <DataSystemSelector
@@ -208,7 +206,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('instance', {
                 rules: [{
                   required: true,
-                  message: `${languageText === 'en' ? 'Please select Instance' : '请填写 Instance'}`
+                  message: `${languageText === 'en' ? 'Please select Instance' : '请选择 Instance'}`
                 }]
               })(
                 <Select
@@ -236,7 +234,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('nsDatabase', {
                 rules: [{
                   required: true,
-                  message: `${languageText === 'en' ? 'Please fill in the' : '请填写'} ${databaseDSLabel}`
+                  message: `${languageText === 'en' ? 'Please fill in ' : '请填写'} ${databaseDSLabel}`
                 }]
               })(
                 <Input

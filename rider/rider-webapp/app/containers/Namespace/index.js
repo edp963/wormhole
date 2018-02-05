@@ -419,6 +419,8 @@ export class Namespace extends React.PureComponent {
 
   nsTableAdd (requestNsTables, addTableValue, addKeyValue, requestOthers) {
     const { namespaceTableSource } = this.state
+    const languageText = localStorage.getItem('preferredLanguage')
+    const tableText = languageText === 'en' ? 'Duplication of Table name' : 'Table 重名'
 
     requestNsTables.push({
       table: addTableValue,
@@ -426,7 +428,7 @@ export class Namespace extends React.PureComponent {
     })
 
     if (namespaceTableSource.find(i => i.nsModalTable === addTableValue)) {
-      this.nsErrorMsg('Table 重名')
+      this.nsErrorMsg(tableText)
     } else {
       const addValues = Object.assign({}, requestOthers, { nsTables: requestNsTables })
       this.nsAdd(addValues)
@@ -437,96 +439,107 @@ export class Namespace extends React.PureComponent {
     const { namespaceTableSource, databaseSelectValue, namespaceFormType, exitedNsTableValue,
       editNamespaceData, queryConnUrl, nsInstanceVal } = this.state
     const { tableNameExited } = this.props
+    const languageText = localStorage.getItem('preferredLanguage')
+    const existText = languageText === 'en' ? 'already exists' : '已存在'
+    const typeText = languageText === 'en' ? 'Please fill in type' : '请填写 Type'
+    const tableText = languageText === 'en' ? 'Please fill in the Table' : '请填写 Table'
+    const keyText = languageText === 'en' ? 'Please fill in the Key' : '请填写 Key'
+    const typeKeyText = languageText === 'en' ? 'Both Type and Key should be filled in' : 'Type & Key 填写同步'
+    const tableKeyText = languageText === 'en' ? 'Both Table and Key should be filled in' : 'Table & Key 填写同步'
+    const successText = languageText === 'en' ? 'Namespace is modified successfully!' : 'Namespace 修改成功！'
 
     this.namespaceForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (tableNameExited) {
-          this.nsErrorMsg(`${exitedNsTableValue} 已存在`)
+          this.nsErrorMsg(`${exitedNsTableValue} ${existText}`)
         } else {
           const selDatabase = databaseSelectValue.find(s => s.id === Number(values.nsDatabase))
           const addTableValue = values.nsSingleTableName
           const addKeyValue = values.nsSingleKeyValue
 
-          if (namespaceFormType === 'add') {
-            const instanceTemp = nsInstanceVal.filter(i => i.id === Number(values.instance))
+          switch (namespaceFormType) {
+            case 'add':
+              const instanceTemp = nsInstanceVal.filter(i => i.id === Number(values.instance))
 
-            let requestNsTables = []
-            let requestOthers = {
-              nsDatabase: selDatabase.nsDatabase,
-              nsDatabaseId: Number(values.nsDatabase),
-              nsInstance: instanceTemp[0].nsInstance,
-              nsInstanceId: Number(values.instance),
-              nsSys: values.dataBaseDataSystem
-            }
+              let requestNsTables = []
+              let requestOthers = {
+                nsDatabase: selDatabase.nsDatabase,
+                nsDatabaseId: Number(values.nsDatabase),
+                nsInstance: instanceTemp[0].nsInstance,
+                nsInstanceId: Number(values.instance),
+                nsSys: values.dataBaseDataSystem
+              }
 
-            if (namespaceTableSource.length === 0) {
-              if (!addTableValue) {
-                this.nsErrorMsg(values.dataBaseDataSystem === 'es' ? '请填写 Type' : '请填写 Table')
+              if (namespaceTableSource.length === 0) {
+                if (!addTableValue) {
+                  this.nsErrorMsg(values.dataBaseDataSystem === 'es' ? typeText : tableText)
+                } else {
+                  if (values.dataBaseDataSystem === 'redis') {
+                    this.namespaceForm.setFields({
+                      nsTables: {
+                        errors: []
+                      }
+                    })
+                    this.nsKeyAdd(addTableValue, addKeyValue, requestOthers)
+                  } else {
+                    if (!addKeyValue) {
+                      this.nsErrorMsg(keyText)
+                    } else {
+                      this.nsKeyAdd(addTableValue, addKeyValue, requestOthers)
+                    }
+                  }
+                }
               } else {
                 if (values.dataBaseDataSystem === 'redis') {
-                  this.namespaceForm.setFields({
-                    nsTables: {
-                      errors: []
-                    }
-                  })
-                  this.nsKeyAdd(addTableValue, addKeyValue, requestOthers)
-                } else {
-                  if (!addKeyValue) {
-                    this.nsErrorMsg('请填写 Key')
+                  if (addTableValue === '' && addKeyValue === '') { // 当tables表格有数据时，table input 和 key input 可以为空
+                    this.nsTableInputAdd(requestNsTables, requestOthers)
                   } else {
-                    this.nsKeyAdd(addTableValue, addKeyValue, requestOthers)
+                    namespaceTableSource.map(i => {
+                      requestNsTables.push({
+                        table: i.nsModalTable,
+                        key: ''
+                      })
+                      return i
+                    })
+                    this.nsTableAdd(requestNsTables, addTableValue, addKeyValue, requestOthers)
+                  }
+                } else {
+                  if ((addTableValue === '' && addKeyValue !== '') || (addTableValue !== '' && addKeyValue === '')) {
+                    this.nsErrorMsg(values.dataBaseDataSystem === 'es' ? typeKeyText : tableKeyText)
+                  } else if (addTableValue === '' && addKeyValue === '') {
+                    this.nsTableInputAdd(requestNsTables, requestOthers)
+                  } else if (addTableValue !== '' && addKeyValue !== '') {
+                    namespaceTableSource.map(i => {
+                      requestNsTables.push({
+                        table: i.nsModalTable,
+                        key: i.nsModalKey
+                      })
+                      return i
+                    })
+                    this.nsTableAdd(requestNsTables, addTableValue, addKeyValue, requestOthers)
                   }
                 }
               }
-            } else {
-              if (values.dataBaseDataSystem === 'redis') {
-                if (addTableValue === '' && addKeyValue === '') { // 当tables表格有数据时，table input 和 key input 可以为空
-                  this.nsTableInputAdd(requestNsTables, requestOthers)
-                } else {
-                  namespaceTableSource.map(i => {
-                    requestNsTables.push({
-                      table: i.nsModalTable,
-                      key: ''
-                    })
-                    return i
-                  })
-                  this.nsTableAdd(requestNsTables, addTableValue, addKeyValue, requestOthers)
-                }
-              } else {
-                if ((addTableValue === '' && addKeyValue !== '') || (addTableValue !== '' && addKeyValue === '')) {
-                  this.nsErrorMsg(values.dataBaseDataSystem === 'es' ? 'Type & Key 填写同步' : 'Table & Key 填写同步')
-                } else if (addTableValue === '' && addKeyValue === '') {
-                  this.nsTableInputAdd(requestNsTables, requestOthers)
-                } else if (addTableValue !== '' && addKeyValue !== '') {
-                  namespaceTableSource.map(i => {
-                    requestNsTables.push({
-                      table: i.nsModalTable,
-                      key: i.nsModalKey
-                    })
-                    return i
-                  })
-                  this.nsTableAdd(requestNsTables, addTableValue, addKeyValue, requestOthers)
-                }
-              }
-            }
-          } else if (namespaceFormType === 'edit') {
-            const editKeysValue = values.nsSingleKeyValue
+              break
+            case 'edit':
+              const editKeysValue = values.nsSingleKeyValue
 
-            if (values.dataBaseDataSystem === 'redis') {
-              this.props.onEditNamespace(Object.assign({}, editNamespaceData, queryConnUrl, { keys: '' }), () => {
-                this.hideForm()
-                message.success('Namespace 修改成功！', 3)
-              })
-            } else {
-              if (editKeysValue === '') {
-                this.nsErrorMsg('请填写 Key')
-              } else {
-                this.props.onEditNamespace(Object.assign({}, editNamespaceData, queryConnUrl, { keys: editKeysValue }), () => {
+              if (values.dataBaseDataSystem === 'redis') {
+                this.props.onEditNamespace(Object.assign({}, editNamespaceData, queryConnUrl, { keys: '' }), () => {
                   this.hideForm()
-                  message.success('Namespace 修改成功！', 3)
+                  message.success(successText, 3)
                 })
+              } else {
+                if (editKeysValue === '') {
+                  this.nsErrorMsg(keyText)
+                } else {
+                  this.props.onEditNamespace(Object.assign({}, editNamespaceData, queryConnUrl, { keys: editKeysValue }), () => {
+                    this.hideForm()
+                    message.success(successText, 3)
+                  })
+                }
               }
-            }
+              break
           }
         }
       }
@@ -568,9 +581,7 @@ export class Namespace extends React.PureComponent {
   onDeleteTable = (index) => (e) => {
     const { namespaceTableSource } = this.state
     this.namespaceForm.setFields({
-      nsTables: {
-        errors: []
-      }
+      nsTables: { errors: [] }
     })
     namespaceTableSource.splice(index, 1)
     this.setState({
@@ -585,24 +596,31 @@ export class Namespace extends React.PureComponent {
   onAddTable = () => {
     const { namespaceTableSource, exitedNsTableValue, nsDsVal } = this.state
     const { tableNameExited } = this.props
+    const languageText = localStorage.getItem('preferredLanguage')
+    const existText = languageText === 'en' ? 'already exists' : '已存在'
+    const typeText = languageText === 'en' ? 'Please fill in the Type' : '请填写 Type'
+    const tableText = languageText === 'en' ? 'Please fill in the Table' : '请填写 Table'
+    const keyText = languageText === 'en' ? 'Please fill in the Key' : '请填写 Key'
+    const tableDupText = languageText === 'en' ? 'Duplication of Table name' : 'Table 重名'
+    const otherText = languageText === 'en' ? 'Please select other items first' : '请先选择其他项'
 
     const moadlTempVal = this.namespaceForm.getFieldsValue()
 
     if (moadlTempVal.dataBaseDataSystem === undefined || moadlTempVal.connectionUrl === undefined ||
       moadlTempVal.instance === undefined || moadlTempVal.nsDatabase === undefined) {
-      this.nsErrorMsg('请先选择其他项')
+      this.nsErrorMsg(otherText)
     } else if (moadlTempVal.nsSingleTableName === '' || moadlTempVal.nsSingleTableName === undefined) {
-      this.nsErrorMsg(nsDsVal === 'es' ? '请填写 Type' : '请填写 Table')
+      this.nsErrorMsg(nsDsVal === 'es' ? typeText : tableText)
     } else if (tableNameExited === true) {
-      this.nsErrorMsg(`${exitedNsTableValue} 已存在`)
+      this.nsErrorMsg(`${exitedNsTableValue} ${existText}`)
     } else if (namespaceTableSource.find(i => i.nsModalTable === moadlTempVal.nsSingleTableName)) {
-      this.nsErrorMsg('Table 重名')
+      this.nsErrorMsg(tableDupText)
     } else {
       if (nsDsVal === 'redis') {
         this.addTableTemp('')
       } else {
         if (!moadlTempVal.nsSingleKeyValue) {
-          this.nsErrorMsg('请填写 Key')
+          this.nsErrorMsg(keyText)
         } else {
           this.addTableTemp(moadlTempVal.nsSingleKeyValue)
         }
@@ -629,9 +647,7 @@ export class Namespace extends React.PureComponent {
       this.namespaceForm.setFieldsValue({
         nsSingleTableName: '',
         nsSingleKeyValue: '',
-        nsTables: {
-          errors: []
-        }
+        nsTables: { errors: [] }
       })
     })
   }
@@ -641,6 +657,8 @@ export class Namespace extends React.PureComponent {
    * */
   onInitNsNameInputValue = (val) => {
     const formValues = this.namespaceForm.getFieldsValue()
+    const languageText = localStorage.getItem('preferredLanguage')
+    const existText = languageText === 'en' ? 'already exists' : '已存在'
 
     const requestValues = {
       instanceId: Number(formValues.instance),
@@ -650,15 +668,11 @@ export class Namespace extends React.PureComponent {
 
     this.props.onLoadTableNameExist(requestValues, () => {
       this.namespaceForm.setFields({
-        nsTables: {
-          errors: []
-        }
+        nsTables: { errors: [] }
       })
     }, () => {
-      this.nsErrorMsg(`${val} 已存在`)
-      this.setState({
-        exitedNsTableValue: val
-      })
+      this.nsErrorMsg(`${val} ${existText}`)
+      this.setState({ exitedNsTableValue: val })
     })
   }
 
@@ -668,9 +682,7 @@ export class Namespace extends React.PureComponent {
   onInitNsKeyInputValue = (val) => {
     if (val !== '') {
       this.namespaceForm.setFields({
-        nsTables: {
-          errors: []
-        }
+        nsTables: { errors: [] }
       })
     }
   }
@@ -881,8 +893,19 @@ export class Namespace extends React.PureComponent {
   initSelectUmsop = (key) => this.setState({ umsopRecordValue: key })
 
   onSchemaModalOk = () => {
+    const languageText = localStorage.getItem('preferredLanguage')
+    const typeFailText = languageText === 'en' ? 'Tuple type configuration has error!' : 'Tuple 类型配置失败！'
+    const successText = languageText === 'en' ? 'Source Schema is configured successfully!' : 'Source Schema 配置成功！'
+    const jsonText = languageText === 'en' ? 'JSON Sample is not null!' : 'JSON Sample 不为空！'
+    const tableText = languageText === 'en' ? 'Table cannot be empty!' : 'Table 不为空！'
+    const renameText = languageText === 'en' ? 'Rename cannot be empty!' : 'Rename 不为空！'
+    const renameRepeatText = languageText === 'en' ? 'Please modify duplicated items of Rename column!' : '请修改 Rename 重复项！'
+    const arrayTypeText = languageText === 'en' ? 'Only one array type contained!' : '只能包含一个array 类型！'
+    const umsTsText = languageText === 'en' ? 'Please select ums_ts!' : '请选择 ums_ts！'
+    const umsOpText = languageText === 'en' ? 'ums_op_ configuration has error!' : 'ums_op_ 配置错误！'
+
     if (document.getElementById('sep')) {
-      message.error('Tuple 类型配置失败！', 3)
+      message.error(typeFailText, 3)
       return
     }
     this.schemaTypeConfig.validateFieldsAndScroll((err, values) => {
@@ -892,7 +915,7 @@ export class Namespace extends React.PureComponent {
           case 'ums':
             const requestValue = {umsType: 'ums'}
             this.props.onSetSchema(nsIdValue, requestValue, 'source', () => {
-              message.success('Source Schema 配置成功！', 3)
+              message.success(successText, 3)
               this.hideSchemaModal()
             })
             break
@@ -901,10 +924,10 @@ export class Namespace extends React.PureComponent {
 
             const jsontemp = this.cmSample.doc.getValue()
             if (!jsontemp) {
-              message.error('JSON Sample 不为空！', 3)
+              message.error(jsonText, 3)
             } else {
               if (umsTableDataSource.length === 0) {
-                message.error('Table 不为空！', 3)
+                message.error(tableText, 3)
               } else {
                 const spaceRename = umsTableDataSource.find(s => !s.rename)
                 // 除去selected的项，检查rename字段是否有重复, 提示rename重复的位置，数组中的值为rename重复的index
@@ -915,12 +938,12 @@ export class Namespace extends React.PureComponent {
                 const repeatArrayIndex = repeatTypeArr.map(s => s.key)
 
                 if (spaceRename) {
-                  message.error('Rename 不为空！', 3)
+                  message.error(renameText, 3)
                 } else if (repeatArr.length !== 0) {
-                  message.error('请修改 Rename 重复项！', 3)
+                  message.error(renameRepeatText, 3)
                   this.setState({ repeatRenameArr: repeatArr })
                 } else if (repeatTypeArr.length > 1) {
-                  message.error('只能包含一个array 类型！', 3)
+                  message.error(arrayTypeText, 3)
                   this.setState({ repeatArrayArr: repeatArrayIndex })
                 } else {
                   this.setState({
@@ -931,7 +954,7 @@ export class Namespace extends React.PureComponent {
                   // 检查ums_ts_，分别必须得有一个
                   const umsTsExit = umsTableDataSource.find(i => i.ums_ts_ === true)
                   if (!umsTsExit) {
-                    message.error('请选择 ums_ts！', 3)
+                    message.error(umsTsText, 3)
                   } else {
                     if (document.getElementById('insert')) {
                       const opInsert = document.getElementById('insert').value
@@ -961,12 +984,12 @@ export class Namespace extends React.PureComponent {
                           }
 
                           this.props.onSetSchema(nsIdValue, requestValue, 'source', () => {
-                            message.success('Source Schema 配置成功！', 3)
+                            message.success(successText, 3)
                             this.hideSchemaModal()
                           })
                         })
                       } else {
-                        message.error('ums_op_ 配置错误！', 3)
+                        message.error(umsOpText, 3)
                       }
                     } else {
                       const { umsTableDataSource } = this.state
@@ -987,7 +1010,7 @@ export class Namespace extends React.PureComponent {
                         }
 
                         this.props.onSetSchema(nsIdValue, requestValue, 'source', () => {
-                          message.success('Source Schema 配置成功！', 3)
+                          message.success(successText, 3)
                           this.hideSchemaModal()
                         })
                       })
@@ -1004,15 +1027,18 @@ export class Namespace extends React.PureComponent {
 
   onSinkSchemaModalOk = () => {
     const { sinkTableDataSource, nsIdValue, sinkJsonSampleValue } = this.state
+    const languageText = localStorage.getItem('preferredLanguage')
+    const successText = languageText === 'en' ? 'Sink Schema is configured successfully!' : 'Sink Schema 配置成功！'
+    const tableText = languageText === 'en' ? 'Table cannot be empty!' : 'Table 不为空！'
 
     if (!this.cmSinkSample.doc.getValue()) {
       this.props.onSetSchema(nsIdValue, {}, 'sink', () => {
-        message.success('Sink Schema 配置成功！', 3)
+        message.success(successText, 3)
         this.hideSinkSchemaModal()
       })
     } else {
       if (sinkTableDataSource.length === 0) {
-        message.error('Table 不为空！', 3)
+        message.error(tableText, 3)
       } else {
         const tableDataString = JSON.stringify(sinkTableDataSource, ['selected', 'fieldName', 'fieldType', 'forbidden'])
 
@@ -1027,7 +1053,7 @@ export class Namespace extends React.PureComponent {
         }
 
         this.props.onSetSchema(nsIdValue, requestValue, 'sink', () => {
-          message.success('Sink Schema 配置成功！', 3)
+          message.success(successText, 3)
           this.hideSinkSchemaModal()
         })
       }
@@ -1036,11 +1062,14 @@ export class Namespace extends React.PureComponent {
 
   onJsonFormat = () => {
     const cmJsonvalue = this.cmSample.doc.getValue()
+    const languageText = localStorage.getItem('preferredLanguage')
+    const jsonText = languageText === 'en' ? 'JSON Sample is not null!' : 'JSON Sample 不为空！'
+    const noJsonText = languageText === 'en' ? 'Not JSON format!' : '非 JSON格式！'
 
     if (cmJsonvalue === '') {
-      message.error('JSON Sample 为空！', 3)
+      message.error(jsonText, 3)
     } else if (!isJSONNotEmpty(cmJsonvalue)) {
-      message.error('非 JSON格式！', 3)
+      message.error(noJsonText, 3)
     } else {
       const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, 1)
       this.cmSample.doc.setValue(cmJsonvalueFormat || '')
@@ -1049,11 +1078,14 @@ export class Namespace extends React.PureComponent {
 
   onSinkJsonFormat = () => {
     const cmJsonvalue = this.cmSinkSample.doc.getValue()
+    const languageText = localStorage.getItem('preferredLanguage')
+    const jsonText = languageText === 'en' ? 'JSON Sample is not null!' : 'JSON Sample 不为空！'
+    const noJsonText = languageText === 'en' ? 'Not JSON format!' : '非 JSON格式！'
 
     if (cmJsonvalue === '') {
-      message.error('JSON Sample 为空！', 3)
+      message.error(jsonText, 3)
     } else if (!isJSONNotEmpty(cmJsonvalue)) {
-      message.error('非 JSON格式！', 3)
+      message.error(noJsonText, 3)
     } else {
       const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, 1)
       this.cmSinkSample.doc.setValue(cmJsonvalueFormat || '')
@@ -1067,11 +1099,14 @@ export class Namespace extends React.PureComponent {
 
   onChangeUmsJsonToTable = () => {
     const cmVal = this.cmSample.doc.getValue()
+    const languageText = localStorage.getItem('preferredLanguage')
+    const jsonText = languageText === 'en' ? 'Please fill in JSON Sample' : '请填写 JSON Sample'
+    const noJsonText = languageText === 'en' ? 'Not JSON format!' : '非 JSON格式！'
 
     if (cmVal === '') {
-      message.error('请填写 JSON Sample', 3)
+      message.error(jsonText, 3)
     } else if (!isJSONNotEmpty(cmVal)) {
-      message.error('非 JSON格式！', 3)
+      message.error(noJsonText, 3)
     } else {
       const cmJsonvalue = JSON.parse(this.cmSample.doc.getValue())
       const jsonSmaple = jsonParse(cmJsonvalue, '', [])
@@ -1090,11 +1125,14 @@ export class Namespace extends React.PureComponent {
 
   onChangeSinkJsonToTable = () => {
     const cmVal = this.cmSinkSample.doc.getValue()
+    const languageText = localStorage.getItem('preferredLanguage')
+    const jsonText = languageText === 'en' ? 'Please fill in the JSON Sample' : '请填写 JSON Sample'
+    const noJsonText = languageText === 'en' ? 'Not JSON format!' : '非 JSON格式！'
 
     if (cmVal === '') {
-      message.error('请填写 JSON Sample', 3)
+      message.error(jsonText, 3)
     } else if (!isJSONNotEmpty(cmVal)) {
-      message.error('非 JSON格式！', 3)
+      message.error(noJsonText, 3)
     } else {
       const cmJsonvalue = JSON.parse(this.cmSinkSample.doc.getValue())
       const jsonSmaple = jsonParse(cmJsonvalue, '', [])

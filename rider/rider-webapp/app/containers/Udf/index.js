@@ -208,24 +208,25 @@ export class Udf extends React.PureComponent {
 
   onModalOk = () => {
     const { formType, queryUdfVal } = this.state
+    const languageText = localStorage.getItem('preferredLanguage')
+    const createText = languageText === 'en' ? 'is created successfully!' : '新建成功！'
+    const copyText = languageText === 'en' ? 'is copied successfully!' : '复制成功！'
+    const createFailText = languageText === 'en' ? 'It fails to create UDF:' : '新建失败：'
+    const copyFailText = languageText === 'en' ? 'It fails to copy UDF:' : '复制失败：'
 
     this.udfForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (formType === 'add' || formType === 'copy') {
           this.props.onAddUdf(values, () => {
-            message.success(`UDF ${formType === 'add' ? '新建' : '复制'}成功！`, 3)
-            this.setState({
-              formVisible: false
-            })
+            message.success(`UDF ${formType === 'add' ? createText : copyText}`, 3)
+            this.setState({ formVisible: false })
           }, (result) => {
-            message.error(`${formType === 'add' ? '新建' : '复制'}失败：${result}`, 3)
+            message.error(`${formType === 'add' ? createFailText : copyFailText} ${result}`, 3)
           })
         } else if (formType === 'edit') {
           this.props.onEditUdf(Object.assign({}, values, queryUdfVal), () => {
             message.success(operateLanguageText('success', 'modify'), 3)
-            this.setState({
-              formVisible: false
-            })
+            this.setState({ formVisible: false })
           }, (result) => {
             message.error(`${operateLanguageText('fail', 'modify')} ${result}`, 3)
           })
