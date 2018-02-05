@@ -35,8 +35,11 @@ import edp.wormhole.common.KVConfig
 import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.ums.UmsProtocolType._
+import net.sf.jsqlparser.parser.CCJSqlParserUtil
+import net.sf.jsqlparser.util.TablesNamesFinder
 import slick.jdbc.MySQLProfile.api._
 
+import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -68,7 +71,7 @@ object FlowUtils extends RiderLogger {
           caseClass2json[Seq[KVConfig]](dbConfig.get)
         else "\"\""
 
-      val sinkKeys = if (ns.nsSys == "hbase") getRowkey(specialConfig) else ns.keys.getOrElse("")
+      val sinkKeys = if (ns.nsSys == "hbase") getRowKey(specialConfig) else ns.keys.getOrElse("")
 
       if (ns.sinkSchema.nonEmpty && ns.sinkSchema.get != "") {
         val schema = caseClass2json[Object](json2caseClass[SinkSchema](ns.sinkSchema.get).schema)
@@ -232,8 +235,8 @@ object FlowUtils extends RiderLogger {
     )
     flowSeq.foreach(flow =>
       map(flow.id) = getDisableActions(flow, projectNsMap(flow.projectId)))
-    map
-    riderLogger.info("flow disableActions map: " + map)
+//    map
+//    riderLogger.info("flow disableActions map: " + map)
     map
   }
 
@@ -244,8 +247,8 @@ object FlowUtils extends RiderLogger {
     nsSeq += flow.sinkNs
     nsSeq ++ getDbFromTrans(flow.tranConfig).distinct
     var flag = true
-    riderLogger.info("flow ns: " + nsSeq)
-    riderLogger.info("project ns: " + projectNsSeq)
+//    riderLogger.info("flow ns: " + nsSeq)
+//    riderLogger.info("project ns: " + projectNsSeq)
     for (i <- nsSeq.indices) {
       if (i < 2) {
         if (!projectNsSeq.exists(_.startsWith(nsSeq(i).split("\\.").slice(0, 4).mkString(".")))) {
@@ -642,19 +645,39 @@ object FlowUtils extends RiderLogger {
     else (true, ns.nsDatabaseId, topicName)
   }
 
-  def getFlowsByNsIds(ids: Seq[Long]): Seq[Long] = {
-    val nsSeq = Await.result(modules.namespaceDal.findByFilter(_.id inSet ids).mapTo[Seq[Namespace]], minTimeOut)
-      .map(ns => generateStandardNs(ns))
-    val flowIds = new ListBuffer[Long]
-    nsSeq.foreach(ns => {
-      val flow = Await.result(modules.flowDal.findByFilter
-      (flow => flow.sourceNs === ns || flow.sinkNs === ns), minTimeOut)
-      flowIds ++= flow.map(_.id)
+  def getFlowsByNsIds(projectId: Long, ids: Seq[Long]): (mutable.HashMap[Long, Seq[String]], Seq[Long]) = {
+    val nsMap = Await.result(modules.namespaceDal.findByFilter(_.id inSet ids).mapTo[Seq[Namespace]], minTimeOut)
+      .map(ns => (generateStandardNs(ns), ns.id)).toMap[String, Long]
+    val nsSeq = nsMap.values.toList
+    val notDeleteNsIds = new ListBuffer[Long]
+    val flows = Await.result(modules.flowDal.findByFilter(flow => flow.projectId === projectId && (flow.status =!= "stopped" || flow.status =!= "new" || flow.status =!= "failed")), minTimeOut)
+    val flowNsMap = mutable.HashMap.empty[Long, Seq[String]]
+    flows.foreach(flow => {
+      val lookupTables =
+        if (flow.tranConfig.nonEmpty)
+          getNsSeqByTranConfig(flow.tranConfig.get)
+        else Seq()
+      val notDeleteNsSeq = new ListBuffer[String]
+      if (nsSeq.contains(flow.sourceNs)) {
+        notDeleteNsSeq += flow.sourceNs
+        notDeleteNsIds += nsMap(flow.sourceNs)
+      }
+      if (nsSeq.contains(flow.sinkNs)) {
+        notDeleteNsSeq += flow.sinkNs
+        notDeleteNsIds += nsMap(flow.sinkNs)
+      }
+      lookupTables.foreach(ns => {
+        if (nsSeq.contains(ns)) {
+          notDeleteNsSeq += ns
+          notDeleteNsIds += nsMap(ns)
+        }
+      })
+      flowNsMap(flow.id) = notDeleteNsSeq.distinct
     })
-    flowIds
+    (flowNsMap, notDeleteNsIds.distinct)
   }
 
-  def getRowkey(sinkConfig: String): String = {
+  def getRowKey(sinkConfig: String): String = {
     val joinGrp = sinkConfig.split("\\+").map(_.trim)
     val rowKey = ListBuffer.empty[String]
     joinGrp.foreach(oneFieldPattern => {
@@ -690,5 +713,36 @@ object FlowUtils extends RiderLogger {
     })
     rowKey.distinct.filter(_ != "_").mkString(",")
   }
+
+
+  def getNsSeqByTranConfig(tranConfig: String): Seq[String] = {
+    val tableSeq = new ListBuffer[String]
+    val sqls = if (tranConfig != "" && tranConfig != null) {
+      val json = JSON.parseObject(tranConfig)
+      if (json.containsKey("action")) {
+        json.getString("action").split(";").filter(_.contains("pushdown_sql")).toList
+      } else List()
+    } else List()
+    sqls.foreach(sql => tableSeq ++ getNsSeqByLookupSql(sql))
+    tableSeq
+  }
+
+  def getNsSeqByLookupSql(sql: String): List[String] = {
+    if (sql.contains("pushdown_sql")) {
+      val sqlSplit = sql.split("with")(1).split("=")
+
+      val db = sqlSplit(0).trim
+      val pureSql = sqlSplit(1).trim
+      getTables(pureSql).map(table => db + "." + table + ".*.*.*")
+    } else List()
+  }
+
+  def getTables(sql: String): List[String] = {
+    val regex = "([A-Za-z]+[A-Za-z0-9_-]*\\.){4,7}[A-Za-z0-9_-]+(,([A-Za-z]+[A-Za-z0-9_-]*\\.){4,7}[A-Za-z0-9_-]+)*".r.pattern
+    val statement = CCJSqlParserUtil.parse(regex.matcher(sql).replaceAll("aaaaaaaaaaaaaaa"))
+    val tablesNamesFinder = new TablesNamesFinder
+    tablesNamesFinder.getTableList(statement).toList.distinct
+  }
+
 
 }

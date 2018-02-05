@@ -24,7 +24,7 @@ package edp.rider.rest.util
 import com.alibaba.fastjson.JSON
 import edp.rider.RiderStarter.modules
 import edp.rider.rest.persistence.entities.PushDownConnection
-import edp.rider.rest.util.CommonUtils.{isJson, isKeyEqualValue, _}
+import edp.rider.rest.util.CommonUtils.{isKeyEqualValue, _}
 import edp.rider.rest.util.NamespaceUtils._
 import edp.wormhole.common.KVConfig
 
@@ -108,7 +108,7 @@ object NsDatabaseUtils {
     if (tranConfig.nonEmpty && tranConfig.get != "") {
       val json = JSON.parseObject(tranConfig.get)
       if (json.containsKey("action")) {
-        val seq = json.getString("action").split(";").find(_.contains("pushdown_sql"))
+        val seq = json.getString("action").split(";").filter(_.contains("pushdown_sql"))
         if (seq.nonEmpty) {
           seq.foreach(sql => {
             dbSeq += sql.split("with")(1).split("=")(0).trim
@@ -118,6 +118,7 @@ object NsDatabaseUtils {
     }
     dbSeq
   }
+
 }
 
 

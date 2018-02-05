@@ -22,8 +22,13 @@
 package edp.rider.rest.util
 
 import edp.rider.common.RiderLogger
+import edp.rider.RiderStarter.modules
 import edp.rider.rest.persistence.entities.{Instance, Namespace, NamespaceInfo, NsDatabase}
 import edp.rider.rest.util.CommonUtils._
+import slick.jdbc.MySQLProfile.api._
+
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.Await
 
 object NamespaceUtils extends RiderLogger {
 
@@ -105,6 +110,18 @@ object NamespaceUtils extends RiderLogger {
       case _ => instance.connUrl
     }
 
+  }
+
+  def permCheck(projectId: Long, nsSeq: Seq[String]): Seq[String] = {
+    val nonPermList = new ListBuffer[String]
+    val existList = new ListBuffer[Namespace]
+    nsSeq.foreach(ns => {
+      val namespace = modules.namespaceDal.getNamespaceByNs(ns)
+      if (namespace.nonEmpty) existList += namespace.get
+      else nonPermList += ns.split("\\.")(3)
+    })
+    val nsIds = Await.result(modules.relProjectNsDal.findByFilter(_.projectId === projectId), minTimeOut).map(_.nsId)
+    nonPermList ++ existList.filterNot(ns => nsIds.contains(ns.id)).map(_.nsTable)
   }
 
 }

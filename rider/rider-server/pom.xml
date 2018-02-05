@@ -93,6 +93,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.9.3</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.github.swagger-akka-http</groupId>
             <artifactId>swagger-akka-http_${scala.binary.version}</artifactId>
             <version>${swagger.version}</version>
@@ -149,6 +155,7 @@
             </exclusions>
         </dependency>
 
+
         <dependency>
             <groupId>de.heikoseeberger</groupId>
             <artifactId>akka-http-json4s_2.11</artifactId>
@@ -187,6 +194,11 @@
             <version>5.3.2</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.github.jsqlparser</groupId>
+            <artifactId>jsqlparser</artifactId>
+            <version>1.0</version>
+        </dependency>
 
     </dependencies>
 

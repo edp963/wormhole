@@ -55,6 +55,7 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
   lazy val jobUser = new JobUserRoutes(modules)
   lazy val instanceUser = new InstanceUserRoutes(modules)
   lazy val udfUser = new UdfUserRoutes(modules)
+  lazy val user = new UserRoutes(modules)
 
   lazy val flowApp = new FlowAppRoutes(modules)
   lazy val jobApp = new JobAppRoutes(modules)
@@ -88,7 +89,8 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
               crossDomainHandler(databaseUser.routes) ~
               crossDomainHandler(instanceUser.routes) ~
               crossDomainHandler(udfUser.routes) ~
-              crossDomainHandler(jobUser.routes)
+              crossDomainHandler(jobUser.routes) ~
+              crossDomainHandler(user.routes)
           } ~
           pathPrefix("app") {
             crossDomainHandler(flowApp.routes) ~

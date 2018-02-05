@@ -597,12 +597,23 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     try {
       if (session.projectIdList.contains(projectId)) {
         val streamDetail = streamDal.getStreamDetail(Some(projectId), Some(streamId)).head
-        val consumedOffset = streamDetail.topicInfo.map(topic => ConsumedLatestOffset(topic.id, topic.name, topic.partitionOffsets))
+        val consumedOffsets = streamDetail.topicInfo.map(topic => ConsumedLatestOffset(topic.id, topic.name, topic.rate, topic.partitionOffsets))
         val topicSeq = inTopicDal.getStreamTopic(Seq(streamId))
         val kafkaOffsets = topicSeq.map(topic =>
           KafkaLatestOffset(topic.id, topic.name, getKafkaLatestOffset(streamDetail.kafkaInfo.connUrl, topic.name)))
+        val finalOffsets = consumedOffsets.map(topic => {
+          val consumedPart = topic.partitionOffsets.split(",").length
+          val kafkaOffset = kafkaOffsets.filter(_.id == topic.id).head
+          val kafkaPart = kafkaOffset.partitionOffsets.split(",").length
+          val offset = if (kafkaPart > consumedPart) {
+            topic.partitionOffsets + "," + (consumedPart until kafkaPart).toList.mkString(":0,") + ":0"
+          } else if (kafkaPart < consumedPart) {
+            topic.partitionOffsets.split(":").sortBy(offset => offset.split(":")(0)).take(kafkaPart).mkString(",")
+          } else topic.partitionOffsets
+          ConsumedLatestOffset(topic.id, topic.name, topic.rate, offset)
+        })
         riderLogger.info(s"user ${session.userId} get stream $streamId topics latest offset success")
-        complete(OK, ResponseJson[TopicLatestOffset](getHeader(200, session), TopicLatestOffset(consumedOffset, kafkaOffsets)))
+        complete(OK, ResponseJson[TopicLatestOffset](getHeader(200, session), TopicLatestOffset(finalOffsets, kafkaOffsets)))
       } else {
         riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
         complete(OK, getHeader(403, session))
