@@ -93,6 +93,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.9.3</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.github.swagger-akka-http</groupId>
             <artifactId>swagger-akka-http_${scala.binary.version}</artifactId>
             <version>${swagger.version}</version>
