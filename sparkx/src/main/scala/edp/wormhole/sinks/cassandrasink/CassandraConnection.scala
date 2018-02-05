@@ -21,7 +21,7 @@
 
 package edp.wormhole.sinks.cassandrasink
 
-import java.net.InetAddress
+import java.net.{InetAddress, InetSocketAddress}
 
 import com.datastax.driver.core.Cluster.Builder
 import com.datastax.driver.core.{Cluster, Session}
@@ -32,24 +32,28 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.JavaConverters._
 
 object CassandraConnection extends EdpLogging {
-  val cassandraSessionMap: mutable.HashMap[List[java.net.InetAddress], Session] = new mutable.HashMap[List[java.net.InetAddress], Session]
+  val cassandraSessionMap: mutable.HashMap[List[java.net.InetSocketAddress], Session] = new mutable.HashMap[List[java.net.InetSocketAddress], Session]
 
-  def getSortedAddress(nodes: String): List[java.net.InetAddress] = {
+  def getSortedAddress(nodes: String): List[java.net.InetSocketAddress] = {
     val nodeArray = nodes.split(",")
-    val sortedNodeArray = nodeArray.sorted
-    val addresses = ListBuffer.empty[InetAddress]
+    val sortedNodeArray: Array[String] = nodeArray.sorted
+    val addresses = ListBuffer.empty[InetSocketAddress]
     for (host <- sortedNodeArray) {
-      addresses += InetAddress.getByName(host)
+      val hostName=host.split("\\:")(0)
+      val port=host.split("\\:")(1).toInt
+      val ip=InetAddress.getByName(hostName)
+      val ipAddress=new InetSocketAddress(ip,port)
+      addresses +=ipAddress
     }
     addresses.toList
   }
 
-  def getSession(addrs: List[java.net.InetAddress], user: String, password: String) = {
+  def getSession(addrs: List[java.net.InetSocketAddress], user: String, password: String) = {
     if (!cassandraSessionMap.contains(addrs)) {
       synchronized {
         if (!cassandraSessionMap.contains(addrs)) {
           try {
-            var builder: Builder = Cluster.builder().addContactPoints(addrs.asJava)
+            var builder: Builder = Cluster.builder().addContactPointsWithPorts(addrs.asJava)
             if (user != null && password != null) {
               builder = builder.withCredentials(user, password)
             }
