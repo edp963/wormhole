@@ -59,9 +59,7 @@ export class ProjectUdfTable extends React.Component {
     }
   }
 
-  onSelectChange = (selectedRowKeys) => {
-    this.setState({ selectedRowKeys })
-  }
+  onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
 
   handleChange = (pagination, filters, sorter) => {
     this.setState({

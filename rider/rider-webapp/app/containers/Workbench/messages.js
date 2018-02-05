@@ -31,5 +31,10 @@ export default defineMessages({
   workbenchTransUp: { id: 'rider.containers.Workbench.transformation.up' },
   workbenchTransDown: { id: 'rider.containers.Workbench.transformation.down' },
   workbenchTransLookup: { id: 'rider.containers.Workbench.transformation.lookup.msg' },
-  workbenchTransSpark: { id: 'rider.containers.Workbench.transformation.spark.msg' }
+  workbenchTransSpark: { id: 'rider.containers.Workbench.transformation.spark.msg' },
+  workbenchBack: { id: 'rider.containers.Flow.step.back' },
+  workbenchNext: { id: 'rider.containers.Flow.step.next' },
+  workbenchSubmit: { id: 'rider.app.modal.submit' },
+  workbenchJobFormAdd: { id: 'rider.containers.Namespace.Modal.tables.add' },
+  workbenchTransResource: { id: 'rider.containers.Workbench.transformation.resource.configuration' }
 })

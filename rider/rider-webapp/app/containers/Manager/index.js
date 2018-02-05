@@ -398,6 +398,8 @@ export class Manager extends React.Component {
   handleEditStartOk = (e) => {
     const { actionType, streamIdGeted, streamStartFormData, startUdfVals } = this.state
     const { projectIdGeted } = this.props
+    const languageText = localStorage.getItem('preferredLanguage')
+    const offsetText = languageText === 'en' ? 'Offset cannot be empty' : 'Offset 不能为空！'
 
     this.streamStartForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -428,7 +430,7 @@ export class Manager extends React.Component {
               for (let r = 0; r < partitionTemp.length; r++) {
                 const offsetArrTemp = values[`${i.id}_${r}`]
                 if (offsetArrTemp === '') {
-                  message.warning('Offset 不能为空！', 3)
+                  message.warning(offsetText, 3)
                 } else {
                   offsetArr.push(`${r}:${offsetArrTemp}`)
                 }
@@ -481,7 +483,7 @@ export class Manager extends React.Component {
               for (let r = 0; r < partitionTemp.length; r++) {
                 const offsetArrTemp = values[`${i.id}_${r}`]
                 if (offsetArrTemp === '') {
-                  message.warning('Offset 不能为空！', 3)
+                  message.warning(offsetText, 3)
                 } else {
                   offsetArr.push(`${r}:${offsetArrTemp}`)
                 }
@@ -532,10 +534,10 @@ export class Manager extends React.Component {
         let actionTypeMsg = ''
         if (actionType === 'start') {
           actionTypeRequest = 'start'
-          actionTypeMsg = '启动成功！'
+          actionTypeMsg = languageText === 'en' ? 'Start Successfully!' : '启动成功！'
         } else if (actionType === 'renew') {
           actionTypeRequest = 'renew'
-          actionTypeMsg = '生效！'
+          actionTypeMsg = languageText === 'en' ? 'Renew Successfully!' : '生效！'
         }
 
         this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, () => {
@@ -547,7 +549,8 @@ export class Manager extends React.Component {
 
           message.success(actionTypeMsg, 3)
         }, (result) => {
-          message.error(`操作失败：${result}`, 3)
+          const failText = languageText === 'en' ? 'Operation failed:' : '操作失败：'
+          message.error(`${failText} ${result}`, 3)
           this.setState({
             modalLoading: false
           })
@@ -566,10 +569,13 @@ export class Manager extends React.Component {
   }
 
   stopStreamBtn = (record, action) => (e) => {
+    const languageText = localStorage.getItem('preferredLanguage')
+    const successText = languageText === 'en' ? 'Stop successfully!' : '停止成功！'
+    const failText = languageText === 'en' ? 'Operation failed:' : '操作失败：'
     this.props.onOperateStream(this.props.projectIdGeted, record.id, 'stop', () => {
-      message.success('停止成功！', 3)
+      message.success(successText, 3)
     }, (result) => {
-      message.error(`操作失败：${result}`, 3)
+      message.error(`${failText} ${result}`, 3)
     })
   }
 
@@ -601,16 +607,12 @@ export class Manager extends React.Component {
   loadLogsData = (projectId, streamId) => {
     if (localStorage.getItem('loginRoleType') === 'admin') {
       this.props.onLoadAdminLogsInfo(projectId, streamId, (result) => {
-        this.setState({
-          logsContent: result
-        })
+        this.setState({ logsContent: result })
         this.streamLogRefreshState()
       })
     } else if (localStorage.getItem('loginRoleType') === 'user') {
       this.props.onLoadLogsInfo(projectId, streamId, (result) => {
-        this.setState({
-          logsContent: result
-        })
+        this.setState({ logsContent: result })
         this.streamLogRefreshState()
       })
     }
@@ -1209,7 +1211,9 @@ export class Manager extends React.Component {
       StreamAddOrNot = ''
     } else if (localStorage.getItem('loginRoleType') === 'user') {
       StreamAddOrNot = (
-        <Button icon="plus" type="primary" onClick={onShowAddStream}>新建</Button>
+        <Button icon="plus" type="primary" onClick={onShowAddStream}>
+          <FormattedMessage {...messages.streamCreate} />
+        </Button>
       )
     }
 

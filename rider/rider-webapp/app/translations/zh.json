@@ -117,11 +117,9 @@
   "rider.containers.Instance.Modal.url.oracle.msg": "ip:port",
   "rider.containers.Instance.Modal.url.es.msg": "作为sink，填写 http://localhost:9200；作为lookup，填写 localhost:9300",
   "rider.containers.Instance.Modal.url.hbase.msg": "zookeeper url list, localhost:2181/hbase,localhost1:2181/hbase",
-  "rider.containers.Instance.Modal.url.phoenix.msg": "1",
+  "rider.containers.Instance.Modal.url.phoenix.msg": "zookeeper url list",
   "rider.containers.Instance.Modal.url.kafka.msg": "localhost:9092,localhost1:9092",
-  "rider.containers.Instance.Modal.url.cassandra.msg": "2",
-  "rider.containers.Instance.Modal.url.redis.msg": "3",
-  "rider.containers.Instance.Modal.url.mongodb.msg": "4",
+  "rider.containers.Instance.Modal.url.cassandra.msg": "ip:port list",
   "rider.containers.Instance.Modal.url.others.msg": "请选择 Data System",
 
   "rider.containers.Database.table.column.ds": "数据系统",
@@ -144,6 +142,6 @@
   "rider.containers.Workbench.transformation.up": "向上",
   "rider.containers.Workbench.transformation.down": "向下",
   "rider.containers.Workbench.transformation.lookup.msg": "若lookup表为user,源namespace为kafka.test.test.test, SQL语句: select id as id1, name as name1 from user where (id,name) in (kafka.test.test.test.id, kafka.test.test.test.name);",
-  "rider.containers.Workbench.transformation.spark.msg": "sql 语句中的 table 为 source namespace 中第四层, for example: source namespace 为 kafka.test.test1.test2.*.*.*, sql 语句为 select * from test2;"
-
+  "rider.containers.Workbench.transformation.spark.msg": "sql 语句中的 table 为 source namespace 中第四层, for example: source namespace 为 kafka.test.test1.test2.*.*.*, sql 语句为 select * from test2;",
+  "rider.containers.Workbench.transformation.resource.configuration": "Dirver/Executor 资源配置"
 }
