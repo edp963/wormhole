@@ -21,9 +21,10 @@
 package edp.rider.spark
 
 import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.rest.persistence.entities.{LaunchConfig, StartConfig}
+import edp.rider.rest.persistence.entities.StartConfig
 
-import scala.sys.process.Process
+import scala.collection.mutable.ListBuffer
+import scala.sys.process._
 
 object SubmitSparkJob extends App with RiderLogger {
 
@@ -45,7 +46,11 @@ object SubmitSparkJob extends App with RiderLogger {
   def runShellCommand(command: String) = {
     //    val remoteCommand = "ssh -p%s %s@%s %s ".format(sshPort, username, hostname, command)
     assert(!command.trim.isEmpty, "start or stop spark application command can't be empty")
-    Process(command).run()
+    val array = command.split(";")
+    if (array.length == 2)
+      array(0) #&& array(1) !
+    else command !
+    //    Process(command).run()
   }
 
   //  def commandGetJobInfo(streamName: String) = {
@@ -71,10 +76,23 @@ object SubmitSparkJob extends App with RiderLogger {
         RiderConfig.spark.kafka11JarPath
       else RiderConfig.spark.jarPath
 
-    val confList: Array[String] =
+    val confList: Seq[String] = {
+      val conf = new ListBuffer[String]
       if (sparkConfig != "")
-        sparkConfig.split(",") :+ s"spark.yarn.tags=${RiderConfig.spark.app_tags}"
+        conf ++ sparkConfig.split(",") :+ s"spark.yarn.tags=${RiderConfig.spark.app_tags}"
       else Array(s"spark.yarn.tags=${RiderConfig.spark.app_tags}")
+      if (RiderConfig.spark.alert) {
+        conf += s"spark.metrics.conf=metrics.properties"
+        conf += s"spark.metrics.namespace=$streamName"
+      }
+      conf
+    }
+
+    val files =
+      if (RiderConfig.spark.alert)
+        s"${RiderConfig.spark.sparkLog4jPath}, ${RiderConfig.spark.metricsConfPath}"
+      else RiderConfig.spark.sparkLog4jPath
+
     val logPath = getLogPath(streamName)
     runShellCommand(s"mkdir -p ${RiderConfig.spark.clientLogRootPath}")
     val startShell =
@@ -87,7 +105,7 @@ object SubmitSparkJob extends App with RiderLogger {
     val startCommand = startShell.map(l => {
       if (l.startsWith("--num-exe")) s" --num-executors " + executorsNum + " "
       else if (l.startsWith("--driver-mem")) s" --driver-memory " + driverMemory + s"g "
-      else if (l.startsWith("--files")) s" --files " + RiderConfig.spark.sparkLog4jPath + s" "
+      else if (l.startsWith("--files")) s" --files " + files + s" "
       else if (l.startsWith("--queue")) s" --queue " + RiderConfig.spark.queue_name + s" "
       else if (l.startsWith("--executor-mem")) s"  --executor-memory " + executorMemory + s"g "
       else if (l.startsWith("--executor-cores")) s"  --executor-cores " + executorCores + s" "
@@ -104,10 +122,16 @@ object SubmitSparkJob extends App with RiderLogger {
         }
       }
       else l
-    }).mkString("").stripMargin.replace("\\", "  ")
+    }).mkString("").stripMargin.replace("\\", "  ") +
+      realJarPath + " " + args + " 1> " + logPath + " 2>&1"
+
+    val finalCommand =
+      if (RiderConfig.spark.alert)
+        s"$startCommand;echo '$streamName is dead' | mail -s 'ERROR $streamName is dead' ${RiderConfig.spark.alertEmails}"
+      else startCommand
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     //    println("final:" + submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1")
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1"
+    submitPre + "/bin/spark-submit " + finalCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1"
   }
 }
