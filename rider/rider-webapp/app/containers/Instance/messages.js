@@ -33,8 +33,6 @@ export default defineMessages({
   instanceModalSave: { id: 'rider.app.modal.save' },
   instanceTableCreate: { id: 'rider.containers.Instance.Modal.create' },
   instanceTableModidy: { id: 'rider.containers.Instance.Modal.modify' },
-  instanceTableCreateSuccess: { id: 'rider.containers.Instance.Modal.create.success.msg' },
-  instanceTableModidySuccess: { id: 'rider.containers.Instance.Modal.modify.success.msg' },
   instanceModalUrlOracleMsg: { id: 'rider.containers.Instance.Modal.url.oracle.msg' },
   instanceModalUrlEsMsg: { id: 'rider.containers.Instance.Modal.url.es.msg' },
   instanceModalUrlHbaseMsg: { id: 'rider.containers.Instance.Modal.url.hbase.msg' },

@@ -212,7 +212,7 @@ export class DBForm extends React.Component {
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
                   onChange={this.onHandleChangeInstance}
-                  placeholder="Select an Instance"
+                  placeholder={languageText === 'en' ? 'Select an instance' : '请选择 Instance'}
                   disabled={disabledOrNot}
                 >
                   {instanceOptions}
