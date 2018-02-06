@@ -91,7 +91,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
         <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />} placement="bottom">
           <Popover
             placement="top"
-            content={<div style={{ width: '200px', height: '25px' }}>
+            content={<div style={{ width: '221px', height: '25px' }}>
               <p><FormattedMessage {...messages.workbenchTransResource} /></p>
             </div>}
             title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}

@@ -443,7 +443,7 @@ class Navigator extends React.Component {
           </div>
 
           <Modal
-            title="修改密码"
+            title={<FormattedMessage {...messages.navChangePsw} />}
             okText="保存"
             wrapClassName="db-form-style"
             visible={this.state.formVisible}
