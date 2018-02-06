@@ -212,7 +212,7 @@ export function forceCheckNum (rule, value, callback) {
   if (reg.test(value)) {
     callback()
   } else {
-    callback(localStorage.getItem('preferredLanguage') === 'en' ? 'Figures only' : '必须是数字')
+    callback(localStorage.getItem('preferredLanguage') === 'en' ? 'figures only' : '必须是数字')
   }
 }
 
@@ -236,8 +236,8 @@ export function forceCheckProjectName (rule, value, callback) {
   if (reg.test(value)) {
     callback()
   } else {
-    const textZh = '必须是字母、数字、中划线或下划线！'
-    const textEn = 'It should be letters, figures, hyphen or underscore!'
+    const textZh = '必须是字母、数字、中划线或下划线'
+    const textEn = 'It should be letters, figures, hyphen or underscore'
     callback(localStorage.getItem('preferredLanguage') === 'en' ? textEn : textZh)
   }
 }
@@ -250,8 +250,8 @@ export function forceCheckSave (rule, value, callback) {
   if (reg.test(value)) {
     callback()
   } else {
-    const textZh = '必须是字母、数字或下划线！'
-    const textEn = 'It should be letters, figures or underscore!'
+    const textZh = '必须是字母、数字或下划线'
+    const textEn = 'It should be letters, figures or underscore'
     callback(localStorage.getItem('preferredLanguage') === 'en' ? textEn : textZh)
   }
 }

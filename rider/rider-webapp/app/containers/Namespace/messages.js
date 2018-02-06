@@ -25,6 +25,7 @@ export default defineMessages({
   nsModalSave: { id: 'rider.app.modal.save' },
   nsModalCancel: { id: 'rider.app.modal.cancel' },
   nsTableCreate: { id: 'rider.containers.Namespace.Modal.create' },
+  nsTableCreateBtn: { id: 'rider.app.table.create.action' },
   nsTableModify: { id: 'rider.containers.Namespace.Modal.modify' },
   nsModalDeleteTable: { id: 'rider.app.table.delete.action' },
   nsModalSureDeleteTable: { id: 'rider.app.table.sure.delete' },

@@ -61,13 +61,11 @@ export function databaseReducer (state = initialState, { type, payload }) {
     case ADD_DATABASE:
       return state.set('modalLoading', true)
     case ADD_DATABASE_SUCCESS:
-      payload.resolve()
       databases.unshift(payload.result)
       return state
         .set('databases', databases.slice())
         .set('modalLoading', false)
     case ADD_DATABASE_ERROR:
-      payload.reject(payload.result)
       return state.set('modalLoading', false)
     case LOAD_SINGLE_DATABASE:
       return state.set('error', false)
