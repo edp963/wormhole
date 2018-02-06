@@ -56,7 +56,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     val tableKeysInfo: List[(Int, UmsFieldType)] = tableKeys.map(key => (schemaMap(key)._1, schemaMap(key)._2))
     // val connectionConfig = getDataStoreConnectionsMap(sinkNamespace)
     val cassandraSpecialConfig =
-      if(sinkProcessConfig.specialConfig.isDefined)
+      if (sinkProcessConfig.specialConfig.isDefined)
         json2caseClass[CassandraConfig](sinkProcessConfig.specialConfig.get)
       else CassandraConfig()
     val user: String = if (connectionConfig.username.isDefined) connectionConfig.username.get else null
@@ -76,20 +76,27 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     val session = CassandraConnection.getSession(sortedAddressList, user, password)
     val tupleFilterList: Seq[Seq[String]] = SourceMutationType.sourceMutationType(cassandraSpecialConfig.`mutation_type.get`) match {
       case SourceMutationType.I_U_D =>
-        val slideTuple: Iterator[Seq[Seq[String]]] =tupleList.sliding(cassandraSpecialConfig.`cassandra.querySize.get`,cassandraSpecialConfig.`cassandra.querySize.get`)
-        val filterRes=ListBuffer.empty[Row]
-        while(slideTuple.hasNext){
-          val processTuple=slideTuple.next()
-          val filterableStatement = checkTableBykey(keyspace, table, tableKeys, tableKeysInfo, processTuple)
-          logInfo("==================filtersql==============" + filterableStatement)
-          val resultRows=session.execute(filterableStatement).all()
-          for (i<-0 until resultRows.size()){
-            filterRes+=resultRows.get(i)
+        val filterRes = ListBuffer.empty[Row]
+        if (cassandraSpecialConfig.`query_size`.nonEmpty) {
+          val slideTuple: Iterator[Seq[Seq[String]]] = tupleList.sliding(cassandraSpecialConfig.`query_size`.get, cassandraSpecialConfig.`query_size`.get)
+
+          while (slideTuple.hasNext) {
+            val processTuple = slideTuple.next()
+            val filterableStatement = checkTableBykey(keyspace, table, tableKeys, tableKeysInfo, processTuple)
+            //          logInfo("==================filtersql==============" + filterableStatement)
+            val resultRows = session.execute(filterableStatement).all()
+            for (i <- 0 until resultRows.size()) {
+              filterRes += resultRows.get(i)
+            }
           }
         }
-//        val filterableStatement = checkTableBykey(keyspace, table, tableKeys, tableKeysInfo, tupleList)
-//        logInfo("==================filtersql==============" + filterableStatement)
-//        val filterRes: util.List[Row] = session.execute(filterableStatement).all()
+        else {
+          val filterableStatement = checkTableBykey(keyspace, table, tableKeys, tableKeysInfo, tupleList)
+          val resultRows = session.execute(filterableStatement).all()
+          for (i <- 0 until resultRows.size()) {
+            filterRes += resultRows.get(i)
+          }
+        }
         val dataMap = mutable.HashMap.empty[String, Long]
         import collection.JavaConversions._
         filterRes.foreach(row => {
@@ -120,11 +127,8 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     }
     val batch = new BatchStatement()
     for (tuple <- tupleFilterList) {
-      //      val umsIdValue: Long = tuple(schemaMap(ID.toString)._1).toLong
-      //      val umsTsLong=dt2long(tuple(schemaMap(TS.toString)._1).split("\\+")(0).replace("T"," "))
       val bound: BoundStatement = prepareSchema.bind()
       schemaMap.keys.foreach { column: String =>
-        //        if (!Set(OP.toString).contains(column)) {
         val (index, fieldType, _) = schemaMap(column)
         if (UmsSysField.OP.toString != column) {
           val valueString = tuple(index)
