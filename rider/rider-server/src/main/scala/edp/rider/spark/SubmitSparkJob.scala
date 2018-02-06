@@ -22,9 +22,11 @@ package edp.rider.spark
 
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.entities.StartConfig
-
+import scala.language.postfixOps
 import scala.collection.mutable.ListBuffer
 import scala.sys.process._
+import scala.sys.process.Process
+
 
 object SubmitSparkJob extends App with RiderLogger {
 
@@ -47,10 +49,13 @@ object SubmitSparkJob extends App with RiderLogger {
     //    val remoteCommand = "ssh -p%s %s@%s %s ".format(sshPort, username, hostname, command)
     assert(!command.trim.isEmpty, "start or stop spark application command can't be empty")
     val array = command.split(";")
-    if (array.length == 2)
-      array(0) #&& array(1) !
+    if (array.length == 2) {
+      val process = Process(array(0)).run()
+      process.exitValue()
+
+    }
     else command !
-    //    Process(command).run()
+    //      Process(command).run()
   }
 
   //  def commandGetJobInfo(streamName: String) = {
@@ -78,8 +83,10 @@ object SubmitSparkJob extends App with RiderLogger {
 
     val confList: Seq[String] = {
       val conf = new ListBuffer[String]
-      if (sparkConfig != "")
-        conf ++ sparkConfig.split(",") :+ s"spark.yarn.tags=${RiderConfig.spark.app_tags}"
+      if (sparkConfig != "") {
+        val riderConf = sparkConfig.split(",") :+ s"spark.yarn.tags=${RiderConfig.spark.app_tags}"
+        conf ++= riderConf
+      }
       else Array(s"spark.yarn.tags=${RiderConfig.spark.app_tags}")
       if (RiderConfig.spark.alert) {
         conf += s"spark.metrics.conf=metrics.properties"
@@ -132,6 +139,6 @@ object SubmitSparkJob extends App with RiderLogger {
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     //    println("final:" + submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1")
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    submitPre + "/bin/spark-submit " + finalCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1"
+    submitPre + "/bin/spark-submit " + finalCommand
   }
 }

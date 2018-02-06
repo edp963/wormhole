@@ -245,7 +245,7 @@ object FlowUtils extends RiderLogger {
     val nsSeq = new ListBuffer[String]
     nsSeq += flow.sourceNs
     nsSeq += flow.sinkNs
-    nsSeq ++ getDbFromTrans(flow.tranConfig).distinct
+    nsSeq ++= getDbFromTrans(flow.tranConfig).distinct
     var flag = true
 //    riderLogger.info("flow ns: " + nsSeq)
 //    riderLogger.info("project ns: " + projectNsSeq)
@@ -723,7 +723,7 @@ object FlowUtils extends RiderLogger {
         json.getString("action").split(";").filter(_.contains("pushdown_sql")).toList
       } else List()
     } else List()
-    sqls.foreach(sql => tableSeq ++ getNsSeqByLookupSql(sql))
+    sqls.foreach(sql => tableSeq ++= getNsSeqByLookupSql(sql))
     tableSeq
   }
 
