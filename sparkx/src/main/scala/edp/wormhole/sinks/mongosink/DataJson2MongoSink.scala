@@ -148,12 +148,12 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
     val name = subField.getString("name")
     val dataType = subField.getString("type")
     if (dataType == "jsonobject") {
-      val jsonContent = jsonData.getJSONObject(name)
+      val jsonContent = if (jsonData.containsKey(name)) jsonData.getJSONObject(name) else null
       val subContent = constructBuilder(jsonContent, subField.getJSONArray("sub_fields"))
       builder += name -> subContent
     } else {
       if (dataType == "jsonarray") {
-        val jsonArray = jsonData.getJSONArray(name)
+        val jsonArray = if (jsonData.containsKey(name)) jsonData.getJSONArray(name) else null
         val list = MongoDBList
 
         val jsonArraySubFields = subField.getJSONArray("sub_fields")
@@ -164,17 +164,28 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
         for (i <- 0 until dataSize) {
           val subBuilder = MongoDBObject.newBuilder
           for (j <- 0 until schemaSize) {
-            constructBuilder(jsonArray.getJSONObject(i), jsonArraySubFields.getJSONObject(j), subBuilder)
+            if (jsonArray == null) {
+              constructBuilder(null, jsonArraySubFields.getJSONObject(j), subBuilder)
+            }
+            else {
+              constructBuilder(jsonArray.getJSONObject(i), jsonArraySubFields.getJSONObject(j), subBuilder)
+            }
+
           }
           toUpsert.append(subBuilder.result())
         }
         builder += name -> list(toUpsert: _*)
       } else if (dataType.endsWith("array")) {
-        val jsonArray = jsonData.getJSONArray(name)
+        val jsonArray = if (jsonData.containsKey(name)) jsonData.getJSONArray(name) else null
         val toUpsert = ListBuffer.empty[Any]
         val size = jsonArray.size()
         for (i <- 0 until size) {
-          toUpsert.append(jsonArray.get(i))
+          if (jsonArray == null) {
+            toUpsert.append(null)
+          }
+          else {
+            toUpsert.append(jsonArray.get(i))
+          }
         }
         builder += name -> toUpsert
       } else {
