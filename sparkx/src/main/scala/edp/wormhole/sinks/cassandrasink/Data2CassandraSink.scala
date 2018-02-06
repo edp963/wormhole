@@ -31,6 +31,8 @@ import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.{UmsActiveType, UmsFieldType, UmsOpType}
 import edp.wormhole.ums.UmsSysField
 import java.lang.{Double, Float, Long}
+import java.util
+import scala.collection.mutable.ListBuffer
 
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.common.util.DateUtils._
@@ -74,9 +76,20 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     val session = CassandraConnection.getSession(sortedAddressList, user, password)
     val tupleFilterList: Seq[Seq[String]] = SourceMutationType.sourceMutationType(cassandraSpecialConfig.`mutation_type.get`) match {
       case SourceMutationType.I_U_D =>
-        val filterableStatement = checkTableBykey(keyspace, table, tableKeys, tableKeysInfo, tupleList)
-        logInfo("==================filtersql==============" + filterableStatement)
-        val filterRes = session.execute(filterableStatement).all()
+        val slideTuple: Iterator[Seq[Seq[String]]] =tupleList.sliding(1000,1000)
+        val filterRes=ListBuffer.empty[Row]
+        while(slideTuple.hasNext){
+          val processTuple=slideTuple.next()
+          val filterableStatement = checkTableBykey(keyspace, table, tableKeys, tableKeysInfo, processTuple)
+          logInfo("==================filtersql==============" + filterableStatement)
+          val resultRows=session.execute(filterableStatement).all()
+          for (i<-0 until resultRows.size()){
+            filterRes+=resultRows.get(i)
+          }
+        }
+//        val filterableStatement = checkTableBykey(keyspace, table, tableKeys, tableKeysInfo, tupleList)
+//        logInfo("==================filtersql==============" + filterableStatement)
+//        val filterRes: util.List[Row] = session.execute(filterableStatement).all()
         val dataMap = mutable.HashMap.empty[String, Long]
         import collection.JavaConversions._
         filterRes.foreach(row => {
