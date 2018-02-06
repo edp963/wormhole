@@ -321,16 +321,22 @@ export function operateLanguageSql (type) {
   let languageText = ''
   switch (type) {
     case 'fillIn':
-      languageType === 'en' ? 'Please fill in sql' : '请填写 SQL！'
+      languageText = languageType === 'en' ? 'Please fill in sql' : '请填写 SQL！'
       break
     case 'className':
-      languageType === 'en' ? '' : 'ClassName 最多以一个分号结束，但其他地方不应有分号！'
+      languageText = languageType === 'en'
+        ? 'ClassName ends up with at most one semicolon, which cannot exist elsewhere.'
+        : 'ClassName 最多以一个分号结束，但其他地方不应有分号！'
       break
     case 'unique':
-      languageType === 'en' ? '' : 'SQL语句应以一个分号结束！'
+      languageText = languageType === 'en'
+        ? 'SQL sentence should end up with a semicolon!'
+        : 'SQL语句应以一个分号结束！'
       break
     case 'onlyOne':
-      languageType === 'en' ? '' : 'SQL语句应只有一个分号！'
+      languageText = languageType === 'en'
+        ? 'SQL sentence contains only one semicolon!'
+        : 'SQL语句应只有一个分号！'
       break
   }
   return languageText
