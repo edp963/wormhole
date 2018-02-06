@@ -62,6 +62,7 @@ export function* getDatabasesWatcher () {
 }
 
 export function* addDatabase ({ payload }) {
+  const languageText = localStorage.getItem('preferredLanguage')
   try {
     const result = yield call(request, {
       method: 'post',
@@ -69,9 +70,11 @@ export function* addDatabase ({ payload }) {
       data: payload.database
     })
     if (result.code && result.code === 400) {
-      yield put(databaseAddedError('Config 格式错误！', payload.reject))
+      yield put(databaseAddedError(languageText === 'en' ? 'config format error!' : 'Config 格式错误！'))
+      payload.reject(result.payload)
     } else if (result.header.code && result.header.code === 200) {
-      yield put(databaseAdded(result.payload, payload.resolve))
+      yield put(databaseAdded(result.payload))
+      payload.resolve()
     }
   } catch (err) {
     yield put(getError(err))
