@@ -76,7 +76,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     val session = CassandraConnection.getSession(sortedAddressList, user, password)
     val tupleFilterList: Seq[Seq[String]] = SourceMutationType.sourceMutationType(cassandraSpecialConfig.`mutation_type.get`) match {
       case SourceMutationType.I_U_D =>
-        val slideTuple: Iterator[Seq[Seq[String]]] =tupleList.sliding(1000,1000)
+        val slideTuple: Iterator[Seq[Seq[String]]] =tupleList.sliding(cassandraSpecialConfig.`cassandra.querySize.get`,cassandraSpecialConfig.`cassandra.querySize.get`)
         val filterRes=ListBuffer.empty[Row]
         while(slideTuple.hasNext){
           val processTuple=slideTuple.next()
