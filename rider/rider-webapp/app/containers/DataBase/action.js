@@ -69,22 +69,20 @@ export function addDatabase (database, resolve, reject) {
   }
 }
 
-export function databaseAdded (result, resolve) {
+export function databaseAdded (result) {
   return {
     type: ADD_DATABASE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function databaseAddedError (result, reject) {
+export function databaseAddedError (result) {
   return {
     type: ADD_DATABASE_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
