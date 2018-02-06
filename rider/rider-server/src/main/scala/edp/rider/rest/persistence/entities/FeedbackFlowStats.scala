@@ -61,6 +61,7 @@ case class MonitorInfo(
                         intervalDataProcessToSwifts: Long,
                         intervalDataProcessToSink: Long,
                         intervalDataProcessToDone: Long,
+                        intervalDataumsToDone: Long,
                         intervalRddToDone: Long,
                         intervalSwiftsToSink: Long,
                         intervalSinkToDone: Long

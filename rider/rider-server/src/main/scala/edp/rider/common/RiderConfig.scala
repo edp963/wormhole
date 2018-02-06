@@ -85,7 +85,10 @@ case class RiderSpark(user: String,
                       jobMaxRecordPerPartitionProcessed: Int,
                       driverExtraConf: String,
                       executorExtraConf: String,
-                      sparkConfig: String)
+                      sparkConfig: String,
+                      alert: Boolean,
+                      metricsConfPath: String,
+                      alertEmails: String)
 
 case class RiderEs(url: String,
                    wormholeIndex: String,
@@ -181,6 +184,9 @@ object RiderConfig {
   lazy val rm1Url = config.getString("spark.yarn.rm1.http.url")
   lazy val rm2Url = getStringConfig("spark.yarn.rm2.http.url", "")
   lazy val kafkaSessionTimeOut = getIntConfig("spark.kafka.session.timeout", 30000)
+  lazy val alert = getBooleanConfig("spark.wormhole.alert", false)
+  lazy val metricsConfPath = getStringConfig("spark.wormhole.metric.conf.path", "")
+  lazy val alertEmails = getStringConfig("spark.wormhole.alert.emails","")
 
   lazy val spark = RiderSpark(wormholeUser,
     sshPort,
@@ -209,7 +215,8 @@ object RiderConfig {
     consumer.heartbeatTopic, 2, 1, 6, 4, 2, 100, 600,
     "spark.driver.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc/",
     "spark.executor.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc",
-    "spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3"
+    "spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3",
+    false, metricsConfPath, alertEmails
   )
 
   lazy val es =
