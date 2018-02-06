@@ -30,8 +30,9 @@ const FormItem = Form.Item
 
 export class UserPswForm extends React.Component {
   checkPasswordConfirm = (rule, value, callback) => {
+    const languageText = localStorage.getItem('preferredLanguage')
     if (value && value !== this.props.form.getFieldValue('password')) {
-      callback('两次输入的密码不一致')
+      callback(languageText === 'en' ? 'The password you entered is inconsistent with the former' : '两次输入的密码不一致')
     } else {
       callback()
     }
@@ -47,6 +48,8 @@ export class UserPswForm extends React.Component {
 
   render () {
     const { getFieldDecorator } = this.props.form
+    const languageText = localStorage.getItem('preferredLanguage')
+    const pwdText = languageText === 'en' ? 'The password length should be 6-20 characters' : '密码长度为6-20位'
 
     const itemStyle = {
       labelCol: { span: 8 },
@@ -61,16 +64,16 @@ export class UserPswForm extends React.Component {
               {getFieldDecorator('oldPassword', {
                 rules: [{
                   required: true,
-                  message: '密码不能为空'
+                  message: languageText === 'en' ? 'Password cannot be empty' : '密码不能为空'
                 }, {
                   min: 6,
                   max: 20,
-                  message: '密码长度为6-20位'
+                  message: pwdText
                 }, {
                   validator: this.forceCheckConfirm
                 }]
               })(
-                <Input type="password" placeholder="密码长度为6-20位" />
+                <Input type="password" placeholder={pwdText} />
               )}
             </FormItem>
           </Col>
@@ -79,16 +82,16 @@ export class UserPswForm extends React.Component {
               {getFieldDecorator('password', {
                 rules: [{
                   required: true,
-                  message: '密码不能为空'
+                  message: languageText === 'en' ? 'Password cannot be empty' : '密码不能为空'
                 }, {
                   min: 6,
                   max: 20,
-                  message: '密码长度为6-20位'
+                  message: pwdText
                 }, {
                   validator: this.forceCheckConfirm
                 }]
               })(
-                <Input type="password" placeholder="密码长度为6-20位" />
+                <Input type="password" placeholder={pwdText} />
               )}
             </FormItem>
           </Col>
@@ -97,12 +100,14 @@ export class UserPswForm extends React.Component {
               {getFieldDecorator('confirmPassword', {
                 rules: [{
                   required: true,
-                  message: '请确认新密码'
+                  message: languageText === 'en' ? 'Please confirm new password' : '请确认新密码'
                 }, {
                   validator: this.checkPasswordConfirm
                 }]
               })(
-                <Input type="password" placeholder="确认新密码" />
+                <Input
+                  type="password"
+                  placeholder={languageText === 'en' ? 'Confirm new password' : '确认新密码'} />
               )}
             </FormItem>
           </Col>
