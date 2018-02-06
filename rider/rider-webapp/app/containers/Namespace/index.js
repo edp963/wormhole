@@ -1661,7 +1661,7 @@ export class Namespace extends React.PureComponent {
             )
           } else if (record.nsSys === 'es' || record.nsSys === 'mongodb') {
             umsAction = (
-              <Tooltip title={<FormattedMessage {...messages.nsTableSinkSchemaConfig} />}>
+              <Tooltip title="Sink Schema">
                 <Button shape="circle" type="ghost" onClick={this.showEditSink(record)}>
                   <i className="iconfont icon-ic_Heatsink"></i>
                 </Button>
@@ -1823,7 +1823,7 @@ export class Namespace extends React.PureComponent {
               type="ghost"
               onClick={this.hideForm}
             >
-              {<FormattedMessage {...messages.nsModalCancel} />}
+              <FormattedMessage {...messages.nsModalCancel} />
             </Button>,
             <Button
               key="submit"
@@ -1832,7 +1832,7 @@ export class Namespace extends React.PureComponent {
               loading={this.props.modalLoading}
               onClick={this.onModalOk}
             >
-              {<FormattedMessage {...messages.nsModalSave} />}
+              <FormattedMessage {...messages.nsModalSave} />
             </Button>
           ]}
         >
