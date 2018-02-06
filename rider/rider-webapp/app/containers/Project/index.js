@@ -185,9 +185,9 @@ export class Project extends React.Component {
     const { selectedRowKeys } = this.projectNSTable.state
 
     if (selectedRowKeys.length === 0) {
-      message.warning(languageText === 'en' ? 'Please select Namespace' : '请选择源表！', 3)
+      message.warning(languageText === 'en' ? 'Please select Namespace!' : '请选择源表！', 3)
     } else if (userIds.length === 0) {
-      message.warning(languageText === 'en' ? 'Please select User' : '请选择用户！', 3)
+      message.warning(languageText === 'en' ? 'Please select User!' : '请选择用户！', 3)
     } else {
       const namespaceIds = selectedRowKeys.join(',')
 

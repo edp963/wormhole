@@ -124,34 +124,37 @@ export class NamespaceForm extends React.Component {
     let namespaceDBPlace = ''
     if (namespaceDSValue === 'es') {
       namespaceDBLabel = 'Index'
-      namespaceDBPlace = 'select an Index'
+      namespaceDBPlace = languageText === 'en' ? 'select an Index' : '请选择 Index'
     } else if (namespaceDSValue === 'hbase') {
       namespaceDBLabel = 'Namespace'
-      namespaceDBPlace = 'select a Hbase Namespace'
+      namespaceDBPlace = languageText === 'en' ? 'select a Hbase Namespace' : '请选择 Hbase Namespace'
     } else if (namespaceDSValue === 'kafka') {
       namespaceDBLabel = 'Topic'
-      namespaceDBPlace = 'select a Topic'
+      namespaceDBPlace = languageText === 'en' ? 'select a Topic' : '请选择 Topic'
     } else {
       namespaceDBLabel = 'Database'
-      namespaceDBPlace = 'select a Database'
+      namespaceDBPlace = languageText === 'en' ? 'select a Database' : '请选择 Database'
     }
 
     let namespaceTablePlace = ''
     if (namespaceDSValue === 'es') {
-      namespaceTablePlace = 'rider.containers.Namespace.Modal.tables.table6'
+      namespaceTablePlace = 'Type'
     } else if (namespaceDSValue === 'redis') {
-      namespaceTablePlace = 'rider.containers.Namespace.Modal.tables.table1'
+      namespaceTablePlace = languageText === 'en' ? 'You can fill in "default"' : '可填写 default'
     } else {
-      namespaceTablePlace = 'rider.containers.Namespace.Modal.tables.table7'
+      namespaceTablePlace = 'Table'
     }
 
     const namespaceTableLabel = namespaceDSValue === 'es' ? 'Types' : 'Tables'
 
     const disabledKeyOrNot = namespaceDSValue === 'redis'
 
-    const namespaceKeyPlaceholder = namespaceDSValue === 'redis'
-      ? 'rider.containers.Namespace.Modal.tables.key'
-      : 'rider.containers.Namespace.Modal.tables.multiple.key'
+    let namespaceKeyPlaceholder = ''
+    if (namespaceDSValue === 'redis') {
+      namespaceKeyPlaceholder = languageText === 'en' ? 'No config for Key' : 'Key 无需配置'
+    } else {
+      namespaceKeyPlaceholder = languageText === 'en' ? 'Sep keys with commas' : '多个主键用逗号隔开'
+    }
 
     const questionOrNot = namespaceDSValue === 'kafka'
       ? (
@@ -249,13 +252,13 @@ export class NamespaceForm extends React.Component {
               {getFieldDecorator('instance', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Please fill in the Instance' : '请填写 Instance'
+                  message: languageText === 'en' ? 'Please select an Instance' : '请选择 Instance'
                 }]
               })(
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
                   onChange={this.onHandleChangeInstance}
-                  placeholder="Select an Instance"
+                  placeholder={languageText === 'en' ? 'Select an Instance' : '请选择 Instance'}
                   disabled={disabledOrNot}
                 >
                   {instanceOptions}
@@ -277,7 +280,7 @@ export class NamespaceForm extends React.Component {
               {getFieldDecorator('nsDatabase', {
                 rules: [{
                   required: true,
-                  message: `${languageText === 'en' ? '' : ''}请选择 ${namespaceDBLabel}`
+                  message: `${languageText === 'en' ? 'Please select a' : '请选择'} ${namespaceDBLabel}`
                 }]
               })(
                 <Select

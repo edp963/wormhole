@@ -43,7 +43,8 @@ import Radio from 'antd/lib/radio'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 
-import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
+import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect,
+  operateLanguageFillIn } from '../../utils/util'
 
 export class WorkbenchFlowForm extends React.Component {
   constructor (props) {
@@ -61,7 +62,6 @@ export class WorkbenchFlowForm extends React.Component {
     if (props.transformTableSource) {
       props.transformTableSource.map(s => {
         s.key = uuid()
-        // s.visible = false
         return s
       })
     }
@@ -721,7 +721,6 @@ export class WorkbenchFlowForm extends React.Component {
           <Col span={6}></Col>
           <Col span={18} className={transformTableClassName}>
             <Table
-              // rowKey={transformTableSource.order}
               dataSource={transformTableSource}
               columns={columns}
               pagination={pagination}
