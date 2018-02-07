@@ -75,22 +75,18 @@ export function namespaceReducer (state = initialState, { type, payload }) {
     case LOAD_NAMESPACE_DATABASE:
       return state
     case LOAD_NAMESPACE_DATABASE_SUCCESS:
-      payload.resolve(payload.database)
       return state
     case LOAD_TABLE_NAME_EXIST:
       return state.set('tableNameExited', false)
     case LOAD_TABLE_NAME_EXIST_SUCCESS:
-      payload.resolve()
       return state.set('tableNameExited', false)
     case LOAD_TABLE_NAME_EXIST_ERROR:
-      payload.reject()
       return state.set('tableNameExited', true)
     case ADD_NAMESPACE:
       return state
         .set('error', false)
         .set('modalLoading', true)
     case ADD_NAMESPACE_SUCCESS:
-      payload.resolve()
       for (let i = 0; i < payload.result.length; i++) {
         namespaces.unshift(payload.result[i])
       }
@@ -100,14 +96,12 @@ export function namespaceReducer (state = initialState, { type, payload }) {
     case LOAD_SINGLE_NAMESPACE:
       return state
     case LOAD_SINGLE_NAMESPACE_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case EDIT_NAMESPACE:
       return state
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_NAMESPACE_SUCCESS:
-      payload.resolve()
       namespaces.splice(namespaces.indexOf(namespaces.find(p => p.id === payload.result.id)), 1, payload.result)
       return state
         .set('namespaces', namespaces.slice())
@@ -115,19 +109,16 @@ export function namespaceReducer (state = initialState, { type, payload }) {
     case LOAD_PROJECT_NS_ALL:
       return state.set('error', false)
     case LOAD_PROJECT_NS_ALL_SUCCESS:
-      payload.resolve(payload.result)
       return state.set('namespaces', payload.result)
     case SET_SCHEMA:
       return state
         .set('error', false)
         .set('modalLoading', true)
     case SET_SCHEMA_SUCCESS:
-      payload.resolve()
       return state.set('modalLoading', false)
     case QUERY_SCHEMA_CONFIG:
       return state.set('error', false)
     case QUERY_SCHEMA_CONFIG_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case DELETE_NS:
       return state

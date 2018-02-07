@@ -1217,7 +1217,7 @@ export class Workbench extends React.Component {
       const launchConfigJson = {
         durations: 10,
         partitions: 6,
-        maxRecords: 50
+        maxRecords: 10
       }
 
       this.setState({

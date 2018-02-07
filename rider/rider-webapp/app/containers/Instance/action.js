@@ -67,12 +67,11 @@ export function addInstance (instance, resolve) {
   }
 }
 
-export function instanceAdded (result, resolve) {
+export function instanceAdded (result) {
   return {
     type: ADD_INSTANCE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -87,12 +86,11 @@ export function loadSingleInstance (instanceId, resolve) {
   }
 }
 
-export function singleInstanceLoaded (result, resolve) {
+export function singleInstanceLoaded (result) {
   return {
     type: LOAD_SINGLE_INSTANCE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -127,22 +125,20 @@ export function loadInstanceInputValue (value, resolve, reject) {
   }
 }
 
-export function instanceInputValueLoaded (result, resolve) {
+export function instanceInputValueLoaded (result) {
   return {
     type: LOAD_INSTANCES_INPUT_VALUE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function instanceInputValueErrorLoaded (result, reject) {
+export function instanceInputValueErrorLoaded (result) {
   return {
     type: LOAD_INSTANCES_INPUT_VALUE_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
@@ -158,22 +154,20 @@ export function loadInstanceExit (value, resolve, reject) {
   }
 }
 
-export function instanceExitLoaded (result, resolve) {
+export function instanceExitLoaded (result) {
   return {
     type: LOAD_INSTANCES_EXIT_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function instanceExitErrorLoaded (result, reject) {
+export function instanceExitErrorLoaded (result) {
   return {
     type: LOAD_INSTANCES_EXIT_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }

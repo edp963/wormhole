@@ -73,7 +73,8 @@ export function* addInstance ({ payload }) {
         nsInstance: payload.instance.instance
       }
     })
-    yield put(instanceAdded(result.payload, payload.resolve))
+    yield put(instanceAdded(result.payload))
+    payload.resolve()
   } catch (err) {
     yield put(getError(err))
   }
@@ -86,7 +87,8 @@ export function* addInstanceWatcher () {
 export function* getSingleInstance ({ payload }) {
   try {
     const result = yield call(request, `${api.instance}/${payload.instanceId}`)
-    yield put(singleInstanceLoaded(result.payload, payload.resolve))
+    yield put(singleInstanceLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(getError(err))
   }
@@ -119,9 +121,11 @@ export function* getInstanceInputValue ({ payload }) {
     const result = yield call(request, `${api.instance}?type=${payload.value.type}&conn_url=${payload.value.conn_url}`)
 
     if (result.code && (result.code === 409 || result.code === 400)) {
-      yield put(instanceInputValueErrorLoaded(result.msg, payload.reject))
-    } else if (result.header.code && result.header.code === 409) {
-      yield put(instanceInputValueLoaded(result.payload, payload.resolve))
+      yield put(instanceInputValueErrorLoaded(result.msg))
+      payload.reject(result.msg)
+    } else if (result.header.code && result.header.code === 200) {
+      yield put(instanceInputValueLoaded(result.payload))
+      payload.resolve()
     }
   } catch (err) {
     yield put(getError(err))
@@ -136,9 +140,11 @@ export function* getInstanceValExit ({ payload }) {
   try {
     const result = yield call(request, `${api.instance}?type=${payload.value.type}&nsInstance=${payload.value.nsInstance}`)
     if (result.code === 409) {
-      yield put(instanceExitErrorLoaded(result.msg, payload.reject))
+      yield put(instanceExitErrorLoaded(result.msg))
+      payload.reject(result.msg)
     } else {
-      yield put(instanceExitLoaded(payload.result, payload.resolve))
+      yield put(instanceExitLoaded(payload.result))
+      payload.resolve()
     }
   } catch (err) {
     yield put(getError(err))

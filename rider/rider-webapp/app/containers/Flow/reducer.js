@@ -102,30 +102,24 @@ function flowReducer (state = initialState, { type, payload }) {
     case LOAD_SELECT_STREAM_KAFKA_TOPIC:
       return state.set('error', false)
     case LOAD_SELECT_STREAM_KAFKA_TOPIC_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case LOAD_SOURCESINKTYPE_NAMESPACE:
       return state.set('error', false)
     case LOAD_SOURCESINKTYPE_NAMESPACE_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case LOAD_SINKTYPE_NAMESPACE:
       return state.set('error', false)
     case LOAD_SINKTYPE_NAMESPACE_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case LOAD_TRANSINKTYPE_NAMESPACE:
       return state.set('error', false)
     case LOAD_TRANSINKTYPE_NAMESPACE_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case LOAD_SOURCETOSINK_EXIST:
       return state.set('sourceToSinkExited', false)
     case LOAD_SOURCETOSINK_EXIST_SUCCESS:
-      payload.resolve()
       return state.set('sourceToSinkExited', false)
     case LOAD_SOURCETOSINK_EXIST_ERROR:
-      payload.reject()
       return state.set('sourceToSinkExited', true)
     case LOAD_LOOKUP_SQL:
       return state
@@ -136,12 +130,9 @@ function flowReducer (state = initialState, { type, payload }) {
     case ADD_FLOWS:
       return state.set('flowSubmitLoading', true)
     case ADD_FLOWS_SUCCESS:
-      payload.resolve(payload.result)
-
       for (let i = 0; i < payload.result.length; i++) {
         flows.unshift(payload.result[i])
       }
-      payload.final()
       return state
         .set('flows', flows.slice())
         .set('flowSubmitLoading', false)
@@ -149,7 +140,6 @@ function flowReducer (state = initialState, { type, payload }) {
       return state.set('error', false)
     case OPERATE_USER_FLOW_SUCCESS:
       if (typeof (payload.result) === 'string') {
-        payload.resolve(payload.result)
         return state.set('flows', flows.filter(g => payload.result.split(',').indexOf(`${g.id}`) < 0))
       } else {
         if (payload.result.length === undefined) {
@@ -159,16 +149,13 @@ function flowReducer (state = initialState, { type, payload }) {
             flows.splice(flows.indexOf(flows.find(g => g.id === payload.result[i].id)), 1, payload.result[i])
           }
         }
-        payload.resolve(payload.result)
         return state.set('flows', flows.slice())
       }
     case OPERATE_FLOW_ERROR:
-      payload.reject(payload.message)
       return state
     case LOAD_FLOW_DETAIL:
       return state
     case LOAD_FLOW_DETAIL_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case CHUCKAWAY_FLOW:
       return state.set('flows', false)
@@ -176,42 +163,36 @@ function flowReducer (state = initialState, { type, payload }) {
     case QUERY_FLOW:
       return state.set('error', false)
     case QUERY_FLOW_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case LOAD_FLOWS_ERROR:
       return state.set('error', payload.error)
     case LOAD_SOURCELOG_DETAIL:
       return state.set('error', false)
     case LOAD_SOURCELOG_DETAIL_SUCCESS:
-      payload.resolve(payload.total, payload.sourceLog)
       return state
     case LOAD_SOURCELOG_DETAIL_ERROR:
       return state.set('error', payload.error)
     case LOAD_SOURCESINK_DETAIL:
       return state.set('error', false)
     case LOAD_SOURCESINK_DETAIL_SUCCESS:
-      payload.resolve(payload.total, payload.sourceSink)
       return state
     case LOAD_SOURCESINK_DETAIL_ERROR:
       return state.set('error', payload.error)
     case LOAD_SINKWRITERROR_DETAIL:
       return state.set('error', false)
     case LOAD_SINKWRITERROR_DETAIL_SUCCESS:
-      payload.resolve(payload.total, payload.sinkWriteRrror)
       return state
     case LOAD_SINKWRITERROR_DETAIL_ERROR:
       return state.set('error', payload.error)
     case LOAD_SOURCEINPUT:
       return state.set('error', false)
     case LOAD_SOURCEINPUT_SUCCESS:
-      payload.resolve(payload)
       return state
     case LOAD_SOURCEINPUT_ERROR:
       return state.set('error', payload.error)
     case EDIT_LOGFORM:
       return state.set('error', false)
     case EDIT_LOGFORM_SUCCESS:
-      payload.resolve()
       flows.splice(flows.indexOf(flows.find(g => g.id === payload.result.id)), 1, payload.result)
       return state.set('flows', flows.slice())
     case EDIT_LOGFORM_ERROR:
@@ -219,7 +200,6 @@ function flowReducer (state = initialState, { type, payload }) {
     case SAVE_FORM:
       return state.set('error', false)
     case SAVE_FORM_SUCCESS:
-      payload.resolve()
       flows.splice(flows.indexOf(flows.find(g => g.id === payload.result.payload.flowId)), 1, payload.result.payload)
       return state.set('flows', flows.slice())
     case SAVE_FORM_ERROR:
@@ -227,7 +207,6 @@ function flowReducer (state = initialState, { type, payload }) {
     case CHECKOUT_FORM:
       return state.set('error', false)
     case CHECKOUT_FORM_SUCCESS:
-      payload.resolve()
       flows.splice(flows.indexOf(flows.find(g => g.id === payload.result.payload.flowId)), 1, payload.result.payload)
       return state.set('flows', flows.slice())
     case CHECKOUT_FORM_ERROR:
@@ -235,9 +214,7 @@ function flowReducer (state = initialState, { type, payload }) {
     case EDIT_FLOWS:
       return state.set('flowSubmitLoading', true)
     case EDIT_FLOWS_SUCCESS:
-      payload.resolve()
       flows.splice(flows.indexOf(flows.find(p => p.id === payload.result.id)), 1, payload.result)
-      payload.final()
       return state
         .set('flows', flows.slice())
         .set('flowSubmitLoading', false)

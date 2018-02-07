@@ -130,7 +130,8 @@ export function* getAdminSingleFlowWatcher () {
 export function* getSelectStreamKafkaTopic ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/streams?streamType=${payload.value}`)
-    yield put(selectStreamKafkaTopicLoaded(result.payload, payload.resolve))
+    yield put(selectStreamKafkaTopicLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     notifySagasError(err, 'getSelectStreamKafkaTopic')
   }
@@ -146,7 +147,8 @@ export function* getSourceTypeNamespace ({ payload }) {
     if (result.code) {
       return
     } else if (result.header.code || result.header.code === 200) {
-      yield put(sourceSinkTypeNamespaceLoaded(result.payload, payload.resolve))
+      yield put(sourceSinkTypeNamespaceLoaded(result.payload))
+      payload.resolve(result.payload)
     }
   } catch (err) {
     notifySagasError(err, 'getSourceTypeNamespace')
@@ -163,7 +165,8 @@ export function* getSinkTypeNamespace ({ payload }) {
     if (result.code) {
       return
     } else if (result.header.code || result.header.code === 200) {
-      yield put(sinkTypeNamespaceLoaded(result.payload, payload.resolve))
+      yield put(sinkTypeNamespaceLoaded(result.payload))
+      payload.resolve(result.payload)
     }
   } catch (err) {
     notifySagasError(err, 'getSinkTypeNamespace')
@@ -180,7 +183,8 @@ export function* getTranSinkTypeNamespace ({ payload }) {
     if (result.code) {
       return
     } else if (result.header.code || result.header.code === 200) {
-      yield put(tranSinkTypeNamespaceLoaded(result.payload, payload.resolve))
+      yield put(tranSinkTypeNamespaceLoaded(result.payload))
+      payload.resolve(result.payload)
     }
   } catch (err) {
     notifySagasError(err, 'getTranSinkTypeNamespace')
@@ -195,9 +199,11 @@ export function* getSourceToSink ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/flows?sourceNs=${payload.sourceNs}&sinkNs=${payload.sinkNs}`)
     if (result.code === 200) {
-      yield put(sourceToSinkExistLoaded(result.msg, payload.resolve))
+      yield put(sourceToSinkExistLoaded(result.msg))
+      payload.resolve()
     } else {
-      yield put(sourceToSinkExistErrorLoaded(result.msg, payload.reject))
+      yield put(sourceToSinkExistErrorLoaded(result.msg))
+      payload.reject()
     }
   } catch (err) {
     notifySagasError(err, 'getSourceToSink')
@@ -215,7 +221,9 @@ export function* addFlow ({ payload }) {
       url: `${api.projectUserList}/${payload.values.projectId}/streams/${payload.values.streamId}/flows`,
       data: payload.values
     })
-    yield put(flowAdded(result.payload, payload.resolve, payload.final))
+    yield put(flowAdded(result.payload))
+    payload.resolve(result.payload)
+    payload.final()
   } catch (err) {
     notifySagasError(err, 'addFlow')
   }
@@ -237,15 +245,19 @@ export function* operateUserFlow ({ payload }) {
     })
     if (result.code && result.code !== 200) {
       yield put(operateFlowError(result.msg, payload.reject))
+      payload.reject(result.msg)
     } else if (result.header.code && result.header.code === 200) {
       if (payload.values.action === 'delete') {
-        yield put(userFlowOperated(payload.values.flowIds, payload.resolve))
+        yield put(userFlowOperated(payload.values.flowIds))
+        payload.resolve(payload.values.flowIds)
       } else {
         const temp = payload.values.flowIds.split(',')
         if (temp.length === 1) {
-          yield put(userFlowOperated(result.payload[0], payload.resolve))
+          yield put(userFlowOperated(result.payload[0]))
+          payload.resolve(result.payload[0])
         } else if (temp.length > 1) {
-          yield put(userFlowOperated(result.payload, payload.resolve))
+          yield put(userFlowOperated(result.payload))
+          payload.resolve(result.payload)
         }
       }
     }
@@ -261,7 +273,8 @@ export function* operateUserFlowWatcher () {
 export function* queryForm ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.values.projectId}/streams/${payload.values.streamId}/flows/${payload.values.id}`)
-    yield put(flowQueryed(result.payload, payload.resolve))
+    yield put(flowQueryed(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     notifySagasError(err, 'queryForm')
   }
@@ -281,7 +294,8 @@ export function* getSourceLogDetail ({ payload }) {
         pageSize: payload.pageSize
       }
     })
-    yield put(sourceLogLoadedDetail(result.paginate.total, result.payload, payload.resolve))
+    yield put(sourceLogLoadedDetail(result.paginate.total, result.payload))
+    payload.resolve(result.paginate.total, result.payload)
   } catch (err) {
     yield put(sourceLogDetailLoadingError(err))
   }
@@ -301,7 +315,8 @@ export function* getSourceSinkDetail ({ payload }) {
         pageSize: payload.pageSize
       }
     })
-    yield put(sourceSinkDetailLoaded(result.paginate.total, result.payload, payload.resolve))
+    yield put(sourceSinkDetailLoaded(result.paginate.total, result.payload))
+    payload.resolve(result.paginate.total, result.payload)
   } catch (err) {
     yield put(sourceSinkDetailLoadingError(err))
   }
@@ -321,7 +336,8 @@ export function* getSinkWriteRrrorDetail ({ payload }) {
         pageSize: payload.pageSize
       }
     })
-    yield put(sinkWriteRrrorDetailLoaded(result.paginate.total, result.payload, payload.resolve))
+    yield put(sinkWriteRrrorDetailLoaded(result.paginate.total, result.payload))
+    payload.resolve(result.paginate.total, result.payload)
   } catch (err) {
     yield put(sinkWriteRrrorDetailLoadingError(err))
   }
@@ -340,7 +356,8 @@ export function* getSourceInput ({ payload }) {
         taskType: payload.taskType
       }
     })
-    yield put(sourceInputLoaded(result.payload, payload.resolve))
+    yield put(sourceInputLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(sourceInputLoadingError(err))
   }
@@ -357,7 +374,8 @@ export function* editLogForm ({ payload }) {
       url: `${api.flow}/${payload.flow.id}`,
       data: payload.flow
     })
-    yield put(logFormEdited(result, payload.resolve))
+    yield put(logFormEdited(result))
+    payload.resolve()
   } catch (err) {
     yield put(logFormEditingError(err))
   }
@@ -395,7 +413,8 @@ export function* saveForm ({ payload }) {
         endTime: ''
       })
     })
-    yield put(formSaved(result.payload, payload.resolve))
+    yield put(formSaved(result.payload))
+    payload.resolve()
   } catch (err) {
     yield put(formSavingError(err))
   }
@@ -433,7 +452,8 @@ export function* checkOutForm ({ payload }) {
         endTime: payload.endDate
       })
     })
-    yield put(formCheckOuted(result.payload, payload.resolve))
+    yield put(formCheckOuted(result.payload))
+    payload.resolve()
   } catch (err) {
     yield put(formCheckOutingError(err))
   }
@@ -450,7 +470,9 @@ export function* editFlow ({ payload }) {
       url: `${api.projectUserList}/${payload.values.projectId}/streams/${payload.values.streamId}/flows`,
       data: payload.values
     })
-    yield put(flowEdited(result.payload, payload.resolve, payload.final))
+    yield put(flowEdited(result.payload))
+    payload.resolve()
+    payload.final()
   } catch (err) {
     notifySagasError(err, 'editFlow')
   }
@@ -466,7 +488,8 @@ export function* queryFlow ({ payload }) {
     : `${api.projectUserList}/${payload.value.projectId}/streams/${payload.value.streamId}/flows/${payload.value.flowId}`
   try {
     const result = yield call(request, apiFinal)
-    yield put(flowDetailLoad(result.payload, payload.resolve))
+    yield put(flowDetailLoad(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     notifySagasError(err, 'queryFlow')
   }

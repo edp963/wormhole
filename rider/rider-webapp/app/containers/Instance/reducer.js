@@ -62,7 +62,6 @@ export function instanceReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case ADD_INSTANCE_SUCCESS:
-      payload.resolve()
       instances.unshift(payload.result)
       return state
         .set('instances', instances.slice())
@@ -70,7 +69,6 @@ export function instanceReducer (state = initialState, { type, payload }) {
     case LOAD_SINGLE_INSTANCE:
       return state.set('error', false)
     case LOAD_SINGLE_INSTANCE_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case EDIT_INSTANCE:
       return state
@@ -84,18 +82,14 @@ export function instanceReducer (state = initialState, { type, payload }) {
     case LOAD_INSTANCES_INPUT_VALUE:
       return state.set('connectUrlExisted', false)
     case LOAD_INSTANCES_INPUT_VALUE_SUCCESS:
-      payload.resolve()
       return state.set('connectUrlExisted', false)
     case LOAD_INSTANCES_INPUT_VALUE_ERROR:
-      payload.reject(payload.result)
       return state.set('connectUrlExisted', true)
     case LOAD_INSTANCES_EXIT:
       return state.set('instanceExisted', false)
     case LOAD_INSTANCES_EXIT_SUCCESS:
-      payload.resolve()
       return state.set('instanceExisted', false)
     case LOAD_INSTANCES_EXIT_ERROR:
-      payload.reject(payload.result)
       return state.set('instanceExisted', true)
     case DELETE_INSTANCE:
       return state

@@ -114,12 +114,11 @@ export function loadNamespaceDatabase (instanceId, resolve) {
   }
 }
 
-export function namespaceDatabaseLoaded (database, resolve) {
+export function namespaceDatabaseLoaded (database) {
   return {
     type: LOAD_NAMESPACE_DATABASE_SUCCESS,
     payload: {
-      database,
-      resolve
+      database
     }
   }
 }
@@ -135,22 +134,20 @@ export function loadTableNameExist (value, resolve, reject) {
   }
 }
 
-export function tableNameExistLoaded (result, resolve) {
+export function tableNameExistLoaded (result) {
   return {
     type: LOAD_TABLE_NAME_EXIST_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function tableNameExistErrorLoaded (result, reject) {
+export function tableNameExistErrorLoaded (result) {
   return {
     type: LOAD_TABLE_NAME_EXIST_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
@@ -165,12 +162,11 @@ export function addNamespace (value, resolve) {
   }
 }
 
-export function namespaceAdded (result, resolve) {
+export function namespaceAdded (result) {
   return {
     type: ADD_NAMESPACE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -185,12 +181,11 @@ export function loadSingleNamespace (namespaceId, resolve) {
   }
 }
 
-export function singleNamespaceLoaded (result, resolve) {
+export function singleNamespaceLoaded (result) {
   return {
     type: LOAD_SINGLE_NAMESPACE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -205,12 +200,11 @@ export function editNamespace (value, resolve) {
   }
 }
 
-export function namespaceEdited (result, resolve) {
+export function namespaceEdited (result) {
   return {
     type: EDIT_NAMESPACE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -224,12 +218,11 @@ export function loadProjectNsAll (resolve) {
   }
 }
 
-export function projectNsAllLoaded (result, resolve) {
+export function projectNsAllLoaded (result) {
   return {
     type: LOAD_PROJECT_NS_ALL_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -246,12 +239,11 @@ export function setSchema (namespaceId, value, type, resolve) {
   }
 }
 
-export function schemaSetted (result, resolve) {
+export function schemaSetted (result) {
   return {
     type: SET_SCHEMA_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -267,12 +259,11 @@ export function querySchemaConfig (ids, type, resolve) {
   }
 }
 
-export function schemaConfigQueried (result, resolve) {
+export function schemaConfigQueried (result) {
   return {
     type: QUERY_SCHEMA_CONFIG_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
