@@ -65,7 +65,7 @@ import Moment from 'moment'
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 import {loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic,
   loadSourceSinkTypeNamespace, loadSinkTypeNamespace, loadTranSinkTypeNamespace,
-  loadSourceToSinkExist, addFlow, editFlow, queryFlow} from '../Flow/action'
+  loadSourceToSinkExist, addFlow, editFlow, queryFlow, loadLookupSql} from '../Flow/action'
 
 import {loadUserStreams, loadAdminSingleStream, loadStreamNameValue, loadKafka,
   loadStreamConfigJvm, addStream, loadStreamDetail, editStream} from '../Manager/action'
@@ -2590,7 +2590,25 @@ export class Workbench extends React.Component {
           } else if (num === 1 && finalVal !== ';') {
             message.warning(operateLanguageSql('unique'), 3)
           } else if (num === 1 && finalVal === ';') {
-            this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionJson)
+            if (values.transformation === 'lookupSql') {
+              const { singleFlowResult } = this.state
+              // 验证sql存在性
+              const requestVal = {
+                projectId: singleFlowResult.projectId,
+                streamId: singleFlowResult.streamId,
+                flowId: singleFlowResult.id,
+                sql: {
+                  'sql': transformConfigInfoRequestString
+                }
+              }
+              this.props.onLoadLookupSql(requestVal, () => {
+                this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionJson)
+              }, (result) => {
+                message.error(result, 5)
+              })
+            } else {
+              this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionJson)
+            }
           }
         }
       }
@@ -3609,6 +3627,7 @@ Workbench.propTypes = {
   onLoadJobSourceNs: React.PropTypes.func,
   onLoadJobSinkNs: React.PropTypes.func,
   onChangeLanguage: React.PropTypes.func,
+  onLoadLookupSql: React.PropTypes.func,
   jobNameExited: React.PropTypes.bool,
   jobSubmitLoading: React.PropTypes.bool
 }
@@ -3647,7 +3666,8 @@ export function mapDispatchToProps (dispatch) {
     onAddJob: (values, resolve, final) => dispatch(addJob(values, resolve, final)),
     onQueryJob: (values, resolve, final) => dispatch(queryJob(values, resolve, final)),
     onEditJob: (values, resolve, final) => dispatch(editJob(values, resolve, final)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onChangeLanguage: (type) => dispatch(changeLocale(type)),
+    onLoadLookupSql: (values, resolve, reject) => dispatch(loadLookupSql(values, resolve, reject))
   }
 }
 

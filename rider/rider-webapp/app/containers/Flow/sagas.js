@@ -32,6 +32,7 @@ import {
   ADD_FLOWS,
   OPERATE_USER_FLOW,
   LOAD_FLOW_DETAIL,
+  LOAD_LOOKUP_SQL,
 
   LOAD_SOURCELOG_DETAIL,
   LOAD_SOURCESINK_DETAIL,
@@ -58,6 +59,8 @@ import {
   userFlowOperated,
   operateFlowError,
   flowDetailLoad,
+  lookupSqlExisted,
+  lookupSqlExistedError,
 
   flowsLoadingError,
   sourceLogLoadedDetail,
@@ -473,6 +476,30 @@ export function* queryFlowWatcher () {
   yield fork(takeEvery, LOAD_FLOW_DETAIL, queryFlow)
 }
 
+export function* queryLookupSql ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'put',
+      url: `${api.projectUserList}/${payload.values.projectId}/streams/${payload.values.streamId}/flows/${payload.values.flowId}/sqls/lookup`,
+      data: payload.values.sql
+    })
+    if (result.code === 406) {
+      yield put(lookupSqlExistedError(result.msg))
+      payload.reject(result.msg)
+    }
+    if (result.code === 200) {
+      yield put(lookupSqlExisted(result.payload))
+      payload.resolve()
+    }
+  } catch (err) {
+    notifySagasError(err, 'queryLookupSql')
+  }
+}
+
+export function* queryLookupSqlWatcher () {
+  yield fork(takeEvery, LOAD_LOOKUP_SQL, queryLookupSql)
+}
+
 export default [
   getAdminAllFlowsWatcher,
   getUserAllFlowsWatcher,
@@ -484,8 +511,8 @@ export default [
   getSourceToSinkWatcher,
   addFlowWatcher,
   operateUserFlowWatcher,
-  queryFormWatcher,
   queryFlowWatcher,
+  queryLookupSqlWatcher,
 
   getSourceLogDetailWatcher,
   getSourceSinkDetailWatcher,
