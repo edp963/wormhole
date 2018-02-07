@@ -102,7 +102,7 @@ object SubmitSparkJob extends App with RiderLogger {
 
     val files =
       if (RiderConfig.spark.alert)
-        s"${RiderConfig.spark.sparkLog4jPath}, ${RiderConfig.spark.metricsConfPath}"
+        s"${RiderConfig.spark.sparkLog4jPath},${RiderConfig.spark.metricsConfPath}"
       else RiderConfig.spark.sparkLog4jPath
 
     val logPath = getLogPath(streamName)
