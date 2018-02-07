@@ -34,12 +34,15 @@ export function* login ({ payload }) {
       data: payload.logoInfo
     })
     if (result.code && result.code !== 200) {
-      yield put(logPswError(result.msg, payload.reject))
+      yield put(logPswError(result.msg))
+      payload.reject(result.msg)
     } else if (result.header.code && result.header.code === 200) {
-      yield put(logged(result.payload, payload.resolve))
+      yield put(logged(result.payload))
+      payload.resolve(result.payload)
     }
   } catch (err) {
     yield put(logError(err))
+    payload.reject()
   }
 }
 

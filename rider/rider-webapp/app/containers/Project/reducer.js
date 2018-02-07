@@ -61,13 +61,10 @@ export function projectReducer (state = initialState, { type, payload }) {
     case LOAD_SINGLE_PROJECT:
       return state
     case LOAD_SINGLE_PROJECT_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case ADD_PROJECT:
       return state.set('modalLoading', true)
     case ADD_PROJECT_SUCCESS:
-      payload.resolve()
-      payload.final()
       projects.unshift(payload.result)
       return state
         .set('projects', projects.slice())
@@ -75,8 +72,6 @@ export function projectReducer (state = initialState, { type, payload }) {
     case EDIT_PROJECT:
       return state.set('modalLoading', true)
     case EDIT_PROJECT_SUCCESS:
-      payload.resolve()
-      payload.final()
       projects.splice(projects.indexOf(projects.find(p => p.id === payload.result.id)), 1, payload.result)
       return state
         .set('projects', projects.slice())
@@ -84,18 +79,14 @@ export function projectReducer (state = initialState, { type, payload }) {
     case LOAD_PROJECT_NAME_VALUE:
       return state.set('projectNameExited', false)
     case LOAD_PROJECT_NAME_VALUE_SUCCESS:
-      payload.resolve()
       return state.set('projectNameExited', false)
     case LOAD_PROJECT_NAME_VALUE_ERROR:
-      payload.reject()
       return state.set('projectNameExited', true)
     case DELETE_SINGLE_PROJECT:
       return state
     case DELETE_SINGLE_PROJECT_SUCCESS:
-      payload.resolve()
       return state.set('projects', projects.filter(g => g.id !== payload.result))
     case DELETE_SINGLE_PROJECT_ERROR:
-      payload.reject(payload.result)
       return state
     case GET_ERROR:
       payload.final && payload.final()

@@ -62,7 +62,9 @@ export function* getDatabasesWatcher () {
 }
 
 export function* addDatabase ({ payload }) {
-  const languageText = localStorage.getItem('preferredLanguage')
+  const languageText = localStorage.getItem('preferredLanguage') === 'en'
+    ? 'Config format error!'
+    : 'Config 格式错误！'
   try {
     const result = yield call(request, {
       method: 'post',
@@ -70,8 +72,8 @@ export function* addDatabase ({ payload }) {
       data: payload.database
     })
     if (result.code && result.code === 400) {
-      yield put(databaseAddedError(languageText === 'en' ? 'config format error!' : 'Config 格式错误！'))
-      payload.reject(result.payload)
+      yield put(databaseAddedError(languageText))
+      payload.reject(languageText)
     } else if (result.header.code && result.header.code === 200) {
       yield put(databaseAdded(result.payload))
       payload.resolve()
@@ -88,7 +90,8 @@ export function* addDatabaseWatcher () {
 export function* getSingleDatabase ({ payload }) {
   try {
     const result = yield call(request, `${api.database}/${payload.databaseId}`)
-    yield put(singleDatabaseLoaded(result.payload, payload.resolve))
+    yield put(singleDatabaseLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(getError(err))
   }
@@ -99,6 +102,9 @@ export function* singleDatabaseWatcher () {
 }
 
 export function* editDatabase ({ payload }) {
+  const languageText = localStorage.getItem('preferredLanguage') === 'en'
+    ? 'Config format error!'
+    : 'Config 格式错误！'
   try {
     const result = yield call(request, {
       method: 'put',
@@ -106,9 +112,11 @@ export function* editDatabase ({ payload }) {
       data: payload.database
     })
     if (result.code && result.code === 400) {
-      yield put(databaseEditedError('Config 格式错误！', payload.reject))
+      yield put(databaseEditedError(languageText))
+      payload.reject(languageText)
     } else if (result.header.code && result.header.code === 200) {
-      yield put(databaseEdited(result.payload, payload.resolve))
+      yield put(databaseEdited(result.payload))
+      payload.resolve()
     }
   } catch (err) {
     yield put(getError(err))
@@ -122,7 +130,8 @@ export function* editDatabaseWatcher () {
 export function* getDatabaseInstance ({ payload }) {
   try {
     const result = yield call(request, `${api.instance}?type=${payload.value}`)
-    yield put(databasesInstanceLoaded(result.payload, payload.resolve))
+    yield put(databasesInstanceLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(getError(err))
   }
@@ -136,9 +145,11 @@ export function* getName ({ payload }) {
   try {
     const result = yield call(request, `${api.database}?nsInstanceId=${payload.value.nsInstanceId}&nsDatabaseName=${payload.value.nsDatabaseName}`)
     if (result.code === 200) {
-      yield put(nameExistLoaded(result.msg, payload.resolve))
+      yield put(nameExistLoaded(result.msg))
+      payload.resolve()
     } else {
-      yield put(nameExistErrorLoaded(result.msg, payload.reject))
+      yield put(nameExistErrorLoaded(result.msg))
+      payload.reject()
     }
   } catch (err) {
     yield put(getError(err))

@@ -100,7 +100,8 @@ export function* getSelectNamespacesWatcher () {
 export function* getNamespaceDatabase ({ payload }) {
   try {
     const database = yield call(request, `${api.instance}/${payload.instanceId}/databases`)
-    yield put(namespaceDatabaseLoaded(database.payload, payload.resolve))
+    yield put(namespaceDatabaseLoaded(database.payload))
+    payload.resolve(database.payload)
   } catch (err) {
     yield put(getError(err))
   }
@@ -117,9 +118,11 @@ export function* getNsTableName ({ payload }) {
       url: `${api.namespace}?instanceId=${payload.value.instanceId}&databaseId=${payload.value.databaseId}&tableNames=${payload.value.tableNames}`
     })
     if (result.code === 200) {
-      yield put(tableNameExistLoaded(result.msg, payload.resolve))
+      yield put(tableNameExistLoaded(result.msg))
+      payload.resolve()
     } else {
-      yield put(tableNameExistErrorLoaded(result.msg, payload.reject))
+      yield put(tableNameExistErrorLoaded(result.msg))
+      payload.reject()
     }
   } catch (err) {
     yield put(getError(err))
@@ -137,7 +140,8 @@ export function* addNamespace ({ payload }) {
       url: api.namespace,
       data: payload.value
     })
-    yield put(namespaceAdded(result.payload, payload.resolve))
+    yield put(namespaceAdded(result.payload))
+    payload.resolve()
   } catch (err) {
     yield put(getError(err))
   }
@@ -150,7 +154,8 @@ export function* addNamespaceWatcher () {
 export function* getSingleNamespace ({ payload }) {
   try {
     const namespace = yield call(request, `${api.namespace}/${payload.namespaceId}`)
-    yield put(singleNamespaceLoaded(namespace.payload, payload.resolve))
+    yield put(singleNamespaceLoaded(namespace.payload))
+    payload.resolve(namespace.payload)
   } catch (err) {
     yield put(getError(err))
   }
@@ -167,7 +172,8 @@ export function* editNamespace ({ payload }) {
       url: api.namespace,
       data: payload.value
     })
-    yield put(namespaceEdited(result.payload, payload.resolve))
+    yield put(namespaceEdited(result.payload))
+    payload.resolve()
   } catch (err) {
     yield put(getError(err))
   }
@@ -180,7 +186,8 @@ export function* editNamespaceWatcher () {
 export function* getProjectNsAll ({ payload }) {
   try {
     const result = yield call(request, `${api.projectList}/namespaces`)
-    yield put(projectNsAllLoaded(result.payload, payload.resolve))
+    yield put(projectNsAllLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(getError())
   }
@@ -197,7 +204,8 @@ export function* setSchema ({ payload }) {
       url: `${api.namespace}/${payload.namespaceId}/schema/${payload.type}`,
       data: payload.value
     })
-    yield put(schemaSetted(result.payload, payload.resolve))
+    yield put(schemaSetted(result.payload))
+    payload.resolve()
   } catch (err) {
     yield put(getError())
   }
@@ -217,7 +225,8 @@ export function* querySchema ({ payload }) {
 
   try {
     const result = yield call(request, `${requestURL}/${payload.ids.namespaceId}/schema/${payload.type}`)
-    yield put(schemaConfigQueried(result.payload, payload.resolve))
+    yield put(schemaConfigQueried(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(getError())
   }

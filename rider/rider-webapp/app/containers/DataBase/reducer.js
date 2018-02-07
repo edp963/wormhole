@@ -70,33 +70,27 @@ export function databaseReducer (state = initialState, { type, payload }) {
     case LOAD_SINGLE_DATABASE:
       return state.set('error', false)
     case LOAD_SINGLE_DATABASE_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case EDIT_DATABASE:
       return state
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_DATABASE_SUCCESS:
-      payload.resolve()
       databases.splice(databases.indexOf(databases.find(p => p.id === payload.result.id)), 1, payload.result)
       return state
         .set('databases', databases.slice())
         .set('modalLoading', false)
     case EDIT_DATABASE_ERROR:
-      payload.reject(payload.result)
       return state.set('modalLoading', false)
     case LOAD_DATABASES_INSTANCE:
       return state
     case LOAD_DATABASES_INSTANCE_SUCCESS:
-      payload.resolve(payload.result)
       return state.set('dbUrlValue', payload.result)
     case LOAD_NAME_EXIST:
       return state.set('databaseNameExited', false)
     case LOAD_NAME_EXIST_SUCCESS:
-      payload.resolve()
       return state.set('databaseNameExited', false)
     case LOAD_NAME_EXIST_ERROR:
-      payload.reject()
       return state.set('databaseNameExited', true)
     case DELETE_DB:
       return state
