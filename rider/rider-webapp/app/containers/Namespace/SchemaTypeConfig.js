@@ -68,7 +68,7 @@ export class SchemaTypeConfig extends React.Component {
         currentUmsTableData: props.umsTableDataSource.filter(s => !s.forbidden),
         selectTypeVal: ''
       }, () => {
-        const temp = this.state.currentUmsTableData.find(i => i.fieldType.indexOf('##') > -1)
+        const temp = this.state.currentUmsTableData.find(i => i.fieldType.includes('##'))
         if (temp) {
           this.setState({
             tupleForm: 'text'
@@ -100,7 +100,7 @@ export class SchemaTypeConfig extends React.Component {
     const languageText = localStorage.getItem('preferredLanguage')
 
     const originType = record.fieldType
-    const currentType = originType.indexOf('##') > -1 ? 'tuple' : originType
+    const currentType = originType.includes('##') ? 'tuple' : originType
 
     if (this.state.tupleForm === 'edit') {
       message.error(languageText === 'en' ? 'Tuple configuration has error!' : 'Tuple 配置失败！', 3)
@@ -406,7 +406,7 @@ export class SchemaTypeConfig extends React.Component {
         const repeatKey = repeatArrayArr.length === 0 ? undefined : repeatArrayArr.find(i => i === record.key)
 
         let fieldTypeHtml = ''
-        if (record.fieldType.indexOf('tuple') > -1) {
+        if (record.fieldType.includes('tuple')) {
           const tupleVals = record.fieldType.split('##')
 
           const textHtml = (
@@ -465,7 +465,7 @@ export class SchemaTypeConfig extends React.Component {
         let initType = ''
         if (currentKey === record.key && tupleForm === 'edit') {
           initType = 'tuple'
-        } else if (record.fieldType.indexOf('##') > -1) {
+        } else if (record.fieldType.includes('##')) {
           initType = 'tuple'
         } else {
           initType = record.fieldType
