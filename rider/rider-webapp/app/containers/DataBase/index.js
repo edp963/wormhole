@@ -181,7 +181,7 @@ export class DataBase extends React.PureComponent {
         }
 
         let conFinal = ''
-        if (result.config.indexOf(',') > -1 && result.config.indexOf('=') > -1) {
+        if (result.config.includes(',') && result.config.includes('=')) {
           conFinal = result.config.replace(/,/g, '\n')
         } else {
           conFinal = result.config
@@ -211,11 +211,10 @@ export class DataBase extends React.PureComponent {
    */
   onConfigValue (val) {
     let configVal = ''
-    if (val.indexOf('&') > -1) {
-      // key=value&key=value
-      configVal = val.indexOf('=') > -1 ? val.replace(/\n/g, '&') : val
+    if (val.includes('&')) {
+      configVal = val.includes('=') ? val.replace(/\n/g, '&') : val    // key=value&key=value
     } else {
-      if (val.indexOf('=') > -1) {
+      if (val.includes('=')) {
         // 多行输入 key=value
         const conTempStr = val.trim()
         const numArr = (conTempStr.split('=')).length - 1
@@ -246,7 +245,7 @@ export class DataBase extends React.PureComponent {
               }
             })
           } else if (values.dataBaseDataSystem === 'oracle') {
-            if (values.config === undefined || (values.config.indexOf('service_name') < 0)) {
+            if (values.config === undefined || !values.config.includes('service_name')) {
               this.dBForm.setFields({
                 config: {
                   value: values.config,
@@ -316,7 +315,7 @@ export class DataBase extends React.PureComponent {
           }
         } else if (formType === 'edit') {
           if (values.dataBaseDataSystem === 'oracle') {
-            if (values.config === undefined || (values.config.indexOf('service_name') < 0)) {
+            if (values.config === undefined || !values.config.includes('service_name')) {
               this.dBForm.setFields({
                 config: {
                   value: values.config,
@@ -485,7 +484,7 @@ export class DataBase extends React.PureComponent {
   onInitDatabaseConfigValue = (value) => {
     const formValues = this.dBForm.getFieldsValue()
     if (formValues.dataBaseDataSystem === 'oracle') {
-      if (value.indexOf('service_name') > 0 || value.indexOf('service_name') === 0) {
+      if (value.includes('service_name')) {
         this.dBForm.setFieldsValue({ config: value })
       }
     }

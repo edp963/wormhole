@@ -48,7 +48,7 @@ export class FlowEtpConfigForm extends React.Component {
 
   forceChecColumnSave = (rule, value, callback) => {
     const languageText = localStorage.getItem('preferredLanguage')
-    if (value.indexOf('，')) {
+    if (value.includes('，')) {
       callback()
     } else {
       callback(languageText === 'en' ? 'No full-shaped comma' : '不允许出现中文逗号')

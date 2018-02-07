@@ -136,7 +136,8 @@ export class StreamStartForm extends React.Component {
                           message: languageText === 'en' ? 'Please fill in offset' : '请填写 Offset'
                         }, {
                           validator: forceCheckNum
-                        }]
+                        }],
+                        initialValue: conOffFinal
                       })(
                         <InputNumber size="medium" className="conform-table-input" />
                       )}

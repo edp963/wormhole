@@ -934,7 +934,7 @@ export class Namespace extends React.PureComponent {
                 const repeatArr = getRepeatFieldIndex(umsTableDataSource)
 
                 // fieldType只能包含一个array类型
-                const repeatTypeArr = umsTableDataSource.filter(s => s.fieldType.indexOf('array') > -1)
+                const repeatTypeArr = umsTableDataSource.filter(s => s.fieldType.includes('array'))
                 const repeatArrayIndex = repeatTypeArr.map(s => s.key)
 
                 if (spaceRename) {
