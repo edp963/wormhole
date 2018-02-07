@@ -48,15 +48,13 @@ export function loginReducer (state = initialState, { type, payload }) {
       localStorage.setItem('loginActive', payload.result.active)
 
       setTimeout(() => {
-        payload.resolve(payload.result)
+
       }, 10)
 
       return state.set('locale', lanType)
     case LOGIN_FAILURE:
-      payload.reject()
       return state
     case LOG_PSW_ERROR:
-      payload.reject(payload.message)
       return state
     default:
       return state

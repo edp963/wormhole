@@ -172,7 +172,7 @@ export class StreamConfigForm extends React.Component {
               )}
             </FormItem>
           </Col>
-          <Col span={8} className={`${tabPanelKey === 'stream' ? '' : 'hide'}`}>
+          <Col span={8} className="hide">
             <FormItem label="Max Batch Data Size (Mb)：" {...itemStylePEM}>
               {getFieldDecorator('maxRecords', {
                 rules: [{
@@ -181,7 +181,7 @@ export class StreamConfigForm extends React.Component {
                 }, {
                   validator: forceCheckNum
                 }],
-                initialValue: 50
+                initialValue: 10
               })(
                 <InputNumber min={10} max={50} />
               )}

@@ -98,22 +98,20 @@ export function editDatabase (database, resolve, reject) {
   }
 }
 
-export function databaseEdited (result, resolve) {
+export function databaseEdited (result) {
   return {
     type: EDIT_DATABASE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function databaseEditedError (result, reject) {
+export function databaseEditedError (result) {
   return {
     type: EDIT_DATABASE_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
@@ -128,12 +126,11 @@ export function loadDatabasesInstance (value, resolve) {
   }
 }
 
-export function databasesInstanceLoaded (result, resolve) {
+export function databasesInstanceLoaded (result) {
   return {
     type: LOAD_DATABASES_INSTANCE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -149,22 +146,20 @@ export function loadNameExist (value, resolve, reject) {
   }
 }
 
-export function nameExistLoaded (result, resolve) {
+export function nameExistLoaded (result) {
   return {
     type: LOAD_NAME_EXIST_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function nameExistErrorLoaded (result, reject) {
+export function nameExistErrorLoaded (result) {
   return {
     type: LOAD_NAME_EXIST_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
@@ -179,12 +174,11 @@ export function loadSingleDatabase (databaseId, resolve) {
   }
 }
 
-export function singleDatabaseLoaded (result, resolve) {
+export function singleDatabaseLoaded (result) {
   return {
     type: LOAD_SINGLE_DATABASE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }

@@ -63,7 +63,8 @@ export function* getUdfsWatcher () {
 export function* getProjectUdfs ({ payload }) {
   try {
     const result = yield call(request, `${api.projectList}/udfs`)
-    yield put(projectUdfsLoaded(result.payload, payload.resolve))
+    yield put(projectUdfsLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(getError(err))
   }
@@ -111,9 +112,11 @@ export function* addUdf ({payload}) {
       }
     })
     if (result.code && (result.code === 409 || result.code === 412)) {
-      yield put(udfAddedError(result.msg, payload.reject))
+      yield put(udfAddedError(result.msg))
+      payload.reject(result.msg)
     } else if (result.header.code && result.header.code === 200) {
-      yield put(udfAdded(result.payload, payload.resolve))
+      yield put(udfAdded(result.payload))
+      payload.resolve()
     }
   } catch (err) {
     yield put(getError(err))
@@ -127,7 +130,8 @@ export function* addUdfWatcher () {
 export function* queryUdf ({payload}) {
   try {
     const result = yield call(request, `${api.udf}/${payload.udfId}`)
-    yield put(udfDetailLoaded(result.payload, payload.resolve))
+    yield put(udfDetailLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(getError(err))
   }
@@ -157,9 +161,11 @@ export function* editUdf ({payload}) {
       }
     })
     if (result.code && result.code === 412) {
-      yield put(udfEditedError(result.msg, payload.reject))
+      yield put(udfEditedError(result.msg))
+      payload.reject(result.msg)
     } else if (result.header.code && result.header.code === 200) {
-      yield put(udfEdited(result.payload, payload.resolve))
+      yield put(udfEdited(result.payload))
+      payload.resolve()
     }
   } catch (err) {
     yield put(getError(err))
