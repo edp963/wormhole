@@ -274,18 +274,18 @@ export class Manager extends React.Component {
             kafkaOffsetValue: result.kafkaLatestOffset,
             streamStartFormData: result.consumedLatestOffset
           }, () => {
-            const { streamStartFormData } = this.state
-            if (streamStartFormData.length !== 0) {
-              const partitionAndOffset = streamStartFormData[0].partitionOffsets.split(',')
-
-              for (let j = 0; j < partitionAndOffset.length; j++) {
-                this.streamStartForm.setFieldsValue({
-                  [`${streamStartFormData[0].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1)
-                })
-              }
-            } else {
-              return
-            }
+            // const { streamStartFormData } = this.state
+            // if (streamStartFormData.length !== 0) {
+            //   const partitionAndOffset = streamStartFormData[0].partitionOffsets.split(',')
+            //
+            //   for (let j = 0; j < partitionAndOffset.length; j++) {
+            //     this.streamStartForm.setFieldsValue({
+            //       [`${streamStartFormData[0].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1)
+            //     })
+            //   }
+            // } else {
+            //   return
+            // }
           })
         })
       })
@@ -327,7 +327,7 @@ export class Manager extends React.Component {
         createTime: '',
         desc: '',
         fullClassName: '',
-        functionName: '全选',
+        functionName: localStorage.getItem('preferredLanguage') === 'en' ? 'Select all' : '全选',
         id: -1,
         jarName: '',
         pubic: false,
@@ -344,19 +344,6 @@ export class Manager extends React.Component {
         consumedOffsetValue: result.consumedLatestOffset,
         kafkaOffsetValue: result.kafkaLatestOffset,
         streamStartFormData: result.consumedLatestOffset
-      }, () => {
-        const { streamStartFormData } = this.state
-        if (streamStartFormData.length !== 0) {
-          const partitionAndOffset = streamStartFormData[0].partitionOffsets.split(',')
-
-          for (let j = 0; j < partitionAndOffset.length; j++) {
-            this.streamStartForm.setFieldsValue({
-              [`${streamStartFormData[0].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1)
-            })
-          }
-        } else {
-          return
-        }
       })
     })
   }
@@ -380,14 +367,15 @@ export class Manager extends React.Component {
 
   onChangeEditSelect = () => {
     const { streamStartFormData } = this.state
+    for (let i = 0; i < streamStartFormData.length; i++) {
+      const partitionAndOffset = streamStartFormData[i].partitionOffsets.split(',')
 
-    const partitionAndOffset = streamStartFormData[0].partitionOffsets.split(',')
-
-    for (let j = 0; j < partitionAndOffset.length; j++) {
-      this.streamStartForm.setFieldsValue({
-        [`${streamStartFormData[0].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
-        [`${streamStartFormData[0].id}_${streamStartFormData[0].rate}`]: streamStartFormData[0].rate
-      })
+      for (let j = 0; j < partitionAndOffset.length; j++) {
+        this.streamStartForm.setFieldsValue({
+          [`${streamStartFormData[i].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
+          [`${streamStartFormData[i].id}_${streamStartFormData[i].rate}`]: streamStartFormData[i].rate
+        })
+      }
     }
   }
 
@@ -1029,7 +1017,7 @@ export class Manager extends React.Component {
           const sureStopFormat = <FormattedMessage {...messages.streamSureStop} />
           const modifyFormat = <FormattedMessage {...messages.streamModify} />
 
-          const strDelete = record.disableActions.indexOf('delete') > -1
+          const strDelete = record.disableActions.includes('delete')
             ? (
               <Tooltip title={deleteFormat}>
                 <Button icon="delete" shape="circle" type="ghost" disabled></Button>
@@ -1043,7 +1031,7 @@ export class Manager extends React.Component {
               </Popconfirm>
             )
 
-          const strStart = record.disableActions.indexOf('start') > -1
+          const strStart = record.disableActions.includes('start')
             ? (
               <Tooltip title={startFormat}>
                 <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
@@ -1055,7 +1043,7 @@ export class Manager extends React.Component {
               </Tooltip>
             )
 
-          const strStop = record.disableActions.indexOf('stop') > -1
+          const strStop = record.disableActions.includes('stop')
             ? (
               <Tooltip title={stopFormat}>
                 <Button shape="circle" type="ghost" disabled>
@@ -1073,7 +1061,7 @@ export class Manager extends React.Component {
               </Popconfirm>
             )
 
-          const strRenew = record.disableActions.indexOf('renew') > -1
+          const strRenew = record.disableActions.includes('renew')
             ? (
               <Tooltip title={renewFormat}>
                 <Button icon="check" shape="circle" type="ghost" disabled></Button>

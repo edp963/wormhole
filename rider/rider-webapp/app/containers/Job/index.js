@@ -667,7 +667,7 @@ export class Job extends React.Component {
           const deleteFormat = <FormattedMessage {...messages.jobDelete} />
           const sureDeleteFormat = <FormattedMessage {...messages.jobSureDelete} />
 
-          const strEdit = record.disableActions.indexOf('modify') > -1
+          const strEdit = record.disableActions.includes('modify')
             ? (
               <Tooltip title={editFormat}>
                 <Button icon="edit" shape="circle" type="ghost" disabled></Button>
@@ -679,7 +679,7 @@ export class Job extends React.Component {
               </Tooltip>
             )
 
-          const strStart = record.disableActions.indexOf('start') > -1
+          const strStart = record.disableActions.includes('start')
             ? (
               <Tooltip title={startFormat}>
                 <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
@@ -693,7 +693,7 @@ export class Job extends React.Component {
               </Popconfirm>
             )
 
-          const strStop = record.disableActions.indexOf('stop') > -1
+          const strStop = record.disableActions.includes('stop')
             ? (
               <Tooltip title={stopFormat}>
                 <Button shape="circle" type="ghost" disabled>
@@ -711,7 +711,7 @@ export class Job extends React.Component {
               </Popconfirm>
             )
 
-          const strDelete = record.disableActions.indexOf('delete') > -1
+          const strDelete = record.disableActions.includes('delete')
             ? (
               <Tooltip title={deleteFormat}>
                 <Button icon="delete" shape="circle" type="ghost" disabled></Button>

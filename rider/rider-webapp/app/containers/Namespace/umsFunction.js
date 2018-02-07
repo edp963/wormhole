@@ -304,7 +304,7 @@ export function genSchema (array, type) {
   fieldsObject['fields'] = fieldsArray
   const selectedArray = selectedFields(array)
   for (let i = 0; i < selectedArray.length; i++) {
-    if (selectedArray[i].hasOwnProperty('fieldName') && selectedArray[i].fieldName.indexOf('#') === -1) {
+    if (selectedArray[i].hasOwnProperty('fieldName') && !selectedArray[i].fieldName.includes('#')) {
       let fieldObject = genBaseField(selectedArray[i])
       if (fieldObject.type === JSONARRAY || fieldObject.type === JSONOBJECT || fieldObject.type.startsWith('tuple')) {
         fieldObject = genSubField(array.slice(i + 1, selectedArray.length), fieldObject, '', type)
@@ -323,8 +323,11 @@ export function genSchema (array, type) {
 
 function getDefaultNumType (value) {
   value = `${value}`
-  if (value.indexOf('.') === -1) return LONG
-  else return DOUBLE
+  if (!value.includes('.')) {
+    return LONG
+  } else {
+    return DOUBLE
+  }
 }
 
 function isExist (array, key) {
@@ -366,10 +369,10 @@ export function getRepeatFieldIndex (array) {
       renameObj['rename'] = temp[i].rename
       renameArray.push(renameObj)
     } else {
-      if (repeatIndexArray.indexOf(temp[i].key) === -1) {
+      if (!repeatIndexArray.includes(temp[i].key)) {
         repeatIndexArray.push(temp[i].key)
       }
-      if (repeatIndexArray.indexOf(renameArray[p].index) === -1) {
+      if (!repeatIndexArray.includes(renameArray[p].index)) {
         repeatIndexArray.push(renameArray[p].index)
       }
     }

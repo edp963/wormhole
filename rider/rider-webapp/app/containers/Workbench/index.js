@@ -663,7 +663,7 @@ export class Workbench extends React.Component {
     })
       .then((resultFinal) => {
         if (resultFinal.tranConfig !== '') {
-          if (resultFinal.tranConfig.indexOf('action') > -1) {
+          if (resultFinal.tranConfig.includes('action')) {
             const tranConfigVal = JSON.parse(JSON.parse(JSON.stringify(resultFinal.tranConfig)))
 
             const tranActionArr = tranConfigVal.action.split(';')
@@ -674,7 +674,7 @@ export class Workbench extends React.Component {
               let tranConfigInfoTemp = ''
               let tranTypeTepm = ''
 
-              if (i.indexOf('spark_sql') > -1) {
+              if (i.includes('spark_sql')) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepm = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
 
@@ -682,7 +682,7 @@ export class Workbench extends React.Component {
                 tranTypeTepm = 'sparkSql'
               }
 
-              if (i.indexOf('custom_class') > -1) {
+              if (i.includes('custom_class')) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepm = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
 
@@ -716,7 +716,7 @@ export class Workbench extends React.Component {
           sinkConfigShow = sinkConfigVal.sink_specific_config ? JSON.stringify(sinkConfigVal.sink_specific_config) : ''
           maxRecordShow = sinkConfigVal.maxRecordPerPartitionProcessed ? sinkConfigVal.maxRecordPerPartitionProcessed : 5000
 
-          if (resultFinal.sinkConfig.indexOf('output') < 0) {
+          if (!resultFinal.sinkConfig.includes('output')) {
             resultFieldsVal = 'all'
             this.setState({
               fieldSelected: 'hide'
@@ -856,13 +856,13 @@ export class Workbench extends React.Component {
 
         let dataframeShowVal = ''
         if (result.tranConfig !== '') {
-          if (result.tranConfig.indexOf('action') > -1) {
+          if (result.tranConfig.includes('action')) {
             const temp = JSON.parse(JSON.stringify(result.tranConfig))
             const tt = temp.replace(/\n/g, ' ')
             const tranConfigVal = JSON.parse(tt)
 
             let validityTemp = tranConfigVal.validity
-            if (result.tranConfig.indexOf('validity') > -1) {
+            if (result.tranConfig.includes('validity')) {
               const requestTempJson = {
                 check_columns: validityTemp.check_columns,
                 check_rule: validityTemp.check_rule,
@@ -884,7 +884,7 @@ export class Workbench extends React.Component {
               })
             }
 
-            if (result.tranConfig.indexOf('dataframe_show_num') > 0) {
+            if (result.tranConfig.includes('dataframe_show_num')) {
               dataframeShowVal = 'true'
               this.setState({
                 dataframeShowSelected: ''
@@ -910,8 +910,8 @@ export class Workbench extends React.Component {
               let tranTypeTepm = ''
               let pushdownConTepm = {}
 
-              if (i.indexOf('pushdown_sql') > -1) {
-                const iTmp = i.indexOf('left join') > -1 ? i.replace('left join', 'leftJoin') : i
+              if (i.includes('pushdown_sql')) {
+                const iTmp = i.includes('left join') ? i.replace('left join', 'leftJoin') : i
                 const lookupBeforePart = iTmp.substring(0, i.indexOf('=') - 1)
                 const lookupAfterPart = iTmp.substring(i.indexOf('=') + 1)
                 const lookupBeforePartTemp = (lookupBeforePart.replace(/(^\s*)|(\s*$)/g, '')).split(' ')
@@ -933,11 +933,11 @@ export class Workbench extends React.Component {
                 pushdownConTepm = pushdownConTepmJson
               }
 
-              if (i.indexOf('parquet_sql') > -1) {
+              if (i.includes('parquet_sql')) {
                 let imp = ''
-                if (i.indexOf('left join') > 0) {
+                if (i.includes('left join')) {
                   imp = i.replace('left join', 'leftJoin')
-                } else if (i.indexOf('inner join') > 0) {
+                } else if (i.includes('inner join')) {
                   imp = i.replace('inner join', 'innerJoin')
                 } else {
                   imp = i
@@ -958,7 +958,7 @@ export class Workbench extends React.Component {
                 pushdownConTepm = {}
               }
 
-              if (i.indexOf('spark_sql') > -1) {
+              if (i.includes('spark_sql')) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepmTemp = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
                 const sparkAfterPartTepm = preProcessSql(sparkAfterPartTepmTemp)
@@ -969,7 +969,7 @@ export class Workbench extends React.Component {
                 pushdownConTepm = {}
               }
 
-              if (i.indexOf('custom_class') > -1) {
+              if (i.includes('custom_class')) {
                 const classAfterPart = i.substring(i.indexOf('=') + 1)
                 const classAfterPartTepmTemp = classAfterPart.replace(/(^\s*)|(\s*$)/g, '')
                 const classAfterPartTepm = preProcessSql(classAfterPartTepmTemp)
@@ -1007,7 +1007,7 @@ export class Workbench extends React.Component {
           const sinkConfigVal = JSON.parse(JSON.parse(JSON.stringify(result.sinkConfig)))
           sinkConfigShow = sinkConfigVal.sink_specific_config ? JSON.stringify(sinkConfigVal.sink_specific_config) : ''
 
-          if (result.sinkConfig.indexOf('output') < 0) {
+          if (!result.sinkConfig.includes('output')) {
             resultFieldsVal = 'all'
             this.setState({
               fieldSelected: 'hide'
@@ -1288,7 +1288,7 @@ export class Workbench extends React.Component {
       const tempOthersArr = []
       for (let i = 0; i < streamConArr.length; i++) {
         // 是否是 jvm
-        streamConArr[i].indexOf('extraJavaOptions') > -1 ? tempJvmArr.push(streamConArr[i]) : tempOthersArr.push(streamConArr[i])
+        streamConArr[i].includes('extraJavaOptions') ? tempJvmArr.push(streamConArr[i]) : tempOthersArr.push(streamConArr[i])
       }
 
       const jvmTempValue = tempJvmArr.join('\n')
@@ -1326,7 +1326,7 @@ export class Workbench extends React.Component {
       const jobTempJvmArr = []
       const jobTempOthersArr = []
       for (let i = 0; i < sparkConArr.length; i++) {
-        sparkConArr[i].indexOf('extraJavaOptions') > -1 ? jobTempJvmArr.push(sparkConArr[i]) : jobTempOthersArr.push(sparkConArr[i])
+        sparkConArr[i].includes('extraJavaOptions') ? jobTempJvmArr.push(sparkConArr[i]) : jobTempOthersArr.push(sparkConArr[i])
       }
 
       const jvmTempValue = jobTempJvmArr.join('\n')

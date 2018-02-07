@@ -320,7 +320,7 @@ export class Instance extends React.PureComponent {
       : '作为sink，填写 http://localhost:9200；作为lookup，填写localhost:9300'
 
     let errMsg = ''
-    if (result.indexOf('exists') > 0) {
+    if (result.includes('exists')) {
       errMsg = [new Error(existText)]
     } else {
       if (InstanceSourceDsVal === 'es') {
