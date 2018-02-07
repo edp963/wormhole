@@ -386,7 +386,7 @@ export class Manager extends React.Component {
     for (let j = 0; j < partitionAndOffset.length; j++) {
       this.streamStartForm.setFieldsValue({
         [`${streamStartFormData[0].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
-        [`${streamStartFormData[0].rate}`]: streamStartFormData[0].rate
+        [`${streamStartFormData[0].id}_${streamStartFormData[0].rate}`]: streamStartFormData[0].rate
       })
     }
   }

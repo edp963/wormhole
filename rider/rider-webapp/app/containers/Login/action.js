@@ -31,13 +31,11 @@ export function login (logoInfo, resolve, reject) {
   }
 }
 
-export function logged (result, resolve, reject) {
+export function logged (result) {
   return {
     type: LOGIN_SUCCESS,
     payload: {
-      result,
-      resolve,
-      reject
+      result
     }
   }
 }
@@ -60,12 +58,11 @@ export function outLogged () {
   }
 }
 
-export function logPswError (message, reject) {
+export function logPswError (message) {
   return {
     type: LOG_PSW_ERROR,
     payload: {
-      message,
-      reject
+      message
     }
   }
 }
