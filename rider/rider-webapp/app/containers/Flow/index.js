@@ -213,7 +213,7 @@ export class Flow extends React.Component {
         const languagetextSuccess = languagetext === 'en' ? 'successfully!' : '成功！'
 
         if (typeof (result) === 'object') {
-          const resultFailed = result.filter(i => i.msg.indexOf('failed') > -1)
+          const resultFailed = result.filter(i => i.msg.includes('failed'))
           if (resultFailed.length > 0) {
             const resultFailedIdArr = resultFailed.map(i => i.id)
             const resultFailedIdStr = resultFailedIdArr.join('、')
@@ -273,7 +273,7 @@ export class Flow extends React.Component {
       if (action === 'delete') {
         message.success(`${singleMsg}${languagetextSuccess}`, 3)
       } else {
-        if (result.msg.indexOf('failed') > -1) {
+        if (result.msg.includes('failed')) {
           const languagetextFail = languagetext === 'en'
             ? `It fails to ${singleMsg} Flow ID ${result.id}!`
             : `Flow ID ${result.id} ${singleMsg}失败！`
@@ -889,7 +889,7 @@ export class Flow extends React.Component {
           const deleteFormat = <FormattedMessage {...messages.flowTableDelete} />
           const sureDeleteFormat = <FormattedMessage {...messages.flowSureDelete} />
 
-          const strEdit = record.disableActions.indexOf('modify') > -1
+          const strEdit = record.disableActions.includes('modify')
             ? (
               <Tooltip title={modifyFormat}>
                 <Button icon="edit" shape="circle" type="ghost" disabled></Button>
@@ -901,7 +901,7 @@ export class Flow extends React.Component {
               </Tooltip>
             )
 
-          const strStart = record.disableActions.indexOf('start') > -1
+          const strStart = record.disableActions.includes('start')
             ? (
               <Tooltip title={startFormat}>
                 <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
@@ -915,7 +915,7 @@ export class Flow extends React.Component {
               </Popconfirm>
             )
 
-          const strStop = record.disableActions.indexOf('stop') > -1
+          const strStop = record.disableActions.includes('stop')
             ? (
               <Tooltip title={stopFormat}>
                 <Button shape="circle" type="ghost" disabled>
@@ -933,7 +933,7 @@ export class Flow extends React.Component {
               </Popconfirm>
             )
 
-          const strRenew = record.disableActions.indexOf('renew') > -1
+          const strRenew = record.disableActions.includes('renew')
             ? (
               <Tooltip title={renewFormat}>
                 <Button icon="check" shape="circle" type="ghost" disabled></Button>
