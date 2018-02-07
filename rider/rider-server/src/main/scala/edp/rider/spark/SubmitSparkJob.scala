@@ -22,11 +22,13 @@ package edp.rider.spark
 
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.entities.StartConfig
+
 import scala.language.postfixOps
 import scala.collection.mutable.ListBuffer
-import scala.sys.process._
+import scala.concurrent.Future
 import scala.sys.process.Process
-
+import scala.sys.process._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object SubmitSparkJob extends App with RiderLogger {
 
@@ -50,12 +52,15 @@ object SubmitSparkJob extends App with RiderLogger {
     assert(!command.trim.isEmpty, "start or stop spark application command can't be empty")
     val array = command.split(";")
     if (array.length == 2) {
-      val process = Process(array(0)).run()
-      process.exitValue()
-
+      val process1 = Future(Process(array(0)).run())
+      process1.map(p => {
+        if (p.exitValue() != 0) {
+          val msg = array(1).split("\\|")
+          Future(msg(0).trim #| msg(1).trim !)
+        }
+      })
     }
-    else command !
-    //      Process(command).run()
+    else Process(command).run()
   }
 
   //  def commandGetJobInfo(streamName: String) = {
@@ -134,7 +139,7 @@ object SubmitSparkJob extends App with RiderLogger {
 
     val finalCommand =
       if (RiderConfig.spark.alert)
-        s"$startCommand;echo '$streamName is dead' | mail -s 'ERROR $streamName is dead' ${RiderConfig.spark.alertEmails}"
+        s"$startCommand;echo '$streamName is dead' | mail -s 'ERROR-$streamName-is-dead' ${RiderConfig.spark.alertEmails}"
       else startCommand
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     //    println("final:" + submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1")
