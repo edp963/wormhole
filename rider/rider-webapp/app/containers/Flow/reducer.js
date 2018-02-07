@@ -46,6 +46,9 @@ import {
   CHUCKAWAY_FLOW,
   LOAD_FLOW_DETAIL,
   LOAD_FLOW_DETAIL_SUCCESS,
+  LOAD_LOOKUP_SQL,
+  LOAD_LOOKUP_SQL_SUCCESS,
+  LOAD_LOOKUP_SQL_ERROR,
 
   LOAD_FLOWS_ERROR,
   LOAD_SOURCELOG_DETAIL,
@@ -124,6 +127,12 @@ function flowReducer (state = initialState, { type, payload }) {
     case LOAD_SOURCETOSINK_EXIST_ERROR:
       payload.reject()
       return state.set('sourceToSinkExited', true)
+    case LOAD_LOOKUP_SQL:
+      return state
+    case LOAD_LOOKUP_SQL_SUCCESS:
+      return state
+    case LOAD_LOOKUP_SQL_ERROR:
+      return state
     case ADD_FLOWS:
       return state.set('flowSubmitLoading', true)
     case ADD_FLOWS_SUCCESS:

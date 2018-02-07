@@ -92,7 +92,7 @@ export class DBForm extends React.Component {
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
       { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} },
       { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
-      { value: 'hdfs', icon: 'icon-hdfs1', style: {fontSize: '67px'} }
+      { value: 'parquet', text: 'Parquet' }
     ]
 
     // kafka 独立样式 hide /show

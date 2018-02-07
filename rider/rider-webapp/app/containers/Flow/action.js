@@ -45,6 +45,9 @@ import {
   LOAD_FLOW_DETAIL,
   LOAD_FLOW_DETAIL_SUCCESS,
   CHUCKAWAY_FLOW,
+  LOAD_LOOKUP_SQL,
+  LOAD_LOOKUP_SQL_SUCCESS,
+  LOAD_LOOKUP_SQL_ERROR,
 
   LOAD_SOURCELOG_DETAIL,
   LOAD_SOURCELOG_DETAIL_SUCCESS,
@@ -321,6 +324,35 @@ export function flowQueryed (result, resolve) {
     payload: {
       result,
       resolve
+    }
+  }
+}
+
+export function loadLookupSql (values, resolve, reject) {
+  return {
+    type: LOAD_LOOKUP_SQL,
+    payload: {
+      values,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function lookupSqlExisted (result) {
+  return {
+    type: LOAD_LOOKUP_SQL_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function lookupSqlExistedError (result) {
+  return {
+    type: LOAD_LOOKUP_SQL_ERROR,
+    payload: {
+      result
     }
   }
 }
