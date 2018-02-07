@@ -110,7 +110,8 @@ export function* getStreamDetail ({ payload }) {
     : `${api.projectStream}`
   try {
     const result = yield call(request, `${apiFinal}/${payload.projectId}/streams/${payload.streamId}`)
-    yield put(streamDetailLoaded(result.payload, payload.resolve))
+    yield put(streamDetailLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     notifySagasError(err, 'getStreamDetail')
   }
@@ -124,9 +125,11 @@ export function* getStreamNameValue ({ payload }) {
   try {
     const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams?streamName=${payload.value}`)
     if (result.code === 409) {
-      yield put(streamNameValueErrorLoaded(result.msg, payload.reject))
+      yield put(streamNameValueErrorLoaded(result.msg))
+      payload.reject()
     } else {
-      yield put(streamNameValueLoaded(result.payload, payload.resolve))
+      yield put(streamNameValueLoaded(result.payload))
+      payload.resolve()
     }
   } catch (err) {
     notifySagasError(err, 'getStreamNameValue')
@@ -140,7 +143,8 @@ export function* getStreamNameValueWatcher () {
 export function* getKafka ({ payload }) {
   try {
     const result = yield call(request, `${api.projectStream}/${payload.projectId}/instances?nsSys=kafka`)
-    yield put(kafkaLoaded(result.payload, payload.resolve))
+    yield put(kafkaLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     notifySagasError(err, 'getKafka')
   }
@@ -153,7 +157,8 @@ export function* getKafkaWatcher () {
 export function* getStreamConfigJvm ({ payload }) {
   try {
     const result = yield call(request, `${api.projectStream}/streams/default/config`)
-    yield put(streamConfigJvmLoaded(result.payload, payload.resolve))
+    yield put(streamConfigJvmLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     notifySagasError(err, 'getStreamConfigJvm')
   }
@@ -166,7 +171,8 @@ export function* getStreamConfigJvmWatcher () {
 export function* getLogs ({ payload }) {
   try {
     const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/logs`)
-    yield put(logsInfoLoaded(result.payload, payload.resolve))
+    yield put(logsInfoLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     notifySagasError(err, 'getLogs')
   }
@@ -179,7 +185,8 @@ export function* getLogsWatcher () {
 export function* getAdminLogs ({ payload }) {
   try {
     const result = yield call(request, `${api.projectList}/${payload.projectId}/streams/${payload.streamId}/logs`)
-    yield put(adminLogsInfoLoaded(result.payload, payload.resolve))
+    yield put(adminLogsInfoLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     notifySagasError(err, 'getAdminLogs')
   }
@@ -196,7 +203,8 @@ export function* addStream ({ payload }) {
       url: `${api.projectUserList}/${payload.projectId}/streams`,
       data: payload.stream
     })
-    yield put(streamAdded(result.payload, payload.resolve))
+    yield put(streamAdded(result.payload))
+    payload.resolve()
   } catch (err) {
     notifySagasError(err, 'addStream')
   }
@@ -213,7 +221,8 @@ export function* editStream ({ payload }) {
       url: `${api.projectStream}/${payload.stream.projectId}/streams`,
       data: payload.stream
     })
-    yield put(streamEdited(result.payload, payload.resolve))
+    yield put(streamEdited(result.payload))
+    payload.resolve()
   } catch (err) {
     notifySagasError(err, 'editStream')
   }
@@ -230,9 +239,11 @@ export function* operateStream ({ payload }) {
       url: `${api.projectStream}/${payload.projectId}/streams/${payload.id}/${payload.action}`
     })
     if (result.code && result.code !== 200) {
-      yield put(streamOperatedError(result.msg, payload.reject))
+      yield put(streamOperatedError(result.msg))
+      payload.reject(result.msg)
     } else if (result.header.code && result.header.code === 200) {
-      yield put(streamOperated(result.payload, payload.resolve))
+      yield put(streamOperated(result.payload))
+      payload.resolve()
     }
   } catch (err) {
     notifySagasError(err, 'operateStream')
@@ -250,9 +261,11 @@ export function* deleteStream ({ payload }) {
       url: `${api.projectStream}/${payload.projectId}/streams/${payload.id}/${payload.action}`
     })
     if (result.code && result.code !== 200) {
-      yield put(streamOperatedError(result.msg, payload.reject))
+      yield put(streamOperatedError(result.msg))
+      payload.reject(result.msg)
     } else if (result.code && result.code === 200) {
-      yield put(streamDeleted(payload.id, payload.resolve))
+      yield put(streamDeleted(payload.id))
+      payload.resolve()
     }
   } catch (err) {
     notifySagasError(err, 'deleteStream')
@@ -271,9 +284,11 @@ export function* startOrRenewStream ({ payload }) {
       data: payload.topicResult
     })
     if (result.code && result.code !== 200) {
-      yield put(streamOperatedError(result.msg, payload.reject))
+      yield put(streamOperatedError(result.msg))
+      payload.reject(result.msg)
     } else if (result.header.code && result.header.code === 200) {
-      yield put(streamStartOrRenewed(result.payload, payload.resolve))
+      yield put(streamStartOrRenewed(result.payload))
+      payload.resolve()
     }
   } catch (err) {
     notifySagasError(err, 'startOrRenewStream')
@@ -287,7 +302,8 @@ export function* startOrRenewStreamWathcer () {
 export function* getLastestOffset ({ payload }) {
   try {
     const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/topics/offsets/latest`)
-    yield put(lastestOffsetLoaded(result.payload, payload.resolve))
+    yield put(lastestOffsetLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     notifySagasError(err, 'getLastestOffset')
   }

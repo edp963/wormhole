@@ -84,7 +84,8 @@ export function* getSingleProject ({ payload }) {
   }
   try {
     const result = yield call(request, `${requestUrl}/${payload.projectId}`)
-    yield put(singleProjectLoaded(result.payload, payload.resolve))
+    yield put(singleProjectLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(getError())
   }
@@ -101,7 +102,9 @@ export function* addProject ({ payload }) {
       url: api.projectList,
       data: payload.project
     })
-    yield put(projectAdded(result.payload, payload.resolve, payload.final))
+    yield put(projectAdded(result.payload))
+    payload.resolve()
+    payload.final()
   } catch (err) {
     yield put(getError(payload.final))
   }
@@ -118,7 +121,9 @@ export function* editProject ({ payload }) {
       url: api.projectList,
       data: payload.project
     })
-    yield put(projectEdited(result.payload, payload.resolve, payload.final))
+    yield put(projectEdited(result.payload))
+    payload.resolve()
+    payload.final()
   } catch (err) {
     yield put(getError(payload.final))
   }
@@ -132,9 +137,11 @@ export function* getProjectNameInputValue ({ payload }) {
   try {
     const result = yield call(request, `${api.projectList}?name=${payload.value}`)
     if (result.code === 409) {
-      yield put(projectNameInputValueErrorLoaded(result.msg, payload.reject))
+      yield put(projectNameInputValueErrorLoaded(result.msg))
+      payload.reject()
     } else {
-      yield put(projectNameInputValueLoaded(result.payload, payload.resolve))
+      yield put(projectNameInputValueLoaded(result.payload))
+      payload.resolve()
     }
   } catch (err) {
     yield put(getError(err))
@@ -152,9 +159,11 @@ export function* deleteSinglePro ({ payload }) {
       url: `${api.projectList}/${payload.projectId}`
     })
     if (result.code === 200) {
-      yield put(singleProjectDeleted(payload.projectId, payload.resolve))
+      yield put(singleProjectDeleted(payload.projectId))
+      payload.resolve()
     } else if (result.code === 412) {
-      yield put(singleProjectDeletedError(result.msg, payload.reject))
+      yield put(singleProjectDeletedError(result.msg))
+      payload.reject(result.msg)
     }
   } catch (err) {
     yield put(getError(err))
