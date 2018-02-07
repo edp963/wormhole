@@ -45,26 +45,36 @@ function parseData (response) {
  * @return {object|undefined} Returns either the response, or throws an error
  */
 function checkStatus (response) {
-  switch (response.status) {
+  const languageText = localStorage.getItem('preferredLanguage')
+  const textRepeat = languageText === 'en'
+    ? 'ServerException! Please try again later!'
+    : '服务器异常，请稍后重试！'
+  const text401 = languageText === 'en'
+    ? 'Not login or session expired. Please login again!'
+    : '未登录或会话过期，请重新登录！'
+  const text403 = languageText === 'en'
+    ? 'User Type Error!'
+    : '用户类型错误！'
+  switch (response.data.code) {
     case 401:
-      message.error('未登录或会话过期，请重新登录！', 3)
+      message.error(text401, 3)
       delete axios.defaults.headers.common['Authorization']
       localStorage.removeItem('token')
       break
     case 403:
-      message.error('用户类型错误！', 3)
+      message.error(text403, 3)
       break
     case 451:
-      message.error('服务器异常，请稍后重试！', 3)
+      message.error(textRepeat, 3)
       break
     case 500:
-      message.error('服务器异常，请稍后重试！', 3)
+      message.error(textRepeat, 3)
       break
     case 503:
-      message.error('服务器异常，请稍后重试！', 3)
+      message.error(textRepeat, 3)
       break
     case 504:
-      message.error('服务器异常，请稍后重试！', 3)
+      message.error(textRepeat, 3)
       break
     default:
       break
@@ -88,13 +98,14 @@ function refreshToken (response) {
  * @return {object}           The response data
  */
 export default function request (options) {
+  const languageText = localStorage.getItem('preferredLanguage')
   return axios.request(options)
     .then(checkStatus)
     .then(refreshToken)
     .then(parseData)
     .catch((error) => {
       // console.dir(error)
-      notifyError(error, '请求错误')
+      notifyError(error, languageText === 'en' ? 'Request Error!' : '请求错误')
     })
 }
 
