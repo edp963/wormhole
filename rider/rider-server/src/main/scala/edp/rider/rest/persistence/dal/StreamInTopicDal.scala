@@ -38,13 +38,15 @@ class StreamInTopicDal(streamInTopicTable: TableQuery[StreamInTopicTable],
                        nsDatabaseTable: TableQuery[NsDatabaseTable],
                        feedbackOffsetTable: TableQuery[FeedbackOffsetTable]) extends BaseDalImpl[StreamInTopicTable, StreamInTopic](streamInTopicTable) with RiderLogger {
 
-  def getStreamTopic(streamIds: Seq[Long]): Seq[StreamTopicTemp] = {
+  def getStreamTopic(streamIds: Seq[Long], latestOffset: Boolean = true): Seq[StreamTopicTemp] = {
     try {
       val streamTopics = Await.result(db.run((streamInTopicTable.filter(_.streamId inSet streamIds) join nsDatabaseTable on (_.nsDatabaseId === _.id))
         .map {
           case (streamInTopic, nsDatabase) => (streamInTopic.nsDatabaseId, streamInTopic.streamId, nsDatabase.nsDatabase, streamInTopic.partitionOffsets, streamInTopic.rate) <> (StreamTopicTemp.tupled, StreamTopicTemp.unapply)
-        }.result).mapTo[Seq[StreamTopicTemp]], Inf)
-      getConsumedMaxOffset(streamTopics)
+        }.result).mapTo[Seq[StreamTopicTemp]], minTimeOut)
+      if (latestOffset) getConsumedMaxOffset(streamTopics)
+      else streamTopics
+
     } catch {
       case ex: Exception =>
         throw DatabaseSearchException(ex.getMessage, ex.getCause)
@@ -60,13 +62,15 @@ class StreamInTopicDal(streamInTopicTable: TableQuery[StreamInTopicTable],
           val topicFeedbackSeq = Await.result(db.run(feedbackOffsetTable.filter(_.streamId === streamId).sortBy(_.feedbackTime.desc).take(topicSeq.size + 1).result).mapTo[Seq[FeedbackOffset]], minTimeOut)
           val map = new mutable.HashMap[String, String]()
           topicFeedbackSeq.foreach(topic => {
-            if(!map.contains(topic.topicName)) map(topic.topicName) = topic.partitionOffsets
+            if (!map.contains(topic.topicName))
+              map(topic.topicName) = topic.partitionOffsets.split(",").sortBy(partOffset => partOffset.split(":")(0).toLong).mkString(",")
           })
           topicSeq.foreach(
             topic => {
               if (map.contains(topic.name))
                 seq += StreamTopicTemp(topic.id, topic.streamId, topic.name, map(topic.name), topic.rate)
-              else seq += topic
+              else seq += StreamTopicTemp(topic.id, topic.streamId, topic.name,
+                topic.partitionOffsets.split(",").sortBy(partOffset => partOffset.split(":")(0).toLong).mkString(","), topic.rate)
             }
           )
         })
