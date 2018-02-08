@@ -214,8 +214,8 @@ export class StreamStartForm extends React.Component {
         const cardContent = (
           <Row key={i.id} className="apply-all-btn">
             <div className="rate-topic-info-wrapper">
-              <Col span={3} className="card-content">Partition</Col>
-              <Col span={7} className="card-content required-offset">Offset</Col>
+              <Col span={3} className="card-content card-content-extra">Partition</Col>
+              <Col span={7} className="card-content required-offset card-content-extra">Offset</Col>
               <Col span={7} className="card-content">Lastest Consumed Offset
                 <Tooltip title={applyAllText}>
                   <Button shape="circle" type="ghost" onClick={this.onApplyAll(i, 'consumer')}>
@@ -240,12 +240,12 @@ export class StreamStartForm extends React.Component {
             <Card title={cardTitle} className="stream-start-form-card-style">
               <div className="rate-topic-info-wrapper">
                 <div className="rate-class">
-                  <Col span={24} className="card-content required-offset">
+                  <Col span={24} className="card-content required-offset card-content-extra">
                     Rate (<FormattedMessage {...messages.streamModalRate} />)
                   </Col>
                   <Col span={24}>
                     <FormItem>
-                      {getFieldDecorator(`${i.id}_${i.rate}`, {
+                      {getFieldDecorator(`${i.id}_${i.rate}_rate`, {
                         rules: [{
                           required: true,
                           message: languageText === 'en' ? 'Please fill in rate' : '请填写 Rate'
