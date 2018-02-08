@@ -60,6 +60,7 @@
   "rider.containers.Stream.reset.btn": "Reset",
   "rider.containers.Stream.modal.rate": "items/second",
   "rider.containers.Stream.modal.apply": "Apply",
+  "rider.containers.Stream.modal.apply.all": "Apply All",
 
   "rider.containers.Namespace.Modal.tables.table2": "Please fill in the Table",
   "rider.containers.Namespace.Modal.tables.table3": "Duplication of Table name",

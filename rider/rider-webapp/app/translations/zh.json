@@ -60,6 +60,7 @@
   "rider.containers.Stream.reset.btn": "还原",
   "rider.containers.Stream.modal.rate": "条/秒",
   "rider.containers.Stream.modal.apply": "应用",
+  "rider.containers.Stream.modal.apply.all": "一键应用",
 
   "rider.containers.Namespace.Modal.tables.table2": "请填写 Table",
   "rider.containers.Namespace.Modal.tables.table3": "Table 重名",
