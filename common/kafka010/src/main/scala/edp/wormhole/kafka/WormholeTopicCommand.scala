@@ -35,6 +35,7 @@ object WormholeTopicCommand {
         AdminUtils.createOrUpdateTopicPartitionAssignmentPathInZK(zkUtils, topic, replicaAssignment, configs, update = true)
       }
     } catch {
+      case ex: kafka.admin.AdminOperationException =>
       case e: TopicExistsException => if (!ifNotExists) throw e
     }
   }
