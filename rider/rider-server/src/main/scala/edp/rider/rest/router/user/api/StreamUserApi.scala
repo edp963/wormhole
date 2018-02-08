@@ -419,7 +419,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
         Await.result(streamUdfDal.deleteByFilter(_.streamId === streamId), minTimeOut)
         removeUdfDirective(streamId, userId = userId)
       }
-      val map = inTopicDal.getStreamTopic(Seq(streamId)).map(topic => (topic.id, topic.name)).toMap[Long, String]
+      val map = inTopicDal.getStreamTopic(Seq(streamId), false).map(topic => (topic.id, topic.name)).toMap[Long, String]
       if (streamDirective.topicInfo.nonEmpty) {
         val topics = streamDirective.topicInfo.get.map(
           topic => {
@@ -447,7 +447,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           streamUdfDal.getStreamUdf(Seq(streamId)).filter(udf => streamDirective.udfInfo.get.contains(udf.id)),
           userId)
       }
-      val topicMap = inTopicDal.getStreamTopic(Seq(streamId)).map(topic => (topic.id, topic.name)).toMap
+      val topicMap = inTopicDal.getStreamTopic(Seq(streamId), false).map(topic => (topic.id, topic.name)).toMap
       if (streamDirective.topicInfo.nonEmpty) {
         val updateOffsets = streamDirective.topicInfo.get.map(
           topic => {
@@ -608,7 +608,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           val offset = if (kafkaPart > consumedPart) {
             topic.partitionOffsets + "," + (consumedPart until kafkaPart).toList.mkString(":0,") + ":0"
           } else if (kafkaPart < consumedPart) {
-            topic.partitionOffsets.split(":").sortBy(offset => offset.split(":")(0)).take(kafkaPart).mkString(",")
+            topic.partitionOffsets.split(",").take(kafkaPart).mkString(",")
           } else topic.partitionOffsets
           ConsumedLatestOffset(topic.id, topic.name, topic.rate, offset)
         })
