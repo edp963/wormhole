@@ -247,7 +247,7 @@ CREATE TABLE IF NOT EXISTS `rel_stream_intopic` (
   `stream_id` BIGINT NOT NULL,
   `ns_instance_id` BIGINT NOT NULL,
   `ns_database_id` BIGINT NOT NULL,
-  `partition_offsets` VARCHAR(200) NOT NULL,
+  `partition_offsets` VARCHAR(5000) NOT NULL,
   `rate` INT NOT NULL,
   `active` TINYINT(1) NOT NULL,
   `create_time` TIMESTAMP NOT NULL,
@@ -257,6 +257,8 @@ CREATE TABLE IF NOT EXISTS `rel_stream_intopic` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `rel_stream_intopic_UNIQUE` (`stream_id` ASC, `ns_instance_id` ASC, `ns_database_id` ASC))
 ENGINE = InnoDB;
+
+alter table `rel_stream_intopic`  modify column `partition_offsets` VARCHAR(5000);
 
 CREATE TABLE IF NOT EXISTS `job` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
