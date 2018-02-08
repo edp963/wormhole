@@ -75,6 +75,24 @@ export class StreamStartForm extends React.Component {
     })
   }
 
+  onApplyAll = (i, type) => (e) => {
+    let arr = []
+    switch (type) {
+      case 'consumer':
+        arr = i.conOffsetVal.split(',')
+        break
+      case 'kafka':
+        arr = i.kafOffsetVal.split(',')
+        break
+    }
+    for (let item of arr) {
+      const itemTemp = item.split(':')
+      this.props.form.setFieldsValue({
+        [`${i.id}_${itemTemp[0]}`]: itemTemp[1]
+      })
+    }
+  }
+
   render () {
     const { form, streamActionType, startUdfValsOption, renewUdfValsOption, currentUdfVal } = this.props
     const { getFieldDecorator } = form
@@ -192,12 +210,27 @@ export class StreamStartForm extends React.Component {
           </Row>
         )
 
+        const applyAllText = <FormattedMessage {...messages.streamModalApplyAll} />
         const cardContent = (
-          <Row key={i.id}>
-            <Col span={3} className="card-content">Partition</Col>
-            <Col span={7} className="card-content required-offset">Offset</Col>
-            <Col span={7} className="card-content">Lastest Consumed Offset</Col>
-            <Col span={7} className="card-content">Lastest Kafka Offset</Col>
+          <Row key={i.id} className="apply-all-btn">
+            <div className="rate-topic-info-wrapper">
+              <Col span={3} className="card-content">Partition</Col>
+              <Col span={7} className="card-content required-offset">Offset</Col>
+              <Col span={7} className="card-content">Lastest Consumed Offset
+                <Tooltip title={applyAllText}>
+                  <Button shape="circle" type="ghost" onClick={this.onApplyAll(i, 'consumer')}>
+                    <i className="iconfont icon-apply_icon_-copy-copy"></i>
+                  </Button>
+                </Tooltip>
+              </Col>
+              <Col span={7} className="card-content">Lastest Kafka Offset
+                <Tooltip title={applyAllText}>
+                  <Button shape="circle" type="ghost" onClick={this.onApplyAll(i, 'kafka')}>
+                    <i className="iconfont icon-apply_icon_-copy-copy"></i>
+                  </Button>
+                </Tooltip>
+              </Col>
+            </div>
             {parOffInput}
           </Row>
         )
