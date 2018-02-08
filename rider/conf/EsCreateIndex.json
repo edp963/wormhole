@@ -100,6 +100,10 @@
           "type": "long",
           "index": "not_analyzed"
         },
+        "intervalDataumsToDone": {
+          "type": "long",
+          "index": "not_analyzed"
+        },
         "intervalRddToDone": {
           "type": "long",
           "index": "not_analyzed"
