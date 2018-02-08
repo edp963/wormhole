@@ -8,6 +8,7 @@ import edp.rider.RiderStarter._
 import edp.rider.common.RiderLogger
 import edp.rider.rest.util.CommonUtils.minTimeOut
 import edp.wormhole.common.util.JsonUtils._
+import scala.concurrent.duration._
 
 import scala.concurrent.Await
 
@@ -30,10 +31,16 @@ object GrafanaApi extends RiderLogger {
 
   private def getDataSource(grafanaUrl: String, token: String, name: String): Option[GrafanaDataSource] = {
     try {
-      val response = Await.result(Http().singleRequest(
-        HttpRequest(uri = s"${grafanaUrl.stripSuffix("/")}/api/datasources/name/$name",
-          headers = List(headers.Accept.apply(MediaTypes.`application/json`)))
-          .addCredentials(OAuth2BearerToken(token))), minTimeOut)
+      val request = HttpRequest(uri = s"${grafanaUrl.stripSuffix("/")}/api/datasources/name/$name",
+        headers = List(headers.Accept.apply(MediaTypes.`application/json`)))
+        .addCredentials(OAuth2BearerToken(token))
+
+//      riderLogger.info("grafana search: " + request.toString)
+
+      val response = Await.result(Http().singleRequest(request), 10.seconds)
+
+//      riderLogger.info("grafana search: " + response.toString)
+
       response match {
         case HttpResponse(StatusCodes.OK, _, entity, _) =>
           Await.result(entity.dataBytes.runFold(ByteString(""))(_ ++ _).map {
@@ -76,7 +83,7 @@ object GrafanaApi extends RiderLogger {
           method = HttpMethods.POST,
           headers = List(headers.Accept.apply(MediaTypes.`application/json`)),
           entity = HttpEntity.apply(ContentTypes.`application/json`, ByteString(caseClass2json[GrafanaDataSource](postData)))
-        ).addCredentials(OAuth2BearerToken(token))), minTimeOut)
+        ).addCredentials(OAuth2BearerToken(token))), 10.seconds)
       response match {
         case HttpResponse(StatusCodes.OK, _, entity, _) =>
           Await.result(entity.dataBytes.runFold(ByteString(""))(_ ++ _).map {
@@ -112,7 +119,7 @@ object GrafanaApi extends RiderLogger {
               val data = json2jValue(body.utf8String)
               if (containsName(data, "message")) true
               else false
-          }, minTimeOut)
+          }, 10.seconds)
         case resp@HttpResponse(code, _, _, _) =>
           riderLogger.error(s"parse delete grafana wormhole es datasource $id response failed, ${code.reason}.")
           false
