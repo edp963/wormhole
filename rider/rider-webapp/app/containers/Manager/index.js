@@ -273,19 +273,6 @@ export class Manager extends React.Component {
             consumedOffsetValue: result.consumedLatestOffset,
             kafkaOffsetValue: result.kafkaLatestOffset,
             streamStartFormData: result.consumedLatestOffset
-          }, () => {
-            // const { streamStartFormData } = this.state
-            // if (streamStartFormData.length !== 0) {
-            //   const partitionAndOffset = streamStartFormData[0].partitionOffsets.split(',')
-            //
-            //   for (let j = 0; j < partitionAndOffset.length; j++) {
-            //     this.streamStartForm.setFieldsValue({
-            //       [`${streamStartFormData[0].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1)
-            //     })
-            //   }
-            // } else {
-            //   return
-            // }
           })
         })
       })
@@ -373,7 +360,7 @@ export class Manager extends React.Component {
       for (let j = 0; j < partitionAndOffset.length; j++) {
         this.streamStartForm.setFieldsValue({
           [`${streamStartFormData[i].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
-          [`${streamStartFormData[i].id}_${streamStartFormData[i].rate}`]: streamStartFormData[i].rate
+          [`${streamStartFormData[i].id}_${streamStartFormData[i].rate}_rate`]: streamStartFormData[i].rate
         })
       }
     }
@@ -428,7 +415,7 @@ export class Manager extends React.Component {
               const robj = {
                 id: i.id,
                 partitionOffsets: offsetVal,
-                rate: Number(values[`${i.id}_${i.rate}`])
+                rate: Number(values[`${i.id}_${i.rate}_rate`])
               }
               return robj
             })
@@ -482,7 +469,7 @@ export class Manager extends React.Component {
                 id: i.id,
                 name: i.name,
                 partitionOffsets: offsetVal,
-                rate: Number(values[`${i.id}_${i.rate}`])
+                rate: Number(values[`${i.id}_${i.rate}_rate`])
               }
               return robj
             })
