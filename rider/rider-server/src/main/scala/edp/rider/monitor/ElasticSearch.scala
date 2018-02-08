@@ -31,6 +31,7 @@ import akka.util.ByteString
 import edp.rider.RiderStarter._
 import edp.rider.common.{RiderConfig, RiderEs, RiderLogger, RiderMonitor}
 import edp.rider.rest.persistence.entities.MonitorInfo
+import edp.rider.rest.util.CommonUtils
 import edp.wormhole.common.util.JsonUtils
 import org.json4s.JsonAST.JNull
 import org.json4s.{DefaultFormats, Formats, JValue}
@@ -152,7 +153,7 @@ object ElasticSearch extends RiderLogger {
       .replace("#TODATE#", s""""$endDate"""")
     val url = getESUrl + "_delete_by_query"
     riderLogger.info(s"deleteEsHistory url $url $postBody")
-    val response = syncToES(postBody, url, HttpMethods.POST)
+    val response = syncToES(postBody, url, HttpMethods.POST, CommonUtils.maxTimeOut)
     riderLogger.info(s"deleteEsHistory response $response")
     if (response._1) {
       try {
@@ -168,7 +169,7 @@ object ElasticSearch extends RiderLogger {
   }
 
   def createEsIndex() = {
-    val body = ReadJsonFile.getMessageFromJson(JsonFileType.ESCREATEINDEX).replace("#ESINDEX#", s"${RiderConfig.es.wormholeType}")
+    val body = ReadJsonFile.getMessageFromJson(JsonFileType.ESCREATEINDEX).replace("#ESINDEX#", s"${RiderConfig.es.wormholeIndex}")
     val url = getESIndexUrl
     val existsResponse = syncToES("", url, HttpMethods.GET)
     //    riderLogger.info(s" query index exists response $existsResponse")
@@ -212,7 +213,7 @@ object ElasticSearch extends RiderLogger {
     tc
   }
 
-  private def syncToES(postBody: String, url: String, method: HttpMethod): (Boolean, JValue) = {
+  private def syncToES(postBody: String, url: String, method: HttpMethod, timeOut: Duration = 10.seconds): (Boolean, JValue) = {
     var tc = false
     var responseJson: JValue = JNull
     val uri = Uri.apply(url)
@@ -229,12 +230,12 @@ object ElasticSearch extends RiderLogger {
     //      httpRequest.toString
     //    }.")
     try {
-      val response = Await.result(Http().singleRequest(httpRequest), Duration.Inf)
+      val response = Await.result(Http().singleRequest(httpRequest), timeOut)
       response.status match {
         case StatusCodes.OK if (response.entity.contentType == ContentTypes.`application/json`) =>
-          //          riderLogger.info(s"response.entity ${
-          //            response.entity.toString
-          //          }.")
+          //                    riderLogger.info(s"response.entity ${
+          //                      response.entity.toString
+          //                    }.")
           Await.result(
             Unmarshal(response.entity).to[String].map {
               jsonString =>
