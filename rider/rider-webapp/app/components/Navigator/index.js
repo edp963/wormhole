@@ -371,7 +371,7 @@ class Navigator extends React.Component {
       </Menu>
     )
 
-    const paneWidth = document.documentElement.clientWidth - 228 - 198 - 64
+    const paneWidth = document.documentElement.clientWidth - 228 - 198
 
     let node = ''
     let logoImgClass = ''
