@@ -329,12 +329,15 @@ CREATE TABLE IF NOT EXISTS `feedback_stream_offset` (
   `stream_id` BIGINT NOT NULL,
   `topic_name` VARCHAR(200) NOT NULL,
   `partition_num` INT NOT NULL,
-  `partition_offsets` VARCHAR(200) NOT NULL,
+  `partition_offsets` VARCHAR(5000) NOT NULL,
   `feedback_time` TIMESTAMP NOT NULL,
   PRIMARY KEY (`id`),
   KEY `streamIndex` (`stream_id`),
   KEY `timeIndex` (`feedback_time`)
 )ENGINE = InnoDB;
+
+alter table `feedback_stream_offset`  modify column `partition_offsets` VARCHAR(5000);
+
 
 CREATE TABLE IF NOT EXISTS `feedback_stream_error` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
