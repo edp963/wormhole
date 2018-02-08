@@ -53,7 +53,7 @@ object WormholeGetOffsetShell {
           }
         }
 
-        offsetSeq.sortBy(offset => offset.split(":")(0)).mkString(",")
+        offsetSeq.sortBy(offset => offset.split(":")(0).toLong).mkString(",")
       }
     } catch {
       case ex: Exception =>
