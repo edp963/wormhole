@@ -176,11 +176,20 @@ export class Project extends React.Component {
     const { projectNameExited } = this.props
     const languageText = localStorage.getItem('preferredLanguage')
 
-    const userIds = this.projectUsersTable.state.selectedRowKeys.join(',')
+    const userSelectKey = this.projectUsersTable.state.selectedRowKeys
+    const udfSelectKey = this.projectUdfTable.state.selectedRowKeys
+    const userIds = typeof userSelectKey === 'string'
+      ? userSelectKey
+      : this.projectUsersTable.state.selectedRowKeys.join(',')
 
-    const udfIds = this.projectUdfTable.state.selectedRowKeys === []
-      ? ''
-      : this.projectUdfTable.state.selectedRowKeys.join(',')
+    let udfIds = ''
+    if (typeof udfSelectKey === 'string') {
+      udfIds = udfSelectKey
+    } else {
+      udfIds = this.projectUdfTable.state.selectedRowKeys === []
+        ? ''
+        : this.projectUdfTable.state.selectedRowKeys.join(',')
+    }
 
     const { selectedRowKeys } = this.projectNSTable.state
 
@@ -189,7 +198,9 @@ export class Project extends React.Component {
     } else if (userIds.length === 0) {
       message.warning(languageText === 'en' ? 'Please select User!' : '请选择用户！', 3)
     } else {
-      const namespaceIds = selectedRowKeys.join(',')
+      const namespaceIds = typeof selectedRowKeys === 'string'
+        ? selectedRowKeys
+        : selectedRowKeys.join(',')
 
       this.projectForm.validateFieldsAndScroll((err, values) => {
         if (!err) {
@@ -223,9 +234,13 @@ export class Project extends React.Component {
               userId: userIds,
               udfId: udfIds
             }, projectResult), () => {
-              this.hideForm()
-            }, () => {
               message.success(languageText === 'en' ? 'Project is modified successfully!' : 'Project 修改成功！', 3)
+              this.hideForm()
+            }, (result) => {
+              message.error(result.header.msg, 5)
+              this.projectUdfTable.setState({ selectedRowKeys: result.payload.udfId })
+              this.projectUsersTable.setState({ selectedRowKeys: result.payload.userId })
+              this.projectNSTable.setState({ selectedRowKeys: result.payload.nsId })
             })
           }
         }
@@ -492,7 +507,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadSelectUsers: (projectId, resolve) => dispatch(loadSelectUsers(projectId, resolve)),
     onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
     onAddProject: (project, resolve, final) => dispatch(addProject(project, resolve, final)),
-    onEditProject: (project, resolve, final) => dispatch(editProject(project, resolve, final)),
+    onEditProject: (project, resolve, reject) => dispatch(editProject(project, resolve, reject)),
     onLoadProjectNameInputValue: (value, resolve, reject) => dispatch(loadProjectNameInputValue(value, resolve, reject)),
     onDeleteSingleProject: (projectId, resolve, reject) => dispatch(deleteSingleProject(projectId, resolve, reject)),
 
