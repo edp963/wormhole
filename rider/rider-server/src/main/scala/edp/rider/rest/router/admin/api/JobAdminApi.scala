@@ -127,7 +127,7 @@ class JobAdminApi(jobDal: JobDal) extends BaseAdminApiImpl(jobDal) with RiderLog
               riderLogger.info(s"user ${session.userId} refresh job.")
               val job = JobUtils.refreshJob(jobId)
               val projectName = jobDal.adminGetRow(job.projectId)
-              complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(JobStatus.jobStatus(job.status)))))
+              complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(job))))
                 case None =>
                 complete(OK, getHeader(200, s"this job ${jobId} does not exist", session))
 
