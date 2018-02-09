@@ -29,6 +29,7 @@ import {
   ADD_PROJECT_SUCCESS,
   EDIT_PROJECT,
   EDIT_PROJECT_SUCCESS,
+  EDIT_PROJECT_ERROR,
   LOAD_PROJECT_NAME_VALUE,
   LOAD_PROJECT_NAME_VALUE_SUCCESS,
   LOAD_PROJECT_NAME_VALUE_ERROR,
@@ -110,13 +111,13 @@ export function projectAdded (result) {
   }
 }
 
-export function editProject (project, resolve, final) {
+export function editProject (project, resolve, reject) {
   return {
     type: EDIT_PROJECT,
     payload: {
       project,
       resolve,
-      final
+      reject
     }
   }
 }
@@ -124,6 +125,15 @@ export function editProject (project, resolve, final) {
 export function projectEdited (result) {
   return {
     type: EDIT_PROJECT_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function projectEditedError (result) {
+  return {
+    type: EDIT_PROJECT_ERROR,
     payload: {
       result
     }
