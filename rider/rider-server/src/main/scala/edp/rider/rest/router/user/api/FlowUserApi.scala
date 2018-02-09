@@ -257,15 +257,20 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                 else {
                   try {
                     if (session.projectIdList.contains(projectId)) {
-                      val tables = FlowUtils.getNsSeqByLookupSql(sql.sql)
-                      val nonPermTables = NamespaceUtils.permCheck(projectId, tables)
-                      if (nonPermTables.isEmpty) {
-                        riderLogger.info(s"user ${session.userId} verify flow $flowId lookup sql all tables have permission")
-                        complete(OK, getHeader(200, session))
-                      } else {
-                        riderLogger.info(s"user ${session.userId} verify flow $flowId lookup sql ${nonPermTables.mkString(",")} tables have non permission")
-                        complete(OK, getHeader(406, s"none permission to visit ${nonPermTables.mkString(",")} tables", session))
-                      }
+                      //                      val verify = FlowUtils.sqlVerify(sql.sql)
+                      //                      if (verify._1) {
+                      //                        val tables = FlowUtils.getNsSeqByLookupSql(sql.sql)
+                      //                        val nonPermTables = NamespaceUtils.permCheck(projectId, tables)
+                      //                        if (nonPermTables.isEmpty) {
+                      riderLogger.info(s"user ${session.userId} verify flow $flowId lookup sql all tables have permission")
+                      complete(OK, getHeader(200, session))
+                      //                        } else {
+                      //                          riderLogger.info(s"user ${session.userId} verify flow $flowId lookup sql ${nonPermTables.mkString(",")} tables have non permission")
+                      //                          complete(OK, getHeader(406, s"none permission to visit ${nonPermTables.mkString(",")} tables", session))
+                      //                        }
+                      //                      } else {
+                      //                        complete(OK, getHeader(406,s"sql has syntax error, please check it", session))
+                      //                      }
                     } else {
                       riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
                       complete(OK, getHeader(403, session))
