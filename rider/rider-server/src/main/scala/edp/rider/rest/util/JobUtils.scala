@@ -214,7 +214,8 @@ object JobUtils extends RiderLogger {
         flag = false
     }
     if (!flag) {
-      "modify,start,renew,stop"
+      if (job.status == "stopped") "modify,start,renew,stop"
+      else "modify,start,renew"
     } else {
       JobStatus.jobStatus(job.status) match {
         case JobStatus.NEW => s"${Action.STOP}"

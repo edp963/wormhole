@@ -232,8 +232,6 @@ object FlowUtils extends RiderLogger {
     )
     flowSeq.foreach(flow =>
       map(flow.id) = getDisableActions(flow, projectNsMap(flow.projectId)))
-    //    map
-    //    riderLogger.info("flow disableActions map: " + map)
     map
   }
 
@@ -245,17 +243,12 @@ object FlowUtils extends RiderLogger {
     nsSeq ++= getDbFromTrans(flow.tranConfig).distinct
     var flag = true
     for (i <- nsSeq.indices) {
-      if (i < 2) {
-        if (!projectNsSeq.exists(_.startsWith(nsSeq(i).split("\\.").slice(0, 4).mkString(".")))) {
-          flag = false
-        }
-      } else {
-        if (!projectNsSeq.exists(_.startsWith(nsSeq(i))))
-          flag = false
-      }
+      if (!projectNsSeq.exists(_.startsWith(nsSeq(i))))
+        flag = false
     }
     if (!flag) {
-      "modify,start,renew,stop"
+      if(flow.status == "stopped") "modify,start,renew,stopped"
+      else "modify,start,renew"
     } else {
       flow.status match {
         case "new" => "renew,stop"
@@ -646,8 +639,8 @@ object FlowUtils extends RiderLogger {
       .map(ns => generateStandardNs(ns))
     val nsDeleteSeq = nsDeleteSearch.keySet
     val notDeleteNsIds = new ListBuffer[Long]
-    val flows = Await.result(modules.flowDal.findByFilter(flow => flow.projectId === projectId && (flow.status =!= "stopped" || flow.status =!= "new" || flow.status =!= "failed")), minTimeOut)
-    val jobs = Await.result(modules.jobDal.findByFilter(job => job.projectId === projectId && (job.status =!= "stopped" || job.status =!= "new" || job.status =!= "failed")), minTimeOut)
+    val flows = Await.result(modules.flowDal.findByFilter(flow => flow.projectId === projectId && flow.status =!= "stopped" && flow.status =!= "new" && flow.status =!= "failed"), minTimeOut)
+    val jobs = Await.result(modules.jobDal.findByFilter(job => job.projectId === projectId && job.status =!= "stopped" && job.status =!= "new" && job.status =!= "failed"), minTimeOut)
     val flowNsMap = mutable.HashMap.empty[Long, Seq[String]]
     val jobNsMap = mutable.HashMap.empty[Long, Seq[String]]
     flows.foreach(flow => {
