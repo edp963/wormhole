@@ -96,7 +96,7 @@ object ElasticSearch extends RiderLogger {
         .replace("#COLUMN_NAME#", columnName)
       val url = getESUrl + "_search"
       riderLogger.debug(s"queryESFlowMax url $url $postBody")
-      val response = syncToES(postBody, url, HttpMethods.POST)
+      val response = syncToES(postBody, url, HttpMethods.POST, CommonUtils.minTimeOut)
       //    riderLogger.info(s"queryESFlowMax $response")
       if (response._1 == true) {
         try {
@@ -128,7 +128,7 @@ object ElasticSearch extends RiderLogger {
         .replace("#COLUMN_NAME#", columnName)
       val url = getESUrl + "_search"
       riderLogger.debug(s"queryESStreamMax url $url $postBody")
-      val response = syncToES(postBody, url, HttpMethods.POST)
+      val response = syncToES(postBody, url, HttpMethods.POST, CommonUtils.minTimeOut)
       //    riderLogger.info(s"queryESStreamMax $response")
       if (response._1) {
         try {
