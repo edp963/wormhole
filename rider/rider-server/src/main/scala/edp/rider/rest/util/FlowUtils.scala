@@ -35,11 +35,8 @@ import edp.wormhole.common.KVConfig
 import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.ums.UmsProtocolType._
-import net.sf.jsqlparser.parser.CCJSqlParserUtil
-import net.sf.jsqlparser.util.TablesNamesFinder
 import slick.jdbc.MySQLProfile.api._
 
-import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -235,8 +232,8 @@ object FlowUtils extends RiderLogger {
     )
     flowSeq.foreach(flow =>
       map(flow.id) = getDisableActions(flow, projectNsMap(flow.projectId)))
-//    map
-//    riderLogger.info("flow disableActions map: " + map)
+    //    map
+    //    riderLogger.info("flow disableActions map: " + map)
     map
   }
 
@@ -247,8 +244,6 @@ object FlowUtils extends RiderLogger {
     nsSeq += flow.sinkNs
     nsSeq ++= getDbFromTrans(flow.tranConfig).distinct
     var flag = true
-//    riderLogger.info("flow ns: " + nsSeq)
-//    riderLogger.info("project ns: " + projectNsSeq)
     for (i <- nsSeq.indices) {
       if (i < 2) {
         if (!projectNsSeq.exists(_.startsWith(nsSeq(i).split("\\.").slice(0, 4).mkString(".")))) {
@@ -259,7 +254,6 @@ object FlowUtils extends RiderLogger {
           flag = false
       }
     }
-    riderLogger.info("flag: " + flag)
     if (!flag) {
       "modify,start,renew,stop"
     } else {
@@ -645,36 +639,57 @@ object FlowUtils extends RiderLogger {
     else (true, ns.nsDatabaseId, topicName)
   }
 
-  def getFlowsByNsIds(projectId: Long, ids: Seq[Long]): (mutable.HashMap[Long, Seq[String]], Seq[Long]) = {
-    val nsMap = Await.result(modules.namespaceDal.findByFilter(_.id inSet ids).mapTo[Seq[Namespace]], minTimeOut)
+  def getFlowsAndJobsByNsIds(projectId: Long, deleteNsIds: Seq[Long], inputNsIds: Seq[Long]): (mutable.HashMap[Long, Seq[String]], mutable.HashMap[Long, Seq[String]], Seq[Long]) = {
+    val nsDeleteSearch = Await.result(modules.namespaceDal.findByFilter(_.id inSet deleteNsIds).mapTo[Seq[Namespace]], minTimeOut)
       .map(ns => (generateStandardNs(ns), ns.id)).toMap[String, Long]
-    val nsSeq = nsMap.values.toList
+    val nsInputSearch = Await.result(modules.namespaceDal.findByFilter(_.id inSet inputNsIds).mapTo[Seq[Namespace]], minTimeOut)
+      .map(ns => generateStandardNs(ns))
+    val nsDeleteSeq = nsDeleteSearch.keySet
     val notDeleteNsIds = new ListBuffer[Long]
     val flows = Await.result(modules.flowDal.findByFilter(flow => flow.projectId === projectId && (flow.status =!= "stopped" || flow.status =!= "new" || flow.status =!= "failed")), minTimeOut)
+    val jobs = Await.result(modules.jobDal.findByFilter(job => job.projectId === projectId && (job.status =!= "stopped" || job.status =!= "new" || job.status =!= "failed")), minTimeOut)
     val flowNsMap = mutable.HashMap.empty[Long, Seq[String]]
+    val jobNsMap = mutable.HashMap.empty[Long, Seq[String]]
     flows.foreach(flow => {
-      val lookupTables =
-        if (flow.tranConfig.nonEmpty)
-          getNsSeqByTranConfig(flow.tranConfig.get)
-        else Seq()
+      val lookupDbs = NsDatabaseUtils.getDbFromTrans(flow.tranConfig)
       val notDeleteNsSeq = new ListBuffer[String]
-      if (nsSeq.contains(flow.sourceNs)) {
+      if (nsDeleteSeq.contains(flow.sourceNs)) {
         notDeleteNsSeq += flow.sourceNs
-        notDeleteNsIds += nsMap(flow.sourceNs)
+        notDeleteNsIds += nsDeleteSearch(flow.sourceNs)
       }
-      if (nsSeq.contains(flow.sinkNs)) {
+      if (nsDeleteSeq.contains(flow.sinkNs)) {
         notDeleteNsSeq += flow.sinkNs
-        notDeleteNsIds += nsMap(flow.sinkNs)
+        notDeleteNsIds += nsDeleteSearch(flow.sinkNs)
       }
-      lookupTables.foreach(ns => {
-        if (nsSeq.contains(ns)) {
-          notDeleteNsSeq += ns
-          notDeleteNsIds += nsMap(ns)
+      lookupDbs.foreach(db => {
+        if (!notDeleteNsSeq.exists(ns => ns.startsWith(db))) {
+          if (!nsInputSearch.exists(ns => ns.startsWith(db))) {
+            val lookupNsFind = nsDeleteSeq.filter(_.startsWith(db))
+            if (lookupNsFind.nonEmpty) {
+              notDeleteNsSeq += lookupNsFind.head
+              notDeleteNsIds += nsDeleteSearch(lookupNsFind.head)
+            }
+          }
         }
       })
-      flowNsMap(flow.id) = notDeleteNsSeq.distinct
+      if (notDeleteNsSeq.nonEmpty)
+        flowNsMap(flow.id) = notDeleteNsSeq.distinct
     })
-    (flowNsMap, notDeleteNsIds.distinct)
+
+    jobs.foreach(job => {
+      val notDeleteNsSeq = new ListBuffer[String]
+      if (nsDeleteSeq.contains(job.sourceNs)) {
+        notDeleteNsSeq += job.sourceNs
+        notDeleteNsIds += nsDeleteSearch(job.sourceNs)
+      }
+      if (nsDeleteSeq.contains(job.sinkNs)) {
+        notDeleteNsSeq += job.sinkNs
+        notDeleteNsIds += nsDeleteSearch(job.sinkNs)
+      }
+      if (notDeleteNsSeq.nonEmpty)
+        jobNsMap(job.id) = notDeleteNsSeq.distinct
+    })
+    (flowNsMap, jobNsMap, notDeleteNsIds.distinct)
   }
 
   def getRowKey(sinkConfig: String): String = {
@@ -715,34 +730,54 @@ object FlowUtils extends RiderLogger {
   }
 
 
-  def getNsSeqByTranConfig(tranConfig: String): Seq[String] = {
-    val tableSeq = new ListBuffer[String]
-    val sqls = if (tranConfig != "" && tranConfig != null) {
-      val json = JSON.parseObject(tranConfig)
-      if (json.containsKey("action")) {
-        json.getString("action").split(";").filter(_.contains("pushdown_sql")).toList
-      } else List()
-    } else List()
-    sqls.foreach(sql => tableSeq ++= getNsSeqByLookupSql(sql))
-    tableSeq
-  }
+  //  def getNsSeqByTranConfig(tranConfig: String): Seq[String] = {
+  //    val tableSeq = new ListBuffer[String]
+  //    val sqls = if (tranConfig != "" && tranConfig != null) {
+  //      val json = JSON.parseObject(tranConfig)
+  //      if (json.containsKey("action")) {
+  //        json.getString("action").split(";").filter(_.contains("pushdown_sql")).toList
+  //      } else List()
+  //    } else List()
+  //    sqls.foreach(sql => tableSeq ++= getNsSeqByLookupSql(sql))
+  //    tableSeq
+  //  }
 
-  def getNsSeqByLookupSql(sql: String): List[String] = {
-    if (sql.contains("pushdown_sql")) {
-      val sqlSplit = sql.split("with")(1).split("=")
+  //  def getNsSeqByLookupSql(sql: String): List[String] = {
+  //    if (sql.contains("pushdown_sql")) {
+  //      val sqlSplit = sql.split("with")(1).split("=")
+  //      val db = sqlSplit(0).trim
+  //      val pureSql = sqlSplit(1).trim
+  //      getTables(pureSql).map(table => db + "." + table + ".*.*.*")
+  //    } else List()
+  //  }
 
-      val db = sqlSplit(0).trim
-      val pureSql = sqlSplit(1).trim
-      getTables(pureSql).map(table => db + "." + table + ".*.*.*")
-    } else List()
-  }
+  //  def getTables(sql: String): List[String] = {
+  //    val regex = "([A-Za-z]+[A-Za-z0-9_-]*\\.){4,7}[A-Za-z0-9_-]+(,([A-Za-z]+[A-Za-z0-9_-]*\\.){4,7}[A-Za-z0-9_-]+)*".r.pattern
+  //    val verify = sqlVerify(sql)
+  //    if (verify._1) {
+  //      val statement = CCJSqlParserUtil.parse(regex.matcher(sql).replaceAll("aaaaaaaaaaaaaaa"))
+  //      val tablesNamesFinder = new TablesNamesFinder
+  //      tablesNamesFinder.getTableList(statement).toList.distinct
+  //    } else List()
+  //  }
 
-  def getTables(sql: String): List[String] = {
-    val regex = "([A-Za-z]+[A-Za-z0-9_-]*\\.){4,7}[A-Za-z0-9_-]+(,([A-Za-z]+[A-Za-z0-9_-]*\\.){4,7}[A-Za-z0-9_-]+)*".r.pattern
-    val statement = CCJSqlParserUtil.parse(regex.matcher(sql).replaceAll("aaaaaaaaaaaaaaa"))
-    val tablesNamesFinder = new TablesNamesFinder
-    tablesNamesFinder.getTableList(statement).toList.distinct
-  }
-
+  //  def sqlVerify(sql: String): (Boolean, String) = {
+  //    val regex = "([A-Za-z]+[A-Za-z0-9_-]*\\.){4,7}[A-Za-z0-9_-]+(,([A-Za-z]+[A-Za-z0-9_-]*\\.){4,7}[A-Za-z0-9_-]+)*".r.pattern
+  //    try {
+  //      val finalSql =
+  //        if (sql.contains("pushdown_sql"))
+  //          sql.split("=")(1).trim
+  //        else sql
+  //      CCJSqlParserUtil.parse(regex.matcher(finalSql).replaceAll("aaaaaaaaaaaaaaa"))
+  //      (true, "")
+  //    } catch {
+  //      case sqlEx: JSQLParserException =>
+  //        riderLogger.error(s"sql $sql is not regular, ${sqlEx.getMessage}")
+  //        (false, sqlEx.getMessage)
+  //      case ex: Exception =>
+  //        riderLogger.error("sql verify failed", ex)
+  //        (false, ex.getMessage)
+  //    }
+  //  }
 
 }

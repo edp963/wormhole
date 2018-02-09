@@ -37,6 +37,7 @@ import edp.rider.zookeeper.PushDirective._
 import edp.wormhole.common.util.JsonUtils.{caseClass2json, _}
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.UmsSchemaUtils.toUms
+import slick.jdbc.MySQLProfile.api._
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -397,5 +398,25 @@ object StreamUtils extends RiderLogger {
         STOPPING.toString
       } else STOPPED.toString
     } else STOPPED.toString
+  }
+
+  def checkAdminRemoveUdfs(projectId: Long, ids: Seq[Long]): (mutable.HashMap[Long, Seq[String]], ListBuffer[Long]) = {
+    val deleteUdfMap = Await.result(modules.udfDal.findByFilter(_.id inSet ids).mapTo[Seq[Udf]], minTimeOut)
+      .map(udf => (udf.id, udf.functionName)).toMap[Long, String]
+    val notDeleteMap = new mutable.HashMap[Long, Seq[String]]
+    val deleteUdfSeq = deleteUdfMap.keySet
+    val notDeleteUdfIds = new ListBuffer[Long]
+    val streamIds = Await.result(modules.streamDal.findByFilter(stream => stream.projectId === projectId && stream.status != "new" && stream.status != "stopped" && stream.status != "failed"), minTimeOut).map(_.id)
+    val streamUdfs = Await.result(modules.relStreamUdfDal.findByFilter(_.streamId inSet streamIds), minTimeOut)
+    streamUdfs.foreach(stream => {
+      val notDeleteUdfSeq = new ListBuffer[String]
+      if (deleteUdfSeq.contains(stream.udfId)) {
+        notDeleteUdfIds += stream.udfId
+        notDeleteUdfSeq += deleteUdfMap(stream.udfId)
+      }
+      if(notDeleteUdfSeq.nonEmpty)
+      notDeleteMap(stream.id) = notDeleteUdfSeq.distinct
+    })
+    (notDeleteMap, notDeleteUdfIds)
   }
 }
