@@ -54,7 +54,7 @@ ENGINE = InnoDB;
 
 alter table `ns_database` drop column `permission`;
 drop index `database_UNIQUE` on `ns_database`;
-alter table `ns_database` add index `database_UNIQUE` (`ns_database` ASC, `ns_instance_id` ASC);
+alter table `ns_database` add UNIQUE index `database_UNIQUE` (`ns_database` ASC, `ns_instance_id` ASC);
 
 
 CREATE TABLE IF NOT EXISTS `namespace` (
@@ -85,7 +85,7 @@ alter table `namespace` add column `ums_info` LONGTEXT default null;
 alter table `namespace` add column `sink_info` LONGTEXT default null;
 alter table `namespace`  modify column `ums_info` LONGTEXT;
 drop index `namespace_UNIQUE` on `namespace`;
-alter table `namespace` add index `namespace_UNIQUE` (`ns_sys` ASC, `ns_instance` ASC, `ns_database` ASC, `ns_table` ASC, `ns_version` ASC, `ns_dbpar` ASC, `ns_tablepar` ASC);
+alter table `namespace` add UNIQUE index `namespace_UNIQUE` (`ns_sys` ASC, `ns_instance` ASC, `ns_database` ASC, `ns_table` ASC, `ns_version` ASC, `ns_dbpar` ASC, `ns_tablepar` ASC);
 
 CREATE TABLE IF NOT EXISTS `stream` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
