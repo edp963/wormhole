@@ -273,14 +273,14 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
       (flow => flow.sourceNs === ns || flow.sinkNs === ns || flow.tranConfig.getOrElse("").like(s"%${ns.split("\\.").take(3).mkString(".")}%")), minTimeOut).map(_.id)
       val projects = Await.result(projectDal.findByFilter(_.id inSet relProject.map(_.projectId)), minTimeOut).map(_.name)
       if (projects.nonEmpty && flows.nonEmpty) {
-        riderLogger.info(s"project ${projects.mkString(",")} and flow ${flows.mkString(",")} still using namespace $id, can't delete it")
-        (false, s"please revoke project ${projects.mkString(",")}, flow ${flows.mkString(",")} and namespace binding relation first")
+        riderLogger.info(s"project ${projects.mkString(",")} and flow ${flows.mkString(",")} still use namespace $id, can't delete it")
+        (false, s"please revoke project ${projects.mkString(",")} and namespace binding relations, flow ${flows.mkString(",")} first")
       } else if (projects.nonEmpty && flows.isEmpty) {
-        riderLogger.info(s"project ${projects.mkString(",")} still using namespace $id, can't delete it")
-        (false, s"please revoke project ${projects.mkString(",")} and namespace binding relation first")
+        riderLogger.info(s"project ${projects.mkString(",")} still use namespace $id, can't delete it")
+        (false, s"please revoke project ${projects.mkString(",")} and namespace binding relations first")
       } else if (projects.isEmpty && flows.nonEmpty) {
-        riderLogger.info(s"flow ${flows.mkString(",")} still using namespace $id, can't delete it")
-        (false, s"please revoke flow ${flows.mkString(",")} and namespace binding relation first")
+        riderLogger.info(s"flow ${flows.mkString(",")} still use namespace $id, can't delete it")
+        (false, s"please revoke flow ${flows.mkString(",")} and namespace binding relations first")
       } else {
         Await.result(super.deleteById(id), minTimeOut)
         (true, "success")
