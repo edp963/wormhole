@@ -1513,8 +1513,8 @@ export class Workbench extends React.Component {
     let tempSource = flowFormTranTableSource.filter(s => s.pushdownConnection['name_space'])
 
     let pushConnTemp = []
-    for (let i = 0; i < tempSource.length; i++) {
-      pushConnTemp.push(tempSource[i].pushdownConnection)
+    for (let item of tempSource) {
+      pushConnTemp.push(item.pushdownConnection)
     }
 
     this.setState({
