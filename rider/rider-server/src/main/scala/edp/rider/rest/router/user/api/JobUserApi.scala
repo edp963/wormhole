@@ -46,7 +46,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                         case Success(job) =>
                           riderLogger.info(s"user ${session.userId} inserted job where project id is $projectId success.")
                           val projectName = jobDal.adminGetRow(job.projectId)
-                          complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(JobStatus.jobStatus(job.status)))))
+                          complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(job))))
                         case Failure(ex) =>
                           riderLogger.error(s"user ${session.userId} inserted job where project id is $projectId failed", ex)
                           complete(OK, getHeader(451, ex.getMessage, session))
@@ -104,7 +104,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                           Await.result(jobDal.update(updateJob), minTimeOut)
                           JobUtils.startJob(job)
                           val projectName = jobDal.adminGetRow(job.projectId)
-                          complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(JobStatus.jobStatus(job.status)))))
+                          complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(updateJob))))
                         }
                       } catch {
                         case ex: Exception =>
@@ -145,7 +145,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                     riderLogger.info(s"user ${session.userId} refresh job.")
                     val job = JobUtils.refreshJob(jobId)
                     val projectName = jobDal.adminGetRow(job.projectId)
-                    complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(JobStatus.jobStatus(job.status)))))
+                    complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(job))))
                   case None =>
                     complete(OK, ResponseJson[String](getHeader(200, session), ""))
 
@@ -269,7 +269,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                   val jobGet = job.get
                   val updateJob = Job(jobGet.id, jobGet.name, jobGet.projectId, jobGet.sourceNs, jobGet.sinkNs, jobGet.sourceType, jobGet.sparkConfig, jobGet.startConfig, jobGet.eventTsStart, jobGet.eventTsEnd,
                     jobGet.sourceConfig, jobGet.sinkConfig, jobGet.tranConfig, status, jobGet.sparkAppid, jobGet.logPath, jobGet.startedTime, jobGet.stoppedTime, jobGet.createTime, jobGet.createBy, jobGet.updateTime, jobGet.updateBy)
-                  complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(JobStatus.jobStatus(jobGet.status)))))
+                  complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(updateJob))))
                 }
               } catch {
                 case ex: Exception =>
@@ -386,7 +386,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                       case Success(_) =>
                         riderLogger.info(s"user ${session.userId} update job where project id is $projectId success.")
                         val projectName = jobDal.adminGetRow(newJob.projectId)
-                        complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(newJob, projectName, getDisableAction(JobStatus.jobStatus(newJob.status)))))
+                        complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(newJob, projectName, getDisableAction(newJob))))
                       case Failure(ex) =>
                         riderLogger.error(s"user ${session.userId} update job where project id is $projectId failed", ex)
                         complete(OK, getHeader(451, ex.getMessage, session))
