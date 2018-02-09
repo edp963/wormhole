@@ -28,6 +28,7 @@ import akka.http.scaladsl.model.{HttpMethods, HttpRequest, Uri, _}
 import akka.util.ByteString
 import edp.rider.RiderStarter.{materializer, system, _}
 import edp.rider.common.{GrafanaConnectionInfo, RiderConfig, RiderLogger}
+import edp.rider.rest.util.CommonUtils
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -59,7 +60,7 @@ object Dashboard extends RiderLogger {
     )
     //    riderLogger.info(s"httpRequest ${httpRequest.toString}.")
     try {
-      val response: HttpResponse = Await.result(Http().singleRequest(httpRequest), Duration.Inf)
+      val response: HttpResponse = Await.result(Http().singleRequest(httpRequest), CommonUtils.minTimeOut)
       if (response._1.isSuccess()) {
         //        riderLogger.info(s"response success: ${response.entity.toString}.")
         riderLogger.info(s"Grafana post data response success.")
