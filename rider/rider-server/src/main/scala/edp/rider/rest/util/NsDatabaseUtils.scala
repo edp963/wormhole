@@ -116,7 +116,7 @@ object NsDatabaseUtils {
         }
       }
     }
-    dbSeq
+    dbSeq.distinct
   }
 
 }
