@@ -169,7 +169,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
     })
   }
 
-  def getNamespaceByNs(ns: String):Option[Namespace] = {
+  def getNamespaceByNs(ns: String): Option[Namespace] = {
     try {
       val nsSplit = ns.split("\\.")
       Await.result(super.findByFilter(ns => ns.nsSys === nsSplit(0) && ns.nsInstance === nsSplit(1) && ns.nsDatabase === nsSplit(2) && ns.nsTable === nsSplit(3)), minTimeOut).headOption
