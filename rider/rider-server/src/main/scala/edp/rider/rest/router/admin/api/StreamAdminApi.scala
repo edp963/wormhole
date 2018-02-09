@@ -107,9 +107,6 @@ class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal)
               complete(OK, getHeader(403, session))
             }
             else {
-
-
-
                 try {
                   val project: Project = Await.result(projectDal.findById(id), minTimeOut).head
                   val (projectTotalCore, projectTotalMemory) = (project.resCores, project.resMemoryG)
@@ -124,11 +121,6 @@ class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal)
                     riderLogger.error(s"user ${session.userId} get resources for project ${id}  failed", ex)
                     complete(OK, getHeader(451, ex.getMessage, session))
                 }
-
-
-
-
-
             }
         }
       }
