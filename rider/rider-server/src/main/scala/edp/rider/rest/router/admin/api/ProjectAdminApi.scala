@@ -250,7 +250,7 @@ class ProjectAdminApi(projectDal: ProjectDal,
                                                             flowNs._2.keySet.foreach(job => msg += s"job $job is using namespaces ${flowNs._2(job).mkString(",")}, ")
                                                           if (streams._1.nonEmpty)
                                                             streams._1.keySet.foreach(stream => msg += s"stream $stream is using udfs ${streams._1(stream).mkString(",")}, ")
-                                                          msg += "please stop them first."
+                                                          msg += "please stop or revoke them binding relations first."
                                                           val projectReturn = Await.result(projectDal.getById(projectEntity.id), minTimeOut).get
                                                           complete(OK, ResponseJson[ProjectUserNsUdf](getHeader(406, msg, session), projectReturn))
                                                         } else
