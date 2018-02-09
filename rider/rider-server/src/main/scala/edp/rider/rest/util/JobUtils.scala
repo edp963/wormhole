@@ -39,6 +39,7 @@ import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.common.util.JsonUtils._
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 
 object JobUtils extends RiderLogger {
@@ -69,7 +70,7 @@ object JobUtils extends RiderLogger {
         Some(base64byte2s(JSON.parseObject(sinkConfig).getString("sink_specific_config").trim.getBytes()))
       else None
 
-    val sinkKeys = if(ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else ns.keys
+    val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else ns.keys
 
     val projection = if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_output")) {
       Some(JSON.parseObject(sinkConfig).getString("sink_output").trim)
@@ -202,14 +203,30 @@ object JobUtils extends RiderLogger {
     }
   }
 
-  def getDisableAction: PartialFunction[JobStatus, String] = {
-    case JobStatus.NEW => s"${Action.STOP}"
-    case JobStatus.STARTING => s"${Action.START},${Action.STOP},${Action.DELETE}"
-    case JobStatus.WAITING => s"${Action.START}"
-    case JobStatus.RUNNING => s"${Action.START}"
-    case JobStatus.STOPPING => s"${Action.START}"
-    case JobStatus.FAILED => ""
-    case JobStatus.STOPPED => s"${Action.STOP}"
-    case JobStatus.DONE => s"${Action.STOP}"
+  def getDisableAction(job: Job) = {
+    val projectNsSeq = modules.relProjectNsDal.getNsByProjectId(job.projectId)
+    val nsSeq = new ListBuffer[String]
+    nsSeq += job.sourceNs
+    nsSeq += job.sinkNs
+    var flag = true
+    for (i <- nsSeq.indices) {
+      if (!projectNsSeq.exists(_.startsWith(nsSeq(i))))
+        flag = false
+    }
+    if (!flag) {
+      if (job.status == "stopped") "modify,start,renew,stop"
+      else "modify,start,renew"
+    } else {
+      JobStatus.jobStatus(job.status) match {
+        case JobStatus.NEW => s"${Action.STOP}"
+        case JobStatus.STARTING => s"${Action.START},${Action.STOP},${Action.DELETE}"
+        case JobStatus.WAITING => s"${Action.START}"
+        case JobStatus.RUNNING => s"${Action.START}"
+        case JobStatus.STOPPING => s"${Action.START}"
+        case JobStatus.FAILED => ""
+        case JobStatus.STOPPED => s"${Action.STOP}"
+        case JobStatus.DONE => s"${Action.STOP}"
+      }
+    }
   }
 }
