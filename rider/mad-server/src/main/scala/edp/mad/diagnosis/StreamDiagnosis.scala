@@ -6,7 +6,7 @@ import edp.mad.elasticsearch.StreamAlert
 import edp.mad.module.ModuleObj
 import edp.mad.rest.response.YarnRMResponse
 import edp.wormhole.common.util.DateUtils.{currentyyyyMMddHHmmss, yyyyMMddHHmmssToString}
-import edp.wormhole.common.util.{DtFormat, JsonUtils}
+import edp.wormhole.common.util.{DateUtils, DtFormat, JsonUtils}
 import org.apache.log4j.Logger
 
 object StreamStatus extends Enumeration {
@@ -66,45 +66,63 @@ object StreamDiagnosis{
   }
 
   def streamStatusDiagnosis() ={
+    val mergeMap = new scala.collection.mutable.HashMap[String, StreamAlert]
+    logger.info(s" enter diagnosis \n ")
     val madProcessTime = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
     val appList = YarnRMResponse.getAllAppsInfo()
     val streamList = modules.streamMap.getMapHandle()
-
-    val mergeMap = new scala.collection.mutable.HashMap[String, StreamAlert]
-    logger.info(s" enter diagnosis \n ")
-    appList.foreach{ app=>
-      val streamName = app.streamName
-      val streamInfo = streamList.filter(e=> e._2 == streamName).head
-      if(streamInfo != null ){
-        logger.info(s" found app name ${streamName} in stream map \n ")
-        val streamAlert = StreamAlert( madProcessTime, streamInfo._3.projectId, streamInfo._3.projectName,
-          streamInfo._1, streamInfo._2,
-          streamInfo._3.status,
-          app.appId, app.state, app.finalStatus, diagnosisStreamStatusAndAppState(streamInfo._3.status,app.finalStatus))
-        if( mergeMap.contains(streamName) == false )
-          mergeMap.put(streamName,streamAlert)
-      }else{
-        logger.info(s" not found app name ${streamName} in stream map \n ")
+    logger.info(s" diagnosis \n ")
+    //logger.info(s"  ${appList}\n   ${streamList} \n ")
+    try{
+      appList.foreach{ app=>
+        //logger.info(s" diagnosis \n ")
+        val streamName = app.streamName
+        //logger.info(s" stream name ${streamName} \n ")
+        val res = streamList.filter(e=> e._2 == streamName)
+        val streamInfo = if( res.nonEmpty) res.head else null
+        //logger.info(s" stream name ${streamName} \n ")
+        if(streamInfo != null ){
+          logger.info(s" found app name ${streamName} in stream map \n ")
+          val streamAlert = StreamAlert(
+            DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC),
+            streamInfo._3.projectId, streamInfo._3.projectName,
+            streamInfo._1, streamInfo._2,
+            streamInfo._3.status,
+            app.appId, app.state, app.finalStatus, diagnosisStreamStatusAndAppState(streamInfo._3.status,app.finalStatus))
+          if( mergeMap.contains(streamName) == false )
+            mergeMap.put(streamName,streamAlert)
+        }else{
+          logger.info(s" not found app name ${streamName} in stream map \n ")
+        }
       }
+    }catch{
+      case e:Exception =>
+        logger.error(s" failed to search in app list \n  ",e)
     }
 
-    logger.info(s" enter diagnosis ${mergeMap}\n ")
+    logger.info(s" enter diagnosis step 2  ${mergeMap}\n ")
 
-    streamList.foreach{stream =>
-      val streamName = stream._2
-      val streamId = stream._1
-      val streamInfo = stream._3
-
-      val appInfo = appList.filter{e=> e.streamName == streamName }.head
-      if(appInfo != null){
-        
-        val streamAlert = StreamAlert( madProcessTime, streamInfo.projectId, streamInfo.projectName,
-          streamId, streamName,
-          streamInfo.status,
-          appInfo.appId, appInfo.state, appInfo.finalStatus, diagnosisStreamStatusAndAppState(streamInfo.status,appInfo.finalStatus))
-        if( mergeMap.contains(streamName) == false )
-          mergeMap.put(streamName,streamAlert)
+    try {
+      streamList.foreach { stream =>
+        logger.info(s" diagnosis \n ")
+        val streamName = stream._2
+        val streamId = stream._1
+        val streamInfo = stream._3
+        logger.info(s" stream name ${streamName} \n ")
+        val res = appList.filter { e => e.streamName == streamName }
+        val appInfo = if(res.nonEmpty) res.head else null
+        if (appInfo != null) {
+          val streamAlert = StreamAlert(madProcessTime, streamInfo.projectId, streamInfo.projectName,
+            streamId, streamName,
+            streamInfo.status,
+            appInfo.appId, appInfo.state, appInfo.finalStatus, diagnosisStreamStatusAndAppState(streamInfo.status, appInfo.finalStatus))
+          if (mergeMap.contains(streamName) == false)
+            mergeMap.put(streamName, streamAlert)
+        }
       }
+    }catch{
+      case e:Exception =>
+      logger.error(s" failed to search in stream list \n  ",e)
     }
 
     logger.info(s" merge map \n")
