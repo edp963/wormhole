@@ -135,6 +135,8 @@ case class FlowHealth(flowStatus: String,
 
 case class Sql(sql: String)
 
+case class DeleteTopic(ids: Seq[Long], topics: Seq[String])
+
 class FlowTable(_tableTag: Tag) extends BaseTable[Flow](_tableTag, "flow") {
   def * = (id, projectId, streamId, sourceNs, sinkNs, consumedProtocol, sinkConfig, tranConfig, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <> (Flow.tupled, Flow.unapply)
 

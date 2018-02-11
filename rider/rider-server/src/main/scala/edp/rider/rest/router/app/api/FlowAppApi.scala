@@ -113,7 +113,7 @@ class FlowAppApi(flowDal: FlowDal, streamDal: StreamDal, projectDal: ProjectDal)
                 val stream = streamInfo.head
                 val flow = flowSearch.head
                 if (flow.status != "stopped") {
-                  if (stopFlow(stream.id, flowId, flow.updateBy, stream.streamType, flow.sourceNs, flow.sinkNs)) {
+                  if (stopFlow(stream.id, flowId, flow.updateBy, stream.streamType, flow.sourceNs, flow.sinkNs, flow.tranConfig.getOrElse(""))) {
                     riderLogger.info(s"user ${session.userId} stop flow $flowId success.")
                     flowDal.updateFlowStatus(flowId, "stopped")
                     complete(OK, ResponseJson[AppFlowResponse](getHeader(200, session), AppFlowResponse(flowId, "stopped")))

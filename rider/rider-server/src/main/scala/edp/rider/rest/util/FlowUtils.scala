@@ -184,7 +184,7 @@ object FlowUtils extends RiderLogger {
         FlowInfo(flowStream.id, flowStream.status, "renew,stop", s"$action success.")
 
       case ("new" | "starting" | "waiting" | "failed" | "stopped" | "stopping", "suspending" | "failed" | "stopping", "stop") =>
-        if (stopFlow(flowStream.streamId, flowStream.id, flowStream.updateBy, flowStream.streamType, flowStream.sourceNs, flowStream.sinkNs))
+        if (stopFlow(flowStream.streamId, flowStream.id, flowStream.updateBy, flowStream.streamType, flowStream.sourceNs, flowStream.sinkNs, flowStream.tranConfig.getOrElse("")))
           FlowInfo(flowStream.id, "stopped", "renew,stop", "stop is processing")
         else
           FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, "stop failed")
@@ -202,7 +202,7 @@ object FlowUtils extends RiderLogger {
           FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, "start failed")
 
       case ("running", "starting" | "updating" | "stopping" | "suspending" | "running" | "failed", "stop") =>
-        if (stopFlow(flowStream.streamId, flowStream.id, flowStream.updateBy, flowStream.streamType, flowStream.sourceNs, flowStream.sinkNs))
+        if (stopFlow(flowStream.streamId, flowStream.id, flowStream.updateBy, flowStream.streamType, flowStream.sourceNs, flowStream.sinkNs, flowStream.tranConfig.getOrElse("")))
           FlowInfo(flowStream.id, "stopped", "renew,stop", "stop is processing")
         else
           FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, "stop failed")
@@ -247,7 +247,7 @@ object FlowUtils extends RiderLogger {
         flag = false
     }
     if (!flag) {
-      if(flow.status == "stopped") "modify,start,renew,stopped"
+      if (flow.status == "stopped") "modify,start,renew,stopped"
       else "modify,start,renew"
     } else {
       flow.status match {
@@ -266,8 +266,8 @@ object FlowUtils extends RiderLogger {
 
   def startFlow(streamId: Long, streamType: String, flowId: Long, sourceNs: String, sinkNs: String, consumedProtocol: String, sinkConfig: String, tranConfig: String, userId: Long): Boolean = {
     try {
+      autoRegisterTopic(streamId, sourceNs, tranConfig, userId)
       val sourceNsObj = modules.namespaceDal.getNamespaceByNs(sourceNs).get
-
       val umsInfoOpt =
         if (sourceNsObj.sourceSchema.nonEmpty)
           json2caseClass[Option[SourceSchema]](modules.namespaceDal.getNamespaceByNs(sourceNs).get.sourceSchema.get)
@@ -524,7 +524,6 @@ object FlowUtils extends RiderLogger {
         PushDirective.sendRouterFlowStartDirective(streamId, sourceNs, sinkNs, jsonCompact(flow_start_ums))
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
       }
-      autoRegisterTopic(streamId, sourceNs, userId)
       true
     } catch {
       case ex: Exception =>
@@ -534,14 +533,14 @@ object FlowUtils extends RiderLogger {
 
   }
 
-  def stopFlow(streamId: Long, flowId: Long, userId: Long, streamType: String, sourceNs: String, sinkNs: String): Boolean = {
+  def stopFlow(streamId: Long, flowId: Long, userId: Long, streamType: String, sourceNs: String, sinkNs: String, tranConfig: String): Boolean = {
     try {
-      val topicInfo = checkDeleteTopic(streamId, flowId, sourceNs)
-      if (topicInfo._1) {
-        StreamUtils.sendUnsubscribeTopicDirective(streamId, topicInfo._3, userId)
-        Await.result(modules.inTopicDal.deleteByFilter(topic => topic.streamId === streamId && topic.nsDatabaseId === topicInfo._2), minTimeOut)
+      val topicInfo = checkDeleteTopic(streamId, flowId, sourceNs, tranConfig)
+      if (topicInfo.nonEmpty) {
+        topicInfo.get.topics.foreach(topic => StreamUtils.sendUnsubscribeTopicDirective(streamId, topic, userId))
+        Await.result(modules.inTopicDal.deleteByFilter(topic => (topic.nsDatabaseId inSet topicInfo.get.ids) && (topic.streamId === streamId)), minTimeOut)
         riderLogger.info(s"drop topic ${
-          topicInfo._3
+          topicInfo.get.topics
         } directive")
       }
       if (streamType == "default") {
@@ -575,23 +574,27 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def autoRegisterTopic(streamId: Long, sourceNs: String, userId: Long) = {
+  def autoRegisterTopic(streamId: Long, sourceNs: String, tranConfig: String, userId: Long) = {
     try {
-      val ns = modules.namespaceDal.getNamespaceByNs(sourceNs).get
-      val topicSearch = Await.result(modules.inTopicDal.findByFilter(rel => rel.streamId === streamId && rel.nsDatabaseId === ns.nsDatabaseId), minTimeOut)
-      if (topicSearch.isEmpty) {
-        val instance = Await.result(modules.instanceDal.findByFilter(_.id === ns.nsInstanceId), minTimeOut).head
-        val database = Await.result(modules.databaseDal.findByFilter(_.id === ns.nsDatabaseId), minTimeOut).head
-        val lastConsumedOffset = Await.result(modules.feedbackOffsetDal.getLatestOffset(streamId, database.nsDatabase), minTimeOut)
-        val offset =
-          if (lastConsumedOffset.nonEmpty) lastConsumedOffset.get.partitionOffsets
-          else KafkaUtils.getKafkaLatestOffset(instance.connUrl, database.nsDatabase)
-        val inTopicInsert = StreamInTopic(0, streamId, ns.nsInstanceId, ns.nsDatabaseId, offset, RiderConfig.spark.topicDefaultRate,
-          active = true, currentSec, userId, currentSec, userId)
-        val inTopic = Await.result(modules.inTopicDal.insert(inTopicInsert), minTimeOut)
-        sendTopicDirective(streamId, Seq(StreamTopicTemp(inTopic.id, streamId, database.nsDatabase, inTopic.partitionOffsets, inTopic.rate)), userId)
-      }
-    } catch {
+      val streamJoinNs = getStreamJoinNamespaces(tranConfig)
+      val nsSeq = (streamJoinNs += sourceNs).map(ns => modules.namespaceDal.getNamespaceByNs(ns).get)
+      nsSeq.foreach(ns => {
+        val topicSearch = Await.result(modules.inTopicDal.findByFilter(rel => rel.streamId === streamId && rel.nsDatabaseId === ns.nsDatabaseId), minTimeOut)
+        if (topicSearch.isEmpty) {
+          val instance = Await.result(modules.instanceDal.findByFilter(_.id === ns.nsInstanceId), minTimeOut).head
+          val database = Await.result(modules.databaseDal.findByFilter(_.id === ns.nsDatabaseId), minTimeOut).head
+          val lastConsumedOffset = Await.result(modules.feedbackOffsetDal.getLatestOffset(streamId, database.nsDatabase), minTimeOut)
+          val offset =
+            if (lastConsumedOffset.nonEmpty) lastConsumedOffset.get.partitionOffsets
+            else KafkaUtils.getKafkaLatestOffset(instance.connUrl, database.nsDatabase)
+          val inTopicInsert = StreamInTopic(0, streamId, ns.nsInstanceId, ns.nsDatabaseId, offset, RiderConfig.spark.topicDefaultRate,
+            active = true, currentSec, userId, currentSec, userId)
+          val inTopic = Await.result(modules.inTopicDal.insert(inTopicInsert), minTimeOut)
+          sendTopicDirective(streamId, Seq(StreamTopicTemp(inTopic.id, streamId, database.nsDatabase, inTopic.partitionOffsets, inTopic.rate)), userId)
+        }
+      })
+    }
+    catch {
       case ex: Exception =>
         riderLogger.error(s"user $userId auto register topic to stream $streamId failed", ex)
     }
@@ -621,15 +624,20 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def checkDeleteTopic(streamId: Long, flowId: Long, sourceNs: String) = {
+  def checkDeleteTopic(streamId: Long, flowId: Long, sourceNs: String, tranConfig: String) = {
     val flows = Await.result(modules.flowDal
       .findByFilter(flow => flow.streamId === streamId && flow.status =!= "new" && flow.status =!= "stopping" && flow.status =!= "stopped")
       , minTimeOut)
-    val ns = modules.namespaceDal.getNamespaceByNs(sourceNs).get
-    val topicName = Await.result(modules.databaseDal.findById(ns.nsDatabaseId), minTimeOut).get.nsDatabase
-    val ids = flows.map(flow => modules.namespaceDal.getNamespaceByNs(flow.sourceNs).get).filter(_.nsDatabaseId == ns.nsDatabaseId)
-    if (ids.size > 1) (false, ns.nsDatabaseId, topicName)
-    else (true, ns.nsDatabaseId, topicName)
+    val streamJoinNs = getStreamJoinNamespaces(tranConfig)
+    val nsSeq = (streamJoinNs += sourceNs).map(ns => modules.namespaceDal.getNamespaceByNs(ns).get)
+    val topicMap = Await.result(modules.databaseDal.findByFilter(_.id inSet nsSeq.map(_.nsDatabaseId)), minTimeOut).map(db => (db.id, db.nsDatabase)).toMap[Long, String]
+    val ids = new ListBuffer[Long]
+    flows.foreach(flow =>
+      ids ++= (getStreamJoinNamespaces(flow.tranConfig.getOrElse("")) += flow.sourceNs)
+        .map(ns => modules.namespaceDal.getNamespaceByNs(ns).get)
+        .map(_.nsDatabaseId).filter(db => topicMap.keySet.toList.contains(db)))
+    if (ids.size > 1) None
+    else Some(DeleteTopic(ids.distinct, topicMap.keySet.toList.map(id => topicMap(id))))
   }
 
   def getFlowsAndJobsByNsIds(projectId: Long, deleteNsIds: Seq[Long], inputNsIds: Seq[Long]): (mutable.HashMap[Long, Seq[String]], mutable.HashMap[Long, Seq[String]], Seq[Long]) = {
@@ -772,5 +780,22 @@ object FlowUtils extends RiderLogger {
   //        (false, ex.getMessage)
   //    }
   //  }
+
+  def getStreamJoinNamespaces(tranConfig: String): ListBuffer[String] = {
+    val nsSeq = new ListBuffer[String]
+    if (tranConfig != "" && tranConfig != null) {
+      val json = JSON.parseObject(tranConfig)
+      if (json.containsKey("action")) {
+        val action = json.getString("action")
+        val sqls = action.split(";").filter(_.trim.startsWith("parquet_sql"))
+        if (sqls.nonEmpty) {
+          val regex = "([A-Za-z]+[A-Za-z0-9_-]*\\.){3,6}[A-Za-z]+[A-Za-z0-9_-]*".r
+          sqls.foreach(sql => nsSeq ++= regex.findAllIn(sql.split("=")(0).trim).toList)
+        }
+      }
+    }
+    nsSeq
+  }
+
 
 }
