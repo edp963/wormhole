@@ -48,6 +48,8 @@ import { loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFl
   saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail,
   loadSourceInput, loadFlowDetail, chuckAwayFlow } from './action'
 
+// import { formatConcat } from '../../utils/util'
+
 export class Flow extends React.Component {
   constructor (props) {
     super(props)
@@ -403,77 +405,15 @@ export class Flow extends React.Component {
     } else if (this.flowsTime.state.endValue === null) {
       message.warning('结束时间不能为空！')
     } else {
-      // const s = new Date(this.flowsTime.state.startValue._d)
-      // const e = new Date(this.flowsTime.state.endValue._d)
+      // const sVal = new Date(this.flowsTime.state.startValue._d)
+      // const eVal = new Date(this.flowsTime.state.endValue._d)
+      // formatConcat(sVal, eVal)
       //
-      // // 时间格式转换
-      // // start time
-      // let monthStringS = ''
-      // if (s.getMonth() + 1 < 10) {
-      //   monthStringS = `0${s.getMonth() + 1}`
-      // } else {
-      //   monthStringS = `${s.getMonth()}`
-      // }
-      //
-      // let dateStringS = ''
-      // if (s.getDate() < 10) {
-      //   dateStringS = `0${s.getDate()}`
-      // } else {
-      //   dateStringS = `${s.getDate()}`
-      // }
-      //
-      // let hourStringS = ''
-      // if (s.getHours() < 10) {
-      //   hourStringS = `0${s.getHours()}`
-      // } else {
-      //   hourStringS = `${s.getHours()}`
-      // }
-      //
-      // let minuteStringS = ''
-      // if (s.getMinutes() < 10) {
-      //   minuteStringS = `0${s.getMinutes()}`
-      // } else {
-      //   minuteStringS = `${s.getMinutes()}`
-      // }
-
-      // // end time
-      // let monthStringE = ''
-      // if (e.getMonth() + 1 < 10) {
-      //   monthStringE = `0${e.getMonth() + 1}`
-      // } else {
-      //   monthStringE = `${e.getMonth()}`
-      // }
-      //
-      // let dateStringE = ''
-      // if (e.getDate() < 10) {
-      //   dateStringE = `0${e.getDate()}`
-      // } else {
-      //   dateStringE = `${e.getDate()}`
-      // }
-
-      // let hourStringE = ''
-      // if (e.getHours() < 10) {
-      //   hourStringE = `0${e.getHours()}`
-      // } else {
-      //   hourStringE = `${e.getHours()}`
-      // }
-      //
-      // let minuteStringE = ''
-      // if (e.getMinutes() < 10) {
-      //   minuteStringE = `0${e.getMinutes()}`
-      // } else {
-      //   minuteStringE = `${e.getMinutes()}`
-      // }
-
-      // 时间格式拼接
-      // const startDate = `${s.getFullYear()}-${monthStringS}-${dateStringS} ${hourStringS}:${minuteStringS}`
-      // const endDate = `${e.getFullYear()}-${monthStringE}-${dateStringE} ${hourStringE}:${minuteStringE}`
-
       // const flowIds = this.state.selectedRowKeys.length === 0
       //   ? `${this.state.flowIdTemp}`
       //   : this.state.selectedRowKeys.join(',')
-
-      this.setState({ timeModalVisible: false })
+      //
+      // this.setState({ timeModalVisible: false })
     }
   }
 
@@ -818,7 +758,6 @@ export class Flow extends React.Component {
         }
       },
       sortOrder: sortedInfo.columnKey === 'startedTime' && sortedInfo.order,
-      // filteredValue: filteredInfo.startedTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -850,7 +789,6 @@ export class Flow extends React.Component {
         }
       },
       sortOrder: sortedInfo.columnKey === 'stoppedTime' && sortedInfo.order,
-      // filteredValue: filteredInfo.stoppedTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -987,22 +925,20 @@ export class Flow extends React.Component {
             <Tooltip title={<FormattedMessage {...messages.flowViewDetails} />}>
               <Popover
                 placement="left"
-                content={<div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
-                  <p className={this.props.flowClassHide}><strong>   Project Id：</strong>{showFlowDetails.projectId}</p>
-                  <p><strong>   Protocol：</strong>{showFlowDetails.consumedProtocol}</p>
-                  <p><strong>   Stream Name：</strong>{showFlowDetails.streamName}</p>
-
-                  <p><strong>   Sink Config：</strong>{sinkConfigFinal}</p>
-                  <p><strong>   Transformation Config：</strong>{showFlowDetails.tranConfig}</p>
-
-                  <p><strong>   Create Time：</strong>{showFlowDetails.createTime}</p>
-                  <p><strong>   Update Time：</strong>{showFlowDetails.updateTime}</p>
-                  <p><strong>   Create By：</strong>{showFlowDetails.createBy}</p>
-                  <p><strong>   Update By：</strong>{showFlowDetails.updateBy}</p>
-                  <p><strong>   Disable Actions：</strong>{showFlowDetails.disableActions}</p>
-
-                  <p><strong>   Message：</strong>{showFlowDetails.msg}</p>
-                </div>}
+                content={
+                  <div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
+                    <p className={this.props.flowClassHide}><strong>   Project Id：</strong>{showFlowDetails.projectId}</p>
+                    <p><strong>   Protocol：</strong>{showFlowDetails.consumedProtocol}</p>
+                    <p><strong>   Stream Name：</strong>{showFlowDetails.streamName}</p>
+                    <p><strong>   Sink Config：</strong>{sinkConfigFinal}</p>
+                    <p><strong>   Transformation Config：</strong>{showFlowDetails.tranConfig}</p>
+                    <p><strong>   Create Time：</strong>{showFlowDetails.createTime}</p>
+                    <p><strong>   Update Time：</strong>{showFlowDetails.updateTime}</p>
+                    <p><strong>   Create By：</strong>{showFlowDetails.createBy}</p>
+                    <p><strong>   Update By：</strong>{showFlowDetails.updateBy}</p>
+                    <p><strong>   Disable Actions：</strong>{showFlowDetails.disableActions}</p>
+                    <p><strong>   Message：</strong>{showFlowDetails.msg}</p>
+                  </div>}
                 title={<h3><FormattedMessage {...messages.flowDetails} /></h3>}
                 trigger="click"
                 onVisibleChange={this.handleVisibleChangeFlow(record)}>
@@ -1095,7 +1031,6 @@ export class Flow extends React.Component {
           <FlowsDetail
             flowIdGeted={this.state.flowId}
             ref={(f) => { this.flowsDetail = f }}
-
             onEditLogForm={this.props.onEditLogForm}
             onSaveForm={this.props.onSaveForm}
             onCheckOutForm={this.props.onCheckOutForm}
