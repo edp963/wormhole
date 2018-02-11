@@ -114,14 +114,16 @@ function streamReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('streamSubmitLoading', true)
     case EDIT_STREAM_SUCCESS:
-      streams.splice(streams.indexOf(streams.find(p => p.stream.id === payload.result.stream.id)), 1, payload.result)
+      const startIndexEdit = streams.indexOf(streams.find(p => p.stream.id === payload.result.stream.id))
+      streams.fill(payload.result, startIndexEdit, startIndexEdit + 1)
       return state
         .set('streams', streams.slice())
         .set('streamSubmitLoading', false)
     case OPERATE_STREAMS:
       return state
     case OPERATE_STREAMS_SUCCESS:
-      streams.splice(streams.indexOf(streams.find(p => p.stream.id === payload.result.stream.id)), 1, payload.result)
+      const startIndexOperate = streams.indexOf(streams.find(p => p.stream.id === payload.result.stream.id))
+      streams.fill(payload.result, startIndexOperate, startIndexOperate + 1)
       return state.set('streams', streams.slice())
     case DELETE_STREAMS:
       return state
@@ -130,7 +132,8 @@ function streamReducer (state = initialState, { type, payload }) {
     case STARTORRENEW_STREAMS:
       return state.set('streamStartModalLoading', true)
     case STARTORRENEW_STREAMS_SUCCESS:
-      streams.splice(streams.indexOf(streams.find(p => p.stream.id === payload.result.stream.id)), 1, payload.result)
+      const startIndexStartOrRenew = streams.indexOf(streams.find(p => p.stream.id === payload.result.stream.id))
+      streams.fill(payload.result, startIndexStartOrRenew, startIndexStartOrRenew + 1)
       return state
         .set('streams', streams.slice())
         .set('streamStartModalLoading', false)

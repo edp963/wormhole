@@ -73,12 +73,14 @@ export function projectReducer (state = initialState, { type, payload }) {
     case EDIT_PROJECT:
       return state.set('modalLoading', true)
     case EDIT_PROJECT_SUCCESS:
-      projects.splice(projects.indexOf(projects.find(p => p.id === payload.result.id)), 1, payload.result)
+      const startIndexEdit = projects.indexOf(projects.find(p => p.id === payload.result.id))
+      projects.fill(payload.result, startIndexEdit, startIndexEdit + 1)
       return state
         .set('projects', projects.slice())
         .set('modalLoading', false)
     case EDIT_PROJECT_ERROR:
-      projects.splice(projects.indexOf(projects.find(p => p.id === payload.result.payload.id)), 1, payload.result.payload)
+      const startIndexEditError = projects.indexOf(projects.find(p => p.id === payload.result.payload.id))
+      projects.fill(payload.result.payload, startIndexEditError, startIndexEditError + 1)
       return state
         .set('projects', projects.slice())
         .set('modalLoading', false)
