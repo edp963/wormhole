@@ -25,7 +25,6 @@ import Helmet from 'react-helmet'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import { operateLanguageText } from '../../utils/util'
 import InstanceForm from './InstanceForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
@@ -43,6 +42,8 @@ import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadInstances, addInstance, loadInstanceInputValue, loadInstanceExit,
   loadSingleInstance, editInstance, deleteInstace } from './action'
 import { selectInstances, selectError, selectModalLoading, selectConnectUrlExisted, selectInstanceExisted } from './selectors'
+
+import { operateLanguageText } from '../../utils/util'
 
 export class Instance extends React.PureComponent {
   constructor (props) {
@@ -159,27 +160,29 @@ export class Instance extends React.PureComponent {
   }
 
   showEditInstance = (instance) => (e) => {
-    this.props.onLoadSingleInstance(instance.id, (result) => {
+    this.props.onLoadSingleInstance(instance.id, ({
+      connUrl, active, createBy, createTime, id, nsInstance, nsSys, updateBy, updateTime, desc
+                                                  }) => {
       this.setState({
         formVisible: true,
         instanceFormType: 'edit',
-        eidtConnUrl: result.connUrl,
+        eidtConnUrl: connUrl,
         editInstanceData: {
-          active: result.active,
-          createBy: result.createBy,
-          createTime: result.createTime,
-          id: result.id,
-          nsInstance: result.nsInstance,
-          nsSys: result.nsSys,
-          updateBy: result.updateBy,
-          updateTime: result.updateTime
+          active: active,
+          createBy: createBy,
+          createTime: createTime,
+          id: id,
+          nsInstance: nsInstance,
+          nsSys: nsSys,
+          updateBy: updateBy,
+          updateTime: updateTime
         }
       }, () => {
         this.instanceForm.setFieldsValue({
-          instanceDataSystem: result.nsSys,
-          connectionUrl: result.connUrl,
-          instance: result.nsInstance,
-          description: result.desc
+          instanceDataSystem: nsSys,
+          connectionUrl: connUrl,
+          instance: nsInstance,
+          description: desc
         })
       })
     })
@@ -342,7 +345,6 @@ export class Instance extends React.PureComponent {
       ) {
         errMsg = [new Error('ip:port list')]
       }
-
       // else if (InstanceSourceDsVal === 'log') {
       //   errMsg = ''
       // }
@@ -547,7 +549,6 @@ export class Instance extends React.PureComponent {
           }
         },
         sortOrder: sortedInfo.columnKey === 'createTime' && sortedInfo.order,
-        // filteredValue: filteredInfo.createTime,
         filterDropdown: (
           <div className="custom-filter-dropdown-style">
             <RangePicker
@@ -579,7 +580,6 @@ export class Instance extends React.PureComponent {
           }
         },
         sortOrder: sortedInfo.columnKey === 'updateTime' && sortedInfo.order,
-        // filteredValue: filteredInfo.updateTime,
         filterDropdown: (
           <div className="custom-filter-dropdown-style">
             <RangePicker
