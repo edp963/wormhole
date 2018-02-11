@@ -94,7 +94,8 @@ export function userReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_USER_SUCCESS:
-      users.splice(users.indexOf(users.find(p => p.id === payload.result.id)), 1, payload.result)
+      const startIndex = users.indexOf(users.find(p => p.id === payload.result.id))
+      users.fill(payload.result, startIndex, startIndex + 1)
       return state
         .set('users', users.slice())
         .set('modalLoading', false)
