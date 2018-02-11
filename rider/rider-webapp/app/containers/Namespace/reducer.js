@@ -102,7 +102,8 @@ export function namespaceReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_NAMESPACE_SUCCESS:
-      namespaces.splice(namespaces.indexOf(namespaces.find(p => p.id === payload.result.id)), 1, payload.result)
+      const startIndex = namespaces.indexOf(namespaces.find(p => p.id === payload.result.id))
+      namespaces.fill(payload.result, startIndex, startIndex + 1)
       return state
         .set('namespaces', namespaces.slice())
         .set('modalLoading', false)

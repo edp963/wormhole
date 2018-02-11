@@ -76,7 +76,8 @@ export function databaseReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_DATABASE_SUCCESS:
-      databases.splice(databases.indexOf(databases.find(p => p.id === payload.result.id)), 1, payload.result)
+      const startIndex = databases.indexOf(databases.find(p => p.id === payload.result.id))
+      databases.fill(payload.result, startIndex, startIndex + 1)
       return state
         .set('databases', databases.slice())
         .set('modalLoading', false)

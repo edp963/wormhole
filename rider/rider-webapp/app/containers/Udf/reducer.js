@@ -83,7 +83,8 @@ export function udfReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_UDF_SUCCESS:
-      udfs.splice(udfs.indexOf(udfs.find(p => p.id === payload.udf.id)), 1, payload.udf)
+      const startIndex = udfs.indexOf(udfs.find(p => p.id === payload.udf.id))
+      udfs.fill(payload.udf, startIndex, startIndex + 1)
       return state
         .set('udfs', udfs.slice())
         .set('modalLoading', false)
