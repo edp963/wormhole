@@ -75,7 +75,8 @@ export function instanceReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_INSTANCE_SUCCESS:
-      instances.splice(instances.indexOf(instances.find(p => p.id === payload.result.id)), 1, payload.result)
+      const startIndex = instances.indexOf(instances.find(p => p.id === payload.result.id))
+      instances.fill(payload.result, startIndex, startIndex + 1)
       return state
         .set('instances', instances.slice())
         .set('modalLoading', false)
