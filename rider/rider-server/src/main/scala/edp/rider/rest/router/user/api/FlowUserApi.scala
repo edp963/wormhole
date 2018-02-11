@@ -216,7 +216,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                       onComplete(flowDal.update(updateFlow).mapTo[Int]) {
                         case Success(_) =>
                           if (streamId != flow.streamId)
-                            FlowUtils.stopFlow(streamId, flow.id, session.userId, stream.streamType, existFlow.sourceNs, existFlow.sinkNs)
+                            FlowUtils.stopFlow(streamId, flow.id, session.userId, stream.streamType, existFlow.sourceNs, existFlow.sinkNs, flow.tranConfig.getOrElse(""))
                           riderLogger.info(s"user ${session.userId} update flow $updateFlow where project id is $projectId success.")
                           onComplete(flowDal.defaultGetAll(_.id === updateFlow.id, "modify").mapTo[Seq[FlowStream]]) {
                             case Success(flowStream) =>
