@@ -26,7 +26,6 @@ import Helmet from 'react-helmet'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import { operateLanguageText, operateLanguageNameExist } from '../../utils/util'
 import DBForm from './DBForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
@@ -44,6 +43,9 @@ import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadDatabases, addDatabase, editDatabase, loadDatabasesInstance,
   loadNameExist, loadSingleDatabase, deleteDB } from './action'
 import { selectDatabases, selectError, selectModalLoading, selectDatabaseNameExited, selectDbUrlValue } from './selectors'
+
+import { operateLanguageText, operateLanguageNameExist } from '../../utils/util'
+import { onConfigValue } from './dbFunction'
 
 export class DataBase extends React.PureComponent {
   constructor (props) {
@@ -150,50 +152,50 @@ export class DataBase extends React.PureComponent {
 
   // 回显
   showEditDB = (database) => (e) => {
-    this.props.onLoadSingleDatabase(database.id, (result) => {
+    this.props.onLoadSingleDatabase(database.id, ({
+      active, config, connUrl, createBy, createTime, desc, id, nsDatabase, nsInstance,
+      nsInstanceId, nsSys, partitions, pwd, updateBy, updateTime, user
+    }) => {
       this.setState({
         formVisible: true,
         formType: 'edit',
-        queryConnUrl: result.connUrl,
+        queryConnUrl: connUrl,
         editDatabaseData: {
-          active: result.active,
-          createBy: result.createBy,
-          createTime: result.createTime,
-          id: result.id,
-          nsInstanceId: result.nsInstanceId,
-          updateBy: result.updateBy,
-          updateTime: result.updateTime,
-          connectionUrl: result.connUrl
+          active: active,
+          createBy: createBy,
+          createTime: createTime,
+          id: id,
+          nsInstanceId: nsInstanceId,
+          updateBy: updateBy,
+          updateTime: updateTime,
+          connectionUrl: connUrl
         }
       }, () => {
-        if (result.nsSys === 'oracle' || result.nsSys === 'mysql' || result.nsSys === 'postgresql' ||
-          result.nsSys === 'mongodb' || result.nsSys === 'vertica'
+        if (nsSys === 'oracle' || nsSys === 'mysql' || nsSys === 'postgresql' ||
+          nsSys === 'mongodb' || nsSys === 'vertica'
         ) {
           this.dBForm.setFieldsValue({
-            userRequired: result.user,
-            passwordRequired: result.pwd
+            userRequired: user,
+            passwordRequired: pwd
           })
         } else {
           this.dBForm.setFieldsValue({
-            user: result.user,
-            password: result.pwd
+            user: user,
+            password: pwd
           })
         }
 
-        let conFinal = ''
-        if (result.config.includes(',') && result.config.includes('=')) {
-          conFinal = result.config.replace(/,/g, '\n')
-        } else {
-          conFinal = result.config
-        }
+        const conFinal = (config.includes(',') && config.includes('='))
+          ? config.replace(/,/g, '\n')
+          : config
 
         this.dBForm.setFieldsValue({
-          dataBaseDataSystem: result.nsSys,
-          instance: result.nsInstance,
-          nsDatabase: result.nsDatabase,
+          dataBaseDataSystem: nsSys,
+          instance: nsInstance,
+          nsDatabase: nsDatabase,
           config: conFinal,
-          description: result.desc,
-          partition: result.partitions
+          description: desc,
+          partition: partitions
         })
       })
     })
@@ -205,27 +207,6 @@ export class DataBase extends React.PureComponent {
   // Modal 完全关闭后的回调
   resetModal = () => this.dBForm.resetFields()
 
-  /**
-   * Config 格式校验
-   * key=value&key=value一行或多行（多行时用 & 连接） 或 key=value 多行（用 , 连接）
-   */
-  onConfigValue (val) {
-    let configVal = ''
-    if (val.includes('&')) {
-      configVal = val.includes('=') ? val.replace(/\n/g, '&') : val    // key=value&key=value
-    } else {
-      if (val.includes('=')) {
-        // 多行输入 key=value
-        const conTempStr = val.trim()
-        const numArr = (conTempStr.split('=')).length - 1
-        configVal = numArr === 1 ? val : val.replace(/\n/g, ',')
-      } else {
-        configVal = val
-      }
-    }
-    return configVal
-  }
-
   onModalOk = () => {
     const { formType, editDatabaseData } = this.state
     const { databaseNameExited } = this.props
@@ -236,32 +217,77 @@ export class DataBase extends React.PureComponent {
 
     this.dBForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        if (formType === 'add') {
-          if (databaseNameExited) {
-            this.dBForm.setFields({
-              nsDatabase: {
-                value: values.nsDatabase,
-                errors: [new Error(operateLanguageNameExist())]
-              }
-            })
-          } else if (values.dataBaseDataSystem === 'oracle') {
-            if (values.config === undefined || !values.config.includes('service_name')) {
+        switch (formType) {
+          case 'add':
+            if (databaseNameExited) {
               this.dBForm.setFields({
-                config: {
-                  value: values.config,
-                  errors: [new Error(oracleErrorFormat)]
+                nsDatabase: {
+                  value: values.nsDatabase,
+                  errors: [new Error(operateLanguageNameExist())]
                 }
               })
+            } else if (values.dataBaseDataSystem === 'oracle') {
+              if (values.config === undefined || !values.config.includes('service_name')) {
+                this.dBForm.setFields({
+                  config: {
+                    value: values.config,
+                    errors: [new Error(oracleErrorFormat)]
+                  }
+                })
+              } else {
+                const addValues = {
+                  nsDatabase: values.nsDatabase,
+                  desc: values.description === undefined ? '' : values.description,
+                  nsInstanceId: Number(values.instance),
+                  user: values.userRequired,
+                  pwd: values.passwordRequired,
+                  partitions: 0,
+                  config: onConfigValue(values.config)
+                }
+                this.props.onAddDatabase(addValues, () => {
+                  this.hideForm()
+                  message.success(createFormat, 3)
+                }, (result) => {
+                  message.error(result, 3)
+                })
+              }
             } else {
+              let valuesUser = ''
+              let valuesPwd = ''
+              let valuesConfig = ''
+              if (values.dataBaseDataSystem === 'kafka') {
+                valuesUser = ''
+                valuesPwd = ''
+                valuesConfig = values.config
+              } else if (values.dataBaseDataSystem === 'mysql' || values.dataBaseDataSystem === 'postgresql' ||
+                values.dataBaseDataSystem === 'mongodb' || values.dataBaseDataSystem === 'vertica') {
+                valuesUser = values.userRequired
+                valuesPwd = values.passwordRequired
+                valuesConfig = values.config
+              } else {
+                if (values.user === undefined) {
+                  valuesUser = ''
+                } else if (values.password === undefined) {
+                  valuesPwd = ''
+                } else if (values.config === undefined) {
+                  valuesConfig = ''
+                } else {
+                  valuesUser = values.user
+                  valuesPwd = values.password
+                  valuesConfig = values.config
+                }
+              }
+
               const addValues = {
                 nsDatabase: values.nsDatabase,
                 desc: values.description === undefined ? '' : values.description,
                 nsInstanceId: Number(values.instance),
-                user: values.userRequired,
-                pwd: values.passwordRequired,
-                partitions: 0,
-                config: this.onConfigValue(values.config)
+                user: valuesUser,
+                pwd: valuesPwd,
+                partitions: values.dataBaseDataSystem === 'kafka' ? Number(values.partition) : 0,
+                config: valuesConfig === '' ? '' : onConfigValue(valuesConfig)
               }
+
               this.props.onAddDatabase(addValues, () => {
                 this.hideForm()
                 message.success(createFormat, 3)
@@ -269,67 +295,55 @@ export class DataBase extends React.PureComponent {
                 message.error(result, 3)
               })
             }
-          } else {
-            let valuesUser = ''
-            let valuesPwd = ''
-            let valuesConfig = ''
-            if (values.dataBaseDataSystem === 'kafka') {
-              valuesUser = ''
-              valuesPwd = ''
-              valuesConfig = values.config
-            } else if (values.dataBaseDataSystem === 'mysql' || values.dataBaseDataSystem === 'postgresql' ||
-              values.dataBaseDataSystem === 'mongodb' || values.dataBaseDataSystem === 'vertica') {
-              valuesUser = values.userRequired
-              valuesPwd = values.passwordRequired
-              valuesConfig = values.config
-            } else {
-              if (values.user === undefined) {
-                valuesUser = ''
-              } else if (values.password === undefined) {
-                valuesPwd = ''
-              } else if (values.config === undefined) {
-                valuesConfig = ''
+            break
+          case 'edit':
+            if (values.dataBaseDataSystem === 'oracle') {
+              if (values.config === undefined || !values.config.includes('service_name')) {
+                this.dBForm.setFields({
+                  config: {
+                    value: values.config,
+                    errors: [new Error(oracleErrorFormat)]
+                  }
+                })
               } else {
-                valuesUser = values.user
-                valuesPwd = values.password
-                valuesConfig = values.config
-              }
-            }
-
-            const addValues = {
-              nsDatabase: values.nsDatabase,
-              desc: values.description === undefined ? '' : values.description,
-              nsInstanceId: Number(values.instance),
-              user: valuesUser,
-              pwd: valuesPwd,
-              partitions: values.dataBaseDataSystem === 'kafka' ? Number(values.partition) : 0,
-              config: valuesConfig === '' ? '' : this.onConfigValue(valuesConfig)
-            }
-
-            this.props.onAddDatabase(addValues, () => {
-              this.hideForm()
-              message.success(createFormat, 3)
-            }, (result) => {
-              message.error(result, 3)
-            })
-          }
-        } else if (formType === 'edit') {
-          if (values.dataBaseDataSystem === 'oracle') {
-            if (values.config === undefined || !values.config.includes('service_name')) {
-              this.dBForm.setFields({
-                config: {
-                  value: values.config,
-                  errors: [new Error(oracleErrorFormat)]
+                const editValues = {
+                  user: values.userRequired,
+                  pwd: values.passwordRequired,
+                  config: onConfigValue(values.config),
+                  desc: values.description,
+                  nsDatabase: values.nsDatabase,
+                  partitions: 0
                 }
-              })
+
+                this.props.onEditDatabase(Object.assign({}, editDatabaseData, editValues), () => {
+                  this.hideForm()
+                  message.success(modifyFormat, 3)
+                }, (result) => {
+                  message.error(result, 3)
+                })
+              }
             } else {
+              let editUser = ''
+              let editPwd = ''
+              if (values.dataBaseDataSystem === 'kafka') {
+                editUser = ''
+                editPwd = ''
+              } else if (values.dataBaseDataSystem === 'mysql' || values.dataBaseDataSystem === 'postgresql' ||
+                values.dataBaseDataSystem === 'mongodb' || values.dataBaseDataSystem === 'vertica') {
+                editUser = values.userRequired
+                editPwd = values.passwordRequired
+              } else {
+                editUser = values.user
+                editPwd = values.password
+              }
+
               const editValues = {
-                user: values.userRequired,
-                pwd: values.passwordRequired,
-                config: this.onConfigValue(values.config),
+                user: editUser,
+                pwd: editPwd,
+                config: onConfigValue(values.config),
                 desc: values.description,
                 nsDatabase: values.nsDatabase,
-                partitions: 0
+                partitions: values.dataBaseDataSystem === 'kafka' ? values.partition : 0
               }
 
               this.props.onEditDatabase(Object.assign({}, editDatabaseData, editValues), () => {
@@ -339,37 +353,7 @@ export class DataBase extends React.PureComponent {
                 message.error(result, 3)
               })
             }
-          } else {
-            let editUser = ''
-            let editPwd = ''
-            if (values.dataBaseDataSystem === 'kafka') {
-              editUser = ''
-              editPwd = ''
-            } else if (values.dataBaseDataSystem === 'mysql' || values.dataBaseDataSystem === 'postgresql' ||
-              values.dataBaseDataSystem === 'mongodb' || values.dataBaseDataSystem === 'vertica') {
-              editUser = values.userRequired
-              editPwd = values.passwordRequired
-            } else {
-              editUser = values.user
-              editPwd = values.password
-            }
-
-            const editValues = {
-              user: editUser,
-              pwd: editPwd,
-              config: this.onConfigValue(values.config),
-              desc: values.description,
-              nsDatabase: values.nsDatabase,
-              partitions: values.dataBaseDataSystem === 'kafka' ? values.partition : 0
-            }
-
-            this.props.onEditDatabase(Object.assign({}, editDatabaseData, editValues), () => {
-              this.hideForm()
-              message.success(modifyFormat, 3)
-            }, (result) => {
-              message.error(result, 3)
-            })
-          }
+            break
         }
       }
     })
@@ -439,12 +423,12 @@ export class DataBase extends React.PureComponent {
   onInputChange = (value) => (e) => this.setState({ [value]: e.target.value })
 
   /**
-   *  新增时，通过选择不同的 data system 显示不同的 Instance 下拉框内容
+   *  新增时，不同 data system 显示不同 Instance 下拉框内容
    * */
   onInitDatabaseUrlValue = (value) => {
     this.props.onLoadDatabasesInstance(value, () => {
       this.setState({ databaseDSType: value })
-      // dbForm 的 placeholder
+      // dbForm placeholder
       this.dBForm.setFieldsValue({
         connectionUrl: '',
         instance: undefined,
@@ -460,7 +444,7 @@ export class DataBase extends React.PureComponent {
     })
   }
 
-  /***
+  /**
    * 新增时，验证 database name／topic name 是否存在，不存在时，才能新增
    * */
   onInitDatabaseInputValue = (value) => {
@@ -686,7 +670,6 @@ export class DataBase extends React.PureComponent {
         }
       },
       sortOrder: sortedInfo.columnKey === 'createTime' && sortedInfo.order,
-      // filteredValue: filteredInfo.createTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -718,7 +701,6 @@ export class DataBase extends React.PureComponent {
         }
       },
       sortOrder: sortedInfo.columnKey === 'updateTime' && sortedInfo.order,
-      // filteredValue: filteredInfo.updateTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -757,12 +739,13 @@ export class DataBase extends React.PureComponent {
             <Tooltip title={<FormattedMessage {...messages.dbTableViewDetail} />}>
               <Popover
                 placement="left"
-                content={<div>
-                  <p><strong>Description：</strong>{showDBDetails.desc}</p>
-                  <p><strong>Config：</strong>{showDBDetails.config}</p>
-                  <p><strong>Partitions：</strong>{showDBDetails.partitions}</p>
-                  {nsSysKafka}
-                </div>
+                content={
+                  <div>
+                    <p><strong>Description：</strong>{showDBDetails.desc}</p>
+                    <p><strong>Config：</strong>{showDBDetails.config}</p>
+                    <p><strong>Partitions：</strong>{showDBDetails.partitions}</p>
+                    {nsSysKafka}
+                  </div>
                 }
                 title={<h3><FormattedMessage {...messages.dbTableDetail} /></h3>}
                 trigger="click"

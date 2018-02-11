@@ -31,6 +31,8 @@ import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 const FormItem = Form.Item
 
+// import { formatConcat } from '../../utils/util'
+
 export class Source2LogForm extends React.Component {
 
   constructor (props) {
@@ -58,11 +60,7 @@ export class Source2LogForm extends React.Component {
     })
   }
 
-  handleLogTimeCancel = (e) => {
-    this.setState({
-      logTimeModalVisible: false
-    })
-  }
+  handleLogTimeCancel = (e) => this.setState({ logTimeModalVisible: false })
 
   handleLogTimeOk = () => {
     if (this.flowsTime.state.startValue === null) {
@@ -70,83 +68,18 @@ export class Source2LogForm extends React.Component {
     } else if (this.flowsTime.state.endValue === null) {
       message.warning('结束时间不能为空！')
     } else {
-      const s = new Date(this.flowsTime.state.startValue._d)
-      const e = new Date(this.flowsTime.state.endValue._d)
-
-      // 时间格式转换
-      // start time
-      let monthStringS = ''
-      if (s.getMonth() + 1 < 10) {
-        monthStringS = `0${s.getMonth() + 1}`
-      } else {
-        monthStringS = `${s.getMonth()}`
-      }
-
-      let dateStringS = ''
-      if (s.getDate() < 10) {
-        dateStringS = `0${s.getDate()}`
-      } else {
-        dateStringS = `${s.getDate()}`
-      }
-
-      let hourStringS = ''
-      if (s.getHours() < 10) {
-        hourStringS = `0${s.getHours()}`
-      } else {
-        hourStringS = `${s.getHours()}`
-      }
-
-      let minuteStringS = ''
-      if (s.getMinutes() < 10) {
-        minuteStringS = `0${s.getMinutes()}`
-      } else {
-        minuteStringS = `${s.getMinutes()}`
-      }
-
-      // end time
-      let monthStringE = ''
-      if (e.getMonth() + 1 < 10) {
-        monthStringE = `0${e.getMonth() + 1}`
-      } else {
-        monthStringE = `${e.getMonth()}`
-      }
-
-      let dateStringE = ''
-      if (e.getDate() < 10) {
-        dateStringE = `0${e.getDate()}`
-      } else {
-        dateStringE = `${e.getDate()}`
-      }
-
-      let hourStringE = ''
-      if (e.getHours() < 10) {
-        hourStringE = `0${e.getHours()}`
-      } else {
-        hourStringE = `${e.getHours()}`
-      }
-
-      let minuteStringE = ''
-      if (e.getMinutes() < 10) {
-        minuteStringE = `0${e.getMinutes()}`
-      } else {
-        minuteStringE = `${e.getMinutes()}`
-      }
-
-      // 时间格式拼接
-      const startDate = `${s.getFullYear()}-${monthStringS}-${dateStringS} ${hourStringS}:${minuteStringS}`
-      const endDate = `${e.getFullYear()}-${monthStringE}-${dateStringE} ${hourStringE}:${minuteStringE}`
+      // const sVal = new Date(this.flowsTime.state.startValue._d)
+      // const eVal = new Date(this.flowsTime.state.endValue._d)
+      // const temp = formatConcat(sVal, eVal)
 
       this.props.form.validateFieldsAndScroll((err, values) => {
         if (!err) {
-          console.log(startDate, endDate)
-          // this.props.onCheckOutForm(this.props.initialFlowId, 'source2hdfs', startDate, endDate, values, () => {
+          // this.props.onCheckOutForm(this.props.initialFlowId, 'source2hdfs', temp.startDate, temp.endDate, values, () => {
           //   message.success('自动校验成功！', 5)
           // })
         }
       })
-      this.setState({
-        logTimeModalVisible: false
-      })
+      this.setState({ logTimeModalVisible: false })
     }
   }
 

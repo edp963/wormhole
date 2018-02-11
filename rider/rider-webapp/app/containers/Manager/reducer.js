@@ -57,7 +57,8 @@ import { fromJS } from 'immutable'
 const initialState = fromJS({
   streams: false,
   streamSubmitLoading: false,
-  streamNameExited: false
+  streamNameExited: false,
+  streamStartModalLoading: false
 })
 
 function streamReducer (state = initialState, { type, payload }) {
@@ -127,12 +128,14 @@ function streamReducer (state = initialState, { type, payload }) {
     case DELETE_STREAMS_SUCCESS:
       return state.set('streams', streams.filter(g => g.stream.id !== payload.result))
     case STARTORRENEW_STREAMS:
-      return state
+      return state.set('streamStartModalLoading', true)
     case STARTORRENEW_STREAMS_SUCCESS:
       streams.splice(streams.indexOf(streams.find(p => p.stream.id === payload.result.stream.id)), 1, payload.result)
-      return state.set('streams', streams.slice())
-    case OPERATE_STREAMS_ERROR:
       return state
+        .set('streams', streams.slice())
+        .set('streamStartModalLoading', false)
+    case OPERATE_STREAMS_ERROR:
+      return state.set('streamStartModalLoading', false)
     case LOAD_LASTEST_OFFSET:
       return state
     case LOAD_LASTEST_OFFSET_SUCCESS:
