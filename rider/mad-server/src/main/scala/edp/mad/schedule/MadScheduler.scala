@@ -43,10 +43,10 @@ object MadScheduler {
 
   def start: Unit = {
     val schedulerActor: ActorRef = modules.system.actorOf(Props[SchedulerActor])
-    modules.system.scheduler.schedule(30.seconds, 1.days, schedulerActor, "maintenance")
+    modules.system.scheduler.schedule(30.seconds, 12.hours, schedulerActor, "maintenance")
     modules.system.scheduler.schedule(30.seconds, 10.minutes, schedulerActor, "analysisAndDiagnosis")
-    modules.system.scheduler.schedule(30.seconds, 5.minutes, schedulerActor, "MapPersistence")
-    modules.system.scheduler.schedule(30.seconds, 5.minutes, schedulerActor, "CacheRefresh")
+    modules.system.scheduler.schedule(30.seconds, 10.minutes, schedulerActor, "MapPersistence")
+    modules.system.scheduler.schedule(30.seconds, 10.minutes, schedulerActor, "CacheRefresh")
   }
 
   class SchedulerActor extends Actor {
@@ -95,34 +95,38 @@ object MadScheduler {
     }
       //modules.offsetDal.insert()
 
-    if(modules.madMaintenance.cachePersistence == true && modules.madRedis.enable == false){
-      modules.streamMap.getMapHandle.foreach{e=>
-        logger.info(s"--------- Stream Map item ${e} \n")
-         modules.streamCacheDal.updateOrInsert(Seq(StreamCacheEntity(0,e._1, e._2, "", JsonUtils.caseClass2json(e._3), JsonUtils.caseClass2json(e._4),curTs,curTs)))
-        logger.info(s"---------  \n")
-      }
-
-      modules.applicationMap.getMapHandle.foreach{e=>
-        logger.info(s"--------- Application Map item ${e} \n")
-        modules.applicationCacheDal.updateOrInsert(Seq(ApplicationCacheEntity(0,e._1, e._2, curTs,curTs)))
-        logger.info(s"---------  \n")
-      }
-
-      modules.namespaceMap.getMapHandle.foreach{e=>
-        logger.info(s"--------- Namespace Map item ${e} \n")
-        modules.namespaceCacheDal.updateOrInsert(Seq(NamespaceCacheEntity(0,e._1, e._2, curTs,curTs)))
-        logger.info(s"---------  \n")
-      }
-    }
+//    if(modules.madMaintenance.cachePersistence == true && modules.madRedis.enable == false){
+//      modules.streamMap.getMapHandle.foreach{e=>
+//        logger.info(s"--------- Stream Map item ${e} \n")
+//         modules.streamCacheDal.updateOrInsert(Seq(StreamCacheEntity(0,e._1, e._2, "", JsonUtils.caseClass2json(e._3), JsonUtils.caseClass2json(e._4),curTs,curTs)))
+//        logger.info(s"---------  \n")
+//      }
+//
+//      modules.applicationMap.getMapHandle.foreach{e=>
+//        logger.info(s"--------- Application Map item ${e} \n")
+//        modules.applicationCacheDal.updateOrInsert(Seq(ApplicationCacheEntity(0,e._1, e._2, curTs,curTs)))
+//        logger.info(s"---------  \n")
+//      }
+//
+//      modules.namespaceMap.getMapHandle.foreach{e=>
+//        logger.info(s"--------- Namespace Map item ${e} \n")
+//        modules.namespaceCacheDal.updateOrInsert(Seq(NamespaceCacheEntity(0,e._1, e._2, curTs,curTs)))
+//        logger.info(s"---------  \n")
+//      }
+//    }
 
   }
 
   def cacheRefresh={
     //  1  refresh
+    logger.info(s" ---------  \n")
     modules.streamMap.refresh
+    logger.info(s" ---------  \n")
     modules.namespaceMap.refresh
+    logger.info(s" ---------  \n")
     modules.applicationMap.refresh
-
+    logger.info(s" ---------  \n")
+    modules.streamMap.mapPrint
     StreamDiagnosis.streamStatusDiagnosis()
     logger.info(s" ---------  \n")
     // 2 delete expire map
@@ -130,8 +134,8 @@ object MadScheduler {
       // delete the streamMap  settings on rider, but the status is not running
       // delete the appllicatoinMap which is not the wormhole stream
     }
-
   }
+
   def deleteEsIndex={
     madES.deleteHistoryIndex
   }

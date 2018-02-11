@@ -2,6 +2,7 @@ package edp.mad.rest.response
 
 
 import akka.http.scaladsl.model.HttpMethods
+import com.alibaba.fastjson.JSONObject
 import edp.mad.cache._
 import edp.mad.elasticsearch.AppInfos
 import edp.mad.elasticsearch.MadES.madES
@@ -55,8 +56,10 @@ object YarnRMResponse{
 
   def getActiveAppsInfo() = {
    //val url = s"${baseUrl}/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=$startedTimeBegin&&applicationTypes=spark"
-   val madProcessTime = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
+    val madProcessTime = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
     val url = s"${baseUrl}/apps?states=accepted,running&&applicationTypes=spark"
+    val esBulkList = new ListBuffer[String]
+    val esSchemaMap = madES.getSchemaMap(INDEXAPPINFOS.toString)
     val response = HttpClient.syncClientGetJValue("", url, HttpMethods.GET, "", "", "")
     if (response._1 == true) {
       try {
@@ -65,21 +68,25 @@ object YarnRMResponse{
           val appObjs = JsonUtils.getJValue( JsonUtils.getJValue(response._2, "apps"),"app")
           if( appObjs != null && appObjs != JNothing) {
             appObjs.extract[Array[JValue]].foreach { appObj =>
-              logger.debug(s" ===  ${appObj} \n")
-              val appId = JsonUtils.getString(appObj, "id")
-              val streamName = JsonUtils.getString(appObj, "name")
-              val state = JsonUtils.getString(appObj, "state")
-              val finalStatus = JsonUtils.getString(appObj, "finalStatus")
-              val user = JsonUtils.getString(appObj, "user")
-              val queue = JsonUtils.getString(appObj, "queue")
-              val startedTime = JsonUtils.getLong(appObj, "startedTime")
-              logger.debug(s" Application Map ${appId}   ${streamName} \n")
-              modules.applicationMap.set(ApplicationMapKey(appId), ApplicationMapValue(streamName))
 
-              val appInfos = AppInfos( DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC), appId, streamName, state, finalStatus, user, queue, DateUtils.dt2string(startedTime * 1000, DtFormat.TS_DASH_SEC) )
-              val postBody: String = JsonUtils.caseClass2json(appInfos)
-              val rc =   madES.insertEs(postBody,INDEXAPPINFOS.toString)
-              logger.debug(s" app infos: response ${rc}")
+              val flattenJson = new JSONObject
+              esSchemaMap.foreach{e=>
+               // logger.info(s" = = = = 0 ${e._1}  ${e._2}")
+                e._1 match{
+                  case "madProcessTime" =>  flattenJson.put( e._1, DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC) )
+                  case "appId" =>   flattenJson.put( e._1, JsonUtils.getString(appObj, "id") )
+                  case "streamName" =>  flattenJson.put( e._1, JsonUtils.getString(appObj, "name") )
+                  case "state" =>  flattenJson.put( e._1, JsonUtils.getString(appObj, "state") )
+                  case "finalStatus" => flattenJson.put( e._1,  JsonUtils.getString(appObj, "finalStatus") )
+                  case "user" =>  flattenJson.put( e._1, JsonUtils.getString(appObj, "user") )
+                  case "queue" =>  flattenJson.put( e._1, JsonUtils.getString(appObj, "queue") )
+                  case "startedTime" =>  flattenJson.put( e._1, DateUtils.dt2string(JsonUtils.getLong(appObj, "startedTime") * 1000, DtFormat.TS_DASH_SEC) )
+                }
+              }
+              esBulkList.append(flattenJson.toJSONString)
+
+              modules.applicationMap.set(ApplicationMapKey(JsonUtils.getString(appObj, "id")), ApplicationMapValue(JsonUtils.getString(appObj, "name")))
+              logger.debug(s" ===  ${appObj} \n")
             }
           }else{ logger.error(s" failed to get apps/app  \n") }
         }else{ logger.error(s" failed to get apps \n") }
@@ -88,7 +95,15 @@ object YarnRMResponse{
           logger.error(s"failed to parse response ${response._2} \n",e)
       }
     }else{ logger.error(s"failed to get the response from yarn resource manager ${response}" ) }
-    logger.info(s"  ${modules.applicationMap.mapPrint}")
+
+    if(esBulkList.nonEmpty){
+      val rc = madES.bulkIndex2Es( esBulkList.toList, INDEXAPPINFOS.toString)
+      logger.info(s" bulkindex message into ES ${rc}\n")
+    }else {
+      logger.info(s" the madAppInfo list is empty \n")
+    }
+
+    //logger.info(s"  ${modules.applicationMap.mapPrint}")
   }
 
   def getAllAppsInfo():List[AppInfos] = {
