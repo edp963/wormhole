@@ -24,6 +24,16 @@ trait ESIndexModule[D,T]{
     indexMap.keySet.toSet
   }
 
+  def getIndex(url: String, user: String, pwd: String, token: String):String = {
+    var responseJson = ""
+    val response = HttpClient.syncClient("", url, HttpMethods.GET, user, pwd, token)
+    if (response._1) {
+      logger.info(s" get Index $url already exists \n")
+      responseJson = response._2
+    }
+    responseJson
+  }
+
   def existIndex(url: String, user: String, pwd: String, token: String): Boolean ={
     var rc = false
     val existsResponse = HttpClient.syncClient("", url, HttpMethods.GET, user, pwd, token)
@@ -57,6 +67,18 @@ trait ESIndexModule[D,T]{
       logger.info(s" insert success $url  $body \n")
     }else {
        logger.info(s" Failed to index $url  $body  \n")
+    }
+    rc
+  }
+
+  def bulkIndex(body: String, url: String, user: String, pwd: String, token: String): Boolean ={
+    var rc = false
+    val response  = HttpClient.syncClientGetJValue(body,url, HttpMethods.POST, user, pwd, token)
+    if(response._1) {
+      rc = true
+      logger.info(s" bulkIndex success for $url  \n")
+    }else {
+      logger.info(s" bulkIndex failed for index $url  $body  \n")
     }
     rc
   }
