@@ -78,9 +78,10 @@ object HttpClient {
 
     try {
       val response = Await.result(Http().singleRequest(httpRequest), FiniteDuration(180, SECONDS))
+      logger.info(s" responseStatus: ${url}  ${response.status} \n")
       response.status match {
         case StatusCodes.OK if (response.entity.contentType == ContentTypes.`application/json`) =>
-          logger.info(s"response.entity \n ${response.entity.toString}.\n")
+          logger.debug(s"response.entity \n ${response.entity.toString}.\n")
           Await.result(
             Unmarshal(response.entity).to[String].map {
               jsonString =>
@@ -88,8 +89,16 @@ object HttpClient {
                 tc = true
                 responseJson = JsonUtils.json2jValue(jsonString)
             }, Duration.Inf)
+        case StatusCodes.Created  =>
+          tc = true
         case StatusCodes.BadRequest => {
-          logger.error(s"syncToES failed caused by incorrect latitude and longitude format")
+          Unmarshal(response.entity).to[String].flatMap {
+            entity =>
+              val error = s"Google GeoCoding request failed with status code \n ${response.status} \n  and entity $entity"
+              logger.error(s"syncToES failed caused by ${error}" )
+              Future.failed(new IOException(error))
+          }
+          logger.error(s"syncToES failed caused by incorrect latitude and longitude format ${response}")
         }
         case _ => Unmarshal(response.entity).to[String].flatMap {
           entity =>
@@ -130,16 +139,19 @@ object HttpClient {
 
     try {
       val response = Await.result(Http().singleRequest(httpRequest), Duration.Inf)
+      logger.info(s"responseStatus  ${url}  ${response.status}.\n")
       response.status match {
         case StatusCodes.OK if (response.entity.contentType == ContentTypes.`application/json`) =>
-          logger.info(s"response.entity \n ${response.entity.toString}.\n")
+          logger.debug(s"response.entity \n ${response.entity.toString}.\n")
           Await.result(
             Unmarshal(response.entity).to[String].map {
               jsonString =>
-                logger.info(s"== jsonString \n ${jsonString}.\n ")
+                //logger.info(s"== jsonString \n ${jsonString}.\n ")
                 tc = true
                 responseJson = jsonString
             }, Duration.Inf)
+        case StatusCodes.Created  =>
+            tc = true
         case StatusCodes.BadRequest => {
           logger.error(s"syncToES failed caused by incorrect latitude and longitude format")
         }
@@ -153,7 +165,7 @@ object HttpClient {
       case e: Exception =>
         logger.error(s"Failed to get the response from ES when syncToES", e)
     }
-    logger.info(s"====> syncToES return  $tc  $responseJson.")
+    //logger.info(s"====> syncToES return  $tc  $responseJson.")
     (tc, responseJson)
   }
 }
