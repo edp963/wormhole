@@ -162,13 +162,15 @@ export class Udf extends React.PureComponent {
       formVisible: true,
       formType: 'copy'
     }, () => {
-      this.props.onLoadUdfDetail(record.id, (result) => {
+      this.props.onLoadUdfDetail(record.id, ({
+        functionName, fullClassName, jarName, desc, pubic
+                                             }) => {
         this.udfForm.setFieldsValue({
-          functionName: result.functionName,
-          fullName: result.fullClassName,
-          jarName: result.jarName,
-          desc: result.desc,
-          public: `${result.pubic}`
+          functionName: functionName,
+          fullName: fullClassName,
+          jarName: jarName,
+          desc: desc,
+          public: `${pubic}`
         })
       })
     })
@@ -179,22 +181,24 @@ export class Udf extends React.PureComponent {
       formVisible: true,
       formType: 'edit'
     }, () => {
-      this.props.onLoadUdfDetail(record.id, (result) => {
+      this.props.onLoadUdfDetail(record.id, ({
+        createTime, createBy, updateTime, updateBy, id, functionName, fullClassName, jarName, desc, pubic
+                                             }) => {
         this.setState({
           queryUdfVal: {
-            createTime: result.createTime,
-            createBy: result.createBy,
-            updateTime: result.updateTime,
-            updateBy: result.updateBy
+            createTime: createTime,
+            createBy: createBy,
+            updateTime: updateTime,
+            updateBy: updateBy
           }
         })
         this.udfForm.setFieldsValue({
-          id: result.id,
-          functionName: result.functionName,
-          fullName: result.fullClassName,
-          jarName: result.jarName,
-          desc: result.desc,
-          public: `${result.pubic}`
+          id: id,
+          functionName: functionName,
+          fullName: fullClassName,
+          jarName: jarName,
+          desc: desc,
+          public: `${pubic}`
         })
       })
     })

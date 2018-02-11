@@ -39,20 +39,20 @@ import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
-import { uuid, isEquivalent, operateLanguageText } from '../../utils/util'
 
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
   deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset} from './action'
 import {loadSingleUdf} from '../Udf/action'
-import {selectStreams} from './selectors'
+import {selectStreams, selectStreamStartModalLoading} from './selectors'
+
+import { uuid, isEquivalent, operateLanguageText } from '../../utils/util'
 
 export class Manager extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
       visible: false,
-      modalLoading: false,
       refreshStreamLoading: false,
       refreshStreamText: 'Refresh',
       refreshLogLoading: false,
@@ -280,7 +280,6 @@ export class Manager extends React.Component {
 
   /**
    * start操作  获取最新数据，并回显
-   * @param record
    */
   onShowEditStart = (record) => (e) => {
     const { projectIdGeted } = this.props
@@ -368,7 +367,6 @@ export class Manager extends React.Component {
 
   /**
    *  start/renew ok
-   * @param e
    */
   handleEditStartOk = (e) => {
     const { actionType, streamIdGeted, streamStartFormData, startUdfVals } = this.state
@@ -518,17 +516,13 @@ export class Manager extends React.Component {
         this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, () => {
           this.setState({
             startModalVisible: false,
-            streamStartFormData: [],
-            modalLoading: false
+            streamStartFormData: []
           })
 
           message.success(actionTypeMsg, 3)
         }, (result) => {
           const failText = languageText === 'en' ? 'Operation failed:' : '操作失败：'
           message.error(`${failText} ${result}`, 3)
-          this.setState({
-            modalLoading: false
-          })
         })
       }
     })
@@ -731,7 +725,6 @@ export class Manager extends React.Component {
     const { className, onShowAddStream, onShowEditStream, streamClassHide } = this.props
 
     let {
-      modalLoading,
       sortedInfo,
       filteredInfo,
       startModalVisible
@@ -934,7 +927,6 @@ export class Manager extends React.Component {
         }
       },
       sortOrder: sortedInfo.columnKey === 'startedTime' && sortedInfo.order,
-      // filteredValue: filteredInfo.startedTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -966,7 +958,6 @@ export class Manager extends React.Component {
         }
       },
       sortOrder: sortedInfo.columnKey === 'stoppedTime' && sortedInfo.order,
-      // filteredValue: filteredInfo.stoppedTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -1255,7 +1246,7 @@ export class Manager extends React.Component {
               key="submit"
               size="large"
               type="primary"
-              loading={modalLoading}
+              loading={this.props.streamStartModalLoading}
               onClick={this.handleEditStartOk}
             >
               <FormattedMessage {...messages.streamTableStart} />
@@ -1305,7 +1296,8 @@ Manager.propTypes = {
   onShowEditStream: React.PropTypes.func,
   onLoadSingleUdf: React.PropTypes.func,
   onLoadLastestOffset: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func
+  onChangeLanguage: React.PropTypes.func,
+  streamStartModalLoading: React.PropTypes.bool
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1326,7 +1318,8 @@ export function mapDispatchToProps (dispatch) {
 }
 
 const mapStateToProps = createStructuredSelector({
-  streams: selectStreams()
+  streams: selectStreams(),
+  streamStartModalLoading: selectStreamStartModalLoading()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Manager)
