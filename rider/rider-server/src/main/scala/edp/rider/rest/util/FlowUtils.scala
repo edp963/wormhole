@@ -578,7 +578,7 @@ object FlowUtils extends RiderLogger {
     try {
       val streamJoinNs = getStreamJoinNamespaces(tranConfig)
       val nsSeq = (streamJoinNs += sourceNs).map(ns => modules.namespaceDal.getNamespaceByNs(ns).get)
-      nsSeq.foreach(ns => {
+      nsSeq.distinct.foreach(ns => {
         val topicSearch = Await.result(modules.inTopicDal.findByFilter(rel => rel.streamId === streamId && rel.nsDatabaseId === ns.nsDatabaseId), minTimeOut)
         if (topicSearch.isEmpty) {
           val instance = Await.result(modules.instanceDal.findByFilter(_.id === ns.nsInstanceId), minTimeOut).head
