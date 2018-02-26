@@ -36,29 +36,34 @@ const FormItem = Form.Item
 export class StreamStartForm extends React.Component {
   constructor (props) {
     super(props)
-    this.state = { data: [] }
+    this.state = { data: [] || '' }
   }
 
   componentWillReceiveProps (props) {
-    const dataFinal = props.data.map(s => {
-      const conTemp = props.consumedOffsetValue.find(i => i.id === s.id)
-      const conTempObject = conTemp
-        ? {
-          id: conTemp.id,
-          name: conTemp.name,
-          conOffsetVal: conTemp.partitionOffsets,
-          rate: conTemp.rate,
-          key: conTemp.id
-        }
-        : {}
+    let dataFinal = []
+    if (!props.data) {
+      dataFinal = 'There is no topics now.'
+    } else {
+      dataFinal = props.data.map(s => {
+        const conTemp = props.consumedOffsetValue.find(i => i.id === s.id)
+        const conTempObject = conTemp
+          ? {
+            id: conTemp.id,
+            name: conTemp.name,
+            conOffsetVal: conTemp.partitionOffsets,
+            rate: conTemp.rate,
+            key: conTemp.id
+          }
+          : {}
 
-      const kafTemp = props.kafkaOffsetValue.find(i => i.id === s.id)
-      const kafTempObject = kafTemp
-        ? {kafOffsetVal: kafTemp.partitionOffsets}
-        : {}
+        const kafTemp = props.kafkaOffsetValue.find(i => i.id === s.id)
+        const kafTempObject = kafTemp
+          ? {kafOffsetVal: kafTemp.partitionOffsets}
+          : {}
 
-      return Object.assign(conTempObject, kafTempObject)
-    })
+        return Object.assign(conTempObject, kafTempObject)
+      })
+    }
 
     this.setState({ data: dataFinal })
   }
@@ -101,172 +106,175 @@ export class StreamStartForm extends React.Component {
 
     const noTopicCardTitle = (<Col span={24} style={{fontWeight: '500'}}><span className="modal-topic-name">Topic Name</span></Col>)
 
-    const cardStartItem = data.length === 0
-      ? (
-        <Row className="no-topic-card-class">
-          <Card title={noTopicCardTitle} className="stream-start-form-card-style">
-            <div className="rate-topic-info-wrapper">
-              <div className="rate-class">
-                <Col span={24} className="card-content required-offset">
-                  Rate (<FormattedMessage {...messages.streamModalRate} />)
-                </Col>
-              </div>
-              <div className="topic-info-class">
-                <Col span={3} className="card-content">Partition</Col>
-                <Col span={7} className="card-content required-offset">Offset</Col>
-                <Col span={7} className="card-content">Lastest Consumed Offset</Col>
-                <Col span={7} className="card-content">Lastest Kafka Offset</Col>
-              </div>
-            </div>
-            <h3 className="no-topic-class">There is no topics now.</h3>
-          </Card>
-        </Row>
-      )
-      : data.map(i => {
-        let parOffInput = ''
-
-        if (i.conOffsetVal) {
-          const partitionOffsetsArr = i.conOffsetVal.split(',')
-
-          parOffInput = partitionOffsetsArr.map((g, index) => {
-            const gKey = g.substring(0, g.indexOf(':'))
-            const conOffFinal = g.substring(g.indexOf(':') + 1)
-
-            let kafOffFinal = ''
-            if (i.kafOffsetVal) {
-              const kafOffArr = i.kafOffsetVal.split(',')
-              const kafOffFilter = kafOffArr.filter(s => s.substring(0, s.indexOf(':')) === gKey)
-              kafOffFinal = kafOffFilter[0].substring(kafOffFilter[0].indexOf(':') + 1)
-            } else {
-              kafOffFinal = ''
-            }
-
-            const applyFormat = <FormattedMessage {...messages.streamModalApply} />
-            return (
-              <Row key={`${i.id}_${index}`}>
-                <Col span={3} className="partition-content">{g.substring(0, g.indexOf(':'))}</Col>
-                <Col span={7} className="offset-content">
-                  <FormItem>
-                    <ol key={g}>
-                      {getFieldDecorator(`${i.id}_${index}`, {
-                        rules: [{
-                          required: true,
-                          message: languageText === 'en' ? 'Please fill in offset' : '请填写 Offset'
-                        }, {
-                          validator: forceCheckNum
-                        }],
-                        initialValue: conOffFinal
-                      })(
-                        <InputNumber size="medium" className="conform-table-input" />
-                      )}
-                    </ol>
-                  </FormItem>
-                </Col>
-                <Col span={7} className="stream-start-offset-class">
-                  <FormItem>
-                    <ol key={g}>
-                      {getFieldDecorator(`consumedLatest_${i.id}_${index}`, {})(
-                        <div className="stream-start-lastest-consumed-offset">
-                          <span style={{ marginRight: '5px' }}>{conOffFinal}</span>
-                          <Tooltip title={applyFormat}>
-                            <Button shape="circle" type="ghost" onClick={this.onApplyConOffset(i, index, conOffFinal)}>
-                              <i className="iconfont icon-apply_icon_-copy-copy"></i>
-                            </Button>
-                          </Tooltip>
-                        </div>
-                      )}
-                    </ol>
-                  </FormItem>
-                </Col>
-                <Col span={7} className="stream-start-offset-class">
-                  <FormItem>
-                    <ol key={g}>
-                      {getFieldDecorator(`kafkaLatest_${i.id}_${index}`, {})(
-                        <div className="stream-start-lastest-kafka-offset">
-                          <span style={{ marginRight: '5px' }}>{kafOffFinal}</span>
-                          <Tooltip title={applyFormat}>
-                            <Button shape="circle" type="ghost" onClick={this.onApplyKafkaOffset(i, index, kafOffFinal)}>
-                              <i className="iconfont icon-apply_icon_-copy-copy"></i>
-                            </Button>
-                          </Tooltip>
-                        </div>
-                      )}
-                    </ol>
-                  </FormItem>
-                </Col>
-              </Row>
-            )
-          })
-        } else {
-          return
-        }
-
-        const cardTitle = (
-          <Row key={i.id}>
-            <Col span={24} style={{fontWeight: '500'}}>
-              <span className="modal-topic-name">Topic Name</span>
-              {i.name}
-            </Col>
-          </Row>
-        )
-
-        const applyAllText = <FormattedMessage {...messages.streamModalApplyAll} />
-        const cardContent = (
-          <Row key={i.id} className="apply-all-btn">
-            <div className="rate-topic-info-wrapper">
-              <Col span={3} className="card-content card-content-extra">Partition</Col>
-              <Col span={7} className="card-content required-offset card-content-extra">Offset</Col>
-              <Col span={7} className="card-content">Lastest Consumed Offset
-                <Tooltip title={applyAllText}>
-                  <Button shape="circle" type="ghost" onClick={this.onApplyAll(i, 'consumer')}>
-                    <i className="iconfont icon-apply_icon_-copy-copy"></i>
-                  </Button>
-                </Tooltip>
-              </Col>
-              <Col span={7} className="card-content">Lastest Kafka Offset
-                <Tooltip title={applyAllText}>
-                  <Button shape="circle" type="ghost" onClick={this.onApplyAll(i, 'kafka')}>
-                    <i className="iconfont icon-apply_icon_-copy-copy"></i>
-                  </Button>
-                </Tooltip>
-              </Col>
-            </div>
-            {parOffInput}
-          </Row>
-        )
-
-        return (
-          <Row key={i.id}>
-            <Card title={cardTitle} className="stream-start-form-card-style">
+    let cardStartItem = ''
+    if (data) {
+      cardStartItem = data === 'There is no topics now.'
+        ? (
+          <Row className="no-topic-card-class">
+            <Card title={noTopicCardTitle} className="stream-start-form-card-style">
               <div className="rate-topic-info-wrapper">
                 <div className="rate-class">
-                  <Col span={24} className="card-content required-offset card-content-extra">
+                  <Col span={24} className="card-content required-offset">
                     Rate (<FormattedMessage {...messages.streamModalRate} />)
-                  </Col>
-                  <Col span={24}>
-                    <FormItem>
-                      {getFieldDecorator(`${i.id}_${i.rate}_rate`, {
-                        rules: [{
-                          required: true,
-                          message: languageText === 'en' ? 'Please fill in rate' : '请填写 Rate'
-                        }, {
-                          validator: forceCheckNum
-                        }],
-                        initialValue: `${i.rate}`
-                      })(
-                        <InputNumber size="medium" className="rate-input" />
-                      )}
-                    </FormItem>
                   </Col>
                 </div>
                 <div className="topic-info-class">
-                  {cardContent}
+                  <Col span={3} className="card-content">Partition</Col>
+                  <Col span={7} className="card-content required-offset">Offset</Col>
+                  <Col span={7} className="card-content">Lastest Consumed Offset</Col>
+                  <Col span={7} className="card-content">Lastest Kafka Offset</Col>
                 </div>
               </div>
+              <h3 className="no-topic-class">{data}</h3>
             </Card>
           </Row>
         )
-      })
+        : data.map(i => {
+          let parOffInput = ''
+
+          if (i.conOffsetVal) {
+            const partitionOffsetsArr = i.conOffsetVal.split(',')
+
+            parOffInput = partitionOffsetsArr.map((g, index) => {
+              const gKey = g.substring(0, g.indexOf(':'))
+              const conOffFinal = g.substring(g.indexOf(':') + 1)
+
+              let kafOffFinal = ''
+              if (i.kafOffsetVal) {
+                const kafOffArr = i.kafOffsetVal.split(',')
+                const kafOffFilter = kafOffArr.filter(s => s.substring(0, s.indexOf(':')) === gKey)
+                kafOffFinal = kafOffFilter[0].substring(kafOffFilter[0].indexOf(':') + 1)
+              } else {
+                kafOffFinal = ''
+              }
+
+              const applyFormat = <FormattedMessage {...messages.streamModalApply} />
+              return (
+                <Row key={`${i.id}_${index}`}>
+                  <Col span={3} className="partition-content">{g.substring(0, g.indexOf(':'))}</Col>
+                  <Col span={7} className="offset-content">
+                    <FormItem>
+                      <ol key={g}>
+                        {getFieldDecorator(`${i.id}_${index}`, {
+                          rules: [{
+                            required: true,
+                            message: languageText === 'en' ? 'Please fill in offset' : '请填写 Offset'
+                          }, {
+                            validator: forceCheckNum
+                          }],
+                          initialValue: conOffFinal
+                        })(
+                          <InputNumber size="medium" className="conform-table-input" />
+                        )}
+                      </ol>
+                    </FormItem>
+                  </Col>
+                  <Col span={7} className="stream-start-offset-class">
+                    <FormItem>
+                      <ol key={g}>
+                        {getFieldDecorator(`consumedLatest_${i.id}_${index}`, {})(
+                          <div className="stream-start-lastest-consumed-offset">
+                            <span style={{ marginRight: '5px' }}>{conOffFinal}</span>
+                            <Tooltip title={applyFormat}>
+                              <Button shape="circle" type="ghost" onClick={this.onApplyConOffset(i, index, conOffFinal)}>
+                                <i className="iconfont icon-apply_icon_-copy-copy"></i>
+                              </Button>
+                            </Tooltip>
+                          </div>
+                        )}
+                      </ol>
+                    </FormItem>
+                  </Col>
+                  <Col span={7} className="stream-start-offset-class">
+                    <FormItem>
+                      <ol key={g}>
+                        {getFieldDecorator(`kafkaLatest_${i.id}_${index}`, {})(
+                          <div className="stream-start-lastest-kafka-offset">
+                            <span style={{ marginRight: '5px' }}>{kafOffFinal}</span>
+                            <Tooltip title={applyFormat}>
+                              <Button shape="circle" type="ghost" onClick={this.onApplyKafkaOffset(i, index, kafOffFinal)}>
+                                <i className="iconfont icon-apply_icon_-copy-copy"></i>
+                              </Button>
+                            </Tooltip>
+                          </div>
+                        )}
+                      </ol>
+                    </FormItem>
+                  </Col>
+                </Row>
+              )
+            })
+          } else {
+            return
+          }
+
+          const cardTitle = (
+            <Row key={i.id}>
+              <Col span={24} style={{fontWeight: '500'}}>
+                <span className="modal-topic-name">Topic Name</span>
+                {i.name}
+              </Col>
+            </Row>
+          )
+
+          const applyAllText = <FormattedMessage {...messages.streamModalApplyAll} />
+          const cardContent = (
+            <Row key={i.id} className="apply-all-btn">
+              <div className="rate-topic-info-wrapper">
+                <Col span={3} className="card-content card-content-extra">Partition</Col>
+                <Col span={7} className="card-content required-offset card-content-extra">Offset</Col>
+                <Col span={7} className="card-content">Lastest Consumed Offset
+                  <Tooltip title={applyAllText}>
+                    <Button shape="circle" type="ghost" onClick={this.onApplyAll(i, 'consumer')}>
+                      <i className="iconfont icon-apply_icon_-copy-copy"></i>
+                    </Button>
+                  </Tooltip>
+                </Col>
+                <Col span={7} className="card-content">Lastest Kafka Offset
+                  <Tooltip title={applyAllText}>
+                    <Button shape="circle" type="ghost" onClick={this.onApplyAll(i, 'kafka')}>
+                      <i className="iconfont icon-apply_icon_-copy-copy"></i>
+                    </Button>
+                  </Tooltip>
+                </Col>
+              </div>
+              {parOffInput}
+            </Row>
+          )
+
+          return (
+            <Row key={i.id}>
+              <Card title={cardTitle} className="stream-start-form-card-style">
+                <div className="rate-topic-info-wrapper">
+                  <div className="rate-class">
+                    <Col span={24} className="card-content required-offset card-content-extra">
+                      Rate (<FormattedMessage {...messages.streamModalRate} />)
+                    </Col>
+                    <Col span={24}>
+                      <FormItem>
+                        {getFieldDecorator(`${i.id}_${i.rate}_rate`, {
+                          rules: [{
+                            required: true,
+                            message: languageText === 'en' ? 'Please fill in rate' : '请填写 Rate'
+                          }, {
+                            validator: forceCheckNum
+                          }],
+                          initialValue: `${i.rate}`
+                        })(
+                          <InputNumber size="medium" className="rate-input" />
+                        )}
+                      </FormItem>
+                    </Col>
+                  </div>
+                  <div className="topic-info-class">
+                    {cardContent}
+                  </div>
+                </div>
+              </Card>
+            </Row>
+          )
+        })
+    }
 
     const itemStyleUdf = {
       wrapperCol: { span: 24 }

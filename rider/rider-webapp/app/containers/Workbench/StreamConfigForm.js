@@ -151,7 +151,7 @@ export class StreamConfigForm extends React.Component {
                 }, {
                   validator: forceCheckNum
                 }],
-                initialValue: 10
+                initialValue: 30
               })(
                 <InputNumber min={1} step={1} />
               )}

@@ -59,7 +59,7 @@ export class DBForm extends React.Component {
     switch (name) {
       case 'instance':
         // 选择不同的 instance 显示不同的 connection url
-        const selUrl = this.state.currentDatabaseUrlValue.find(s => s.id === Number(e))
+        const selUrl = this.state.currentDatabaseUrlValue.find(s => Object.is(s.id, Number(e)))
         this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
         this.setState({ connUrlText: selUrl.connUrl })
         break
