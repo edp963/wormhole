@@ -218,7 +218,7 @@ export class Instance extends React.PureComponent {
             })
           }
         } else if (instanceFormType === 'edit') {
-          this.props.onEditInstance(Object.assign({}, this.state.editInstanceData, {
+          this.props.onEditInstance(Object.assign(this.state.editInstanceData, {
             desc: values.description,
             connUrl: values.connectionUrl
           }), () => {

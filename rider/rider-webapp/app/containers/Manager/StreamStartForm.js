@@ -57,7 +57,7 @@ export class StreamStartForm extends React.Component {
         ? {kafOffsetVal: kafTemp.partitionOffsets}
         : {}
 
-      return Object.assign({}, conTempObject, kafTempObject)
+      return Object.assign(conTempObject, kafTempObject)
     })
 
     this.setState({ data: dataFinal })
