@@ -302,8 +302,13 @@ export function* startOrRenewStreamWathcer () {
 export function* getLastestOffset ({ payload }) {
   try {
     const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/topics/offsets/latest`)
-    yield put(lastestOffsetLoaded(result.payload))
-    payload.resolve(result.payload)
+    if (result.code && result.code === 200) {
+      yield put(lastestOffsetLoaded(result.msg))
+      payload.resolve(result.msg)
+    } else if (result.header.code && result.header.code === 200) {
+      yield put(lastestOffsetLoaded(result.payload))
+      payload.resolve(result.payload)
+    }
   } catch (err) {
     notifySagasError(err, 'getLastestOffset')
   }
