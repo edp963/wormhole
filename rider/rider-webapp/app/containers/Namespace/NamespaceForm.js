@@ -63,24 +63,30 @@ export class NamespaceForm extends React.Component {
     }
   }
 
-  // 选择 instance 显示不同的 connection url
-  onHandleChangeInstance = (e) => {
-    const selUrl = this.state.currentNamespaceUrlValue.find(s => s.id === Number(e))
-    this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
-    this.props.cleanNsTableData()
-    this.setState({
-      instanceIdGeted: selUrl.id
-    }, () => {
-      // 通过 instance id 显示 database 下拉框
-      this.props.onInitDatabaseSelectValue(this.state.instanceIdGeted, selUrl.connUrl)
-    })
+  onHandleChange = (name) => (e) => {
+    switch (name) {
+      case 'instance':
+        const selUrl = this.state.currentNamespaceUrlValue.find(s => s.id === Number(e))
+        this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
+        this.props.cleanNsTableData()
+        this.setState({
+          instanceIdGeted: selUrl.id
+        }, () => {
+          // 通过 instance id 显示 database 下拉框
+          this.props.onInitDatabaseSelectValue(this.state.instanceIdGeted, selUrl.connUrl)
+        })
+        break
+      case 'nsDatabase':
+        this.props.cleanNsTableData()
+        break
+      case 'nsSingleTableName':
+        this.props.onInitNsNameInputValue(e.target.value)
+        break
+      case 'nsSingleKeyValue':
+        this.props.onInitNsKeyInputValue(e.target.value)
+        break
+    }
   }
-
-  onHandleChangeDatabase = (e) => this.props.cleanNsTableData()
-
-  onHandleNsTableName = (e) => this.props.onInitNsNameInputValue(e.target.value)
-
-  onHandleNsKey = (e) => this.props.onInitNsKeyInputValue(e.target.value)
 
   render () {
     const { getFieldDecorator } = this.props.form
@@ -257,7 +263,7 @@ export class NamespaceForm extends React.Component {
               })(
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
-                  onChange={this.onHandleChangeInstance}
+                  onChange={this.onHandleChange('instance')}
                   placeholder={languageText === 'en' ? 'Select an Instance' : '请选择 Instance'}
                   disabled={disabledOrNot}
                 >
@@ -285,7 +291,7 @@ export class NamespaceForm extends React.Component {
               })(
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
-                  onChange={this.onHandleChangeDatabase}
+                  onChange={this.onHandleChange('nsDatabase')}
                   placeholder={namespaceDBPlace}
                   disabled={disabledOrNot}
                 >
@@ -309,7 +315,7 @@ export class NamespaceForm extends React.Component {
                 {getFieldDecorator('nsSingleTableName', {})(
                   <Input
                     placeholder={namespaceTablePlace}
-                    onChange={this.onHandleNsTableName}
+                    onChange={this.onHandleChange('nsSingleTableName')}
                     disabled={disabledOrNot}
                   />
                 )}
@@ -320,7 +326,7 @@ export class NamespaceForm extends React.Component {
                 {getFieldDecorator('nsSingleKeyValue', {})(
                   <Input
                     placeholder={namespaceKeyPlaceholder}
-                    onChange={this.onHandleNsKey}
+                    onChange={this.onHandleChange('nsSingleKeyValue')}
                     disabled={disabledKeyOrNot}
                   />
                 )}

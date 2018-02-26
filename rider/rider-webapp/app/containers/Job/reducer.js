@@ -91,9 +91,9 @@ function jobReducer (state = initialState, { type, payload }) {
       return state.set('error', false)
     case OPERATE_JOB_SUCCESS:
       if (typeof (payload.result) === 'number') {
-        return state.set('jobs', jobs.filter(g => g.job.id !== payload.result))
+        return state.set('jobs', jobs.filter(g => !Object.is(g.job.id, payload.result)))
       } else {
-        const startIndexOperate = jobs.indexOf(jobs.find(g => g.job.id === payload.result.job.id))
+        const startIndexOperate = jobs.indexOf(jobs.find(g => Object.is(g.job.id, payload.result.job.id)))
         jobs.fill(payload.result, startIndexOperate, startIndexOperate + 1)
         return state.set('jobs', jobs.slice())
       }
@@ -137,7 +137,7 @@ function jobReducer (state = initialState, { type, payload }) {
     case EDIT_JOB:
       return state.set('jobSubmitLoading', true)
     case EDIT_JOB_SUCCESS:
-      const startIndexEdit = jobs.indexOf(jobs.find(p => p.job.id === payload.result.job.id))
+      const startIndexEdit = jobs.indexOf(jobs.find(p => Object.is(p.job.id, payload.result.job.id)))
       jobs.fill(payload.result, startIndexEdit, startIndexEdit + 1)
       return state
         .set('jobs', jobs.slice())

@@ -76,7 +76,7 @@ export function databaseReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_DATABASE_SUCCESS:
-      const startIndex = databases.indexOf(databases.find(p => p.id === payload.result.id))
+      const startIndex = databases.indexOf(databases.find(p => Object.is(p.id, payload.result.id)))
       databases.fill(payload.result, startIndex, startIndex + 1)
       return state
         .set('databases', databases.slice())
@@ -96,7 +96,7 @@ export function databaseReducer (state = initialState, { type, payload }) {
     case DELETE_DB:
       return state
     case DELETE_DB_SUCCESS:
-      return state.set('databases', databases.filter(g => g.id !== payload.result))
+      return state.set('databases', databases.filter(g => !Object.is(g.id, payload.result)))
     case DELETE_DB_ERROR:
       return state
     case GET_ERROR:
