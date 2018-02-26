@@ -470,7 +470,7 @@ function genFinalNameAndType (array) {
 export function genDefaultSchemaTable (array, type) {
   if (type === 'source') {
     let arrayFinal = array.map(i => {
-      const temp = Object.assign({}, i, {
+      const temp = Object.assign(i, {
         selected: true,
         rename: i.fieldName.split('#').pop(),
         ums_id_: false,
@@ -483,7 +483,7 @@ export function genDefaultSchemaTable (array, type) {
     return arrayFinal
   } else {
     let arrayFinal = array.map(i => {
-      const temp = Object.assign({}, i, {
+      const temp = Object.assign(i, {
         selected: true,
         forbidden: false
       })

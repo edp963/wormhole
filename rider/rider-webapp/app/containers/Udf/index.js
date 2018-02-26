@@ -228,7 +228,7 @@ export class Udf extends React.PureComponent {
             message.error(`${formType === 'add' ? createFailText : copyFailText} ${result}`, 3)
           })
         } else if (formType === 'edit') {
-          this.props.onEditUdf(Object.assign({}, values, queryUdfVal), () => {
+          this.props.onEditUdf(Object.assign(values, queryUdfVal), () => {
             message.success(operateLanguageText('success', 'modify'), 3)
             this.setState({ formVisible: false })
           }, (result) => {

@@ -246,7 +246,7 @@ export class User extends React.PureComponent {
             }
             break
           case 'editMsg':
-            onEditUser(Object.assign({}, editUsersMsgData, values, {
+            onEditUser(Object.assign(editUsersMsgData, values, {
               preferredLanguage: preferLanguage
             }), () => {
               this.hideForm()
@@ -254,7 +254,7 @@ export class User extends React.PureComponent {
             })
             break
           case 'editPsw':
-            onEditUser(Object.assign({}, editUsersPswData, {
+            onEditUser(Object.assign(editUsersPswData, {
               password: values.password,
               preferredLanguage: preferLanguage
             }), () => {

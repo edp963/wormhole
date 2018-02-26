@@ -120,7 +120,7 @@ export class Manager extends React.Component {
   componentWillReceiveProps (props) {
     if (props.streams) {
       const originStreams = props.streams.map(s => {
-        const responseOriginStream = Object.assign({}, s.stream, {
+        const responseOriginStream = Object.assign(s.stream, {
           disableActions: s.disableActions,
           topicInfo: s.topicInfo,
           instance: s.kafkaInfo.instance,

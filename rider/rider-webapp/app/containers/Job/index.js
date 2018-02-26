@@ -103,7 +103,7 @@ export class Job extends React.Component {
   componentWillReceiveProps (props) {
     if (props.jobs) {
       const originJobs = props.jobs.map(s => {
-        const responseOriginJob = Object.assign({}, s.job, {
+        const responseOriginJob = Object.assign(s.job, {
           disableActions: s.disableActions,
           projectName: s.projectName
         })
