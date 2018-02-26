@@ -315,7 +315,7 @@ export class DataBase extends React.PureComponent {
                   partitions: 0
                 }
 
-                this.props.onEditDatabase(Object.assign({}, editDatabaseData, editValues), () => {
+                this.props.onEditDatabase(Object.assign(editDatabaseData, editValues), () => {
                   this.hideForm()
                   message.success(modifyFormat, 3)
                 }, (result) => {
@@ -346,7 +346,7 @@ export class DataBase extends React.PureComponent {
                 partitions: values.dataBaseDataSystem === 'kafka' ? values.partition : 0
               }
 
-              this.props.onEditDatabase(Object.assign({}, editDatabaseData, editValues), () => {
+              this.props.onEditDatabase(Object.assign(editDatabaseData, editValues), () => {
                 this.hideForm()
                 message.success(modifyFormat, 3)
               }, (result) => {

@@ -62,11 +62,16 @@ export class WorkbenchJobForm extends React.Component {
     }
   }
 
-  onNameInputChange = (e) => this.props.onInitJobNameValue(e.target.value)
-
-  onAllOrNotSelect = (e) => this.props.initResultFieldClass(e)
-
-  onShowDataFrame = (e) => this.props.initDataShowClass(e)
+  onHandleChange = (name) => (e) => {
+    switch (name) {
+      case 'jobName':
+        this.props.onInitJobNameValue(e.target.value)
+        break
+      case 'resultFields':
+        this.props.initResultFieldClass(e.target.value)
+        break
+    }
+  }
 
   // 通过不同的 Source Data System 显示不同的 Source Namespace 的内容
   onSourceDataSystemItemSelect = (val) => this.props.onInitJobSourceNs(this.props.projectIdGeted, val, 'sourceType')
@@ -315,7 +320,11 @@ export class WorkbenchJobForm extends React.Component {
                     validator: this.forceCheckSave
                   }]
                 })(
-                  <Input placeholder="Name" onChange={this.onNameInputChange} disabled={jobMode === 'edit'} />
+                  <Input
+                    placeholder="Name"
+                    onChange={this.onHandleChange('jobName')}
+                    disabled={jobMode === 'edit'}
+                  />
                 )}
               </FormItem>
             </Col>
@@ -478,7 +487,7 @@ export class WorkbenchJobForm extends React.Component {
                   }],
                   hidden: stepHiddens[1]
                 })(
-                  <RadioGroup className="radio-group-style" onChange={this.onAllOrNotSelect} size="default">
+                  <RadioGroup className="radio-group-style" onChange={this.onHandleChange('resultFields')} size="default">
                     <RadioButton value="all" className="radio-btn-style fradio-btn-extra">All</RadioButton>
                     <RadioButton value="selected" className="radio-btn-style radio-btn-extra">Selected</RadioButton>
                   </RadioGroup>
@@ -674,7 +683,6 @@ WorkbenchJobForm.propTypes = {
   jobTranTableConfirmValue: React.PropTypes.string,
   fieldSelected: React.PropTypes.string,
   initResultFieldClass: React.PropTypes.func,
-  initDataShowClass: React.PropTypes.func,
   initStartTS: React.PropTypes.func,
   initEndTS: React.PropTypes.func,
   onShowJobSpecialConfigModal: React.PropTypes.func

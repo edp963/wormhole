@@ -407,7 +407,7 @@ export function* saveForm ({ payload }) {
     const result = yield call(request, {
       method: 'post',
       url: `${api.flowTask}/${payload.flowId}`,
-      data: Object.assign({}, payload.value, {
+      data: Object.assign(payload.value, {
         taskType: payload.taskType,
         startTime: '',
         endTime: ''
@@ -446,7 +446,7 @@ export function* checkOutForm ({ payload }) {
     const result = yield call(request, {
       method: 'put',
       url: `${api.flowTask}/${payload.flowId}`,
-      data: Object.assign({}, payload.value, {
+      data: Object.assign(payload.value, {
         taskType: payload.taskType,
         startTime: payload.startDate,
         endTime: payload.endDate

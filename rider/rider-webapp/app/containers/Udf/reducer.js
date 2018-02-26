@@ -83,7 +83,7 @@ export function udfReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_UDF_SUCCESS:
-      const startIndex = udfs.indexOf(udfs.find(p => p.id === payload.udf.id))
+      const startIndex = udfs.indexOf(udfs.find(p => Object.is(p.id, payload.udf.id)))
       udfs.fill(payload.udf, startIndex, startIndex + 1)
       return state
         .set('udfs', udfs.slice())
@@ -93,7 +93,7 @@ export function udfReducer (state = initialState, { type, payload }) {
     case DELETE_UDF:
       return state
     case DELETE_UDF_SUCCESS:
-      return state.set('udfs', udfs.filter(g => g.id !== payload.result))
+      return state.set('udfs', udfs.filter(g => !Object.is(g.id, payload.result)))
     case DELETE_UDF_ERROR:
       return state
     case GET_ERROR:

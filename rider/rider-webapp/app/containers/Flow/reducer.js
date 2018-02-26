@@ -142,7 +142,7 @@ function flowReducer (state = initialState, { type, payload }) {
       if (typeof (payload.result) === 'string') {
         return state.set('flows', flows.filter(g => payload.result.split(',').indexOf(`${g.id}`) < 0))
       } else {
-        const startIndex = flows.indexOf(flows.find(g => g.id === payload.result.id))
+        const startIndex = flows.indexOf(flows.find(g => Object.is(g.id, payload.result.id)))
         if (payload.result.length === undefined) {
           flows.fill(payload.result, startIndex, startIndex + 1)
         } else {
@@ -194,7 +194,7 @@ function flowReducer (state = initialState, { type, payload }) {
     case EDIT_LOGFORM:
       return state.set('error', false)
     case EDIT_LOGFORM_SUCCESS:
-      const startIndexLogForm = flows.indexOf(flows.find(g => g.id === payload.result.id))
+      const startIndexLogForm = flows.indexOf(flows.find(g => Object.is(g.id, payload.result.id)))
       flows.fill(payload.result, startIndexLogForm, startIndexLogForm + 1)
       return state.set('flows', flows.slice())
     case EDIT_LOGFORM_ERROR:
@@ -202,7 +202,7 @@ function flowReducer (state = initialState, { type, payload }) {
     case SAVE_FORM:
       return state.set('error', false)
     case SAVE_FORM_SUCCESS:
-      const startIndexSave = flows.indexOf(flows.find(g => g.id === payload.result.payload.flowId))
+      const startIndexSave = flows.indexOf(flows.find(g => Object.is(g.id, payload.result.payload.flowId)))
       flows.fill(payload.result.payload, startIndexSave, startIndexSave + 1)
       return state.set('flows', flows.slice())
     case SAVE_FORM_ERROR:
@@ -210,7 +210,7 @@ function flowReducer (state = initialState, { type, payload }) {
     case CHECKOUT_FORM:
       return state.set('error', false)
     case CHECKOUT_FORM_SUCCESS:
-      const startIndexCheckout = flows.indexOf(flows.find(g => g.id === payload.result.payload.flowId))
+      const startIndexCheckout = flows.indexOf(flows.find(g => Object.is(g.id, payload.result.payload.flowId)))
       flows.fill(payload.result.payload, startIndexCheckout, startIndexCheckout + 1)
       return state.set('flows', flows.slice())
     case CHECKOUT_FORM_ERROR:
@@ -218,7 +218,7 @@ function flowReducer (state = initialState, { type, payload }) {
     case EDIT_FLOWS:
       return state.set('flowSubmitLoading', true)
     case EDIT_FLOWS_SUCCESS:
-      const startIndexEdit = flows.indexOf(flows.find(p => p.id === payload.result.id))
+      const startIndexEdit = flows.indexOf(flows.find(p => Object.is(p.id, payload.result.id)))
       flows.fill(payload.result, startIndexEdit, startIndexEdit + 1)
       return state
         .set('flows', flows.slice())

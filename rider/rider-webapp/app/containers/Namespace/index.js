@@ -398,7 +398,7 @@ export class Namespace extends React.PureComponent {
       table: addTableValue,
       key: addKeyValue
     }]
-    const addValues = Object.assign({}, requestOthers, { nsTables: requestNsTables })
+    const addValues = Object.assign(requestOthers, { nsTables: requestNsTables })
     this.nsAdd(addValues)
   }
 
@@ -413,7 +413,7 @@ export class Namespace extends React.PureComponent {
       return i
     })
 
-    const addValues = Object.assign({}, requestOthers, { nsTables: requestNsTables })
+    const addValues = Object.assign(requestOthers, { nsTables: requestNsTables })
     this.nsAdd(addValues)
   }
 
@@ -430,7 +430,7 @@ export class Namespace extends React.PureComponent {
     if (namespaceTableSource.find(i => i.nsModalTable === addTableValue)) {
       this.nsErrorMsg(tableText)
     } else {
-      const addValues = Object.assign({}, requestOthers, { nsTables: requestNsTables })
+      const addValues = Object.assign(requestOthers, { nsTables: requestNsTables })
       this.nsAdd(addValues)
     }
   }
@@ -525,7 +525,7 @@ export class Namespace extends React.PureComponent {
               const editKeysValue = values.nsSingleKeyValue
 
               if (values.dataBaseDataSystem === 'redis') {
-                this.props.onEditNamespace(Object.assign({}, editNamespaceData, queryConnUrl, { keys: '' }), () => {
+                this.props.onEditNamespace(Object.assign(editNamespaceData, queryConnUrl, { keys: '' }), () => {
                   this.hideForm()
                   message.success(successText, 3)
                 })
@@ -533,7 +533,7 @@ export class Namespace extends React.PureComponent {
                 if (editKeysValue === '') {
                   this.nsErrorMsg(keyText)
                 } else {
-                  this.props.onEditNamespace(Object.assign({}, editNamespaceData, queryConnUrl, { keys: editKeysValue }), () => {
+                  this.props.onEditNamespace(Object.assign(editNamespaceData, queryConnUrl, { keys: editKeysValue }), () => {
                     this.hideForm()
                     message.success(successText, 3)
                   })

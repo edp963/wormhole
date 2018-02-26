@@ -468,20 +468,8 @@ export class Workbench extends React.Component {
     }
   }
 
-  // 控制 result field show／hide
-  initResultFieldClass = (e) => {
-    switch (e.target.value) {
-      case 'selected':
-        this.setState({ fieldSelected: '' })
-        break
-      case 'all':
-        this.setState({ fieldSelected: 'hide' })
-        break
-    }
-  }
-
-  // 控制 data frame number show／hide
-  initDataShowClass = (e) => this.setState({ dataframeShowSelected: e.target.value === 'true' ? '' : 'hide' })
+  initResultFieldClass = (value) => this.setState({ fieldSelected: value === 'all' ? 'hide' : '' })
+  initDataShowClass = (value) => this.setState({ dataframeShowSelected: value === 'true' ? '' : 'hide' })
 
   showAddFlowWorkbench = () => {
     this.workbenchFlowForm.resetFields()
@@ -515,7 +503,7 @@ export class Workbench extends React.Component {
     // 显示 Stream 信息
     this.props.onLoadSelectStreamKafkaTopic(this.state.projectId, val, (result) => {
       const resultFinal = result.map(s => {
-        const responseResult = Object.assign({}, s.stream, {
+        const responseResult = Object.assign(s.stream, {
           disableActions: s.disableActions,
           topicInfo: s.topicInfo,
           instance: s.kafkaInfo.instance,
@@ -1241,7 +1229,7 @@ export class Workbench extends React.Component {
     this.workbenchStreamForm.resetFields()
 
     this.props.onLoadStreamDetail(this.state.projectId, stream.id, 'user', (result) => {
-      const resultVal = Object.assign({}, result.stream, {
+      const resultVal = Object.assign(result.stream, {
         disableActions: result.disableActions,
         topicInfo: result.topicInfo,
         instance: result.kafkaInfo.instance,
@@ -1776,7 +1764,7 @@ export class Workbench extends React.Component {
 
     const maxRecordJson = { maxRecordPerPartitionProcessed: values.maxRecordPerPartitionProcessed }
     const maxRecord = JSON.stringify(maxRecordJson)
-    const maxRecordAndResult = JSON.stringify(Object.assign({}, maxRecordJson, jobResultFiledsOutput))
+    const maxRecordAndResult = JSON.stringify(Object.assign(maxRecordJson, jobResultFiledsOutput))
 
     let sinkConfigRequest = ''
     if (values.resultFields === 'all') {
@@ -1795,7 +1783,7 @@ export class Workbench extends React.Component {
     } else {
       const tranConfigRequestTemp = !values.jobSpecialConfig
         ? jobTranTableRequestValue
-        : Object.assign({}, jobTranTableRequestValue, { 'swifts_specific_config': JSON.parse(values.jobSpecialConfig) })
+        : Object.assign(jobTranTableRequestValue, { 'swifts_specific_config': JSON.parse(values.jobSpecialConfig) })
       tranConfigRequest = JSON.stringify(tranConfigRequestTemp)
     }
 
@@ -1823,13 +1811,13 @@ export class Workbench extends React.Component {
         sourceConfig: `{"protocol":"${values.protocol}"}`
       }
 
-      this.props.onAddJob(Object.assign({}, submitJobData, jobSparkConfigValues, requestCommon), () => {
+      this.props.onAddJob(Object.assign(submitJobData, jobSparkConfigValues, requestCommon), () => {
         message.success(languageText === 'en' ? 'Job is created successfully!' : 'Job 添加成功！', 3)
       }, () => {
         this.hideJobSubmit()
       })
     } else if (jobMode === 'edit') {
-      this.props.onEditJob(Object.assign({}, singleJobResult, jobSparkConfigValues, requestCommon, {
+      this.props.onEditJob(Object.assign(singleJobResult, jobSparkConfigValues, requestCommon, {
         sourceConfig: `{"protocol":"${values.protocol}"}`
       }), () => {
         message.success(languageText === 'en' ? 'Job is modified successfully!' : 'Job 修改成功！', 3)
@@ -1886,10 +1874,10 @@ export class Workbench extends React.Component {
     if (!transformTableRequestValue['action']) {
       tranConfigRequest = ''
     } else {
-      const objectTemp = Object.assign({}, etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue, dataframeShowOrNot)
+      const objectTemp = Object.assign(etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue, dataframeShowOrNot)
       const tranConfigRequestTemp = !values.flowSpecialConfig
         ? objectTemp
-        : Object.assign({}, objectTemp, {'swifts_specific_config': JSON.parse(values.flowSpecialConfig)})
+        : Object.assign(objectTemp, {'swifts_specific_config': JSON.parse(values.flowSpecialConfig)})
       tranConfigRequest = JSON.stringify(tranConfigRequestTemp)
     }
 
@@ -1928,7 +1916,7 @@ export class Workbench extends React.Component {
         consumedProtocol: values.protocol
       }
 
-      this.props.onEditFlow(Object.assign({}, editData, singleFlowResult), () => {
+      this.props.onEditFlow(Object.assign(editData, singleFlowResult), () => {
         message.success(languageText === 'en' ? 'Flow is modified successfully!' : 'Flow 修改成功！', 3)
       }, () => {
         this.hideFlowSubmit()
@@ -1989,7 +1977,7 @@ export class Workbench extends React.Component {
             consumedProtocol: 'all'
           }
 
-          this.props.onEditFlow(Object.assign({}, editData, singleFlowResult), () => {
+          this.props.onEditFlow(Object.assign(editData, singleFlowResult), () => {
             message.success(operateLanguageSuccessMessage('Flow', 'modify'), 3)
           }, () => {
             this.hideFlowSubmit()
@@ -2044,7 +2032,7 @@ export class Workbench extends React.Component {
             consumedProtocol: 'all'
           }
 
-          this.props.onEditFlow(Object.assign({}, editData, singleFlowResult), () => {
+          this.props.onEditFlow(Object.assign(editData, singleFlowResult), () => {
             message.success(operateLanguageSuccessMessage('Flow', 'modify'), 3)
           }, () => {
             this.hideFlowSubmit()
@@ -2079,7 +2067,7 @@ export class Workbench extends React.Component {
             })
             this.hideStreamSubmit()
           } else {
-            this.props.onAddStream(projectId, Object.assign({}, requestValues, streamConfigValues), () => {
+            this.props.onAddStream(projectId, Object.assign(requestValues, streamConfigValues), () => {
               message.success(operateLanguageSuccessMessage('Stream', 'create'), 3)
               this.setState({
                 streamMode: ''
@@ -2093,7 +2081,7 @@ export class Workbench extends React.Component {
           }
         } else if (streamMode === 'edit') {
           const editValues = { desc: values.desc }
-          const requestEditValues = Object.assign({}, editValues, streamQueryValues, streamConfigValues)
+          const requestEditValues = Object.assign(editValues, streamQueryValues, streamConfigValues)
 
           this.props.onEditStream(requestEditValues, () => {
             message.success(operateLanguageSuccessMessage('Stream', 'modify'), 3)
