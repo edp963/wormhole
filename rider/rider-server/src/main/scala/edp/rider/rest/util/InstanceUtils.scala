@@ -45,6 +45,8 @@ object InstanceUtils {
 
   val zk_node_host_pattern = "(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])\\:\\d+(\\/(.)+)*(,(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])\\:\\d+(\\/(.)+)*)*$".r.pattern
 
+  val hdfs_path_pattern = "hdfs://[A-Za-z]+[A-Za-z0-9_-]*(:\\d+)*(/[A-Za-z]+[A-Za-z0-9_-]*)*".r.pattern
+
   def checkFormat(nsSys: String, url: String): Boolean = {
     nsSys.toLowerCase match {
       case "mysql" | "oracle" | "postgresql" | "vertica" | "phoenix" => one_tcp_url_host_port_pattern.matcher(url).matches() || one_tcp_url_ip_port_pattern.matcher(url).matches()
@@ -52,6 +54,7 @@ object InstanceUtils {
       case "es" => http_url_ip_port_pattern.matcher(url).matches() || http_host_ip_port_pattern.matcher(url).matches() || one_tcp_url_host_port_pattern.matcher(url).matches() || one_tcp_url_ip_port_pattern.matcher(url).matches()
       case "hbase" => zk_node_ip_pattern.matcher(url).matches() || zk_node_host_pattern.matcher(url).matches()
       case "mongodb" => tcp_url_ip_port_pattern.matcher(url).matches() || tcp_url_host_port_pattern.matcher(url).matches() || tcp_url_ip_pattern.matcher(url).matches() || tcp_url_host_pattern.matcher(url).matches()
+      case "parquet" => hdfs_path_pattern.matcher(url).matches()
       case _ => tcp_url_ip_port_pattern.matcher(url).matches() || tcp_url_host_port_pattern.matcher(url).matches()
     }
   }
@@ -63,6 +66,7 @@ object InstanceUtils {
       case "hbase" => s"connection url $url format is wrong, please alter it as localhost:2181(/hbase)*(,localhost:2181(/hbase)*)*"
       case "es" => s"connection url $url format is wrong, please alter it as http(s)?://localhost:9200 or localhost:9300"
       case "mongodb" => s"connection url $url format is wrong, please alter it as host1[:port1][,host2[:port2],...[,hostN[:portN]]"
+      case "parquet" => s"connection url $url format is wrong, please alter it for example hdfs://host1[:port1]/user/wormhole"
       case _ => s"connection url $url format is wrong, please alter it as localhost:8088"
     }
   }

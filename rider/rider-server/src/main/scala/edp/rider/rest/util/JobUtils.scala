@@ -214,7 +214,7 @@ object JobUtils extends RiderLogger {
         flag = false
     }
     if (!flag) {
-      if (job.status == "stopped") "modify,start,renew,stop"
+      if(job.status == "stopped") "modify,start,renew,stop"
       else "modify,start,renew"
     } else {
       JobStatus.jobStatus(job.status) match {
