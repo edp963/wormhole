@@ -69,6 +69,7 @@ object TopicSource extends RiderLogger {
     propertyMap("request.timeout.ms") = RiderConfig.getIntConfig("kafka.consumer.request.timeout.ms", 80000).toString
     propertyMap("max.partition.fetch.bytes") = RiderConfig.getIntConfig("kafka.consumer.max.partition.fetch.bytes", 10485760).toString
     propertyMap("fetch.min.bytes") = 0.toString
+    propertyMap("enable.auto.commit") = "false"
     val consumerSettings = new ConsumerSettings(propertyMap.toMap, Some(RiderConfig.consumer.keyDeserializer),
       Some(RiderConfig.consumer.valueDeserializer),
       RiderConfig.consumer.pollInterval,
