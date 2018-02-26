@@ -217,7 +217,7 @@ export class Project extends React.Component {
                 }
               })
             } else {
-              this.props.onAddProject(Object.assign({}, values, {
+              this.props.onAddProject(Object.assign(values, {
                 nsId: namespaceIds,
                 userId: userIds,
                 udfId: udfIds,
@@ -229,7 +229,7 @@ export class Project extends React.Component {
               })
             }
           } else if (projectFormType === 'edit') {
-            this.props.onEditProject(Object.assign({}, values, {
+            this.props.onEditProject(Object.assign(values, {
               nsId: namespaceIds,
               userId: userIds,
               udfId: udfIds
@@ -267,7 +267,7 @@ export class Project extends React.Component {
           projectUserId: result.userId,
           projectUdfId: result.udfId
         }, () => {
-          showOrHideValues = Object.assign({}, p, {
+          showOrHideValues = Object.assign(p, {
             nsId: this.state.projectNsId,
             userId: this.state.projectUserId,
             udfId: this.state.projectUdfId

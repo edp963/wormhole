@@ -75,7 +75,7 @@ export function instanceReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_INSTANCE_SUCCESS:
-      const startIndex = instances.indexOf(instances.find(p => p.id === payload.result.id))
+      const startIndex = instances.indexOf(instances.find(p => Object.is(p.id, payload.result.id)))
       instances.fill(payload.result, startIndex, startIndex + 1)
       return state
         .set('instances', instances.slice())
@@ -95,7 +95,7 @@ export function instanceReducer (state = initialState, { type, payload }) {
     case DELETE_INSTANCE:
       return state
     case DELETE_INSTANCE_SUCCESS:
-      return state.set('instances', instances.filter(g => g.id !== payload.result))
+      return state.set('instances', instances.filter(g => !Object.is(g.id, payload.result)))
     case DELETE_INSTANCE_ERROR:
       return state
     case GET_ERROR:

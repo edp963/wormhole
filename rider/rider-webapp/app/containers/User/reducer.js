@@ -94,7 +94,7 @@ export function userReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_USER_SUCCESS:
-      const startIndex = users.indexOf(users.find(p => p.id === payload.result.id))
+      const startIndex = users.indexOf(users.find(p => Object.is(p.id, payload.result.id)))
       users.fill(payload.result, startIndex, startIndex + 1)
       return state
         .set('users', users.slice())
@@ -131,7 +131,7 @@ export function userReducer (state = initialState, { type, payload }) {
     case DELETE_USER:
       return state
     case DELETE_USER_SUCCESS:
-      return state.set('users', users.filter(g => g.id !== payload.result))
+      return state.set('users', users.filter(g => !Object.is(g.id, payload.result)))
     case DELETE_USER_ERROR:
       return state
     case GET_ERROR:

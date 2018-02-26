@@ -55,19 +55,24 @@ export class DBForm extends React.Component {
     }
   }
 
-  // 选择不同的 instance 显示不同的 connection url
-  onHandleChangeInstance = (e) => {
-    const selUrl = this.state.currentDatabaseUrlValue.find(s => s.id === Number(e))
-
-    this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
-    this.setState({ connUrlText: selUrl.connUrl })
+  onHandleChange = (name) => (e) => {
+    switch (name) {
+      case 'instance':
+        // 选择不同的 instance 显示不同的 connection url
+        const selUrl = this.state.currentDatabaseUrlValue.find(s => s.id === Number(e))
+        this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
+        this.setState({ connUrlText: selUrl.connUrl })
+        break
+      case 'nsDatabase':
+        // 验证 name 是否存在
+        this.props.onInitDatabaseInputValue(e.target.value)
+        break
+      case 'config':
+        // config 是否包含必须的字段
+        this.props.onInitDatabaseConfigValue(e.target.value)
+        break
+    }
   }
-
-  // 验证 name 是否存在
-  onNameInputChange = (e) => this.props.onInitDatabaseInputValue(e.target.value)
-
-  // config 是否包含必须的字段
-  onConfigValChange = (e) => this.props.onInitDatabaseConfigValue(e.target.value)
 
   render () {
     const { getFieldDecorator } = this.props.form
@@ -211,7 +216,7 @@ export class DBForm extends React.Component {
               })(
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
-                  onChange={this.onHandleChangeInstance}
+                  onChange={this.onHandleChange('instance')}
                   placeholder={languageText === 'en' ? 'Select an instance' : '请选择 Instance'}
                   disabled={disabledOrNot}
                 >
@@ -240,7 +245,7 @@ export class DBForm extends React.Component {
                 <Input
                   placeholder={databaseDSPlace}
                   disabled={disabledOrNot}
-                  onChange={this.onNameInputChange}
+                  onChange={this.onHandleChange('nsDatabase')}
                 />
               )}
             </FormItem>
@@ -315,7 +320,7 @@ export class DBForm extends React.Component {
                   type="textarea"
                   placeholder={diffPlacehodler}
                   autosize={{ minRows: 3, maxRows: 8 }}
-                  onChange={this.onConfigValChange}
+                  onChange={this.onHandleChange('config')}
                 />
               )}
             </FormItem>

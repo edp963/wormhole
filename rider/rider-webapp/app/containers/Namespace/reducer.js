@@ -102,7 +102,7 @@ export function namespaceReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_NAMESPACE_SUCCESS:
-      const startIndex = namespaces.indexOf(namespaces.find(p => p.id === payload.result.id))
+      const startIndex = namespaces.indexOf(namespaces.find(p => Object.is(p.id, payload.result.id)))
       namespaces.fill(payload.result, startIndex, startIndex + 1)
       return state
         .set('namespaces', namespaces.slice())
@@ -124,7 +124,7 @@ export function namespaceReducer (state = initialState, { type, payload }) {
     case DELETE_NS:
       return state
     case DELETE_NS_SUCCESS:
-      return state.set('namespaces', namespaces.filter(g => g.id !== payload.result))
+      return state.set('namespaces', namespaces.filter(g => !Object.is(g.id, payload.result)))
     case DELETE_NS_ERROR:
       return state
     case GET_ERROR:

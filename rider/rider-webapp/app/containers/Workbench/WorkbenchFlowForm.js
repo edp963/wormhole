@@ -67,9 +67,31 @@ export class WorkbenchFlowForm extends React.Component {
     }
   }
 
-  onAllOrNotSelect = (e) => this.props.initResultFieldClass(e)
-
-  onShowDataFrame = (e) => this.props.initDataShowClass(e)
+  onHandleChange = (name) => (e) => {
+    switch (name) {
+      case 'resultFields':
+        this.props.initResultFieldClass(e.target.value) // result field show／hide
+        break
+      case 'dataframeShow':
+        this.props.initDataShowClass(e.target.value) // data frame number show／hide
+        break
+      case 'streamType':
+        this.props.onInitStreamTypeSelect(e.target.value)
+        break
+      case 'streamName':
+        this.props.onInitStreamNameSelect(e)
+        break
+      case 'hdfslogNamespace':
+        this.props.initialHdfslogCascader(e)
+        break
+      case 'routingNamespace':
+        this.props.initialRoutingCascader(e)
+        break
+      case 'routingSinkNs':
+        this.props.initialRoutingSinkCascader(e)
+        break
+    }
+  }
 
   // 通过不同的 Source Data System 显示不同的 Source Namespace 的内容
   onSourceDataSystemItemSelect = (val) => {
@@ -98,18 +120,6 @@ export class WorkbenchFlowForm extends React.Component {
       this.props.form.setFieldsValue({ sinkConfig: '' })
     }
   }
-
-  onStreamJoinSqlConfigTypeSelect = (val) => this.props.onStreamJoinSqlConfigTypeSelect(val)
-
-  onHandleChangeStreamType = (e) => this.props.onInitStreamTypeSelect(e.target.value)
-
-  onHandleChangeStreamName = (val) => this.props.onInitStreamNameSelect(val)
-
-  onHandleHdfslogCascader = (value) => this.props.initialHdfslogCascader(value)
-
-  onHandleRoutingCascader = (value) => this.props.initialRoutingCascader(value)
-
-  onHandleRoutingSinkCascader = (value) => this.props.initialRoutingSinkCascader(value)
 
   render () {
     const { step, form, fieldSelected, dataframeShowSelected, streamDiffType } = this.props
@@ -399,7 +409,7 @@ export class WorkbenchFlowForm extends React.Component {
                   }],
                   initialValue: 'default'
                 })(
-                  <RadioGroup className="radio-group-style" onChange={this.onHandleChangeStreamType} size="default">
+                  <RadioGroup className="radio-group-style" onChange={this.onHandleChange('streamType')} size="default">
                     <RadioButton value="default" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Default</RadioButton>
                     <RadioButton value="hdfslog" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Hdfslog</RadioButton>
                     <RadioButton value="routing" className="radio-btn-style" disabled={flowDisabledOrNot}>Routing</RadioButton>
@@ -424,7 +434,7 @@ export class WorkbenchFlowForm extends React.Component {
                 })(
                   <Select
                     dropdownClassName="ri-workbench-select-dropdown"
-                    onSelect={this.onHandleChangeStreamName}
+                    onChange={this.onHandleChange('streamName')}
                     placeholder="Select a Stream Name"
                     disabled={flowDisabledOrNot}
                   >
@@ -503,7 +513,7 @@ export class WorkbenchFlowForm extends React.Component {
                     options={hdfslogNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
-                    onChange={this.onHandleHdfslogCascader}
+                    onChange={this.onHandleChange('hdfslogNamespace')}
                   />
                 )}
               </FormItem>
@@ -525,7 +535,7 @@ export class WorkbenchFlowForm extends React.Component {
                     options={routingNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
-                    onChange={this.onHandleRoutingCascader}
+                    onChange={this.onHandleChange('routingNamespace')}
                   />
                 )}
               </FormItem>
@@ -614,7 +624,7 @@ export class WorkbenchFlowForm extends React.Component {
                     options={routingSinkTypeNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
-                    onChange={this.onHandleRoutingSinkCascader}
+                    onChange={this.onHandleChange('routingSinkNs')}
                   />
                 )}
               </FormItem>
@@ -629,7 +639,7 @@ export class WorkbenchFlowForm extends React.Component {
                   }],
                   hidden: stepHiddens[1] || streamTypeHiddens[0]
                 })(
-                  <RadioGroup className="radio-group-style" onChange={this.onAllOrNotSelect} size="default">
+                  <RadioGroup className="radio-group-style" onChange={this.onHandleChange('resultFields')} size="default">
                     <RadioButton value="all" className="radio-btn-style fradio-btn-extra">All</RadioButton>
                     <RadioButton value="selected" className="radio-btn-style radio-btn-extra">Selected</RadioButton>
                   </RadioGroup>
@@ -772,7 +782,7 @@ export class WorkbenchFlowForm extends React.Component {
                 }],
                 hidden: stepHiddens[1] || transformTableClassName || streamTypeHiddens[0]
               })(
-                <RadioGroup className="radio-group-style" onChange={this.onShowDataFrame} size="default">
+                <RadioGroup className="radio-group-style" onChange={this.onHandleChange('dataframeShow')} size="default">
                   <RadioButton value="false" className="radio-btn-style radio-btn-extra">False</RadioButton>
                   <RadioButton value="true" className="radio-btn-style">True</RadioButton>
                 </RadioGroup>
@@ -1019,7 +1029,6 @@ WorkbenchFlowForm.propTypes = {
   form: React.PropTypes.any,
   projectIdGeted: React.PropTypes.string,
   flowMode: React.PropTypes.string,
-  onStreamJoinSqlConfigTypeSelect: React.PropTypes.func,
   onShowTransformModal: React.PropTypes.func,
   onShowEtpStrategyModal: React.PropTypes.func,
   onShowSinkConfigModal: React.PropTypes.func,
