@@ -326,11 +326,13 @@ export class Manager extends React.Component {
 
     // 显示 lastest offset
     this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
-      this.setState({
-        consumedOffsetValue: result.consumedLatestOffset,
-        kafkaOffsetValue: result.kafkaLatestOffset,
-        streamStartFormData: result.consumedLatestOffset
-      })
+      if (result) {
+        this.setState({
+          consumedOffsetValue: result.consumedLatestOffset,
+          kafkaOffsetValue: result.kafkaLatestOffset,
+          streamStartFormData: result.consumedLatestOffset
+        })
+      }
     })
   }
 
@@ -530,10 +532,12 @@ export class Manager extends React.Component {
 
   handleEditStartCancel = (e) => {
     this.setState({
-      startModalVisible: false,
-      streamStartFormData: []
+      startModalVisible: false
+    }, () => {
+      this.setState({
+        streamStartFormData: []
+      })
     })
-
     this.streamStartForm.resetFields()
   }
 
@@ -1194,6 +1198,10 @@ export class Manager extends React.Component {
       ? <FormattedMessage {...messages.streamSureStart} />
       : <FormattedMessage {...messages.streamSureRenew} />
 
+    const modalOkBtn = actionType === 'start'
+      ? <FormattedMessage {...messages.streamTableStart} />
+      : <FormattedMessage {...messages.streamTableRenew} />
+
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>
         {helmetHide}
@@ -1249,7 +1257,7 @@ export class Manager extends React.Component {
               loading={this.props.streamStartModalLoading}
               onClick={this.handleEditStartOk}
             >
-              <FormattedMessage {...messages.streamTableStart} />
+              {modalOkBtn}
             </Button>
           ]}
         >

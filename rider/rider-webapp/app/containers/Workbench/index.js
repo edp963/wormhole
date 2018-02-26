@@ -1203,7 +1203,7 @@ export class Workbench extends React.Component {
         perExecutorCores: 1
       }
       const launchConfigJson = {
-        durations: 10,
+        durations: 30,
         partitions: 6,
         maxRecords: 10
       }

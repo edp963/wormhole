@@ -44,8 +44,7 @@ const RadioButton = Radio.Button
 import DatePicker from 'antd/lib/date-picker'
 // const { RangePicker } = DatePicker
 
-import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect,
-  operateLanguageFillIn } from '../../utils/util'
+import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
 
 export class WorkbenchJobForm extends React.Component {
   constructor (props) {
@@ -83,7 +82,6 @@ export class WorkbenchJobForm extends React.Component {
   }
 
   onChangeStartTs = (value, dateString) => this.props.initStartTS(dateString)
-
   onChangeEndTs = (value, dateString) => this.props.initEndTS(dateString)
 
   render () {
