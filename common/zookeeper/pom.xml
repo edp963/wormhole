@@ -30,5 +30,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-framework</artifactId>
+            <version>2.7.1</version>
+        </dependency>
     </dependencies>
 </project>
