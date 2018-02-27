@@ -25,10 +25,12 @@ import {
   LOAD_INSTANCES_SUCCESS,
   ADD_INSTANCE,
   ADD_INSTANCE_SUCCESS,
+  ADD_INSTANCE_ERROR,
   LOAD_SINGLE_INSTANCE,
   LOAD_SINGLE_INSTANCE_SUCCESS,
   EDIT_INSTANCE,
   EDIT_INSTANCE_SUCCESS,
+  EDIT_INSTANCE_ERROR,
   LOAD_INSTANCES_INPUT_VALUE,
   LOAD_INSTANCES_INPUT_VALUE_SUCCESS,
   LOAD_INSTANCES_INPUT_VALUE_ERROR,
@@ -66,6 +68,8 @@ export function instanceReducer (state = initialState, { type, payload }) {
       return state
         .set('instances', instances.slice())
         .set('modalLoading', false)
+    case ADD_INSTANCE_ERROR:
+      return state.set('modalLoading', false)
     case LOAD_SINGLE_INSTANCE:
       return state.set('error', false)
     case LOAD_SINGLE_INSTANCE_SUCCESS:
@@ -80,6 +84,8 @@ export function instanceReducer (state = initialState, { type, payload }) {
       return state
         .set('instances', instances.slice())
         .set('modalLoading', false)
+    case EDIT_INSTANCE_ERROR:
+      return state.set('modalLoading', false)
     case LOAD_INSTANCES_INPUT_VALUE:
       return state.set('connectUrlExisted', false)
     case LOAD_INSTANCES_INPUT_VALUE_SUCCESS:

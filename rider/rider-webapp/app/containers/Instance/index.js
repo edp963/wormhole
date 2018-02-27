@@ -215,6 +215,8 @@ export class Instance extends React.PureComponent {
             this.props.onAddInstance(values, () => {
               this.hideForm()
               message.success(createFormat, 3)
+            }, (msg) => {
+              this.loadResult(values.connectionUrl, msg)
             })
           }
         } else if (instanceFormType === 'edit') {
@@ -224,6 +226,8 @@ export class Instance extends React.PureComponent {
           }), () => {
             this.hideForm()
             message.success(modifyFormat, 3)
+          }, (msg) => {
+            this.loadResult(values.connectionUrl, msg)
           })
         }
       }
@@ -344,6 +348,8 @@ export class Instance extends React.PureComponent {
         InstanceSourceDsVal === 'redis'
       ) {
         errMsg = [new Error('ip:port list')]
+      } else if (InstanceSourceDsVal === 'parquet') {
+        errMsg = [new Error('hdfs://nn1[:8020]/[user/test/test1]')]
       }
       // else if (InstanceSourceDsVal === 'log') {
       //   errMsg = ''
@@ -473,7 +479,8 @@ export class Instance extends React.PureComponent {
           {text: 'kafka', value: 'kafka'},
           {text: 'postgresql', value: 'postgresql'},
           {text: 'mongodb', value: 'mongodb'},
-          {text: 'redis', value: 'redis'}
+          {text: 'redis', value: 'redis'},
+          {text: 'parquet', value: 'parquet'}
         ],
         filteredValue: filteredInfo.nsSys,
         onFilter: (value, record) => record.nsSys.includes(value)
@@ -725,11 +732,11 @@ Instance.propTypes = {
 export function mapDispatchToProps (dispatch) {
   return {
     onLoadInstances: (resolve) => dispatch(loadInstances(resolve)),
-    onAddInstance: (instance, resolve) => dispatch(addInstance(instance, resolve)),
+    onAddInstance: (instance, resolve, reject) => dispatch(addInstance(instance, resolve, reject)),
     onLoadInstanceInputValue: (value, resolve, reject) => dispatch(loadInstanceInputValue(value, resolve, reject)),
     onLoadInstanceExit: (value, resolve, reject) => dispatch(loadInstanceExit(value, resolve, reject)),
     onLoadSingleInstance: (instanceId, resolve) => dispatch(loadSingleInstance(instanceId, resolve)),
-    onEditInstance: (value, resolve) => dispatch(editInstance(value, resolve)),
+    onEditInstance: (value, resolve, reject) => dispatch(editInstance(value, resolve, reject)),
     onDeleteInstace: (value, resolve, reject) => dispatch(deleteInstace(value, resolve, reject)),
     onChangeLanguage: (type) => dispatch(changeLocale(type))
   }

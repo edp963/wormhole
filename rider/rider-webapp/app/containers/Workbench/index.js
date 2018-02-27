@@ -365,7 +365,6 @@ export class Workbench extends React.Component {
     const { pipelineStreamId } = this.state
 
     this.setState({
-      hdfslogSinkNsValue: '',
       hdfslogNsData: []
     })
     if (pipelineStreamId !== 0) {
@@ -1078,10 +1077,13 @@ export class Workbench extends React.Component {
           streamType: result.streamType
         })
 
+        const resultSinkNsArr = result.sinkNs.split('.')
+        const resultSinkNsFinal = [resultSinkNsArr[1], resultSinkNsArr[2], resultSinkNsArr[3]].join('.')
+
         this.setState({
           formStep: 0,
           pipelineStreamId: result.streamId,
-          hdfslogSinkNsValue: this.state.flowMode === 'copy' ? '' : result.sinkNs,
+          hdfslogSinkNsValue: this.state.flowMode === 'copy' ? '' : resultSinkNsFinal,
           flowKafkaInstanceValue: result.kafka,
           flowKafkaTopicValue: result.topics,
           singleFlowResult: {
@@ -3140,6 +3142,8 @@ export class Workbench extends React.Component {
     const stepButtons = this.generateStepButtons()
 
     const paneHeight = document.documentElement.clientHeight - 64 - 50 - 48
+
+    console.log('qqq', this.state.hdfslogSinkNsValue)
 
     return (
       <div className="workbench-main-body">

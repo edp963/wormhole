@@ -121,8 +121,8 @@ export class StreamStartForm extends React.Component {
                 <div className="topic-info-class">
                   <Col span={3} className="card-content">Partition</Col>
                   <Col span={7} className="card-content required-offset">Offset</Col>
-                  <Col span={7} className="card-content">Lastest Consumed Offset</Col>
-                  <Col span={7} className="card-content">Lastest Kafka Offset</Col>
+                  <Col span={7} className="card-content">Latest Consumed Offset</Col>
+                  <Col span={7} className="card-content">Latest Kafka Offset</Col>
                 </div>
               </div>
               <h3 className="no-topic-class">{data}</h3>
@@ -223,14 +223,14 @@ export class StreamStartForm extends React.Component {
               <div className="rate-topic-info-wrapper">
                 <Col span={3} className="card-content card-content-extra">Partition</Col>
                 <Col span={7} className="card-content required-offset card-content-extra">Offset</Col>
-                <Col span={7} className="card-content">Lastest Consumed Offset
+                <Col span={7} className="card-content">Latest Consumed Offset
                   <Tooltip title={applyAllText}>
                     <Button shape="circle" type="ghost" onClick={this.onApplyAll(i, 'consumer')}>
                       <i className="iconfont icon-apply_icon_-copy-copy"></i>
                     </Button>
                   </Tooltip>
                 </Col>
-                <Col span={7} className="card-content">Lastest Kafka Offset
+                <Col span={7} className="card-content">Latest Kafka Offset
                   <Tooltip title={applyAllText}>
                     <Button shape="circle" type="ghost" onClick={this.onApplyAll(i, 'kafka')}>
                       <i className="iconfont icon-apply_icon_-copy-copy"></i>
