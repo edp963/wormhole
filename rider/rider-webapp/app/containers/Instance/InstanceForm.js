@@ -104,6 +104,8 @@ export class InstanceForm extends React.Component {
     } else if (instanceDSValue === 'cassandra' || instanceDSValue === 'redis' ||
       instanceDSValue === 'mongodb') {
       questionDS = <FormattedMessage {...messages.instanceModalUrlCassandraMsg} />
+    } else if (instanceDSValue === 'parquet') {
+      questionDS = <FormattedMessage {...messages.instanceModalUrlParquetMsg} />
     } else {
       questionDS = <FormattedMessage {...messages.instanceModalUrlOthersMsg} />
     }
