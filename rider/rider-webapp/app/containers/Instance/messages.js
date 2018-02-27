@@ -39,6 +39,7 @@ export default defineMessages({
   instanceModalUrlPhienixMsg: { id: 'rider.containers.Instance.Modal.url.phoenix.msg' },
   instanceModalUrlKafkaMsg: { id: 'rider.containers.Instance.Modal.url.kafka.msg' },
   instanceModalUrlCassandraMsg: { id: 'rider.containers.Instance.Modal.url.cassandra.msg' },
+  instanceModalUrlParquetMsg: { id: 'rider.containers.Instance.Modal.url.parquet.msg' },
   instanceModalUrlOthersMsg: { id: 'rider.containers.Instance.Modal.url.others.msg' }
 })
 
