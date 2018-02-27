@@ -267,7 +267,7 @@ export class Manager extends React.Component {
           this.setState({ renewUdfVals: renewUdfValFinal })
         })
 
-        // 显示 lastest offset
+        // 显示 Latest offset
         this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
           this.setState({
             consumedOffsetValue: result.consumedLatestOffset,
@@ -324,13 +324,17 @@ export class Manager extends React.Component {
       this.setState({ startUdfVals: result })
     })
 
-    // 显示 lastest offset
+    // 显示 Latest offset
     this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
       if (result) {
         this.setState({
           consumedOffsetValue: result.consumedLatestOffset,
           kafkaOffsetValue: result.kafkaLatestOffset,
           streamStartFormData: result.consumedLatestOffset
+        })
+      } else {
+        this.setState({
+          streamStartFormData: []
         })
       }
     })
@@ -343,7 +347,7 @@ export class Manager extends React.Component {
     this.loadLastestOffsetFunc(projectIdGeted, streamIdGeted)
   }
 
-  // Load Lastest Offset
+  // Load Latest Offset
   loadLastestOffsetFunc (projectId, streamId) {
     this.props.onLoadLastestOffset(projectId, streamId, (result) => {
       this.setState({
@@ -380,8 +384,8 @@ export class Manager extends React.Component {
       if (!err) {
         let requestVal = {}
         if (actionType === 'start') {
-          if (streamStartFormData.length === 0) {
-            if (values.udfs === undefined || values.udfs.length === 0) {
+          if (!streamStartFormData) {
+            if (!values.udfs) {
               requestVal = {}
             } else {
               if (values.udfs.find(i => i === '-1')) {
@@ -420,7 +424,7 @@ export class Manager extends React.Component {
               return robj
             })
 
-            if (values.udfs === undefined || values.udfs.length === 0) {
+            if (!values.udfs) {
               requestVal = {
                 topicInfo: mergedData
               }
@@ -441,8 +445,8 @@ export class Manager extends React.Component {
             }
           }
         } else if (actionType === 'renew') {
-          if (streamStartFormData.length === 0) {
-            if (values.udfs === undefined || values.udfs.length === 0) {
+          if (!streamStartFormData) {
+            if (!values.udfs) {
               requestVal = {}
             } else {
               requestVal = {
@@ -491,11 +495,11 @@ export class Manager extends React.Component {
             }
 
             if (topicInfoTemp.length === 0) {
-              requestVal = (values.udfs === undefined || values.udfs.length === 0)
+              requestVal = (!values.udfs)
                 ? {}
                 : requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
             } else {
-              requestVal = (values.udfs === undefined || values.udfs.length === 0)
+              requestVal = (!values.udfs)
                 ? { topicInfo: topicInfoTemp }
                 : {
                   udfInfo: values.udfs.map(q => Number(q)),
@@ -1233,7 +1237,7 @@ export class Manager extends React.Component {
               size="large"
               onClick={this.queryLastestoffset}
             >
-              <FormattedMessage {...messages.streamModalView} /> Lastest Offset
+              <FormattedMessage {...messages.streamModalView} /> Latest Offset
             </Button>,
             <Button
               className={`edit-topic-btn ${editBtn}`}
