@@ -1,8 +1,15 @@
-title: Wormhole
-description: 流式处理平台
-google_analytics:
-show_downloads: true
-theme: jekyll-theme-slate
+highlighter: pygments
+markdown: kramdown
+plugins:
+  - jekyll-redirect-from
 
-gems:
-  - jekyll-mentions
+kramdown:
+  entity_output: numeric
+
+include:
+  - _static
+  - _modules
+
+WH_VERSION_SHORT: 0.4.1
+SCALA_BINARY_VERSION: "2.11"
+SCALA_VERSION: "2.11.8"
