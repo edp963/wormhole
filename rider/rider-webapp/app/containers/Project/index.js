@@ -237,10 +237,17 @@ export class Project extends React.Component {
               message.success(languageText === 'en' ? 'Project is modified successfully!' : 'Project 修改成功！', 3)
               this.hideForm()
             }, (result) => {
+              const nsIdArr = []
+              result.payload.nsId.split(',').forEach((i) => nsIdArr.push(Number(i)))
+              const userArr = []
+              result.payload.userId.split(',').forEach((i) => userArr.push(Number(i)))
+              const udfArr = []
+              result.payload.udfId.split(',').forEach((i) => udfArr.push(Number(i)))
+
               message.error(result.header.msg, 5)
-              this.projectUdfTable.setState({ selectedRowKeys: result.payload.udfId })
-              this.projectUsersTable.setState({ selectedRowKeys: result.payload.userId })
-              this.projectNSTable.setState({ selectedRowKeys: result.payload.nsId })
+              this.projectUdfTable.setState({ selectedRowKeys: udfArr })
+              this.projectUsersTable.setState({ selectedRowKeys: userArr })
+              this.projectNSTable.setState({ selectedRowKeys: nsIdArr })
             })
           }
         }
