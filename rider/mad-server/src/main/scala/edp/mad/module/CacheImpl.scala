@@ -16,6 +16,7 @@ trait CacheImpl{
 
   val offsetMap = new OffsetMap
   val streamFeedbackMap = new StreamFeedbackMap
+  val alertMap = new AlertMap
 
   def cacheInit = {
     logger.info(s" performance before streamMap refresh \n")

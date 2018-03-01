@@ -223,7 +223,6 @@ class NamespaceImpl extends CacheModule[NamespaceMapkey,NamespaceMapValue]{
   }
   def getMapHandle() ={
     if(modules.madRedis.enable == true ) {
-      //cache.expire(key, seconds)
       List()
     }else {
       map.getMapHandle
