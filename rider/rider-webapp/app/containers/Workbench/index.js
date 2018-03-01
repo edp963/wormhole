@@ -697,11 +697,13 @@ export class Workbench extends React.Component {
 
         let sinkConfigShow = ''
         let maxRecordShow = 5000
+        let sinkProtocolShow = ''
         let resultFieldsVal = ''
         if (resultFinal.sinkConfig !== '') {
-          const sinkConfigVal = JSON.parse(JSON.parse(JSON.stringify(resultFinal.sinkConfig)))
-          sinkConfigShow = sinkConfigVal.sink_specific_config ? JSON.stringify(sinkConfigVal.sink_specific_config) : ''
+          const sinkConfigVal = JSON.parse(resultFinal.sinkConfig)
+          sinkConfigShow = sinkConfigVal.sink_specific_config ? sinkConfigVal.sink_specific_config : ''
           maxRecordShow = sinkConfigVal.maxRecordPerPartitionProcessed ? sinkConfigVal.maxRecordPerPartitionProcessed : 5000
+          sinkProtocolShow = sinkConfigVal.sink_protocol
 
           if (!resultFinal.sinkConfig.includes('output')) {
             resultFieldsVal = 'all'
@@ -751,6 +753,7 @@ export class Workbench extends React.Component {
           sinkNamespace: [sinkNsArr[1], sinkNsArr[2], sinkNsArr[3]],
 
           sinkConfig: sinkConfigShow,
+          sinkProtocol: sinkProtocolShow,
           maxRecordPerPartitionProcessed: maxRecordShow,
           resultFields: resultFieldsVal,
           jobSpecialConfig: jobSpecialConfigVal
@@ -1760,6 +1763,7 @@ export class Workbench extends React.Component {
   submitJobForm = () => {
     const values = this.workbenchJobForm.getFieldsValue()
     const languageText = localStorage.getItem('preferredLanguage')
+    console.log('valued', values)
 
     const { projectId, jobMode, startTsVal, endTsVal, singleJobResult } = this.state
     const { jobResultFiledsOutput, jobTranTableRequestValue, jobSparkConfigValues } = this.state
@@ -1768,15 +1772,34 @@ export class Workbench extends React.Component {
     const maxRecord = JSON.stringify(maxRecordJson)
     const maxRecordAndResult = JSON.stringify(Object.assign(maxRecordJson, jobResultFiledsOutput))
 
+    const obj1 = {
+      maxRecordPerPartitionProcessed: Number(values.maxRecordPerPartitionProcessed),
+      sink_protocol: 'snapshot'
+    }
+    const obj2 = {
+      maxRecordPerPartitionProcessed: Number(values.maxRecordPerPartitionProcessed),
+      sink_specific_config: values.sinkConfig
+    }
+    const obj3 = {
+      maxRecordPerPartitionProcessed: Number(values.maxRecordPerPartitionProcessed),
+      sink_protocol: 'snapshot',
+      sink_specific_config: values.sinkConfig
+    }
+
     let sinkConfigRequest = ''
     if (values.resultFields === 'all') {
-      sinkConfigRequest = (!values.sinkConfig)
-        ? maxRecord
-        : `{"maxRecordPerPartitionProcessed":${Number(values.maxRecordPerPartitionProcessed)},"sink_specific_config":${values.sinkConfig}}`
+      if (!values.sinkConfig) {
+        sinkConfigRequest = !values.sinkProtocol ? maxRecord : JSON.stringify(obj1)
+      } else {
+        sinkConfigRequest = !values.sinkProtocol ? JSON.stringify(obj2) : JSON.stringify(obj3)
+      }
     } else {
-      sinkConfigRequest = (!values.sinkConfig)
-        ? maxRecordAndResult
-        : `{"maxRecordPerPartitionProcessed":${values.maxRecordPerPartitionProcessed},"sink_specific_config":${values.sinkConfig},"sink_output":"${values.resultFieldsSelected}"}`
+      const obg4 = { sink_output: values.resultFieldsSelected }
+      if (!values.sinkConfig) {
+        sinkConfigRequest = !values.sinkProtocol ? maxRecordAndResult : JSON.stringify(Object.assign(obj1, obg4))
+      } else {
+        sinkConfigRequest = !values.sinkProtocol ? JSON.stringify(Object.assign(obj2, obg4)) : JSON.stringify(Object.assign(obj3, obg4))
+      }
     }
 
     let tranConfigRequest = {}
@@ -3142,8 +3165,6 @@ export class Workbench extends React.Component {
     const stepButtons = this.generateStepButtons()
 
     const paneHeight = document.documentElement.clientHeight - 64 - 50 - 48
-
-    console.log('qqq', this.state.hdfslogSinkNsValue)
 
     return (
       <div className="workbench-main-body">
