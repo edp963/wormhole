@@ -13,3 +13,4 @@ include:
 WH_VERSION_SHORT: 0.4.1
 SCALA_BINARY_VERSION: "2.11"
 SCALA_VERSION: "2.11.8"
+theme: jekyll-theme-slate
