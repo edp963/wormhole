@@ -2,6 +2,7 @@ package edp.mad.kafka
 
 import akka.kafka.ConsumerMessage.CommittableMessage
 import com.alibaba.fastjson.JSONObject
+import edp.mad.alert.AlertLevel
 import edp.mad.elasticsearch.MadIndex._
 import edp.mad.elasticsearch.MadES._
 import edp.mad.module._
@@ -101,6 +102,8 @@ object FeedbackProcessor{
           }
           logger.info(s" get streamName: ${streamName}, flowId: ${flowId}  from stream map ${streamMapV} by steam id ${streamId} \n")
 
+          modules.alertMap.set(AlertMapKey(streamId,streamName ), AlertMapValue( AlertLevel.ERROR.toString, DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime),DtFormat.TS_DASH_SEC), s"flow: ${flowId} flowError" ))
+
           val flattenJson = new JSONObject
           esSchemaMap.foreach{e=>
             e._1 match{
@@ -117,14 +120,14 @@ object FeedbackProcessor{
             }
           }
           esBulkList.append(flattenJson.toJSONString)
-        }else { logger.error(s"FeedbackStreamTopicOffset can't found the value")}
+        }else { logger.error(s"FeedbackFlowError can't found the value")}
       })
 
       if(esBulkList.nonEmpty){ madES.bulkIndex2Es( esBulkList.toList, INDEXFLOWERROR.toString) }else { logger.error(s" bulkIndex empty list \n") }
 
     } catch {
       case e: Exception =>
-        logger.error(s"Failed to process FeedbackStreamTopicOffset feedback message ${message}", e)
+        logger.error(s"Failed to process FeedbackFlowError feedback message ${message}", e)
     }
   }
 
@@ -253,6 +256,8 @@ object FeedbackProcessor{
           }
           logger.debug(s" streamMapV: ${streamMapV}")
 
+          modules.alertMap.set(AlertMapKey(streamId,sName ), AlertMapValue( AlertLevel.ERROR.toString, DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC),s"streamError" ))
+
           val flattenJson = new JSONObject
           esSchemaMap.foreach{e=>
             logger.info(s" = = = = 0 ${e._1}  ${e._2}")
@@ -324,9 +329,12 @@ object FeedbackProcessor{
           //logger.info(s" streamMapV: ${streamMapV}")
           var pid = 0
           while (pid < partitionNum) {
-            val consumeredOffset = OffsetUtils.getOffsetFromPartitionOffsets(partitionOffsets, pid)
+            val consumedOffset = OffsetUtils.getOffsetFromPartitionOffsets(partitionOffsets, pid)
             val latestOffset = OffsetUtils.getOffsetFromPartitionOffsets(topicLatestOffsetStr, pid)
            // logger.info(s" consumerStr: ${partitionOffsets} offset:  ${consumeredOffset}   latestSt： ${topicLatestOffsetStr}  offset：${latestOffset}")
+            val offsetDelay = latestOffset - consumedOffset
+            if(offsetDelay> 10000 )
+              modules.alertMap.set(AlertMapKey(streamId,sName ), AlertMapValue(AlertLevel.WARN.toString,DateUtils.dt2string(DateUtils.dt2dateTime(madProcessTime) ,DtFormat.TS_DASH_SEC),s"topic：${topicName} consumedOffset: ${consumedOffset}  delayedOffset:${offsetDelay}"  ))
 
             val flattenJson = new JSONObject
             esSchemaMap.foreach{e=>
@@ -341,7 +349,7 @@ object FeedbackProcessor{
                 case "partitionNum" => flattenJson.put( e._1, partitionNum )
                 case "partitionId" => flattenJson.put( e._1, pid )
                 case "latestOffset" => flattenJson.put( e._1, latestOffset )
-                case "feedbackOffset" => flattenJson.put( e._1, consumeredOffset )
+                case "feedbackOffset" => flattenJson.put( e._1, consumedOffset )
               }
             }
             esBulkList.append(flattenJson.toJSONString)

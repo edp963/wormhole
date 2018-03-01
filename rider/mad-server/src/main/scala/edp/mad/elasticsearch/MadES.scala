@@ -268,7 +268,8 @@ class MadES extends ESIndexModule[String,IndexEntity]{
                                    |     "appId":{ "type":"keyword" },
                                    |     "state":{ "type":"keyword" },
                                    |     "finalStatus":{ "type":"keyword" },
-                                   |     "alertLevel":{ "type":"keyword" }
+                                   |     "alertLevel":{ "type":"keyword" },
+                                   |     "alertInfo":{ "type":"keyword"}
                                    |    }
                                    |  }
                                    |}
