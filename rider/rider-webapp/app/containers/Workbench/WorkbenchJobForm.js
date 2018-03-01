@@ -38,6 +38,7 @@ import Tag from 'antd/lib/tag'
 import Icon from 'antd/lib/icon'
 import Table from 'antd/lib/table'
 import Card from 'antd/lib/card'
+import Checkbox from 'antd/lib/checkbox'
 import Radio from 'antd/lib/radio'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
@@ -49,7 +50,10 @@ import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLan
 export class WorkbenchJobForm extends React.Component {
   constructor (props) {
     super(props)
-    this.state = { sinkConfigClass: '' }
+    this.state = {
+      sinkConfigClass: '',
+      checked: false
+    }
   }
 
   componentWillReceiveProps (props) {
@@ -71,6 +75,8 @@ export class WorkbenchJobForm extends React.Component {
         break
     }
   }
+
+  onChangeCheckbox = (e) => this.setState({ checked: e.target.checked })
 
   // 通过不同的 Source Data System 显示不同的 Source Namespace 的内容
   onSourceDataSystemItemSelect = (val) => this.props.onInitJobSourceNs(this.props.projectIdGeted, val, 'sourceType')
@@ -516,6 +522,18 @@ export class WorkbenchJobForm extends React.Component {
                   hidden: stepHiddens[1]
                 })(
                   <InputNumber step={10} className="max-record-class" />
+                )}
+              </FormItem>
+            </Col>
+
+            <Col span={24}>
+              <FormItem label="Sink Protocol" {...itemStyle}>
+                {getFieldDecorator('sinkProtocol', {})(
+                  <Checkbox
+                    checked={this.state.checked}
+                    onChange={this.onChangeCheckbox}
+                  >Snapshot
+                  </Checkbox>
                 )}
               </FormItem>
             </Col>
