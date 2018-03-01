@@ -191,3 +191,12 @@ class ProjectIdMap extends  HashMapModule[ProjectIdMapKey,ProjectIdMapValue]{
 
 }
 
+case class AlertMapKey( sId:Long, sName: String)
+case class AlertMapValue( alertType: String, dt: String, alertMessage: String )
+class AlertMap extends HashMapModule[AlertMapKey,AlertMapValue]{
+  def getMapHandle = {
+    indexMap.map { e =>
+      (e._1.sId, e._1.sName, e._2.alertType, e._2.dt, e._2.alertMessage)
+    }.toList
+  }
+}
