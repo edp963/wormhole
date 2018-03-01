@@ -1,5 +1,7 @@
 highlighter: pygments
 markdown: kramdown
+google_analytics:
+show_downloads: true
 plugins:
   - jekyll-redirect-from
 
