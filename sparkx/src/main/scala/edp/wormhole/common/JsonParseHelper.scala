@@ -38,7 +38,7 @@ object JsonParseHelper {
         val jsonObj = subFields.getJSONObject(i)
         val name = jsonObj.getString("name")
         val subDataType = jsonObj.getString("type")
-        val subData = jsonData.getString(name)
+        val subData = if (jsonData.containsKey(name)) jsonData.getString(name) else null
         val subSubFields = if (jsonObj.containsKey("sub_fields")) Some(jsonObj.getJSONArray("sub_fields")) else None
         val subResult: Any = str2Json(name, subData, subDataType, subSubFields)
         outputJson.put(name, subResult)
@@ -46,18 +46,23 @@ object JsonParseHelper {
       outputJson
     } else if (dataType == "jsonarray") {
       val jsonArray = JSON.parseArray(data)
-      val jsonArraySubFields = subFieldsOption.get
-      val dataSize = jsonArray.size()
-      val schemaSize = jsonArraySubFields.size()
       val result = new JSONArray()
-      for (i <- 0 until dataSize) {
-        val outputJson = new JSONObject()
-        for (j <- 0 until schemaSize) {
-          val schemaObj = jsonArraySubFields.getJSONObject(j)
-          val value = str2Json(schemaObj.getString("name"), jsonArray.getJSONObject(i).get(schemaObj.getString("name")).toString, schemaObj.getString("type"), if (schemaObj.containsKey("sub_fields")) Some(schemaObj.getJSONArray("sub_fields")) else None)
-          outputJson.put(schemaObj.getString("name"), value)
+      if (jsonArray == null) {
+        result.add(0, null)
+      }
+      else {
+        val jsonArraySubFields = subFieldsOption.get
+        val dataSize = jsonArray.size()
+        val schemaSize = jsonArraySubFields.size()
+        for (i <- 0 until dataSize) {
+          val outputJson = new JSONObject()
+          for (j <- 0 until schemaSize) {
+            val schemaObj = jsonArraySubFields.getJSONObject(j)
+            val value = str2Json(schemaObj.getString("name"), jsonArray.getJSONObject(i).get(schemaObj.getString("name")).toString, schemaObj.getString("type"), if (schemaObj.containsKey("sub_fields")) Some(schemaObj.getJSONArray("sub_fields")) else None)
+            outputJson.put(schemaObj.getString("name"), value)
+          }
+          result.add(outputJson)
         }
-        result.add(outputJson)
       }
       result
     } else if (dataType.endsWith("array")) {
@@ -67,27 +72,28 @@ object JsonParseHelper {
     }
   }
 
-  def parseData2CorrectType(dataType: UmsFieldType, field: String, name: String): (String,Any) = {
-    if (name == UmsSysField.OP.toString||name == UmsSysField.ACTIVE.toString) {
+  def parseData2CorrectType(dataType: UmsFieldType, field: String, name: String): (String, Any) = {
+    if (name == UmsSysField.OP.toString || name == UmsSysField.ACTIVE.toString) {
       UmsOpType.umsOpType(field) match {
-        case UmsOpType.UPDATE => (UmsSysField.ACTIVE.toString,UmsActiveType.ACTIVE)
-        case UmsOpType.INSERT => (UmsSysField.ACTIVE.toString,UmsActiveType.ACTIVE)
-        case UmsOpType.DELETE => (UmsSysField.ACTIVE.toString,UmsActiveType.INACTIVE)
+        case UmsOpType.UPDATE => (UmsSysField.ACTIVE.toString, UmsActiveType.ACTIVE)
+        case UmsOpType.INSERT => (UmsSysField.ACTIVE.toString, UmsActiveType.ACTIVE)
+        case UmsOpType.DELETE => (UmsSysField.ACTIVE.toString, UmsActiveType.INACTIVE)
       }
-    }else{
-    dataType match {
-      case UmsFieldType.STRING =>if (isNull(field) || field.isEmpty) (name,null) else (name,field)
-      case UmsFieldType.INT => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim.toInt)
-      case UmsFieldType.BINARY => if (isNull(field) || field.isEmpty) (name,null) else (name,CommonUtils.base64byte2s(field.trim.getBytes()))
-      case UmsFieldType.LONG =>
-        if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim.toLong)
-      case UmsFieldType.FLOAT => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim.toFloat)
-      case UmsFieldType.DOUBLE => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim.toDouble)
-      case UmsFieldType.DECIMAL => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim.toDouble)
-      case UmsFieldType.BOOLEAN => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim.toBoolean)
-      case UmsFieldType.DATE => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim)
-      case UmsFieldType.DATETIME => if (isNull(field) || field.isEmpty) (name,null) else (name,field.trim)
-      case _ => if (isNull(field) || field.isEmpty) (name,null ) else (name,field.trim)
+    } else {
+      dataType match {
+        case UmsFieldType.STRING => if (isNull(field)) (name, null) else (name, field)
+        case UmsFieldType.INT => if (isNull(field) || field.isEmpty) (name, null) else (name, field.trim.toInt)
+        case UmsFieldType.BINARY => if (isNull(field) || field.isEmpty) (name, null) else (name, CommonUtils.base64byte2s(field.trim.getBytes()))
+        case UmsFieldType.LONG =>
+          if (isNull(field) || field.isEmpty) (name, null) else (name, field.trim.toLong)
+        case UmsFieldType.FLOAT => if (isNull(field) || field.isEmpty) (name, null) else (name, field.trim.toFloat)
+        case UmsFieldType.DOUBLE => if (isNull(field) || field.isEmpty) (name, null) else (name, field.trim.toDouble)
+        case UmsFieldType.DECIMAL => if (isNull(field) || field.isEmpty) (name, null) else (name, field.trim.toDouble)
+        case UmsFieldType.BOOLEAN => if (isNull(field) || field.isEmpty) (name, null) else (name, field.trim.toBoolean)
+        case UmsFieldType.DATE => if (isNull(field) || field.isEmpty) (name, null) else (name, field.trim)
+        case UmsFieldType.DATETIME => if (isNull(field) || field.isEmpty) (name, null) else (name, field.trim)
+        case _ => if (isNull(field) || field.isEmpty) (name, null) else (name, field.trim)
+      }
     }
-  }}
+  }
 }

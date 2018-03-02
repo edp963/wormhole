@@ -46,9 +46,7 @@ export class ProjectNSTable extends React.Component {
       paginationOrNot: {
         defaultPageSize: 10,
         showSizeChanger: true,
-        onShowSizeChange: (current, pageSize) => {
-          console.log('Current: ', current, '; PageSize: ', pageSize)
-        }
+        onShowSizeChange: (current, pageSize) => {}
       }
     }
   }
@@ -134,9 +132,7 @@ export class ProjectNSTable extends React.Component {
         paginationOrNot: {
           defaultPageSize: 10,
           showSizeChanger: true,
-          onShowSizeChange: (current, pageSize) => {
-            console.log('Current: ', current, '; PageSize: ', pageSize)
-          }
+          onShowSizeChange: (current, pageSize) => {}
         }
       })
     } else if (selectIcon === 'check') {

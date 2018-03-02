@@ -32,6 +32,10 @@ trait HashMapModule[K,V] {
     }
   }
 
+  def clear() ={
+    indexMap.clear()
+  }
+
   def mapPrint = {
     logger.info(s" Map [${new java.util.Date().toString}] start -----------------------------\n")
     indexMap.foreach{e=>

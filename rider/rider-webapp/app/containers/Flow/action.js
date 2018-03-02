@@ -45,6 +45,9 @@ import {
   LOAD_FLOW_DETAIL,
   LOAD_FLOW_DETAIL_SUCCESS,
   CHUCKAWAY_FLOW,
+  LOAD_LOOKUP_SQL,
+  LOAD_LOOKUP_SQL_SUCCESS,
+  LOAD_LOOKUP_SQL_ERROR,
 
   LOAD_SOURCELOG_DETAIL,
   LOAD_SOURCELOG_DETAIL_SUCCESS,
@@ -140,12 +143,11 @@ export function loadSelectStreamKafkaTopic (projectId, value, resolve) {
   }
 }
 
-export function selectStreamKafkaTopicLoaded (result, resolve) {
+export function selectStreamKafkaTopicLoaded (result) {
   return {
     type: LOAD_SELECT_STREAM_KAFKA_TOPIC_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -163,12 +165,11 @@ export function loadSourceSinkTypeNamespace (projectId, streamId, value, type, r
   }
 }
 
-export function sourceSinkTypeNamespaceLoaded (result, resolve) {
+export function sourceSinkTypeNamespaceLoaded (result) {
   return {
     type: LOAD_SOURCESINKTYPE_NAMESPACE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -186,12 +187,11 @@ export function loadSinkTypeNamespace (projectId, streamId, value, type, resolve
   }
 }
 
-export function sinkTypeNamespaceLoaded (result, resolve) {
+export function sinkTypeNamespaceLoaded (result) {
   return {
     type: LOAD_SINKTYPE_NAMESPACE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -209,12 +209,11 @@ export function loadTranSinkTypeNamespace (projectId, streamId, value, type, res
   }
 }
 
-export function tranSinkTypeNamespaceLoaded (result, resolve) {
+export function tranSinkTypeNamespaceLoaded (result) {
   return {
     type: LOAD_TRANSINKTYPE_NAMESPACE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -232,22 +231,20 @@ export function loadSourceToSinkExist (projectId, sourceNs, sinkNs, resolve, rej
   }
 }
 
-export function sourceToSinkExistLoaded (result, resolve) {
+export function sourceToSinkExistLoaded (result) {
   return {
     type: LOAD_SOURCETOSINK_EXIST_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function sourceToSinkExistErrorLoaded (result, reject) {
+export function sourceToSinkExistErrorLoaded (result) {
   return {
     type: LOAD_SOURCETOSINK_EXIST_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
@@ -263,13 +260,11 @@ export function addFlow (values, resolve, final) {
   }
 }
 
-export function flowAdded (result, resolve, final) {
+export function flowAdded (result) {
   return {
     type: ADD_FLOWS_SUCCESS,
     payload: {
-      result,
-      resolve,
-      final
+      result
     }
   }
 }
@@ -285,22 +280,20 @@ export function operateUserFlow (values, resolve, reject) {
   }
 }
 
-export function userFlowOperated (result, resolve) {
+export function userFlowOperated (result) {
   return {
     type: OPERATE_USER_FLOW_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function operateFlowError (message, reject) {
+export function operateFlowError (message) {
   return {
     type: OPERATE_FLOW_ERROR,
     payload: {
-      message,
-      reject
+      message
     }
   }
 }
@@ -315,12 +308,40 @@ export function queryFlow (values, resolve) {
   }
 }
 
-export function flowQueryed (result, resolve) {
+export function flowQueryed (result) {
   return {
     type: QUERY_FLOW_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
+    }
+  }
+}
+
+export function loadLookupSql (values, resolve, reject) {
+  return {
+    type: LOAD_LOOKUP_SQL,
+    payload: {
+      values,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function lookupSqlExisted (result) {
+  return {
+    type: LOAD_LOOKUP_SQL_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function lookupSqlExistedError (result) {
+  return {
+    type: LOAD_LOOKUP_SQL_ERROR,
+    payload: {
+      result
     }
   }
 }
@@ -337,13 +358,12 @@ export function loadSourceLogDetail (id, pageIndex, pageSize, resolve) {
   }
 }
 
-export function sourceLogLoadedDetail (total, sourceLog, resolve) {
+export function sourceLogLoadedDetail (total, sourceLog) {
   return {
     type: LOAD_SOURCELOG_DETAIL_SUCCESS,
     payload: {
       total,
-      sourceLog,
-      resolve
+      sourceLog
     }
   }
 }
@@ -369,13 +389,12 @@ export function loadSourceSinkDetail (id, pageIndex, pageSize, resolve) {
   }
 }
 
-export function sourceSinkDetailLoaded (total, sourceSink, resolve) {
+export function sourceSinkDetailLoaded (total, sourceSink) {
   return {
     type: LOAD_SOURCESINK_DETAIL_SUCCESS,
     payload: {
       total,
-      sourceSink,
-      resolve
+      sourceSink
     }
   }
 }
@@ -401,13 +420,12 @@ export function loadSinkWriteRrrorDetail (id, pageIndex, pageSize, resolve) {
   }
 }
 
-export function sinkWriteRrrorDetailLoaded (total, sinkWriteRrror, resolve) {
+export function sinkWriteRrrorDetailLoaded (total, sinkWriteRrror) {
   return {
     type: LOAD_SINKWRITERROR_DETAIL_SUCCESS,
     payload: {
       total,
-      sinkWriteRrror,
-      resolve
+      sinkWriteRrror
     }
   }
 }
@@ -432,12 +450,11 @@ export function loadSourceInput (flowId, taskType, resolve) {
   }
 }
 
-export function sourceInputLoaded (result, resolve) {
+export function sourceInputLoaded (result) {
   return {
     type: LOAD_SOURCEINPUT_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -461,12 +478,11 @@ export function editLogForm (flow, resolve) {
   }
 }
 
-export function logFormEdited (result, resolve) {
+export function logFormEdited (result) {
   return {
     type: EDIT_LOGFORM_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -492,12 +508,11 @@ export function saveForm (flowId, taskType, value, resolve) {
   }
 }
 
-export function formSaved (result, resolve) {
+export function formSaved (result) {
   return {
     type: SAVE_FORM_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -525,12 +540,11 @@ export function checkOutForm (flowId, taskType, startDate, endDate, value, resol
   }
 }
 
-export function formCheckOuted (result, resolve) {
+export function formCheckOuted (result) {
   return {
     type: CHECKOUT_FORM_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -555,13 +569,11 @@ export function editFlow (values, resolve, final) {
   }
 }
 
-export function flowEdited (result, resolve, final) {
+export function flowEdited (result) {
   return {
     type: EDIT_FLOWS_SUCCESS,
     payload: {
-      result,
-      resolve,
-      final
+      result
     }
   }
 }
@@ -585,12 +597,11 @@ export function loadFlowDetail (value, resolve) {
   }
 }
 
-export function flowDetailLoad (result, resolve) {
+export function flowDetailLoad (result) {
   return {
     type: LOAD_FLOW_DETAIL_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }

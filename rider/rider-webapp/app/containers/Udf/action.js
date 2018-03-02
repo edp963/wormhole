@@ -66,12 +66,11 @@ export function loadProjectUdfs (resolve) {
   }
 }
 
-export function projectUdfsLoaded (udfs, resolve) {
+export function projectUdfsLoaded (udfs) {
   return {
     type: LOAD_PROJECT_UDFS_SUCCESS,
     payload: {
-      udfs,
-      resolve
+      udfs
     }
   }
 }
@@ -107,22 +106,20 @@ export function addUdf (values, resolve, reject) {
   }
 }
 
-export function udfAdded (udf, resolve) {
+export function udfAdded (udf) {
   return {
     type: ADD_UDF_SUCCESS,
     payload: {
-      udf,
-      resolve
+      udf
     }
   }
 }
 
-export function udfAddedError (result, reject) {
+export function udfAddedError (result) {
   return {
     type: ADD_UDF_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
@@ -137,12 +134,11 @@ export function loadUdfDetail (udfId, resolve) {
   }
 }
 
-export function udfDetailLoaded (result, resolve) {
+export function udfDetailLoaded (result) {
   return {
     type: LOAD_UDF_DETAIL_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -158,22 +154,20 @@ export function editUdf (values, resolve, reject) {
   }
 }
 
-export function udfEdited (udf, resolve) {
+export function udfEdited (udf) {
   return {
     type: EDIT_UDF_SUCCESS,
     payload: {
-      udf,
-      resolve
+      udf
     }
   }
 }
 
-export function udfEditedError (result, reject) {
+export function udfEditedError (result) {
   return {
     type: EDIT_UDF_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }

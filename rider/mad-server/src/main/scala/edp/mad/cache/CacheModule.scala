@@ -26,13 +26,6 @@ class StreamImpl extends CacheModule[StreamMapKey,StreamMapValue]{
   private lazy val map = new StreamMap
   private val modules = ConfigObj.getModule
 
-//  def updateProjectInfo(streamId: Long,cacheProjectInfo:CacheProjectInfo) = {
-//    if(modules.madRedis.enable == true )
-//      cache.updateProjectInfo(streamId, cacheProjectInfo)
-//    else
-//      map.updateProjectInfo(streamId,cacheProjectInfo)
-//  }
-
   def updateStreamInfo(streamId: Long, cacheStreamInfo: CacheStreamInfo) = {
     if(modules.madRedis.enable == true )
       cache.updateStreamInfo(streamId,cacheStreamInfo)
@@ -230,7 +223,6 @@ class NamespaceImpl extends CacheModule[NamespaceMapkey,NamespaceMapValue]{
   }
   def getMapHandle() ={
     if(modules.madRedis.enable == true ) {
-      //cache.expire(key, seconds)
       List()
     }else {
       map.getMapHandle

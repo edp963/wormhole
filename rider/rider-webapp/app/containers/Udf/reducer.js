@@ -58,7 +58,6 @@ export function udfReducer (state = initialState, { type, payload }) {
     case LOAD_PROJECT_UDFS:
       return state.set('error', false)
     case LOAD_PROJECT_UDFS_SUCCESS:
-      payload.resolve(payload.udfs)
       return state.set('udfs', payload.udfs)
     case LOAD_SINGLE_UDF:
       return state.set('error', false)
@@ -69,36 +68,32 @@ export function udfReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case ADD_UDF_SUCCESS:
-      payload.resolve()
       udfs.unshift(payload.udf)
       return state
         .set('udfs', udfs.slice())
         .set('modalLoading', false)
     case ADD_UDF_ERROR:
-      payload.reject(payload.result)
       return state.set('modalLoading', false)
     case LOAD_UDF_DETAIL:
       return state
     case LOAD_UDF_DETAIL_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case EDIT_UDF:
       return state
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_UDF_SUCCESS:
-      payload.resolve()
-      udfs.splice(udfs.indexOf(udfs.find(p => p.id === payload.udf.id)), 1, payload.udf)
+      const startIndex = udfs.indexOf(udfs.find(p => Object.is(p.id, payload.udf.id)))
+      udfs.fill(payload.udf, startIndex, startIndex + 1)
       return state
         .set('udfs', udfs.slice())
         .set('modalLoading', false)
     case EDIT_UDF_ERROR:
-      payload.reject(payload.result)
       return state.set('modalLoading', false)
     case DELETE_UDF:
       return state
     case DELETE_UDF_SUCCESS:
-      return state.set('udfs', udfs.filter(g => g.id !== payload.result))
+      return state.set('udfs', udfs.filter(g => !Object.is(g.id, payload.result)))
     case DELETE_UDF_ERROR:
       return state
     case GET_ERROR:

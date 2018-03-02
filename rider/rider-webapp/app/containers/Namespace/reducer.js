@@ -75,22 +75,18 @@ export function namespaceReducer (state = initialState, { type, payload }) {
     case LOAD_NAMESPACE_DATABASE:
       return state
     case LOAD_NAMESPACE_DATABASE_SUCCESS:
-      payload.resolve(payload.database)
       return state
     case LOAD_TABLE_NAME_EXIST:
       return state.set('tableNameExited', false)
     case LOAD_TABLE_NAME_EXIST_SUCCESS:
-      payload.resolve()
       return state.set('tableNameExited', false)
     case LOAD_TABLE_NAME_EXIST_ERROR:
-      payload.reject()
       return state.set('tableNameExited', true)
     case ADD_NAMESPACE:
       return state
         .set('error', false)
         .set('modalLoading', true)
     case ADD_NAMESPACE_SUCCESS:
-      payload.resolve()
       for (let i = 0; i < payload.result.length; i++) {
         namespaces.unshift(payload.result[i])
       }
@@ -100,39 +96,35 @@ export function namespaceReducer (state = initialState, { type, payload }) {
     case LOAD_SINGLE_NAMESPACE:
       return state
     case LOAD_SINGLE_NAMESPACE_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case EDIT_NAMESPACE:
       return state
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_NAMESPACE_SUCCESS:
-      payload.resolve()
-      namespaces.splice(namespaces.indexOf(namespaces.find(p => p.id === payload.result.id)), 1, payload.result)
+      const startIndex = namespaces.indexOf(namespaces.find(p => Object.is(p.id, payload.result.id)))
+      namespaces.fill(payload.result, startIndex, startIndex + 1)
       return state
         .set('namespaces', namespaces.slice())
         .set('modalLoading', false)
     case LOAD_PROJECT_NS_ALL:
       return state.set('error', false)
     case LOAD_PROJECT_NS_ALL_SUCCESS:
-      payload.resolve(payload.result)
       return state.set('namespaces', payload.result)
     case SET_SCHEMA:
       return state
         .set('error', false)
         .set('modalLoading', true)
     case SET_SCHEMA_SUCCESS:
-      payload.resolve()
       return state.set('modalLoading', false)
     case QUERY_SCHEMA_CONFIG:
       return state.set('error', false)
     case QUERY_SCHEMA_CONFIG_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case DELETE_NS:
       return state
     case DELETE_NS_SUCCESS:
-      return state.set('namespaces', namespaces.filter(g => g.id !== payload.result))
+      return state.set('namespaces', namespaces.filter(g => !Object.is(g.id, payload.result)))
     case DELETE_NS_ERROR:
       return state
     case GET_ERROR:

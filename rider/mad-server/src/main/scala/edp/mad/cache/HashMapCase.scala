@@ -36,10 +36,15 @@ class StreamMap extends HashMapModule[StreamMapKey,StreamMapValue]{
 
   def refresh: Unit =
     try {
+      logger.info(s" performance  RiderResponse.before getStreamInfoFromRider \n")
       RiderResponse.getStreamInfoFromRider
+      logger.info(s" performance  RiderResponse after getStreamInfoFromRider \n")
       RiderResponse.getProjectInfoFromRider
+      logger.info(s" performance  RiderResponse after getProjectInfoFromRider \n")
       RiderResponse.getFlowInfoFromRider
+      logger.info(s" performance  RiderResponse after getFlowInfoFromRider \n")
       RiderResponse.getNamespaceInfoFromRider
+      logger.info(s" performance  RiderResponse after getNamespaceInfoFromRider \n")
       // logger.info("  stream Map refresh ")
     } catch {
       case ex: Exception =>
@@ -186,3 +191,12 @@ class ProjectIdMap extends  HashMapModule[ProjectIdMapKey,ProjectIdMapValue]{
 
 }
 
+case class AlertMapKey( sId:Long, sName: String)
+case class AlertMapValue( alertType: String, dt: String, alertMessage: String )
+class AlertMap extends HashMapModule[AlertMapKey,AlertMapValue]{
+  def getMapHandle = {
+    indexMap.map { e =>
+      (e._1.sId, e._1.sName, e._2.alertType, e._2.dt, e._2.alertMessage)
+    }.toList
+  }
+}
