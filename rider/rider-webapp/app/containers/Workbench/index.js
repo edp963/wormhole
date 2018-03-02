@@ -116,6 +116,7 @@ export class Workbench extends React.Component {
       transformTableClassName: 'hide',
       transformValue: '',
       transConnectClass: 'hide',
+      flowTransNsData: [],
 
       step2SinkNamespace: '',
       step2SourceNamespace: '',
@@ -420,7 +421,9 @@ export class Workbench extends React.Component {
     })
     if (pipelineStreamId !== 0) {
       this.props.onLoadSinkTypeNamespace(projectId, pipelineStreamId, value, type, (result) => {
-        this.setState({ sinkTypeNamespaceData: generateSourceSinkNamespaceHierarchy(value, result) })
+        this.setState({
+          sinkTypeNamespaceData: generateSourceSinkNamespaceHierarchy(value, result)
+        })
         if (flowMode === 'add' || flowMode === 'copy') {
           this.workbenchFlowForm.setFieldsValue({ sinkNamespace: undefined })
         }
@@ -1763,7 +1766,6 @@ export class Workbench extends React.Component {
   submitJobForm = () => {
     const values = this.workbenchJobForm.getFieldsValue()
     const languageText = localStorage.getItem('preferredLanguage')
-    console.log('valued', values)
 
     const { projectId, jobMode, startTsVal, endTsVal, singleJobResult } = this.state
     const { jobResultFiledsOutput, jobTranTableRequestValue, jobSparkConfigValues } = this.state
@@ -2145,6 +2147,15 @@ export class Workbench extends React.Component {
             break
           case 'streamJoinSql':
             this.cmStreamJoinSql.doc.setValue(this.cmStreamJoinSql.doc.getValue() || '')
+            // namespace 下拉框内容
+            const { projectId, pipelineStreamId } = this.state
+            if (pipelineStreamId !== 0) {
+              this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, value, 'sourceType', (result) => {
+                this.setState({
+                  flowTransNsData: generateSourceSinkNamespaceHierarchy(value, result)
+                })
+              })
+            }
             break
         }
       }
@@ -2604,12 +2615,11 @@ export class Workbench extends React.Component {
             message.warning(operateLanguageSql('unique'), 3)
           } else if (num === 1 && finalVal === ';') {
             if (values.transformation === 'lookupSql') {
-              const { singleFlowResult } = this.state
+              const { projectId, pipelineStreamId } = this.state
               // 验证sql存在性
               const requestVal = {
-                projectId: singleFlowResult.projectId,
-                streamId: singleFlowResult.streamId,
-                flowId: singleFlowResult.id,
+                projectId: projectId,
+                streamId: pipelineStreamId,
                 sql: {
                   'sql': transformConfigInfoRequestString
                 }
@@ -3278,6 +3288,7 @@ export class Workbench extends React.Component {
                       ref={(f) => { this.flowTransformForm = f }}
                       projectIdGeted={this.state.projectId}
                       tabPanelKey={this.state.tabPanelKey}
+                      flowTransNsData={this.state.flowTransNsData}
                       sinkNamespaces={projectNamespaces || []}
                       onInitTransformValue={this.onInitTransformValue}
                       transformValue={this.state.transformValue}
