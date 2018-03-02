@@ -503,7 +503,7 @@ export function* queryLookupSql ({ payload }) {
   try {
     const result = yield call(request, {
       method: 'put',
-      url: `${api.projectUserList}/${payload.values.projectId}/streams/${payload.values.streamId}/flows/${payload.values.flowId}/sqls/lookup`,
+      url: `${api.projectUserList}/${payload.values.projectId}/streams/${payload.values.streamId}/flows/sqls/lookup`,
       data: payload.values.sql
     })
     if (result.code === 406) {
