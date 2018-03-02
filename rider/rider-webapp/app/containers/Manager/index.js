@@ -39,20 +39,20 @@ import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
-import { uuid, isEquivalent, operateLanguageText } from '../../utils/util'
 
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
   deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset} from './action'
 import {loadSingleUdf} from '../Udf/action'
-import {selectStreams} from './selectors'
+import {selectStreams, selectStreamStartModalLoading} from './selectors'
+
+import { uuid, isEquivalent, operateLanguageText } from '../../utils/util'
 
 export class Manager extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
       visible: false,
-      modalLoading: false,
       refreshStreamLoading: false,
       refreshStreamText: 'Refresh',
       refreshLogLoading: false,
@@ -120,7 +120,7 @@ export class Manager extends React.Component {
   componentWillReceiveProps (props) {
     if (props.streams) {
       const originStreams = props.streams.map(s => {
-        const responseOriginStream = Object.assign({}, s.stream, {
+        const responseOriginStream = Object.assign(s.stream, {
           disableActions: s.disableActions,
           topicInfo: s.topicInfo,
           instance: s.kafkaInfo.instance,
@@ -267,25 +267,12 @@ export class Manager extends React.Component {
           this.setState({ renewUdfVals: renewUdfValFinal })
         })
 
-        // 显示 lastest offset
+        // 显示 Latest offset
         this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
           this.setState({
             consumedOffsetValue: result.consumedLatestOffset,
             kafkaOffsetValue: result.kafkaLatestOffset,
             streamStartFormData: result.consumedLatestOffset
-          }, () => {
-            const { streamStartFormData } = this.state
-            if (streamStartFormData.length !== 0) {
-              const partitionAndOffset = streamStartFormData[0].partitionOffsets.split(',')
-
-              for (let j = 0; j < partitionAndOffset.length; j++) {
-                this.streamStartForm.setFieldsValue({
-                  [`${streamStartFormData[0].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1)
-                })
-              }
-            } else {
-              return
-            }
           })
         })
       })
@@ -293,7 +280,6 @@ export class Manager extends React.Component {
 
   /**
    * start操作  获取最新数据，并回显
-   * @param record
    */
   onShowEditStart = (record) => (e) => {
     const { projectIdGeted } = this.props
@@ -327,7 +313,7 @@ export class Manager extends React.Component {
         createTime: '',
         desc: '',
         fullClassName: '',
-        functionName: '全选',
+        functionName: localStorage.getItem('preferredLanguage') === 'en' ? 'Select all' : '全选',
         id: -1,
         jarName: '',
         pubic: false,
@@ -338,26 +324,19 @@ export class Manager extends React.Component {
       this.setState({ startUdfVals: result })
     })
 
-    // 显示 lastest offset
+    // 显示 Latest offset
     this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
-      this.setState({
-        consumedOffsetValue: result.consumedLatestOffset,
-        kafkaOffsetValue: result.kafkaLatestOffset,
-        streamStartFormData: result.consumedLatestOffset
-      }, () => {
-        const { streamStartFormData } = this.state
-        if (streamStartFormData.length !== 0) {
-          const partitionAndOffset = streamStartFormData[0].partitionOffsets.split(',')
-
-          for (let j = 0; j < partitionAndOffset.length; j++) {
-            this.streamStartForm.setFieldsValue({
-              [`${streamStartFormData[0].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1)
-            })
-          }
-        } else {
-          return
-        }
-      })
+      if (result) {
+        this.setState({
+          consumedOffsetValue: result.consumedLatestOffset,
+          kafkaOffsetValue: result.kafkaLatestOffset,
+          streamStartFormData: result.consumedLatestOffset
+        })
+      } else {
+        this.setState({
+          streamStartFormData: []
+        })
+      }
     })
   }
 
@@ -368,7 +347,7 @@ export class Manager extends React.Component {
     this.loadLastestOffsetFunc(projectIdGeted, streamIdGeted)
   }
 
-  // Load Lastest Offset
+  // Load Latest Offset
   loadLastestOffsetFunc (projectId, streamId) {
     this.props.onLoadLastestOffset(projectId, streamId, (result) => {
       this.setState({
@@ -380,20 +359,20 @@ export class Manager extends React.Component {
 
   onChangeEditSelect = () => {
     const { streamStartFormData } = this.state
+    for (let i = 0; i < streamStartFormData.length; i++) {
+      const partitionAndOffset = streamStartFormData[i].partitionOffsets.split(',')
 
-    const partitionAndOffset = streamStartFormData[0].partitionOffsets.split(',')
-
-    for (let j = 0; j < partitionAndOffset.length; j++) {
-      this.streamStartForm.setFieldsValue({
-        [`${streamStartFormData[0].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
-        [`${streamStartFormData[0].rate}`]: streamStartFormData[0].rate
-      })
+      for (let j = 0; j < partitionAndOffset.length; j++) {
+        this.streamStartForm.setFieldsValue({
+          [`${streamStartFormData[i].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
+          [`${streamStartFormData[i].id}_${streamStartFormData[i].rate}_rate`]: streamStartFormData[i].rate
+        })
+      }
     }
   }
 
   /**
    *  start/renew ok
-   * @param e
    */
   handleEditStartOk = (e) => {
     const { actionType, streamIdGeted, streamStartFormData, startUdfVals } = this.state
@@ -405,8 +384,8 @@ export class Manager extends React.Component {
       if (!err) {
         let requestVal = {}
         if (actionType === 'start') {
-          if (streamStartFormData.length === 0) {
-            if (values.udfs === undefined || values.udfs.length === 0) {
+          if (!streamStartFormData) {
+            if (!values.udfs) {
               requestVal = {}
             } else {
               if (values.udfs.find(i => i === '-1')) {
@@ -440,12 +419,12 @@ export class Manager extends React.Component {
               const robj = {
                 id: i.id,
                 partitionOffsets: offsetVal,
-                rate: Number(values[`${i.id}_${i.rate}`])
+                rate: Number(values[`${i.id}_${i.rate}_rate`])
               }
               return robj
             })
 
-            if (values.udfs === undefined || values.udfs.length === 0) {
+            if (!values.udfs) {
               requestVal = {
                 topicInfo: mergedData
               }
@@ -466,8 +445,8 @@ export class Manager extends React.Component {
             }
           }
         } else if (actionType === 'renew') {
-          if (streamStartFormData.length === 0) {
-            if (values.udfs === undefined || values.udfs.length === 0) {
+          if (!streamStartFormData) {
+            if (!values.udfs) {
               requestVal = {}
             } else {
               requestVal = {
@@ -494,7 +473,7 @@ export class Manager extends React.Component {
                 id: i.id,
                 name: i.name,
                 partitionOffsets: offsetVal,
-                rate: Number(values[`${i.id}_${i.rate}`])
+                rate: Number(values[`${i.id}_${i.rate}_rate`])
               }
               return robj
             })
@@ -516,11 +495,11 @@ export class Manager extends React.Component {
             }
 
             if (topicInfoTemp.length === 0) {
-              requestVal = (values.udfs === undefined || values.udfs.length === 0)
+              requestVal = (!values.udfs)
                 ? {}
                 : requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
             } else {
-              requestVal = (values.udfs === undefined || values.udfs.length === 0)
+              requestVal = (!values.udfs)
                 ? { topicInfo: topicInfoTemp }
                 : {
                   udfInfo: values.udfs.map(q => Number(q)),
@@ -543,17 +522,13 @@ export class Manager extends React.Component {
         this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, () => {
           this.setState({
             startModalVisible: false,
-            streamStartFormData: [],
-            modalLoading: false
+            streamStartFormData: []
           })
 
           message.success(actionTypeMsg, 3)
         }, (result) => {
           const failText = languageText === 'en' ? 'Operation failed:' : '操作失败：'
           message.error(`${failText} ${result}`, 3)
-          this.setState({
-            modalLoading: false
-          })
         })
       }
     })
@@ -561,10 +536,12 @@ export class Manager extends React.Component {
 
   handleEditStartCancel = (e) => {
     this.setState({
-      startModalVisible: false,
-      streamStartFormData: []
+      startModalVisible: false
+    }, () => {
+      this.setState({
+        streamStartFormData: []
+      })
     })
-
     this.streamStartForm.resetFields()
   }
 
@@ -756,7 +733,6 @@ export class Manager extends React.Component {
     const { className, onShowAddStream, onShowEditStream, streamClassHide } = this.props
 
     let {
-      modalLoading,
       sortedInfo,
       filteredInfo,
       startModalVisible
@@ -959,7 +935,6 @@ export class Manager extends React.Component {
         }
       },
       sortOrder: sortedInfo.columnKey === 'startedTime' && sortedInfo.order,
-      // filteredValue: filteredInfo.startedTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -991,7 +966,6 @@ export class Manager extends React.Component {
         }
       },
       sortOrder: sortedInfo.columnKey === 'stoppedTime' && sortedInfo.order,
-      // filteredValue: filteredInfo.stoppedTime,
       filterDropdown: (
         <div className="custom-filter-dropdown-style">
           <RangePicker
@@ -1029,7 +1003,7 @@ export class Manager extends React.Component {
           const sureStopFormat = <FormattedMessage {...messages.streamSureStop} />
           const modifyFormat = <FormattedMessage {...messages.streamModify} />
 
-          const strDelete = record.disableActions.indexOf('delete') > -1
+          const strDelete = record.disableActions.includes('delete')
             ? (
               <Tooltip title={deleteFormat}>
                 <Button icon="delete" shape="circle" type="ghost" disabled></Button>
@@ -1043,7 +1017,7 @@ export class Manager extends React.Component {
               </Popconfirm>
             )
 
-          const strStart = record.disableActions.indexOf('start') > -1
+          const strStart = record.disableActions.includes('start')
             ? (
               <Tooltip title={startFormat}>
                 <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
@@ -1055,7 +1029,7 @@ export class Manager extends React.Component {
               </Tooltip>
             )
 
-          const strStop = record.disableActions.indexOf('stop') > -1
+          const strStop = record.disableActions.includes('stop')
             ? (
               <Tooltip title={stopFormat}>
                 <Button shape="circle" type="ghost" disabled>
@@ -1073,7 +1047,7 @@ export class Manager extends React.Component {
               </Popconfirm>
             )
 
-          const strRenew = record.disableActions.indexOf('renew') > -1
+          const strRenew = record.disableActions.includes('renew')
             ? (
               <Tooltip title={renewFormat}>
                 <Button icon="check" shape="circle" type="ghost" disabled></Button>
@@ -1228,6 +1202,10 @@ export class Manager extends React.Component {
       ? <FormattedMessage {...messages.streamSureStart} />
       : <FormattedMessage {...messages.streamSureRenew} />
 
+    const modalOkBtn = actionType === 'start'
+      ? <FormattedMessage {...messages.streamTableStart} />
+      : <FormattedMessage {...messages.streamTableRenew} />
+
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>
         {helmetHide}
@@ -1259,7 +1237,7 @@ export class Manager extends React.Component {
               size="large"
               onClick={this.queryLastestoffset}
             >
-              <FormattedMessage {...messages.streamModalView} /> Lastest Offset
+              <FormattedMessage {...messages.streamModalView} /> Latest Offset
             </Button>,
             <Button
               className={`edit-topic-btn ${editBtn}`}
@@ -1280,10 +1258,10 @@ export class Manager extends React.Component {
               key="submit"
               size="large"
               type="primary"
-              loading={modalLoading}
+              loading={this.props.streamStartModalLoading}
               onClick={this.handleEditStartOk}
             >
-              <FormattedMessage {...messages.streamTableStart} />
+              {modalOkBtn}
             </Button>
           ]}
         >
@@ -1330,7 +1308,8 @@ Manager.propTypes = {
   onShowEditStream: React.PropTypes.func,
   onLoadSingleUdf: React.PropTypes.func,
   onLoadLastestOffset: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func
+  onChangeLanguage: React.PropTypes.func,
+  streamStartModalLoading: React.PropTypes.bool
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1351,7 +1330,8 @@ export function mapDispatchToProps (dispatch) {
 }
 
 const mapStateToProps = createStructuredSelector({
-  streams: selectStreams()
+  streams: selectStreams(),
+  streamStartModalLoading: selectStreamStartModalLoading()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Manager)

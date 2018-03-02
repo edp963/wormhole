@@ -38,9 +38,16 @@ export class InstanceForm extends React.Component {
     this.state = { instanceDSValue: '' }
   }
 
-  onUrlInputChange = (e) => this.props.onInitInstanceInputValue(e.target.value)
-
-  onInstanceInputChange = (e) => this.props.onInitInstanceExited(e.target.value)
+  onHandleChange = (name) => (e) => {
+    switch (name) {
+      case 'connectionUrl':
+        this.props.onInitInstanceInputValue(e.target.value)
+        break
+      case 'instance':
+        this.props.onInitInstanceExited(e.target.value)
+        break
+    }
+  }
 
   onSourceDataSystemItemSelect = (e) => {
     this.setState({ instanceDSValue: e })
@@ -70,7 +77,7 @@ export class InstanceForm extends React.Component {
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
       { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} },
       { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
-      { value: 'hdfs', icon: 'icon-hdfs1', style: {fontSize: '67px'} }
+      { value: 'parquet', text: 'Parquet' }
     ]
 
     // edit 时，不能修改部分元素
@@ -97,6 +104,8 @@ export class InstanceForm extends React.Component {
     } else if (instanceDSValue === 'cassandra' || instanceDSValue === 'redis' ||
       instanceDSValue === 'mongodb') {
       questionDS = <FormattedMessage {...messages.instanceModalUrlCassandraMsg} />
+    } else if (instanceDSValue === 'parquet') {
+      questionDS = <FormattedMessage {...messages.instanceModalUrlParquetMsg} />
     } else {
       questionDS = <FormattedMessage {...messages.instanceModalUrlOthersMsg} />
     }
@@ -155,7 +164,7 @@ export class InstanceForm extends React.Component {
               })(
                 <Input
                   placeholder="Instance"
-                  onChange={this.onInstanceInputChange}
+                  onChange={this.onHandleChange('instance')}
                   disabled={instanceFormType === 'edit'}
                 />
               )}
@@ -172,7 +181,7 @@ export class InstanceForm extends React.Component {
               })(
                 <Input
                   placeholder="Connection URL"
-                  onChange={this.onUrlInputChange}
+                  onChange={this.onHandleChange('connectionUrl')}
                 />
               )}
             </FormItem>

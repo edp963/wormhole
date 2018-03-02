@@ -1,66 +1,5 @@
 package edp.mad.elasticsearch
 
-/* ----------------------  The Settings information on Rider   ---------------------- */
-case class ProjectInfos(    madProcessTime :  String,
-                             projectId :  Long,
-                             projectName :  String,
-                             projectResourceCores :  Int,
-                             projectResourceMemory :  Int,
-                             projectCreatedTime :  String,
-                             projectUpdatedTime :  String
-                            )
-
-case class StreamInfos( madProcessTime :  String,
-                         // Project 相关配置和静态信息
-                         projectId :  Long,
-                         projectName :  String,
-                         streamId : Long,
-                         streamName : String,
-                         sparkAppId : String,
-                         streamStatus : String,
-                         streamStartedTime : String,
-                         sparkConfig :String,
-                         streamConsumerDuration :  Int,
-                         streamConsumerMaxRecords :  Int,
-                         streamProcessRepartition :  Int,
-                         streamDriverCores :  Int,
-                         streamDriverMemory :  Int,
-                         streamPerExecuterCores :  Int,
-                         streamPerExecuterMemory :  Int,
-                         executorNums: Int,
-                         useCores: Int,
-                         useMemoryG: Int,
-                         kafkaConnection : String,
-                         topicList: String
-                       )
-
-case class FlowInfos(    madProcessTime: String,
-                           projectId :  Long,
-                           projectName :  String,
-                           streamId: Long,
-                           streamName:  String,
-                           flowId: Long,
-                           flowNamespace:  String,
-                           sourceNamespace:  String,
-                           sourceDataSystem:  String,
-                           sourceInstance:  String,
-                           sourceDatabase:  String,
-                           sourceTable:  String,
-                           sinkNamespace:  String,
-                           sinkDataSystem:  String,
-                           sinkInstance:  String,
-                           sinkDatabase:  String,
-                           sinkTable:  String,
-                           flowStatus:  String,
-                           flowStartedTime:  String,
-                           flowUpdateTime:  String,
-                           consumedProtocol:  String,
-                           sinkSpecificConfig:  String, //每种sink都不一样，无法拆分出有效字段
-                           tranConfig:  String,
-                           tranActionCustomClass:  String,
-                           transPushdownNamespaces: String
-                         )
-
 case class AppInfos ( madProcessTime: String,
                        appId: String,
                        streamName: String,
@@ -69,14 +8,6 @@ case class AppInfos ( madProcessTime: String,
                        user: String,
                        queue: String,
                        startedTime: String)
-
-case class NamespaceInfos ( madProcessTime: String,
-                             namespace: String,
-                             nsSys: String,
-                             nsInstance: String,
-                             nsDatabase: String,
-                             nsTable: String,
-                             topic: String )
 
 case class StreamAlert ( madProcessTime: String,
                             projectId :  Long,
@@ -87,76 +18,8 @@ case class StreamAlert ( madProcessTime: String,
                             appId: String,
                             state: String,
                             finalStatus: String,
-                            alertLevel: String)
-
-/* ----------------------  The feedback or logs information returned by streams   ---------------------- */
-case class StreamFeedback(  madProcessTime :  String,
-                             projectId :  Long,
-                             projectName :  String,
-                             streamId : Long,
-                             streamName : String,
-                             streamStatTs : String,
-                             errorMessage : String,
-                             topicName : String,
-                             partitionNum :  Int,
-                             partitionId :  Int,
-                             latestOffset : Long,
-                             feedbackOffset : Long
-                           )
-
-case class FlowFeedback(    madProcessTime: String,
-                            feedbackTs: String,
-                            streamId: Long,
-                            streamName:  String,
-                            flowId: Long,
-                            flowNamespace:  String,
-                            sourceNamespace:  String,
-                            sinkNamespace:  String,
-                            topicName: String,
-                            // Flow反馈的错误信息
-                            flowErrorMaxWaterMarkTs:  String,
-                            flowErrorMinWaterMarkTs:  String,
-                            flowErrorCount:   Int,
-                            flowErrorMessage:  String,
-                            // Flow反馈的统计信息
-                            statsId:  String,
-                            rddCount: Long,
-                            throughput: Long,
-                            dataOriginalTs: String,
-                            rddTransformStartTs:  String,
-                            directiveProcessStartTs:  String,
-                            mainProcessStartTs:  String,
-                            swiftsProcessStartTs:  String,
-                            sinkWriteStartTs:  String,
-                            processDoneTs:  String,
-
-                            intervalMainProcessToDataOriginalTs: Long,
-                            intervalMainProcessToDone: Long,
-                            intervalMainProcessToSwifts: Long,
-                            intervalMainProcessToSink: Long,
-                            intervalSwiftsToSink: Long,
-                            intervalSinkToDone: Long,
-                            intervalRddToDone: Long
-                        )
-
-case class AppLogs(  madProcessTime: String,
-                      projectId: Long,
-                      projectName: String,
-                      streamId: Long,
-                      streamName: String,
-                      streamStatus: String,
-                      logsOrder: String,
-                      appId: String,
-                      host: String,
-                      logTime: String,
-                      logstashTime: String,
-                      loglevel: String,
-                      path: String,
-                      className: String,
-                      container: String,
-                      message: String
-                    )
-
+                            alertLevel: String,
+                            alertInfo: String)
 
 case class IndexEntity(
                         index: String,
@@ -164,23 +27,30 @@ case class IndexEntity(
                         createIndexJson: String,
                         createIndexPattern: String,
                         createIndexInterval:  String, // per days   per month
-                        retainIndexDays: String
+                        retainIndexDays: String,
+                        EsMappingsSchema: Map[String,Any]
                       )
 
 object MadIndex extends Enumeration {
   type MadIndex = Value
+  // The infos get by REST API
+  val INDEXPROJECTINFOS = Value("mad_project_infos")
+  val INDEXSTREAMINFOS = Value("mad_stream_infos")
+  val INDEXFLOWINFOS = Value("mad_flow_infos")
+  val INDEXAPPINFOS = Value("mad_app_infos")
+  val INDEXNAMESPACEINFOS = Value("mad_namespace_infos")
 
-  val INDEXPROJECTINFOS = Value("mad-project-infos")
-  val INDEXSTREAMINFOS = Value("mad-stream-infos")
-  val INDEXFLOWINFOS = Value("mad-flow-infos")
-  val INDEXAPPINFOS = Value("mad-app-infos")
-  val INDEXNAMESPACEINFOS = Value("mad-namespace-infos")
+  //  The wormhole feedback message
+  val INDEXFLOWFEEDBACK = Value("mad_flow_feedback")
+  val INDEXFLOWERROR = Value("mad_flow_error")
+  val INDEXSTREAMSFEEDBACK = Value("mad_stream_feedback")
+  val INDEXSTREAMERROR = Value("mad_stream_error")
 
-  val INDEXFLOWFEEDBACK = Value("mad-flow-feedback")
-  val INDEXSTREAMSFEEDBACK = Value("mad-stream-feedback")
-  val INDEXAPPLOGS = Value("mad-app-logs")
+  //  The logs meeesage
+  val INDEXAPPLOGS = Value("mad_app_logs")
 
-  val INDEXSTREAMALERT = Value("mad-stream-alert")
+  // the diagnosis  message
+  val INDEXSTREAMALERT = Value("mad_stream_alert")
 
   def madIndex(s: String ) = MadIndex.withName(s)
 }

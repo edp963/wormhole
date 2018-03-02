@@ -38,19 +38,22 @@ import Tag from 'antd/lib/tag'
 import Icon from 'antd/lib/icon'
 import Table from 'antd/lib/table'
 import Card from 'antd/lib/card'
+import Checkbox from 'antd/lib/checkbox'
 import Radio from 'antd/lib/radio'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 import DatePicker from 'antd/lib/date-picker'
 // const { RangePicker } = DatePicker
 
-import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect,
-  operateLanguageFillIn } from '../../utils/util'
+import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
 
 export class WorkbenchJobForm extends React.Component {
   constructor (props) {
     super(props)
-    this.state = { sinkConfigClass: '' }
+    this.state = {
+      sinkConfigClass: '',
+      checked: false
+    }
   }
 
   componentWillReceiveProps (props) {
@@ -62,11 +65,18 @@ export class WorkbenchJobForm extends React.Component {
     }
   }
 
-  onNameInputChange = (e) => this.props.onInitJobNameValue(e.target.value)
+  onHandleChange = (name) => (e) => {
+    switch (name) {
+      case 'jobName':
+        this.props.onInitJobNameValue(e.target.value)
+        break
+      case 'resultFields':
+        this.props.initResultFieldClass(e.target.value)
+        break
+    }
+  }
 
-  onAllOrNotSelect = (e) => this.props.initResultFieldClass(e)
-
-  onShowDataFrame = (e) => this.props.initDataShowClass(e)
+  onChangeCheckbox = (e) => this.setState({ checked: e.target.checked })
 
   // 通过不同的 Source Data System 显示不同的 Source Namespace 的内容
   onSourceDataSystemItemSelect = (val) => this.props.onInitJobSourceNs(this.props.projectIdGeted, val, 'sourceType')
@@ -78,7 +88,6 @@ export class WorkbenchJobForm extends React.Component {
   }
 
   onChangeStartTs = (value, dateString) => this.props.initStartTS(dateString)
-
   onChangeEndTs = (value, dateString) => this.props.initEndTS(dateString)
 
   render () {
@@ -128,7 +137,7 @@ export class WorkbenchJobForm extends React.Component {
       { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
       { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
-      { value: 'hdfs', icon: 'icon-hdfs1', style: {fontSize: '67px'} }
+      { value: 'parquet', text: 'Parquet' }
     ]
 
     let formValues = ''
@@ -315,7 +324,11 @@ export class WorkbenchJobForm extends React.Component {
                     validator: this.forceCheckSave
                   }]
                 })(
-                  <Input placeholder="Name" onChange={this.onNameInputChange} disabled={jobMode === 'edit'} />
+                  <Input
+                    placeholder="Name"
+                    onChange={this.onHandleChange('jobName')}
+                    disabled={jobMode === 'edit'}
+                  />
                 )}
               </FormItem>
             </Col>
@@ -478,7 +491,7 @@ export class WorkbenchJobForm extends React.Component {
                   }],
                   hidden: stepHiddens[1]
                 })(
-                  <RadioGroup className="radio-group-style" onChange={this.onAllOrNotSelect} size="default">
+                  <RadioGroup className="radio-group-style" onChange={this.onHandleChange('resultFields')} size="default">
                     <RadioButton value="all" className="radio-btn-style fradio-btn-extra">All</RadioButton>
                     <RadioButton value="selected" className="radio-btn-style radio-btn-extra">Selected</RadioButton>
                   </RadioGroup>
@@ -509,6 +522,18 @@ export class WorkbenchJobForm extends React.Component {
                   hidden: stepHiddens[1]
                 })(
                   <InputNumber step={10} className="max-record-class" />
+                )}
+              </FormItem>
+            </Col>
+
+            <Col span={24}>
+              <FormItem label="Sink Protocol" {...itemStyle}>
+                {getFieldDecorator('sinkProtocol', {})(
+                  <Checkbox
+                    checked={this.state.checked}
+                    onChange={this.onChangeCheckbox}
+                  >Snapshot
+                  </Checkbox>
                 )}
               </FormItem>
             </Col>
@@ -674,7 +699,6 @@ WorkbenchJobForm.propTypes = {
   jobTranTableConfirmValue: React.PropTypes.string,
   fieldSelected: React.PropTypes.string,
   initResultFieldClass: React.PropTypes.func,
-  initDataShowClass: React.PropTypes.func,
   initStartTS: React.PropTypes.func,
   initEndTS: React.PropTypes.func,
   onShowJobSpecialConfigModal: React.PropTypes.func

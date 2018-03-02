@@ -121,12 +121,11 @@ export function loadAdminJobLogs (projectId, jobId, resolve) {
   }
 }
 
-export function adminJobLogsLoaded (result, resolve) {
+export function adminJobLogsLoaded (result) {
   return {
     type: LOAD_ADMIN_JOB_LOGS_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -142,12 +141,11 @@ export function loadUserJobLogs (projectId, jobId, resolve) {
   }
 }
 
-export function userJobLogsLoaded (result, resolve) {
+export function userJobLogsLoaded (result) {
   return {
     type: LOAD_USER_JOB_LOGS_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -163,22 +161,20 @@ export function operateJob (values, resolve, reject) {
   }
 }
 
-export function jobOperated (result, resolve) {
+export function jobOperated (result) {
   return {
     type: OPERATE_JOB_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function jobOperatedError (message, reject) {
+export function jobOperatedError (message) {
   return {
     type: OPERATE_JOB_ERROR,
     payload: {
-      message,
-      reject
+      message
     }
   }
 }
@@ -195,22 +191,20 @@ export function loadJobName (projectId, value, resolve, reject) {
   }
 }
 
-export function jobNameLoaded (result, resolve) {
+export function jobNameLoaded (result) {
   return {
     type: LOAD_JOB_NAME_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function jobNameLoadedError (message, reject) {
+export function jobNameLoadedError (message) {
   return {
     type: LOAD_JOB_NAME_ERROR,
     payload: {
-      message,
-      reject
+      message
     }
   }
 }
@@ -228,22 +222,20 @@ export function loadJobSourceNs (projectId, value, type, resolve, reject) {
   }
 }
 
-export function jobSourceNsLoaded (result, resolve) {
+export function jobSourceNsLoaded (result) {
   return {
     type: LOAD_JOB_SOURCENS_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function jobSourceNsLoadedError (result, reject) {
+export function jobSourceNsLoadedError (result) {
   return {
     type: LOAD_JOB_SOURCENS_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
@@ -261,22 +253,20 @@ export function loadJobSinkNs (projectId, value, type, resolve, reject) {
   }
 }
 
-export function jobSinkNsLoaded (result, resolve) {
+export function jobSinkNsLoaded (result) {
   return {
     type: LOAD_JOB_SINKNS_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function jobSinkNsLoadedError (result, reject) {
+export function jobSinkNsLoadedError (result) {
   return {
     type: LOAD_JOB_SINKNS_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
@@ -294,22 +284,20 @@ export function loadJobSourceToSinkExist (projectId, sourceNs, sinkNs, resolve, 
   }
 }
 
-export function jobSourceToSinkExistLoaded (result, resolve) {
+export function jobSourceToSinkExistLoaded (result) {
   return {
     type: LOAD_JOB_SOURCETOSINK_EXIST_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function jobSourceToSinkExistErrorLoaded (result, reject) {
+export function jobSourceToSinkExistErrorLoaded (result) {
   return {
     type: LOAD_JOB_SOURCETOSINK_EXIST_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
@@ -325,13 +313,11 @@ export function addJob (values, resolve, final) {
   }
 }
 
-export function jobAdded (result, resolve, final) {
+export function jobAdded (result) {
   return {
     type: ADD_JOB_SUCCESS,
     payload: {
-      result,
-      resolve,
-      final
+      result
     }
   }
 }
@@ -345,12 +331,11 @@ export function queryJob (values, resolve) {
   }
 }
 
-export function jobQueryed (result, resolve) {
+export function jobQueryed (result) {
   return {
     type: QUERY_JOB_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -366,13 +351,11 @@ export function editJob (values, resolve, final) {
   }
 }
 
-export function jobEdited (result, resolve, final) {
+export function jobEdited (result) {
   return {
     type: EDIT_JOB_SUCCESS,
     payload: {
-      result,
-      resolve,
-      final
+      result
     }
   }
 }
@@ -387,12 +370,11 @@ export function loadJobDetail (value, resolve) {
   }
 }
 
-export function jobDetailLoaded (result, resolve) {
+export function jobDetailLoaded (result) {
   return {
     type: LOAD_JOB_DETAIL_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
