@@ -33,6 +33,7 @@ import Tooltip from 'antd/lib/tooltip'
 import Icon from 'antd/lib/icon'
 import Input from 'antd/lib/input'
 import InputNumber from 'antd/lib/input-number'
+import Select from 'antd/lib/select'
 import Cascader from 'antd/lib/cascader'
 import Radio from 'antd/lib/radio'
 const RadioButton = Radio.Button
@@ -56,7 +57,7 @@ export class FlowTransformForm extends React.Component {
 
   render () {
     const { form } = this.props
-    const { transformValue, transformSinkTypeNamespaceData } = this.props
+    const { transformValue, transformSinkTypeNamespaceData, flowTransNsData } = this.props
     const { dsHideOrNot } = this.state
     const { getFieldDecorator } = form
 
@@ -120,6 +121,15 @@ export class FlowTransformForm extends React.Component {
         { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
         { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} }
       ]
+
+    const nsChildren = flowTransNsData.map(i => {
+      const temp = [i.nsSys, i.nsInstance, i.nsDatabase, i.nsTable].join(',')
+      return (
+        <Select.Option key={i.id} value={temp}>
+          {temp}
+        </Select.Option>
+      )
+    })
 
     const lookUpSqlMsg = (
       <span>
@@ -299,41 +309,42 @@ export class FlowTransformForm extends React.Component {
             </FormItem>
           </Col>
 
-          <Col span={16} className={transformTypeClassNames[2]}>
-            <FormItem label="Namespace" {...itemStyleNs}>
-              {getFieldDecorator('streamJoinSqlNs', {
-                rules: [{
-                  required: true,
-                  message: operateLanguageSelect('namespace', 'Namespace')
-                }],
-                hidden: transformTypeHiddens[2]
-              })(
-                <Cascader
-                  placeholder="Select a Namespace"
-                  popupClassName="ri-workbench-select-dropdown"
-                  // options={flowTransNsData}
-                  expandTrigger="hover"
-                  displayRender={(labels) => labels.join('.')}
-                />
-              )}
-            </FormItem>
+          <Col span={24}>
+            <Col span={16} className={transformTypeClassNames[2]}>
+              <FormItem label="Namespace" {...itemStyleNs}>
+                {getFieldDecorator('streamJoinSqlNs', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('namespace', 'Namespace')
+                  }],
+                  hidden: transformTypeHiddens[2]
+                })(
+                  <Select
+                    mode="multiple"
+                    placeholder="Select namespaces"
+                  >
+                    {nsChildren}
+                  </Select>
+                )}
+              </FormItem>
+            </Col>
+            <Col span={7} className={transformTypeClassNames[2]}>
+              <FormItem label="Timeout (Sec)" {...itemStyleTimeout}>
+                {getFieldDecorator('timeout', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageFillIn('timeout', 'Timeout')
+                  }, {
+                    validator: forceCheckNum
+                  }],
+                  hidden: transformTypeHiddens[2]
+                })(
+                  <InputNumber min={10} max={1800} step={1} placeholder="Timeout" />
+                )}
+              </FormItem>
+            </Col>
           </Col>
 
-          <Col span={7} className={transformTypeClassNames[2]}>
-            <FormItem label="Timeout (Sec)" {...itemStyleTimeout}>
-              {getFieldDecorator('timeout', {
-                rules: [{
-                  required: true,
-                  message: operateLanguageFillIn('timeout', 'Timeout')
-                }, {
-                  validator: forceCheckNum
-                }],
-                hidden: transformTypeHiddens[2]
-              })(
-                <InputNumber min={10} max={1800} step={1} placeholder="Timeout" />
-              )}
-            </FormItem>
-          </Col>
           <Col span={6} className={transformTypeClassNames[2]}>
             <FormItem label="SQL" className="tran-sql-label">
               {getFieldDecorator('streamJoinSql', {
@@ -342,7 +353,6 @@ export class FlowTransformForm extends React.Component {
                 <Input className="hide" />
               )}
             </FormItem>
-
           </Col>
           <Col span={17} className={`${transformTypeClassNames[2]} cm-sql-textarea`}>
             <textarea
@@ -379,7 +389,7 @@ FlowTransformForm.propTypes = {
   transformValue: React.PropTypes.string,
   step2SinkNamespace: React.PropTypes.string,
   step2SourceNamespace: React.PropTypes.string,
-  // flowTransNsData: React.PropTypes.array,
+  flowTransNsData: React.PropTypes.array,
   onInitTransformValue: React.PropTypes.func,
   onInitTransformSinkTypeNamespace: React.PropTypes.func
 }
