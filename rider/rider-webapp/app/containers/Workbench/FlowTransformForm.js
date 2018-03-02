@@ -61,13 +61,18 @@ export class FlowTransformForm extends React.Component {
     const { getFieldDecorator } = form
 
     const itemStyle = {
-      labelCol: { span: 7 },
-      wrapperCol: { span: 16 }
+      labelCol: { span: 6 },
+      wrapperCol: { span: 17 }
+    }
+
+    const itemStyleNs = {
+      labelCol: { span: 9 },
+      wrapperCol: { span: 14 }
     }
 
     const itemStyleTimeout = {
-      labelCol: { span: 7 },
-      wrapperCol: { span: 6 }
+      labelCol: { span: 14 },
+      wrapperCol: { span: 7 }
     }
 
     const transformTypeClassNames = [
@@ -242,7 +247,7 @@ export class FlowTransformForm extends React.Component {
               )}
             </FormItem>
           </Col>
-          <Col span={7} className={transformTypeClassNames[0]}>
+          <Col span={6} className={transformTypeClassNames[0]}>
             <FormItem label={lookUpSqlMsg} className="tran-sql-label">
               {getFieldDecorator('lookupSql', {
                 hidden: transformTypeHiddens[0]
@@ -251,7 +256,7 @@ export class FlowTransformForm extends React.Component {
               )}
             </FormItem>
           </Col>
-          <Col span={16} className={`${transformTypeClassNames[0]} cm-sql-textarea`}>
+          <Col span={17} className={`${transformTypeClassNames[0]} cm-sql-textarea`}>
             <textarea
               id="lookupSqlTextarea"
               placeholder="Lookup SQL"
@@ -259,7 +264,7 @@ export class FlowTransformForm extends React.Component {
           </Col>
 
           {/* 设置 Spark Sql */}
-          <Col span={7} className={transformTypeClassNames[1]}>
+          <Col span={6} className={transformTypeClassNames[1]}>
             <FormItem label={sparkSqlMsg} className="tran-sql-label">
               {getFieldDecorator('sparkSql', {
                 hidden: transformTypeHiddens[1]
@@ -269,7 +274,7 @@ export class FlowTransformForm extends React.Component {
             </FormItem>
 
           </Col>
-          <Col span={16} className={`${transformTypeClassNames[1]} cm-sql-textarea`}>
+          <Col span={17} className={`${transformTypeClassNames[1]} cm-sql-textarea`}>
             <textarea
               id="sparkSqlTextarea"
               placeholder="Spark SQL"
@@ -293,7 +298,28 @@ export class FlowTransformForm extends React.Component {
               )}
             </FormItem>
           </Col>
-          <Col span={24} className={transformTypeClassNames[2]}>
+
+          <Col span={16} className={transformTypeClassNames[2]}>
+            <FormItem label="Namespace" {...itemStyleNs}>
+              {getFieldDecorator('streamJoinSqlNs', {
+                rules: [{
+                  required: true,
+                  message: operateLanguageSelect('namespace', 'Namespace')
+                }],
+                hidden: transformTypeHiddens[2]
+              })(
+                <Cascader
+                  placeholder="Select a Namespace"
+                  popupClassName="ri-workbench-select-dropdown"
+                  // options={flowTransNsData}
+                  expandTrigger="hover"
+                  displayRender={(labels) => labels.join('.')}
+                />
+              )}
+            </FormItem>
+          </Col>
+
+          <Col span={7} className={transformTypeClassNames[2]}>
             <FormItem label="Timeout (Sec)" {...itemStyleTimeout}>
               {getFieldDecorator('timeout', {
                 rules: [{
@@ -308,7 +334,7 @@ export class FlowTransformForm extends React.Component {
               )}
             </FormItem>
           </Col>
-          <Col span={7} className={transformTypeClassNames[2]}>
+          <Col span={6} className={transformTypeClassNames[2]}>
             <FormItem label="SQL" className="tran-sql-label">
               {getFieldDecorator('streamJoinSql', {
                 hidden: transformTypeHiddens[2]
@@ -318,7 +344,7 @@ export class FlowTransformForm extends React.Component {
             </FormItem>
 
           </Col>
-          <Col span={16} className={`${transformTypeClassNames[2]} cm-sql-textarea`}>
+          <Col span={17} className={`${transformTypeClassNames[2]} cm-sql-textarea`}>
             <textarea
               id="streamJoinSqlTextarea"
               placeholder="Stream Join SQL"
@@ -353,6 +379,7 @@ FlowTransformForm.propTypes = {
   transformValue: React.PropTypes.string,
   step2SinkNamespace: React.PropTypes.string,
   step2SourceNamespace: React.PropTypes.string,
+  // flowTransNsData: React.PropTypes.array,
   onInitTransformValue: React.PropTypes.func,
   onInitTransformSinkTypeNamespace: React.PropTypes.func
 }

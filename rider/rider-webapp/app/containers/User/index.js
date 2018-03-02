@@ -111,8 +111,7 @@ export class User extends React.PureComponent {
   }
 
   searchOperater () {
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const { columnNameText, valueText, visibleBool, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
