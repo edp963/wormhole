@@ -22,7 +22,7 @@ Wormhole 系统中有三类用户角色 Admin，User，App。本章介绍 User �
 - hdfslog：可将数据备份至 Hdfs 上，可以为 Job 提供数据源，实现 Kappa 架构
 - routing：可将某 Topic 上数据分发到其他 Topic 中
 
-![user-stream-type](/Users/swallow/IdeaProjects/wormhole/docs/img/user-stream-type.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-stream-type.png" alt="" width="600"/>
 
 #### 资源配置
 
@@ -31,7 +31,7 @@ Wormhole 系统中有三类用户角色 Admin，User，App。本章介绍 User �
 -  获取 Kafka RDD 后重新分区的分区个数设置，建议设置为 Executor 的个数
 -  每批次可从 Kafka Topic Partition 中获取的最大数据量设置，单位为 M
 
-![user-stream-configs](/Users/swallow/IdeaProjects/wormhole/docs/img/user-stream-configs.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-stream-configs.png" alt="" width="600"/>
 
 #### Topic 绑定
 
@@ -51,7 +51,7 @@ Flow 停止时检查其 Source Namespace 对应 Topic 是否对应该 Stream 上
 - 配置每个 Topic 的消费速度 Rate (单位为条/秒)
 - 配置每个 Topic Partition 消费的起始 Offset
 
-![user-stream-start](/Users/swallow/IdeaProjects/wormhole/docs/img/user-stream-start.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-stream-start.png" alt="" width="600"/>
 
 **注意事项：**
 
@@ -78,7 +78,7 @@ Stream 运行过程中支持 UDF 热部署，支持动态调整 Topic 消费的 
 
 Stream 状态转换图如下，其中 refresh 代表 Refresh 按钮，start 代表启动按钮，stop 代表停止按钮。
 
-![user-stream-state-exchange](/Users/swallow/IdeaProjects/wormhole/docs/img/user-stream-state-exchange.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-stream-state-exchange.png" alt="" width="600"/>
 
 ## Flow 管理
 
@@ -200,11 +200,17 @@ Spark SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 - stopping 代表正在停止
 - stopped 代表已经停止
 
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-guide-flow-list.png" alt="" width="600"/>
+
 ### Job
 
 借助 Job 可轻松实现 Lambda 架构和 Kappa 架构。
 
 首先使用 hdfslog Stream 将源数据备份到 Hdfs，Flow 出错或需要重算时，可配置 Job 重算。具体配置可参考Stream 和 Flow。
 
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-guide-job-source.png" alt="" width="600"/>
 
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-guide-job-sink.png" alt="" width="600"/>
+
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-guide-job-list.png" alt="" width="600"/>
 
