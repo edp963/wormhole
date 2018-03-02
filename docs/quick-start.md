@@ -13,7 +13,7 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
 
 1. Admin 用户登录系统后创建普通用户
 
-![quick-start-createUser](img/quick-start-createUser.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-createUser.png" alt="" width="600"/>
 
 2. Admin 创建 Source Namespace
 
