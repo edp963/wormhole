@@ -42,10 +42,18 @@ const RadioGroup = Radio.Group
 export class FlowTransformForm extends React.Component {
   constructor (props) {
     super(props)
-    this.state = { dsHideOrNot: '' }
+    this.state = {
+      dsHideOrNot: '',
+      selectValue: ''
+    }
   }
 
-  onTransformTypeSelect = (e) => this.props.onInitTransformValue(e.target.value)
+  onTransformTypeSelect = (e) => {
+    this.setState({
+      selectValue: e.target.value
+    })
+    this.props.onInitTransformValue(e.target.value)
+  }
 
   onLookupSqlTypeItemSelect = (val) => this.setState({ dsHideOrNot: val === 'union' ? 'hide' : '' })
 
@@ -58,7 +66,7 @@ export class FlowTransformForm extends React.Component {
   render () {
     const { form } = this.props
     const { transformValue, transformSinkTypeNamespaceData, flowTransNsData } = this.props
-    const { dsHideOrNot } = this.state
+    const { dsHideOrNot, selectValue } = this.state
     const { getFieldDecorator } = form
 
     const itemStyle = {
@@ -131,31 +139,21 @@ export class FlowTransformForm extends React.Component {
       )
     })
 
-    const lookUpSqlMsg = (
-      <span>
-        SQL
-        <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />}>
-          <Popover
-            placement="top"
-            content={<div style={{ width: '400px', height: '90px' }}>
-              <p><FormattedMessage {...messages.workbenchTransLookup} /></p>
-            </div>}
-            title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
-            trigger="click">
-            <Icon type="question-circle-o" className="question-class" />
-          </Popover>
-        </Tooltip>
-      </span>
-    )
+    let sqlMsg = ''
+    if (selectValue === 'lookupSql') {
+      sqlMsg = <FormattedMessage {...messages.workbenchTransLookup} />
+    } else if (selectValue === 'sparkSql') {
+      sqlMsg = <FormattedMessage {...messages.workbenchTransSpark} />
+    }
 
-    const sparkSqlMsg = (
+    const sqlHtml = (
       <span>
         SQL
         <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />}>
           <Popover
             placement="top"
             content={<div style={{ width: '400px', height: '90px' }}>
-              <p><FormattedMessage {...messages.workbenchTransSpark} /></p>
+              <p>{sqlMsg}</p>
             </div>}
             title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
@@ -258,7 +256,7 @@ export class FlowTransformForm extends React.Component {
             </FormItem>
           </Col>
           <Col span={6} className={transformTypeClassNames[0]}>
-            <FormItem label={lookUpSqlMsg} className="tran-sql-label">
+            <FormItem label={sqlHtml} className="tran-sql-label">
               {getFieldDecorator('lookupSql', {
                 hidden: transformTypeHiddens[0]
               })(
@@ -275,7 +273,7 @@ export class FlowTransformForm extends React.Component {
 
           {/* 设置 Spark Sql */}
           <Col span={6} className={transformTypeClassNames[1]}>
-            <FormItem label={sparkSqlMsg} className="tran-sql-label">
+            <FormItem label={sqlHtml} className="tran-sql-label">
               {getFieldDecorator('sparkSql', {
                 hidden: transformTypeHiddens[1]
               })(
