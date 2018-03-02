@@ -74,14 +74,9 @@ export class FlowTransformForm extends React.Component {
       wrapperCol: { span: 17 }
     }
 
-    const itemStyleNs = {
-      labelCol: { span: 9 },
-      wrapperCol: { span: 14 }
-    }
-
     const itemStyleTimeout = {
-      labelCol: { span: 14 },
-      wrapperCol: { span: 7 }
+      labelCol: { span: 6 },
+      wrapperCol: { span: 18 }
     }
 
     const transformTypeClassNames = [
@@ -307,40 +302,38 @@ export class FlowTransformForm extends React.Component {
             </FormItem>
           </Col>
 
-          <Col span={24}>
-            <Col span={16} className={transformTypeClassNames[2]}>
-              <FormItem label="Namespace" {...itemStyleNs}>
-                {getFieldDecorator('streamJoinSqlNs', {
-                  rules: [{
-                    required: true,
-                    message: operateLanguageSelect('namespace', 'Namespace')
-                  }],
-                  hidden: transformTypeHiddens[2]
-                })(
-                  <Select
-                    mode="multiple"
-                    placeholder="Select namespaces"
-                  >
-                    {nsChildren}
-                  </Select>
-                )}
-              </FormItem>
-            </Col>
-            <Col span={7} className={transformTypeClassNames[2]}>
-              <FormItem label="Timeout (Sec)" {...itemStyleTimeout}>
-                {getFieldDecorator('timeout', {
-                  rules: [{
-                    required: true,
-                    message: operateLanguageFillIn('timeout', 'Timeout')
-                  }, {
-                    validator: forceCheckNum
-                  }],
-                  hidden: transformTypeHiddens[2]
-                })(
-                  <InputNumber min={10} max={1800} step={1} placeholder="Timeout" />
-                )}
-              </FormItem>
-            </Col>
+          <Col span={24} className={transformTypeClassNames[2]}>
+            <FormItem label="Namespace" {...itemStyle}>
+              {getFieldDecorator('streamJoinSqlNs', {
+                rules: [{
+                  required: true,
+                  message: operateLanguageSelect('namespace', 'Namespace')
+                }],
+                hidden: transformTypeHiddens[2]
+              })(
+                <Select
+                  mode="multiple"
+                  placeholder="Select namespaces"
+                >
+                  {nsChildren}
+                </Select>
+              )}
+            </FormItem>
+          </Col>
+          <Col span={24} className={transformTypeClassNames[2]}>
+            <FormItem label="Retention time (Sec)" {...itemStyleTimeout}>
+              {getFieldDecorator('timeout', {
+                rules: [{
+                  required: true,
+                  message: operateLanguageFillIn('retention time', 'Retention Time')
+                }, {
+                  validator: forceCheckNum
+                }],
+                hidden: transformTypeHiddens[2]
+              })(
+                <InputNumber min={10} max={1800} step={1} placeholder="Time" />
+              )}
+            </FormItem>
           </Col>
 
           <Col span={6} className={transformTypeClassNames[2]}>
