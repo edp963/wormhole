@@ -2147,18 +2147,31 @@ export class Workbench extends React.Component {
             break
           case 'streamJoinSql':
             this.cmStreamJoinSql.doc.setValue(this.cmStreamJoinSql.doc.getValue() || '')
-            // namespace 下拉框内容
-            const { projectId, pipelineStreamId } = this.state
-            if (pipelineStreamId !== 0) {
-              this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, value, 'sourceType', (result) => {
-                this.setState({
-                  flowTransNsData: generateSourceSinkNamespaceHierarchy(value, result)
-                })
-              })
-            }
+            this.loadTransNs()
             break
         }
       }
+    })
+  }
+
+  // namespace 下拉框内容
+  loadTransNs () {
+    const { projectId, pipelineStreamId } = this.state
+    const flowValues = this.workbenchFlowForm.getFieldsValue()
+    const sourceDSVal = flowValues.sourceDataSystem
+    const sourceNsVal = flowValues.sourceNamespace
+    this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, sourceDSVal, 'sourceType', (result) => {
+      const resultFinal = result.filter((i) => {
+        const temp = [i.nsInstance, i.nsDatabase, i.nsTable]
+        if (temp.join(',') !== sourceNsVal.join(',')) {
+          return i
+        } else {
+          return
+        }
+      })
+      this.setState({
+        flowTransNsData: resultFinal
+      })
     })
   }
 
@@ -2279,10 +2292,16 @@ export class Workbench extends React.Component {
           const tranStreamJoinVal1 = record.transformConfigInfo.substring(record.transformConfigInfo.indexOf('.') + 1) // 去除第一项后的字符串
           const tranStreamJoinVal2 = tranStreamJoinVal1.substring(tranStreamJoinVal1.indexOf('.') + 1)  // 去除第二项后的字符串
 
+          const tempArr = record.transformConfigInfoRequest.split(' ')
+          const selectedNsArr = tempArr[4].split(',').map((i) => i.substring(0, i.indexOf('(')))
+
           this.flowTransformForm.setFieldsValue({
             streamJoinSqlType: record.transformConfigInfo.substring(0, record.transformConfigInfo.indexOf('.')),
-            timeout: tranStreamJoinVal1.substring(0, tranStreamJoinVal1.indexOf('.'))
+            timeout: tranStreamJoinVal1.substring(0, tranStreamJoinVal1.indexOf('.')),
+            streamJoinSqlNs: selectedNsArr
           })
+
+          this.loadTransNs()
           this.cmStreamJoinSql.doc.setValue(tranStreamJoinVal2)
           break
         case 'transformClassName':
@@ -2482,7 +2501,7 @@ export class Workbench extends React.Component {
   }
 
   onTransformModalOk = () => {
-    const { transformMode, transformSinkNamespaceArray, step2SourceNamespace } = this.state
+    const { transformMode, transformSinkNamespaceArray } = this.state
     this.flowTransformForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         let transformConfigInfoString = ''
@@ -2568,9 +2587,16 @@ export class Workbench extends React.Component {
               } else if (values.streamJoinSqlType === 'innerJoin') {
                 streamJoinSqlTypeOrigin = 'inner join'
               }
+
+              const sqlArr = values.streamJoinSqlNs.map((i) => {
+                const iTemp = i.replace(/,/g, '.')
+                const iFinal = `${iTemp}(${values.timeout})`
+                return iFinal
+              })
+
               transformConfigInfoString = `${values.streamJoinSqlType}.${values.timeout}.${streamJoinSqlVal}`
               tranConfigInfoSqlString = streamJoinSqlVal
-              transformConfigInfoRequestString = `parquet_sql ${streamJoinSqlTypeOrigin} with ${step2SourceNamespace}.*.*.*(${values.timeout}) = ${streamJoinSqlVal}`
+              transformConfigInfoRequestString = `parquet_sql ${streamJoinSqlTypeOrigin} with ${sqlArr.join(',')} = ${streamJoinSqlVal}`
               pushdownConnectionJson = {}
 
               num = (streamJoinSqlVal.split(';')).length - 1
