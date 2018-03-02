@@ -112,7 +112,7 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 #### Sink Config
 
 - Sink Config 项配置与所选系统类型相关，点击配置按钮后页面上方有对应系统的配置项例子
-- 其中 "mutation_type" 的值有 "iud" 和 "i"，代表向 Sink 表中插数据时使用只增原则或增删改原则。如果为 "iud"，源数据和 Sink 表中都须有对应的UMS系统字段。若不配置此项，默认为 "iud"
+- 其中 "mutation_type" 的值有 "i" 和 "iud"，代表向 Sink 表中插数据时使用只增原则或增删改原则。如果为 "iud"，源数据和 Sink 表中都须有对应的UMS系统字段。若不配置此项，默认为 "iud"
 - Sink 系统为 Elasticsearch 时，
 
 #### Transformation
@@ -161,7 +161,7 @@ select id as id1, name as name1, address, age from eurus_user where (id, name) i
 
 ###### Spark SQL
 
-Spark SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Spark SQL 中可以使用 Flow 对应Stream 注册的 UDF 方法。
+Spark SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Spark SQL 支持使用 UDF 方法，UDF 方法须包含在该 Flow 对应的 Stream 中。
 
 ###### Stream Join SQL
 
@@ -195,7 +195,7 @@ Spark SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 - new 代表新建后还未启动
 - starting 代表正在启动
 - running 代表正在运行
-- suspending 代表挂起状态。Stream 处于非 running 状态时，Flow 的 状态由 starting/running/updating 转换为 suspending状态。Stream 处于 running 状态后，Flow 状态会自动转换为 running/failed 状态
+- suspending 代表挂起状态。Stream 处于非 running 状态时，Flow 的状态由 starting/running/updating 转换为 suspending 状态。Stream 处于 running 状态后，Flow 状态会自动转换为 running/failed 状态
 - failed 代表启动失败
 - stopping 代表正在停止
 - stopped 代表已经停止
