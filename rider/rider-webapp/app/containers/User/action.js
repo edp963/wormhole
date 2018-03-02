@@ -135,12 +135,11 @@ export function addUser (user, resolve) {
   }
 }
 
-export function userAdded (result, resolve) {
+export function userAdded (result) {
   return {
     type: ADD_USER_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -194,22 +193,20 @@ export function loadEmailInputValue (value, resolve, reject) {
   }
 }
 
-export function emailInputValueLoaded (result, resolve) {
+export function emailInputValueLoaded (result) {
   return {
     type: LOAD_EMAIL_INPUT_VALUE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function emailInputValueErrorLoaded (result, reject) {
+export function emailInputValueErrorLoaded (result) {
   return {
     type: LOAD_EMAIL_INPUT_VALUE_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
@@ -225,22 +222,20 @@ export function editroleTypeUserPsw (pwdValues, resolve, reject) {
   }
 }
 
-export function roleTypeUserPswEdited (result, resolve) {
+export function roleTypeUserPswEdited (result) {
   return {
     type: EDIT_ROLETYPE_USERPSW_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function roleTypeUserPswErrorEdited (result, reject) {
+export function roleTypeUserPswErrorEdited (result) {
   return {
     type: EDIT_ROLETYPE_USERPSW_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
@@ -254,12 +249,11 @@ export function loadProjectUserAll (resolve) {
   }
 }
 
-export function projectUserAllLoaded (result, resolve) {
+export function projectUserAllLoaded (result) {
   return {
     type: LOAD_PROJECT_USER_ALL_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }

@@ -25,7 +25,6 @@ import Helmet from 'react-helmet'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import { operateLanguageText } from '../../utils/util'
 import InstanceForm from './InstanceForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
@@ -43,6 +42,8 @@ import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadInstances, addInstance, loadInstanceInputValue, loadInstanceExit,
   loadSingleInstance, editInstance, deleteInstace } from './action'
 import { selectInstances, selectError, selectModalLoading, selectConnectUrlExisted, selectInstanceExisted } from './selectors'
+
+import { operateLanguageText } from '../../utils/util'
 
 export class Instance extends React.PureComponent {
   constructor (props) {
@@ -159,27 +160,29 @@ export class Instance extends React.PureComponent {
   }
 
   showEditInstance = (instance) => (e) => {
-    this.props.onLoadSingleInstance(instance.id, (result) => {
+    this.props.onLoadSingleInstance(instance.id, ({
+      connUrl, active, createBy, createTime, id, nsInstance, nsSys, updateBy, updateTime, desc
+                                                  }) => {
       this.setState({
         formVisible: true,
         instanceFormType: 'edit',
-        eidtConnUrl: result.connUrl,
+        eidtConnUrl: connUrl,
         editInstanceData: {
-          active: result.active,
-          createBy: result.createBy,
-          createTime: result.createTime,
-          id: result.id,
-          nsInstance: result.nsInstance,
-          nsSys: result.nsSys,
-          updateBy: result.updateBy,
-          updateTime: result.updateTime
+          active: active,
+          createBy: createBy,
+          createTime: createTime,
+          id: id,
+          nsInstance: nsInstance,
+          nsSys: nsSys,
+          updateBy: updateBy,
+          updateTime: updateTime
         }
       }, () => {
         this.instanceForm.setFieldsValue({
-          instanceDataSystem: result.nsSys,
-          connectionUrl: result.connUrl,
-          instance: result.nsInstance,
-          description: result.desc
+          instanceDataSystem: nsSys,
+          connectionUrl: connUrl,
+          instance: nsInstance,
+          description: desc
         })
       })
     })
@@ -212,15 +215,19 @@ export class Instance extends React.PureComponent {
             this.props.onAddInstance(values, () => {
               this.hideForm()
               message.success(createFormat, 3)
+            }, (msg) => {
+              this.loadResult(values.connectionUrl, msg)
             })
           }
         } else if (instanceFormType === 'edit') {
-          this.props.onEditInstance(Object.assign({}, this.state.editInstanceData, {
+          this.props.onEditInstance(Object.assign(this.state.editInstanceData, {
             desc: values.description,
             connUrl: values.connectionUrl
           }), () => {
             this.hideForm()
             message.success(modifyFormat, 3)
+          }, (msg) => {
+            this.loadResult(values.connectionUrl, msg)
           })
         }
       }
@@ -320,7 +327,7 @@ export class Instance extends React.PureComponent {
       : '作为sink，填写 http://localhost:9200；作为lookup，填写localhost:9300'
 
     let errMsg = ''
-    if (result.indexOf('exists') > 0) {
+    if (result.includes('exists')) {
       errMsg = [new Error(existText)]
     } else {
       if (InstanceSourceDsVal === 'es') {
@@ -341,8 +348,9 @@ export class Instance extends React.PureComponent {
         InstanceSourceDsVal === 'redis'
       ) {
         errMsg = [new Error('ip:port list')]
+      } else if (InstanceSourceDsVal === 'parquet') {
+        errMsg = [new Error('hdfs://nn1[:8020]/[user/test/test1]')]
       }
-
       // else if (InstanceSourceDsVal === 'log') {
       //   errMsg = ''
       // }
@@ -471,7 +479,8 @@ export class Instance extends React.PureComponent {
           {text: 'kafka', value: 'kafka'},
           {text: 'postgresql', value: 'postgresql'},
           {text: 'mongodb', value: 'mongodb'},
-          {text: 'redis', value: 'redis'}
+          {text: 'redis', value: 'redis'},
+          {text: 'parquet', value: 'parquet'}
         ],
         filteredValue: filteredInfo.nsSys,
         onFilter: (value, record) => record.nsSys.includes(value)
@@ -547,7 +556,6 @@ export class Instance extends React.PureComponent {
           }
         },
         sortOrder: sortedInfo.columnKey === 'createTime' && sortedInfo.order,
-        // filteredValue: filteredInfo.createTime,
         filterDropdown: (
           <div className="custom-filter-dropdown-style">
             <RangePicker
@@ -579,7 +587,6 @@ export class Instance extends React.PureComponent {
           }
         },
         sortOrder: sortedInfo.columnKey === 'updateTime' && sortedInfo.order,
-        // filteredValue: filteredInfo.updateTime,
         filterDropdown: (
           <div className="custom-filter-dropdown-style">
             <RangePicker
@@ -725,11 +732,11 @@ Instance.propTypes = {
 export function mapDispatchToProps (dispatch) {
   return {
     onLoadInstances: (resolve) => dispatch(loadInstances(resolve)),
-    onAddInstance: (instance, resolve) => dispatch(addInstance(instance, resolve)),
+    onAddInstance: (instance, resolve, reject) => dispatch(addInstance(instance, resolve, reject)),
     onLoadInstanceInputValue: (value, resolve, reject) => dispatch(loadInstanceInputValue(value, resolve, reject)),
     onLoadInstanceExit: (value, resolve, reject) => dispatch(loadInstanceExit(value, resolve, reject)),
     onLoadSingleInstance: (instanceId, resolve) => dispatch(loadSingleInstance(instanceId, resolve)),
-    onEditInstance: (value, resolve) => dispatch(editInstance(value, resolve)),
+    onEditInstance: (value, resolve, reject) => dispatch(editInstance(value, resolve, reject)),
     onDeleteInstace: (value, resolve, reject) => dispatch(deleteInstace(value, resolve, reject)),
     onChangeLanguage: (type) => dispatch(changeLocale(type))
   }

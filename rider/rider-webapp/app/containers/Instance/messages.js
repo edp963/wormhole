@@ -32,14 +32,14 @@ export default defineMessages({
   instanceModalCancel: { id: 'rider.app.modal.cancel' },
   instanceModalSave: { id: 'rider.app.modal.save' },
   instanceTableCreate: { id: 'rider.containers.Instance.Modal.create' },
-  instanceTableModidy: { id: 'rider.containers.Instance.Modal.modify' },
+  instanceTableModify: { id: 'rider.containers.Instance.Modal.modify' },
   instanceModalUrlOracleMsg: { id: 'rider.containers.Instance.Modal.url.oracle.msg' },
   instanceModalUrlEsMsg: { id: 'rider.containers.Instance.Modal.url.es.msg' },
   instanceModalUrlHbaseMsg: { id: 'rider.containers.Instance.Modal.url.hbase.msg' },
   instanceModalUrlPhienixMsg: { id: 'rider.containers.Instance.Modal.url.phoenix.msg' },
   instanceModalUrlKafkaMsg: { id: 'rider.containers.Instance.Modal.url.kafka.msg' },
   instanceModalUrlCassandraMsg: { id: 'rider.containers.Instance.Modal.url.cassandra.msg' },
-  instanceModalUrlRedisMsg: { id: 'rider.containers.Instance.Modal.url.redis.msg' },
-  instanceModalUrlMongodbMsg: { id: 'rider.containers.Instance.Modal.url.mongodb.msg' },
+  instanceModalUrlParquetMsg: { id: 'rider.containers.Instance.Modal.url.parquet.msg' },
   instanceModalUrlOthersMsg: { id: 'rider.containers.Instance.Modal.url.others.msg' }
 })
+

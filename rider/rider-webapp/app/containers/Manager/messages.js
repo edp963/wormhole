@@ -39,5 +39,6 @@ export default defineMessages({
   streamModalView: { id: 'rider.containers.Stream.view.btn' },
   streamModalReset: { id: 'rider.containers.Stream.reset.btn' },
   streamModalRate: { id: 'rider.containers.Stream.modal.rate' },
-  streamModalApply: { id: 'rider.containers.Stream.modal.apply' }
+  streamModalApply: { id: 'rider.containers.Stream.modal.apply' },
+  streamModalApplyAll: { id: 'rider.containers.Stream.modal.apply.all' }
 })

@@ -8,8 +8,6 @@
   "rider.app.search.reset": "重置",
   "rider.app.search.ok": "确定",
   "rider.app.search.time": "选择日期",
-  "rider.rider.app.items.page": "条/页",
-  "rider.app.table.no.data": "暂无数据",
   "rider.app.table.view.details": "查看详情",
   "rider.app.table.start.action": "开始",
   "rider.app.table.renew.action": "生效",
@@ -62,6 +60,7 @@
   "rider.containers.Stream.reset.btn": "还原",
   "rider.containers.Stream.modal.rate": "条/秒",
   "rider.containers.Stream.modal.apply": "应用",
+  "rider.containers.Stream.modal.apply.all": "一键应用",
 
   "rider.containers.Namespace.Modal.tables.table2": "请填写 Table",
   "rider.containers.Namespace.Modal.tables.table3": "Table 重名",
@@ -113,6 +112,7 @@
   "rider.containers.Instance.Modal.url.phoenix.msg": "zookeeper url list",
   "rider.containers.Instance.Modal.url.kafka.msg": "localhost:9092,localhost1:9092",
   "rider.containers.Instance.Modal.url.cassandra.msg": "ip:port list",
+  "rider.containers.Instance.Modal.url.parquet.msg": "hdfs://nn1[:8020]/[user/test/test1]",
   "rider.containers.Instance.Modal.url.others.msg": "请选择 Data System",
 
   "rider.containers.Database.table.column.ds": "数据系统",

@@ -25,10 +25,12 @@ import {
   LOAD_INSTANCES_SUCCESS,
   ADD_INSTANCE,
   ADD_INSTANCE_SUCCESS,
+  ADD_INSTANCE_ERROR,
   LOAD_SINGLE_INSTANCE,
   LOAD_SINGLE_INSTANCE_SUCCESS,
   EDIT_INSTANCE,
   EDIT_INSTANCE_SUCCESS,
+  EDIT_INSTANCE_ERROR,
   LOAD_INSTANCES_INPUT_VALUE,
   LOAD_INSTANCES_INPUT_VALUE_SUCCESS,
   LOAD_INSTANCES_INPUT_VALUE_ERROR,
@@ -62,45 +64,44 @@ export function instanceReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('modalLoading', true)
     case ADD_INSTANCE_SUCCESS:
-      payload.resolve()
       instances.unshift(payload.result)
       return state
         .set('instances', instances.slice())
         .set('modalLoading', false)
+    case ADD_INSTANCE_ERROR:
+      return state.set('modalLoading', false)
     case LOAD_SINGLE_INSTANCE:
       return state.set('error', false)
     case LOAD_SINGLE_INSTANCE_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case EDIT_INSTANCE:
       return state
         .set('error', false)
         .set('modalLoading', true)
     case EDIT_INSTANCE_SUCCESS:
-      instances.splice(instances.indexOf(instances.find(p => p.id === payload.result.id)), 1, payload.result)
+      const startIndex = instances.indexOf(instances.find(p => Object.is(p.id, payload.result.id)))
+      instances.fill(payload.result, startIndex, startIndex + 1)
       return state
         .set('instances', instances.slice())
         .set('modalLoading', false)
+    case EDIT_INSTANCE_ERROR:
+      return state.set('modalLoading', false)
     case LOAD_INSTANCES_INPUT_VALUE:
       return state.set('connectUrlExisted', false)
     case LOAD_INSTANCES_INPUT_VALUE_SUCCESS:
-      payload.resolve()
       return state.set('connectUrlExisted', false)
     case LOAD_INSTANCES_INPUT_VALUE_ERROR:
-      payload.reject(payload.result)
       return state.set('connectUrlExisted', true)
     case LOAD_INSTANCES_EXIT:
       return state.set('instanceExisted', false)
     case LOAD_INSTANCES_EXIT_SUCCESS:
-      payload.resolve()
       return state.set('instanceExisted', false)
     case LOAD_INSTANCES_EXIT_ERROR:
-      payload.reject(payload.result)
       return state.set('instanceExisted', true)
     case DELETE_INSTANCE:
       return state
     case DELETE_INSTANCE_SUCCESS:
-      return state.set('instances', instances.filter(g => g.id !== payload.result))
+      return state.set('instances', instances.filter(g => !Object.is(g.id, payload.result)))
     case DELETE_INSTANCE_ERROR:
       return state
     case GET_ERROR:

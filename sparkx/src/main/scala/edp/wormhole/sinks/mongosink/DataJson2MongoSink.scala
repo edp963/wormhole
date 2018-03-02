@@ -155,35 +155,41 @@ class DataJson2MongoSink extends SinkProcessor with EdpLogging {
       if (dataType == "jsonarray") {
         val jsonArray = if (jsonData.containsKey(name)) jsonData.getJSONArray(name) else null
         val list = MongoDBList
-
-        val jsonArraySubFields = subField.getJSONArray("sub_fields")
-        val dataSize = jsonArray.size()
-        val schemaSize = jsonArraySubFields.size()
-
         val toUpsert = ListBuffer.empty[Imports.DBObject]
-        for (i <- 0 until dataSize) {
-          val subBuilder = MongoDBObject.newBuilder
-          for (j <- 0 until schemaSize) {
-            if (jsonArray == null) {
-              constructBuilder(null, jsonArraySubFields.getJSONObject(j), subBuilder)
-            }
-            else {
-              constructBuilder(jsonArray.getJSONObject(i), jsonArraySubFields.getJSONObject(j), subBuilder)
-            }
 
+        if (jsonArray == null) {
+          toUpsert.append(null)
+        }
+        else {
+
+          val jsonArraySubFields = subField.getJSONArray("sub_fields")
+          val dataSize = jsonArray.size()
+          val schemaSize = jsonArraySubFields.size()
+
+
+          for (i <- 0 until dataSize) {
+            val subBuilder = MongoDBObject.newBuilder
+            for (j <- 0 until schemaSize) {
+              if (jsonArray == null) {
+                constructBuilder(null, jsonArraySubFields.getJSONObject(j), subBuilder)
+              }
+              else {
+                constructBuilder(jsonArray.getJSONObject(i), jsonArraySubFields.getJSONObject(j), subBuilder)
+              }
+
+            }
+            toUpsert.append(subBuilder.result())
           }
-          toUpsert.append(subBuilder.result())
         }
         builder += name -> list(toUpsert: _*)
       } else if (dataType.endsWith("array")) {
         val jsonArray = if (jsonData.containsKey(name)) jsonData.getJSONArray(name) else null
         val toUpsert = ListBuffer.empty[Any]
-        val size = jsonArray.size()
-        for (i <- 0 until size) {
-          if (jsonArray == null) {
-            toUpsert.append(null)
-          }
-          else {
+        if (jsonArray == null) {
+          toUpsert.append(null)
+        } else {
+          val size = jsonArray.size()
+          for (i <- 0 until size) {
             toUpsert.append(jsonArray.get(i))
           }
         }

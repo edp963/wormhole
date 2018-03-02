@@ -8,8 +8,6 @@
   "rider.app.search.reset": "Reast",
   "rider.app.search.ok": "Ok",
   "rider.app.search.time": "Select Time",
-  "rider.app.items.page": "Items/Page",
-  "rider.app.table.no.data": "No Data",
   "rider.app.table.view.details": "View Details",
   "rider.app.table.start.action": "Start",
   "rider.app.table.renew.action": "Renew",
@@ -19,7 +17,10 @@
   "rider.app.table.modify.action": "Modify",
   "rider.app.table.delete.action": "Delete",
   "rider.app.table.details": "Details",
-  "rider.app.table.sure.delete": "Confirm to Delete?",
+  "rider.app.table.sure.delete": "Confirm to delete?",
+  "rider.app.table.sure.stop": "Confirm to stop?",
+  "rider.app.table.sure.start": "Confirm to start?",
+  "rider.app.table.sure.renew": "Confirm to renew?",
   "rider.app.table.exists": "Exists",
   "rider.app.help": "Help",
 
@@ -59,6 +60,7 @@
   "rider.containers.Stream.reset.btn": "Reset",
   "rider.containers.Stream.modal.rate": "items/second",
   "rider.containers.Stream.modal.apply": "Apply",
+  "rider.containers.Stream.modal.apply.all": "Apply All",
 
   "rider.containers.Namespace.Modal.tables.table2": "Please fill in the Table",
   "rider.containers.Namespace.Modal.tables.table3": "Duplication of Table name",
@@ -109,6 +111,7 @@
   "rider.containers.Instance.Modal.url.phoenix.msg": "zookeeper url list",
   "rider.containers.Instance.Modal.url.kafka.msg": "localhost:9092,localhost1:9092",
   "rider.containers.Instance.Modal.url.cassandra.msg": "ip:port list",
+  "rider.containers.Instance.Modal.url.parquet.msg": "hdfs://nn1[:8020]/[user/test/test1]",
   "rider.containers.Instance.Modal.url.others.msg": "Please Select Data System",
 
   "rider.containers.Database.table.column.ds": "Data System",

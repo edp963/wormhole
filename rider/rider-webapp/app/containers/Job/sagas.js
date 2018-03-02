@@ -109,7 +109,8 @@ export function* getAdminSingleJobWatcher () {
 export function* getAdminJobLogs ({ payload }) {
   try {
     const result = yield call(request, `${api.job}/${payload.jobId}/logs`)
-    yield put(adminJobLogsLoaded(result.payload, payload.resolve))
+    yield put(adminJobLogsLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     notifySagasError(err, 'getAdminJobLogs')
   }
@@ -122,7 +123,8 @@ export function* getAdminJobLogsWatcher () {
 export function* getUserJobLogs ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/jobs/${payload.jobId}/logs`)
-    yield put(userJobLogsLoaded(result.payload, payload.resolve))
+    yield put(userJobLogsLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     notifySagasError(err, 'getUserJobLogs')
   }
@@ -140,15 +142,19 @@ export function* operateUserJob ({ payload }) {
     })
     if (payload.values.action === 'delete') {
       if (result.code && result.code !== 200) {
-        yield put(jobOperatedError(result.msg, payload.reject))
+        yield put(jobOperatedError(result.msg))
+        payload.reject(result.msg)
       } else if (result.code && result.code === 200) {
         yield put(jobOperated(Number(payload.values.jobId), payload.resolve))
+        payload.resolve(Number(payload.values.jobId))
       }
     } else {
       if (result.code && result.code !== 200) {
-        yield put(jobOperatedError(result.msg, payload.reject))
+        yield put(jobOperatedError(result.msg))
+        payload.reject(result.msg)
       } else if (result.header.code && result.header.code === 200) {
         yield put(jobOperated(result.payload, payload.resolve))
+        payload.resolve(result.payload)
       }
     }
   } catch (err) {
@@ -164,9 +170,11 @@ export function* loadJobNameValue ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/jobs?jobName=${payload.value}`)
     if (result.code && result.code === 409) {
-      yield put(jobNameLoadedError(result.msg, payload.reject))
+      yield put(jobNameLoadedError(result.msg))
+      payload.reject()
     } else if (result.header.code && result.header.code === 200) {
-      yield put(jobNameLoaded(result.payload, payload.resolve))
+      yield put(jobNameLoaded(result.payload))
+      payload.resolve()
     }
   } catch (err) {
     notifySagasError(err, 'loadJobNameValue')
@@ -181,9 +189,11 @@ export function* loadJobSourceNsValue ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`)
     if (result.code && result.code !== 200) {
-      yield put(jobSourceNsLoadedError(result.msg, payload.reject))
+      yield put(jobSourceNsLoadedError(result.msg))
+      payload.reject(result.msg)
     } else if (result.header.code && result.header.code === 200) {
-      yield put(jobSourceNsLoaded(result.payload, payload.resolve))
+      yield put(jobSourceNsLoaded(result.payload))
+      payload.resolve(result.payload)
     }
   } catch (err) {
     notifySagasError(err, 'loadJobSourceNsValue')
@@ -198,9 +208,11 @@ export function* loadJobSinkNsValue ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/namespaces?${payload.type}=${payload.value}`)
     if (result.code && result.code !== 200) {
-      yield put(jobSinkNsLoadedError(result.msg, payload.reject))
+      yield put(jobSinkNsLoadedError(result.msg))
+      payload.reject(result.msg)
     } else if (result.header.code && result.header.code === 200) {
-      yield put(jobSinkNsLoaded(result.payload, payload.resolve))
+      yield put(jobSinkNsLoaded(result.payload))
+      payload.resolve(result.payload)
     }
   } catch (err) {
     notifySagasError(err, 'loadJobSinkNsValue')
@@ -215,9 +227,11 @@ export function* getJobSourceToSink ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/jobs?sourceNs=${payload.sourceNs}&sinkNs=${payload.sinkNs}`)
     if (result.code === 200) {
-      yield put(jobSourceToSinkExistLoaded(result.msg, payload.resolve))
+      yield put(jobSourceToSinkExistLoaded(result.msg))
+      payload.resolve()
     } else {
-      yield put(jobSourceToSinkExistErrorLoaded(result.msg, payload.reject))
+      yield put(jobSourceToSinkExistErrorLoaded(result.msg))
+      payload.reject()
     }
   } catch (err) {
     notifySagasError(err, 'getJobSourceToSink')
@@ -235,7 +249,9 @@ export function* addJob ({ payload }) {
       url: `${api.projectUserList}/${payload.values.projectId}/jobs`,
       data: payload.values
     })
-    yield put(jobAdded(result.payload, payload.resolve, payload.final))
+    yield put(jobAdded(result.payload))
+    payload.resolve()
+    payload.final()
   } catch (err) {
     notifySagasError(err, 'addJob')
   }
@@ -248,7 +264,8 @@ export function* addJobWatcher () {
 export function* queryJob ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.values.projectId}/jobs/${payload.values.jobId}`)
-    yield put(jobQueryed(result.payload, payload.resolve))
+    yield put(jobQueryed(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     notifySagasError(err, 'queryJob')
   }
@@ -265,7 +282,9 @@ export function* editJob ({ payload }) {
       url: `${api.projectUserList}/${payload.values.projectId}/jobs`,
       data: payload.values
     })
-    yield put(jobEdited(result.payload, payload.resolve, payload.final))
+    yield put(jobEdited(result.payload))
+    payload.resolve()
+    payload.final()
   } catch (err) {
     notifySagasError(err, 'editJob')
   }
@@ -282,7 +301,8 @@ export function* queryJobDetail ({ payload }) {
 
   try {
     const result = yield call(request, `${apiFinal}`)
-    yield put(jobDetailLoaded(result.payload, payload.resolve))
+    yield put(jobDetailLoaded(result.payload))
+    payload.resolve(result.payload)
   } catch (err) {
     notifySagasError(err, 'queryJobDetail')
   }

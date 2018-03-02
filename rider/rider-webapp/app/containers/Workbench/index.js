@@ -65,7 +65,7 @@ import Moment from 'moment'
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 import {loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic,
   loadSourceSinkTypeNamespace, loadSinkTypeNamespace, loadTranSinkTypeNamespace,
-  loadSourceToSinkExist, addFlow, editFlow, queryFlow} from '../Flow/action'
+  loadSourceToSinkExist, addFlow, editFlow, queryFlow, loadLookupSql} from '../Flow/action'
 
 import {loadUserStreams, loadAdminSingleStream, loadStreamNameValue, loadKafka,
   loadStreamConfigJvm, addStream, loadStreamDetail, editStream} from '../Manager/action'
@@ -365,7 +365,6 @@ export class Workbench extends React.Component {
     const { pipelineStreamId } = this.state
 
     this.setState({
-      hdfslogSinkNsValue: '',
       hdfslogNsData: []
     })
     if (pipelineStreamId !== 0) {
@@ -468,20 +467,8 @@ export class Workbench extends React.Component {
     }
   }
 
-  // 控制 result field show／hide
-  initResultFieldClass = (e) => {
-    switch (e.target.value) {
-      case 'selected':
-        this.setState({ fieldSelected: '' })
-        break
-      case 'all':
-        this.setState({ fieldSelected: 'hide' })
-        break
-    }
-  }
-
-  // 控制 data frame number show／hide
-  initDataShowClass = (e) => this.setState({ dataframeShowSelected: e.target.value === 'true' ? '' : 'hide' })
+  initResultFieldClass = (value) => this.setState({ fieldSelected: value === 'all' ? 'hide' : '' })
+  initDataShowClass = (value) => this.setState({ dataframeShowSelected: value === 'true' ? '' : 'hide' })
 
   showAddFlowWorkbench = () => {
     this.workbenchFlowForm.resetFields()
@@ -515,7 +502,7 @@ export class Workbench extends React.Component {
     // 显示 Stream 信息
     this.props.onLoadSelectStreamKafkaTopic(this.state.projectId, val, (result) => {
       const resultFinal = result.map(s => {
-        const responseResult = Object.assign({}, s.stream, {
+        const responseResult = Object.assign(s.stream, {
           disableActions: s.disableActions,
           topicInfo: s.topicInfo,
           instance: s.kafkaInfo.instance,
@@ -663,7 +650,7 @@ export class Workbench extends React.Component {
     })
       .then((resultFinal) => {
         if (resultFinal.tranConfig !== '') {
-          if (resultFinal.tranConfig.indexOf('action') > -1) {
+          if (resultFinal.tranConfig.includes('action')) {
             const tranConfigVal = JSON.parse(JSON.parse(JSON.stringify(resultFinal.tranConfig)))
 
             const tranActionArr = tranConfigVal.action.split(';')
@@ -674,7 +661,7 @@ export class Workbench extends React.Component {
               let tranConfigInfoTemp = ''
               let tranTypeTepm = ''
 
-              if (i.indexOf('spark_sql') > -1) {
+              if (i.includes('spark_sql')) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepm = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
 
@@ -682,7 +669,7 @@ export class Workbench extends React.Component {
                 tranTypeTepm = 'sparkSql'
               }
 
-              if (i.indexOf('custom_class') > -1) {
+              if (i.includes('custom_class')) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepm = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
 
@@ -710,13 +697,15 @@ export class Workbench extends React.Component {
 
         let sinkConfigShow = ''
         let maxRecordShow = 5000
+        let sinkProtocolShow = ''
         let resultFieldsVal = ''
         if (resultFinal.sinkConfig !== '') {
-          const sinkConfigVal = JSON.parse(JSON.parse(JSON.stringify(resultFinal.sinkConfig)))
-          sinkConfigShow = sinkConfigVal.sink_specific_config ? JSON.stringify(sinkConfigVal.sink_specific_config) : ''
+          const sinkConfigVal = JSON.parse(resultFinal.sinkConfig)
+          sinkConfigShow = sinkConfigVal.sink_specific_config ? sinkConfigVal.sink_specific_config : ''
           maxRecordShow = sinkConfigVal.maxRecordPerPartitionProcessed ? sinkConfigVal.maxRecordPerPartitionProcessed : 5000
+          sinkProtocolShow = sinkConfigVal.sink_protocol
 
-          if (resultFinal.sinkConfig.indexOf('output') < 0) {
+          if (!resultFinal.sinkConfig.includes('output')) {
             resultFieldsVal = 'all'
             this.setState({
               fieldSelected: 'hide'
@@ -764,6 +753,7 @@ export class Workbench extends React.Component {
           sinkNamespace: [sinkNsArr[1], sinkNsArr[2], sinkNsArr[3]],
 
           sinkConfig: sinkConfigShow,
+          sinkProtocol: sinkProtocolShow,
           maxRecordPerPartitionProcessed: maxRecordShow,
           resultFields: resultFieldsVal,
           jobSpecialConfig: jobSpecialConfigVal
@@ -856,13 +846,13 @@ export class Workbench extends React.Component {
 
         let dataframeShowVal = ''
         if (result.tranConfig !== '') {
-          if (result.tranConfig.indexOf('action') > -1) {
+          if (result.tranConfig.includes('action')) {
             const temp = JSON.parse(JSON.stringify(result.tranConfig))
             const tt = temp.replace(/\n/g, ' ')
             const tranConfigVal = JSON.parse(tt)
 
             let validityTemp = tranConfigVal.validity
-            if (result.tranConfig.indexOf('validity') > -1) {
+            if (result.tranConfig.includes('validity')) {
               const requestTempJson = {
                 check_columns: validityTemp.check_columns,
                 check_rule: validityTemp.check_rule,
@@ -884,7 +874,7 @@ export class Workbench extends React.Component {
               })
             }
 
-            if (result.tranConfig.indexOf('dataframe_show_num') > 0) {
+            if (result.tranConfig.includes('dataframe_show_num')) {
               dataframeShowVal = 'true'
               this.setState({
                 dataframeShowSelected: ''
@@ -910,8 +900,8 @@ export class Workbench extends React.Component {
               let tranTypeTepm = ''
               let pushdownConTepm = {}
 
-              if (i.indexOf('pushdown_sql') > -1) {
-                const iTmp = i.indexOf('left join') > -1 ? i.replace('left join', 'leftJoin') : i
+              if (i.includes('pushdown_sql')) {
+                const iTmp = i.includes('left join') ? i.replace('left join', 'leftJoin') : i
                 const lookupBeforePart = iTmp.substring(0, i.indexOf('=') - 1)
                 const lookupAfterPart = iTmp.substring(i.indexOf('=') + 1)
                 const lookupBeforePartTemp = (lookupBeforePart.replace(/(^\s*)|(\s*$)/g, '')).split(' ')
@@ -933,11 +923,11 @@ export class Workbench extends React.Component {
                 pushdownConTepm = pushdownConTepmJson
               }
 
-              if (i.indexOf('parquet_sql') > -1) {
+              if (i.includes('parquet_sql')) {
                 let imp = ''
-                if (i.indexOf('left join') > 0) {
+                if (i.includes('left join')) {
                   imp = i.replace('left join', 'leftJoin')
-                } else if (i.indexOf('inner join') > 0) {
+                } else if (i.includes('inner join')) {
                   imp = i.replace('inner join', 'innerJoin')
                 } else {
                   imp = i
@@ -958,7 +948,7 @@ export class Workbench extends React.Component {
                 pushdownConTepm = {}
               }
 
-              if (i.indexOf('spark_sql') > -1) {
+              if (i.includes('spark_sql')) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepmTemp = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
                 const sparkAfterPartTepm = preProcessSql(sparkAfterPartTepmTemp)
@@ -969,7 +959,7 @@ export class Workbench extends React.Component {
                 pushdownConTepm = {}
               }
 
-              if (i.indexOf('custom_class') > -1) {
+              if (i.includes('custom_class')) {
                 const classAfterPart = i.substring(i.indexOf('=') + 1)
                 const classAfterPartTepmTemp = classAfterPart.replace(/(^\s*)|(\s*$)/g, '')
                 const classAfterPartTepm = preProcessSql(classAfterPartTepmTemp)
@@ -1007,7 +997,7 @@ export class Workbench extends React.Component {
           const sinkConfigVal = JSON.parse(JSON.parse(JSON.stringify(result.sinkConfig)))
           sinkConfigShow = sinkConfigVal.sink_specific_config ? JSON.stringify(sinkConfigVal.sink_specific_config) : ''
 
-          if (result.sinkConfig.indexOf('output') < 0) {
+          if (!result.sinkConfig.includes('output')) {
             resultFieldsVal = 'all'
             this.setState({
               fieldSelected: 'hide'
@@ -1090,10 +1080,13 @@ export class Workbench extends React.Component {
           streamType: result.streamType
         })
 
+        const resultSinkNsArr = result.sinkNs.split('.')
+        const resultSinkNsFinal = [resultSinkNsArr[1], resultSinkNsArr[2], resultSinkNsArr[3]].join('.')
+
         this.setState({
           formStep: 0,
           pipelineStreamId: result.streamId,
-          hdfslogSinkNsValue: this.state.flowMode === 'copy' ? '' : result.sinkNs,
+          hdfslogSinkNsValue: this.state.flowMode === 'copy' ? '' : resultSinkNsFinal,
           flowKafkaInstanceValue: result.kafka,
           flowKafkaTopicValue: result.topics,
           singleFlowResult: {
@@ -1215,9 +1208,9 @@ export class Workbench extends React.Component {
         perExecutorCores: 1
       }
       const launchConfigJson = {
-        durations: 10,
+        durations: 30,
         partitions: 6,
-        maxRecords: 50
+        maxRecords: 10
       }
 
       this.setState({
@@ -1241,7 +1234,7 @@ export class Workbench extends React.Component {
     this.workbenchStreamForm.resetFields()
 
     this.props.onLoadStreamDetail(this.state.projectId, stream.id, 'user', (result) => {
-      const resultVal = Object.assign({}, result.stream, {
+      const resultVal = Object.assign(result.stream, {
         disableActions: result.disableActions,
         topicInfo: result.topicInfo,
         instance: result.kafkaInfo.instance,
@@ -1288,7 +1281,7 @@ export class Workbench extends React.Component {
       const tempOthersArr = []
       for (let i = 0; i < streamConArr.length; i++) {
         // 是否是 jvm
-        streamConArr[i].indexOf('extraJavaOptions') > -1 ? tempJvmArr.push(streamConArr[i]) : tempOthersArr.push(streamConArr[i])
+        streamConArr[i].includes('extraJavaOptions') ? tempJvmArr.push(streamConArr[i]) : tempOthersArr.push(streamConArr[i])
       }
 
       const jvmTempValue = tempJvmArr.join('\n')
@@ -1326,7 +1319,7 @@ export class Workbench extends React.Component {
       const jobTempJvmArr = []
       const jobTempOthersArr = []
       for (let i = 0; i < sparkConArr.length; i++) {
-        sparkConArr[i].indexOf('extraJavaOptions') > -1 ? jobTempJvmArr.push(sparkConArr[i]) : jobTempOthersArr.push(sparkConArr[i])
+        sparkConArr[i].includes('extraJavaOptions') ? jobTempJvmArr.push(sparkConArr[i]) : jobTempOthersArr.push(sparkConArr[i])
       }
 
       const jvmTempValue = jobTempJvmArr.join('\n')
@@ -1513,8 +1506,8 @@ export class Workbench extends React.Component {
     let tempSource = flowFormTranTableSource.filter(s => s.pushdownConnection['name_space'])
 
     let pushConnTemp = []
-    for (let i = 0; i < tempSource.length; i++) {
-      pushConnTemp.push(tempSource[i].pushdownConnection)
+    for (let item of tempSource) {
+      pushConnTemp.push(item.pushdownConnection)
     }
 
     this.setState({
@@ -1770,23 +1763,43 @@ export class Workbench extends React.Component {
   submitJobForm = () => {
     const values = this.workbenchJobForm.getFieldsValue()
     const languageText = localStorage.getItem('preferredLanguage')
+    console.log('valued', values)
 
     const { projectId, jobMode, startTsVal, endTsVal, singleJobResult } = this.state
     const { jobResultFiledsOutput, jobTranTableRequestValue, jobSparkConfigValues } = this.state
 
     const maxRecordJson = { maxRecordPerPartitionProcessed: values.maxRecordPerPartitionProcessed }
     const maxRecord = JSON.stringify(maxRecordJson)
-    const maxRecordAndResult = JSON.stringify(Object.assign({}, maxRecordJson, jobResultFiledsOutput))
+    const maxRecordAndResult = JSON.stringify(Object.assign(maxRecordJson, jobResultFiledsOutput))
+
+    const obj1 = {
+      maxRecordPerPartitionProcessed: Number(values.maxRecordPerPartitionProcessed),
+      sink_protocol: 'snapshot'
+    }
+    const obj2 = {
+      maxRecordPerPartitionProcessed: Number(values.maxRecordPerPartitionProcessed),
+      sink_specific_config: values.sinkConfig
+    }
+    const obj3 = {
+      maxRecordPerPartitionProcessed: Number(values.maxRecordPerPartitionProcessed),
+      sink_protocol: 'snapshot',
+      sink_specific_config: values.sinkConfig
+    }
 
     let sinkConfigRequest = ''
     if (values.resultFields === 'all') {
-      sinkConfigRequest = (!values.sinkConfig)
-        ? maxRecord
-        : `{"maxRecordPerPartitionProcessed":${Number(values.maxRecordPerPartitionProcessed)},"sink_specific_config":${values.sinkConfig}}`
+      if (!values.sinkConfig) {
+        sinkConfigRequest = !values.sinkProtocol ? maxRecord : JSON.stringify(obj1)
+      } else {
+        sinkConfigRequest = !values.sinkProtocol ? JSON.stringify(obj2) : JSON.stringify(obj3)
+      }
     } else {
-      sinkConfigRequest = (!values.sinkConfig)
-        ? maxRecordAndResult
-        : `{"maxRecordPerPartitionProcessed":${values.maxRecordPerPartitionProcessed},"sink_specific_config":${values.sinkConfig},"sink_output":"${values.resultFieldsSelected}"}`
+      const obg4 = { sink_output: values.resultFieldsSelected }
+      if (!values.sinkConfig) {
+        sinkConfigRequest = !values.sinkProtocol ? maxRecordAndResult : JSON.stringify(Object.assign(obj1, obg4))
+      } else {
+        sinkConfigRequest = !values.sinkProtocol ? JSON.stringify(Object.assign(obj2, obg4)) : JSON.stringify(Object.assign(obj3, obg4))
+      }
     }
 
     let tranConfigRequest = {}
@@ -1795,7 +1808,7 @@ export class Workbench extends React.Component {
     } else {
       const tranConfigRequestTemp = !values.jobSpecialConfig
         ? jobTranTableRequestValue
-        : Object.assign({}, jobTranTableRequestValue, { 'swifts_specific_config': JSON.parse(values.jobSpecialConfig) })
+        : Object.assign(jobTranTableRequestValue, { 'swifts_specific_config': JSON.parse(values.jobSpecialConfig) })
       tranConfigRequest = JSON.stringify(tranConfigRequestTemp)
     }
 
@@ -1823,13 +1836,13 @@ export class Workbench extends React.Component {
         sourceConfig: `{"protocol":"${values.protocol}"}`
       }
 
-      this.props.onAddJob(Object.assign({}, submitJobData, jobSparkConfigValues, requestCommon), () => {
+      this.props.onAddJob(Object.assign(submitJobData, jobSparkConfigValues, requestCommon), () => {
         message.success(languageText === 'en' ? 'Job is created successfully!' : 'Job 添加成功！', 3)
       }, () => {
         this.hideJobSubmit()
       })
     } else if (jobMode === 'edit') {
-      this.props.onEditJob(Object.assign({}, singleJobResult, jobSparkConfigValues, requestCommon, {
+      this.props.onEditJob(Object.assign(singleJobResult, jobSparkConfigValues, requestCommon, {
         sourceConfig: `{"protocol":"${values.protocol}"}`
       }), () => {
         message.success(languageText === 'en' ? 'Job is modified successfully!' : 'Job 修改成功！', 3)
@@ -1886,10 +1899,10 @@ export class Workbench extends React.Component {
     if (!transformTableRequestValue['action']) {
       tranConfigRequest = ''
     } else {
-      const objectTemp = Object.assign({}, etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue, dataframeShowOrNot)
+      const objectTemp = Object.assign(etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue, dataframeShowOrNot)
       const tranConfigRequestTemp = !values.flowSpecialConfig
         ? objectTemp
-        : Object.assign({}, objectTemp, {'swifts_specific_config': JSON.parse(values.flowSpecialConfig)})
+        : Object.assign(objectTemp, {'swifts_specific_config': JSON.parse(values.flowSpecialConfig)})
       tranConfigRequest = JSON.stringify(tranConfigRequestTemp)
     }
 
@@ -1928,7 +1941,7 @@ export class Workbench extends React.Component {
         consumedProtocol: values.protocol
       }
 
-      this.props.onEditFlow(Object.assign({}, editData, singleFlowResult), () => {
+      this.props.onEditFlow(Object.assign(editData, singleFlowResult), () => {
         message.success(languageText === 'en' ? 'Flow is modified successfully!' : 'Flow 修改成功！', 3)
       }, () => {
         this.hideFlowSubmit()
@@ -1989,7 +2002,7 @@ export class Workbench extends React.Component {
             consumedProtocol: 'all'
           }
 
-          this.props.onEditFlow(Object.assign({}, editData, singleFlowResult), () => {
+          this.props.onEditFlow(Object.assign(editData, singleFlowResult), () => {
             message.success(operateLanguageSuccessMessage('Flow', 'modify'), 3)
           }, () => {
             this.hideFlowSubmit()
@@ -2044,7 +2057,7 @@ export class Workbench extends React.Component {
             consumedProtocol: 'all'
           }
 
-          this.props.onEditFlow(Object.assign({}, editData, singleFlowResult), () => {
+          this.props.onEditFlow(Object.assign(editData, singleFlowResult), () => {
             message.success(operateLanguageSuccessMessage('Flow', 'modify'), 3)
           }, () => {
             this.hideFlowSubmit()
@@ -2079,7 +2092,7 @@ export class Workbench extends React.Component {
             })
             this.hideStreamSubmit()
           } else {
-            this.props.onAddStream(projectId, Object.assign({}, requestValues, streamConfigValues), () => {
+            this.props.onAddStream(projectId, Object.assign(requestValues, streamConfigValues), () => {
               message.success(operateLanguageSuccessMessage('Stream', 'create'), 3)
               this.setState({
                 streamMode: ''
@@ -2093,7 +2106,7 @@ export class Workbench extends React.Component {
           }
         } else if (streamMode === 'edit') {
           const editValues = { desc: values.desc }
-          const requestEditValues = Object.assign({}, editValues, streamQueryValues, streamConfigValues)
+          const requestEditValues = Object.assign(editValues, streamQueryValues, streamConfigValues)
 
           this.props.onEditStream(requestEditValues, () => {
             message.success(operateLanguageSuccessMessage('Stream', 'modify'), 3)
@@ -2590,7 +2603,25 @@ export class Workbench extends React.Component {
           } else if (num === 1 && finalVal !== ';') {
             message.warning(operateLanguageSql('unique'), 3)
           } else if (num === 1 && finalVal === ';') {
-            this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionJson)
+            if (values.transformation === 'lookupSql') {
+              const { singleFlowResult } = this.state
+              // 验证sql存在性
+              const requestVal = {
+                projectId: singleFlowResult.projectId,
+                streamId: singleFlowResult.streamId,
+                flowId: singleFlowResult.id,
+                sql: {
+                  'sql': transformConfigInfoRequestString
+                }
+              }
+              this.props.onLoadLookupSql(requestVal, () => {
+                this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionJson)
+              }, (result) => {
+                message.error(result, 5)
+              })
+            } else {
+              this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionJson)
+            }
           }
         }
       }
@@ -3609,6 +3640,7 @@ Workbench.propTypes = {
   onLoadJobSourceNs: React.PropTypes.func,
   onLoadJobSinkNs: React.PropTypes.func,
   onChangeLanguage: React.PropTypes.func,
+  onLoadLookupSql: React.PropTypes.func,
   jobNameExited: React.PropTypes.bool,
   jobSubmitLoading: React.PropTypes.bool
 }
@@ -3647,7 +3679,8 @@ export function mapDispatchToProps (dispatch) {
     onAddJob: (values, resolve, final) => dispatch(addJob(values, resolve, final)),
     onQueryJob: (values, resolve, final) => dispatch(queryJob(values, resolve, final)),
     onEditJob: (values, resolve, final) => dispatch(editJob(values, resolve, final)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onChangeLanguage: (type) => dispatch(changeLocale(type)),
+    onLoadLookupSql: (values, resolve, reject) => dispatch(loadLookupSql(values, resolve, reject))
   }
 }
 

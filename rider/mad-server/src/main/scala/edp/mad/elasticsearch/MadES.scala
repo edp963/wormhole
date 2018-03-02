@@ -6,9 +6,12 @@ import edp.mad.elasticsearch.MadCreateIndexInterval._
 import edp.mad.elasticsearch.MadIndex._
 import edp.mad.elasticsearch.MadIndexPattern._
 import edp.mad.module.ModuleObj
-import edp.wormhole.common.util.DateUtils
+import edp.wormhole.common.util.{DateUtils, JsonUtils}
 import edp.wormhole.common.util.DtFormat._
 import org.apache.log4j.Logger
+import org.json4s.JsonAST.{JNothing, JValue}
+
+import scala.xml.Null
 
 object MadES{ val madES = new MadES }
 
@@ -21,6 +24,7 @@ class MadES extends ESIndexModule[String,IndexEntity]{
   lazy val esPwd = modules.madEs.pwd
   lazy val esToken = ""
 
+  implicit val formats = org.json4s.DefaultFormats
   val madProjectInfosMapping = """{
                                  |"mappings":{
                                  | "projects":{
@@ -29,7 +33,6 @@ class MadES extends ESIndexModule[String,IndexEntity]{
                                  |                "projectId": { "type":"long", "index":"not_analyzed" },
                                  |                "projectName": { "type":"keyword" },
                                  |                "projectResourceCores": { "type":"integer", "index":"not_analyzed" },
-                                 |                "projectResourceMemory": { "type":"integer", "index":"not_analyzed" },
                                  |                "projectResourceMemory": { "type":"integer", "index":"not_analyzed" },
                                  |                "projectCreatedTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
                                  |                "projectUpdatedTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" }
@@ -105,7 +108,7 @@ class MadES extends ESIndexModule[String,IndexEntity]{
 
   val madAppInfosMapping = """{
                               |  "mappings":{
-                              |    "flows":{
+                              |    "apps":{
                               |      "properties":{
                               |       "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
                               |        "appId": { "type":"keyword" },
@@ -123,7 +126,7 @@ class MadES extends ESIndexModule[String,IndexEntity]{
 
   val madNamespaceInfosMapping = """{
                               |  "mappings":{
-                              |    "flows":{
+                              |    "namespaces":{
                               |      "properties":{
                               |       "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
                               |        "namespace": { "type":"keyword" },
@@ -145,16 +148,10 @@ class MadES extends ESIndexModule[String,IndexEntity]{
                                 |      "properties":{
                                 |       "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
                                 |        "feedbackTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                                |        "projectId": { "type":"long", "index":"not_analyzed" },
-                                |        "projectName": { "type":"keyword" },
                                 |        "streamId":{ "type":"long", "index":"not_analyzed" },
                                 |        "streamName":{ "type":"keyword" },
                                 |        "flowId":{ "type":"long", "index":"not_analyzed" },
                                 |        "flowNamespace":{ "type":"keyword" },
-                                |        "flowErrorMaxWaterMarkTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                                |        "flowErrorMinWaterMarkTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                                |        "flowErrorCount": { "type":"integer", "index":"not_analyzed" },
-                                |        "flowErrorMessage":{ "type":"text" },
                                 |        "statsId": { "type":"keyword" },
                                 |        "rddCount":{ "type":"long", "index":"not_analyzed" },
                                 |        "throughput":{ "type":"long", "index":"not_analyzed" },
@@ -178,17 +175,37 @@ class MadES extends ESIndexModule[String,IndexEntity]{
                                 |}
                                 |""".stripMargin
 
+
+  val madFlowErrorMapping = """{
+                                 |  "mappings":{
+                                 |    "flows":{
+                                 |      "properties":{
+                                 |       "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                 |        "feedbackTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                 |        "streamId":{ "type":"long", "index":"not_analyzed" },
+                                 |        "streamName":{ "type":"keyword" },
+                                 |        "flowId":{ "type":"long", "index":"not_analyzed" },
+                                 |        "flowNamespace":{ "type":"keyword" },
+                                 |        "flowErrorMaxWaterMarkTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                 |        "flowErrorMinWaterMarkTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                 |        "flowErrorCount": { "type":"integer", "index":"not_analyzed" },
+                                 |        "flowErrorMessage":{ "type":"text" }
+                                 |      }
+                                 |    }
+                                 |  }
+                                 |}
+                                 |""".stripMargin
+
   val madStreamFeedbackMapping = """{
                                   |"mappings":{
                                   | "streams":{
                                   |   "properties":{
                                   |     "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                  |     "feedbackTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
                                   |     "projectId": { "type":"long", "index":"not_analyzed" },
                                   |     "projectName": { "type":"keyword" },
                                   |     "streamId":{ "type":"long", "index":"not_analyzed" },
                                   |     "streamName": { "type":"keyword" },
-                                  |     "streamStatTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
-                                  |     "errorMessage":{ "type":"text"},
                                   |     "topicName":{ "type":"keyword" },
                                   |     "partitionNum": { "type":"integer", "index":"not_analyzed" },
                                   |     "partitionId": { "type":"integer", "index":"not_analyzed" },
@@ -198,6 +215,23 @@ class MadES extends ESIndexModule[String,IndexEntity]{
                                   |  }
                                   |}
                                   |}""".stripMargin
+
+  val madStreamErrorMapping = """{
+                                   |"mappings":{
+                                   | "streams":{
+                                   |   "properties":{
+                                   |     "madProcessTime": { "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                   |     "feedbackTs":{ "type":"date", "format":"yyyy-MM-dd HH:mm:ss", "index":"not_analyzed" },
+                                   |     "projectId": { "type":"long", "index":"not_analyzed" },
+                                   |     "projectName": { "type":"keyword" },
+                                   |     "streamId":{ "type":"long", "index":"not_analyzed" },
+                                   |     "streamName": { "type":"keyword" },
+                                   |     "status":{ "type":"keyword"},
+                                   |     "errorMessage":{ "type":"text"}
+                                   |    }
+                                   |  }
+                                   |}
+                                   |}""".stripMargin
 
   val madAppLogsMapping = """{
                            | "mappings":{
@@ -209,10 +243,9 @@ class MadES extends ESIndexModule[String,IndexEntity]{
                            |    "streamId":{ "type":"long", "index":"not_analyzed" },
                            |    "streamName": { "type":"text", "index":"not_analyzed" },
                            |    "sparkAppId": { "type":"text", "index":"not_analyzed" },
-                           |    "streamStatus": { "type":"text", "index":"not_analyzed" },
                            |    "logsOrder":{ "type":"keyword", "index":"not_analyzed" },
                            |    "hostName":{"type": "keyword","index": "not_analyzed" },
-                           |    "logTime":{"type": "date", "format": "yyyy-MM-dd HH:mm:ss", "index": "not_analyzed" },
+                           |    "logTime":{"type": "keyword", "index": "not_analyzed" },
                            |    "logLevel":{"type": "keyword","index": "not_analyzed" },
                            |    "logPath":{"type": "text" },
                            |    "className":{"type": "text" },
@@ -235,7 +268,8 @@ class MadES extends ESIndexModule[String,IndexEntity]{
                                    |     "appId":{ "type":"keyword" },
                                    |     "state":{ "type":"keyword" },
                                    |     "finalStatus":{ "type":"keyword" },
-                                   |     "alertLevel":{ "type":"keyword" }
+                                   |     "alertLevel":{ "type":"keyword" },
+                                   |     "alertInfo":{ "type":"keyword"}
                                    |    }
                                    |  }
                                    |}
@@ -245,19 +279,24 @@ class MadES extends ESIndexModule[String,IndexEntity]{
   def initial() = {
     logger.info(s"  ES initial\n")
     try {
-      setIndexMap(INDEXPROJECTINFOS.toString, IndexEntity(INDEXPROJECTINFOS.toString, "projects", madProjectInfosMapping, NONEPARTITION.toString, NENVER.toString,  "365"))
-      setIndexMap(INDEXSTREAMINFOS.toString, IndexEntity(INDEXSTREAMINFOS.toString, "streams", madStreamInfosMapping, NONEPARTITION.toString, NENVER.toString,  "365"))
-      setIndexMap(INDEXFLOWINFOS.toString, IndexEntity(INDEXFLOWINFOS.toString, "flows", madFlowInfosMapping, NONEPARTITION.toString, NENVER.toString,  "365"))
-      setIndexMap(INDEXAPPINFOS.toString, IndexEntity(INDEXAPPINFOS.toString, "apps", madAppInfosMapping, NONEPARTITION.toString, NENVER.toString,  "365"))
-      setIndexMap(INDEXNAMESPACEINFOS.toString, IndexEntity(INDEXNAMESPACEINFOS.toString, "namespaces", madNamespaceInfosMapping, NONEPARTITION.toString, NENVER.toString,  "365"))
+      setIndexMap(INDEXPROJECTINFOS.toString, IndexEntity(INDEXPROJECTINFOS.toString, "projects", madProjectInfosMapping, YYYYMM.toString, EVERYMONTH.toString,  "90",null))
+      setIndexMap(INDEXSTREAMINFOS.toString, IndexEntity(INDEXSTREAMINFOS.toString, "streams", madStreamInfosMapping, YYYYMM.toString, EVERYMONTH.toString,  "90",null))
+      setIndexMap(INDEXFLOWINFOS.toString, IndexEntity(INDEXFLOWINFOS.toString, "flows", madFlowInfosMapping, YYYYMM.toString, EVERYMONTH.toString,  "90",null))
+      setIndexMap(INDEXAPPINFOS.toString, IndexEntity(INDEXAPPINFOS.toString, "apps", madAppInfosMapping, YYYYMM.toString, EVERYMONTH.toString,  "90",null))
+      setIndexMap(INDEXNAMESPACEINFOS.toString, IndexEntity(INDEXNAMESPACEINFOS.toString, "namespaces", madNamespaceInfosMapping, YYYYMM.toString, EVERYMONTH.toString,  "90",null))
 
-      setIndexMap(INDEXSTREAMSFEEDBACK.toString, IndexEntity(INDEXSTREAMSFEEDBACK.toString, "streams", madStreamFeedbackMapping, YYYYMM.toString, EVERYMONTH.toString,  "90"))
-      setIndexMap(INDEXFLOWFEEDBACK.toString, IndexEntity(INDEXFLOWFEEDBACK.toString, "flows", madFlowFeedbackMapping, YYYYMMDD.toString, EVERYDAY.toString,  "7"))
-      setIndexMap(INDEXAPPLOGS.toString, IndexEntity(INDEXAPPLOGS.toString, "logs", madAppLogsMapping, YYYYMMDD.toString, EVERYDAY.toString,  "7"))
+      setIndexMap(INDEXSTREAMSFEEDBACK.toString, IndexEntity(INDEXSTREAMSFEEDBACK.toString, "streams", madStreamFeedbackMapping, YYYYMM.toString, EVERYMONTH.toString,  "90",null))
+      setIndexMap(INDEXSTREAMERROR.toString, IndexEntity(INDEXSTREAMERROR.toString, "streams", madStreamErrorMapping, YYYYMM.toString, EVERYMONTH.toString,  "90",null))
+      setIndexMap(INDEXFLOWFEEDBACK.toString, IndexEntity(INDEXFLOWFEEDBACK.toString, "flows", madFlowFeedbackMapping, YYYYMMDD.toString, EVERYDAY.toString,  "7",null))
+      setIndexMap(INDEXFLOWERROR.toString, IndexEntity(INDEXFLOWERROR.toString, "flows", madFlowErrorMapping, YYYYMM.toString, EVERYMONTH.toString,  "90",null))
 
-      setIndexMap(INDEXSTREAMALERT.toString, IndexEntity(INDEXSTREAMALERT.toString, "alert", madStreamAlertMapping, NONEPARTITION.toString, NENVER.toString,  "365"))
+      setIndexMap(INDEXAPPLOGS.toString, IndexEntity(INDEXAPPLOGS.toString, "logs", madAppLogsMapping, YYYYMMDD.toString, EVERYDAY.toString,  "7",null))
+
+      setIndexMap(INDEXSTREAMALERT.toString, IndexEntity(INDEXSTREAMALERT.toString, "alert", madStreamAlertMapping, YYYYMM.toString, EVERYMONTH.toString,  "90",null))
 
       autoCreateIndexByPattern
+
+      updateIndexMappingSchema
     }catch{
       case ex:Exception =>
         logger.info(s" failed to initial the ES \n",ex)
@@ -277,6 +316,55 @@ class MadES extends ESIndexModule[String,IndexEntity]{
             rc = insertDoc(body, url, esUser, esPwd, esToken)
           }
 
+        }
+        case None => logger.info(s" can't found the setting for index ${indexKey.toString}\n")
+      }
+    }catch{
+      case ex: Exception =>
+        logger.error(s" failed to index document to Elasticsearch \n", ex)
+    }
+    rc
+  }
+
+  def bulkIndex2Es( body: List[String], indexKey: String ):Boolean = {
+    var rc = false
+    try {
+      getEntity(indexKey) match {
+        case Some(t) => {
+          val indexName = getCurrentIndex(indexKey)
+          val url = s"${conUrl}/${indexName}/${t.typeName}/_bulk"
+          val indexJsonStr =
+            s"""{"index":{"_index":"${indexName}","_type":"${t.typeName}"}""".stripMargin
+          var bodyJsonStr = ""
+          var sum = 0
+          var count = 0
+          logger.info(s" bulkIndex $url ${indexJsonStr} \n")
+          body.foreach{e=>
+            bodyJsonStr= s"${bodyJsonStr}\n${indexJsonStr}\n${e}"
+           // logger.info(s" bulkIndex $url count ${count} \n")
+            count = count +1
+            if(count> 100){
+              rc = bulkIndex(bodyJsonStr, url, esUser, esPwd, esToken)
+              if (rc == false) {
+                createIndexByPattern(indexKey)
+                logger.info(s" bulkIndex  \n")
+              }
+              sum = sum + count
+              count = 0
+              bodyJsonStr = ""
+            }
+          }
+         // logger.info(s" bulkIndex $url count ${count} \n")
+          if(count>0){
+            if(count == 1) bodyJsonStr = s"${bodyJsonStr}\n"
+            rc = bulkIndex(bodyJsonStr, url, esUser, esPwd, esToken)
+            if (rc == false) {
+              createIndexByPattern(indexKey)
+              logger.info(s" bulkIndex  \n")
+            }
+            sum = sum + count
+          }
+          logger.info(s" bulkIndex $url count ${sum} \n")
         }
         case None => logger.info(s" can't found the setting for index ${indexKey.toString}\n")
       }
@@ -331,6 +419,88 @@ class MadES extends ESIndexModule[String,IndexEntity]{
     }
   }
 
+
+  def updateIndexMappingSchema = {
+    try {
+      getIndexMapKeySet().foreach{indexType =>
+        logger.info(s"  index key ${indexType} \n")
+        getEntity(indexType) match {
+          case Some(t) => {
+            val indexName = getCurrentIndex(indexType)
+            val url = s"${conUrl}/${indexName}"
+            val mappings = getIndex(url, esUser, esPwd, esToken)
+            val schemaMap = getSchemaMapByRepsonse(indexName,t.typeName,mappings)
+            logger.info(s" = = = ${url}    ${schemaMap} ")
+            setIndexMap(indexType, IndexEntity(t.index, t.typeName, t.createIndexJson, t.createIndexPattern, t.createIndexInterval, t.retainIndexDays, schemaMap))
+          }
+          case None => logger.info(s" can't found the setting for index ${indexType}\n")
+        }
+      }
+    } catch {
+      case e: Exception =>
+        logger.error(s"failed to auto create index by pattern", e)
+    }
+  }
+
+  def getClassType( tStr:String)= {
+    tStr match {
+      case "date" => classOf[String]
+      case "keyword" => classOf[String]
+      case "text" => classOf[String]
+      case "integer" => classOf[Int]
+      case "long" => classOf[Long]
+    }
+  }
+
+  def getSchemaMap(indexKey: String): Map[String,Any] = {
+    getEntity(indexKey) match {
+      case Some(t) => {
+       t.EsMappingsSchema
+      }
+      case None =>
+        logger.info(s" can't found the setting for index ${indexKey}\n")
+        null
+    }
+  }
+
+   def getSchemaMapByRepsonse(_index: String, _type: String, mapJsonStr: String ):Map[String, Any] ={
+     //logger.info(s"= = = = 00 ${_index}    ${_type}  ")
+    // logger.info(s"= = = = 0 ${mapJsonStr}")
+    val jv = JsonUtils.json2jValue(mapJsonStr)
+     //logger.info(s"= = = = 1 ${jv}")
+     try {
+
+       val jObj = JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(jv, _index.toString), s"mappings"), _type.toString), "properties")
+       //logger.info(s"= = = = 1 ${jObj}")
+         if(jObj != JNothing && jObj != null){
+           val jObj2 = JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(jv, _index.toString), s"mappings"), _type.toString), "properties"), "@metadata")
+         //  logger.info(s"= = = = 1 ${jObj2}")
+           if( jObj2 != JNothing && jObj2 != null ){
+             val jObj3 = JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(jv, _index.toString), s"mappings"), _type.toString), "properties"), "@metadata"),"properties")
+           //  logger.info(s"= = = = 1 ${jObj3}")
+             if(jObj3 != JNothing && jObj3 != null){
+               val mapCols = jObj3.extract[Map[String, JValue]]
+               mapCols.map{ e=>
+                 (e._1, JsonUtils.getJValue(e._2,"type").extract[String] )
+               }
+             }else null
+           }else{
+             val mapCols = jObj.extract[Map[String, JValue]]
+             mapCols.map{ e=>
+               (e._1, JsonUtils.getJValue(e._2,"type").extract[String] )
+             }
+           }
+
+         }else null
+
+     }catch {
+       case e: Exception =>
+         logger.info(s" = = =  ${e}")
+         null
+     }
+
+  }
+
   def autoCreateIndexByPattern= {
     try {
       getIndexMapKeySet().foreach{indexType =>
@@ -345,33 +515,12 @@ class MadES extends ESIndexModule[String,IndexEntity]{
 
   def createIndexByPattern(indexType: String)= {
     try {
-      logger.info(s" ==  ${indexType} \n")
       getEntity(indexType) match {
         case Some(t) => {
-            logger.info(s" ${t}\n")
-          logger.info(s" createIndexInterval ${t.createIndexInterval}   ${t.retainIndexDays.toString} \n")
-            if( t.createIndexInterval == EVERYDAY.toString) {
-              val dateStr = DateUtils.dt2string(new java.util.Date(), DATE_DASH)
-              val indexName = s"${indexType.toString}_${dateStr}"
-              val url = s"${conUrl}/${indexName}"
-              createIndex(t.createIndexJson, url, esUser, esPwd, esToken)
-              logger.info(s" create Index ${url} \n")
-            }else if(t.createIndexInterval == EVERYMONTH.toString ){
-              val dateStr = DateUtils.dt2string(new java.util.Date(), DATE_DASH).substring(0,7)
-              val indexName = s"${indexType.toString}_${dateStr}"
-              val url = s"${conUrl}/${indexName}"
-              createIndex(t.createIndexJson, url, esUser, esPwd, esToken)
-              logger.info(s" create Index ${url} \n")
-            }else if(t.createIndexInterval == NENVER.toString ){
-              val indexName = s"${indexType.toString}"
-              val url = s"${conUrl}/${indexName}"
-              createIndex(t.createIndexJson, url, esUser, esPwd, esToken)
-              logger.info(s" create Index ${url} \n")
-            }
-            else{
-              logger.info(s" createIndexInterval ${t.createIndexInterval}  \n")
-            }
-          }
+          val indexName = getCurrentIndex(indexType)
+          val url = s"${conUrl}/${indexName}"
+          createIndex(t.createIndexJson, url, esUser, esPwd, esToken)
+        }
         case None => logger.info(s" can't found the setting for index ${indexType}\n")
       }
     } catch {

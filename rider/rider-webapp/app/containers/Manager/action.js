@@ -121,12 +121,11 @@ export function loadStreamDetail (projectId, streamId, roleType, resolve) {
   }
 }
 
-export function streamDetailLoaded (result, resolve) {
+export function streamDetailLoaded (result) {
   return {
     type: LOAD_STREAM_DETAIL_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -143,22 +142,20 @@ export function loadStreamNameValue (projectId, value, resolve, reject) {
   }
 }
 
-export function streamNameValueLoaded (result, resolve) {
+export function streamNameValueLoaded (result) {
   return {
     type: LOAD_STREAM_NAME_VALUE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function streamNameValueErrorLoaded (result, reject) {
+export function streamNameValueErrorLoaded (result) {
   return {
     type: LOAD_STREAM_NAME_VALUE_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
@@ -174,12 +171,11 @@ export function loadKafka (projectId, nsSys, resolve) {
   }
 }
 
-export function kafkaLoaded (result, resolve) {
+export function kafkaLoaded (result) {
   return {
     type: LOAD_KAFKA_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -193,12 +189,11 @@ export function loadStreamConfigJvm (resolve) {
   }
 }
 
-export function streamConfigJvmLoaded (result, resolve) {
+export function streamConfigJvmLoaded (result) {
   return {
     type: LOAD_STREAM_CONFIG_JVM_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -214,12 +209,11 @@ export function loadLogsInfo (projectId, streamId, resolve) {
   }
 }
 
-export function logsInfoLoaded (result, resolve) {
+export function logsInfoLoaded (result) {
   return {
     type: LOAD_LOGS_INFO_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -235,12 +229,11 @@ export function loadAdminLogsInfo (projectId, streamId, resolve) {
   }
 }
 
-export function adminLogsInfoLoaded (result, resolve) {
+export function adminLogsInfoLoaded (result) {
   return {
     type: LOAD_ADMIN_LOGS_INFO_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -256,12 +249,11 @@ export function addStream (projectId, stream, resolve) {
   }
 }
 
-export function streamAdded (result, resolve) {
+export function streamAdded (result) {
   return {
     type: ADD_STREAMS_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -276,12 +268,11 @@ export function editStream (stream, resolve) {
   }
 }
 
-export function streamEdited (result, resolve) {
+export function streamEdited (result) {
   return {
     type: EDIT_STREAM_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -299,13 +290,11 @@ export function operateStream (projectId, id, action, resolve, reject) {
   }
 }
 
-export function streamOperated (result, resolve, reject) {
+export function streamOperated (result) {
   return {
     type: OPERATE_STREAMS_SUCCESS,
     payload: {
-      result,
-      resolve,
-      reject
+      result
     }
   }
 }
@@ -323,13 +312,11 @@ export function deleteStream (projectId, id, action, resolve, reject) {
   }
 }
 
-export function streamDeleted (result, resolve, reject) {
+export function streamDeleted (result) {
   return {
     type: DELETE_STREAMS_SUCCESS,
     payload: {
-      result,
-      resolve,
-      reject
+      result
     }
   }
 }
@@ -348,23 +335,20 @@ export function startOrRenewStream (projectId, id, topicResult, action, resolve,
   }
 }
 
-export function streamStartOrRenewed (result, resolve, reject) {
+export function streamStartOrRenewed (result) {
   return {
     type: STARTORRENEW_STREAMS_SUCCESS,
     payload: {
-      result,
-      resolve,
-      reject
+      result
     }
   }
 }
 
-export function streamOperatedError (message, reject) {
+export function streamOperatedError (message) {
   return {
     type: OPERATE_STREAMS_ERROR,
     payload: {
-      message,
-      reject
+      message
     }
   }
 }
@@ -380,12 +364,11 @@ export function loadLastestOffset (projectId, streamId, resolve) {
   }
 }
 
-export function lastestOffsetLoaded (result, resolve) {
+export function lastestOffsetLoaded (result) {
   return {
     type: LOAD_LASTEST_OFFSET_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }

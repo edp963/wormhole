@@ -29,6 +29,7 @@ import {
   ADD_PROJECT_SUCCESS,
   EDIT_PROJECT,
   EDIT_PROJECT_SUCCESS,
+  EDIT_PROJECT_ERROR,
   LOAD_PROJECT_NAME_VALUE,
   LOAD_PROJECT_NAME_VALUE_SUCCESS,
   LOAD_PROJECT_NAME_VALUE_ERROR,
@@ -81,12 +82,11 @@ export function loadSingleProject (projectId, resolve) {
   }
 }
 
-export function singleProjectLoaded (result, resolve) {
+export function singleProjectLoaded (result) {
   return {
     type: LOAD_SINGLE_PROJECT_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
@@ -102,35 +102,40 @@ export function addProject (project, resolve, final) {
   }
 }
 
-export function projectAdded (result, resolve, final) {
+export function projectAdded (result) {
   return {
     type: ADD_PROJECT_SUCCESS,
     payload: {
-      result,
-      resolve,
-      final
+      result
     }
   }
 }
 
-export function editProject (project, resolve, final) {
+export function editProject (project, resolve, reject) {
   return {
     type: EDIT_PROJECT,
     payload: {
       project,
       resolve,
-      final
+      reject
     }
   }
 }
 
-export function projectEdited (result, resolve, final) {
+export function projectEdited (result) {
   return {
     type: EDIT_PROJECT_SUCCESS,
     payload: {
-      result,
-      resolve,
-      final
+      result
+    }
+  }
+}
+
+export function projectEditedError (result) {
+  return {
+    type: EDIT_PROJECT_ERROR,
+    payload: {
+      result
     }
   }
 }
@@ -146,22 +151,20 @@ export function loadProjectNameInputValue (value, resolve, reject) {
   }
 }
 
-export function projectNameInputValueLoaded (result, resolve) {
+export function projectNameInputValueLoaded (result) {
   return {
     type: LOAD_PROJECT_NAME_VALUE_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function projectNameInputValueErrorLoaded (result, reject) {
+export function projectNameInputValueErrorLoaded (result) {
   return {
     type: LOAD_PROJECT_NAME_VALUE_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
@@ -177,22 +180,20 @@ export function deleteSingleProject (projectId, resolve, reject) {
   }
 }
 
-export function singleProjectDeleted (result, resolve) {
+export function singleProjectDeleted (result) {
   return {
     type: DELETE_SINGLE_PROJECT_SUCCESS,
     payload: {
-      result,
-      resolve
+      result
     }
   }
 }
 
-export function singleProjectDeletedError (result, reject) {
+export function singleProjectDeletedError (result) {
   return {
     type: DELETE_SINGLE_PROJECT_ERROR,
     payload: {
-      result,
-      reject
+      result
     }
   }
 }
