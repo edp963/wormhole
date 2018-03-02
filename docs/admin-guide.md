@@ -28,7 +28,7 @@ Admin 配置好 User，Namespace，UDF 和 Project 的访问权限后，User 类
 
 接口具体信息可查看 http://ip:port/swagger文档页面的 app 部分。
 
-![admin-user-list](/Users/swallow/IdeaProjects/wormhole/docs/img/admin-user-list.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin-user-list.png" alt="" width="600"/>
 
 ## Namespace 管理
 
@@ -46,7 +46,7 @@ instance 相当于为数据系统的物理地址起别名，connUrl 填写规则
 
 新建 instance 后，instance 值不可以修改，connUrl 可以修改。
 
-![admin-instance](/Users/swallow/IdeaProjects/wormhole/docs/img/admin-instance.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin-instance.png" alt="" width="600"/>
 
 ### Database
 
@@ -54,13 +54,13 @@ database 配置数据库名，用户名，密码及连接配置等信息。
 
 如 mysql 的数据库连接配置可填写在 config 项中。
 
-![admin-database](/Users/swallow/IdeaProjects/wormhole/docs/img/admin-database.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin-database.png" alt="" width="600"/>
 
 ### Namespace
 
 namespace 页面选择已有的 instance和 database，配置表名和主键，一次可配置多张表。主键大小写敏感，若源数据来源为 Dbus，主键须配置为小写。
 
-![admin-namespace](/Users/swallow/IdeaProjects/wormhole/docs/img/admin-namespace.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin-namespace.png" alt="" width="600"/>
 
 **若 Namespace 的系统类型为 Kafka，且在 Wormhole 中作为 Source Namespace，若数据格式为UMS_Extension，可配置 Namespace 的 schema。**
 
@@ -68,7 +68,7 @@ namespace 系统类型为 Kafka 时，若其作为 Source Namespace，且数据�
 
 namespace 系统类型为 Kafka/MongoDb/Es 时，若其作为 Sink Namespace，且输出的格式中有嵌套类型，可配置 sink schema。 
 
-![admin-namespace-schema](/Users/swallow/IdeaProjects/wormhole/docs/img/admin-namespace-schema.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin-namespace-schema.png" alt="" width="600"/>
 
 #### Key
 
@@ -78,7 +78,7 @@ namespace 系统类型为 Kafka/MongoDb/Es 时，若其作为 Sink Namespace，�
 
 点击 namespace source schema 配置按钮，见下图，粘贴一条完整的数据样例至左侧文本框中，点击中间的按钮，生成右侧的配置表格。
 
-![admin-namespace-sourceschema](/Users/swallow/IdeaProjects/wormhole/docs/img/admin-namespace-sourceschema.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin-namespace-sourceschema.png" alt="" width="600"/>
 
 UMS_Extension 格式支持的字段类型如下。
 
@@ -102,7 +102,7 @@ UMS_Extension 格式支持的字段类型如下。
 
 **注意事项：若需要输出 `ums_id_,ums_ts_,ums_active_` 系统字段，须在数据样例中添加相应字段。**
 
-![admin-namespace-sinkschema](/Users/swallow/IdeaProjects/wormhole/docs/img/admin-namespace-sinkschema.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin-namespace-sinkschema.png" alt="" width="600"/>
 
 ## UDF 管理
 
@@ -112,7 +112,7 @@ UDF 只支持 Java 语言编写，打成 Jar 包上传至 application.conf 中 s
 
 配置 UDF 时，输入方法名，方法名与 Class 中的 Function 名称保持一致，类名全称，Jar 包名称，保存时会检查 Hdfs 目录上是否存在该 Jar 包，不存在则无法创建成功。
 
-![admin-udf](/Users/swallow/IdeaProjects/wormhole/docs/img/admin-udf.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin-udf.png" alt="" width="600"/>
 
 ## Project 管理
 
@@ -120,7 +120,7 @@ Admin 配置好 Namespace/User/UDF 后，可创建 Project，为其分配 Namesp
 
 点击 Project 图标，可查看该 Project 下 Namespace/User/UDF/Stream/Flow/Job 详情。
 
-![admin-project](/Users/swallow/IdeaProjects/wormhole/docs/img/admin-project.png)
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin-project.png" alt="" width="600"/>
 
 ## Stream 管理
 
