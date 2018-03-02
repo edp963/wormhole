@@ -25,6 +25,7 @@ import Helmet from 'react-helmet'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
+import { filterDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 import InstanceForm from './InstanceForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
@@ -351,9 +352,6 @@ export class Instance extends React.PureComponent {
       } else if (InstanceSourceDsVal === 'parquet') {
         errMsg = [new Error('hdfs://nn1[:8020]/[user/test/test1]')]
       }
-      // else if (InstanceSourceDsVal === 'log') {
-      //   errMsg = ''
-      // }
     }
 
     this.instanceForm.setFields({
@@ -469,19 +467,7 @@ export class Instance extends React.PureComponent {
           }
         },
         sortOrder: sortedInfo.columnKey === 'nsSys' && sortedInfo.order,
-        filters: [
-          {text: 'oracle', value: 'oracle'},
-          {text: 'mysql', value: 'mysql'},
-          {text: 'es', value: 'es'},
-          {text: 'hbase', value: 'hbase'},
-          {text: 'phoenix', value: 'phoenix'},
-          {text: 'cassandra', value: 'cassandra'},
-          {text: 'kafka', value: 'kafka'},
-          {text: 'postgresql', value: 'postgresql'},
-          {text: 'mongodb', value: 'mongodb'},
-          {text: 'redis', value: 'redis'},
-          {text: 'parquet', value: 'parquet'}
-        ],
+        filters: filterDataSystemData(),
         filteredValue: filteredInfo.nsSys,
         onFilter: (value, record) => record.nsSys.includes(value)
       }, {
