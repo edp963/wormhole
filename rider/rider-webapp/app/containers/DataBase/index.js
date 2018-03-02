@@ -22,10 +22,10 @@ import React from 'react'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
-
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
+import { filterDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 import DBForm from './DBForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
@@ -559,19 +559,7 @@ export class DataBase extends React.PureComponent {
         }
       },
       sortOrder: sortedInfo.columnKey === 'nsSys' && sortedInfo.order,
-      filters: [
-        {text: 'oracle', value: 'oracle'},
-        {text: 'mysql', value: 'mysql'},
-        {text: 'es', value: 'es'},
-        {text: 'hbase', value: 'hbase'},
-        {text: 'phoenix', value: 'phoenix'},
-        {text: 'cassandra', value: 'cassandra'},
-        {text: 'kafka', value: 'kafka'},
-        {text: 'postgresql', value: 'postgresql'},
-        {text: 'mongodb', value: 'mongodb'},
-        {text: 'redis', value: 'redis'},
-        {text: 'vertica', value: 'vertica'}
-      ],
+      filters: filterDataSystemData(),
       filteredValue: filteredInfo.nsSys,
       onFilter: (value, record) => record.nsSys.includes(value)
     }, {
