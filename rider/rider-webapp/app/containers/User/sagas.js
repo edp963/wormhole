@@ -121,7 +121,8 @@ export function* addUser ({ payload }) {
       url: api.user,
       data: payload.user
     })
-    yield put(userAdded(result.payload, payload.resolve))
+    yield put(userAdded(result.payload))
+    payload.resolve()
   } catch (err) {
     yield put(getError(err))
   }
@@ -175,9 +176,11 @@ export function* getEmailInputValue ({ payload }) {
       data: payload.value
     })
     if (result.code === 409) {
-      yield put(emailInputValueErrorLoaded(result.msg, payload.reject))
+      yield put(emailInputValueErrorLoaded(result.msg))
+      payload.reject()
     } else {
-      yield put(emailInputValueLoaded(result.msg, payload.resolve))
+      yield put(emailInputValueLoaded(result.msg))
+      payload.resolve()
     }
   } catch (err) {
     yield put(getError(err))
@@ -196,9 +199,11 @@ export function* editroleTypeUserPsw ({ payload }) {
       data: payload.pwdValues
     })
     if (result.code !== 200) {
-      yield put(roleTypeUserPswErrorEdited(result.msg, payload.reject))
+      yield put(roleTypeUserPswErrorEdited(result.msg))
+      payload.reject(result.msg)
     } else {
-      yield put(roleTypeUserPswEdited(result.msg, payload.resolve))
+      yield put(roleTypeUserPswEdited(result.msg))
+      payload.resolve()
     }
   } catch (err) {
     yield put(getError(err))
@@ -212,7 +217,8 @@ export function* editroleTypeUserPswWatcher () {
 export function* getProjectUserAll ({ payload }) {
   try {
     const users = yield call(request, `${api.projectList}/users`)
-    yield put(projectUserAllLoaded(users.payload, payload.resolve))
+    yield put(projectUserAllLoaded(users.payload))
+    payload.resolve(users.payload)
   } catch (err) {
     yield put(getError(err))
   }

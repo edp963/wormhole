@@ -32,23 +32,9 @@ const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 
 export class FlowEtpConfigForm extends React.Component {
-  constructor (props) {
-    super(props)
-    this.state = {
-      ruleModeValue: '',
-      againstActionValue: ''
-    }
-  }
-
-  onCheckRuleChange = (e) => this.setState({ radioValue: e.target.value })
-
-  onRuleModeChange = (e) => this.setState({ ruleModeValue: e.target.value })
-
-  onAgainstActionChange = (e) => this.setState({ againstActionValue: e.target.value })
-
   forceChecColumnSave = (rule, value, callback) => {
     const languageText = localStorage.getItem('preferredLanguage')
-    if (value.indexOf('，')) {
+    if (!value.includes('，')) {
       callback()
     } else {
       callback(languageText === 'en' ? 'No full-shaped comma' : '不允许出现中文逗号')
@@ -90,7 +76,7 @@ export class FlowEtpConfigForm extends React.Component {
                   message: languageText === 'en' ? 'Please select check rule' : '请选择 Check Rule'
                 }]
               })(
-                <RadioGroup onChange={this.onCheckRuleChange}>
+                <RadioGroup>
                   <RadioButton value="and">and</RadioButton>
                   <RadioButton value="or">or</RadioButton>
                 </RadioGroup>
@@ -105,7 +91,7 @@ export class FlowEtpConfigForm extends React.Component {
                   message: languageText === 'en' ? 'Please select rule mode' : '请选择 Rule Mode'
                 }]
               })(
-                <RadioGroup onChange={this.onRuleModeChange}>
+                <RadioGroup>
                   <RadioButton value="timeout">timeout</RadioButton>
                 </RadioGroup>
               )}
@@ -140,7 +126,7 @@ export class FlowEtpConfigForm extends React.Component {
                   message: languageText === 'en' ? 'Please select against action' : '请选择 Against Action'
                 }]
               })(
-                <RadioGroup onChange={this.onAgainstActionChange}>
+                <RadioGroup>
                   <RadioButton value="send">send</RadioButton>
                   <RadioButton value="drop">drop</RadioButton>
                   <RadioButton value="alert">alert</RadioButton>

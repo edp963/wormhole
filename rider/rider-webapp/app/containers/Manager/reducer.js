@@ -57,7 +57,8 @@ import { fromJS } from 'immutable'
 const initialState = fromJS({
   streams: false,
   streamSubmitLoading: false,
-  streamNameExited: false
+  streamNameExited: false,
+  streamStartModalLoading: false
 })
 
 function streamReducer (state = initialState, { type, payload }) {
@@ -78,40 +79,32 @@ function streamReducer (state = initialState, { type, payload }) {
     case LOAD_STREAM_DETAIL:
       return state
     case LOAD_STREAM_DETAIL_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case LOAD_STREAM_NAME_VALUE:
       return state.set('streamNameExited', false)
     case LOAD_STREAM_NAME_VALUE_SUCCESS:
-      payload.resolve()
       return state.set('streamNameExited', false)
     case LOAD_STREAM_NAME_VALUE_ERROR:
-      payload.reject()
       return state.set('streamNameExited', true)
     case LOAD_KAFKA:
       return state
     case LOAD_KAFKA_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case LOAD_STREAM_CONFIG_JVM:
       return state
     case LOAD_STREAM_CONFIG_JVM_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case LOAD_LOGS_INFO:
       return state
     case LOAD_LOGS_INFO_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case LOAD_ADMIN_LOGS_INFO:
       return state
     case LOAD_ADMIN_LOGS_INFO_SUCCESS:
-      payload.resolve(payload.result)
       return state
     case ADD_STREAMS:
       return state.set('streamSubmitLoading', true)
     case ADD_STREAMS_SUCCESS:
-      payload.resolve()
       streams.unshift(payload.result)
       return state
         .set('streams', streams.slice())
@@ -121,35 +114,34 @@ function streamReducer (state = initialState, { type, payload }) {
         .set('error', false)
         .set('streamSubmitLoading', true)
     case EDIT_STREAM_SUCCESS:
-      payload.resolve()
-      streams.splice(streams.indexOf(streams.find(p => p.stream.id === payload.result.stream.id)), 1, payload.result)
+      const startIndexEdit = streams.indexOf(streams.find(p => Object.is(p.stream.id, payload.result.stream.id)))
+      streams.fill(payload.result, startIndexEdit, startIndexEdit + 1)
       return state
         .set('streams', streams.slice())
         .set('streamSubmitLoading', false)
     case OPERATE_STREAMS:
       return state
     case OPERATE_STREAMS_SUCCESS:
-      payload.resolve()
-      streams.splice(streams.indexOf(streams.find(p => p.stream.id === payload.result.stream.id)), 1, payload.result)
+      const startIndexOperate = streams.indexOf(streams.find(p => Object.is(p.stream.id, payload.result.stream.id)))
+      streams.fill(payload.result, startIndexOperate, startIndexOperate + 1)
       return state.set('streams', streams.slice())
     case DELETE_STREAMS:
       return state
     case DELETE_STREAMS_SUCCESS:
-      payload.resolve()
-      return state.set('streams', streams.filter(g => g.stream.id !== payload.result))
+      return state.set('streams', streams.filter(g => !Object.is(g.stream.id, payload.result)))
     case STARTORRENEW_STREAMS:
-      return state
+      return state.set('streamStartModalLoading', true)
     case STARTORRENEW_STREAMS_SUCCESS:
-      payload.resolve()
-      streams.splice(streams.indexOf(streams.find(p => p.stream.id === payload.result.stream.id)), 1, payload.result)
-      return state.set('streams', streams.slice())
-    case OPERATE_STREAMS_ERROR:
-      payload.reject(payload.message)
+      const startIndexStartOrRenew = streams.indexOf(streams.find(p => Object.is(p.stream.id, payload.result.stream.id)))
+      streams.fill(payload.result, startIndexStartOrRenew, startIndexStartOrRenew + 1)
       return state
+        .set('streams', streams.slice())
+        .set('streamStartModalLoading', false)
+    case OPERATE_STREAMS_ERROR:
+      return state.set('streamStartModalLoading', false)
     case LOAD_LASTEST_OFFSET:
       return state
     case LOAD_LASTEST_OFFSET_SUCCESS:
-      payload.resolve(payload.result)
       return state
     default:
       return state
