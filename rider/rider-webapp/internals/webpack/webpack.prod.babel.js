@@ -1,20 +1,20 @@
 // Important modules this config uses
-const path = require('path');
-const webpack = require('webpack');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const OfflinePlugin = require('offline-plugin');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const path = require('path')
+const webpack = require('webpack')
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+const OfflinePlugin = require('offline-plugin')
+const ExtractTextPlugin = require('extract-text-webpack-plugin')
 
 module.exports = require('./webpack.base.babel')({
   // In production, we skip all hot-reloading stuff
   entry: [
-    path.join(process.cwd(), 'app/app.js'),
+    path.join(process.cwd(), 'app/app.js')
   ],
 
   // Utilize long-term caching by adding content hashes (not compilation hashes) to compiled assets
   output: {
     filename: '[name].[chunkhash].js',
-    chunkFilename: '[name].[chunkhash].chunk.js',
+    chunkFilename: '[name].[chunkhash].chunk.js'
   },
 
   loaders: [
@@ -23,15 +23,15 @@ module.exports = require('./webpack.base.babel')({
       include: /node_modules/,
       loader: ExtractTextPlugin.extract({
         fallbackLoader: 'style-loader',
-        loader: ['css-loader'],
-      }),
+        loader: ['css-loader']
+      })
     },
     {
       test: /\.less$/,
       loader: ExtractTextPlugin.extract({
         fallbackLoader: 'style-loader',
-        loader: ['css-loader', 'postcss-loader', 'less-loader'],
-      }),
+        loader: ['css-loader', 'postcss-loader', 'less-loader']
+      })
     }
   ],
 
@@ -41,7 +41,7 @@ module.exports = require('./webpack.base.babel')({
       name: 'vendor',
       children: true,
       minChunks: 2,
-      async: true,
+      async: true
     }),
 
     // Merge all duplicate modules
@@ -60,9 +60,9 @@ module.exports = require('./webpack.base.babel')({
         keepClosingSlash: true,
         minifyJS: true,
         minifyCSS: true,
-        minifyURLs: true,
+        minifyURLs: true
       },
-      inject: true,
+      inject: true
     }),
 
     // Put it in the end to capture all the HtmlWebpackPlugin's
@@ -81,13 +81,13 @@ module.exports = require('./webpack.base.babel')({
         // All chunks marked as `additional`, loaded after main section
         // and do not prevent SW to install. Change to `optional` if
         // do not want them to be preloaded at all (cached only when first loaded)
-        additional: ['*.chunk.js'],
+        additional: ['*.chunk.js']
       },
 
       // Removes warning for about `additional` section usage
       safeToUseOptionalCaches: true,
 
-      AppCache: false,
-    }),
-  ],
-});
+      AppCache: false
+    })
+  ]
+})
