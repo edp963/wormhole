@@ -28,6 +28,7 @@ require('../../../node_modules/codemirror/mode/javascript/javascript')
 
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
+import { filterDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { jsonParse, fieldTypeAlter, renameAlter, genDefaultSchemaTable, umsSysFieldSelected,
@@ -1417,19 +1418,7 @@ export class Namespace extends React.PureComponent {
         key: 'nsSys',
         sorter: (a, b) => a.nsSys < b.nsSys ? -1 : 1,
         sortOrder: sortedInfo.columnKey === 'nsSys' && sortedInfo.order,
-        filters: [
-          {text: 'oracle', value: 'oracle'},
-          {text: 'mysql', value: 'mysql'},
-          {text: 'es', value: 'es'},
-          {text: 'hbase', value: 'hbase'},
-          {text: 'phoenix', value: 'phoenix'},
-          {text: 'cassandra', value: 'cassandra'},
-          {text: 'log', value: 'log'},
-          {text: 'kafka', value: 'kafka'},
-          {text: 'postgresql', value: 'postgresql'},
-          {text: 'mongodb', value: 'mongodb'},
-          {text: 'redis', value: 'redis'}
-        ],
+        filters: filterDataSystemData(),
         filteredValue: filteredInfo.nsSys,
         onFilter: (value, record) => record.nsSys.includes(value)
       }, {
@@ -1676,9 +1665,10 @@ export class Namespace extends React.PureComponent {
               <Tooltip title={<FormattedMessage {...messages.nsTableViewDetails} />}>
                 <Popover
                   placement="left"
-                  content={<div className="project-name-detail">
-                    <p><strong>   Project Names：</strong>{showNsDetail.projectName}</p>
-                  </div>}
+                  content={
+                    <div className="project-name-detail">
+                      <p><strong>   Project Names：</strong>{showNsDetail.projectName}</p>
+                    </div>}
                   title={<h3><FormattedMessage {...messages.nsTableDetails} /></h3>}
                   trigger="click"
                   onVisibleChange={this.handleVisibleChangeNs(record)}
@@ -1686,10 +1676,13 @@ export class Namespace extends React.PureComponent {
                   <Button icon="file-text" shape="circle" type="ghost"></Button>
                 </Popover>
               </Tooltip>
+
               <Tooltip title={<FormattedMessage {...messages.nsTableModifyAction} />}>
                 <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditNamespace(record)}></Button>
               </Tooltip>
+
               {umsAction}
+
               <Popconfirm placement="bottom" title={<FormattedMessage {...messages.nsModalSureDeleteTable} />} okText="Yes" cancelText="No" onConfirm={this.deleteNsBtn(record)}>
                 <Tooltip title={<FormattedMessage {...messages.nsModalDeleteTable} />}>
                   <Button icon="delete" shape="circle" type="ghost"></Button>
@@ -1711,9 +1704,7 @@ export class Namespace extends React.PureComponent {
     const pagination = {
       defaultPageSize: this.state.pageSize,
       showSizeChanger: true,
-      onChange: (current) => {
-        console.log('current', current)
-      }
+      onChange: (current) => console.log('current', current)
     }
 
     const { namespaceClassHide } = this.props

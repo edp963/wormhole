@@ -23,6 +23,7 @@ import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
 import DataSystemSelector from '../../components/DataSystemSelector'
+import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -64,21 +65,6 @@ export class InstanceForm extends React.Component {
       labelCol: { span: 6 },
       wrapperCol: { span: 16 }
     }
-
-    const instanceDataSystemData = [
-      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
-      { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
-      { value: 'mysql', icon: 'icon-mysql' },
-      { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
-      { value: 'hbase', icon: 'icon-hbase1' },
-      { value: 'phoenix', text: 'Phoenix' },
-      { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
-      { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
-      { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
-      { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} },
-      { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
-      { value: 'parquet', text: 'Parquet' }
-    ]
 
     // edit 时，不能修改部分元素
     let disabledOrNot = false
@@ -146,7 +132,7 @@ export class InstanceForm extends React.Component {
                 }]
               })(
                 <DataSystemSelector
-                  data={instanceDataSystemData}
+                  data={loadDataSystemData()}
                   onItemSelect={this.onSourceDataSystemItemSelect}
                   dataSystemDisabled={disabledOrNot}
                 />
