@@ -27,7 +27,7 @@ import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
-
+import scala.concurrent.duration.Duration.Inf
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 
@@ -35,7 +35,7 @@ class FeedbackHeartbeatDal(heartbeatTable: TableQuery[FeedbackHeartbeatTable], s
 
   def deleteHistory(pastNdays: String) = {
     val ignoreIds = new ListBuffer[Long]
-    val existSeq = Await.result(super.findAll, maxTimeOut).map(
+    val existSeq = Await.result(super.findAll, Inf).map(
       heartbeat => StreamNamespace(heartbeat.streamId, heartbeat.namespace)
     ).distinct
     val streamIds = Await.result(streamDal.findAll, maxTimeOut).map(_.id)
@@ -44,5 +44,6 @@ class FeedbackHeartbeatDal(heartbeatTable: TableQuery[FeedbackHeartbeatTable], s
       if (maxHeartbeat.nonEmpty) ignoreIds += maxHeartbeat.head.id
     })
     Await.result(super.deleteByFilter(heartbeat => heartbeat.feedbackTime <= pastNdays && !heartbeat.id.inSet(ignoreIds)), maxTimeOut)
+    //    Await.result(super.deleteByFilter(heartbeat => heartbeat.feedbackTime <= pastNdays), maxTimeOut)
   }
 }

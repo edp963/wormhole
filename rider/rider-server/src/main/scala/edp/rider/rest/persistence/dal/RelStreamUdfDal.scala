@@ -43,7 +43,7 @@ class RelStreamUdfDal(relStreamUdfTable: TableQuery[RelStreamUdfTable], udfTable
       Await.result(db.run((relStreamUdfTable.filter(_.streamId inSet streamIds) join udfQuery on (_.udfId === _.id))
         .map {
           case (relStreamUdf, udf) => (relStreamUdf.udfId, relStreamUdf.streamId, udf.functionName, udf.fullClassName, udf.jarName) <> (StreamUdfTemp.tupled, StreamUdfTemp.unapply)
-        }.result).mapTo[Seq[StreamUdfTemp]], Inf)
+        }.result).mapTo[Seq[StreamUdfTemp]], minTimeOut)
     } catch {
       case ex: Exception =>
         throw DatabaseSearchException(ex.getMessage, ex.getCause)
@@ -54,6 +54,5 @@ class RelStreamUdfDal(relStreamUdfTable: TableQuery[RelStreamUdfTable], udfTable
   def getDeleteUdfIds(streamId: Long, udfIds: Seq[Long]): Seq[Long] = {
     val udfs = Await.result(super.findByFilter(udf => udf.streamId === streamId), minTimeOut)
     udfs.filter(udf => !udfIds.contains(udf.udfId)).map(_.udfId)
-
   }
 }
