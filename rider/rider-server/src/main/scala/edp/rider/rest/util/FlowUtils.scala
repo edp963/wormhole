@@ -241,6 +241,7 @@ object FlowUtils extends RiderLogger {
     nsSeq += flow.sourceNs
     nsSeq += flow.sinkNs
     nsSeq ++= getDbFromTrans(flow.tranConfig).distinct
+    nsSeq ++= getStreamJoinNamespaces(flow.tranConfig.getOrElse(""))
     var flag = true
     for (i <- nsSeq.indices) {
       if (!projectNsSeq.exists(_.startsWith(nsSeq(i))))
@@ -653,6 +654,7 @@ object FlowUtils extends RiderLogger {
     val jobNsMap = mutable.HashMap.empty[Long, Seq[String]]
     flows.foreach(flow => {
       val lookupDbs = NsDatabaseUtils.getDbFromTrans(flow.tranConfig)
+      val streamJoinNs = getStreamJoinNamespaces(flow.tranConfig.getOrElse(""))
       val notDeleteNsSeq = new ListBuffer[String]
       if (nsDeleteSeq.contains(flow.sourceNs)) {
         notDeleteNsSeq += flow.sourceNs
@@ -669,6 +671,17 @@ object FlowUtils extends RiderLogger {
             if (lookupNsFind.nonEmpty) {
               notDeleteNsSeq += lookupNsFind.head
               notDeleteNsIds += nsDeleteSearch(lookupNsFind.head)
+            }
+          }
+        }
+      })
+      streamJoinNs.foreach(streamJoin => {
+        if (!notDeleteNsSeq.exists(ns => ns.startsWith(streamJoinNs))) {
+          if (!nsInputSearch.exists(ns => ns.startsWith(streamJoinNs))) {
+            val streamJoinNsFind = nsDeleteSeq.filter(_.startsWith(streamJoin))
+            if (streamJoinNsFind.nonEmpty) {
+              notDeleteNsSeq += streamJoinNsFind.head
+              notDeleteNsIds += nsDeleteSearch(streamJoinNsFind.head)
             }
           }
         }
@@ -796,6 +809,4 @@ object FlowUtils extends RiderLogger {
     }
     nsSeq
   }
-
-
 }
