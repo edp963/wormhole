@@ -113,7 +113,11 @@ export class Manager extends React.Component {
   }
 
   componentWillMount () {
-    this.refreshStream()
+    if (localStorage.getItem('loginRoleType') === 'admin') {
+      if (this.props.streamClassHide === '') {
+        this.props.onLoadAdminAllStreams(() => { this.refreshStreamState() })
+      }
+    }
     this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
@@ -159,10 +163,6 @@ export class Manager extends React.Component {
       refreshStreamLoading: true,
       refreshStreamText: 'Refreshing'
     })
-    this.loadStreamData()
-  }
-
-  loadStreamData () {
     if (localStorage.getItem('loginRoleType') === 'admin') {
       this.props.streamClassHide === 'hide'
         ? this.props.onLoadAdminSingleStream(this.props.projectIdGeted, () => { this.refreshStreamState() })
