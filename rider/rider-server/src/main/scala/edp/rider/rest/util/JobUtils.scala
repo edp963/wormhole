@@ -76,18 +76,16 @@ object JobUtils extends RiderLogger {
     } else {
       None
     }
-    SinkConfig(sinkNs, getConnConfig(instance, db), maxRecord, Some(getSinkProcessClass(ns.nsSys, ns.sinkSchema)), specialConfig, sinkKeys, projection)
+
+    val sinkProtocol = if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_protocol"))
+      Some(JSON.parseObject(sinkConfig).getString("sink_protocol"))
+    else None
+
+    SinkConfig(sinkNs, getConnConfig(instance, db), maxRecord, Some(getSinkProcessClass(ns.nsSys, ns.sinkSchema)), specialConfig, sinkKeys, projection, sinkProtocol)
   }
 
   def getTranConfig(tranConfig: String, sinkConfig: String, sinkNs: String) = {
-    val sinkConf = getSinkConfig(sinkNs, sinkConfig)
-    val sinkProtocol =
-      if (sinkConf.specialConfig.nonEmpty) {
-        val specialJson = JSON.parseObject(sinkConf.specialConfig.get)
-        if (specialJson.containsKey("sink_protocol"))
-          Some(specialJson.getString("sink_protocol"))
-        else None
-      } else None
+    val sinkProtocol = getSinkConfig(sinkNs, sinkConfig).sink_protocol
     val action =
       if (tranConfig != "" && tranConfig != null) {
         val tranClass = JSON.parseObject(tranConfig)
