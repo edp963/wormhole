@@ -48,11 +48,6 @@ export class Resource extends React.Component {
   }
 
   componentWillMount () {
-    if (localStorage.getItem('loginRoleType') === 'admin') {
-      this.props.onLoadResources(this.props.projectIdGeted, 'admin')
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
-      this.props.onLoadResources(this.props.projectIdGeted, 'user')
-    }
     this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
@@ -237,9 +232,6 @@ export class Resource extends React.Component {
 }
 
 Resource.propTypes = {
-  projectIdGeted: React.PropTypes.string,
-
-  onLoadResources: React.PropTypes.func,
   onChangeLanguage: React.PropTypes.func,
   resources: React.PropTypes.oneOfType([
     React.PropTypes.object,
