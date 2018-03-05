@@ -22,6 +22,7 @@
 package edp.rider.kafka
 
 import akka.actor.ActorSystem
+import akka.kafka.ConsumerMessage.CommittableMessage
 import akka.kafka.scaladsl.Consumer
 import akka.kafka.scaladsl.Consumer.Control
 import akka.kafka.{ConsumerSettings, Subscriptions}
@@ -58,7 +59,7 @@ object TopicSource extends RiderLogger {
   }
 
 
-  def createFromOffset(groupId: String)(implicit system: ActorSystem): Source[ConsumerRecord[Array[Byte], String], Control] = {
+  def createFromOffset(groupId: String)(implicit system: ActorSystem): Source[CommittableMessage[Array[Byte], String], Control] = {
     //    val consumerSettings = ConsumerSettings(system, new ByteArrayDeserializer, new StringDeserializer)
     //      .withBootstrapServers(RiderConfig.consumer.brokers)
     //      .withGroupId(RiderConfig.consumer.group_id)
@@ -70,6 +71,7 @@ object TopicSource extends RiderLogger {
     propertyMap("max.partition.fetch.bytes") = RiderConfig.getIntConfig("kafka.consumer.max.partition.fetch.bytes", 10485760).toString
     propertyMap("fetch.min.bytes") = 0.toString
     propertyMap("enable.auto.commit") = "false"
+
     val consumerSettings = new ConsumerSettings(propertyMap.toMap, Some(RiderConfig.consumer.keyDeserializer),
       Some(RiderConfig.consumer.valueDeserializer),
       RiderConfig.consumer.pollInterval,
@@ -103,7 +105,7 @@ object TopicSource extends RiderLogger {
       riderLogger.info(s"topic ${RiderConfig.consumer.feedbackTopic} partition ${part._1.partition()} offset ${part._2}")
     })
 
-    Consumer.plainSource(consumerSettings, Subscriptions.assignmentWithOffset(topicMap.toMap))
+    Consumer.committableSource(consumerSettings, Subscriptions.assignmentWithOffset(topicMap.toMap))
   }
 
 }

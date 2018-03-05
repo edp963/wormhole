@@ -245,8 +245,8 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
 
   }
 
-  def lookupSqlVerifyRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows" / LongNumber / "sqls" / "lookup") {
-    (projectId, _, flowId) =>
+  def lookupSqlVerifyRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows" / "sqls" / "lookup") {
+    (projectId, _) =>
       put {
         entity(as[Sql]) {
           sql =>
@@ -262,7 +262,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                       //                        val tables = FlowUtils.getNsSeqByLookupSql(sql.sql)
                       //                        val nonPermTables = NamespaceUtils.permCheck(projectId, tables)
                       //                        if (nonPermTables.isEmpty) {
-                      riderLogger.info(s"user ${session.userId} verify flow $flowId lookup sql all tables have permission")
+                      riderLogger.info(s"user ${session.userId} verify flow lookup sql all tables have permission")
                       complete(OK, getHeader(200, session))
                       //                        } else {
                       //                          riderLogger.info(s"user ${session.userId} verify flow $flowId lookup sql ${nonPermTables.mkString(",")} tables have non permission")
@@ -277,7 +277,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                     }
                   } catch {
                     case ex: Exception =>
-                      riderLogger.error(s"user ${session.userId} verify flow $flowId sql tables permission failed", ex)
+                      riderLogger.error(s"user ${session.userId} verify flow sql tables permission failed", ex)
                       complete(OK, getHeader(451, ex.getMessage, session))
                   }
 

@@ -108,7 +108,7 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
   def putFlowRoute: Route = modules.flowUserService.putRoute(basePath)
 
 
-  @Path("/{projectId}/streams/{streamId}/flows/{flowId}/sqls/lookup/")
+  @Path("/{projectId}/streams/{streamId}/flows/sqls/lookup/")
   @ApiOperation(value = "check spark sql tables permission", notes = "", nickname = "", httpMethod = "PUT")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
