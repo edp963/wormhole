@@ -134,7 +134,11 @@ export class Namespace extends React.PureComponent {
   }
 
   componentWillMount () {
-    this.refreshNamespace()
+    if (localStorage.getItem('loginRoleType') === 'admin') {
+      if (this.props.namespaceClassHide === '') {
+        this.props.onLoadAdminAllNamespaces(() => { this.nsRefreshState() })
+      }
+    }
     this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
@@ -170,10 +174,6 @@ export class Namespace extends React.PureComponent {
       refreshNsLoading: true,
       refreshNsText: 'Refreshing'
     })
-    this.loadNamespaceData()
-  }
-
-  loadNamespaceData () {
     if (localStorage.getItem('loginRoleType') === 'admin') {
       this.props.namespaceClassHide === 'hide'
         ? this.props.onLoadSelectNamespaces(this.props.projectIdGeted, () => { this.nsRefreshState() })

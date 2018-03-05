@@ -92,7 +92,11 @@ export class User extends React.PureComponent {
   }
 
   componentWillMount () {
-    this.refreshUser()
+    if (localStorage.getItem('loginRoleType') === 'admin') {
+      if (this.props.userClassHide === '') {
+        this.props.onLoadAdminAllUsers(() => { this.userRefreshState() })
+      }
+    }
     this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
@@ -127,10 +131,6 @@ export class User extends React.PureComponent {
       refreshUserLoading: true,
       refreshUserText: 'Refreshing'
     })
-    this.loadUserData()
-  }
-
-  loadUserData () {
     if (localStorage.getItem('loginRoleType') === 'admin') {
       this.props.userClassHide === 'hide'
         ? this.props.onLoadSelectUsers(this.props.projectIdGeted, () => { this.userRefreshState() })
