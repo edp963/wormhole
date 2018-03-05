@@ -82,16 +82,16 @@ object StreamUtils extends RiderLogger {
             //            val endAction = "refresh_spark"
             val sparkStatus: AppInfo = endAction match {
               case "refresh_spark" =>
-                getAppStatusByRest(appInfoList, stream.name, stream.status, startedTime, stoppedTime)
+                getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, stream.status, startedTime, stoppedTime)
               case "refresh_log" =>
                 val logInfo = SparkJobClientLog.getAppStatusByLog(stream.name, dbStatus)
                 logInfo._2 match {
                   case "running" =>
-                    getAppStatusByRest(appInfoList, stream.name, logInfo._2, startedTime, stoppedTime)
+                    getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, logInfo._2, startedTime, stoppedTime)
                   case "waiting" =>
-                    val curInfo = getAppStatusByRest(appInfoList, stream.name, logInfo._2, startedTime, stoppedTime)
+                    val curInfo = getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, logInfo._2, startedTime, stoppedTime)
                     AppInfo(curInfo.appId, curInfo.appState, startedTime, curInfo.finishedTime)
-                  case "starting" => getAppStatusByRest(appInfoList, stream.name, logInfo._2, startedTime, stoppedTime)
+                  case "starting" => getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, logInfo._2, startedTime, stoppedTime)
                   case "failed" => AppInfo(logInfo._1, "failed", startedTime, currentSec)
                 }
               case _ => AppInfo("", stream.status, startedTime, null)
@@ -406,7 +406,7 @@ object StreamUtils extends RiderLogger {
     val notDeleteMap = new mutable.HashMap[Long, Seq[String]]
     val deleteUdfSeq = deleteUdfMap.keySet
     val notDeleteUdfIds = new ListBuffer[Long]
-    val streamIds = Await.result(modules.streamDal.findByFilter(stream => stream.projectId === projectId && stream.status != "new" && stream.status != "stopped" && stream.status != "failed"), minTimeOut).map(_.id)
+    val streamIds = Await.result(modules.streamDal.findByFilter(stream => stream.projectId === projectId && stream.status =!= "new" && stream.status =!= "stopped" && stream.status =!= "failed"), minTimeOut).map(_.id)
     val streamUdfs = Await.result(modules.relStreamUdfDal.findByFilter(_.streamId inSet streamIds), minTimeOut)
     streamUdfs.foreach(stream => {
       val notDeleteUdfSeq = new ListBuffer[String]
@@ -414,9 +414,14 @@ object StreamUtils extends RiderLogger {
         notDeleteUdfIds += stream.udfId
         notDeleteUdfSeq += deleteUdfMap(stream.udfId)
       }
-      if(notDeleteUdfSeq.nonEmpty)
-      notDeleteMap(stream.id) = notDeleteUdfSeq.distinct
+      if (notDeleteUdfSeq.nonEmpty)
+        notDeleteMap(stream.streamId) = notDeleteUdfSeq.distinct
     })
     (notDeleteMap, notDeleteUdfIds)
+  }
+
+  def getProjectIdsByUdf(udf: Long): Seq[Long] = {
+    val streamIds = Await.result(modules.relStreamUdfDal.findByFilter(_.udfId === udf), minTimeOut).map(_.streamId).distinct
+    Await.result(modules.streamDal.findByFilter(_.id inSet (streamIds)), minTimeOut).map(_.projectId).distinct
   }
 }

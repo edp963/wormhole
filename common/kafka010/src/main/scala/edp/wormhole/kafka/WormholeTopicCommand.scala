@@ -10,8 +10,13 @@ object WormholeTopicCommand {
 
   def createOrAlterTopic(zkUrl: String, topic: String, partition: Int = 1, refactor: Int = 1, sessionTimeOut: Int = 30000, connectionTimeout: Int = 10000): Unit = {
     val zkUtils = ZkUtils(zkUrl, sessionTimeOut, connectionTimeout, false)
-    val topicCommand = new TopicCommandOptions(Array[String]("if-not-exists", "--create", "--zookeeper", s"$zkUrl", "--partitions", s"$partition", "--replication-factor", s"$refactor", "--topic", s"$topic"))
-    createOrAlterTopic(zkUtils, topicCommand)
+    try {
+      val topicCommand = new TopicCommandOptions(Array[String]("if-not-exists", "--create", "--zookeeper", s"$zkUrl", "--partitions", s"$partition", "--replication-factor", s"$refactor", "--topic", s"$topic"))
+      createOrAlterTopic(zkUtils, topicCommand)
+    } finally {
+      zkUtils.close()
+    }
+
   }
 
   def createOrAlterTopic(zkUtils: ZkUtils, opts: TopicCommandOptions): Unit = {
