@@ -58,7 +58,7 @@ object SparkStatusQuery extends RiderLogger {
   def mappingSparkJobStatus(job: Job, sparkList: List[AppResult]) = {
     val startedTime = job.startedTime.orNull
     val stoppedTime = job.stoppedTime.orNull
-    val appInfo = getAppStatusByRest(sparkList, job.name, job.status, startedTime, stoppedTime)
+    val appInfo = getAppStatusByRest(sparkList, job.sparkAppid.getOrElse(""), job.name, job.status, startedTime, stoppedTime)
     val result = job.status match {
       case "starting" =>
         val logInfo = getAppStatusByLog(job.name, job.status)
@@ -117,8 +117,8 @@ object SparkStatusQuery extends RiderLogger {
     getAllYarnAppStatus(fromTime)
   }
 
-  def getAppStatusByRest(appList: List[AppResult], appName: String, curStatus: String, startedTime: String, stoppedTime: String): AppInfo = {
-    var result = AppResult("", appName, curStatus, "", startedTime, stoppedTime)
+  def getAppStatusByRest(appList: List[AppResult], appId: String, appName: String, curStatus: String, startedTime: String, stoppedTime: String): AppInfo = {
+    var result = AppResult(appId, appName, curStatus, "", startedTime, stoppedTime)
     appList.foreach {
       app =>
         if (app.appName == appName) {

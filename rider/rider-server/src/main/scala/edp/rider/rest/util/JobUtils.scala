@@ -23,7 +23,6 @@ package edp.rider.rest.util
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.rider.RiderStarter.modules
-import edp.rider.common.JobStatus.JobStatus
 import edp.rider.common.{Action, JobStatus, RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.entities.{Instance, Job, NsDatabase, StartConfig}
 import edp.rider.rest.util.CommonUtils._
@@ -46,7 +45,7 @@ object JobUtils extends RiderLogger {
 
   def getBatchJobConfigConfig(job: Job) =
     BatchJobConfig(getSourceConfig(job.sourceNs, job.eventTsStart, job.eventTsEnd, job.sourceType, job.sourceConfig),
-      getTranConfig(job.tranConfig.getOrElse(""), job.sinkNs),
+      getTranConfig(job.tranConfig.getOrElse(""), job.sinkConfig.getOrElse(""), job.sinkNs),
       getSinkConfig(job.sinkNs, job.sinkConfig.getOrElse("")),
       getJobConfig(job.name, job.sparkConfig))
 
@@ -80,25 +79,56 @@ object JobUtils extends RiderLogger {
     SinkConfig(sinkNs, getConnConfig(instance, db), maxRecord, Some(getSinkProcessClass(ns.nsSys, ns.sinkSchema)), specialConfig, sinkKeys, projection)
   }
 
-  def getTranConfig(tranConfig: String, sinkNs: String) = {
-    if (tranConfig != "" && tranConfig != null) {
-      val tranClass = JSON.parseObject(tranConfig)
-      val action = if (tranClass.containsKey("action") && tranClass.getString("action").nonEmpty) {
-        if (tranClass.getString("action").contains("edp.wormhole.batchjob.transform.Snapshot")) {
-          val ns = modules.namespaceDal.getNamespaceByNs(sinkNs).get
-          val swiftsSpec =
-            if (tranClass.containsKey("swifts_specific_config"))
-              tranClass.getJSONObject("swifts_specific_config")
-            else new JSONObject()
-          swiftsSpec.fluentPut("table_keys", ns.keys.getOrElse(""))
-          tranClass.fluentPut("swifts_specific_config", swiftsSpec.toString)
-        }
-        Some(base64byte2s(tranClass.getString("action").trim.getBytes))
+  def getTranConfig(tranConfig: String, sinkConfig: String, sinkNs: String) = {
+    val sinkConf = getSinkConfig(sinkNs, sinkConfig)
+    val sinkProtocol =
+      if (sinkConf.specialConfig.nonEmpty) {
+        val specialJson = JSON.parseObject(sinkConf.specialConfig.get)
+        if (specialJson.containsKey("sink_protocol"))
+          Some(specialJson.getString("sink_protocol"))
+        else None
       } else None
-      val specialConfig = if (tranClass.containsKey("swifts_specific_config")) Some(tranClass.getString("swifts_specific_config")) else None
-      Some(TransformationConfig(action, specialConfig))
-    }
+    val action =
+      if (tranConfig != "" && tranConfig != null) {
+        val tranClass = JSON.parseObject(tranConfig)
+        if (tranClass.containsKey("action") && tranClass.getString("action").nonEmpty) {
+          if (tranClass.getString("action").contains("edp.wormhole.batchjob.transform.Snapshot"))
+            tranClass.getString("action")
+          else {
+            if (sinkProtocol.nonEmpty && sinkProtocol.get == "snapshot")
+              "custom_class = edp.wormhole.batchjob.transform.Snapshot;".concat(tranClass.getString("action"))
+            else tranClass.getString("action")
+          }
+        } else if (sinkProtocol.nonEmpty && sinkProtocol.get == "snapshot")
+          "custom_class = edp.wormhole.batchjob.transform.Snapshot;"
+        else ""
+      } else if (sinkProtocol.nonEmpty && sinkProtocol.get == "snapshot")
+        "custom_class = edp.wormhole.batchjob.transform.Snapshot;"
+      else ""
+    val specialConfig = setSwiftsConfig2Snapshot(sinkNs, action, tranConfig)
+    if (action != "")
+      Some(TransformationConfig(Some(base64byte2s(action.trim.getBytes)), specialConfig))
     else None
+  }
+
+  def setSwiftsConfig2Snapshot(sinkNs: String, action: String, tranConfig: String): Option[String] = {
+    if (action.contains("edp.wormhole.batchjob.transform.Snapshot;")) {
+      val ns = modules.namespaceDal.getNamespaceByNs(sinkNs).get
+      if (tranConfig != null && tranConfig != "") {
+        val tranClass = JSON.parseObject(tranConfig)
+        val swiftsSpec =
+          if (tranClass.containsKey("swifts_specific_config"))
+            tranClass.getJSONObject("swifts_specific_config")
+          else new JSONObject()
+        swiftsSpec.fluentPut("table_keys", ns.keys.getOrElse(""))
+        tranClass.fluentPut("swifts_specific_config", swiftsSpec.toString)
+        Some(tranClass.getString("swifts_specific_config"))
+      } else {
+        val swiftsSpec = new JSONObject()
+        swiftsSpec.fluentPut("table_keys", ns.keys.getOrElse(""))
+        Some(swiftsSpec.getString("swifts_specific_config"))
+      }
+    } else None
   }
 
   def getJobConfig(name: String, sparkConfig: Option[String]) = {
@@ -214,7 +244,7 @@ object JobUtils extends RiderLogger {
         flag = false
     }
     if (!flag) {
-      if(job.status == "stopped") "modify,start,renew,stop"
+      if (job.status == "stopped") "modify,start,renew,stop"
       else "modify,start,renew"
     } else {
       JobStatus.jobStatus(job.status) match {
