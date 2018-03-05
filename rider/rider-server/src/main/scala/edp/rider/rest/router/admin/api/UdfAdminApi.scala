@@ -28,7 +28,7 @@ import edp.rider.common.RiderLogger
 import scala.language.postfixOps
 import edp.rider.rest.persistence.dal.{RelProjectUdfDal, UdfDal}
 import edp.rider.rest.persistence.entities._
-//import edp.rider.rest.router.JsonProtocol._
+import edp.rider.rest.util.StreamUtils
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils._
@@ -217,19 +217,23 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
       } doesn't exist in hdfs", session))
     } else {
       val udfSearch = Await.result(udfDal.findById(udf.id), minTimeOut)
-      if (udfSearch.nonEmpty) {
-        if (udfSearch.get.pubic != udf.pubic) {
-          if (udf.pubic) {
-            Await.result(relProjectUdfDal.deleteByFilter(_.udfId === udf.id), minTimeOut)
-          }
-        }
-      }
       val updateUdf = Udf(udf.id, udf.functionName.trim, udf.fullClassName.trim, udf.jarName.trim, udf.desc, udf.pubic, udf.createTime, udf.createBy, currentSec, session.userId)
       onComplete(udfDal.update(updateUdf).mapTo[Int]) {
         case Success(_) =>
           riderLogger.info(s"user ${
             session.userId
           } update udf success")
+          if (udfSearch.nonEmpty) {
+            if (udfSearch.get.pubic != udf.pubic) {
+              if (udf.pubic) {
+                Await.result(relProjectUdfDal.deleteByFilter(_.udfId === udf.id), minTimeOut)
+              } else {
+                val projectIds = StreamUtils.getProjectIdsByUdf(udf.id)
+                val projectUdfs = projectIds.map(projectId => RelProjectUdf(0, projectId, udf.id, currentSec, session.userId, currentSec, session.userId))
+                Await.result(relProjectUdfDal.insert(projectUdfs), minTimeOut)
+              }
+            }
+          }
           complete(OK, ResponseJson[Udf](getHeader(200, session), updateUdf))
         case Failure(ex) =>
           riderLogger.error(s"user ${
