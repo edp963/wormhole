@@ -112,8 +112,7 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 #### Sink Config
 
 - Sink Config 项配置与所选系统类型相关，点击配置按钮后页面上方有对应系统的配置项例子
-- 其中 "mutation_type" 的值有 "i" 和 "iud"，代表向 Sink 表中插数据时使用只增原则或增删改原则。如果为 "iud"，源数据和 Sink 表中都须有对应的UMS系统字段。若不配置此项，默认为 "iud"
-- Sink 系统为 Elasticsearch 时，
+- 其中 "mutation_type" 的值有 "i" 和 "iud"，代表向 Sink 表中插数据时使用只增原则或增删改原则。如果为 "iud"，源数据和 Sink 表中都须有对应的 UMS 系统字段。若不配置此项，默认为 "iud"
 
 #### Transformation
 
