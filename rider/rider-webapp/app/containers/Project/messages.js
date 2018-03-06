@@ -39,6 +39,7 @@ export default defineMessages({
   projectPaging: { id: 'rider.containers.Project.project.paging' },
   projectAll: { id: 'rider.containers.Project.project.all' },
   projectUserAuthorit: { id: 'rider.containers.Project.project.user.authority' },
+  projectUdfAuthority: { id: 'rider.containers.Project.project.udf.authority' },
   projectNameWarning1: { id: 'rider.containers.Project.project.name.warning1' },
   projectNameWarning2: { id: 'rider.containers.Project.project.name.warning2' }
 })
