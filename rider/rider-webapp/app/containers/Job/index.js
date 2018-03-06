@@ -531,7 +531,7 @@ export class Job extends React.Component {
         filterDropdownVisibleAppId: visible
       }, () => this.searchInput.focus())
     }, {
-      title: 'Status',
+      title: 'State',
       dataIndex: 'status',
       key: 'status',
       className: 'text-align-center',
