@@ -106,7 +106,7 @@ UMS_Extension 格式支持的字段类型如下。
 
 ## UDF 管理
 
-Spark SQL 支持 UDF(Uer Define Function) 功能，用户可以在 Spark SQL 里自定义函数来处理数据，Wormhole 有提供 UDF 管理功能。
+Spark SQL 支持 UDF(User Define Function) 功能，用户可以在 Spark SQL 里自定义函数来处理数据，Wormhole 有提供 UDF 管理功能。
  
 UDF 只支持 Java 语言编写，编译打包后将 Jar 包上传至 application.conf 中 spark.wormhole.hdfs.root.path 配置项对应 hdfs 目录的 /udfjars 子目录下。
 
