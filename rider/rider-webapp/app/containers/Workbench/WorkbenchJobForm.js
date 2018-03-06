@@ -43,7 +43,6 @@ import Radio from 'antd/lib/radio'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 import DatePicker from 'antd/lib/date-picker'
-// const { RangePicker } = DatePicker
 
 import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
 
@@ -79,11 +78,17 @@ export class WorkbenchJobForm extends React.Component {
   onChangeCheckbox = (e) => this.setState({ checked: e.target.checked })
 
   // 通过不同的 Source Data System 显示不同的 Source Namespace 的内容
-  onSourceDataSystemItemSelect = (val) => this.props.onInitJobSourceNs(this.props.projectIdGeted, val, 'sourceType')
+  onSourceDataSystemItemSelect = (val) => {
+    if (val) {
+      this.props.onInitJobSourceNs(this.props.projectIdGeted, val, 'sourceType')
+    }
+  }
 
   // 通过不同的 Sink Data System 显示不同的 Sink Namespace 的内容
   onSinkDataSystemItemSelect = (val) => {
-    this.props.onInitJobSinkNs(this.props.projectIdGeted, val, 'sinkType')
+    if (val) {
+      this.props.onInitJobSinkNs(this.props.projectIdGeted, val, 'sinkType')
+    }
     this.setState({ sinkConfigClass: val === 'hbase' ? 'sink-config-class' : '' })
   }
 
