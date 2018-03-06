@@ -595,7 +595,7 @@ export class Flow extends React.Component {
         filterDropdownVisibleSinkNs: visible
       }, () => this.searchInput.focus())
     }, {
-      title: 'Flow Status',
+      title: 'Flow State',
       dataIndex: 'status',
       key: 'status',
       className: 'text-align-center',
@@ -652,7 +652,7 @@ export class Flow extends React.Component {
         )
       }
     }, {
-      title: 'Stream Status',
+      title: 'Stream State',
       dataIndex: 'streamStatus',
       key: 'streamStatus',
       className: 'text-align-center',
