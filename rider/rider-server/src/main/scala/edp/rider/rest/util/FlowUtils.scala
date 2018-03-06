@@ -149,6 +149,7 @@ object FlowUtils extends RiderLogger {
         if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.mongosink.DataJson2MongoSink"
         else "edp.wormhole.sinks.mongosink.Data2MongoSink"
       case "phoenix" => "edp.wormhole.sinks.phoenixsink.Data2PhoenixSink"
+      case "parquet" => ""
     }
   }
 
@@ -267,6 +268,7 @@ object FlowUtils extends RiderLogger {
 
   def startFlow(streamId: Long, streamType: String, flowId: Long, sourceNs: String, sinkNs: String, consumedProtocol: String, sinkConfig: String, tranConfig: String, userId: Long): Boolean = {
     try {
+      autoDeleteTopic(userId, streamId)
       autoRegisterTopic(streamId, sourceNs, tranConfig, userId)
       val sourceNsObj = modules.namespaceDal.getNamespaceByNs(sourceNs).get
       val umsInfoOpt =
@@ -536,14 +538,7 @@ object FlowUtils extends RiderLogger {
 
   def stopFlow(streamId: Long, flowId: Long, userId: Long, streamType: String, sourceNs: String, sinkNs: String, tranConfig: String): Boolean = {
     try {
-      val topicInfo = checkDeleteTopic(streamId, flowId, sourceNs, tranConfig)
-      if (topicInfo.nonEmpty) {
-        topicInfo.get.topics.foreach(topic => StreamUtils.sendUnsubscribeTopicDirective(streamId, topic, userId))
-        Await.result(modules.inTopicDal.deleteByFilter(topic => (topic.nsDatabaseId inSet topicInfo.get.ids) && (topic.streamId === streamId)), minTimeOut)
-        riderLogger.info(s"drop topic ${
-          topicInfo.get.topics
-        } directive")
-      }
+      autoDeleteTopic(userId, streamId, Some(flowId))
       if (streamType == "default") {
         val tuple = Seq(streamId, currentMicroSec, sourceNs).mkString(",")
         val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_FLOW_STOP.toString, streamId, flowId, tuple, RiderConfig.zk, currentSec, userId)), minTimeOut)
@@ -625,20 +620,26 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def checkDeleteTopic(streamId: Long, flowId: Long, sourceNs: String, tranConfig: String) = {
+  def autoDeleteTopic(userId: Long, streamId: Long, flowId: Option[Long] = None) = {
     val flows = Await.result(modules.flowDal
       .findByFilter(flow => flow.streamId === streamId && flow.status =!= "new" && flow.status =!= "stopping" && flow.status =!= "stopped")
       , minTimeOut)
-    val streamJoinNs = getStreamJoinNamespaces(tranConfig)
-    val nsSeq = (streamJoinNs += sourceNs).map(ns => modules.namespaceDal.getNamespaceByNs(ns).get)
-    val topicMap = Await.result(modules.databaseDal.findByFilter(_.id inSet nsSeq.map(_.nsDatabaseId)), minTimeOut).map(db => (db.id, db.nsDatabase)).toMap[Long, String]
+    val streamTopicIds = Await.result(modules.inTopicDal.findByFilter(_.streamId === streamId), minTimeOut).map(_.nsDatabaseId)
     val ids = new ListBuffer[Long]
-    flows.foreach(flow =>
+    val flowSearch = if (flowId.isEmpty) flows else flows.filter(_.id != flowId.get)
+    flowSearch.foreach(flow =>
       ids ++= (getStreamJoinNamespaces(flow.tranConfig.getOrElse("")) += flow.sourceNs)
         .map(ns => modules.namespaceDal.getNamespaceByNs(ns).get)
-        .map(_.nsDatabaseId).filter(db => topicMap.keySet.toList.contains(db)))
-    if (ids.size > 1) None
-    else Some(DeleteTopic(ids.distinct, topicMap.keySet.toList.map(id => topicMap(id))))
+        .map(_.nsDatabaseId))
+    val deleteIds = streamTopicIds.filterNot(ids.contains(_))
+    if (deleteIds.nonEmpty) {
+      val topicMap = Await.result(modules.databaseDal.findByFilter(_.id inSet deleteIds), minTimeOut).map(db => (db.id, db.nsDatabase)).toMap[Long, String]
+      deleteIds.foreach(id => StreamUtils.sendUnsubscribeTopicDirective(streamId, topicMap(id), userId))
+      Await.result(modules.inTopicDal.deleteByFilter(topic => (topic.nsDatabaseId inSet deleteIds) && (topic.streamId === streamId)), minTimeOut)
+      riderLogger.info(s"drop topic ${
+        topicMap.values.mkString(",")
+      } directive")
+    }
   }
 
   def getFlowsAndJobsByNsIds(projectId: Long, deleteNsIds: Seq[Long], inputNsIds: Seq[Long]): (mutable.HashMap[Long, Seq[String]], mutable.HashMap[Long, Seq[String]], Seq[Long]) = {
