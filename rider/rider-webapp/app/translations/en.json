@@ -46,6 +46,7 @@
   "rider.containers.Project.project.paging": "Paging",
   "rider.containers.Project.project.all": "All",
   "rider.containers.Project.project.user.authority": "User Authority",
+  "rider.containers.Project.project.udf.authority": "UDF 权限",
   "rider.containers.Project.project.name.warning1": "Project name cannot be empty",
   "rider.containers.Project.project.name.warning2": "Letters, Figures, Hyphen or Underscore",
   "rider.containers.Project.cpu.warning": "Upper Limit of CPU cannot be empty",
