@@ -81,13 +81,13 @@
     <files>
         <file>
             <source>
-                ${project.parent.basedir}/sparkx/target/wormhole-ums_1.3-sparkx_2.2.0-0.4.0-SNAPSHOTS-jar-with-dependencies.jar
+                ${project.parent.basedir}/sparkx/target/wormhole-ums_1.3-sparkx_2.2.0-0.4.1-SNAPSHOTS-jar-with-dependencies.jar
             </source>
             <outputDirectory>lib</outputDirectory>
         </file>
         <!--<file>-->
             <!--<source>-->
-                <!--${project.parent.basedir}/rider/rider-server/target/wormhole-rider-server-0.4.0-SNAPSHOTS-jar-with-dependencies.jar-->
+                <!--${project.parent.basedir}/rider/rider-server/target/wormhole-rider-server-0.4.1-SNAPSHOTS-jar-with-dependencies.jar-->
             <!--</source>-->
             <!--<outputDirectory>lib</outputDirectory>-->
         <!--</file>-->
