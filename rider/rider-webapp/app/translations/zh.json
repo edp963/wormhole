@@ -46,6 +46,7 @@
   "rider.containers.Project.project.paging": "分页",
   "rider.containers.Project.project.all": "全部",
   "rider.containers.Project.project.user.authority": "用户权限",
+  "rider.containers.Project.project.udf.authority": "UDF 权限",
   "rider.containers.Project.project.name.warning1": "项目标识不能为空",
   "rider.containers.Project.project.name.warning2": "必须是字母、数字、中划线或下划线",
   "rider.containers.Project.cpu.warning": "CPU上限不能为空",
