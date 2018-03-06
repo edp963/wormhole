@@ -81,10 +81,13 @@ Wormhole 面向大数据流式处理项目的开发管理运维人员，致力�
 
 #### 以上是简短的功能和用户体验预览，更多强大的细节功能请参见其他部分
 
+## Documentation
+
+Please refer to [Wormhole用户手册](https://edp963.github.io/wormhole).
 
 ## Latest Release
 
-Please download the latest [RELEASE](https://github.com/edp963/wormhole/releases/download/0.3.0/wormhole-0.3.0.tar.gz).
+Please download the latest [RELEASE](https://github.com/edp963/wormhole/releases/download/0.4.1/wormhole-0.4.1.tar.gz).
 
 ## Get Help
 
@@ -94,4 +97,3 @@ Please download the latest [RELEASE](https://github.com/edp963/wormhole/releases
 ## License
 
 Wormhole is under the Apache 2.0 license. See the [LICENSE](https://github.com/edp963/wormhole/blob/master/LICENSE) file for details.
-
