@@ -86,7 +86,7 @@ object BatchJobStarter extends App with EdpLogging {
   println("after!!!!!!!!!!! outPutTransformDf")
 
   if (UmsNamespace(sinkConfig.sinkNamespace).dataSys == UmsDataSystem.PARQUET) {
-    outPutTransformDf.write.parquet(sinkConfig.connectionConfig.connectionUrl)
+    outPutTransformDf.write.parquet(sinkConfig.connectionConfig.connectionUrl.stripSuffix("/") + "/" + sinkConfig.sinkNamespace + "/" + sourceConfig.startTime + "_" + sourceConfig.endTime)
   } else {
     val schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)] = SparkUtils.getSchemaMap(outPutTransformDf.schema)
     val limit = sinkConfig.maxRecordPerPartitionProcessed
