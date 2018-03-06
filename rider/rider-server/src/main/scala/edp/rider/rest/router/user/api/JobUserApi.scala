@@ -80,7 +80,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
               complete(OK, getHeader(403, session))
             } else {
               if (session.projectIdList.contains(projectId)) {
-                val jobOut = Await.result(jobDal.findById(jobId), minTimeOut) //todo update db before query for "status check"
+                val jobOut = Await.result(jobDal.findById(jobId), minTimeOut)
                 jobOut match {
                   case Some(job) =>
                     if (job.status != JobStatus.STARTING.toString &&
@@ -101,14 +101,14 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                         } else {
                           val updateJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.sourceType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd,
                             job.sourceConfig, job.sinkConfig, job.tranConfig, JobStatus.STARTING.toString, None, job.logPath, Some(currentSec), None, job.createTime, job.createBy, currentSec, session.userId)
-                          Await.result(jobDal.update(updateJob), minTimeOut)
                           JobUtils.startJob(job)
+                          Await.result(jobDal.update(updateJob), minTimeOut)
                           val projectName = jobDal.adminGetRow(job.projectId)
                           complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(updateJob))))
                         }
                       } catch {
                         case ex: Exception =>
-                          riderLogger.error(s"user ${session.userId} get resources for project ${projectId}  failed when start job", ex)
+                          riderLogger.error(s"user ${session.userId} start job failed", ex)
                           complete(OK, getHeader(451, ex.getMessage, session))
                       }
                     } else {
