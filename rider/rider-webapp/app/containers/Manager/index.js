@@ -838,7 +838,7 @@ export class Manager extends React.Component {
         filterDropdownVisibleSparkAppid: visible
       }, () => this.searchInput.focus())
     }, {
-      title: 'Status',
+      title: 'State',
       dataIndex: 'status',
       key: 'status',
       className: 'text-align-center',
@@ -883,7 +883,6 @@ export class Manager extends React.Component {
       title: 'Type',
       dataIndex: 'streamType',
       key: 'streamType',
-      // className: 'text-align-center',
       sorter: (a, b) => a.streamType < b.streamType ? -1 : 1,
       sortOrder: sortedInfo.columnKey === 'streamType' && sortedInfo.order,
       filters: [
