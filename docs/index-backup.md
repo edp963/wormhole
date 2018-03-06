@@ -85,7 +85,7 @@ Wormhole面向大数据流式处理项目的开发管理运维人员，致力于
 
 ## Documentation
 
-Please refer to [Wormhole用户手册](https://edp-wormhole.gitbooks.io/wormhole-user-guide-cn/content), or download [PDF](https://www.gitbook.com/download/pdf/book/edp-wormhole/wormhole-user-guide-cn).
+Please refer to [Wormhole用户手册](https://edp963.github.io/wormhole).
 
 ## Latest Release
 
