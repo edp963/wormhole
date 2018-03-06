@@ -106,11 +106,13 @@ UMS_Extension 格式支持的字段类型如下。
 
 ## UDF 管理
 
-UDF 有公有、私有两种类型，所有 Project 都可以访问公有 UDF，私有 UDF 需要 Admin 授权。
+Spark SQL 支持 UDF(Uer Define Function) 功能，用户可以在 Spark SQL 里自定义函数来处理数据，Wormhole 有提供 UDF 管理功能。
+ 
+UDF 只支持 Java 语言编写，编译打包后将 Jar 包上传至 application.conf 中 spark.wormhole.hdfs.root.path 配置项对应 hdfs 目录的 /udfjars 子目录下。
 
-UDF 只支持 Java 语言编写，打成 Jar 包上传至 application.conf 中 spark.wormhole.hdfs.root.path 配置项对应hdfs目录的 /udfjars 子目录下。
+UDF 由 Admin 统一管理，有公有、私有两种类型，所有 Project 都可以访问公有 UDF，私有 UDF 需要 Admin 授权。
 
-配置 UDF 时，输入方法名，方法名与 Class 中的 Function 名称保持一致，类名全称，Jar 包名称，保存时会检查 Hdfs 目录上是否存在该 Jar 包，不存在则无法创建成功。
+配置 UDF 时，输入方法名，方法名与 Class 中的 Function 名称保持一致，类名全称，Jar 包名称，保存时会检查 Hdfs 目录上是否存在该 Jar 包，不存在则无法新建。
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin-udf.png" alt="" width="600"/>
 
