@@ -19,6 +19,8 @@
  */
 
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import messages from './messages'
 
 import Table from 'antd/lib/table'
 import Input from 'antd/lib/input'
@@ -203,7 +205,7 @@ export class ProjectUdfTable extends React.Component {
     return (
       <Table
         bordered
-        title={() => (<h3>UDF</h3>)}
+        title={() => (<h3><FormattedMessage {...messages.projectUdfAuthority} /></h3>)}
         columns={columnsProject}
         dataSource={this.state.currentUdfs}
         pagination={pagination}
