@@ -92,7 +92,7 @@ export class Udf extends React.PureComponent {
 
   componentWillMount () {
     if (localStorage.getItem('loginRoleType') === 'admin') {
-      if (this.props.udfClassHide === '') {
+      if (!this.props.udfClassHide) {
         this.props.onLoadUdfs(() => { this.udfRefreshState() })
       }
     }
