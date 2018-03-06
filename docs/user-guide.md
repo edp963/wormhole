@@ -16,7 +16,7 @@ Wormhole 系统中有三类用户角色 Admin，User，App。本章介绍 User �
 
 #### 类型
 
-理论上 Stream 可以处理所有类型的数据，为提升性能，针对 Hdfs 数据备份和分流功能作了相应优化，所以将Stream分为三种类型。
+理论上 Stream 可以处理所有类型的数据，为提升性能，针对 Hdfs 数据备份和分流功能作了相应优化，所以将 Stream 分为三种类型。
 
 - default：可将数据写入 Kafka/RDBS/Elasticsearch/Hbase/Phoenix/Cassandra/MongoDB 系统中
 - hdfslog：可将数据备份至 Hdfs 上，可以为 Job 提供数据源，实现 Kappa 架构
@@ -37,7 +37,7 @@ Wormhole 系统中有三类用户角色 Admin，User，App。本章介绍 User �
 
 Stream 消费哪些 Topic 根据 Flow 的启停自动绑定和注销。
 
-Flow 启动时检查其 Source Namespace 对应 Topic 是否已绑定在 Stream 上，若已绑定不会重复注册，根据 Stream 目前已消费到的 Offset继续执行。否则将该 Topic 绑定到 Stream 上，初始 Offset 设置为该 Topic 的最新 Offset。
+Flow 启动时检查其 Source Namespace 对应 Topic 是否已绑定在 Stream 上，若已绑定不会重复注册，根据 Stream 目前已消费到的 Offset 继续执行。否则将该 Topic 绑定到 Stream 上，初始 Offset 设置为该 Topic 的最新 Offset。
 
 Flow 停止时检查其 Source Namespace 对应 Topic 是否对应该 Stream 上其他 Flow，若无则注销该 Stream 与 Topic 的绑定关系。
 
@@ -92,11 +92,11 @@ Stream 状态转换图如下，其中 refresh 代表 Refresh 按钮，start 代�
 
 #### Source Namespace
 
-- 若未对接 Dbus，源数据系统只支持 Kafka
+- 若 Wormhole 未对接 Dbus，源数据系统只支持 Kafka
 
-- 若对接 Dbus，选择在 Dbus 中配置的源数据系统类型
+- 若 Wormhole 已对接 Dbus，选择在 Dbus 中配置的源数据系统类型
 
-- 可选的 Namespace 有一定的权限控制，其中 Source Namespace 是 Stream 对应 Kafka Instance 下的Namespaces 与 Flow 所在 Project 下可访问 Namespaces 的交集；Sink Namespace 是 Flow 所在 Project 下可访问的Namespaces 且去除从 Dbus 系统同步的 Namespace
+- 可选的 Namespace 有一定的权限控制，其中 Source Namespace 是 Stream 对应 Kafka Instance 下的 Namespaces 与 Flow 所在 Project 下可访问 Namespaces 的交集；Sink Namespace 是 Flow 所在 Project 下可访问的Namespaces 且去除从 Dbus 系统同步的 Namespace
 
 #### Sink Namespace
 
@@ -165,7 +165,7 @@ Spark SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 
 ###### Stream Join SQL
 
-- 选择要关联的其他 Source Namespace，可关联多个 Source Namespaces
+- 选择要关联的其他 Source Namespace，可关联多个 Source Namespace
 - Stream Join SQL 处理过程中会将没有关联上的数据保存到 HDFS 上，data retention time 代表数据的有效期
 - select 语句规则同 Spark SQL
 
@@ -175,20 +175,20 @@ Spark SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 
 #### 启动 Flow
 
-- Sink 端为 RDBMS 时，需将相应的 jdbc connector jar 放置 $SPARK_HOME/jars 目录下，然后启动或重启 Stream
+- Sink 端为 RDBMS 时，需将相应的 jdbc connector jar 放至 $SPARK_HOME/jars 目录下，然后启动或重启 Stream
 
 - 点击启动按钮，后台会将 Flow 的信息提交给 Stream，且会将 Flow Source Namespace 和 Stream Join Namespaces 所在 Topic 绑定到 Stream 上。
-- Stream 接收到 Flow 指令后解析，若成功解析，返回成功信息，Flow 的状态由 starting 转成 running；若解析失败，Flow  的状态由 starting 转成 failed。可在 Yarn 上查看 Driver 日志，根据错误提示重新配置 Flow
+- Stream 接收到 Flow 指令后解析，若成功解析，返回成功信息，Flow 的状态由 starting 转成 running；若解析失败，Flow 的状态由 starting 转成 failed。可在 Yarn 上查看 Driver 日志，根据错误提示重新配置 Flow
 
 #### 生效 Flow
 
 - Flow 运行过程中，可修改 Flow 逻辑，点击生效按钮，动态更新 Stream 的配置
-- 若修改了Flow 所用 Namespaces/Databases/Instances 的配置，须点击生效按钮，动态更新 Stream 的配置
+- 若修改了 Flow 所用 Namespaces/Databases/Instances 的配置，须点击生效按钮，动态更新 Stream 的配置
 - 点击生效按钮后，Flow 的状态转换为 updating，收到 Stream 反馈后转换成 running 或 failed
 
 #### 停止 Flow
 
-停止 Flow 时向 Stream 发送取消指令，并检查 Stream 其他 Flow 对应的 Topic 是否包含该 Flow 对应的 Topic，若果不包含则取消 Stream 与该 Topic 的绑定关系。
+停止 Flow 时向 Stream 发送取消指令，并检查 Stream 其他 Flow 对应的 Topic 是否包含该 Flow 对应的 Topic，如果不包含则取消 Stream 与该 Topic 的绑定关系。
 
 #### Flow 状态转换
 
