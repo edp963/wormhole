@@ -135,7 +135,7 @@ export class Namespace extends React.PureComponent {
 
   componentWillMount () {
     if (localStorage.getItem('loginRoleType') === 'admin') {
-      if (this.props.namespaceClassHide === '') {
+      if (!this.props.namespaceClassHide) {
         this.props.onLoadAdminAllNamespaces(() => { this.nsRefreshState() })
       }
     }
