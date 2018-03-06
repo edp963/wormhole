@@ -23,7 +23,7 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-source-namespace-create.png" alt="" width="600"/>
 
-**3. Kafka 集群中创建 source topic，并生成测试数据，对应 Source Namespace，Kafka 消息的 key 应设置为 `data_increment_data.kafka.test.source.ums_extension.*.*.*`。Kafka 数据样例如下：**
+**3. Kafka 集群中创建 source topic，并生成测试数据。若 Source Namespace 为 `kafka.test.source.ums_extension.*.*.*`，则 Kafka 消息的 key 应设置为 `data_increment_data.kafka.test.source.ums_extension.*.*.*`。Kafka 数据样例如下：**
 
    ```
    {

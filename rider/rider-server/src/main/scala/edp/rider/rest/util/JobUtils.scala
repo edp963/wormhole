@@ -110,7 +110,7 @@ object JobUtils extends RiderLogger {
   }
 
   def setSwiftsConfig2Snapshot(sinkNs: String, action: String, tranConfig: String): Option[String] = {
-    if (action.contains("edp.wormhole.batchjob.transform.Snapshot;")) {
+    if (action.contains("edp.wormhole.batchjob.transform.Snapshot")) {
       val ns = modules.namespaceDal.getNamespaceByNs(sinkNs).get
       if (tranConfig != null && tranConfig != "") {
         val tranClass = JSON.parseObject(tranConfig)
@@ -118,13 +118,15 @@ object JobUtils extends RiderLogger {
           if (tranClass.containsKey("swifts_specific_config"))
             tranClass.getJSONObject("swifts_specific_config")
           else new JSONObject()
-        swiftsSpec.fluentPut("table_keys", ns.keys.getOrElse(""))
-        tranClass.fluentPut("swifts_specific_config", swiftsSpec.toString)
+        if (!swiftsSpec.containsKey("table_keys")) {
+          swiftsSpec.fluentPut("table_keys", ns.keys.getOrElse(""))
+          tranClass.fluentPut("swifts_specific_config", swiftsSpec.toString)
+        }
         Some(tranClass.getString("swifts_specific_config"))
       } else {
         val swiftsSpec = new JSONObject()
         swiftsSpec.fluentPut("table_keys", ns.keys.getOrElse(""))
-        Some(swiftsSpec.getString("swifts_specific_config"))
+        Some(swiftsSpec.toString)
       }
     } else None
   }
@@ -184,7 +186,7 @@ object JobUtils extends RiderLogger {
       if (job.sparkConfig.isDefined && !job.sparkConfig.get.isEmpty) job.sparkConfig.get else Seq(RiderConfig.spark.driverExtraConf, RiderConfig.spark.executorExtraConf).mkString(",").concat(RiderConfig.spark.sparkConfig),
       "job"
     )
-    riderLogger.info(s"start job ${job.id} command: ${command.replaceAll(" ", "")}")
+    riderLogger.info(s"start job ${job.id} command: $command")
     runShellCommand(command)
   }
 
