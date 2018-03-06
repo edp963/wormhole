@@ -93,7 +93,7 @@ export class User extends React.PureComponent {
 
   componentWillMount () {
     if (localStorage.getItem('loginRoleType') === 'admin') {
-      if (this.props.userClassHide === '') {
+      if (!this.props.userClassHide) {
         this.props.onLoadAdminAllUsers(() => { this.userRefreshState() })
       }
     }

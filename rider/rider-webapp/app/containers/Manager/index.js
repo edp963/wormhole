@@ -114,7 +114,7 @@ export class Manager extends React.Component {
 
   componentWillMount () {
     if (localStorage.getItem('loginRoleType') === 'admin') {
-      if (this.props.streamClassHide === '') {
+      if (!this.props.streamClassHide) {
         this.props.onLoadAdminAllStreams(() => { this.refreshStreamState() })
       }
     }

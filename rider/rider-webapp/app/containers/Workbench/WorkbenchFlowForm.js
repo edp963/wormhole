@@ -43,8 +43,7 @@ import Radio from 'antd/lib/radio'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 
-import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect,
-  operateLanguageFillIn } from '../../utils/util'
+import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
 
 export class WorkbenchFlowForm extends React.Component {
   constructor (props) {
@@ -96,23 +95,30 @@ export class WorkbenchFlowForm extends React.Component {
   // 通过不同的 Source Data System 显示不同的 Source Namespace 的内容
   onSourceDataSystemItemSelect = (val) => {
     const { streamDiffType, flowMode, projectIdGeted } = this.props
-
-    if (streamDiffType === 'default') {
-      this.props.onInitSourceTypeNamespace(projectIdGeted, val, 'sourceType')
-    } else if (streamDiffType === 'hdfslog') {
-      // placeholder 和单条数据回显
-      if (flowMode === 'add' || flowMode === 'copy') {
-        this.props.form.setFieldsValue({ hdfslogNamespace: undefined })
+    if (val) {
+      switch (streamDiffType) {
+        case 'default':
+          this.props.onInitSourceTypeNamespace(projectIdGeted, val, 'sourceType')
+          break
+        case 'hdfslog':
+          // placeholder 和单条数据回显
+          if (flowMode === 'add' || flowMode === 'copy') {
+            this.props.form.setFieldsValue({ hdfslogNamespace: undefined })
+          }
+          this.props.onInitHdfslogNamespace(projectIdGeted, val, 'sourceType')
+          break
+        case 'routing':
+          this.props.onInitRoutingNamespace(projectIdGeted, val, 'sourceType')
+          break
       }
-      this.props.onInitHdfslogNamespace(projectIdGeted, val, 'sourceType')
-    } else if (streamDiffType === 'routing') {
-      this.props.onInitRoutingNamespace(projectIdGeted, val, 'sourceType')
     }
   }
 
   // 通过不同的 Sink Data System 显示不同的 Sink Namespace 的内容
   onSinkDataSystemItemSelect = (val) => {
-    this.props.onInitSinkTypeNamespace(this.props.projectIdGeted, val, 'sinkType')
+    if (val) {
+      this.props.onInitSinkTypeNamespace(this.props.projectIdGeted, val, 'sinkType')
+    }
     this.setState({
       sinkConfigClass: val === 'hbase' ? 'sink-config-class' : ''
     })
