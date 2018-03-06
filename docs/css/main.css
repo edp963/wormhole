@@ -7,6 +7,7 @@
   width: 260px;
   margin-left: 1px;
   padding: 0;
+  text-shadow: 0 0 0 #d9d9d9;
 }
 
 .version {
@@ -16,12 +17,23 @@
   margin-left: 5px;
   margin-bottom: 16px;
   font-weight: bold;
-  color: #777;
+  color: #d9d9d9;
 }
 
 .navbar-inner {
   padding-top: 2px;
   height: 50px;
+  background-image: linear-gradient(to bottom,#424242,#424242);
+  background-image:-moz-linear-gradient(top,#424242,#424242);
+  background-image:-webkit-gradient(linear,0 0,0 100%,from(#424242),to(#424242));
+  background-image:-webkit-linear-gradient(top,#424242,#424242);
+  background-image:-o-linear-gradient(top,#424242,#424242);
+  background-image:linear-gradient(to bottom,#424242,#424242);
+}
+
+.navbar .nav > li > a, .navbar .nav > li > a:hover {
+  color: #d9d9d9;
+  text-shadow: 0 0 0 #d9d9d9;
 }
 
 .navbar-inner .nav {
@@ -286,4 +298,8 @@ label[for="nav-trigger"]:hover {
     margin-left: -215px;
   }
 
+}
+
+blockquote p {
+  color: black;
 }
