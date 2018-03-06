@@ -126,7 +126,7 @@ export class FlowTransformForm extends React.Component {
       ]
 
     const nsChildren = flowTransNsData.map(i => {
-      const temp = [i.nsSys, i.nsInstance, i.nsDatabase, i.nsTable].join(',')
+      const temp = [i.nsSys, i.nsInstance, i.nsDatabase, i.nsTable].join('.')
       return (
         <Select.Option key={i.id} value={temp}>
           {temp}
