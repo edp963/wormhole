@@ -63,10 +63,10 @@ Wormhole 面向大数据流式处理项目的开发管理运维人员，致力�
 #### 转换支持大部分流上作业常用场景，大部分工作可以通过配置 SQL 实现流上处理逻辑
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_2_flow_2.png" alt="" width="600"/>
 
-#### Wormhole 有 Flow 和 Stream 的概念，支持在一个物理 Stream（对应一个 Spark Stream）里通过并行处理多个逻辑 Flow，使得 User可以更加精细灵活的利用计算资源，User 也可以对 Stream 进行精细化参数配置调整以更好平衡需求和资源
+#### Wormhole 有 Flow 和 Stream 的概念，支持在一个物理 Stream（对应一个 Spark Stream）里通过并行处理多个逻辑 Flow，使得 User 可以更加精细灵活的利用计算资源，User 也可以对 Stream 进行精细化参数配置调整以更好平衡需求和资源
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_3_stream.png" alt="" width="600"/>
 
-#### Wormhole 也支持批处理 Job，同样可以配置化实现处理逻辑并落到多个异构 Sink，Flow和 Job 的配合可以很容易实现 Lambda 架构和 Kappa 架构
+#### Wormhole 也支持批处理 Job，同样可以配置化实现处理逻辑并落到多个异构 Sink，Flow 和 Job 的配合可以很容易实现 Lambda 架构和 Kappa 架构
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_4_job_1.png" alt="" width="600"/>
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_4_job_2.png" alt="" width="600"/>
 
