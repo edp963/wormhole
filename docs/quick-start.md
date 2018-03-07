@@ -41,11 +41,11 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
 
 **5. Admin 创建 Sink Namespace**
 
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-sink-instance-create.png" alt="" width="600"/>
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-sink-instance-create.png" alt="" width="600"/>
    
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-sink-database-create.png" alt="" width="600"/>
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-sink-database-create.png" alt="" width="600"/>
    
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-sink-namespace-create.png" alt="" width="600"/>
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-sink-namespace-create.png" alt="" width="600"/>
 
 **6. Kafka 集群中创建 Sink Topic**
 
@@ -65,19 +65,21 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
 
 **1. User 登录系统后创建并启动 Stream**
 
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-create-stream.png" alt="" width="600"/>
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-stream.png" alt="" width="600"/>
 
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-stream-configs.png" alt="" width="600"/>
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-stream-configs.png" alt="" width="600"/>
 
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-stream-running.png" alt="" width="600"/>
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-stream-running.png" alt="" width="600"/>
    
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-stream-start.png" alt="" width="600"/>
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-stream-start.png" alt="" width="600"/>
 
 **2. User 创建并启动 Flow**
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-source.png" alt="" width="600"/>
    
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-sink.png" alt="" width="600"/>
+   
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-sinkConfig.png" alt="" width="600"/>
    
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-transform.png" alt="" width="600"/>
    
