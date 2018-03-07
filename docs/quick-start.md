@@ -7,7 +7,7 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
 
 本章节以一个流式项目的实施示例介绍 Wormhole 页面的使用流程。
 
-业务需求：实时处理 Kafka 中数据，处理过程中关联 Mysql 数据库某表，然后转换过滤数据，写入 Hbase 系统中。
+业务需求：实时处理 Kafka 中数据，处理过程中关联 Mysql 数据库某表，然后转换过滤数据，写入 Mysql 系统中。
 
 ### Admin 用户
 
@@ -29,24 +29,8 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
    {
        "id": 1,
        "name": "test",
-       "phone": [
-           "18074546423",
-           "13254356624"
-       ],
-       "message": "2017-06-27 14:14:04,557|INFO",
-       "address": {
-           "province": "Beijing",
-           "city": "Beijing"
-       },
-       "contacts": [
-           {
-               "name": "test",
-               "phone": [
-                   "18074546452",
-                   "13254356643"
-               ]
-           }
-       ],
+       "phone": "18074546423",
+       "address": "Beijing",
        "time": "2017-12-22 10:00:00"
    }
    ```
@@ -57,27 +41,37 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
 
 **5. Admin 创建 Sink Namespace**
 
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-create-sink-ns.png" alt="" width="600"/>
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-sink-instance-create.png" alt="" width="600"/>
+   
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-sink-database-create.png" alt="" width="600"/>
+   
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-sink-namespace-create.png" alt="" width="600"/>
 
-**6. Kafka 集群中创建 sink topic**
+**6. Kafka 集群中创建 Sink Topic**
 
 **7. Admin 创建 Lookup Namespace**
 
+   Lookup Instance/Database 配置图省略
+   
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-lookup-ns.png" alt="" width="600"/>
 
 **8. Admin 创建 Project 并授权 Namespaces 和 Users**
 
+   将 Source Namespace, Sink Namespace, Lookup Namespace 和 demo User 授权给 Project
+   
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-project.png" alt="" width="600"/>
 
 ### User 用户
 
 **1. User 登录系统后创建并启动 Stream**
 
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-stream_configs.png" alt="" width="600"/>
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-create-stream.png" alt="" width="600"/>
 
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-stream_running.png" alt="" width="600"/>
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-stream-configs.png" alt="" width="600"/>
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-stream-running.png" alt="" width="600"/>
    
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-stream_start.png" alt="" width="600"/>
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/qiuck-start-stream-start.png" alt="" width="600"/>
 
 **2. User 创建并启动 Flow**
 
@@ -87,6 +81,10 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
    
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-transform.png" alt="" width="600"/>
    
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-lookupSql.png" alt="" width="600"/>
+   
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-transform-result.png" alt="" width="600"/>
+
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-start.png" alt="" width="600"/>
 
 
