@@ -122,6 +122,6 @@ Flow 配置好后可以注册到 Stream，Stream 接收 Flow 指令后，根据�
 
 ## Job 
 
-Job 相当于 Spark Job，其数据源是 Hdfs。
+Job 相当于 Spark Job，其数据源是 Hdfs。Stream/Flow/Job 组合可实现 Lambda 架构和 Kappa 架构。
 
 Kafka 中数据有一定的生命周期，可通过 Stream 将 Kafka 中数据备份到 Hdfs 上。后续需要从某个时间节点重新计算或者补充某个时间段的数据，可通过 Job 读取 Hdfs上 的备份数据，配置与 Flow 相同的处理逻辑，将数据写入目标表。
