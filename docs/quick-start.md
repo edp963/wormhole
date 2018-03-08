@@ -45,7 +45,7 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
    
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-sink-database-create.png" alt="" width="600"/>
    
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-sink-namespace-create.png" alt="" width="600"/>
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-sink-namespace-create.png" alt="" width="600"/>   
 
 **6. Kafka 集群中创建 Sink Topic**
 
@@ -54,7 +54,7 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
    Lookup Instance/Database 配置图省略
    
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-lookup-ns.png" alt="" width="600"/>
-
+   
 **8. Admin 创建 Project 并授权 Namespaces 和 Users**
 
    将 Source Namespace, Sink Namespace, Lookup Namespace 和 demo User 授权给 Project
@@ -86,6 +86,10 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-lookupSql.png" alt="" width="600"/>
    
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-transform-result.png" alt="" width="600"/>
+   
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-sparkSql.png" alt="" width="600"/>
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-sparkSql-result.png" alt="" width="600"/>
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-start.png" alt="" width="600"/>
 
