@@ -94,14 +94,14 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
               pType match {
                 case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_START =>
                   if (statusValue.toString == UmsFeedbackStatus.SUCCESS.toString) {
-                    modules.flowDal.updateFlowStatus(records.flowId, RUNNING.toString)
+                    modules.flowDal.updateStatusByFeedback(records.flowId, RUNNING.toString)
                   } else
-                    modules.flowDal.updateFlowStatus(records.flowId, FAILED.toString)
+                    modules.flowDal.updateStatusByFeedback(records.flowId, FAILED.toString)
                 case UmsProtocolType.DIRECTIVE_FLOW_STOP =>
                   if (statusValue.toString == UmsFeedbackStatus.SUCCESS.toString)
-                    modules.flowDal.updateFlowStatus(records.flowId, STOPPED.toString)
+                    modules.flowDal.updateStatusByFeedback(records.flowId, STOPPED.toString)
                   else
-                    modules.flowDal.updateFlowStatus(records.flowId, FAILED.toString)
+                    modules.flowDal.updateStatusByFeedback(records.flowId, FAILED.toString)
                 case _ => riderLogger.debug(s"$pType not supported now.")
               }
             case None => riderLogger.warn(s"directive id doesn't exist.")

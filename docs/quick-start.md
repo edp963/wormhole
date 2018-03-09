@@ -5,9 +5,9 @@ title: Quick Start
 description: Wormhole WH_VERSION_SHORT Quick Start page
 ---
 
-本章节以一个流式项目的实施示例介绍 Wormhole 页面的使用流程。
+**本章节以一个流式项目的实施示例介绍 Wormhole 页面的使用流程。**
 
-业务需求：实时处理 Kafka 中数据，处理过程中关联 Mysql 数据库某表，然后转换过滤数据，写入 Mysql 系统中。
+**业务需求：实时处理 Kafka 中数据，处理过程中关联 Mysql 数据库某表，然后转换过滤数据，写入 Mysql 系统中。**
 
 ### Admin 用户
 
