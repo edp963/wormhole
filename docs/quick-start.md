@@ -63,35 +63,50 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
 
 ### User 用户
 
-**1. User 登录系统后创建并启动 Stream**
+**1. User 登录系统后创建 Stream**
 
+   **新建 Stream**
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-stream.png" alt="" width="600"/>
 
+   **配置 Stream 资源**
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-stream-configs.png" alt="" width="600"/>
-
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-stream-running.png" alt="" width="600"/>
    
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-stream-start.png" alt="" width="600"/>
-
 **2. User 创建并启动 Flow**
 
+   **选择数据源**
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-source.png" alt="" width="600"/>
    
+   **选择目标端**
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-sink.png" alt="" width="600"/>
    
+   **配置 Sink 类型，Source Namespace 中数据只配置了 "ums_ts_" 系统字段，"mutation_type" 只能设置为 "i"，即 "insert only"。具体介绍请参考 Concept 和 User Guide 章节** 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-sinkConfig.png" alt="" width="600"/>
    
+   **配置数据转换逻辑，即 Transformation 配置**
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-transform.png" alt="" width="600"/>
    
+   **配置Lookup SQL，流上 Source Namespace 关联 MySQL userCard 表**
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-lookupSql.png" alt="" width="600"/>
    
+   **Lookup SQL 配置结果**
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-transform-result.png" alt="" width="600"/>
    
+   **Spark SQL，过滤部分字段**
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-sparkSql.png" alt="" width="600"/>
 
+   **Spark SQL 配置结果**
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-sparkSql-result.png" alt="" width="600"/>
 
+   **启动 Flow,将 Source Namespace 对应 Topic 信息，Flow 配置信息发送给 Stream**
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-start.png" alt="" width="600"/>
 
+**3. User 启动 Stream**
 
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-stream-start.png" alt="" width="600"/>
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-stream-running.png" alt="" width="600"/>
+
+   可在 Yarn Application 上查看 Stream 日志
+   
+   
 **具体步骤及配置说明请参考其他章节~~**
