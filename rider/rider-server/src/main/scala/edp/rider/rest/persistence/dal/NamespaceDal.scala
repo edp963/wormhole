@@ -116,7 +116,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         kafka => {
           val instanceSearch = Await.result(instanceDal.findByFilter(_.connUrl === kafka), minTimeOut)
           if (instanceSearch.isEmpty) {
-            instanceSeq += Instance(0, s"dbusKafka$i", Some("dbus kafka"), "kafka", kafka, active = true, currentSec, session.userId, currentSec, session.userId)
+            instanceSeq += Instance(0, s"dbusKafka$i", Some("dbus kafka !!!"), "kafka", kafka, active = true, currentSec, session.userId, currentSec, session.userId)
             i = i + 1
           }
           else kafkaIdMap.put(kafka, instanceSearch.head.id)
@@ -132,7 +132,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
           val topicExist = topicSearch.filter(_.nsDatabase == topic)
           if (topicExist.nonEmpty) topicIdMap.put(topic, topicExist.head.id)
           else
-            databaseSeq += NsDatabase(0, topic, Some("dbus topic"), kafkaIdMap(map._1), Some(""), Some(""), Some(1), Some(""), active = true, currentSec, session.userId, currentSec, session.userId)
+            databaseSeq += NsDatabase(0, topic, Some("dbus topic !!!"), kafkaIdMap(map._1), Some(""), Some(""), Some(1), Some(""), active = true, currentSec, session.userId, currentSec, session.userId)
         })
       })
 
@@ -267,7 +267,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
   def delete(id: Long): (Boolean, String) = {
     try {
-      val ns = NamespaceUtils.generateStandardNs(Await.result(super.findById(id), minTimeOut).get)
+//      val ns = NamespaceUtils.generateStandardNs(Await.result(super.findById(id), minTimeOut).get)
       val relProject = Await.result(relProjectNsDal.findByFilter(_.nsId === id), minTimeOut)
       //      val flows = Await.result(flowDal.findByFilter
       //      (flow => flow.sourceNs === ns || flow.sinkNs === ns || flow.tranConfig.getOrElse("").like(s"%${ns.split("\\.").take(3).mkString(".")}%")), minTimeOut).map(_.id)

@@ -46,6 +46,8 @@ object CommonUtils extends RiderLogger {
 
   val streamSparkConfigPattern = "(.+=.+(,.+.+)*)".r.pattern
 
+  val namePattern = "[a-zA-Z]+[a-zA-z0-9\\_\\-]*[a-zA-z0-9]".r.pattern
+
   def formatResponseTimestamp(time: Option[String]): Option[String] = {
     if (time.getOrElse("") == "") Some("")
     else time

@@ -25,7 +25,7 @@ import edp.wormhole.kafka.WormholeGetOffsetShell
 
 import scala.language.postfixOps
 
-case class GetKafkaLatestOffsetException(message: String) extends Exception(message)
+case class GetLatestOffsetException(ex: Exception) extends Exception
 
 object KafkaUtils extends RiderLogger {
 
@@ -35,7 +35,7 @@ object KafkaUtils extends RiderLogger {
     } catch {
       case ex: Exception =>
         riderLogger.error(s"get kafka latest offset failed", ex)
-        throw ex
+        throw GetLatestOffsetException(ex)
     }
   }
 
@@ -46,7 +46,7 @@ object KafkaUtils extends RiderLogger {
     } catch {
       case ex: Exception =>
         riderLogger.error(s"get kafka latest offset failed", ex)
-        ""
+        throw GetLatestOffsetException(ex)
     }
   }
 
@@ -56,7 +56,7 @@ object KafkaUtils extends RiderLogger {
     } catch {
       case ex: Exception =>
         riderLogger.error(s"get kafka latest offset failed", ex)
-        ""
+        throw GetLatestOffsetException(ex)
     }
   }
 }
