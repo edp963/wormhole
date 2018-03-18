@@ -233,14 +233,14 @@ CREATE TABLE IF NOT EXISTS `directive` (
   `protocol_type` VARCHAR(200) NOT NULL,
   `stream_id` BIGINT NOT NULL,
   `flow_id` BIGINT NOT NULL,
-  `directive` LONGTEXT NOT NULL,
+  `directive` VARCHAR(2000) NOT NULL,
   `zk_path` VARCHAR(200) NOT NULL,
   `create_time` TIMESTAMP NOT NULL,
   `create_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`))
   ENGINE = InnoDB;
 
-alter table `directive` modify column `directive` LONGTEXT;
+alter table `directive` modify column `directive` VARCHAR(2000);
 
 CREATE TABLE IF NOT EXISTS `rel_stream_intopic` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,

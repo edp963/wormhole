@@ -25,6 +25,7 @@ import akka.http.scaladsl.model.StatusCodes.OK
 import akka.http.scaladsl.server.Route
 import edp.rider.common.Action._
 import edp.rider.common.{RiderConfig, RiderLogger, StreamStatus}
+import edp.rider.kafka.GetLatestOffsetException
 import edp.rider.rest.persistence.dal._
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
@@ -496,7 +497,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             complete(OK, getHeader(451, ex.getMessage, session))
         }
       } else {
-        riderLogger.info(s"user ${session.userId} can't stop stream $streamId now")
+        riderLogger.info(s"user ${session.userId} can't start stream $streamId now")
         complete(OK, getHeader(406, s"start is forbidden", session))
       }
     } else {
@@ -624,6 +625,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
         complete(OK, getHeader(403, session))
       }
     } catch {
+      case kafkaEx: GetLatestOffsetException =>
+        complete(OK, getHeader(451,"failed to get kafka latest offset", session))
       case ex: Exception =>
         riderLogger.info(s"user ${session.userId} get stream $streamId topics latest offset failed", ex)
         complete(OK, getHeader(451, session))

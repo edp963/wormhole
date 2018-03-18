@@ -67,7 +67,7 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                   flowStreamOpt match {
                     case Some(flowStream) =>
                       try {
-                        flowDal.updateFlowStatus(flowStream.id, flowStream.status)
+                        flowDal.updateStatusByFeedback(flowStream.id, flowStream.status)
                         val maxWatermark =
                           Await.result(feedbackFlowErrDal.getSinkErrorMaxWatermark(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse("")
                         val minWatermark = Await.result(feedbackFlowErrDal.getSinkErrorMinWatermark(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse("")

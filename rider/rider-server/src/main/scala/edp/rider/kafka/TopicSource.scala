@@ -22,7 +22,6 @@
 package edp.rider.kafka
 
 import akka.actor.ActorSystem
-import akka.kafka.ConsumerMessage.CommittableMessage
 import akka.kafka.scaladsl.Consumer
 import akka.kafka.scaladsl.Consumer.Control
 import akka.kafka.{ConsumerSettings, Subscriptions}
@@ -59,7 +58,7 @@ object TopicSource extends RiderLogger {
   }
 
 
-  def createFromOffset(groupId: String)(implicit system: ActorSystem): Source[CommittableMessage[Array[Byte], String], Control] = {
+  def createFromOffset(groupId: String)(implicit system: ActorSystem): Source[ConsumerRecord[Array[Byte], String], Control] = {
     //    val consumerSettings = ConsumerSettings(system, new ByteArrayDeserializer, new StringDeserializer)
     //      .withBootstrapServers(RiderConfig.consumer.brokers)
     //      .withGroupId(RiderConfig.consumer.group_id)
@@ -85,11 +84,23 @@ object TopicSource extends RiderLogger {
       .withBootstrapServers(RiderConfig.consumer.brokers)
       .withGroupId(RiderConfig.consumer.group_id)
     val topicMap: mutable.Map[TopicPartition, Long] = FeedbackOffsetUtil.getTopicMapForDB(0, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions)
-    val earliestMap = KafkaUtils.getKafkaEarliestOffset(RiderConfig.consumer.brokers, RiderConfig.consumer.feedbackTopic)
-      .split(",").map(partition => {
-      val partitionOffset = partition.split(":")
-      (new TopicPartition(RiderConfig.consumer.feedbackTopic, partitionOffset(0).toInt), partitionOffset(1).toLong)
-    }).toMap[TopicPartition, Long]
+    val earliestMap = {
+      try {
+        KafkaUtils.getKafkaEarliestOffset(RiderConfig.consumer.brokers, RiderConfig.consumer.feedbackTopic)
+          .split(",").map(partition => {
+          val partitionOffset = partition.split(":")
+          (new TopicPartition(RiderConfig.consumer.feedbackTopic, partitionOffset(0).toInt), partitionOffset(1).toLong)
+        }).toMap[TopicPartition, Long]
+      } catch {
+        case ex: Exception =>
+          "0:0,1:0,2:0,3:0".split(",").map(partition => {
+            val partitionOffset = partition.split(":")
+            (new TopicPartition(RiderConfig.consumer.feedbackTopic, partitionOffset(0).toInt), partitionOffset(1).toLong)
+          }).toMap[TopicPartition, Long]
+      }
+
+    }
+
 
     topicMap.foreach(partition => {
       if (partition._2 < earliestMap(partition._1))
@@ -105,7 +116,7 @@ object TopicSource extends RiderLogger {
       riderLogger.info(s"topic ${RiderConfig.consumer.feedbackTopic} partition ${part._1.partition()} offset ${part._2}")
     })
 
-    Consumer.committableSource(consumerSettings, Subscriptions.assignmentWithOffset(topicMap.toMap))
+    Consumer.plainSource(consumerSettings, Subscriptions.assignmentWithOffset(topicMap.toMap))
   }
 
 }

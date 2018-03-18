@@ -136,6 +136,8 @@ case class StreamHealth(streamStatus: String,
                         batchDurationSecond: Int,
                         topics: Seq[TopicOffset])
 
+case class StreamInfo(name: String, streamType: String, status: String)
+
 class StreamTable(_tableTag: Tag) extends BaseTable[Stream](_tableTag, "stream") {
   def * = (id, name, desc, projectId, instanceId, streamType, sparkConfig, startConfig, launchConfig, sparkAppid, logPath, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <> (Stream.tupled, Stream.unapply)
 

@@ -88,20 +88,21 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
               riderLogger.error(s"FeedbackDirective inserted ${tuple.toString} failed", e)
             case Success(t) => riderLogger.debug("FeedbackDirective inserted success.")
           }
-          Await.result(modules.directiveDal.findById(directiveIdValue.toString.toLong), minTimeOut) match {
+
+            modules.directiveDal.getDetail(directiveIdValue.toString.toLong) match {
             case Some(records) =>
               val pType: UmsProtocolType.Value = UmsProtocolType.umsProtocolType(records.protocolType.toString)
               pType match {
                 case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_START =>
                   if (statusValue.toString == UmsFeedbackStatus.SUCCESS.toString) {
-                    modules.flowDal.updateFlowStatus(records.flowId, RUNNING.toString)
+                    modules.flowDal.updateStatusByFeedback(records.flowId, RUNNING.toString)
                   } else
-                    modules.flowDal.updateFlowStatus(records.flowId, FAILED.toString)
+                    modules.flowDal.updateStatusByFeedback(records.flowId, FAILED.toString)
                 case UmsProtocolType.DIRECTIVE_FLOW_STOP =>
                   if (statusValue.toString == UmsFeedbackStatus.SUCCESS.toString)
-                    modules.flowDal.updateFlowStatus(records.flowId, STOPPED.toString)
+                    modules.flowDal.updateStatusByFeedback(records.flowId, STOPPED.toString)
                   else
-                    modules.flowDal.updateFlowStatus(records.flowId, FAILED.toString)
+                    modules.flowDal.updateStatusByFeedback(records.flowId, FAILED.toString)
                 case _ => riderLogger.debug(s"$pType not supported now.")
               }
             case None => riderLogger.warn(s"directive id doesn't exist.")
@@ -134,12 +135,12 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val errorInfoValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info").toString
         if (umsTsValue != null && streamIdValue != null && sinkNamespaceValue != null && errMaxWaterMarkTsValue != null && errMinWaterMarkTsValue != null && errorCountValue != null && errorInfoValue != null) {
           val future = modules.feedbackFlowErrDal.insert(FeedbackFlowErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, srcNamespace, sinkNamespaceValue.toString, errorCountValue.toString.toInt, errMaxWaterMarkTsValue.toString, errMinWaterMarkTsValue.toString, errorInfoValue.toString, curTs))
-          val result = Await.ready(future, minTimeOut).value.get
-          result match {
-            case Failure(e) =>
-              riderLogger.error(s"FeedbackFlowError inserted ${tuple.toString} failed", e)
-            case Success(t) => riderLogger.debug("FeedbackFlowError inserted success.")
-          }
+          val result = Await.result(future, minTimeOut)
+//          result match {
+//            case Failure(e) =>
+//              riderLogger.error(s"FeedbackFlowError inserted ${tuple.toString} failed", e)
+//            case Success(t) => riderLogger.debug("FeedbackFlowError inserted success.")
+//          }
         } else {
           riderLogger.error(s"FeedbackFlowError can't found the value", tuple)
         }
@@ -150,7 +151,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
     }
   }
 
-  def doFeedbackStreamBatchError(message: Ums) = {
+  def doFeedbackStreamBatchError(message: Ums): Unit = {
     val protocolType = message.protocol.`type`.toString
     val fields = message.schema.fields_get
     val curTs = currentMillSec
@@ -206,7 +207,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
           val partitionOffset = partitionOffsetValue.toString
           val partitionNum: Int = FeedbackOffsetUtil.getPartitionNumber(partitionOffset)
           val future = modules.feedbackOffsetDal.insert(FeedbackOffset(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
-            topicNameValue.toString, partitionNum, partitionOffset, curTs))
+            topicNameValue.toString, partitionNum, partitionOffset, currentMicroSec))
           val result = Await.ready(future, Duration.Inf).value.get
           result match {
             case Failure(e) =>
@@ -253,14 +254,14 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
           val riderSinkNamespace = if (sinkNamespaceValue.toString == "") riderNamespace else namespaceRiderString(sinkNamespaceValue.toString)
           val flowName = s"${riderNamespace}_${riderSinkNamespace}"
           val interval_data_process_dataums = (mainDataTsValue.toString.toLong - cdcTsValue.toString.toLong) / 1000
-          val interval_data_process_rdd = (mainDataTsValue.toString.toLong - rddTsValue.toString.toLong) / 1000
-          val interval_data_process_swifts = (mainDataTsValue.toString.toLong - swiftsTsValue.toString.toLong) / 1000
-          val interval_data_process_sink = (mainDataTsValue.toString.toLong - sinkTsValue.toString.toLong) / 1000
-          val interval_data_process_done = (mainDataTsValue.toString.toLong - doneTsValue.toString.toLong) / 1000
+          val interval_data_process_rdd = (rddTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
+          val interval_data_process_swifts = (swiftsTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
+          val interval_data_process_sink = (sinkTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
+          val interval_data_process_done = (doneTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
 
           val interval_data_ums_done = (doneTsValue.toString.toLong - cdcTsValue.toString.toLong) / 1000
           val interval_rdd_done: Long = (doneTsValue.toString.toLong - rddTsValue.toString.toLong) / 1000
-          val interval_data_swifts_sink = (swiftsTsValue.toString.toLong - sinkTsValue.toString.toLong) / 1000
+          val interval_data_swifts_sink = (sinkTsValue.toString.toLong - swiftsTsValue.toString.toLong) / 1000
           val interval_data_sink_done = (doneTsValue.toString.toLong - sinkTsValue.toString.toLong) / 1000
 
           if (interval_rdd_done == 0L) {

@@ -347,7 +347,7 @@
                 "dsType": "elasticsearch",
                 "metrics": [
                   {
-                    "field": "{{streamName}}-intervalDataProcessToDataums",
+                    "field": "intervalDataProcessToDataums",
                     "id": "1",
                     "meta": {},
                     "settings": {},

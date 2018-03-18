@@ -55,10 +55,10 @@ class FeedbackOffsetDal(feedbackOffsetTable: TableQuery[FeedbackOffsetTable]) ex
     super.deleteByFilter(str=> str.feedbackTime <= pastNdays && !str.id.inSet(reservedIds))
   }
 
-  def getFeedbackTopicOffset(topicName: String): String = {
-    val offsetSeq = Await.result(db.run(feedbackOffsetQuery.withFilter(_.topicName === topicName).sortBy(_.feedbackTime.desc).take(1).result).mapTo[Seq[FeedbackOffset]], Duration.Inf)
-    if (offsetSeq.isEmpty) KafkaUtils.getKafkaLatestOffset(RiderConfig.consumer.brokers, topicName)
-    else offsetSeq.head.partitionOffsets
-  }
+//  def getFeedbackTopicOffset(topicName: String): String = {
+//    val offsetSeq = Await.result(db.run(feedbackOffsetQuery.withFilter(_.topicName === topicName).sortBy(_.feedbackTime.desc).take(1).result).mapTo[Seq[FeedbackOffset]], Duration.Inf)
+//    if (offsetSeq.isEmpty) KafkaUtils.getKafkaLatestOffset(RiderConfig.consumer.brokers, topicName)
+//    else offsetSeq.head.partitionOffsets
+//  }
 
 }
