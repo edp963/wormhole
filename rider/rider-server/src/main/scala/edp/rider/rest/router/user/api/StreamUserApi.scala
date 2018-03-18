@@ -497,7 +497,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             complete(OK, getHeader(451, ex.getMessage, session))
         }
       } else {
-        riderLogger.info(s"user ${session.userId} can't stop stream $streamId now")
+        riderLogger.info(s"user ${session.userId} can't start stream $streamId now")
         complete(OK, getHeader(406, s"start is forbidden", session))
       }
     } else {

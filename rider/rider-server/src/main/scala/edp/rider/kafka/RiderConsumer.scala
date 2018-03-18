@@ -21,10 +21,12 @@
 
 package edp.rider.kafka
 
+import akka.Done
 import akka.actor.Actor
+import akka.kafka.ConsumerMessage.CommittableOffsetBatch
 import akka.kafka.scaladsl.Consumer.Control
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Sink
+import akka.stream.scaladsl.{Keep, Sink}
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.kafka.TopicSource._
 import edp.rider.module._
@@ -76,30 +78,23 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
     case Start =>
       riderLogger.info("Initializing RiderConsumer")
 
-      try {
-        createFromOffset(RiderConfig.consumer.group_id)(context.system)
-          .mapAsync(5)(processMessage)
-          .runWith(Sink.ignore)
+      val (control, future) = createFromOffset(RiderConfig.consumer.group_id)(context.system)
+        .mapAsync(5)(processMessage)
+        .toMat(Sink.ignore)(Keep.both)
+        .run()
 
-      } catch {
-        case ex: Exception =>
+      context.become(running(control))
+
+      future.onFailure {
+        case ex =>
           riderLogger.error(s"RiderConsumer stream failed due to error", ex)
           throw ex
           self ! Stop
-
       }
-
-      //      context.become(running(control))
-
-      //      future.onFailure {
-      //        case ex =>
-      //          riderLogger.error(s"RiderConsumer stream failed due to error", ex)
-      //          throw ex
-      //          self ! Stop
-      //      }
 
       riderLogger.info("RiderConsumer started")
   }
+
 
   def running(control: Control): Receive = {
     case Stop =>
@@ -130,7 +125,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
   private def processMessage(msg: Message): Future[Message] = {
     riderLogger.debug(s"Consumed: [topic,partition,offset](${msg.topic()}, ${msg.partition()}), ${msg.offset()}]")
     if (msg.key() != null)
-      riderLogger.debug(s"Consumed key: ${msg.key().toString}")
+      riderLogger.info(s"Consumed key: ${msg.value().toString}")
     val curTs = currentMillSec
     val defaultStreamIdForRider = 0
     CacheMap.setOffsetMap(defaultStreamIdForRider, msg.topic(), msg.partition(), msg.offset())

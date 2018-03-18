@@ -84,11 +84,23 @@ object TopicSource extends RiderLogger {
       .withBootstrapServers(RiderConfig.consumer.brokers)
       .withGroupId(RiderConfig.consumer.group_id)
     val topicMap: mutable.Map[TopicPartition, Long] = FeedbackOffsetUtil.getTopicMapForDB(0, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions)
-    val earliestMap = KafkaUtils.getKafkaEarliestOffset(RiderConfig.consumer.brokers, RiderConfig.consumer.feedbackTopic)
-      .split(",").map(partition => {
-      val partitionOffset = partition.split(":")
-      (new TopicPartition(RiderConfig.consumer.feedbackTopic, partitionOffset(0).toInt), partitionOffset(1).toLong)
-    }).toMap[TopicPartition, Long]
+    val earliestMap = {
+      try {
+        KafkaUtils.getKafkaEarliestOffset(RiderConfig.consumer.brokers, RiderConfig.consumer.feedbackTopic)
+          .split(",").map(partition => {
+          val partitionOffset = partition.split(":")
+          (new TopicPartition(RiderConfig.consumer.feedbackTopic, partitionOffset(0).toInt), partitionOffset(1).toLong)
+        }).toMap[TopicPartition, Long]
+      } catch {
+        case ex: Exception =>
+          "0:0,1:0,2:0,3:0".split(",").map(partition => {
+            val partitionOffset = partition.split(":")
+            (new TopicPartition(RiderConfig.consumer.feedbackTopic, partitionOffset(0).toInt), partitionOffset(1).toLong)
+          }).toMap[TopicPartition, Long]
+      }
+
+    }
+
 
     topicMap.foreach(partition => {
       if (partition._2 < earliestMap(partition._1))
