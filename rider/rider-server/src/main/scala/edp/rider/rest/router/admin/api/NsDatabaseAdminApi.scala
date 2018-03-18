@@ -71,19 +71,24 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
               else {
                 (visible, nsInstanceId, nsDatabaseName) match {
                   case (None, Some(id), Some(name)) =>
-                    onComplete(databaseDal.findByFilter(database => database.nsInstanceId === id && database.nsDatabase === name.toLowerCase).mapTo[Seq[NsDatabase]]) {
-                      case Success(databases) =>
-                        if (databases.isEmpty) {
-                          riderLogger.info(s"user ${session.userId} check instance $id database $name doesn't exist.")
-                          complete(OK, getHeader(200, session))
-                        }
-                        else {
-                          riderLogger.warn(s"user ${session.userId} check instance $id database $name already exists.")
-                          complete(OK, getHeader(409, s"$id instance $name database or topic already exists", session))
-                        }
-                      case Failure(ex) =>
-                        riderLogger.error(s"user ${session.userId} check instance $id database $name does exist failed", ex)
-                        complete(OK, getHeader(451, ex.getMessage, session))
+                    if (namePattern.matcher(name).matches()) {
+                      onComplete(databaseDal.findByFilter(database => database.nsInstanceId === id && database.nsDatabase === name.toLowerCase).mapTo[Seq[NsDatabase]]) {
+                        case Success(databases) =>
+                          if (databases.isEmpty) {
+                            riderLogger.info(s"user ${session.userId} check instance $id database $name doesn't exist.")
+                            complete(OK, getHeader(200, session))
+                          }
+                          else {
+                            riderLogger.warn(s"user ${session.userId} check instance $id database $name already exists.")
+                            complete(OK, getHeader(409, s"$id instance $name database or topic already exists", session))
+                          }
+                        case Failure(ex) =>
+                          riderLogger.error(s"user ${session.userId} check instance $id database $name does exist failed", ex)
+                          complete(OK, getHeader(451, ex.getMessage, session))
+                      }
+                    } else {
+                      riderLogger.info(s"user ${session.userId} check database $name format is wrong.")
+                      complete(OK, getHeader(402, s"$name format is wrong", session))
                     }
                   case (_, None, None) =>
                     onComplete(databaseDal.getDs(visible.getOrElse(true)).mapTo[Seq[DatabaseInstance]]) {
@@ -116,32 +121,37 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                 complete(OK, getHeader(403, session))
               }
               else {
-                if (isKeyEqualValue(simple.config.getOrElse(""))) {
-                  val database = NsDatabase(0, simple.nsDatabase.trim, simple.desc, simple.nsInstanceId, simple.user, simple.pwd, simple.partitions, simple.config, active = true, currentSec, session.userId, currentSec, session.userId)
-                  onComplete(databaseDal.insert(database).mapTo[NsDatabase]) {
-                    case Success(db) =>
-                      riderLogger.info(s"user ${session.userId} insert database success.")
-                      onComplete(databaseDal.getDs(visible = false, Some(db.id)).mapTo[Seq[DatabaseInstance]]) {
-                        case Success(dsSeq) =>
-                          riderLogger.info(s"user ${session.userId} select database where id is ${db.id} success.")
-                          complete(OK, ResponseJson[DatabaseInstance](getHeader(200, session), dsSeq.head))
-                        case Failure(ex) =>
-                          riderLogger.error(s"user ${session.userId} select database where id is ${db.id} failed", ex)
+                if (namePattern.matcher(simple.nsDatabase).matches()) {
+                  if (isKeyEqualValue(simple.config.getOrElse(""))) {
+                    val database = NsDatabase(0, simple.nsDatabase.trim, simple.desc, simple.nsInstanceId, simple.user, simple.pwd, simple.partitions, simple.config, active = true, currentSec, session.userId, currentSec, session.userId)
+                    onComplete(databaseDal.insert(database).mapTo[NsDatabase]) {
+                      case Success(db) =>
+                        riderLogger.info(s"user ${session.userId} insert database success.")
+                        onComplete(databaseDal.getDs(visible = false, Some(db.id)).mapTo[Seq[DatabaseInstance]]) {
+                          case Success(dsSeq) =>
+                            riderLogger.info(s"user ${session.userId} select database where id is ${db.id} success.")
+                            complete(OK, ResponseJson[DatabaseInstance](getHeader(200, session), dsSeq.head))
+                          case Failure(ex) =>
+                            riderLogger.error(s"user ${session.userId} select database where id is ${db.id} failed", ex)
+                            complete(OK, getHeader(451, ex.toString, session))
+                        }
+                      case Failure(ex) =>
+                        if (ex.toString.contains("Duplicate entry")) {
+                          riderLogger.error(s"user ${session.userId} insert database failed", ex)
+                          complete(OK, getHeader(409, s"${simple.nsInstanceId} instance ${simple.nsDatabase} database or topic already exists", session))
+                        }
+                        else {
+                          riderLogger.error(s"user ${session.userId} insert database failed", ex)
                           complete(OK, getHeader(451, ex.toString, session))
-                      }
-                    case Failure(ex) =>
-                      if (ex.toString.contains("Duplicate entry")) {
-                        riderLogger.error(s"user ${session.userId} insert database failed", ex)
-                        complete(OK, getHeader(409, s"${simple.nsInstanceId} instance ${simple.nsDatabase} database or topic already exists", session))
-                      }
-                      else {
-                        riderLogger.error(s"user ${session.userId} insert database failed", ex)
-                        complete(OK, getHeader(451, ex.toString, session))
-                      }
+                        }
+                    }
+                  } else {
+                    riderLogger.error(s"user ${session.userId} insert database failed caused by config ${simple.config.get} is not json type")
+                    complete(OK, getHeader(400, s"${simple.config.get} is not key=value type", session))
                   }
                 } else {
-                  riderLogger.error(s"user ${session.userId} insert database failed caused by config ${simple.config.get} is not json type")
-                  complete(OK, getHeader(400, s"${simple.config.get} is not key=value type", session))
+                  riderLogger.info(s"user ${session.userId} check database ${simple.nsDatabase} format is wrong.")
+                  complete(OK, getHeader(402, s"${simple.nsDatabase} format is wrong", session))
                 }
               }
           }
@@ -162,26 +172,31 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                 complete(OK, getHeader(403, session))
               }
               else {
-                if (isKeyEqualValue(database.config.getOrElse(""))) {
-                  val db = NsDatabase(database.id, database.nsDatabase.trim, database.desc, database.nsInstanceId, database.user, database.pwd, database.partitions, database.config, database.active, database.createTime, database.createBy, currentSec, session.userId)
-                  onComplete(databaseDal.update(db)) {
-                    case Success(result) =>
-                      riderLogger.info(s"user ${session.userId} update database success.")
-                      onComplete(databaseDal.getDs(visible = false, Some(db.id)).mapTo[Seq[DatabaseInstance]]) {
-                        case Success(dsSeq) =>
-                          riderLogger.info(s"user ${session.userId} select database where id is ${db.id} success.")
-                          complete(OK, ResponseJson[DatabaseInstance](getHeader(200, session), dsSeq.head))
-                        case Failure(ex) =>
-                          riderLogger.error(s"user ${session.userId} select database where id is ${db.id} failed", ex)
-                          complete(OK, getHeader(451, ex.getMessage, session))
-                      }
-                    case Failure(ex) =>
-                      riderLogger.error(s"user ${session.userId} update database failed", ex)
-                      complete(OK, getHeader(451, ex.getMessage, session))
+                if (namePattern.matcher(database.nsDatabase).matches()) {
+                  if (isKeyEqualValue(database.config.getOrElse(""))) {
+                    val db = NsDatabase(database.id, database.nsDatabase.trim, database.desc, database.nsInstanceId, database.user, database.pwd, database.partitions, database.config, database.active, database.createTime, database.createBy, currentSec, session.userId)
+                    onComplete(databaseDal.update(db)) {
+                      case Success(result) =>
+                        riderLogger.info(s"user ${session.userId} update database success.")
+                        onComplete(databaseDal.getDs(visible = false, Some(db.id)).mapTo[Seq[DatabaseInstance]]) {
+                          case Success(dsSeq) =>
+                            riderLogger.info(s"user ${session.userId} select database where id is ${db.id} success.")
+                            complete(OK, ResponseJson[DatabaseInstance](getHeader(200, session), dsSeq.head))
+                          case Failure(ex) =>
+                            riderLogger.error(s"user ${session.userId} select database where id is ${db.id} failed", ex)
+                            complete(OK, getHeader(451, ex.getMessage, session))
+                        }
+                      case Failure(ex) =>
+                        riderLogger.error(s"user ${session.userId} update database failed", ex)
+                        complete(OK, getHeader(451, ex.getMessage, session))
+                    }
+                  } else {
+                    riderLogger.error(s"user ${session.userId} update database failed caused by config ${database.config.get} is not json type")
+                    complete(OK, getHeader(400, s"${database.config.get} is not key=value type", session))
                   }
                 } else {
-                  riderLogger.error(s"user ${session.userId} update database failed caused by config ${database.config.get} is not json type")
-                  complete(OK, getHeader(400, s"${database.config.get} is not key=value type", session))
+                  riderLogger.info(s"user ${session.userId} check database ${database.nsDatabase} format is wrong.")
+                  complete(OK, getHeader(402, s"${database.nsDatabase} format is wrong", session))
                 }
               }
           }
