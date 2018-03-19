@@ -229,17 +229,25 @@ object DataFrameTransform extends EdpLogging {
   def getDataMap(rs: ResultSet, dbOutPutSchemaMap: Map[String, (String, Int)], lookupTableFieldsAlias: Array[String]): mutable.HashMap[String, ListBuffer[Array[String]]] = {
     val dataTupleMap = mutable.HashMap.empty[String, mutable.ListBuffer[Array[String]]]
     while (rs.next) {
-      val joinFieldsAsKey = lookupTableFieldsAlias.map(name => rs.getObject(name).toString).mkString("_")
-      if (!dataTupleMap.contains(joinFieldsAsKey)) {
-        dataTupleMap(joinFieldsAsKey) = ListBuffer.empty[Array[String]]
-      }
+      val tmpMap = mutable.HashMap.empty[String,String]
+
       val arrayBuf: Array[String] = Array.fill(dbOutPutSchemaMap.size) {
         ""
       }
       dbOutPutSchemaMap.foreach { case (name, (_, index)) =>
         val value = rs.getObject(name)
-        arrayBuf(index) = if (value != null) rs.getObject(name).toString else null
+        arrayBuf(index) = if (value != null) value.toString else null
+        tmpMap(name)=arrayBuf(index)
       }
+
+      val joinFieldsAsKey = lookupTableFieldsAlias.map(name => {
+        if (tmpMap.contains(name)) tmpMap(name) else rs.getObject(name).toString
+      }).mkString("_")
+
+      if (!dataTupleMap.contains(joinFieldsAsKey)) {
+        dataTupleMap(joinFieldsAsKey) = ListBuffer.empty[Array[String]]
+      }
+
       dataTupleMap(joinFieldsAsKey) += arrayBuf
     }
     dataTupleMap
