@@ -160,7 +160,7 @@ class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal)
               complete(OK, getHeader(403, session))
             }
             else {
-              val stream = streamDal.getStreamDetail(Some(id), Some(streamId)).head
+              val stream = streamDal.getStreamDetail(Some(id), Some(Seq(streamId))).head
               riderLogger.info(s"user ${session.userId} select streams where project id is $id success.")
               complete(OK, ResponseJson[StreamDetail](getHeader(200, session), stream))
             }

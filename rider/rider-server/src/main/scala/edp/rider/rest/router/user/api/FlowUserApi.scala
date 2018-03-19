@@ -50,7 +50,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
             }
             else {
               if (session.projectIdList.contains(projectId)) {
-                streamDal.refreshStreamStatus(Some(projectId), Some(streamId))
+                streamDal.refreshStreamStatus(Some(projectId), Some(Seq(streamId)))
                 riderLogger.info(s"user ${session.userId} refresh streams.")
                 onComplete(flowDal.getById(projectId, flowId).mapTo[Option[FlowStreamInfo]]) {
                   case Success(flowStreamOpt) =>
@@ -200,7 +200,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                 if (session.roleType != "user")
                   complete(OK, getHeader(403, session))
                 else {
-                  streamDal.refreshStreamStatus(Some(projectId), Some(streamId))
+                  streamDal.refreshStreamStatus(Some(projectId), Some(Seq(streamId)))
                   riderLogger.info(s"user ${session.userId} refresh streams.")
                   if (session.projectIdList.contains(projectId)) {
                     val checkFormat = FlowUtils.checkConfigFormat(flow.sinkConfig.getOrElse(""), flow.tranConfig.getOrElse(""))
