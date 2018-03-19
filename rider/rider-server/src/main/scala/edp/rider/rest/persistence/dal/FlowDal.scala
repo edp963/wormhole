@@ -84,7 +84,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       val flowStreamOpt = Await.result(defaultGetAll(_.id === flowId), minTimeOut).headOption
       flowStreamOpt match {
         case Some(flowStream) =>
-          val stream = streamDal.getStreamDetail(Some(projectId), Some(flowStream.streamId)).head
+          val stream = streamDal.getStreamDetail(Some(projectId), Some(Seq(flowStream.streamId))).head
           val map = getDisableActions(Seq(flowStream))
           Future(Some(FlowStreamInfo(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol,
             flowStream.sinkConfig, flowStream.tranConfig, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
@@ -104,7 +104,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       val flowStreamOpt = Await.result(defaultGetAll(_.id === flowId), minTimeOut).headOption
       flowStreamOpt match {
         case Some(flowStream) =>
-          val stream = streamDal.getStreamDetail(Some(projectId), Some(flowStream.streamId)).head
+          val stream = streamDal.getStreamDetail(Some(projectId), Some(Seq(flowStream.streamId))).head
           Future(Some(FlowStreamAdmin(flowStream.id, flowStream.projectId, stream.projectName, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol,
             flowStream.sinkConfig, flowStream.tranConfig, flowStream.startedTime, flowStream.stoppedTime, flowStream.status, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
             flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, flowStream.disableActions, flowStream.msg)))
@@ -198,10 +198,12 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
         updateTimeAndUser(flowIdSeq, userId)
         val flowStreamSeq = defaultGetAll(_.id inSet flowIdSeq)
         flowStreamSeq.map[Seq[FlowStream]] {
-          flowStreamSeq =>
+          flowStreamSeq => {
+            streamDal.refreshStreamStatus(None, Some(flowStreamSeq.map(_.streamId).distinct))
             flowStreamSeq.map {
               flowStream => newFlowStream(flowStream, flowAction.action)
             }
+          }
         }
       }
     } catch {

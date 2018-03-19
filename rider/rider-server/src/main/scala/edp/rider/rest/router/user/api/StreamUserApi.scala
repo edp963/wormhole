@@ -83,7 +83,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           onComplete(streamDal.insert(insertStream).mapTo[Stream]) {
             case Success(stream) =>
               CacheMap.streamCacheMapRefresh
-              val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(stream.id))
+              val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(Seq(stream.id)))
               complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail.head))
             case Failure(ex) =>
               riderLogger.error(s"user ${
@@ -186,7 +186,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             }
             else {
               if (session.projectIdList.contains(projectId)) {
-                val stream = streamDal.getStreamDetail(Some(projectId), Some(streamId)).head
+                val stream = streamDal.getStreamDetail(Some(projectId), Some(Seq(streamId))).head
                 riderLogger.info(s"user ${session.userId} select streams where project id is $projectId success.")
                 complete(OK, ResponseJson[StreamDetail](getHeader(200, session), stream))
               } else {
@@ -224,7 +224,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
       if (formatCheck._1) {
         onComplete(streamDal.updateByPutRequest(putStream, session.userId).mapTo[Int]) {
           case Success(_) =>
-            val stream = streamDal.getBriefDetail(Some(projectId), Some(putStream.id)).head
+            val stream = streamDal.getBriefDetail(Some(projectId), Some(Seq(putStream.id))).head
             riderLogger.info(s"user ${session.userId} update stream ${putStream.id} success.")
             complete(OK, ResponseJson[StreamDetail](getHeader(200, session), stream))
           case Failure(ex) =>
@@ -316,7 +316,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                   } stop stream $streamId success.")
                   onComplete(streamDal.updateByStatus(streamId, status, session.userId).mapTo[Int]) {
                     case Success(_) =>
-                      val streamDetail = streamDal.getBriefDetail(Some(id), Some(streamId)).head
+                      val streamDetail = streamDal.getBriefDetail(Some(id), Some(Seq(streamId))).head
                       complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail))
                     case Failure(ex) =>
                       riderLogger.error(s"user ${session.userId} stop stream where project id is $id failed", ex)
@@ -371,7 +371,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
       if (checkAction(RENEW.toString, stream.status)) {
         renewStreamDirective(streamId, streamDirectiveOpt, session.userId)
         riderLogger.info(s"user ${session.userId} renew stream $streamId success")
-        val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(streamId)).head
+        val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(Seq(streamId))).head
         complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail))
       } else {
         riderLogger.info(s"user ${session.userId} can't stop stream $streamId now")
@@ -463,7 +463,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
 
   private def startResponse(projectId: Long, streamId: Long, streamDirectiveOpt: Option[StreamDirective], session: SessionClass): Route = {
     if (session.projectIdList.contains(projectId)) {
-      val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(streamId)).head
+      val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(Seq(streamId))).head
       val stream = streamDetail.stream
       if (checkAction(START.toString, stream.status)) {
         try {
@@ -484,7 +484,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             riderLogger.info(s"user ${session.userId} start stream $streamId success")
             onComplete(streamDal.updateByStatus(streamId, StreamStatus.STARTING.toString, session.userId).mapTo[Int]) {
               case Success(_) =>
-                val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(streamId)).head
+                val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(Seq(streamId))).head
                 complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail))
               case Failure(ex) =>
                 riderLogger.error(s"user ${session.userId} start stream where project id is $projectId failed", ex)
@@ -519,7 +519,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             }
             if (session.projectIdList.contains(id)) {
               try {
-                val streamDetailOpt = streamDal.getBriefDetail(Some(id), Some(streamId)).headOption
+                val streamDetailOpt = streamDal.getBriefDetail(Some(id), Some(Seq(streamId))).headOption
                 streamDetailOpt match {
                   case Some(streamDetail) =>
                     if (checkAction(DELETE.toString, streamDetail.stream.status)) {
@@ -597,7 +597,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
   private def getLatestOffsetResponse(projectId: Long, streamId: Long, session: SessionClass): Route = {
     try {
       if (session.projectIdList.contains(projectId)) {
-        val streamDetail = streamDal.getStreamDetail(Some(projectId), Some(streamId)).head
+        val streamDetail = streamDal.getStreamDetail(Some(projectId), Some(Seq(streamId))).head
         if (streamDetail.topicInfo.nonEmpty) {
           val consumedOffsets = streamDetail.topicInfo.map(topic => ConsumedLatestOffset(topic.id, topic.name, topic.rate, topic.partitionOffsets))
           val topicSeq = inTopicDal.getStreamTopic(Seq(streamId))
