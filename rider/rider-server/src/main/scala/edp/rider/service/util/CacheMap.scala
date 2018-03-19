@@ -126,7 +126,7 @@ object CacheMap extends RiderLogger {
     try {
       val pid = singleMap.getProjectId(streamId)
       if (pid == 0) {
-        streamCacheMapRefresh
+//        streamCacheMapRefresh
         singleMap.getProjectId(streamId)
       } else pid
     } catch {
@@ -140,7 +140,7 @@ object CacheMap extends RiderLogger {
     try {
       val streamName = singleMap.getStreamName(streamId)
       if (streamName == "default") {
-        streamCacheMapRefresh
+//        streamCacheMapRefresh
         singleMap.getStreamName(streamId)
       } else streamName
     } catch {
@@ -153,7 +153,7 @@ object CacheMap extends RiderLogger {
     try {
       val pid = singleMap.getFlowId(flowName)
       if (pid == 0) {
-        flowCacheMapRefresh
+//        flowCacheMapRefresh
         singleMap.getFlowId(flowName)
       } else pid
     } catch {
