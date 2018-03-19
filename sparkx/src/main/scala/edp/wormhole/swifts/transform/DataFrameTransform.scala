@@ -27,10 +27,11 @@ import edp.wormhole.swifts.transform.SqlBinding.{getCassandraSql, getMysqlSql, g
 import edp.wormhole.common.{ConnectionConfig, WormholeUtils}
 import edp.wormhole.common.SparkSchemaUtils._
 import edp.wormhole.common.db.DbConnection
+import edp.wormhole.common.util.CommonUtils
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.swifts.SwiftsSql
 import edp.wormhole.swifts.parse.SqlOptType
-import edp.wormhole.ums.{UmsDataSystem, UmsSysField}
+import edp.wormhole.ums.{UmsDataSystem, UmsFieldType, UmsSysField}
 import edp.wormhole.ums.UmsFieldType._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
@@ -234,9 +235,12 @@ object DataFrameTransform extends EdpLogging {
       val arrayBuf: Array[String] = Array.fill(dbOutPutSchemaMap.size) {
         ""
       }
-      dbOutPutSchemaMap.foreach { case (name, (_, index)) =>
+      dbOutPutSchemaMap.foreach { case (name, (dataType, index)) =>
         val value = rs.getObject(name)
-        arrayBuf(index) = if (value != null) value.toString else null
+        arrayBuf(index) = if (value != null) {
+          if(dataType==UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
+          else value.toString
+        } else null
         tmpMap(name)=arrayBuf(index)
       }
 
