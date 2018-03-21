@@ -184,7 +184,7 @@ object RiderConfig {
   lazy val wormholeUser = config.getString("spark.wormholeServer.user")
   lazy val sshPort = config.getInt("spark.wormholeServer.ssh.port")
   lazy val rm1Url = config.getString("spark.yarn.rm1.http.url")
-  lazy val rm2Url = getStringConfig("spark.yarn.rm2.http.url", "")
+  lazy val rm2Url = getStringConfig("spark.yarn.rm2.http.url", rm1Url)
   lazy val kafkaSessionTimeOut = getIntConfig("spark.kafka.session.timeout", 30000)
   lazy val alert = getBooleanConfig("spark.wormhole.alert.flag", false)
   lazy val metricsConfPath = getStringConfig("spark.wormhole.metric.conf.path", s"${RiderConfig.riderRootPath}/conf/metrics.properties")
