@@ -300,11 +300,6 @@ export class Flow extends React.Component {
 
   onSingleDeleteFlow = (record, action) => (e) => this.singleOpreateFlow(record, action)
 
-  onShowBackfill =(record) => (e) => {
-    this.showTimeModal()
-    this.setState({ flowIdTemp: record.id })
-  }
-
   onCopyFlow = (record) => (e) => this.props.onShowCopyFlow(record)
 
   handleFlowChange = (pagination, filters, sorter) => {
@@ -378,14 +373,6 @@ export class Flow extends React.Component {
           }
         }).filter(record => !!record)
       })
-    })
-  }
-
-  showModal = (id) => () => {
-    this.setState({
-      modalVisible: true,
-      flowDetail: null,
-      flowId: id
     })
   }
 
@@ -826,6 +813,7 @@ export class Flow extends React.Component {
           const copyFormat = <FormattedMessage {...messages.flowTableCopy} />
           const deleteFormat = <FormattedMessage {...messages.flowTableDelete} />
           const sureDeleteFormat = <FormattedMessage {...messages.flowSureDelete} />
+          const sureRenewFormat = <FormattedMessage {...messages.flowSureRenew} />
 
           const strEdit = record.disableActions.includes('modify')
             ? (
@@ -878,17 +866,15 @@ export class Flow extends React.Component {
               </Tooltip>
             )
             : (
-              <Tooltip title={renewFormat}>
-                <Button icon="check" shape="circle" type="ghost" onClick={this.updateFlow(record, 'renew')}></Button>
-              </Tooltip>
+              <Popconfirm placement="bottom" title={sureRenewFormat} okText="Yes" cancelText="No" onConfirm={this.updateFlow(record, 'renew')}>
+                <Tooltip title={renewFormat}>
+                  <Button icon="check" shape="circle" type="ghost"></Button>
+                </Tooltip>
+              </Popconfirm>
             )
 
           FlowActionSelect = (
             <span>
-              {/* <Tooltip title="数据质量">
-                <Button icon="file-excel" shape="circle" type="ghost" onClick={this.showModal(record.id)}></Button>
-              </Tooltip> */}
-
               {strEdit}
               <Tooltip title={copyFormat}>
                 <Button icon="copy" shape="circle" type="ghost" onClick={this.onCopyFlow(record)}></Button>
@@ -896,11 +882,6 @@ export class Flow extends React.Component {
               {strStart}
               {strStop}
               {strRenew}
-
-              {/* <Tooltip title="backfill" onClick={this.onShowBackfill(record)}>
-               <Button icon="rollback" shape="circle" type="ghost" ></Button>
-               </Tooltip> */}
-
               <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.onSingleDeleteFlow(record, 'delete')}>
                 <Tooltip title={deleteFormat}>
                   <Button icon="delete" shape="circle" type="ghost"></Button>
