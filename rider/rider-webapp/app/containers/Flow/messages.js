@@ -29,6 +29,7 @@ export default defineMessages({
   flowTableModify: { id: 'rider.app.table.modify.action' },
   flowTableDelete: { id: 'rider.app.table.delete.action' },
   flowSureDelete: { id: 'rider.app.table.sure.delete' },
+  flowSureRenew: { id: 'rider.app.table.sure.renew' },
   flowTableStart: { id: 'rider.app.table.start.action' },
   flowSureStart: { id: 'rider.app.table.sure.start' },
   flowTableStop: { id: 'rider.app.table.stop.action' },
