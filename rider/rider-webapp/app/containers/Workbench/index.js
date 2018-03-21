@@ -599,6 +599,24 @@ export class Workbench extends React.Component {
     new Promise((resolve) => {
       resolve(flow)
       this.workbenchFlowForm.resetFields()
+      this.props.onLoadSelectStreamKafkaTopic(this.state.projectId, flow.streamType, (result) => {
+        const resultFinal = result.map(s => {
+          const responseResult = Object.assign(s.stream, {
+            disableActions: s.disableActions,
+            topicInfo: s.topicInfo,
+            instance: s.kafkaInfo.instance,
+            connUrl: s.kafkaInfo.connUrl,
+            projectName: s.projectName,
+            currentUdf: s.currentUdf,
+            usingUdf: s.usingUdf
+          })
+          responseResult.key = responseResult.id
+          return responseResult
+        })
+        this.setState({
+          selectStreamKafkaTopicValue: resultFinal
+        })
+      })
     })
       .then((flow) => {
         this.queryFlowInfo(flow)
