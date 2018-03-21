@@ -22,7 +22,6 @@
 package edp.rider
 
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.settings.ServerSettings
 import akka.stream.ActorMaterializer
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.kafka.ConsumerManager

@@ -58,7 +58,11 @@ object JsonParseHelper {
           val outputJson = new JSONObject()
           for (j <- 0 until schemaSize) {
             val schemaObj = jsonArraySubFields.getJSONObject(j)
-            val value = str2Json(schemaObj.getString("name"), jsonArray.getJSONObject(i).get(schemaObj.getString("name")).toString, schemaObj.getString("type"), if (schemaObj.containsKey("sub_fields")) Some(schemaObj.getJSONArray("sub_fields")) else None)
+            val columnData =
+              if (jsonArray.getJSONObject(i).containsKey(schemaObj.getString("name")))
+                jsonArray.getJSONObject(i).get(schemaObj.getString("name")).toString
+              else null
+            val value = str2Json(schemaObj.getString("name"), columnData, schemaObj.getString("type"), if (schemaObj.containsKey("sub_fields")) Some(schemaObj.getJSONArray("sub_fields")) else None)
             outputJson.put(schemaObj.getString("name"), value)
           }
           result.add(outputJson)
