@@ -52,7 +52,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
 
   override def preStart(): Unit = {
     try {
-      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions)
+      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions, 3)
       riderLogger.info(s"initial create ${RiderConfig.consumer.feedbackTopic} topic success")
     } catch {
       case _: kafka.common.TopicExistsException =>
@@ -61,7 +61,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
         riderLogger.error(s"initial create ${RiderConfig.consumer.feedbackTopic} topic failed", ex)
     }
     try {
-      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic)
+      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic, 3)
       riderLogger.info(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic success")
     } catch {
       case _: kafka.common.TopicExistsException =>
