@@ -135,12 +135,12 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val errorInfoValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info").toString
         if (umsTsValue != null && streamIdValue != null && sinkNamespaceValue != null && errMaxWaterMarkTsValue != null && errMinWaterMarkTsValue != null && errorCountValue != null && errorInfoValue != null) {
           val future = modules.feedbackFlowErrDal.insert(FeedbackFlowErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, srcNamespace, sinkNamespaceValue.toString, errorCountValue.toString.toInt, errMaxWaterMarkTsValue.toString, errMinWaterMarkTsValue.toString, errorInfoValue.toString, curTs))
-          val result = Await.result(future, minTimeOut)
-//          result match {
-//            case Failure(e) =>
-//              riderLogger.error(s"FeedbackFlowError inserted ${tuple.toString} failed", e)
-//            case Success(t) => riderLogger.debug("FeedbackFlowError inserted success.")
-//          }
+          val result = Await.ready(future, minTimeOut).value.get
+          result match {
+            case Failure(e) =>
+              riderLogger.error(s"FeedbackFlowError inserted ${tuple.toString} failed", e)
+            case Success(t) => riderLogger.debug("FeedbackFlowError inserted success.")
+          }
         } else {
           riderLogger.error(s"FeedbackFlowError can't found the value", tuple)
         }
@@ -164,7 +164,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val resultDescValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc")
         if (umsTsValue != null && streamIdValue != null && statusValue != null && resultDescValue != null) {
           val future = modules.feedbackStreamErrDal.insert(FeedbackStreamErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs))
-          val result = Await.ready(future, Duration.Inf).value.get
+          val result = Await.ready(future, minTimeOut).value.get
           result match {
             case Failure(e) =>
               riderLogger.error(s"FeedbackStreamBatchError inserted ${tuple.toString} failed", e)

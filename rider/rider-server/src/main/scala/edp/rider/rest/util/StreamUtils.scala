@@ -76,9 +76,10 @@ object StreamUtils extends RiderLogger {
           if (action == "start") AppInfo("", "starting", currentSec, null)
           else if (action == "stop") AppInfo("", "stopping", startedTime, stoppedTime)
           else {
-            val endAction =
-              if (dbStatus == STARTING.toString) "refresh_log"
-              else "refresh_spark"
+            val endAction = "refresh_spark"
+//              if (dbStatus == STARTING.toString) "refresh_log"
+//              else "refresh_spark"
+
             //            val endAction = "refresh_spark"
             val sparkStatus: AppInfo = endAction match {
               case "refresh_spark" =>

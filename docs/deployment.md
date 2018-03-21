@@ -153,8 +153,8 @@ topic name: wormhole_feedback partitions: 4
 topic name：wormhole_heartbeat partitions: 1
 
 # 创建或修改 topic 命令
-./kafka-topics.sh --zookeeper localhost:2181 --create --topic wormhole_feedback --replication-factor 1 --partitions 4
-./kafka-topics.sh --zookeeper localhost:2181 --create --topic wormhole_heartbeat --replication-factor 1 --partitions 1
+./kafka-topics.sh --zookeeper localhost:2181 --create --topic wormhole_feedback --replication-factor 3 --partitions 4
+./kafka-topics.sh --zookeeper localhost:2181 --create --topic wormhole_heartbeat --replication-factor 3 --partitions 1
 
 ./kafka-topics.sh --zookeeper localhost:2181 --alter --topic wormhole_feedback  --partitions 4
 ./kafka-topics.sh --zookeeper localhost:2181 --alter --topic wormhole_heartbeat  --partitions 1
