@@ -434,6 +434,6 @@ object StreamUtils extends RiderLogger {
 
   def getKafkaByStreamId(id: Long): String = {
     val kakfaId = Await.result(modules.streamDal.findById(id), minTimeOut).get.instanceId
-    Await.result(modules.instanceDal.findById(kakfaId), minTimeOut).get.nsInstance
+    Await.result(modules.instanceDal.findById(kakfaId), minTimeOut).get.connUrl
   }
 }
