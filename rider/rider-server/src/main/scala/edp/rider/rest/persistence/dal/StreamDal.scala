@@ -50,7 +50,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   def refreshStreamStatus(projectIdOpt: Option[Long] = None, streamIdsOpt: Option[Seq[Long]] = None, action: String = REFRESH.toString): Seq[Stream] = {
     val streamSeq = getStreamSeq(projectIdOpt, streamIdsOpt)
     val refreshStreamSeq = getStatus(action, streamSeq)
-    Await.result(super.update(refreshStreamSeq), Inf)
+    Await.result(super.update(refreshStreamSeq), minTimeOut)
     refreshStreamSeq
   }
 
