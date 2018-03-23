@@ -26,6 +26,7 @@ import edp.rider.RiderStarter.modules
 import edp.rider.common.Action._
 import edp.rider.common.StreamStatus._
 import edp.rider.common._
+import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.spark.SparkJobClientLog
@@ -77,8 +78,8 @@ object StreamUtils extends RiderLogger {
           else if (action == "stop") AppInfo("", "stopping", startedTime, stoppedTime)
           else {
             val endAction = "refresh_spark"
-//              if (dbStatus == STARTING.toString) "refresh_log"
-//              else "refresh_spark"
+            //              if (dbStatus == STARTING.toString) "refresh_log"
+            //              else "refresh_spark"
 
             //            val endAction = "refresh_spark"
             val sparkStatus: AppInfo = endAction match {
@@ -177,7 +178,12 @@ object StreamUtils extends RiderLogger {
           val tuple = Seq(streamId, currentMicroSec, topic.name, topic.rate, topic.partitionOffsets).mkString("#")
           directiveSeq += Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, tuple, zkConURL, currentSec, userId)
       })
-      val blankTopic = Directive(0, null, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, "0:0").mkString("#"), zkConURL, currentSec, userId)
+      val blankTopic = if (directiveSeq.isEmpty) {
+        val broker = getKafkaByStreamId(streamId)
+        val blankTopicOffset = KafkaUtils.getKafkaLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic)
+        Directive(0, null, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, blankTopicOffset).mkString("#"), zkConURL, currentSec, userId)
+      } else null
+
       val directives: Seq[Directive] =
         if (directiveSeq.isEmpty) directiveSeq += blankTopic
         else {
@@ -424,5 +430,10 @@ object StreamUtils extends RiderLogger {
   def getProjectIdsByUdf(udf: Long): Seq[Long] = {
     val streamIds = Await.result(modules.relStreamUdfDal.findByFilter(_.udfId === udf), minTimeOut).map(_.streamId).distinct
     Await.result(modules.streamDal.findByFilter(_.id inSet (streamIds)), minTimeOut).map(_.projectId).distinct
+  }
+
+  def getKafkaByStreamId(id: Long): String = {
+    val kakfaId = Await.result(modules.streamDal.findById(id), minTimeOut).get.instanceId
+    Await.result(modules.instanceDal.findById(kakfaId), minTimeOut).get.nsInstance
   }
 }
