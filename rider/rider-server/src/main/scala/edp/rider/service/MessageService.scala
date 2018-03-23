@@ -93,7 +93,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
             case Some(records) =>
               val pType: UmsProtocolType.Value = UmsProtocolType.umsProtocolType(records.protocolType.toString)
               pType match {
-                case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_START =>
+                case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_START | UmsProtocolType.DIRECTIVE_ROUTER_FLOW_START =>
                   if (statusValue.toString == UmsFeedbackStatus.SUCCESS.toString) {
                     modules.flowDal.updateStatusByFeedback(records.flowId, RUNNING.toString)
                   } else

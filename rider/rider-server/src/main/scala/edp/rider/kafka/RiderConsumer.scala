@@ -61,7 +61,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
         riderLogger.error(s"initial create ${RiderConfig.consumer.feedbackTopic} topic failed", ex)
     }
     try {
-      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic, 3)
+      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic, 1, 3)
       riderLogger.info(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic success")
     } catch {
       case _: kafka.common.TopicExistsException =>
