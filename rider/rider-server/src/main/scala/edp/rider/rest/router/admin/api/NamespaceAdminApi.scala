@@ -161,7 +161,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
         simple =>
           authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
             session =>
-              if (session.roleType != "admin") {
+              if (session.roleType == "user") {
                 riderLogger.warn(s"${session.userId} has no permission to access it.")
                 complete(OK, getHeader(403, session))
               }
@@ -426,6 +426,35 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
             }
         }
       }
+  }
+
+  def getSinkNsByUser(route: String): Route = path("namespaces" / "sink") {
+    get {
+      authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+        session =>
+          if (session.roleType != "app") {
+            riderLogger.warn(s"${session.userId} has no permission to access it.")
+            complete(OK, getHeader(403, session))
+          }
+          else {
+            try {
+              onComplete(relProjectNsDal.getSinkNamespaceByUserId(session.userId).mapTo[Seq[NamespaceInfo]]) {
+                case Success(nsSeq) =>
+                  riderLogger.info(s"user ${session.userId} get sink namespaces success.")
+                  complete(OK, ResponseSeqJson[NamespaceInfo](getHeader(200, session), nsSeq))
+                case Failure(ex) =>
+                  riderLogger.info(s"user ${session.userId} get sink namespaces failed", ex)
+                  complete(OK, getHeader(451, session))
+              }
+            } catch {
+              case ex: Exception =>
+                riderLogger.error(s"user ${session.userId} get sink namespaces failed", ex)
+                complete(OK, getHeader(451, session))
+            }
+          }
+      }
+    }
+
   }
 
 
