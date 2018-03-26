@@ -57,9 +57,6 @@ object RouterMainProcess extends EdpLogging {
 
         val routerKeys = ConfMemoryStorage.getRouterKeys
 
-        logInfo("routerMap keys:" + routerKeys.size)
-        routerKeys.foreach(println)
-
         val dataRepartitionRdd: RDD[(String, String)] =
           if (config.rdd_partition_number != -1) streamRdd.map(row => (row.key, row.value)).repartition(config.rdd_partition_number)
           else streamRdd.map(row => (row.key, row.value))
@@ -76,9 +73,7 @@ object RouterMainProcess extends EdpLogging {
           partition.foreach { case (key, value) => {
             val keys = key.split("\\.")
             val (protocolType, namespace) = if (keys.length > 7) (keys(0).toLowerCase, keys.slice(1, 8).mkString(".")) else (keys(0).toLowerCase, "")
-            logInfo("dbus namespace: " + namespace)
-            val matchNamespace = namespace.split("\\.").take(4).mkString(".") + ".*.*.*".toLowerCase()
-            logInfo("wormhole namespace: " + matchNamespace)
+            val matchNamespace = (namespace.split("\\.").take(4).mkString(".") + ".*.*.*").toLowerCase()
             if (ConfMemoryStorage.existNamespace(routerKeys, matchNamespace)) {
               if (routerMap(matchNamespace)._2 == "ums") {
                 logInfo("start process namespace: " + matchNamespace)
@@ -118,7 +113,7 @@ object RouterMainProcess extends EdpLogging {
         ConfMemoryStorage.routerMap.remove(sourceNamespace)
       }
     } else {
-      logAlert("router from " + sourceNamespace + " to " + sinkNamespace + " does not exists")
+      logAlert("router from " + sourceNamespace + " to " + sinkNamespace + " does not exist")
     }
   }
 }

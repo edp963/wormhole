@@ -58,11 +58,11 @@ object EsTools extends EdpLogging {
     indexName + extendContent
   }
 
-  def doHttp(url: String, username: Option[String], passwd: Option[String], requestContent: String): String = {
+  def doHttp(url: String, username: Option[String], passwd: Option[String], requestContent: String, requestTimeOut: Int): String = {
     if (username.nonEmpty && username.get.nonEmpty && passwd.nonEmpty && passwd.get.nonEmpty) {
-      Http(url).auth(username.get, passwd.get).postData(requestContent).asString.body
+      Http(url).timeout(1000, requestTimeOut * 1000).auth(username.get, passwd.get).postData(requestContent).asString.body
     } else {
-      Http(url).postData(requestContent).asString.body
+      Http(url).timeout(1000, requestTimeOut * 1000).postData(requestContent).asString.body
     }
   }
 
@@ -82,10 +82,11 @@ object EsTools extends EdpLogging {
     val length = urlArray.length
     var i = 0
     var availableUrl = ""
+    val requestTimeOut = getRequestTimeout(cc)
     while (i < length) {
       val url = randomUrl(urlArray)
       try {
-        EsTools.doHttp(url, cc.username, cc.password, "")
+        EsTools.doHttp(url, cc.username, cc.password, "", requestTimeOut)
         availableUrl = url
         i = length
       } catch {
@@ -109,8 +110,9 @@ object EsTools extends EdpLogging {
     else connectionConfig.connectionUrl + "/" + sinkIndex + "/" + namespace.table + "/_mget"
 
     logInfo("query url: " + url)
+    val requestTimeOut = getRequestTimeout(connectionConfig)
 
-    val responseContent = EsTools.doHttp(url, connectionConfig.username, connectionConfig.password, requestContent)
+    val responseContent = EsTools.doHttp(url, connectionConfig.username, connectionConfig.password, requestContent, requestTimeOut)
     val responseJson: JValue = json2jValue(responseContent)
     if (!EsTools.checkResponseSuccess(responseJson)) {
       logError("queryVersionByEsid error :" + responseContent)
@@ -137,8 +139,18 @@ object EsTools extends EdpLogging {
     val url = if (connectionConfig.connectionUrl.trim.endsWith("/")) connectionConfig.connectionUrl.trim + sinkIndex + "/" + namespace.table + "/_bulk"
     else connectionConfig.connectionUrl.trim + "/" + sinkIndex + "/" + namespace.table + "/_bulk"
     logInfo("doBatch url:" + url)
-    val responseContent = EsTools.doHttp(url, connectionConfig.username, connectionConfig.password, requestContent)
+    val requestTimeOut = getRequestTimeout(connectionConfig)
+    val responseContent = EsTools.doHttp(url, connectionConfig.username, connectionConfig.password, requestContent, requestTimeOut)
     val responseJson: JValue = json2jValue(responseContent)
     EsTools.checkResponseSuccess(responseJson)
+  }
+
+  def getRequestTimeout(conConfig: ConnectionConfig): Int = {
+    var requestTimeOut = 5
+    if (conConfig.parameters.nonEmpty && conConfig.parameters != "") {
+      val paras = conConfig.parameters.get
+      paras.foreach(kv => if (kv.key.trim == "requestTimeOut") requestTimeOut = kv.value.toInt)
+    }
+    requestTimeOut
   }
 }

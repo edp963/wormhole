@@ -59,7 +59,6 @@ object DirectiveFlowWatch extends EdpLogging {
           case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_FLOW_STOP =>
             BatchflowDirective.flowStartProcess(ums, feedbackTopicName, brokers)
           case UmsProtocolType.DIRECTIVE_ROUTER_FLOW_START | UmsProtocolType.DIRECTIVE_ROUTER_FLOW_STOP =>
-            logInfo("add router flow")
             RouterDirective.flowStartProcess(ums, feedbackTopicName, brokers)
           case UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_STOP =>
             HdfsDirective.flowStartProcess(ums, feedbackTopicName, brokers) //TOdo change name uniform, take directiveflowwatch and directiveoffsetwatch out of core, because hdfs also use them
