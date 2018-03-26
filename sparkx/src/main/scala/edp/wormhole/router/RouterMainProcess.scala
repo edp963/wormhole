@@ -80,7 +80,7 @@ object RouterMainProcess extends EdpLogging {
             val matchNamespace = namespace.split("\\.").take(4).mkString(".") + ".*.*.*".toLowerCase()
             logInfo("wormhole namespace: " + matchNamespace)
             if (ConfMemoryStorage.existNamespace(routerKeys, matchNamespace)) {
-              if (routerMap._2 == "ums") {
+              if (routerMap(matchNamespace)._2 == "ums") {
                 logInfo("start process namespace: " + matchNamespace)
                 val messageIndex = value.lastIndexOf(namespace)
                 val prefix = value.substring(0, messageIndex)
