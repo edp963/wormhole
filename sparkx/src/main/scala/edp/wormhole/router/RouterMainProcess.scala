@@ -63,8 +63,11 @@ object RouterMainProcess extends EdpLogging {
         val dataRepartitionRdd: RDD[(String, String)] =
           if (config.rdd_partition_number != -1) streamRdd.map(row => (row.key, row.value)).repartition(config.rdd_partition_number)
           else streamRdd.map(row => (row.key, row.value))
+
+        val routerMap = ConfMemoryStorage.getRouterMap
+
         dataRepartitionRdd.foreachPartition { partition =>
-          ConfMemoryStorage.getRouterMap.foreach { case (_, (map, _)) =>
+          routerMap.foreach { case (_, (map, _)) =>
             map.foreach { case (_, (kafkaBroker, _)) => {
               WormholeKafkaProducer.init(kafkaBroker, None)
             }
@@ -77,19 +80,19 @@ object RouterMainProcess extends EdpLogging {
             val matchNamespace = namespace.split("\\.").take(4).mkString(".") + ".*.*.*".toLowerCase()
             logInfo("wormhole namespace: " + matchNamespace)
             if (ConfMemoryStorage.existNamespace(routerKeys, matchNamespace)) {
-              if (ConfMemoryStorage.getRouterMap(matchNamespace)._2 == "ums") {
+              if (routerMap(matchNamespace)._2 == "ums") {
                 logInfo("start process namespace: " + matchNamespace)
                 val messageIndex = value.lastIndexOf(namespace)
                 val prefix = value.substring(0, messageIndex)
                 val suffix = value.substring(messageIndex + namespace.length)
-                ConfMemoryStorage.getRouterMap(matchNamespace)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
+                routerMap(matchNamespace)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
                   val messageBuf = new StringBuilder
                   messageBuf ++= prefix ++= sinkNamespace ++= suffix
                   val kafkaMessage = messageBuf.toString
                   WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + sinkNamespace + "..." + UUID.randomUUID().toString), kafkaBroker)
                 }
               } else {
-                ConfMemoryStorage.getRouterMap(namespace.toLowerCase)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
+                routerMap(matchNamespace)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
                   WormholeKafkaProducer.sendMessage(kafkaTopic, value, Some(protocolType + "." + sinkNamespace + "..." + UUID.randomUUID().toString), kafkaBroker)
                 }
               }
