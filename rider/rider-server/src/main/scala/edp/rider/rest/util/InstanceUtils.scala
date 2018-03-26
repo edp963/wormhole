@@ -21,7 +21,12 @@
 
 package edp.rider.rest.util
 
+import java.util.NoSuchElementException
+
+import edp.wormhole.ums.UmsDataSystem
+
 import scala.util.hashing.MurmurHash3._
+
 
 object InstanceUtils {
 
@@ -47,7 +52,17 @@ object InstanceUtils {
 
   val hdfs_path_pattern = "hdfs://[A-Za-z]+[A-Za-z0-9_-]*(:\\d+)*(/[A-Za-z]+[A-Za-z0-9_-]*)*".r.pattern
 
+  def checkSys(nsSys: String): Boolean = {
+    try {
+      UmsDataSystem.dataSystem(nsSys)
+      true
+    } catch {
+      case _: NoSuchElementException => false
+    }
+  }
+
   def checkFormat(nsSys: String, url: String): Boolean = {
+
     nsSys.toLowerCase match {
       case "mysql" | "oracle" | "postgresql" | "vertica" | "phoenix" => one_tcp_url_host_port_pattern.matcher(url).matches() || one_tcp_url_ip_port_pattern.matcher(url).matches()
       case "kafka" | "redis" | "cassandra" => tcp_url_ip_port_pattern.matcher(url).matches() || tcp_url_host_port_pattern.matcher(url).matches()
