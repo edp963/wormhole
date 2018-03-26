@@ -53,9 +53,6 @@ object RouterDirective extends Directive {
       routerMap(sourceNamespace) = (mutable.HashMap(sinkNamespace -> (target_kafka_broker, kafka_topic)), data_type)
     }
     WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
-
-    logInfo("after register map size: " + routerMap.keySet.toSeq.size)
-    routerMap.keySet.toSeq.foreach(println)
   }
 
   override def flowStartProcess(ums: Ums, feedbackTopicName: String, brokers: String): Unit = {
@@ -69,7 +66,6 @@ object RouterDirective extends Directive {
       val kafka_topic = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "kafka_topic").toString
       val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
       val streamId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "stream_id").toString.toLong
-      logInfo("register router directive")
       registerFlowStartDirective(sourceNamespace, sinkNamespace, streamId, target_kafka_broker, kafka_topic, directiveId, feedbackTopicName, brokers, data_type)
     })
   }
