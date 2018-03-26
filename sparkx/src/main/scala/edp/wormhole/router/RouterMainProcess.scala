@@ -92,7 +92,7 @@ object RouterMainProcess extends EdpLogging {
                   WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + sinkNamespace + "..." + UUID.randomUUID().toString), kafkaBroker)
                 }
               } else {
-                routerMap(namespace.toLowerCase)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
+                routerMap(matchNamespace)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
                   WormholeKafkaProducer.sendMessage(kafkaTopic, value, Some(protocolType + "." + sinkNamespace + "..." + UUID.randomUUID().toString), kafkaBroker)
                 }
               }
