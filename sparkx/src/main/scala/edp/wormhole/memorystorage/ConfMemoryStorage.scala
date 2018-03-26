@@ -40,6 +40,9 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 object ConfMemoryStorage extends Serializable with EdpLogging {
 
+  //[(source,sink),(broker, topic)]
+  val routerMap = mutable.HashMap.empty[String, (mutable.HashMap[String, (String, String)], String)]
+
   //[connectionNamespace(Namespace 3 fields),(connectionUrl,username,password,kvconfig)]
   val dataStoreConnectionsMap = mutable.HashMap.empty[String, ConnectionConfig]
 
@@ -344,4 +347,8 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
       eventTsMap((sourceNamespace, sinkNamespace)) = minTs
     }
   }
+
+  def getRouterKeys: Set[String] = routerMap.keySet.toSet
+
+  def getRouterMap = routerMap.toMap
 }
