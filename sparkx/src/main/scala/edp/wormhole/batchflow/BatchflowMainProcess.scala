@@ -376,7 +376,7 @@ object BatchflowMainProcess extends EdpLogging {
           nameIndex.map {
             case (_, index, dataType) =>
               val value: Any = row.get(index)
-              logInfo("-----dataType:"+dataType+",value="+value)
+//              logInfo("-----dataType:"+dataType+",value="+value)
               if (value == null) null else {
                 if (dataType == BinaryType) {
                   CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
