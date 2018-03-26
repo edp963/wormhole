@@ -123,6 +123,18 @@ class RelProjectNsDal(namespaceTable: TableQuery[NamespaceTable],
             ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy))
     }
 
+  def getSinkNamespaceByUserId(id: Long): Future[Seq[NamespaceInfo]] =
+    db.run((namespaceTable.filter(_.createBy === id) join instanceTable on (_.nsInstanceId === _.id))
+      .map {
+        case (ns, instance) => (ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.keys,
+          ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy, instance.nsSys) <> (NamespaceTemp.tupled, NamespaceTemp.unapply)
+      }.result).map[Seq[NamespaceInfo]] {
+      nsSeq =>
+        nsSeq.filter(ns => ns.nsSys == ns.nsInstanceSys)
+          .map(ns => NamespaceInfo(ns.id, ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar, ns.keys,
+            ns.nsDatabaseId, ns.nsInstanceId, ns.active, ns.createTime, ns.createBy, ns.updateTime, ns.updateBy))
+    }
+
   def getTransNamespaceByProjectId(id: Long, nsSys: String) =
     db.run((((namespaceTable.filter(ns => ns.nsSys === nsSys && ns.active === true) join relProjectNsTable.filter(rel => rel.projectId === id && rel.active === true) on (_.id === _.nsId))
       join databaseTable on (_._1.nsDatabaseId === _.id)) join instanceTable on (_._2.nsInstanceId === _.id))

@@ -116,7 +116,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
         simple =>
           authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
             session =>
-              if (session.roleType != "admin") {
+              if (session.roleType == "user") {
                 riderLogger.warn(s"${session.userId} has no permission to access it.")
                 complete(OK, getHeader(403, session))
               }

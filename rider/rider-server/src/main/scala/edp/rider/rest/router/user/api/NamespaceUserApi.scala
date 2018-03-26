@@ -108,7 +108,7 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
           (sourceType, sinkType, transType) =>
             authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
               session =>
-                if (session.roleType != "user") {
+                if (session.roleType == "admin") {
                   riderLogger.warn(s"user ${session.userId} has no permission to access it.")
                   complete(OK, getHeader(403, session))
                 }
