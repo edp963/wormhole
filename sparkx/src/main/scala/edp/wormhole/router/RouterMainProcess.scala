@@ -23,9 +23,10 @@ package edp.wormhole.router
 
 import java.util.UUID
 
-import edp.wormhole.common.{FeedbackPriority, SparkUtils, WormholeConfig, WormholeUtils}
 import edp.wormhole.common.util.DateUtils.currentDateTime
+import edp.wormhole.common.{FeedbackPriority, SparkUtils, WormholeConfig, WormholeUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
+import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.{UmsFeedbackStatus, UmsProtocolUtils}
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -33,12 +34,9 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.kafka010.{CanCommitOffsets, HasOffsetRanges, OffsetRange, WormholeDirectKafkaInputDStream}
 
-import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 object RouterMainProcess extends EdpLogging {
-  //[(source,sink),(broker, topic)]
-  val routerMap = mutable.HashMap.empty[String, (mutable.HashMap[String, (String, String)], String)]
 
   def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession): Unit = {
     stream.foreachRDD((streamRdd: RDD[ConsumerRecord[String, String]]) => {
@@ -56,11 +54,17 @@ object RouterMainProcess extends EdpLogging {
 
         logInfo("start Repartition")
         val mainDataTs = System.currentTimeMillis
+
+        val routerKeys = ConfMemoryStorage.getRouterKeys
+
+        logInfo("routerMap keys:" + routerKeys.size)
+        routerKeys.foreach(println)
+
         val dataRepartitionRdd: RDD[(String, String)] =
           if (config.rdd_partition_number != -1) streamRdd.map(row => (row.key, row.value)).repartition(config.rdd_partition_number)
           else streamRdd.map(row => (row.key, row.value))
         dataRepartitionRdd.foreachPartition { partition =>
-          routerMap.foreach { case (_, (map, _)) =>
+          ConfMemoryStorage.getRouterMap.foreach { case (_, (map, _)) =>
             map.foreach { case (_, (kafkaBroker, _)) => {
               WormholeKafkaProducer.init(kafkaBroker, None)
             }
@@ -69,20 +73,24 @@ object RouterMainProcess extends EdpLogging {
           partition.foreach { case (key, value) => {
             val keys = key.split("\\.")
             val (protocolType, namespace) = if (keys.length > 7) (keys(0).toLowerCase, keys.slice(1, 8).mkString(".")) else (keys(0).toLowerCase, "")
-            if (routerMap.contains(namespace.toLowerCase)) {
-              if (routerMap(namespace.toLowerCase)._2 == "ums") {
+            logInfo("dbus namespace: " + namespace)
+            val matchNamespace = namespace.split("\\.").take(4).mkString(".") + ".*.*.*".toLowerCase()
+            logInfo("wormhole namespace: " + matchNamespace)
+            if (ConfMemoryStorage.existNamespace(routerKeys, matchNamespace)) {
+              if (ConfMemoryStorage.getRouterMap(matchNamespace)._2 == "ums") {
+                logInfo("start process namespace: " + matchNamespace)
                 val messageIndex = value.lastIndexOf(namespace)
                 val prefix = value.substring(0, messageIndex)
                 val suffix = value.substring(messageIndex + namespace.length)
-                routerMap(namespace.toLowerCase)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
+                ConfMemoryStorage.getRouterMap(matchNamespace)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
                   val messageBuf = new StringBuilder
                   messageBuf ++= prefix ++= sinkNamespace ++= suffix
                   val kafkaMessage = messageBuf.toString
-                  WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + sinkNamespace+"..."+UUID.randomUUID().toString), kafkaBroker)
+                  WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + sinkNamespace + "..." + UUID.randomUUID().toString), kafkaBroker)
                 }
               } else {
-                routerMap(namespace.toLowerCase)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
-                  WormholeKafkaProducer.sendMessage(kafkaTopic, value, Some(protocolType + "." + sinkNamespace+"..."+UUID.randomUUID().toString), kafkaBroker)
+                ConfMemoryStorage.getRouterMap(namespace.toLowerCase)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
+                  WormholeKafkaProducer.sendMessage(kafkaTopic, value, Some(protocolType + "." + sinkNamespace + "..." + UUID.randomUUID().toString), kafkaBroker)
                 }
               }
             }
@@ -100,10 +108,11 @@ object RouterMainProcess extends EdpLogging {
   }
 
   def removeFromRouterMap(sourceNamespace: String, sinkNamespace: String): Unit = {
-    if (routerMap.contains(sourceNamespace) && routerMap(sourceNamespace)._1.contains(sinkNamespace)) { //todo concurrent problem？
-      routerMap(sourceNamespace)._1.remove(sinkNamespace)
-      if (routerMap(sourceNamespace)._1.isEmpty) {
-        routerMap.remove(sourceNamespace)
+    if (ConfMemoryStorage.routerMap.contains(sourceNamespace) && ConfMemoryStorage.routerMap(sourceNamespace)._1.contains(sinkNamespace)) {
+      //todo concurrent problem？
+      ConfMemoryStorage.routerMap(sourceNamespace)._1.remove(sinkNamespace)
+      if (ConfMemoryStorage.routerMap(sourceNamespace)._1.isEmpty) {
+        ConfMemoryStorage.routerMap.remove(sourceNamespace)
       }
     } else {
       logAlert("router from " + sourceNamespace + " to " + sinkNamespace + " does not exists")
