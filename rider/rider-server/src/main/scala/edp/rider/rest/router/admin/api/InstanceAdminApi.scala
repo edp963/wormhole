@@ -127,13 +127,13 @@ class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instan
         simple =>
           authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
             session =>
-              if (session.roleType != "admin") {
+              if (session.roleType == "user") {
                 riderLogger.warn(s"user ${session.userId} has no permission to access it.")
                 complete(OK, getHeader(403, session))
               }
               else {
                 if (namePattern.matcher(simple.nsInstance).matches()) {
-                  if (checkFormat(simple.nsSys, simple.connUrl)) {
+                  if (checkSys(simple.nsSys) && checkFormat(simple.nsSys, simple.connUrl)) {
                     val instance = Instance(0, simple.nsInstance.trim, simple.desc, simple.nsSys.trim, simple.connUrl.trim, active = true, currentSec, session.userId, currentSec, session.userId)
                     onComplete(instanceDal.insert(instance).mapTo[Instance]) {
                       case Success(row) =>
