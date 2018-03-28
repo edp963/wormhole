@@ -48,10 +48,12 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig) = {
-    val schemaStringAndColumnNumber = getSchemaStringAndColumnNumber(schemaMap) //return format : ("(_ums_id_,key,value1,value2)", number)  Tuple2[String, Int]
+    val schemaStringAndColumnNumber = getSchemaStringAndColumnNumber(schemaMap)
+    //return format : ("(_ums_id_,key,value1,value2)", number)  Tuple2[String, Int]
     val schemaString: String = schemaStringAndColumnNumber._1
     val columnNumber: Int = schemaStringAndColumnNumber._2
-    val valueStrByPlaceHolder: String = getStrByPlaceHolder(columnNumber) //format (?,?,?,?,?)
+    val valueStrByPlaceHolder: String = getStrByPlaceHolder(columnNumber)
+    //format (?,?,?,?,?)
     val tableKeys = sinkProcessConfig.tableKeyList
     val tableKeysInfo: List[(Int, UmsFieldType)] = tableKeys.map(key => (schemaMap(key)._1, schemaMap(key)._2))
     // val connectionConfig = getDataStoreConnectionsMap(sinkNamespace)
@@ -69,8 +71,10 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     //      }
     //    }
     val sortedAddressList = CassandraConnection.getSortedAddress(connectionConfig.connectionUrl)
-    val keyspace = sinkNamespace.split("\\.")(2) //use sinkNamespace(2)
-    val table = sinkNamespace.split("\\.")(3) // use sinkConfig.sinknamespace
+    val keyspace = sinkNamespace.split("\\.")(2)
+    //use sinkNamespace(2)
+    val table = sinkNamespace.split("\\.")(3)
+    // use sinkConfig.sinknamespace
     val prepareStatement: String = getPrepareStatement(keyspace, table, schemaString, valueStrByPlaceHolder)
     //INSERT INTO keyspace.table (a, b, c, d, e) VALUES(?, ?, ?, ?, ?) USING TIMESTAMP ?;
     val session = CassandraConnection.getSession(sortedAddressList, user, password)
@@ -138,7 +142,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
             try {
               bindWithDifferentTypes(bound, column, fieldType, valueString)
             } catch {
-              case e: Throwable => logError("bindWithDifferentTypes:", e)
+              case e: Throwable => logError(s"bindWithDifferentTypes: $column, $fieldType", e)
             }
           }
         } else {
