@@ -77,11 +77,10 @@ object StreamUtils extends RiderLogger {
           if (action == "start") AppInfo("", "starting", currentSec, null)
           else if (action == "stop") AppInfo("", "stopping", startedTime, stoppedTime)
           else {
-            val endAction = "refresh_spark"
-            //              if (dbStatus == STARTING.toString) "refresh_log"
-            //              else "refresh_spark"
+            val endAction =
+              if (dbStatus == STARTING.toString) "refresh_log"
+              else "refresh_spark"
 
-            //            val endAction = "refresh_spark"
             val sparkStatus: AppInfo = endAction match {
               case "refresh_spark" =>
                 getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, stream.status, startedTime, stoppedTime)
@@ -89,11 +88,11 @@ object StreamUtils extends RiderLogger {
                 val logInfo = SparkJobClientLog.getAppStatusByLog(stream.name, dbStatus)
                 logInfo._2 match {
                   case "running" =>
-                    getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, logInfo._2, startedTime, stoppedTime)
+                    getAppStatusByRest(appInfoList, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
                   case "waiting" =>
-                    val curInfo = getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, logInfo._2, startedTime, stoppedTime)
+                    val curInfo = getAppStatusByRest(appInfoList, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
                     AppInfo(curInfo.appId, curInfo.appState, startedTime, curInfo.finishedTime)
-                  case "starting" => getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, logInfo._2, startedTime, stoppedTime)
+                  case "starting" => getAppStatusByRest(appInfoList, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
                   case "failed" => AppInfo(logInfo._1, "failed", startedTime, currentSec)
                 }
               case _ => AppInfo("", stream.status, startedTime, null)
