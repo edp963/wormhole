@@ -52,7 +52,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
 
   override def preStart(): Unit = {
     try {
-      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions, 3)
+      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions, RiderConfig.consumer.refactor)
       riderLogger.info(s"initial create ${RiderConfig.consumer.feedbackTopic} topic success")
     } catch {
       case _: kafka.common.TopicExistsException =>
@@ -61,7 +61,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
         riderLogger.error(s"initial create ${RiderConfig.consumer.feedbackTopic} topic failed", ex)
     }
     try {
-      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic, 1, 3)
+      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic, 1, RiderConfig.consumer.refactor)
       riderLogger.info(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic success")
     } catch {
       case _: kafka.common.TopicExistsException =>
@@ -78,21 +78,27 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
     case Start =>
       riderLogger.info("Initializing RiderConsumer")
 
-      val (control, future) = createFromOffset(RiderConfig.consumer.group_id)(context.system)
-        .mapAsync(5)(processMessage)
-        .toMat(Sink.ignore)(Keep.both)
-        .run()
+      try {
+        val (control, future) = createFromOffset(RiderConfig.consumer.group_id)(context.system)
+          .mapAsync(5)(processMessage)
+          .toMat(Sink.ignore)(Keep.both)
+          .run()
 
-      context.become(running(control))
+        context.become(running(control))
 
-      future.onFailure {
-        case ex =>
-          riderLogger.error(s"RiderConsumer stream failed due to error", ex)
-          throw ex
+        future.onFailure {
+          case ex =>
+            riderLogger.error(s"RiderConsumer stream failed due to error", ex)
+            throw ex
+            self ! Stop
+        }
+
+        riderLogger.info("RiderConsumer started")
+      } catch {
+        case ex: Exception =>
+          riderLogger.error("RiderConsumer started failed", ex)
           self ! Stop
       }
-
-      riderLogger.info("RiderConsumer started")
   }
 
 
