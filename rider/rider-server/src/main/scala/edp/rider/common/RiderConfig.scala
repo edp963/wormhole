@@ -155,7 +155,7 @@ object RiderConfig {
 
   lazy val maxWakeups = getIntConfig("kafka.consumer.max-wakeups", 10)
 
-  lazy val refactor = getIntConfig("kafka.topic.replica", 3)
+  lazy val refactor = getIntConfig("kafka.topic.refactor", 3)
 
   lazy val consumer = RiderKafka(config.getString("kafka.brokers.url"), config.getString("kafka.zookeeper.url"),
     feedbackTopic,
