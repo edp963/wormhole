@@ -62,7 +62,7 @@ object DataFrameTransform extends EdpLogging {
 
     val joinedRow: RDD[Row] = currentDf.rdd.mapPartitions(partition => {
       val originalData: ListBuffer[Row] = partition.to[ListBuffer]
-      val sourceJoinFieldsContent = originalData.map(row => {
+      val sourceJoinFieldsContent: Set[String] = originalData.map(row => {
         val schema: Array[StructField] = row.schema.fields
         val lookupFieldsLength = lookupTableFields.length
         val fieldContent = sourceTableFields.map(fieldName => {
@@ -73,7 +73,7 @@ object DataFrameTransform extends EdpLogging {
         if (!fieldContent.contains("N/A")) {
           if (lookupFieldsLength == 1) fieldContent else "(" + fieldContent + ")"
         } else null
-      }).flatMap(Option[String]).toList //delete join fields contained null
+      }).flatMap(Option[String]).toSet //delete join fields contained null
 
 
       val executeSql: String =
