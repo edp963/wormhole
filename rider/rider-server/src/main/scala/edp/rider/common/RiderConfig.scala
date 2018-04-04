@@ -69,6 +69,7 @@ case class RiderSpark(user: String,
                       rm1Url: String,
                       rm2Url: String,
                       kafkaSessionTimeOut: Int,
+                      kafkaGroupMaxSessionTimeOut: Int,
                       startShell: String,
                       clientLogRootPath: String,
                       sparkLog4jPath: String,
@@ -190,17 +191,18 @@ object RiderConfig {
   lazy val rm1Url = config.getString("spark.yarn.rm1.http.url")
   lazy val rm2Url = getStringConfig("spark.yarn.rm2.http.url", rm1Url)
   lazy val kafkaSessionTimeOut = getIntConfig("spark.kafka.session.timeout", 30000)
+  lazy val kafkaGroupMaxSessionTimeOut = getIntConfig("spark.kafka.group.max.session.timeout.ms", 60000)
   lazy val alert = getBooleanConfig("spark.wormhole.alert.flag", false)
   lazy val metricsConfPath = getStringConfig("spark.wormhole.metric.conf.path", s"${RiderConfig.riderRootPath}/conf/metrics.properties")
   lazy val alertEmails = getStringConfig("spark.wormhole.alert.emails", "")
-  lazy val kafkaConsumerCache = getBooleanConfig("spark.streaming.kafka.consumer.cache.enabled", false)
+  lazy val kafkaConsumerCache = getBooleanConfig("spark.streaming.kafka.consumer.cache.enabled", true)
   lazy val spark = RiderSpark(wormholeUser,
     sshPort,
     config.getString("spark.spark.home"),
     config.getString("spark.yarn.queue.name"),
     appTags,
     config.getString("spark.wormhole.hdfs.root.path"),
-    rm1Url, rm2Url, kafkaSessionTimeOut,
+    rm1Url, rm2Url, kafkaSessionTimeOut, kafkaGroupMaxSessionTimeOut,
     s"""
        |--class edp.wormhole.WormholeStarter \\
        |--master yarn \\
