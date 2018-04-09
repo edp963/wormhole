@@ -23,7 +23,6 @@ package edp.wormhole.swifts.transform
 
 import java.sql.{Connection, ResultSet, SQLTransientConnectionException}
 
-import edp.wormhole.swifts.transform.SqlBinding.{getCassandraSql, getMysqlSql, getSlidingUnionSql}
 import edp.wormhole.common.{ConnectionConfig, WormholeUtils}
 import edp.wormhole.common.SparkSchemaUtils._
 import edp.wormhole.common.db.DbConnection
@@ -79,14 +78,19 @@ object DataFrameTransform extends EdpLogging {
       val executeSql: String =
         sqlType match {
           case UmsDataSystem.ORACLE =>
-            getSlidingUnionSql(sourceJoinFieldsContent, lookupTableFields, sql) //delete join fields contained null
+            SqlBinding.getSlidingUnionSql(sourceJoinFieldsContent, lookupTableFields, sql) //delete join fields contained null
           case UmsDataSystem.MYSQL =>
-            getMysqlSql(sourceJoinFieldsContent, lookupTableFields, sql) //delete join fields contained null
+            SqlBinding.getMysqlSql(sourceJoinFieldsContent, lookupTableFields, sql) //delete join fields contained null
           case UmsDataSystem.CASSANDRA =>
-            if (sourceJoinFieldsContent.nonEmpty) getCassandraSql(sourceJoinFieldsContent, lookupTableFields, sql) else null
+            if (sourceJoinFieldsContent.nonEmpty){
+              if(lookupTableFields.length==1)
+                SqlBinding.getCassandraSqlSingleField(sourceJoinFieldsContent, lookupTableFields(0), sql)
+              else
+                sql
+            } else null
         }
 
-      var dataMapFromDb: mutable.HashMap[String, ListBuffer[Array[String]]] = null
+      var dataMapFromDb: mutable.HashMap[String, ListBuffer[Array[String]]] = mutable.HashMap.empty[String, ListBuffer[Array[String]]]
 
       var resultSet: ResultSet = null
       var conn: Connection = null
@@ -96,8 +100,17 @@ object DataFrameTransform extends EdpLogging {
         conn = DbConnection.getConnection(connectionConfig)
         val stmt = conn.createStatement
         if (executeSql != null) {
-          resultSet = stmt.executeQuery(executeSql)
-          dataMapFromDb = getDataMap(resultSet, dbOutPutSchemaMap, operate.lookupTableFieldsAlias.get)
+          if(sqlType==UmsDataSystem.CASSANDRA && lookupTableFields.length>1){
+            sourceJoinFieldsContent.foreach(eachJoinFieldsContent=>{
+              val cassandraquery = SqlBinding.getCassandraSqlMutilField(eachJoinFieldsContent,lookupTableFields, executeSql)
+//              logInfo("cassandraquery::"+cassandraquery)
+              resultSet = stmt.executeQuery(cassandraquery)
+              dataMapFromDb ++= getDataMap(resultSet, dbOutPutSchemaMap, operate.lookupTableFieldsAlias.get)
+            })
+          }else{
+            resultSet = stmt.executeQuery(executeSql)
+            dataMapFromDb = getDataMap(resultSet, dbOutPutSchemaMap, operate.lookupTableFieldsAlias.get)
+          }
         }
         if (originalData.nonEmpty) {
           SqlOptType.toSqlOptType(operate.optType) match {
@@ -119,12 +132,12 @@ object DataFrameTransform extends EdpLogging {
           logError("execute select failed", e)
           throw e
       } finally {
-        if (resultSet != null)
-          try {
-            resultSet.close()
-          } catch {
-            case e: Throwable => logError("resultSet.close", e)
-          }
+//        if (resultSet != null)
+//          try {
+//            resultSet.close()
+//          } catch {
+//            case e: Throwable => logError("resultSet.close", e)
+//          }
         if (null != conn)
           try {
             conn.close()
