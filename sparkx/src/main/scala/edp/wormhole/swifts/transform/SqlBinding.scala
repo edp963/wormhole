@@ -38,15 +38,27 @@ object SqlBinding extends EdpLogging {
     }).mkString(" union ")  //TODO if sourceJoinFieldsContent is empty
   }
 
-  def getCassandraSql(sourceJoinFieldsContent: Set[String],lookupTableFields: Array[String], sql: String): String = {
+  def getCassandraSqlSingleField(sourceJoinFieldsContent: Set[String],lookupTableFields: String, sql: String): String = {
 //    val finalSql= if (!sql.toLowerCase().contains("allow filtering")) {
 //       sql + " allow filtering"
 //    }
 //    else sql
 //    sourceJoinFieldsContent.sliding(1000, 1000).map(joinFields => {
-      if (lookupTableFields.length == 1) sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + " in (" + sourceJoinFieldsContent.mkString(",") + ")")
-      else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, "(" + lookupTableFields.mkString(",") + ") in (" + sourceJoinFieldsContent.mkString(",") + ")")
+//      if (lookupTableFields.length == 1)
+        sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields + " in (" + sourceJoinFieldsContent.mkString(",") + ")")
+//      else  sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, "(" + lookupTableFields.mkString(",") + ") in (" + sourceJoinFieldsContent.mkString(",") + ")")
 //    }).mkString(" union ")  //TODO if sourceJoinFieldsContent is empty
+  }
+
+  def getCassandraSqlMutilField(sourceJoinFieldsContent: String,lookupTableFields: Array[String], sql: String): String = {
+    var replaceStr = ""
+    val content = sourceJoinFieldsContent.trim.substring(1,sourceJoinFieldsContent.length-1).split(",")
+    for(i<- lookupTableFields.indices){
+      if(i==0) replaceStr = lookupTableFields(i)+"="+content(i)
+      else replaceStr = replaceStr + " and " + lookupTableFields(i)+"="+content(i)
+    }
+
+    sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, replaceStr)
   }
 
    def getMysqlSql(sourceJoinFieldsContent: Set[String],lookupTableFields: Array[String], sql: String): String = {
