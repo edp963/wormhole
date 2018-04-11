@@ -195,7 +195,7 @@ object RiderConfig {
   lazy val alert = getBooleanConfig("spark.wormhole.alert.flag", false)
   lazy val metricsConfPath = getStringConfig("spark.wormhole.metric.conf.path", s"${RiderConfig.riderRootPath}/conf/metrics.properties")
   lazy val alertEmails = getStringConfig("spark.wormhole.alert.emails", "")
-  lazy val kafkaConsumerCache = getBooleanConfig("spark.streaming.kafka.consumer.cache.enabled", true)
+  lazy val kafkaConsumerCache = getBooleanConfig("spark.streaming.kafka.consumer.cache.enabled", false)
   lazy val spark = RiderSpark(wormholeUser,
     sshPort,
     config.getString("spark.spark.home"),
