@@ -76,14 +76,15 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     val table = sinkNamespace.split("\\.")(3)
     // use sinkConfig.sinknamespace
     val prepareStatement: String = getPrepareStatement(keyspace, table, schemaString, valueStrByPlaceHolder)
+
     //INSERT INTO keyspace.table (a, b, c, d, e) VALUES(?, ?, ?, ?, ?) USING TIMESTAMP ?;
     val session = CassandraConnection.getSession(sortedAddressList, user, password)
     val tupleFilterList: Seq[Seq[String]] = SourceMutationType.sourceMutationType(cassandraSpecialConfig.`mutation_type.get`) match {
       case SourceMutationType.I_U_D =>
         val filterRes = ListBuffer.empty[Row]
         if(tableKeys.length==1){
-          if (cassandraSpecialConfig.`query_size`.nonEmpty) {
-            val slideTuple: Iterator[Seq[Seq[String]]] = tupleList.sliding(cassandraSpecialConfig.`query_size`.get, cassandraSpecialConfig.`query_size`.get)
+          if (cassandraSpecialConfig.`batch_size`.nonEmpty) {
+            val slideTuple: Iterator[Seq[Seq[String]]] = tupleList.sliding(cassandraSpecialConfig.`batch_size`.get, cassandraSpecialConfig.`batch_size`.get)
 
             while (slideTuple.hasNext) {
               val processTuple = slideTuple.next()
@@ -134,8 +135,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
             val tableKeyVal = tableKeys.map(key => tuple(schemaMap(key)._1).toString).mkString("_")
             !dataMap.contains(tableKeyVal) || umsIdValue > dataMap(tableKeyVal)
           })
-        }
-        tupleList
+        } else tupleList
 
       case SourceMutationType.INSERT_ONLY =>
         logInfo("cassandra insert_only:")
@@ -180,11 +180,14 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
       //        bound.setBool(columnNumber - 1, java.lang.Boolean.valueOf("true")) // active--i,u--true
       //      }
       //      bound.setLong(columnNumber, umsIdValue) //set TS
-      if (batch.size() >= cassandraSpecialConfig.`cassandra.batchSize.get`) {
+
+      if (cassandraSpecialConfig.`batch_size`.nonEmpty && batch.size() >= cassandraSpecialConfig.`batch_size`.get) {
         session.execute(batch)
         batch.clear()
       }
       batch.add(bound)
+
+
     }
     session.execute(batch)
 
