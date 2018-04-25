@@ -99,7 +99,8 @@ export class DBForm extends React.Component {
     let uerPwdRequiredClass = ''
     let userPwdHiddensRequired = false
     if (databaseDSValue === 'oracle' || databaseDSValue === 'mysql' ||
-      databaseDSValue === 'postgresql' || databaseDSValue === 'vertica') {
+      databaseDSValue === 'postgresql' || databaseDSValue === 'vertica' ||
+      databaseDSValue === 'mongodb') {
       uerPwdRequiredClass = ''
       userPwdHiddensRequired = false
     } else {
@@ -111,7 +112,7 @@ export class DBForm extends React.Component {
     let userPwdHiddens = false
     if (databaseDSValue === 'oracle' || databaseDSValue === 'mysql' ||
       databaseDSValue === 'postgresql' || databaseDSValue === 'kafka' ||
-      databaseDSValue === 'vertica') {
+      databaseDSValue === 'vertica' || databaseDSValue === 'mongodb') {
       uerPwdClass = 'hide'
       userPwdHiddens = true
     } else {
