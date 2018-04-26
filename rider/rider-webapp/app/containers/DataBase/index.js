@@ -171,8 +171,10 @@ export class DataBase extends React.PureComponent {
           connectionUrl: connUrl
         }
       }, () => {
-        if (nsSys === 'oracle' || nsSys === 'mysql' || nsSys === 'postgresql' ||
-          nsSys === 'mongodb' || nsSys === 'vertica'
+        if (nsSys === 'oracle' ||
+          nsSys === 'mysql' ||
+          nsSys === 'postgresql' ||
+          nsSys === 'vertica'
         ) {
           this.dBForm.setFieldsValue({
             userRequired: user,
@@ -259,8 +261,9 @@ export class DataBase extends React.PureComponent {
                 valuesUser = ''
                 valuesPwd = ''
                 valuesConfig = values.config
-              } else if (values.dataBaseDataSystem === 'mysql' || values.dataBaseDataSystem === 'postgresql' ||
-                values.dataBaseDataSystem === 'mongodb' || values.dataBaseDataSystem === 'vertica') {
+              } else if (values.dataBaseDataSystem === 'mysql' ||
+                values.dataBaseDataSystem === 'postgresql' ||
+                values.dataBaseDataSystem === 'vertica') {
                 valuesUser = values.userRequired
                 valuesPwd = values.passwordRequired
                 valuesConfig = values.config
@@ -328,8 +331,9 @@ export class DataBase extends React.PureComponent {
               if (values.dataBaseDataSystem === 'kafka') {
                 editUser = ''
                 editPwd = ''
-              } else if (values.dataBaseDataSystem === 'mysql' || values.dataBaseDataSystem === 'postgresql' ||
-                values.dataBaseDataSystem === 'mongodb' || values.dataBaseDataSystem === 'vertica') {
+              } else if (values.dataBaseDataSystem === 'mysql' ||
+                values.dataBaseDataSystem === 'postgresql' ||
+                values.dataBaseDataSystem === 'vertica') {
                 editUser = values.userRequired
                 editPwd = values.passwordRequired
               } else {
