@@ -79,19 +79,22 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
       riderLogger.info("Initializing RiderConsumer")
 
       try {
-        val (control, future) = createFromOffset(RiderConfig.consumer.group_id)(context.system)
-          .mapAsync(5)(processMessage)
-          .toMat(Sink.ignore)(Keep.both)
-          .run()
 
-        context.become(running(control))
+        createFromOffset(RiderConfig.consumer.group_id)(context.system).foreach(
+          source => {
+            val (control, future) = source.mapAsync(1)(processMessage)
+              .toMat(Sink.ignore)(Keep.both)
+              .run()
+            context.become(running(control))
 
-        future.onFailure {
-          case ex =>
-            riderLogger.error(s"RiderConsumer stream failed due to error", ex)
-            throw ex
-            self ! Stop
-        }
+            future.onFailure {
+              case ex =>
+                riderLogger.error(s"RiderConsumer stream failed due to error", ex)
+                throw ex
+                self ! Stop
+            }
+          }
+        )
 
         riderLogger.info("RiderConsumer started")
       } catch {

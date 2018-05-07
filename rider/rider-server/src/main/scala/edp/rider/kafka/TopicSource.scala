@@ -31,6 +31,7 @@ import edp.rider.service.util.{CacheMap, FeedbackOffsetUtil}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.common.TopicPartition
 
+import scala.collection.immutable.Iterable
 import scala.collection.mutable
 
 object TopicSource extends RiderLogger {
@@ -58,7 +59,7 @@ object TopicSource extends RiderLogger {
   }
 
 
-  def createFromOffset(groupId: String)(implicit system: ActorSystem): Source[ConsumerRecord[Array[Byte], String], Control] = {
+  def createFromOffset(groupId: String)(implicit system: ActorSystem): Seq[Source[ConsumerRecord[Array[Byte], String], Control]] = {
     //    val consumerSettings = ConsumerSettings(system, new ByteArrayDeserializer, new StringDeserializer)
     //      .withBootstrapServers(RiderConfig.consumer.brokers)
     //      .withGroupId(RiderConfig.consumer.group_id)
@@ -116,7 +117,13 @@ object TopicSource extends RiderLogger {
       riderLogger.info(s"topic ${RiderConfig.consumer.feedbackTopic} partition ${part._1.partition()} offset ${part._2}")
     })
 
-    Consumer.plainSource(consumerSettings, Subscriptions.assignmentWithOffset(topicMap.toMap))
+    topicMap.toMap.map(
+      topic => Consumer.plainSource(consumerSettings, Subscriptions.assignmentWithOffset(topic))
+    ).toSeq
+
+    //    Consumer.plainSource(consumerSettings, Subscriptions.assignmentWithOffset(topicMap.toMap))
+
+    //    Consumer.plainExternalSource[Array[Byte], String](consumer, Subscriptions.assignment(new TopicPartition("topic1", 1)))
   }
 
 }

@@ -32,7 +32,7 @@ import io.swagger.annotations._
 @Path("/app/instances")
 class InstanceAppRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives with JsonSerializer {
 
-  lazy val routes: Route = postInstanceRoute
+  lazy val routes: Route = postInstanceRoute ~ getInstanceByFilterRoute
 
   lazy val basePath = "instances"
 
@@ -52,23 +52,21 @@ class InstanceAppRoutes(modules: ConfigurationModule with PersistenceModule with
   //  def getInstanceByIdRoute: Route = modules.instanceAdminService.getByIdRoute(basePath)
 
 
-  //  @ApiOperation(value = "get all instances", notes = "", nickname = "", httpMethod = "GET")
-  //  @ApiImplicitParams(Array(
-  //    new ApiImplicitParam(name = "visible", value = "true or false", required = false, dataType = "boolean", paramType = "query"),
-  //    new ApiImplicitParam(name = "type", value = "instance type", required = false, dataType = "string", paramType = "query"),
-  //    new ApiImplicitParam(name = "conn_url", value = "instance conn_url", required = false, dataType = "string", paramType = "query"),
-  //    new ApiImplicitParam(name = "nsInstance", value = "nsInstance input", required = false, dataType = "string", paramType = "query")
-  //  ))
-  //  @ApiResponses(Array(
-  //    new ApiResponse(code = 200, message = "OK"),
-  //    new ApiResponse(code = 400, message = "conn_url format is wrong, please alter it as the right format"),
-  //    new ApiResponse(code = 401, message = "authorization error"),
-  //    new ApiResponse(code = 403, message = "user is not admin"),
-  //    new ApiResponse(code = 501, message = "the request url is not supported"),
-  //    new ApiResponse(code = 451, message = "request process failed"),
-  //    new ApiResponse(code = 500, message = "internal server error")
-  //  ))
-  //  def getInstanceByFilterRoute: Route = modules.instanceAdminService.getByFilterRoute(basePath)
+  @ApiOperation(value = "get instance id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "type", value = "instance type", required = true, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "nsInstance", value = "nsInstance input", required = true, dataType = "string", paramType = "query")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not app"),
+    new ApiResponse(code = 404, message = "not found"),
+    new ApiResponse(code = 501, message = "the request url is not supported"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getInstanceByFilterRoute: Route = modules.instanceAdminService.getByFilterRoute(basePath)
 
 
   @ApiOperation(value = "Add new instance to the system", notes = "", nickname = "", httpMethod = "POST")

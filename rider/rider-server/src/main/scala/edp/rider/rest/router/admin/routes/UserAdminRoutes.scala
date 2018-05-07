@@ -68,8 +68,8 @@ class UserAdminRoutes(modules: ConfigurationModule with PersistenceModule with B
   @Path("/users")
   @ApiOperation(value = "get all users", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "visible", value = "true or false", required = false, dataType = "boolean", paramType = "query", allowMultiple = true),
-    new ApiImplicitParam(name = "email", value = "user email", required = false, dataType = "string", paramType = "query", allowMultiple = true)
+    new ApiImplicitParam(name = "visible", value = "true or false", required = false, dataType = "boolean", paramType = "query"),
+    new ApiImplicitParam(name = "email", value = "user email", required = false, dataType = "string", paramType = "query")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),

@@ -51,8 +51,8 @@ class ProjectAdminRoutes(modules: ConfigurationModule with PersistenceModule wit
 
   @ApiOperation(value = "get all projects", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "visible", value = "true or false", required = false, dataType = "boolean", paramType = "query", allowMultiple = true),
-    new ApiImplicitParam(name = "name", value = "project name", required = false, dataType = "string", paramType = "query", allowMultiple = true)
+    new ApiImplicitParam(name = "visible", value = "true or false", required = false, dataType = "boolean", paramType = "query"),
+    new ApiImplicitParam(name = "name", value = "project name", required = false, dataType = "string", paramType = "query")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),
