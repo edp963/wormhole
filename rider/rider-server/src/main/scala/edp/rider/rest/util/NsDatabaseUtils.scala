@@ -23,11 +23,11 @@ package edp.rider.rest.util
 
 import com.alibaba.fastjson.JSON
 import edp.rider.RiderStarter.modules
-import edp.rider.rest.persistence.entities.PushDownConnection
+import edp.rider.rest.persistence.entities.{NsDatabase, PushDownConnection}
 import edp.rider.rest.util.CommonUtils.{isKeyEqualValue, _}
 import edp.rider.rest.util.NamespaceUtils._
 import edp.wormhole.common.KVConfig
-
+import slick.jdbc.MySQLProfile.api._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 
@@ -119,6 +119,12 @@ object NsDatabaseUtils {
     dbSeq.distinct
   }
 
+  def getDb(nsSys: String, nsInstance: String, nsDatabase: String): Option[NsDatabase] = {
+    val instance = Await.result(modules.instanceDal.findByFilter(instance => instance.nsSys === nsSys && instance.nsInstance === nsInstance), minTimeOut).headOption
+    if (instance.nonEmpty)
+      Await.result(modules.databaseDal.findByFilter(db => db.nsInstanceId === instance.get.id && db.nsDatabase === nsDatabase), minTimeOut).headOption
+    else None
+  }
 }
 
 

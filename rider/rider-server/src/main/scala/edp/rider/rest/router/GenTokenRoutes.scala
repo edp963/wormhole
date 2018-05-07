@@ -66,7 +66,7 @@ class GenTokenRoutes(modules: ConfigurationModule with PersistenceModule with Bu
                 },
                 result => {
                   riderLogger.info(s"${login.email} request for token success.")
-                  complete(OK, getHeader(200, result.session))
+                  complete(OK, getHeader(200, result.session, true))
                 }
               )
             case Failure(ex) =>
