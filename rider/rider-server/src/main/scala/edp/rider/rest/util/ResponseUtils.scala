@@ -44,9 +44,9 @@ object ResponseUtils {
     respondWithHeader(RawHeader("token", generateToken(session)))
   }
 
-  def getHeader(code: Int, session: SessionClass): ResponseHeader = {
+  def getHeader(code: Int, session: SessionClass, permanent: Boolean = false): ResponseHeader = {
     if (session != null) {
-      if (session.roleType == "app")
+      if (permanent)
         ResponseHeader(code, msgMap(code), generatePermanentToken(session))
       else ResponseHeader(code, msgMap(code), generateToken(session))
     }

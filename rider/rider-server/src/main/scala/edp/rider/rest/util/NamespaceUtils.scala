@@ -23,7 +23,7 @@ package edp.rider.rest.util
 
 import edp.rider.common.RiderLogger
 import edp.rider.RiderStarter.modules
-import edp.rider.rest.persistence.entities.{Instance, Namespace, NamespaceInfo, NsDatabase}
+import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import slick.jdbc.MySQLProfile.api._
 
@@ -35,6 +35,8 @@ object NamespaceUtils extends RiderLogger {
   def generateStandardNs(ns: NamespaceInfo) = Seq(ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar).mkString(".")
 
   def generateStandardNs(ns: Namespace) = Seq(ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar).mkString(".")
+
+  def generateStandardNs(ns: NamespaceAdmin) = Seq(ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar).mkString(".")
 
   def getConnUrl(instance: Instance, db: NsDatabase, connType: String = "sink") = {
     instance.nsSys match {

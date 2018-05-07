@@ -157,6 +157,8 @@ case class NamespaceAdmin(id: Long,
                           projectName: String,
                           topic: String)
 
+case class NamespaceName(id: Long, namespace: String)
+
 case class NamespaceProjectName(nsId: Long,
                                 name: String)
 

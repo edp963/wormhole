@@ -53,9 +53,9 @@ class NsDatabaseAdminRoutes(modules: ConfigurationModule with PersistenceModule 
 
   @ApiOperation(value = "get all databases", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "visible", value = "true or false", required = false, dataType = "boolean", paramType = "query", allowMultiple = true),
-    new ApiImplicitParam(name = "nsInstanceId", value = "instance id", required = false, dataType = "integer", paramType = "query", allowMultiple = true),
-    new ApiImplicitParam(name = "nsDatabaseName", value = "database name", required = false, dataType = "string", paramType = "query", allowMultiple = true)
+    new ApiImplicitParam(name = "visible", value = "true or false", required = false, dataType = "boolean", paramType = "query"),
+    new ApiImplicitParam(name = "nsInstanceId", value = "instance id", required = false, dataType = "integer", paramType = "query"),
+    new ApiImplicitParam(name = "nsDatabaseName", value = "database name", required = false, dataType = "string", paramType = "query")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),

@@ -42,6 +42,8 @@ case class SimpleInstance(desc: Option[String] = None,
                           nsInstance: String,
                           connUrl: String) extends SimpleBaseEntity
 
+case class InstanceName(id: Long, nsInstance: String)
+
 class InstanceTable(_tableTag: Tag) extends BaseTable[Instance](_tableTag, "instance") {
   def * = (id, nsInstance, desc, nsSys, connUrl, active, createTime, createBy, updateTime, updateBy) <>(Instance.tupled, Instance.unapply)
 
