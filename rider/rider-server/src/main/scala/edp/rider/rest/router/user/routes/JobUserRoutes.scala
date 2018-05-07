@@ -119,9 +119,9 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
   @ApiOperation(value = "check source sink existence from system, refresh, check the name of job", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "sourceNs", value = "source namespace", required = false, dataType = "string", paramType = "query", allowMultiple = true),
-    new ApiImplicitParam(name = "sinkNs", value = "sink namespace", required = false, dataType = "string", paramType = "query", allowMultiple = true),
-    new ApiImplicitParam(name = "jobName", value = "job name", required = false, dataType = "string", paramType = "query", allowMultiple = true)
+    new ApiImplicitParam(name = "sourceNs", value = "source namespace", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "sinkNs", value = "sink namespace", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "jobName", value = "job name", required = false, dataType = "string", paramType = "query")
 
   ))
   @ApiResponses(Array(

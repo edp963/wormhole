@@ -31,7 +31,7 @@ import io.swagger.annotations._
 @Path("/app/databases")
 class NsDatabaseAppRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
-  lazy val routes: Route = postDatabaseRoute
+  lazy val routes: Route = postDatabaseRoute ~ getDatabaseByFilterRoute
 
   lazy val basePath = "databases"
 
@@ -51,21 +51,22 @@ class NsDatabaseAppRoutes(modules: ConfigurationModule with PersistenceModule wi
   //  def getDatabaseByIdRoute: Route = modules.databaseAdminService.getByIdRoute(basePath)
 
 
-  //  @ApiOperation(value = "get all databases", notes = "", nickname = "", httpMethod = "GET")
-  //  @ApiImplicitParams(Array(
-  //    new ApiImplicitParam(name = "visible", value = "true or false", required = false, dataType = "boolean", paramType = "query", allowMultiple = true),
-  //    new ApiImplicitParam(name = "nsInstanceId", value = "instance id", required = false, dataType = "integer", paramType = "query", allowMultiple = true),
-  //    new ApiImplicitParam(name = "nsDatabaseName", value = "database name", required = false, dataType = "string", paramType = "query", allowMultiple = true)
-  //  ))
-  //  @ApiResponses(Array(
-  //    new ApiResponse(code = 200, message = "OK"),
-  //    new ApiResponse(code = 401, message = "authorization error"),
-  //    new ApiResponse(code = 403, message = "user is not admin"),
-  //    new ApiResponse(code = 501, message = "the request url is not supported"),
-  //    new ApiResponse(code = 451, message = "request process failed"),
-  //    new ApiResponse(code = 500, message = "internal server error")
-  //  ))
-  //  def getDatabaseByFilterRoute: Route = modules.databaseAdminService.getByFilterRoute(basePath)
+  @ApiOperation(value = "get database id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "type", value = "system type", required = true, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "nsInstance", value = "instance name", required = true, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "nsDatabaseName", value = "database name", required = true, dataType = "string", paramType = "query")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not app"),
+    new ApiResponse(code = 404, message = "not found"),
+    new ApiResponse(code = 501, message = "the request url is not supported"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getDatabaseByFilterRoute: Route = modules.databaseAdminService.getByFilterRoute(basePath)
 
 
   @ApiOperation(value = "Add new database to the system", notes = "", nickname = "", httpMethod = "POST")

@@ -44,7 +44,7 @@ class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instan
         (visible, nsSys, conn_url, nsInstance) =>
           authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
             session =>
-              if (session.roleType != "admin") {
+              if (session.roleType == "user") {
                 riderLogger.warn(s"user ${session.userId} has no permission to access it.")
                 complete(OK, getHeader(403, session))
               }
@@ -82,15 +82,22 @@ class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instan
                     }
                   case (None, Some(sys), None, Some(nsInstanceInput)) =>
                     if (namePattern.matcher(nsInstanceInput).matches()) {
-                      onComplete(instanceDal.findByFilter(instance => instance.nsInstance === nsInstanceInput && instance.nsSys === sys).mapTo[Seq[Instance]]) {
+                      onComplete(instanceDal.findByFilter(instance => instance.nsInstance === nsInstanceInput && instance.nsSys === sys.toLowerCase).mapTo[Seq[Instance]]) {
                         case Success(instances) =>
-                          if (instances.isEmpty) {
-                            riderLogger.info(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput doesn't exist")
-                            complete(OK, ResponseJson[String](getHeader(200, session), nsInstanceInput))
-                          }
-                          else {
-                            riderLogger.info(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput already exists.")
-                            complete(OK, getHeader(409, s"$nsInstanceInput instance already exists", session))
+                          if (session.roleType == "app") {
+                            if(instances.isEmpty)
+                              complete(OK, ResponseJson[String](getHeader(404, session), "Not Found"))
+                            else
+                              complete(OK, ResponseJson[Long](getHeader(200, session), instances.head.id))
+                          } else {
+                            if (instances.isEmpty) {
+                              riderLogger.info(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput doesn't exist")
+                              complete(OK, ResponseJson[String](getHeader(200, session), nsInstanceInput))
+                            }
+                            else {
+                              riderLogger.info(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput already exists.")
+                              complete(OK, getHeader(409, s"$nsInstanceInput instance already exists", session))
+                            }
                           }
                         case Failure(ex) =>
                           riderLogger.error(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput does exist failed", ex)

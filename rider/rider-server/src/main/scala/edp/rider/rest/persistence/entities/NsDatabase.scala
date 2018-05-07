@@ -66,6 +66,8 @@ case class DatabaseInstance(id: Long,
                             updateTime: String,
                             updateBy: Long)
 
+case class DataBaseName(id: Long, nsDatabase: String)
+
 
 class NsDatabaseTable(_tableTag: Tag) extends BaseTable[NsDatabase](_tableTag, "ns_database") {
   def * = (id, nsDatabase, desc, nsInstanceId, user, pwd, partitions, config, active, createTime, createBy, updateTime, updateBy) <>(NsDatabase.tupled, NsDatabase.unapply)
