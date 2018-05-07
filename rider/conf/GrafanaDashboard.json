@@ -112,7 +112,7 @@
                     "type": "avg"
                   }
                 ],
-                "query": "streamName: $stream_name AND projectId: #PROJECT_ID#",
+                "query": "streamName: $stream_name AND projectId: $project_id",
                 "refId": "B",
                 "timeField": "rddTs"
               }
@@ -233,7 +233,7 @@
                     "type": "avg"
                   }
                 ],
-                "query": "streamName: $stream_name AND projectId: #PROJECT_ID#",
+                "query": "streamName: $stream_name AND projectId: $project_id",
                 "refId": "A",
                 "timeField": "rddTs"
               }
@@ -354,7 +354,7 @@
                     "type": "avg"
                   }
                 ],
-                "query": "streamName: $stream_name AND projectId: #PROJECT_ID#",
+                "query": "streamName: $stream_name AND projectId: $project_id",
                 "refId": "A",
                 "timeField": "rddTs"
               },
@@ -394,7 +394,7 @@
                     "type": "avg"
                   }
                 ],
-                "query": "streamName: $stream_name AND projectId: #PROJECT_ID#",
+                "query": "streamName: $stream_name AND projectId: $project_id",
                 "refId": "C",
                 "timeField": "rddTs"
               },
@@ -434,7 +434,7 @@
                     "type": "avg"
                   }
                 ],
-                "query": "streamName: $stream_name AND projectId: #PROJECT_ID#",
+                "query": "streamName: $stream_name AND projectId: $project_id",
                 "refId": "D",
                 "timeField": "rddTs"
               },
@@ -474,7 +474,7 @@
                     "type": "avg"
                   }
                 ],
-                "query": "streamName: $stream_name AND projectId: #PROJECT_ID#",
+                "query": "streamName: $stream_name AND projectId: $project_id",
                 "refId": "D",
                 "timeField": "rddTs"
               },
@@ -514,7 +514,7 @@
                     "type": "avg"
                   }
                 ],
-                "query": "streamName: $stream_name AND projectId: #PROJECT_ID#",
+                "query": "streamName: $stream_name AND projectId: $project_id",
                 "refId": "E",
                 "timeField": "rddTs"
               }
@@ -635,7 +635,7 @@
                     "type": "avg"
                   }
                 ],
-                "query": "flowNamespace:$flow_name AND projectId: #PROJECT_ID#",
+                "query": "flowNamespace:$flow_name AND projectId: $project_id",
                 "refId": "A",
                 "timeField": "rddTs"
               }
@@ -755,7 +755,7 @@
                     "type": "avg"
                   }
                 ],
-                "query": "flowNamespace:$flow_name AND projectId: #PROJECT_ID#",
+                "query": "flowNamespace:$flow_name AND projectId: $project_id",
                 "refId": "A",
                 "timeField": "rddTs"
               }
@@ -876,7 +876,7 @@
                     "type": "avg"
                   }
                 ],
-                "query": "flowNamespace:$flow_name AND projectId: #PROJECT_ID#",
+                "query": "flowNamespace:$flow_name AND projectId: $project_id",
                 "refId": "A",
                 "timeField": "rddTs"
               },
@@ -916,7 +916,7 @@
                     "type": "avg"
                   }
                 ],
-                "query": "flowNamespace:$flow_name AND projectId: #PROJECT_ID#",
+                "query": "flowNamespace:$flow_name AND projectId: $project_id",
                 "refId": "C",
                 "timeField": "rddTs"
               },
@@ -956,7 +956,7 @@
                     "type": "avg"
                   }
                 ],
-                "query": "flowNamespace:$flow_name AND projectId: #PROJECT_ID#",
+                "query": "flowNamespace:$flow_name AND projectId: $project_id",
                 "refId": "D",
                 "timeField": "rddTs"
               },
@@ -996,7 +996,7 @@
                     "type": "avg"
                   }
                 ],
-                "query": "flowNamespace:$flow_name AND projectId: #PROJECT_ID#",
+                "query": "flowNamespace:$flow_name AND projectId: $project_id",
                 "refId": "D",
                 "timeField": "rddTs"
               },
@@ -1036,7 +1036,7 @@
                     "type": "avg"
                   }
                 ],
-                "query": "flowNamespace:$flow_name AND projectId: #PROJECT_ID#",
+                "query": "flowNamespace:$flow_name AND projectId: $project_id",
                 "refId": "E",
                 "timeField": "rddTs"
               }
@@ -1121,7 +1121,7 @@
           "multi": true,
           "name": "stream_name",
           "options": [],
-          "query": "{\"find\": \"terms\", \"field\": \"streamName\", \"query\": \"projectId:#PROJECT_ID#\"}",
+          "query": "{\"find\": \"terms\", \"field\": \"streamName\", \"query\": \"projectId:$project_id\"}",
           "refresh": 2,
           "regex": "",
           "sort": 0,
