@@ -6,13 +6,13 @@ CREATE TABLE IF NOT EXISTS `user` (
   `role_type` VARCHAR(100) NOT NULL,
   `preferred_language` VARCHAR(20) NOT NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `email_UNIQUE` (`email` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `user` add column `preferred_language` VARCHAR(20) default "chinese";
 
@@ -24,13 +24,13 @@ CREATE TABLE IF NOT EXISTS `instance` (
   `ns_sys` VARCHAR(30) NOT NULL,
   `conn_url` VARCHAR(200) NOT NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `instance_UNIQUE` (`ns_instance` ASC, `ns_sys` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 drop index `conn_url` on `instance`;
 
@@ -44,13 +44,13 @@ CREATE TABLE IF NOT EXISTS `ns_database` (
   `partitions` INT NOT NULL,
   `config` VARCHAR(2000) NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `database_UNIQUE` (`ns_database` ASC, `ns_instance_id` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `ns_database` drop column `permission`;
 drop index `database_UNIQUE` on `ns_database`;
@@ -72,13 +72,13 @@ CREATE TABLE IF NOT EXISTS `namespace` (
   `ns_database_id` BIGINT NOT NULL,
   `ns_instance_id` BIGINT NOT NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `namespace_UNIQUE` (`ns_sys` ASC, `ns_instance` ASC, `ns_database` ASC, `ns_table` ASC, `ns_version` ASC, `ns_dbpar` ASC, `ns_tablepar` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `namespace` drop column `permission`;
 alter table `namespace` add column `ums_info` LONGTEXT default null;
@@ -103,13 +103,13 @@ CREATE TABLE IF NOT EXISTS `stream` (
   `started_time` TIMESTAMP NULL,
   `stopped_time` TIMESTAMP NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `name_UNIQUE` (`name` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `project` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -119,77 +119,64 @@ CREATE TABLE IF NOT EXISTS `project` (
   `res_cores` INT NOT NULL,
   `res_memory_g` INT NOT NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `name_UNIQUE` (`name` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `rel_project_ns` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `project_id` BIGINT NOT NULL,
   `ns_id` BIGINT NOT NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `rel_project_ns_UNIQUE` (`project_id` ASC, `ns_id` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `rel_project_user` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `project_id` BIGINT NOT NULL,
   `user_id` BIGINT NOT NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `rel_project_user_UNIQUE` (`project_id` ASC, `user_id` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `rel_project_udf` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `project_id` BIGINT NOT NULL,
   `udf_id` BIGINT NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `rel_project_udf_UNIQUE` (`project_id` ASC, `udf_id` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `rel_stream_udf` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `stream_id` BIGINT NOT NULL,
   `udf_id` BIGINT NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `rel_stream_udf_UNIQUE` (`stream_id` ASC, `udf_id` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `dbus_setting` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(200) NOT NULL,
-  `desc` VARCHAR(1000) NULL,
-  `dbus_url` VARCHAR(200) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
-  `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
-  `update_by` BIGINT NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE INDEX `name_UNIQUE` (`name` ASC),
-  UNIQUE INDEX `dbus_url_UNIQUE` (`dbus_url` ASC))
-ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS `dbus` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -199,11 +186,11 @@ CREATE TABLE IF NOT EXISTS `dbus` (
   `topic` VARCHAR(200) NOT NULL,
   `instance_id` BIGINT NOT NULL,
   `database_id` BIGINT NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
-  `synchronized_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `synchronized_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `dbus_UNIQUE` (`namespace` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `flow` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -218,13 +205,13 @@ CREATE TABLE IF NOT EXISTS `flow` (
   `started_time` TIMESTAMP NULL,
   `stopped_time` TIMESTAMP NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `flow_UNIQUE` (`source_ns` ASC, `sink_ns` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `flow`  modify column `tran_config` LONGTEXT;
 
@@ -235,10 +222,10 @@ CREATE TABLE IF NOT EXISTS `directive` (
   `flow_id` BIGINT NOT NULL,
   `directive` VARCHAR(2000) NOT NULL,
   `zk_path` VARCHAR(200) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`))
-  ENGINE = InnoDB;
+  ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `directive` modify column `directive` VARCHAR(2000);
 
@@ -250,13 +237,13 @@ CREATE TABLE IF NOT EXISTS `rel_stream_intopic` (
   `partition_offsets` VARCHAR(5000) NOT NULL,
   `rate` INT NOT NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `rel_stream_intopic_UNIQUE` (`stream_id` ASC, `ns_instance_id` ASC, `ns_database_id` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `rel_stream_intopic`  modify column `partition_offsets` VARCHAR(5000);
 
@@ -279,14 +266,14 @@ CREATE TABLE IF NOT EXISTS `job` (
   `log_path` VARCHAR(200) NULL,
   `started_time` TIMESTAMP NULL,
   `stopped_time` TIMESTAMP NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `name_UNIQUE` (`name` ASC),
   UNIQUE INDEX `job_UNIQUE` (`source_ns` ASC, `sink_ns` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `job` drop column `consumed_protocol`;
 alter table `job` drop column `job_config`;
@@ -301,13 +288,13 @@ CREATE TABLE IF NOT EXISTS `udf` (
   `jar_name` VARCHAR(200) NOT NULL,
   `desc` VARCHAR(200) NULL,
   `public` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `create_by` BIGINT NOT NULL,
-  `update_time` TIMESTAMP NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `function_name_UNIQUE` (`function_name` ASC))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 drop index `full_class_name_UNIQUE` on `udf`;
 
@@ -318,9 +305,9 @@ CREATE TABLE IF NOT EXISTS `feedback_heartbeat` (
   `ums_ts` TIMESTAMP NOT NULL,
   `stream_id` BIGINT NOT NULL,
   `namespace` VARCHAR(1000) NOT NULL,
-  `feedback_time` TIMESTAMP NOT NULL,
+  `feedback_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-)ENGINE = InnoDB;
+)ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `feedback_stream_offset` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -330,11 +317,11 @@ CREATE TABLE IF NOT EXISTS `feedback_stream_offset` (
   `topic_name` VARCHAR(200) NOT NULL,
   `partition_num` INT NOT NULL,
   `partition_offsets` VARCHAR(5000) NOT NULL,
-  `feedback_time` TIMESTAMP NOT NULL,
+  `feedback_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `streamIndex` (`stream_id`),
   KEY `timeIndex` (`feedback_time`)
-)ENGINE = InnoDB;
+)ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `feedback_stream_offset`  modify column `partition_offsets` VARCHAR(5000);
 
@@ -346,9 +333,9 @@ CREATE TABLE IF NOT EXISTS `feedback_stream_error` (
   `stream_id`   BIGINT NOT NULL,
   `status`    VARCHAR(32) NOT NULL,
   `result_desc` VARCHAR(5000) NOT NULL,
-  `feedback_time` TIMESTAMP NOT NULL,
+  `feedback_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-)ENGINE = InnoDB;
+)ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `feedback_stream_error` modify column `result_desc` varchar(5000);
 
@@ -360,12 +347,12 @@ CREATE TABLE IF NOT EXISTS `feedback_flow_error` (
   `source_namespace`  VARCHAR(1000) NOT NULL,
   `sink_namespace`  VARCHAR(1000) NOT NULL,
   `error_count`   INT NOT NULL,
-  `error_max_watermark_ts`  TIMESTAMP,
-  `error_min_watermark_ts`  TIMESTAMP,
+  `error_max_watermark_ts`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `error_min_watermark_ts`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `error_info` VARCHAR(5000) NOT NULL,
-  `feedback_time` TIMESTAMP NOT NULL,
+  `feedback_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-)ENGINE = InnoDB;
+)ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `feedback_flow_error` modify column `error_info` varchar(5000);
 
@@ -377,9 +364,9 @@ CREATE TABLE IF NOT EXISTS `feedback_directive` (
   `directive_id`  BIGINT NOT NULL,
   `status`      VARCHAR(32) NOT NULL,
   `result_desc` VARCHAR(5000),
-  `feedback_time` TIMESTAMP NOT NULL,
+  `feedback_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-)ENGINE = InnoDB;
+)ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `feedback_directive` modify column `result_desc` varchar(5000);
 
