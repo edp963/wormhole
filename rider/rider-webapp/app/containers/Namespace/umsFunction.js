@@ -286,7 +286,7 @@ function genBaseField (fieldInfo, type) {
   fieldObject['type'] = fieldInfo.fieldType
   fieldObject['nullable'] = true
   if (type === 'source') {
-    if (fieldInfo.rename !== '' && fieldInfo.fieldName.split('#').pop() !== fieldInfo.name) {
+    if (fieldInfo.rename !== '' && fieldInfo.fieldName.split('#').pop() !== fieldInfo.rename) {
       fieldObject['rename'] = fieldInfo.rename
     }
     if (fieldInfo.fieldType.startsWith(TUPLE)) {
@@ -501,7 +501,7 @@ function genSubField (array, fieldObject, prefix, type) {
   for (let i = 0; i < array.length; i++) {
     if (array[i].hasOwnProperty('fieldName') && array[i].fieldName.startsWith(prefix)) {
       if (array[i].fieldType !== JSONARRAY && array[i].fieldType !== JSONOBJECT && !array[i].fieldType.startsWith('tuple')) {
-        subFieldsArray.push(genBaseField(array[i]), type)
+        subFieldsArray.push(genBaseField(array[i], type))
       } else {
         let object = genBaseField(array[i], type)
         object = genSubField(array.slice(i + 1, array.length), object, prefix)
