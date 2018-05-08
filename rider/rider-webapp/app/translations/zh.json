@@ -84,7 +84,7 @@
   "rider.containers.Namespace.Modal.configure.umsop.error.msg": "ums_op_ 配置错误！",
   "rider.containers.Namespace.Modal.configure.json.sample.notnull.msg": "JSON Sample 不为空！",
   "rider.containers.Namespace.Modal.configure.json.sample.null.msg": "JSON Sample 为空！",
-  "rider.containers.Namespace.Modal.configure.json.sample.format": "格式化!",
+  "rider.containers.Namespace.Modal.configure.json.sample.format": "格式化",
   "rider.containers.Namespace.Modal.configure.json.sample.clear": "置空",
   "rider.containers.Namespace.Modal.configure.rename.repeat.msg": "请修改 Rename 重复项！",
   "rider.containers.Namespace.Modal.configure.type.repeat.msg": "只能包含一个array 类型！",

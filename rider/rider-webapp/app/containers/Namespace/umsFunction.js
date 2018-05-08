@@ -251,26 +251,26 @@ export function renameAlter (array, index, rename) {
   return newArray
 }
 
-function genUmsField (array) {
+function genUmsField (array, type) {
   let newArray = copyArray(array)
 
   const umsArray = []
   for (let i = 0; i < newArray.length; i++) {
     if (newArray[i].ums_id_ || newArray[i].ums_ts_ || newArray[i].ums_op_ !== '') {
       if (newArray[i].ums_id_) {
-        const object = genBaseField(newArray[i])
+        const object = genBaseField(newArray[i], type)
         object.rename = 'ums_id_'
         object.type = LONG
         umsArray.push(object)
       }
       if (newArray[i].ums_ts_) {
-        const object = genBaseField(newArray[i])
+        const object = genBaseField(newArray[i], type)
         object.rename = 'ums_ts_'
         object.type = DATETIME
         umsArray.push(object)
       }
       if (newArray[i].ums_op_ !== '') {
-        const object = genBaseField(newArray[i])
+        const object = genBaseField(newArray[i], type)
         object.rename = 'ums_op_'
         object.ums_sys_mapping = newArray[i].ums_op_
         umsArray.push(object)
@@ -286,7 +286,7 @@ function genBaseField (fieldInfo, type) {
   fieldObject['type'] = fieldInfo.fieldType
   fieldObject['nullable'] = true
   if (type === 'source') {
-    if (fieldInfo.rename !== '' && fieldInfo.fieldName.split('#').pop() !== fieldInfo.rename) {
+    if (fieldInfo.rename !== '' && fieldInfo.fieldName.split('#').pop() !== fieldInfo.name) {
       fieldObject['rename'] = fieldInfo.rename
     }
     if (fieldInfo.fieldType.startsWith(TUPLE)) {
@@ -305,7 +305,7 @@ export function genSchema (array, type) {
   const selectedArray = selectedFields(array)
   for (let i = 0; i < selectedArray.length; i++) {
     if (selectedArray[i].hasOwnProperty('fieldName') && !selectedArray[i].fieldName.includes('#')) {
-      let fieldObject = genBaseField(selectedArray[i])
+      let fieldObject = genBaseField(selectedArray[i], type)
       if (fieldObject.type === JSONARRAY || fieldObject.type === JSONOBJECT || fieldObject.type.startsWith('tuple')) {
         fieldObject = genSubField(array.slice(i + 1, selectedArray.length), fieldObject, '', type)
       }
@@ -313,7 +313,7 @@ export function genSchema (array, type) {
     }
   }
   if (type === 'source') {
-    const umsArray = genUmsField(array)
+    const umsArray = genUmsField(array, type)
     for (let i = 0; i < umsArray.length; i++) {
       fieldsArray.push(umsArray[i])
     }
@@ -501,7 +501,7 @@ function genSubField (array, fieldObject, prefix, type) {
   for (let i = 0; i < array.length; i++) {
     if (array[i].hasOwnProperty('fieldName') && array[i].fieldName.startsWith(prefix)) {
       if (array[i].fieldType !== JSONARRAY && array[i].fieldType !== JSONOBJECT && !array[i].fieldType.startsWith('tuple')) {
-        subFieldsArray.push(genBaseField(array[i]))
+        subFieldsArray.push(genBaseField(array[i]), type)
       } else {
         let object = genBaseField(array[i], type)
         object = genSubField(array.slice(i + 1, array.length), object, prefix)
