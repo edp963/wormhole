@@ -266,7 +266,8 @@ object WormholeUtils extends EdpLogging {
       dt2timestamp(timestampStr)
     }
     else {
-      val timestampLong = if (timestampStr.split("").length < 16) timestampStr.toLong * 1000000 else timestampStr.toLong
+      val timestampLong = (timestampStr+"000000").substring(0,16).toLong
+
       dt2timestamp(timestampLong)
     }
   }
