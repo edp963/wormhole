@@ -101,7 +101,7 @@ object SubmitSparkJob extends App with RiderLogger {
     }
 
     val files =
-      if (RiderConfig.spark.alert)
+      if (RiderConfig.spark.sparkLog4jPath != "")
         s"${RiderConfig.spark.sparkLog4jPath},${RiderConfig.spark.metricsConfPath}"
       else RiderConfig.spark.sparkLog4jPath
 

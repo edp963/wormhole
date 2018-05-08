@@ -193,7 +193,7 @@ object RiderConfig {
   lazy val kafkaSessionTimeOut = getIntConfig("spark.kafka.session.timeout", 30000)
   lazy val kafkaGroupMaxSessionTimeOut = getIntConfig("spark.kafka.group.max.session.timeout.ms", 60000)
   lazy val alert = getBooleanConfig("spark.wormhole.alert.flag", false)
-  lazy val metricsConfPath = getStringConfig("spark.wormhole.metric.conf.path", s"${RiderConfig.riderRootPath}/conf/metrics.properties")
+  lazy val metricsConfPath = getStringConfig("spark.wormhole.metric.conf.path", "")
   lazy val alertEmails = getStringConfig("spark.wormhole.alert.emails", "")
   lazy val kafkaConsumerCache = getBooleanConfig("spark.streaming.kafka.consumer.cache.enabled", false)
   lazy val spark = RiderSpark(wormholeUser,
