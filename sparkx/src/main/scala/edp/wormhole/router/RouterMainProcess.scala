@@ -106,14 +106,15 @@ object RouterMainProcess extends EdpLogging {
   }
 
   def removeFromRouterMap(sourceNamespace: String, sinkNamespace: String): Unit = {
-    if (ConfMemoryStorage.routerMap.contains(sourceNamespace) && ConfMemoryStorage.routerMap(sourceNamespace)._1.contains(sinkNamespace)) {
-      //todo concurrent problem？
-      ConfMemoryStorage.routerMap(sourceNamespace)._1.remove(sinkNamespace)
-      if (ConfMemoryStorage.routerMap(sourceNamespace)._1.isEmpty) {
-        ConfMemoryStorage.routerMap.remove(sourceNamespace)
+    synchronized {
+      if (ConfMemoryStorage.routerMap.contains(sourceNamespace) && ConfMemoryStorage.routerMap(sourceNamespace)._1.contains(sinkNamespace)) {
+        ConfMemoryStorage.routerMap(sourceNamespace)._1.remove(sinkNamespace)
+        if (ConfMemoryStorage.routerMap(sourceNamespace)._1.isEmpty) {
+          ConfMemoryStorage.routerMap.remove(sourceNamespace)
+        }
+      } else {
+        logAlert("router from " + sourceNamespace + " to " + sinkNamespace + " does not exist")
       }
-    } else {
-      logAlert("router from " + sourceNamespace + " to " + sinkNamespace + " does not exist")
     }
   }
 }
