@@ -1089,7 +1089,7 @@ export class Workbench extends React.Component {
     new Promise((resolve) => {
       const requestData = {
         projectId: flow.projectId,
-        streamId: flow.streamId,
+        streamId: typeof (flow.streamId) === 'object' ? flow.streamIdOrigin : flow.streamId,
         id: flow.id
       }
       this.props.onQueryFlow(requestData, (result) => {
@@ -1147,7 +1147,7 @@ export class Workbench extends React.Component {
     new Promise((resolve) => {
       const requestData = {
         projectId: flow.projectId,
-        streamId: flow.streamId,
+        streamId: typeof (flow.streamId) === 'object' ? flow.streamIdOrigin : flow.streamId,
         id: flow.id
       }
       this.props.onQueryFlow(requestData, (result) => {
