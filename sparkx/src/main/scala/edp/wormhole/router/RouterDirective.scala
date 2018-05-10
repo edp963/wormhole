@@ -43,12 +43,10 @@ object RouterDirective extends Directive {
                                          feedbackTopicName: String,
                                          brokers: String,
                                          data_type: String): Unit = {
+
     if (routerMap.contains(sourceNamespace)) {
-      if (routerMap(sourceNamespace)._1.contains(sinkNamespace)) {
-        routerMap(sourceNamespace)._1(sinkNamespace) = (target_kafka_broker, kafka_topic)
-      } else {
-        routerMap(sourceNamespace) = (mutable.HashMap(sinkNamespace -> (target_kafka_broker, kafka_topic)), data_type)
-      }
+        val sinkMap = routerMap(sourceNamespace)._1
+        sinkMap(sinkNamespace) = (target_kafka_broker, kafka_topic)
     } else {
       routerMap(sourceNamespace) = (mutable.HashMap(sinkNamespace -> (target_kafka_broker, kafka_topic)), data_type)
     }
