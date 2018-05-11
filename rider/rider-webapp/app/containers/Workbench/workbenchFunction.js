@@ -177,7 +177,7 @@ export function showSinkConfigMsg (value) {
   let sinkConfigMsgTemp = ''
   if (value === 'cassandra') {
     sinkConfigMsgTemp = 'For example: {"mutation_type":"iud"}'
-  } else if (value === 'mysql' || value === 'oracle' || value === 'postgresql') {
+  } else if (value === 'mysql' || value === 'oracle' || value === 'postgresql' || value === 'kudu') {
     sinkConfigMsgTemp = 'For example: {"mutation_type":"iud"}'
   } else if (value === 'es') {
     sinkConfigMsgTemp = 'For example: {"mutation_type":"iud", "_id": "id,name"}'
