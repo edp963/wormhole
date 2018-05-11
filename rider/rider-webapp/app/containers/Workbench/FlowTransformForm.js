@@ -122,7 +122,8 @@ export class FlowTransformForm extends React.Component {
         { value: 'phoenix', text: 'Phoenix' },
         { value: 'hbase', icon: 'icon-hbase1' },
         { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
-        { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} }
+        { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} },
+        {value: 'kudu', text: 'Kudu'}
       ]
 
     const nsChildren = flowTransNsData.map(i => {

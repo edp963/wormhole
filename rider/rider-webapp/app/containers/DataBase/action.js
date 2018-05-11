@@ -37,7 +37,8 @@ import {
   DELETE_DB,
   DELETE_DB_SUCCESS,
   DELETE_DB_ERROR,
-  GET_ERROR
+  GET_ERROR,
+  CHECK_DATABASE
 } from './constants'
 
 export function loadDatabases (resolve) {
@@ -217,6 +218,18 @@ export function getError (error) {
     type: GET_ERROR,
     payload: {
       error
+    }
+  }
+}
+
+export function checkDatabaseName (id, name, resolve, reject) {
+  return {
+    type: CHECK_DATABASE,
+    payload: {
+      id,
+      name,
+      resolve,
+      reject
     }
   }
 }

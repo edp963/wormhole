@@ -38,7 +38,8 @@ import {
   DELETE_INSTANCE,
   DELETE_INSTANCE_SUCCESS,
   DELETE_INSTANCE_ERROR,
-  GET_ERROR
+  GET_ERROR,
+  CHECK_INSTANCE
 } from './constants'
 
 export function loadInstances (resolve) {
@@ -231,3 +232,16 @@ export function getError (error) {
     }
   }
 }
+
+export function checkInstance (type, nsInstance, resolve, reject) {
+  return {
+    type: CHECK_INSTANCE,
+    payload: {
+      type,
+      nsInstance,
+      resolve,
+      reject
+    }
+  }
+}
+

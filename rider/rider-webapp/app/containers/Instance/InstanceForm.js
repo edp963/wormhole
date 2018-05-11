@@ -19,11 +19,13 @@
  */
 
 import React from 'react'
+import {connect} from 'react-redux'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
 import DataSystemSelector from '../../components/DataSystemSelector'
 import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
+import { checkInstance } from './action'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -39,6 +41,11 @@ export class InstanceForm extends React.Component {
     this.state = { instanceDSValue: '' }
   }
 
+  checkInstanceValidator = (rule, value = '', callback) => {
+    const { onCheckInstance } = this.props
+    const { instanceDSValue } = this.state
+    onCheckInstance(instanceDSValue, value, res => callback(), err => callback(err))
+  }
   onHandleChange = (name) => (e) => {
     switch (name) {
       case 'connectionUrl':
@@ -92,6 +99,8 @@ export class InstanceForm extends React.Component {
       questionDS = <FormattedMessage {...messages.instanceModalUrlCassandraMsg} />
     } else if (instanceDSValue === 'parquet') {
       questionDS = <FormattedMessage {...messages.instanceModalUrlParquetMsg} />
+    } else if (instanceDSValue === 'kudu') {
+      questionDS = <FormattedMessage {...messages.instanceModalUrlKuduMsg} />
     } else {
       questionDS = <FormattedMessage {...messages.instanceModalUrlOthersMsg} />
     }
@@ -146,6 +155,9 @@ export class InstanceForm extends React.Component {
                 rules: [{
                   required: true,
                   message: `${languageText === 'en' ? 'Please fill in instance' : '请填写 Instance'}`
+                },
+                {
+                  validator: this.checkInstanceValidator
                 }]
               })(
                 <Input
@@ -193,7 +205,14 @@ InstanceForm.propTypes = {
   instanceFormType: React.PropTypes.string,
   onInitInstanceInputValue: React.PropTypes.func,
   onInitInstanceExited: React.PropTypes.func,
-  onInitInstanceSourceDs: React.PropTypes.func
+  onInitInstanceSourceDs: React.PropTypes.func,
+  onCheckInstance: React.PropTypes.func
 }
 
-export default Form.create({wrappedComponentRef: true})(InstanceForm)
+function mapDispatchToProps (dispatch) {
+  return {
+    onCheckInstance: (type, nsInstance, resolve, reject) => dispatch(checkInstance(type, nsInstance, resolve, reject))
+  }
+}
+
+export default Form.create({wrappedComponentRef: true})(connect(null, mapDispatchToProps)(InstanceForm))

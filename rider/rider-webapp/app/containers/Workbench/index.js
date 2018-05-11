@@ -437,7 +437,6 @@ export class Workbench extends React.Component {
   onInitJobSinkNs = (projectId, value, type) => {
     const { jobMode } = this.state
     const languageText = localStorage.getItem('preferredLanguage')
-
     this.setState({
       jobSinkNsData: [],
       jobSinkConfigMsg: showSinkConfigMsg(value)

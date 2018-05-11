@@ -40,6 +40,7 @@ export default defineMessages({
   instanceModalUrlKafkaMsg: { id: 'rider.containers.Instance.Modal.url.kafka.msg' },
   instanceModalUrlCassandraMsg: { id: 'rider.containers.Instance.Modal.url.cassandra.msg' },
   instanceModalUrlParquetMsg: { id: 'rider.containers.Instance.Modal.url.parquet.msg' },
+  instanceModalUrlKuduMsg: {id: 'rider.containers.Instance.Modal.url.kudu.msg'},
   instanceModalUrlOthersMsg: { id: 'rider.containers.Instance.Modal.url.others.msg' }
 })
 
