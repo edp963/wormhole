@@ -113,6 +113,7 @@
   "rider.containers.Instance.Modal.url.kafka.msg": "localhost:9092,localhost1:9092",
   "rider.containers.Instance.Modal.url.cassandra.msg": "ip:port list",
   "rider.containers.Instance.Modal.url.parquet.msg": "hdfs://nn1[:8020]/[user/test/test1]",
+  "rider.containers.Instance.Modal.url.kudu.msg": "localhost:9092",
   "rider.containers.Instance.Modal.url.others.msg": "Please Select Data System",
 
   "rider.containers.Database.table.column.ds": "Data System",

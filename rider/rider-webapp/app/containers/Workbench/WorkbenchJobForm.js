@@ -142,7 +142,8 @@ export class WorkbenchJobForm extends React.Component {
       { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
       { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
-      { value: 'parquet', text: 'Parquet' }
+      { value: 'parquet', text: 'Parquet' },
+      {value: 'kudu', text: 'Kudu'}
     ]
 
     let formValues = ''

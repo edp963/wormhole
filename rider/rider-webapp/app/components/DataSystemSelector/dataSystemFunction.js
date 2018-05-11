@@ -34,7 +34,8 @@ export function loadDataSystemData () {
     { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
     { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} },
     { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
-    { value: 'parquet', text: 'Parquet' }
+    { value: 'parquet', text: 'Parquet' },
+    {value: 'kudu', text: 'Kudu'}
   ]
   return dataSystemData
 }
@@ -52,7 +53,8 @@ export function filterDataSystemData () {
     {text: 'mongodb', value: 'mongodb'},
     {text: 'redis', value: 'redis'},
     {text: 'vertica', value: 'vertica'},
-    {text: 'parquet', value: 'parquet'}
+    {text: 'parquet', value: 'parquet'},
+    {text: 'kudu', value: 'kudu'}
   ]
   return dataSystemValue
 }

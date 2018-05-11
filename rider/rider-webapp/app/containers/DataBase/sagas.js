@@ -27,7 +27,8 @@ import {
   EDIT_DATABASE,
   LOAD_DATABASES_INSTANCE,
   LOAD_NAME_EXIST,
-  DELETE_DB
+  DELETE_DB,
+  CHECK_DATABASE
 } from './constants'
 import {
   databasesLoaded,
@@ -182,6 +183,30 @@ export function* deleteDBActionWatcher () {
   yield fork(takeEvery, DELETE_DB, deleteDBAction)
 }
 
+export function* checkDatabase (action) {
+  const { id, name, resolve, reject } = action.payload
+  try {
+    const asyncData = yield call(request, {
+      method: 'get',
+      url: `${api.database}?nsInstanceId=${id}&nsDatabaseName=${name}`
+    })
+    const msg = asyncData && asyncData.msg ? asyncData.msg : ''
+    const code = asyncData && asyncData.code ? asyncData.code : ''
+    if (code && code >= 400) {
+      reject(msg)
+    }
+    if (code && code === 200) {
+      resolve(msg)
+    }
+  } catch (err) {
+    console.log(err)
+  }
+}
+
+export function* checkDatabaseWatcher () {
+  yield throttle(1000, CHECK_DATABASE, checkDatabase)
+}
+
 export default [
   getDatabasesWatcher,
   addDatabaseWatcher,
@@ -189,5 +214,6 @@ export default [
   editDatabaseWatcher,
   getDatabaseInstanceWatcher,
   getNameWatcher,
-  deleteDBActionWatcher
+  deleteDBActionWatcher,
+  checkDatabaseWatcher
 ]
