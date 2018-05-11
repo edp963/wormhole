@@ -19,10 +19,11 @@
  */
 
 import React from 'react'
-
+import { connect } from 'react-redux'
 import { forceCheckNum } from '../../utils/util'
 import DataSystemSelector from '../../components/DataSystemSelector'
 import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
+import { checkDatabaseName } from './action'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -38,10 +39,15 @@ export class DBForm extends React.Component {
     this.state = {
       databaseDSValue: '',
       currentDatabaseUrlValue: [],
+      currentInstanceId: '',
       connUrlText: ''
     }
   }
-
+  checkDatabaseValidator = (rule, value = '', callback) => {
+    const { oncheckDatabaseName } = this.props
+    const { currentInstanceId } = this.state
+    oncheckDatabaseName(currentInstanceId, value, res => callback(), err => callback(err))
+  }
   componentWillReceiveProps (props) {
     if (props.databaseUrlValue) {
       this.setState({ currentDatabaseUrlValue: props.databaseUrlValue })
@@ -62,7 +68,7 @@ export class DBForm extends React.Component {
         // 选择不同的 instance 显示不同的 connection url
         const selUrl = this.state.currentDatabaseUrlValue.find(s => Object.is(s.id, Number(e)))
         this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
-        this.setState({ connUrlText: selUrl.connUrl })
+        this.setState({ connUrlText: selUrl.connUrl, currentInstanceId: selUrl.id })
         break
       case 'nsDatabase':
         // 验证 name 是否存在
@@ -226,6 +232,8 @@ export class DBForm extends React.Component {
                 rules: [{
                   required: true,
                   message: `${languageText === 'en' ? 'Please fill in ' : '请填写'} ${databaseDSLabel}`
+                }, {
+                  validator: this.checkDatabaseValidator
                 }]
               })(
                 <Input
@@ -332,7 +340,14 @@ DBForm.propTypes = {
   queryConnUrl: React.PropTypes.string,
   onInitDatabaseInputValue: React.PropTypes.func,
   onInitDatabaseConfigValue: React.PropTypes.func,
-  onInitDatabaseUrlValue: React.PropTypes.func
+  onInitDatabaseUrlValue: React.PropTypes.func,
+  oncheckDatabaseName: React.PropTypes.func
 }
 
-export default Form.create({wrappedComponentRef: true})(DBForm)
+function mapDispatchToProps (dispatch) {
+  return {
+    oncheckDatabaseName: (id, name, resolve, reject) => dispatch(checkDatabaseName(id, name, resolve, reject))
+  }
+}
+
+export default Form.create({wrappedComponentRef: true})(connect(null, mapDispatchToProps)(DBForm))

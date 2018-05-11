@@ -658,8 +658,8 @@ export class Namespace extends React.PureComponent {
    * */
   onInitNsNameInputValue = (val) => {
     const formValues = this.namespaceForm.getFieldsValue()
-    const languageText = localStorage.getItem('preferredLanguage')
-    const existText = languageText === 'en' ? 'already exists' : '已存在'
+   // const languageText = localStorage.getItem('preferredLanguage')
+   // const existText = languageText === 'en' ? 'already exists' : '已存在'
 
     const requestValues = {
       instanceId: Number(formValues.instance),
@@ -671,8 +671,9 @@ export class Namespace extends React.PureComponent {
       this.namespaceForm.setFields({
         nsTables: { errors: [] }
       })
-    }, () => {
-      this.nsErrorMsg(`${val} ${existText}`)
+    }, (err) => {
+     // this.nsErrorMsg(`${val} ${existText}`)
+      this.nsErrorMsg(err)
       this.setState({ exitedNsTableValue: val })
     })
   }

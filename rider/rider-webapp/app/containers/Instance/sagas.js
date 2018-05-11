@@ -28,7 +28,8 @@ import {
   LOAD_INSTANCES_EXIT,
   LOAD_SINGLE_INSTANCE,
   EDIT_INSTANCE,
-  DELETE_INSTANCE
+  DELETE_INSTANCE,
+  CHECK_INSTANCE
 } from './constants'
 import {
   instancesLoaded,
@@ -190,6 +191,30 @@ export function* deleteInstanceActionWatcher () {
   yield fork(takeEvery, DELETE_INSTANCE, deleteInstanceAction)
 }
 
+export function* checkInstance (action) {
+  const { type, nsInstance, resolve, reject } = action.payload
+  try {
+    const asyncData = yield call(request, {
+      method: 'get',
+      url: `${api.instance}?type=${type}&nsInstance=${nsInstance}`
+    })
+    const msg = asyncData && asyncData.msg ? asyncData.msg : ''
+    const code = asyncData && asyncData.code ? asyncData.code : ''
+    if (code && code >= 400) {
+      reject(msg)
+    }
+    if (code && code === 200) {
+      resolve(msg)
+    }
+  } catch (err) {
+    console.log(err)
+  }
+}
+
+export function* checkInstanceWatcher () {
+  yield throttle(1000, CHECK_INSTANCE, checkInstance)
+}
+
 export default [
   getInstancesWatcher,
   addInstanceWatcher,
@@ -197,5 +222,6 @@ export default [
   editInstanceWatcher,
   getInstanceInputValueWatcher,
   getInstanceValExitWatcher,
-  deleteInstanceActionWatcher
+  deleteInstanceActionWatcher,
+  checkInstanceWatcher
 ]
