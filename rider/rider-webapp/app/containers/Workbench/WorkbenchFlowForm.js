@@ -205,7 +205,8 @@ export class WorkbenchFlowForm extends React.Component {
       { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
       { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
       { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
-      { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} }
+      { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
+      {value: 'kudu', text: 'Kudu'}
     ]
 
     let formValues = this.props.form.getFieldsValue([
