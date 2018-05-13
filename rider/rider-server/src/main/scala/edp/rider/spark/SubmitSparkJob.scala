@@ -139,7 +139,7 @@ object SubmitSparkJob extends App with RiderLogger {
 
     val finalCommand =
       if (RiderConfig.spark.alert)
-        s"$startCommand;echo '$streamName is dead' | mail -s 'ERROR-$streamName-is-dead' ${RiderConfig.spark.alertEmails}"
+        s"$startCommand;mail -s 'ERROR-$streamName-is-dead' ${RiderConfig.spark.alertEmails}"
       else startCommand
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     //    println("final:" + submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1")
