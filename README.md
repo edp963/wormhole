@@ -40,7 +40,7 @@ Wormhole 面向大数据流式处理项目的开发管理运维人员，致力�
 - **支持单个物理流同时并行处理多个逻辑业务流**
 - **支持流上 Lookup Anywhere，Pushdown Anywhere**
 - **支持基于业务策略的事件时间戳流式处理**
-- **支持 UDF 的注册管理和动态加载**
+- **支持UDF的注册管理和动态加载**
 - **支持多目标数据系统的并发幂等入库**
 - **支持多级基于增量消息的数据质量管理**
 - **支持基于增量消息的流式处理和批量处理**
@@ -50,7 +50,7 @@ Wormhole 面向大数据流式处理项目的开发管理运维人员，致力�
 
 ## Experience
 
-#### Admin 可以创建 Project/Namespace/User/UDF，并且可查看所有 Flow/Stream/Job
+#### Admin 可以创建 Project/Namespace/User/UDF，并且可以查看所有 Flow/Stream/Job
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/admin_1.png" alt="" width="600"/>
 
 #### Admin 可以为 Project 分配 Namespace 资源/User 资源/UDF 资源/计算资源，以支持多租户资源隔离
@@ -68,7 +68,7 @@ Wormhole 面向大数据流式处理项目的开发管理运维人员，致力�
 #### Wormhole 有 Flow 和 Stream 的概念，支持在一个物理 Stream（对应一个 Spark Stream）里通过并行处理多个逻辑 Flow，使得 User 可以更加精细灵活的利用计算资源，User 也可以对 Stream 进行精细化参数配置调整以更好平衡需求和资源
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_3_stream.png" alt="" width="600"/>
 
-#### Wormhole 也支持批处理 Job，同样可以配置化实现处理逻辑并落到多个异构 Sink，Flow 和 Job 的配合可以很容易实现 Lambda 架构和 Kappa 架构
+#### Wormhole 也支持批处理 Job，同样可以配置化实现处理逻辑并落到多个异构 Sink，Flow 和 Job 的配合可以很容易实现 Lambda 架构和 Kappa架构
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_4_job_1.png" alt="" width="600"/>
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_4_job_2.png" alt="" width="600"/>
 
@@ -78,10 +78,10 @@ Wormhole 面向大数据流式处理项目的开发管理运维人员，致力�
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_6_udf.png" alt="" width="600"/>
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_7_res.png" alt="" width="600"/>
 
-#### User 还可以监控 Project 正在运行的所有 Flow/Stream 的吞吐和延迟
+#### User还可以监控 Project 正在运行的所有 Flow/Stream 的吞吐和延迟
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_8_mon.png" alt="" width="600"/>
 
-#### 以上是简短的功能和用户体验预览，更多强大的细节功能请参见其他部分
+#### 以上是简短的功能和用户体验预览，更多强大的细节功能请参见 Documentation
 
 ## Documentation
 
