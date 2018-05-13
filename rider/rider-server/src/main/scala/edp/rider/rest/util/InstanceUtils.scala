@@ -77,8 +77,8 @@ object InstanceUtils {
   def getTip(nsSys: String, url: String): String = {
     nsSys.toLowerCase match {
       case "mysql" | "oracle" | "postgresql" | "vertica" | "phoenix" => s"connection url $url format is wrong, please alter it as localhost:3306"
-      case "kafka" | "redis" | "cassandra" | "kudu" => s"connection url $url format is wrong, please alter it as localhost:9092(,localhost1:9092)*"
-      case "hbase" => s"connection url $url format is wrong, please alter it as localhost:2181(/hbase)*(,localhost:2181(/hbase)*)*"
+      case "kafka" | "redis" | "cassandra" | "kudu" => s"connection url $url format is wrong, please alter it as localhost:9092[,localhost1:9092]"
+      case "hbase" => s"connection url $url format is wrong, please alter it as localhost:2181[[/hbase],localhost1:2181[/hbase]]"
       case "es" => s"connection url $url format is wrong, please alter it as http(s)?://localhost:9200 or localhost:9300"
       case "mongodb" => s"connection url $url format is wrong, please alter it as host1[:port1][,host2[:port2],...[,hostN[:portN]]"
       case "parquet" => s"connection url $url format is wrong, please alter it for example hdfs://host1[:port1]/user/wormhole"
