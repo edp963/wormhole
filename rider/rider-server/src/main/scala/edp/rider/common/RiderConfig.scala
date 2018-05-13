@@ -118,6 +118,16 @@ case class RiderInfo(zookeeper: String,
                      yarn_rm2_http_url: String)
 
 
+case class LdapInfo(enabled: Boolean,
+                    user: String,
+                    pwd: String,
+                    url: String,
+                    dc: String,
+                    readTimeout: Int,
+                    connectTimeout: Int,
+                    connectPoolEnabled: Boolean)
+
+
 object RiderConfig {
 
   lazy val riderRootPath = s"${System.getenv("WORMHOLE_HOME")}"
@@ -193,7 +203,7 @@ object RiderConfig {
   lazy val kafkaSessionTimeOut = getIntConfig("spark.kafka.session.timeout", 30000)
   lazy val kafkaGroupMaxSessionTimeOut = getIntConfig("spark.kafka.group.max.session.timeout.ms", 60000)
   lazy val alert = getBooleanConfig("spark.wormhole.alert.flag", false)
-  lazy val metricsConfPath = getStringConfig("spark.wormhole.metric.conf.path", s"${RiderConfig.riderRootPath}/conf/metrics.properties")
+  lazy val metricsConfPath = getStringConfig("spark.wormhole.metric.conf.path", "")
   lazy val alertEmails = getStringConfig("spark.wormhole.alert.emails", "")
   lazy val kafkaConsumerCache = getBooleanConfig("spark.streaming.kafka.consumer.cache.enabled", false)
   lazy val spark = RiderSpark(wormholeUser,
@@ -257,6 +267,18 @@ object RiderConfig {
 
   lazy val riderInfo = RiderInfo(zk, consumer.brokers, consumer.feedbackTopic, spark.wormholeHeartBeatTopic, spark.hdfs_root,
     spark.user, spark.app_tags, spark.rm1Url, spark.rm2Url)
+
+  lazy val ldapEnabled = getBooleanConfig("ldap.enabled", false)
+
+  lazy val ldapUser = getStringConfig("ldap.user", "")
+  lazy val ldapPwd = getStringConfig("ldap.pwd", "")
+  lazy val ldapUrl = getStringConfig("ldap.url", "")
+  lazy val ldapDc = getStringConfig("ldap.dc", "")
+  lazy val readTimeout = getIntConfig("ldap.read.timeout", 5000)
+  lazy val connectTimeout = getIntConfig("ldap.connect.timeout", 5000)
+  lazy val ldapPoolEnabled = getBooleanConfig("ldap.connect.pool", true)
+
+  lazy val ldap = LdapInfo(ldapEnabled, ldapUser, ldapPwd, ldapUrl, ldapDc, readTimeout, connectTimeout, ldapPoolEnabled)
 
   def getStringConfig(path: String, default: String): String = {
     if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")
