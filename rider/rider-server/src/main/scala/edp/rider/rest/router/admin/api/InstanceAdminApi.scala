@@ -92,7 +92,7 @@ class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instan
                           } else {
                             if (instances.isEmpty) {
                               riderLogger.info(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput doesn't exist")
-                              complete(OK, ResponseJson[String](getHeader(200, session), nsInstanceInput))
+                              complete(OK, getHeader(200, session))
                             }
                             else {
                               riderLogger.info(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput already exists.")
