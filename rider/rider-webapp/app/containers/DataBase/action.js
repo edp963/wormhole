@@ -29,9 +29,6 @@ import {
   EDIT_DATABASE_ERROR,
   LOAD_DATABASES_INSTANCE,
   LOAD_DATABASES_INSTANCE_SUCCESS,
-  LOAD_NAME_EXIST,
-  LOAD_NAME_EXIST_SUCCESS,
-  LOAD_NAME_EXIST_ERROR,
   LOAD_SINGLE_DATABASE,
   LOAD_SINGLE_DATABASE_SUCCESS,
   DELETE_DB,
@@ -130,35 +127,6 @@ export function loadDatabasesInstance (value, resolve) {
 export function databasesInstanceLoaded (result) {
   return {
     type: LOAD_DATABASES_INSTANCE_SUCCESS,
-    payload: {
-      result
-    }
-  }
-}
-
-export function loadNameExist (value, resolve, reject) {
-  return {
-    type: LOAD_NAME_EXIST,
-    payload: {
-      value,
-      resolve,
-      reject
-    }
-  }
-}
-
-export function nameExistLoaded (result) {
-  return {
-    type: LOAD_NAME_EXIST_SUCCESS,
-    payload: {
-      result
-    }
-  }
-}
-
-export function nameExistErrorLoaded (result) {
-  return {
-    type: LOAD_NAME_EXIST_ERROR,
     payload: {
       result
     }

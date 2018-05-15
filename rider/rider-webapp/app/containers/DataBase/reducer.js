@@ -33,9 +33,6 @@ import {
   EDIT_DATABASE_ERROR,
   LOAD_DATABASES_INSTANCE,
   LOAD_DATABASES_INSTANCE_SUCCESS,
-  LOAD_NAME_EXIST,
-  LOAD_NAME_EXIST_SUCCESS,
-  LOAD_NAME_EXIST_ERROR,
   DELETE_DB,
   DELETE_DB_SUCCESS,
   DELETE_DB_ERROR,
@@ -46,7 +43,6 @@ const initialState = fromJS({
   databases: false,
   error: false,
   modalLoading: false,
-  databaseNameExited: false,
   dbUrlValue: false
 })
 
@@ -87,12 +83,6 @@ export function databaseReducer (state = initialState, { type, payload }) {
       return state
     case LOAD_DATABASES_INSTANCE_SUCCESS:
       return state.set('dbUrlValue', payload.result)
-    case LOAD_NAME_EXIST:
-      return state.set('databaseNameExited', false)
-    case LOAD_NAME_EXIST_SUCCESS:
-      return state.set('databaseNameExited', false)
-    case LOAD_NAME_EXIST_ERROR:
-      return state.set('databaseNameExited', true)
     case DELETE_DB:
       return state
     case DELETE_DB_SUCCESS:

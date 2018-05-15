@@ -25,7 +25,6 @@ import Helmet from 'react-helmet'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import { filterDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 import InstanceForm from './InstanceForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
@@ -40,11 +39,21 @@ import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
 import { changeLocale } from '../../containers/LanguageProvider/actions'
-import { loadInstances, addInstance, loadInstanceInputValue, loadInstanceExit,
-  loadSingleInstance, editInstance, deleteInstace } from './action'
-import { selectInstances, selectError, selectModalLoading, selectConnectUrlExisted, selectInstanceExisted } from './selectors'
+import {
+  loadInstances,
+  addInstance,
+  loadSingleInstance,
+  editInstance,
+  deleteInstace
+} from './action'
+import {
+  selectInstances,
+  selectError,
+  selectModalLoading
+} from './selectors'
 
 import { operateLanguageText } from '../../utils/util'
+import { filterDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 
 export class Instance extends React.PureComponent {
   constructor (props) {
@@ -196,40 +205,32 @@ export class Instance extends React.PureComponent {
 
   onModalOk = () => {
     const { instanceFormType } = this.state
-    const { instanceExisted } = this.props
     const languageText = localStorage.getItem('preferredLanguage')
-    const instanceExist = languageText === 'en' ? 'This instance already exists.' : '该 Instance 已存在。'
     const createFormat = languageText === 'en' ? 'Instance is created successfully!' : 'Instance 新建成功！'
     const modifyFormat = languageText === 'en' ? 'Instance is modified successfully!' : 'Instance 修改成功！'
 
     this.instanceForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        if (instanceFormType === 'add') {
-          if (instanceExisted) {
-            this.instanceForm.setFields({
-              instance: {
-                value: values.instance,
-                errors: [new Error(instanceExist)]
-              }
-            })
-          } else {
+        switch (instanceFormType) {
+          case 'add':
             this.props.onAddInstance(values, () => {
               this.hideForm()
               message.success(createFormat, 3)
             }, (msg) => {
               this.loadResult(values.connectionUrl, msg)
             })
-          }
-        } else if (instanceFormType === 'edit') {
-          this.props.onEditInstance(Object.assign(this.state.editInstanceData, {
-            desc: values.description,
-            connUrl: values.connectionUrl
-          }), () => {
-            this.hideForm()
-            message.success(modifyFormat, 3)
-          }, (msg) => {
-            this.loadResult(values.connectionUrl, msg)
-          })
+            break
+          case 'edit':
+            this.props.onEditInstance(Object.assign(this.state.editInstanceData, {
+              desc: values.description,
+              connUrl: values.connectionUrl
+            }), () => {
+              this.hideForm()
+              message.success(modifyFormat, 3)
+            }, (msg) => {
+              this.loadResult(values.connectionUrl, msg)
+            })
+            break
         }
       }
     })
@@ -299,24 +300,6 @@ export class Instance extends React.PureComponent {
     }
   }
 
-  /***
-   * 新增时，验证 Connection Url 是否存在
-   * */
-  onInitInstanceInputValue = (value) => {
-    const { eidtConnUrl } = this.state
-
-    if (eidtConnUrl !== value) {
-      const requestVal = {
-        type: this.state.InstanceSourceDsVal,
-        conn_url: value
-      }
-
-      this.props.onLoadInstanceInputValue(requestVal, () => {}, (result) => {
-        this.loadResult(value, result)
-      })
-    }
-  }
-
   loadResult (value, result) {
     const { instanceFormType, InstanceSourceDsVal } = this.state
     const languageText = localStorage.getItem('preferredLanguage')
@@ -359,25 +342,6 @@ export class Instance extends React.PureComponent {
         value: value,
         errors: errMsg
       }
-    })
-  }
-
-  /***
-   * 新增时，验证 Instance 是否存在
-   * */
-  onInitInstanceExited = (value) => {
-    const requestVal = {
-      type: this.state.InstanceSourceDsVal,
-      nsInstance: value
-    }
-    this.props.onLoadInstanceExit(requestVal, () => {}, (result) => {
-      const languageText = localStorage.getItem('preferredLanguage')
-      this.instanceForm.setFields({
-        instance: {
-          value: value,
-          errors: [new Error(languageText === 'en' ? 'The instance already exists.' : '该 Instance 已存在。')]
-        }
-      })
     })
   }
 
@@ -704,11 +668,8 @@ export class Instance extends React.PureComponent {
 
 Instance.propTypes = {
   modalLoading: React.PropTypes.bool,
-  instanceExisted: React.PropTypes.bool,
   onLoadInstances: React.PropTypes.func,
   onAddInstance: React.PropTypes.func,
-  onLoadInstanceInputValue: React.PropTypes.func,
-  onLoadInstanceExit: React.PropTypes.func,
   onLoadSingleInstance: React.PropTypes.func,
   onEditInstance: React.PropTypes.func,
   onDeleteInstace: React.PropTypes.func,
@@ -719,8 +680,6 @@ export function mapDispatchToProps (dispatch) {
   return {
     onLoadInstances: (resolve) => dispatch(loadInstances(resolve)),
     onAddInstance: (instance, resolve, reject) => dispatch(addInstance(instance, resolve, reject)),
-    onLoadInstanceInputValue: (value, resolve, reject) => dispatch(loadInstanceInputValue(value, resolve, reject)),
-    onLoadInstanceExit: (value, resolve, reject) => dispatch(loadInstanceExit(value, resolve, reject)),
     onLoadSingleInstance: (instanceId, resolve) => dispatch(loadSingleInstance(instanceId, resolve)),
     onEditInstance: (value, resolve, reject) => dispatch(editInstance(value, resolve, reject)),
     onDeleteInstace: (value, resolve, reject) => dispatch(deleteInstace(value, resolve, reject)),
@@ -731,9 +690,7 @@ export function mapDispatchToProps (dispatch) {
 const mapStateToProps = createStructuredSelector({
   instances: selectInstances(),
   error: selectError(),
-  modalLoading: selectModalLoading(),
-  connectUrlExisted: selectConnectUrlExisted(),
-  instanceExisted: selectInstanceExisted()
+  modalLoading: selectModalLoading()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Instance)
