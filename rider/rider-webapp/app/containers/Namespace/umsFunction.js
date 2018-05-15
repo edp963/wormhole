@@ -504,7 +504,7 @@ function genSubField (array, fieldObject, prefix, type) {
         subFieldsArray.push(genBaseField(array[i], type))
       } else {
         let object = genBaseField(array[i], type)
-        object = genSubField(array.slice(i + 1, array.length), object, prefix)
+        object = genSubField(array.slice(i + 1, array.length), object, prefix, type)
         subFieldsArray.push(object)
         const step = object.hasOwnProperty('sub_fields') ? object.sub_fields.length : 0
         i = i + step
