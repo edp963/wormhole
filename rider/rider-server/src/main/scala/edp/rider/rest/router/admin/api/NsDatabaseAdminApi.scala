@@ -88,7 +88,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                       }
                     } else {
                       riderLogger.info(s"user ${session.userId} check database $nsDatabase format is wrong.")
-                      complete(OK, getHeader(402, s"$nsDatabase format is wrong", session))
+                      complete(OK, getHeader(402, s"begin with a letter, certain special characters as '_', '-', end with a letter or number", session))
                     }
                   case (None, _, Some(sys), Some(nsInstance), Some(nsDatabase)) =>
                     if (namePattern.matcher(nsDatabase).matches()) {
@@ -99,7 +99,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                         complete(OK, ResponseJson[String](getHeader(404, session), "Not Found"))
                     } else {
                       riderLogger.info(s"user ${session.userId} check database $nsDatabase format is wrong.")
-                      complete(OK, getHeader(402, s"$nsDatabase format is wrong", session))
+                      complete(OK, getHeader(402, s"begin with a letter, certain special characters as '_', '-', end with a letter or number", session))
                     }
                   case (_, None, _, _, None) =>
                     onComplete(databaseDal.getDs(visible.getOrElse(true)).mapTo[Seq[DatabaseInstance]]) {
@@ -162,7 +162,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                   }
                 } else {
                   riderLogger.info(s"user ${session.userId} check database ${simple.nsDatabase} format is wrong.")
-                  complete(OK, getHeader(402, s"${simple.nsDatabase} format is wrong", session))
+                  complete(OK, getHeader(200, s"begin with a letter, certain special characters as '_', '-', end with a letter or number", session))
                 }
               }
           }
@@ -207,7 +207,7 @@ class NsDatabaseAdminApi(databaseDal: NsDatabaseDal) extends BaseAdminApiImpl(da
                   }
                 } else {
                   riderLogger.info(s"user ${session.userId} check database ${database.nsDatabase} format is wrong.")
-                  complete(OK, getHeader(402, s"${database.nsDatabase} format is wrong", session))
+                  complete(OK, getHeader(402, s"begin with a letter, certain special characters as '_', '-', end with a letter or number", session))
                 }
               }
           }
