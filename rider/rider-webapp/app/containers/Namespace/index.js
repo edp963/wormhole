@@ -28,12 +28,20 @@ require('../../../node_modules/codemirror/mode/javascript/javascript')
 
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
-import { filterDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 
 import { changeLocale } from '../../containers/LanguageProvider/actions'
-import { jsonParse, fieldTypeAlter, renameAlter, genDefaultSchemaTable, umsSysFieldSelected,
-  umsSysFieldCanceled, getRepeatFieldIndex, genSchema } from './umsFunction'
+import {
+  jsonParse,
+  fieldTypeAlter,
+  renameAlter,
+  genDefaultSchemaTable,
+  umsSysFieldSelected,
+  umsSysFieldCanceled,
+  getRepeatFieldIndex,
+  genSchema
+} from './umsFunction'
 import { isJSONNotEmpty, operateLanguageText } from '../../utils/util'
+import { filterDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 
 import NamespaceForm from './NamespaceForm'
 import SchemaTypeConfig from './SchemaTypeConfig'
@@ -53,10 +61,25 @@ const { RangePicker } = DatePicker
 import { loadDatabasesInstance } from '../../containers/DataBase/action'
 import { selectDbUrlValue } from '../../containers/DataBase/selectors'
 import { loadSingleInstance } from '../../containers/Instance/action'
-import { loadAdminAllNamespaces, loadUserNamespaces, loadSelectNamespaces, loadNamespaceDatabase,
-  addNamespace, editNamespace, loadTableNameExist, loadSingleNamespace, setSchema,
-  querySchemaConfig, deleteNs } from './action'
-import { selectNamespaces, selectError, selectModalLoading, selectTableNameExited } from './selectors'
+import {
+  loadAdminAllNamespaces,
+  loadUserNamespaces,
+  loadSelectNamespaces,
+  loadNamespaceDatabase,
+  addNamespace,
+  editNamespace,
+  loadTableNameExist,
+  loadSingleNamespace,
+  setSchema,
+  querySchemaConfig,
+  deleteNs
+} from './action'
+import {
+  selectNamespaces,
+  selectError,
+  selectModalLoading,
+  selectTableNameExited
+} from './selectors'
 
 export class Namespace extends React.PureComponent {
   constructor (props) {

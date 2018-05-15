@@ -22,7 +22,6 @@ import React from 'react'
 
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
-// import PlaceholderInputIntl from '../../components/PlaceholderInputIntl'
 
 import DataSystemSelector from '../../components/DataSystemSelector'
 import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
@@ -101,13 +100,7 @@ export class NamespaceForm extends React.Component {
       wrapperCol: { span: 17 }
     }
 
-    // edit 时，不能修改部分元素
-    let disabledOrNot = false
-    if (namespaceFormType === 'add') {
-      disabledOrNot = false
-    } else if (namespaceFormType === 'edit') {
-      disabledOrNot = true
-    }
+    const disabledOrNot = namespaceFormType === 'edit'
 
     const instanceOptions = currentNamespaceUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.nsInstance}</Option>))
     const databaseOptions = databaseSelectValue.map((s) => (<Option key={s.id} value={`${s.id}`}>{s.nsDatabase}</Option>))
@@ -153,9 +146,10 @@ export class NamespaceForm extends React.Component {
         <Tooltip title={<FormattedMessage {...messages.nsHelp} />}>
           <Popover
             placement="top"
-            content={<div style={{ width: '400px', height: '38px' }}>
-              <p><FormattedMessage {...messages.nsModalTablesTablesKafkaMsg} /></p>
-            </div>}
+            content={
+              <div style={{ width: '400px', height: '38px' }}>
+                <p><FormattedMessage {...messages.nsModalTablesTablesKafkaMsg} /></p>
+              </div>}
             title={<h3><FormattedMessage {...messages.nsHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />

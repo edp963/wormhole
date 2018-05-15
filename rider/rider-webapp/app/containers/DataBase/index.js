@@ -25,7 +25,6 @@ import Helmet from 'react-helmet'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import { filterDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 import DBForm from './DBForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
@@ -40,12 +39,24 @@ import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
 import { changeLocale } from '../../containers/LanguageProvider/actions'
-import { loadDatabases, addDatabase, editDatabase, loadDatabasesInstance,
-  loadNameExist, loadSingleDatabase, deleteDB } from './action'
-import { selectDatabases, selectError, selectModalLoading, selectDatabaseNameExited, selectDbUrlValue } from './selectors'
+import {
+  loadDatabases,
+  addDatabase,
+  editDatabase,
+  loadDatabasesInstance,
+  loadSingleDatabase,
+  deleteDB
+} from './action'
+import {
+  selectDatabases,
+  selectError,
+  selectModalLoading,
+  selectDbUrlValue
+} from './selectors'
 
-import { operateLanguageText, operateLanguageNameExist } from '../../utils/util'
+import { operateLanguageText } from '../../utils/util'
 import { onConfigValue } from './dbFunction'
+import { filterDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 
 export class DataBase extends React.PureComponent {
   constructor (props) {
@@ -211,7 +222,6 @@ export class DataBase extends React.PureComponent {
 
   onModalOk = () => {
     const { formType, editDatabaseData } = this.state
-    const { databaseNameExited } = this.props
     const languageText = localStorage.getItem('preferredLanguage')
     const createFormat = languageText === 'en' ? 'Database is created successfully!' : 'Database 新建成功！'
     const modifyFormat = languageText === 'en' ? 'Database is modified successfully!' : 'Database 修改成功！'
@@ -221,14 +231,7 @@ export class DataBase extends React.PureComponent {
       if (!err) {
         switch (formType) {
           case 'add':
-            if (databaseNameExited) {
-              this.dBForm.setFields({
-                nsDatabase: {
-                  value: values.nsDatabase,
-                  errors: [new Error(operateLanguageNameExist())]
-                }
-              })
-            } else if (values.dataBaseDataSystem === 'oracle') {
+            if (values.dataBaseDataSystem === 'oracle') {
               if (values.config === undefined || !values.config.includes('service_name')) {
                 this.dBForm.setFields({
                   config: {
@@ -444,26 +447,6 @@ export class DataBase extends React.PureComponent {
         partition: '',
         config: '',
         description: ''
-      })
-    })
-  }
-
-  /**
-   * 新增时，验证 database name／topic name 是否存在，不存在时，才能新增
-   * */
-  onInitDatabaseInputValue = (value) => {
-    const formValues = this.dBForm.getFieldsValue()
-    const requestValues = {
-      nsInstanceId: Number(formValues.instance),
-      nsDatabaseName: value,
-      dsType: formValues.dataBaseDataSystem
-    }
-    this.props.onLoadNameExist(requestValues, () => {}, () => {
-      this.dBForm.setFields({
-        nsDatabase: {
-          value: value,
-          errors: [new Error(operateLanguageNameExist())]
-        }
       })
     })
   }
@@ -830,7 +813,6 @@ export class DataBase extends React.PureComponent {
             queryConnUrl={this.state.queryConnUrl}
             onInitDatabaseUrlValue={this.onInitDatabaseUrlValue}
             databaseUrlValue={this.props.dbUrlValue}
-            onInitDatabaseInputValue={this.onInitDatabaseInputValue}
             onInitDatabaseConfigValue={this.onInitDatabaseConfigValue}
             ref={(f) => { this.dBForm = f }}
           />
@@ -842,7 +824,6 @@ export class DataBase extends React.PureComponent {
 
 DataBase.propTypes = {
   modalLoading: React.PropTypes.bool,
-  databaseNameExited: React.PropTypes.bool,
   dbUrlValue: React.PropTypes.oneOfType([
     React.PropTypes.bool,
     React.PropTypes.array
@@ -851,7 +832,6 @@ DataBase.propTypes = {
   onAddDatabase: React.PropTypes.func,
   onEditDatabase: React.PropTypes.func,
   onLoadDatabasesInstance: React.PropTypes.func,
-  onLoadNameExist: React.PropTypes.func,
   onLoadSingleDatabase: React.PropTypes.func,
   onDeleteDB: React.PropTypes.func,
   onChangeLanguage: React.PropTypes.func
@@ -863,7 +843,6 @@ export function mapDispatchToProps (dispatch) {
     onAddDatabase: (database, resolve, reject) => dispatch(addDatabase(database, resolve, reject)),
     onEditDatabase: (database, resolve, reject) => dispatch(editDatabase(database, resolve, reject)),
     onLoadDatabasesInstance: (value, resolve) => dispatch(loadDatabasesInstance(value, resolve)),
-    onLoadNameExist: (value, resolve, reject) => dispatch(loadNameExist(value, resolve, reject)),
     onLoadSingleDatabase: (databaseId, resolve) => dispatch(loadSingleDatabase(databaseId, resolve)),
     onDeleteDB: (databaseId, resolve, reject) => dispatch(deleteDB(databaseId, resolve, reject)),
     onChangeLanguage: (type) => dispatch(changeLocale(type))
@@ -874,7 +853,6 @@ const mapStateToProps = createStructuredSelector({
   databases: selectDatabases(),
   error: selectError(),
   modalLoading: selectModalLoading(),
-  databaseNameExited: selectDatabaseNameExited(),
   dbUrlValue: selectDbUrlValue()
 })
 

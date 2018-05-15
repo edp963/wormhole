@@ -37,11 +37,6 @@ const selectModalLoading = () => createSelector(
   (databaseState) => databaseState.get('modalLoading')
 )
 
-const selectDatabaseNameExited = () => createSelector(
-  selectDatabase(),
-  (databaseState) => databaseState.get('databaseNameExited')
-)
-
 const selectDbUrlValue = () => createSelector(
   selectDatabase(),
   (databaseState) => databaseState.get('dbUrlValue')
@@ -52,6 +47,5 @@ export {
   selectDatabases,
   selectError,
   selectModalLoading,
-  selectDatabaseNameExited,
   selectDbUrlValue
 }

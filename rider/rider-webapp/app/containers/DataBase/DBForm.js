@@ -44,10 +44,14 @@ export class DBForm extends React.Component {
     }
   }
   checkDatabaseValidator = (rule, value = '', callback) => {
-    const { oncheckDatabaseName } = this.props
+    const { oncheckDatabaseName, databaseFormType } = this.props
     const { currentInstanceId } = this.state
-    oncheckDatabaseName(currentInstanceId, value, res => callback(), err => callback(err))
+
+    databaseFormType === 'add'
+      ? oncheckDatabaseName(currentInstanceId, value, res => callback(), err => callback(err))
+      : callback()
   }
+
   componentWillReceiveProps (props) {
     if (props.databaseUrlValue) {
       this.setState({ currentDatabaseUrlValue: props.databaseUrlValue })
@@ -69,10 +73,6 @@ export class DBForm extends React.Component {
         const selUrl = this.state.currentDatabaseUrlValue.find(s => Object.is(s.id, Number(e)))
         this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
         this.setState({ connUrlText: selUrl.connUrl, currentInstanceId: selUrl.id })
-        break
-      case 'nsDatabase':
-        // 验证 name 是否存在
-        this.props.onInitDatabaseInputValue(e.target.value)
         break
       case 'config':
         // config 是否包含必须的字段
@@ -155,16 +155,8 @@ export class DBForm extends React.Component {
         : '格式为: 多行key=value 或 一行key=value&key=value'
     }
 
-    // edit 时，不能修改部分元素
-    let disabledOrNot = false
-    let urlText = ''
-    if (databaseFormType === 'add') {
-      disabledOrNot = false
-      urlText = connUrlText
-    } else if (databaseFormType === 'edit') {
-      disabledOrNot = true
-      urlText = queryConnUrl
-    }
+    const disabledOrNot = databaseFormType === 'edit'
+    const urlText = databaseFormType === 'edit' ? queryConnUrl : connUrlText
 
     // oracle config 显示必填
     const onlyOracleClass = databaseDSValue === 'oracle' ? 'only-oracle-class' : ''
@@ -239,7 +231,6 @@ export class DBForm extends React.Component {
                 <Input
                   placeholder={databaseDSPlace}
                   disabled={disabledOrNot}
-                  onChange={this.onHandleChange('nsDatabase')}
                 />
               )}
             </FormItem>
@@ -338,7 +329,6 @@ DBForm.propTypes = {
   type: React.PropTypes.string,
   databaseFormType: React.PropTypes.string,
   queryConnUrl: React.PropTypes.string,
-  onInitDatabaseInputValue: React.PropTypes.func,
   onInitDatabaseConfigValue: React.PropTypes.func,
   onInitDatabaseUrlValue: React.PropTypes.func,
   oncheckDatabaseName: React.PropTypes.func

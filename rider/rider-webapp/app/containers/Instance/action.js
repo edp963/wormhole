@@ -24,12 +24,6 @@ import {
   ADD_INSTANCE,
   ADD_INSTANCE_SUCCESS,
   ADD_INSTANCE_ERROR,
-  LOAD_INSTANCES_INPUT_VALUE,
-  LOAD_INSTANCES_INPUT_VALUE_SUCCESS,
-  LOAD_INSTANCES_INPUT_VALUE_ERROR,
-  LOAD_INSTANCES_EXIT,
-  LOAD_INSTANCES_EXIT_SUCCESS,
-  LOAD_INSTANCES_EXIT_ERROR,
   LOAD_SINGLE_INSTANCE,
   LOAD_SINGLE_INSTANCE_SUCCESS,
   EDIT_INSTANCE,
@@ -39,7 +33,8 @@ import {
   DELETE_INSTANCE_SUCCESS,
   DELETE_INSTANCE_ERROR,
   GET_ERROR,
-  CHECK_INSTANCE
+  CHECK_INSTANCE,
+  CHECK_URL
 } from './constants'
 
 export function loadInstances (resolve) {
@@ -137,64 +132,6 @@ export function instanceEditedError (result) {
   }
 }
 
-export function loadInstanceInputValue (value, resolve, reject) {
-  return {
-    type: LOAD_INSTANCES_INPUT_VALUE,
-    payload: {
-      value,
-      resolve,
-      reject
-    }
-  }
-}
-
-export function instanceInputValueLoaded (result) {
-  return {
-    type: LOAD_INSTANCES_INPUT_VALUE_SUCCESS,
-    payload: {
-      result
-    }
-  }
-}
-
-export function instanceInputValueErrorLoaded (result) {
-  return {
-    type: LOAD_INSTANCES_INPUT_VALUE_ERROR,
-    payload: {
-      result
-    }
-  }
-}
-
-export function loadInstanceExit (value, resolve, reject) {
-  return {
-    type: LOAD_INSTANCES_EXIT,
-    payload: {
-      value,
-      resolve,
-      reject
-    }
-  }
-}
-
-export function instanceExitLoaded (result) {
-  return {
-    type: LOAD_INSTANCES_EXIT_SUCCESS,
-    payload: {
-      result
-    }
-  }
-}
-
-export function instanceExitErrorLoaded (result) {
-  return {
-    type: LOAD_INSTANCES_EXIT_ERROR,
-    payload: {
-      result
-    }
-  }
-}
-
 export function deleteInstace (instanceId, resolve, reject) {
   return {
     type: DELETE_INSTANCE,
@@ -239,6 +176,18 @@ export function checkInstance (type, nsInstance, resolve, reject) {
     payload: {
       type,
       nsInstance,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function checkConnectionUrl (type, url, resolve, reject) {
+  return {
+    type: CHECK_URL,
+    payload: {
+      type,
+      url,
       resolve,
       reject
     }
