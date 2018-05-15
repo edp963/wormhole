@@ -49,10 +49,10 @@ object RiderStarter extends App with RiderLogger {
   implicit val materializer = ActorMaterializer()
   implicit val ec = system.dispatcher
 
-//  DbModule.createSchema
+  DbModule.createSchema
 
-//  if (Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.adminUser), minTimeOut).isEmpty)
-//    Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.adminUser, RiderConfig.riderServer.adminPwd, RiderConfig.riderServer.adminUser, "admin", RiderConfig.riderServer.defaultLanguage, active = true, currentSec, 1, currentSec, 1)), minTimeOut)
+  if (Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.adminUser), minTimeOut).isEmpty)
+    Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.adminUser, RiderConfig.riderServer.adminPwd, RiderConfig.riderServer.adminUser, "admin", RiderConfig.riderServer.defaultLanguage, active = true, currentSec, 1, currentSec, 1)), minTimeOut)
 
   val future = Http().bindAndHandle(new RoutesApi(modules).routes, RiderConfig.riderServer.host, RiderConfig.riderServer.port)
 
@@ -60,14 +60,14 @@ object RiderStarter extends App with RiderLogger {
     case Success(_) =>
       riderLogger.info(s"WormholeServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
 
-//      CacheMap.cacheMapInit
-//
-//      ElasticSearch.initial(RiderConfig.es, RiderConfig.grafana)
-//
-//      new ConsumerManager(modules)
-//      riderLogger.info(s"WormholeServer Consumer started")
-//      Scheduler.start
-//      riderLogger.info(s"Wormhole Scheduler started")
+      CacheMap.cacheMapInit
+
+      ElasticSearch.initial(RiderConfig.es, RiderConfig.grafana)
+
+      new ConsumerManager(modules)
+      riderLogger.info(s"WormholeServer Consumer started")
+      Scheduler.start
+      riderLogger.info(s"Wormhole Scheduler started")
 
     case Failure(e) =>
       riderLogger.error(e.getMessage)
