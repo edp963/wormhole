@@ -105,7 +105,7 @@ class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instan
                       }
                     } else {
                       riderLogger.info(s"user ${session.userId} nsSys $sys instance nsInstance $nsInstanceInput format is wrong.")
-                      complete(OK, getHeader(402, s"$nsInstanceInput format is wrong", session))
+                      complete(OK, getHeader(402, s"begin with a letter, certain special characters as '_', '-', end with a letter or number", session))
                     }
                   case (_, None, None, None) =>
                     val future = if (visible.getOrElse(true)) instanceDal.findByFilter(_.active === true) else instanceDal.findAll
@@ -163,7 +163,7 @@ class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instan
                   }
                 } else {
                   riderLogger.info(s"user ${session.userId} nsSys ${simple.nsSys} instance nsInstance ${simple.nsInstance} format is wrong.")
-                  complete(OK, getHeader(402, s"${simple.nsInstance} format is wrong", session))
+                  complete(OK, getHeader(402, s"begin with a letter, certain special characters as '_', '-', end with a letter or number", session))
                 }
               }
           }
@@ -206,7 +206,7 @@ class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instan
                   }
                 } else {
                   riderLogger.info(s"user ${session.userId} nsSys ${instance.nsSys} instance nsInstance ${instance.nsInstance} format is wrong.")
-                  complete(OK, getHeader(402, s"${instance.nsInstance} format is wrong", session))
+                  complete(OK, getHeader(402, s"begin with a letter, certain special characters as '_', '-', end with a letter or number", session))
                 }
               }
           }
