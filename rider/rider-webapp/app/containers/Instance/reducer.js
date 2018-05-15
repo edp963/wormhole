@@ -31,12 +31,6 @@ import {
   EDIT_INSTANCE,
   EDIT_INSTANCE_SUCCESS,
   EDIT_INSTANCE_ERROR,
-  LOAD_INSTANCES_INPUT_VALUE,
-  LOAD_INSTANCES_INPUT_VALUE_SUCCESS,
-  LOAD_INSTANCES_INPUT_VALUE_ERROR,
-  LOAD_INSTANCES_EXIT,
-  LOAD_INSTANCES_EXIT_SUCCESS,
-  LOAD_INSTANCES_EXIT_ERROR,
   DELETE_INSTANCE,
   DELETE_INSTANCE_SUCCESS,
   DELETE_INSTANCE_ERROR,
@@ -46,9 +40,7 @@ import {
 const initialState = fromJS({
   instances: false,
   error: false,
-  modalLoading: false,
-  connectUrlExisted: false,
-  instanceExisted: false
+  modalLoading: false
 })
 
 export function instanceReducer (state = initialState, { type, payload }) {
@@ -86,18 +78,6 @@ export function instanceReducer (state = initialState, { type, payload }) {
         .set('modalLoading', false)
     case EDIT_INSTANCE_ERROR:
       return state.set('modalLoading', false)
-    case LOAD_INSTANCES_INPUT_VALUE:
-      return state.set('connectUrlExisted', false)
-    case LOAD_INSTANCES_INPUT_VALUE_SUCCESS:
-      return state.set('connectUrlExisted', false)
-    case LOAD_INSTANCES_INPUT_VALUE_ERROR:
-      return state.set('connectUrlExisted', true)
-    case LOAD_INSTANCES_EXIT:
-      return state.set('instanceExisted', false)
-    case LOAD_INSTANCES_EXIT_SUCCESS:
-      return state.set('instanceExisted', false)
-    case LOAD_INSTANCES_EXIT_ERROR:
-      return state.set('instanceExisted', true)
     case DELETE_INSTANCE:
       return state
     case DELETE_INSTANCE_SUCCESS:

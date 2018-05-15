@@ -25,7 +25,7 @@ import messages from './messages'
 
 import DataSystemSelector from '../../components/DataSystemSelector'
 import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
-import { checkInstance } from './action'
+import { checkInstance, checkConnectionUrl } from './action'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -42,19 +42,27 @@ export class InstanceForm extends React.Component {
   }
 
   checkInstanceValidator = (rule, value = '', callback) => {
-    const { onCheckInstance } = this.props
+    const { onCheckInstance, instanceFormType } = this.props
     const { instanceDSValue } = this.state
-    onCheckInstance(instanceDSValue, value, res => callback(), err => callback(err))
+
+    instanceFormType === 'add'
+      ? onCheckInstance(instanceDSValue, value, res => {
+        callback()
+      }, err => {
+        callback(err)
+      })
+      : callback()
   }
-  onHandleChange = (name) => (e) => {
-    switch (name) {
-      case 'connectionUrl':
-        this.props.onInitInstanceInputValue(e.target.value)
-        break
-      case 'instance':
-        this.props.onInitInstanceExited(e.target.value)
-        break
-    }
+
+  checkUrlValidator = (rule, value, callback) => {
+    const { onCheckConnectionUrl } = this.props
+    const { instanceDSValue } = this.state
+
+    onCheckConnectionUrl(instanceDSValue, value, res => {
+      callback()
+    }, err => {
+      callback(err)
+    })
   }
 
   onSourceDataSystemItemSelect = (e) => {
@@ -73,13 +81,7 @@ export class InstanceForm extends React.Component {
       wrapperCol: { span: 16 }
     }
 
-    // edit 时，不能修改部分元素
-    let disabledOrNot = false
-    if (instanceFormType === 'add') {
-      disabledOrNot = false
-    } else if (instanceFormType === 'edit') {
-      disabledOrNot = true
-    }
+    const disabledOrNot = instanceFormType === 'edit'
 
     // help
     let questionDS = ''
@@ -111,10 +113,16 @@ export class InstanceForm extends React.Component {
         <Tooltip title={<FormattedMessage {...messages.instanceHelp} />}>
           <Popover
             placement="top"
-            content={<div style={{ width: '260px', height: '55px' }}>
-              <p>{questionDS}</p>
-            </div>}
-            title={<h3><FormattedMessage {...messages.instanceHelp} /></h3>}
+            content={
+              <div style={{ width: '260px', height: '55px' }}>
+                <p>{questionDS}</p>
+              </div>
+            }
+            title={
+              <h3>
+                <FormattedMessage {...messages.instanceHelp} />
+              </h3>
+            }
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>
@@ -162,7 +170,6 @@ export class InstanceForm extends React.Component {
               })(
                 <Input
                   placeholder="Instance"
-                  onChange={this.onHandleChange('instance')}
                   disabled={instanceFormType === 'edit'}
                 />
               )}
@@ -175,11 +182,12 @@ export class InstanceForm extends React.Component {
                 rules: [{
                   required: true,
                   message: `${languageText === 'en' ? 'Please fill in connection url' : '请填写 Connection Url'}`
+                }, {
+                  validator: this.checkUrlValidator
                 }]
               })(
                 <Input
                   placeholder="Connection URL"
-                  onChange={this.onHandleChange('connectionUrl')}
                 />
               )}
             </FormItem>
@@ -203,15 +211,15 @@ InstanceForm.propTypes = {
   form: React.PropTypes.any,
   type: React.PropTypes.string,
   instanceFormType: React.PropTypes.string,
-  onInitInstanceInputValue: React.PropTypes.func,
-  onInitInstanceExited: React.PropTypes.func,
   onInitInstanceSourceDs: React.PropTypes.func,
-  onCheckInstance: React.PropTypes.func
+  onCheckInstance: React.PropTypes.func,
+  onCheckConnectionUrl: React.PropTypes.func
 }
 
 function mapDispatchToProps (dispatch) {
   return {
-    onCheckInstance: (type, nsInstance, resolve, reject) => dispatch(checkInstance(type, nsInstance, resolve, reject))
+    onCheckInstance: (type, nsInstance, resolve, reject) => dispatch(checkInstance(type, nsInstance, resolve, reject)),
+    onCheckConnectionUrl: (type, url, resolve, reject) => dispatch(checkConnectionUrl(type, url, resolve, reject))
   }
 }
 

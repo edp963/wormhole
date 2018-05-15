@@ -26,7 +26,6 @@ import {
   LOAD_SINGLE_DATABASE,
   EDIT_DATABASE,
   LOAD_DATABASES_INSTANCE,
-  LOAD_NAME_EXIST,
   DELETE_DB,
   CHECK_DATABASE
 } from './constants'
@@ -38,8 +37,6 @@ import {
   databaseEdited,
   databaseEditedError,
   databasesInstanceLoaded,
-  nameExistLoaded,
-  nameExistErrorLoaded,
   dBDeleted,
   dBDeletedError,
   getError
@@ -142,25 +139,6 @@ export function* getDatabaseInstanceWatcher () {
   yield fork(takeLatest, LOAD_DATABASES_INSTANCE, getDatabaseInstance)
 }
 
-export function* getName ({ payload }) {
-  try {
-    const result = yield call(request, `${api.database}?nsInstanceId=${payload.value.nsInstanceId}&nsDatabaseName=${payload.value.nsDatabaseName}`)
-    if (result.code === 200) {
-      yield put(nameExistLoaded(result.msg))
-      payload.resolve()
-    } else {
-      yield put(nameExistErrorLoaded(result.msg))
-      payload.reject()
-    }
-  } catch (err) {
-    yield put(getError(err))
-  }
-}
-
-export function* getNameWatcher () {
-  yield fork(throttle, 500, LOAD_NAME_EXIST, getName)
-}
-
 export function* deleteDBAction ({ payload }) {
   try {
     const result = yield call(request, {
@@ -213,7 +191,6 @@ export default [
   singleDatabaseWatcher,
   editDatabaseWatcher,
   getDatabaseInstanceWatcher,
-  getNameWatcher,
   deleteDBActionWatcher,
   checkDatabaseWatcher
 ]
