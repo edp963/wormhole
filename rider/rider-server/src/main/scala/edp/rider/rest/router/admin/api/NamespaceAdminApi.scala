@@ -142,7 +142,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                       }
                     } else {
                       riderLogger.info(s"user ${session.userId} check tables $tableNames format is wrong.")
-                      complete(OK, getHeader(402, s"$tableNames format is wrong", session))
+                      complete(OK, getHeader(402, s"begin with a letter, certain special characters as '_', '-', end with a letter or number", session))
                     }
                   case (_, None, None, None) => synchronizeNs(session, visible.getOrElse(true))
                   case (_, _, _, _) =>
@@ -220,7 +220,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                   }
                 } else {
                   riderLogger.info(s"user ${session.userId} check tables ${simple.nsTables.map(_.table).mkString(",")} format is wrong.")
-                  complete(OK, getHeader(402, s"${simple.nsTables.map(_.table).mkString(",")} format is wrong", session))
+                  complete(OK, getHeader(402, s"begin with a letter, certain special characters as '_', '-', end with a letter or number", session))
                 }
               }
           }
@@ -260,7 +260,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                   }
                 } else {
                   riderLogger.info(s"user ${session.userId} check tables ${ns.nsTable} format is wrong.")
-                  complete(OK, getHeader(402, s"${ns.nsTable} format is wrong", session))
+                  complete(OK, getHeader(402, s"begin with a letter, certain special characters as '_', '-', end with a letter or number", session))
                 }
               }
           }
