@@ -178,10 +178,10 @@ object JobUtils extends RiderLogger {
     ConnectionConfig(connUrl, db.user, db.pwd, getDbConfig(instance.nsSys, db.config.getOrElse("")))
   }
 
-  def startJob(job: Job) = {
-    runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(job.name)}")
+  def startJob(job: Job, logPath: String) = {
+//    runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(job.name)}")
     val startConfig: StartConfig = if (job.startConfig.isEmpty) null else json2caseClass[StartConfig](job.startConfig)
-    val command = generateStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name,
+    val command = generateStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name, logPath,
       if (startConfig != null) startConfig else StartConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum, RiderConfig.spark.executorMemory, RiderConfig.spark.executorCores),
       if (job.sparkConfig.isDefined && !job.sparkConfig.get.isEmpty) job.sparkConfig.get else Seq(RiderConfig.spark.driverExtraConf, RiderConfig.spark.executorExtraConf).mkString(",").concat(RiderConfig.spark.sparkConfig),
       "job"
@@ -198,7 +198,7 @@ object JobUtils extends RiderLogger {
   def refreshJob(id: Long) = {
     val job = Await.result(modules.jobDal.findById(id), minTimeOut).head
     val appInfo = getSparkJobStatus(job)
-    modules.jobDal.updateJobStatus(job.id, appInfo)
+    modules.jobDal.updateJobStatus(job.id, appInfo, job.logPath.getOrElse(""))
     val startedTime = if (appInfo.startedTime != null) Some(appInfo.startedTime) else Some("")
     val stoppedTime = if (appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
     Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.sourceType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,

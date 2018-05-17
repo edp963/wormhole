@@ -139,7 +139,7 @@ class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal)
               onComplete(streamDal.getStreamNameByStreamID(streamId).mapTo[Stream]) {
                 case Success(stream) =>
                   riderLogger.info(s"user ${session.userId} refresh stream log where stream id is $streamId success.")
-                  val log = SparkJobClientLog.getLogByAppName(stream.name)
+                  val log = SparkJobClientLog.getLogByAppName(stream.name, stream.logPath.getOrElse(""))
                   complete(OK, ResponseJson[String](getHeader(200, session), log))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} refresh stream log where stream id is $streamId failed", ex)

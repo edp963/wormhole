@@ -95,7 +95,7 @@ class JobAdminApi(jobDal: JobDal) extends BaseAdminApiImpl(jobDal) with RiderLog
                 case Success(job) =>
                   if (job.isDefined) {
                     riderLogger.info(s"user ${session.userId} refresh job log where job id is $jobId success.")
-                    val log = SparkJobClientLog.getLogByAppName(job.get.name)
+                    val log = SparkJobClientLog.getLogByAppName(job.get.name, job.get.logPath.getOrElse(""))
                     complete(OK, ResponseJson[String](getHeader(200, session), log))
                   } else {
                     riderLogger.error(s"user ${session.userId} refresh job log where job id is $jobId, but job do not exist")
