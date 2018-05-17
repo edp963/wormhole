@@ -80,7 +80,9 @@ class UserApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) extends Ba
                   userOpt match {
                     case Some(user) =>
                       riderLogger.info(s"user ${session.userId} select user $id where project id is $id success.")
-                      complete(OK, ResponseJson[User](getHeader(200, session), user))
+                      val noPwdUser = User(user.id, user.email, "", user.name, user.roleType, user.preferredLanguage, user.active, user.createTime, user.createBy,
+                        user.updateTime, user.updateBy)
+                      complete(OK, ResponseJson[User](getHeader(200, session), noPwdUser))
                     case None =>
                       riderLogger.info(s"user ${session.userId} select user $id where project id is $id success.")
                       complete(OK, ResponseJson[String](getHeader(200, session), ""))

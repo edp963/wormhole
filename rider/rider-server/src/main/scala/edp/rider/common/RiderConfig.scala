@@ -234,13 +234,12 @@ object RiderConfig {
     "spark.driver.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc/",
     "spark.executor.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc",
     s"spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3,spark.streaming.kafka.consumer.cache.enabled=$kafkaConsumerCache",
-    alert, metricsConfPath, alertEmails
-  )
+    alert, metricsConfPath, alertEmails)
 
   lazy val es =
     if (config.hasPath("elasticSearch") && config.getString("elasticSearch.http.url").nonEmpty) {
       RiderEs(config.getString("elasticSearch.http.url"),
-        "wormhole_feedback",
+        getStringConfig("elasticSearch.wormhole.feedback.index", "wormhole_feedback"),
         "wormhole_stats_feedback",
         getStringConfig("elasticSearch.http.user", ""),
         getStringConfig("elasticSearch.http.password", ""))

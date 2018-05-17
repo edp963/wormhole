@@ -276,7 +276,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                     riderLogger.info(s"user ${
                       session.userId
                     } refresh stream log where stream id is $streamId success.")
-                    val log = SparkJobClientLog.getLogByAppName(stream.name)
+                    val log = SparkJobClientLog.getLogByAppName(stream.name, stream.logPath.getOrElse(""))
                     complete(OK, ResponseJson[String](getHeader(200, session), log))
                   case Failure(ex) =>
                     riderLogger.error(s"user ${
@@ -314,7 +314,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                   riderLogger.info(s"user ${
                     session.userId
                   } stop stream $streamId success.")
-                  onComplete(streamDal.updateByStatus(streamId, status, session.userId).mapTo[Int]) {
+                  onComplete(streamDal.updateByStatus(streamId, status, session.userId, stream.logPath.getOrElse("")).mapTo[Int]) {
                     case Success(_) =>
                       val streamDetail = streamDal.getBriefDetail(Some(id), Some(Seq(streamId))).head
                       complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail))
@@ -479,10 +479,11 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             complete(OK, getHeader(507, "resource is not enough", session))
           } else {
             startStreamDirective(streamId, streamDirectiveOpt, session.userId)
-            runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(stream.name)}")
-            startStream(streamDetail)
+//            runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(stream.name)}")
+            val logPath = getLogPath(stream.name)
+            startStream(streamDetail, logPath)
             riderLogger.info(s"user ${session.userId} start stream $streamId success")
-            onComplete(streamDal.updateByStatus(streamId, StreamStatus.STARTING.toString, session.userId).mapTo[Int]) {
+            onComplete(streamDal.updateByStatus(streamId, StreamStatus.STARTING.toString, session.userId, logPath).mapTo[Int]) {
               case Success(_) =>
                 val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(Seq(streamId))).head
                 complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail))
@@ -536,7 +537,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                         Await.result(streamDal.deleteById(streamId), minTimeOut)
                         Await.result(inTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
                         CacheMap.streamCacheMapRefresh
-                        runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(streamDetail.stream.name)}")
+//                        runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(streamDetail.stream.name)}")
                         riderLogger.info(s"user ${session.userId} delete stream $streamId success")
                         complete(OK, getHeader(200, session))
                       }

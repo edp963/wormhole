@@ -32,7 +32,6 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.JobUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.spark.SubmitSparkJob.getLogPath
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await
@@ -126,7 +125,7 @@ object AppUtils extends RiderLogger {
           val jobInsert = Job(0, appJob.get.name.getOrElse(genJobName(projectId, sourceNs, sinkNs)), projectId, sourceNs, sinkNs, appJob.get.sourceType.getOrElse("hdfs_txt"),
             None, "", appJob.get.eventTsStart.getOrElse(""), appJob.get.eventTsEnd.getOrElse(""), None, appJob.get.sinkConfig,
             Some(genJobTranConfigByColumns(appJob.get.tranConfig.getOrElse(""), appJob.get.sinkColumns.getOrElse(""))),
-            "starting", None, Some(getLogPath(genJobName(projectId, sourceNs, sinkNs))), Some(currentSec), None, currentSec,
+            "starting", None, Some(""), Some(currentSec), None, currentSec,
             session.userId, currentSec, session.userId)
           val result = Await.result(modules.jobDal.insert(jobInsert), minTimeOut)
           riderLogger.info(s"user ${session.userId} project $projectId insert job success.")

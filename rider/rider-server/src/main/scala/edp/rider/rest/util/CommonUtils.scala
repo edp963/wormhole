@@ -21,6 +21,8 @@
 
 package edp.rider.rest.util
 
+import java.time.ZonedDateTime
+
 import com.alibaba.fastjson.JSON
 import edp.rider.common.RiderLogger
 import edp.wormhole.common.util.DateUtils._
@@ -30,7 +32,11 @@ import scala.concurrent.duration._
 
 object CommonUtils extends RiderLogger {
 
+  def getTimeZoneId = ZonedDateTime.now().getOffset.getId
+
   def currentSec = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_SEC)
+
+  def currentNodSec = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_NOD_SEC)
 
   def currentMillSec = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
 
@@ -46,7 +52,7 @@ object CommonUtils extends RiderLogger {
 
   val streamSparkConfigPattern = "(.+=.+(,.+.+)*)".r.pattern
 
-  val namePattern = "[a-zA-Z]+([a-zA-z0-9\\_\\-]*[a-zA-z0-9])*".r.pattern
+  val namePattern = "[^\\.]*".r.pattern
 
   def formatResponseTimestamp(time: Option[String]): Option[String] = {
     if (time.getOrElse("") == "") Some("")
@@ -85,4 +91,5 @@ object CommonUtils extends RiderLogger {
       return true
     streamSparkConfigPattern.matcher(str).matches()
   }
+
 }
