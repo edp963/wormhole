@@ -85,7 +85,7 @@ object StreamUtils extends RiderLogger {
               case "refresh_spark" =>
                 getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, stream.status, startedTime, stoppedTime)
               case "refresh_log" =>
-                val logInfo = SparkJobClientLog.getAppStatusByLog(stream.name, dbStatus)
+                val logInfo = SparkJobClientLog.getAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""))
                 logInfo._2 match {
                   case "running" =>
                     getAppStatusByRest(appInfoList, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
@@ -144,14 +144,17 @@ object StreamUtils extends RiderLogger {
             }
           }
         }
+        //        val preAppInfo = AppInfo(stream.sparkAppid.getOrElse(""), dbStatus, startedTime, stoppedTime)
+        //        if (!preAppInfo.equals(appInfo))
         stream.updateFromSpark(appInfo)
+        //        else stream
       })
   }
 
 
   def genStreamNameByProjectName(projectName: String, name: String): String = s"wormhole_${projectName}_$name"
 
-  def getBatchFlowConfig(streamDetail: StreamDetail) = {
+  def getStreamConfig(streamDetail: StreamDetail) = {
     val launchConfig = json2caseClass[LaunchConfig](streamDetail.stream.launchConfig)
     val config = BatchFlowConfig(KafkaInputBaseConfig(streamDetail.stream.name, launchConfig.durations.toInt, streamDetail.kafkaInfo.connUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
       KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
@@ -160,11 +163,11 @@ object StreamUtils extends RiderLogger {
     caseClass2json[BatchFlowConfig](config)
   }
 
-  def startStream(streamDetail: StreamDetail) = {
-    val args = getBatchFlowConfig(streamDetail)
+  def startStream(streamDetail: StreamDetail, logPath: String) = {
+    val args = getStreamConfig(streamDetail)
     val startConfig = json2caseClass[StartConfig](streamDetail.stream.startConfig)
-    val commandSh = generateStreamStartSh(s"'''$args'''", streamDetail.stream.name, startConfig, streamDetail.stream.sparkConfig.getOrElse(""), streamDetail.stream.streamType)
-    riderLogger.info(s"start stream command: $commandSh")
+    val commandSh = generateStreamStartSh(s"'''$args'''", streamDetail.stream.name, logPath, startConfig, streamDetail.stream.sparkConfig.getOrElse(""), streamDetail.stream.streamType)
+    riderLogger.info(s"start stream ${streamDetail.stream.id} command: $commandSh")
     runShellCommand(commandSh)
   }
 
@@ -435,4 +438,10 @@ object StreamUtils extends RiderLogger {
     val kakfaId = Await.result(modules.streamDal.findById(id), minTimeOut).get.instanceId
     Await.result(modules.instanceDal.findById(kakfaId), minTimeOut).get.connUrl
   }
+
+  def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}$appName-${CommonUtils.currentNodSec}.log"
+
+  def getStreamTime(time: Option[String]) =
+    if(time.nonEmpty) time.get.split("\\.")(0) else null
+
 }

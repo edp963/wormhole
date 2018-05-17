@@ -106,14 +106,13 @@ object AuthorizationProvider extends ConfigurationModuleImpl with PersistenceMod
   }
 
   private def findUserByLdap(login: LoginClass): Future[User] = {
-    val ldapUser = User(0, login.email, "", "", login.email.split("@")(0), "user", active = true, currentSec, 0, currentSec, 0)
+    val ldapUser = User(0, login.email, "", login.email.split("@")(0), "user", RiderConfig.riderServer.defaultLanguage, active = true, currentSec, 0, currentSec, 0)
     userDal.findByFilter(user => user.email === login.email && user.active === true).map[User] {
       userSeq =>
         userSeq.headOption match {
-          case Some(_) =>
-            ldapUser
+          case Some(user) => user
           case None =>
-            riderLogger.info(s"user ${login.email} login failed caused by user not found")
+            riderLogger.info(s"user ${login.email} first login.")
             Await.result(userDal.insert(ldapUser), minTimeOut)
         }
     }

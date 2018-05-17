@@ -49,8 +49,12 @@ class StreamDal(streamTable: TableQuery[StreamTable],
 
   def refreshStreamStatus(projectIdOpt: Option[Long] = None, streamIdsOpt: Option[Seq[Long]] = None, action: String = REFRESH.toString): Seq[Stream] = {
     val streamSeq = getStreamSeq(projectIdOpt, streamIdsOpt)
+    val streamMap = streamSeq.map(stream => (stream.id, (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime)))).toMap
     val refreshStreamSeq = getStatus(action, streamSeq)
-    Await.result(super.update(refreshStreamSeq), minTimeOut)
+    val updateStreamSeq = refreshStreamSeq.filter(stream => {
+      if (streamMap(stream.id) == (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime))) false else true
+    })
+    updateByRefresh(updateStreamSeq)
     refreshStreamSeq
   }
 
@@ -117,17 +121,24 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       .update(putStream.desc, putStream.sparkConfig, putStream.startConfig, putStream.launchConfig, currentSec, userId)).mapTo[Int]
   }
 
-  def updateByStatus(streamId: Long, status: String, userId: Long): Future[Int] = {
+  def updateByStatus(streamId: Long, status: String, userId: Long, logPath: String): Future[Int] = {
 
     if (status == StreamStatus.STARTING.toString) {
       db.run(streamTable.filter(_.id === streamId)
-        .map(stream => (stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.updateTime, stream.updateBy))
-        .update(status, null, Some(currentSec), null, currentSec, userId)).mapTo[Int]
+        .map(stream => (stream.status, stream.sparkAppid, stream.logPath, stream.startedTime, stream.stoppedTime, stream.updateTime, stream.updateBy))
+        .update(status, null, Some(logPath), Some(currentSec), null, currentSec, userId)).mapTo[Int]
     } else {
       db.run(streamTable.filter(_.id === streamId)
         .map(stream => (stream.status, stream.updateTime, stream.updateBy))
         .update(status, currentSec, userId)).mapTo[Int]
     }
+  }
+
+  def updateByRefresh(streams: Seq[Stream]): Seq[Int] = {
+    streams.map(stream =>
+      Await.result(db.run(streamTable.filter(_.id === stream.id)
+        .map(stream => (stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime))
+        .update(stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime)).mapTo[Int], minTimeOut))
   }
 
   def getResource(projectId: Long): Future[Resource] = {

@@ -26,6 +26,7 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.{AppInfo, RiderLogger}
 import edp.rider.rest.persistence.dal.{JobDal, ProjectDal}
 import edp.rider.rest.persistence.entities._
+import edp.rider.rest.util.StreamUtils
 //import edp.rider.rest.router.JsonProtocol._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, SessionClass}
 import edp.rider.rest.util.AppUtils._
@@ -53,14 +54,15 @@ class JobAppApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseAppApiImpl(j
                     prepare(Some(appJob), None, session, projectId) match {
                       case Right(tuple) =>
                         val job = tuple._1.get
+                        val logPath = StreamUtils.getLogPath(job.name)
                         try {
-                          startJob(job)
+                          startJob(job, logPath)
                           riderLogger.info(s"user ${session.userId} start job ${job.id} success.")
                           complete(OK, ResponseJson[AppJobResponse](getHeader(200, null), AppJobResponse(job.id, job.status)))
                         } catch {
                           case ex: Exception =>
                             riderLogger.error(s"user ${session.userId} start job ${job.id} failed", ex)
-                            jobDal.updateJobStatus(job.id, AppInfo(null, "failed", job.startedTime.get, currentSec))
+                            jobDal.updateJobStatus(job.id, AppInfo(null, "failed", job.startedTime.get, currentSec), logPath)
                             complete(OK, getHeader(451, null))
                         }
                       case Left(response) => complete(OK, response)

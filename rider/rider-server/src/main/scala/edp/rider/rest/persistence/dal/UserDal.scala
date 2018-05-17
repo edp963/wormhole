@@ -43,10 +43,10 @@ class UserDal(userTable: TableQuery[UserTable], relProjectUserDal: RelProjectUse
           users.foreach(
             user =>
               if (userProjectMap.contains(user.id))
-                userProjectSeq += UserProject(user.id, user.email, user.password, user.name, user.roleType, user.preferredLanguage, user.active,
+                userProjectSeq += UserProject(user.id, user.email, "", user.name, user.roleType, user.preferredLanguage, user.active,
                   user.createTime, user.createBy, user.updateTime, user.updateBy, userProjectMap(user.id).sorted.mkString(","))
               else
-                userProjectSeq += UserProject(user.id, user.email, user.password, user.name, user.roleType, user.preferredLanguage, user.active,
+                userProjectSeq += UserProject(user.id, user.email, "", user.name, user.roleType, user.preferredLanguage, user.active,
                   user.createTime, user.createBy, user.updateTime, user.updateBy, "")
           )
           userProjectSeq
