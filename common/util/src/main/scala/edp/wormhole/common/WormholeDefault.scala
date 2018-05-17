@@ -64,7 +64,7 @@ trait WormholeDefault  {
 
   def nullify(s: String) = if (isNull(s)) null else s
 
-  implicit lazy val defaultTimeZone = TimeZone.getTimeZone("Asia/Shanghai")
+  implicit lazy val defaultTimeZone = TimeZone.getDefault
 
   implicit lazy val defaultCodec = Codec.UTF8
   defaultCodec.onMalformedInput(CodingErrorAction.REPLACE)
