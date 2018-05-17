@@ -242,7 +242,12 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                 riderLogger.info(s"user ${
                   session.userId
                 } select users where active is true and roleType is user success.")
-                complete(OK, ResponseSeqJson[User](getHeader(200, session), users.sortBy(_.email)))
+                val noPwdUsers = users.map {
+                  user =>
+                    User(user.id, user.email, "", user.name, user.roleType, user.preferredLanguage, user.active, user.createTime, user.createBy,
+                      user.updateTime, user.updateBy)
+                }
+                complete(OK, ResponseSeqJson[User](getHeader(200, session), noPwdUsers.sortBy(_.email)))
               case Failure(ex) =>
                 riderLogger.error(s"user ${
                   session.userId

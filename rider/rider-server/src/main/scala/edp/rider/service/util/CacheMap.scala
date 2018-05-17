@@ -151,11 +151,11 @@ object CacheMap extends RiderLogger {
 
   def getFlowId(flowName: String): Long =
     try {
-      val pid = singleMap.getFlowId(flowName)
-      if (pid == 0) {
-//        flowCacheMapRefresh
-        singleMap.getFlowId(flowName)
-      } else pid
+      singleMap.getFlowId(flowName)
+//      if (pid == 0) {
+////        flowCacheMapRefresh
+//        singleMap.getFlowId(flowName)
+//      } else pid
     } catch {
       case ex: Exception =>
         riderLogger.error(s"stream cache map refresh failed", ex)

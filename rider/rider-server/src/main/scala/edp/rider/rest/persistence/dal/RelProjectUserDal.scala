@@ -47,7 +47,8 @@ class RelProjectUserDal(userTable: TableQuery[UserTable],
   def getUserByProjectId(id: Long): Future[Seq[User]] = {
     db.run((userTable.filter(user => user.active === true && user.roleType =!= "admin") join relProjectUserTable.filter(_.projectId === id) on (_.id === _.userId))
       .map {
-        case (user, _) => user
+        case (user, _) => (user.id, user.email, "", user.name, user.roleType, user.preferredLanguage, user.active, user.createTime, user.createBy,
+          user.updateTime, user.updateBy) <> (User.tupled, User.unapply)
       }.result).mapTo[Seq[User]]
   }
 

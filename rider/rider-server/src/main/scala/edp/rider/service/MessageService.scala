@@ -26,6 +26,7 @@ import edp.rider.common.{RiderLogger, TopicPartitionOffset}
 import edp.rider.module.{ConfigurationModule, PersistenceModule}
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.entities._
+import edp.rider.rest.util.CommonUtils
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.service.util.{CacheMap, FeedbackOffsetUtil}
 import edp.wormhole.common.util.{DateUtils, DtFormat}
@@ -89,7 +90,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
             case Success(t) => riderLogger.debug("FeedbackDirective inserted success.")
           }
 
-            modules.directiveDal.getDetail(directiveIdValue.toString.toLong) match {
+          modules.directiveDal.getDetail(directiveIdValue.toString.toLong) match {
             case Some(records) =>
               val pType: UmsProtocolType.Value = UmsProtocolType.umsProtocolType(records.protocolType.toString)
               pType match {
@@ -230,7 +231,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
   }
 
   def doFeedbackFlowStats(message: Ums) = {
-    val srcNamespace = message.schema.namespace.toLowerCase
+    val srcNamespace = message.schema.namespace
     val riderNamespace = namespaceRiderString(srcNamespace)
     val fields = message.schema.fields_get
     var throughput: Long = 0
@@ -268,18 +269,19 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
             throughput = rddCountValue.toString.toInt
           } else throughput = rddCountValue.toString.toInt / interval_rdd_done
 
-          val monitorInfo = MonitorInfo(statsIdValue.toString, umsTsValue.toString, CacheMap.getProjectId(streamIdValue.toString.toLong), streamIdValue.toString.toLong, CacheMap.getStreamName(streamIdValue.toString.toLong), CacheMap.getFlowId(flowName), flowName, rddCountValue.toString.toInt, throughput,
-            DateUtils.dt2string(cdcTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-            DateUtils.dt2string(rddTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-            DateUtils.dt2string(directiveTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-            DateUtils.dt2string(mainDataTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-            DateUtils.dt2string(swiftsTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-            DateUtils.dt2string(sinkTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-            DateUtils.dt2string(doneTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+          val monitorInfo = MonitorInfo(statsIdValue.toString,
+            string2EsDateString(umsTsValue.toString),
+            CacheMap.getProjectId(streamIdValue.toString.toLong), streamIdValue.toString.toLong, CacheMap.getStreamName(streamIdValue.toString.toLong), CacheMap.getFlowId(flowName), flowName, rddCountValue.toString.toInt, throughput,
+            string2EsDateString(DateUtils.dt2string(cdcTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(rddTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(directiveTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(mainDataTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(swiftsTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(sinkTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(doneTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             interval_data_process_dataums, interval_data_process_rdd, interval_data_process_swifts, interval_data_process_sink, interval_data_process_done,
             interval_data_ums_done, interval_rdd_done, interval_data_swifts_sink, interval_data_sink_done)
           ElasticSearch.insertFlowStatToES(monitorInfo)
-          riderLogger.debug("es insert success")
         } else {
           riderLogger.error(s"Failed to get value from FeedbackFlowStats", tuple)
         }
@@ -288,5 +290,9 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
       case e: Exception =>
         riderLogger.error(s"Failed to parse FeedbackFlowStats feedback message", e)
     }
+  }
+
+  private def string2EsDateString(string: String): String = {
+    string.concat(CommonUtils.getTimeZoneId)
   }
 }
