@@ -273,7 +273,7 @@ object WormholeUtils extends EdpLogging {
   }
 
 
-  def sendTopicPartitionOffset(offsetInfo: ArrayBuffer[OffsetRange], feedbackTopicName: String, config: WormholeConfig): Unit = {
+  def sendTopicPartitionOffset(offsetInfo: ArrayBuffer[OffsetRange], feedbackTopicName: String, config: WormholeConfig,batchId:String): Unit = {
     val topicConfigMap = mutable.HashMap.empty[String, ListBuffer[PartitionOffsetConfig]]
 
     offsetInfo.foreach { offsetRange =>
@@ -290,7 +290,7 @@ object WormholeUtils extends EdpLogging {
       (topicName, partitionOffsetList.map(it => it.partition_num + ":" + it.offset).sorted.mkString(","))
     }
     }.toMap
-    WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority2, WormholeUms.feedbackStreamTopicOffset(currentDateTime, config.spark_config.stream_id, tp), None, config.kafka_output.brokers)
+    WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority2, WormholeUms.feedbackStreamTopicOffset(currentDateTime, config.spark_config.stream_id, tp,batchId), None, config.kafka_output.brokers)
   }
 
 

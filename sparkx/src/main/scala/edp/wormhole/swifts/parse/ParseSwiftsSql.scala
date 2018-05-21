@@ -102,7 +102,7 @@ object ParseSwiftsSql extends EdpLogging {
 //    SwiftsSql(SqlOptType.PUSHDOWN_REDIS_SIMPLE.toString, Some(selectFields), "", None, Some(pushdownNamespace), Some(joinbyFileds), None,None)
 //  }
 
-  private def getFieldsFromHbaseOrRedis(sqlStrEle: String): String = {
+  private def getFieldsFromHbaseOrRedisOrKudu(sqlStrEle: String): String = {
     val selectFieldFrom = sqlStrEle.indexOf("select ") + 7
     val selectFieldEnd = sqlStrEle.toLowerCase.indexOf(" from ")
     sqlStrEle.substring(selectFieldFrom,selectFieldEnd)//.split(",").map(_.trim)
@@ -300,8 +300,8 @@ object ParseSwiftsSql extends EdpLogging {
     }else{
       val lookupNamespacesArr = joinNamespace.split(",").map(_.trim)
       val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(lookupNamespacesArr(0))
-      fieldsStr = if(joinNamespace.startsWith(UmsDataSystem.HBASE.toString)||joinNamespace.startsWith(UmsDataSystem.REDIS.toString)){
-        Some(getFieldsFromHbaseOrRedis(sql))
+      fieldsStr = if(joinNamespace.startsWith(UmsDataSystem.HBASE.toString)||joinNamespace.startsWith(UmsDataSystem.REDIS.toString)||joinNamespace.startsWith(UmsDataSystem.KUDU.toString)){
+        Some(getFieldsFromHbaseOrRedisOrKudu(sql))
       }else{
         Some(getSchema(sql, connectionConfig))
       }
