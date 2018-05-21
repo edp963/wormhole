@@ -43,14 +43,16 @@ object RouterDirective extends Directive {
                                          feedbackTopicName: String,
                                          brokers: String,
                                          data_type: String): Unit = {
-
-    if (routerMap.contains(sourceNamespace)) {
-        val sinkMap = routerMap(sourceNamespace)._1
+    //[sourceNs,([sinkNs,(brokers,topic)],ums/json)]
+    synchronized {
+      if (routerMap.contains(sourceNamespace)) {
+        val sinkMap: mutable.Map[String, (String, String)] = routerMap(sourceNamespace)._1
         sinkMap(sinkNamespace) = (target_kafka_broker, kafka_topic)
-    } else {
-      routerMap(sourceNamespace) = (mutable.HashMap(sinkNamespace -> (target_kafka_broker, kafka_topic)), data_type)
+      } else {
+        routerMap(sourceNamespace) = (mutable.HashMap(sinkNamespace -> (target_kafka_broker, kafka_topic)), data_type)
+      }
+      WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
     }
-    WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
   }
 
   override def flowStartProcess(ums: Ums, feedbackTopicName: String, brokers: String): Unit = {

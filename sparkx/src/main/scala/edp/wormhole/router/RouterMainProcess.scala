@@ -23,12 +23,12 @@ package edp.wormhole.router
 
 import java.util.UUID
 
-import edp.wormhole.common.util.DateUtils.currentDateTime
+import edp.wormhole.common.util.DateUtils
 import edp.wormhole.common.{FeedbackPriority, SparkUtils, WormholeConfig, WormholeUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.ums.{UmsFeedbackStatus, UmsProtocolUtils}
+import edp.wormhole.ums.{UmsFeedbackStatus, UmsProtocolType, UmsProtocolUtils}
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
@@ -40,28 +40,33 @@ object RouterMainProcess extends EdpLogging {
 
   def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession): Unit = {
     stream.foreachRDD((streamRdd: RDD[ConsumerRecord[String, String]]) => {
+      val startTime = System.currentTimeMillis()
       val offsetInfo: ArrayBuffer[OffsetRange] = new ArrayBuffer[OffsetRange]
+      val batchId = UUID.randomUUID().toString
       streamRdd.asInstanceOf[HasOffsetRanges].offsetRanges.copyToBuffer(offsetInfo)
       try {
         logInfo("start foreachRDD")
         if (SparkUtils.isLocalMode(config.spark_config.master)) logWarning("rdd count ===> " + streamRdd.count())
-        val statsId = UUID.randomUUID().toString
-        val rddTs = System.currentTimeMillis
+
+        //        val rddTs = System.currentTimeMillis
 
         logInfo("start doDirectiveTopic")
-        val directiveTs = System.currentTimeMillis
+        //        val directiveTs = System.currentTimeMillis
         RouterDirective.doDirectiveTopic(config, stream)
 
         logInfo("start Repartition")
-        val mainDataTs = System.currentTimeMillis
+        //        val mainDataTs = System.currentTimeMillis
 
         val routerKeys = ConfMemoryStorage.getRouterKeys
 
         val dataRepartitionRdd: RDD[(String, String)] =
           if (config.rdd_partition_number != -1) streamRdd.map(row => (row.key, row.value)).repartition(config.rdd_partition_number)
           else streamRdd.map(row => (row.key, row.value))
+        dataRepartitionRdd.cache()
 
         val routerMap = ConfMemoryStorage.getRouterMap
+
+        val allCount = dataRepartitionRdd.count()
 
         dataRepartitionRdd.foreachPartition { partition =>
           routerMap.foreach { case (_, (map, _)) =>
@@ -95,11 +100,21 @@ object RouterMainProcess extends EdpLogging {
           }
           }
         }
-        WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config)
+
+        dataRepartitionRdd.unpersist()
+
+        val endTime = System.currentTimeMillis()
+        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
+          UmsProtocolUtils.feedbackFlowStats("*.*.*.*.*.*.*", UmsProtocolType.DATA_INCREMENT_DATA.toString, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, "kafka.*.*.*.*.*.*",
+            allCount.toInt, startTime, startTime, startTime, startTime, startTime, startTime, endTime), None, config.kafka_output.brokers)
+
+
+        WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
       } catch {
         case e: Throwable =>
           logAlert("batch error", e)
-          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, currentDateTime, UmsFeedbackStatus.SUCCESS, ""), None, config.kafka_output.brokers)
+          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, DateUtils.currentDateTime, UmsFeedbackStatus.SUCCESS, e.getMessage, batchId), None, config.kafka_output.brokers)
+          WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
       }
       stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
     })
