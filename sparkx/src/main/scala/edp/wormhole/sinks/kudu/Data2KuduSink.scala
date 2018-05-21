@@ -37,7 +37,7 @@ class Data2KuduSink extends SinkProcessor with EdpLogging {
       try {
         if (sinkSpecificConfig.`mutation_type.get` == SourceMutationType.I_U_D.toString) {
           val keys2UmsIdMap: mutable.Map[String, Map[String, (Any,String)]] =
-            if(tableKeys.length==1) KuduConnection.doQueryByKeyListInBatch(tableName,database, connectionConfig.connectionUrl, tableKeys.head, tupleList, schemaMap , List { UmsSysField.ID.toString })
+            if(tableKeys.length==1) KuduConnection.doQueryByKeyListInBatch(tableName,database, connectionConfig.connectionUrl, tableKeys.head, tupleList, schemaMap , List ( tableKeys.head,UmsSysField.ID.toString ))
             else KuduConnection.doQueryByKeyList(tableName,database, connectionConfig.connectionUrl, tableKeys, tupleList, schemaMap, List { UmsSysField.ID.toString })
           val insertList = ListBuffer.empty[Seq[String]]
           val updateList = ListBuffer.empty[Seq[String]]
