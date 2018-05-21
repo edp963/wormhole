@@ -21,7 +21,7 @@
         "nullable": false
       },
       {
-        "name": "stats_id",//batch_id
+        "name": "batch_id",
         "type": "string",
         "nullable": false
       },

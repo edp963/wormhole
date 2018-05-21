@@ -37,9 +37,18 @@ import scala.collection.mutable.ListBuffer
 object LookupHbase extends EdpLogging {
 
   def transform(session: SparkSession, df: DataFrame, sqlConfig: SwiftsSql, sourceNamespace: String, sinkNamespace: String, connectionConfig: ConnectionConfig): DataFrame = {
-    val selectFields: Array[(String, String)] = sqlConfig.fields.get.split(",").map(field => {
+    //nameinhbase,fieldtype,newname
+    val selectFields: Array[(String, String,String)] = sqlConfig.fields.get.split(",").map(field => {
       val fields = field.split(":")
-      (fields(0).trim, fields(1).trim)
+      val fields1trim  = fields(1).trim
+      if(fields1trim.toLowerCase.contains(" as ")){
+        val asIndex = fields1trim.toLowerCase.indexOf(" as ")
+        val fieldType = fields1trim.substring(0,asIndex).trim
+        val newName = fields1trim.substring(asIndex+4).trim
+        (fields(0).trim,fieldType,newName)
+      }else{
+        (fields(0).trim, fields(1).trim,fields(0).trim)
+      }
     })
 
     val fromIndex = sqlConfig.sql.indexOf(" from ")
@@ -77,7 +86,7 @@ object LookupHbase extends EdpLogging {
 
     val resultSchema = {
       var resultSchema: StructType = df.schema
-      val addColumnType = selectFields.map { case (name, dataType) =>
+      val addColumnType = selectFields.map { case (_, dataType,name) =>
         StructField(name, ums2sparkType(umsFieldType(dataType)))
       }
       addColumnType.foreach(column => resultSchema = resultSchema.add(column))
@@ -99,7 +108,8 @@ object LookupHbase extends EdpLogging {
         HbaseConnection.initHbaseConfig(null, null, connectionConfig)
         val (ips, port, _) = HbaseConnection.getZookeeperInfo(connectionConfig.connectionUrl)
 
-        val hbaseDatas = HbaseConnection.getDatasFromHbase(tablename, cf, true,keys, selectFields, ips, port)
+        //<rowkey,<fieldname,data>>
+        val hbaseDatas = HbaseConnection.getDatasFromHbase(tablename, cf, true,keys, selectFields.map(f=>(f._1,f._2)), ips, port)
 
         for (i <- originalData.indices) {
           val ori = originalData(i)
@@ -107,7 +117,7 @@ object LookupHbase extends EdpLogging {
 
           val key = keys(i)
           val hbaseData: Map[String, Any] = if (hbaseDatas.contains(key)) hbaseDatas(key) else null.asInstanceOf[Map[String, Any]]
-          val dbOutputArray = selectFields.map { case (name, dataType) =>
+          val dbOutputArray: Array[Any] = selectFields.map { case (name, dataType, _) =>
             if (hbaseData==null || hbaseData.isEmpty) SparkSchemaUtils.s2sparkValue(null, umsFieldType(dataType))
             else SparkSchemaUtils.s2sparkValue(hbaseData(name).toString, umsFieldType(dataType))
           }

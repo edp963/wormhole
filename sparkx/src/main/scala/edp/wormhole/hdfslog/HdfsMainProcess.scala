@@ -66,8 +66,9 @@ object HdfsMainProcess extends EdpLogging {
     val zookeeperPath = config.zookeeper_path
     stream.foreachRDD(foreachFunc = (streamRdd: RDD[ConsumerRecord[String, String]]) => {
       val offsetInfo: ArrayBuffer[OffsetRange] = new ArrayBuffer[OffsetRange]
+      val batchId = UUID.randomUUID().toString
       try {
-        val statsId = UUID.randomUUID().toString
+
         val rddTs = System.currentTimeMillis
         if (SparkUtils.isLocalMode(config.spark_config.master)) logWarning("rdd count ===> " + streamRdd.count())
         val directiveTs = System.currentTimeMillis
@@ -126,7 +127,7 @@ object HdfsMainProcess extends EdpLogging {
             } catch {
               case e: Throwable =>
                 logAlert("batch error", e)
-                WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(namespace, config.spark_config.stream_id, currentDateTime, "", UmsWatermark(tmpMinTs), UmsWatermark(tmpMaxTs), tmpCount, ""), None, config.kafka_output.brokers)
+                WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(namespace, config.spark_config.stream_id, currentDateTime, "", UmsWatermark(tmpMinTs), UmsWatermark(tmpMaxTs), tmpCount, "",batchId), None, config.kafka_output.brokers)
             }
           }
           resultList.toIterator
@@ -144,16 +145,16 @@ object HdfsMainProcess extends EdpLogging {
           val doneTs = System.currentTimeMillis
           if (eachResult.allCount > 0 && eachResult.maxTs != "")
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-              UmsProtocolUtils.feedbackFlowStats(eachResult.namespace, eachResult.protocol, currentDateTime, config.spark_config.stream_id, statsId, eachResult.namespace,
+              UmsProtocolUtils.feedbackFlowStats(eachResult.namespace, eachResult.protocol, currentDateTime, config.spark_config.stream_id, batchId, eachResult.namespace,
                 eachResult.allCount, DateUtils.dt2date(eachResult.maxTs).getTime, rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs), None, config.kafka_output.brokers)
         })
         partitionResultRdd.unpersist()
-        WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config)
+        WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config,batchId)
       } catch {
         case e: Throwable =>
           logAlert("batch error", e)
-          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, currentDateTime, UmsFeedbackStatus.FAIL, e.getMessage), None, config.kafka_output.brokers)
-          WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config)
+          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, currentDateTime, UmsFeedbackStatus.FAIL, e.getMessage,batchId), None, config.kafka_output.brokers)
+          WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config,batchId)
       }
       stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
     })

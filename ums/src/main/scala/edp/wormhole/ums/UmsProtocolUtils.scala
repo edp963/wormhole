@@ -210,7 +210,8 @@ trait UmsProtocolUtils {
                         maxWatermark: UmsWatermark,
                         minWatermark: UmsWatermark,
                         errorCount: Int,
-                        errorInfo: String) = toJsonCompact(Ums(
+                        errorInfo: String,
+                        batchId:String) = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_ERROR),
     schema = UmsSchema(sourceNamespace, Some(Seq(
       UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
@@ -219,7 +220,8 @@ trait UmsProtocolUtils {
       UmsField("error_max_watermark_ts", UmsFieldType.STRING),
       UmsField("error_min_watermark_ts", UmsFieldType.STRING),
       UmsField("error_count", UmsFieldType.INT),
-      UmsField("error_info", UmsFieldType.STRING)))),
+      UmsField("error_info", UmsFieldType.STRING),
+      UmsField("batch_id", UmsFieldType.STRING)))),
     payload = Some(Seq(UmsTuple(Seq(
       dt2string(timeNow, dtFormat),
       sinkNamespace,
@@ -227,14 +229,15 @@ trait UmsProtocolUtils {
       dt2string(maxWatermark.ts, dtFormat),
       dt2string(minWatermark.ts, dtFormat),
       errorCount.toString,
-      errorInfo))))))
+      errorInfo,
+      batchId))))))
 
   // feedback_flow_stats
   def feedbackFlowStats(sourceNamespace: String,
                         dataType: String,
                         timestamp: DateTime,
                         streamId: Long,
-                        statsId: String,
+                        batchId: String,
                         sinkNamespace: String,
                         rddCount: Int,
                         cdcTs: Long,
@@ -249,7 +252,8 @@ trait UmsProtocolUtils {
       UmsField("data_type", UmsFieldType.STRING),
       UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
       UmsField("stream_id", UmsFieldType.STRING),
-      UmsField("stats_id", UmsFieldType.STRING),
+      UmsField("batch_id", UmsFieldType.STRING),
+      UmsField("stats_id", UmsFieldType.STRING),//兼容现有的版本，以后rider都升级了可以干掉
       UmsField("sink_namespace", UmsFieldType.STRING),
       UmsField("rdd_count", UmsFieldType.INT),
       UmsField("data_genereated_ts", UmsFieldType.LONG),
@@ -264,7 +268,8 @@ trait UmsProtocolUtils {
       dataType,
       dt2string(timestamp, dtFormat),
       streamId.toString,
-      statsId,
+      batchId,
+      batchId,
       sinkNamespace,
       rddCount.toString,
       cdcTs.toString,
@@ -277,30 +282,33 @@ trait UmsProtocolUtils {
     ))))))
 
   // feedback_stream_batch_error
-  def feedbackStreamBatchError(streamID: Long, timeNow: DateTime, status: UmsFeedbackStatus, resultDesc: String) = toJsonCompact(Ums(
+  def feedbackStreamBatchError(streamID: Long, timeNow: DateTime, status: UmsFeedbackStatus, resultDesc: String, batchId:String) = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.FEEDBACK_STREAM_BATCH_ERROR),
     schema = UmsSchema("", Some(Seq(
       UmsField("stream_id", UmsFieldType.LONG),
       UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
       UmsField("status", UmsFieldType.STRING),
-      UmsField("result_desc", UmsFieldType.STRING)))),
+      UmsField("result_desc", UmsFieldType.STRING),
+      UmsField("batch_id", UmsFieldType.STRING)))),
     payload = Some(Seq(UmsTuple(Seq(
       streamID.toString,
       dt2string(timeNow, dtFormat),
       status.toString,
-      resultDesc.toString))))))
+      resultDesc.toString,
+      batchId))))))
 
   // feedback_stream_topic_offset
-  def feedbackStreamTopicOffset(timeNow: DateTime, streamID: Long,tp:Map[String, String]) = {
+  def feedbackStreamTopicOffset(timeNow: DateTime, streamID: Long,tp:Map[String, String],batchId:String) = {
     toJsonCompact(Ums(
       protocol = UmsProtocol(UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET),
       schema = UmsSchema(empty, Some(Seq(
         UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
         UmsField("stream_id", UmsFieldType.INT),
         UmsField("topic_name", UmsFieldType.STRING),
-        UmsField("partition_offsets", UmsFieldType.STRING)
+        UmsField("partition_offsets", UmsFieldType.STRING),
+        UmsField("batch_id", UmsFieldType.STRING)
       ))),
-      payload = Some(tp.map{case (topicName, partitionOffsets) => UmsTuple(Seq(dt2string(timeNow, dtFormat), streamID.toString, topicName, partitionOffsets))}.toSeq)))
+      payload = Some(tp.map{case (topicName, partitionOffsets) => UmsTuple(Seq(dt2string(timeNow, dtFormat), streamID.toString, topicName, partitionOffsets,batchId))}.toSeq)))
   }
 
 
