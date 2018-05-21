@@ -24,6 +24,11 @@
         "name": "result_desc",
         "type": "string",
         "nullable": true
+      },
+      {
+        "name": "batch_id",
+        "type": "string",
+        "nullable": true
       }
     ]
   },

@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,13 +21,13 @@
 
 package edp.wormhole.batchjob
 
-
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.{ConnectionConfig, SparkUtils}
 import edp.wormhole.common.util.JsonUtils.json2caseClass
 import edp.wormhole.batchjob.transform.Transform
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.sinks.SinkProcessConfig
+import edp.wormhole.udf.UdfRegister
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.{UmsDataSystem, UmsNamespace, UmsProtocolType, UmsSysField}
@@ -73,6 +73,12 @@ object BatchJobStarter extends App with EdpLogging {
 
   val sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
 
+  if(batchJobConfig.udfConfig.nonEmpty&&batchJobConfig.udfConfig.get.nonEmpty){
+    batchJobConfig.udfConfig.get.foreach(udf=>{
+      UdfRegister.register(udf.udfName, udf.udfClassFullname, null, sparkSession,false)
+    })
+  }
+
   val sourceClazz = Class.forName(sourceConfig.classFullName)
   val sourceReflectObject: Any = sourceClazz.newInstance()
   val sourceTransformMethod = sourceClazz.getDeclaredMethod("process", classOf[SparkSession], classOf[String], classOf[String], classOf[String], classOf[ConnectionConfig], classOf[Option[String]])
@@ -86,7 +92,7 @@ object BatchJobStarter extends App with EdpLogging {
   println("after!!!!!!!!!!! outPutTransformDf")
 
   if (UmsNamespace(sinkConfig.sinkNamespace).dataSys == UmsDataSystem.PARQUET) {
-    outPutTransformDf.write.parquet(sinkConfig.connectionConfig.connectionUrl.stripSuffix("/") + "/" + sinkConfig.sinkNamespace + "/" + sourceConfig.startTime + "_" + sourceConfig.endTime)
+    outPutTransformDf.write.parquet(sinkConfig.connectionConfig.connectionUrl)
   } else {
     val schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)] = SparkUtils.getSchemaMap(outPutTransformDf.schema)
     val limit = sinkConfig.maxRecordPerPartitionProcessed

@@ -39,12 +39,17 @@
         "name": "error_info",
         "type": "string",
         "nullable": false
+      },
+      {
+        "name": "batch_id",
+        "type": "string",
+        "nullable": false
       }
     ]
   },
   "payload": [
     {
-      "tuple": [  "2016-06-01 01:00:11.345123",1,"oracle.oracle02.db.table.v2.dbpar01.tablepar01", "10001", "2016-06-01 01:00:11.345123","2001", "2016-06-01 01:00:11.345123", "10000","error" ]
+      "tuple": [  "2016-06-01 01:00:11.345123",1,"oracle.oracle02.db.table.v2.dbpar01.tablepar01", "10001", "2016-06-01 01:00:11.345123","2001", "2016-06-01 01:00:11.345123", "10000","error","abc" ]
     }
   ]
 }
