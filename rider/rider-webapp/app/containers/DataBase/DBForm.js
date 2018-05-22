@@ -139,6 +139,9 @@ export class DBForm extends React.Component {
     } else if (databaseDSValue === 'redis') {
       databaseDSLabel = 'Database Name'
       databaseDSPlace = `${languageText === 'en' ? 'You can fill in "default"' : '可填写 default'}`
+    } else if (databaseDSValue === 'kudu') {
+      databaseDSLabel = 'Database Name'
+      databaseDSPlace = `Database Name（${languageText === 'en' ? 'Fill in "default" if it is missing' : '若无, 填写 default'}）`
     } else {
       databaseDSLabel = 'Database Name'
       databaseDSPlace = 'Database Name'

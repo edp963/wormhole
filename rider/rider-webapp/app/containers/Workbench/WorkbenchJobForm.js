@@ -45,6 +45,7 @@ const RadioButton = Radio.Button
 import DatePicker from 'antd/lib/date-picker'
 
 import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
+import { sourceDataSystemData, jobSinkDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 
 export class WorkbenchJobForm extends React.Component {
   constructor (props) {
@@ -120,31 +121,6 @@ export class WorkbenchJobForm extends React.Component {
       labelCol: { span: 6 },
       wrapperCol: { span: 17 }
     }
-
-    const sourceDataSystemData = [
-      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
-      { value: 'log', text: 'Log' },
-      { value: 'file', text: 'File' },
-      { value: 'app', text: 'App' },
-      { value: 'mysql', icon: 'icon-mysql' },
-      { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
-      { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} }
-    ]
-
-    const sinkDataSystemData = [
-      { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
-      { value: 'mysql', icon: 'icon-mysql' },
-      { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
-      { value: 'hbase', icon: 'icon-hbase1' },
-      { value: 'phoenix', text: 'Phoenix' },
-      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
-      { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
-      { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
-      { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
-      { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
-      { value: 'parquet', text: 'Parquet' },
-      {value: 'kudu', text: 'Kudu'}
-    ]
 
     let formValues = ''
     formValues = this.props.form.getFieldsValue([
@@ -407,7 +383,7 @@ export class WorkbenchJobForm extends React.Component {
                   }]
                 })(
                   <DataSystemSelector
-                    data={sourceDataSystemData}
+                    data={sourceDataSystemData()}
                     onItemSelect={this.onSourceDataSystemItemSelect}
                     dataSystemDisabled={jobMode === 'edit'}
                   />
@@ -461,7 +437,7 @@ export class WorkbenchJobForm extends React.Component {
                   }]
                 })(
                   <DataSystemSelector
-                    data={sinkDataSystemData}
+                    data={jobSinkDataSystemData()}
                     onItemSelect={this.onSinkDataSystemItemSelect}
                     dataSystemDisabled={jobMode === 'edit'}
                   />

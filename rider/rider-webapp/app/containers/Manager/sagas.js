@@ -28,6 +28,7 @@ import {
   LOAD_STREAM_NAME_VALUE,
   LOAD_KAFKA,
   LOAD_STREAM_CONFIG_JVM,
+  LOAD_STREAM_CONFIG_SPARK,
   LOAD_LOGS_INFO,
   LOAD_ADMIN_LOGS_INFO,
   ADD_STREAMS,
@@ -47,6 +48,7 @@ import {
   streamNameValueErrorLoaded,
   kafkaLoaded,
   streamConfigJvmLoaded,
+  streamConfigSparkLoaded,
   logsInfoLoaded,
   adminLogsInfoLoaded,
   streamAdded,
@@ -156,7 +158,7 @@ export function* getKafkaWatcher () {
 
 export function* getStreamConfigJvm ({ payload }) {
   try {
-    const result = yield call(request, `${api.projectStream}/streams/default/config`)
+    const result = yield call(request, `${api.projectStream}/streams/default/config/jvm`)
     yield put(streamConfigJvmLoaded(result.payload))
     payload.resolve(result.payload)
   } catch (err) {
@@ -166,6 +168,20 @@ export function* getStreamConfigJvm ({ payload }) {
 
 export function* getStreamConfigJvmWatcher () {
   yield fork(takeLatest, LOAD_STREAM_CONFIG_JVM, getStreamConfigJvm)
+}
+
+export function* getStreamConfigSpark ({ payload }) {
+  try {
+    const result = yield call(request, `${api.projectStream}/streams/default/config/spark`)
+    yield put(streamConfigSparkLoaded(result.payload))
+    payload.resolve(result.payload)
+  } catch (err) {
+    notifySagasError(err, 'getStreamConfigSpark')
+  }
+}
+
+export function* getStreamConfigSparkWatcher () {
+  yield fork(takeLatest, LOAD_STREAM_CONFIG_SPARK, getStreamConfigSpark)
 }
 
 export function* getLogs ({ payload }) {
@@ -326,6 +342,7 @@ export default [
   getStreamNameValueWatcher,
   getKafkaWatcher,
   getStreamConfigJvmWatcher,
+  getStreamConfigSparkWatcher,
   getLogsWatcher,
   getAdminLogsWatcher,
   addStreamWathcer,
