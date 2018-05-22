@@ -139,18 +139,23 @@ function flowReducer (state = initialState, { type, payload }) {
     case OPERATE_USER_FLOW:
       return state.set('error', false)
     case OPERATE_USER_FLOW_SUCCESS:
-      if (typeof (payload.result) === 'string') {
+      if (typeof payload.result === 'string') {
+        // 删除操作
         return state.set('flows', flows.filter(g => payload.result.split(',').indexOf(`${g.id}`) < 0))
       } else {
-        const startIndex = flows.indexOf(flows.find(g => Object.is(g.id, payload.result.id)))
-        if (payload.result.length === undefined) {
-          flows.fill(payload.result, startIndex, startIndex + 1)
-        } else {
-          for (let i = 0; i < payload.result.length; i++) {
-            flows.fill(payload.result[i], startIndex, startIndex + 1)
+        if (payload.result.length) {
+          // 批量操作
+          for (let j = 0; j < flows.length; j++) {
+            for (let i = 0; i < payload.result.length; i++) {
+              flows[j] = flows[j].id === payload.result[i].id ? payload.result[i] : flows[j]
+            }
           }
+          return state.set('flows', flows.slice())
+        } else {
+          // 单行操作
+          const flowsFinal = flows.map(t => t.id === payload.result.id ? payload.result : t)
+          return state.set('flows', flowsFinal.slice())
         }
-        return state.set('flows', flows.slice())
       }
     case OPERATE_FLOW_ERROR:
       return state

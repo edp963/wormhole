@@ -113,7 +113,7 @@ export class Flow extends React.Component {
     if (props.flows) {
       const originFlows = props.flows.map(s => {
         s.key = s.id
-        s.visible = false
+        // s.visible = false
         return s
       })
       this.setState({ originFlows: originFlows.slice() })
@@ -180,10 +180,7 @@ export class Flow extends React.Component {
 
   onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
 
-  /**
-   * 批量操作
-   * @param selectedRowKeys
-   */
+  // 批量操作
   handleMenuClick = (selectedRowKeys) => (e) => {
     const languagetext = localStorage.getItem('preferredLanguage')
     if (selectedRowKeys.length > 0) {
@@ -201,6 +198,10 @@ export class Flow extends React.Component {
         case 'menuDelete':
           menuAction = 'delete'
           menuMsg = languagetext === 'en' ? 'Delete' : '删除'
+          break
+        case 'menuRenew':
+          menuAction = 'renew'
+          menuMsg = languagetext === 'en' ? 'Renew' : '生效'
           break
       }
 
@@ -245,11 +246,8 @@ export class Flow extends React.Component {
     })
   }
 
-  /**
-   * 单行操作
-   * @param record
-   */
-  singleOpreateFlow (record, action) {
+  // 单行操作
+  singleOpreateFlow = (record, action) => (e) => {
     const languagetext = localStorage.getItem('preferredLanguage')
     const requestValue = {
       projectId: record.projectId,
@@ -291,14 +289,6 @@ export class Flow extends React.Component {
       message.error(`${languagetext === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
     })
   }
-
-  onShowFlowStart = (record, action) => (e) => this.singleOpreateFlow(record, action)
-
-  stopFlowBtn = (record, action) => (e) => this.singleOpreateFlow(record, action)
-
-  updateFlow = (record, action) => (e) => this.singleOpreateFlow(record, action)
-
-  onSingleDeleteFlow = (record, action) => (e) => this.singleOpreateFlow(record, action)
 
   onCopyFlow = (record) => (e) => this.props.onShowCopyFlow(record)
 
@@ -544,7 +534,9 @@ export class Flow extends React.Component {
           />
           <Button
             type="primary"
-            onClick={this.onSearch('sourceNs', 'searchTextSourceNs', 'filterDropdownVisibleSourceNs')}>Search</Button>
+            onClick={this.onSearch('sourceNs', 'searchTextSourceNs', 'filterDropdownVisibleSourceNs')}
+          >Search
+          </Button>
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleSourceNs,
@@ -574,7 +566,9 @@ export class Flow extends React.Component {
           />
           <Button
             type="primary"
-            onClick={this.onSearch('sinkNs', 'searchTextSinkNs', 'filterDropdownVisibleSinkNs')}>Search</Button>
+            onClick={this.onSearch('sinkNs', 'searchTextSinkNs', 'filterDropdownVisibleSinkNs')}
+          >Search
+          </Button>
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleSinkNs,
@@ -701,7 +695,9 @@ export class Flow extends React.Component {
           />
           <Button
             type="primary"
-            onClick={this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')}>Search</Button>
+            onClick={this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')}
+          >Search
+          </Button>
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleStreamId,
@@ -726,7 +722,9 @@ export class Flow extends React.Component {
           />
           <Button
             type="primary"
-            onClick={this.onSearch('streamType', 'searchTextStreamType', 'filterDropdownVisibleStreamType')}>Search</Button>
+            onClick={this.onSearch('streamType', 'searchTextStreamType', 'filterDropdownVisibleStreamType')}
+          >Search
+          </Button>
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleStreamType,
@@ -755,7 +753,12 @@ export class Flow extends React.Component {
             onChange={this.onRangeTimeChange}
             onPressEnter={this.onRangeTimeSearch('startedTime', 'startedStartTimeText', 'startedEndTimeText', 'filterDropdownVisibleStartedTime')}
           />
-          <Button type="primary" className="rangeFilter" onClick={this.onRangeTimeSearch('startedTime', 'startedStartTimeText', 'startedEndTimeText', 'filterDropdownVisibleStartedTime')}>Search</Button>
+          <Button
+            type="primary"
+            className="rangeFilter"
+            onClick={this.onRangeTimeSearch('startedTime', 'startedStartTimeText', 'startedEndTimeText', 'filterDropdownVisibleStartedTime')}
+          >Search
+          </Button>
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleStartedTime,
@@ -834,7 +837,7 @@ export class Flow extends React.Component {
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.onShowFlowStart(record, 'start')}>
+              <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'start')}>
                 <Tooltip title={startFormat}>
                   <Button icon="caret-right" shape="circle" type="ghost"></Button>
                 </Tooltip>
@@ -850,7 +853,7 @@ export class Flow extends React.Component {
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title={sureStopFormat} okText="Yes" cancelText="No" onConfirm={this.stopFlowBtn(record, 'stop')}>
+              <Popconfirm placement="bottom" title={sureStopFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'stop')}>
                 <Tooltip title={stopFormat}>
                   <Button shape="circle" type="ghost">
                     <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
@@ -866,7 +869,7 @@ export class Flow extends React.Component {
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title={sureRenewFormat} okText="Yes" cancelText="No" onConfirm={this.updateFlow(record, 'renew')}>
+              <Popconfirm placement="bottom" title={sureRenewFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'renew')}>
                 <Tooltip title={renewFormat}>
                   <Button icon="check" shape="circle" type="ghost"></Button>
                 </Tooltip>
@@ -882,7 +885,7 @@ export class Flow extends React.Component {
               {strStart}
               {strStop}
               {strRenew}
-              <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.onSingleDeleteFlow(record, 'delete')}>
+              <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'delete')}>
                 <Tooltip title={deleteFormat}>
                   <Button icon="delete" shape="circle" type="ghost"></Button>
                 </Tooltip>
@@ -956,6 +959,8 @@ export class Flow extends React.Component {
         </Menu.Item>
         <Menu.Item key="menuStop">
           <i className="iconfont icon-8080pxtubiaokuozhan100" style={{ fontSize: '12px' }}></i> <FormattedMessage {...messages.flowTableStop} />
+        </Menu.Item>
+        <Menu.Item key="menuRenew"><Icon type="check" /> <FormattedMessage {...messages.flowTableRenew} />
         </Menu.Item>
         <Menu.Item key="menuDelete"><Icon type="delete" /> <FormattedMessage {...messages.flowTableDelete} />
         </Menu.Item>
