@@ -68,7 +68,7 @@ import {loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic,
   loadSourceToSinkExist, addFlow, editFlow, queryFlow, loadLookupSql} from '../Flow/action'
 
 import {loadUserStreams, loadAdminSingleStream, loadStreamNameValue, loadKafka,
-  loadStreamConfigJvm, addStream, loadStreamDetail, editStream} from '../Manager/action'
+  loadStreamConfigJvm, loadStreamConfigSpark, addStream, loadStreamDetail, editStream} from '../Manager/action'
 
 import {loadSelectNamespaces, loadUserNamespaces} from '../Namespace/action'
 import {loadUserUsers, loadSelectUsers} from '../User/action'
@@ -297,14 +297,14 @@ export class Workbench extends React.Component {
   initialHdfslogCascader = (value) => this.setState({ hdfslogSinkNsValue: value.join('.') })
 
   initialRoutingCascader = (value) => {
-    const { projectId, pipelineStreamId } = this.state
+    const { projectId, pipelineStreamId, routingSourceNsValue } = this.state
 
     this.setState({
       routingSourceNsValue: value.join('.')
     }, () => {
       // 调显示 routing sink namespace 下拉框数据的接口
       this.props.onLoadSinkTypeNamespace(projectId, pipelineStreamId, 'kafka', 'sinkType', (result) => {
-        const exceptValue = result.filter(s => [s.nsInstance, s.nsDatabase, s.nsTable].join('.') !== this.state.routingSourceNsValue)
+        const exceptValue = result.filter(s => [s.nsInstance, s.nsDatabase, s.nsTable].join('.') !== routingSourceNsValue)
 
         this.setState({
           routingSinkTypeNsData: generateSourceSinkNamespaceHierarchy('kafka', exceptValue)
@@ -315,9 +315,7 @@ export class Workbench extends React.Component {
 
   initialRoutingSinkCascader = (value) => this.setState({ routingSinkNsValue: value.join('.') })
 
-  /**
-   * 新增Flow时，获取 default type source namespace 下拉框
-   * */
+  // 新增Flow时，获取 default type source namespace 下拉框
   onInitSourceTypeNamespace = (projectId, value, type) => {
     const { flowMode, pipelineStreamId } = this.state
 
@@ -337,9 +335,7 @@ export class Workbench extends React.Component {
     }
   }
 
-  /**
-   * 新增Job时，获取 source namespace 下拉框数据
-   * */
+  // 新增Job时，获取 source namespace 下拉框数据
   onInitJobSourceNs = (projectId, value, type) => {
     const { jobMode } = this.state
     const languageText = localStorage.getItem('preferredLanguage')
@@ -359,9 +355,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  /**
-   * 新增Flow时，获取 hdfslog type source namespace 下拉框数据
-   * */
+  // 新增Flow时，获取 hdfslog type source namespace 下拉框数据
   onInitHdfslogNamespace = (projectId, value, type) => {
     const { pipelineStreamId } = this.state
 
@@ -379,9 +373,7 @@ export class Workbench extends React.Component {
     }
   }
 
-  /**
-   * 新增Flow时，获取 routing type source namespace 下拉框数据
-   * */
+  // 新增Flow时，获取 routing type source namespace 下拉框数据
   onInitRoutingNamespace = (projectId, value, type) => {
     const { pipelineStreamId, flowMode } = this.state
 
@@ -407,17 +399,17 @@ export class Workbench extends React.Component {
     }
   }
 
-  /**
-   * 新增Flow时，获取 default type sink namespace 下拉框
-   * */
+  // 新增Flow时，获取 default type sink namespace 下拉框
   onInitSinkTypeNamespace = (projectId, value, type) => {
     const { flowMode, pipelineStreamId, sinkDSCopy } = this.state
-
-    this.setState({ sinkConfigCopy: sinkDSCopy === value ? this.state.sinkConfigCopy : '' })
-
     this.setState({
+      sinkConfigCopy: sinkDSCopy === value ? this.state.sinkConfigCopy : '',
       sinkTypeNamespaceData: [],
       sinkConfigMsg: showSinkConfigMsg(value)
+    }, () => {
+      this.workbenchFlowForm.setFieldsValue({
+        'sinkConfig': this.state.sinkConfigCopy
+      })
     })
     if (pipelineStreamId !== 0) {
       this.props.onLoadSinkTypeNamespace(projectId, pipelineStreamId, value, type, (result) => {
@@ -431,9 +423,7 @@ export class Workbench extends React.Component {
     }
   }
 
-  /**
-   * 新增Job时，获取 sink namespace 下拉框数据
-   * */
+  // 新增Job时，获取 sink namespace 下拉框数据
   onInitJobSinkNs = (projectId, value, type) => {
     const { jobMode } = this.state
     const languageText = localStorage.getItem('preferredLanguage')
@@ -451,9 +441,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  /**
-   * 新增Flow时，获取 default transformation sink namespace 下拉框
-   * */
+  // 新增Flow时，获取 default transformation sink namespace 下拉框
   onInitTransformSinkTypeNamespace = (projectId, value, type) => {
     const { pipelineStreamId } = this.state
 
@@ -1058,18 +1046,18 @@ export class Workbench extends React.Component {
         this.setState({
           sinkConfigCopy: sinkConfigShow,
           sinkDSCopy: sinkNsArr[0]
-        })
+        }, () => {
+          this.workbenchFlowForm.setFieldsValue({
+            sourceDataSystem: sourceNsArr[0],
+            sourceNamespace: [sourceNsArr[1], sourceNsArr[2], sourceNsArr[3]],
+            sinkDataSystem: sinkNsArr[0],
+            sinkNamespace: [sinkNsArr[1], sinkNsArr[2], sinkNsArr[3]],
 
-        this.workbenchFlowForm.setFieldsValue({
-          sourceDataSystem: sourceNsArr[0],
-          sourceNamespace: [sourceNsArr[1], sourceNsArr[2], sourceNsArr[3]],
-          sinkDataSystem: sinkNsArr[0],
-          sinkNamespace: [sinkNsArr[1], sinkNsArr[2], sinkNsArr[3]],
-
-          sinkConfig: sinkConfigShow,
-          resultFields: resultFieldsVal,
-          dataframeShow: dataframeShowVal,
-          flowSpecialConfig: flowSpecialConfigVal
+            sinkConfig: this.state.sinkConfigCopy,
+            resultFields: resultFieldsVal,
+            dataframeShow: dataframeShowVal,
+            flowSpecialConfig: flowSpecialConfigVal
+          })
         })
       })
   }
@@ -1217,9 +1205,7 @@ export class Workbench extends React.Component {
       streamConfigCheck: false
     })
 
-    this.props.onLoadStreamConfigJvm((result) => {
-      const othersInit = 'spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3'
-
+    Promise.all(this.loadConfig()).then((values) => {
       const startConfigJson = {
         driverCores: 1,
         driverMemory: 2,
@@ -1235,7 +1221,7 @@ export class Workbench extends React.Component {
 
       this.setState({
         streamConfigValues: {
-          sparkConfig: `${result},${othersInit}`,
+          sparkConfig: `${values[0]},${values[1]}`,
           startConfig: `${JSON.stringify(startConfigJson)}`,
           launchConfig: `${JSON.stringify(launchConfigJson)}`
         }
@@ -1254,41 +1240,41 @@ export class Workbench extends React.Component {
     this.workbenchStreamForm.resetFields()
 
     this.props.onLoadStreamDetail(this.state.projectId, stream.id, 'user', (result) => {
-      const resultVal = Object.assign(result.stream, {
-        disableActions: result.disableActions,
-        topicInfo: result.topicInfo,
+      const { stream, disableActions, topicInfo, projectName, currentUdf, usingUdf } = result
+      const resultVal = Object.assign(stream, {
+        disableActions: disableActions,
+        topicInfo: topicInfo,
         instance: result.kafkaInfo.instance,
         connUrl: result.kafkaInfo.connUrl,
-        projectName: result.projectName,
-        currentUdf: result.currentUdf,
-        usingUdf: result.usingUdf
+        projectName: projectName,
+        currentUdf: currentUdf,
+        usingUdf: usingUdf
       })
 
+      const { name, streamType, desc, instance, sparkConfig, startConfig, launchConfig, id, projectId } = resultVal
       this.workbenchStreamForm.setFieldsValue({
-        streamName: resultVal.name,
-        type: resultVal.streamType,
-        desc: resultVal.desc,
-        kafka: resultVal.instance
+        streamName: name,
+        type: streamType,
+        desc: desc,
+        kafka: instance
       })
 
       this.setState({
         streamConfigValues: {
-          sparkConfig: resultVal.sparkConfig,
-          startConfig: resultVal.startConfig,
-          launchConfig: resultVal.launchConfig
+          sparkConfig: sparkConfig,
+          startConfig: startConfig,
+          launchConfig: launchConfig
         },
 
         streamQueryValues: {
-          id: resultVal.id,
-          projectId: resultVal.projectId
+          id: id,
+          projectId: projectId
         }
       })
     })
   }
 
-  /**
-   * Stream Config Modal
-   * */
+  // Stream Config Modal
   onShowConfigModal = () => {
     const { streamConfigValues } = this.state
     this.setState({
@@ -1310,24 +1296,25 @@ export class Workbench extends React.Component {
       const startConfigTemp = JSON.parse(streamConfigValues.startConfig)
       const launchConfigTemp = JSON.parse(streamConfigValues.launchConfig)
 
+      const { driverCores, driverMemory, executorNums, perExecutorCores, perExecutorMemory } = startConfigTemp
+      const { durations, partitions, maxRecords } = launchConfigTemp
       this.streamConfigForm.setFieldsValue({
         jvm: jvmTempValue,
-        driverCores: startConfigTemp.driverCores,
-        driverMemory: startConfigTemp.driverMemory,
-        executorNums: startConfigTemp.executorNums,
-        perExecutorCores: startConfigTemp.perExecutorCores,
-        perExecutorMemory: startConfigTemp.perExecutorMemory,
-        durations: launchConfigTemp.durations,
-        partitions: launchConfigTemp.partitions,
-        maxRecords: launchConfigTemp.maxRecords,
+        driverCores: driverCores,
+        driverMemory: driverMemory,
+        executorNums: executorNums,
+        perExecutorCores: perExecutorCores,
+        perExecutorMemory: perExecutorMemory,
+
+        durations: durations,
+        partitions: partitions,
+        maxRecords: maxRecords,
         personalConf: personalConfTempValue
       })
     })
   }
 
-  /**
-   * Spark Config Modal
-   * */
+  // Spark Config Modal
   onShowSparkConfigModal = () => {
     const { jobSparkConfigValues } = this.state
 
@@ -1346,13 +1333,14 @@ export class Workbench extends React.Component {
       const personalConfTempValue = jobTempOthersArr.join('\n')
       const startConfigTemp = JSON.parse(jobSparkConfigValues.startConfig)
 
+      const { driverCores, driverMemory, executorNums, perExecutorCores, perExecutorMemory } = startConfigTemp
       this.streamConfigForm.setFieldsValue({
         jvm: jvmTempValue,
-        driverCores: startConfigTemp.driverCores,
-        driverMemory: startConfigTemp.driverMemory,
-        executorNums: startConfigTemp.executorNums,
-        perExecutorCores: startConfigTemp.perExecutorCores,
-        perExecutorMemory: startConfigTemp.perExecutorMemory,
+        driverCores: driverCores,
+        driverMemory: driverMemory,
+        executorNums: executorNums,
+        perExecutorCores: perExecutorCores,
+        perExecutorMemory: perExecutorMemory,
         personalConf: personalConfTempValue
       })
     })
@@ -1386,18 +1374,20 @@ export class Workbench extends React.Component {
             sparkConfigValue = `${jvmValTemp},${personalConfTemp}`
           }
 
+          const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores } = values
           const startConfigJson = {
-            driverCores: values.driverCores,
-            driverMemory: values.driverMemory,
-            executorNums: values.executorNums,
-            perExecutorMemory: values.perExecutorMemory,
-            perExecutorCores: values.perExecutorCores
+            driverCores: driverCores,
+            driverMemory: driverMemory,
+            executorNums: executorNums,
+            perExecutorMemory: perExecutorMemory,
+            perExecutorCores: perExecutorCores
           }
 
+          const { durations, partitions, maxRecords } = values
           const launchConfigJson = {
-            durations: values.durations,
-            partitions: values.partitions,
-            maxRecords: values.maxRecords
+            durations: durations,
+            partitions: partitions,
+            maxRecords: maxRecords
           }
 
           this.setState({
@@ -1441,12 +1431,13 @@ export class Workbench extends React.Component {
             sparkConfigVal = `${jvmValTemp},${personalConfTemp}`
           }
 
+          const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores } = values
           const startConfigJson = {
-            driverCores: values.driverCores,
-            driverMemory: values.driverMemory,
-            executorNums: values.executorNums,
-            perExecutorMemory: values.perExecutorMemory,
-            perExecutorCores: values.perExecutorCores
+            driverCores: driverCores,
+            driverMemory: driverMemory,
+            executorNums: executorNums,
+            perExecutorMemory: perExecutorMemory,
+            perExecutorCores: perExecutorCores
           }
 
           this.setState({
@@ -1471,14 +1462,17 @@ export class Workbench extends React.Component {
   forwardStep = () => {
     const { tabPanelKey, streamDiffType } = this.state
 
-    if (tabPanelKey === 'flow') {
-      if (streamDiffType === 'default') {
-        this.handleForwardDefault()
-      } else if (streamDiffType === 'hdfslog' || streamDiffType === 'routing') {
-        this.handleForwardHdfslogOrRouting()
-      }
-    } else if (tabPanelKey === 'job') {
-      this.handleForwardJob()
+    switch (tabPanelKey) {
+      case 'flow':
+        if (streamDiffType === 'default') {
+          this.handleForwardDefault()
+        } else if (streamDiffType === 'hdfslog' || streamDiffType === 'routing') {
+          this.handleForwardHdfslogOrRouting()
+        }
+        break
+      case 'job':
+        this.handleForwardJob()
+        break
     }
   }
 
@@ -1566,26 +1560,29 @@ export class Workbench extends React.Component {
             }
             break
           case 1:
-            if (streamDiffType === 'default') {
-              const dataframeShowSelect = this.workbenchFlowForm.getFieldValue('dataframeShow')
-              if (dataframeShowSelect === 'true') {
-                const dataframeShowNum = this.workbenchFlowForm.getFieldValue('dataframeShowNum')
+            switch (streamDiffType) {
+              case 'default':
+                const dataframeShowSelect = this.workbenchFlowForm.getFieldValue('dataframeShow')
+                if (dataframeShowSelect === 'true') {
+                  const dataframeShowNum = this.workbenchFlowForm.getFieldValue('dataframeShowNum')
+                  this.setState({
+                    dataframeShowOrNot: {'dataframe_show': 'true', 'dataframe_show_num': dataframeShowNum},
+                    dataframeShowNumValue: `true; Number is ${dataframeShowNum}`
+                  })
+                } else {
+                  this.setState({
+                    dataframeShowOrNot: {'dataframe_show': 'false'},
+                    dataframeShowNumValue: 'false'
+                  })
+                }
                 this.setState({
-                  dataframeShowOrNot: {'dataframe_show': 'true', 'dataframe_show_num': dataframeShowNum},
-                  dataframeShowNumValue: `true; Number is ${dataframeShowNum}`
+                  formStep: this.state.formStep + 1,
+                  transConfigConfirmValue: values.flowSpecialConfig
                 })
-              } else {
-                this.setState({
-                  dataframeShowOrNot: {'dataframe_show': 'false'},
-                  dataframeShowNumValue: 'false'
-                })
-              }
-              this.setState({
-                formStep: this.state.formStep + 1,
-                transConfigConfirmValue: values.flowSpecialConfig
-              })
-            } else if (streamDiffType === 'hdfslog') {
-              this.setState({ formStep: this.state.formStep + 2 })
+                break
+              case 'hdfslog':
+                this.setState({ formStep: this.state.formStep + 2 })
+                break
             }
             break
         }
@@ -1623,26 +1620,29 @@ export class Workbench extends React.Component {
   loadJobSTSExit (values) {
     const { jobMode, formStep, projectId } = this.state
 
-    if (jobMode === 'add') {
-      // 新增 Job 时验证 source to sink 是否存在
-      const sourceInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
-      const sinkInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
+    switch (jobMode) {
+      case 'add':
+        // 新增 Job 时验证 source to sink 是否存在
+        const sourceInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
+        const sinkInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
 
-      this.props.onLoadJobSourceToSinkExist(projectId, sourceInfo, sinkInfo, () => {
+        this.props.onLoadJobSourceToSinkExist(projectId, sourceInfo, sinkInfo, () => {
+          this.setState({
+            formStep: formStep + 1,
+            jobStepSourceNs: [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.'),
+            jobStepSinkNs: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
+          })
+        }, () => {
+          message.error(operateLanguageSourceToSink, 3)
+        })
+        break
+      case 'edit':
         this.setState({
           formStep: formStep + 1,
           jobStepSourceNs: [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.'),
           jobStepSinkNs: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
         })
-      }, () => {
-        message.error(operateLanguageSourceToSink, 3)
-      })
-    } else if (jobMode === 'edit') {
-      this.setState({
-        formStep: formStep + 1,
-        jobStepSourceNs: [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.'),
-        jobStepSinkNs: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
-      })
+        break
     }
   }
 
@@ -1715,14 +1715,16 @@ export class Workbench extends React.Component {
 
   backwardStep = () => {
     const { streamDiffType, formStep, tabPanelKey } = this.state
-    if (tabPanelKey === 'flow') {
-      if (streamDiffType === 'default') {
+
+    switch (tabPanelKey) {
+      case 'flow':
+        this.setState({
+          formStep: streamDiffType === 'default' ? formStep - 1 : formStep - 2
+        })
+        break
+      case 'job':
         this.setState({ formStep: formStep - 1 })
-      } else if (streamDiffType === 'hdfslog' || streamDiffType === 'routing') {
-        this.setState({ formStep: formStep - 2 })
-      }
-    } else if (tabPanelKey === 'job') {
-      this.setState({ formStep: formStep - 1 })
+        break
     }
   }
 
@@ -1771,13 +1773,11 @@ export class Workbench extends React.Component {
 
   initStartTS = (val) => {
     // 将 YYYY-MM-DD HH:mm:ss 转换成 YYYYMMDDHHmmss 格式
-    const startTs = val.replace(/-| |:/g, '')
-    this.setState({ startTsVal: startTs })
+    this.setState({ startTsVal: val.replace(/-| |:/g, '') })
   }
 
   initEndTS = (val) => {
-    const endTs = val.replace(/-| |:/g, '')
-    this.setState({ endTsVal: endTs })
+    this.setState({ endTsVal: val.replace(/-| |:/g, '') })
   }
 
   submitJobForm = () => {
@@ -2094,44 +2094,47 @@ export class Workbench extends React.Component {
 
     this.workbenchStreamForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        if (streamMode === 'add') {
-          const requestValues = {
-            name: values.streamName,
-            desc: values.desc,
-            instanceId: Number(values.kafka),
-            streamType: values.type
-          }
+        switch (streamMode) {
+          case 'add':
+            const requestValues = {
+              name: values.streamName,
+              desc: values.desc,
+              instanceId: Number(values.kafka),
+              streamType: values.type
+            }
 
-          if (streamNameExited) {
-            this.workbenchStreamForm.setFields({
-              streamName: {
-                value: values.streamName,
-                errors: [new Error(operateLanguageNameExist())]
-              }
-            })
-            this.hideStreamSubmit()
-          } else {
-            this.props.onAddStream(projectId, Object.assign(requestValues, streamConfigValues), () => {
-              message.success(operateLanguageSuccessMessage('Stream', 'create'), 3)
-              this.setState({
-                streamMode: ''
+            if (streamNameExited) {
+              this.workbenchStreamForm.setFields({
+                streamName: {
+                  value: values.streamName,
+                  errors: [new Error(operateLanguageNameExist())]
+                }
               })
-              this.workbenchStreamForm.resetFields()
-              if (streamConfigCheck) {
-                this.streamConfigForm.resetFields()
-              }
+              this.hideStreamSubmit()
+            } else {
+              this.props.onAddStream(projectId, Object.assign(requestValues, streamConfigValues), () => {
+                message.success(operateLanguageSuccessMessage('Stream', 'create'), 3)
+                this.setState({
+                  streamMode: ''
+                })
+                this.workbenchStreamForm.resetFields()
+                if (streamConfigCheck) {
+                  this.streamConfigForm.resetFields()
+                }
+                this.hideStreamSubmit()
+              })
+            }
+            break
+          case 'edit':
+            const editValues = { desc: values.desc }
+            const requestEditValues = Object.assign(editValues, streamQueryValues, streamConfigValues)
+
+            this.props.onEditStream(requestEditValues, () => {
+              message.success(operateLanguageSuccessMessage('Stream', 'modify'), 3)
+              this.setState({ streamMode: '' })
               this.hideStreamSubmit()
             })
-          }
-        } else if (streamMode === 'edit') {
-          const editValues = { desc: values.desc }
-          const requestEditValues = Object.assign(editValues, streamQueryValues, streamConfigValues)
-
-          this.props.onEditStream(requestEditValues, () => {
-            message.success(operateLanguageSuccessMessage('Stream', 'modify'), 3)
-            this.setState({ streamMode: '' })
-            this.hideStreamSubmit()
-          })
+            break
         }
       }
     })
@@ -2944,9 +2947,7 @@ export class Workbench extends React.Component {
     this.setState({ jobFormTranTableSource: tableSourceArr })
   }
 
-  /**
-   * Flow ETP Strategy Modal
-   * */
+  // Flow ETP Strategy Modal
   onShowEtpStrategyModal = () => {
     const { etpStrategyCheck, etpStrategyResponseValue } = this.state
 
@@ -2954,12 +2955,13 @@ export class Workbench extends React.Component {
       etpStrategyModalVisible: true
     }, () => {
       if (etpStrategyCheck) {
+        const { check_columns, check_rule, rule_mode, rule_params, against_action } = etpStrategyResponseValue
         this.flowEtpStrategyForm.setFieldsValue({
-          checkColumns: etpStrategyResponseValue.check_columns,
-          checkRule: etpStrategyResponseValue.check_rule,
-          ruleMode: etpStrategyResponseValue.rule_mode,
-          ruleParams: etpStrategyResponseValue.rule_params,
-          againstAction: etpStrategyResponseValue.against_action
+          checkColumns: check_columns,
+          checkRule: check_rule,
+          ruleMode: rule_mode,
+          ruleParams: rule_params,
+          againstAction: against_action
         })
       } else {
         this.flowEtpStrategyForm.resetFields()
@@ -2972,12 +2974,13 @@ export class Workbench extends React.Component {
   onEtpStrategyModalOk = () => {
     this.flowEtpStrategyForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
+        const { checkColumns, checkRule, ruleMode, ruleParams, againstAction } = values
         const valueJson = {
-          check_columns: values.checkColumns,
-          check_rule: values.checkRule,
-          rule_mode: values.ruleMode,
-          rule_params: values.ruleParams,
-          against_action: values.againstAction
+          check_columns: checkColumns,
+          check_rule: checkRule,
+          rule_mode: ruleMode,
+          rule_params: ruleParams,
+          against_action: againstAction
         }
 
         this.setState({
@@ -2990,9 +2993,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  /**
-   * Flow Sink Config Modal
-   * */
+  // Flow Sink Config Modal
   onShowSinkConfigModal = () => {
     this.setState({
       sinkConfigModalVisible: true
@@ -3014,9 +3015,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  /**
-   * Flow Transformation Config Modal
-   * */
+  // Flow Transformation Config Modal
   onShowSpecialConfigModal = () => {
     this.setState({
       flowSpecialConfigModalVisible: true
@@ -3035,9 +3034,7 @@ export class Workbench extends React.Component {
     })
   }
 
-  /**
-   * Job Transformation Config Modal
-   */
+  // Job Transformation Config Modal
   onShowJobSpecialConfigModal = () => {
     this.setState({
       jobSpecialConfigModalVisible: true
@@ -3092,9 +3089,7 @@ export class Workbench extends React.Component {
     }
   }
 
-  /**
-   * Job Sink Config Modal
-   * */
+  // Job Sink Config Modal
   onShowJobSinkConfigModal = () => {
     this.setState({
       jobSinkConfigModalVisible: true
@@ -3125,6 +3120,20 @@ export class Workbench extends React.Component {
     }
   }
 
+  loadConfig () {
+    let jvm = new Promise((resolve) => {
+      this.props.onLoadStreamConfigJvm((result) => {
+        resolve(result)
+      })
+    })
+    let spark = new Promise((resolve) => {
+      this.props.onLoadStreamConfigSpark((result) => {
+        resolve(result)
+      })
+    })
+    return [jvm, spark]
+  }
+
   showAddJobWorkbench = () => {
     this.workbenchJobForm.resetFields()
 
@@ -3144,9 +3153,7 @@ export class Workbench extends React.Component {
       })
     })
 
-    this.props.onLoadStreamConfigJvm((result) => {
-      const othersInit = 'spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3,spark.sql.shuffle.partitions=18'
-
+    Promise.all(this.loadConfig()).then((values) => {
       const startConfigJson = {
         driverCores: 1,
         driverMemory: 2,
@@ -3157,7 +3164,7 @@ export class Workbench extends React.Component {
 
       this.setState({
         jobSparkConfigValues: {
-          sparkConfig: `${result},${othersInit}`,
+          sparkConfig: `${values[0]},${values[1]}`,
           startConfig: `${JSON.stringify(startConfigJson)}`
         }
       })
@@ -3667,6 +3674,7 @@ Workbench.propTypes = {
   onQueryFlow: React.PropTypes.func,
   onLoadkafka: React.PropTypes.func,
   onLoadStreamConfigJvm: React.PropTypes.func,
+  onLoadStreamConfigSpark: React.PropTypes.func,
   onLoadStreamNameValue: React.PropTypes.func,
   onLoadStreamDetail: React.PropTypes.func,
   onLoadSelectStreamKafkaTopic: React.PropTypes.func,
@@ -3718,6 +3726,7 @@ export function mapDispatchToProps (dispatch) {
     onQueryFlow: (values, resolve) => dispatch(queryFlow(values, resolve)),
     onLoadkafka: (projectId, nsSys, resolve) => dispatch(loadKafka(projectId, nsSys, resolve)),
     onLoadStreamConfigJvm: (resolve) => dispatch(loadStreamConfigJvm(resolve)),
+    onLoadStreamConfigSpark: (resolve) => dispatch(loadStreamConfigSpark(resolve)),
     onLoadStreamNameValue: (projectId, value, resolve, reject) => dispatch(loadStreamNameValue(projectId, value, resolve, reject)),
     onLoadStreamDetail: (projectId, streamId, roleType, resolve) => dispatch(loadStreamDetail(projectId, streamId, roleType, resolve)),
     onLoadSelectStreamKafkaTopic: (projectId, value, resolve) => dispatch(loadSelectStreamKafkaTopic(projectId, value, resolve)),

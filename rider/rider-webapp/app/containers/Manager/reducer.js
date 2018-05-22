@@ -34,6 +34,8 @@ import {
   LOAD_KAFKA_SUCCESS,
   LOAD_STREAM_CONFIG_JVM,
   LOAD_STREAM_CONFIG_JVM_SUCCESS,
+  LOAD_STREAM_CONFIG_SPARK,
+  LOAD_STREAM_CONFIG_SPARK_SUCCESS,
   LOAD_LOGS_INFO,
   LOAD_LOGS_INFO_SUCCESS,
   LOAD_ADMIN_LOGS_INFO,
@@ -93,6 +95,10 @@ function streamReducer (state = initialState, { type, payload }) {
     case LOAD_STREAM_CONFIG_JVM:
       return state
     case LOAD_STREAM_CONFIG_JVM_SUCCESS:
+      return state
+    case LOAD_STREAM_CONFIG_SPARK:
+      return state
+    case LOAD_STREAM_CONFIG_SPARK_SUCCESS:
       return state
     case LOAD_LOGS_INFO:
       return state
