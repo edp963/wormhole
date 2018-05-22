@@ -44,6 +44,7 @@ const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 
 import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
+import { sourceDataSystemData, sinkDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 
 export class WorkbenchFlowForm extends React.Component {
   constructor (props) {
@@ -185,30 +186,6 @@ export class WorkbenchFlowForm extends React.Component {
       wrapperCol: { span: 10 }
     }
 
-    const sourceDataSystemData = [
-      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
-      { value: 'log', text: 'Log' },
-      { value: 'file', text: 'File' },
-      { value: 'app', text: 'App' },
-      { value: 'mysql', icon: 'icon-mysql' },
-      { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
-      { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} }
-    ]
-
-    const sinkDataSystemData = [
-      { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
-      { value: 'mysql', icon: 'icon-mysql' },
-      { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
-      { value: 'hbase', icon: 'icon-hbase1' },
-      { value: 'phoenix', text: 'Phoenix' },
-      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
-      { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
-      { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
-      { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
-      { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
-      {value: 'kudu', text: 'Kudu'}
-    ]
-
     let formValues = this.props.form.getFieldsValue([
       'streamName',
       'streamType'
@@ -281,12 +258,10 @@ export class WorkbenchFlowForm extends React.Component {
         <Icon type="minus-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
       </Tag>
     )
-    let sinkConfigTag = ''
-    if (flowMode === 'copy') {
-      sinkConfigTag = this.props.sinkConfigCopy ? sinkConfigColor : sinkConfigNoColor
-    } else {
-      sinkConfigTag = form.getFieldValue('sinkConfig') ? sinkConfigColor : sinkConfigNoColor
-    }
+
+    const sinkConfigTag = flowMode === 'copy'
+      ? this.props.sinkConfigCopy ? sinkConfigColor : sinkConfigNoColor
+      : form.getFieldValue('sinkConfig') ? sinkConfigColor : sinkConfigNoColor
 
     const flowSpecialConfigTag = form.getFieldValue('flowSpecialConfig')
       ? (
@@ -476,7 +451,7 @@ export class WorkbenchFlowForm extends React.Component {
                 })(
                   <DataSystemSelector
                     flowMode={flowMode}
-                    data={sourceDataSystemData}
+                    data={sourceDataSystemData()}
                     onItemSelect={this.onSourceDataSystemItemSelect}
                     dataSystemDisabled={flowDisabledOrNot}
                   />
@@ -579,7 +554,7 @@ export class WorkbenchFlowForm extends React.Component {
                 })(
                   <DataSystemSelector
                     flowMode={flowMode}
-                    data={sinkDataSystemData}
+                    data={sinkDataSystemData()}
                     onItemSelect={this.onSinkDataSystemItemSelect}
                     dataSystemDisabled={flowDisabledOrNot}
                   />
@@ -683,7 +658,7 @@ export class WorkbenchFlowForm extends React.Component {
             </Col>
 
             <Col span={24} className={`ri-input-text ${streamTypeClass[1]}`}>
-              <FormItem label="Date System" {...itemStyle}>
+              <FormItem label="Data System" {...itemStyle}>
                 {getFieldDecorator('hdfslogDataSys', {
                   hidden: streamTypeHiddens[1]
                 })(
