@@ -19,10 +19,11 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
+import { connect } from 'react-redux'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import DataSystemSelector from '../../components/DataSystemSelector'
 import Form from 'antd/lib/form'
 const FormItem = Form.Item
 import Row from 'antd/lib/row'
@@ -44,8 +45,12 @@ const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 import DatePicker from 'antd/lib/date-picker'
 
-import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
+import {
+  prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn
+} from '../../utils/util'
+import DataSystemSelector from '../../components/DataSystemSelector'
 import { sourceDataSystemData, jobSinkDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
+import { loadJobName } from '../Job/action'
 
 export class WorkbenchJobForm extends React.Component {
   constructor (props) {
@@ -65,14 +70,16 @@ export class WorkbenchJobForm extends React.Component {
     }
   }
 
-  onHandleChange = (name) => (e) => {
-    switch (name) {
-      case 'jobName':
-        this.props.onInitJobNameValue(e.target.value)
-        break
-      case 'resultFields':
-        this.props.initResultFieldClass(e.target.value)
-        break
+  checkJobName = (rule, value = '', callback) => {
+    const { onLoadJobName, projectIdGeted } = this.props
+
+    const reg = /^[a-zA-Z0-9_-]*$/
+    if (reg.test(value)) {
+      onLoadJobName(projectIdGeted, value, res => callback(), err => callback(err))
+    } else {
+      const textZh = '必须是字母、数字、下划线或中划线'
+      const textEn = 'It should be letters, figures, underscore or hyphen'
+      callback(localStorage.getItem('preferredLanguage') === 'en' ? textEn : textZh)
     }
   }
 
@@ -80,15 +87,18 @@ export class WorkbenchJobForm extends React.Component {
 
   // 通过不同的 Source Data System 显示不同的 Source Namespace 的内容
   onSourceDataSystemItemSelect = (val) => {
+    const { projectIdGeted } = this.props
+
     if (val) {
-      this.props.onInitJobSourceNs(this.props.projectIdGeted, val, 'sourceType')
+      this.props.onInitJobSourceNs(projectIdGeted, val, 'sourceType')
     }
   }
 
   // 通过不同的 Sink Data System 显示不同的 Sink Namespace 的内容
   onSinkDataSystemItemSelect = (val) => {
+    const { projectIdGeted } = this.props
     if (val) {
-      this.props.onInitJobSinkNs(this.props.projectIdGeted, val, 'sinkType')
+      this.props.onInitJobSinkNs(projectIdGeted, val, 'sinkType')
     }
     this.setState({ sinkConfigClass: val === 'hbase' ? 'sink-config-class' : '' })
   }
@@ -97,12 +107,14 @@ export class WorkbenchJobForm extends React.Component {
   onChangeEndTs = (value, dateString) => this.props.initEndTS(dateString)
 
   render () {
-    const { step, form, jobMode, fieldSelected, jobTranTableConfirmValue } = this.props
+    const { step, form, jobMode, fieldSelected, jobTranTableConfirmValue,
+      onShowJobTransModal, onShowJobSinkConfigModal,
+      jobTransTableSource, onDeleteSingleTransform, onJobAddTransform,
+      onEditTransform, onUpTransform, onDownTransform,
+      jobStepSourceNs, jobStepSinkNs, jobTranTagClassName, jobTranTableClassName,
+      jobTranConfigConfirmValue, sourceTypeNamespaceData, sinkTypeNamespaceData
+    } = this.props
     const { getFieldDecorator } = form
-    const { onShowJobTransModal, onShowJobSinkConfigModal } = this.props
-    const { jobTransTableSource, onDeleteSingleTransform, onJobAddTransform, onEditTransform, onUpTransform, onDownTransform } = this.props
-    const { jobStepSourceNs, jobStepSinkNs, jobTranTagClassName, jobTranTableClassName, jobTranConfigConfirmValue } = this.props
-    const { sourceTypeNamespaceData, sinkTypeNamespaceData } = this.props
     const { sinkConfigClass } = this.state
 
     const stepClassNames = [
@@ -279,9 +291,10 @@ export class WorkbenchJobForm extends React.Component {
         <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />} placement="bottom">
           <Popover
             placement="top"
-            content={<div style={{ width: '200px', height: '25px' }}>
-              <p><FormattedMessage {...messages.workbenchTransResource} /></p>
-            </div>}
+            content={
+              <div style={{ width: '200px', height: '25px' }}>
+                <p><FormattedMessage {...messages.workbenchTransResource} /></p>
+              </div>}
             title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
@@ -303,12 +316,11 @@ export class WorkbenchJobForm extends React.Component {
                     required: true,
                     message: languageText === 'en' ? 'Name cannot be empty' : 'Name 不能为空'
                   }, {
-                    validator: this.forceCheckSave
+                    validator: this.checkJobName
                   }]
                 })(
                   <Input
                     placeholder="Name"
-                    onChange={this.onHandleChange('jobName')}
                     disabled={jobMode === 'edit'}
                   />
                 )}
@@ -473,7 +485,7 @@ export class WorkbenchJobForm extends React.Component {
                   }],
                   hidden: stepHiddens[1]
                 })(
-                  <RadioGroup className="radio-group-style" onChange={this.onHandleChange('resultFields')} size="default">
+                  <RadioGroup className="radio-group-style" onChange={(e) => this.props.initResultFieldClass(e.target.value)} size="default">
                     <RadioButton value="all" className="radio-btn-style fradio-btn-extra">All</RadioButton>
                     <RadioButton value="selected" className="radio-btn-style radio-btn-extra">Selected</RadioButton>
                   </RadioGroup>
@@ -652,38 +664,45 @@ export class WorkbenchJobForm extends React.Component {
 }
 
 WorkbenchJobForm.propTypes = {
-  step: React.PropTypes.number,
-  jobTransTableSource: React.PropTypes.array,
-  form: React.PropTypes.any,
-  projectIdGeted: React.PropTypes.string,
-  jobMode: React.PropTypes.string,
-  sparkConfigCheck: React.PropTypes.bool,
-  jobStepSourceNs: React.PropTypes.string,
-  jobStepSinkNs: React.PropTypes.string,
-  onShowSparkConfigModal: React.PropTypes.func,
-  onInitJobNameValue: React.PropTypes.func,
-  jobTranTagClassName: React.PropTypes.string,
-  jobTranTableClassName: React.PropTypes.string,
-  jobTranConfigConfirmValue: React.PropTypes.string,
+  step: PropTypes.number,
+  jobTransTableSource: PropTypes.array,
+  form: PropTypes.any,
+  projectIdGeted: PropTypes.string,
+  jobMode: PropTypes.string,
+  sparkConfigCheck: PropTypes.bool,
+  jobStepSourceNs: PropTypes.string,
+  jobStepSinkNs: PropTypes.string,
+  onShowSparkConfigModal: PropTypes.func,
+  jobTranTagClassName: PropTypes.string,
+  jobTranTableClassName: PropTypes.string,
+  jobTranConfigConfirmValue: PropTypes.string,
 
-  onShowJobTransModal: React.PropTypes.func,
-  onShowJobSinkConfigModal: React.PropTypes.func,
-  onDeleteSingleTransform: React.PropTypes.func,
-  onJobAddTransform: React.PropTypes.func,
-  onEditTransform: React.PropTypes.func,
-  onUpTransform: React.PropTypes.func,
-  onDownTransform: React.PropTypes.func,
-  sourceTypeNamespaceData: React.PropTypes.array,
-  sinkTypeNamespaceData: React.PropTypes.array,
-  onInitJobSourceNs: React.PropTypes.func,
-  onInitJobSinkNs: React.PropTypes.func,
-  jobResultFieldsValue: React.PropTypes.string,
-  jobTranTableConfirmValue: React.PropTypes.string,
-  fieldSelected: React.PropTypes.string,
-  initResultFieldClass: React.PropTypes.func,
-  initStartTS: React.PropTypes.func,
-  initEndTS: React.PropTypes.func,
-  onShowJobSpecialConfigModal: React.PropTypes.func
+  onShowJobTransModal: PropTypes.func,
+  onShowJobSinkConfigModal: PropTypes.func,
+  onDeleteSingleTransform: PropTypes.func,
+  onJobAddTransform: PropTypes.func,
+  onEditTransform: PropTypes.func,
+  onUpTransform: PropTypes.func,
+  onDownTransform: PropTypes.func,
+  sourceTypeNamespaceData: PropTypes.array,
+  sinkTypeNamespaceData: PropTypes.array,
+  onInitJobSourceNs: PropTypes.func,
+  onInitJobSinkNs: PropTypes.func,
+  jobResultFieldsValue: PropTypes.string,
+  jobTranTableConfirmValue: PropTypes.string,
+  fieldSelected: PropTypes.string,
+  initResultFieldClass: PropTypes.func,
+  initStartTS: PropTypes.func,
+  initEndTS: PropTypes.func,
+  onShowJobSpecialConfigModal: PropTypes.func,
+
+  onLoadJobName: PropTypes.func
 }
 
-export default Form.create({wrappedComponentRef: true})(WorkbenchJobForm)
+function mapDispatchToProps (dispatch) {
+  return {
+    onLoadJobName: (projectId, value, resolve, reject) => dispatch(loadJobName(projectId, value, resolve, reject))
+  }
+}
+
+export default Form.create({wrappedComponentRef: true})(connect(null, mapDispatchToProps)(WorkbenchJobForm))

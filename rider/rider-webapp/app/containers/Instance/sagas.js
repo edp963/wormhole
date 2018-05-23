@@ -173,7 +173,7 @@ export function* checkInstanceWatcher () {
 
 export function* checkConnectUrl ({ payload }) {
   try {
-    const result = yield call(request, `${api.instance}?type=${payload.type}&conn_url=${payload.url}`)
+    const result = yield call(request, `${api.instance}?type=${payload.value.type}&conn_url=${payload.value.conn_url}`)
 
     if (result.code && (result.code >= 400)) {
       payload.reject(result.msg)

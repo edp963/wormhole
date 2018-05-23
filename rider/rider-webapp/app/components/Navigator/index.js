@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 
@@ -499,17 +500,17 @@ const mapStateToProps = createStructuredSelector({
 })
 
 Navigator.propTypes = {
-  currentProject: React.PropTypes.string,
-  modalLoading: React.PropTypes.bool,
-  router: React.PropTypes.any,
-  onLogOut: React.PropTypes.func,
-  onEditroleTypeUserPsw: React.PropTypes.func,
-  onLoadUserDetail: React.PropTypes.func,
-  onLoadNormalDetail: React.PropTypes.func,
-  onEditUser: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func,
-  onEditNormal: React.PropTypes.func,
-  locale: React.PropTypes.string
+  currentProject: PropTypes.string,
+  modalLoading: PropTypes.bool,
+  router: PropTypes.any,
+  onLogOut: PropTypes.func,
+  onEditroleTypeUserPsw: PropTypes.func,
+  onLoadUserDetail: PropTypes.func,
+  onLoadNormalDetail: PropTypes.func,
+  onEditUser: PropTypes.func,
+  onChangeLanguage: PropTypes.func,
+  onEditNormal: PropTypes.func,
+  locale: PropTypes.string
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Navigator)

@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import Helmet from 'react-helmet'
 
 import request from '../../utils/request'
@@ -69,9 +70,9 @@ export class App extends React.Component {
 }
 
 App.propTypes = {
-  children: React.PropTypes.node,
-  router: React.PropTypes.any,
-  params: React.PropTypes.any
+  children: PropTypes.node,
+  router: PropTypes.any,
+  params: PropTypes.any
 }
 
 export default App

@@ -19,11 +19,10 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import { forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
-import DataSystemSelector from '../../components/DataSystemSelector'
 import Form from 'antd/lib/form'
 const FormItem = Form.Item
 import Row from 'antd/lib/row'
@@ -38,6 +37,10 @@ import Cascader from 'antd/lib/cascader'
 import Radio from 'antd/lib/radio'
 const RadioButton = Radio.Button
 const RadioGroup = Radio.Group
+
+import { forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
+import DataSystemSelector from '../../components/DataSystemSelector'
+import { flowTransformationDadaHide, flowTransformationDadaShow } from '../../components/DataSystemSelector/dataSystemFunction'
 
 export class FlowTransformForm extends React.Component {
   constructor (props) {
@@ -64,8 +67,7 @@ export class FlowTransformForm extends React.Component {
   }
 
   render () {
-    const { form } = this.props
-    const { transformValue, transformSinkTypeNamespaceData, flowTransNsData } = this.props
+    const { form, transformValue, transformSinkTypeNamespaceData, flowTransNsData, step2SourceNamespace, step2SinkNamespace } = this.props
     const { dsHideOrNot, selectValue } = this.state
     const { getFieldDecorator } = form
 
@@ -104,27 +106,8 @@ export class FlowTransformForm extends React.Component {
     ]
 
     const sinkDataSystemData = dsHideOrNot
-      ? [
-        { value: 'mysql', icon: 'icon-mysql' },
-        { value: 'oracle', icon: 'icon-amy-db-oracle' },
-        { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
-        { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
-        { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
-        { value: 'phoenix', text: 'Phoenix' },
-        { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} }
-      ]
-      : [
-        { value: 'mysql', icon: 'icon-mysql' },
-        { value: 'oracle', icon: 'icon-amy-db-oracle' },
-        { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
-        { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
-        { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
-        { value: 'phoenix', text: 'Phoenix' },
-        { value: 'hbase', icon: 'icon-hbase1' },
-        { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
-        { value: 'redis', icon: 'icon-redis', style: {fontSize: '31px'} },
-        {value: 'kudu', text: 'Kudu'}
-      ]
+      ? flowTransformationDadaHide()
+      : flowTransformationDadaShow()
 
     const nsChildren = flowTransNsData.map(i => {
       const temp = [i.nsSys, i.nsInstance, i.nsDatabase, i.nsTable].join('.')
@@ -165,14 +148,14 @@ export class FlowTransformForm extends React.Component {
           <Col span={24}>
             <FormItem label="Source Namespace" {...itemStyle}>
               {getFieldDecorator('step2SourceNamespace', {})(
-                <strong className="value-font-style">{this.props.step2SourceNamespace}</strong>
+                <strong className="value-font-style">{step2SourceNamespace}</strong>
               )}
             </FormItem>
           </Col>
           <Col span={24}>
             <FormItem label="Sink Namespace" {...itemStyle}>
               {getFieldDecorator('step2SinkNamespace', {})(
-                <strong className="value-font-style">{this.props.step2SinkNamespace}</strong>
+                <strong className="value-font-style">{step2SinkNamespace}</strong>
               )}
             </FormItem>
           </Col>
@@ -375,15 +358,15 @@ export class FlowTransformForm extends React.Component {
 }
 
 FlowTransformForm.propTypes = {
-  form: React.PropTypes.any,
-  transformSinkTypeNamespaceData: React.PropTypes.array,
-  projectIdGeted: React.PropTypes.string,
-  transformValue: React.PropTypes.string,
-  step2SinkNamespace: React.PropTypes.string,
-  step2SourceNamespace: React.PropTypes.string,
-  flowTransNsData: React.PropTypes.array,
-  onInitTransformValue: React.PropTypes.func,
-  onInitTransformSinkTypeNamespace: React.PropTypes.func
+  form: PropTypes.any,
+  transformSinkTypeNamespaceData: PropTypes.array,
+  projectIdGeted: PropTypes.string,
+  transformValue: PropTypes.string,
+  step2SinkNamespace: PropTypes.string,
+  step2SourceNamespace: PropTypes.string,
+  flowTransNsData: PropTypes.array,
+  onInitTransformValue: PropTypes.func,
+  onInitTransformSinkTypeNamespace: PropTypes.func
 }
 
 export default Form.create({wrappedComponentRef: true})(FlowTransformForm)

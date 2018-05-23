@@ -19,12 +19,10 @@
  */
 
 import React from 'react'
-
+import PropTypes from 'prop-types'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import DataSystemSelector from '../../components/DataSystemSelector'
-import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -38,6 +36,9 @@ import Popconfirm from 'antd/lib/popconfirm'
 const FormItem = Form.Item
 import Select from 'antd/lib/select'
 const Option = Select.Option
+
+import DataSystemSelector from '../../components/DataSystemSelector'
+import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 
 export class NamespaceForm extends React.Component {
   constructor (props) {
@@ -64,26 +65,22 @@ export class NamespaceForm extends React.Component {
   }
 
   onHandleChange = (name) => (e) => {
+    const { currentNamespaceUrlValue, instanceIdGeted } = this.state
+
     switch (name) {
       case 'instance':
-        const selUrl = this.state.currentNamespaceUrlValue.find(s => s.id === Number(e))
+        const selUrl = currentNamespaceUrlValue.find(s => s.id === Number(e))
         this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
         this.props.cleanNsTableData()
         this.setState({
           instanceIdGeted: selUrl.id
         }, () => {
           // 通过 instance id 显示 database 下拉框
-          this.props.onInitDatabaseSelectValue(this.state.instanceIdGeted, selUrl.connUrl)
+          this.props.onInitDatabaseSelectValue(instanceIdGeted, selUrl.connUrl)
         })
         break
       case 'nsDatabase':
         this.props.cleanNsTableData()
-        break
-      case 'nsSingleTableName':
-        this.props.onInitNsNameInputValue(e.target.value)
-        break
-      case 'nsSingleKeyValue':
-        this.props.onInitNsKeyInputValue(e.target.value)
         break
     }
   }
@@ -91,8 +88,10 @@ export class NamespaceForm extends React.Component {
   render () {
     const { getFieldDecorator } = this.props.form
     const { currentNamespaceUrlValue, namespaceDSValue } = this.state
-    const { namespaceFormType, databaseSelectValue, queryConnUrl } = this.props
-    const { namespaceTableSource, onDeleteTable, onAddTable, deleteTableClass, addTableClass, addTableClassTable, addBtnDisabled } = this.props
+    const {
+      namespaceFormType, databaseSelectValue, queryConnUrl, namespaceTableSource, onDeleteTable,
+      onAddTable, deleteTableClass, addTableClass, addTableClassTable, addBtnDisabled
+    } = this.props
     const languageText = localStorage.getItem('preferredLanguage')
 
     const itemStyle = {
@@ -295,7 +294,7 @@ export class NamespaceForm extends React.Component {
                 {getFieldDecorator('nsSingleTableName', {})(
                   <Input
                     placeholder={namespaceTablePlace}
-                    onChange={this.onHandleChange('nsSingleTableName')}
+                    onChange={(e) => this.props.onInitNsNameInputValue(e.target.value)}
                     disabled={disabledOrNot}
                   />
                 )}
@@ -306,7 +305,7 @@ export class NamespaceForm extends React.Component {
                 {getFieldDecorator('nsSingleKeyValue', {})(
                   <Input
                     placeholder={namespaceKeyPlaceholder}
-                    onChange={this.onHandleChange('nsSingleKeyValue')}
+                    onChange={(e) => this.props.onInitNsKeyInputValue(e.target.value)}
                     disabled={disabledKeyOrNot}
                   />
                 )}
@@ -340,22 +339,22 @@ export class NamespaceForm extends React.Component {
 }
 
 NamespaceForm.propTypes = {
-  form: React.PropTypes.any,
-  namespaceFormType: React.PropTypes.string,
-  namespaceTableSource: React.PropTypes.array,
-  databaseSelectValue: React.PropTypes.array,
-  deleteTableClass: React.PropTypes.string,
-  addTableClass: React.PropTypes.string,
-  addTableClassTable: React.PropTypes.string,
-  queryConnUrl: React.PropTypes.string,
-  addBtnDisabled: React.PropTypes.bool,
-  onInitNamespaceUrlValue: React.PropTypes.func,
-  onInitDatabaseSelectValue: React.PropTypes.func,
-  onDeleteTable: React.PropTypes.func,
-  onAddTable: React.PropTypes.func,
-  cleanNsTableData: React.PropTypes.func,
-  onInitNsNameInputValue: React.PropTypes.func,
-  onInitNsKeyInputValue: React.PropTypes.func
+  form: PropTypes.any,
+  namespaceFormType: PropTypes.string,
+  namespaceTableSource: PropTypes.array,
+  databaseSelectValue: PropTypes.array,
+  deleteTableClass: PropTypes.string,
+  addTableClass: PropTypes.string,
+  addTableClassTable: PropTypes.string,
+  queryConnUrl: PropTypes.string,
+  addBtnDisabled: PropTypes.bool,
+  onInitNamespaceUrlValue: PropTypes.func,
+  onInitDatabaseSelectValue: PropTypes.func,
+  onDeleteTable: PropTypes.func,
+  onAddTable: PropTypes.func,
+  cleanNsTableData: PropTypes.func,
+  onInitNsNameInputValue: PropTypes.func,
+  onInitNsKeyInputValue: PropTypes.func
 }
 
 export default Form.create({wrappedComponentRef: true})(NamespaceForm)

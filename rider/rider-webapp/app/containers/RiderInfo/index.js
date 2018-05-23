@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
@@ -76,11 +77,11 @@ export class RiderInfo extends React.Component {
 }
 
 RiderInfo.propTypes = {
-  onLoadRiderInfos: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func,
-  riderInfos: React.PropTypes.oneOfType([
-    React.PropTypes.object,
-    React.PropTypes.bool
+  onLoadRiderInfos: PropTypes.func,
+  onChangeLanguage: PropTypes.func,
+  riderInfos: PropTypes.oneOfType([
+    PropTypes.object,
+    PropTypes.bool
   ])
 }
 

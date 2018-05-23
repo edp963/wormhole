@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
@@ -188,9 +189,9 @@ export class UserForm extends React.Component {
 }
 
 UserForm.propTypes = {
-  form: React.PropTypes.any,
-  type: React.PropTypes.string,
-  onInitEmailInputValue: React.PropTypes.func
+  form: PropTypes.any,
+  type: PropTypes.string,
+  onInitEmailInputValue: PropTypes.func
 }
 
 export default Form.create({wrappedComponentRef: true})(UserForm)

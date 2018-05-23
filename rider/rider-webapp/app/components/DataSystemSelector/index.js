@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 
 export class DataSystemSelector extends React.PureComponent {
   componentWillReceiveProps (props) {
@@ -65,11 +66,11 @@ export class DataSystemSelector extends React.PureComponent {
 }
 
 DataSystemSelector.propTypes = {
-  data: React.PropTypes.array,
-  value: React.PropTypes.string,
-  onItemSelect: React.PropTypes.func,
-  onChange: React.PropTypes.func,
-  dataSystemDisabled: React.PropTypes.bool
+  data: PropTypes.array,
+  value: PropTypes.string,
+  onItemSelect: PropTypes.func,
+  onChange: PropTypes.func,
+  dataSystemDisabled: PropTypes.bool
 }
 
 export default DataSystemSelector

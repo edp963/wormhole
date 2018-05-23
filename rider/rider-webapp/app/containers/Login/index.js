@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 
@@ -149,10 +150,10 @@ export class Login extends React.PureComponent {
 }
 
 Login.propTypes = {
-  form: React.PropTypes.any,
-  router: React.PropTypes.any,
-  onLogin: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func
+  form: PropTypes.any,
+  router: PropTypes.any,
+  onLogin: PropTypes.func,
+  onChangeLanguage: PropTypes.func
 }
 
 const mapStateToProps = createStructuredSelector({
