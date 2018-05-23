@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
@@ -528,7 +529,9 @@ export class DataBase extends React.PureComponent {
   }
 
   render () {
-    const { refreshDbLoading, refreshDbText, showDBDetails } = this.state
+    const { formType, formVisible, queryConnUrl, currentDatabases,
+      refreshDbLoading, refreshDbText, showDBDetails } = this.state
+    const { modalLoading, dbUrlValue } = this.props
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -755,7 +758,7 @@ export class DataBase extends React.PureComponent {
       }
     }
 
-    const modalTitle = this.state.formType === 'add'
+    const modalTitle = formType === 'add'
       ? <FormattedMessage {...messages.dbModalCreate} />
       : <FormattedMessage {...messages.dbModalModify} />
 
@@ -773,7 +776,7 @@ export class DataBase extends React.PureComponent {
             <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshDbLoading} onClick={this.refreshDatabase}>{refreshDbText}</Button>
           </div>
           <Table
-            dataSource={this.state.currentDatabases}
+            dataSource={currentDatabases}
             columns={columns}
             onChange={this.handleDatabaseChange}
             pagination={pagination}
@@ -785,7 +788,7 @@ export class DataBase extends React.PureComponent {
           title={modalTitle}
           okText="保存"
           wrapClassName="db-form-style"
-          visible={this.state.formVisible}
+          visible={formVisible}
           onCancel={this.hideForm}
           afterClose={this.resetModal}
           footer={[
@@ -801,7 +804,7 @@ export class DataBase extends React.PureComponent {
               key="submit"
               size="large"
               type="primary"
-              loading={this.props.modalLoading}
+              loading={modalLoading}
               onClick={this.onModalOk}
             >
               <FormattedMessage {...messages.dbModalSave} />
@@ -809,10 +812,10 @@ export class DataBase extends React.PureComponent {
           ]}
         >
           <DBForm
-            databaseFormType={this.state.formType}
-            queryConnUrl={this.state.queryConnUrl}
+            databaseFormType={formType}
+            queryConnUrl={queryConnUrl}
             onInitDatabaseUrlValue={this.onInitDatabaseUrlValue}
-            databaseUrlValue={this.props.dbUrlValue}
+            databaseUrlValue={dbUrlValue}
             onInitDatabaseConfigValue={this.onInitDatabaseConfigValue}
             ref={(f) => { this.dBForm = f }}
           />
@@ -823,18 +826,18 @@ export class DataBase extends React.PureComponent {
 }
 
 DataBase.propTypes = {
-  modalLoading: React.PropTypes.bool,
-  dbUrlValue: React.PropTypes.oneOfType([
-    React.PropTypes.bool,
-    React.PropTypes.array
+  modalLoading: PropTypes.bool,
+  dbUrlValue: PropTypes.oneOfType([
+    PropTypes.bool,
+    PropTypes.array
   ]),
-  onLoadDatabases: React.PropTypes.func,
-  onAddDatabase: React.PropTypes.func,
-  onEditDatabase: React.PropTypes.func,
-  onLoadDatabasesInstance: React.PropTypes.func,
-  onLoadSingleDatabase: React.PropTypes.func,
-  onDeleteDB: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func
+  onLoadDatabases: PropTypes.func,
+  onAddDatabase: PropTypes.func,
+  onEditDatabase: PropTypes.func,
+  onLoadDatabasesInstance: PropTypes.func,
+  onLoadSingleDatabase: PropTypes.func,
+  onDeleteDB: PropTypes.func,
+  onChangeLanguage: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {

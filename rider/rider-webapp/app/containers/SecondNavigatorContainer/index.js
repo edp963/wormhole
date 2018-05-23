@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 
 import SecondNavigator from '../../components/SecondNavigator'
 
@@ -47,9 +48,9 @@ class SecondNavigatorContainer extends React.Component {
 }
 
 SecondNavigatorContainer.propTypes = {
-  router: React.PropTypes.any,
-  params: React.PropTypes.any,
-  children: React.PropTypes.node
+  router: PropTypes.any,
+  params: PropTypes.any,
+  children: PropTypes.node
 }
 
 export default SecondNavigatorContainer

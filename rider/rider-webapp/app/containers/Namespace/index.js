@@ -19,15 +19,27 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
 import CodeMirror from 'codemirror'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
-
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
+
+import Table from 'antd/lib/table'
+import Icon from 'antd/lib/icon'
+import Input from 'antd/lib/input'
+import Button from 'antd/lib/button'
+import Tooltip from 'antd/lib/tooltip'
+import Popover from 'antd/lib/popover'
+import Popconfirm from 'antd/lib/popconfirm'
+import Modal from 'antd/lib/modal'
+import message from 'antd/lib/message'
+import DatePicker from 'antd/lib/date-picker'
+const { RangePicker } = DatePicker
 
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 import {
@@ -46,17 +58,6 @@ import { filterDataSystemData } from '../../components/DataSystemSelector/dataSy
 import NamespaceForm from './NamespaceForm'
 import SchemaTypeConfig from './SchemaTypeConfig'
 import SinkSchemaTypeConfig from './SinkSchemaTypeConfig'
-import Table from 'antd/lib/table'
-import Icon from 'antd/lib/icon'
-import Input from 'antd/lib/input'
-import Button from 'antd/lib/button'
-import Tooltip from 'antd/lib/tooltip'
-import Popover from 'antd/lib/popover'
-import Popconfirm from 'antd/lib/popconfirm'
-import Modal from 'antd/lib/modal'
-import message from 'antd/lib/message'
-import DatePicker from 'antd/lib/date-picker'
-const { RangePicker } = DatePicker
 
 import { loadDatabasesInstance } from '../../containers/DataBase/action'
 import { selectDbUrlValue } from '../../containers/DataBase/selectors'
@@ -180,8 +181,10 @@ export class Namespace extends React.PureComponent {
   }
 
   searchOperater () {
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const {
+      columnNameText, valueText, visibleBool,
+      startTimeTextState, endTimeTextState
+    } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
@@ -193,16 +196,19 @@ export class Namespace extends React.PureComponent {
   }
 
   refreshNamespace = () => {
+    const { projectIdGeted } = this.props
+
     this.setState({
       refreshNsLoading: true,
       refreshNsText: 'Refreshing'
     })
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    const roleType = localStorage.getItem('loginRoleType')
+    if (roleType === 'admin') {
       this.props.namespaceClassHide === 'hide'
-        ? this.props.onLoadSelectNamespaces(this.props.projectIdGeted, () => { this.nsRefreshState() })
+        ? this.props.onLoadSelectNamespaces(projectIdGeted, () => { this.nsRefreshState() })
         : this.props.onLoadAdminAllNamespaces(() => { this.nsRefreshState() })
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
-      this.props.onLoadUserNamespaces(this.props.projectIdGeted, () => { this.nsRefreshState() })
+    } else if (roleType === 'user') {
+      this.props.onLoadUserNamespaces(projectIdGeted, () => { this.nsRefreshState() })
     }
   }
 
@@ -460,8 +466,10 @@ export class Namespace extends React.PureComponent {
   }
 
   onModalOk = () => {
-    const { namespaceTableSource, databaseSelectValue, namespaceFormType, exitedNsTableValue,
-      editNamespaceData, queryConnUrl, nsInstanceVal } = this.state
+    const {
+      namespaceTableSource, databaseSelectValue, namespaceFormType, exitedNsTableValue,
+      editNamespaceData, queryConnUrl, nsInstanceVal
+    } = this.state
     const { tableNameExited } = this.props
     const languageText = localStorage.getItem('preferredLanguage')
     const existText = languageText === 'en' ? 'already exists' : '已存在'
@@ -570,9 +578,7 @@ export class Namespace extends React.PureComponent {
     })
   }
 
-  /**
-   *  新增时，通过选择不同的 data system 显示不同的 Instance 内容
-   * */
+  // 新增时，通过选择不同的 data system 显示不同的 Instance 内容
   onInitNamespaceUrlValue = (value) => {
     this.setState({ addTableClassTable: 'hide' })
 
@@ -676,9 +682,7 @@ export class Namespace extends React.PureComponent {
     })
   }
 
-  /***
-   * 新增时，验证 table name 是否存在，不存在时，才能新增
-   * */
+  // 新增时，验证 table name 是否存在，不存在时，才能新增
   onInitNsNameInputValue = (val) => {
     const formValues = this.namespaceForm.getFieldsValue()
    // const languageText = localStorage.getItem('preferredLanguage')
@@ -701,9 +705,7 @@ export class Namespace extends React.PureComponent {
     })
   }
 
-  /**
-   * table key 不为空时
-   */
+  // table key 不为空时
   onInitNsKeyInputValue = (val) => {
     if (val !== '') {
       this.namespaceForm.setFields({
@@ -1224,7 +1226,7 @@ export class Namespace extends React.PureComponent {
     this.setState({
       sinkTableDataSource: tempData
     }, () => {
-      const exceptForbidden = this.state.sinkTableDataSource.filter(s => !s.forbidden)
+      const exceptForbidden = sinkTableDataSource.filter(s => !s.forbidden)
       const exceptSelect = exceptForbidden.filter(s => s.selected)
       if (exceptSelect) {
         this.setState({ sinkSelectAllState: exceptSelect.length === exceptForbidden.length ? 'all' : 'part' })
@@ -1374,6 +1376,7 @@ export class Namespace extends React.PureComponent {
 
   umsFieldTypeSelectOk = (recordKey, selectTypeVal) => {
     const { umsTableDataSource } = this.state
+
     const umsArr = fieldTypeAlter(umsTableDataSource, recordKey, selectTypeVal, 'source')
     this.setState({ umsTableDataSource: umsArr })
   }
@@ -1429,7 +1432,12 @@ export class Namespace extends React.PureComponent {
   }
 
   render () {
-    const { refreshNsLoading, refreshNsText, showNsDetail } = this.state
+    const {
+      count, formVisible, schemaModalVisible, sinkSchemaModalVisible, currentNamespaces,
+      refreshNsLoading, refreshNsText, showNsDetail, namespaceFormType, queryConnUrl,
+      databaseSelectValue, namespaceTableSource, deleteTableClass, addTableClass, addTableClassTable, addBtnDisabled
+    } = this.state
+    const { namespaceClassHide } = this.props
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -1654,8 +1662,6 @@ export class Namespace extends React.PureComponent {
         key: 'action',
         className: `text-align-center`,
         render: (text, record) => {
-          const { namespaceClassHide } = this.props
-
           let umsAction = ''
           if (record.nsSys === 'kafka') {
             umsAction = (
@@ -1731,7 +1737,6 @@ export class Namespace extends React.PureComponent {
       onChange: (current) => console.log('current', current)
     }
 
-    const { namespaceClassHide } = this.props
     const helmetHide = namespaceClassHide !== 'hide'
       ? (<Helmet title="Namespace" />)
       : (<Helmet title="Workbench" />)
@@ -1812,13 +1817,13 @@ export class Namespace extends React.PureComponent {
             <Icon type="bars" /> Namespace <FormattedMessage {...messages.nsTableTitle} />
           </h3>
           <div className="ri-common-block-tools">
-            <Button icon="plus" type="primary" className={this.props.namespaceClassHide} onClick={this.showAddNamespace}>
+            <Button icon="plus" type="primary" className={namespaceClassHide} onClick={this.showAddNamespace}>
               <FormattedMessage {...messages.nsTableCreateBtn} />
             </Button>
             <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshNsLoading} onClick={this.refreshNamespace}>{refreshNsText}</Button>
           </div>
           <Table
-            dataSource={this.state.currentNamespaces || []}
+            dataSource={currentNamespaces || []}
             columns={columns}
             onChange={this.handleNamespaceChange}
             pagination={pagination}
@@ -1830,7 +1835,7 @@ export class Namespace extends React.PureComponent {
           title={modalTitle}
           okText="保存"
           wrapClassName="db-form-style"
-          visible={this.state.formVisible}
+          visible={formVisible}
           onCancel={this.hideForm}
           afterClose={this.resetModal}
           footer={[
@@ -1854,23 +1859,23 @@ export class Namespace extends React.PureComponent {
           ]}
         >
           <NamespaceForm
-            namespaceFormType={this.state.namespaceFormType}
-            queryConnUrl={this.state.queryConnUrl}
+            namespaceFormType={namespaceFormType}
+            queryConnUrl={queryConnUrl}
             onInitNamespaceUrlValue={this.onInitNamespaceUrlValue}
             namespaceUrlValue={this.props.dbUrlValue}
             onInitDatabaseSelectValue={this.onInitDatabaseSelectValue}
             onInitNsNameInputValue={this.onInitNsNameInputValue}
             onInitNsKeyInputValue={this.onInitNsKeyInputValue}
-            databaseSelectValue={this.state.databaseSelectValue}
-            namespaceTableSource={this.state.namespaceTableSource}
-            deleteTableClass={this.state.deleteTableClass}
-            addTableClass={this.state.addTableClass}
-            addTableClassTable={this.state.addTableClassTable}
-            addBtnDisabled={this.state.addBtnDisabled}
+            databaseSelectValue={databaseSelectValue}
+            namespaceTableSource={namespaceTableSource}
+            deleteTableClass={deleteTableClass}
+            addTableClass={addTableClass}
+            addTableClassTable={addTableClassTable}
+            addBtnDisabled={addBtnDisabled}
             onAddTable={this.onAddTable}
             onDeleteTable={this.onDeleteTable}
             cleanNsTableData={this.cleanNsTableData}
-            count={this.state.count}
+            count={count}
             ref={(f) => { this.namespaceForm = f }}
           />
         </Modal>
@@ -1879,7 +1884,7 @@ export class Namespace extends React.PureComponent {
           title="Source Schema Config"
           okText="保存"
           wrapClassName="schema-config-modal ums-modal"
-          visible={this.state.schemaModalVisible}
+          visible={schemaModalVisible}
           onCancel={this.hideSchemaModal} // "X" 按钮
           footer={sourceFooter}
         >
@@ -1902,7 +1907,7 @@ export class Namespace extends React.PureComponent {
             repeatRenameArr={this.state.repeatRenameArr}
             repeatArrayArr={this.state.repeatArrayArr}
             selectAllState={this.state.selectAllState}
-            namespaceClassHide={this.props.namespaceClassHide}
+            namespaceClassHide={namespaceClassHide}
             ref={(f) => { this.schemaTypeConfig = f }}
           />
         </Modal>
@@ -1911,7 +1916,7 @@ export class Namespace extends React.PureComponent {
           title="Sink Schema Config"
           okText="保存"
           wrapClassName="schema-config-modal ums-modal"
-          visible={this.state.sinkSchemaModalVisible}
+          visible={sinkSchemaModalVisible}
           onCancel={this.hideSinkSchemaModal}
           footer={sinkFooter}
         >
@@ -1922,7 +1927,7 @@ export class Namespace extends React.PureComponent {
             initSinkChangeSelected={this.initSinkChangeSelected}
             onChangeSinkJsonToTable={this.onChangeSinkJsonToTable}
             initChangeSinkType={this.initChangeSinkType}
-            namespaceClassHide={this.props.namespaceClassHide}
+            namespaceClassHide={namespaceClassHide}
             ref={(f) => { this.sinkSchemaTypeConfig = f }}
           />
         </Modal>
@@ -1932,28 +1937,28 @@ export class Namespace extends React.PureComponent {
 }
 
 Namespace.propTypes = {
-  modalLoading: React.PropTypes.bool,
-  tableNameExited: React.PropTypes.bool,
-  dbUrlValue: React.PropTypes.oneOfType([
-    React.PropTypes.bool,
-    React.PropTypes.array
+  modalLoading: PropTypes.bool,
+  tableNameExited: PropTypes.bool,
+  dbUrlValue: PropTypes.oneOfType([
+    PropTypes.bool,
+    PropTypes.array
   ]),
-  onLoadAdminAllNamespaces: React.PropTypes.func,
-  onLoadUserNamespaces: React.PropTypes.func,
-  projectIdGeted: React.PropTypes.string,
-  namespaceClassHide: React.PropTypes.string,
-  onLoadSelectNamespaces: React.PropTypes.func,
-  onLoadDatabasesInstance: React.PropTypes.func,
-  onLoadNamespaceDatabase: React.PropTypes.func,
-  onLoadTableNameExist: React.PropTypes.func,
-  onAddNamespace: React.PropTypes.func,
-  onEditNamespace: React.PropTypes.func,
-  onLoadSingleNamespace: React.PropTypes.func,
-  onLoadSingleInstance: React.PropTypes.func,
-  onSetSchema: React.PropTypes.func,
-  onQuerySchemaConfig: React.PropTypes.func,
-  onDeleteNs: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func
+  onLoadAdminAllNamespaces: PropTypes.func,
+  onLoadUserNamespaces: PropTypes.func,
+  projectIdGeted: PropTypes.string,
+  namespaceClassHide: PropTypes.string,
+  onLoadSelectNamespaces: PropTypes.func,
+  onLoadDatabasesInstance: PropTypes.func,
+  onLoadNamespaceDatabase: PropTypes.func,
+  onLoadTableNameExist: PropTypes.func,
+  onAddNamespace: PropTypes.func,
+  onEditNamespace: PropTypes.func,
+  onLoadSingleNamespace: PropTypes.func,
+  onLoadSingleInstance: PropTypes.func,
+  onSetSchema: PropTypes.func,
+  onQuerySchemaConfig: PropTypes.func,
+  onDeleteNs: PropTypes.func,
+  onChangeLanguage: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {

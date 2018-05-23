@@ -256,34 +256,6 @@ export function forceCheckNumsPart (rule, value, callback) {
 }
 
 /**
- * 必须是字母、数字、中划线或下划线
- */
-export function forceCheckProjectName (rule, value, callback) {
-  const reg = /^[\w-]+$/
-  if (reg.test(value)) {
-    callback()
-  } else {
-    const textZh = '必须是字母、数字、中划线或下划线'
-    const textEn = 'It should be letters, figures, hyphen or underscore'
-    callback(localStorage.getItem('preferredLanguage') === 'en' ? textEn : textZh)
-  }
-}
-
-/**
- * 必须是字母、数字或下划线
- */
-export function forceCheckSave (rule, value, callback) {
-  const reg = /^\w+$/
-  if (reg.test(value)) {
-    callback()
-  } else {
-    const textZh = '必须是字母、数字或下划线'
-    const textEn = 'It should be letters, figures or underscore'
-    callback(localStorage.getItem('preferredLanguage') === 'en' ? textEn : textZh)
-  }
-}
-
-/**
  * change language
  */
 export function operateLanguageText (resultType, actionType) {
@@ -330,11 +302,6 @@ export function operateLanguageSuccessMessage (languageTextTemp, action) {
 export function operateLanguageSourceToSink () {
   const languageType = localStorage.getItem('preferredLanguage')
   return languageType === 'en' ? 'Source to Sink already exists!' : 'Source to Sink 已存在！'
-}
-
-export function operateLanguageNameExist () {
-  const languageType = localStorage.getItem('preferredLanguage')
-  return languageType === 'en' ? 'This name already exists' : '该 Name 已存在'
 }
 
 export function operateLanguageSinkConfig (languageTextTemp) {

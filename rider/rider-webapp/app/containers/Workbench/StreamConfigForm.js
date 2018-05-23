@@ -19,14 +19,15 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 
-import { forceCheckNum, forceCheckNumsPart } from '../../utils/util'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 import Input from 'antd/lib/input'
 import InputNumber from 'antd/lib/input-number'
 const FormItem = Form.Item
+import { forceCheckNum, forceCheckNumsPart } from '../../utils/util'
 
 export class StreamConfigForm extends React.Component {
   render () {
@@ -205,8 +206,8 @@ export class StreamConfigForm extends React.Component {
 }
 
 StreamConfigForm.propTypes = {
-  form: React.PropTypes.any,
-  tabPanelKey: React.PropTypes.string
+  form: PropTypes.any,
+  tabPanelKey: PropTypes.string
 }
 
 export default Form.create({wrappedComponentRef: true})(StreamConfigForm)

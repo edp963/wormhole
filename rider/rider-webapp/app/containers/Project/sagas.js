@@ -142,9 +142,10 @@ export function* editProjectWatcher () {
 export function* getProjectNameInputValue ({ payload }) {
   try {
     const result = yield call(request, `${api.projectList}?name=${payload.value}`)
+    console.log('result', result)
     if (result.code === 409) {
       yield put(projectNameInputValueErrorLoaded(result.msg))
-      payload.reject()
+      payload.reject(result.msg)
     } else {
       yield put(projectNameInputValueLoaded(result.payload))
       payload.resolve()

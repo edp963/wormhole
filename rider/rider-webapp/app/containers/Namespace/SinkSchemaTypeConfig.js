@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
@@ -61,10 +62,6 @@ export class SinkSchemaTypeConfig extends React.Component {
     return isDisabled
   }
 
-  onChangeRowSelect = (record) => (e) => this.props.initSinkChangeSelected(record)
-
-  onRowSelectAll = () => this.props.initSinkRowSelectedAll()
-
   handleChangeFieldType = (record) => (afterType) => this.props.initChangeSinkType(record.key, afterType)
 
   render () {
@@ -88,7 +85,7 @@ export class SinkSchemaTypeConfig extends React.Component {
               className="ant-checkbox-input"
               value="on"
               disabled={this.isDisabledLoad()}
-              onChange={this.onRowSelectAll}
+              onChange={() => this.props.initSinkRowSelectedAll()}
             />
             <span className="ant-checkbox-inner"></span>
           </span>
@@ -143,7 +140,7 @@ export class SinkSchemaTypeConfig extends React.Component {
                       className="ant-checkbox-input"
                       value="on"
                       disabled={this.isDisabledLoad()}
-                      onChange={this.onChangeRowSelect(record)}
+                      onChange={() => this.props.initSinkChangeSelected(record)}
                     />
                     <span className="ant-checkbox-inner"></span>
                   </span>
@@ -237,12 +234,12 @@ export class SinkSchemaTypeConfig extends React.Component {
 }
 
 SinkSchemaTypeConfig.propTypes = {
-  initSinkChangeSelected: React.PropTypes.func,
-  onChangeSinkJsonToTable: React.PropTypes.func,
-  sinkSelectAllState: React.PropTypes.string,
-  namespaceClassHide: React.PropTypes.string,
-  initSinkRowSelectedAll: React.PropTypes.func,
-  initChangeSinkType: React.PropTypes.func
+  initSinkChangeSelected: PropTypes.func,
+  onChangeSinkJsonToTable: PropTypes.func,
+  sinkSelectAllState: PropTypes.string,
+  namespaceClassHide: PropTypes.string,
+  initSinkRowSelectedAll: PropTypes.func,
+  initChangeSinkType: PropTypes.func
 }
 
 export default Form.create({wrappedComponentRef: true})(SinkSchemaTypeConfig)

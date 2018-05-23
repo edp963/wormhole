@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
@@ -119,8 +120,10 @@ export class Job extends React.Component {
   }
 
   searchOperater () {
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const {
+      columnNameText, valueText, visibleBool,
+      startTimeTextState, endTimeTextState
+    } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
@@ -140,12 +143,14 @@ export class Job extends React.Component {
   }
 
   loadJobData () {
+    const { projectIdGeted, jobClassHide } = this.props
+
     if (localStorage.getItem('loginRoleType') === 'admin') {
-      this.props.jobClassHide === 'hide'
-        ? this.props.onLoadAdminSingleJob(this.props.projectIdGeted, () => { this.jobRefreshState() })
+      jobClassHide === 'hide'
+        ? this.props.onLoadAdminSingleJob(projectIdGeted, () => { this.jobRefreshState() })
         : this.props.onLoadAdminAllJobs(() => { this.jobRefreshState() })
     } else if (localStorage.getItem('loginRoleType') === 'user') {
-      this.props.onLoadUserAllJobs(this.props.projectIdGeted, () => { this.jobRefreshState() })
+      this.props.onLoadUserAllJobs(projectIdGeted, () => { this.jobRefreshState() })
     }
   }
 
@@ -154,9 +159,11 @@ export class Job extends React.Component {
       refreshJobLoading: false,
       refreshJobText: 'Refresh'
     })
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { paginationInfo, filteredInfo, sortedInfo } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const {
+      columnNameText, valueText, visibleBool,
+      paginationInfo, filteredInfo, sortedInfo,
+      startTimeTextState, endTimeTextState
+    } = this.state
 
     if (columnNameText !== '') {
       if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
@@ -170,7 +177,7 @@ export class Job extends React.Component {
 
   onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
 
-  opreateJobFunc (record, action) {
+  opreateJobFunc = (record, action) => (e) => {
     const requestValue = {
       projectId: record.projectId,
       action: action,
@@ -202,12 +209,6 @@ export class Job extends React.Component {
       message.error(`${failText} ${result}`, 5)
     })
   }
-
-  startJobBtn = (record, action) => (e) => this.opreateJobFunc(record, action)
-
-  stopJobBtn = (record, action) => (e) => this.opreateJobFunc(record, action)
-
-  deleteJobBtn = (record, action) => (e) => this.opreateJobFunc(record, action)
 
   onShowJobLogs = (record) => (e) => {
     this.setState({
@@ -396,8 +397,11 @@ export class Job extends React.Component {
   }
 
   render () {
-    const { className, onShowAddJob, onShowEditJob } = this.props
-    const { refreshJobText, refreshJobLoading, showJobDetail } = this.state
+    const { className, onShowAddJob, onShowEditJob, jobClassHide } = this.props
+    const {
+      refreshJobText, refreshJobLoading, showJobDetail, currentJobs, jobLogsContent,
+      logsJobModalVisible, refreshJobLogLoading, refreshJobLogText, logsProjectId, logsJobId
+    } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -686,7 +690,7 @@ export class Job extends React.Component {
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.startJobBtn(record, 'start')}>
+              <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.opreateJobFunc(record, 'start')}>
                 <Tooltip title={startFormat}>
                   <Button icon="caret-right" shape="circle" type="ghost"></Button>
                 </Tooltip>
@@ -702,7 +706,7 @@ export class Job extends React.Component {
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title={sureStopFormat} okText="Yes" cancelText="No" onConfirm={this.stopJobBtn(record, 'stop')}>
+              <Popconfirm placement="bottom" title={sureStopFormat} okText="Yes" cancelText="No" onConfirm={this.opreateJobFunc(record, 'stop')}>
                 <Tooltip title={stopFormat}>
                   <Button shape="circle" type="ghost">
                     <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
@@ -718,7 +722,7 @@ export class Job extends React.Component {
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.deleteJobBtn(record, 'delete')}>
+              <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.opreateJobFunc(record, 'delete')}>
                 <Tooltip title={deleteFormat}>
                   <Button icon="delete" shape="circle" type="ghost"></Button>
                 </Tooltip>
@@ -741,7 +745,7 @@ export class Job extends React.Component {
           if (showJob) {
             jobDetailContent = (
               <div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
-                <p className={this.props.jobClassHide}><strong>   Project Name：</strong>{showJobDetail.projectName}</p>
+                <p className={jobClassHide}><strong>   Project Name：</strong>{showJobDetail.projectName}</p>
                 <p><strong>   Event Ts Start：</strong>{showJob.eventTsStart}</p>
                 <p><strong>   Event Ts End：</strong>{showJob.eventTsEnd}</p>
                 <p><strong>   Log Path：</strong>{showJob.logPath}</p>
@@ -808,7 +812,7 @@ export class Job extends React.Component {
       )
     }
 
-    const helmetHide = this.props.jobClassHide !== 'hide'
+    const helmetHide = jobClassHide !== 'hide'
       ? (<Helmet title="Job" />)
       : (<Helmet title="Workbench" />)
 
@@ -823,7 +827,7 @@ export class Job extends React.Component {
           <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshJobLoading} onClick={this.refreshJob}>{refreshJobText}</Button>
         </div>
         <Table
-          dataSource={this.state.currentJobs}
+          dataSource={currentJobs}
           columns={columns}
           onChange={this.handleJobChange}
           pagination={pagination}
@@ -832,18 +836,18 @@ export class Job extends React.Component {
         </Table>
         <Modal
           title="Logs"
-          visible={this.state.logsJobModalVisible}
+          visible={logsJobModalVisible}
           onCancel={this.handleLogsCancel}
           wrapClassName="ant-modal-xlarge ant-modal-no-footer"
           footer={<span></span>}
         >
           <JobLogs
-            jobLogsContent={this.state.jobLogsContent}
-            refreshJobLogLoading={this.state.refreshJobLogLoading}
-            refreshJobLogText={this.state.refreshJobLogText}
+            jobLogsContent={jobLogsContent}
+            refreshJobLogLoading={refreshJobLogLoading}
+            refreshJobLogText={refreshJobLogText}
             onInitRefreshLogs={this.onInitRefreshLogs}
-            logsProjectId={this.state.logsProjectId}
-            logsJobId={this.state.logsJobId}
+            logsProjectId={logsProjectId}
+            logsJobId={logsJobId}
             ref={(f) => { this.streamLogs = f }}
           />
         </Modal>
@@ -853,20 +857,20 @@ export class Job extends React.Component {
 }
 
 Job.propTypes = {
-  projectIdGeted: React.PropTypes.string,
-  jobClassHide: React.PropTypes.string,
-  className: React.PropTypes.string,
-  onShowAddJob: React.PropTypes.func,
+  projectIdGeted: PropTypes.string,
+  jobClassHide: PropTypes.string,
+  className: PropTypes.string,
+  onShowAddJob: PropTypes.func,
 
-  onLoadAdminAllJobs: React.PropTypes.func,
-  onLoadUserAllJobs: React.PropTypes.func,
-  onLoadAdminSingleJob: React.PropTypes.func,
-  onLoadAdminJobLogs: React.PropTypes.func,
-  onLoadUserJobLogs: React.PropTypes.func,
-  onOperateJob: React.PropTypes.func,
-  onShowEditJob: React.PropTypes.func,
-  onLoadJobDetail: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func
+  onLoadAdminAllJobs: PropTypes.func,
+  onLoadUserAllJobs: PropTypes.func,
+  onLoadAdminSingleJob: PropTypes.func,
+  onLoadAdminJobLogs: PropTypes.func,
+  onLoadUserJobLogs: PropTypes.func,
+  onOperateJob: PropTypes.func,
+  onShowEditJob: PropTypes.func,
+  onLoadJobDetail: PropTypes.func,
+  onChangeLanguage: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
