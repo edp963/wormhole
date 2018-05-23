@@ -19,11 +19,9 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
-import { forceCheckNum } from '../../utils/util'
-import DataSystemSelector from '../../components/DataSystemSelector'
-import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
-import { checkDatabaseName } from './action'
+
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -32,6 +30,11 @@ import InputNumber from 'antd/lib/input-number'
 const FormItem = Form.Item
 import Select from 'antd/lib/select'
 const Option = Select.Option
+
+import { forceCheckNum } from '../../utils/util'
+import DataSystemSelector from '../../components/DataSystemSelector'
+import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
+import { checkDatabaseName } from './action'
 
 export class DBForm extends React.Component {
   constructor (props) {
@@ -43,7 +46,7 @@ export class DBForm extends React.Component {
       connUrlText: ''
     }
   }
-  checkDatabaseValidator = (rule, value = '', callback) => {
+  checkDatabaseName = (rule, value = '', callback) => {
     const { oncheckDatabaseName, databaseFormType } = this.props
     const { currentInstanceId } = this.state
 
@@ -228,7 +231,7 @@ export class DBForm extends React.Component {
                   required: true,
                   message: `${languageText === 'en' ? 'Please fill in ' : '请填写'} ${databaseDSLabel}`
                 }, {
-                  validator: this.checkDatabaseValidator
+                  validator: this.checkDatabaseName
                 }]
               })(
                 <Input
@@ -328,13 +331,13 @@ export class DBForm extends React.Component {
 }
 
 DBForm.propTypes = {
-  form: React.PropTypes.any,
-  type: React.PropTypes.string,
-  databaseFormType: React.PropTypes.string,
-  queryConnUrl: React.PropTypes.string,
-  onInitDatabaseConfigValue: React.PropTypes.func,
-  onInitDatabaseUrlValue: React.PropTypes.func,
-  oncheckDatabaseName: React.PropTypes.func
+  form: PropTypes.any,
+  type: PropTypes.string,
+  databaseFormType: PropTypes.string,
+  queryConnUrl: PropTypes.string,
+  onInitDatabaseConfigValue: PropTypes.func,
+  onInitDatabaseUrlValue: PropTypes.func,
+  oncheckDatabaseName: PropTypes.func
 }
 
 function mapDispatchToProps (dispatch) {

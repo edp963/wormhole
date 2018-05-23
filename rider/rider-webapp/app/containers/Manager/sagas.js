@@ -128,7 +128,7 @@ export function* getStreamNameValue ({ payload }) {
     const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams?streamName=${payload.value}`)
     if (result.code === 409) {
       yield put(streamNameValueErrorLoaded(result.msg))
-      payload.reject()
+      payload.reject(result.msg)
     } else {
       yield put(streamNameValueLoaded(result.payload))
       payload.resolve()

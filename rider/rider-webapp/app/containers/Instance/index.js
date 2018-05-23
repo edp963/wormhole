@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
@@ -42,6 +43,7 @@ import { changeLocale } from '../../containers/LanguageProvider/actions'
 import {
   loadInstances,
   addInstance,
+  checkUrl,
   loadSingleInstance,
   editInstance,
   deleteInstace
@@ -132,8 +134,8 @@ export class Instance extends React.PureComponent {
   }
 
   searchOperater () {
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const { columnNameText, valueText, visibleBool,
+      startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
@@ -300,47 +302,27 @@ export class Instance extends React.PureComponent {
     }
   }
 
-  loadResult (value, result) {
-    const { instanceFormType, InstanceSourceDsVal } = this.state
-    const languageText = localStorage.getItem('preferredLanguage')
-    const existText = languageText === 'en'
-      ? `The connection url already exists, confirm ${instanceFormType === 'add' ? 'create' : 'modify'}?`
-      : `该 Connection URL 已存在，确定${instanceFormType === 'add' ? '新建' : '修改'}吗？`
-    const esText = languageText === 'en'
-      ? 'if it acts as sink, fill in http://localhost:9200; if it acts as lookup, fill in localhost:9300'
-      : '作为sink，填写 http://localhost:9200；作为lookup，填写localhost:9300'
+  // 新增时，验证 Connection Url 是否存在
+  onInitCheckUrl = (value) => {
+    const { eidtConnUrl, InstanceSourceDsVal } = this.state
 
-    let errMsg = ''
-    if (result.includes('exists')) {
-      errMsg = [new Error(existText)]
-    } else {
-      if (InstanceSourceDsVal === 'es') {
-        errMsg = [new Error(esText)]
-      } else if (InstanceSourceDsVal === 'oracle' ||
-        InstanceSourceDsVal === 'mysql' ||
-        InstanceSourceDsVal === 'postgresql'
-      ) {
-        errMsg = [new Error('ip:port')]
-      } else if (InstanceSourceDsVal === 'hbase') {
-        errMsg = [new Error('zookeeper url list, localhost:2181/hbase,localhost1:2181/hbase')]
-      } else if (InstanceSourceDsVal === 'phoenix') {
-        errMsg = [new Error('zookeeper url list')]
-      } else if (InstanceSourceDsVal === 'kafka') {
-        errMsg = [new Error('localhost:9092,localhost1:9092')]
-      } else if (InstanceSourceDsVal === 'cassandra' ||
-        InstanceSourceDsVal === 'mongodb' ||
-        InstanceSourceDsVal === 'redis'
-      ) {
-        errMsg = [new Error('ip:port list')]
-      } else if (InstanceSourceDsVal === 'parquet') {
-        errMsg = [new Error('hdfs://nn1[:8020]/[user/test/test1]')]
+    if (eidtConnUrl !== value) {
+      const requestVal = {
+        type: InstanceSourceDsVal,
+        conn_url: value
       }
-    }
 
+      this.props.onLoadCheckUrl(requestVal, () => {}, (result) => {
+        this.loadResult(value, result)
+      })
+    }
+  }
+
+  loadResult (value, result) {
     this.instanceForm.setFields({
       connectionUrl: {
         value: value,
-        errors: errMsg
+        errors: [new Error(result)]
       }
     })
   }
@@ -655,7 +637,7 @@ export class Instance extends React.PureComponent {
         >
           <InstanceForm
             instanceFormType={instanceFormType}
-            onInitInstanceInputValue={this.onInitInstanceInputValue}
+            onInitCheckUrl={this.onInitCheckUrl}
             onInitInstanceExited={this.onInitInstanceExited}
             onInitInstanceSourceDs={this.onInitInstanceSourceDs}
             ref={(f) => { this.instanceForm = f }}
@@ -667,13 +649,14 @@ export class Instance extends React.PureComponent {
 }
 
 Instance.propTypes = {
-  modalLoading: React.PropTypes.bool,
-  onLoadInstances: React.PropTypes.func,
-  onAddInstance: React.PropTypes.func,
-  onLoadSingleInstance: React.PropTypes.func,
-  onEditInstance: React.PropTypes.func,
-  onDeleteInstace: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func
+  modalLoading: PropTypes.bool,
+  onLoadInstances: PropTypes.func,
+  onAddInstance: PropTypes.func,
+  onLoadSingleInstance: PropTypes.func,
+  onEditInstance: PropTypes.func,
+  onDeleteInstace: PropTypes.func,
+  onChangeLanguage: PropTypes.func,
+  onLoadCheckUrl: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -683,7 +666,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadSingleInstance: (instanceId, resolve) => dispatch(loadSingleInstance(instanceId, resolve)),
     onEditInstance: (value, resolve, reject) => dispatch(editInstance(value, resolve, reject)),
     onDeleteInstace: (value, resolve, reject) => dispatch(deleteInstace(value, resolve, reject)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onChangeLanguage: (type) => dispatch(changeLocale(type)),
+    onLoadCheckUrl: (value, resolve, reject) => dispatch(checkUrl(value, resolve, reject))
   }
 }
 

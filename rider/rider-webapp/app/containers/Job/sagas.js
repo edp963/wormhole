@@ -171,7 +171,7 @@ export function* loadJobNameValue ({ payload }) {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/jobs?jobName=${payload.value}`)
     if (result.code && result.code === 409) {
       yield put(jobNameLoadedError(result.msg))
-      payload.reject()
+      payload.reject(result.msg)
     } else if (result.header.code && result.header.code === 200) {
       yield put(jobNameLoaded(result.payload))
       payload.resolve()
@@ -246,7 +246,7 @@ export function* addJob ({ payload }) {
   try {
     const result = yield call(request, {
       method: 'post',
-      url: `${api.projectUserList}/${payload.values.projectId}/jobs`,
+      url: `${api.projectUserList}/${payload.projectId}/jobs`,
       data: payload.values
     })
     yield put(jobAdded(result.payload))

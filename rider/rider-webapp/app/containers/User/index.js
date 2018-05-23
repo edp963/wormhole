@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
@@ -681,19 +682,19 @@ User.propTypes = {
   //   React.PropTypes.bool
   // ]),
   // error: React.PropTypes.bool,
-  modalLoading: React.PropTypes.bool,
-  emailExited: React.PropTypes.bool,
-  projectIdGeted: React.PropTypes.string,
-  userClassHide: React.PropTypes.string,
-  onLoadAdminAllUsers: React.PropTypes.func,
-  onLoadUserUsers: React.PropTypes.func,
-  onLoadSelectUsers: React.PropTypes.func,
-  onAddUser: React.PropTypes.func,
-  onEditUser: React.PropTypes.func,
-  onLoadEmailInputValue: React.PropTypes.func,
-  onLoadUserDetail: React.PropTypes.func,
-  onDeleteUser: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func
+  modalLoading: PropTypes.bool,
+  emailExited: PropTypes.bool,
+  projectIdGeted: PropTypes.string,
+  userClassHide: PropTypes.string,
+  onLoadAdminAllUsers: PropTypes.func,
+  onLoadUserUsers: PropTypes.func,
+  onLoadSelectUsers: PropTypes.func,
+  onAddUser: PropTypes.func,
+  onEditUser: PropTypes.func,
+  onLoadEmailInputValue: PropTypes.func,
+  onLoadUserDetail: PropTypes.func,
+  onDeleteUser: PropTypes.func,
+  onChangeLanguage: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {

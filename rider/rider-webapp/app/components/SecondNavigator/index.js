@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 
@@ -117,9 +118,9 @@ const mapStateToProps = createStructuredSelector({
 })
 
 SecondNavigator.propTypes = {
-  router: React.PropTypes.any,
-  params: React.PropTypes.any,
-  onLoadSingleProject: React.PropTypes.func
+  router: PropTypes.any,
+  params: PropTypes.any,
+  onLoadSingleProject: PropTypes.func
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(SecondNavigator)

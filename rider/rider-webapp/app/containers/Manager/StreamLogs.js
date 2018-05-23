@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 
 import Form from 'antd/lib/form'
 import Button from 'antd/lib/button'
@@ -60,12 +61,12 @@ export class StreamLogs extends React.Component {
 }
 
 StreamLogs.propTypes = {
-  logsContent: React.PropTypes.string,
-  onInitRefreshLogs: React.PropTypes.func,
-  logsProjectId: React.PropTypes.number,
-  logsStreamId: React.PropTypes.number,
-  refreshLogLoading: React.PropTypes.bool,
-  refreshLogText: React.PropTypes.string
+  logsContent: PropTypes.string,
+  onInitRefreshLogs: PropTypes.func,
+  logsProjectId: PropTypes.number,
+  logsStreamId: PropTypes.number,
+  refreshLogLoading: PropTypes.bool,
+  refreshLogText: PropTypes.string
 }
 
 export default Form.create({wrappedComponentRef: true})(StreamLogs)

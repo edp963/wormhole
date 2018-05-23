@@ -19,14 +19,13 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import { operateLanguageText } from '../../utils/util'
-import UdfForm from './UdfForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
 import Icon from 'antd/lib/icon'
@@ -39,6 +38,8 @@ import Input from 'antd/lib/input'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
+import { operateLanguageText } from '../../utils/util'
+import UdfForm from './UdfForm'
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadUdfs, loadSingleUdf, addUdf, loadUdfDetail, editUdf, deleteUdf } from './action'
 import { selectUdfs, selectError, selectModalLoading } from './selectors'
@@ -114,8 +115,9 @@ export class Udf extends React.PureComponent {
   }
 
   searchOperater () {
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const {
+      columnNameText, valueText, visibleBool,
+      startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
@@ -355,8 +357,8 @@ export class Udf extends React.PureComponent {
   }
 
   render () {
-    const { udfClassHide } = this.props
-    const { refreshUdfLoading, refreshUdfText, showUdfDetail } = this.state
+    const { udfClassHide, modalLoading } = this.props
+    const { formType, formVisible, currentudfs, refreshUdfLoading, refreshUdfText, showUdfDetail } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -614,7 +616,6 @@ export class Udf extends React.PureComponent {
       }
     }
 
-    const { formType } = this.state
     let udfModalTitle = ''
     if (formType === 'add') {
       udfModalTitle = <FormattedMessage {...messages.udfModalAdd} />
@@ -638,7 +639,7 @@ export class Udf extends React.PureComponent {
             <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshUdfLoading} onClick={this.refreshUdf}>{refreshUdfText}</Button>
           </div>
           <Table
-            dataSource={this.state.currentudfs}
+            dataSource={currentudfs}
             columns={columns}
             onChange={this.handleUdfChange}
             pagination={pagination}
@@ -650,7 +651,7 @@ export class Udf extends React.PureComponent {
           title={udfModalTitle}
           okText="保存"
           wrapClassName="db-form-style"
-          visible={this.state.formVisible}
+          visible={formVisible}
           onCancel={this.hideForm}
           afterClose={this.resetModal}
           footer={[
@@ -666,7 +667,7 @@ export class Udf extends React.PureComponent {
               key="submit"
               size="large"
               type="primary"
-              loading={this.props.modalLoading}
+              loading={modalLoading}
               onClick={this.onModalOk}
             >
               <FormattedMessage {...messages.udfSave} />
@@ -674,7 +675,7 @@ export class Udf extends React.PureComponent {
           ]}
         >
           <UdfForm
-            type={this.state.formType}
+            type={formType}
             ref={(f) => { this.udfForm = f }}
           />
         </Modal>
@@ -684,20 +685,20 @@ export class Udf extends React.PureComponent {
 }
 
 Udf.propTypes = {
-  // udfs: React.PropTypes.oneOfType([
-  //   React.PropTypes.bool,
-  //   React.PropTypes.array
+  // udfs: PropTypes.oneOfType([
+  //   PropTypes.bool,
+  //   PropTypes.array
   // ]),
-  modalLoading: React.PropTypes.bool,
-  projectIdGeted: React.PropTypes.string,
-  udfClassHide: React.PropTypes.string,
-  onLoadUdfs: React.PropTypes.func,
-  onLoadSingleUdf: React.PropTypes.func,
-  onAddUdf: React.PropTypes.func,
-  onLoadUdfDetail: React.PropTypes.func,
-  onEditUdf: React.PropTypes.func,
-  onDeleteUdf: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func
+  modalLoading: PropTypes.bool,
+  projectIdGeted: PropTypes.string,
+  udfClassHide: PropTypes.string,
+  onLoadUdfs: PropTypes.func,
+  onLoadSingleUdf: PropTypes.func,
+  onAddUdf: PropTypes.func,
+  onLoadUdfDetail: PropTypes.func,
+  onEditUdf: PropTypes.func,
+  onDeleteUdf: PropTypes.func,
+  onChangeLanguage: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {

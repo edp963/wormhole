@@ -19,12 +19,13 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
+import { connect } from 'react-redux'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import { forceCheckSave, operateLanguageSelect } from '../../utils/util'
 import Form from 'antd/lib/form'
 const FormItem = Form.Item
 import Row from 'antd/lib/row'
@@ -41,6 +42,9 @@ const RadioButton = Radio.Button
 import Select from 'antd/lib/select'
 const Option = Select.Option
 
+import { operateLanguageSelect } from '../../utils/util'
+import { loadStreamNameValue } from '../Manager/action'
+
 export class WorkbenchStreamForm extends React.PureComponent {
   constructor (props) {
     super(props)
@@ -51,8 +55,18 @@ export class WorkbenchStreamForm extends React.PureComponent {
     this.setState({ streamMode: props.streamMode })
   }
 
-  // 验证 stream name 是否存在
-  onNameInputChange = (e) => this.props.onInitStreamNameValue(e.target.value)
+  checkStreamName = (rule, value = '', callback) => {
+    const { onLoadStreamNameValue, projectId } = this.props
+
+    const reg = /^[a-zA-Z0-9_-]*$/
+    if (reg.test(value)) {
+      onLoadStreamNameValue(projectId, value, res => callback(), (err) => callback(err))
+    } else {
+      const textZh = '必须是字母、数字、下划线或中划线'
+      const textEn = 'It should be letters, figures, underscore or hyphen'
+      callback(localStorage.getItem('preferredLanguage') === 'en' ? textEn : textZh)
+    }
+  }
 
   render () {
     const { isWormhole, onShowConfigModal, streamConfigCheck, kafkaValues } = this.props
@@ -64,16 +78,11 @@ export class WorkbenchStreamForm extends React.PureComponent {
     }
 
     // edit 时，不能修改部分元素
-    let disabledOrNot = false
-    if (streamMode === 'add') {
-      disabledOrNot = false
-    } else if (streamMode === 'edit') {
-      disabledOrNot = true
-    }
+    const disabledOrNot = streamMode === 'edit'
 
     const kafkaOptions = kafkaValues.map(s => (<Option key={s.id} value={`${s.id}`}>{s.nsInstance}</Option>))
 
-    const streamConfigTag = streamConfigCheck === true
+    const streamConfigTag = streamConfigCheck
       ? (
         <Tag color="#7CB342" onClick={onShowConfigModal}>
           <Icon type="check-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
@@ -91,9 +100,10 @@ export class WorkbenchStreamForm extends React.PureComponent {
         <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />} placement="bottom">
           <Popover
             placement="top"
-            content={<div style={{ width: '221px', height: '25px' }}>
-              <p><FormattedMessage {...messages.workbenchTransResource} /></p>
-            </div>}
+            content={
+              <div style={{ width: '221px', height: '25px' }}>
+                <p><FormattedMessage {...messages.workbenchTransResource} /></p>
+              </div>}
             title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
@@ -113,10 +123,10 @@ export class WorkbenchStreamForm extends React.PureComponent {
                   required: true,
                   message: languageText === 'en' ? 'Name cannot be empty' : 'Name 不能为空'
                 }, {
-                  validator: forceCheckSave
+                  validator: this.checkStreamName
                 }]
               })(
-                <Input placeholder="Name" disabled={disabledOrNot} onChange={this.onNameInputChange} />
+                <Input placeholder="Name" disabled={disabledOrNot} />
               )}
             </FormItem>
           </Col>
@@ -236,12 +246,19 @@ export class WorkbenchStreamForm extends React.PureComponent {
 }
 
 WorkbenchStreamForm.propTypes = {
-  form: React.PropTypes.any,
-  isWormhole: React.PropTypes.bool,
-  kafkaValues: React.PropTypes.array,
-  onShowConfigModal: React.PropTypes.func,
-  onInitStreamNameValue: React.PropTypes.func,
-  streamConfigCheck: React.PropTypes.bool
+  form: PropTypes.any,
+  isWormhole: PropTypes.bool,
+  kafkaValues: PropTypes.array,
+  onShowConfigModal: PropTypes.func,
+  onLoadStreamNameValue: PropTypes.func,
+  streamConfigCheck: PropTypes.bool,
+  projectId: PropTypes.string
 }
 
-export default Form.create({wrappedComponentRef: true})(WorkbenchStreamForm)
+function mapDispatchToProps (dispatch) {
+  return {
+    onLoadStreamNameValue: (projectId, name, resolve, reject) => dispatch(loadStreamNameValue(projectId, name, resolve, reject))
+  }
+}
+
+export default Form.create({wrappedComponentRef: true})(connect(null, mapDispatchToProps)(WorkbenchStreamForm))

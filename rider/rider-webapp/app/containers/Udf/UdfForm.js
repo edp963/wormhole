@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
@@ -122,8 +123,8 @@ export class UdfForm extends React.Component {
 }
 
 UdfForm.propTypes = {
-  form: React.PropTypes.any,
-  type: React.PropTypes.string
+  form: PropTypes.any,
+  type: PropTypes.string
 }
 
 export default Form.create({wrappedComponentRef: true})(UdfForm)

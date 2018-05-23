@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
@@ -118,7 +119,7 @@ export class UserPswForm extends React.Component {
 }
 
 UserPswForm.propTypes = {
-  form: React.PropTypes.any
+  form: PropTypes.any
 }
 
 export default Form.create({wrappedComponentRef: true})(UserPswForm)

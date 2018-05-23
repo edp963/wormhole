@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
@@ -44,9 +45,11 @@ const { RangePicker } = DatePicker
 
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { selectFlows, selectError } from './selectors'
-import { loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm,
+import {
+  loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm,
   saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail,
-  loadSourceInput, loadFlowDetail, chuckAwayFlow } from './action'
+  loadSourceInput, loadFlowDetail, chuckAwayFlow
+} from './action'
 
 // import { formatConcat } from '../../utils/util'
 
@@ -149,12 +152,16 @@ export class Flow extends React.Component {
   }
 
   loadFlowData () {
+    const {
+      projectIdGeted, flowClassHide, onLoadAdminSingleFlow, onLoadAdminAllFlows, onLoadUserAllFlows
+    } = this.props
+
     if (localStorage.getItem('loginRoleType') === 'admin') {
-      this.props.flowClassHide === 'hide'
-        ? this.props.onLoadAdminSingleFlow(this.props.projectIdGeted, () => { this.flowRefreshState() })
-        : this.props.onLoadAdminAllFlows(() => { this.flowRefreshState() })
+      flowClassHide === 'hide'
+        ? onLoadAdminSingleFlow(projectIdGeted, () => { this.flowRefreshState() })
+        : onLoadAdminAllFlows(() => { this.flowRefreshState() })
     } else if (localStorage.getItem('loginRoleType') === 'user') {
-      this.props.onLoadUserAllFlows(this.props.projectIdGeted, () => { this.flowRefreshState() })
+      onLoadUserAllFlows(projectIdGeted, () => { this.flowRefreshState() })
     }
   }
 
@@ -164,9 +171,11 @@ export class Flow extends React.Component {
       refreshFlowText: 'Refresh'
     })
 
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { paginationInfo, filteredInfo, sortedInfo } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const {
+      columnNameText, valueText, visibleBool,
+      paginationInfo, filteredInfo, sortedInfo,
+      startTimeTextState, endTimeTextState
+    } = this.state
 
     if (columnNameText !== '') {
       if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
@@ -468,7 +477,7 @@ export class Flow extends React.Component {
 
   render () {
     const { className, onShowAddFlow, onShowEditFlow, flowClassHide } = this.props
-    const { refreshFlowText, refreshFlowLoading } = this.state
+    const { refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -911,7 +920,7 @@ export class Flow extends React.Component {
                 placement="left"
                 content={
                   <div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
-                    <p className={this.props.flowClassHide}><strong>   Project Id：</strong>{showFlowDetails.projectId}</p>
+                    <p className={flowClassHide}><strong>   Project Id：</strong>{showFlowDetails.projectId}</p>
                     <p><strong>   Protocol：</strong>{showFlowDetails.consumedProtocol}</p>
                     <p><strong>   Stream Name：</strong>{showFlowDetails.streamName}</p>
                     <p><strong>   Sink Config：</strong>{sinkConfigFinal}</p>
@@ -985,7 +994,7 @@ export class Flow extends React.Component {
       )
     }
 
-    const helmetHide = this.props.flowClassHide !== 'hide'
+    const helmetHide = flowClassHide !== 'hide'
       ? (<Helmet title="Flow" />)
       : (<Helmet title="Workbench" />)
 
@@ -1000,7 +1009,7 @@ export class Flow extends React.Component {
           <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshFlowLoading} onClick={this.refreshFlow}>{refreshFlowText}</Button>
         </div>
         <Table
-          dataSource={this.state.currentFlows}
+          dataSource={currentFlows}
           columns={columns}
           onChange={this.handleFlowChange}
           pagination={pagination}
@@ -1009,7 +1018,7 @@ export class Flow extends React.Component {
           bordered>
         </Table>
         <Modal
-          visible={this.state.modalVisible}
+          visible={modalVisible}
           onCancel={this.handleCancel}
           wrapClassName="ant-modal-xlarge ant-modal-no-footer"
           footer={<span></span>}
@@ -1029,7 +1038,7 @@ export class Flow extends React.Component {
 
         <Modal
           title="设置时间"
-          visible={this.state.timeModalVisible}
+          visible={timeModalVisible}
           onCancel={this.handleTimeCancel}
           onOk={this.handleTimeOk}
         >
@@ -1046,28 +1055,28 @@ Flow.propTypes = {
   //   React.PropTypes.array,
   //   React.PropTypes.bool
   // ]),
-  className: React.PropTypes.string,
-  onShowAddFlow: React.PropTypes.func,
-  onShowEditFlow: React.PropTypes.func,
-  onShowCopyFlow: React.PropTypes.func,
+  className: PropTypes.string,
+  onShowAddFlow: PropTypes.func,
+  onShowEditFlow: PropTypes.func,
+  onShowCopyFlow: PropTypes.func,
 
-  onEditLogForm: React.PropTypes.func,
-  onSaveForm: React.PropTypes.func,
-  onCheckOutForm: React.PropTypes.func,
-  onLoadSourceLogDetail: React.PropTypes.func,
-  onLoadSourceSinkDetail: React.PropTypes.func,
-  onLoadSinkWriteRrrorDetail: React.PropTypes.func,
-  onLoadSourceInput: React.PropTypes.func,
-  projectIdGeted: React.PropTypes.string,
-  flowClassHide: React.PropTypes.string,
-  onLoadFlowDetail: React.PropTypes.func,
+  onEditLogForm: PropTypes.func,
+  onSaveForm: PropTypes.func,
+  onCheckOutForm: PropTypes.func,
+  onLoadSourceLogDetail: PropTypes.func,
+  onLoadSourceSinkDetail: PropTypes.func,
+  onLoadSinkWriteRrrorDetail: PropTypes.func,
+  onLoadSourceInput: PropTypes.func,
+  projectIdGeted: PropTypes.string,
+  flowClassHide: PropTypes.string,
+  onLoadFlowDetail: PropTypes.func,
 
-  onLoadAdminAllFlows: React.PropTypes.func,
-  onLoadUserAllFlows: React.PropTypes.func,
-  onLoadAdminSingleFlow: React.PropTypes.func,
-  onOperateUserFlow: React.PropTypes.func,
-  onChuckAwayFlow: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func
+  onLoadAdminAllFlows: PropTypes.func,
+  onLoadUserAllFlows: PropTypes.func,
+  onLoadAdminSingleFlow: PropTypes.func,
+  onOperateUserFlow: PropTypes.func,
+  onChuckAwayFlow: PropTypes.func,
+  onChangeLanguage: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {

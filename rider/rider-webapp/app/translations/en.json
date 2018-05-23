@@ -106,15 +106,6 @@
 
   "rider.containers.Instance.Modal.create": "Create Instance",
   "rider.containers.Instance.Modal.modify": "Modify Instance",
-  "rider.containers.Instance.Modal.url.oracle.msg": "ip:port",
-  "rider.containers.Instance.Modal.url.es.msg": "if it acts as sink, fill in http://localhost:9200; if it acts as lookup, fill in localhost:9300.",
-  "rider.containers.Instance.Modal.url.hbase.msg": "zookeeper url list, localhost:2181/hbase,localhost1:2181/hbase.",
-  "rider.containers.Instance.Modal.url.phoenix.msg": "zookeeper url list",
-  "rider.containers.Instance.Modal.url.kafka.msg": "localhost:9092,localhost1:9092",
-  "rider.containers.Instance.Modal.url.cassandra.msg": "ip:port list",
-  "rider.containers.Instance.Modal.url.parquet.msg": "hdfs://nn1[:8020]/[user/test/test1]",
-  "rider.containers.Instance.Modal.url.kudu.msg": "localhost:9092",
-  "rider.containers.Instance.Modal.url.others.msg": "Please Select Data System",
 
   "rider.containers.Database.table.column.ds": "Data System",
   "rider.containers.Database.modal.create.db": "Create Database",

@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
 import {createStructuredSelector} from 'reselect'
 import Helmet from 'react-helmet'
@@ -41,10 +42,12 @@ import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
 import { changeLocale } from '../../containers/LanguageProvider/actions'
-import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
-  deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset} from './action'
-import {loadSingleUdf} from '../Udf/action'
-import {selectStreams, selectStreamStartModalLoading} from './selectors'
+import {
+  loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
+  deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset
+} from './action'
+import { loadSingleUdf } from '../Udf/action'
+import { selectStreams, selectStreamStartModalLoading } from './selectors'
 
 import { uuid, isEquivalent, operateLanguageText } from '../../utils/util'
 
@@ -146,8 +149,10 @@ export class Manager extends React.Component {
   }
 
   searchOperater () {
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const {
+      columnNameText, valueText, visibleBool,
+      startTimeTextState, endTimeTextState
+    } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
@@ -159,16 +164,18 @@ export class Manager extends React.Component {
   }
 
   refreshStream = () => {
+    const { projectIdGeted, streamClassHide } = this.props
+
     this.setState({
       refreshStreamLoading: true,
       refreshStreamText: 'Refreshing'
     })
     if (localStorage.getItem('loginRoleType') === 'admin') {
-      this.props.streamClassHide === 'hide'
-        ? this.props.onLoadAdminSingleStream(this.props.projectIdGeted, () => { this.refreshStreamState() })
+      streamClassHide === 'hide'
+        ? this.props.onLoadAdminSingleStream(projectIdGeted, () => { this.refreshStreamState() })
         : this.props.onLoadAdminAllStreams(() => { this.refreshStreamState() })
     } else if (localStorage.getItem('loginRoleType') === 'user') {
-      this.props.onLoadUserStreams(this.props.projectIdGeted, () => { this.refreshStreamState() })
+      this.props.onLoadUserStreams(projectIdGeted, () => { this.refreshStreamState() })
     }
   }
 
@@ -177,9 +184,11 @@ export class Manager extends React.Component {
       refreshStreamLoading: false,
       refreshStreamText: 'Refresh'
     })
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { paginationInfo, filteredInfo, sortedInfo } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const {
+      columnNameText, valueText, visibleBool,
+      paginationInfo, filteredInfo, sortedInfo,
+      startTimeTextState, endTimeTextState
+    } = this.state
 
     if (columnNameText !== '') {
       if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
@@ -359,6 +368,7 @@ export class Manager extends React.Component {
 
   onChangeEditSelect = () => {
     const { streamStartFormData } = this.state
+
     for (let i = 0; i < streamStartFormData.length; i++) {
       const partitionAndOffset = streamStartFormData[i].partitionOffsets.split(',')
 
@@ -729,8 +739,13 @@ export class Manager extends React.Component {
   }
 
   render () {
-    const { refreshStreamLoading, refreshStreamText, showStreamdetails } = this.state
-    const { className, onShowAddStream, onShowEditStream, streamClassHide } = this.props
+    const {
+      refreshStreamLoading, refreshStreamText, showStreamdetails, logsModalVisible,
+      logsContent, refreshLogLoading, refreshLogText, logsProjectId, logsStreamId,
+      streamStartFormData, consumedOffsetValue, kafkaOffsetValue, actionType,
+      startUdfVals, renewUdfVals, currentUdfVal, topicInfoModal, currentStreams
+    } = this.state
+    const { className, onShowAddStream, onShowEditStream, streamClassHide, streamStartModalLoading } = this.props
 
     let {
       sortedInfo,
@@ -1108,7 +1123,7 @@ export class Manager extends React.Component {
 
           streamDetailContent = (
             <div className="stream-detail">
-              <p className={this.props.streamClassHide}><strong>   Project Id：</strong>{detailTemp.projectId}</p>
+              <p className={streamClassHide}><strong>   Project Id：</strong>{detailTemp.projectId}</p>
               <p><strong>   Topic Info：</strong>{topicFinal}</p>
               <p><strong>   Current Udf：</strong>{currentUdfFinal}</p>
               <p><strong>   Using Udf：</strong>{usingUdfTempFinal}</p>
@@ -1167,13 +1182,13 @@ export class Manager extends React.Component {
     const streamStartForm = startModalVisible
       ? (
         <StreamStartForm
-          data={this.state.streamStartFormData}
-          consumedOffsetValue={this.state.consumedOffsetValue}
-          kafkaOffsetValue={this.state.kafkaOffsetValue}
-          streamActionType={this.state.actionType}
-          startUdfValsOption={this.state.startUdfVals}
-          renewUdfValsOption={this.state.renewUdfVals}
-          currentUdfVal={this.state.currentUdfVal}
+          data={streamStartFormData}
+          consumedOffsetValue={consumedOffsetValue}
+          kafkaOffsetValue={kafkaOffsetValue}
+          streamActionType={actionType}
+          startUdfValsOption={startUdfVals}
+          renewUdfValsOption={renewUdfVals}
+          currentUdfVal={currentUdfVal}
           ref={(f) => { this.streamStartForm = f }}
         />
       )
@@ -1190,12 +1205,9 @@ export class Manager extends React.Component {
       )
     }
 
-    const helmetHide = this.props.streamClassHide !== 'hide'
+    const helmetHide = streamClassHide !== 'hide'
       ? (<Helmet title="Stream" />)
       : (<Helmet title="Workbench" />)
-
-    const { topicInfoModal, actionType } = this.state
-    const editBtn = topicInfoModal === '' ? '' : 'hide'
 
     const modalTitle = actionType === 'start'
       ? <FormattedMessage {...messages.streamSureStart} />
@@ -1216,7 +1228,7 @@ export class Manager extends React.Component {
           <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshStreamLoading} onClick={this.refreshStream}>{refreshStreamText}</Button>
         </div>
         <Table
-          dataSource={this.state.currentStreams}
+          dataSource={currentStreams}
           columns={columns}
           onChange={this.handleStreamChange}
           pagination={pagination}
@@ -1231,7 +1243,7 @@ export class Manager extends React.Component {
           onCancel={this.handleEditStartCancel}
           footer={[
             <Button
-              className={`query-offset-btn ${this.state.topicInfoModal}`}
+              className={`query-offset-btn ${topicInfoModal}`}
               key="query"
               size="large"
               onClick={this.queryLastestoffset}
@@ -1239,7 +1251,7 @@ export class Manager extends React.Component {
               <FormattedMessage {...messages.streamModalView} /> Latest Offset
             </Button>,
             <Button
-              className={`edit-topic-btn ${editBtn}`}
+              className={`edit-topic-btn ${topicInfoModal === '' ? '' : 'hide'}`}
               type="default"
               onClick={this.onChangeEditSelect}
               key="renewEdit"
@@ -1257,7 +1269,7 @@ export class Manager extends React.Component {
               key="submit"
               size="large"
               type="primary"
-              loading={this.props.streamStartModalLoading}
+              loading={streamStartModalLoading}
               onClick={this.handleEditStartOk}
             >
               {modalOkBtn}
@@ -1269,18 +1281,18 @@ export class Manager extends React.Component {
 
         <Modal
           title="Logs"
-          visible={this.state.logsModalVisible}
+          visible={logsModalVisible}
           onCancel={this.handleLogsCancel}
           wrapClassName="ant-modal-xlarge ant-modal-no-footer"
           footer={<span></span>}
         >
           <StreamLogs
-            logsContent={this.state.logsContent}
-            refreshLogLoading={this.state.refreshLogLoading}
-            refreshLogText={this.state.refreshLogText}
+            logsContent={logsContent}
+            refreshLogLoading={refreshLogLoading}
+            refreshLogText={refreshLogText}
             onInitRefreshLogs={this.onInitRefreshLogs}
-            logsProjectId={this.state.logsProjectId}
-            logsStreamId={this.state.logsStreamId}
+            logsProjectId={logsProjectId}
+            logsStreamId={logsStreamId}
             ref={(f) => { this.streamLogs = f }}
           />
         </Modal>
@@ -1291,24 +1303,24 @@ export class Manager extends React.Component {
 }
 
 Manager.propTypes = {
-  className: React.PropTypes.string,
-  projectIdGeted: React.PropTypes.string,
-  streamClassHide: React.PropTypes.string,
-  onLoadUserStreams: React.PropTypes.func,
-  onLoadAdminSingleStream: React.PropTypes.func,
-  onLoadAdminAllStreams: React.PropTypes.func,
-  onShowAddStream: React.PropTypes.func,
-  onOperateStream: React.PropTypes.func,
-  onDeleteStream: React.PropTypes.func,
-  onStartOrRenewStream: React.PropTypes.func,
-  onLoadStreamDetail: React.PropTypes.func,
-  onLoadLogsInfo: React.PropTypes.func,
-  onLoadAdminLogsInfo: React.PropTypes.func,
-  onShowEditStream: React.PropTypes.func,
-  onLoadSingleUdf: React.PropTypes.func,
-  onLoadLastestOffset: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func,
-  streamStartModalLoading: React.PropTypes.bool
+  className: PropTypes.string,
+  projectIdGeted: PropTypes.string,
+  streamClassHide: PropTypes.string,
+  onLoadUserStreams: PropTypes.func,
+  onLoadAdminSingleStream: PropTypes.func,
+  onLoadAdminAllStreams: PropTypes.func,
+  onShowAddStream: PropTypes.func,
+  onOperateStream: PropTypes.func,
+  onDeleteStream: PropTypes.func,
+  onStartOrRenewStream: PropTypes.func,
+  onLoadStreamDetail: PropTypes.func,
+  onLoadLogsInfo: PropTypes.func,
+  onLoadAdminLogsInfo: PropTypes.func,
+  onShowEditStream: PropTypes.func,
+  onLoadSingleUdf: PropTypes.func,
+  onLoadLastestOffset: PropTypes.func,
+  onChangeLanguage: PropTypes.func,
+  streamStartModalLoading: PropTypes.bool
 }
 
 export function mapDispatchToProps (dispatch) {
