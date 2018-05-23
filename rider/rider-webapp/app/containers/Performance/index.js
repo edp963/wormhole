@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
@@ -55,11 +56,11 @@ export class Performance extends React.Component {
 }
 
 Performance.propTypes = {
-  router: React.PropTypes.any,
-  onLoadPerformances: React.PropTypes.func,
-  performances: React.PropTypes.oneOfType([
-    React.PropTypes.object,
-    React.PropTypes.bool
+  router: PropTypes.any,
+  onLoadPerformances: PropTypes.func,
+  performances: PropTypes.oneOfType([
+    PropTypes.object,
+    PropTypes.bool
   ])
 }
 

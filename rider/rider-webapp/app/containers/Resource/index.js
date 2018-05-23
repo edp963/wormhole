@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
@@ -232,10 +233,10 @@ export class Resource extends React.Component {
 }
 
 Resource.propTypes = {
-  onChangeLanguage: React.PropTypes.func,
-  resources: React.PropTypes.oneOfType([
-    React.PropTypes.object,
-    React.PropTypes.bool
+  onChangeLanguage: PropTypes.func,
+  resources: PropTypes.oneOfType([
+    PropTypes.object,
+    PropTypes.bool
   ])
 }
 

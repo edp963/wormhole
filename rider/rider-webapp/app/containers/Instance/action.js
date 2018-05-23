@@ -194,3 +194,14 @@ export function checkConnectionUrl (type, url, resolve, reject) {
   }
 }
 
+export function checkUrl (value, resolve, reject) {
+  return {
+    type: CHECK_URL,
+    payload: {
+      value,
+      resolve,
+      reject
+    }
+  }
+}
+

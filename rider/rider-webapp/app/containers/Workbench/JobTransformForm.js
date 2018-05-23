@@ -19,9 +19,9 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
-import { operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
 
 import Form from 'antd/lib/form'
 const FormItem = Form.Item
@@ -35,12 +35,13 @@ import Radio from 'antd/lib/radio'
 const RadioButton = Radio.Button
 const RadioGroup = Radio.Group
 
-export class JobTransformForm extends React.Component {
-  onJobTransTypeSelect = (e) => this.props.onInitJobTransValue(e.target.value)
+import { operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
 
+export class JobTransformForm extends React.Component {
   render () {
-    const { form } = this.props
-    const { transformValue } = this.props
+    const {
+      form, transformValue, step2SourceNamespace, step2SinkNamespace, onInitJobTransValue
+    } = this.props
     const { getFieldDecorator } = form
 
     const itemStyle = {
@@ -64,9 +65,10 @@ export class JobTransformForm extends React.Component {
         <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />}>
           <Popover
             placement="top"
-            content={<div style={{ width: '400px', height: '90px' }}>
-              <p><FormattedMessage {...messages.workbenchTransSpark} /></p>
-            </div>}
+            content={
+              <div style={{ width: '400px', height: '90px' }}>
+                <p><FormattedMessage {...messages.workbenchTransSpark} /></p>
+              </div>}
             title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
@@ -81,14 +83,14 @@ export class JobTransformForm extends React.Component {
           <Col span={24}>
             <FormItem label="Source Namespace" {...itemStyle}>
               {getFieldDecorator('step2SourceNamespace', {})(
-                <strong className="value-font-style">{this.props.step2SourceNamespace}</strong>
+                <strong className="value-font-style">{step2SourceNamespace}</strong>
               )}
             </FormItem>
           </Col>
           <Col span={24}>
             <FormItem label="Sink Namespace" {...itemStyle}>
               {getFieldDecorator('step2SinkNamespace', {})(
-                <strong className="value-font-style">{this.props.step2SinkNamespace}</strong>
+                <strong className="value-font-style">{step2SinkNamespace}</strong>
               )}
             </FormItem>
           </Col>
@@ -105,7 +107,7 @@ export class JobTransformForm extends React.Component {
                   message: operateLanguageSelect('transformation', 'Transformation')
                 }]
               })(
-                <RadioGroup onChange={this.onJobTransTypeSelect}>
+                <RadioGroup onChange={(e) => onInitJobTransValue(e.target.value)}>
                   <RadioButton value="sparkSql">Spark SQL</RadioButton>
                   <RadioButton value="transformClassName">ClassName</RadioButton>
                 </RadioGroup>
@@ -153,11 +155,11 @@ export class JobTransformForm extends React.Component {
 }
 
 JobTransformForm.propTypes = {
-  form: React.PropTypes.any,
-  transformValue: React.PropTypes.string,
-  step2SinkNamespace: React.PropTypes.string,
-  step2SourceNamespace: React.PropTypes.string,
-  onInitJobTransValue: React.PropTypes.func
+  form: PropTypes.any,
+  transformValue: PropTypes.string,
+  step2SinkNamespace: PropTypes.string,
+  step2SourceNamespace: PropTypes.string,
+  onInitJobTransValue: PropTypes.func
 }
 
 export default Form.create({wrappedComponentRef: true})(JobTransformForm)

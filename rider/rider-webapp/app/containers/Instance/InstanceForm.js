@@ -19,13 +19,11 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import DataSystemSelector from '../../components/DataSystemSelector'
-import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
-import { checkInstance, checkConnectionUrl } from './action'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -35,13 +33,17 @@ import Icon from 'antd/lib/icon'
 import Input from 'antd/lib/input'
 const FormItem = Form.Item
 
+import DataSystemSelector from '../../components/DataSystemSelector'
+import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
+import { checkInstance } from './action'
+
 export class InstanceForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = { instanceDSValue: '' }
   }
 
-  checkInstanceValidator = (rule, value = '', callback) => {
+  checkInstanceName = (rule, value = '', callback) => {
     const { onCheckInstance, instanceFormType } = this.props
     const { instanceDSValue } = this.state
 
@@ -54,17 +56,6 @@ export class InstanceForm extends React.Component {
       : callback()
   }
 
-  checkUrlValidator = (rule, value, callback) => {
-    const { onCheckConnectionUrl } = this.props
-    const { instanceDSValue } = this.state
-
-    onCheckConnectionUrl(instanceDSValue, value, res => {
-      callback()
-    }, err => {
-      callback(err)
-    })
-  }
-
   onSourceDataSystemItemSelect = (e) => {
     this.setState({ instanceDSValue: e })
     this.props.onInitInstanceSourceDs(e)
@@ -72,7 +63,7 @@ export class InstanceForm extends React.Component {
 
   render () {
     const { getFieldDecorator } = this.props.form
-    const { instanceFormType } = this.props
+    const { type, instanceFormType } = this.props
     const { instanceDSValue } = this.state
     const languageText = localStorage.getItem('preferredLanguage')
 
@@ -86,25 +77,18 @@ export class InstanceForm extends React.Component {
     // help
     let questionDS = ''
     if (instanceDSValue === 'oracle' || instanceDSValue === 'mysql' ||
-      instanceDSValue === 'postgresql' || instanceDSValue === 'vertica') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlOracleMsg} />
+      instanceDSValue === 'postgresql' || instanceDSValue === 'vertica' ||
+      instanceDSValue === 'phoenix') {
+      questionDS = 'ip:port'
     } else if (instanceDSValue === 'es') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlEsMsg} />
+      questionDS = 'sink: http url list, lookup: tcp url, ip:port'
     } else if (instanceDSValue === 'hbase') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlHbaseMsg} />
-    } else if (instanceDSValue === 'phoenix') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlPhienixMsg} />
-    } else if (instanceDSValue === 'kafka') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlKafkaMsg} />
-    } else if (instanceDSValue === 'cassandra' || instanceDSValue === 'redis' ||
-      instanceDSValue === 'mongodb') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlCassandraMsg} />
+      questionDS = 'zk node list'
+    } else if (instanceDSValue === 'kafka' || instanceDSValue === 'cassandra' ||
+      instanceDSValue === 'redis' || instanceDSValue === 'kudu') {
+      questionDS = 'ip:port list'
     } else if (instanceDSValue === 'parquet') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlParquetMsg} />
-    } else if (instanceDSValue === 'kudu') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlKuduMsg} />
-    } else {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlOthersMsg} />
+      questionDS = 'hdfs root path: hdfs://ip:port/test'
     }
 
     const connectionURLMsg = (
@@ -136,7 +120,7 @@ export class InstanceForm extends React.Component {
           <Col span={24}>
             <FormItem className="hide">
               {getFieldDecorator('id', {
-                hidden: this.props.type === 'add'
+                hidden: type === 'add'
               })(
                 <Input />
               )}
@@ -165,7 +149,7 @@ export class InstanceForm extends React.Component {
                   message: `${languageText === 'en' ? 'Please fill in instance' : '请填写 Instance'}`
                 },
                 {
-                  validator: this.checkInstanceValidator
+                  validator: this.checkInstanceName
                 }]
               })(
                 <Input
@@ -182,12 +166,11 @@ export class InstanceForm extends React.Component {
                 rules: [{
                   required: true,
                   message: `${languageText === 'en' ? 'Please fill in connection url' : '请填写 Connection Url'}`
-                }, {
-                  validator: this.checkUrlValidator
                 }]
               })(
                 <Input
                   placeholder="Connection URL"
+                  onChange={(e) => this.props.onInitCheckUrl(e.target.value)}
                 />
               )}
             </FormItem>
@@ -208,18 +191,17 @@ export class InstanceForm extends React.Component {
 }
 
 InstanceForm.propTypes = {
-  form: React.PropTypes.any,
-  type: React.PropTypes.string,
-  instanceFormType: React.PropTypes.string,
-  onInitInstanceSourceDs: React.PropTypes.func,
-  onCheckInstance: React.PropTypes.func,
-  onCheckConnectionUrl: React.PropTypes.func
+  form: PropTypes.any,
+  type: PropTypes.string,
+  instanceFormType: PropTypes.string,
+  onInitInstanceSourceDs: PropTypes.func,
+  onCheckInstance: PropTypes.func,
+  onInitCheckUrl: PropTypes.func
 }
 
 function mapDispatchToProps (dispatch) {
   return {
-    onCheckInstance: (type, nsInstance, resolve, reject) => dispatch(checkInstance(type, nsInstance, resolve, reject)),
-    onCheckConnectionUrl: (type, url, resolve, reject) => dispatch(checkConnectionUrl(type, url, resolve, reject))
+    onCheckInstance: (type, nsInstance, resolve, reject) => dispatch(checkInstance(type, nsInstance, resolve, reject))
   }
 }
 

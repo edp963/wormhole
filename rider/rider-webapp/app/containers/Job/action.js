@@ -302,10 +302,11 @@ export function jobSourceToSinkExistErrorLoaded (result) {
   }
 }
 
-export function addJob (values, resolve, final) {
+export function addJob (projectId, values, resolve, final) {
   return {
     type: ADD_JOB,
     payload: {
+      projectId,
       values,
       resolve,
       final

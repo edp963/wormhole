@@ -19,8 +19,8 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 
-import { forceCheckNum } from '../../utils/util'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -30,6 +30,7 @@ const FormItem = Form.Item
 import Radio from 'antd/lib/radio'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
+import { forceCheckNum } from '../../utils/util'
 
 export class FlowEtpConfigForm extends React.Component {
   forceChecColumnSave = (rule, value, callback) => {
@@ -141,7 +142,7 @@ export class FlowEtpConfigForm extends React.Component {
 }
 
 FlowEtpConfigForm.propTypes = {
-  form: React.PropTypes.any
+  form: PropTypes.any
 }
 
 export default Form.create({wrappedComponentRef: true})(FlowEtpConfigForm)

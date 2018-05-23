@@ -19,12 +19,13 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
+import { connect } from 'react-redux'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 // import PlaceholderInputIntl from '../../components/PlaceholderInputIntl'
 // import PlaceholderInputNumberIntl from '../../components/PlaceholderInputNumberIntl'
 
-import { forceCheckNum, forceCheckProjectName } from '../../utils/util'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -32,10 +33,23 @@ import Input from 'antd/lib/input'
 import InputNumber from 'antd/lib/input-number'
 import Card from 'antd/lib/card'
 const FormItem = Form.Item
+import { forceCheckNum } from '../../utils/util'
+import { loadProjectNameInputValue } from './action'
 
 export class ProjectForm extends React.Component {
-  // 验证project name 是否存在
-  onProjectNameInputChange = (e) => this.props.onInitProjectNameInputValue(e.target.value)
+  checkProjectName = (rule, value, callback) => {
+    const reg = /^[\w-]+$/
+    if (reg.test(value)) {
+      const { projectFormType, onLoadProjectNameInputValue } = this.props
+      projectFormType === 'add'
+        ? onLoadProjectNameInputValue(value, res => callback(), (err) => callback(err))
+        : callback()
+    } else {
+      const textZh = '必须是字母、数字、下划线或中划线'
+      const textEn = 'It should be letters, figures, underscore or hyphen'
+      callback(localStorage.getItem('preferredLanguage') === 'en' ? textEn : textZh)
+    }
+  }
 
   render () {
     const { getFieldDecorator } = this.props.form
@@ -45,14 +59,6 @@ export class ProjectForm extends React.Component {
     const itemStyle = {
       labelCol: { span: 6 },
       wrapperCol: { span: 16 }
-    }
-
-    // edit 时，不能修改部分元素
-    let disabledOrNot = false
-    if (projectFormType === 'add') {
-      disabledOrNot = false
-    } else if (projectFormType === 'edit') {
-      disabledOrNot = true
     }
 
     return (
@@ -80,13 +86,12 @@ export class ProjectForm extends React.Component {
                     required: true,
                     message: languageText === 'en' ? 'Project name cannot be empty' : '项目标识不能为空'
                   }, {
-                    validator: forceCheckProjectName
+                    validator: this.checkProjectName
                   }]
                 })(
                   <Input
                     placeholder={languageText === 'en' ? 'composed of capital/lowercase letters, hyphen, underscore or number' : '由大小写字母、中划线、下划线、数字组成'}
-                    onChange={this.onProjectNameInputChange}
-                    disabled={disabledOrNot}
+                    disabled={projectFormType === 'edit'}
                   />
                 )}
               </FormItem>
@@ -136,9 +141,15 @@ export class ProjectForm extends React.Component {
 }
 
 ProjectForm.propTypes = {
-  form: React.PropTypes.any,
-  projectFormType: React.PropTypes.string,
-  onInitProjectNameInputValue: React.PropTypes.func
+  form: PropTypes.any,
+  projectFormType: PropTypes.string,
+  onLoadProjectNameInputValue: PropTypes.func
 }
 
-export default Form.create({wrappedComponentRef: true})(ProjectForm)
+function mapDispatchToProps (dispatch) {
+  return {
+    onLoadProjectNameInputValue: (value, resolve, reject) => dispatch(loadProjectNameInputValue(value, resolve, reject))
+  }
+}
+
+export default Form.create({wrappedComponentRef: true})(connect(null, mapDispatchToProps)(ProjectForm))

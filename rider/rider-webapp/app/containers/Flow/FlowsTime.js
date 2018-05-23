@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 
 import DatePicker from 'antd/lib/date-picker'
 
@@ -106,7 +107,7 @@ export class FlowsTime extends React.Component {
 }
 
 FlowsTime.propTypes = {
-  type: React.PropTypes.string
+  type: PropTypes.string
 }
 
 export default FlowsTime

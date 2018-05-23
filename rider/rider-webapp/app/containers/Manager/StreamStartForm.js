@@ -19,10 +19,10 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import { forceCheckNum } from '../../utils/util'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -32,6 +32,7 @@ import Button from 'antd/lib/button'
 import Select from 'antd/lib/select'
 import InputNumber from 'antd/lib/input-number'
 const FormItem = Form.Item
+import { forceCheckNum } from '../../utils/util'
 
 export class StreamStartForm extends React.Component {
   constructor (props) {
@@ -316,11 +317,11 @@ export class StreamStartForm extends React.Component {
 }
 
 StreamStartForm.propTypes = {
-  form: React.PropTypes.any,
-  streamActionType: React.PropTypes.string,
-  startUdfValsOption: React.PropTypes.array,
-  renewUdfValsOption: React.PropTypes.array,
-  currentUdfVal: React.PropTypes.array
+  form: PropTypes.any,
+  streamActionType: PropTypes.string,
+  startUdfValsOption: PropTypes.array,
+  renewUdfValsOption: PropTypes.array,
+  currentUdfVal: PropTypes.array
 }
 
 export default Form.create({wrappedComponentRef: true})(StreamStartForm)
