@@ -60,7 +60,12 @@ object RouterMainProcess extends EdpLogging {
         val routerKeys = ConfMemoryStorage.getRouterKeys
 
         val dataRepartitionRdd: RDD[(String, String)] =
-          if (config.rdd_partition_number != -1) streamRdd.map(row => (row.key, row.value)).repartition(config.rdd_partition_number)
+          if (config.rdd_partition_number != -1) streamRdd.map(row => {
+            if(row.key==null||row.key.trim.isEmpty){
+              val realNamespace = WormholeUtils.getFieldContentFromJson(row.value,"namespace")
+              (realNamespace,row.value)
+            }else (row.key, row.value)
+          }).repartition(config.rdd_partition_number)
           else streamRdd.map(row => (row.key, row.value))
         dataRepartitionRdd.cache()
 
