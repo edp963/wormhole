@@ -193,7 +193,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                 complete(OK, getHeader(403, session))
               else {
                 val userEntity = User(user.id, user.email.trim, user.password.trim, user.name.trim, user.roleType.trim, user.preferredLanguage, user.active, user.createTime, user.createBy, currentSec, session.userId)
-                onComplete(userDal.update(userEntity)) {
+                onComplete(userDal.updateWithoutPwd(userEntity)) {
                   case Success(result) =>
                     riderLogger.info(s"user ${
                       session.userId
