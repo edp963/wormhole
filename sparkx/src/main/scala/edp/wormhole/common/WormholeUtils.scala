@@ -309,5 +309,41 @@ object WormholeUtils extends EdpLogging {
     df.where(df(UmsSysField.TS.toString) >= fromTs).where(df(UmsSysField.TS.toString) <= toTs).withColumn("rn", row_number.over(w)).where("rn = 1").drop("rn").filter("ums_op_ != 'd'")
   }
 
+  def getFieldContentFromJson(json:String, fieldName:String): String ={
+    var tmpValue = json
+    var realKey = null.asInstanceOf[String]
+    while(tmpValue!=null){
+      val namespacePosition = tmpValue.indexOf("\""+fieldName+"\"")
+      tmpValue = tmpValue.substring(namespacePosition+fieldName.length+2).trim
+      if(tmpValue.startsWith(":")){
+        val from = tmpValue.indexOf("\"")
+        val to = tmpValue.indexOf("\"",from+1)
+        realKey=tmpValue.substring(from+1,to)
+        tmpValue=null
+      }
+    }
+    realKey
+  }
+
+  def getProtocolTypeFromUms(ums:String): String ={
+    var tmpValue = ums
+    var realKey = null.asInstanceOf[String]
+    while(tmpValue!=null){
+      val strPosition = tmpValue.indexOf("\"protocol\"")
+      println(strPosition)
+      tmpValue = tmpValue.substring(strPosition+10).trim
+      if(tmpValue.startsWith(":")){
+        val from = tmpValue.indexOf("{")
+        val to = tmpValue.indexOf("}")
+        val subStr = tmpValue.substring(from,to+1)
+        if(subStr.contains("\"type\"")){
+          realKey = getFieldContentFromJson(subStr,"type")
+          tmpValue = null
+        }
+      }
+    }
+    realKey
+  }
+
 }
 
