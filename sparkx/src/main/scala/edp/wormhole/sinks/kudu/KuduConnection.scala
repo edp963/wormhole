@@ -32,11 +32,11 @@ object KuduConnection extends Serializable with EdpLogging {
     client.build()
   }
 
-  def getSession(url: String): KuduSession = {
+  def getSession(url: String,client:KuduClient): KuduSession = {
     val config = kuduConfigurationMap(url)
     val kvConfig = config.parameters
 
-    val session: KuduSession = getKuduClient(url).newSession()
+    val session: KuduSession = client.newSession()
     session.setFlushMode(SessionConfiguration.FlushMode.MANUAL_FLUSH)
     if (kvConfig.isDefined) kvConfig.get.foreach(kv => {
       if (kv.key == "TimeoutMillis") session.setTimeoutMillis(kv.value.toLong)
@@ -304,7 +304,7 @@ object KuduConnection extends Serializable with EdpLogging {
     val client: KuduClient = getKuduClient(url)
     val newTableName = getTableName(tableName,database)
     val table: KuduTable = client.openTable(newTableName)
-    val session = getSession(url)
+    val session = getSession(url,client)
 
 //    var i = 0
     fieldsContent.foreach(content => {
