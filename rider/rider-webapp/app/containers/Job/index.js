@@ -93,7 +93,8 @@ export class Job extends React.Component {
       startTimeTextState: '',
       endTimeTextState: '',
       paginationInfo: null,
-      language: localStorage.getItem('preferredLanguage')
+      language: localStorage.getItem('preferredLanguage'),
+      roleType: localStorage.getItem('loginRoleType')
     }
   }
 
@@ -142,8 +143,8 @@ export class Job extends React.Component {
 
   loadJobData () {
     const { projectIdGeted, jobClassHide } = this.props
+    const { roleType } = this.state
 
-    const roleType = localStorage.getItem('loginRoleType')
     if (roleType === 'admin') {
       jobClassHide === 'hide'
         ? this.props.onLoadAdminSingleJob(projectIdGeted, () => { this.jobRefreshState() })
@@ -220,7 +221,7 @@ export class Job extends React.Component {
   }
 
   loadLogsData = (projectId, jobId) => {
-    const roleType = localStorage.getItem('loginRoleType')
+    const { roleType } = this.state
     if (roleType === 'admin') {
       this.props.onLoadAdminJobLogs(projectId, jobId, (result) => {
         this.setState({ jobLogsContent: result })
@@ -374,7 +375,7 @@ export class Job extends React.Component {
           projectId: record.projectId,
           streamId: record.streamId,
           jobId: record.id,
-          roleType: localStorage.getItem('loginRoleType')
+          roleType: this.state.roleType
         }
 
         this.props.onLoadJobDetail(requestValue, (result) => this.setState({ showJobDetail: result }))
@@ -385,15 +386,13 @@ export class Job extends React.Component {
   render () {
     const { className, onShowAddJob, onShowEditJob, jobClassHide } = this.props
     const {
-      refreshJobText, refreshJobLoading, showJobDetail, currentJobs, jobLogsContent,
+      refreshJobText, refreshJobLoading, showJobDetail, currentJobs, jobLogsContent, roleType,
       logsJobModalVisible, refreshJobLogLoading, refreshJobLogText, logsProjectId, logsJobId
     } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
-
-    const roleType = localStorage.getItem('loginRoleType')
 
     const columns = [{
       title: 'ID',

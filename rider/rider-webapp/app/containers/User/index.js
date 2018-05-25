@@ -88,17 +88,19 @@ export class User extends React.PureComponent {
 
       editUsersMsgData: {},
       editUsersPswData: {},
-      showUserDetail: {}
+      showUserDetail: {},
+      language: localStorage.getItem('preferredLanguage'),
+      roleType: localStorage.getItem('loginRoleType')
     }
   }
 
   componentWillMount () {
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (this.state.roleType === 'admin') {
       if (!this.props.userClassHide) {
         this.props.onLoadAdminAllUsers(() => { this.userRefreshState() })
       }
     }
-    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
+    this.props.onChangeLanguage(this.state.language)
   }
 
   componentWillReceiveProps (props) {
@@ -132,11 +134,12 @@ export class User extends React.PureComponent {
       refreshUserLoading: true,
       refreshUserText: 'Refreshing'
     })
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    const { roleType } = this.state
+    if (roleType === 'admin') {
       this.props.userClassHide === 'hide'
         ? this.props.onLoadSelectUsers(this.props.projectIdGeted, () => { this.userRefreshState() })
         : this.props.onLoadAdminAllUsers(() => { this.userRefreshState() })
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       this.props.onLoadUserUsers(this.props.projectIdGeted, () => { this.userRefreshState() })
     }
   }
@@ -218,16 +221,15 @@ export class User extends React.PureComponent {
   }
 
   onModalOk = () => {
-    const { formType, editUsersMsgData, editUsersPswData } = this.state
+    const { formType, editUsersMsgData, editUsersPswData, language } = this.state
     const { onAddUser, onEditUser, emailExited } = this.props
 
     this.userForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        const preferLanguage = localStorage.getItem('preferredLanguage')
-        const emailtext = preferLanguage === 'en' ? 'This email already exists' : '该 Email 已存在'
-        const userSuccesstext = preferLanguage === 'en' ? 'User is created successfully!' : 'User 添加成功！'
-        const userInfoSuccesstext = preferLanguage === 'en' ? 'User information is modified successfully!' : '用户信息修改成功！'
-        const pwdSuccesstext = preferLanguage === 'en' ? 'Password is modified successfully!' : '密码修改成功！'
+        const emailtext = language === 'en' ? 'This email already exists' : '该 Email 已存在'
+        const userSuccesstext = language === 'en' ? 'User is created successfully!' : 'User 添加成功！'
+        const userInfoSuccesstext = language === 'en' ? 'User information is modified successfully!' : '用户信息修改成功！'
+        const pwdSuccesstext = language === 'en' ? 'Password is modified successfully!' : '密码修改成功！'
 
         switch (formType) {
           case 'add':
@@ -247,7 +249,7 @@ export class User extends React.PureComponent {
             break
           case 'editMsg':
             onEditUser(Object.assign(editUsersMsgData, values, {
-              preferredLanguage: preferLanguage
+              preferredLanguage: language
             }), () => {
               this.hideForm()
               message.success(userInfoSuccesstext, 3)
@@ -256,7 +258,7 @@ export class User extends React.PureComponent {
           case 'editPsw':
             onEditUser(Object.assign(editUsersPswData, {
               password: values.password,
-              preferredLanguage: preferLanguage
+              preferredLanguage: language
             }), () => {
               this.hideForm()
               message.success(pwdSuccesstext, 3)
@@ -267,12 +269,10 @@ export class User extends React.PureComponent {
     })
   }
 
-  /***
-   * 新增时，判断email是否已存在
-   * */
+  // 新增时，判断email是否已存在
   onInitEmailInputValue = (value) => {
-    const preferLanguage = localStorage.getItem('preferredLanguage')
-    const emailtext = preferLanguage === 'en' ? 'This email already exists' : '该 Email 已存在'
+    const { language } = this.state
+    const emailtext = language === 'en' ? 'This email already exists' : '该 Email 已存在'
     this.props.onLoadEmailInputValue(value, () => {}, () => {
       this.userForm.setFields({
         email: {
@@ -398,7 +398,7 @@ export class User extends React.PureComponent {
   }
 
   render () {
-    const { refreshUserLoading, refreshUserText, formType, showUserDetail } = this.state
+    const { refreshUserLoading, refreshUserText, formType, showUserDetail, roleType } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     let { userClassHide } = this.props
@@ -574,7 +574,7 @@ export class User extends React.PureComponent {
             </Tooltip>
 
             {
-              localStorage.getItem('loginRoleType') === 'admin'
+              roleType === 'admin'
                 ? (
                   <Popconfirm placement="bottom" title={<FormattedMessage {...messages.userSureDelete} />} okText="Yes" cancelText="No" onConfirm={this.deleteUserBtn(record)}>
                     <Tooltip title={<FormattedMessage {...messages.userTableDelete} />}>

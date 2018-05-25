@@ -48,7 +48,10 @@ import { loadStreamNameValue } from '../Manager/action'
 export class WorkbenchStreamForm extends React.PureComponent {
   constructor (props) {
     super(props)
-    this.state = { streamMode: '' }
+    this.state = {
+      streamMode: '',
+      language: localStorage.getItem('preferredLanguage')
+    }
   }
 
   componentWillReceiveProps (props) {
@@ -64,13 +67,13 @@ export class WorkbenchStreamForm extends React.PureComponent {
     } else {
       const textZh = '必须是字母、数字、下划线或中划线'
       const textEn = 'It should be letters, figures, underscore or hyphen'
-      callback(localStorage.getItem('preferredLanguage') === 'en' ? textEn : textZh)
+      callback(this.state.language === 'en' ? textEn : textZh)
     }
   }
 
   render () {
     const { isWormhole, onShowConfigModal, streamConfigCheck, kafkaValues } = this.props
-    const { streamMode } = this.state
+    const { streamMode, language } = this.state
     const { getFieldDecorator } = this.props.form
     const itemStyle = {
       labelCol: { span: 6 },
@@ -109,7 +112,6 @@ export class WorkbenchStreamForm extends React.PureComponent {
       </span>
     )
 
-    const languageText = localStorage.getItem('preferredLanguage')
     return (
       <Form className="ri-workbench-form workbench-stream-form">
         <Row gutter={8}>
@@ -118,7 +120,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
               {getFieldDecorator('streamName', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Name cannot be empty' : 'Name 不能为空'
+                  message: language === 'en' ? 'Name cannot be empty' : 'Name 不能为空'
                 }, {
                   validator: this.checkStreamName
                 }]
@@ -195,7 +197,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
               {getFieldDecorator('sourceTopicName', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Source topic name cannot be empty' : 'Source Topic Name 不能为空'
+                  message: language === 'en' ? 'Source topic name cannot be empty' : 'Source Topic Name 不能为空'
                 }],
                 hidden: isWormhole
               })(
@@ -218,7 +220,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
               {getFieldDecorator('sinkTopicName', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Sink topic name cannot be empty' : 'Sink Topic Name 不能为空'
+                  message: language === 'en' ? 'Sink topic name cannot be empty' : 'Sink Topic Name 不能为空'
                 }],
                 hidden: isWormhole
               })(
