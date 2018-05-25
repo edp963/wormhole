@@ -103,13 +103,15 @@ export class Flow extends React.Component {
       endTimeTextState: '',
       paginationInfo: null,
       startTextState: '',
-      endTextState: ''
+      endTextState: '',
+      language: localStorage.getItem('preferredLanguage'),
+      roleType: localStorage.getItem('loginRoleType')
     }
   }
 
   componentWillMount () {
     this.refreshFlow()
-    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
+    this.props.onChangeLanguage(this.state.language)
   }
 
   componentWillReceiveProps (props) {
@@ -154,12 +156,13 @@ export class Flow extends React.Component {
     const {
       projectIdGeted, flowClassHide, onLoadAdminSingleFlow, onLoadAdminAllFlows, onLoadUserAllFlows
     } = this.props
+    const { roleType } = this.state
 
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       flowClassHide === 'hide'
         ? onLoadAdminSingleFlow(projectIdGeted, () => { this.flowRefreshState() })
         : onLoadAdminAllFlows(() => { this.flowRefreshState() })
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       onLoadUserAllFlows(projectIdGeted, () => { this.flowRefreshState() })
     }
   }
@@ -188,26 +191,26 @@ export class Flow extends React.Component {
 
   // 批量操作
   handleMenuClick = (selectedRowKeys) => (e) => {
-    const languagetext = localStorage.getItem('preferredLanguage')
+    const { language } = this.state
     if (selectedRowKeys.length > 0) {
       let menuAction = ''
       let menuMsg = ''
       switch (e.key) {
         case 'menuStart':
           menuAction = 'start'
-          menuMsg = languagetext === 'en' ? 'Start' : '启动'
+          menuMsg = language === 'en' ? 'Start' : '启动'
           break
         case 'menuStop':
           menuAction = 'stop'
-          menuMsg = languagetext === 'en' ? 'Stop' : '停止'
+          menuMsg = language === 'en' ? 'Stop' : '停止'
           break
         case 'menuDelete':
           menuAction = 'delete'
-          menuMsg = languagetext === 'en' ? 'Delete' : '删除'
+          menuMsg = language === 'en' ? 'Delete' : '删除'
           break
         case 'menuRenew':
           menuAction = 'renew'
-          menuMsg = languagetext === 'en' ? 'Renew' : '生效'
+          menuMsg = language === 'en' ? 'Renew' : '生效'
           break
       }
 
@@ -219,7 +222,7 @@ export class Flow extends React.Component {
 
       this.props.onOperateUserFlow(requestValue, (result) => {
         this.setState({ selectedRowKeys: [] })
-        const languagetextSuccess = languagetext === 'en' ? 'successfully!' : '成功！'
+        const languagetextSuccess = language === 'en' ? 'successfully!' : '成功！'
 
         if (typeof (result) === 'object') {
           const resultFailed = result.filter(i => i.msg.includes('failed'))
@@ -227,7 +230,7 @@ export class Flow extends React.Component {
             const resultFailedIdArr = resultFailed.map(i => i.id)
             const resultFailedIdStr = resultFailedIdArr.join('、')
 
-            const languagetextFailFlowId = languagetext === 'en'
+            const languagetextFailFlowId = language === 'en'
               ? `It fails to ${menuMsg} Flow ID ${resultFailedIdStr}!`
               : `Flow ID ${resultFailedIdStr} ${menuMsg}失败！`
             message.error(languagetextFailFlowId, 5)
@@ -238,10 +241,10 @@ export class Flow extends React.Component {
           message.success(`${menuMsg}${languagetextSuccess}`, 3)
         }
       }, (result) => {
-        message.error(`${languagetext === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
+        message.error(`${language === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
       })
     } else {
-      message.warning(`${languagetext === 'en' ? 'Please select Flow!' : '请选择 Flow！'}`, 3)
+      message.warning(`${language === 'en' ? 'Please select Flow!' : '请选择 Flow！'}`, 3)
     }
   }
 
@@ -254,7 +257,7 @@ export class Flow extends React.Component {
 
   // 单行操作
   singleOpreateFlow = (record, action) => (e) => {
-    const languagetext = localStorage.getItem('preferredLanguage')
+    const { language } = this.state
     const requestValue = {
       projectId: record.projectId,
       action: action,
@@ -264,35 +267,35 @@ export class Flow extends React.Component {
     let singleMsg = ''
     switch (action) {
       case 'start':
-        singleMsg = languagetext === 'en' ? 'Start' : '启动'
+        singleMsg = language === 'en' ? 'Start' : '启动'
         break
       case 'stop':
-        singleMsg = languagetext === 'en' ? 'Stop' : '停止'
+        singleMsg = language === 'en' ? 'Stop' : '停止'
         break
       case 'delete':
-        singleMsg = languagetext === 'en' ? 'Delete' : '删除'
+        singleMsg = language === 'en' ? 'Delete' : '删除'
         break
     }
 
     this.props.onOperateUserFlow(requestValue, (result) => {
-      const languagetextSuccess = languagetext === 'en' ? 'successfully!' : '成功！'
+      const languagetextSuccess = language === 'en' ? 'successfully!' : '成功！'
       if (action === 'delete') {
         message.success(`${singleMsg}${languagetextSuccess}`, 3)
       } else {
         if (result.msg.includes('failed')) {
-          const languagetextFail = languagetext === 'en'
+          const languagetextFail = language === 'en'
             ? `It fails to ${singleMsg} Flow ID ${result.id}!`
             : `Flow ID ${result.id} ${singleMsg}失败！`
 
           message.error(languagetextFail, 3)
         } else {
           action === 'renew'
-            ? message.success(languagetext === 'en' ? 'Renew successfully！' : '生效！', 3)
+            ? message.success(language === 'en' ? 'Renew successfully！' : '生效！', 3)
             : message.success(`${singleMsg}${languagetextSuccess}`, 3)
         }
       }
     }, (result) => {
-      message.error(`${languagetext === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
+      message.error(`${language === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
     })
   }
 
@@ -457,7 +460,7 @@ export class Flow extends React.Component {
           projectId: record.projectId,
           streamId: typeof (record.streamId) === 'object' ? record.streamIdOrigin : record.streamId,
           flowId: record.id,
-          roleType: localStorage.getItem('loginRoleType')
+          roleType: this.state.roleType
         }
 
         this.props.onLoadFlowDetail(requestValue, (result) => this.setState({ showFlowDetails: result }))
@@ -468,7 +471,7 @@ export class Flow extends React.Component {
   render () {
     const { className, onShowAddFlow, onShowEditFlow, flowClassHide } = this.props
     const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails } = this.state
-
+    const { selectedRowKeys, roleType } = this.state
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
@@ -803,9 +806,9 @@ export class Flow extends React.Component {
       className: 'text-align-center',
       render: (text, record) => {
         let FlowActionSelect = ''
-        if (localStorage.getItem('loginRoleType') === 'admin') {
+        if (this.state.roleType === 'admin') {
           FlowActionSelect = ''
-        } else if (localStorage.getItem('loginRoleType') === 'user') {
+        } else if (this.state.roleType === 'user') {
           const modifyFormat = <FormattedMessage {...messages.flowTableModify} />
           const startFormat = <FormattedMessage {...messages.flowTableStart} />
           const sureStartFormat = <FormattedMessage {...messages.flowSureStart} />
@@ -931,12 +934,10 @@ export class Flow extends React.Component {
       onChange: (current) => this.setState({ pageIndex: current })
     }
 
-    const { selectedRowKeys } = this.state
-
     let rowSelection = null
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       rowSelection = null
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       rowSelection = {
         selectedRowKeys,
         onChange: this.onSelectChange,
@@ -959,9 +960,9 @@ export class Flow extends React.Component {
       )
 
     let FlowAddOrNot = ''
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       FlowAddOrNot = ''
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       FlowAddOrNot = (
         <span>
           <Button icon="plus" type="primary" onClick={onShowAddFlow}>

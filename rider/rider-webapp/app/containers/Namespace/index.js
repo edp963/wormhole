@@ -154,12 +154,13 @@ export class Namespace extends React.PureComponent {
       sinkTableDataSource: [],
       sinkJsonSampleValue: [],
       sinkSelectAllState: 'all',
-      language: localStorage.getItem('preferredLanguage')
+      language: localStorage.getItem('preferredLanguage'),
+      roleType: localStorage.getItem('loginRoleType')
     }
   }
 
   componentWillMount () {
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (this.state.roleType === 'admin') {
       if (!this.props.namespaceClassHide) {
         this.props.onLoadAdminAllNamespaces(() => { this.nsRefreshState() })
       }
@@ -195,12 +196,12 @@ export class Namespace extends React.PureComponent {
 
   refreshNamespace = () => {
     const { projectIdGeted } = this.props
+    const { roleType } = this.state
 
     this.setState({
       refreshNsLoading: true,
       refreshNsText: 'Refreshing'
     })
-    const roleType = localStorage.getItem('loginRoleType')
     if (roleType === 'admin') {
       this.props.namespaceClassHide === 'hide'
         ? this.props.onLoadSelectNamespaces(projectIdGeted, () => { this.nsRefreshState() })
@@ -757,7 +758,7 @@ export class Namespace extends React.PureComponent {
 
   sourceSinkRequestParam (record) {
     const { projectIdGeted, namespaceClassHide } = this.props
-    const roleType = localStorage.getItem('loginRoleType')
+    const { roleType } = this.state
 
     let requestParam = {}
     if (roleType === 'admin') {
@@ -839,10 +840,11 @@ export class Namespace extends React.PureComponent {
 
   cmIsDisabled () {
     const { namespaceClassHide } = this.props
+    const { roleType } = this.state
     let isDisabled = ''
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       isDisabled = namespaceClassHide === 'hide'
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       isDisabled = true
     }
     return isDisabled
@@ -1420,7 +1422,7 @@ export class Namespace extends React.PureComponent {
   render () {
     const {
       count, formVisible, schemaModalVisible, sinkSchemaModalVisible, currentNamespaces,
-      refreshNsLoading, refreshNsText, showNsDetail, namespaceFormType, queryConnUrl,
+      refreshNsLoading, refreshNsText, showNsDetail, namespaceFormType, queryConnUrl, roleType,
       databaseSelectValue, namespaceTableSource, deleteTableClass, addTableClass, addTableClassTable, addBtnDisabled
     } = this.state
     const { namespaceClassHide } = this.props
@@ -1708,9 +1710,9 @@ export class Namespace extends React.PureComponent {
           )
 
           let actionHtml = ''
-          if (localStorage.getItem('loginRoleType') === 'admin') {
+          if (roleType === 'admin') {
             actionHtml = namespaceClassHide === 'hide' ? umsAction : nsAction
-          } else if (localStorage.getItem('loginRoleType') === 'user') {
+          } else if (roleType === 'user') {
             actionHtml = umsAction
           }
           return actionHtml
@@ -1729,7 +1731,7 @@ export class Namespace extends React.PureComponent {
 
     let sourceFooter = null
     let sinkFooter = null
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       sourceFooter = namespaceClassHide === 'hide'
         ? null
         : [
@@ -1786,7 +1788,7 @@ export class Namespace extends React.PureComponent {
             <FormattedMessage {...messages.nsModalSave} />
           </Button>
         ]
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       sinkFooter = null
       sourceFooter = null
     }

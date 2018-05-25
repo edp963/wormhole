@@ -112,14 +112,15 @@ export class Manager extends React.Component {
 
       consumedOffsetValue: [],
       kafkaOffsetValue: [],
-      language: localStorage.getItem('preferredLanguage')
+      language: localStorage.getItem('preferredLanguage'),
+      roleType: localStorage.getItem('loginRoleType')
     }
   }
 
   componentWillMount () {
-    const { language } = this.state
+    const { language, roleType } = this.state
     const { streamClassHide } = this.props
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       if (!streamClassHide) {
         this.props.onLoadAdminAllStreams(() => { this.refreshStreamState() })
       }
@@ -165,7 +166,7 @@ export class Manager extends React.Component {
 
   refreshStream = () => {
     const { projectIdGeted, streamClassHide } = this.props
-    const roleType = localStorage.getItem('loginRoleType')
+    const {roleType} = this.state
 
     this.setState({
       refreshStreamLoading: true,
@@ -203,7 +204,7 @@ export class Manager extends React.Component {
       this.setState({
         visible
       }, () => {
-        const roleType = localStorage.getItem('loginRoleType')
+        const { roleType } = this.state
         this.props.onLoadStreamDetail(stream.projectId, stream.id, roleType, (result) => {
           this.setState({ showStreamdetails: result })
         })
@@ -566,7 +567,7 @@ export class Manager extends React.Component {
   }
 
   loadLogsData = (projectId, streamId) => {
-    const roleType = localStorage.getItem('loginRoleType')
+    const { roleType } = this.state
     if (roleType === 'admin') {
       this.props.onLoadAdminLogsInfo(projectId, streamId, (result) => {
         this.setState({ logsContent: result })
@@ -718,7 +719,7 @@ export class Manager extends React.Component {
       refreshStreamLoading, refreshStreamText, showStreamdetails, logsModalVisible,
       logsContent, refreshLogLoading, refreshLogText, logsProjectId, logsStreamId,
       streamStartFormData, consumedOffsetValue, kafkaOffsetValue, actionType,
-      startUdfVals, renewUdfVals, currentUdfVal, topicInfoModal, currentStreams
+      startUdfVals, renewUdfVals, currentUdfVal, topicInfoModal, currentStreams, roleType
     } = this.state
     const { className, onShowAddStream, onShowEditStream, streamClassHide, streamStartModalLoading } = this.props
 
@@ -729,8 +730,6 @@ export class Manager extends React.Component {
     } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
-
-    const roleType = localStorage.getItem('loginRoleType')
 
     const columns = [{
       title: 'ID',
