@@ -70,9 +70,8 @@ import StreamConfigForm from './StreamConfigForm'
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 
 import {
-  loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic,
-  loadSourceSinkTypeNamespace, loadSinkTypeNamespace, loadTranSinkTypeNamespace,
-  loadSourceToSinkExist, addFlow, editFlow, queryFlow, loadLookupSql
+  loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic, loadSourceSinkTypeNamespace,
+  loadSinkTypeNamespace, loadTranSinkTypeNamespace, loadSourceToSinkExist, addFlow, editFlow, queryFlow, loadLookupSql
 } from '../Flow/action'
 
 import {
@@ -84,9 +83,7 @@ import { loadSelectNamespaces, loadUserNamespaces } from '../Namespace/action'
 import { loadUserUsers, loadSelectUsers } from '../User/action'
 import { loadResources } from '../Resource/action'
 import { loadSingleUdf } from '../Udf/action'
-import {
-  loadJobSourceNs, loadJobSinkNs, loadJobSourceToSinkExist, addJob, queryJob, editJob
-} from '../Job/action'
+import { loadJobSourceNs, loadJobSinkNs, loadJobSourceToSinkExist, addJob, queryJob, editJob } from '../Job/action'
 
 import { selectFlows, selectFlowSubmitLoading, selectSourceToSinkExited } from '../Flow/selectors'
 import { selectStreams, selectStreamSubmitLoading } from '../Manager/selectors'

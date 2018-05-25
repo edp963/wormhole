@@ -26,14 +26,15 @@ import Button from 'antd/lib/button'
 
 export class JobLogs extends React.Component {
   refreshLogs = () => {
-    this.props.onInitRefreshLogs(this.props.logsProjectId, this.props.logsJobId)
+    const { logsProjectId, logsJobId } = this.props
+    this.props.onInitRefreshLogs(logsProjectId, logsJobId)
   }
 
   render = (text, record) => {
     const { jobLogsContent, refreshJobLogLoading, refreshJobLogText } = this.props
 
     let logsContentFinal = ''
-    if (jobLogsContent !== undefined) {
+    if (jobLogsContent) {
       logsContentFinal = jobLogsContent.replace(/\n/g, '\n')
     }
 

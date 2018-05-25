@@ -115,9 +115,7 @@ export class Udf extends React.PureComponent {
   }
 
   searchOperater () {
-    const {
-      columnNameText, valueText, visibleBool,
-      startTimeTextState, endTimeTextState } = this.state
+    const { columnNameText, valueText, visibleBool, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
