@@ -87,12 +87,13 @@ export class Udf extends React.PureComponent {
       paginationInfo: null,
 
       queryUdfVal: {},
-      showUdfDetail: {}
+      showUdfDetail: {},
+      roleType: localStorage.getItem('loginRoleType')
     }
   }
 
   componentWillMount () {
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (this.state.roleType === 'admin') {
       if (!this.props.udfClassHide) {
         this.props.onLoadUdfs(() => { this.udfRefreshState() })
       }
@@ -132,11 +133,12 @@ export class Udf extends React.PureComponent {
       refreshUdfText: 'Refreshing'
     })
     const { projectIdGeted, udfClassHide } = this.props
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    const { roleType } = this.state
+    if (roleType === 'admin') {
       udfClassHide === 'hide'
         ? this.props.onLoadSingleUdf(projectIdGeted, 'admin', () => { this.udfRefreshState() })
         : this.props.onLoadUdfs(() => { this.udfRefreshState() })
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       this.props.onLoadSingleUdf(projectIdGeted, 'user', () => { this.udfRefreshState() })
     }
   }
@@ -356,7 +358,7 @@ export class Udf extends React.PureComponent {
 
   render () {
     const { udfClassHide, modalLoading } = this.props
-    const { formType, formVisible, currentudfs, refreshUdfLoading, refreshUdfText, showUdfDetail } = this.state
+    const { formType, formVisible, currentudfs, refreshUdfLoading, refreshUdfText, showUdfDetail, roleType } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -584,7 +586,7 @@ export class Udf extends React.PureComponent {
             <Button icon="edit" shape="circle" type="ghost" onClick={this.onShowEditUdf(record)}></Button>
           </Tooltip>
           {
-            localStorage.getItem('loginRoleType') === 'admin'
+            roleType === 'admin'
               ? (
                 <Popconfirm placement="bottom" title={<FormattedMessage {...messages.udfSureDelete} />} okText="Yes" cancelText="No" onConfirm={this.deleteUdfBtn(record)}>
                   <Tooltip title={<FormattedMessage {...messages.udfTableDelete} />}>
