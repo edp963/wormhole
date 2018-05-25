@@ -153,7 +153,8 @@ export class Namespace extends React.PureComponent {
       sinkSchemaModalVisible: false,
       sinkTableDataSource: [],
       sinkJsonSampleValue: [],
-      sinkSelectAllState: 'all'
+      sinkSelectAllState: 'all',
+      language: localStorage.getItem('preferredLanguage')
     }
   }
 
@@ -163,7 +164,7 @@ export class Namespace extends React.PureComponent {
         this.props.onLoadAdminAllNamespaces(() => { this.nsRefreshState() })
       }
     }
-    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
+    this.props.onChangeLanguage(this.state.language)
   }
 
   componentWillReceiveProps (props) {
@@ -181,10 +182,7 @@ export class Namespace extends React.PureComponent {
   }
 
   searchOperater () {
-    const {
-      columnNameText, valueText, visibleBool,
-      startTimeTextState, endTimeTextState
-    } = this.state
+    const { columnNameText, valueText, visibleBool, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
@@ -448,9 +446,8 @@ export class Namespace extends React.PureComponent {
   }
 
   nsTableAdd (requestNsTables, addTableValue, addKeyValue, requestOthers) {
-    const { namespaceTableSource } = this.state
-    const languageText = localStorage.getItem('preferredLanguage')
-    const tableText = languageText === 'en' ? 'Duplication of Table name' : 'Table 重名'
+    const { namespaceTableSource, language } = this.state
+    const tableText = language === 'en' ? 'Duplication of Table name' : 'Table 重名'
 
     requestNsTables.push({
       table: addTableValue,
@@ -468,17 +465,16 @@ export class Namespace extends React.PureComponent {
   onModalOk = () => {
     const {
       namespaceTableSource, databaseSelectValue, namespaceFormType, exitedNsTableValue,
-      editNamespaceData, queryConnUrl, nsInstanceVal
+      editNamespaceData, queryConnUrl, nsInstanceVal, language
     } = this.state
     const { tableNameExited } = this.props
-    const languageText = localStorage.getItem('preferredLanguage')
-    const existText = languageText === 'en' ? 'already exists' : '已存在'
-    const typeText = languageText === 'en' ? 'Please fill in type' : '请填写 Type'
-    const tableText = languageText === 'en' ? 'Please fill in the Table' : '请填写 Table'
-    const keyText = languageText === 'en' ? 'Please fill in the Key' : '请填写 Key'
-    const typeKeyText = languageText === 'en' ? 'Both Type and Key should be filled in' : 'Type & Key 填写同步'
-    const tableKeyText = languageText === 'en' ? 'Both Table and Key should be filled in' : 'Table & Key 填写同步'
-    const successText = languageText === 'en' ? 'Namespace is modified successfully!' : 'Namespace 修改成功！'
+    const existText = language === 'en' ? 'already exists' : '已存在'
+    const typeText = language === 'en' ? 'Please fill in type' : '请填写 Type'
+    const tableText = language === 'en' ? 'Please fill in the Table' : '请填写 Table'
+    const keyText = language === 'en' ? 'Please fill in the Key' : '请填写 Key'
+    const typeKeyText = language === 'en' ? 'Both Type and Key should be filled in' : 'Type & Key 填写同步'
+    const tableKeyText = language === 'en' ? 'Both Table and Key should be filled in' : 'Table & Key 填写同步'
+    const successText = language === 'en' ? 'Namespace is modified successfully!' : 'Namespace 修改成功！'
 
     this.namespaceForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -514,11 +510,9 @@ export class Namespace extends React.PureComponent {
                     })
                     this.nsKeyAdd(addTableValue, addKeyValue, requestOthers)
                   } else {
-                    if (!addKeyValue) {
-                      this.nsErrorMsg(keyText)
-                    } else {
-                      this.nsKeyAdd(addTableValue, addKeyValue, requestOthers)
-                    }
+                    !addKeyValue
+                      ? this.nsErrorMsg(keyText)
+                      : this.nsKeyAdd(addTableValue, addKeyValue, requestOthers)
                   }
                 }
               } else {
@@ -624,36 +618,33 @@ export class Namespace extends React.PureComponent {
   }
 
   onAddTable = () => {
-    const { namespaceTableSource, exitedNsTableValue, nsDsVal } = this.state
+    const { namespaceTableSource, exitedNsTableValue, nsDsVal, language } = this.state
     const { tableNameExited } = this.props
-    const languageText = localStorage.getItem('preferredLanguage')
-    const existText = languageText === 'en' ? 'already exists' : '已存在'
-    const typeText = languageText === 'en' ? 'Please fill in the Type' : '请填写 Type'
-    const tableText = languageText === 'en' ? 'Please fill in the Table' : '请填写 Table'
-    const keyText = languageText === 'en' ? 'Please fill in the Key' : '请填写 Key'
-    const tableDupText = languageText === 'en' ? 'Duplication of Table name' : 'Table 重名'
-    const otherText = languageText === 'en' ? 'Please select other items first' : '请先选择其他项'
+    const existText = language === 'en' ? 'already exists' : '已存在'
+    const typeText = language === 'en' ? 'Please fill in the Type' : '请填写 Type'
+    const tableText = language === 'en' ? 'Please fill in the Table' : '请填写 Table'
+    const keyText = language === 'en' ? 'Please fill in the Key' : '请填写 Key'
+    const tableDupText = language === 'en' ? 'Duplication of Table name' : 'Table 重名'
+    const otherText = language === 'en' ? 'Please select other items first' : '请先选择其他项'
 
     const moadlTempVal = this.namespaceForm.getFieldsValue()
+    const { dataBaseDataSystem, connectionUrl, instance, nsDatabase, nsSingleTableName, nsSingleKeyValue } = moadlTempVal
 
-    if (moadlTempVal.dataBaseDataSystem === undefined || moadlTempVal.connectionUrl === undefined ||
-      moadlTempVal.instance === undefined || moadlTempVal.nsDatabase === undefined) {
+    if (!dataBaseDataSystem || !connectionUrl || !instance || !nsDatabase) {
       this.nsErrorMsg(otherText)
-    } else if (moadlTempVal.nsSingleTableName === '' || moadlTempVal.nsSingleTableName === undefined) {
+    } else if (!nsSingleTableName) {
       this.nsErrorMsg(nsDsVal === 'es' ? typeText : tableText)
-    } else if (tableNameExited === true) {
+    } else if (tableNameExited) {
       this.nsErrorMsg(`${exitedNsTableValue} ${existText}`)
-    } else if (namespaceTableSource.find(i => i.nsModalTable === moadlTempVal.nsSingleTableName)) {
+    } else if (namespaceTableSource.find(i => i.nsModalTable === nsSingleTableName)) {
       this.nsErrorMsg(tableDupText)
     } else {
       if (nsDsVal === 'redis') {
         this.addTableTemp('')
       } else {
-        if (!moadlTempVal.nsSingleKeyValue) {
-          this.nsErrorMsg(keyText)
-        } else {
-          this.addTableTemp(moadlTempVal.nsSingleKeyValue)
-        }
+        nsSingleKeyValue
+          ? this.addTableTemp(nsSingleKeyValue)
+          : this.nsErrorMsg(keyText)
       }
     }
   }
@@ -685,8 +676,6 @@ export class Namespace extends React.PureComponent {
   // 新增时，验证 table name 是否存在，不存在时，才能新增
   onInitNsNameInputValue = (val) => {
     const formValues = this.namespaceForm.getFieldsValue()
-   // const languageText = localStorage.getItem('preferredLanguage')
-   // const existText = languageText === 'en' ? 'already exists' : '已存在'
 
     const requestValues = {
       instanceId: Number(formValues.instance),
@@ -699,7 +688,6 @@ export class Namespace extends React.PureComponent {
         nsTables: { errors: [] }
       })
     }, (err) => {
-     // this.nsErrorMsg(`${val} ${existText}`)
       this.nsErrorMsg(err)
       this.setState({ exitedNsTableValue: val })
     })
@@ -769,18 +757,17 @@ export class Namespace extends React.PureComponent {
 
   sourceSinkRequestParam (record) {
     const { projectIdGeted, namespaceClassHide } = this.props
+    const roleType = localStorage.getItem('loginRoleType')
 
     let requestParam = {}
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       requestParam = namespaceClassHide === 'hide'
         ? {
           projectId: projectIdGeted,
           namespaceId: record.id
         }
-        : {
-          namespaceId: record.id
-        }
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+        : { namespaceId: record.id }
+    } else if (roleType === 'user') {
       requestParam = {
         projectId: projectIdGeted,
         namespaceId: record.id
@@ -800,24 +787,24 @@ export class Namespace extends React.PureComponent {
       this.makeSinkCodeMirrorInstance()
 
       this.props.onQuerySchemaConfig(this.sourceSinkRequestParam(record), 'sink', (result) => {
+        const { jsonSample, schemaTable, jsonParseArray, schema } = result
         if (result) {
-          if (result.jsonSample === null && result.jsonParseArray === null &&
-            result.schema === null && result.schemaTable === null
-          ) {
+          if (jsonSample === null && jsonParseArray === null &&
+            schema === null && schemaTable === null) {
             this.makeSinkCodeMirrorInstance()
             this.cmSinkSample.doc.setValue('')
           } else {
-            this.cmSinkSample.doc.setValue(result.jsonSample)
+            this.cmSinkSample.doc.setValue(jsonSample)
 
             setTimeout(() => this.onSinkJsonFormat(), 205)
 
-            const tableData = result.schemaTable.map((s, index) => {
+            const tableData = schemaTable.map((s, index) => {
               s.key = index
               return s
             })
             this.setState({
               sinkTableDataSource: tableData,
-              sinkJsonSampleValue: result.jsonSample
+              sinkJsonSampleValue: jsonSample
             }, () => {
               const tempArr = this.state.sinkTableDataSource.filter(s => !s.forbidden)
               const selectedArr = tempArr.filter(s => s.selected)
@@ -920,16 +907,16 @@ export class Namespace extends React.PureComponent {
   initSelectUmsop = (key) => this.setState({ umsopRecordValue: key })
 
   onSchemaModalOk = () => {
-    const languageText = localStorage.getItem('preferredLanguage')
-    const typeFailText = languageText === 'en' ? 'Tuple type configuration has error!' : 'Tuple 类型配置失败！'
-    const successText = languageText === 'en' ? 'Source Schema is configured successfully!' : 'Source Schema 配置成功！'
-    const jsonText = languageText === 'en' ? 'JSON Sample is not null!' : 'JSON Sample 不为空！'
-    const tableText = languageText === 'en' ? 'Table cannot be empty!' : 'Table 不为空！'
-    const renameText = languageText === 'en' ? 'Rename cannot be empty!' : 'Rename 不为空！'
-    const renameRepeatText = languageText === 'en' ? 'Please modify duplicated items of Rename column!' : '请修改 Rename 重复项！'
-    const arrayTypeText = languageText === 'en' ? 'Only one array type contained!' : '只能包含一个array 类型！'
-    const umsTsText = languageText === 'en' ? 'Please select ums_ts!' : '请选择 ums_ts！'
-    const umsOpText = languageText === 'en' ? 'ums_op_ configuration has error!' : 'ums_op_ 配置错误！'
+    const { language } = this.state
+    const typeFailText = language === 'en' ? 'Tuple type configuration has error!' : 'Tuple 类型配置失败！'
+    const successText = language === 'en' ? 'Source Schema is configured successfully!' : 'Source Schema 配置成功！'
+    const jsonText = language === 'en' ? 'JSON Sample is not null!' : 'JSON Sample 不为空！'
+    const tableText = language === 'en' ? 'Table cannot be empty!' : 'Table 不为空！'
+    const renameText = language === 'en' ? 'Rename cannot be empty!' : 'Rename 不为空！'
+    const renameRepeatText = language === 'en' ? 'Please modify duplicated items of Rename column!' : '请修改 Rename 重复项！'
+    const arrayTypeText = language === 'en' ? 'Only one array type contained!' : '只能包含一个array 类型！'
+    const umsTsText = language === 'en' ? 'Please select ums_ts!' : '请选择 ums_ts！'
+    const umsOpText = language === 'en' ? 'ums_op_ configuration has error!' : 'ums_op_ 配置错误！'
 
     if (document.getElementById('sep')) {
       message.error(typeFailText, 3)
@@ -999,8 +986,9 @@ export class Namespace extends React.PureComponent {
                         this.setState({
                           umsTableDataSource: tempArr
                         }, () => {
-                          const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
-                          const tableDataStringTemp = JSON.stringify(this.state.umsTableDataSource, ['key', 'selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+                          const { umsTableDataSource } = this.state
+                          const tableDataString = JSON.stringify(umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+                          const tableDataStringTemp = JSON.stringify(umsTableDataSource, ['key', 'selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
 
                           const requestValue = {
                             umsType: 'ums_extension',
@@ -1019,14 +1007,13 @@ export class Namespace extends React.PureComponent {
                         message.error(umsOpText, 3)
                       }
                     } else {
-                      const { umsTableDataSource } = this.state
-
-                      const umsArr = umsSysFieldCanceled(umsTableDataSource, 'ums_op_')
+                      const umsArr = umsSysFieldCanceled(this.state.umsTableDataSource, 'ums_op_')
                       this.setState({
                         umsTableDataSource: umsArr
                       }, () => {
-                        const tableDataString = JSON.stringify(this.state.umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
-                        const tableDataStringTemp = JSON.stringify(this.state.umsTableDataSource, ['key', 'selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+                        const { umsTableDataSource } = this.state
+                        const tableDataString = JSON.stringify(umsTableDataSource, ['selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
+                        const tableDataStringTemp = JSON.stringify(umsTableDataSource, ['key', 'selected', 'fieldName', 'rename', 'fieldType', 'ums_id_', 'ums_ts_', 'ums_op_', 'forbidden'])
 
                         const requestValue = {
                           umsType: 'ums_extension',
@@ -1053,10 +1040,9 @@ export class Namespace extends React.PureComponent {
   }
 
   onSinkSchemaModalOk = () => {
-    const { sinkTableDataSource, nsIdValue, sinkJsonSampleValue } = this.state
-    const languageText = localStorage.getItem('preferredLanguage')
-    const successText = languageText === 'en' ? 'Sink Schema is configured successfully!' : 'Sink Schema 配置成功！'
-    const tableText = languageText === 'en' ? 'Table cannot be empty!' : 'Table 不为空！'
+    const { sinkTableDataSource, nsIdValue, sinkJsonSampleValue, language } = this.state
+    const successText = language === 'en' ? 'Sink Schema is configured successfully!' : 'Sink Schema 配置成功！'
+    const tableText = language === 'en' ? 'Table cannot be empty!' : 'Table 不为空！'
 
     if (!this.cmSinkSample.doc.getValue()) {
       this.props.onSetSchema(nsIdValue, {}, 'sink', () => {
@@ -1089,9 +1075,9 @@ export class Namespace extends React.PureComponent {
 
   onJsonFormat = () => {
     const cmJsonvalue = this.cmSample.doc.getValue()
-    const languageText = localStorage.getItem('preferredLanguage')
-    const jsonText = languageText === 'en' ? 'JSON Sample is not null!' : 'JSON Sample 不为空！'
-    const noJsonText = languageText === 'en' ? 'Not JSON format!' : '非 JSON格式！'
+    const { language } = this.state
+    const jsonText = language === 'en' ? 'JSON Sample is not null!' : 'JSON Sample 不为空！'
+    const noJsonText = language === 'en' ? 'Not JSON format!' : '非 JSON格式！'
 
     if (cmJsonvalue === '') {
       message.error(jsonText, 3)
@@ -1105,9 +1091,9 @@ export class Namespace extends React.PureComponent {
 
   onSinkJsonFormat = () => {
     const cmJsonvalue = this.cmSinkSample.doc.getValue()
-    const languageText = localStorage.getItem('preferredLanguage')
-    const jsonText = languageText === 'en' ? 'JSON Sample is not null!' : 'JSON Sample 不为空！'
-    const noJsonText = languageText === 'en' ? 'Not JSON format!' : '非 JSON格式！'
+    const { language } = this.state
+    const jsonText = language === 'en' ? 'JSON Sample is not null!' : 'JSON Sample 不为空！'
+    const noJsonText = language === 'en' ? 'Not JSON format!' : '非 JSON格式！'
 
     if (cmJsonvalue === '') {
       message.error(jsonText, 3)
@@ -1126,9 +1112,9 @@ export class Namespace extends React.PureComponent {
 
   onChangeUmsJsonToTable = () => {
     const cmVal = this.cmSample.doc.getValue()
-    const languageText = localStorage.getItem('preferredLanguage')
-    const jsonText = languageText === 'en' ? 'Please fill in JSON Sample' : '请填写 JSON Sample'
-    const noJsonText = languageText === 'en' ? 'Not JSON format!' : '非 JSON格式！'
+    const { language } = this.state
+    const jsonText = language === 'en' ? 'Please fill in JSON Sample' : '请填写 JSON Sample'
+    const noJsonText = language === 'en' ? 'Not JSON format!' : '非 JSON格式！'
 
     if (cmVal === '') {
       message.error(jsonText, 3)
@@ -1152,9 +1138,9 @@ export class Namespace extends React.PureComponent {
 
   onChangeSinkJsonToTable = () => {
     const cmVal = this.cmSinkSample.doc.getValue()
-    const languageText = localStorage.getItem('preferredLanguage')
-    const jsonText = languageText === 'en' ? 'Please fill in the JSON Sample' : '请填写 JSON Sample'
-    const noJsonText = languageText === 'en' ? 'Not JSON format!' : '非 JSON格式！'
+    const { language } = this.state
+    const jsonText = language === 'en' ? 'Please fill in the JSON Sample' : '请填写 JSON Sample'
+    const noJsonText = language === 'en' ? 'Not JSON format!' : '非 JSON格式！'
 
     if (cmVal === '') {
       message.error(jsonText, 3)

@@ -92,13 +92,14 @@ export class Job extends React.Component {
       visibleBool: false,
       startTimeTextState: '',
       endTimeTextState: '',
-      paginationInfo: null
+      paginationInfo: null,
+      language: localStorage.getItem('preferredLanguage')
     }
   }
 
   componentWillMount () {
     this.refreshJob()
-    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
+    this.props.onChangeLanguage(this.state.language)
   }
 
   componentWillReceiveProps (props) {
@@ -120,10 +121,7 @@ export class Job extends React.Component {
   }
 
   searchOperater () {
-    const {
-      columnNameText, valueText, visibleBool,
-      startTimeTextState, endTimeTextState
-    } = this.state
+    const { columnNameText, valueText, visibleBool, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
@@ -145,11 +143,12 @@ export class Job extends React.Component {
   loadJobData () {
     const { projectIdGeted, jobClassHide } = this.props
 
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    const roleType = localStorage.getItem('loginRoleType')
+    if (roleType === 'admin') {
       jobClassHide === 'hide'
         ? this.props.onLoadAdminSingleJob(projectIdGeted, () => { this.jobRefreshState() })
         : this.props.onLoadAdminAllJobs(() => { this.jobRefreshState() })
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       this.props.onLoadUserAllJobs(projectIdGeted, () => { this.jobRefreshState() })
     }
   }
@@ -159,11 +158,7 @@ export class Job extends React.Component {
       refreshJobLoading: false,
       refreshJobText: 'Refresh'
     })
-    const {
-      columnNameText, valueText, visibleBool,
-      paginationInfo, filteredInfo, sortedInfo,
-      startTimeTextState, endTimeTextState
-    } = this.state
+    const { columnNameText, valueText, visibleBool, paginationInfo, filteredInfo, sortedInfo, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
@@ -178,30 +173,27 @@ export class Job extends React.Component {
   onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
 
   opreateJobFunc = (record, action) => (e) => {
+    const { language } = this.state
     const requestValue = {
       projectId: record.projectId,
       action: action,
       jobId: `${record.id}`
     }
 
-    const languageText = localStorage.getItem('preferredLanguage')
-    const startText = languageText === 'en' ? 'Start' : '启动'
-    const stopText = languageText === 'en' ? 'Stop' : '停止'
-    const deleteText = languageText === 'en' ? 'Delete' : '删除'
-    const successText = languageText === 'en' ? 'successfully!' : '成功！'
-    const failText = languageText === 'en' ? 'Operation failed:' : '操作失败：'
+    const successText = language === 'en' ? 'successfully!' : '成功！'
+    const failText = language === 'en' ? 'Operation failed:' : '操作失败：'
 
     this.props.onOperateJob(requestValue, (result) => {
       let singleMsg = ''
       switch (action) {
         case 'start':
-          singleMsg = startText
+          singleMsg = language === 'en' ? 'Start' : '启动'
           break
         case 'stop':
-          singleMsg = stopText
+          singleMsg = language === 'en' ? 'Stop' : '停止'
           break
         case 'delete':
-          singleMsg = deleteText
+          singleMsg = language === 'en' ? 'Delete' : '删除'
           break
       }
       message.success(`${singleMsg} ${successText}`, 3)
@@ -228,12 +220,13 @@ export class Job extends React.Component {
   }
 
   loadLogsData = (projectId, jobId) => {
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    const roleType = localStorage.getItem('loginRoleType')
+    if (roleType === 'admin') {
       this.props.onLoadAdminJobLogs(projectId, jobId, (result) => {
         this.setState({ jobLogsContent: result })
         this.jobLogRefreshState()
       })
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       this.props.onLoadUserJobLogs(projectId, jobId, (result) => {
         this.setState({ jobLogsContent: result })
         this.jobLogRefreshState()
@@ -377,18 +370,11 @@ export class Job extends React.Component {
       this.setState({
         visible
       }, () => {
-        let roleType = ''
-        if (localStorage.getItem('loginRoleType') === 'admin') {
-          roleType = 'admin'
-        } else if (localStorage.getItem('loginRoleType') === 'user') {
-          roleType = 'user'
-        }
-
         const requestValue = {
           projectId: record.projectId,
           streamId: record.streamId,
           jobId: record.id,
-          roleType: roleType
+          roleType: localStorage.getItem('loginRoleType')
         }
 
         this.props.onLoadJobDetail(requestValue, (result) => this.setState({ showJobDetail: result }))
@@ -406,6 +392,8 @@ export class Job extends React.Component {
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
+
+    const roleType = localStorage.getItem('loginRoleType')
 
     const columns = [{
       title: 'ID',
@@ -660,9 +648,9 @@ export class Job extends React.Component {
       className: 'text-align-center',
       render: (text, record) => {
         let jobActionSelect = ''
-        if (localStorage.getItem('loginRoleType') === 'admin') {
+        if (roleType === 'admin') {
           jobActionSelect = ''
-        } else if (localStorage.getItem('loginRoleType') === 'user') {
+        } else if (roleType === 'user') {
           const editFormat = <FormattedMessage {...messages.jobModify} />
           const startFormat = <FormattedMessage {...messages.jobTableStart} />
           const sureStartFormat = <FormattedMessage {...messages.jobSureStart} />
@@ -671,19 +659,12 @@ export class Job extends React.Component {
           const deleteFormat = <FormattedMessage {...messages.jobDelete} />
           const sureDeleteFormat = <FormattedMessage {...messages.jobSureDelete} />
 
-          const strEdit = record.disableActions.includes('modify')
-            ? (
-              <Tooltip title={editFormat}>
-                <Button icon="edit" shape="circle" type="ghost" disabled></Button>
-              </Tooltip>
-            )
-            : (
-              <Tooltip title={editFormat}>
-                <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditJob(record)}></Button>
-              </Tooltip>
-            )
+          const { disableActions } = record
+          const strEdit = disableActions.includes('modify')
+            ? <Button icon="edit" shape="circle" type="ghost" disabled></Button>
+            : <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditJob(record)}></Button>
 
-          const strStart = record.disableActions.includes('start')
+          const strStart = disableActions.includes('start')
             ? (
               <Tooltip title={startFormat}>
                 <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
@@ -697,7 +678,7 @@ export class Job extends React.Component {
               </Popconfirm>
             )
 
-          const strStop = record.disableActions.includes('stop')
+          const strStop = disableActions.includes('stop')
             ? (
               <Tooltip title={stopFormat}>
                 <Button shape="circle" type="ghost" disabled>
@@ -715,7 +696,7 @@ export class Job extends React.Component {
               </Popconfirm>
             )
 
-          const strDelete = record.disableActions.includes('delete')
+          const strDelete = disableActions.includes('delete')
             ? (
               <Tooltip title={deleteFormat}>
                 <Button icon="delete" shape="circle" type="ghost" disabled></Button>
@@ -731,7 +712,9 @@ export class Job extends React.Component {
 
           jobActionSelect = (
             <span>
-              {strEdit}
+              <Tooltip title={editFormat}>
+                {strEdit}
+              </Tooltip>
               {strStart}
               {strStop}
               {strDelete}
@@ -744,7 +727,7 @@ export class Job extends React.Component {
           const showJob = showJobDetail.job
           if (showJob) {
             jobDetailContent = (
-              <div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
+              <div className="job-table-detail">
                 <p className={jobClassHide}><strong>   Project Name：</strong>{showJobDetail.projectName}</p>
                 <p><strong>   Event Ts Start：</strong>{showJob.eventTsStart}</p>
                 <p><strong>   Event Ts End：</strong>{showJob.eventTsEnd}</p>
@@ -802,9 +785,9 @@ export class Job extends React.Component {
     }
 
     let jobAddOrNot = ''
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       jobAddOrNot = ''
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       jobAddOrNot = (
         <Button icon="plus" type="primary" onClick={onShowAddJob}>
           <FormattedMessage {...messages.jobCreate} />

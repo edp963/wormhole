@@ -40,7 +40,10 @@ import { checkInstance } from './action'
 export class InstanceForm extends React.Component {
   constructor (props) {
     super(props)
-    this.state = { instanceDSValue: '' }
+    this.state = {
+      instanceDSValue: '',
+      language: localStorage.getItem('preferredLanguage')
+    }
   }
 
   checkInstanceName = (rule, value = '', callback) => {
@@ -64,15 +67,12 @@ export class InstanceForm extends React.Component {
   render () {
     const { getFieldDecorator } = this.props.form
     const { type, instanceFormType } = this.props
-    const { instanceDSValue } = this.state
-    const languageText = localStorage.getItem('preferredLanguage')
+    const { instanceDSValue, language } = this.state
 
     const itemStyle = {
       labelCol: { span: 6 },
       wrapperCol: { span: 16 }
     }
-
-    const disabledOrNot = instanceFormType === 'edit'
 
     // help
     let questionDS = ''
@@ -103,9 +103,7 @@ export class InstanceForm extends React.Component {
               </div>
             }
             title={
-              <h3>
-                <FormattedMessage {...messages.instanceHelp} />
-              </h3>
+              <h3><FormattedMessage {...messages.instanceHelp} /></h3>
             }
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
@@ -129,13 +127,13 @@ export class InstanceForm extends React.Component {
               {getFieldDecorator('instanceDataSystem', {
                 rules: [{
                   required: true,
-                  message: `${languageText === 'en' ? 'Please select Data System' : '请选择 Data System'}`
+                  message: `${language === 'en' ? 'Please select Data System' : '请选择 Data System'}`
                 }]
               })(
                 <DataSystemSelector
                   data={loadDataSystemData()}
                   onItemSelect={this.onSourceDataSystemItemSelect}
-                  dataSystemDisabled={disabledOrNot}
+                  dataSystemDisabled={instanceFormType === 'edit'}
                 />
               )}
             </FormItem>
@@ -146,7 +144,7 @@ export class InstanceForm extends React.Component {
               {getFieldDecorator('instance', {
                 rules: [{
                   required: true,
-                  message: `${languageText === 'en' ? 'Please fill in instance' : '请填写 Instance'}`
+                  message: `${language === 'en' ? 'Please fill in instance' : '请填写 Instance'}`
                 },
                 {
                   validator: this.checkInstanceName
@@ -165,7 +163,7 @@ export class InstanceForm extends React.Component {
               {getFieldDecorator('connectionUrl', {
                 rules: [{
                   required: true,
-                  message: `${languageText === 'en' ? 'Please fill in connection url' : '请填写 Connection Url'}`
+                  message: `${language === 'en' ? 'Please fill in connection url' : '请填写 Connection Url'}`
                 }]
               })(
                 <Input

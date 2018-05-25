@@ -111,6 +111,8 @@
   "rider.containers.Database.table.column.ds": "数据系统",
   "rider.containers.Database.modal.create.db": "新建 Database",
   "rider.containers.Database.modal.modify.db": "修改 Database",
+  "rider.containers.Database.help.oracle": "格式为: 多行key=value 或 一行key=value&key=value。Oracle时, 必须包含\"service_name\"字段",
+  "rider.containers.Database.help.others": "格式为: 多行key=value 或 一行key=value&key=value",
 
   "rider.containers.User.table.modify.user.information": "修改用户信息",
   "rider.containers.User.table.user.user": "新建 User",
