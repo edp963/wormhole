@@ -66,7 +66,8 @@ export class Project extends React.Component {
 
       projectNsTableDataSource: [],
       projectUsersTableDataSource: [],
-      projectUdfTableDataSource: []
+      projectUdfTableDataSource: [],
+      language: localStorage.getItem('preferredLanguage')
     }
   }
 
@@ -78,8 +79,7 @@ export class Project extends React.Component {
     }
 
     // 刷新浏览器后不改变 language
-    const languageType = localStorage.getItem('preferredLanguage')
-    this.props.onChangeLanguage(languageType)
+    this.props.onChangeLanguage(this.state.language)
   }
 
   getIntoProject = (project) => () => {
@@ -159,8 +159,7 @@ export class Project extends React.Component {
   }
 
   onModalOk = () => {
-    const { projectFormType, projectResult } = this.state
-    const languageText = localStorage.getItem('preferredLanguage')
+    const { projectFormType, projectResult, language } = this.state
 
     const userSelectKey = this.projectUsersTable.state.selectedRowKeys
     const udfSelectKey = this.projectUdfTable.state.selectedRowKeys
@@ -177,9 +176,9 @@ export class Project extends React.Component {
     const { selectedRowKeys } = this.projectNSTable.state
 
     if (selectedRowKeys.length === 0) {
-      message.warning(languageText === 'en' ? 'Please select Namespace!' : '请选择源表！', 3)
+      message.warning(language === 'en' ? 'Please select Namespace!' : '请选择源表！', 3)
     } else if (userIds.length === 0) {
-      message.warning(languageText === 'en' ? 'Please select User!' : '请选择用户！', 3)
+      message.warning(language === 'en' ? 'Please select User!' : '请选择用户！', 3)
     } else {
       const namespaceIds = typeof selectedRowKeys === 'string'
         ? selectedRowKeys
@@ -201,7 +200,7 @@ export class Project extends React.Component {
               }), () => {
                 this.hideForm()
               }, () => {
-                message.success(languageText === 'en' ? 'Project is created successfully!' : 'Project 添加成功！', 3)
+                message.success(language === 'en' ? 'Project is created successfully!' : 'Project 添加成功！', 3)
               })
               break
             case 'edit':
@@ -210,7 +209,7 @@ export class Project extends React.Component {
                 userId: userIds,
                 udfId: udfIds
               }, projectResult), () => {
-                message.success(languageText === 'en' ? 'Project is modified successfully!' : 'Project 修改成功！', 3)
+                message.success(language === 'en' ? 'Project is modified successfully!' : 'Project 修改成功！', 3)
                 this.hideForm()
               }, (result) => {
                 const nsIdArr = []
@@ -273,9 +272,8 @@ export class Project extends React.Component {
   deletePro = (e) => e.stopPropagation()
 
   deleteAdminProject = (p) => (e) => {
-    const languageText = localStorage.getItem('preferredLanguage')
     this.props.onDeleteSingleProject(p.id, () => {}, (result) => {
-      message.warning(`${languageText === 'en' ? 'This item cannot be deleted:' : '不能删除：'} ${result}`, 5)
+      message.warning(`${this.state.language === 'en' ? 'This item cannot be deleted:' : '不能删除：'} ${result}`, 5)
     })
   }
 

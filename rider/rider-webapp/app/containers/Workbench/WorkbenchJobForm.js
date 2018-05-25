@@ -57,7 +57,8 @@ export class WorkbenchJobForm extends React.Component {
     super(props)
     this.state = {
       sinkConfigClass: '',
-      checked: false
+      checked: false,
+      language: localStorage.getItem('preferredLanguage')
     }
   }
 
@@ -79,7 +80,7 @@ export class WorkbenchJobForm extends React.Component {
     } else {
       const textZh = '必须是字母、数字、下划线或中划线'
       const textEn = 'It should be letters, figures, underscore or hyphen'
-      callback(localStorage.getItem('preferredLanguage') === 'en' ? textEn : textZh)
+      callback(this.state.language === 'en' ? textEn : textZh)
     }
   }
 
@@ -115,7 +116,7 @@ export class WorkbenchJobForm extends React.Component {
       jobTranConfigConfirmValue, sourceTypeNamespaceData, sinkTypeNamespaceData
     } = this.props
     const { getFieldDecorator } = form
-    const { sinkConfigClass } = this.state
+    const { sinkConfigClass, language } = this.state
 
     const stepClassNames = [
       step === 0 ? '' : 'hide',
@@ -303,7 +304,6 @@ export class WorkbenchJobForm extends React.Component {
       </span>
     )
 
-    const languageText = localStorage.getItem('preferredLanguage')
     return (
       <Form className="ri-workbench-form workbench-flow-form">
         {/* Step 1 */}
@@ -314,7 +314,7 @@ export class WorkbenchJobForm extends React.Component {
                 {getFieldDecorator('jobName', {
                   rules: [{
                     required: true,
-                    message: languageText === 'en' ? 'Name cannot be empty' : 'Name 不能为空'
+                    message: language === 'en' ? 'Name cannot be empty' : 'Name 不能为空'
                   }, {
                     validator: this.checkJobName
                   }]
