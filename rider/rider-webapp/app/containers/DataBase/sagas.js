@@ -60,9 +60,6 @@ export function* getDatabasesWatcher () {
 }
 
 export function* addDatabase ({ payload }) {
-  const languageText = localStorage.getItem('preferredLanguage') === 'en'
-    ? 'Config format error!'
-    : 'Config 格式错误！'
   try {
     const result = yield call(request, {
       method: 'post',
@@ -70,8 +67,8 @@ export function* addDatabase ({ payload }) {
       data: payload.database
     })
     if (result.code && result.code === 400) {
-      yield put(databaseAddedError(languageText))
-      payload.reject(languageText)
+      yield put(databaseAddedError(result.msg))
+      payload.reject(result.msg)
     } else if (result.header.code && result.header.code === 200) {
       yield put(databaseAdded(result.payload))
       payload.resolve()
@@ -100,9 +97,6 @@ export function* singleDatabaseWatcher () {
 }
 
 export function* editDatabase ({ payload }) {
-  const languageText = localStorage.getItem('preferredLanguage') === 'en'
-    ? 'Config format error!'
-    : 'Config 格式错误！'
   try {
     const result = yield call(request, {
       method: 'put',
@@ -110,8 +104,8 @@ export function* editDatabase ({ payload }) {
       data: payload.database
     })
     if (result.code && result.code === 400) {
-      yield put(databaseEditedError(languageText))
-      payload.reject(languageText)
+      yield put(databaseEditedError(result.msg))
+      payload.reject(result.msg)
     } else if (result.header.code && result.header.code === 200) {
       yield put(databaseEdited(result.payload))
       payload.resolve()

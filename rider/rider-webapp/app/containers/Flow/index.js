@@ -131,8 +131,7 @@ export class Flow extends React.Component {
   }
 
   searchOperater () {
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const { columnNameText, valueText, visibleBool, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
@@ -172,9 +171,7 @@ export class Flow extends React.Component {
     })
 
     const {
-      columnNameText, valueText, visibleBool,
-      paginationInfo, filteredInfo, sortedInfo,
-      startTimeTextState, endTimeTextState
+      columnNameText, valueText, visibleBool, paginationInfo, filteredInfo, sortedInfo, startTimeTextState, endTimeTextState
     } = this.state
 
     if (columnNameText !== '') {
@@ -386,9 +383,9 @@ export class Flow extends React.Component {
   handleTimeCancel = (e) => this.setState({ timeModalVisible: false })
 
   handleTimeOk = () => {
-    if (this.flowsTime.state.startValue === null) {
+    if (!this.flowsTime.state.startValue) {
       message.warning('开始时间不能为空！')
-    } else if (this.flowsTime.state.endValue === null) {
+    } else if (!this.flowsTime.state.endValue) {
       message.warning('结束时间不能为空！')
     } else {
       // const sVal = new Date(this.flowsTime.state.startValue._d)
@@ -456,18 +453,11 @@ export class Flow extends React.Component {
       this.setState({
         visible
       }, () => {
-        let roleType = ''
-        if (localStorage.getItem('loginRoleType') === 'admin') {
-          roleType = 'admin'
-        } else if (localStorage.getItem('loginRoleType') === 'user') {
-          roleType = 'user'
-        }
-
         const requestValue = {
           projectId: record.projectId,
           streamId: typeof (record.streamId) === 'object' ? record.streamIdOrigin : record.streamId,
           flowId: record.id,
-          roleType: roleType
+          roleType: localStorage.getItem('loginRoleType')
         }
 
         this.props.onLoadFlowDetail(requestValue, (result) => this.setState({ showFlowDetails: result }))
@@ -477,7 +467,7 @@ export class Flow extends React.Component {
 
   render () {
     const { className, onShowAddFlow, onShowEditFlow, flowClassHide } = this.props
-    const { refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible } = this.state
+    const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -828,16 +818,8 @@ export class Flow extends React.Component {
           const sureRenewFormat = <FormattedMessage {...messages.flowSureRenew} />
 
           const strEdit = record.disableActions.includes('modify')
-            ? (
-              <Tooltip title={modifyFormat}>
-                <Button icon="edit" shape="circle" type="ghost" disabled></Button>
-              </Tooltip>
-            )
-            : (
-              <Tooltip title={modifyFormat}>
-                <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
-              </Tooltip>
-            )
+            ? <Button icon="edit" shape="circle" type="ghost" disabled></Button>
+            : <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
 
           const strStart = record.disableActions.includes('start')
             ? (
@@ -887,7 +869,9 @@ export class Flow extends React.Component {
 
           FlowActionSelect = (
             <span>
-              {strEdit}
+              <Tooltip title={modifyFormat}>
+                {strEdit}
+              </Tooltip>
               <Tooltip title={copyFormat}>
                 <Button icon="copy" shape="circle" type="ghost" onClick={this.onCopyFlow(record)}></Button>
               </Tooltip>
@@ -903,8 +887,6 @@ export class Flow extends React.Component {
           )
         }
 
-        const { showFlowDetails } = this.state
-
         let sinkConfigFinal = ''
         if (!showFlowDetails.sinkConfig) {
           sinkConfigFinal = ''
@@ -919,7 +901,7 @@ export class Flow extends React.Component {
               <Popover
                 placement="left"
                 content={
-                  <div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
+                  <div className="flow-table-detail">
                     <p className={flowClassHide}><strong>   Project Id：</strong>{showFlowDetails.projectId}</p>
                     <p><strong>   Protocol：</strong>{showFlowDetails.consumedProtocol}</p>
                     <p><strong>   Stream Name：</strong>{showFlowDetails.streamName}</p>
@@ -1024,7 +1006,7 @@ export class Flow extends React.Component {
           footer={<span></span>}
         >
           <FlowsDetail
-            flowIdGeted={this.state.flowId}
+            flowIdGeted={flowId}
             ref={(f) => { this.flowsDetail = f }}
             onEditLogForm={this.props.onEditLogForm}
             onSaveForm={this.props.onSaveForm}

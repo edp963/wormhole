@@ -41,8 +41,6 @@ export class UdfForm extends React.Component {
       wrapperCol: { span: 16 }
     }
 
-    const disabledOrNot = type === 'edit'
-
     return (
       <Form>
         <Row gutter={8}>
@@ -61,7 +59,7 @@ export class UdfForm extends React.Component {
                   message: languageText === 'en' ? 'Function Name cannot be empty' : 'Function Name 不能为空'
                 }]
               })(
-                <Input placeholder="Function Name" disabled={disabledOrNot} />
+                <Input placeholder="Function Name" disabled={type === 'edit'} />
               )}
             </FormItem>
           </Col>
@@ -82,7 +80,7 @@ export class UdfForm extends React.Component {
                   message: languageText === 'en' ? 'Please fill in full class name' : '请填写 Full Class Name'
                 }]
               })(
-                <Input placeholder="Full Class Name" disabled={disabledOrNot} />
+                <Input placeholder="Full Class Name" disabled={type === 'edit'} />
               )}
             </FormItem>
           </Col>

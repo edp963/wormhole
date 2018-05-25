@@ -111,17 +111,20 @@ export class Manager extends React.Component {
       currentUdfVal: [],
 
       consumedOffsetValue: [],
-      kafkaOffsetValue: []
+      kafkaOffsetValue: [],
+      language: localStorage.getItem('preferredLanguage')
     }
   }
 
   componentWillMount () {
+    const { language } = this.state
+    const { streamClassHide } = this.props
     if (localStorage.getItem('loginRoleType') === 'admin') {
-      if (!this.props.streamClassHide) {
+      if (!streamClassHide) {
         this.props.onLoadAdminAllStreams(() => { this.refreshStreamState() })
       }
     }
-    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
+    this.props.onChangeLanguage(language)
   }
 
   componentWillReceiveProps (props) {
@@ -149,10 +152,7 @@ export class Manager extends React.Component {
   }
 
   searchOperater () {
-    const {
-      columnNameText, valueText, visibleBool,
-      startTimeTextState, endTimeTextState
-    } = this.state
+    const { columnNameText, valueText, visibleBool, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
@@ -165,16 +165,17 @@ export class Manager extends React.Component {
 
   refreshStream = () => {
     const { projectIdGeted, streamClassHide } = this.props
+    const roleType = localStorage.getItem('loginRoleType')
 
     this.setState({
       refreshStreamLoading: true,
       refreshStreamText: 'Refreshing'
     })
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       streamClassHide === 'hide'
         ? this.props.onLoadAdminSingleStream(projectIdGeted, () => { this.refreshStreamState() })
         : this.props.onLoadAdminAllStreams(() => { this.refreshStreamState() })
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       this.props.onLoadUserStreams(projectIdGeted, () => { this.refreshStreamState() })
     }
   }
@@ -184,11 +185,7 @@ export class Manager extends React.Component {
       refreshStreamLoading: false,
       refreshStreamText: 'Refresh'
     })
-    const {
-      columnNameText, valueText, visibleBool,
-      paginationInfo, filteredInfo, sortedInfo,
-      startTimeTextState, endTimeTextState
-    } = this.state
+    const { columnNameText, valueText, visibleBool, paginationInfo, filteredInfo, sortedInfo, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
@@ -206,13 +203,7 @@ export class Manager extends React.Component {
       this.setState({
         visible
       }, () => {
-        let roleType = ''
-        if (localStorage.getItem('loginRoleType') === 'admin') {
-          roleType = 'admin'
-        } else if (localStorage.getItem('loginRoleType') === 'user') {
-          roleType = 'user'
-        }
-
+        const roleType = localStorage.getItem('loginRoleType')
         this.props.onLoadStreamDetail(stream.projectId, stream.id, roleType, (result) => {
           this.setState({ showStreamdetails: result })
         })
@@ -292,6 +283,7 @@ export class Manager extends React.Component {
    */
   onShowEditStart = (record) => (e) => {
     const { projectIdGeted } = this.props
+    const { language } = this.state
 
     this.setState({
       actionType: 'start',
@@ -322,7 +314,7 @@ export class Manager extends React.Component {
         createTime: '',
         desc: '',
         fullClassName: '',
-        functionName: localStorage.getItem('preferredLanguage') === 'en' ? 'Select all' : '全选',
+        functionName: language === 'en' ? 'Select all' : '全选',
         id: -1,
         jarName: '',
         pubic: false,
@@ -385,148 +377,130 @@ export class Manager extends React.Component {
    *  start/renew ok
    */
   handleEditStartOk = (e) => {
-    const { actionType, streamIdGeted, streamStartFormData, startUdfVals } = this.state
+    const { actionType, streamIdGeted, streamStartFormData, startUdfVals, language } = this.state
     const { projectIdGeted } = this.props
-    const languageText = localStorage.getItem('preferredLanguage')
-    const offsetText = languageText === 'en' ? 'Offset cannot be empty' : 'Offset 不能为空！'
+    const offsetText = language === 'en' ? 'Offset cannot be empty' : 'Offset 不能为空！'
 
     this.streamStartForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         let requestVal = {}
-        if (actionType === 'start') {
-          if (!streamStartFormData) {
-            if (!values.udfs) {
-              requestVal = {}
-            } else {
-              if (values.udfs.find(i => i === '-1')) {
-                // 全选
-                const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
-                requestVal = {
-                  udfInfo: startUdfValsOrigin.map(p => p.id)
-                }
+        switch (actionType) {
+          case 'start':
+            if (!streamStartFormData) {
+              if (!values.udfs) {
+                requestVal = {}
               } else {
-                requestVal = {
-                  udfInfo: values.udfs.map(q => Number(q))
-                }
-              }
-            }
-          } else {
-            const mergedData = streamStartFormData.map((i) => {
-              const parOffTemp = i.partitionOffsets
-              const partitionTemp = parOffTemp.split(',')
-
-              const offsetArr = []
-              for (let r = 0; r < partitionTemp.length; r++) {
-                const offsetArrTemp = values[`${i.id}_${r}`]
-                if (offsetArrTemp === '') {
-                  message.warning(offsetText, 3)
+                if (values.udfs.find(i => i === '-1')) {
+                  // 全选
+                  const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                  requestVal = { udfInfo: startUdfValsOrigin.map(p => p.id) }
                 } else {
-                  offsetArr.push(`${r}:${offsetArrTemp}`)
+                  requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
                 }
-              }
-              const offsetVal = offsetArr.join(',')
-
-              const robj = {
-                id: i.id,
-                partitionOffsets: offsetVal,
-                rate: Number(values[`${i.id}_${i.rate}_rate`])
-              }
-              return robj
-            })
-
-            if (!values.udfs) {
-              requestVal = {
-                topicInfo: mergedData
               }
             } else {
-              if (values.udfs.find(i => i === '-1')) {
-                // 全选
-                const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
-                requestVal = {
-                  udfInfo: startUdfValsOrigin.map(p => p.id),
-                  topicInfo: mergedData
+              const mergedData = streamStartFormData.map((i) => {
+                const parOffTemp = i.partitionOffsets
+                const partitionTemp = parOffTemp.split(',')
+
+                const offsetArr = []
+                for (let r = 0; r < partitionTemp.length; r++) {
+                  const offsetArrTemp = values[`${i.id}_${r}`]
+                  offsetArrTemp === ''
+                    ? message.warning(offsetText, 3)
+                    : offsetArr.push(`${r}:${offsetArrTemp}`)
                 }
+                const offsetVal = offsetArr.join(',')
+
+                const robj = {
+                  id: i.id,
+                  partitionOffsets: offsetVal,
+                  rate: Number(values[`${i.id}_${i.rate}_rate`])
+                }
+                return robj
+              })
+
+              if (!values.udfs) {
+                requestVal = { topicInfo: mergedData }
               } else {
-                requestVal = {
-                  udfInfo: values.udfs.map(q => Number(q)),
-                  topicInfo: mergedData
-                }
-              }
-            }
-          }
-        } else if (actionType === 'renew') {
-          if (!streamStartFormData) {
-            if (!values.udfs) {
-              requestVal = {}
-            } else {
-              requestVal = {
-                udfInfo: values.udfs.map(q => Number(q))
-              }
-            }
-          } else {
-            const mergedData = streamStartFormData.map((i) => {
-              const parOffTemp = i.partitionOffsets
-              const partitionTemp = parOffTemp.split(',')
-
-              const offsetArr = []
-              for (let r = 0; r < partitionTemp.length; r++) {
-                const offsetArrTemp = values[`${i.id}_${r}`]
-                if (offsetArrTemp === '') {
-                  message.warning(offsetText, 3)
+                if (values.udfs.find(i => i === '-1')) {
+                  // 全选
+                  const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                  requestVal = {
+                    udfInfo: startUdfValsOrigin.map(p => p.id),
+                    topicInfo: mergedData
+                  }
                 } else {
-                  offsetArr.push(`${r}:${offsetArrTemp}`)
-                }
-              }
-              const offsetVal = offsetArr.join(',')
-
-              const robj = {
-                id: i.id,
-                name: i.name,
-                partitionOffsets: offsetVal,
-                rate: Number(values[`${i.id}_${i.rate}_rate`])
-              }
-              return robj
-            })
-
-            // 接口参数：改动的topicInfo
-            let topicInfoTemp = []
-            for (let f = 0; f < streamStartFormData.length; f++) {
-              for (let g = 0; g < mergedData.length; g++) {
-                if (streamStartFormData[f].id === mergedData[g].id) {
-                  if (!isEquivalent(streamStartFormData[f], mergedData[g])) {
-                    topicInfoTemp.push({
-                      id: mergedData[g].id,
-                      partitionOffsets: mergedData[g].partitionOffsets,
-                      rate: mergedData[g].rate
-                    })
+                  requestVal = {
+                    udfInfo: values.udfs.map(q => Number(q)),
+                    topicInfo: mergedData
                   }
                 }
               }
             }
-
-            if (topicInfoTemp.length === 0) {
-              requestVal = (!values.udfs)
-                ? {}
-                : requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
+            break
+          case 'renew':
+            if (!streamStartFormData) {
+              requestVal = !values.udfs ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
             } else {
-              requestVal = (!values.udfs)
-                ? { topicInfo: topicInfoTemp }
-                : {
-                  udfInfo: values.udfs.map(q => Number(q)),
-                  topicInfo: topicInfoTemp
+              const mergedData = streamStartFormData.map((i) => {
+                const partitionTemp = i.partitionOffsets.split(',')
+
+                const offsetArr = []
+                for (let r = 0; r < partitionTemp.length; r++) {
+                  const offsetArrTemp = values[`${i.id}_${r}`]
+                  offsetArrTemp === ''
+                    ? message.warning(offsetText, 3)
+                    : offsetArr.push(`${r}:${offsetArrTemp}`)
                 }
+
+                const robj = {
+                  id: i.id,
+                  name: i.name,
+                  partitionOffsets: offsetArr.join(','),
+                  rate: Number(values[`${i.id}_${i.rate}_rate`])
+                }
+                return robj
+              })
+
+              // 接口参数：改动的topicInfo
+              let topicInfoTemp = []
+              for (let f = 0; f < streamStartFormData.length; f++) {
+                for (let g = 0; g < mergedData.length; g++) {
+                  if (streamStartFormData[f].id === mergedData[g].id) {
+                    if (!isEquivalent(streamStartFormData[f], mergedData[g])) {
+                      topicInfoTemp.push({
+                        id: mergedData[g].id,
+                        partitionOffsets: mergedData[g].partitionOffsets,
+                        rate: mergedData[g].rate
+                      })
+                    }
+                  }
+                }
+              }
+
+              if (topicInfoTemp.length === 0) {
+                requestVal = (!values.udfs) ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
+              } else {
+                requestVal = (!values.udfs)
+                  ? { topicInfo: topicInfoTemp }
+                  : {
+                    udfInfo: values.udfs.map(q => Number(q)),
+                    topicInfo: topicInfoTemp
+                  }
+              }
             }
-          }
+            break
         }
 
         let actionTypeRequest = ''
         let actionTypeMsg = ''
         if (actionType === 'start') {
           actionTypeRequest = 'start'
-          actionTypeMsg = languageText === 'en' ? 'Start Successfully!' : '启动成功！'
+          actionTypeMsg = language === 'en' ? 'Start Successfully!' : '启动成功！'
         } else if (actionType === 'renew') {
           actionTypeRequest = 'renew'
-          actionTypeMsg = languageText === 'en' ? 'Renew Successfully!' : '生效！'
+          actionTypeMsg = language === 'en' ? 'Renew Successfully!' : '生效！'
         }
 
         this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, () => {
@@ -537,7 +511,7 @@ export class Manager extends React.Component {
 
           message.success(actionTypeMsg, 3)
         }, (result) => {
-          const failText = languageText === 'en' ? 'Operation failed:' : '操作失败：'
+          const failText = language === 'en' ? 'Operation failed:' : '操作失败：'
           message.error(`${failText} ${result}`, 3)
         })
       }
@@ -556,9 +530,9 @@ export class Manager extends React.Component {
   }
 
   stopStreamBtn = (record, action) => (e) => {
-    const languageText = localStorage.getItem('preferredLanguage')
-    const successText = languageText === 'en' ? 'Stop successfully!' : '停止成功！'
-    const failText = languageText === 'en' ? 'Operation failed:' : '操作失败：'
+    const { language } = this.state
+    const successText = language === 'en' ? 'Stop successfully!' : '停止成功！'
+    const failText = language === 'en' ? 'Operation failed:' : '操作失败：'
     this.props.onOperateStream(this.props.projectIdGeted, record.id, 'stop', () => {
       message.success(successText, 3)
     }, (result) => {
@@ -592,12 +566,13 @@ export class Manager extends React.Component {
   }
 
   loadLogsData = (projectId, streamId) => {
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    const roleType = localStorage.getItem('loginRoleType')
+    if (roleType === 'admin') {
       this.props.onLoadAdminLogsInfo(projectId, streamId, (result) => {
         this.setState({ logsContent: result })
         this.streamLogRefreshState()
       })
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       this.props.onLoadLogsInfo(projectId, streamId, (result) => {
         this.setState({ logsContent: result })
         this.streamLogRefreshState()
@@ -754,6 +729,8 @@ export class Manager extends React.Component {
     } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
+
+    const roleType = localStorage.getItem('loginRoleType')
 
     const columns = [{
       title: 'ID',
@@ -1006,9 +983,9 @@ export class Manager extends React.Component {
       render: (text, record) => {
         const stream = this.state.currentStreams.find(s => s.id === record.id)
         let streamActionSelect = ''
-        if (localStorage.getItem('loginRoleType') === 'admin') {
+        if (roleType === 'admin') {
           streamActionSelect = ''
-        } else if (localStorage.getItem('loginRoleType') === 'user') {
+        } else if (roleType === 'user') {
           const deleteFormat = <FormattedMessage {...messages.streamDelete} />
           const sureDeleteFormat = <FormattedMessage {...messages.streamSureDelete} />
           const startFormat = <FormattedMessage {...messages.streamTableStart} />
@@ -1017,7 +994,8 @@ export class Manager extends React.Component {
           const sureStopFormat = <FormattedMessage {...messages.streamSureStop} />
           const modifyFormat = <FormattedMessage {...messages.streamModify} />
 
-          const strDelete = record.disableActions.includes('delete')
+          const { disableActions } = record
+          const strDelete = disableActions.includes('delete')
             ? (
               <Tooltip title={deleteFormat}>
                 <Button icon="delete" shape="circle" type="ghost" disabled></Button>
@@ -1031,19 +1009,11 @@ export class Manager extends React.Component {
               </Popconfirm>
             )
 
-          const strStart = record.disableActions.includes('start')
-            ? (
-              <Tooltip title={startFormat}>
-                <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
-              </Tooltip>
-            )
-            : (
-              <Tooltip title={startFormat}>
-                <Button icon="caret-right" shape="circle" type="ghost" onClick={this.onShowEditStart(record, 'start')}></Button>
-              </Tooltip>
-            )
+          const strStart = disableActions.includes('start')
+            ? <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
+            : <Button icon="caret-right" shape="circle" type="ghost" onClick={this.onShowEditStart(record, 'start')}></Button>
 
-          const strStop = record.disableActions.includes('stop')
+          const strStop = disableActions.includes('stop')
             ? (
               <Tooltip title={stopFormat}>
                 <Button shape="circle" type="ghost" disabled>
@@ -1061,26 +1031,22 @@ export class Manager extends React.Component {
               </Popconfirm>
             )
 
-          const strRenew = record.disableActions.includes('renew')
-            ? (
-              <Tooltip title={renewFormat}>
-                <Button icon="check" shape="circle" type="ghost" disabled></Button>
-              </Tooltip>
-            )
-            : (
-              <Tooltip title={renewFormat}>
-                <Button icon="check" shape="circle" type="ghost" onClick={this.updateStream(record, 'renew')}></Button>
-              </Tooltip>
-            )
+          const strRenew = disableActions.includes('renew')
+            ? <Button icon="check" shape="circle" type="ghost" disabled></Button>
+            : <Button icon="check" shape="circle" type="ghost" onClick={this.updateStream(record, 'renew')}></Button>
 
           streamActionSelect = (
             <span>
               <Tooltip title={modifyFormat}>
                 <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditStream(record)}></Button>
               </Tooltip>
-              {strStart}
+              <Tooltip title={startFormat}>
+                {strStart}
+              </Tooltip>
               {strStop}
-              {strRenew}
+              <Tooltip title={renewFormat}>
+                {strRenew}
+              </Tooltip>
               {strDelete}
             </span>
           )
@@ -1195,9 +1161,9 @@ export class Manager extends React.Component {
       : ''
 
     let StreamAddOrNot = ''
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       StreamAddOrNot = ''
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       StreamAddOrNot = (
         <Button icon="plus" type="primary" onClick={onShowAddStream}>
           <FormattedMessage {...messages.streamCreate} />

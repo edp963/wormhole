@@ -96,13 +96,14 @@ export class Instance extends React.PureComponent {
 
       editInstanceData: {},
       eidtConnUrl: '',
-      InstanceSourceDsVal: ''
+      InstanceSourceDsVal: '',
+      language: localStorage.getItem('preferredLanguage')
     }
   }
 
   componentWillMount () {
     this.refreshInstance()
-    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
+    this.props.onChangeLanguage(this.state.language)
   }
 
   // componentWillUpdate (props) {
@@ -134,8 +135,7 @@ export class Instance extends React.PureComponent {
   }
 
   searchOperater () {
-    const { columnNameText, valueText, visibleBool,
-      startTimeTextState, endTimeTextState } = this.state
+    const { columnNameText, valueText, visibleBool, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
@@ -206,10 +206,9 @@ export class Instance extends React.PureComponent {
   }
 
   onModalOk = () => {
-    const { instanceFormType } = this.state
-    const languageText = localStorage.getItem('preferredLanguage')
-    const createFormat = languageText === 'en' ? 'Instance is created successfully!' : 'Instance 新建成功！'
-    const modifyFormat = languageText === 'en' ? 'Instance is modified successfully!' : 'Instance 修改成功！'
+    const { instanceFormType, language } = this.state
+    const createFormat = language === 'en' ? 'Instance is created successfully!' : 'Instance 新建成功！'
+    const modifyFormat = language === 'en' ? 'Instance is modified successfully!' : 'Instance 修改成功！'
 
     this.instanceForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -394,7 +393,8 @@ export class Instance extends React.PureComponent {
   }
 
   render () {
-    const { refreshInstanceLoading, refreshInstanceText, showInstanceDetails } = this.state
+    const { refreshInstanceLoading, refreshInstanceText, showInstanceDetails, currentInstances, instanceFormType, formVisible } = this.state
+    const { modalLoading } = this.props
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -579,9 +579,6 @@ export class Instance extends React.PureComponent {
       showSizeChanger: true,
       onChange: (current) => this.setState({ pageIndex: current })
     }
-
-    const { currentInstances, instanceFormType, formVisible } = this.state
-    const { modalLoading } = this.props
 
     const modalTitle = instanceFormType === 'add'
       ? <FormattedMessage {...messages.instanceTableCreate} />

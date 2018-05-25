@@ -77,9 +77,6 @@ export class WorkbenchStreamForm extends React.PureComponent {
       wrapperCol: { span: 17 }
     }
 
-    // edit 时，不能修改部分元素
-    const disabledOrNot = streamMode === 'edit'
-
     const kafkaOptions = kafkaValues.map(s => (<Option key={s.id} value={`${s.id}`}>{s.nsInstance}</Option>))
 
     const streamConfigTag = streamConfigCheck
@@ -126,7 +123,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
                   validator: this.checkStreamName
                 }]
               })(
-                <Input placeholder="Name" disabled={disabledOrNot} />
+                <Input placeholder="Name" disabled={streamMode === 'edit'} />
               )}
             </FormItem>
           </Col>
@@ -139,7 +136,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
                   message: operateLanguageSelect('type', 'Type')
                 }]
               })(
-                <RadioGroup className="radio-group-style" disabled={disabledOrNot} size="default">
+                <RadioGroup className="radio-group-style" disabled={streamMode === 'edit'} size="default">
                   <RadioButton value="default" className="radio-btn-style radio-btn-extra">Default</RadioButton>
                   <RadioButton value="hdfslog" className="radio-btn-style radio-btn-extra">Hdfslog</RadioButton>
                   <RadioButton value="routing" className="radio-btn-style radio-btn-final">Routing</RadioButton>
@@ -169,7 +166,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown"
                   placeholder="Select a Kafka"
-                  disabled={disabledOrNot}
+                  disabled={streamMode === 'edit'}
                 >
                   {kafkaOptions}
                 </Select>
