@@ -131,9 +131,11 @@ export class FlowTransformForm extends React.Component {
         <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />}>
           <Popover
             placement="top"
-            content={<div style={{ width: '400px', height: '90px' }}>
-              <p>{sqlMsg}</p>
-            </div>}
+            content={
+              <div style={{ width: '400px', height: '90px' }}>
+                <p>{sqlMsg}</p>
+              </div>
+            }
             title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />

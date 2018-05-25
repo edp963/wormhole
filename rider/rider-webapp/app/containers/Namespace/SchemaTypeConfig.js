@@ -20,6 +20,7 @@
 
 import React from 'react'
 import PropTypes from 'prop-types'
+import {connect} from 'react-redux'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
@@ -59,7 +60,8 @@ export class SchemaTypeConfig extends React.Component {
 
       tupleSizeValue: -1,
       umsopable: false,
-      umsopKey: -1
+      umsopKey: -1,
+      language: localStorage.getItem('preferredLanguage')
     }
   }
 
@@ -88,13 +90,13 @@ export class SchemaTypeConfig extends React.Component {
   }
 
   handleChangeFieldType = (record) => (afterType) => {
-    const languageText = localStorage.getItem('preferredLanguage')
+    const { language } = this.state
 
     const originType = record.fieldType
     const currentType = originType.includes('##') ? 'tuple' : originType
 
     if (this.state.tupleForm === 'edit') {
-      message.error(languageText === 'en' ? 'Tuple configuration has error!' : 'Tuple 配置失败！', 3)
+      message.error(language === 'en' ? 'Tuple configuration has error!' : 'Tuple 配置失败！', 3)
     } else {
       let tupleTypeTemp = ''
       if (currentType !== 'tuple' && afterType !== 'tuple') { // other to other
@@ -140,7 +142,7 @@ export class SchemaTypeConfig extends React.Component {
   onChangeSizeValue = (value) => this.setState({ tupleSizeValue: value })
 
   checkFieldType = (record) => (e) => {
-    const languageText = localStorage.getItem('preferredLanguage')
+    const { language } = this.state
     const sepTemp = document.getElementById('sep')
 
     if (sepTemp) {
@@ -149,11 +151,11 @@ export class SchemaTypeConfig extends React.Component {
 
       const reg = /^[0-9]*$/
       if (!sepValue) {
-        message.error(languageText === 'en' ? 'Please fill in separator!' : '请填写分隔符！', 3)
+        message.error(language === 'en' ? 'Please fill in separator!' : '请填写分隔符！', 3)
       } else if (!tupleSizeValue) {
-        message.error(languageText === 'en' ? 'Please fill in length!' : '请填写长度！', 3)
+        message.error(language === 'en' ? 'Please fill in length!' : '请填写长度！', 3)
       } else if (!reg.test(tupleSizeValue)) {
-        message.error(languageText === 'en' ? 'Length should be figures!' : '长度应为数字！', 3)
+        message.error(language === 'en' ? 'Length should be figures!' : '长度应为数字！', 3)
       } else {
         this.setState({
           tupleForm: 'text'
@@ -745,4 +747,4 @@ SchemaTypeConfig.propTypes = {
   repeatArrayArr: PropTypes.array
 }
 
-export default Form.create({wrappedComponentRef: true})(SchemaTypeConfig)
+export default Form.create({wrappedComponentRef: true})(connect(null, null)(SchemaTypeConfig))
