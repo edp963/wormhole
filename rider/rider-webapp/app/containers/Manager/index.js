@@ -48,6 +48,8 @@ import {
 } from './action'
 import { loadSingleUdf } from '../Udf/action'
 import { selectStreams, selectStreamStartModalLoading } from './selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
+import { selectRoleType } from '../App/selectors'
 
 import { uuid, isEquivalent, operateLanguageText } from '../../utils/util'
 
@@ -111,21 +113,18 @@ export class Manager extends React.Component {
       currentUdfVal: [],
 
       consumedOffsetValue: [],
-      kafkaOffsetValue: [],
-      language: localStorage.getItem('preferredLanguage'),
-      roleType: localStorage.getItem('loginRoleType')
+      kafkaOffsetValue: []
     }
   }
 
   componentWillMount () {
-    const { language, roleType } = this.state
-    const { streamClassHide } = this.props
+    const { streamClassHide, roleType, locale } = this.props
     if (roleType === 'admin') {
       if (!streamClassHide) {
         this.props.onLoadAdminAllStreams(() => { this.refreshStreamState() })
       }
     }
-    this.props.onChangeLanguage(language)
+    this.props.onChangeLanguage(locale)
   }
 
   componentWillReceiveProps (props) {
@@ -165,8 +164,7 @@ export class Manager extends React.Component {
   }
 
   refreshStream = () => {
-    const { projectIdGeted, streamClassHide } = this.props
-    const {roleType} = this.state
+    const { projectIdGeted, streamClassHide, roleType } = this.props
 
     this.setState({
       refreshStreamLoading: true,
@@ -204,7 +202,7 @@ export class Manager extends React.Component {
       this.setState({
         visible
       }, () => {
-        const { roleType } = this.state
+        const { roleType } = this.props
         this.props.onLoadStreamDetail(stream.projectId, stream.id, roleType, (result) => {
           this.setState({ showStreamdetails: result })
         })
@@ -283,8 +281,7 @@ export class Manager extends React.Component {
    * start操作  获取最新数据，并回显
    */
   onShowEditStart = (record) => (e) => {
-    const { projectIdGeted } = this.props
-    const { language } = this.state
+    const { projectIdGeted, locale } = this.props
 
     this.setState({
       actionType: 'start',
@@ -315,7 +312,7 @@ export class Manager extends React.Component {
         createTime: '',
         desc: '',
         fullClassName: '',
-        functionName: language === 'en' ? 'Select all' : '全选',
+        functionName: locale === 'en' ? 'Select all' : '全选',
         id: -1,
         jarName: '',
         pubic: false,
@@ -378,9 +375,9 @@ export class Manager extends React.Component {
    *  start/renew ok
    */
   handleEditStartOk = (e) => {
-    const { actionType, streamIdGeted, streamStartFormData, startUdfVals, language } = this.state
-    const { projectIdGeted } = this.props
-    const offsetText = language === 'en' ? 'Offset cannot be empty' : 'Offset 不能为空！'
+    const { actionType, streamIdGeted, streamStartFormData, startUdfVals } = this.state
+    const { projectIdGeted, locale } = this.props
+    const offsetText = locale === 'en' ? 'Offset cannot be empty' : 'Offset 不能为空！'
 
     this.streamStartForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -498,10 +495,10 @@ export class Manager extends React.Component {
         let actionTypeMsg = ''
         if (actionType === 'start') {
           actionTypeRequest = 'start'
-          actionTypeMsg = language === 'en' ? 'Start Successfully!' : '启动成功！'
+          actionTypeMsg = locale === 'en' ? 'Start Successfully!' : '启动成功！'
         } else if (actionType === 'renew') {
           actionTypeRequest = 'renew'
-          actionTypeMsg = language === 'en' ? 'Renew Successfully!' : '生效！'
+          actionTypeMsg = locale === 'en' ? 'Renew Successfully!' : '生效！'
         }
 
         this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, () => {
@@ -512,7 +509,7 @@ export class Manager extends React.Component {
 
           message.success(actionTypeMsg, 3)
         }, (result) => {
-          const failText = language === 'en' ? 'Operation failed:' : '操作失败：'
+          const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
           message.error(`${failText} ${result}`, 3)
         })
       }
@@ -531,9 +528,9 @@ export class Manager extends React.Component {
   }
 
   stopStreamBtn = (record, action) => (e) => {
-    const { language } = this.state
-    const successText = language === 'en' ? 'Stop successfully!' : '停止成功！'
-    const failText = language === 'en' ? 'Operation failed:' : '操作失败：'
+    const { locale } = this.props
+    const successText = locale === 'en' ? 'Stop successfully!' : '停止成功！'
+    const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
     this.props.onOperateStream(this.props.projectIdGeted, record.id, 'stop', () => {
       message.success(successText, 3)
     }, (result) => {
@@ -567,7 +564,7 @@ export class Manager extends React.Component {
   }
 
   loadLogsData = (projectId, streamId) => {
-    const { roleType } = this.state
+    const { roleType } = this.props
     if (roleType === 'admin') {
       this.props.onLoadAdminLogsInfo(projectId, streamId, (result) => {
         this.setState({ logsContent: result })
@@ -719,9 +716,9 @@ export class Manager extends React.Component {
       refreshStreamLoading, refreshStreamText, showStreamdetails, logsModalVisible,
       logsContent, refreshLogLoading, refreshLogText, logsProjectId, logsStreamId,
       streamStartFormData, consumedOffsetValue, kafkaOffsetValue, actionType,
-      startUdfVals, renewUdfVals, currentUdfVal, topicInfoModal, currentStreams, roleType
+      startUdfVals, renewUdfVals, currentUdfVal, topicInfoModal, currentStreams
     } = this.state
-    const { className, onShowAddStream, onShowEditStream, streamClassHide, streamStartModalLoading } = this.props
+    const { className, onShowAddStream, onShowEditStream, streamClassHide, streamStartModalLoading, roleType } = this.props
 
     let {
       sortedInfo,
@@ -1285,7 +1282,9 @@ Manager.propTypes = {
   onLoadSingleUdf: PropTypes.func,
   onLoadLastestOffset: PropTypes.func,
   onChangeLanguage: PropTypes.func,
-  streamStartModalLoading: PropTypes.bool
+  streamStartModalLoading: PropTypes.bool,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1307,7 +1306,9 @@ export function mapDispatchToProps (dispatch) {
 
 const mapStateToProps = createStructuredSelector({
   streams: selectStreams(),
-  streamStartModalLoading: selectStreamStartModalLoading()
+  streamStartModalLoading: selectStreamStartModalLoading(),
+  roleType: selectRoleType(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Manager)

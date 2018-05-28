@@ -27,9 +27,9 @@ import { fromJS } from 'immutable'
 import { combineReducers } from 'redux-immutable'
 import { LOCATION_CHANGE } from 'react-router-redux'
 
-import globalReducer from 'containers/App/reducer'
+// import globalReducer from 'containers/App/reducer'
 import languageProviderReducer from 'containers/LanguageProvider/reducer'
-import loginReducer from 'containers/Login/reducer'
+import appReducer from 'containers/App/reducer'
 
 import projectReducer from 'containers/Project/reducer'
 import flowReducer from 'containers/Flow/reducer'
@@ -85,9 +85,9 @@ export default function createReducer (asyncReducers) {
     }
     return combineReducers({
       route: routeReducer,
-      global: globalReducer,
+      global: appReducer,
       language: languageProviderReducer,
-      login: loginReducer,
+      login: appReducer,
 
       project: projectReducer,
       flow: flowReducer,

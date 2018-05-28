@@ -21,6 +21,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 require('../../../node_modules/codemirror/addon/display/placeholder')
 require('../../../node_modules/codemirror/mode/javascript/javascript')
 import { FormattedMessage } from 'react-intl'
@@ -44,13 +45,13 @@ const Option = Select.Option
 
 import { operateLanguageSelect } from '../../utils/util'
 import { loadStreamNameValue } from '../Manager/action'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class WorkbenchStreamForm extends React.PureComponent {
   constructor (props) {
     super(props)
     this.state = {
-      streamMode: '',
-      language: localStorage.getItem('preferredLanguage')
+      streamMode: ''
     }
   }
 
@@ -59,7 +60,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
   }
 
   checkStreamName = (rule, value = '', callback) => {
-    const { onLoadStreamNameValue, projectId } = this.props
+    const { onLoadStreamNameValue, projectId, locale } = this.props
 
     const reg = /^[a-zA-Z0-9_-]*$/
     if (reg.test(value)) {
@@ -67,13 +68,13 @@ export class WorkbenchStreamForm extends React.PureComponent {
     } else {
       const textZh = '必须是字母、数字、下划线或中划线'
       const textEn = 'It should be letters, figures, underscore or hyphen'
-      callback(this.state.language === 'en' ? textEn : textZh)
+      callback(locale === 'en' ? textEn : textZh)
     }
   }
 
   render () {
-    const { isWormhole, onShowConfigModal, streamConfigCheck, kafkaValues } = this.props
-    const { streamMode, language } = this.state
+    const { isWormhole, onShowConfigModal, streamConfigCheck, kafkaValues, locale } = this.props
+    const { streamMode } = this.state
     const { getFieldDecorator } = this.props.form
     const itemStyle = {
       labelCol: { span: 6 },
@@ -120,7 +121,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
               {getFieldDecorator('streamName', {
                 rules: [{
                   required: true,
-                  message: language === 'en' ? 'Name cannot be empty' : 'Name 不能为空'
+                  message: locale === 'en' ? 'Name cannot be empty' : 'Name 不能为空'
                 }, {
                   validator: this.checkStreamName
                 }]
@@ -197,7 +198,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
               {getFieldDecorator('sourceTopicName', {
                 rules: [{
                   required: true,
-                  message: language === 'en' ? 'Source topic name cannot be empty' : 'Source Topic Name 不能为空'
+                  message: locale === 'en' ? 'Source topic name cannot be empty' : 'Source Topic Name 不能为空'
                 }],
                 hidden: isWormhole
               })(
@@ -220,7 +221,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
               {getFieldDecorator('sinkTopicName', {
                 rules: [{
                   required: true,
-                  message: language === 'en' ? 'Sink topic name cannot be empty' : 'Sink Topic Name 不能为空'
+                  message: locale === 'en' ? 'Sink topic name cannot be empty' : 'Sink Topic Name 不能为空'
                 }],
                 hidden: isWormhole
               })(
@@ -251,7 +252,8 @@ WorkbenchStreamForm.propTypes = {
   onShowConfigModal: PropTypes.func,
   onLoadStreamNameValue: PropTypes.func,
   streamConfigCheck: PropTypes.bool,
-  projectId: PropTypes.string
+  projectId: PropTypes.string,
+  locale: PropTypes.string
 }
 
 function mapDispatchToProps (dispatch) {
@@ -260,4 +262,8 @@ function mapDispatchToProps (dispatch) {
   }
 }
 
-export default Form.create({wrappedComponentRef: true})(connect(null, mapDispatchToProps)(WorkbenchStreamForm))
+const mapStateToProps = createStructuredSelector({
+  locale: selectLocale()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, mapDispatchToProps)(WorkbenchStreamForm))

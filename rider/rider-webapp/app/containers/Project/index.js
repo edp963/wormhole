@@ -40,7 +40,7 @@ import ProjectNSTable from './ProjectNSTable'
 import ProjectUdfTable from './ProjectUdfTable'
 import ProjectUsersTable from './ProjectUsersTable'
 
-import { selectCurrentProject } from '../App/selectors'
+import { selectCurrentProject, selectRoleType } from '../App/selectors'
 import { selectProjects, selectModalLoading } from './selectors'
 import { selectNamespaces } from '../Namespace/selectors'
 import { selectUsers } from '../User/selectors'
@@ -52,6 +52,7 @@ import { loadSelectNamespaces, loadProjectNsAll } from '../Namespace/action'
 import { loadSelectUsers, loadProjectUserAll } from '../User/action'
 import { loadSingleUdf, loadProjectUdfs } from '../Udf/action'
 import { changeLocale } from '../../containers/LanguageProvider/actions'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class Project extends React.Component {
   constructor (props) {
@@ -66,20 +67,20 @@ export class Project extends React.Component {
 
       projectNsTableDataSource: [],
       projectUsersTableDataSource: [],
-      projectUdfTableDataSource: [],
-      language: localStorage.getItem('preferredLanguage')
+      projectUdfTableDataSource: []
     }
   }
 
   componentWillMount () {
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    const { roleType } = this.props
+    if (roleType === 'admin') {
       this.props.onLoadProjects(false)
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       this.props.onLoadUserProjects()
     }
 
     // 刷新浏览器后不改变 language
-    this.props.onChangeLanguage(this.state.language)
+    this.props.onChangeLanguage(this.props.locale)
   }
 
   getIntoProject = (project) => () => {
@@ -159,7 +160,8 @@ export class Project extends React.Component {
   }
 
   onModalOk = () => {
-    const { projectFormType, projectResult, language } = this.state
+    const { projectFormType, projectResult } = this.state
+    const { locale } = this.props
 
     const userSelectKey = this.projectUsersTable.state.selectedRowKeys
     const udfSelectKey = this.projectUdfTable.state.selectedRowKeys
@@ -176,9 +178,9 @@ export class Project extends React.Component {
     const { selectedRowKeys } = this.projectNSTable.state
 
     if (selectedRowKeys.length === 0) {
-      message.warning(language === 'en' ? 'Please select Namespace!' : '请选择源表！', 3)
+      message.warning(locale === 'en' ? 'Please select Namespace!' : '请选择源表！', 3)
     } else if (userIds.length === 0) {
-      message.warning(language === 'en' ? 'Please select User!' : '请选择用户！', 3)
+      message.warning(locale === 'en' ? 'Please select User!' : '请选择用户！', 3)
     } else {
       const namespaceIds = typeof selectedRowKeys === 'string'
         ? selectedRowKeys
@@ -200,7 +202,7 @@ export class Project extends React.Component {
               }), () => {
                 this.hideForm()
               }, () => {
-                message.success(language === 'en' ? 'Project is created successfully!' : 'Project 添加成功！', 3)
+                message.success(locale === 'en' ? 'Project is created successfully!' : 'Project 添加成功！', 3)
               })
               break
             case 'edit':
@@ -209,7 +211,7 @@ export class Project extends React.Component {
                 userId: userIds,
                 udfId: udfIds
               }, projectResult), () => {
-                message.success(language === 'en' ? 'Project is modified successfully!' : 'Project 修改成功！', 3)
+                message.success(locale === 'en' ? 'Project is modified successfully!' : 'Project 修改成功！', 3)
                 this.hideForm()
               }, (result) => {
                 const nsIdArr = []
@@ -273,12 +275,12 @@ export class Project extends React.Component {
 
   deleteAdminProject = (p) => (e) => {
     this.props.onDeleteSingleProject(p.id, () => {}, (result) => {
-      message.warning(`${this.state.language === 'en' ? 'This item cannot be deleted:' : '不能删除：'} ${result}`, 5)
+      message.warning(`${this.props.locale === 'en' ? 'This item cannot be deleted:' : '不能删除：'} ${result}`, 5)
     })
   }
 
   render () {
-    const { projects, modalLoading } = this.props
+    const { projects, modalLoading, roleType } = this.props
     const { projectFormType, formVisible, projectNsTableDataSource, projectUsersTableDataSource, projectUdfTableDataSource } = this.state
 
     const projectList = projects
@@ -300,7 +302,7 @@ export class Project extends React.Component {
           )
 
         let projectAction = ''
-        if (localStorage.getItem('loginRoleType') === 'admin') {
+        if (roleType === 'admin') {
           projectAction = (
             <div className="ri-project-item-tools">
               <Tooltip title={<FormattedMessage {...messages.projectEditAuthorize} />}>
@@ -314,7 +316,7 @@ export class Project extends React.Component {
               </Popconfirm>
             </div>
           )
-        } else if (localStorage.getItem('loginRoleType') === 'user') {
+        } else if (roleType === 'user') {
           projectAction = ''
         }
 
@@ -342,7 +344,7 @@ export class Project extends React.Component {
       : null
 
     let addProject = ''
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       addProject = (
         <Col xs={24} sm={12} md={8} lg={6} xl={4}>
           <div
@@ -358,7 +360,7 @@ export class Project extends React.Component {
           </div>
         </Col>
       )
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       addProject = ''
     }
 
@@ -474,7 +476,9 @@ Project.propTypes = {
   onLoadProjectNsAll: PropTypes.func,
   onLoadProjectUserAll: PropTypes.func,
   onLoadProjectUdfs: PropTypes.func,
-  onChangeLanguage: PropTypes.func
+  onChangeLanguage: PropTypes.func,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -501,7 +505,9 @@ const mapStateToProps = createStructuredSelector({
   projects: selectProjects(),
   modalLoading: selectModalLoading(),
   namespaces: selectNamespaces(),
-  users: selectUsers()
+  users: selectUsers(),
+  roleType: selectRoleType(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Project)
