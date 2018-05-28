@@ -184,14 +184,14 @@ object KuduConnection extends Serializable with EdpLogging {
         val queryResult: Map[String, (Any, String)] = queryFieldsName.map(f => {
           val value: (Any, String) = schema.getColumn(f).getType match {
             case Type.STRING => ( if(result.isNull(f)) null else result.getString(f), UmsFieldType.STRING.toString)
-            case Type.BOOL => (result.getBoolean(f), UmsFieldType.BOOLEAN.toString)
-            case Type.BINARY => (result.getBinary(f), UmsFieldType.BINARY.toString)
-            case Type.DECIMAL => (result.getDecimal(f), UmsFieldType.DECIMAL.toString)
-            case Type.DOUBLE => (result.getDouble(f), UmsFieldType.DOUBLE.toString)
-            case Type.INT8 | Type.INT16 | Type.INT32 => (result.getInt(f), UmsFieldType.INT.toString)
-            case Type.FLOAT => (result.getFloat(f), UmsFieldType.FLOAT.toString)
-            case Type.INT64 => (result.getLong(f), UmsFieldType.LONG.toString)
-            case Type.UNIXTIME_MICROS => (DateUtils.dt2dateTime(result.getLong(f)), UmsFieldType.DATETIME.toString)
+            case Type.BOOL => (if(result.isNull(f)) null else result.getBoolean(f), UmsFieldType.BOOLEAN.toString)
+            case Type.BINARY => (if(result.isNull(f)) null else result.getBinary(f), UmsFieldType.BINARY.toString)
+            case Type.DECIMAL => (if(result.isNull(f))null.asInstanceOf[String] else result.getDecimal(f), UmsFieldType.DECIMAL.toString)
+            case Type.DOUBLE => (if(result.isNull(f)) null else result.getDouble(f), UmsFieldType.DOUBLE.toString)
+            case Type.INT8 | Type.INT16 | Type.INT32 => (if(result.isNull(f)) null else result.getInt(f), UmsFieldType.INT.toString)
+            case Type.FLOAT => (if(result.isNull(f)) null else result.getFloat(f), UmsFieldType.FLOAT.toString)
+            case Type.INT64 => (if(result.isNull(f)) null else result.getLong(f), UmsFieldType.LONG.toString)
+            case Type.UNIXTIME_MICROS => (if(result.isNull(f)) null else DateUtils.dt2dateTime(result.getLong(f)), UmsFieldType.DATETIME.toString)
             case _ => ( if(result.isNull(f)) null else result.getString(f), UmsFieldType.STRING.toString)
           }
           (f, value)
@@ -248,14 +248,14 @@ object KuduConnection extends Serializable with EdpLogging {
         val queryResult: Map[String, (Any, String)] = queryFieldsName.map(f => {
           val value: (Any, String) = schema.getColumn(f).getType match {
             case Type.STRING => ( if(result.isNull(f)) null else result.getString(f), UmsFieldType.STRING.toString)
-            case Type.BOOL => (result.getBoolean(f), UmsFieldType.BOOLEAN.toString)
-            case Type.BINARY => (result.getBinary(f), UmsFieldType.BINARY.toString)
-            case Type.DECIMAL => (result.getDecimal(f), UmsFieldType.DECIMAL.toString)
-            case Type.DOUBLE => (result.getDouble(f), UmsFieldType.DOUBLE.toString)
-            case Type.INT8 | Type.INT16 | Type.INT32 => (result.getInt(f), UmsFieldType.INT.toString)
-            case Type.FLOAT => (result.getFloat(f), UmsFieldType.FLOAT.toString)
-            case Type.INT64 => (result.getLong(f), UmsFieldType.LONG.toString)
-            case Type.UNIXTIME_MICROS => (DateUtils.dt2dateTime(result.getLong(f)), UmsFieldType.DATETIME.toString)
+            case Type.BOOL => (if(result.isNull(f)) null else result.getBoolean(f), UmsFieldType.BOOLEAN.toString)
+            case Type.BINARY => (if(result.isNull(f)) null else result.getBinary(f), UmsFieldType.BINARY.toString)
+            case Type.DECIMAL => (if(result.isNull(f)) null.asInstanceOf[String] else result.getDecimal(f), UmsFieldType.DECIMAL.toString)
+            case Type.DOUBLE => (if(result.isNull(f)) null else result.getDouble(f), UmsFieldType.DOUBLE.toString)
+            case Type.INT8 | Type.INT16 | Type.INT32 => (if(result.isNull(f)) null else result.getInt(f), UmsFieldType.INT.toString)
+            case Type.FLOAT => (if(result.isNull(f)) null else result.getFloat(f), UmsFieldType.FLOAT.toString)
+            case Type.INT64 => (if(result.isNull(f)) null else result.getLong(f), UmsFieldType.LONG.toString)
+            case Type.UNIXTIME_MICROS => (if(result.isNull(f)) null else DateUtils.dt2dateTime(result.getLong(f)), UmsFieldType.DATETIME.toString)
             case _ => ( if(result.isNull(f)) null else result.getString(f), UmsFieldType.STRING.toString)
           }
           (f, value)
@@ -276,13 +276,13 @@ object KuduConnection extends Serializable with EdpLogging {
           }else {
             if(fieldContent==null) row.setNull(fieldName) else row.addString(fieldName, fieldContent)
           }
-        case UmsFieldType.BOOLEAN => row.addBoolean(fieldName, fieldContent.toBoolean)
-        case UmsFieldType.BINARY => row.addBinary(fieldName, fieldContent.getBytes())
-        case UmsFieldType.DECIMAL => row.addDecimal(fieldName, new java.math.BigDecimal(fieldContent))
-        case UmsFieldType.DOUBLE => row.addDouble(fieldName, fieldContent.toDouble)
-        case UmsFieldType.INT => row.addInt(fieldName, fieldContent.toInt)
-        case UmsFieldType.FLOAT => row.addFloat(fieldName, fieldContent.toFloat)
-        case UmsFieldType.LONG => row.addLong(fieldName, fieldContent.toLong)
+        case UmsFieldType.BOOLEAN => if(fieldContent==null||fieldContent.trim.isEmpty)row.isNull(fieldName) else row.addBoolean(fieldName, fieldContent.toBoolean)
+        case UmsFieldType.BINARY => if(fieldContent==null||fieldContent.trim.isEmpty)row.isNull(fieldName) else row.addBinary(fieldName, fieldContent.getBytes())
+        case UmsFieldType.DECIMAL => if(fieldContent==null||fieldContent.trim.isEmpty)row.isNull(fieldName) else row.addDecimal(fieldName, new java.math.BigDecimal(fieldContent))
+        case UmsFieldType.DOUBLE => if(fieldContent==null||fieldContent.trim.isEmpty)row.isNull(fieldName) else row.addDouble(fieldName, fieldContent.toDouble)
+        case UmsFieldType.INT => if(fieldContent==null||fieldContent.trim.isEmpty)row.isNull(fieldName) else row.addInt(fieldName, fieldContent.toInt)
+        case UmsFieldType.FLOAT => if(fieldContent==null||fieldContent.trim.isEmpty)row.isNull(fieldName) else row.addFloat(fieldName, fieldContent.toFloat)
+        case UmsFieldType.LONG => if(fieldContent==null||fieldContent.trim.isEmpty)row.isNull(fieldName) else row.addLong(fieldName, fieldContent.toLong)
         case UmsFieldType.DATETIME => row.addLong(fieldName, DateUtils.dt2long(fieldContent))
         case _ => row.addString(fieldName, fieldContent)
       }
@@ -306,18 +306,12 @@ object KuduConnection extends Serializable with EdpLogging {
     val table: KuduTable = client.openTable(newTableName)
     val session = getSession(url,client)
 
-//    var i = 0
     fieldsContent.foreach(content => {
       val opt = if (optType == "insert") table.newInsert else table.newUpdate()
       val row = opt.getRow
 
       fillRow(row, schemaMap, content)
       session.apply(opt)
-//      i = i + 1
-//      if (i >= batchSize) {
-//        session.flush()
-//        i = 0
-//      }
     })
 
     session.flush()
