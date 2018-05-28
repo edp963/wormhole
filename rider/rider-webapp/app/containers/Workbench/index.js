@@ -482,11 +482,11 @@ export class Workbench extends React.Component {
   }
 
   onInitStreamTypeSelect = (val) => {
-    const { language } = this.state
+    const { projectId, language } = this.state
     this.setState({ streamDiffType: val })
 
     // 显示 Stream 信息
-    this.props.onLoadSelectStreamKafkaTopic(this.state.projectId, val, (result) => {
+    this.props.onLoadSelectStreamKafkaTopic(projectId, val, (result) => {
       const resultFinal = result.map(s => {
         const responseResult = Object.assign(s.stream, {
           disableActions: s.disableActions,
@@ -514,16 +514,16 @@ export class Workbench extends React.Component {
           flowKafkaTopicValue: ''
         })
       } else {
-        const topicTemp = resultFinal[0].topicInfo
+        const { topicInfo, id, instance, name } = resultFinal[0]
 
         this.setState({
-          pipelineStreamId: resultFinal[0].id,
-          flowKafkaInstanceValue: resultFinal[0].instance,
-          flowKafkaTopicValue: topicTemp.map(j => j.name).join(',')
+          pipelineStreamId: id,
+          flowKafkaInstanceValue: instance,
+          flowKafkaTopicValue: topicInfo.map(j => j.name).join(',')
         })
         this.workbenchFlowForm.setFieldsValue({
-          flowStreamId: resultFinal[0].id,
-          streamName: resultFinal[0].name
+          flowStreamId: id,
+          streamName: name
         })
       }
     })
@@ -537,18 +537,17 @@ export class Workbench extends React.Component {
     const { streamDiffType, selectStreamKafkaTopicValue } = this.state
 
     const selName = selectStreamKafkaTopicValue.find(s => s.name === valName)
-    const topicTemp = selName.topicInfo
-    const valId = selName.id
+    const { topicInfo, id, instance } = selName
     this.setState({
-      pipelineStreamId: Number(valId),
-      flowKafkaInstanceValue: selName.instance,
-      flowKafkaTopicValue: topicTemp.map(j => j.name).join(',')
+      pipelineStreamId: Number(id),
+      flowKafkaInstanceValue: instance,
+      flowKafkaTopicValue: topicInfo.map(j => j.name).join(',')
     })
 
     switch (streamDiffType) {
       case 'default':
         this.workbenchFlowForm.setFieldsValue({
-          flowStreamId: Number(valId),
+          flowStreamId: Number(id),
           sourceDataSystem: '',
           sinkDataSystem: '',
           sourceNamespace: undefined,
@@ -561,7 +560,7 @@ export class Workbench extends React.Component {
           hdfslogSinkNsValue: ''
         })
         this.workbenchFlowForm.setFieldsValue({
-          flowStreamId: Number(valId),
+          flowStreamId: Number(id),
           sourceDataSystem: '',
           hdfslogNamespace: undefined
         })
@@ -571,7 +570,7 @@ export class Workbench extends React.Component {
           routingSourceNsValue: '',
           routingSinkNsValue: ''
         })
-        this.workbenchFlowForm.setFieldsValue({ flowStreamId: Number(valId) })
+        this.workbenchFlowForm.setFieldsValue({ flowStreamId: Number(id) })
         break
     }
   }
@@ -1134,6 +1133,7 @@ export class Workbench extends React.Component {
 
   queryFlowRouting (flow) {
     new Promise((resolve) => {
+      const { flowMode } = this.state
       const requestData = {
         projectId: flow.projectId,
         streamId: typeof (flow.streamId) === 'object' ? flow.streamIdOrigin : flow.streamId,
@@ -1155,8 +1155,8 @@ export class Workbench extends React.Component {
         this.setState({
           formStep: 0,
           pipelineStreamId: result.streamId,
-          routingSourceNsValue: this.state.flowMode === 'copy' ? '' : showSourceNs,
-          routingSinkNsValue: this.state.flowMode === 'copy' ? '' : showSinkNs,
+          routingSourceNsValue: flowMode === 'copy' ? '' : showSourceNs,
+          routingSinkNsValue: flowMode === 'copy' ? '' : showSinkNs,
           flowKafkaInstanceValue: result.kafka,
           flowKafkaTopicValue: result.topics,
           singleFlowResult: {
@@ -1235,13 +1235,14 @@ export class Workbench extends React.Component {
   }
 
   showEditStreamWorkbench = (stream) => () => {
+    const { projectId } = this.state
     this.setState({
       streamMode: 'edit',
       streamConfigCheck: true
     })
     this.workbenchStreamForm.resetFields()
 
-    this.props.onLoadStreamDetail(this.state.projectId, stream.id, 'user', (result) => {
+    this.props.onLoadStreamDetail(projectId, stream.id, 'user', (result) => {
       const { stream, disableActions, topicInfo, projectName, currentUdf, usingUdf } = result
       const resultVal = Object.assign(stream, {
         disableActions: disableActions,
@@ -1507,7 +1508,7 @@ export class Workbench extends React.Component {
   }
 
   handleForwardDefault () {
-    const { flowFormTranTableSource, streamDiffType, language } = this.state
+    const { formStep, flowFormTranTableSource, streamDiffType, language } = this.state
 
     let tranRequestTempArr = []
     flowFormTranTableSource.map(i => tranRequestTempArr.push(preProcessSql(i.transformConfigInfoRequest)))
@@ -1531,7 +1532,7 @@ export class Workbench extends React.Component {
 
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        switch (this.state.formStep) {
+        switch (formStep) {
           case 0:
             if (!values.sinkConfig) {
               const dataText = language === 'en' ? 'When Data System is ' : 'Data System 为 '
@@ -1592,7 +1593,7 @@ export class Workbench extends React.Component {
   }
 
   handleForwardHdfslogOrRouting () {
-    const { flowMode, projectId, streamDiffType } = this.state
+    const { flowMode, projectId, formStep, streamDiffType } = this.state
 
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -1607,12 +1608,12 @@ export class Workbench extends React.Component {
             : ['kafka', values.routingSinkNs[0], values.routingSinkNs[1], values.routingSinkNs[2], '*', '*', '*'].join('.')
 
           this.props.onLoadSourceToSinkExist(projectId, sourceInfo, sinkInfo, () => {
-            this.setState({ formStep: this.state.formStep + 2 })
+            this.setState({ formStep: formStep + 2 })
           }, () => {
             message.error(operateLanguageSourceToSink(), 3)
           })
         } else if (flowMode === 'edit') {
-          this.setState({ formStep: this.state.formStep + 2 })
+          this.setState({ formStep: formStep + 2 })
         }
       }
     })
@@ -1686,9 +1687,7 @@ export class Workbench extends React.Component {
             const tranRequestTempString = tranRequestTempArr.join('')
 
             let tempRequestVal = {}
-            tempRequestVal = tranRequestTempString === ''
-              ? {}
-              : {'action': tranRequestTempString}
+            tempRequestVal = tranRequestTempString === '' ? {} : {'action': tranRequestTempString}
 
             this.setState({
               formStep: formStep + 1,
@@ -1718,10 +1717,10 @@ export class Workbench extends React.Component {
   }
 
   generateStepButtons = () => {
-    const { tabPanelKey } = this.state
+    const { tabPanelKey, formStep } = this.state
     const { flowSubmitLoading, jobSubmitLoading } = this.props
 
-    switch (this.state.formStep) {
+    switch (formStep) {
       case 0:
         return (
           <div className="ri-workbench-step-button-area">
@@ -1797,16 +1796,16 @@ export class Workbench extends React.Component {
     let sinkConfigRequest = ''
     if (values.resultFields === 'all') {
       if (!values.sinkConfig) {
-        sinkConfigRequest = !values.sinkProtocol ? maxRecord : JSON.stringify(obj1)
+        sinkConfigRequest = values.sinkProtocol ? JSON.stringify(obj1) : maxRecord
       } else {
-        sinkConfigRequest = !values.sinkProtocol ? JSON.stringify(obj2) : JSON.stringify(obj3)
+        sinkConfigRequest = values.sinkProtocol ? JSON.stringify(obj3) : JSON.stringify(obj2)
       }
     } else {
       const obg4 = { sink_output: values.resultFieldsSelected }
       if (!values.sinkConfig) {
-        sinkConfigRequest = !values.sinkProtocol ? maxRecordAndResult : JSON.stringify(Object.assign(obj1, obg4))
+        sinkConfigRequest = values.sinkProtocol ? JSON.stringify(Object.assign(obj1, obg4)) : maxRecordAndResult
       } else {
-        sinkConfigRequest = !values.sinkProtocol ? JSON.stringify(Object.assign(obj2, obg4)) : JSON.stringify(Object.assign(obj3, obg4))
+        sinkConfigRequest = values.sinkProtocol ? JSON.stringify(Object.assign(obj3, obg4)) : JSON.stringify(Object.assign(obj2, obg4))
       }
     }
 
@@ -1821,8 +1820,8 @@ export class Workbench extends React.Component {
     }
 
     const requestCommon = {
-      eventTsStart: (!values.eventStartTs) ? '' : startTsVal,
-      eventTsEnd: (!values.eventEndTs) ? '' : endTsVal,
+      eventTsStart: values.eventStartTs ? startTsVal : '',
+      eventTsEnd: values.eventEndTs ? endTsVal : '',
       sinkConfig: sinkConfigRequest,
       tranConfig: tranConfigRequest
     }
@@ -1892,13 +1891,13 @@ export class Workbench extends React.Component {
 
     let sinkConfigRequest = ''
     if (values.resultFields === 'all') {
-      sinkConfigRequest = (!values.sinkConfig)
-        ? ''
-        : `{"sink_specific_config":${values.sinkConfig}}`
+      sinkConfigRequest = values.sinkConfig
+        ? `{"sink_specific_config":${values.sinkConfig}}`
+        : ''
     } else {
-      sinkConfigRequest = (!values.sinkConfig)
-        ? JSON.stringify(resultFiledsOutput)
-        : `{"sink_specific_config":${values.sinkConfig},"sink_output":"${values.resultFieldsSelected}"}`
+      sinkConfigRequest = values.sinkConfig
+        ? `{"sink_specific_config":${values.sinkConfig},"sink_output":"${values.resultFieldsSelected}"}`
+        : JSON.stringify(resultFiledsOutput)
     }
 
     let tranConfigRequest = {}
@@ -1906,9 +1905,9 @@ export class Workbench extends React.Component {
       tranConfigRequest = ''
     } else {
       const objectTemp = Object.assign(etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue, dataframeShowOrNot)
-      const tranConfigRequestTemp = !values.flowSpecialConfig
-        ? objectTemp
-        : Object.assign(objectTemp, {'swifts_specific_config': JSON.parse(values.flowSpecialConfig)})
+      const tranConfigRequestTemp = values.flowSpecialConfig
+        ? Object.assign(objectTemp, {'swifts_specific_config': JSON.parse(values.flowSpecialConfig)})
+        : objectTemp
       tranConfigRequest = JSON.stringify(tranConfigRequestTemp)
     }
 
@@ -2154,12 +2153,11 @@ export class Workbench extends React.Component {
   loadTransNs () {
     const { projectId, pipelineStreamId } = this.state
     const flowValues = this.workbenchFlowForm.getFieldsValue()
-    const sourceDSVal = flowValues.sourceDataSystem
-    const sourceNsVal = flowValues.sourceNamespace
-    this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, sourceDSVal, 'sourceType', (result) => {
+    const { sourceDataSystem, sourceNamespace } = flowValues
+    this.props.onLoadSourceSinkTypeNamespace(projectId, pipelineStreamId, sourceDataSystem, 'sourceType', (result) => {
       const resultFinal = result.filter((i) => {
         const temp = [i.nsInstance, i.nsDatabase, i.nsTable]
-        if (temp.join(',') !== sourceNsVal.join(',')) {
+        if (temp.join(',') !== sourceNamespace.join(',')) {
           return i
         } else {
           return
