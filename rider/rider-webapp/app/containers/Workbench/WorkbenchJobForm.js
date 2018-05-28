@@ -21,6 +21,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
@@ -51,14 +52,14 @@ import {
 import DataSystemSelector from '../../components/DataSystemSelector'
 import { sourceDataSystemData, jobSinkDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 import { loadJobName } from '../Job/action'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class WorkbenchJobForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
       sinkConfigClass: '',
-      checked: false,
-      language: localStorage.getItem('preferredLanguage')
+      checked: false
     }
   }
 
@@ -72,7 +73,7 @@ export class WorkbenchJobForm extends React.Component {
   }
 
   checkJobName = (rule, value = '', callback) => {
-    const { onLoadJobName, projectIdGeted } = this.props
+    const { onLoadJobName, projectIdGeted, locale } = this.props
 
     const reg = /^[a-zA-Z0-9_-]*$/
     if (reg.test(value)) {
@@ -80,7 +81,7 @@ export class WorkbenchJobForm extends React.Component {
     } else {
       const textZh = '必须是字母、数字、下划线或中划线'
       const textEn = 'It should be letters, figures, underscore or hyphen'
-      callback(this.state.language === 'en' ? textEn : textZh)
+      callback(locale === 'en' ? textEn : textZh)
     }
   }
 
@@ -113,10 +114,10 @@ export class WorkbenchJobForm extends React.Component {
       jobTransTableSource, onDeleteSingleTransform, onJobAddTransform,
       onEditTransform, onUpTransform, onDownTransform,
       jobStepSourceNs, jobStepSinkNs, jobTranTagClassName, jobTranTableClassName,
-      jobTranConfigConfirmValue, sourceTypeNamespaceData, sinkTypeNamespaceData
+      jobTranConfigConfirmValue, sourceTypeNamespaceData, sinkTypeNamespaceData, locale
     } = this.props
     const { getFieldDecorator } = form
-    const { sinkConfigClass, language } = this.state
+    const { sinkConfigClass } = this.state
 
     const stepClassNames = [
       step === 0 ? '' : 'hide',
@@ -314,7 +315,7 @@ export class WorkbenchJobForm extends React.Component {
                 {getFieldDecorator('jobName', {
                   rules: [{
                     required: true,
-                    message: language === 'en' ? 'Name cannot be empty' : 'Name 不能为空'
+                    message: locale === 'en' ? 'Name cannot be empty' : 'Name 不能为空'
                   }, {
                     validator: this.checkJobName
                   }]
@@ -696,7 +697,8 @@ WorkbenchJobForm.propTypes = {
   initEndTS: PropTypes.func,
   onShowJobSpecialConfigModal: PropTypes.func,
 
-  onLoadJobName: PropTypes.func
+  onLoadJobName: PropTypes.func,
+  locale: PropTypes.string
 }
 
 function mapDispatchToProps (dispatch) {
@@ -705,4 +707,8 @@ function mapDispatchToProps (dispatch) {
   }
 }
 
-export default Form.create({wrappedComponentRef: true})(connect(null, mapDispatchToProps)(WorkbenchJobForm))
+const mapStateToProps = createStructuredSelector({
+  locale: selectLocale()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, mapDispatchToProps)(WorkbenchJobForm))

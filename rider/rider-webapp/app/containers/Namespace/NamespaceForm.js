@@ -21,6 +21,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
@@ -41,14 +42,15 @@ const Option = Select.Option
 import DataSystemSelector from '../../components/DataSystemSelector'
 import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 
+import { selectLocale } from '../LanguageProvider/selectors'
+
 export class NamespaceForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
       namespaceDSValue: '',
       instanceIdGeted: 0,
-      currentNamespaceUrlValue: [],
-      language: localStorage.getItem('preferredLanguage')
+      currentNamespaceUrlValue: []
     }
   }
 
@@ -89,10 +91,10 @@ export class NamespaceForm extends React.Component {
 
   render () {
     const { getFieldDecorator } = this.props.form
-    const { currentNamespaceUrlValue, namespaceDSValue, language } = this.state
+    const { currentNamespaceUrlValue, namespaceDSValue } = this.state
     const {
       namespaceFormType, databaseSelectValue, queryConnUrl, namespaceTableSource, onDeleteTable,
-      onAddTable, deleteTableClass, addTableClass, addTableClassTable, addBtnDisabled
+      onAddTable, deleteTableClass, addTableClass, addTableClassTable, addBtnDisabled, locale
     } = this.props
 
     const itemStyle = {
@@ -109,23 +111,23 @@ export class NamespaceForm extends React.Component {
     let namespaceDBPlace = ''
     if (namespaceDSValue === 'es') {
       namespaceDBLabel = 'Index'
-      namespaceDBPlace = language === 'en' ? 'select an Index' : '请选择 Index'
+      namespaceDBPlace = locale === 'en' ? 'select an Index' : '请选择 Index'
     } else if (namespaceDSValue === 'hbase') {
       namespaceDBLabel = 'Namespace'
-      namespaceDBPlace = language === 'en' ? 'select a Hbase Namespace' : '请选择 Hbase Namespace'
+      namespaceDBPlace = locale === 'en' ? 'select a Hbase Namespace' : '请选择 Hbase Namespace'
     } else if (namespaceDSValue === 'kafka') {
       namespaceDBLabel = 'Topic'
-      namespaceDBPlace = language === 'en' ? 'select a Topic' : '请选择 Topic'
+      namespaceDBPlace = locale === 'en' ? 'select a Topic' : '请选择 Topic'
     } else {
       namespaceDBLabel = 'Database'
-      namespaceDBPlace = language === 'en' ? 'select a Database' : '请选择 Database'
+      namespaceDBPlace = locale === 'en' ? 'select a Database' : '请选择 Database'
     }
 
     let namespaceTablePlace = ''
     if (namespaceDSValue === 'es') {
       namespaceTablePlace = 'Type'
     } else if (namespaceDSValue === 'redis') {
-      namespaceTablePlace = language === 'en' ? 'You can fill in "default"' : '可填写 default'
+      namespaceTablePlace = locale === 'en' ? 'You can fill in "default"' : '可填写 default'
     } else {
       namespaceTablePlace = 'Table'
     }
@@ -136,9 +138,9 @@ export class NamespaceForm extends React.Component {
 
     let namespaceKeyPlaceholder = ''
     if (namespaceDSValue === 'redis') {
-      namespaceKeyPlaceholder = language === 'en' ? 'No config for Key' : 'Key 无需配置'
+      namespaceKeyPlaceholder = locale === 'en' ? 'No config for Key' : 'Key 无需配置'
     } else {
-      namespaceKeyPlaceholder = language === 'en' ? 'Sep keys with commas' : '多个主键用逗号隔开'
+      namespaceKeyPlaceholder = locale === 'en' ? 'Sep keys with commas' : '多个主键用逗号隔开'
     }
 
     const questionOrNot = namespaceDSValue === 'kafka'
@@ -221,7 +223,7 @@ export class NamespaceForm extends React.Component {
               {getFieldDecorator('dataBaseDataSystem', {
                 rules: [{
                   required: true,
-                  message: language === 'en' ? 'Please select Data System' : '请选择 Data System'
+                  message: locale === 'en' ? 'Please select Data System' : '请选择 Data System'
                 }]
               })(
                 <DataSystemSelector
@@ -238,13 +240,13 @@ export class NamespaceForm extends React.Component {
               {getFieldDecorator('instance', {
                 rules: [{
                   required: true,
-                  message: language === 'en' ? 'Please select an Instance' : '请选择 Instance'
+                  message: locale === 'en' ? 'Please select an Instance' : '请选择 Instance'
                 }]
               })(
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
                   onChange={this.onHandleChange('instance')}
-                  placeholder={language === 'en' ? 'Select an Instance' : '请选择 Instance'}
+                  placeholder={locale === 'en' ? 'Select an Instance' : '请选择 Instance'}
                   disabled={disabledOrNot}
                 >
                   {instanceOptions}
@@ -266,7 +268,7 @@ export class NamespaceForm extends React.Component {
               {getFieldDecorator('nsDatabase', {
                 rules: [{
                   required: true,
-                  message: `${language === 'en' ? 'Please select a' : '请选择'} ${namespaceDBLabel}`
+                  message: `${locale === 'en' ? 'Please select a' : '请选择'} ${namespaceDBLabel}`
                 }]
               })(
                 <Select
@@ -355,7 +357,12 @@ NamespaceForm.propTypes = {
   onAddTable: PropTypes.func,
   cleanNsTableData: PropTypes.func,
   onInitNsNameInputValue: PropTypes.func,
-  onInitNsKeyInputValue: PropTypes.func
+  onInitNsKeyInputValue: PropTypes.func,
+  locale: PropTypes.string
 }
 
-export default Form.create({wrappedComponentRef: true})(connect(null, null)(NamespaceForm))
+const mapStateToProps = createStructuredSelector({
+  locale: selectLocale()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, null)(NamespaceForm))

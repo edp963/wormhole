@@ -19,7 +19,12 @@
  */
 
 import {
-  SET_PROJECT
+  SET_PROJECT,
+  LOGIN, LOGIN_SUCCESS,
+  LOGIN_FAILURE, LOG_OUT,
+  LOG_OUT_SUCCESS,
+  LOG_PSW_ERROR,
+  SET_ROLETYPE
 } from './constants'
 
 export function setProject (projectId) {
@@ -27,6 +32,62 @@ export function setProject (projectId) {
     type: SET_PROJECT,
     payload: {
       projectId
+    }
+  }
+}
+
+export function login (logoInfo, resolve, reject) {
+  return {
+    type: LOGIN,
+    payload: {
+      logoInfo,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function logged (result) {
+  return {
+    type: LOGIN_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function logError () {
+  return {
+    type: LOGIN_FAILURE
+  }
+}
+
+export function logOut () {
+  return {
+    type: LOG_OUT
+  }
+}
+
+export function outLogged () {
+  return {
+    type: LOG_OUT_SUCCESS
+  }
+}
+
+export function logPswError (message) {
+  return {
+    type: LOG_PSW_ERROR,
+    payload: {
+      message
+    }
+  }
+}
+
+export function setRoleType (type) {
+  return {
+    type: SET_ROLETYPE,
+    payload: {
+      type
     }
   }
 }

@@ -21,7 +21,7 @@
 import { takeLatest } from 'redux-saga'
 import { put, fork, call } from 'redux-saga/effects'
 import { LOGIN } from './constants'
-import { logged, logError, logPswError } from './action'
+import { logged, logError, logPswError } from './actions'
 
 import request from '../../utils/request'
 import api from '../../utils/api'

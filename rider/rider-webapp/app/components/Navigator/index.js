@@ -36,7 +36,7 @@ import message from 'antd/lib/message'
 const MenuItem = Menu.Item
 const SubMenu = Menu.SubMenu
 
-import { logOut } from '../../containers/Login/action'
+import { logOut, setProject } from '../../containers/App/actions'
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 
 import { editroleTypeUserPsw, loadUserDetail, editUser, loadNormalDetail, editNormal } from '../../containers/User/action'
@@ -44,7 +44,6 @@ import { selectModalLoading } from '../../containers/User/selectors'
 import { selectLocale } from '../../containers/LanguageProvider/selectors'
 
 import { selectCurrentProject } from '../../containers/App/selectors'
-import { setProject } from '../../containers/App/actions'
 
 import request from '../../utils/request'
 

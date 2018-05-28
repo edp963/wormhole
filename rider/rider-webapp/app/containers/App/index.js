@@ -19,11 +19,14 @@
  */
 
 import React from 'react'
+import { connect } from 'react-redux'
 import PropTypes from 'prop-types'
 import Helmet from 'react-helmet'
 
 import request from '../../utils/request'
 import Navigator from '../../components/Navigator'
+import { setRoleType } from './actions'
+import { setLocale } from '../LanguageProvider/actions'
 
 export class App extends React.Component {
   componentWillMount () {
@@ -32,10 +35,15 @@ export class App extends React.Component {
 
   checkLogin = () => {
     const token = localStorage.getItem('token')
+    const roleType = localStorage.getItem('loginRoleType')
+    const locale = localStorage.getItem('preferredLanguage')
     if (!token) {
       this.props.router.push('/login')
     } else {
       request.setToken(token)
+      // 解决页面刷新后，this.props.roleType/locale 为''
+      this.props.onSetRoleType(roleType)
+      this.props.onSetLocale(locale)
     }
   }
 
@@ -72,7 +80,15 @@ export class App extends React.Component {
 App.propTypes = {
   children: PropTypes.node,
   router: PropTypes.any,
-  params: PropTypes.any
+  params: PropTypes.any,
+  onSetRoleType: PropTypes.func,
+  onSetLocale: PropTypes.func
+}
+export function mapDispatchToProps (dispatch) {
+  return {
+    onSetRoleType: (type) => dispatch(setRoleType(type)),
+    onSetLocale: (type) => dispatch(setLocale(type))
+  }
 }
 
-export default App
+export default connect(null, mapDispatchToProps)(App)

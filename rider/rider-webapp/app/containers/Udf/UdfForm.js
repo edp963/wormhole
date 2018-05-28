@@ -20,6 +20,8 @@
 
 import React from 'react'
 import PropTypes from 'prop-types'
+import { connect } from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
@@ -29,12 +31,12 @@ const FormItem = Form.Item
 import Radio from 'antd/lib/radio'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class UdfForm extends React.Component {
   render () {
     const { getFieldDecorator } = this.props.form
-    const { type } = this.props
-    const languageText = localStorage.getItem('preferredLanguage')
+    const { type, locale } = this.props
 
     const itemStyle = {
       labelCol: { span: 6 },
@@ -56,7 +58,7 @@ export class UdfForm extends React.Component {
               {getFieldDecorator('functionName', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Function Name cannot be empty' : 'Function Name 不能为空'
+                  message: locale === 'en' ? 'Function Name cannot be empty' : 'Function Name 不能为空'
                 }]
               })(
                 <Input placeholder="Function Name" disabled={type === 'edit'} />
@@ -77,7 +79,7 @@ export class UdfForm extends React.Component {
               {getFieldDecorator('fullName', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Please fill in full class name' : '请填写 Full Class Name'
+                  message: locale === 'en' ? 'Please fill in full class name' : '请填写 Full Class Name'
                 }]
               })(
                 <Input placeholder="Full Class Name" disabled={type === 'edit'} />
@@ -90,7 +92,7 @@ export class UdfForm extends React.Component {
               {getFieldDecorator('jarName', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Please fill in jar name' : '请填写 Jar Name'
+                  message: locale === 'en' ? 'Please fill in jar name' : '请填写 Jar Name'
                 }]
               })(
                 <Input placeholder="Jar Name" />
@@ -103,7 +105,7 @@ export class UdfForm extends React.Component {
               {getFieldDecorator('public', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Please fill in public' : '请填写 Public'
+                  message: locale === 'en' ? 'Please fill in public' : '请填写 Public'
                 }],
                 initialValue: 'true'
               })(
@@ -122,7 +124,12 @@ export class UdfForm extends React.Component {
 
 UdfForm.propTypes = {
   form: PropTypes.any,
-  type: PropTypes.string
+  type: PropTypes.string,
+  locale: PropTypes.string
 }
 
-export default Form.create({wrappedComponentRef: true})(UdfForm)
+const mapStateToProps = createStructuredSelector({
+  locale: selectLocale()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, null)(UdfForm))

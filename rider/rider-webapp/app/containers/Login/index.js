@@ -30,7 +30,7 @@ import Input from 'antd/lib/input'
 import Button from 'antd/lib/button'
 import message from 'antd/lib/message'
 
-import { login } from './action'
+import { login } from '../App/actions'
 import { selectLocale } from '../../containers/LanguageProvider/selectors'
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 
