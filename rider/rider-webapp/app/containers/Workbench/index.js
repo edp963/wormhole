@@ -91,6 +91,8 @@ import { selectProjectNamespaces, selectNamespaces } from '../Namespace/selector
 import { selectUsers } from '../User/selectors'
 import { selectResources } from '../Resource/selectors'
 import { selectJobSourceToSinkExited } from '../Job/selectors'
+import { selectRoleType } from '../App/selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class Workbench extends React.Component {
   constructor (props) {
@@ -215,8 +217,7 @@ export class Workbench extends React.Component {
       routingSourceNsValue: '',
       transConfigConfirmValue: '',
       sinkConfigCopy: '',
-      sinkDSCopy: '',
-      language: localStorage.getItem('preferredLanguage')
+      sinkDSCopy: ''
     }
   }
 
@@ -224,7 +225,7 @@ export class Workbench extends React.Component {
     const projectId = this.props.router.params.projectId
     this.loadData(projectId)
     this.setState({ tabPanelKey: 'flow' })
-    this.props.onChangeLanguage(this.state.language)
+    this.props.onChangeLanguage(this.props.locale)
   }
 
   componentWillReceiveProps (props) {
@@ -240,50 +241,49 @@ export class Workbench extends React.Component {
 
   changeTag = (key) => {
     const { projectId } = this.state
-    const { onLoadAdminSingleFlow, onLoadUserAllFlows, onLoadAdminSingleStream, onLoadUserStreams } = this.props
+    const { onLoadAdminSingleFlow, onLoadUserAllFlows, onLoadAdminSingleStream, onLoadUserStreams, roleType } = this.props
     const { onLoadSelectNamespaces, onLoadUserNamespaces, onLoadSelectUsers, onLoadUserUsers, onLoadResources, onLoadSingleUdf } = this.props
-    let roleTypeTemp = localStorage.getItem('loginRoleType')
 
     switch (key) {
       case 'flow':
-        if (roleTypeTemp === 'admin') {
+        if (roleType === 'admin') {
           onLoadAdminSingleFlow(projectId, () => {})
-        } else if (roleTypeTemp === 'user') {
+        } else if (roleType === 'user') {
           onLoadUserAllFlows(projectId, () => {})
         }
         break
       case 'stream':
-        if (roleTypeTemp === 'admin') {
+        if (roleType === 'admin') {
           onLoadAdminSingleStream(projectId, () => {})
-        } else if (roleTypeTemp === 'user') {
+        } else if (roleType === 'user') {
           onLoadUserStreams(projectId, () => {})
         }
         break
       case 'namespace':
-        if (roleTypeTemp === 'admin') {
+        if (roleType === 'admin') {
           onLoadSelectNamespaces(projectId, () => {})
-        } else if (roleTypeTemp === 'user') {
+        } else if (roleType === 'user') {
           onLoadUserNamespaces(projectId, () => {})
         }
         break
       case 'user':
-        if (roleTypeTemp === 'admin') {
+        if (roleType === 'admin') {
           onLoadSelectUsers(projectId, () => {})
-        } else if (roleTypeTemp === 'user') {
+        } else if (roleType === 'user') {
           onLoadUserUsers(projectId, () => {})
         }
         break
       case 'resource':
-        if (roleTypeTemp === 'admin') {
+        if (roleType === 'admin') {
           onLoadResources(projectId, 'admin')
-        } else if (roleTypeTemp === 'user') {
+        } else if (roleType === 'user') {
           onLoadResources(projectId, 'user')
         }
         break
       case 'udf':
-        if (roleTypeTemp === 'admin') {
+        if (roleType === 'admin') {
           onLoadSingleUdf(projectId, 'admin', () => {})
-        } else if (roleTypeTemp === 'user') {
+        } else if (roleType === 'user') {
           onLoadSingleUdf(projectId, 'user', () => {})
         }
         break
@@ -334,7 +334,8 @@ export class Workbench extends React.Component {
 
   // 新增Job时，获取 source namespace 下拉框数据
   onInitJobSourceNs = (projectId, value, type) => {
-    const { jobMode, language } = this.state
+    const { jobMode } = this.state
+    const { locale } = this.props
 
     this.setState({ jobSourceNsData: [] })
 
@@ -347,7 +348,7 @@ export class Workbench extends React.Component {
         this.workbenchJobForm.setFieldsValue({ sourceNamespace: undefined })
       }
     }, (result) => {
-      message.error(`Source ${language === 'en' ? 'exception:' : '异常：'} ${result}`, 5)
+      message.error(`Source ${locale === 'en' ? 'exception:' : '异常：'} ${result}`, 5)
     })
   }
 
@@ -422,7 +423,8 @@ export class Workbench extends React.Component {
 
   // 新增Job时，获取 sink namespace 下拉框数据
   onInitJobSinkNs = (projectId, value, type) => {
-    const { jobMode, language } = this.state
+    const { jobMode } = this.state
+    const { locale } = this.props
     this.setState({
       jobSinkNsData: [],
       jobSinkConfigMsg: showSinkConfigMsg(value)
@@ -433,7 +435,7 @@ export class Workbench extends React.Component {
         this.workbenchJobForm.setFieldsValue({ sinkNamespace: undefined })
       }
     }, (result) => {
-      message.error(`Sink ${language === 'en' ? 'exception:' : '异常：'} ${result}`, 5)
+      message.error(`Sink ${locale === 'en' ? 'exception:' : '异常：'} ${result}`, 5)
     })
   }
 
@@ -482,7 +484,8 @@ export class Workbench extends React.Component {
   }
 
   onInitStreamTypeSelect = (val) => {
-    const { projectId, language } = this.state
+    const { projectId } = this.state
+    const { locale } = this.props
     this.setState({ streamDiffType: val })
 
     // 显示 Stream 信息
@@ -507,7 +510,7 @@ export class Workbench extends React.Component {
         hdfslogSinkNsValue: ''
       })
       if (result.length === 0) {
-        message.warning(language === 'en' ? 'Please create a Stream with corresponding type first!' : '请先新建相应类型的 Stream！', 3)
+        message.warning(locale === 'en' ? 'Please create a Stream with corresponding type first!' : '请先新建相应类型的 Stream！', 3)
         this.setState({
           pipelineStreamId: 0,
           flowKafkaInstanceValue: '',
@@ -1353,7 +1356,7 @@ export class Workbench extends React.Component {
   hideSparkConfigModal = () => this.setState({ sparkConfigModalVisible: false })
 
   onConfigModalOk = () => {
-    const { language } = this.state
+    const { locale } = this.props
     this.streamConfigForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         values.personalConf = values.personalConf.trim()
@@ -1403,14 +1406,14 @@ export class Workbench extends React.Component {
           })
           this.hideConfigModal()
         } else {
-          message.warning(language === 'en' ? 'Please configure JVM correctly!' : '请正确配置 JVM！', 3)
+          message.warning(locale === 'en' ? 'Please configure JVM correctly!' : '请正确配置 JVM！', 3)
         }
       }
     })
   }
 
   onSparkConfigModalOk = () => {
-    const { language } = this.state
+    const { locale } = this.props
     this.streamConfigForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         values.personalConf = values.personalConf.trim()
@@ -1452,7 +1455,7 @@ export class Workbench extends React.Component {
           })
           this.hideSparkConfigModal()
         } else {
-          message.warning(language === 'en' ? 'Please configure JVM correctly!' : '请正确配置 JVM！', 3)
+          message.warning(locale === 'en' ? 'Please configure JVM correctly!' : '请正确配置 JVM！', 3)
         }
       }
     })
@@ -1508,7 +1511,8 @@ export class Workbench extends React.Component {
   }
 
   handleForwardDefault () {
-    const { formStep, flowFormTranTableSource, streamDiffType, language } = this.state
+    const { formStep, flowFormTranTableSource, streamDiffType } = this.state
+    const { locale } = this.props
 
     let tranRequestTempArr = []
     flowFormTranTableSource.map(i => tranRequestTempArr.push(preProcessSql(i.transformConfigInfoRequest)))
@@ -1535,8 +1539,8 @@ export class Workbench extends React.Component {
         switch (formStep) {
           case 0:
             if (!values.sinkConfig) {
-              const dataText = language === 'en' ? 'When Data System is ' : 'Data System 为 '
-              const emptyText = language === 'en' ? ', Sink Config cannot be empty!' : ' 时，Sink Config 不能为空！'
+              const dataText = locale === 'en' ? 'When Data System is ' : 'Data System 为 '
+              const emptyText = locale === 'en' ? ', Sink Config cannot be empty!' : ' 时，Sink Config 不能为空！'
               values.sinkDataSystem === 'hbase'
                 ? message.error(`${dataText}${values.sinkDataSystem}${emptyText}`, 3)
                 : this.loadSTSExit(values)
@@ -1544,7 +1548,7 @@ export class Workbench extends React.Component {
               // json 校验
               isJSON(values.sinkConfig)
                 ? this.loadSTSExit(values)
-                : message.error(language === 'en' ? 'Sink Config should be JSON format!' : 'Sink Config 应为 JSON格式！', 3)
+                : message.error(locale === 'en' ? 'Sink Config should be JSON format!' : 'Sink Config 应为 JSON格式！', 3)
             }
 
             const rfSelect = this.workbenchFlowForm.getFieldValue('resultFields')
@@ -1649,22 +1653,23 @@ export class Workbench extends React.Component {
   }
 
   handleForwardJob () {
-    const { formStep, jobFormTranTableSource, language } = this.state
+    const { formStep, jobFormTranTableSource } = this.state
+    const { locale } = this.props
 
     this.workbenchJobForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         switch (formStep) {
           case 0:
             if (!values.sinkConfig) {
-              const dataText = language === 'en' ? 'When Data System is ' : 'Data System 为 '
-              const emptyText = language === 'en' ? ', Sink Config cannot be empty!' : ' 时，Sink Config 不能为空！'
+              const dataText = locale === 'en' ? 'When Data System is ' : 'Data System 为 '
+              const emptyText = locale === 'en' ? ', Sink Config cannot be empty!' : ' 时，Sink Config 不能为空！'
               values.sinkDataSystem === 'hbase'
                 ? message.error(`${dataText}${values.sinkDataSystem}${emptyText}`, 3)
                 : this.loadJobSTSExit(values)
             } else {
               isJSON(values.sinkConfig)
                 ? this.loadJobSTSExit(values)
-                : message.error(language === 'en' ? 'Sink Config should be JSON format!' : 'Sink Config 应为 JSON格式！', 3)
+                : message.error(locale === 'en' ? 'Sink Config should be JSON format!' : 'Sink Config 应为 JSON格式！', 3)
             }
 
             const rfSelect = this.workbenchJobForm.getFieldValue('resultFields')
@@ -1772,8 +1777,9 @@ export class Workbench extends React.Component {
   submitJobForm = () => {
     const values = this.workbenchJobForm.getFieldsValue()
 
-    const { projectId, jobMode, startTsVal, endTsVal, singleJobResult, language } = this.state
+    const { projectId, jobMode, startTsVal, endTsVal, singleJobResult } = this.state
     const { jobResultFiledsOutput, jobTranTableRequestValue, jobSparkConfigValues } = this.state
+    const { locale } = this.props
 
     const maxRecordJson = { maxRecordPerPartitionProcessed: values.maxRecordPerPartitionProcessed }
     const maxRecord = JSON.stringify(maxRecordJson)
@@ -1843,7 +1849,7 @@ export class Workbench extends React.Component {
       }
 
       this.props.onAddJob(Number(projectId), Object.assign(submitJobData, jobSparkConfigValues, requestCommon), () => {
-        message.success(language === 'en' ? 'Job is created successfully!' : 'Job 添加成功！', 3)
+        message.success(locale === 'en' ? 'Job is created successfully!' : 'Job 添加成功！', 3)
       }, () => {
         this.hideJobSubmit()
       })
@@ -1851,7 +1857,7 @@ export class Workbench extends React.Component {
       this.props.onEditJob(Object.assign(singleJobResult, jobSparkConfigValues, requestCommon, {
         sourceConfig: `{"protocol":"${values.protocol}"}`
       }), () => {
-        message.success(language === 'en' ? 'Job is modified successfully!' : 'Job 修改成功！', 3)
+        message.success(locale === 'en' ? 'Job is modified successfully!' : 'Job 修改成功！', 3)
       }, () => {
         this.hideJobSubmit()
       })
@@ -1886,8 +1892,9 @@ export class Workbench extends React.Component {
 
   handleSubmitFlowDefault () {
     const values = this.workbenchFlowForm.getFieldsValue()
-    const { projectId, flowMode, singleFlowResult, language } = this.state
+    const { projectId, flowMode, singleFlowResult } = this.state
     const { resultFiledsOutput, dataframeShowOrNot, etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue } = this.state
+    const { locale } = this.props
 
     let sinkConfigRequest = ''
     if (values.resultFields === 'all') {
@@ -1931,9 +1938,9 @@ export class Workbench extends React.Component {
 
       this.props.onAddFlow(submitFlowData, () => {
         if (flowMode === 'add') {
-          message.success(language === 'en' ? 'Flow is created successfully!' : 'Flow 添加成功！', 3)
+          message.success(locale === 'en' ? 'Flow is created successfully!' : 'Flow 添加成功！', 3)
         } else if (flowMode === 'copy') {
-          message.success(language === 'en' ? 'Flow is copied successfully!' : 'Flow 复制成功！', 3)
+          message.success(locale === 'en' ? 'Flow is copied successfully!' : 'Flow 复制成功！', 3)
         }
       }, () => {
         this.hideFlowSubmit()
@@ -1947,7 +1954,7 @@ export class Workbench extends React.Component {
       }
 
       this.props.onEditFlow(Object.assign(editData, singleFlowResult), () => {
-        message.success(language === 'en' ? 'Flow is modified successfully!' : 'Flow 修改成功！', 3)
+        message.success(locale === 'en' ? 'Flow is modified successfully!' : 'Flow 修改成功！', 3)
       }, () => {
         this.hideFlowSubmit()
         this.hideFlowDefaultSubmit()
@@ -3180,14 +3187,14 @@ export class Workbench extends React.Component {
       namespaceClassHide, userClassHide, udfClassHide, flowSpecialConfigModalVisible,
       transformModalVisible, sinkConfigModalVisible, etpStrategyModalVisible,
       streamConfigModalVisible, sparkConfigModalVisible, jobSinkConfigModalVisible,
-      jobTransModalVisible, jobSpecialConfigModalVisible, language
+      jobTransModalVisible, jobSpecialConfigModalVisible
     } = this.state
-    const { streams, projectNamespaces, streamSubmitLoading } = this.props
+    const { streams, projectNamespaces, streamSubmitLoading, locale } = this.props
 
     const sidebarPrefixes = {
-      add: language === 'zh' ? '新增' : 'Create',
-      edit: language === 'zh' ? '修改' : 'Modify',
-      copy: language === 'zh' ? '复制' : 'Copy'
+      add: locale === 'zh' ? '新增' : 'Create',
+      edit: locale === 'zh' ? '修改' : 'Modify',
+      copy: locale === 'zh' ? '复制' : 'Copy'
     }
 
     const stepButtons = this.generateStepButtons()
@@ -3668,7 +3675,9 @@ Workbench.propTypes = {
   onLoadJobSinkNs: PropTypes.func,
   onChangeLanguage: PropTypes.func,
   onLoadLookupSql: PropTypes.func,
-  jobSubmitLoading: PropTypes.bool
+  jobSubmitLoading: PropTypes.bool,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -3720,7 +3729,9 @@ const mapStateToProps = createStructuredSelector({
   users: selectUsers(),
   resources: selectResources(),
   projectNamespaces: selectProjectNamespaces(),
-  jobSourceToSinkExited: selectJobSourceToSinkExited()
+  jobSourceToSinkExited: selectJobSourceToSinkExited(),
+  roleType: selectRoleType(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Workbench)

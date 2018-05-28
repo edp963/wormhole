@@ -21,6 +21,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
@@ -36,13 +37,13 @@ const FormItem = Form.Item
 import DataSystemSelector from '../../components/DataSystemSelector'
 import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 import { checkInstance } from './action'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class InstanceForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      instanceDSValue: '',
-      language: localStorage.getItem('preferredLanguage')
+      instanceDSValue: ''
     }
   }
 
@@ -66,8 +67,8 @@ export class InstanceForm extends React.Component {
 
   render () {
     const { getFieldDecorator } = this.props.form
-    const { type, instanceFormType } = this.props
-    const { instanceDSValue, language } = this.state
+    const { type, instanceFormType, locale } = this.props
+    const { instanceDSValue } = this.state
 
     const itemStyle = {
       labelCol: { span: 6 },
@@ -127,7 +128,7 @@ export class InstanceForm extends React.Component {
               {getFieldDecorator('instanceDataSystem', {
                 rules: [{
                   required: true,
-                  message: `${language === 'en' ? 'Please select Data System' : '请选择 Data System'}`
+                  message: `${locale === 'en' ? 'Please select Data System' : '请选择 Data System'}`
                 }]
               })(
                 <DataSystemSelector
@@ -144,7 +145,7 @@ export class InstanceForm extends React.Component {
               {getFieldDecorator('instance', {
                 rules: [{
                   required: true,
-                  message: `${language === 'en' ? 'Please fill in instance' : '请填写 Instance'}`
+                  message: `${locale === 'en' ? 'Please fill in instance' : '请填写 Instance'}`
                 },
                 {
                   validator: this.checkInstanceName
@@ -163,7 +164,7 @@ export class InstanceForm extends React.Component {
               {getFieldDecorator('connectionUrl', {
                 rules: [{
                   required: true,
-                  message: `${language === 'en' ? 'Please fill in connection url' : '请填写 Connection Url'}`
+                  message: `${locale === 'en' ? 'Please fill in connection url' : '请填写 Connection Url'}`
                 }]
               })(
                 <Input
@@ -194,7 +195,8 @@ InstanceForm.propTypes = {
   instanceFormType: PropTypes.string,
   onInitInstanceSourceDs: PropTypes.func,
   onCheckInstance: PropTypes.func,
-  onInitCheckUrl: PropTypes.func
+  onInitCheckUrl: PropTypes.func,
+  locale: PropTypes.string
 }
 
 function mapDispatchToProps (dispatch) {
@@ -203,4 +205,8 @@ function mapDispatchToProps (dispatch) {
   }
 }
 
-export default Form.create({wrappedComponentRef: true})(connect(null, mapDispatchToProps)(InstanceForm))
+const mapStateToProps = createStructuredSelector({
+  locale: selectLocale()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, mapDispatchToProps)(InstanceForm))

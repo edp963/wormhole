@@ -53,6 +53,8 @@ import {
   selectError,
   selectModalLoading
 } from './selectors'
+import { selectRoleType } from '../App/selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 import { operateLanguageText } from '../../utils/util'
 import { filterDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
@@ -96,14 +98,13 @@ export class Instance extends React.PureComponent {
 
       editInstanceData: {},
       eidtConnUrl: '',
-      InstanceSourceDsVal: '',
-      language: localStorage.getItem('preferredLanguage')
+      InstanceSourceDsVal: ''
     }
   }
 
   componentWillMount () {
     this.refreshInstance()
-    this.props.onChangeLanguage(this.state.language)
+    this.props.onChangeLanguage(this.props.locale)
   }
 
   // componentWillUpdate (props) {
@@ -206,9 +207,10 @@ export class Instance extends React.PureComponent {
   }
 
   onModalOk = () => {
-    const { instanceFormType, language } = this.state
-    const createFormat = language === 'en' ? 'Instance is created successfully!' : 'Instance 新建成功！'
-    const modifyFormat = language === 'en' ? 'Instance is modified successfully!' : 'Instance 修改成功！'
+    const { instanceFormType } = this.state
+    const { locale } = this.props
+    const createFormat = locale === 'en' ? 'Instance is created successfully!' : 'Instance 新建成功！'
+    const modifyFormat = locale === 'en' ? 'Instance is modified successfully!' : 'Instance 修改成功！'
 
     this.instanceForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -394,7 +396,7 @@ export class Instance extends React.PureComponent {
 
   render () {
     const { refreshInstanceLoading, refreshInstanceText, showInstanceDetails, currentInstances, instanceFormType, formVisible } = this.state
-    const { modalLoading } = this.props
+    const { modalLoading, roleType } = this.props
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -560,7 +562,7 @@ export class Instance extends React.PureComponent {
             </Tooltip>
 
             {
-              localStorage.getItem('loginRoleType') === 'admin'
+              roleType === 'admin'
                 ? (
                   <Popconfirm placement="bottom" title={<FormattedMessage {...messages.instanceSureDelete} />} okText="Yes" cancelText="No" onConfirm={this.deleteInstanceBtn(record)}>
                     <Tooltip title={<FormattedMessage {...messages.instanceDelete} />}>
@@ -653,7 +655,9 @@ Instance.propTypes = {
   onEditInstance: PropTypes.func,
   onDeleteInstace: PropTypes.func,
   onChangeLanguage: PropTypes.func,
-  onLoadCheckUrl: PropTypes.func
+  onLoadCheckUrl: PropTypes.func,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -671,7 +675,9 @@ export function mapDispatchToProps (dispatch) {
 const mapStateToProps = createStructuredSelector({
   instances: selectInstances(),
   error: selectError(),
-  modalLoading: selectModalLoading()
+  modalLoading: selectModalLoading(),
+  roleType: selectRoleType(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Instance)

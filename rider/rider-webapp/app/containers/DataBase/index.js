@@ -54,6 +54,10 @@ import {
   selectModalLoading,
   selectDbUrlValue
 } from './selectors'
+import {
+  selectRoleType
+} from '../App/selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 import { operateLanguageText } from '../../utils/util'
 import { onConfigValue } from './dbFunction'
@@ -100,14 +104,14 @@ export class DataBase extends React.PureComponent {
 
       editDatabaseData: {},
       databaseDSType: '',
-      queryConnUrl: '',
-      language: localStorage.getItem('preferredLanguage')
+      queryConnUrl: ''
     }
   }
 
   componentWillMount () {
+    const { locale } = this.props
     this.refreshDatabase()
-    this.props.onChangeLanguage(this.state.language)
+    this.props.onChangeLanguage(locale)
   }
 
   componentWillReceiveProps (props) {
@@ -216,8 +220,8 @@ export class DataBase extends React.PureComponent {
   resetModal = () => this.dBForm.resetFields()
 
   addDbFunc (obj) {
-    const { language } = this.state
-    const createFormat = language === 'en' ? 'Database is created successfully!' : 'Database 新建成功！'
+    const { locale } = this.props
+    const createFormat = locale === 'en' ? 'Database is created successfully!' : 'Database 新建成功！'
     this.props.onAddDatabase(obj, () => {
       this.hideForm()
       message.success(createFormat, 3)
@@ -227,8 +231,8 @@ export class DataBase extends React.PureComponent {
   }
 
   editDbFunc (obj) {
-    const { language } = this.state
-    const modifyFormat = language === 'en' ? 'Database is modified successfully!' : 'Database 修改成功！'
+    const { locale } = this.props
+    const modifyFormat = locale === 'en' ? 'Database is modified successfully!' : 'Database 修改成功！'
     this.props.onEditDatabase(obj, () => {
       this.hideForm()
       message.success(modifyFormat, 3)
@@ -481,7 +485,7 @@ export class DataBase extends React.PureComponent {
 
   render () {
     const { formType, formVisible, queryConnUrl, currentDatabases, refreshDbLoading, refreshDbText, showDBDetails } = this.state
-    const { modalLoading, dbUrlValue } = this.props
+    const { modalLoading, dbUrlValue, roleType } = this.props
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -686,7 +690,7 @@ export class DataBase extends React.PureComponent {
               <Button icon="edit" shape="circle" type="ghost" onClick={this.showEditDB(record)} />
             </Tooltip>
             {
-              localStorage.getItem('loginRoleType') === 'admin'
+              roleType === 'admin'
                 ? (
                   <Popconfirm placement="bottom" title={<FormattedMessage {...messages.dbTableSureDelete} />} okText="Yes" cancelText="No" onConfirm={this.deleteDBBtn(record)}>
                     <Tooltip title={<FormattedMessage {...messages.dbTableDelete} />}>
@@ -786,7 +790,9 @@ DataBase.propTypes = {
   onLoadDatabasesInstance: PropTypes.func,
   onLoadSingleDatabase: PropTypes.func,
   onDeleteDB: PropTypes.func,
-  onChangeLanguage: PropTypes.func
+  onChangeLanguage: PropTypes.func,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -805,7 +811,9 @@ const mapStateToProps = createStructuredSelector({
   databases: selectDatabases(),
   error: selectError(),
   modalLoading: selectModalLoading(),
-  dbUrlValue: selectDbUrlValue()
+  dbUrlValue: selectDbUrlValue(),
+  roleType: selectRoleType(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(DataBase)

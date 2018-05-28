@@ -42,6 +42,8 @@ const { RangePicker } = DatePicker
 
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { selectJobs, selectError } from './selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
+import { selectRoleType } from '../App/selectors'
 import {
   loadAdminAllJobs, loadUserAllJobs, loadAdminSingleJob,
   loadAdminJobLogs, loadUserJobLogs, operateJob, loadJobDetail
@@ -92,15 +94,13 @@ export class Job extends React.Component {
       visibleBool: false,
       startTimeTextState: '',
       endTimeTextState: '',
-      paginationInfo: null,
-      language: localStorage.getItem('preferredLanguage'),
-      roleType: localStorage.getItem('loginRoleType')
+      paginationInfo: null
     }
   }
 
   componentWillMount () {
     this.refreshJob()
-    this.props.onChangeLanguage(this.state.language)
+    this.props.onChangeLanguage(this.props.locale)
   }
 
   componentWillReceiveProps (props) {
@@ -142,8 +142,7 @@ export class Job extends React.Component {
   }
 
   loadJobData () {
-    const { projectIdGeted, jobClassHide } = this.props
-    const { roleType } = this.state
+    const { projectIdGeted, jobClassHide, roleType } = this.props
 
     if (roleType === 'admin') {
       jobClassHide === 'hide'
@@ -174,27 +173,27 @@ export class Job extends React.Component {
   onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
 
   opreateJobFunc = (record, action) => (e) => {
-    const { language } = this.state
+    const { locale } = this.props
     const requestValue = {
       projectId: record.projectId,
       action: action,
       jobId: `${record.id}`
     }
 
-    const successText = language === 'en' ? 'successfully!' : '成功！'
-    const failText = language === 'en' ? 'Operation failed:' : '操作失败：'
+    const successText = locale === 'en' ? 'successfully!' : '成功！'
+    const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
 
     this.props.onOperateJob(requestValue, (result) => {
       let singleMsg = ''
       switch (action) {
         case 'start':
-          singleMsg = language === 'en' ? 'Start' : '启动'
+          singleMsg = locale === 'en' ? 'Start' : '启动'
           break
         case 'stop':
-          singleMsg = language === 'en' ? 'Stop' : '停止'
+          singleMsg = locale === 'en' ? 'Stop' : '停止'
           break
         case 'delete':
-          singleMsg = language === 'en' ? 'Delete' : '删除'
+          singleMsg = locale === 'en' ? 'Delete' : '删除'
           break
       }
       message.success(`${singleMsg} ${successText}`, 3)
@@ -221,7 +220,7 @@ export class Job extends React.Component {
   }
 
   loadLogsData = (projectId, jobId) => {
-    const { roleType } = this.state
+    const { roleType } = this.props
     if (roleType === 'admin') {
       this.props.onLoadAdminJobLogs(projectId, jobId, (result) => {
         this.setState({ jobLogsContent: result })
@@ -375,7 +374,7 @@ export class Job extends React.Component {
           projectId: record.projectId,
           streamId: record.streamId,
           jobId: record.id,
-          roleType: this.state.roleType
+          roleType: this.props.roleType
         }
 
         this.props.onLoadJobDetail(requestValue, (result) => this.setState({ showJobDetail: result }))
@@ -384,9 +383,9 @@ export class Job extends React.Component {
   }
 
   render () {
-    const { className, onShowAddJob, onShowEditJob, jobClassHide } = this.props
+    const { className, onShowAddJob, onShowEditJob, jobClassHide, roleType } = this.props
     const {
-      refreshJobText, refreshJobLoading, showJobDetail, currentJobs, jobLogsContent, roleType,
+      refreshJobText, refreshJobLoading, showJobDetail, currentJobs, jobLogsContent,
       logsJobModalVisible, refreshJobLogLoading, refreshJobLogText, logsProjectId, logsJobId
     } = this.state
 
@@ -852,7 +851,9 @@ Job.propTypes = {
   onOperateJob: PropTypes.func,
   onShowEditJob: PropTypes.func,
   onLoadJobDetail: PropTypes.func,
-  onChangeLanguage: PropTypes.func
+  onChangeLanguage: PropTypes.func,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -870,7 +871,9 @@ export function mapDispatchToProps (dispatch) {
 
 const mapStateToProps = createStructuredSelector({
   jobs: selectJobs(),
-  error: selectError()
+  error: selectError(),
+  roleType: selectRoleType(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Job)

@@ -20,3 +20,10 @@
 
 export const DEFAULT_LOCALE = 'en'
 export const SET_PROJECT = 'rider/App/SET_PROJECT'
+export const LOGIN = 'rider/Login/LOGIN'
+export const LOGIN_SUCCESS = 'rider/Login/LOGIN_SUCCESS'
+export const LOGIN_FAILURE = 'rider/Login/LOGIN_FAILURE'
+export const LOG_PSW_ERROR = 'rider/Login/LOG_PSW_ERROR'
+export const LOG_OUT = 'LOG_OUT'
+export const LOG_OUT_SUCCESS = 'rider/Login/LOG_OUT_SUCCESS'
+export const SET_ROLETYPE = 'rider/Login/SET_ROLETYPE'

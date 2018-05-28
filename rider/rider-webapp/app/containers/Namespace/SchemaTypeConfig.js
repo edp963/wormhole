@@ -21,6 +21,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
@@ -42,6 +43,9 @@ const FormItem = Form.Item
 import Select from 'antd/lib/select'
 const { Option, OptGroup } = Select
 
+import { selectRoleType } from '../App/selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
+
 export class SchemaTypeConfig extends React.Component {
   constructor (props) {
     super(props)
@@ -60,8 +64,7 @@ export class SchemaTypeConfig extends React.Component {
 
       tupleSizeValue: -1,
       umsopable: false,
-      umsopKey: -1,
-      language: localStorage.getItem('preferredLanguage')
+      umsopKey: -1
     }
   }
 
@@ -90,13 +93,13 @@ export class SchemaTypeConfig extends React.Component {
   }
 
   handleChangeFieldType = (record) => (afterType) => {
-    const { language } = this.state
+    const { locale } = this.props
 
     const originType = record.fieldType
     const currentType = originType.includes('##') ? 'tuple' : originType
 
     if (this.state.tupleForm === 'edit') {
-      message.error(language === 'en' ? 'Tuple configuration has error!' : 'Tuple 配置失败！', 3)
+      message.error(locale === 'en' ? 'Tuple configuration has error!' : 'Tuple 配置失败！', 3)
     } else {
       let tupleTypeTemp = ''
       if (currentType !== 'tuple' && afterType !== 'tuple') { // other to other
@@ -142,7 +145,7 @@ export class SchemaTypeConfig extends React.Component {
   onChangeSizeValue = (value) => this.setState({ tupleSizeValue: value })
 
   checkFieldType = (record) => (e) => {
-    const { language } = this.state
+    const { locale } = this.props
     const sepTemp = document.getElementById('sep')
 
     if (sepTemp) {
@@ -151,11 +154,11 @@ export class SchemaTypeConfig extends React.Component {
 
       const reg = /^[0-9]*$/
       if (!sepValue) {
-        message.error(language === 'en' ? 'Please fill in separator!' : '请填写分隔符！', 3)
+        message.error(locale === 'en' ? 'Please fill in separator!' : '请填写分隔符！', 3)
       } else if (!tupleSizeValue) {
-        message.error(language === 'en' ? 'Please fill in length!' : '请填写长度！', 3)
+        message.error(locale === 'en' ? 'Please fill in length!' : '请填写长度！', 3)
       } else if (!reg.test(tupleSizeValue)) {
-        message.error(language === 'en' ? 'Length should be figures!' : '长度应为数字！', 3)
+        message.error(locale === 'en' ? 'Length should be figures!' : '长度应为数字！', 3)
       } else {
         this.setState({
           tupleForm: 'text'
@@ -203,12 +206,12 @@ export class SchemaTypeConfig extends React.Component {
   }
 
   isDisabledLoad () {
-    const { namespaceClassHide } = this.props
+    const { namespaceClassHide, roleType } = this.props
 
     let isDisabled = ''
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       isDisabled = namespaceClassHide === 'hide'
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       isDisabled = true
     }
     return isDisabled
@@ -744,7 +747,14 @@ SchemaTypeConfig.propTypes = {
   initRowSelectedAll: PropTypes.func,
   initSelectUmsop: PropTypes.func,
   repeatRenameArr: PropTypes.array,
-  repeatArrayArr: PropTypes.array
+  repeatArrayArr: PropTypes.array,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
-export default Form.create({wrappedComponentRef: true})(connect(null, null)(SchemaTypeConfig))
+const mapStateToProps = createStructuredSelector({
+  roleType: selectRoleType(),
+  locale: selectLocale()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, null)(SchemaTypeConfig))
