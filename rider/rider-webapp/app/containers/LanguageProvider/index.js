@@ -35,16 +35,17 @@ import enUS from 'antd/lib/locale-provider/en_US' // 英文
 
 export class LanguageProvider extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
   render () {
+    const { locale } = this.props
     let languageGlobal = {}
-    if (this.props.locale === 'en') {
+    if (locale === 'en') {
       languageGlobal = enUS
     }
     return (
       <LocaleProvider locale={languageGlobal}>
         <IntlProvider
-          locale={this.props.locale}
-          key={this.props.locale}
-          messages={this.props.messages[this.props.locale]}
+          locale={locale}
+          key={locale}
+          messages={this.props.messages[locale]}
         >
           {React.Children.only(this.props.children)}
         </IntlProvider>
