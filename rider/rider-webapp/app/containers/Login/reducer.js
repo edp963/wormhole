@@ -47,10 +47,6 @@ export function loginReducer (state = initialState, { type, payload }) {
       localStorage.setItem('preferredLanguage', lanType)
       localStorage.setItem('loginActive', payload.result.active)
 
-      setTimeout(() => {
-
-      }, 10)
-
       return state.set('locale', lanType)
     case LOGIN_FAILURE:
       return state

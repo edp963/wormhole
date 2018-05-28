@@ -160,12 +160,13 @@ export class Namespace extends React.PureComponent {
   }
 
   componentWillMount () {
-    if (this.state.roleType === 'admin') {
+    const { roleType, language } = this.state
+    if (roleType === 'admin') {
       if (!this.props.namespaceClassHide) {
         this.props.onLoadAdminAllNamespaces(() => { this.nsRefreshState() })
       }
     }
-    this.props.onChangeLanguage(this.state.language)
+    this.props.onChangeLanguage(language)
   }
 
   componentWillReceiveProps (props) {
@@ -1086,7 +1087,7 @@ export class Namespace extends React.PureComponent {
     } else if (!isJSONNotEmpty(cmJsonvalue)) {
       message.error(noJsonText, 3)
     } else {
-      const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, 1)
+      const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, 3)
       this.cmSample.doc.setValue(cmJsonvalueFormat || '')
     }
   }
@@ -1102,7 +1103,7 @@ export class Namespace extends React.PureComponent {
     } else if (!isJSONNotEmpty(cmJsonvalue)) {
       message.error(noJsonText, 3)
     } else {
-      const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, 1)
+      const cmJsonvalueFormat = JSON.stringify(JSON.parse(cmJsonvalue), null, 3)
       this.cmSinkSample.doc.setValue(cmJsonvalueFormat || '')
     }
   }
