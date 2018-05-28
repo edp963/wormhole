@@ -20,6 +20,8 @@
 
 import React from 'react'
 import PropTypes from 'prop-types'
+import {connect} from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
@@ -33,6 +35,8 @@ import Tooltip from 'antd/lib/tooltip'
 import Popover from 'antd/lib/popover'
 import Select from 'antd/lib/select'
 const { Option, OptGroup } = Select
+
+import { selectRoleType } from '../App/selectors'
 
 export class SinkSchemaTypeConfig extends React.Component {
   constructor (props) {
@@ -51,12 +55,12 @@ export class SinkSchemaTypeConfig extends React.Component {
   }
 
   isDisabledLoad () {
-    const { namespaceClassHide } = this.props
+    const { namespaceClassHide, roleType } = this.props
 
     let isDisabled = ''
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       isDisabled = namespaceClassHide === 'hide'
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       isDisabled = true
     }
     return isDisabled
@@ -239,7 +243,12 @@ SinkSchemaTypeConfig.propTypes = {
   sinkSelectAllState: PropTypes.string,
   namespaceClassHide: PropTypes.string,
   initSinkRowSelectedAll: PropTypes.func,
-  initChangeSinkType: PropTypes.func
+  initChangeSinkType: PropTypes.func,
+  roleType: PropTypes.string
 }
 
-export default Form.create({wrappedComponentRef: true})(SinkSchemaTypeConfig)
+const mapStateToProps = createStructuredSelector({
+  roleType: selectRoleType()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, null)(SinkSchemaTypeConfig))

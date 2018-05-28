@@ -43,6 +43,8 @@ import UdfForm from './UdfForm'
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadUdfs, loadSingleUdf, addUdf, loadUdfDetail, editUdf, deleteUdf } from './action'
 import { selectUdfs, selectError, selectModalLoading } from './selectors'
+import { selectRoleType } from '../App/selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class Udf extends React.PureComponent {
   constructor (props) {
@@ -87,18 +89,18 @@ export class Udf extends React.PureComponent {
       paginationInfo: null,
 
       queryUdfVal: {},
-      showUdfDetail: {},
-      roleType: localStorage.getItem('loginRoleType')
+      showUdfDetail: {}
     }
   }
 
   componentWillMount () {
-    if (this.state.roleType === 'admin') {
-      if (!this.props.udfClassHide) {
+    const { roleType, udfClassHide, locale } = this.props
+    if (roleType === 'admin') {
+      if (!udfClassHide) {
         this.props.onLoadUdfs(() => { this.udfRefreshState() })
       }
     }
-    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
+    this.props.onChangeLanguage(locale)
   }
 
   componentWillReceiveProps (props) {
@@ -132,8 +134,7 @@ export class Udf extends React.PureComponent {
       refreshUdfLoading: true,
       refreshUdfText: 'Refreshing'
     })
-    const { projectIdGeted, udfClassHide } = this.props
-    const { roleType } = this.state
+    const { projectIdGeted, udfClassHide, roleType } = this.props
     if (roleType === 'admin') {
       udfClassHide === 'hide'
         ? this.props.onLoadSingleUdf(projectIdGeted, 'admin', () => { this.udfRefreshState() })
@@ -214,11 +215,11 @@ export class Udf extends React.PureComponent {
 
   onModalOk = () => {
     const { formType, queryUdfVal } = this.state
-    const languageText = localStorage.getItem('preferredLanguage')
-    const createText = languageText === 'en' ? 'is created successfully!' : '新建成功！'
-    const copyText = languageText === 'en' ? 'is copied successfully!' : '复制成功！'
-    const createFailText = languageText === 'en' ? 'It fails to create UDF:' : '新建失败：'
-    const copyFailText = languageText === 'en' ? 'It fails to copy UDF:' : '复制失败：'
+    const { locale } = this.props
+    const createText = locale === 'en' ? 'is created successfully!' : '新建成功！'
+    const copyText = locale === 'en' ? 'is copied successfully!' : '复制成功！'
+    const createFailText = locale === 'en' ? 'It fails to create UDF:' : '新建失败：'
+    const copyFailText = locale === 'en' ? 'It fails to copy UDF:' : '复制失败：'
 
     this.udfForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -357,8 +358,8 @@ export class Udf extends React.PureComponent {
   }
 
   render () {
-    const { udfClassHide, modalLoading } = this.props
-    const { formType, formVisible, currentudfs, refreshUdfLoading, refreshUdfText, showUdfDetail, roleType } = this.state
+    const { udfClassHide, modalLoading, roleType } = this.props
+    const { formType, formVisible, currentudfs, refreshUdfLoading, refreshUdfText, showUdfDetail } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -698,7 +699,9 @@ Udf.propTypes = {
   onLoadUdfDetail: PropTypes.func,
   onEditUdf: PropTypes.func,
   onDeleteUdf: PropTypes.func,
-  onChangeLanguage: PropTypes.func
+  onChangeLanguage: PropTypes.func,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -716,7 +719,9 @@ export function mapDispatchToProps (dispatch) {
 const mapStateToProps = createStructuredSelector({
   udfs: selectUdfs(),
   error: selectError(),
-  modalLoading: selectModalLoading()
+  modalLoading: selectModalLoading(),
+  roleType: selectRoleType(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Udf)

@@ -21,6 +21,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
@@ -40,6 +41,7 @@ import { forceCheckNum } from '../../utils/util'
 import DataSystemSelector from '../../components/DataSystemSelector'
 import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 import { checkDatabaseName } from './action'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class DBForm extends React.Component {
   constructor (props) {
@@ -48,8 +50,7 @@ export class DBForm extends React.Component {
       databaseDSValue: '',
       currentDatabaseUrlValue: [],
       currentInstanceId: '',
-      connUrlText: '',
-      language: localStorage.getItem('preferredLanguage')
+      connUrlText: ''
     }
   }
 
@@ -77,8 +78,9 @@ export class DBForm extends React.Component {
   }
 
   checkConfig = (rules, value, callback) => {
-    const { databaseDSValue, language } = this.state
-    const oracleErrorFormat = language === 'en' ? 'When you select Oracle, "service_name" should be contained in Config.' : 'Oracle时, 必须包含"service_name"字段'
+    const { databaseDSValue } = this.state
+    const { locale } = this.props
+    const oracleErrorFormat = locale === 'en' ? 'When you select Oracle, "service_name" should be contained in Config.' : 'Oracle时, 必须包含"service_name"字段'
     if (databaseDSValue === 'oracle' && !value.includes('service_name')) {
       callback(oracleErrorFormat)
     } else {
@@ -95,8 +97,8 @@ export class DBForm extends React.Component {
 
   render () {
     const { getFieldDecorator } = this.props.form
-    const { type, databaseFormType, queryConnUrl } = this.props
-    const { databaseDSValue, currentDatabaseUrlValue, connUrlText, language } = this.state
+    const { type, databaseFormType, queryConnUrl, locale } = this.props
+    const { databaseDSValue, currentDatabaseUrlValue, connUrlText } = this.state
 
     const itemStyle = {
       labelCol: { span: 6 },
@@ -143,20 +145,20 @@ export class DBForm extends React.Component {
       databaseDSPlace = 'Index Name'
     } else if (databaseDSValue === 'hbase') {
       databaseDSLabel = 'Namespace Name'
-      databaseDSPlace = `Namespace Name（${language === 'en' ? 'Fill in "default" if it is missing' : '若无, 填写 default'}）`
+      databaseDSPlace = `Namespace Name（${locale === 'en' ? 'Fill in "default" if it is missing' : '若无, 填写 default'}）`
     } else if (databaseDSValue === 'redis') {
       databaseDSLabel = 'Database Name'
-      databaseDSPlace = `${language === 'en' ? 'You can fill in "default"' : '可填写 default'}`
+      databaseDSPlace = `${locale === 'en' ? 'You can fill in "default"' : '可填写 default'}`
     } else if (databaseDSValue === 'kudu') {
       databaseDSLabel = 'Database Name'
-      databaseDSPlace = `Database Name（${language === 'en' ? 'Fill in "default" if it is missing' : '若无, 填写 default'}）`
+      databaseDSPlace = `Database Name（${locale === 'en' ? 'Fill in "default" if it is missing' : '若无, 填写 default'}）`
     } else {
       databaseDSLabel = 'Database Name'
       databaseDSPlace = 'Database Name'
     }
 
     let diffPlacehodler = ''
-    if (language === 'en') {
+    if (locale === 'en') {
       diffPlacehodler = databaseDSValue === 'oracle'
         ? 'Form: multiple lines of key=value or one line of key=value&key=value. When you select Oracle, "service_name" should be contained in Config.'
         : 'Form: multiple lines of key=value or one line of key=value&key=value'
@@ -208,7 +210,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('dataBaseDataSystem', {
                 rules: [{
                   required: true,
-                  message: `${language === 'en' ? 'Please select Data System' : '请选择 Data System'}`
+                  message: `${locale === 'en' ? 'Please select Data System' : '请选择 Data System'}`
                 }]
               })(
                 <DataSystemSelector
@@ -225,13 +227,13 @@ export class DBForm extends React.Component {
               {getFieldDecorator('instance', {
                 rules: [{
                   required: true,
-                  message: `${language === 'en' ? 'Please select Instance' : '请选择 Instance'}`
+                  message: `${locale === 'en' ? 'Please select Instance' : '请选择 Instance'}`
                 }]
               })(
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
                   onChange={this.onHandleChange}
-                  placeholder={language === 'en' ? 'Select an instance' : '请选择 Instance'}
+                  placeholder={locale === 'en' ? 'Select an instance' : '请选择 Instance'}
                   disabled={databaseFormType === 'edit'}
                 >
                   {instanceOptions}
@@ -255,7 +257,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('nsDatabase', {
                 rules: [{
                   required: true,
-                  message: `${language === 'en' ? 'Please fill in ' : '请填写'} ${databaseDSLabel}`
+                  message: `${locale === 'en' ? 'Please fill in ' : '请填写'} ${databaseDSLabel}`
                 }, {
                   validator: this.checkDatabaseName
                 }]
@@ -289,7 +291,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('userRequired', {
                 rules: [{
                   required: true,
-                  message: `${language === 'en' ? 'Please fill in the User' : '请填写 User'}`
+                  message: `${locale === 'en' ? 'Please fill in the User' : '请填写 User'}`
                 }],
                 hidden: userPwdHiddensRequired
               })(
@@ -302,7 +304,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('passwordRequired', {
                 rules: [{
                   required: true,
-                  message: `${language === 'en' ? 'Please fill in the Password' : '请填写 Password'}`
+                  message: `${locale === 'en' ? 'Please fill in the Password' : '请填写 Password'}`
                 }],
                 hidden: userPwdHiddensRequired
               })(
@@ -316,7 +318,7 @@ export class DBForm extends React.Component {
               {getFieldDecorator('partition', {
                 rules: [{
                   required: true,
-                  message: `${language === 'en' ? 'Please fill in the Partition' : '请填写 Partition'}`
+                  message: `${locale === 'en' ? 'Please fill in the Partition' : '请填写 Partition'}`
                 }, {
                   validator: forceCheckNum
                 }],
@@ -360,7 +362,8 @@ DBForm.propTypes = {
   databaseFormType: PropTypes.string,
   queryConnUrl: PropTypes.string,
   onInitDatabaseUrlValue: PropTypes.func,
-  oncheckDatabaseName: PropTypes.func
+  oncheckDatabaseName: PropTypes.func,
+  locale: PropTypes.string
 }
 
 function mapDispatchToProps (dispatch) {
@@ -369,4 +372,8 @@ function mapDispatchToProps (dispatch) {
   }
 }
 
-export default Form.create({wrappedComponentRef: true})(connect(null, mapDispatchToProps)(DBForm))
+const mapStateToProps = createStructuredSelector({
+  locale: selectLocale()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, mapDispatchToProps)(DBForm))

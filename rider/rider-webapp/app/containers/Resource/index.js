@@ -35,6 +35,7 @@ import Button from 'antd/lib/button'
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadResources } from './action'
 import { selectResources } from './selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class Resource extends React.Component {
   constructor (props) {
@@ -49,7 +50,7 @@ export class Resource extends React.Component {
   }
 
   componentWillMount () {
-    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
+    this.props.onChangeLanguage(this.props.locale)
   }
 
   componentWillReceiveProps (props) {
@@ -237,7 +238,8 @@ Resource.propTypes = {
   resources: PropTypes.oneOfType([
     PropTypes.object,
     PropTypes.bool
-  ])
+  ]),
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -248,7 +250,8 @@ export function mapDispatchToProps (dispatch) {
 }
 
 const mapStateToProps = createStructuredSelector({
-  resources: selectResources()
+  resources: selectResources(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Resource)

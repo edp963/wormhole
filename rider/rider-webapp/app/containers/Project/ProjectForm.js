@@ -21,6 +21,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 // import PlaceholderInputIntl from '../../components/PlaceholderInputIntl'
@@ -35,9 +36,11 @@ import Card from 'antd/lib/card'
 const FormItem = Form.Item
 import { forceCheckNum } from '../../utils/util'
 import { loadProjectNameInputValue } from './action'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class ProjectForm extends React.Component {
   checkProjectName = (rule, value, callback) => {
+    const { locale } = this.props
     const reg = /^[\w-]+$/
     if (reg.test(value)) {
       const { projectFormType, onLoadProjectNameInputValue } = this.props
@@ -47,14 +50,13 @@ export class ProjectForm extends React.Component {
     } else {
       const textZh = '必须是字母、数字、下划线或中划线'
       const textEn = 'It should be letters, figures, underscore or hyphen'
-      callback(localStorage.getItem('preferredLanguage') === 'en' ? textEn : textZh)
+      callback(locale === 'en' ? textEn : textZh)
     }
   }
 
   render () {
     const { getFieldDecorator } = this.props.form
-    const { projectFormType } = this.props
-    const languageText = localStorage.getItem('preferredLanguage')
+    const { projectFormType, locale } = this.props
 
     const itemStyle = {
       labelCol: { span: 6 },
@@ -84,20 +86,20 @@ export class ProjectForm extends React.Component {
                 {getFieldDecorator('name', {
                   rules: [{
                     required: true,
-                    message: languageText === 'en' ? 'Project name cannot be empty' : '项目标识不能为空'
+                    message: locale === 'en' ? 'Project name cannot be empty' : '项目标识不能为空'
                   }, {
                     validator: this.checkProjectName
                   }]
                 })(
                   <Input
-                    placeholder={languageText === 'en' ? 'composed of capital/lowercase letters, hyphen, underscore or number' : '由大小写字母、中划线、下划线、数字组成'}
+                    placeholder={locale === 'en' ? 'composed of capital/lowercase letters, hyphen, underscore or number' : '由大小写字母、中划线、下划线、数字组成'}
                     disabled={projectFormType === 'edit'}
                   />
                 )}
               </FormItem>
               <FormItem label={<FormattedMessage {...messages.projectDescription} />} {...itemStyle}>
                 {getFieldDecorator('desc', {})(
-                  <Input placeholder={languageText === 'en' ? 'description of project details' : '项目详情描述'} />
+                  <Input placeholder={locale === 'en' ? 'description of project details' : '项目详情描述'} />
                 )}
               </FormItem>
             </Card>
@@ -109,7 +111,7 @@ export class ProjectForm extends React.Component {
                 {getFieldDecorator('resCores', {
                   rules: [{
                     required: true,
-                    message: languageText === 'en' ? 'Upper Limit of CPU cannot be empty' : 'CPU上限不能为空'
+                    message: locale === 'en' ? 'Upper Limit of CPU cannot be empty' : 'CPU上限不能为空'
                   }, {
                     validator: forceCheckNum
                   }]
@@ -117,14 +119,14 @@ export class ProjectForm extends React.Component {
                   <InputNumber
                     min={1}
                     step={1}
-                    placeholder={languageText === 'en' ? 'Number of VCores' : 'VCores 个数'} />
+                    placeholder={locale === 'en' ? 'Number of VCores' : 'VCores 个数'} />
                 )}
               </FormItem>
               <FormItem label={<FormattedMessage {...messages.projectMemory} />} {...itemStyle}>
                 {getFieldDecorator('resMemoryG', {
                   rules: [{
                     required: true,
-                    message: languageText === 'en' ? 'Upper Limit of Memory cannot be empty' : '内存上限不能为空'
+                    message: locale === 'en' ? 'Upper Limit of Memory cannot be empty' : '内存上限不能为空'
                   }, {
                     validator: forceCheckNum
                   }]
@@ -143,7 +145,8 @@ export class ProjectForm extends React.Component {
 ProjectForm.propTypes = {
   form: PropTypes.any,
   projectFormType: PropTypes.string,
-  onLoadProjectNameInputValue: PropTypes.func
+  onLoadProjectNameInputValue: PropTypes.func,
+  locale: PropTypes.string
 }
 
 function mapDispatchToProps (dispatch) {
@@ -152,4 +155,8 @@ function mapDispatchToProps (dispatch) {
   }
 }
 
-export default Form.create({wrappedComponentRef: true})(connect(null, mapDispatchToProps)(ProjectForm))
+const mapStateToProps = createStructuredSelector({
+  locale: selectLocale()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, mapDispatchToProps)(ProjectForm))

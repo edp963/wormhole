@@ -20,6 +20,8 @@
 
 import React from 'react'
 import PropTypes from 'prop-types'
+import { connect } from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
@@ -28,13 +30,13 @@ import Input from 'antd/lib/input'
 import InputNumber from 'antd/lib/input-number'
 const FormItem = Form.Item
 import { forceCheckNum, forceCheckNumsPart } from '../../utils/util'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class StreamConfigForm extends React.Component {
   render () {
-    const { form, tabPanelKey } = this.props
+    const { form, tabPanelKey, locale } = this.props
     const { getFieldDecorator } = form
-    const languageText = localStorage.getItem('preferredLanguage')
-    const textMessage = languageText === 'en' ? 'It cannot be empty' : '不能为空'
+    const textMessage = locale === 'en' ? 'It cannot be empty' : '不能为空'
 
     const itemStyle = {
       labelCol: { span: 4 },
@@ -193,7 +195,7 @@ export class StreamConfigForm extends React.Component {
               {getFieldDecorator('personalConf', {})(
                 <Input
                   type="textarea"
-                  placeholder={languageText === 'en' ? 'Format: key=value; enter into a new line as long as there is a new item' : '格式如：key=value，多条时换行输入'}
+                  placeholder={locale === 'en' ? 'Format: key=value; enter into a new line as long as there is a new item' : '格式如：key=value，多条时换行输入'}
                   autosize={{ minRows: 6, maxRows: 10 }}
                 />
               )}
@@ -207,7 +209,12 @@ export class StreamConfigForm extends React.Component {
 
 StreamConfigForm.propTypes = {
   form: PropTypes.any,
-  tabPanelKey: PropTypes.string
+  tabPanelKey: PropTypes.string,
+  locale: PropTypes.string
 }
 
-export default Form.create({wrappedComponentRef: true})(StreamConfigForm)
+const mapStateToProps = createStructuredSelector({
+  locale: selectLocale()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, null)(StreamConfigForm))

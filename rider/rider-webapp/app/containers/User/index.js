@@ -44,6 +44,8 @@ import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadAdminAllUsers, loadUserUsers, addUser, editUser, loadEmailInputValue,
   loadSelectUsers, loadUserDetail, deleteUser } from './action'
 import { selectUsers, selectError, selectModalLoading, selectEmailExited } from './selectors'
+import { selectRoleType } from '../App/selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class User extends React.PureComponent {
   constructor (props) {
@@ -88,19 +90,18 @@ export class User extends React.PureComponent {
 
       editUsersMsgData: {},
       editUsersPswData: {},
-      showUserDetail: {},
-      language: localStorage.getItem('preferredLanguage'),
-      roleType: localStorage.getItem('loginRoleType')
+      showUserDetail: {}
     }
   }
 
   componentWillMount () {
-    if (this.state.roleType === 'admin') {
-      if (!this.props.userClassHide) {
+    const { roleType, userClassHide, locale } = this.props
+    if (roleType === 'admin') {
+      if (!userClassHide) {
         this.props.onLoadAdminAllUsers(() => { this.userRefreshState() })
       }
     }
-    this.props.onChangeLanguage(this.state.language)
+    this.props.onChangeLanguage(locale)
   }
 
   componentWillReceiveProps (props) {
@@ -134,13 +135,13 @@ export class User extends React.PureComponent {
       refreshUserLoading: true,
       refreshUserText: 'Refreshing'
     })
-    const { roleType } = this.state
+    const { projectIdGeted, userClassHide, roleType } = this.props
     if (roleType === 'admin') {
-      this.props.userClassHide === 'hide'
-        ? this.props.onLoadSelectUsers(this.props.projectIdGeted, () => { this.userRefreshState() })
+      userClassHide === 'hide'
+        ? this.props.onLoadSelectUsers(projectIdGeted, () => { this.userRefreshState() })
         : this.props.onLoadAdminAllUsers(() => { this.userRefreshState() })
     } else if (roleType === 'user') {
-      this.props.onLoadUserUsers(this.props.projectIdGeted, () => { this.userRefreshState() })
+      this.props.onLoadUserUsers(projectIdGeted, () => { this.userRefreshState() })
     }
   }
 
@@ -221,15 +222,15 @@ export class User extends React.PureComponent {
   }
 
   onModalOk = () => {
-    const { formType, editUsersMsgData, editUsersPswData, language } = this.state
-    const { onAddUser, onEditUser, emailExited } = this.props
+    const { formType, editUsersMsgData, editUsersPswData } = this.state
+    const { onAddUser, onEditUser, emailExited, locale } = this.props
 
     this.userForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        const emailtext = language === 'en' ? 'This email already exists' : '该 Email 已存在'
-        const userSuccesstext = language === 'en' ? 'User is created successfully!' : 'User 添加成功！'
-        const userInfoSuccesstext = language === 'en' ? 'User information is modified successfully!' : '用户信息修改成功！'
-        const pwdSuccesstext = language === 'en' ? 'Password is modified successfully!' : '密码修改成功！'
+        const emailtext = locale === 'en' ? 'This email already exists' : '该 Email 已存在'
+        const userSuccesstext = locale === 'en' ? 'User is created successfully!' : 'User 添加成功！'
+        const userInfoSuccesstext = locale === 'en' ? 'User information is modified successfully!' : '用户信息修改成功！'
+        const pwdSuccesstext = locale === 'en' ? 'Password is modified successfully!' : '密码修改成功！'
 
         switch (formType) {
           case 'add':
@@ -249,7 +250,7 @@ export class User extends React.PureComponent {
             break
           case 'editMsg':
             onEditUser(Object.assign(editUsersMsgData, values, {
-              preferredLanguage: language
+              preferredLanguage: locale
             }), () => {
               this.hideForm()
               message.success(userInfoSuccesstext, 3)
@@ -258,7 +259,7 @@ export class User extends React.PureComponent {
           case 'editPsw':
             onEditUser(Object.assign(editUsersPswData, {
               password: values.password,
-              preferredLanguage: language
+              preferredLanguage: locale
             }), () => {
               this.hideForm()
               message.success(pwdSuccesstext, 3)
@@ -271,8 +272,8 @@ export class User extends React.PureComponent {
 
   // 新增时，判断email是否已存在
   onInitEmailInputValue = (value) => {
-    const { language } = this.state
-    const emailtext = language === 'en' ? 'This email already exists' : '该 Email 已存在'
+    const { locale } = this.props
+    const emailtext = locale === 'en' ? 'This email already exists' : '该 Email 已存在'
     this.props.onLoadEmailInputValue(value, () => {}, () => {
       this.userForm.setFields({
         email: {
@@ -398,7 +399,8 @@ export class User extends React.PureComponent {
   }
 
   render () {
-    const { refreshUserLoading, refreshUserText, formType, showUserDetail, roleType } = this.state
+    const { refreshUserLoading, refreshUserText, formType, showUserDetail } = this.state
+    const { roleType } = this.props
 
     let { sortedInfo, filteredInfo } = this.state
     let { userClassHide } = this.props
@@ -694,7 +696,9 @@ User.propTypes = {
   onLoadEmailInputValue: PropTypes.func,
   onLoadUserDetail: PropTypes.func,
   onDeleteUser: PropTypes.func,
-  onChangeLanguage: PropTypes.func
+  onChangeLanguage: PropTypes.func,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -715,7 +719,9 @@ const mapStateToProps = createStructuredSelector({
   users: selectUsers(),
   error: selectError(),
   modalLoading: selectModalLoading(),
-  emailExited: selectEmailExited()
+  emailExited: selectEmailExited(),
+  roleType: selectRoleType(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(User)

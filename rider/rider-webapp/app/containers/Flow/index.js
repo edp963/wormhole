@@ -45,6 +45,8 @@ const { RangePicker } = DatePicker
 
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { selectFlows, selectError } from './selectors'
+import { selectRoleType } from '../App/selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
 import {
   loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm,
   saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail,
@@ -103,15 +105,13 @@ export class Flow extends React.Component {
       endTimeTextState: '',
       paginationInfo: null,
       startTextState: '',
-      endTextState: '',
-      language: localStorage.getItem('preferredLanguage'),
-      roleType: localStorage.getItem('loginRoleType')
+      endTextState: ''
     }
   }
 
   componentWillMount () {
     this.refreshFlow()
-    this.props.onChangeLanguage(this.state.language)
+    this.props.onChangeLanguage(this.props.locale)
   }
 
   componentWillReceiveProps (props) {
@@ -154,9 +154,8 @@ export class Flow extends React.Component {
 
   loadFlowData () {
     const {
-      projectIdGeted, flowClassHide, onLoadAdminSingleFlow, onLoadAdminAllFlows, onLoadUserAllFlows
+      projectIdGeted, flowClassHide, onLoadAdminSingleFlow, onLoadAdminAllFlows, onLoadUserAllFlows, roleType
     } = this.props
-    const { roleType } = this.state
 
     if (roleType === 'admin') {
       flowClassHide === 'hide'
@@ -191,26 +190,26 @@ export class Flow extends React.Component {
 
   // 批量操作
   handleMenuClick = (selectedRowKeys) => (e) => {
-    const { language } = this.state
+    const { locale } = this.props
     if (selectedRowKeys.length > 0) {
       let menuAction = ''
       let menuMsg = ''
       switch (e.key) {
         case 'menuStart':
           menuAction = 'start'
-          menuMsg = language === 'en' ? 'Start' : '启动'
+          menuMsg = locale === 'en' ? 'Start' : '启动'
           break
         case 'menuStop':
           menuAction = 'stop'
-          menuMsg = language === 'en' ? 'Stop' : '停止'
+          menuMsg = locale === 'en' ? 'Stop' : '停止'
           break
         case 'menuDelete':
           menuAction = 'delete'
-          menuMsg = language === 'en' ? 'Delete' : '删除'
+          menuMsg = locale === 'en' ? 'Delete' : '删除'
           break
         case 'menuRenew':
           menuAction = 'renew'
-          menuMsg = language === 'en' ? 'Renew' : '生效'
+          menuMsg = locale === 'en' ? 'Renew' : '生效'
           break
       }
 
@@ -222,7 +221,7 @@ export class Flow extends React.Component {
 
       this.props.onOperateUserFlow(requestValue, (result) => {
         this.setState({ selectedRowKeys: [] })
-        const languagetextSuccess = language === 'en' ? 'successfully!' : '成功！'
+        const languagetextSuccess = locale === 'en' ? 'successfully!' : '成功！'
 
         if (typeof (result) === 'object') {
           const resultFailed = result.filter(i => i.msg.includes('failed'))
@@ -230,7 +229,7 @@ export class Flow extends React.Component {
             const resultFailedIdArr = resultFailed.map(i => i.id)
             const resultFailedIdStr = resultFailedIdArr.join('、')
 
-            const languagetextFailFlowId = language === 'en'
+            const languagetextFailFlowId = locale === 'en'
               ? `It fails to ${menuMsg} Flow ID ${resultFailedIdStr}!`
               : `Flow ID ${resultFailedIdStr} ${menuMsg}失败！`
             message.error(languagetextFailFlowId, 5)
@@ -241,10 +240,10 @@ export class Flow extends React.Component {
           message.success(`${menuMsg}${languagetextSuccess}`, 3)
         }
       }, (result) => {
-        message.error(`${language === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
+        message.error(`${locale === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
       })
     } else {
-      message.warning(`${language === 'en' ? 'Please select Flow!' : '请选择 Flow！'}`, 3)
+      message.warning(`${locale === 'en' ? 'Please select Flow!' : '请选择 Flow！'}`, 3)
     }
   }
 
@@ -257,7 +256,7 @@ export class Flow extends React.Component {
 
   // 单行操作
   singleOpreateFlow = (record, action) => (e) => {
-    const { language } = this.state
+    const { locale } = this.props
     const requestValue = {
       projectId: record.projectId,
       action: action,
@@ -267,35 +266,35 @@ export class Flow extends React.Component {
     let singleMsg = ''
     switch (action) {
       case 'start':
-        singleMsg = language === 'en' ? 'Start' : '启动'
+        singleMsg = locale === 'en' ? 'Start' : '启动'
         break
       case 'stop':
-        singleMsg = language === 'en' ? 'Stop' : '停止'
+        singleMsg = locale === 'en' ? 'Stop' : '停止'
         break
       case 'delete':
-        singleMsg = language === 'en' ? 'Delete' : '删除'
+        singleMsg = locale === 'en' ? 'Delete' : '删除'
         break
     }
 
     this.props.onOperateUserFlow(requestValue, (result) => {
-      const languagetextSuccess = language === 'en' ? 'successfully!' : '成功！'
+      const languagetextSuccess = locale === 'en' ? 'successfully!' : '成功！'
       if (action === 'delete') {
         message.success(`${singleMsg}${languagetextSuccess}`, 3)
       } else {
         if (result.msg.includes('failed')) {
-          const languagetextFail = language === 'en'
+          const languagetextFail = locale === 'en'
             ? `It fails to ${singleMsg} Flow ID ${result.id}!`
             : `Flow ID ${result.id} ${singleMsg}失败！`
 
           message.error(languagetextFail, 3)
         } else {
           action === 'renew'
-            ? message.success(language === 'en' ? 'Renew successfully！' : '生效！', 3)
+            ? message.success(locale === 'en' ? 'Renew successfully！' : '生效！', 3)
             : message.success(`${singleMsg}${languagetextSuccess}`, 3)
         }
       }
     }, (result) => {
-      message.error(`${language === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
+      message.error(`${locale === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
     })
   }
 
@@ -460,7 +459,7 @@ export class Flow extends React.Component {
           projectId: record.projectId,
           streamId: typeof (record.streamId) === 'object' ? record.streamIdOrigin : record.streamId,
           flowId: record.id,
-          roleType: this.state.roleType
+          roleType: this.props.roleType
         }
 
         this.props.onLoadFlowDetail(requestValue, (result) => this.setState({ showFlowDetails: result }))
@@ -469,9 +468,9 @@ export class Flow extends React.Component {
   }
 
   render () {
-    const { className, onShowAddFlow, onShowEditFlow, flowClassHide } = this.props
+    const { className, onShowAddFlow, onShowEditFlow, flowClassHide, roleType } = this.props
     const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails } = this.state
-    const { selectedRowKeys, roleType } = this.state
+    const { selectedRowKeys } = this.state
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
@@ -806,9 +805,9 @@ export class Flow extends React.Component {
       className: 'text-align-center',
       render: (text, record) => {
         let FlowActionSelect = ''
-        if (this.state.roleType === 'admin') {
+        if (roleType === 'admin') {
           FlowActionSelect = ''
-        } else if (this.state.roleType === 'user') {
+        } else if (roleType === 'user') {
           const modifyFormat = <FormattedMessage {...messages.flowTableModify} />
           const startFormat = <FormattedMessage {...messages.flowTableStart} />
           const sureStartFormat = <FormattedMessage {...messages.flowSureStart} />
@@ -1059,7 +1058,9 @@ Flow.propTypes = {
   onLoadAdminSingleFlow: PropTypes.func,
   onOperateUserFlow: PropTypes.func,
   onChuckAwayFlow: PropTypes.func,
-  onChangeLanguage: PropTypes.func
+  onChangeLanguage: PropTypes.func,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1084,7 +1085,9 @@ export function mapDispatchToProps (dispatch) {
 
 const mapStateToProps = createStructuredSelector({
   flows: selectFlows(),
-  error: selectError()
+  error: selectError(),
+  roleType: selectRoleType(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Flow)
