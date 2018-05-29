@@ -21,14 +21,16 @@
 
 package edp.wormhole.common
 
+import com.alibaba.fastjson.{JSONArray, JSONObject}
 import edp.wormhole.common.SparkSchemaUtils.ss2sparkTuple
+import edp.wormhole.common.util.CommonUtils
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums
 import edp.wormhole.ums.{UmsField, UmsFieldType, UmsSysField}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types._
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -160,6 +162,30 @@ object SparkUtils extends EdpLogging {
       case "DateType" => UmsFieldType.DATETIME
       case "TimestampType" => UmsFieldType.DATETIME
       case "BinaryType" => UmsFieldType.BINARY
+      case t if t.startsWith("StructType")  => UmsFieldType.JSONOBJECT
+      case t if t.startsWith("ArrayType") => UmsFieldType.JSONARRAY
+    }
+  }
+
+  def sparkValue2Object(value : Any, dataType : DataType): Any = {
+    if (value == null) null else dataType match {
+      case BinaryType => CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
+      case FloatType => java.lang.Float.parseFloat(value.toString)
+      case DoubleType => java.lang.Double.parseDouble(value.toString)
+      case t if t.isInstanceOf[DecimalType] => new java.math.BigDecimal(value.toString).toPlainString
+      case t if t.isInstanceOf[StructType] =>
+        val rowValue = value.asInstanceOf[Row]
+        val schema = t.asInstanceOf[StructType]
+        schema.fields.map(f => (f.name, schema.fieldIndex(f.name), f.dataType))
+          .sortBy(_._2)
+          .map(tuple => (tuple._1, sparkValue2Object(rowValue.get(tuple._2), tuple._3)))
+          .foldLeft(new JSONObject)((jsonObject, t) => jsonObject.fluentPut(t._1, t._2))
+      case t if t.isInstanceOf[ArrayType] =>
+        val seqValue = value.asInstanceOf[Seq[Any]]
+        val elementType = t.asInstanceOf[ArrayType].elementType
+        seqValue.map(value => sparkValue2Object(value, elementType))
+          .foldLeft(new JSONArray)((jsonArray, value) => jsonArray.fluentAdd(value))
+      case _ => value
     }
   }
 }
