@@ -40,7 +40,6 @@ import Input from 'antd/lib/input'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadAdminAllUsers, loadUserUsers, addUser, editUser, loadEmailInputValue,
   loadSelectUsers, loadUserDetail, deleteUser } from './action'
 import { selectUsers, selectError, selectModalLoading, selectEmailExited } from './selectors'
@@ -95,13 +94,12 @@ export class User extends React.PureComponent {
   }
 
   componentWillMount () {
-    const { roleType, userClassHide, locale } = this.props
+    const { roleType, userClassHide } = this.props
     if (roleType === 'admin') {
       if (!userClassHide) {
         this.props.onLoadAdminAllUsers(() => { this.userRefreshState() })
       }
     }
-    this.props.onChangeLanguage(locale)
   }
 
   componentWillReceiveProps (props) {
@@ -696,7 +694,6 @@ User.propTypes = {
   onLoadEmailInputValue: PropTypes.func,
   onLoadUserDetail: PropTypes.func,
   onDeleteUser: PropTypes.func,
-  onChangeLanguage: PropTypes.func,
   roleType: PropTypes.string,
   locale: PropTypes.string
 }
@@ -710,8 +707,7 @@ export function mapDispatchToProps (dispatch) {
     onEditUser: (user, resolve) => dispatch(editUser(user, resolve)),
     onLoadEmailInputValue: (value, resolve, reject) => dispatch(loadEmailInputValue(value, resolve, reject)),
     onLoadUserDetail: (userId, resolve) => dispatch(loadUserDetail(userId, resolve)),
-    onDeleteUser: (userId, resolve, reject) => dispatch(deleteUser(userId, resolve, reject)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onDeleteUser: (userId, resolve, reject) => dispatch(deleteUser(userId, resolve, reject))
   }
 }
 

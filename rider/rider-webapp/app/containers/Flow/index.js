@@ -43,7 +43,6 @@ import Popover from 'antd/lib/popover'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { selectFlows, selectError } from './selectors'
 import { selectRoleType } from '../App/selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
@@ -111,7 +110,6 @@ export class Flow extends React.Component {
 
   componentWillMount () {
     this.refreshFlow()
-    this.props.onChangeLanguage(this.props.locale)
   }
 
   componentWillReceiveProps (props) {
@@ -127,6 +125,7 @@ export class Flow extends React.Component {
         : this.searchOperater()
     }
   }
+
   componentWillUnmount () {
     // 频繁使用的组件，手动清除数据，避免出现闪现上一条数据
     this.props.onChuckAwayFlow()
@@ -1058,7 +1057,6 @@ Flow.propTypes = {
   onLoadAdminSingleFlow: PropTypes.func,
   onOperateUserFlow: PropTypes.func,
   onChuckAwayFlow: PropTypes.func,
-  onChangeLanguage: PropTypes.func,
   roleType: PropTypes.string,
   locale: PropTypes.string
 }
@@ -1078,8 +1076,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadSinkWriteRrrorDetail: (id, pageIndex, pageSize, resolve) => dispatch(loadSinkWriteRrrorDetail(id, pageIndex, pageSize, resolve)),
     onLoadSourceInput: (flowId, taskType, resolve) => dispatch(loadSourceInput(flowId, taskType, resolve)),
     onLoadFlowDetail: (requestValue, resolve) => dispatch(loadFlowDetail(requestValue, resolve)),
-    onChuckAwayFlow: () => dispatch(chuckAwayFlow()),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onChuckAwayFlow: () => dispatch(chuckAwayFlow())
   }
 }
 

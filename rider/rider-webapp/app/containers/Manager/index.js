@@ -41,7 +41,6 @@ import message from 'antd/lib/message'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
 import {
   loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
   deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset
@@ -118,13 +117,12 @@ export class Manager extends React.Component {
   }
 
   componentWillMount () {
-    const { streamClassHide, roleType, locale } = this.props
+    const { streamClassHide, roleType } = this.props
     if (roleType === 'admin') {
       if (!streamClassHide) {
         this.props.onLoadAdminAllStreams(() => { this.refreshStreamState() })
       }
     }
-    this.props.onChangeLanguage(locale)
   }
 
   componentWillReceiveProps (props) {
@@ -1281,7 +1279,6 @@ Manager.propTypes = {
   onShowEditStream: PropTypes.func,
   onLoadSingleUdf: PropTypes.func,
   onLoadLastestOffset: PropTypes.func,
-  onChangeLanguage: PropTypes.func,
   streamStartModalLoading: PropTypes.bool,
   roleType: PropTypes.string,
   locale: PropTypes.string
@@ -1299,8 +1296,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadLogsInfo: (projectId, streamId, resolve) => dispatch(loadLogsInfo(projectId, streamId, resolve)),
     onLoadAdminLogsInfo: (projectId, streamId, resolve) => dispatch(loadAdminLogsInfo(projectId, streamId, resolve)),
     onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
-    onLoadLastestOffset: (projectId, streamId, resolve) => dispatch(loadLastestOffset(projectId, streamId, resolve)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onLoadLastestOffset: (projectId, streamId, resolve) => dispatch(loadLastestOffset(projectId, streamId, resolve))
   }
 }
 
