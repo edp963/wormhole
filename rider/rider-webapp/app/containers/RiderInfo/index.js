@@ -32,15 +32,12 @@ import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 const FormItem = Form.Item
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadRiderInfos } from './action'
 import { selectRiderInfos } from './selectors'
-import { selectLocale } from '../LanguageProvider/selectors'
 
 export class RiderInfo extends React.Component {
   componentWillMount () {
     this.props.onLoadRiderInfos()
-    this.props.onChangeLanguage(this.props.locale)
   }
 
   render () {
@@ -79,24 +76,20 @@ export class RiderInfo extends React.Component {
 
 RiderInfo.propTypes = {
   onLoadRiderInfos: PropTypes.func,
-  onChangeLanguage: PropTypes.func,
   riderInfos: PropTypes.oneOfType([
     PropTypes.object,
     PropTypes.bool
-  ]),
-  locale: PropTypes.string
+  ])
 }
 
 export function mapDispatchToProps (dispatch) {
   return {
-    onLoadRiderInfos: () => dispatch(loadRiderInfos()),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onLoadRiderInfos: () => dispatch(loadRiderInfos())
   }
 }
 
 const mapStateToProps = createStructuredSelector({
-  riderInfos: selectRiderInfos(),
-  locale: selectLocale()
+  riderInfos: selectRiderInfos()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(RiderInfo)

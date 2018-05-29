@@ -39,7 +39,6 @@ import Popconfirm from 'antd/lib/popconfirm'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
 import {
   loadInstances,
   addInstance,
@@ -104,7 +103,6 @@ export class Instance extends React.PureComponent {
 
   componentWillMount () {
     this.refreshInstance()
-    this.props.onChangeLanguage(this.props.locale)
   }
 
   // componentWillUpdate (props) {
@@ -654,7 +652,6 @@ Instance.propTypes = {
   onLoadSingleInstance: PropTypes.func,
   onEditInstance: PropTypes.func,
   onDeleteInstace: PropTypes.func,
-  onChangeLanguage: PropTypes.func,
   onLoadCheckUrl: PropTypes.func,
   roleType: PropTypes.string,
   locale: PropTypes.string
@@ -667,7 +664,6 @@ export function mapDispatchToProps (dispatch) {
     onLoadSingleInstance: (instanceId, resolve) => dispatch(loadSingleInstance(instanceId, resolve)),
     onEditInstance: (value, resolve, reject) => dispatch(editInstance(value, resolve, reject)),
     onDeleteInstace: (value, resolve, reject) => dispatch(deleteInstace(value, resolve, reject)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type)),
     onLoadCheckUrl: (value, resolve, reject) => dispatch(checkUrl(value, resolve, reject))
   }
 }

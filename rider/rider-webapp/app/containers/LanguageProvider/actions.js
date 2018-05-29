@@ -24,6 +24,7 @@ import {
 } from './constants'
 
 export function changeLocale (languageLocale) {
+  console.log('languageLocale', languageLocale)
   return {
     type: CHANGE_LOCALE,
     locale: languageLocale
