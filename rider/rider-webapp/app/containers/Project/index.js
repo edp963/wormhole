@@ -51,7 +51,6 @@ import {
 import { loadSelectNamespaces, loadProjectNsAll } from '../Namespace/action'
 import { loadSelectUsers, loadProjectUserAll } from '../User/action'
 import { loadSingleUdf, loadProjectUdfs } from '../Udf/action'
-import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { selectLocale } from '../LanguageProvider/selectors'
 
 export class Project extends React.Component {
@@ -78,9 +77,6 @@ export class Project extends React.Component {
     } else if (roleType === 'user') {
       this.props.onLoadUserProjects()
     }
-
-    // 刷新浏览器后不改变 language
-    this.props.onChangeLanguage(this.props.locale)
   }
 
   getIntoProject = (project) => () => {
@@ -476,7 +472,6 @@ Project.propTypes = {
   onLoadProjectNsAll: PropTypes.func,
   onLoadProjectUserAll: PropTypes.func,
   onLoadProjectUdfs: PropTypes.func,
-  onChangeLanguage: PropTypes.func,
   roleType: PropTypes.string,
   locale: PropTypes.string
 }
@@ -495,8 +490,7 @@ export function mapDispatchToProps (dispatch) {
 
     onLoadProjectNsAll: (resolve) => dispatch(loadProjectNsAll(resolve)),
     onLoadProjectUserAll: (resolve) => dispatch(loadProjectUserAll(resolve)),
-    onLoadProjectUdfs: (resolve) => dispatch(loadProjectUdfs(resolve)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onLoadProjectUdfs: (resolve) => dispatch(loadProjectUdfs(resolve))
   }
 }
 

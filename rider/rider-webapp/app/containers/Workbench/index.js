@@ -67,8 +67,6 @@ import StreamConfigForm from './StreamConfigForm'
 // import StreamDagModal from './StreamDagModal'
 // import FlowDagModal from './FlowDagModal'
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
-
 import {
   loadUserAllFlows, loadAdminSingleFlow, loadSelectStreamKafkaTopic, loadSourceSinkTypeNamespace,
   loadSinkTypeNamespace, loadTranSinkTypeNamespace, loadSourceToSinkExist, addFlow, editFlow, queryFlow, loadLookupSql
@@ -225,7 +223,6 @@ export class Workbench extends React.Component {
     const projectId = this.props.router.params.projectId
     this.loadData(projectId)
     this.setState({ tabPanelKey: 'flow' })
-    this.props.onChangeLanguage(this.props.locale)
   }
 
   componentWillReceiveProps (props) {
@@ -3673,7 +3670,6 @@ Workbench.propTypes = {
 
   onLoadJobSourceNs: PropTypes.func,
   onLoadJobSinkNs: PropTypes.func,
-  onChangeLanguage: PropTypes.func,
   onLoadLookupSql: PropTypes.func,
   jobSubmitLoading: PropTypes.bool,
   roleType: PropTypes.string,
@@ -3714,7 +3710,6 @@ export function mapDispatchToProps (dispatch) {
     onAddJob: (projectId, values, resolve, final) => dispatch(addJob(projectId, values, resolve, final)),
     onQueryJob: (values, resolve, final) => dispatch(queryJob(values, resolve, final)),
     onEditJob: (values, resolve, final) => dispatch(editJob(values, resolve, final)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type)),
     onLoadLookupSql: (values, resolve, reject) => dispatch(loadLookupSql(values, resolve, reject))
   }
 }

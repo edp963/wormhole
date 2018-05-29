@@ -41,7 +41,6 @@ import message from 'antd/lib/message'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
 import {
   jsonParse,
   fieldTypeAlter,
@@ -160,13 +159,12 @@ export class Namespace extends React.PureComponent {
   }
 
   componentWillMount () {
-    const { roleType, locale } = this.props
+    const { roleType } = this.props
     if (roleType === 'admin') {
       if (!this.props.namespaceClassHide) {
         this.props.onLoadAdminAllNamespaces(() => { this.nsRefreshState() })
       }
     }
-    this.props.onChangeLanguage(locale)
   }
 
   componentWillReceiveProps (props) {
@@ -1946,7 +1944,6 @@ Namespace.propTypes = {
   onSetSchema: PropTypes.func,
   onQuerySchemaConfig: PropTypes.func,
   onDeleteNs: PropTypes.func,
-  onChangeLanguage: PropTypes.func,
   roleType: PropTypes.string,
   locale: PropTypes.string
 }
@@ -1965,8 +1962,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadSingleInstance: (namespaceId, resolve) => dispatch(loadSingleInstance(namespaceId, resolve)),
     onSetSchema: (namespaceId, value, type, resolve) => dispatch(setSchema(namespaceId, value, type, resolve)),
     onQuerySchemaConfig: (ids, value, type, resolve) => dispatch(querySchemaConfig(ids, value, type, resolve)),
-    onDeleteNs: (namespaceId, resolve, reject) => dispatch(deleteNs(namespaceId, resolve, reject)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onDeleteNs: (namespaceId, resolve, reject) => dispatch(deleteNs(namespaceId, resolve, reject))
   }
 }
 

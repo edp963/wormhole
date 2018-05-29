@@ -32,10 +32,8 @@ import Table from 'antd/lib/table'
 import Input from 'antd/lib/input'
 import Button from 'antd/lib/button'
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadResources } from './action'
 import { selectResources } from './selectors'
-import { selectLocale } from '../LanguageProvider/selectors'
 
 export class Resource extends React.Component {
   constructor (props) {
@@ -47,10 +45,6 @@ export class Resource extends React.Component {
       searchResourceName: '',
       filterDropdownVisibleResourceName: false
     }
-  }
-
-  componentWillMount () {
-    this.props.onChangeLanguage(this.props.locale)
   }
 
   componentWillReceiveProps (props) {
@@ -234,24 +228,20 @@ export class Resource extends React.Component {
 }
 
 Resource.propTypes = {
-  onChangeLanguage: PropTypes.func,
   resources: PropTypes.oneOfType([
     PropTypes.object,
     PropTypes.bool
-  ]),
-  locale: PropTypes.string
+  ])
 }
 
 export function mapDispatchToProps (dispatch) {
   return {
-    onLoadResources: (projectId, roleType) => dispatch(loadResources(projectId, roleType)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onLoadResources: (projectId, roleType) => dispatch(loadResources(projectId, roleType))
   }
 }
 
 const mapStateToProps = createStructuredSelector({
-  resources: selectResources(),
-  locale: selectLocale()
+  resources: selectResources()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Resource)
