@@ -39,7 +39,6 @@ import Popconfirm from 'antd/lib/popconfirm'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
 import {
   loadDatabases,
   addDatabase,
@@ -109,9 +108,7 @@ export class DataBase extends React.PureComponent {
   }
 
   componentWillMount () {
-    const { locale } = this.props
     this.refreshDatabase()
-    this.props.onChangeLanguage(locale)
   }
 
   componentWillReceiveProps (props) {
@@ -790,7 +787,6 @@ DataBase.propTypes = {
   onLoadDatabasesInstance: PropTypes.func,
   onLoadSingleDatabase: PropTypes.func,
   onDeleteDB: PropTypes.func,
-  onChangeLanguage: PropTypes.func,
   roleType: PropTypes.string,
   locale: PropTypes.string
 }
@@ -802,8 +798,7 @@ export function mapDispatchToProps (dispatch) {
     onEditDatabase: (database, resolve, reject) => dispatch(editDatabase(database, resolve, reject)),
     onLoadDatabasesInstance: (value, resolve) => dispatch(loadDatabasesInstance(value, resolve)),
     onLoadSingleDatabase: (databaseId, resolve) => dispatch(loadSingleDatabase(databaseId, resolve)),
-    onDeleteDB: (databaseId, resolve, reject) => dispatch(deleteDB(databaseId, resolve, reject)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onDeleteDB: (databaseId, resolve, reject) => dispatch(deleteDB(databaseId, resolve, reject))
   }
 }
 

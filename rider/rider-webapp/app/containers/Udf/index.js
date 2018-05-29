@@ -40,7 +40,6 @@ const { RangePicker } = DatePicker
 
 import { operateLanguageText } from '../../utils/util'
 import UdfForm from './UdfForm'
-import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadUdfs, loadSingleUdf, addUdf, loadUdfDetail, editUdf, deleteUdf } from './action'
 import { selectUdfs, selectError, selectModalLoading } from './selectors'
 import { selectRoleType } from '../App/selectors'
@@ -94,13 +93,12 @@ export class Udf extends React.PureComponent {
   }
 
   componentWillMount () {
-    const { roleType, udfClassHide, locale } = this.props
+    const { roleType, udfClassHide } = this.props
     if (roleType === 'admin') {
       if (!udfClassHide) {
         this.props.onLoadUdfs(() => { this.udfRefreshState() })
       }
     }
-    this.props.onChangeLanguage(locale)
   }
 
   componentWillReceiveProps (props) {
@@ -699,7 +697,6 @@ Udf.propTypes = {
   onLoadUdfDetail: PropTypes.func,
   onEditUdf: PropTypes.func,
   onDeleteUdf: PropTypes.func,
-  onChangeLanguage: PropTypes.func,
   roleType: PropTypes.string,
   locale: PropTypes.string
 }
@@ -711,8 +708,7 @@ export function mapDispatchToProps (dispatch) {
     onAddUdf: (values, resolve, reject) => dispatch(addUdf(values, resolve, reject)),
     onLoadUdfDetail: (udfId, resolve) => dispatch(loadUdfDetail(udfId, resolve)),
     onEditUdf: (values, resolve, reject) => dispatch(editUdf(values, resolve, reject)),
-    onDeleteUdf: (udfId, resolve, reject) => dispatch(deleteUdf(udfId, resolve, reject)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onDeleteUdf: (udfId, resolve, reject) => dispatch(deleteUdf(udfId, resolve, reject))
   }
 }
 
