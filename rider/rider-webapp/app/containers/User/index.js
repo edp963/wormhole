@@ -40,9 +40,8 @@ import Input from 'antd/lib/input'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { loadAdminAllUsers, loadUserUsers, addUser, editUser, loadEmailInputValue,
-  loadSelectUsers, loadUserDetail, deleteUser } from './action'
-import { selectUsers, selectError, selectModalLoading, selectEmailExited } from './selectors'
+import { loadAdminAllUsers, loadUserUsers, addUser, editUser, loadSelectUsers, loadUserDetail, deleteUser } from './action'
+import { selectUsers, selectError, selectModalLoading } from './selectors'
 import { selectRoleType } from '../App/selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
 
@@ -221,30 +220,20 @@ export class User extends React.PureComponent {
 
   onModalOk = () => {
     const { formType, editUsersMsgData, editUsersPswData } = this.state
-    const { onAddUser, onEditUser, emailExited, locale } = this.props
+    const { onAddUser, onEditUser, locale } = this.props
 
     this.userForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        const emailtext = locale === 'en' ? 'This email already exists' : '该 Email 已存在'
         const userSuccesstext = locale === 'en' ? 'User is created successfully!' : 'User 添加成功！'
         const userInfoSuccesstext = locale === 'en' ? 'User information is modified successfully!' : '用户信息修改成功！'
         const pwdSuccesstext = locale === 'en' ? 'Password is modified successfully!' : '密码修改成功！'
 
         switch (formType) {
           case 'add':
-            if (emailExited) {
-              this.userForm.setFields({
-                email: {
-                  value: values.email,
-                  errors: [new Error(emailtext)]
-                }
-              })
-            } else {
-              onAddUser(values, () => {
-                this.hideForm()
-                message.success(userSuccesstext, 3)
-              })
-            }
+            onAddUser(values, () => {
+              this.hideForm()
+              message.success(userSuccesstext, 3)
+            })
             break
           case 'editMsg':
             onEditUser(Object.assign(editUsersMsgData, values, {
@@ -265,20 +254,6 @@ export class User extends React.PureComponent {
             break
         }
       }
-    })
-  }
-
-  // 新增时，判断email是否已存在
-  onInitEmailInputValue = (value) => {
-    const { locale } = this.props
-    const emailtext = locale === 'en' ? 'This email already exists' : '该 Email 已存在'
-    this.props.onLoadEmailInputValue(value, () => {}, () => {
-      this.userForm.setFields({
-        email: {
-          value: value,
-          errors: [new Error(emailtext)]
-        }
-      })
     })
   }
 
@@ -667,7 +642,6 @@ export class User extends React.PureComponent {
         >
           <UserForm
             type={this.state.formType}
-            onInitEmailInputValue={this.onInitEmailInputValue}
             ref={(f) => { this.userForm = f }}
           />
         </Modal>
@@ -683,7 +657,6 @@ User.propTypes = {
   // ]),
   // error: React.PropTypes.bool,
   modalLoading: PropTypes.bool,
-  emailExited: PropTypes.bool,
   projectIdGeted: PropTypes.string,
   userClassHide: PropTypes.string,
   onLoadAdminAllUsers: PropTypes.func,
@@ -691,7 +664,6 @@ User.propTypes = {
   onLoadSelectUsers: PropTypes.func,
   onAddUser: PropTypes.func,
   onEditUser: PropTypes.func,
-  onLoadEmailInputValue: PropTypes.func,
   onLoadUserDetail: PropTypes.func,
   onDeleteUser: PropTypes.func,
   roleType: PropTypes.string,
@@ -705,7 +677,6 @@ export function mapDispatchToProps (dispatch) {
     onLoadSelectUsers: (projectId, resolve) => dispatch(loadSelectUsers(projectId, resolve)),
     onAddUser: (user, resolve) => dispatch(addUser(user, resolve)),
     onEditUser: (user, resolve) => dispatch(editUser(user, resolve)),
-    onLoadEmailInputValue: (value, resolve, reject) => dispatch(loadEmailInputValue(value, resolve, reject)),
     onLoadUserDetail: (userId, resolve) => dispatch(loadUserDetail(userId, resolve)),
     onDeleteUser: (userId, resolve, reject) => dispatch(deleteUser(userId, resolve, reject))
   }
@@ -715,7 +686,6 @@ const mapStateToProps = createStructuredSelector({
   users: selectUsers(),
   error: selectError(),
   modalLoading: selectModalLoading(),
-  emailExited: selectEmailExited(),
   roleType: selectRoleType(),
   locale: selectLocale()
 })

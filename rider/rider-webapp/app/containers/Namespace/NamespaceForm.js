@@ -49,18 +49,21 @@ export class NamespaceForm extends React.Component {
     super(props)
     this.state = {
       namespaceDSValue: '',
-      instanceIdGeted: 0,
       currentNamespaceUrlValue: []
     }
   }
 
   componentWillReceiveProps (props) {
     if (props.namespaceUrlValue) {
-      this.setState({ currentNamespaceUrlValue: props.namespaceUrlValue })
+      this.setState({
+        currentNamespaceUrlValue: props.namespaceUrlValue
+      }, () => {
+
+      })
     }
   }
 
-  // 显示 connection url 下拉框的内容
+  // 显示 connection url 内容
   onDatabaseDataSystemItemSelect = (value) => {
     this.setState({ namespaceDSValue: value })
     if (this.props.namespaceFormType === 'add') {
@@ -68,25 +71,15 @@ export class NamespaceForm extends React.Component {
     }
   }
 
-  onHandleChange = (name) => (e) => {
-    const { currentNamespaceUrlValue, instanceIdGeted } = this.state
+  onHandleChange = (e) => {
+    const { currentNamespaceUrlValue } = this.state
 
-    switch (name) {
-      case 'instance':
-        const selUrl = currentNamespaceUrlValue.find(s => s.id === Number(e))
-        this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
-        this.props.cleanNsTableData()
-        this.setState({
-          instanceIdGeted: selUrl.id
-        }, () => {
-          // 通过 instance id 显示 database 下拉框
-          this.props.onInitDatabaseSelectValue(instanceIdGeted, selUrl.connUrl)
-        })
-        break
-      case 'nsDatabase':
-        this.props.cleanNsTableData()
-        break
-    }
+    const selUrl = currentNamespaceUrlValue.find(s => s.id === Number(e))
+    this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
+
+    // 通过 instance id 显示 database 下拉框
+    this.props.onInitDatabaseSelectValue(selUrl.id, selUrl.connUrl)
+    this.props.cleanNsTableData()
   }
 
   render () {
@@ -132,10 +125,6 @@ export class NamespaceForm extends React.Component {
       namespaceTablePlace = 'Table'
     }
 
-    const namespaceTableLabel = namespaceDSValue === 'es' ? 'Types' : 'Tables'
-
-    const disabledKeyOrNot = namespaceDSValue === 'redis'
-
     let namespaceKeyPlaceholder = ''
     if (namespaceDSValue === 'redis') {
       namespaceKeyPlaceholder = locale === 'en' ? 'No config for Key' : 'Key 无需配置'
@@ -161,7 +150,7 @@ export class NamespaceForm extends React.Component {
 
     const namespaceTableMsg = (
       <span>
-        {namespaceTableLabel}
+        {namespaceDSValue === 'es' ? 'Types' : 'Tables'}
         {questionOrNot}
       </span>
     )
@@ -245,7 +234,7 @@ export class NamespaceForm extends React.Component {
               })(
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
-                  onChange={this.onHandleChange('instance')}
+                  onChange={this.onHandleChange}
                   placeholder={locale === 'en' ? 'Select an Instance' : '请选择 Instance'}
                   disabled={disabledOrNot}
                 >
@@ -273,7 +262,7 @@ export class NamespaceForm extends React.Component {
               })(
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
-                  onChange={this.onHandleChange('nsDatabase')}
+                  onChange={() => this.props.cleanNsTableData()}
                   placeholder={namespaceDBPlace}
                   disabled={disabledOrNot}
                 >
@@ -309,7 +298,7 @@ export class NamespaceForm extends React.Component {
                   <Input
                     placeholder={namespaceKeyPlaceholder}
                     onChange={(e) => this.props.onInitNsKeyInputValue(e.target.value)}
-                    disabled={disabledKeyOrNot}
+                    disabled={namespaceDSValue === 'redis'}
                   />
                 )}
               </FormItem>

@@ -33,9 +33,20 @@ const FormItem = Form.Item
 import Select from 'antd/lib/select'
 const Option = Select.Option
 import { selectLocale } from '../LanguageProvider/selectors'
+import { loadEmailInputValue } from './action'
 
 export class UserForm extends React.Component {
-  onEmailInputChange = (e) => this.props.onInitEmailInputValue(e.target.value)
+  checkEmail = (rule, value, callback) => {
+    const { type, locale } = this.props
+    if (type === 'add') {
+      const emailtext = locale === 'en' ? 'This email already exists' : '该 Email 已存在'
+      this.props.onLoadEmailInputValue(value, res => callback(), () => {
+        callback(emailtext)
+      })
+    } else {
+      callback()
+    }
+  }
 
   checkPasswordConfirm = (rule, value, callback) => {
     const { locale } = this.props
@@ -72,8 +83,6 @@ export class UserForm extends React.Component {
       pswModalInputClassName = pswModalInput ? 'hide' : ''
     }
 
-    const rolrTypeDisabledOrNot = type !== 'add'
-
     const itemStyle = {
       labelCol: { span: 7 },
       wrapperCol: { span: 15 }
@@ -98,12 +107,13 @@ export class UserForm extends React.Component {
                 }, {
                   type: 'email',
                   message: locale === 'en' ? 'Incorrect Email format' : 'Email 格式不正确'
+                }, {
+                  validator: this.checkEmail
                 }]
               })(
                 <Input
                   placeholder={locale === 'en' ? 'Email for login' : '用于登录的 Email 地址'}
                   disabled={type === 'editMsg'}
-                  onChange={this.onEmailInputChange}
                 />
               )}
             </FormItem>
@@ -176,7 +186,7 @@ export class UserForm extends React.Component {
                 <Select
                   style={{ width: '305px' }}
                   placeholder={locale === 'en' ? 'Select user type' : '选择用户类型'}
-                  disabled={rolrTypeDisabledOrNot}>
+                  disabled={type !== 'add'}>
                   <Option value="admin">admin</Option>
                   <Option value="user">user</Option>
                   <Option value="app">app</Option>
@@ -193,12 +203,18 @@ export class UserForm extends React.Component {
 UserForm.propTypes = {
   form: PropTypes.any,
   type: PropTypes.string,
-  onInitEmailInputValue: PropTypes.func,
+  onLoadEmailInputValue: PropTypes.func,
   locale: PropTypes.string
+}
+
+export function mapDispatchToProps (dispatch) {
+  return {
+    onLoadEmailInputValue: (value, resolve, reject) => dispatch(loadEmailInputValue(value, resolve, reject))
+  }
 }
 
 const mapStateToProps = createStructuredSelector({
   locale: selectLocale()
 })
 
-export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, null)(UserForm))
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, mapDispatchToProps)(UserForm))

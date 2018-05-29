@@ -37,15 +37,9 @@ const selectJobSubmitLoading = () => createSelector(
   (jobState) => jobState.get('jobSubmitLoading')
 )
 
-const selectJobSourceToSinkExited = () => createSelector(
-  selectJob(),
-  (jobState) => jobState.get('jobSourceToSinkExited')
-)
-
 export {
   selectJob,
   selectJobs,
   selectError,
-  selectJobSubmitLoading,
-  selectJobSourceToSinkExited
+  selectJobSubmitLoading
 }

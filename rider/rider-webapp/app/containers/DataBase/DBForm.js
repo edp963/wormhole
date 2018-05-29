@@ -40,7 +40,7 @@ const Option = Select.Option
 import { forceCheckNum } from '../../utils/util'
 import DataSystemSelector from '../../components/DataSystemSelector'
 import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
-import { checkDatabaseName } from './action'
+import { checkDatabaseName, loadDatabasesInstance } from './action'
 import { selectLocale } from '../LanguageProvider/selectors'
 
 export class DBForm extends React.Component {
@@ -73,7 +73,23 @@ export class DBForm extends React.Component {
   onDatabaseDataSystemItemSelect = (value) => {
     this.setState({ databaseDSValue: value })
     if (this.props.databaseFormType === 'add') {
-      this.props.onInitDatabaseUrlValue(value)
+      this.props.onLoadDatabasesInstance(value, () => {
+        // dbForm placeholder
+        this.props.form.setFieldsValue({
+          instance: undefined,
+          nsDatabase: '',
+          user: '',
+          password: '',
+          userRequired: '',
+          passwordRequired: '',
+          partition: '',
+          config: '',
+          description: ''
+        })
+        this.setState({
+          connUrlText: ''
+        })
+      })
     }
   }
 
@@ -91,8 +107,13 @@ export class DBForm extends React.Component {
   onHandleChange = (e) => {
     // 不同 instance 显示不同 connection url
     const selUrl = this.state.currentDatabaseUrlValue.find(s => Object.is(s.id, Number(e)))
-    this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
-    this.setState({ connUrlText: selUrl.connUrl, currentInstanceId: selUrl.id })
+    this.props.form.setFieldsValue({
+      connectionUrl: selUrl.connUrl
+    })
+    this.setState({
+      connUrlText: selUrl.connUrl,
+      currentInstanceId: selUrl.id
+    })
   }
 
   render () {
@@ -112,28 +133,15 @@ export class DBForm extends React.Component {
     ]
 
     // user/password 样式/实际数据的 hide/show
-    let uerPwdRequiredClass = ''
-    let userPwdHiddensRequired = false
-    if (databaseDSValue === 'oracle' || databaseDSValue === 'mysql' ||
-      databaseDSValue === 'postgresql' || databaseDSValue === 'vertica') {
-      uerPwdRequiredClass = ''
-      userPwdHiddensRequired = false
-    } else {
-      uerPwdRequiredClass = 'hide'
-      userPwdHiddensRequired = true
-    }
+    const dsValRequired = (databaseDSValue === 'oracle' || databaseDSValue === 'mysql' ||
+      databaseDSValue === 'postgresql' || databaseDSValue === 'vertica')
+    const uerPwdRequiredClass = dsValRequired ? '' : 'hide'
+    const userPwdHiddensRequired = !dsValRequired
 
-    let uerPwdClass = ''
-    let userPwdHiddens = false
-    if (databaseDSValue === 'oracle' || databaseDSValue === 'mysql' ||
-      databaseDSValue === 'postgresql' || databaseDSValue === 'kafka' ||
-      databaseDSValue === 'vertica') {
-      uerPwdClass = 'hide'
-      userPwdHiddens = true
-    } else {
-      uerPwdClass = ''
-      userPwdHiddens = false
-    }
+    const dsVal = (databaseDSValue === 'oracle' || databaseDSValue === 'mysql' ||
+      databaseDSValue === 'postgresql' || databaseDSValue === 'kafka' || databaseDSValue === 'vertica')
+    const userPwdHiddens = dsVal
+    const uerPwdClass = dsVal ? 'hide' : ''
 
     let databaseDSLabel = ''
     let databaseDSPlace = ''
@@ -336,9 +344,7 @@ export class DBForm extends React.Component {
                   validator: this.checkConfig
                 }]
               })(
-                <Input
-                  type="textarea" placeholder={diffPlacehodler} autosize={{ minRows: 3, maxRows: 8 }}
-                />
+                <Input type="textarea" placeholder={diffPlacehodler} autosize={{ minRows: 3, maxRows: 8 }} />
               )}
             </FormItem>
           </Col>
@@ -361,14 +367,15 @@ DBForm.propTypes = {
   type: PropTypes.string,
   databaseFormType: PropTypes.string,
   queryConnUrl: PropTypes.string,
-  onInitDatabaseUrlValue: PropTypes.func,
+  onLoadDatabasesInstance: PropTypes.func,
   oncheckDatabaseName: PropTypes.func,
   locale: PropTypes.string
 }
 
 function mapDispatchToProps (dispatch) {
   return {
-    oncheckDatabaseName: (id, name, resolve, reject) => dispatch(checkDatabaseName(id, name, resolve, reject))
+    oncheckDatabaseName: (id, name, resolve, reject) => dispatch(checkDatabaseName(id, name, resolve, reject)),
+    onLoadDatabasesInstance: (value, resolve) => dispatch(loadDatabasesInstance(value, resolve))
   }
 }
 

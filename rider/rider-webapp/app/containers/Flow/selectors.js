@@ -37,15 +37,9 @@ const selectFlowSubmitLoading = () => createSelector(
   (flowState) => flowState.get('flowSubmitLoading')
 )
 
-const selectSourceToSinkExited = () => createSelector(
-  selectFlow(),
-  (flowState) => flowState.get('sourceToSinkExited')
-)
-
 export {
   selectFlow,
   selectFlows,
   selectError,
-  selectFlowSubmitLoading,
-  selectSourceToSinkExited
+  selectFlowSubmitLoading
 }
