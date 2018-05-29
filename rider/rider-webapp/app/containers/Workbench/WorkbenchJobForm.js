@@ -25,6 +25,7 @@ import { createStructuredSelector } from 'reselect'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
+import message from 'antd/lib/message'
 import Form from 'antd/lib/form'
 const FormItem = Form.Item
 import Row from 'antd/lib/row'
@@ -51,15 +52,18 @@ import {
 } from '../../utils/util'
 import DataSystemSelector from '../../components/DataSystemSelector'
 import { sourceDataSystemData, jobSinkDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
-import { loadJobName } from '../Job/action'
+import { loadJobName, loadJobSourceNs, loadJobSinkNs } from '../Job/action'
 import { selectLocale } from '../LanguageProvider/selectors'
+import { generateSourceSinkNamespaceHierarchy } from './workbenchFunction'
 
 export class WorkbenchJobForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
       sinkConfigClass: '',
-      checked: false
+      checked: false,
+      sourceNsData: [],
+      sinkNsData: []
     }
   }
 
@@ -87,37 +91,58 @@ export class WorkbenchJobForm extends React.Component {
 
   onChangeCheckbox = (e) => this.setState({ checked: e.target.checked })
 
-  // 通过不同的 Source Data System 显示不同的 Source Namespace 的内容
+  // 通过 Source Data System 显示 Source Namespace 内容
   onSourceDataSystemItemSelect = (val) => {
-    const { projectIdGeted } = this.props
+    const { projectIdGeted, jobMode, locale } = this.props
 
     if (val) {
-      this.props.onInitJobSourceNs(projectIdGeted, val, 'sourceType')
+      this.props.onLoadJobSourceNs(projectIdGeted, val, 'sourceType', (result) => {
+        this.setState({
+          sourceNsData: generateSourceSinkNamespaceHierarchy(val, result)
+        })
+        if (jobMode === 'add') {
+          this.props.form.setFieldsValue({ sourceNamespace: undefined })
+        }
+      }, (result) => {
+        message.error(`Source ${locale === 'en' ? 'exception:' : '异常：'} ${result}`, 5)
+      })
     }
   }
 
-  // 通过不同的 Sink Data System 显示不同的 Sink Namespace 的内容
+  // 通过 Sink Data System 显示 Sink Namespace 内容
   onSinkDataSystemItemSelect = (val) => {
-    const { projectIdGeted } = this.props
+    const { projectIdGeted, jobMode, locale } = this.props
+
     if (val) {
-      this.props.onInitJobSinkNs(projectIdGeted, val, 'sinkType')
+      this.props.onInitJobSinkNs(val)
+
+      this.props.onLoadJobSinkNs(projectIdGeted, val, 'sinkType', (result) => {
+        this.setState({
+          sinkNsData: generateSourceSinkNamespaceHierarchy(val, result)
+        })
+        if (jobMode === 'add') {
+          this.props.form.setFieldsValue({ sinkNamespace: undefined })
+        }
+      }, (result) => {
+        message.error(`Sink ${locale === 'en' ? 'exception:' : '异常：'} ${result}`, 5)
+      })
     }
-    this.setState({ sinkConfigClass: val === 'hbase' ? 'sink-config-class' : '' })
+    this.setState({
+      sinkConfigClass: val === 'hbase' ? 'sink-config-class' : ''
+    })
   }
 
   onChangeStartTs = (value, dateString) => this.props.initStartTS(dateString)
   onChangeEndTs = (value, dateString) => this.props.initEndTS(dateString)
 
   render () {
-    const { step, form, jobMode, fieldSelected, jobTranTableConfirmValue,
-      onShowJobTransModal, onShowJobSinkConfigModal,
-      jobTransTableSource, onDeleteSingleTransform, onJobAddTransform,
-      onEditTransform, onUpTransform, onDownTransform,
-      jobStepSourceNs, jobStepSinkNs, jobTranTagClassName, jobTranTableClassName,
-      jobTranConfigConfirmValue, sourceTypeNamespaceData, sinkTypeNamespaceData, locale
+    const { step, form, jobMode, fieldSelected, jobTranTableConfirmValue, onShowJobTransModal,
+      onShowJobSinkConfigModal, jobTransTableSource, onDeleteSingleTransform, onJobAddTransform,
+      onEditTransform, onUpTransform, onDownTransform, jobStepSourceNs, jobStepSinkNs,
+      jobTranTagClassName, jobTranTableClassName, jobTranConfigConfirmValue, locale
     } = this.props
     const { getFieldDecorator } = form
-    const { sinkConfigClass } = this.state
+    const { sinkConfigClass, sourceNsData, sinkNsData } = this.state
 
     const stepClassNames = [
       step === 0 ? '' : 'hide',
@@ -415,7 +440,7 @@ export class WorkbenchJobForm extends React.Component {
                     disabled={jobMode === 'edit'}
                     placeholder="Select a Source Namespace"
                     popupClassName="ri-workbench-select-dropdown"
-                    options={sourceTypeNamespaceData}
+                    options={sourceNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
                   />
@@ -469,7 +494,7 @@ export class WorkbenchJobForm extends React.Component {
                     disabled={jobMode === 'edit'}
                     placeholder="Select a Sink Namespace"
                     popupClassName="ri-workbench-select-dropdown"
-                    options={sinkTypeNamespaceData}
+                    options={sinkNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
                   />
@@ -685,9 +710,6 @@ WorkbenchJobForm.propTypes = {
   onEditTransform: PropTypes.func,
   onUpTransform: PropTypes.func,
   onDownTransform: PropTypes.func,
-  sourceTypeNamespaceData: PropTypes.array,
-  sinkTypeNamespaceData: PropTypes.array,
-  onInitJobSourceNs: PropTypes.func,
   onInitJobSinkNs: PropTypes.func,
   jobResultFieldsValue: PropTypes.string,
   jobTranTableConfirmValue: PropTypes.string,
@@ -696,6 +718,8 @@ WorkbenchJobForm.propTypes = {
   initStartTS: PropTypes.func,
   initEndTS: PropTypes.func,
   onShowJobSpecialConfigModal: PropTypes.func,
+  onLoadJobSourceNs: PropTypes.func,
+  onLoadJobSinkNs: PropTypes.func,
 
   onLoadJobName: PropTypes.func,
   locale: PropTypes.string
@@ -703,7 +727,9 @@ WorkbenchJobForm.propTypes = {
 
 function mapDispatchToProps (dispatch) {
   return {
-    onLoadJobName: (projectId, value, resolve, reject) => dispatch(loadJobName(projectId, value, resolve, reject))
+    onLoadJobName: (projectId, value, resolve, reject) => dispatch(loadJobName(projectId, value, resolve, reject)),
+    onLoadJobSourceNs: (projectId, value, type, resolve, reject) => dispatch(loadJobSourceNs(projectId, value, type, resolve, reject)),
+    onLoadJobSinkNs: (projectId, value, type, resolve, reject) => dispatch(loadJobSinkNs(projectId, value, type, resolve, reject))
   }
 }
 
