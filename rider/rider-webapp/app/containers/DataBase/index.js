@@ -43,7 +43,6 @@ import {
   loadDatabases,
   addDatabase,
   editDatabase,
-  loadDatabasesInstance,
   loadSingleDatabase,
   deleteDB
 } from './action'
@@ -102,7 +101,6 @@ export class DataBase extends React.PureComponent {
       paginationInfo: null,
 
       editDatabaseData: {},
-      databaseDSType: '',
       queryConnUrl: ''
     }
   }
@@ -165,10 +163,9 @@ export class DataBase extends React.PureComponent {
 
   // 回显
   showEditDB = (database) => (e) => {
-    this.props.onLoadSingleDatabase(database.id, ({
-                                                    active, config, connUrl, createBy, createTime, desc, id, nsDatabase, nsInstance,
-                                                    nsInstanceId, nsSys, partitions, pwd, updateBy, updateTime, user
-                                                  }) => {
+    this.props.onLoadSingleDatabase(database.id, (result) => {
+      const { active, config, connUrl, createBy, createTime, desc, id, nsDatabase, nsInstance,
+        nsInstanceId, nsSys, partitions, pwd, updateBy, updateTime, user } = result
       this.setState({
         formVisible: true,
         formType: 'edit',
@@ -249,7 +246,7 @@ export class DataBase extends React.PureComponent {
           case 'add':
             const addValues = {
               nsDatabase: nsDatabase,
-              desc: !description ? '' : description,
+              desc: description || '',
               nsInstanceId: Number(instance)
             }
             if (dataBaseDataSystem === 'oracle') {
@@ -274,9 +271,9 @@ export class DataBase extends React.PureComponent {
                 valuesPwd = passwordRequired
                 valuesConfig = config
               } else {
-                valuesUser = !user ? '' : user
-                valuesPwd = !password ? '' : password
-                valuesConfig = !config ? '' : config
+                valuesUser = user || ''
+                valuesPwd = password || ''
+                valuesConfig = config || ''
               }
 
               const othersObj = {
@@ -393,26 +390,6 @@ export class DataBase extends React.PureComponent {
   }
 
   onInputChange = (value) => (e) => this.setState({ [value]: e.target.value })
-
-  // 新增时，不同 data system 显示不同 Instance 下拉框内容
-  onInitDatabaseUrlValue = (value) => {
-    this.props.onLoadDatabasesInstance(value, () => {
-      this.setState({ databaseDSType: value })
-      // dbForm placeholder
-      this.dBForm.setFieldsValue({
-        connectionUrl: '',
-        instance: undefined,
-        nsDatabase: '',
-        user: '',
-        password: '',
-        userRequired: '',
-        passwordRequired: '',
-        partition: '',
-        config: '',
-        description: ''
-      })
-    })
-  }
 
   handleEndOpenChange = (status) => this.setState({ filterDatepickerShown: status })
 
@@ -765,7 +742,6 @@ export class DataBase extends React.PureComponent {
           <DBForm
             databaseFormType={formType}
             queryConnUrl={queryConnUrl}
-            onInitDatabaseUrlValue={this.onInitDatabaseUrlValue}
             databaseUrlValue={dbUrlValue}
             ref={(f) => { this.dBForm = f }}
           />
@@ -784,7 +760,6 @@ DataBase.propTypes = {
   onLoadDatabases: PropTypes.func,
   onAddDatabase: PropTypes.func,
   onEditDatabase: PropTypes.func,
-  onLoadDatabasesInstance: PropTypes.func,
   onLoadSingleDatabase: PropTypes.func,
   onDeleteDB: PropTypes.func,
   roleType: PropTypes.string,
@@ -796,7 +771,6 @@ export function mapDispatchToProps (dispatch) {
     onLoadDatabases: (resolve) => dispatch(loadDatabases(resolve)),
     onAddDatabase: (database, resolve, reject) => dispatch(addDatabase(database, resolve, reject)),
     onEditDatabase: (database, resolve, reject) => dispatch(editDatabase(database, resolve, reject)),
-    onLoadDatabasesInstance: (value, resolve) => dispatch(loadDatabasesInstance(value, resolve)),
     onLoadSingleDatabase: (databaseId, resolve) => dispatch(loadSingleDatabase(databaseId, resolve)),
     onDeleteDB: (databaseId, resolve, reject) => dispatch(deleteDB(databaseId, resolve, reject))
   }
