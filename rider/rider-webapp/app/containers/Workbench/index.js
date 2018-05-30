@@ -325,7 +325,7 @@ export class Workbench extends React.Component {
     this.setState({ transformSinkTypeNamespaceData: [] })
 
     if (pipelineStreamId !== 0) {
-      this.props.onLoadTranSinkTypeNamespace(projectId, this.state.pipelineStreamId, value, type, (result) => {
+      this.props.onLoadTranSinkTypeNamespace(projectId, pipelineStreamId, value, type, (result) => {
         this.setState({
           transformSinkNamespaceArray: result,
           transformSinkTypeNamespaceData: generateTransformSinkNamespaceHierarchy(value, result)
@@ -2399,19 +2399,19 @@ export class Workbench extends React.Component {
               transformConfigInfoRequestString = `pushdown_sql ${lookupSqlTypeOrigin} with ${sysInsDb} = ${lookupSqlVal}`
               const tmp = transformSinkNamespaceArray.find(i => [i.nsSys, i.nsInstance, i.nsDatabase].join('.') === sysInsDb)
 
-              const pushdownConnectJson = tmp.connection_config === null
+              const pushdownConnectJson = tmp.connection_config
                 ? {
-                  name_space: `${tmp.nsSys}.${tmp.nsInstance}.${tmp.nsDatabase}`,
-                  jdbc_url: tmp.conn_url,
-                  username: tmp.user,
-                  password: tmp.pwd
-                }
-                : {
                   name_space: `${tmp.nsSys}.${tmp.nsInstance}.${tmp.nsDatabase}`,
                   jdbc_url: tmp.conn_url,
                   username: tmp.user,
                   password: tmp.pwd,
                   connection_config: tmp.connection_config
+                }
+                : {
+                  name_space: `${tmp.nsSys}.${tmp.nsInstance}.${tmp.nsDatabase}`,
+                  jdbc_url: tmp.conn_url,
+                  username: tmp.user,
+                  password: tmp.pwd
                 }
 
               pushdownConnectionJson = pushdownConnectJson
@@ -3047,12 +3047,11 @@ export class Workbench extends React.Component {
 
   render () {
     const {
-      flowMode, projectId, streamMode, jobMode, formStep, isWormhole,
-      flowClassHide, flowFormTranTableSource, jobFormTranTableSource,
-      namespaceClassHide, userClassHide, udfClassHide, flowSpecialConfigModalVisible,
-      transformModalVisible, sinkConfigModalVisible, etpStrategyModalVisible,
-      streamConfigModalVisible, sparkConfigModalVisible, jobSinkConfigModalVisible,
-      jobTransModalVisible, jobSpecialConfigModalVisible, pipelineStreamId
+      flowMode, projectId, streamMode, jobMode, formStep, isWormhole, flowClassHide,
+      flowFormTranTableSource, jobFormTranTableSource, namespaceClassHide, userClassHide,
+      udfClassHide, flowSpecialConfigModalVisible, transformModalVisible, sinkConfigModalVisible,
+      etpStrategyModalVisible, streamConfigModalVisible, sparkConfigModalVisible,
+      jobSinkConfigModalVisible, jobTransModalVisible, jobSpecialConfigModalVisible, pipelineStreamId
     } = this.state
     const { streams, projectNamespaces, streamSubmitLoading, locale } = this.props
 
