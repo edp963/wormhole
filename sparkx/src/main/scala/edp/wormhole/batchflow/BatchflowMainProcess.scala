@@ -379,25 +379,7 @@ object BatchflowMainProcess extends EdpLogging {
         UmsField(t._1, SparkUtils.sparkSqlType2UmsFieldType(t._3.toString), Some(true))
       }).toSeq
       val tuples: RDD[Seq[String]] = swiftsDf.map {
-        row =>
-          nameIndex.map {
-            case (_, index, dataType) =>
-              val value: Any = row.get(index)
-//              logInfo("-----dataType:"+dataType+",value="+value)
-              if (value == null) null else {
-                if (dataType == BinaryType) {
-                  CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
-                } else if (dataType == FloatType) {
-                  java.lang.Float.parseFloat(value.toString).toString
-                } else if (dataType == DoubleType) {
-                  java.lang.Double.parseDouble(value.toString).toString
-                } else if (dataType == DecimalType) {
-                  new java.math.BigDecimal(value.toString).toPlainString()
-                } else {
-                  value.toString
-                }
-              }
-          }.toSeq
+        row => nameIndex.map{case (_, index, dataType) => SparkUtils.sparkValue2Object(row.get(index), dataType).toString}.toSeq
       }.rdd
       (umsFields, tuples, afterUnionDf)
     } catch {
