@@ -41,7 +41,7 @@ class Data2KuduSink extends SinkProcessor with EdpLogging {
             else KuduConnection.doQueryByKeyList(tableName,database, connectionConfig.connectionUrl, tableKeys, tupleList, schemaMap, List { UmsSysField.ID.toString })
           val insertList = ListBuffer.empty[Seq[String]]
           val updateList = ListBuffer.empty[Seq[String]]
-          if (keys2UmsIdMap.isEmpty) insertList ++= tupleList
+          if (keys2UmsIdMap==null||keys2UmsIdMap.isEmpty) insertList ++= tupleList
           else {
             tupleList.foreach(tuple => {
               val keysStr = tableKeys.map(keyName => {
