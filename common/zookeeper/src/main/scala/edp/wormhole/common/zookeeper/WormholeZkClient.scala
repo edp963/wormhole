@@ -45,6 +45,16 @@ object WormholeZkClient {
     zkClient
   }
 
+  def closeZkClient(): Unit ={
+    try{
+      if (zkClient == null) {
+        zkClient.close()
+      }
+    }catch{
+      case e:Throwable=>println("zkClient.close error")
+    }
+  }
+
   def getNextAtomicIncrement(zkAddress: String, path: String): Long = {
     // todo if it failed? try catch not work
     val atomicLong = new DistributedAtomicLong(getZkClient(zkAddress), path, new ExponentialBackoffRetry(1000, 3))
