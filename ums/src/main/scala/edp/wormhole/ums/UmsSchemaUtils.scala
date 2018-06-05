@@ -48,7 +48,36 @@ trait UmsSchemaUtils {
 
     val umsSchema = toUmsSchemaFromJsonObject(schema)
 
-    val payloadArr: Option[Seq[UmsTuple]] = if (jsonObj.containsKey("payload") && jsonObj.getJSONArray("payload").size() > 0) {
+    val payloadArr: Option[Seq[UmsTuple]] = parsePayload(jsonObj)
+//      if (jsonObj.containsKey("payload") && jsonObj.getJSONArray("payload").size() > 0) {
+//      val payloadJsonArr = jsonObj.getJSONArray("payload")
+//      val payloadSize = payloadJsonArr.size()
+//      val tmpPayload: Array[UmsTuple] = new Array[UmsTuple](payloadSize)
+//      for (i <- 0 until payloadSize) {
+//        val tuple: JSONObject = payloadJsonArr.get(i).asInstanceOf[JSONObject]
+//        val tupleJsonArr: JSONArray = tuple.getJSONArray("tuple")
+//        val tupleSeq = new ArrayBuffer[String]()
+//        for (j <- 0 until tupleJsonArr.size()) {
+//          val ele = tupleJsonArr.get(j)
+//          val tuple = if (ele == null) null else ele.toString
+//          tupleSeq += tuple
+//        }
+//
+//        val tupleArr = UmsTuple(tupleSeq)
+//        tmpPayload(i) = tupleArr
+//      }
+//      Some(tmpPayload)
+//    } else {
+//      None
+//    }
+
+    Ums(UmsProtocol(UmsProtocolType.umsProtocolType(protocol)),
+      umsSchema,
+      payloadArr)
+  }
+
+  def parsePayload(jsonObj:JSONObject): Option[Seq[UmsTuple]] ={
+    if (jsonObj.containsKey("payload") && jsonObj.getJSONArray("payload").size() > 0) {
       val payloadJsonArr = jsonObj.getJSONArray("payload")
       val payloadSize = payloadJsonArr.size()
       val tmpPayload: Array[UmsTuple] = new Array[UmsTuple](payloadSize)
@@ -69,10 +98,6 @@ trait UmsSchemaUtils {
     } else {
       None
     }
-
-    Ums(UmsProtocol(UmsProtocolType.umsProtocolType(protocol)),
-      umsSchema,
-      payloadArr)
   }
 
 
