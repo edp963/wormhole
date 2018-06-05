@@ -27,7 +27,7 @@ import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 
-trait SinkProcessor {
+abstract class SinkProcessor {
 
   def process(protocolType:UmsProtocolType,
               sourceNamespace:String,
