@@ -34,7 +34,7 @@ object UdfUtils extends EdpLogging {
     if (!jarPathMap.contains(udfName)) {
       val clazz = Class.forName(className)
       val o: Any = clazz.newInstance()
-      val methods = clazz.getDeclaredMethods
+      val methods = clazz.getMethods
       var callMethod: Method = null
       for (i <- methods.indices) {
         val m: Method = methods(i)
