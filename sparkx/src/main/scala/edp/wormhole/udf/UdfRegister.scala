@@ -41,7 +41,7 @@ object UdfRegister extends EdpLogging {
       //    }
       val clazz = Class.forName(udfClassFullname)
       val method = {
-        val methods = clazz.getDeclaredMethods
+        val methods = clazz.getMethods
         var callMethod: Method = null
         for (i <- methods.indices) {
           val m: Method = methods(i)
@@ -62,7 +62,7 @@ object UdfRegister extends EdpLogging {
   private def loadJar(path: String): Unit = {
     val url = new URI(path).toURL
     val classLoader = getClass.getClassLoader.asInstanceOf[URLClassLoader]
-    val loaderMethod = classOf[URLClassLoader].getDeclaredMethod("addURL", classOf[URL])
+    val loaderMethod = classOf[URLClassLoader].getMethod("addURL", classOf[URL])
     loaderMethod.setAccessible(true)
     loaderMethod.invoke(classLoader, url)
   }

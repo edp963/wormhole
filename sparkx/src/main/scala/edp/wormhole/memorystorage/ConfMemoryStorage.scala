@@ -208,7 +208,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
     if (!swiftsTransformReflectMap.contains(className)) {
       val clazz = Class.forName(className)
       val reflectObject: Any = clazz.newInstance()
-      val transformMethod = clazz.getDeclaredMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig])
+      val transformMethod = clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig])
       swiftsTransformReflectMap += (className -> (reflectObject, transformMethod))
     }
   }
