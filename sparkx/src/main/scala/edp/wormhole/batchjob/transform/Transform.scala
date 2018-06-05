@@ -47,7 +47,7 @@ object Transform extends EdpLogging {
         case "custom_class" =>
           val clazz = Class.forName(content)
           val reflectObject: Any = clazz.newInstance()
-          val transformMethod = clazz.getDeclaredMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig])
+          val transformMethod = clazz.getMethod("transform", classOf[SparkSession], classOf[DataFrame], classOf[SwiftsProcessConfig])
 
           currentDf = transformMethod.invoke(reflectObject, session, currentDf, SwiftsProcessConfig(specialConfig = specialConfig)).asInstanceOf[DataFrame]
         case _ => logInfo("unsupported processing type, e.g. spark_sql, custom_class.")
