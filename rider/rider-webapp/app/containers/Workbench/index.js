@@ -750,7 +750,10 @@ export class Workbench extends React.Component {
             const tranConfigVal = JSON.parse(tt)
 
             let validityTemp = tranConfigVal.validity
-            if (result.tranConfig.includes('validity')) {
+            const { tranConfig } = result
+            if (tranConfig.includes('validity') && tranConfig.includes('check_columns') &&
+              tranConfig.includes('check_rule') && tranConfig.includes('rule_mode') &&
+              tranConfig.includes('rule_params') && tranConfig.includes('against_action')) {
               const { check_columns, check_rule, rule_mode, rule_params, against_action } = validityTemp
               const requestTempJson = {
                 check_columns: check_columns,
