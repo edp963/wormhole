@@ -13,7 +13,7 @@ description: Wormhole WH_VERSION_SHORT Deployment page
 #### 环境准备
 - JDK1.8
 - Hadoop-client（HDFS，YARN）（支持版本 2.6+）
-- Spark-client （支持版本 2.1.1，2.2.0）
+- Spark-client （支持版本 2.2.0，2.2.1）
 
 #### 依赖服务
 
