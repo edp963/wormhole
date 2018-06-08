@@ -423,7 +423,7 @@ export class WorkbenchJobForm extends React.Component {
                   }],
                   initialValue: 'default'
                 })(
-                  <RadioGroup className="radio-group-style" size="default" onChange={this.changeJobType} disabled={jobMode === 'edit'}>
+                  <RadioGroup className="radio-group-style" onChange={this.changeJobType} disabled={jobMode === 'edit'} size="default">
                     <RadioButton value="default" className="radio-btn-style radio-btn-extra">Default</RadioButton>
                     <RadioButton value="backfill" className="radio-btn-style radio-btn-extra">Backfill</RadioButton>
                   </RadioGroup>

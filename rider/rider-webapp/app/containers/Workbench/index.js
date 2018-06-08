@@ -3022,10 +3022,11 @@ export class Workbench extends React.Component {
       jobTranTableClassName: 'hide',
       fieldSelected: 'hide',
       resultFieldsValue: 'all',
-      backfillSinkNsValue: ''
+      backfillSinkNsValue: '',
+      jobDiffType: 'default'
     }, () => {
       this.workbenchJobForm.setFieldsValue({
-        type: 'hdfs_txt',
+        // type: 'default',
         resultFields: 'all'
       })
     })
