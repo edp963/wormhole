@@ -73,6 +73,8 @@ object UmsFieldType extends Enumeration {
   val DATETIME = Value("datetime")
   val DECIMAL = Value("decimal")
   val BINARY = Value("binary")
+  val JSONARRAY = Value("jsonarray")
+  val JSONOBJECT = Value("jsonobject")
 
   def classType = Value match {
     case STRING => classOf[String]

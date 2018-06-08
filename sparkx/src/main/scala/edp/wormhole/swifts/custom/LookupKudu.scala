@@ -64,6 +64,7 @@ object LookupKudu extends EdpLogging {
           val tupleList: mutable.Seq[List[String]] = subList.map(row=>{
             keysName.map(field => {
               row.get(row.fieldIndex(field)).toString
+
             })
           })
           val queryMap: mutable.Map[String, Map[String, (Any, String)]] =
@@ -71,7 +72,7 @@ object LookupKudu extends EdpLogging {
 
           subList.foreach(row=>{
             val originalArray: Array[Any] = row.schema.fieldNames.map(name => row.get(row.fieldIndex(name)))
-            val queryFieldsResultMap: Map[String, (Any, String)] = if(queryMap==null||queryMap.isEmpty)  null.asInstanceOf[Map[String, (Any, String)]]
+            val queryFieldsResultMap: Map[String, (Any, String)] = if(queryMap==null||queryMap.isEmpty || !queryMap.contains(keyName))  null.asInstanceOf[Map[String, (Any, String)]]
             else queryMap(keyName)
             resultData.append(getJoinRow(fieldArray,queryFieldsResultMap,originalArray,resultSchema))
           })
