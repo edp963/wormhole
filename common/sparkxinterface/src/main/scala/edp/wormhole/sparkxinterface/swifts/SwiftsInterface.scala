@@ -23,6 +23,6 @@ package edp.wormhole.sparkxinterface.swifts
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
-trait SwiftsInterface {
+abstract class SwiftsInterface {
   def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig): DataFrame
 }

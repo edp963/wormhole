@@ -196,7 +196,7 @@ object KuduConnection extends Serializable with EdpLogging {
           }
           (f, value)
         }).toMap
-        queryResultMap(queryResult(keyName)._1.toString) =queryResult
+        queryResultMap(keyName) =queryResult
       }
     }
 

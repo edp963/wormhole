@@ -81,7 +81,7 @@ object BatchJobStarter extends App with EdpLogging {
 
   val sourceClazz = Class.forName(sourceConfig.classFullName)
   val sourceReflectObject: Any = sourceClazz.newInstance()
-  val sourceTransformMethod = sourceClazz.getDeclaredMethod("process", classOf[SparkSession], classOf[String], classOf[String], classOf[String], classOf[ConnectionConfig], classOf[Option[String]])
+  val sourceTransformMethod = sourceClazz.getMethod("process", classOf[SparkSession], classOf[String], classOf[String], classOf[String], classOf[ConnectionConfig], classOf[Option[String]])
   val sourceDf = sourceTransformMethod.invoke(sourceReflectObject, sparkSession, sourceConfig.startTime, sourceConfig.endTime, sourceConfig.sourceNamespace, sourceConfig.connectionConfig, sourceConfig.specialConfig).asInstanceOf[DataFrame]
 
   val transformDf = if (transformationList == null) sourceDf else {
@@ -107,7 +107,7 @@ object BatchJobStarter extends App with EdpLogging {
       val sendList = ListBuffer.empty[Seq[String]]
       val sinkClazz = Class.forName(sinkClassFullName)
       val sinkReflectObject: Any = sinkClazz.newInstance()
-      val sinkTransformMethod = sinkClazz.getDeclaredMethod("process", classOf[UmsProtocolType], classOf[String], classOf[String], classOf[SinkProcessConfig], classOf[collection.Map[String, (Int, UmsFieldType, Boolean)]], classOf[Seq[Seq[String]]], classOf[ConnectionConfig])
+      val sinkTransformMethod = sinkClazz.getMethod("process", classOf[UmsProtocolType], classOf[String], classOf[String], classOf[SinkProcessConfig], classOf[collection.Map[String, (Int, UmsFieldType, Boolean)]], classOf[Seq[Seq[String]]], classOf[ConnectionConfig])
       while (partition.hasNext) {
         val row = partition.next
         if (sendList.size < limit) {

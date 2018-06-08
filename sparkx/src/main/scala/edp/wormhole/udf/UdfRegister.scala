@@ -41,7 +41,7 @@ object UdfRegister extends EdpLogging {
       //    }
       val clazz = Class.forName(udfClassFullname)
       val method = {
-        val methods = clazz.getDeclaredMethods
+        val methods = clazz.getMethods
         var callMethod: Method = null
         for (i <- methods.indices) {
           val m: Method = methods(i)

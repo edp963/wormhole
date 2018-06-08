@@ -682,7 +682,11 @@ export class Workbench extends React.Component {
   // Flow 调单条查询的接口，回显数据
   queryFlowInfo = (flow) => {
     this.setState({
-      streamDiffType: typeof (flow.streamType) === 'object' ? flow.streamTypeOrigin : flow.streamType
+      streamDiffType: typeof (flow.streamType) === 'object' ? flow.streamTypeOrigin : flow.streamType,
+      transformTableConfirmValue: '',
+      transConfigConfirmValue: '',
+      flowFormTranTableSource: [],
+      etpStrategyConfirmValue: ''
     }, () => {
       const { streamDiffType } = this.state
       switch (streamDiffType) {
@@ -754,7 +758,10 @@ export class Workbench extends React.Component {
             const tranConfigVal = JSON.parse(tt)
 
             let validityTemp = tranConfigVal.validity
-            if (result.tranConfig.includes('validity')) {
+            const { tranConfig } = result
+            if (tranConfig.includes('validity') && tranConfig.includes('check_columns') &&
+              tranConfig.includes('check_rule') && tranConfig.includes('rule_mode') &&
+              tranConfig.includes('rule_params') && tranConfig.includes('against_action')) {
               const { check_columns, check_rule, rule_mode, rule_params, against_action } = validityTemp
               const requestTempJson = {
                 check_columns: check_columns,
@@ -773,6 +780,7 @@ export class Workbench extends React.Component {
             } else {
               this.setState({
                 etpStrategyCheck: false,
+                etpStrategyRequestValue: {},
                 etpStrategyResponseValue: ''
               })
             }
@@ -963,6 +971,7 @@ export class Workbench extends React.Component {
       transformTableClassName: 'hide',
       transConnectClass: 'hide',
       etpStrategyCheck: false,
+      etpStrategyRequestValue: {},
       dataframeShowSelected: 'hide'
     })
   }
@@ -1744,7 +1753,6 @@ export class Workbench extends React.Component {
     }
 
     if (jobMode === 'add') {
-      console.log('values', values)
       // source data system 选择log后，根据接口返回的nsSys值，拼接 sourceDataInfo
       const sourceDataInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
       const sinkDataInfo = jobDiffType === 'backfill' ? sourceDataInfo : [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
@@ -1873,6 +1881,7 @@ export class Workbench extends React.Component {
       transConnectClass: 'hide',
       fieldSelected: 'hide',
       etpStrategyCheck: false,
+      etpStrategyRequestValue: {},
       dataframeShowSelected: 'hide',
       flowFormTranTableSource: []
     })
@@ -2631,6 +2640,7 @@ export class Workbench extends React.Component {
         transConnectClass: 'hide',
         fieldSelected: 'hide',
         etpStrategyCheck: false,
+        etpStrategyRequestValue: {},
         etpStrategyConfirmValue: '',
         dataframeShowSelected: 'hide',
         transformMode: '',
@@ -2839,6 +2849,9 @@ export class Workbench extends React.Component {
         })
       } else {
         this.flowEtpStrategyForm.resetFields()
+        this.setState({
+          etpStrategyRequestValue: {}
+        })
       }
     })
   }
