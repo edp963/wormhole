@@ -570,7 +570,8 @@ export class Job extends React.Component {
       sorter: (a, b) => a.sourceType < b.sourceType ? -1 : 1,
       sortOrder: sortedInfo.columnKey === 'sourceType' && sortedInfo.order,
       filters: [
-        {text: 'hdfs_txt', value: 'hdfs_txt'}
+        {text: 'default', value: 'default'},
+        {text: 'backfill', value: 'backfill'}
       ],
       filteredValue: filteredInfo.sourceType,
       onFilter: (value, record) => record.sourceType.includes(value)
