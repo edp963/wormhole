@@ -93,7 +93,11 @@ export class Job extends React.Component {
       visibleBool: false,
       startTimeTextState: '',
       endTimeTextState: '',
-      paginationInfo: null
+      paginationInfo: null,
+      mapJobType: {
+        '1': 'default',
+        '2': 'backfill'
+      }
     }
   }
 
@@ -104,9 +108,16 @@ export class Job extends React.Component {
   componentWillReceiveProps (props) {
     if (props.jobs) {
       const originJobs = props.jobs.map(s => {
+        let jobType = ''
+        if (Number(s.job.jobType) !== Number(s.job.jobType)) {
+          jobType = s.job.jobType
+        } else {
+          jobType = this.state.mapJobType[s.job.jobType]
+        }
         const responseOriginJob = Object.assign(s.job, {
           disableActions: s.disableActions,
-          projectName: s.projectName
+          projectName: s.projectName,
+          jobType
         })
         responseOriginJob.key = responseOriginJob.id
         return responseOriginJob
@@ -247,16 +258,16 @@ export class Job extends React.Component {
     let filterValue = {}
     if (filteredInfo !== null) {
       if (filteredInfo) {
-        if (filters.status && filters.sourceType) {
-          if (filters.status.length === 0 && filters.sourceType.length === 0) {
+        if (filters.status && filters.jobType) {
+          if (filters.status.length === 0 && filters.jobType.length === 0) {
             return
           } else {
             this.onSearch('', '', false)()
-            if (filteredInfo.status && filteredInfo.sourceType) {
-              if (filteredInfo.status.length !== 0 && filters.sourceType.length !== 0) {
-                filterValue = {status: [], sourceType: filters.sourceType}
-              } else if (filteredInfo.sourceType.length !== 0 && filters.status.length !== 0) {
-                filterValue = {status: filters.status, sourceType: []}
+            if (filteredInfo.status && filteredInfo.jobType) {
+              if (filteredInfo.status.length !== 0 && filters.jobType.length !== 0) {
+                filterValue = {status: [], jobType: filters.jobType}
+              } else if (filteredInfo.jobType.length !== 0 && filters.status.length !== 0) {
+                filterValue = {status: filters.status, jobType: []}
               } else {
                 filterValue = filters
               }
@@ -287,7 +298,7 @@ export class Job extends React.Component {
     const reg = new RegExp(this.state[value], 'gi')
 
     this.setState({
-      filteredInfo: {status: [], sourceType: []}
+      filteredInfo: {status: [], jobType: []}
     }, () => {
       this.setState({
         [visible]: false,
@@ -336,7 +347,7 @@ export class Job extends React.Component {
     }
 
     this.setState({
-      filteredInfo: {status: [], sourceType: []}
+      filteredInfo: {status: [], jobType: []}
     }, () => {
       this.setState({
         [visible]: false,
@@ -563,18 +574,18 @@ export class Job extends React.Component {
         )
       }
     }, {
-      title: 'Source Type',
-      dataIndex: 'sourceType',
-      key: 'sourceType',
+      title: 'Job Type',
+      dataIndex: 'jobType',
+      key: 'jobType',
       // className: 'text-align-center',
-      sorter: (a, b) => a.sourceType < b.sourceType ? -1 : 1,
-      sortOrder: sortedInfo.columnKey === 'sourceType' && sortedInfo.order,
+      sorter: (a, b) => a.jobType < b.jobType ? -1 : 1,
+      sortOrder: sortedInfo.columnKey === 'jobType' && sortedInfo.order,
       filters: [
         {text: 'default', value: 'default'},
         {text: 'backfill', value: 'backfill'}
       ],
-      filteredValue: filteredInfo.sourceType,
-      onFilter: (value, record) => record.sourceType.includes(value)
+      filteredValue: filteredInfo.jobType,
+      onFilter: (value, record) => record.jobType.includes(value)
     }, {
       title: 'Start Time',
       dataIndex: 'startedTime',
