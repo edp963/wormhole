@@ -78,7 +78,7 @@ import { loadSelectNamespaces, loadUserNamespaces } from '../Namespace/action'
 import { loadUserUsers, loadSelectUsers } from '../User/action'
 import { loadResources } from '../Resource/action'
 import { loadSingleUdf } from '../Udf/action'
-import { loadJobSourceToSinkExist, addJob, queryJob, editJob } from '../Job/action'
+import { loadJobSourceToSinkExist, addJob, queryJob, editJob, loadJobBackfillTopic } from '../Job/action'
 
 import { selectFlows, selectFlowSubmitLoading } from '../Flow/selectors'
 import { selectStreams, selectStreamSubmitLoading } from '../Manager/selectors'
@@ -200,13 +200,20 @@ export class Workbench extends React.Component {
       jobSinkConfigModalVisible: false,
       jobTranConfigConfirmValue: '',
       jobDiffType: 'default',
+      backfillTopicValueProp: '',
 
       routingSinkTypeNsData: [],
       routingSourceNsValue: '',
       transConfigConfirmValue: '',
       sinkConfigCopy: '',
       sinkDSCopy: '',
-      backfillSinkNsValue: ''
+      backfillSinkNsValue: '',
+      mapJobType: {
+        'default': '1',
+        'backfill': '2',
+        '1': 'default',
+        '2': 'backfill'
+      }
     }
   }
 
@@ -281,7 +288,21 @@ export class Workbench extends React.Component {
 
   initialHdfslogCascader = (value) => this.setState({ hdfslogSinkNsValue: value.join('.') })
 
-  initialBackfillCascader = (value) => {
+  initialBackfillCascader = (value, selectedOptions) => {
+    const { projectId } = this.state
+    if (Object.prototype.toString.call(selectedOptions) !== '[object Array]') return
+    if (selectedOptions.length === 0) return
+    if (selectedOptions[selectedOptions.length - 1]) {
+      let id = selectedOptions[selectedOptions.length - 1].id
+      // if (this.state.namespaceId !== id) {
+        // setTimeout(() => {
+      this.setState({namespaceId: id})
+      this.props.onLoadJobBackfillTopic(projectId, id, (result) => {
+        this.setState({backfillTopicValueProp: result})
+      })
+        // }, 20)
+      // }
+    }
     this.setState({ backfillSinkNsValue: value.join('.') })
   }
   initialRoutingCascader = (value) => {
@@ -497,7 +518,8 @@ export class Workbench extends React.Component {
   }
 
   showEditJobWorkbench = (job) => () => {
-    this.setState({ jobMode: 'edit' })
+    const { mapJobType } = this.state
+    this.setState({ jobMode: 'edit', jobDiffType: job.jobType })
 
     new Promise((resolve) => {
       const requestData = {
@@ -511,15 +533,20 @@ export class Workbench extends React.Component {
         this.workbenchJobForm.setFieldsValue({
           protocol: JSON.parse(sourceConfigTemp).protocol,
           jobName: resultFinal.name,
-          type: resultFinal.jobType,
+          type: mapJobType[resultFinal.jobType],
           eventStartTs: resultFinal.eventTsStart === '' ? null : Moment(formatString(resultFinal.eventTsStart)),
           eventEndTs: resultFinal.eventTsEnd === '' ? null : Moment(formatString(resultFinal.eventTsEnd))
         })
 
         const { sparkConfig, startConfig, id, name, projectId, sourceNs, sinkNs, jobType,
           sparkAppid, logPath, startedTime, stoppedTime, status, createTime, createBy, updateTime, updateBy } = resultFinal
+
+        const jobResultSinkNsArr = resultFinal.sinkNs.split('.')
+        const jobResultSinkNsFinal = [jobResultSinkNsArr[1], jobResultSinkNsArr[2], jobResultSinkNsArr[3]].join('.')
         this.setState({
           formStep: 0,
+          backfillSinkNsValue: jobResultSinkNsFinal,
+          backfillTopicValueProp: result.topic,
           jobSparkConfigValues: {
             sparkConfig: sparkConfig,
             startConfig: startConfig
@@ -1693,7 +1720,7 @@ export class Workbench extends React.Component {
   submitJobForm = () => {
     const values = this.workbenchJobForm.getFieldsValue()
 
-    const { projectId, jobMode, startTsVal, endTsVal, singleJobResult, jobDiffType } = this.state
+    const { projectId, jobMode, startTsVal, endTsVal, singleJobResult, jobDiffType, mapJobType } = this.state
     const { jobResultFiledsOutput, jobTranTableRequestValue, jobSparkConfigValues } = this.state
     const { locale } = this.props
 
@@ -1761,7 +1788,7 @@ export class Workbench extends React.Component {
         name: values.jobName,
         sourceNs: sourceDataInfo,
         sinkNs: sinkDataInfo,
-        jobType: values.type,
+        jobType: mapJobType[values.type],
         sourceConfig: `{"protocol":"${values.protocol}"}`
       }
 
@@ -3024,6 +3051,10 @@ export class Workbench extends React.Component {
     return [jvm, spark]
   }
 
+  clearSinkData = () => {
+    this.setState({backfillTopicValueProp: '', backfillSinkNsValue: ''})
+  }
+
   showAddJobWorkbench = () => {
     this.workbenchJobForm.resetFields()
     this.setState({
@@ -3036,7 +3067,8 @@ export class Workbench extends React.Component {
       fieldSelected: 'hide',
       resultFieldsValue: 'all',
       backfillSinkNsValue: '',
-      jobDiffType: 'default'
+      jobDiffType: 'default',
+      backfillTopicValueProp: ''
     }, () => {
       this.workbenchJobForm.setFieldsValue({
         // type: 'default',
@@ -3416,6 +3448,8 @@ export class Workbench extends React.Component {
                     backfillSinkNsValue={this.state.backfillSinkNsValue}
                     onInitJobTypeSelect={this.onInitJobTypeSelect}
                     jobDiffType={this.state.jobDiffType}
+                    backfillTopicValueProp={this.state.backfillTopicValueProp}
+                    clearSinkData={this.clearSinkData}
 
                     ref={(f) => { this.workbenchJobForm = f }}
                   />
@@ -3574,7 +3608,8 @@ Workbench.propTypes = {
   onLoadLookupSql: PropTypes.func,
   jobSubmitLoading: PropTypes.bool,
   roleType: PropTypes.string,
-  locale: PropTypes.string
+  locale: PropTypes.string,
+  onLoadJobBackfillTopic: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -3609,7 +3644,8 @@ export function mapDispatchToProps (dispatch) {
     onAddJob: (projectId, values, resolve, final) => dispatch(addJob(projectId, values, resolve, final)),
     onQueryJob: (values, resolve, final) => dispatch(queryJob(values, resolve, final)),
     onEditJob: (values, resolve, final) => dispatch(editJob(values, resolve, final)),
-    onLoadLookupSql: (values, resolve, reject) => dispatch(loadLookupSql(values, resolve, reject))
+    onLoadLookupSql: (values, resolve, reject) => dispatch(loadLookupSql(values, resolve, reject)),
+    onLoadJobBackfillTopic: (projectId, namespaceId, value, resolve) => dispatch(loadJobBackfillTopic(projectId, namespaceId, value, resolve))
   }
 }
 
