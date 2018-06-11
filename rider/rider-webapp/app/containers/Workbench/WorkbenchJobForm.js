@@ -52,7 +52,7 @@ import {
 } from '../../utils/util'
 import DataSystemSelector from '../../components/DataSystemSelector'
 import { sourceDataSystemData, jobSinkDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
-import { loadJobName, loadJobSourceNs, loadJobSinkNs, loadJobBackfillTopic } from '../Job/action'
+import { loadJobName, loadJobSourceNs, loadJobSinkNs } from '../Job/action'
 import { selectLocale } from '../LanguageProvider/selectors'
 import { generateSourceSinkNamespaceHierarchy } from './workbenchFunction'
 
@@ -70,6 +70,7 @@ export class WorkbenchJobForm extends React.Component {
     }
   }
   componentWillReceiveProps (props) {
+    this.setState({backfillTopicValue: props.backfillTopicValueProp})
     if (props.jobTransTableSource) {
       props.jobTransTableSource.map(s => {
         s.key = uuid()
@@ -111,7 +112,7 @@ export class WorkbenchJobForm extends React.Component {
           })
           break
         case 'backfill':
-          this.props.onLoadJobSourceNs(projectIdGeted, val, 'sourceType', (result) => {
+          this.props.onLoadJobSourceNs(projectIdGeted, val, 'jobType', (result) => {
             this.setState({
               sourceNsData: generateSourceSinkNamespaceHierarchy(val, result),
               backfillSinkDSValue: val
@@ -152,8 +153,8 @@ export class WorkbenchJobForm extends React.Component {
 
   changeJobType = (e) => {
     this.props.onInitJobTypeSelect(e.target.value)
+    this.props.clearSinkData()
     this.setState({
-      backfillTopicValue: '',
       backfillSinkDSValue: ''
     })
   }
@@ -374,23 +375,7 @@ export class WorkbenchJobForm extends React.Component {
       jobDiffType !== 'default',
       jobDiffType !== 'backfill'
     ]
-    const displayRenderNamespace = (labels, selectedOptions) => {
-      const { projectIdGeted } = this.props
-      if (Object.prototype.toString.call(selectedOptions) !== '[object Array]') return
-      if (selectedOptions.length === 0) return
-      if (selectedOptions[selectedOptions.length - 1]) {
-        let id = selectedOptions[selectedOptions.length - 1].id
-        if (this.state.namespaceId !== id) {
-          setTimeout(() => {
-            this.setState({namespaceId: id})
-            this.props.onLoadJobBackfillTopic(projectIdGeted, id, (result) => {
-              this.setState({backfillTopicValue: result})
-            })
-          }, 20)
-        }
-        return labels.join('.')
-      }
-    }
+    const displayRenderNamespace = (labels, selectedOptions) => labels.join('.')
     return (
       <Form className="ri-workbench-form workbench-flow-form">
         {/* Step 1 */}
@@ -506,7 +491,7 @@ export class WorkbenchJobForm extends React.Component {
                     options={sourceNsData}
                     expandTrigger="hover"
                     displayRender={displayRenderNamespace}
-                    onChange={(e) => initialBackfillCascader(e)}
+                    onChange={(e, selectedOptions) => initialBackfillCascader(e, selectedOptions)}
                   />
                 )}
               </FormItem>
@@ -846,7 +831,7 @@ WorkbenchJobForm.propTypes = {
   initialBackfillCascader: PropTypes.func,
   onInitJobTypeSelect: PropTypes.func,
   backfillSinkNsValue: PropTypes.string,
-  onLoadJobBackfillTopic: PropTypes.func,
+  clearSinkData: PropTypes.func,
 
   onLoadJobName: PropTypes.func,
   locale: PropTypes.string
@@ -856,8 +841,7 @@ function mapDispatchToProps (dispatch) {
   return {
     onLoadJobName: (projectId, value, resolve, reject) => dispatch(loadJobName(projectId, value, resolve, reject)),
     onLoadJobSourceNs: (projectId, value, type, resolve, reject) => dispatch(loadJobSourceNs(projectId, value, type, resolve, reject)),
-    onLoadJobSinkNs: (projectId, value, type, resolve, reject) => dispatch(loadJobSinkNs(projectId, value, type, resolve, reject)),
-    onLoadJobBackfillTopic: (projectId, namespaceId, value, resolve) => dispatch(loadJobBackfillTopic(projectId, namespaceId, value, resolve))
+    onLoadJobSinkNs: (projectId, value, type, resolve, reject) => dispatch(loadJobSinkNs(projectId, value, type, resolve, reject))
   }
 }
 
