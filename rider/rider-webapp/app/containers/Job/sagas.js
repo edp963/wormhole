@@ -59,7 +59,6 @@ import {
   jobQueryed,
   jobEdited,
   jobDetailLoaded,
-  loadJobBackfillTopic,
   jobBackfillTopicLoaded,
   jobBackfillTopicError
 } from './action'
