@@ -15,13 +15,19 @@ description: Wormhole WH_VERSION_SHORT Concept page
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/faq-stream-log.png" alt="" width="600"/>
 
-2. 如果没有stream日志，一般是启动用户与application.conf中配置的**spark.wormholeServer.user**用户不符，该用户没有设置远程免密登录。
+2. 如果没有stream日志，一般是配置有问题。检查启动Wormhole服务的用户是否为application.conf中配置的**spark.wormholeServer.user**，Wormhole服务启动用户是否已设置远程ssh免密登录。
 
-3. 检查application.conf中配置的spark路径是否正确，检查启动用户是否有权限访问该目录。
+3. 检查application.conf中配置的spark路径是否正确，检查Wormhole服务启动用户是否有权限访问该目录。
 
-4. 查看wormhole后台日志是否启动失败。
+4. 查看Wormhole服务后台日志application.log中是否有启动失败提示。
 
-5. 按照上面顺排查问题后，手动将数据库该stream状态设置为failed。
+5. 按照上面顺排查问题后，手动执行SQL将数据库该stream状态设置为failed。
+
+   ```
+   mysql client
+
+   update stream set status = "failed" where id = 1;  // 1换成对应stream id
+   ```
 
 6. 重启wormhole服务，重启stream。
 
