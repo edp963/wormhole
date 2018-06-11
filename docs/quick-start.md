@@ -11,7 +11,7 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
 
 **业务需求：实时处理 Kafka 中数据，处理过程中关联 Mysql 数据库某表，然后转换过滤数据，写入 Mysql 系统中。**
 
-### Admin 用户
+## Admin 用户
 
 **1. Admin 用户登录系统后创建普通用户**
 
@@ -63,7 +63,7 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-project.png" alt="" width="600"/>
 
-### User 用户
+## User 用户
 
 **1. User 登录系统后创建 Stream**
 
