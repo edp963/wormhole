@@ -5,7 +5,7 @@ title: Quick Start
 description: Wormhole WH_VERSION_SHORT Quick Start page
 ---
 
-[TOC]
+{:toc}
 
 **本章节以一个流式项目的实施示例介绍 Wormhole 页面的使用流程。**
 
