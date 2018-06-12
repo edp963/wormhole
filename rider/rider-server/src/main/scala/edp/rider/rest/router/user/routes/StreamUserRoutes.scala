@@ -35,7 +35,7 @@ import io.swagger.annotations.{ApiResponses, _}
 @Path("/user/projects")
 class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives with JsonSerializer {
   lazy val routes: Route = getStreamByAllRoute ~ putStreamRoute ~ postStreamRoute ~ renewRoute ~
-    getStreamById ~ getLogByStreamId ~ stop ~ startRoute ~ deleteStream ~ getConf ~ getLatestOffset
+    getStreamById ~ getLogByStreamId ~ stop ~ startRoute ~ deleteStream ~ getSparkConf ~ getLatestOffset ~ getJvmConf
 
   lazy val basePath = "projects"
 
@@ -188,8 +188,8 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
   def deleteStream: Route = modules.streamUserService.deleteStream(basePath)
 
 
-  @Path("/streams/default/config")
-  @ApiOperation(value = "get one stream started by id", notes = "", nickname = "", httpMethod = "GET")
+  @Path("/streams/default/config/jvm")
+  @ApiOperation(value = "get default stream resource config", notes = "", nickname = "", httpMethod = "GET")
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),
     new ApiResponse(code = 401, message = "authorization error"),
@@ -197,7 +197,18 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getConf: Route = modules.streamUserService.getConfList(basePath)
+  def getJvmConf: Route = modules.streamUserService.getDefaultJvmConf(basePath)
+
+  @Path("/streams/default/config/spark")
+  @ApiOperation(value = "get default spark config", notes = "", nickname = "", httpMethod = "GET")
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getSparkConf: Route = modules.streamUserService.getDefaultSparkConf(basePath)
 
   @Path("/{id}/streams/{streamId}/topics/offsets/latest")
   @ApiOperation(value = "get topic latest offset", notes = "", nickname = "", httpMethod = "GET")

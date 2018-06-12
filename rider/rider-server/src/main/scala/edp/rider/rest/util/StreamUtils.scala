@@ -27,6 +27,7 @@ import edp.rider.common.Action._
 import edp.rider.common.StreamStatus._
 import edp.rider.common._
 import edp.rider.kafka.KafkaUtils
+import edp.rider.module.DbModule.db
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.spark.SparkJobClientLog
@@ -175,7 +176,7 @@ object StreamUtils extends RiderLogger {
     try {
       val directiveSeq = new ArrayBuffer[Directive]
       val zkConURL: String = RiderConfig.zk
-      topicSeq.foreach({
+      topicSeq.filter(_.rate != 0).foreach({
         topic =>
           val tuple = Seq(streamId, currentMicroSec, topic.name, topic.rate, topic.partitionOffsets).mkString("#")
           directiveSeq += Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, tuple, zkConURL, currentSec, userId)
@@ -442,6 +443,26 @@ object StreamUtils extends RiderLogger {
   def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}$appName-${CommonUtils.currentNodSec}.log"
 
   def getStreamTime(time: Option[String]) =
-    if(time.nonEmpty) time.get.split("\\.")(0) else null
+    if (time.nonEmpty) time.get.split("\\.")(0) else null
 
+  def getDefaultJvmConf = {
+    lazy val driverConf = RiderConfig.spark.driverExtraConf
+    lazy val executorConf = RiderConfig.spark.executorExtraConf
+    driverConf + "," + executorConf
+  }
+
+  def getDefaultSparkConf = {
+    RiderConfig.spark.sparkConfig
+  }
+
+  def checkYarnAppNameUnique(userDefinedName: String, projectId: Long): Boolean = {
+    val projectName = Await.result(modules.projectDal.getById(projectId), minTimeOut).get.name
+    val realName = genStreamNameByProjectName(projectName, userDefinedName)
+    if (Await.result(modules.streamDal.findByFilter(_.name === realName), minTimeOut).nonEmpty) {
+      false
+    } else {
+      if (Await.result(modules.jobDal.findByFilter(_.name === realName), minTimeOut).nonEmpty) false
+      else true
+    }
+  }
 }
