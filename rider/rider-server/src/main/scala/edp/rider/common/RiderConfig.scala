@@ -227,7 +227,6 @@ object RiderConfig {
        |--executor-cores 1 \\
        |--name XHtest \\
        |--files /app/yxh/log4j.properties \\
-       |--jars \\
    """.stripMargin,
     wormholeClientLogPath,
     s"${RiderConfig.riderRootPath}/conf/sparkx.log4j.properties",
