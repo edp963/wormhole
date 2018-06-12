@@ -33,6 +33,8 @@ import Tooltip from 'antd/lib/tooltip'
 import Button from 'antd/lib/button'
 import Select from 'antd/lib/select'
 import InputNumber from 'antd/lib/input-number'
+import { Collapse, Input, Icon } from 'antd'
+const Panel = Collapse.Panel
 const FormItem = Form.Item
 import { forceCheckNum } from '../../utils/util'
 import { selectLocale } from '../LanguageProvider/selectors'
@@ -104,6 +106,9 @@ export class StreamStartForm extends React.Component {
     const { data } = this.state
 
     const noTopicCardTitle = (<Col span={24} style={{fontWeight: '500'}}><span className="modal-topic-name">Topic Name</span></Col>)
+    const topicCardTitle = (<Col span={24} style={{fontWeight: '500'}}><span className="modal-topic-name">Topics</span></Col>)
+    const autoRegisteredTopicsCardTitle = (<Col span={24} style={{fontWeight: '500'}}><span className="modal-topic-name">Auto Registered Topics</span></Col>)
+    const userDefinedTopicsCardTitle = (<Col span={24} style={{fontWeight: '500'}}><span className="modal-topic-name">User Defined Topics</span></Col>)
 
     let cardStartItem = ''
     if (data) {
@@ -275,6 +280,58 @@ export class StreamStartForm extends React.Component {
         })
     }
 
+    let userDefinedTopicsCardAddItem = (
+      <Row className="apply-all-btn">
+        <div className="rate-topic-info-wrapper">
+          <div className="rate-class">
+            <Col span={24} className="card-content required-offset card-content-extra">
+              Topic Name
+            </Col>
+            <Col span={24}>
+              <FormItem>
+                {getFieldDecorator(`newTopicName`, {
+                  rules: [{
+                    required: true,
+                    message: locale === 'en' ? 'Please fill in topic name' : '请填写 topic name'
+                  }]
+                })(
+                  <Input size="medium" className="rate-input" />
+                )}
+              </FormItem>
+            </Col>
+          </div>
+          <div className="rate-class">
+            <Col span={24} className="card-content required-offset card-content-extra">
+              Partition Nums
+            </Col>
+            <Col span={24}>
+              <FormItem>
+                {getFieldDecorator(`partitionNum`, {
+                  rules: [{
+                    required: true,
+                    message: locale === 'en' ? 'Please fill in partition nums' : '请填写 partition nums'
+                  }, {
+                    validator: forceCheckNum
+                  }]
+                })(
+                  <InputNumber size="medium" className="rate-input" />
+                )}
+              </FormItem>
+            </Col>
+          </div>
+          <div className="rate-class" style={{flexGrow: 1}}>
+            <Col offset={22} className="card-content card-content-extra">
+              Add
+            </Col>
+            <Col offset={22}>
+              <Button shape="circle" type="primary">
+                <Icon type="plus-circle" />
+              </Button>
+            </Col>
+          </div>
+        </div>
+      </Row>
+    )
     const itemStyleUdf = {
       wrapperCol: { span: 24 }
     }
@@ -307,8 +364,24 @@ export class StreamStartForm extends React.Component {
               </Col>
             </div>
           </Card>
+          <Card title={topicCardTitle} className="stream-start-form-card-style">
+            <Collapse>
+              <Panel header={autoRegisteredTopicsCardTitle}>
+                {cardStartItem}
+              </Panel>
+              <Panel header={userDefinedTopicsCardTitle}>
+                {userDefinedTopicsCardAddItem}
+                {cardStartItem}
+              </Panel>
+            </Collapse>
+            {/* <Card title={autoRegisteredTopicsCardTitle} className="stream-start-form-card-style">
+              {cardStartItem}
+            </Card>
+            <Card title={userDefinedTopicsCardTitle} className="stream-start-form-card-style">
+              {cardStartItem}
+            </Card> */}
+          </Card>
         </Row>
-        {cardStartItem}
       </Form>
     )
   }
