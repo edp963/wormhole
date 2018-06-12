@@ -84,7 +84,7 @@ object ElasticSearch extends RiderLogger {
     val url = getESUrl
 //    riderLogger.info("es url: " + url)
     val postBody: String = JsonUtils.caseClass2json(stats)
-//    riderLogger.info("es insert success: " + postBody)
+//    riderLogger.info("es insert: " + postBody)
 //    asyncToES(postBody, url, HttpMethods.POST)
     syncToES(postBody, url, HttpMethods.POST)
 

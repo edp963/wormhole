@@ -21,7 +21,7 @@ description: Wormhole WH_VERSION_SHORT Concept page
 
 4. 查看Wormhole服务后台日志application.log中是否有启动失败提示。
 
-5. 按照上面顺排查问题后，手动执行SQL将数据库该stream状态设置为failed。
+5. 按照上面顺排查问题后，手动执行SQL将Wormhole服务数据库中该stream状态设置为failed。
 
    ```
    mysql client

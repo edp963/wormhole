@@ -44,8 +44,7 @@ case class SinkConfig(sinkNamespace: String,
                       classFullName: Option[String],
                       specialConfig: Option[String],
                       tableKeys: Option[String],
-                      projection: Option[String],
-                      sink_protocol: Option[String])
+                      projection: Option[String])
 
 case class JobConfig(appName: String,
                      master: String,
