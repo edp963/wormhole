@@ -167,25 +167,25 @@
             <!--<version>2.1.2</version>-->
         <!--</dependency>-->
 
-        <dependency>
-            <groupId>com.hortonworks</groupId>
-            <artifactId>shc-core</artifactId>
-            <version>1.1.1-2.1-s_2.11</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>junit</groupId>
-                    <artifactId>junit</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.github.stephenc.findbugs</groupId>
-                    <artifactId>findbugs-annotations</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.code.findbugs</groupId>
-                    <artifactId>jsr305</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>com.hortonworks</groupId>-->
+            <!--<artifactId>shc-core</artifactId>-->
+            <!--<version>1.1.1-2.1-s_2.11</version>-->
+            <!--<exclusions>-->
+                <!--<exclusion>-->
+                    <!--<groupId>junit</groupId>-->
+                    <!--<artifactId>junit</artifactId>-->
+                <!--</exclusion>-->
+                <!--<exclusion>-->
+                    <!--<groupId>com.github.stephenc.findbugs</groupId>-->
+                    <!--<artifactId>findbugs-annotations</artifactId>-->
+                <!--</exclusion>-->
+                <!--<exclusion>-->
+                    <!--<groupId>com.google.code.findbugs</groupId>-->
+                    <!--<artifactId>jsr305</artifactId>-->
+                <!--</exclusion>-->
+            <!--</exclusions>-->
+        <!--</dependency>-->
 
         <!-- hbase-->
         <dependency>
