@@ -43,7 +43,11 @@ case class Namespace(id: Long,
                      createTime: String,
                      createBy: Long,
                      updateTime: String,
-                     updateBy: Long) extends BaseEntity
+                     updateBy: Long) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
 
 case class SourceSchema(umsType: Option[String],
                         jsonSample: Option[Object],

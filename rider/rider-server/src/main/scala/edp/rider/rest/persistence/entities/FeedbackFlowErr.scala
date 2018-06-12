@@ -35,7 +35,11 @@ case class FeedbackFlowErr(id: Long,
                            errorMaxWaterMarkTs: String,
                            errorMinWaterMarkTs: String,
                            errorInfo: String,
-                           feedbackTime: String) extends BaseEntity
+                           feedbackTime: String) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
 
 case class SinkError(maxErrorWatermarkTs: String,
                      minErrorWatermarkTs: String,

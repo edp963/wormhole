@@ -30,7 +30,11 @@ case class FeedbackHeartbeat(id: Long,
                              streamId: Long,
                              namespace: String,
                              umsTs: String,
-                             feedbackTime: String) extends BaseEntity
+                             feedbackTime: String) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
 
 case class StreamNamespace(streamId: Long, ns: String)
 

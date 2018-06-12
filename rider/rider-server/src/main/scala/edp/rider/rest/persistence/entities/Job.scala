@@ -30,7 +30,7 @@ case class Job(id: Long,
                projectId: Long, // 1
                sourceNs: String, // 1
                sinkNs: String, // 1
-               sourceType: String, //1
+               jobType: String, //1
                sparkConfig: Option[String] = None,
                startConfig: String,
                eventTsStart: String, // 1
@@ -46,12 +46,16 @@ case class Job(id: Long,
                createTime: String,
                createBy: Long,
                updateTime: String,
-               updateBy: Long) extends BaseEntity
+               updateBy: Long) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
 
 case class SimpleJob(name: String,
                      sourceNs: String,
                      sinkNs: String,
-                     sourceType: String,
+                     jobType: String,
                      sparkConfig: Option[String] = None,
                      startConfig: String,
                      eventTsStart: String,
@@ -60,7 +64,9 @@ case class SimpleJob(name: String,
                      sinkConfig: Option[String],
                      tranConfig: Option[String]) extends SimpleBaseEntity
 
-case class FullJobInfo(job:Job, projectName:String, disableActions:String)
+case class FullJobInfo(job: Job, projectName: String, disableActions: String)
+
+case class JobTopicInfo(job: Job, projectName: String, topic: String, disableActions: String)
 
 class JobTable(_tableTag: Tag) extends BaseTable[Job](_tableTag, "job") {
   def * = (id,
@@ -68,7 +74,7 @@ class JobTable(_tableTag: Tag) extends BaseTable[Job](_tableTag, "job") {
     projectId,
     sourceNs,
     sinkNs,
-    sourceType,
+    jobType,
     sparkConfig,
     startConfig,
     eventTsStart,
@@ -95,7 +101,7 @@ class JobTable(_tableTag: Tag) extends BaseTable[Job](_tableTag, "job") {
   /** Database column sink_ns SqlType(VARCHAR), Length(200,true) */
   val sinkNs: Rep[String] = column[String]("sink_ns", O.Length(200, varying = true))
   /** Database column source_type SqlType(VARCHAR), Length(30,true) */
-  val sourceType: Rep[String] = column[String]("source_type", O.Length(30, varying = true))
+  val jobType: Rep[String] = column[String]("job_type", O.Length(30, varying = true))
   /** Database column spark_config SqlType(VARCHAR), Length(1000,true), Default(None) */
   val sparkConfig: Rep[Option[String]] = column[Option[String]]("spark_config", O.Length(5000, varying = true))
   /** Database column start_config SqlType(VARCHAR), Length(1000,true) */

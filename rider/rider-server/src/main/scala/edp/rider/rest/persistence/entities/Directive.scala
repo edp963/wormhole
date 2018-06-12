@@ -32,7 +32,11 @@ case class Directive(id: Long,
                      directive: String,
                      zkPath: String,
                      createTime: String,
-                     createBy: Long) extends BaseEntity
+                     createBy: Long) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
 
 case class SimpleDirective(protocolType: String,
                            flowId: Long)
