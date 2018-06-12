@@ -30,7 +30,7 @@ mysql-connector-java-{your-db-version}.jar
 
 ## 部署配置
 
-**下载 wormhole-0.4.2.tar.gz 包 (链接:https://pan.baidu.com/s/1zqNWNfKVi0xZ3L9AFDIMEw  密码:cwqe)，或者自编译**
+**下载 wormhole-0.4.2.tar.gz 包 (链接:https://pan.baidu.com/s/1nYATEEtH05cbx-fwd3Zb-Q  密码:em8w)，或者自编译**
 
 ```
 wget https://github.com/edp963/wormhole/releases/download/0.4.2/wormhole-0.4.2.tar.gz
@@ -41,9 +41,23 @@ cd wormhole
 mvn install package -Pwormhole
 ```
 
-**配置 WORMHOLE_HOME 环境变量**
+***注意：0.4.1版本升级到0.4.2前须手动执行下面两步***
 
-**修改 application.conf  配置文件**
+```
+1. 删除原Elasticsearch wormhole_feedback index
+
+curl -XDELETE 'localhost:9200/wormhole_feedback'
+
+2. 修改数据库中原wormhole job字段名及值
+
+alter table `job` change column `source_type` `job_type` VARCHAR(30);
+
+update `job` set job_type = "1";
+```
+
+**配置 WORMHOLE_HOME/SPARK_HOME/HADOOP_HOME 环境变量**
+
+**修改 application.conf 配置文件**
 
 ```
 conf/application.conf 配置项介绍
@@ -129,7 +143,7 @@ maintenance = {
 
 **上传 mysql-connector-java-{version}.jar 至 $WORMHOLE_HOME/lib 目录**
 
-**须使用 application.conf 中 spark.wormholeServer.user 项对应的用户启动服务，且须配置该用户可通过 ssh 远程免密登录到自己**
+**须使用 application.conf 中 spark.wormholeServer.user 项对应的 Linux 用户启动服务，且须配置该 Linux 用户可通过 ssh 远程免密登录到自己**
 
 **若配置 Grafana，Grafana 须配置可使用 viewer 类型用户匿名登陆，并生成 admin 类型的 token，配置在 $WORMHOLE_HOME/conf/application.conf 中grafana.admin.token 项中**
 
