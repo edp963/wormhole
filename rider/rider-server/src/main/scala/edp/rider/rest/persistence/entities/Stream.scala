@@ -45,6 +45,11 @@ case class Stream(id: Long,
                   createBy: Long,
                   updateTime: String,
                   updateBy: Long) extends BaseEntity {
+
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+
   def updateFromSpark(appInfo: AppInfo) = {
     Stream(this.id, this.name, this.desc, this.projectId, this.instanceId, this.streamType, this.sparkConfig, this.startConfig,
       this.launchConfig, Option(appInfo.appId), this.logPath, appInfo.appState, Option(appInfo.startedTime), Option(appInfo.finishedTime),

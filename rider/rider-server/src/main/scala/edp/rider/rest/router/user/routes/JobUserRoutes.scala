@@ -96,10 +96,6 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
   def deleteJob: Route = modules.jobUserService.deleteJob(basePath)
 
 
-
-
-
-
   @Path("/{projectId}/jobs/{jobId}")
   @ApiOperation(value = "get one job from system", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(

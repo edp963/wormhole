@@ -31,7 +31,11 @@ case class FeedbackStreamErr(id: Long,
                              streamId: Long,
                              status: String,
                              resultDesc: String,
-                             feedbackTime: String) extends BaseEntity
+                             feedbackTime: String) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
 
 class FeedbackStreamErrTable(_tableTag: Tag) extends BaseTable[FeedbackStreamErr](_tableTag, "feedback_stream_error") {
   def * = (id, projectType, umsTs, streamId, status, resultDesc, feedbackTime) <> (FeedbackStreamErr.tupled, FeedbackStreamErr.unapply)

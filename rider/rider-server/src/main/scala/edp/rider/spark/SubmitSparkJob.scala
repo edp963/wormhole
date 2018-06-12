@@ -81,8 +81,6 @@ object SubmitSparkJob extends App with RiderLogger {
     val realJarPath =
       if (RiderConfig.spark.kafka08StreamNames.nonEmpty && RiderConfig.spark.kafka08StreamNames.contains(streamName))
         RiderConfig.spark.kafka08JarPath
-      else if (RiderConfig.spark.kafka11StreamNames.nonEmpty && RiderConfig.spark.kafka11StreamNames.contains(streamName))
-        RiderConfig.spark.kafka11JarPath
       else RiderConfig.spark.jarPath
 
     val confList: Seq[String] = {
@@ -91,7 +89,7 @@ object SubmitSparkJob extends App with RiderLogger {
         val riderConf = sparkConfig.split(",") :+ s"spark.yarn.tags=${RiderConfig.spark.app_tags}"
         conf ++= riderConf
       }
-      else Array(s"spark.yarn.tags=${RiderConfig.spark.app_tags}")
+      else conf ++= Array(s"spark.yarn.tags=${RiderConfig.spark.app_tags}")
       if (RiderConfig.spark.metricsConfPath != "") {
         conf += s"spark.metrics.conf=metrics.properties"
         conf += s"spark.metrics.namespace=$streamName"
@@ -120,6 +118,7 @@ object SubmitSparkJob extends App with RiderLogger {
       else if (l.startsWith("--executor-mem")) s"  --executor-memory " + executorMemory + s"g "
       else if (l.startsWith("--executor-cores")) s"  --executor-cores " + executorCores + s" "
       else if (l.startsWith("--name")) s"  --name " + streamName + " "
+//      else if (l.startsWith("--jars")) s"  --jars " + RiderConfig.spark.sparkxInterfaceJarPath + " "
       else if (l.startsWith("--conf")) {
         confList.toList.map(conf => " --conf \"" + conf + "\" ").mkString("")
       }
@@ -133,7 +132,8 @@ object SubmitSparkJob extends App with RiderLogger {
       }
       else l
     }).mkString("").stripMargin.replace("\\", "  ") +
-      realJarPath + " " + args + " 1> " + logPath + " 2>&1"
+//      realJarPath + " " + args + " 1> " + logPath + " 2>&1"
+      realJarPath + " " + args + " > " + logPath + " 2>&1 "
 
     val finalCommand =
       if (RiderConfig.spark.alert)

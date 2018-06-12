@@ -3,7 +3,19 @@
 
 # check if we have a valid WORMHOLE_HOME and if java is not available
 if [ -z "${WORMHOLE_HOME}" ]; then
-    echo "WARNING!!: WORMHOLE_HOME is not defined correctly, please specify WORMHOLE_HOME first."
+    echo "ERROR!!: WORMHOLE_HOME is not defined correctly, please specify WORMHOLE_HOME first."
+    exit 1
+fi
+
+
+WORMHOLE_USER=`grep "wormholeServer.user" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
+echo "WormholeServer user config in application.conf : $WORMHOLE_USER"
+
+CURRENT_USER=`whoami`
+echo "Current WormholeServer executing user: $CURRENT_USER"
+
+if [ "$WORMHOLE_USER" != "$CURRENT_USER" ]; then
+    echo "ERROR!!: Current WormholeServer executing user $CURRENT_USER doesn't match the spark.wormholeServer.user $WORMHOLE_USER in application.conf, please specify it first."
     exit 1
 fi
 
@@ -14,6 +26,8 @@ HOST=`grep host $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | 
 echo "wormholeServer host: $HOST"
 PORT=`grep port $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | sed -e 's/[ \r\t]*//'`
 echo "wormholeServer port: $PORT"
+
+
 if [[ $DORMAIN = "" ]]
 then finalAddress=$HOST:$PORT
 else finalAddress=${DORMAIN:7}

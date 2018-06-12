@@ -33,7 +33,11 @@ case class Dbus(id: Long,
                 instanceId: Long,
                 databaseId: Long,
                 createTime: String,
-                synchronizedTime: String) extends BaseEntity
+                synchronizedTime: String) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
 
 
 case class SimpleDbus(id: Long,
