@@ -9,7 +9,7 @@ fi
 
 
 WORMHOLE_USER=`grep "wormholeServer.user" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
-echo "WormholeServer user config in application.conf : $WORMHOLE_USER"
+echo "WormholeServer user config in application.conf: $WORMHOLE_USER"
 
 CURRENT_USER=`whoami`
 echo "Current WormholeServer executing user: $CURRENT_USER"
