@@ -12,6 +12,11 @@
 
 Wormhole 面向大数据流式处理项目的开发管理运维人员，致力于提供统一抽象的概念体系，直观可视化的操作界面，简单流畅的配置管理流程，基于 SQL 即可完成的业务逻辑开发方式，并且屏蔽了流式处理的底层技术细节，极大的降低了数据项目管理运维门槛，使得大数据流式处理项目的开发管理运维变得更加轻量敏捷可控可靠。
 
+## Documentation
+
+Please refer to [Wormhole用户手册](https://edp963.github.io/wormhole).
+
+
 ## Architecture
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/wh4_pipeline_overview.png" alt="" width="600"/>
@@ -82,10 +87,6 @@ Wormhole 面向大数据流式处理项目的开发管理运维人员，致力�
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user_8_mon.png" alt="" width="600"/>
 
 #### 以上是简短的功能和用户体验预览，更多强大的细节功能请参见 Documentation
-
-## Documentation
-
-Please refer to [Wormhole用户手册](https://edp963.github.io/wormhole).
 
 ## Latest Release
 
