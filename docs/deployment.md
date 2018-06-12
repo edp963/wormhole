@@ -30,11 +30,11 @@ mysql-connector-java-{your-db-version}.jar
 
 ## 部署配置
 
-**下载 wormhole-0.4.1.tar.gz 包 (链接:https://pan.baidu.com/s/1zqNWNfKVi0xZ3L9AFDIMEw  密码:cwqe)，或者自编译**
+**下载 wormhole-0.4.2.tar.gz 包 (链接:https://pan.baidu.com/s/1zqNWNfKVi0xZ3L9AFDIMEw  密码:cwqe)，或者自编译**
 
 ```
-wget https://github.com/edp963/wormhole/releases/download/0.4.1/wormhole-0.4.1.tar.gz
-tar -xvf wormhole-0.4.1.tar.gz
+wget https://github.com/edp963/wormhole/releases/download/0.4.2/wormhole-0.4.2.tar.gz
+tar -xvf wormhole-0.4.2.tar.gz
 或者自编译，生成的 tar 包在 wormhole/target
 git clone -b 0.4 https://github.com/edp963/wormhole.git
 cd wormhole
