@@ -51,4 +51,6 @@ export const EDIT_JOB = 'rider/Job/EDIT_JOB'
 export const EDIT_JOB_SUCCESS = 'rider/Job/EDIT_JOB_SUCCESS'
 export const LOAD_JOB_DETAIL = 'rider/Job/LOAD_JOB_DETAIL'
 export const LOAD_JOB_DETAIL_SUCCESS = 'rider/Job/LOAD_JOB_DETAIL_SUCCESS'
-
+export const LOAD_BACKFILL_TOPIC = 'rider/Job/LOAD_BACKFILL_TOPIC'
+export const LOAD_BACKFILL_TOPIC_SUCCUSS = 'rider/Job/LOAD_BACKFILL_TOPIC_SUCCUSS'
+export const LOAD_BACKFILL_TOPIC_ERROR = 'rider/Job/LOAD_BACKFILL_TOPIC_ERROR'

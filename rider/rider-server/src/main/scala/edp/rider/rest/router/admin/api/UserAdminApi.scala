@@ -120,7 +120,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                     riderLogger.error(s"user ${
                       session.userId
                     } request url is not supported.")
-                    complete(OK, getHeader(501, session))
+                    complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
                 }
               }
           }
@@ -193,7 +193,7 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                 complete(OK, getHeader(403, session))
               else {
                 val userEntity = User(user.id, user.email.trim, user.password.trim, user.name.trim, user.roleType.trim, user.preferredLanguage, user.active, user.createTime, user.createBy, currentSec, session.userId)
-                onComplete(userDal.update(userEntity)) {
+                onComplete(userDal.updateWithoutPwd(userEntity)) {
                   case Success(result) =>
                     riderLogger.info(s"user ${
                       session.userId
@@ -242,7 +242,12 @@ class UserAdminApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) exten
                 riderLogger.info(s"user ${
                   session.userId
                 } select users where active is true and roleType is user success.")
-                complete(OK, ResponseSeqJson[User](getHeader(200, session), users.sortBy(_.email)))
+                val noPwdUsers = users.map {
+                  user =>
+                    User(user.id, user.email, "", user.name, user.roleType, user.preferredLanguage, user.active, user.createTime, user.createBy,
+                      user.updateTime, user.updateBy)
+                }
+                complete(OK, ResponseSeqJson[User](getHeader(200, session), noPwdUsers.sortBy(_.email)))
               case Failure(ex) =>
                 riderLogger.error(s"user ${
                   session.userId

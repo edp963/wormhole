@@ -34,6 +34,8 @@ import {
   LOAD_KAFKA_SUCCESS,
   LOAD_STREAM_CONFIG_JVM,
   LOAD_STREAM_CONFIG_JVM_SUCCESS,
+  LOAD_STREAM_CONFIG_SPARK,
+  LOAD_STREAM_CONFIG_SPARK_SUCCESS,
   LOAD_LOGS_INFO,
   LOAD_LOGS_INFO_SUCCESS,
   LOAD_ADMIN_LOGS_INFO,
@@ -192,6 +194,24 @@ export function loadStreamConfigJvm (resolve) {
 export function streamConfigJvmLoaded (result) {
   return {
     type: LOAD_STREAM_CONFIG_JVM_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function loadStreamConfigSpark (resolve) {
+  return {
+    type: LOAD_STREAM_CONFIG_SPARK,
+    payload: {
+      resolve
+    }
+  }
+}
+
+export function streamConfigSparkLoaded (result) {
+  return {
+    type: LOAD_STREAM_CONFIG_SPARK_SUCCESS,
     payload: {
       result
     }

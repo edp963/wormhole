@@ -32,11 +32,6 @@ const selectStreamSubmitLoading = () => createSelector(
   (streamState) => streamState.get('streamSubmitLoading')
 )
 
-const selectStreamNameExited = () => createSelector(
-  selectStream(),
-  (streamState) => streamState.get('streamNameExited')
-)
-
 const selectStreamStartModalLoading = () => createSelector(
   selectStream(),
   (streamState) => streamState.get('streamStartModalLoading')
@@ -46,6 +41,5 @@ export {
   selectStream,
   selectStreams,
   selectStreamSubmitLoading,
-  selectStreamNameExited,
   selectStreamStartModalLoading
 }

@@ -26,8 +26,8 @@ import {
   LOAD_SINGLE_DATABASE,
   EDIT_DATABASE,
   LOAD_DATABASES_INSTANCE,
-  LOAD_NAME_EXIST,
-  DELETE_DB
+  DELETE_DB,
+  CHECK_DATABASE
 } from './constants'
 import {
   databasesLoaded,
@@ -37,8 +37,6 @@ import {
   databaseEdited,
   databaseEditedError,
   databasesInstanceLoaded,
-  nameExistLoaded,
-  nameExistErrorLoaded,
   dBDeleted,
   dBDeletedError,
   getError
@@ -62,9 +60,6 @@ export function* getDatabasesWatcher () {
 }
 
 export function* addDatabase ({ payload }) {
-  const languageText = localStorage.getItem('preferredLanguage') === 'en'
-    ? 'Config format error!'
-    : 'Config 格式错误！'
   try {
     const result = yield call(request, {
       method: 'post',
@@ -72,8 +67,8 @@ export function* addDatabase ({ payload }) {
       data: payload.database
     })
     if (result.code && result.code === 400) {
-      yield put(databaseAddedError(languageText))
-      payload.reject(languageText)
+      yield put(databaseAddedError(result.msg))
+      payload.reject(result.msg)
     } else if (result.header.code && result.header.code === 200) {
       yield put(databaseAdded(result.payload))
       payload.resolve()
@@ -102,9 +97,6 @@ export function* singleDatabaseWatcher () {
 }
 
 export function* editDatabase ({ payload }) {
-  const languageText = localStorage.getItem('preferredLanguage') === 'en'
-    ? 'Config format error!'
-    : 'Config 格式错误！'
   try {
     const result = yield call(request, {
       method: 'put',
@@ -112,8 +104,8 @@ export function* editDatabase ({ payload }) {
       data: payload.database
     })
     if (result.code && result.code === 400) {
-      yield put(databaseEditedError(languageText))
-      payload.reject(languageText)
+      yield put(databaseEditedError(result.msg))
+      payload.reject(result.msg)
     } else if (result.header.code && result.header.code === 200) {
       yield put(databaseEdited(result.payload))
       payload.resolve()
@@ -141,25 +133,6 @@ export function* getDatabaseInstanceWatcher () {
   yield fork(takeLatest, LOAD_DATABASES_INSTANCE, getDatabaseInstance)
 }
 
-export function* getName ({ payload }) {
-  try {
-    const result = yield call(request, `${api.database}?nsInstanceId=${payload.value.nsInstanceId}&nsDatabaseName=${payload.value.nsDatabaseName}`)
-    if (result.code === 200) {
-      yield put(nameExistLoaded(result.msg))
-      payload.resolve()
-    } else {
-      yield put(nameExistErrorLoaded(result.msg))
-      payload.reject()
-    }
-  } catch (err) {
-    yield put(getError(err))
-  }
-}
-
-export function* getNameWatcher () {
-  yield fork(throttle, 500, LOAD_NAME_EXIST, getName)
-}
-
 export function* deleteDBAction ({ payload }) {
   try {
     const result = yield call(request, {
@@ -182,12 +155,36 @@ export function* deleteDBActionWatcher () {
   yield fork(takeEvery, DELETE_DB, deleteDBAction)
 }
 
+export function* checkDatabase (action) {
+  const { id, name, resolve, reject } = action.payload
+  try {
+    const asyncData = yield call(request, {
+      method: 'get',
+      url: `${api.database}?nsInstanceId=${id}&nsDatabaseName=${name}`
+    })
+    const msg = asyncData && asyncData.msg ? asyncData.msg : ''
+    const code = asyncData && asyncData.code ? asyncData.code : ''
+    if (code && code >= 400) {
+      reject(msg)
+    }
+    if (code && code === 200) {
+      resolve(msg)
+    }
+  } catch (err) {
+    console.log(err)
+  }
+}
+
+export function* checkDatabaseWatcher () {
+  yield throttle(1000, CHECK_DATABASE, checkDatabase)
+}
+
 export default [
   getDatabasesWatcher,
   addDatabaseWatcher,
   singleDatabaseWatcher,
   editDatabaseWatcher,
   getDatabaseInstanceWatcher,
-  getNameWatcher,
-  deleteDBActionWatcher
+  deleteDBActionWatcher,
+  checkDatabaseWatcher
 ]

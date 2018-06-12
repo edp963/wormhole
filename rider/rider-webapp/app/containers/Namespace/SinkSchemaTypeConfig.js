@@ -19,6 +19,9 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
+import {connect} from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
@@ -32,6 +35,8 @@ import Tooltip from 'antd/lib/tooltip'
 import Popover from 'antd/lib/popover'
 import Select from 'antd/lib/select'
 const { Option, OptGroup } = Select
+
+import { selectRoleType } from '../App/selectors'
 
 export class SinkSchemaTypeConfig extends React.Component {
   constructor (props) {
@@ -50,20 +55,16 @@ export class SinkSchemaTypeConfig extends React.Component {
   }
 
   isDisabledLoad () {
-    const { namespaceClassHide } = this.props
+    const { namespaceClassHide, roleType } = this.props
 
     let isDisabled = ''
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       isDisabled = namespaceClassHide === 'hide'
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       isDisabled = true
     }
     return isDisabled
   }
-
-  onChangeRowSelect = (record) => (e) => this.props.initSinkChangeSelected(record)
-
-  onRowSelectAll = () => this.props.initSinkRowSelectedAll()
 
   handleChangeFieldType = (record) => (afterType) => this.props.initChangeSinkType(record.key, afterType)
 
@@ -88,7 +89,7 @@ export class SinkSchemaTypeConfig extends React.Component {
               className="ant-checkbox-input"
               value="on"
               disabled={this.isDisabledLoad()}
-              onChange={this.onRowSelectAll}
+              onChange={() => this.props.initSinkRowSelectedAll()}
             />
             <span className="ant-checkbox-inner"></span>
           </span>
@@ -143,7 +144,7 @@ export class SinkSchemaTypeConfig extends React.Component {
                       className="ant-checkbox-input"
                       value="on"
                       disabled={this.isDisabledLoad()}
-                      onChange={this.onChangeRowSelect(record)}
+                      onChange={() => this.props.initSinkChangeSelected(record)}
                     />
                     <span className="ant-checkbox-inner"></span>
                   </span>
@@ -237,12 +238,17 @@ export class SinkSchemaTypeConfig extends React.Component {
 }
 
 SinkSchemaTypeConfig.propTypes = {
-  initSinkChangeSelected: React.PropTypes.func,
-  onChangeSinkJsonToTable: React.PropTypes.func,
-  sinkSelectAllState: React.PropTypes.string,
-  namespaceClassHide: React.PropTypes.string,
-  initSinkRowSelectedAll: React.PropTypes.func,
-  initChangeSinkType: React.PropTypes.func
+  initSinkChangeSelected: PropTypes.func,
+  onChangeSinkJsonToTable: PropTypes.func,
+  sinkSelectAllState: PropTypes.string,
+  namespaceClassHide: PropTypes.string,
+  initSinkRowSelectedAll: PropTypes.func,
+  initChangeSinkType: PropTypes.func,
+  roleType: PropTypes.string
 }
 
-export default Form.create({wrappedComponentRef: true})(SinkSchemaTypeConfig)
+const mapStateToProps = createStructuredSelector({
+  roleType: selectRoleType()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, null)(SinkSchemaTypeConfig))

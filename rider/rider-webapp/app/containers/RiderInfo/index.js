@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
@@ -31,14 +32,12 @@ import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
 const FormItem = Form.Item
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadRiderInfos } from './action'
 import { selectRiderInfos } from './selectors'
 
 export class RiderInfo extends React.Component {
   componentWillMount () {
     this.props.onLoadRiderInfos()
-    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   render () {
@@ -76,18 +75,16 @@ export class RiderInfo extends React.Component {
 }
 
 RiderInfo.propTypes = {
-  onLoadRiderInfos: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func,
-  riderInfos: React.PropTypes.oneOfType([
-    React.PropTypes.object,
-    React.PropTypes.bool
+  onLoadRiderInfos: PropTypes.func,
+  riderInfos: PropTypes.oneOfType([
+    PropTypes.object,
+    PropTypes.bool
   ])
 }
 
 export function mapDispatchToProps (dispatch) {
   return {
-    onLoadRiderInfos: () => dispatch(loadRiderInfos()),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onLoadRiderInfos: () => dispatch(loadRiderInfos())
   }
 }
 

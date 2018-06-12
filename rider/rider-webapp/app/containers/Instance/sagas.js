@@ -24,20 +24,16 @@ import { call, fork, put } from 'redux-saga/effects'
 import {
   LOAD_INSTANCES,
   ADD_INSTANCE,
-  LOAD_INSTANCES_INPUT_VALUE,
-  LOAD_INSTANCES_EXIT,
   LOAD_SINGLE_INSTANCE,
   EDIT_INSTANCE,
-  DELETE_INSTANCE
+  DELETE_INSTANCE,
+  CHECK_INSTANCE,
+  CHECK_URL
 } from './constants'
 import {
   instancesLoaded,
   instanceAdded,
   instanceAddedError,
-  instanceInputValueLoaded,
-  instanceInputValueErrorLoaded,
-  instanceExitLoaded,
-  instanceExitErrorLoaded,
   singleInstanceLoaded,
   instanceEdited,
   instanceEditedError,
@@ -129,45 +125,6 @@ export function* editInstanceWatcher () {
   yield fork(takeEvery, EDIT_INSTANCE, editInstance)
 }
 
-export function* getInstanceInputValue ({ payload }) {
-  try {
-    const result = yield call(request, `${api.instance}?type=${payload.value.type}&conn_url=${payload.value.conn_url}`)
-
-    if (result.code && (result.code === 409 || result.code === 400)) {
-      yield put(instanceInputValueErrorLoaded(result.msg))
-      payload.reject(result.msg)
-    } else if (result.header.code && result.header.code === 200) {
-      yield put(instanceInputValueLoaded(result.payload))
-      payload.resolve()
-    }
-  } catch (err) {
-    yield put(getError(err))
-  }
-}
-
-export function* getInstanceInputValueWatcher () {
-  yield throttle(800, LOAD_INSTANCES_INPUT_VALUE, getInstanceInputValue)
-}
-
-export function* getInstanceValExit ({ payload }) {
-  try {
-    const result = yield call(request, `${api.instance}?type=${payload.value.type}&nsInstance=${payload.value.nsInstance}`)
-    if (result.code === 409) {
-      yield put(instanceExitErrorLoaded(result.msg))
-      payload.reject(result.msg)
-    } else {
-      yield put(instanceExitLoaded(payload.result))
-      payload.resolve()
-    }
-  } catch (err) {
-    yield put(getError(err))
-  }
-}
-
-export function* getInstanceValExitWatcher () {
-  yield throttle(800, LOAD_INSTANCES_EXIT, getInstanceValExit)
-}
-
 export function* deleteInstanceAction ({ payload }) {
   try {
     const result = yield call(request, {
@@ -190,12 +147,54 @@ export function* deleteInstanceActionWatcher () {
   yield fork(takeEvery, DELETE_INSTANCE, deleteInstanceAction)
 }
 
+export function* checkInstance (action) {
+  const { type, nsInstance, resolve, reject } = action.payload
+  try {
+    const asyncData = yield call(request, {
+      method: 'get',
+      url: `${api.instance}?type=${type}&nsInstance=${nsInstance}`
+    })
+    const msg = asyncData && asyncData.msg ? asyncData.msg : ''
+    const code = asyncData && asyncData.code ? asyncData.code : ''
+    if (code && code >= 400) {
+      reject(msg)
+    }
+    if (code && code === 200) {
+      resolve(msg)
+    }
+  } catch (err) {
+    console.log(err)
+  }
+}
+
+export function* checkInstanceWatcher () {
+  yield throttle(1000, CHECK_INSTANCE, checkInstance)
+}
+
+export function* checkConnectUrl ({ payload }) {
+  try {
+    const result = yield call(request, `${api.instance}?type=${payload.value.type}&conn_url=${payload.value.conn_url}`)
+
+    if (result.code && (result.code >= 400)) {
+      payload.reject(result.msg)
+    } else if (result.header.code && result.header.code === 200) {
+      payload.resolve()
+    }
+  } catch (err) {
+    yield put(getError(err))
+  }
+}
+
+export function* checkConnectUrlWatcher () {
+  yield throttle(1000, CHECK_URL, checkConnectUrl)
+}
+
 export default [
   getInstancesWatcher,
   addInstanceWatcher,
   singleInstanceWatcher,
   editInstanceWatcher,
-  getInstanceInputValueWatcher,
-  getInstanceValExitWatcher,
-  deleteInstanceActionWatcher
+  checkConnectUrlWatcher,
+  deleteInstanceActionWatcher,
+  checkInstanceWatcher
 ]

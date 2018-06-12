@@ -386,21 +386,22 @@ export function* editLogFormWatcher () {
 }
 
 export function* saveForm ({ payload }) {
+  let { taskId, createTsColumn, updateTsColumn, connectUrl } = payload.value
   payload.value.flowId = parseInt(payload.value.flowId)
-  if (payload.value.taskId === undefined) {
-    payload.value.taskId = 0
+  if (!taskId) {
+    taskId = 0
   }
 
-  if (payload.value.createTsColumn === undefined) {
-    payload.value.createTsColumn = ''
+  if (!createTsColumn) {
+    createTsColumn = ''
   }
 
-  if (payload.value.updateTsColumn === undefined) {
-    payload.value.updateTsColumn = ''
+  if (!updateTsColumn) {
+    updateTsColumn = ''
   }
 
-  if (payload.value.connectUrl === undefined) {
-    payload.value.connectUrl = ''
+  if (!connectUrl) {
+    connectUrl = ''
   }
 
   try {
@@ -426,20 +427,21 @@ export function* saveFormWatcher () {
 
 export function* checkOutForm ({ payload }) {
   payload.value.flowId = parseInt(payload.value.flowId)
-  if (payload.value.taskId === undefined) {
-    payload.value.taskId = 0
+  let { taskId, createTsColumn, updateTsColumn, connectUrl } = payload.value
+  if (!taskId) {
+    taskId = 0
   }
 
-  if (payload.value.createTsColumn === undefined) {
-    payload.value.createTsColumn = ''
+  if (!createTsColumn) {
+    createTsColumn = ''
   }
 
-  if (payload.value.updateTsColumn === undefined) {
-    payload.value.updateTsColumn = ''
+  if (!updateTsColumn) {
+    updateTsColumn = ''
   }
 
-  if (payload.value.connectUrl === undefined) {
-    payload.value.connectUrl = ''
+  if (!connectUrl) {
+    connectUrl = ''
   }
 
   try {

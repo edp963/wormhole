@@ -72,7 +72,7 @@ trait PersistenceModule {
   val relProjectNsDal: RelProjectNsDal
   val projectDal: ProjectDal
   val dbusDal: BaseDal[DbusTable, Dbus]
-  val directiveDal: BaseDal[DirectiveTable, Directive]
+  val directiveDal: DirectiveDal
   val inTopicDal: StreamInTopicDal
 
   val jobDal: JobDal
@@ -126,7 +126,7 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val relProjectNsDal = new RelProjectNsDal(namespaceQuery, databaseQuery, instanceQuery, projectQuery, relProjectNsQuery, streamQuery)
   override lazy val projectDal = new ProjectDal(projectQuery, relProjectNsDal, relProjectUserDal, relProjectUdfDal, streamDal)
   override lazy val dbusDal = new BaseDalImpl[DbusTable, Dbus](dbusQuery)
-  override lazy val directiveDal = new BaseDalImpl[DirectiveTable, Directive](directiveQuery)
+  override lazy val directiveDal = new DirectiveDal(directiveQuery)
   override lazy val inTopicDal = new StreamInTopicDal(streamInTopicQuery, databaseQuery, feedbackOffsetQuery)
 
   override lazy val jobDal = new JobDal(jobQuery, projectQuery)

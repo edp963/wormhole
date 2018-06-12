@@ -23,12 +23,14 @@ package edp.wormhole.common
 
 case class WormholeConfig(kafka_input: KafkaInputBaseConfig,
                           kafka_output: KafkaOutputConfig,
-//                          udf: Option[Seq[String]],
+                          //                          udf: Option[Seq[String]],
                           spark_config: SparkConfig,
                           rdd_partition_number: Int, //-1 do not repartition
                           zookeeper_path: String,
                           kafka_persistence_config_isvalid: Boolean,
-                          stream_hdfs_address: Option[String])//for parquet，data is main namespace or join namespace
+                          stream_hdfs_address: Option[String])
+
+//for parquet，data is main namespace or join namespace
 
 case class SparkConfig(//batch_duration_seconds: Int,
                        stream_id: Long,
@@ -40,7 +42,7 @@ case class KafkaOutputConfig(feedback_topic_name: String, brokers: String, confi
 
 case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,
                             kafka_topics: Seq[KafkaTopicConfig],
-                            inWatch:Boolean) {
+                            inWatch: Boolean) {
   lazy val inputBrokers = Map("bootstrap.servers" -> kafka_base_config.brokers,
     "max.partition.fetch.bytes" -> kafka_base_config.`max.partition.fetch.bytes`.toString,
     "key.deserializer" -> "org.apache.kafka.common.serialization.StringDeserializer",
@@ -54,9 +56,12 @@ case class KafkaInputBaseConfig(`max.partition.fetch.bytes`: Int,
                                 `key.deserializer`: String,
                                 `value.deserializer`: String,
                                 `session.timeout.ms`: Int,
+                                `group.max.session.timeout.ms`: Int,
+                                `auto.offset.reset`: String,
                                 group_id: String,
                                 batch_duration_seconds: Int,
                                 brokers: String)
+
 //                                heartbeat_topic_name: String,
 //                                heartbeat_topic_rate: Long,
 //                                heartbeat_topic_offset: Long)
@@ -75,6 +80,7 @@ object StreamType extends Enumeration {
   val BATCHFLOW = Value("batchflow")
   val HDFSLOG = Value("hdfslog")
   val ROUTER = Value("router")
+
   def streamType(s: String) = StreamType.withName(s.toLowerCase)
 
 }
@@ -85,6 +91,7 @@ object InputDataRequirement extends Enumeration {
   val INITIAL = Value("initial")
   val INCREMENT = Value("increment")
   val BATCH = Value("batch")
+
   def inputDataRequirement(s: String) = InputDataRequirement.withName(s.toLowerCase)
 
 }

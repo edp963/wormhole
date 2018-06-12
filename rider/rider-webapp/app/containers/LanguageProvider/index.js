@@ -24,6 +24,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createSelector } from 'reselect'
 import { IntlProvider } from 'react-intl'
@@ -34,16 +35,17 @@ import enUS from 'antd/lib/locale-provider/en_US' // 英文
 
 export class LanguageProvider extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
   render () {
+    const { locale } = this.props
     let languageGlobal = {}
-    if (this.props.locale === 'en') {
+    if (locale === 'en') {
       languageGlobal = enUS
     }
     return (
       <LocaleProvider locale={languageGlobal}>
         <IntlProvider
-          locale={this.props.locale}
-          key={this.props.locale}
-          messages={this.props.messages[this.props.locale]}
+          locale={locale}
+          key={locale}
+          messages={this.props.messages[locale]}
         >
           {React.Children.only(this.props.children)}
         </IntlProvider>
@@ -53,9 +55,9 @@ export class LanguageProvider extends React.PureComponent { // eslint-disable-li
 }
 
 LanguageProvider.propTypes = {
-  locale: React.PropTypes.string,
-  messages: React.PropTypes.object,
-  children: React.PropTypes.element.isRequired
+  locale: PropTypes.string,
+  messages: PropTypes.object,
+  children: PropTypes.element.isRequired
 }
 
 const mapStateToProps = createSelector(

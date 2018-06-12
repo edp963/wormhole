@@ -13,7 +13,7 @@ description: Wormhole WH_VERSION_SHORT Deployment page
 #### 环境准备
 - JDK1.8
 - Hadoop-client（HDFS，YARN）（支持版本 2.6+）
-- Spark-client （支持版本 2.1.1，2.2.0）
+- Spark-client （支持版本 2.2.0，2.2.1）
 
 #### 依赖服务
 
@@ -30,11 +30,11 @@ mysql-connector-java-{your-db-version}.jar
 
 ## 部署配置
 
-**下载 wormhole-0.4.1.tar.gz 包 (链接:https://pan.baidu.com/s/1zqNWNfKVi0xZ3L9AFDIMEw  密码:cwqe)，或者自编译**
+**下载 wormhole-0.4.2.tar.gz 包 (链接:https://pan.baidu.com/s/1zqNWNfKVi0xZ3L9AFDIMEw  密码:cwqe)，或者自编译**
 
 ```
-wget https://github.com/edp963/wormhole/releases/download/0.4.1/wormhole-0.4.1.tar.gz
-tar -xvf wormhole-0.4.1.tar.gz
+wget https://github.com/edp963/wormhole/releases/download/0.4.2/wormhole-0.4.2.tar.gz
+tar -xvf wormhole-0.4.2.tar.gz
 或者自编译，生成的 tar 包在 wormhole/target
 git clone -b 0.4 https://github.com/edp963/wormhole.git
 cd wormhole
@@ -153,8 +153,8 @@ topic name: wormhole_feedback partitions: 4
 topic name：wormhole_heartbeat partitions: 1
 
 # 创建或修改 topic 命令
-./kafka-topics.sh --zookeeper localhost:2181 --create --topic wormhole_feedback --replication-factor 1 --partitions 4
-./kafka-topics.sh --zookeeper localhost:2181 --create --topic wormhole_heartbeat --replication-factor 1 --partitions 1
+./kafka-topics.sh --zookeeper localhost:2181 --create --topic wormhole_feedback --replication-factor 3 --partitions 4
+./kafka-topics.sh --zookeeper localhost:2181 --create --topic wormhole_heartbeat --replication-factor 3 --partitions 1
 
 ./kafka-topics.sh --zookeeper localhost:2181 --alter --topic wormhole_feedback  --partitions 4
 ./kafka-topics.sh --zookeeper localhost:2181 --alter --topic wormhole_heartbeat  --partitions 1

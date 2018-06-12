@@ -22,7 +22,6 @@
 package edp.rider
 
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.settings.ServerSettings
 import akka.stream.ActorMaterializer
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.kafka.ConsumerManager
@@ -36,6 +35,7 @@ import edp.rider.service.util.CacheMap
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await
+import scala.util.{Failure, Success}
 
 object RiderStarter extends App with RiderLogger {
 
@@ -51,18 +51,26 @@ object RiderStarter extends App with RiderLogger {
 
   DbModule.createSchema
 
-  ElasticSearch.initial(RiderConfig.es, RiderConfig.grafana)
-
   if (Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.adminUser), minTimeOut).isEmpty)
     Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.adminUser, RiderConfig.riderServer.adminPwd, RiderConfig.riderServer.adminUser, "admin", RiderConfig.riderServer.defaultLanguage, active = true, currentSec, 1, currentSec, 1)), minTimeOut)
 
-  Http().bindAndHandle(new RoutesApi(modules).routes, RiderConfig.riderServer.host, RiderConfig.riderServer.port)
-  riderLogger.info(s"WormholeServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
+  val future = Http().bindAndHandle(new RoutesApi(modules).routes, RiderConfig.riderServer.host, RiderConfig.riderServer.port)
 
-  CacheMap.cacheMapInit
+  future.onComplete {
+    case Success(_) =>
+      riderLogger.info(s"WormholeServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
 
-  val manager = new ConsumerManager(modules)
-  riderLogger.info(s"WormholeServer Consumer started")
-  Scheduler.start
-  riderLogger.info(s"Wormhole Scheduler started")
+      CacheMap.cacheMapInit
+
+      ElasticSearch.initial(RiderConfig.es, RiderConfig.grafana)
+
+      new ConsumerManager(modules)
+      riderLogger.info(s"WormholeServer Consumer started")
+      Scheduler.start
+      riderLogger.info(s"Wormhole Scheduler started")
+
+    case Failure(e) =>
+      riderLogger.error(e.getMessage)
+      system.terminate()
+  }
 }

@@ -48,10 +48,12 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig) = {
-    val schemaStringAndColumnNumber = getSchemaStringAndColumnNumber(schemaMap) //return format : ("(_ums_id_,key,value1,value2)", number)  Tuple2[String, Int]
+    val schemaStringAndColumnNumber = getSchemaStringAndColumnNumber(schemaMap)
+    //return format : ("(_ums_id_,key,value1,value2)", number)  Tuple2[String, Int]
     val schemaString: String = schemaStringAndColumnNumber._1
     val columnNumber: Int = schemaStringAndColumnNumber._2
-    val valueStrByPlaceHolder: String = getStrByPlaceHolder(columnNumber) //format (?,?,?,?,?)
+    val valueStrByPlaceHolder: String = getStrByPlaceHolder(columnNumber)
+    //format (?,?,?,?,?)
     val tableKeys = sinkProcessConfig.tableKeyList
     val tableKeysInfo: List[(Int, UmsFieldType)] = tableKeys.map(key => (schemaMap(key)._1, schemaMap(key)._2))
     // val connectionConfig = getDataStoreConnectionsMap(sinkNamespace)
@@ -69,34 +71,56 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
     //      }
     //    }
     val sortedAddressList = CassandraConnection.getSortedAddress(connectionConfig.connectionUrl)
-    val keyspace = sinkNamespace.split("\\.")(2) //use sinkNamespace(2)
-    val table = sinkNamespace.split("\\.")(3) // use sinkConfig.sinknamespace
+    val keyspace = sinkNamespace.split("\\.")(2)
+    //use sinkNamespace(2)
+    val table = sinkNamespace.split("\\.")(3)
+    // use sinkConfig.sinknamespace
     val prepareStatement: String = getPrepareStatement(keyspace, table, schemaString, valueStrByPlaceHolder)
+
     //INSERT INTO keyspace.table (a, b, c, d, e) VALUES(?, ?, ?, ?, ?) USING TIMESTAMP ?;
     val session = CassandraConnection.getSession(sortedAddressList, user, password)
     val tupleFilterList: Seq[Seq[String]] = SourceMutationType.sourceMutationType(cassandraSpecialConfig.`mutation_type.get`) match {
       case SourceMutationType.I_U_D =>
         val filterRes = ListBuffer.empty[Row]
-        if (cassandraSpecialConfig.`query_size`.nonEmpty) {
-          val slideTuple: Iterator[Seq[Seq[String]]] = tupleList.sliding(cassandraSpecialConfig.`query_size`.get, cassandraSpecialConfig.`query_size`.get)
+        if(tableKeys.length==1){
+          if (cassandraSpecialConfig.`batch_size`.nonEmpty) {
+            val slideTuple: Iterator[Seq[Seq[String]]] = tupleList.sliding(cassandraSpecialConfig.`batch_size`.get, cassandraSpecialConfig.`batch_size`.get)
 
-          while (slideTuple.hasNext) {
-            val processTuple = slideTuple.next()
-            val filterableStatement = checkTableBykey(keyspace, table, tableKeys, tableKeysInfo, processTuple)
-            //          logInfo("==================filtersql==============" + filterableStatement)
+            while (slideTuple.hasNext) {
+              val processTuple = slideTuple.next()
+              val filterableStatement = checkTableBykeySingleTableKey(keyspace, table, tableKeys(0), tableKeysInfo, processTuple)
+//              logInfo("single has querysize filterableStatement:::"+filterableStatement)
+              //          logInfo("==================filtersql==============" + filterableStatement)
+              val resultRows = session.execute(filterableStatement).all()
+              if(!resultRows.isEmpty){
+              for (i <- 0 until resultRows.size()) {
+                filterRes += resultRows.get(i)
+              }
+              }
+            }
+          } else {
+            val filterableStatement = checkTableBykeySingleTableKey(keyspace, table, tableKeys(0), tableKeysInfo, tupleList)
+//            logInfo("single all data filterableStatement:::"+filterableStatement)
             val resultRows = session.execute(filterableStatement).all()
-            for (i <- 0 until resultRows.size()) {
-              filterRes += resultRows.get(i)
+            if(!resultRows.isEmpty){
+              for (i <- 0 until resultRows.size()) {
+                filterRes += resultRows.get(i)
+              }
             }
           }
+        }else{
+          tupleList.foreach(tuple=>{
+            val filterableStatement = checkTableBykeyMutilTableKey(keyspace, table, tableKeys, tableKeysInfo, tuple)
+//            logInfo("mutil filterableStatement:::"+filterableStatement)
+            val resultRows: util.List[Row] = session.execute(filterableStatement).all()
+            if(!resultRows.isEmpty){
+              for (i <- 0 until resultRows.size()) {
+                filterRes += resultRows.get(i)
+              }
+            }
+          })
         }
-        else {
-          val filterableStatement = checkTableBykey(keyspace, table, tableKeys, tableKeysInfo, tupleList)
-          val resultRows = session.execute(filterableStatement).all()
-          for (i <- 0 until resultRows.size()) {
-            filterRes += resultRows.get(i)
-          }
-        }
+
         val dataMap = mutable.HashMap.empty[String, Long]
         import collection.JavaConversions._
         filterRes.foreach(row => {
@@ -111,8 +135,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
             val tableKeyVal = tableKeys.map(key => tuple(schemaMap(key)._1).toString).mkString("_")
             !dataMap.contains(tableKeyVal) || umsIdValue > dataMap(tableKeyVal)
           })
-        }
-        tupleList
+        } else tupleList
 
       case SourceMutationType.INSERT_ONLY =>
         logInfo("cassandra insert_only:")
@@ -138,7 +161,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
             try {
               bindWithDifferentTypes(bound, column, fieldType, valueString)
             } catch {
-              case e: Throwable => logError("bindWithDifferentTypes:", e)
+              case e: Throwable => logError(s"bindWithDifferentTypes: $column, $fieldType", e)
             }
           }
         } else {
@@ -157,11 +180,14 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
       //        bound.setBool(columnNumber - 1, java.lang.Boolean.valueOf("true")) // active--i,u--true
       //      }
       //      bound.setLong(columnNumber, umsIdValue) //set TS
-      if (batch.size() >= cassandraSpecialConfig.`cassandra.batchSize.get`) {
+
+      if (cassandraSpecialConfig.`batch_size`.nonEmpty && batch.size() >= cassandraSpecialConfig.`batch_size`.get) {
         session.execute(batch)
         batch.clear()
       }
       batch.add(bound)
+
+
     }
     session.execute(batch)
 
@@ -247,6 +273,36 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
 
       "SELECT " + selectColumns + " from " + keyspace + "." + table + " where " + firstPk + " in " + firstPkValues + " and " + otherPks + " in " + otherPkValue + ";"
     }
+  }
+
+  private def checkTableBykeySingleTableKey(keyspace: String, table: String, tableKey: String, tableKeysInfo: List[(Int, UmsFieldType)], tupleList: Seq[Seq[String]]) = {
+    val firstPkValues = tupleList.map(tuple => {
+      if (tableKeysInfo.head._2 == UmsFieldType.STRING) "'" + tuple(tableKeysInfo.head._1) + "'"
+      else tuple(tableKeysInfo.head._1)
+    }).mkString("(", ",", ")")
+    val selectColumns = tableKey + "," + UmsSysField.ID.toString
+
+    "SELECT " + selectColumns + " from " + keyspace + "." + table + " where " + tableKey + " in " + firstPkValues + ";"
+
+
+  }
+
+  private def checkTableBykeyMutilTableKey(keyspace: String, table: String, tableKeys: List[String], tableKeysInfo: List[(Int, UmsFieldType)], tuple: Seq[String]) = {
+    var whereContent = ""
+    for(i<- tableKeys.indices){
+      if(tableKeysInfo(i)._2== UmsFieldType.STRING)
+        if(i==0) whereContent = tableKeys(i)+"='"+ tuple(tableKeysInfo(i)._1) +"'"
+        else  whereContent =  whereContent + " and " + tableKeys(i)+"='"+ tuple(tableKeysInfo(i)._1) +"'"
+      else
+      if(i==0) whereContent = tableKeys(i)+"="+ tuple(tableKeysInfo(i)._1)
+      else whereContent = whereContent + " and " + tableKeys(i)+"="+ tuple(tableKeysInfo(i)._1)
+    }
+
+    val selectColumns = tableKeys.mkString(",") + "," + UmsSysField.ID.toString
+
+    "SELECT " + selectColumns + " from " + keyspace + "." + table + " where " + whereContent + ";"
+
+
   }
 
   private def bindWithDifferentTypes(bound: BoundStatement, columnName: String, fieldType: UmsFieldType, value: String): Unit =

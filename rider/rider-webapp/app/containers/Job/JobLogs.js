@@ -19,20 +19,22 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 
 import Form from 'antd/lib/form'
 import Button from 'antd/lib/button'
 
 export class JobLogs extends React.Component {
   refreshLogs = () => {
-    this.props.onInitRefreshLogs(this.props.logsProjectId, this.props.logsJobId)
+    const { logsProjectId, logsJobId } = this.props
+    this.props.onInitRefreshLogs(logsProjectId, logsJobId)
   }
 
   render = (text, record) => {
     const { jobLogsContent, refreshJobLogLoading, refreshJobLogText } = this.props
 
     let logsContentFinal = ''
-    if (jobLogsContent !== undefined) {
+    if (jobLogsContent) {
       logsContentFinal = jobLogsContent.replace(/\n/g, '\n')
     }
 
@@ -63,12 +65,12 @@ export class JobLogs extends React.Component {
 }
 
 JobLogs.propTypes = {
-  jobLogsContent: React.PropTypes.string,
-  onInitRefreshLogs: React.PropTypes.func,
-  logsProjectId: React.PropTypes.number,
-  logsJobId: React.PropTypes.number,
-  refreshJobLogLoading: React.PropTypes.bool,
-  refreshJobLogText: React.PropTypes.string
+  jobLogsContent: PropTypes.string,
+  onInitRefreshLogs: PropTypes.func,
+  logsProjectId: PropTypes.number,
+  logsJobId: PropTypes.number,
+  refreshJobLogLoading: PropTypes.bool,
+  refreshJobLogText: PropTypes.string
 }
 
 export default Form.create({wrappedComponentRef: true})(JobLogs)

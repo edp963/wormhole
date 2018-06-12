@@ -37,21 +37,9 @@ const selectModalLoading = () => createSelector(
   (instanceState) => instanceState.get('modalLoading')
 )
 
-const selectConnectUrlExisted = () => createSelector(
-  selectInstance(),
-  (instanceState) => instanceState.get('connectUrlExisted')
-)
-
-const selectInstanceExisted = () => createSelector(
-  selectInstance(),
-  (instanceState) => instanceState.get('instanceExisted')
-)
-
 export {
   selectInstance,
   selectInstances,
   selectError,
-  selectModalLoading,
-  selectConnectUrlExisted,
-  selectInstanceExisted
+  selectModalLoading
 }

@@ -24,18 +24,18 @@ package edp.wormhole.sinks.mongosink
 import java.text.SimpleDateFormat
 import java.util
 
-import edp.wormhole.sinks.mongosink.MongoHelper._
 import com.mongodb.ConnectionString
 import com.mongodb.async.client.MongoClients
-import edp.wormhole.common.util.JsonUtils.json2caseClass
 import edp.wormhole.common.ConnectionConfig
+import edp.wormhole.common.util.JsonUtils.json2caseClass
+import edp.wormhole.sinks.mongosink.MongoHelper._
 import edp.wormhole.sinks.{SourceMutationType, _IDHelper}
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.{UmsFieldType, _}
-import org.mongodb.scala.bson.{BsonBinary, BsonBoolean, BsonDateTime, BsonDouble, BsonInt32, BsonInt64, BsonString, BsonValue}
+import org.mongodb.scala.bson.{BsonArray, BsonBinary, BsonBoolean, BsonDateTime, BsonDocument, BsonDouble, BsonInt32, BsonInt64, BsonString, BsonValue}
 import org.mongodb.scala.connection._
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.FindOneAndReplaceOptions
@@ -159,6 +159,8 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
     case UmsFieldType.DATE => builder += columnName -> BsonDateTime(new SimpleDateFormat("yyyy-MM-dd").parse(value.trim))
     case UmsFieldType.DATETIME => builder += columnName -> BsonDateTime(new SimpleDateFormat("yyyy-MM-dd").parse(value.trim))
     case UmsFieldType.BINARY => builder += columnName -> BsonBinary(value.trim.getBytes())
+    case UmsFieldType.JSONARRAY => builder += columnName -> BsonArray(value)
+    case UmsFieldType.JSONOBJECT => builder += columnName -> BsonDocument(value)
     case _ => throw new UnsupportedOperationException(s"Unknown Type: $fieldType")
   }
 
@@ -184,4 +186,5 @@ class Data2MongoSink extends SinkProcessor with EdpLogging {
     if (credential != null) settings.credentialList(util.Arrays.asList(credential))
     MongoClient(MongoClients.create(settings.build()))
   }
+
 }

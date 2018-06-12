@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import Helmet from 'react-helmet'
 
 import Instance from '../../containers/Instance'
@@ -45,7 +46,7 @@ export class DataSystem extends React.Component {
 }
 
 DataSystem.propTypes = {
-  router: React.PropTypes.any
+  router: PropTypes.any
 }
 
 export default DataSystem

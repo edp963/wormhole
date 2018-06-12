@@ -23,20 +23,20 @@ package edp.rider.rest.util
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.rider.RiderStarter.modules
-import edp.rider.common.{Action, JobStatus, RiderConfig, RiderLogger}
+import edp.rider.common._
 import edp.rider.rest.persistence.entities.{Instance, Job, NsDatabase, StartConfig}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.FlowUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
 import edp.rider.spark.SparkStatusQuery.getSparkJobStatus
-import edp.rider.spark.SubmitSparkJob
 import edp.rider.spark.SubmitSparkJob._
 import edp.rider.wormhole._
 import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.common.util.JsonUtils._
+import edp.wormhole.ums.UmsDataSystem
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -44,30 +44,40 @@ import scala.concurrent.Await
 object JobUtils extends RiderLogger {
 
   def getBatchJobConfigConfig(job: Job) =
-    BatchJobConfig(getSourceConfig(job.sourceNs, job.eventTsStart, job.eventTsEnd, job.sourceType, job.sourceConfig),
-      getTranConfig(job.tranConfig.getOrElse(""), job.sinkConfig.getOrElse(""), job.sinkNs),
-      getSinkConfig(job.sinkNs, job.sinkConfig.getOrElse("")),
+    BatchJobConfig(getSourceConfig(job.sourceNs, job.eventTsStart, job.eventTsEnd, job.sourceConfig),
+      getTranConfig(job.tranConfig.getOrElse(""), job.sinkConfig.getOrElse(""), job.sinkNs, job.jobType),
+      getSinkConfig(job.sinkNs, job.sinkConfig.getOrElse(""), job.jobType),
       getJobConfig(job.name, job.sparkConfig))
 
-  def getSourceConfig(sourceNs: String, eventTsStart: String = null, eventTsEnd: String = null, sourceType: String = null, sourceConfig: Option[String]) = {
+  def getSourceConfig(sourceNs: String, eventTsStart: String = null, eventTsEnd: String = null, sourceConfig: Option[String]) = {
     val eventTsStartFinal = if (eventTsStart != null && eventTsStart != "") eventTsStart else "19700101000000"
     val eventTsEndFinal = if (eventTsEnd != null && eventTsEnd != "") eventTsEnd else "30000101000000"
-    val sourceTypeFinal = if (sourceType != null && sourceType != "") sourceType else "hdfs_txt"
+    val sourceTypeFinal = "hdfs_txt"
     val specialConfig = if (sourceConfig.isDefined && sourceConfig.get != "" && sourceConfig.get.contains("protocol")) Some(base64byte2s(getConsumptionProtocol(sourceConfig.get).trim.getBytes())) else None
     val (instance, db, _) = modules.namespaceDal.getNsDetail(sourceNs)
-    SourceConfig(eventTsStartFinal, eventTsEndFinal, sourceNs, getConnConfig(instance, db, sourceType), getSourceProcessClass(sourceTypeFinal), specialConfig)
+    SourceConfig(eventTsStartFinal, eventTsEndFinal, sourceNs,
+      ConnectionConfig(RiderConfig.spark.hdfs_root, None, None, None),
+      getSourceProcessClass(sourceTypeFinal), specialConfig)
   }
 
-  def getSinkConfig(sinkNs: String, sinkConfig: String) = {
+  def getSinkConfig(sinkNs: String, sinkConfig: String, jobType: String) = {
     val (instance, db, ns) = modules.namespaceDal.getNsDetail(sinkNs)
+
     val maxRecord =
       if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("maxRecordPerPartitionProcessed"))
         JSON.parseObject(sinkConfig).getIntValue("maxRecordPerPartitionProcessed")
       else RiderConfig.spark.jobMaxRecordPerPartitionProcessed
+
     val specialConfig =
-      if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
-        Some(base64byte2s(JSON.parseObject(sinkConfig).getString("sink_specific_config").trim.getBytes()))
-      else None
+      if (jobType != JobType.BACKFILL.toString) {
+        if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
+          Some(base64byte2s(JSON.parseObject(sinkConfig).getString("sink_specific_config").trim.getBytes()))
+        else None
+      } else {
+        val topicConfig = new JSONObject().fluentPut("topic", db.nsDatabase)
+        val sinkSpecConfig = new JSONObject().fluentPut("sink_specific_config", topicConfig)
+        Some(base64byte2s(sinkSpecConfig.toString.trim.getBytes))
+      }
 
     val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else ns.keys
 
@@ -77,15 +87,12 @@ object JobUtils extends RiderLogger {
       None
     }
 
-    val sinkProtocol = if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_protocol"))
-      Some(JSON.parseObject(sinkConfig).getString("sink_protocol"))
-    else None
-
-    SinkConfig(sinkNs, getConnConfig(instance, db), maxRecord, Some(getSinkProcessClass(ns.nsSys, ns.sinkSchema)), specialConfig, sinkKeys, projection, sinkProtocol)
+    val sinkSys = if (jobType != JobType.BACKFILL.toString) ns.nsSys else UmsDataSystem.KAFKA.toString
+    SinkConfig(sinkNs, getConnConfig(instance, db), maxRecord, Some(getSinkProcessClass(sinkSys, ns.sinkSchema)), specialConfig, sinkKeys, projection)
   }
 
-  def getTranConfig(tranConfig: String, sinkConfig: String, sinkNs: String) = {
-    val sinkProtocol = getSinkConfig(sinkNs, sinkConfig).sink_protocol
+  def getTranConfig(tranConfig: String, sinkConfig: String, sinkNs: String, jobType: String) = {
+    val sinkProtocol = getSinkProtocol(sinkConfig, jobType)
     val action =
       if (tranConfig != "" && tranConfig != null) {
         val tranClass = JSON.parseObject(tranConfig)
@@ -93,14 +100,14 @@ object JobUtils extends RiderLogger {
           if (tranClass.getString("action").contains("edp.wormhole.batchjob.transform.Snapshot"))
             tranClass.getString("action")
           else {
-            if (sinkProtocol.nonEmpty && sinkProtocol.get == "snapshot")
+            if (sinkProtocol.nonEmpty && sinkProtocol.get == JobSinkProtocol.SNAPSHOT.toString)
               "custom_class = edp.wormhole.batchjob.transform.Snapshot;".concat(tranClass.getString("action"))
             else tranClass.getString("action")
           }
-        } else if (sinkProtocol.nonEmpty && sinkProtocol.get == "snapshot")
+        } else if (sinkProtocol.nonEmpty && sinkProtocol.get == JobSinkProtocol.SNAPSHOT.toString)
           "custom_class = edp.wormhole.batchjob.transform.Snapshot;"
         else ""
-      } else if (sinkProtocol.nonEmpty && sinkProtocol.get == "snapshot")
+      } else if (sinkProtocol.nonEmpty && sinkProtocol.get == JobSinkProtocol.SNAPSHOT.toString)
         "custom_class = edp.wormhole.batchjob.transform.Snapshot;"
       else ""
     val specialConfig = setSwiftsConfig2Snapshot(sinkNs, action, tranConfig)
@@ -171,17 +178,14 @@ object JobUtils extends RiderLogger {
   }
 
 
-  def getConnConfig(instance: Instance, db: NsDatabase, sourceType: String = null): ConnectionConfig = {
-    val connUrl =
-      if (sourceType == null || sourceType == "" || !sourceType.contains("hdfs")) getConnUrl(instance, db)
-      else RiderConfig.spark.hdfs_root
-    ConnectionConfig(connUrl, db.user, db.pwd, getDbConfig(instance.nsSys, db.config.getOrElse("")))
+  def getConnConfig(instance: Instance, db: NsDatabase): ConnectionConfig = {
+    ConnectionConfig(getConnUrl(instance, db), db.user, db.pwd, getDbConfig(instance.nsSys, db.config.getOrElse("")))
   }
 
-  def startJob(job: Job) = {
-    runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(job.name)}")
+  def startJob(job: Job, logPath: String) = {
+    //    runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(job.name)}")
     val startConfig: StartConfig = if (job.startConfig.isEmpty) null else json2caseClass[StartConfig](job.startConfig)
-    val command = generateStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name,
+    val command = generateStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name, logPath,
       if (startConfig != null) startConfig else StartConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum, RiderConfig.spark.executorMemory, RiderConfig.spark.executorCores),
       if (job.sparkConfig.isDefined && !job.sparkConfig.get.isEmpty) job.sparkConfig.get else Seq(RiderConfig.spark.driverExtraConf, RiderConfig.spark.executorExtraConf).mkString(",").concat(RiderConfig.spark.sparkConfig),
       "job"
@@ -198,10 +202,10 @@ object JobUtils extends RiderLogger {
   def refreshJob(id: Long) = {
     val job = Await.result(modules.jobDal.findById(id), minTimeOut).head
     val appInfo = getSparkJobStatus(job)
-    modules.jobDal.updateJobStatus(job.id, appInfo)
+    modules.jobDal.updateJobStatus(job.id, appInfo, job.logPath.getOrElse(""))
     val startedTime = if (appInfo.startedTime != null) Some(appInfo.startedTime) else Some("")
     val stoppedTime = if (appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
-    Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.sourceType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
+    Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
       job.sinkConfig, job.tranConfig, appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.createTime, job.createBy, job.updateTime, job.updateBy)
   }
 
@@ -233,7 +237,7 @@ object JobUtils extends RiderLogger {
     }
   }
 
-  def getDisableAction(job: Job) = {
+  def getDisableAction(job: Job): String = {
     val projectNsSeq = modules.relProjectNsDal.getNsByProjectId(job.projectId)
     val nsSeq = new ListBuffer[String]
     nsSeq += job.sourceNs
@@ -257,6 +261,19 @@ object JobUtils extends RiderLogger {
         case JobStatus.STOPPED => s"${Action.STOP}"
         case JobStatus.DONE => s"${Action.STOP}"
       }
+    }
+  }
+
+  def getJobSinkNs(sourceNs: String, sinkNs: String, jobType: String) = {
+    if (jobType != JobType.BACKFILL.toString) sinkNs else sourceNs
+  }
+
+  def getSinkProtocol(sinkConfig: String, jobType: String): Option[String] = {
+    if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_protocol"))
+      Some(JSON.parseObject(sinkConfig).getString("sink_protocol"))
+    else {
+      if (jobType == JobType.BACKFILL.toString) Some(JobSinkProtocol.SNAPSHOT.toString)
+      else None
     }
   }
 }

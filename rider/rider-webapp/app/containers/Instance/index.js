@@ -19,13 +19,13 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import { filterDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 import InstanceForm from './InstanceForm'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
@@ -39,12 +39,24 @@ import Popconfirm from 'antd/lib/popconfirm'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
-import { loadInstances, addInstance, loadInstanceInputValue, loadInstanceExit,
-  loadSingleInstance, editInstance, deleteInstace } from './action'
-import { selectInstances, selectError, selectModalLoading, selectConnectUrlExisted, selectInstanceExisted } from './selectors'
+import {
+  loadInstances,
+  addInstance,
+  checkUrl,
+  loadSingleInstance,
+  editInstance,
+  deleteInstace
+} from './action'
+import {
+  selectInstances,
+  selectError,
+  selectModalLoading
+} from './selectors'
+import { selectRoleType } from '../App/selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 import { operateLanguageText } from '../../utils/util'
+import { filterDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 
 export class Instance extends React.PureComponent {
   constructor (props) {
@@ -91,7 +103,6 @@ export class Instance extends React.PureComponent {
 
   componentWillMount () {
     this.refreshInstance()
-    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   // componentWillUpdate (props) {
@@ -123,8 +134,7 @@ export class Instance extends React.PureComponent {
   }
 
   searchOperater () {
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const { columnNameText, valueText, visibleBool, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
@@ -196,40 +206,32 @@ export class Instance extends React.PureComponent {
 
   onModalOk = () => {
     const { instanceFormType } = this.state
-    const { instanceExisted } = this.props
-    const languageText = localStorage.getItem('preferredLanguage')
-    const instanceExist = languageText === 'en' ? 'This instance already exists.' : '该 Instance 已存在。'
-    const createFormat = languageText === 'en' ? 'Instance is created successfully!' : 'Instance 新建成功！'
-    const modifyFormat = languageText === 'en' ? 'Instance is modified successfully!' : 'Instance 修改成功！'
+    const { locale } = this.props
+    const createFormat = locale === 'en' ? 'Instance is created successfully!' : 'Instance 新建成功！'
+    const modifyFormat = locale === 'en' ? 'Instance is modified successfully!' : 'Instance 修改成功！'
 
     this.instanceForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        if (instanceFormType === 'add') {
-          if (instanceExisted) {
-            this.instanceForm.setFields({
-              instance: {
-                value: values.instance,
-                errors: [new Error(instanceExist)]
-              }
-            })
-          } else {
+        switch (instanceFormType) {
+          case 'add':
             this.props.onAddInstance(values, () => {
               this.hideForm()
               message.success(createFormat, 3)
             }, (msg) => {
               this.loadResult(values.connectionUrl, msg)
             })
-          }
-        } else if (instanceFormType === 'edit') {
-          this.props.onEditInstance(Object.assign(this.state.editInstanceData, {
-            desc: values.description,
-            connUrl: values.connectionUrl
-          }), () => {
-            this.hideForm()
-            message.success(modifyFormat, 3)
-          }, (msg) => {
-            this.loadResult(values.connectionUrl, msg)
-          })
+            break
+          case 'edit':
+            this.props.onEditInstance(Object.assign(this.state.editInstanceData, {
+              desc: values.description,
+              connUrl: values.connectionUrl
+            }), () => {
+              this.hideForm()
+              message.success(modifyFormat, 3)
+            }, (msg) => {
+              this.loadResult(values.connectionUrl, msg)
+            })
+            break
         }
       }
     })
@@ -299,85 +301,28 @@ export class Instance extends React.PureComponent {
     }
   }
 
-  /***
-   * 新增时，验证 Connection Url 是否存在
-   * */
-  onInitInstanceInputValue = (value) => {
-    const { eidtConnUrl } = this.state
+  // 新增时，验证 Connection Url 是否存在
+  onInitCheckUrl = (value) => {
+    const { eidtConnUrl, InstanceSourceDsVal } = this.state
 
     if (eidtConnUrl !== value) {
       const requestVal = {
-        type: this.state.InstanceSourceDsVal,
+        type: InstanceSourceDsVal,
         conn_url: value
       }
 
-      this.props.onLoadInstanceInputValue(requestVal, () => {}, (result) => {
+      this.props.onLoadCheckUrl(requestVal, () => {}, (result) => {
         this.loadResult(value, result)
       })
     }
   }
 
   loadResult (value, result) {
-    const { instanceFormType, InstanceSourceDsVal } = this.state
-    const languageText = localStorage.getItem('preferredLanguage')
-    const existText = languageText === 'en'
-      ? `The connection url already exists, confirm ${instanceFormType === 'add' ? 'create' : 'modify'}?`
-      : `该 Connection URL 已存在，确定${instanceFormType === 'add' ? '新建' : '修改'}吗？`
-    const esText = languageText === 'en'
-      ? 'if it acts as sink, fill in http://localhost:9200; if it acts as lookup, fill in localhost:9300'
-      : '作为sink，填写 http://localhost:9200；作为lookup，填写localhost:9300'
-
-    let errMsg = ''
-    if (result.includes('exists')) {
-      errMsg = [new Error(existText)]
-    } else {
-      if (InstanceSourceDsVal === 'es') {
-        errMsg = [new Error(esText)]
-      } else if (InstanceSourceDsVal === 'oracle' ||
-        InstanceSourceDsVal === 'mysql' ||
-        InstanceSourceDsVal === 'postgresql'
-      ) {
-        errMsg = [new Error('ip:port')]
-      } else if (InstanceSourceDsVal === 'hbase') {
-        errMsg = [new Error('zookeeper url list, localhost:2181/hbase,localhost1:2181/hbase')]
-      } else if (InstanceSourceDsVal === 'phoenix') {
-        errMsg = [new Error('zookeeper url list')]
-      } else if (InstanceSourceDsVal === 'kafka') {
-        errMsg = [new Error('localhost:9092,localhost1:9092')]
-      } else if (InstanceSourceDsVal === 'cassandra' ||
-        InstanceSourceDsVal === 'mongodb' ||
-        InstanceSourceDsVal === 'redis'
-      ) {
-        errMsg = [new Error('ip:port list')]
-      } else if (InstanceSourceDsVal === 'parquet') {
-        errMsg = [new Error('hdfs://nn1[:8020]/[user/test/test1]')]
-      }
-    }
-
     this.instanceForm.setFields({
       connectionUrl: {
         value: value,
-        errors: errMsg
+        errors: [new Error(result)]
       }
-    })
-  }
-
-  /***
-   * 新增时，验证 Instance 是否存在
-   * */
-  onInitInstanceExited = (value) => {
-    const requestVal = {
-      type: this.state.InstanceSourceDsVal,
-      nsInstance: value
-    }
-    this.props.onLoadInstanceExit(requestVal, () => {}, (result) => {
-      const languageText = localStorage.getItem('preferredLanguage')
-      this.instanceForm.setFields({
-        instance: {
-          value: value,
-          errors: [new Error(languageText === 'en' ? 'The instance already exists.' : '该 Instance 已存在。')]
-        }
-      })
     })
   }
 
@@ -448,7 +393,8 @@ export class Instance extends React.PureComponent {
   }
 
   render () {
-    const { refreshInstanceLoading, refreshInstanceText, showInstanceDetails } = this.state
+    const { refreshInstanceLoading, refreshInstanceText, showInstanceDetails, currentInstances, instanceFormType, formVisible } = this.state
+    const { modalLoading, roleType } = this.props
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -614,7 +560,7 @@ export class Instance extends React.PureComponent {
             </Tooltip>
 
             {
-              localStorage.getItem('loginRoleType') === 'admin'
+              roleType === 'admin'
                 ? (
                   <Popconfirm placement="bottom" title={<FormattedMessage {...messages.instanceSureDelete} />} okText="Yes" cancelText="No" onConfirm={this.deleteInstanceBtn(record)}>
                     <Tooltip title={<FormattedMessage {...messages.instanceDelete} />}>
@@ -633,9 +579,6 @@ export class Instance extends React.PureComponent {
       showSizeChanger: true,
       onChange: (current) => this.setState({ pageIndex: current })
     }
-
-    const { currentInstances, instanceFormType, formVisible } = this.state
-    const { modalLoading } = this.props
 
     const modalTitle = instanceFormType === 'add'
       ? <FormattedMessage {...messages.instanceTableCreate} />
@@ -691,7 +634,7 @@ export class Instance extends React.PureComponent {
         >
           <InstanceForm
             instanceFormType={instanceFormType}
-            onInitInstanceInputValue={this.onInitInstanceInputValue}
+            onInitCheckUrl={this.onInitCheckUrl}
             onInitInstanceExited={this.onInitInstanceExited}
             onInitInstanceSourceDs={this.onInitInstanceSourceDs}
             ref={(f) => { this.instanceForm = f }}
@@ -703,28 +646,25 @@ export class Instance extends React.PureComponent {
 }
 
 Instance.propTypes = {
-  modalLoading: React.PropTypes.bool,
-  instanceExisted: React.PropTypes.bool,
-  onLoadInstances: React.PropTypes.func,
-  onAddInstance: React.PropTypes.func,
-  onLoadInstanceInputValue: React.PropTypes.func,
-  onLoadInstanceExit: React.PropTypes.func,
-  onLoadSingleInstance: React.PropTypes.func,
-  onEditInstance: React.PropTypes.func,
-  onDeleteInstace: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func
+  modalLoading: PropTypes.bool,
+  onLoadInstances: PropTypes.func,
+  onAddInstance: PropTypes.func,
+  onLoadSingleInstance: PropTypes.func,
+  onEditInstance: PropTypes.func,
+  onDeleteInstace: PropTypes.func,
+  onLoadCheckUrl: PropTypes.func,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
   return {
     onLoadInstances: (resolve) => dispatch(loadInstances(resolve)),
     onAddInstance: (instance, resolve, reject) => dispatch(addInstance(instance, resolve, reject)),
-    onLoadInstanceInputValue: (value, resolve, reject) => dispatch(loadInstanceInputValue(value, resolve, reject)),
-    onLoadInstanceExit: (value, resolve, reject) => dispatch(loadInstanceExit(value, resolve, reject)),
     onLoadSingleInstance: (instanceId, resolve) => dispatch(loadSingleInstance(instanceId, resolve)),
     onEditInstance: (value, resolve, reject) => dispatch(editInstance(value, resolve, reject)),
     onDeleteInstace: (value, resolve, reject) => dispatch(deleteInstace(value, resolve, reject)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onLoadCheckUrl: (value, resolve, reject) => dispatch(checkUrl(value, resolve, reject))
   }
 }
 
@@ -732,8 +672,8 @@ const mapStateToProps = createStructuredSelector({
   instances: selectInstances(),
   error: selectError(),
   modalLoading: selectModalLoading(),
-  connectUrlExisted: selectConnectUrlExisted(),
-  instanceExisted: selectInstanceExisted()
+  roleType: selectRoleType(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Instance)

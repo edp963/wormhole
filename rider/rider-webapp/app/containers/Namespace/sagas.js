@@ -122,7 +122,7 @@ export function* getNsTableName ({ payload }) {
       payload.resolve()
     } else {
       yield put(tableNameExistErrorLoaded(result.msg))
-      payload.reject()
+      payload.reject(result.msg)
     }
   } catch (err) {
     yield put(getError(err))

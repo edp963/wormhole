@@ -38,10 +38,24 @@ import scala.collection.mutable.ListBuffer
 object LookupRedis extends EdpLogging {
 
   def transform(session: SparkSession, df: DataFrame, sqlConfig: SwiftsSql, sourceNamespace: String, sinkNamespace: String, connectionConfig: ConnectionConfig): DataFrame = {
-    val selectFields: Array[(String, String)] = sqlConfig.fields.get.split(",").map(field => {
+//    val selectFields: Array[(String, String)] = sqlConfig.fields.get.split(",").map(field => {
+//      val fields = field.split(":")
+//      (fields(0).trim, fields(1).trim)
+//    })
+
+    val selectFields: Array[(String, String,String)] = sqlConfig.fields.get.split(",").map(field => {
       val fields = field.split(":")
-      (fields(0).trim, fields(1).trim)
+      val fields1trim  = fields(1).trim
+      if(fields1trim.toLowerCase.contains(" as ")){
+        val asIndex = fields1trim.toLowerCase.indexOf(" as ")
+        val fieldType = fields1trim.substring(0,asIndex).trim
+        val newName = fields1trim.substring(asIndex+4).trim
+        (fields(0).trim,fieldType,newName)
+      }else{
+        (fields(0).trim, fields(1).trim,fields(0).trim)
+      }
     })
+
     //    val pushdownNamespace = sqlConfig.lookupNamespace.get
     val joinbyFiledsArray = sqlConfig.sourceTableFields.get
     val joinbyFileds = if(joinbyFiledsArray(0).contains("(")){
@@ -54,7 +68,7 @@ object LookupRedis extends EdpLogging {
 
     val resultSchema = {
       var resultSchema: StructType = df.schema
-      val addColumnType = selectFields.map { case (name, dataType) =>
+      val addColumnType = selectFields.map { case (_, dataType,name) =>
         StructField(name, ums2sparkType(umsFieldType(dataType)))
       }
       addColumnType.foreach(column => resultSchema = resultSchema.add(column))
@@ -98,7 +112,7 @@ object LookupRedis extends EdpLogging {
           val ori = originalData(i)
           val lookupRowContent = lookupValues(i)
           val originalArray: Array[Any] = ori.schema.fieldNames.map(name => ori.get(ori.fieldIndex(name)))
-          val dbOutputArray = selectFields.map { case (name, dataType) =>
+          val dbOutputArray = selectFields.map { case (name, dataType,newName) =>
             if (sqlConfig.sql.indexOf("(json)") < 0) {
               SparkSchemaUtils.s2sparkValue(lookupRowContent, umsFieldType(dataType))
             } else {

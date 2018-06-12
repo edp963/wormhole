@@ -26,6 +26,7 @@ import edp.rider.common.{RiderLogger, TopicPartitionOffset}
 import edp.rider.module.{ConfigurationModule, PersistenceModule}
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.entities._
+import edp.rider.rest.util.CommonUtils
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.service.util.{CacheMap, FeedbackOffsetUtil}
 import edp.wormhole.common.util.{DateUtils, DtFormat}
@@ -88,20 +89,21 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
               riderLogger.error(s"FeedbackDirective inserted ${tuple.toString} failed", e)
             case Success(t) => riderLogger.debug("FeedbackDirective inserted success.")
           }
-          Await.result(modules.directiveDal.findById(directiveIdValue.toString.toLong), minTimeOut) match {
+
+          modules.directiveDal.getDetail(directiveIdValue.toString.toLong) match {
             case Some(records) =>
               val pType: UmsProtocolType.Value = UmsProtocolType.umsProtocolType(records.protocolType.toString)
               pType match {
-                case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_START =>
+                case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_START | UmsProtocolType.DIRECTIVE_ROUTER_FLOW_START =>
                   if (statusValue.toString == UmsFeedbackStatus.SUCCESS.toString) {
-                    modules.flowDal.updateFlowStatus(records.flowId, RUNNING.toString)
+                    modules.flowDal.updateStatusByFeedback(records.flowId, RUNNING.toString)
                   } else
-                    modules.flowDal.updateFlowStatus(records.flowId, FAILED.toString)
+                    modules.flowDal.updateStatusByFeedback(records.flowId, FAILED.toString)
                 case UmsProtocolType.DIRECTIVE_FLOW_STOP =>
                   if (statusValue.toString == UmsFeedbackStatus.SUCCESS.toString)
-                    modules.flowDal.updateFlowStatus(records.flowId, STOPPED.toString)
+                    modules.flowDal.updateStatusByFeedback(records.flowId, STOPPED.toString)
                   else
-                    modules.flowDal.updateFlowStatus(records.flowId, FAILED.toString)
+                    modules.flowDal.updateStatusByFeedback(records.flowId, FAILED.toString)
                 case _ => riderLogger.debug(s"$pType not supported now.")
               }
             case None => riderLogger.warn(s"directive id doesn't exist.")
@@ -150,7 +152,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
     }
   }
 
-  def doFeedbackStreamBatchError(message: Ums) = {
+  def doFeedbackStreamBatchError(message: Ums): Unit = {
     val protocolType = message.protocol.`type`.toString
     val fields = message.schema.fields_get
     val curTs = currentMillSec
@@ -163,7 +165,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val resultDescValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc")
         if (umsTsValue != null && streamIdValue != null && statusValue != null && resultDescValue != null) {
           val future = modules.feedbackStreamErrDal.insert(FeedbackStreamErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs))
-          val result = Await.ready(future, Duration.Inf).value.get
+          val result = Await.ready(future, minTimeOut).value.get
           result match {
             case Failure(e) =>
               riderLogger.error(s"FeedbackStreamBatchError inserted ${tuple.toString} failed", e)
@@ -206,7 +208,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
           val partitionOffset = partitionOffsetValue.toString
           val partitionNum: Int = FeedbackOffsetUtil.getPartitionNumber(partitionOffset)
           val future = modules.feedbackOffsetDal.insert(FeedbackOffset(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
-            topicNameValue.toString, partitionNum, partitionOffset, curTs))
+            topicNameValue.toString, partitionNum, partitionOffset, currentMicroSec))
           val result = Await.ready(future, Duration.Inf).value.get
           result match {
             case Failure(e) =>
@@ -229,7 +231,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
   }
 
   def doFeedbackFlowStats(message: Ums) = {
-    val srcNamespace = message.schema.namespace.toLowerCase
+    val srcNamespace = message.schema.namespace
     val riderNamespace = namespaceRiderString(srcNamespace)
     val fields = message.schema.fields_get
     var throughput: Long = 0
@@ -253,32 +255,33 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
           val riderSinkNamespace = if (sinkNamespaceValue.toString == "") riderNamespace else namespaceRiderString(sinkNamespaceValue.toString)
           val flowName = s"${riderNamespace}_${riderSinkNamespace}"
           val interval_data_process_dataums = (mainDataTsValue.toString.toLong - cdcTsValue.toString.toLong) / 1000
-          val interval_data_process_rdd = (mainDataTsValue.toString.toLong - rddTsValue.toString.toLong) / 1000
-          val interval_data_process_swifts = (mainDataTsValue.toString.toLong - swiftsTsValue.toString.toLong) / 1000
-          val interval_data_process_sink = (mainDataTsValue.toString.toLong - sinkTsValue.toString.toLong) / 1000
-          val interval_data_process_done = (mainDataTsValue.toString.toLong - doneTsValue.toString.toLong) / 1000
+          val interval_data_process_rdd = (rddTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
+          val interval_data_process_swifts = (swiftsTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
+          val interval_data_process_sink = (sinkTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
+          val interval_data_process_done = (doneTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
 
           val interval_data_ums_done = (doneTsValue.toString.toLong - cdcTsValue.toString.toLong) / 1000
           val interval_rdd_done: Long = (doneTsValue.toString.toLong - rddTsValue.toString.toLong) / 1000
-          val interval_data_swifts_sink = (swiftsTsValue.toString.toLong - sinkTsValue.toString.toLong) / 1000
+          val interval_data_swifts_sink = (sinkTsValue.toString.toLong - swiftsTsValue.toString.toLong) / 1000
           val interval_data_sink_done = (doneTsValue.toString.toLong - sinkTsValue.toString.toLong) / 1000
 
           if (interval_rdd_done == 0L) {
             throughput = rddCountValue.toString.toInt
           } else throughput = rddCountValue.toString.toInt / interval_rdd_done
 
-          val monitorInfo = MonitorInfo(statsIdValue.toString, umsTsValue.toString, CacheMap.getProjectId(streamIdValue.toString.toLong), streamIdValue.toString.toLong, CacheMap.getStreamName(streamIdValue.toString.toLong), CacheMap.getFlowId(flowName), flowName, rddCountValue.toString.toInt, throughput,
-            DateUtils.dt2string(cdcTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-            DateUtils.dt2string(rddTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-            DateUtils.dt2string(directiveTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-            DateUtils.dt2string(mainDataTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-            DateUtils.dt2string(swiftsTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-            DateUtils.dt2string(sinkTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
-            DateUtils.dt2string(doneTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC),
+          val monitorInfo = MonitorInfo(statsIdValue.toString,
+            string2EsDateString(umsTsValue.toString),
+            CacheMap.getProjectId(streamIdValue.toString.toLong), streamIdValue.toString.toLong, CacheMap.getStreamName(streamIdValue.toString.toLong), CacheMap.getFlowId(flowName), flowName, rddCountValue.toString.toInt, throughput,
+            string2EsDateString(DateUtils.dt2string(cdcTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(rddTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(directiveTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(mainDataTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(swiftsTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(sinkTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(doneTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             interval_data_process_dataums, interval_data_process_rdd, interval_data_process_swifts, interval_data_process_sink, interval_data_process_done,
             interval_data_ums_done, interval_rdd_done, interval_data_swifts_sink, interval_data_sink_done)
           ElasticSearch.insertFlowStatToES(monitorInfo)
-          riderLogger.debug("es insert success")
         } else {
           riderLogger.error(s"Failed to get value from FeedbackFlowStats", tuple)
         }
@@ -287,5 +290,9 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
       case e: Exception =>
         riderLogger.error(s"Failed to parse FeedbackFlowStats feedback message", e)
     }
+  }
+
+  private def string2EsDateString(string: String): String = {
+    string.concat(CommonUtils.getTimeZoneId)
   }
 }

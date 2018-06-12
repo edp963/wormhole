@@ -21,17 +21,22 @@
 
 package edp.rider.rest.util
 
+import javax.naming.NamingEnumeration
+import javax.naming.directory.{SearchControls, SearchResult}
+
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.directives.Credentials
-import edp.rider.common.RiderLogger
+import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.module.{ConfigurationModuleImpl, PersistenceModuleImpl}
 import edp.rider.rest.persistence.entities.User
 import edp.rider.rest.router.{LoginClass, LoginResult, SessionClass}
 import slick.jdbc.MySQLProfile.api._
 import edp.rider.rest.util.CommonUtils._
+
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
+import scala.util.{Failure, Success, Try}
 
 sealed abstract class AuthorizationError extends Exception {
   val statusCode = Unauthorized
@@ -88,13 +93,27 @@ object AuthorizationProvider extends ConfigurationModuleImpl with PersistenceMod
 
 
   private def findUser(login: LoginClass): Future[User] = {
-    userDal.findByFilter(user => user.email === login.email).map[User] {
+    if (RiderConfig.ldap.enabled && LdapValidate.validate(login.email, login.password)) findUserByLdap(login)
+    else userDal.findByFilter(user => user.email === login.email).map[User] {
       userSeq =>
         userSeq.headOption match {
           case Some(user) =>
             if (verifyPassWord(user.password, login.password)) user
             else throw PassWordNotMatch
           case None => throw UserNotFound
+        }
+    }
+  }
+
+  private def findUserByLdap(login: LoginClass): Future[User] = {
+    val ldapUser = User(0, login.email, "", login.email.split("@")(0), "user", RiderConfig.riderServer.defaultLanguage, active = true, currentSec, 0, currentSec, 0)
+    userDal.findByFilter(user => user.email === login.email && user.active === true).map[User] {
+      userSeq =>
+        userSeq.headOption match {
+          case Some(user) => user
+          case None =>
+            riderLogger.info(s"user ${login.email} first login.")
+            Await.result(userDal.insert(ldapUser), minTimeOut)
         }
     }
   }

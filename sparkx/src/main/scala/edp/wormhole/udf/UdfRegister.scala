@@ -30,16 +30,18 @@ import org.apache.spark.sql.types._
 
 object UdfRegister extends EdpLogging {
 
-  def register(udfName: String, udfClassFullname: String, udfJarPath: String, session: SparkSession) {
+  def register(udfName: String, udfClassFullname: String, udfJarPath: String, session: SparkSession,ifLoadJar:Boolean) {
     //    if (!jarPathSet.contains(udfJarPath)) {
     synchronized {
+      if (ifLoadJar) {
       session.sparkContext.addJar(udfJarPath)
       loadJar(udfJarPath)
+    }
       //      jarPathSet += udfJarPath
       //    }
       val clazz = Class.forName(udfClassFullname)
       val method = {
-        val methods = clazz.getDeclaredMethods
+        val methods = clazz.getMethods
         var callMethod: Method = null
         for (i <- methods.indices) {
           val m: Method = methods(i)

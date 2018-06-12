@@ -111,3 +111,20 @@ object JobStatus extends Enumeration {
 
   def jobStatus(s: String) = JobStatus.withName(s.toLowerCase)
 }
+
+object JobType extends Enumeration {
+  type JobType = Value
+
+  val DEFAULT = Value("1")
+  val BACKFILL = Value("2")
+
+  def getJobType(s: String) = JobType.withName(s.toLowerCase)
+}
+
+object JobSinkProtocol extends Enumeration {
+  type JobSinkProtocol = Value
+
+  val SNAPSHOT = Value("snapshot")
+
+  def getJobSinkProtocol(s: String) = JobSinkProtocol.withName(s.toLowerCase)
+}

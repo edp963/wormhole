@@ -26,7 +26,10 @@ import edp.wormhole.common.ConnectionConfig
 case class BatchJobConfig(sourceConfig: SourceConfig,
                             transformationConfig: Option[TransformationConfig],
                             sinkConfig: SinkConfig,
-                            jobConfig: JobConfig)
+                            jobConfig: JobConfig,
+                          udfConfig:Option[List[UdfConfig]])
+
+case class UdfConfig(udfName:String,udfClassFullname:String)
 
 case class SourceConfig(startTime: String,
                         endTime: String,
@@ -44,8 +47,7 @@ case class SinkConfig(sinkNamespace: String,
                       classFullName: Option[String],
                       specialConfig: Option[String],
                       tableKeys: Option[String],
-                      projection:Option[String],
-                      sink_protocol: Option[String] = None)
+                      projection:Option[String])
 
 case class JobConfig(appName: String,
                      master: String,

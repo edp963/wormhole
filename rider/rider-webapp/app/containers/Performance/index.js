@@ -19,22 +19,21 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
 
 import { loadPerformances } from './action'
 import { selectPerformances } from './selectors'
+import { selectRoleType } from '../App/selectors'
 
 export class Performance extends React.Component {
   componentWillMount () {
     const projectId = this.props.router.params.projectId
+    const { roleType, onLoadPerformances } = this.props
 
-    if (localStorage.getItem('loginRoleType') === 'admin') {
-      this.props.onLoadPerformances(projectId, 'admin')
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
-      this.props.onLoadPerformances(projectId, 'user')
-    }
+    onLoadPerformances(projectId, roleType)
   }
 
   render () {
@@ -55,12 +54,13 @@ export class Performance extends React.Component {
 }
 
 Performance.propTypes = {
-  router: React.PropTypes.any,
-  onLoadPerformances: React.PropTypes.func,
-  performances: React.PropTypes.oneOfType([
-    React.PropTypes.object,
-    React.PropTypes.bool
-  ])
+  router: PropTypes.any,
+  onLoadPerformances: PropTypes.func,
+  performances: PropTypes.oneOfType([
+    PropTypes.object,
+    PropTypes.bool
+  ]),
+  roleType: selectRoleType()
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -70,7 +70,8 @@ export function mapDispatchToProps (dispatch) {
 }
 
 const mapStateToProps = createStructuredSelector({
-  performances: selectPerformances()
+  performances: selectPerformances(),
+  roleType: selectRoleType()
 })
 
-export default connect(mapStateToProps, mapDispatchToProps)(Performance)
+export default connect(mapStateToProps, mapDispatchToProps)(connect(mapStateToProps, null)(Performance))

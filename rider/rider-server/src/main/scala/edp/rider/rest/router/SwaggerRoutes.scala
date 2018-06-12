@@ -28,7 +28,7 @@ import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import edp.rider.RiderStarter
 import edp.rider.common.RiderConfig
 import edp.rider.rest.router.admin.routes._
-import edp.rider.rest.router.app.routes.{FlowAppRoutes, JobAppRoutes}
+import edp.rider.rest.router.app.routes._
 import edp.rider.rest.router.user.routes._
 
 import scala.reflect.runtime.universe._
@@ -38,7 +38,7 @@ class SwaggerRoutes extends SwaggerHttpService with HasActorSystem {
   override implicit val materializer: ActorMaterializer = RiderStarter.materializer
   override val apiTypes = Seq(
     typeOf[LoginRoutes],
-    typeOf[GenTokenRoutes],
+//    typeOf[GenTokenRoutes],
     typeOf[ChangePwdRoutes],
     typeOf[UserAdminRoutes],
     typeOf[InstanceAdminRoutes],
@@ -61,7 +61,10 @@ class SwaggerRoutes extends SwaggerHttpService with HasActorSystem {
     typeOf[InstanceUserRoutes],
     typeOf[UdfUserRoutes],
     typeOf[JobAdminRoutes],
-    typeOf[UserRoutes]
+    typeOf[UserRoutes],
+    typeOf[InstanceAppRoutes],
+    typeOf[NsDatabaseAppRoutes],
+    typeOf[NamespaceAppRoutes]
   )
 
   override val host =

@@ -44,10 +44,12 @@ class Data2KafkaSink extends SinkProcessor with EdpLogging {
                        connectionConfig: ConnectionConfig): Unit = {
     logInfo("In Data2KafkaSink")
     WormholeKafkaProducer.init(connectionConfig.connectionUrl, connectionConfig.parameters)
-    val sinkSpecificConfig = if (sinkProcessConfig.specialConfig.isDefined) json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get) else KafkaConfig(None, None, None)
-    val kafkaTopic = sinkNamespace.split("\\.")(2)
+    val sinkSpecificConfig = if (sinkProcessConfig.specialConfig.isDefined) json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get) else KafkaConfig(None, None, None,None)
+
     val schemaList: Seq[(String, (Int, UmsFieldType, Boolean))] = schemaMap.toSeq.sortBy(_._2._1)
     val protocol: UmsProtocol = UmsProtocol(protocolType)
+    //for job of feedback
+    val kafkaTopic = if(sinkSpecificConfig.sinkKafkaTopic.nonEmpty&&sinkSpecificConfig.sinkKafkaTopic.get.nonEmpty) sinkSpecificConfig.sinkKafkaTopic.get else sinkNamespace.split("\\.")(2)
     val format = sinkSpecificConfig.messageFormat.trim
     format match {
       case "ums" =>

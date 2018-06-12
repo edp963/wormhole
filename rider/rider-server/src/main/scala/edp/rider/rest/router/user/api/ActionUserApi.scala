@@ -49,7 +49,6 @@ class ActionUserApi(streamDal: StreamDal, flowDal: FlowDal) extends Directives w
                 else {
                   if (session.projectIdList.contains(id)) {
                     if (actionClass.flowIds != "") {
-                      riderLogger.info(s"user ${session.userId} refresh streams.")
                       onComplete(flowDal.flowAction(actionClass, session.userId)) {
                         case Success(flowStreams) =>
                           riderLogger.info(s"user ${session.userId} ${actionClass.action} ${actionClass.flowIds} flows success.")

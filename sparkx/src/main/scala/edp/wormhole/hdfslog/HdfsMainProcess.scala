@@ -66,8 +66,9 @@ object HdfsMainProcess extends EdpLogging {
     val zookeeperPath = config.zookeeper_path
     stream.foreachRDD(foreachFunc = (streamRdd: RDD[ConsumerRecord[String, String]]) => {
       val offsetInfo: ArrayBuffer[OffsetRange] = new ArrayBuffer[OffsetRange]
+      val batchId = UUID.randomUUID().toString
       try {
-        val statsId = UUID.randomUUID().toString
+
         val rddTs = System.currentTimeMillis
         if (SparkUtils.isLocalMode(config.spark_config.master)) logWarning("rdd count ===> " + streamRdd.count())
         val directiveTs = System.currentTimeMillis
@@ -75,8 +76,15 @@ object HdfsMainProcess extends EdpLogging {
         streamRdd.asInstanceOf[HasOffsetRanges].offsetRanges.copyToBuffer(offsetInfo)
 
         val streamTransformedRdd: RDD[((String, String), String)] = streamRdd.map(message => {
-          val (protocol, namespace) = WormholeUtils.getTypeNamespaceFromKafkaKey(message.key)
-          ((protocol.toString,namespace), message.value)
+
+          if (message.key == null || message.key.trim.isEmpty) {
+            val namespace = WormholeUtils.getFieldContentFromJson(message.value,"namespace")
+            val protocolType = WormholeUtils.getProtocolTypeFromUms(message.value)
+            ((protocolType, namespace), message.value)
+          } else {
+            val (protocol, namespace) = WormholeUtils.getTypeNamespaceFromKafkaKey(message.key)
+            ((protocol.toString, namespace), message.value)
+          }
         })
 
         val dataParRdd = if (config.rdd_partition_number != -1) {
@@ -85,14 +93,14 @@ object HdfsMainProcess extends EdpLogging {
 
         val namespace2FileMap: Map[(String, String), mutable.HashMap[String, (String, Int, String)]] = namespace2FileStore.toMap
         val validNameSpaceMap: Map[String, Int] = directiveNamespaceRule.toMap //validNamespaceMap is NOT real namespace, has *
-        logInfo("validNameSpaceMap:"+validNameSpaceMap)
+        logInfo("validNameSpaceMap:" + validNameSpaceMap)
         val jsonInfoMap: Map[String, (Seq[FieldInfo], ArrayBuffer[(String, String)], Seq[UmsField])] = jsonSourceMap.toMap
         val mainDataTs = System.currentTimeMillis
         val partitionResultRdd = dataParRdd.mapPartitionsWithIndex { case (index, partition) =>
           // partition: ((protocol,namespace), message.value)
           val resultList = ListBuffer.empty[PartitionResult]
           val namespaceMap = mutable.HashMap.empty[(String, String), Int] //real namespace, do not have *
-          val dataList = partition.toList
+        val dataList = partition.toList
           dataList.foreach(data => {
             val result: Map[String, Int] = checkValidNamespace(data._1._2, validNameSpaceMap)
             if (result.nonEmpty && (data._1._1 == UmsProtocolType.DATA_INITIAL_DATA.toString || data._1._1 == UmsProtocolType.DATA_INCREMENT_DATA.toString)) {
@@ -103,14 +111,14 @@ object HdfsMainProcess extends EdpLogging {
                 namespaceMap((UmsProtocolType.DATA_INCREMENT_DATA.toString, data._1._2)) = hour
             }
           })
-          logInfo("check namespace ok. all data num="+dataList.size+",namespaceMap="+namespaceMap)
+          logInfo("check namespace ok. all data num=" + dataList.size + ",namespaceMap=" + namespaceMap)
 
           namespaceMap.foreach { case ((protocol, namespace), hour) =>
             val namespaceDataList = ListBuffer.empty[String]
             dataList.foreach(data => {
               if (data._1._1 == protocol && data._1._2 == namespace) namespaceDataList.append(data._2)
             })
-            logInfo("protocol="+protocol+",namespace="+namespace+",data num="+namespaceDataList.size)
+            logInfo("protocol=" + protocol + ",namespace=" + namespace + ",data num=" + namespaceDataList.size)
             var tmpMinTs = ""
             var tmpMaxTs = ""
             var tmpCount = 0
@@ -126,7 +134,7 @@ object HdfsMainProcess extends EdpLogging {
             } catch {
               case e: Throwable =>
                 logAlert("batch error", e)
-                WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(namespace, config.spark_config.stream_id, currentDateTime, "", UmsWatermark(tmpMinTs), UmsWatermark(tmpMaxTs), tmpCount, ""), None, config.kafka_output.brokers)
+                WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(namespace, config.spark_config.stream_id, currentDateTime, "", UmsWatermark(tmpMinTs), UmsWatermark(tmpMaxTs), tmpCount, "", batchId), None, config.kafka_output.brokers)
             }
           }
           resultList.toIterator
@@ -144,16 +152,16 @@ object HdfsMainProcess extends EdpLogging {
           val doneTs = System.currentTimeMillis
           if (eachResult.allCount > 0 && eachResult.maxTs != "")
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-              UmsProtocolUtils.feedbackFlowStats(eachResult.namespace, eachResult.protocol, currentDateTime, config.spark_config.stream_id, statsId, eachResult.namespace,
+              UmsProtocolUtils.feedbackFlowStats(eachResult.namespace, eachResult.protocol, currentDateTime, config.spark_config.stream_id, batchId, eachResult.namespace,
                 eachResult.allCount, DateUtils.dt2date(eachResult.maxTs).getTime, rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs), None, config.kafka_output.brokers)
         })
         partitionResultRdd.unpersist()
-        WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config)
+        WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
       } catch {
         case e: Throwable =>
           logAlert("batch error", e)
-          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, currentDateTime, UmsFeedbackStatus.FAIL, e.getMessage), None, config.kafka_output.brokers)
-          WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config)
+          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, currentDateTime, UmsFeedbackStatus.FAIL, e.getMessage, batchId), None, config.kafka_output.brokers)
+          WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
       }
       stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
     })
@@ -167,9 +175,9 @@ object HdfsMainProcess extends EdpLogging {
     //    val length = filePrefixShardingSlashSplit.length
     //    val nodePath = WormholeConstants.CheckpointRootPath + hdfsLog + filePrefixShardingSlashSplit.slice(length - 5, length).mkString("/")
     val processTime = currentyyyyMMddHHmmssmls
-    val indexStr = "000"+index
+    val indexStr = "000" + index
 
-    val incrementalId = currentyyyyMMddHHmmss + indexStr.substring(indexStr.length-4,indexStr.length)
+    val incrementalId = currentyyyyMMddHHmmss + indexStr.substring(indexStr.length - 4, indexStr.length)
     //WormholeZkClient.getNextAtomicIncrement(zookeeperPath, nodePath)
     val metaName = if (minTs == null) filePrefixShardingSlash + "wrong" + "/" + "metadata_" + incrementalId else filePrefixShardingSlash + "right" + "/" + "metadata_" + incrementalId
     val metaContent: String = if (minTs == null) incrementalId + "_" + "0_" + processTime + "_" + processTime else incrementalId + "_" + "0_" + processTime + "_" + minTs + "_" + maxTs

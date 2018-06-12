@@ -18,7 +18,7 @@
  * >>
  */
 
-import LoginSagas from './containers/Login/sagas'
+import AppSagas from './containers/App/sagas'
 
 import ProjectSagas from './containers/Project/sagas'
 import FlowSagas from './containers/Flow/sagas'
@@ -37,7 +37,7 @@ import ResourceSagas from './containers/Resource/sagas'
 import PerformanceSagas from './containers/Performance/sagas'
 
 export default [
-  ...LoginSagas,
+  ...AppSagas,
 
   ...ProjectSagas,
   ...FlowSagas,

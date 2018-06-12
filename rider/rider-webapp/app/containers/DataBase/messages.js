@@ -21,6 +21,7 @@
 import { defineMessages } from 'react-intl'
 
 export default defineMessages({
+  dbHelp: { id: 'rider.app.help' },
   dbTableList: { id: 'rider.app.table.list' },
   dbTableCreate: { id: 'rider.app.table.create.action' },
   dbTableViewDetail: { id: 'rider.app.table.view.details' },
@@ -31,5 +32,7 @@ export default defineMessages({
   dbModalCreate: { id: 'rider.containers.Database.modal.create.db' },
   dbModalModify: { id: 'rider.containers.Database.modal.modify.db' },
   dbModalCancel: { id: 'rider.app.modal.cancel' },
-  dbModalSave: { id: 'rider.app.modal.save' }
+  dbModalSave: { id: 'rider.app.modal.save' },
+  dbHelpOrcale: { id: 'rider.containers.Database.help.oracle' },
+  dbHelpOthers: { id: 'rider.containers.Database.help.others' }
 })

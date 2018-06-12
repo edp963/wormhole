@@ -7,7 +7,7 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.4.1-SNAPSHOTS</version>
+        <version>0.4.2-SNAPSHOTS</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -46,21 +46,32 @@
             <version>5.1.40</version>
         </dependency>
         <!--<dependency>-->
-            <!--<groupId>com.oracle</groupId>-->
-            <!--<artifactId>ojdbc6</artifactId>-->
-            <!--<version>11.2.0.3</version>-->
+        <!--<groupId>com.oracle</groupId>-->
+        <!--<artifactId>ojdbc6</artifactId>-->
+        <!--<version>11.2.0.3</version>-->
         <!--</dependency>-->
         <!--<dependency>-->
-            <!--<groupId>edp.wormhole</groupId>-->
-            <!--<artifactId>wormhole-phoenix-jdbc</artifactId>-->
-            <!--<version>${project.version}</version>-->
-            <!--<exclusions>-->
-                <!--<exclusion>-->
-                    <!--<groupId>joda-time</groupId>-->
-                    <!--<artifactId>joda-time</artifactId>-->
-                <!--</exclusion>-->
-            <!--</exclusions>-->
+        <!--<groupId>edp.wormhole</groupId>-->
+        <!--<artifactId>wormhole-phoenix-jdbc</artifactId>-->
+        <!--<version>${project.version}</version>-->
+        <!--<exclusions>-->
+        <!--<exclusion>-->
+        <!--<groupId>joda-time</groupId>-->
+        <!--<artifactId>joda-time</artifactId>-->
+        <!--</exclusion>-->
+        <!--</exclusions>-->
         <!--</dependency>-->
+        <dependency>
+            <groupId>com.datastax.cassandra</groupId>
+            <artifactId>cassandra-driver-core</artifactId>
+            <version>3.0.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-util</artifactId>
@@ -77,9 +88,9 @@
             <version>${project.version}</version>
         </dependency>
         <!--<dependency>-->
-            <!--<groupId>edp.wormhole</groupId>-->
-            <!--<artifactId>sql4es2</artifactId>-->
-            <!--<version>${project.version}</version>-->
+        <!--<groupId>edp.wormhole</groupId>-->
+        <!--<artifactId>sql4es2</artifactId>-->
+        <!--<version>${project.version}</version>-->
         <!--</dependency>-->
         <dependency>
             <groupId>sqlline</groupId>
@@ -91,7 +102,6 @@
             <artifactId>guava</artifactId>
             <version>16.0.1</version>
         </dependency>
-
 
 
     </dependencies>
@@ -126,8 +136,8 @@
                                     <shadedPattern>dbpool.com.google</shadedPattern>
                                 </relocation>
                                 <!--<relocation>-->
-                                    <!--<pattern>com.google.guava</pattern>-->
-                                    <!--<shadedPattern>com.foo.com.google.guava</shadedPattern>-->
+                                <!--<pattern>com.google.guava</pattern>-->
+                                <!--<shadedPattern>com.foo.com.google.guava</shadedPattern>-->
                                 <!--</relocation>-->
                             </relocations>
                         </configuration>

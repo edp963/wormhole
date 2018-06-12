@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 
@@ -35,7 +36,7 @@ import message from 'antd/lib/message'
 const MenuItem = Menu.Item
 const SubMenu = Menu.SubMenu
 
-import { logOut } from '../../containers/Login/action'
+import { logOut, setProject } from '../../containers/App/actions'
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 
 import { editroleTypeUserPsw, loadUserDetail, editUser, loadNormalDetail, editNormal } from '../../containers/User/action'
@@ -43,7 +44,6 @@ import { selectModalLoading } from '../../containers/User/selectors'
 import { selectLocale } from '../../containers/LanguageProvider/selectors'
 
 import { selectCurrentProject } from '../../containers/App/selectors'
-import { setProject } from '../../containers/App/actions'
 
 import request from '../../utils/request'
 
@@ -499,17 +499,17 @@ const mapStateToProps = createStructuredSelector({
 })
 
 Navigator.propTypes = {
-  currentProject: React.PropTypes.string,
-  modalLoading: React.PropTypes.bool,
-  router: React.PropTypes.any,
-  onLogOut: React.PropTypes.func,
-  onEditroleTypeUserPsw: React.PropTypes.func,
-  onLoadUserDetail: React.PropTypes.func,
-  onLoadNormalDetail: React.PropTypes.func,
-  onEditUser: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func,
-  onEditNormal: React.PropTypes.func,
-  locale: React.PropTypes.string
+  currentProject: PropTypes.string,
+  modalLoading: PropTypes.bool,
+  router: PropTypes.any,
+  onLogOut: PropTypes.func,
+  onEditroleTypeUserPsw: PropTypes.func,
+  onLoadUserDetail: PropTypes.func,
+  onLoadNormalDetail: PropTypes.func,
+  onEditUser: PropTypes.func,
+  onChangeLanguage: PropTypes.func,
+  onEditNormal: PropTypes.func,
+  locale: PropTypes.string
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Navigator)
