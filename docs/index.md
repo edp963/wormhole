@@ -87,7 +87,7 @@ Please refer to [Wormhole用户手册](https://edp963.github.io/wormhole).
 
 ## Latest Release
 
-Please download the latest [RELEASE](https://github.com/edp963/wormhole/releases/download/0.4.1/wormhole-0.4.1.tar.gz).
+Please download the latest [RELEASE](https://github.com/edp963/wormhole/releases/download/0.4.2/wormhole-0.4.2.tar.gz).
 
 ## Get Help
 
