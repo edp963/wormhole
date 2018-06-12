@@ -57,8 +57,8 @@ object LookupKudu extends EdpLogging {
         val keysName = sqlConfig.lookupTableFields.get.toList
         val keyName  = keysName.head
         val keyType = UmsFieldType.umsFieldType(KuduConnection.getAllFieldsUmsTypeMap(tableSchemaInKudu)(keyName))
-        val schemaMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
-        schemaMap(keyName)=(0,keyType,true)
+        val keySchemaMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
+        keySchemaMap(keyName)=(0,keyType,true)
 
         originalData.sliding(1000,1000).foreach((subList: mutable.Seq[Row]) =>{
           val tupleList: mutable.Seq[List[String]] = subList.map(row=>{
@@ -68,12 +68,13 @@ object LookupKudu extends EdpLogging {
             })
           })
           val queryMap: mutable.Map[String, Map[String, (Any, String)]] =
-            KuduConnection.doQueryByKeyListInBatch(tmpTableName,database, connectionConfig.connectionUrl, keyName, tupleList, schemaMap.toMap,  fieldArray)
+            KuduConnection.doQueryByKeyListInBatch(tmpTableName,database, connectionConfig.connectionUrl, keyName, tupleList, keySchemaMap.toMap,  fieldArray)
 
-          subList.foreach(row=>{
+          subList.foreach((row: Row) =>{
             val originalArray: Array[Any] = row.schema.fieldNames.map(name => row.get(row.fieldIndex(name)))
-            val queryFieldsResultMap: Map[String, (Any, String)] = if(queryMap==null||queryMap.isEmpty || !queryMap.contains(keyName))  null.asInstanceOf[Map[String, (Any, String)]]
-            else queryMap(keyName)
+            val keyContent = row.get(row.fieldIndex(keyName)).toString
+            val queryFieldsResultMap: Map[String, (Any, String)] = if(queryMap==null||queryMap.isEmpty || !queryMap.contains(keyContent))  null.asInstanceOf[Map[String, (Any, String)]]
+            else queryMap(keyContent)
             resultData.append(getJoinRow(fieldArray,queryFieldsResultMap,originalArray,resultSchema))
           })
         })
