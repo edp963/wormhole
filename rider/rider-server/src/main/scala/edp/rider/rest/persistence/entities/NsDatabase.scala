@@ -38,7 +38,12 @@ case class NsDatabase(id: Long,
                       createTime: String,
                       createBy: Long,
                       updateTime: String,
-                      updateBy: Long) extends BaseEntity
+                      updateBy: Long) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+
+}
 
 case class SimpleNsDatabase(nsDatabase: String,
                             desc: Option[String] = None,
@@ -66,9 +71,11 @@ case class DatabaseInstance(id: Long,
                             updateTime: String,
                             updateBy: Long)
 
+case class DataBaseName(id: Long, nsDatabase: String)
+
 
 class NsDatabaseTable(_tableTag: Tag) extends BaseTable[NsDatabase](_tableTag, "ns_database") {
-  def * = (id, nsDatabase, desc, nsInstanceId, user, pwd, partitions, config, active, createTime, createBy, updateTime, updateBy) <>(NsDatabase.tupled, NsDatabase.unapply)
+  def * = (id, nsDatabase, desc, nsInstanceId, user, pwd, partitions, config, active, createTime, createBy, updateTime, updateBy) <> (NsDatabase.tupled, NsDatabase.unapply)
 
   /** Database column ns_database SqlType(VARCHAR), Length(200,true) */
   val nsDatabase: Rep[String] = column[String]("ns_database", O.Length(200, varying = true))

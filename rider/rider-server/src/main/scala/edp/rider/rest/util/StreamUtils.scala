@@ -26,6 +26,8 @@ import edp.rider.RiderStarter.modules
 import edp.rider.common.Action._
 import edp.rider.common.StreamStatus._
 import edp.rider.common._
+import edp.rider.kafka.KafkaUtils
+import edp.rider.module.DbModule.db
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.spark.SparkJobClientLog
@@ -79,19 +81,19 @@ object StreamUtils extends RiderLogger {
             val endAction =
               if (dbStatus == STARTING.toString) "refresh_log"
               else "refresh_spark"
-            //            val endAction = "refresh_spark"
+
             val sparkStatus: AppInfo = endAction match {
               case "refresh_spark" =>
                 getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, stream.status, startedTime, stoppedTime)
               case "refresh_log" =>
-                val logInfo = SparkJobClientLog.getAppStatusByLog(stream.name, dbStatus)
+                val logInfo = SparkJobClientLog.getAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""))
                 logInfo._2 match {
                   case "running" =>
-                    getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, logInfo._2, startedTime, stoppedTime)
+                    getAppStatusByRest(appInfoList, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
                   case "waiting" =>
-                    val curInfo = getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, logInfo._2, startedTime, stoppedTime)
+                    val curInfo = getAppStatusByRest(appInfoList, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
                     AppInfo(curInfo.appId, curInfo.appState, startedTime, curInfo.finishedTime)
-                  case "starting" => getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, logInfo._2, startedTime, stoppedTime)
+                  case "starting" => getAppStatusByRest(appInfoList, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
                   case "failed" => AppInfo(logInfo._1, "failed", startedTime, currentSec)
                 }
               case _ => AppInfo("", stream.status, startedTime, null)
@@ -143,27 +145,30 @@ object StreamUtils extends RiderLogger {
             }
           }
         }
+        //        val preAppInfo = AppInfo(stream.sparkAppid.getOrElse(""), dbStatus, startedTime, stoppedTime)
+        //        if (!preAppInfo.equals(appInfo))
         stream.updateFromSpark(appInfo)
+        //        else stream
       })
   }
 
 
   def genStreamNameByProjectName(projectName: String, name: String): String = s"wormhole_${projectName}_$name"
 
-  def getBatchFlowConfig(streamDetail: StreamDetail) = {
+  def getStreamConfig(streamDetail: StreamDetail) = {
     val launchConfig = json2caseClass[LaunchConfig](streamDetail.stream.launchConfig)
-    val config = BatchFlowConfig(KafkaInputBaseConfig(streamDetail.stream.name, launchConfig.durations.toInt, streamDetail.kafkaInfo.connUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut),
+    val config = BatchFlowConfig(KafkaInputBaseConfig(streamDetail.stream.name, launchConfig.durations.toInt, streamDetail.kafkaInfo.connUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
       KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
       SparkConfig(streamDetail.stream.id, streamDetail.stream.name, "yarn-cluster", launchConfig.partitions.toInt),
       launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfs_root))
     caseClass2json[BatchFlowConfig](config)
   }
 
-  def startStream(streamDetail: StreamDetail) = {
-    val args = getBatchFlowConfig(streamDetail)
+  def startStream(streamDetail: StreamDetail, logPath: String) = {
+    val args = getStreamConfig(streamDetail)
     val startConfig = json2caseClass[StartConfig](streamDetail.stream.startConfig)
-    val commandSh = generateStreamStartSh(s"'''$args'''", streamDetail.stream.name, startConfig, streamDetail.stream.sparkConfig.getOrElse(""), streamDetail.stream.streamType)
-    riderLogger.info(s"start stream command: $commandSh")
+    val commandSh = generateStreamStartSh(s"'''$args'''", streamDetail.stream.name, logPath, startConfig, streamDetail.stream.sparkConfig.getOrElse(""), streamDetail.stream.streamType)
+    riderLogger.info(s"start stream ${streamDetail.stream.id} command: $commandSh")
     runShellCommand(commandSh)
   }
 
@@ -171,12 +176,17 @@ object StreamUtils extends RiderLogger {
     try {
       val directiveSeq = new ArrayBuffer[Directive]
       val zkConURL: String = RiderConfig.zk
-      topicSeq.foreach({
+      topicSeq.filter(_.rate != 0).foreach({
         topic =>
           val tuple = Seq(streamId, currentMicroSec, topic.name, topic.rate, topic.partitionOffsets).mkString("#")
           directiveSeq += Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, tuple, zkConURL, currentSec, userId)
       })
-      val blankTopic = Directive(0, null, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, "0:0").mkString("#"), zkConURL, currentSec, userId)
+      val blankTopic = if (directiveSeq.isEmpty) {
+        val broker = getKafkaByStreamId(streamId)
+        val blankTopicOffset = KafkaUtils.getKafkaLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic)
+        Directive(0, null, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, blankTopicOffset).mkString("#"), zkConURL, currentSec, userId)
+      } else null
+
       val directives: Seq[Directive] =
         if (directiveSeq.isEmpty) directiveSeq += blankTopic
         else {
@@ -247,7 +257,7 @@ object StreamUtils extends RiderLogger {
   def sendUnsubscribeTopicDirective(streamId: Long, topicName: String, userId: Long) = {
     try {
       val zkConURL: String = RiderConfig.zk
-      val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, topicName, zkConURL, currentSec, userId)
+      val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, "", zkConURL, currentSec, userId)
       ), minTimeOut)
       val topicUms =
         s"""
@@ -423,5 +433,36 @@ object StreamUtils extends RiderLogger {
   def getProjectIdsByUdf(udf: Long): Seq[Long] = {
     val streamIds = Await.result(modules.relStreamUdfDal.findByFilter(_.udfId === udf), minTimeOut).map(_.streamId).distinct
     Await.result(modules.streamDal.findByFilter(_.id inSet (streamIds)), minTimeOut).map(_.projectId).distinct
+  }
+
+  def getKafkaByStreamId(id: Long): String = {
+    val kakfaId = Await.result(modules.streamDal.findById(id), minTimeOut).get.instanceId
+    Await.result(modules.instanceDal.findById(kakfaId), minTimeOut).get.connUrl
+  }
+
+  def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}$appName-${CommonUtils.currentNodSec}.log"
+
+  def getStreamTime(time: Option[String]) =
+    if (time.nonEmpty) time.get.split("\\.")(0) else null
+
+  def getDefaultJvmConf = {
+    lazy val driverConf = RiderConfig.spark.driverExtraConf
+    lazy val executorConf = RiderConfig.spark.executorExtraConf
+    driverConf + "," + executorConf
+  }
+
+  def getDefaultSparkConf = {
+    RiderConfig.spark.sparkConfig
+  }
+
+  def checkYarnAppNameUnique(userDefinedName: String, projectId: Long): Boolean = {
+    val projectName = Await.result(modules.projectDal.getById(projectId), minTimeOut).get.name
+    val realName = genStreamNameByProjectName(projectName, userDefinedName)
+    if (Await.result(modules.streamDal.findByFilter(_.name === realName), minTimeOut).nonEmpty) {
+      false
+    } else {
+      if (Await.result(modules.jobDal.findByFilter(_.name === realName), minTimeOut).nonEmpty) false
+      else true
+    }
   }
 }

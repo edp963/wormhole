@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
@@ -39,8 +40,9 @@ import Popover from 'antd/lib/popover'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { selectJobs, selectError } from './selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
+import { selectRoleType } from '../App/selectors'
 import {
   loadAdminAllJobs, loadUserAllJobs, loadAdminSingleJob,
   loadAdminJobLogs, loadUserJobLogs, operateJob, loadJobDetail
@@ -91,21 +93,31 @@ export class Job extends React.Component {
       visibleBool: false,
       startTimeTextState: '',
       endTimeTextState: '',
-      paginationInfo: null
+      paginationInfo: null,
+      mapJobType: {
+        '1': 'default',
+        '2': 'backfill'
+      }
     }
   }
 
   componentWillMount () {
     this.refreshJob()
-    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   componentWillReceiveProps (props) {
     if (props.jobs) {
       const originJobs = props.jobs.map(s => {
+        let jobType = ''
+        if (Number(s.job.jobType) !== Number(s.job.jobType)) {
+          jobType = s.job.jobType
+        } else {
+          jobType = this.state.mapJobType[s.job.jobType]
+        }
         const responseOriginJob = Object.assign(s.job, {
           disableActions: s.disableActions,
-          projectName: s.projectName
+          projectName: s.projectName,
+          jobType
         })
         responseOriginJob.key = responseOriginJob.id
         return responseOriginJob
@@ -119,8 +131,7 @@ export class Job extends React.Component {
   }
 
   searchOperater () {
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const { columnNameText, valueText, visibleBool, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
@@ -140,12 +151,14 @@ export class Job extends React.Component {
   }
 
   loadJobData () {
-    if (localStorage.getItem('loginRoleType') === 'admin') {
-      this.props.jobClassHide === 'hide'
-        ? this.props.onLoadAdminSingleJob(this.props.projectIdGeted, () => { this.jobRefreshState() })
+    const { projectIdGeted, jobClassHide, roleType } = this.props
+
+    if (roleType === 'admin') {
+      jobClassHide === 'hide'
+        ? this.props.onLoadAdminSingleJob(projectIdGeted, () => { this.jobRefreshState() })
         : this.props.onLoadAdminAllJobs(() => { this.jobRefreshState() })
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
-      this.props.onLoadUserAllJobs(this.props.projectIdGeted, () => { this.jobRefreshState() })
+    } else if (roleType === 'user') {
+      this.props.onLoadUserAllJobs(projectIdGeted, () => { this.jobRefreshState() })
     }
   }
 
@@ -154,9 +167,7 @@ export class Job extends React.Component {
       refreshJobLoading: false,
       refreshJobText: 'Refresh'
     })
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { paginationInfo, filteredInfo, sortedInfo } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const { columnNameText, valueText, visibleBool, paginationInfo, filteredInfo, sortedInfo, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
@@ -170,31 +181,28 @@ export class Job extends React.Component {
 
   onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
 
-  opreateJobFunc (record, action) {
+  opreateJobFunc = (record, action) => (e) => {
+    const { locale } = this.props
     const requestValue = {
       projectId: record.projectId,
       action: action,
       jobId: `${record.id}`
     }
 
-    const languageText = localStorage.getItem('preferredLanguage')
-    const startText = languageText === 'en' ? 'Start' : '启动'
-    const stopText = languageText === 'en' ? 'Stop' : '停止'
-    const deleteText = languageText === 'en' ? 'Delete' : '删除'
-    const successText = languageText === 'en' ? 'successfully!' : '成功！'
-    const failText = languageText === 'en' ? 'Operation failed:' : '操作失败：'
+    const successText = locale === 'en' ? 'successfully!' : '成功！'
+    const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
 
     this.props.onOperateJob(requestValue, (result) => {
       let singleMsg = ''
       switch (action) {
         case 'start':
-          singleMsg = startText
+          singleMsg = locale === 'en' ? 'Start' : '启动'
           break
         case 'stop':
-          singleMsg = stopText
+          singleMsg = locale === 'en' ? 'Stop' : '停止'
           break
         case 'delete':
-          singleMsg = deleteText
+          singleMsg = locale === 'en' ? 'Delete' : '删除'
           break
       }
       message.success(`${singleMsg} ${successText}`, 3)
@@ -202,12 +210,6 @@ export class Job extends React.Component {
       message.error(`${failText} ${result}`, 5)
     })
   }
-
-  startJobBtn = (record, action) => (e) => this.opreateJobFunc(record, action)
-
-  stopJobBtn = (record, action) => (e) => this.opreateJobFunc(record, action)
-
-  deleteJobBtn = (record, action) => (e) => this.opreateJobFunc(record, action)
 
   onShowJobLogs = (record) => (e) => {
     this.setState({
@@ -227,12 +229,13 @@ export class Job extends React.Component {
   }
 
   loadLogsData = (projectId, jobId) => {
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    const { roleType } = this.props
+    if (roleType === 'admin') {
       this.props.onLoadAdminJobLogs(projectId, jobId, (result) => {
         this.setState({ jobLogsContent: result })
         this.jobLogRefreshState()
       })
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       this.props.onLoadUserJobLogs(projectId, jobId, (result) => {
         this.setState({ jobLogsContent: result })
         this.jobLogRefreshState()
@@ -255,16 +258,16 @@ export class Job extends React.Component {
     let filterValue = {}
     if (filteredInfo !== null) {
       if (filteredInfo) {
-        if (filters.status && filters.sourceType) {
-          if (filters.status.length === 0 && filters.sourceType.length === 0) {
+        if (filters.status && filters.jobType) {
+          if (filters.status.length === 0 && filters.jobType.length === 0) {
             return
           } else {
             this.onSearch('', '', false)()
-            if (filteredInfo.status && filteredInfo.sourceType) {
-              if (filteredInfo.status.length !== 0 && filters.sourceType.length !== 0) {
-                filterValue = {status: [], sourceType: filters.sourceType}
-              } else if (filteredInfo.sourceType.length !== 0 && filters.status.length !== 0) {
-                filterValue = {status: filters.status, sourceType: []}
+            if (filteredInfo.status && filteredInfo.jobType) {
+              if (filteredInfo.status.length !== 0 && filters.jobType.length !== 0) {
+                filterValue = {status: [], jobType: filters.jobType}
+              } else if (filteredInfo.jobType.length !== 0 && filters.status.length !== 0) {
+                filterValue = {status: filters.status, jobType: []}
               } else {
                 filterValue = filters
               }
@@ -295,7 +298,7 @@ export class Job extends React.Component {
     const reg = new RegExp(this.state[value], 'gi')
 
     this.setState({
-      filteredInfo: {status: [], sourceType: []}
+      filteredInfo: {status: [], jobType: []}
     }, () => {
       this.setState({
         [visible]: false,
@@ -344,7 +347,7 @@ export class Job extends React.Component {
     }
 
     this.setState({
-      filteredInfo: {status: [], sourceType: []}
+      filteredInfo: {status: [], jobType: []}
     }, () => {
       this.setState({
         [visible]: false,
@@ -376,18 +379,11 @@ export class Job extends React.Component {
       this.setState({
         visible
       }, () => {
-        let roleType = ''
-        if (localStorage.getItem('loginRoleType') === 'admin') {
-          roleType = 'admin'
-        } else if (localStorage.getItem('loginRoleType') === 'user') {
-          roleType = 'user'
-        }
-
         const requestValue = {
           projectId: record.projectId,
           streamId: record.streamId,
           jobId: record.id,
-          roleType: roleType
+          roleType: this.props.roleType
         }
 
         this.props.onLoadJobDetail(requestValue, (result) => this.setState({ showJobDetail: result }))
@@ -396,8 +392,11 @@ export class Job extends React.Component {
   }
 
   render () {
-    const { className, onShowAddJob, onShowEditJob } = this.props
-    const { refreshJobText, refreshJobLoading, showJobDetail } = this.state
+    const { className, onShowAddJob, onShowEditJob, jobClassHide, roleType } = this.props
+    const {
+      refreshJobText, refreshJobLoading, showJobDetail, currentJobs, jobLogsContent,
+      logsJobModalVisible, refreshJobLogLoading, refreshJobLogText, logsProjectId, logsJobId
+    } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -575,17 +574,18 @@ export class Job extends React.Component {
         )
       }
     }, {
-      title: 'Source Type',
-      dataIndex: 'sourceType',
-      key: 'sourceType',
+      title: 'Job Type',
+      dataIndex: 'jobType',
+      key: 'jobType',
       // className: 'text-align-center',
-      sorter: (a, b) => a.sourceType < b.sourceType ? -1 : 1,
-      sortOrder: sortedInfo.columnKey === 'sourceType' && sortedInfo.order,
+      sorter: (a, b) => a.jobType < b.jobType ? -1 : 1,
+      sortOrder: sortedInfo.columnKey === 'jobType' && sortedInfo.order,
       filters: [
-        {text: 'hdfs_txt', value: 'hdfs_txt'}
+        {text: 'default', value: 'default'},
+        {text: 'backfill', value: 'backfill'}
       ],
-      filteredValue: filteredInfo.sourceType,
-      onFilter: (value, record) => record.sourceType.includes(value)
+      filteredValue: filteredInfo.jobType,
+      onFilter: (value, record) => record.jobType.includes(value)
     }, {
       title: 'Start Time',
       dataIndex: 'startedTime',
@@ -656,9 +656,9 @@ export class Job extends React.Component {
       className: 'text-align-center',
       render: (text, record) => {
         let jobActionSelect = ''
-        if (localStorage.getItem('loginRoleType') === 'admin') {
+        if (roleType === 'admin') {
           jobActionSelect = ''
-        } else if (localStorage.getItem('loginRoleType') === 'user') {
+        } else if (roleType === 'user') {
           const editFormat = <FormattedMessage {...messages.jobModify} />
           const startFormat = <FormattedMessage {...messages.jobTableStart} />
           const sureStartFormat = <FormattedMessage {...messages.jobSureStart} />
@@ -667,33 +667,26 @@ export class Job extends React.Component {
           const deleteFormat = <FormattedMessage {...messages.jobDelete} />
           const sureDeleteFormat = <FormattedMessage {...messages.jobSureDelete} />
 
-          const strEdit = record.disableActions.includes('modify')
-            ? (
-              <Tooltip title={editFormat}>
-                <Button icon="edit" shape="circle" type="ghost" disabled></Button>
-              </Tooltip>
-            )
-            : (
-              <Tooltip title={editFormat}>
-                <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditJob(record)}></Button>
-              </Tooltip>
-            )
+          const { disableActions } = record
+          const strEdit = disableActions.includes('modify')
+            ? <Button icon="edit" shape="circle" type="ghost" disabled></Button>
+            : <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditJob(record)}></Button>
 
-          const strStart = record.disableActions.includes('start')
+          const strStart = disableActions.includes('start')
             ? (
               <Tooltip title={startFormat}>
                 <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.startJobBtn(record, 'start')}>
+              <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.opreateJobFunc(record, 'start')}>
                 <Tooltip title={startFormat}>
                   <Button icon="caret-right" shape="circle" type="ghost"></Button>
                 </Tooltip>
               </Popconfirm>
             )
 
-          const strStop = record.disableActions.includes('stop')
+          const strStop = disableActions.includes('stop')
             ? (
               <Tooltip title={stopFormat}>
                 <Button shape="circle" type="ghost" disabled>
@@ -702,7 +695,7 @@ export class Job extends React.Component {
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title={sureStopFormat} okText="Yes" cancelText="No" onConfirm={this.stopJobBtn(record, 'stop')}>
+              <Popconfirm placement="bottom" title={sureStopFormat} okText="Yes" cancelText="No" onConfirm={this.opreateJobFunc(record, 'stop')}>
                 <Tooltip title={stopFormat}>
                   <Button shape="circle" type="ghost">
                     <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
@@ -711,14 +704,14 @@ export class Job extends React.Component {
               </Popconfirm>
             )
 
-          const strDelete = record.disableActions.includes('delete')
+          const strDelete = disableActions.includes('delete')
             ? (
               <Tooltip title={deleteFormat}>
                 <Button icon="delete" shape="circle" type="ghost" disabled></Button>
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.deleteJobBtn(record, 'delete')}>
+              <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.opreateJobFunc(record, 'delete')}>
                 <Tooltip title={deleteFormat}>
                   <Button icon="delete" shape="circle" type="ghost"></Button>
                 </Tooltip>
@@ -727,7 +720,9 @@ export class Job extends React.Component {
 
           jobActionSelect = (
             <span>
-              {strEdit}
+              <Tooltip title={editFormat}>
+                {strEdit}
+              </Tooltip>
               {strStart}
               {strStop}
               {strDelete}
@@ -740,8 +735,8 @@ export class Job extends React.Component {
           const showJob = showJobDetail.job
           if (showJob) {
             jobDetailContent = (
-              <div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
-                <p className={this.props.jobClassHide}><strong>   Project Name：</strong>{showJobDetail.projectName}</p>
+              <div className="job-table-detail">
+                <p className={jobClassHide}><strong>   Project Name：</strong>{showJobDetail.projectName}</p>
                 <p><strong>   Event Ts Start：</strong>{showJob.eventTsStart}</p>
                 <p><strong>   Event Ts End：</strong>{showJob.eventTsEnd}</p>
                 <p><strong>   Log Path：</strong>{showJob.logPath}</p>
@@ -798,9 +793,9 @@ export class Job extends React.Component {
     }
 
     let jobAddOrNot = ''
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       jobAddOrNot = ''
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       jobAddOrNot = (
         <Button icon="plus" type="primary" onClick={onShowAddJob}>
           <FormattedMessage {...messages.jobCreate} />
@@ -808,7 +803,7 @@ export class Job extends React.Component {
       )
     }
 
-    const helmetHide = this.props.jobClassHide !== 'hide'
+    const helmetHide = jobClassHide !== 'hide'
       ? (<Helmet title="Job" />)
       : (<Helmet title="Workbench" />)
 
@@ -823,7 +818,7 @@ export class Job extends React.Component {
           <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshJobLoading} onClick={this.refreshJob}>{refreshJobText}</Button>
         </div>
         <Table
-          dataSource={this.state.currentJobs}
+          dataSource={currentJobs}
           columns={columns}
           onChange={this.handleJobChange}
           pagination={pagination}
@@ -832,18 +827,18 @@ export class Job extends React.Component {
         </Table>
         <Modal
           title="Logs"
-          visible={this.state.logsJobModalVisible}
+          visible={logsJobModalVisible}
           onCancel={this.handleLogsCancel}
           wrapClassName="ant-modal-xlarge ant-modal-no-footer"
           footer={<span></span>}
         >
           <JobLogs
-            jobLogsContent={this.state.jobLogsContent}
-            refreshJobLogLoading={this.state.refreshJobLogLoading}
-            refreshJobLogText={this.state.refreshJobLogText}
+            jobLogsContent={jobLogsContent}
+            refreshJobLogLoading={refreshJobLogLoading}
+            refreshJobLogText={refreshJobLogText}
             onInitRefreshLogs={this.onInitRefreshLogs}
-            logsProjectId={this.state.logsProjectId}
-            logsJobId={this.state.logsJobId}
+            logsProjectId={logsProjectId}
+            logsJobId={logsJobId}
             ref={(f) => { this.streamLogs = f }}
           />
         </Modal>
@@ -853,20 +848,21 @@ export class Job extends React.Component {
 }
 
 Job.propTypes = {
-  projectIdGeted: React.PropTypes.string,
-  jobClassHide: React.PropTypes.string,
-  className: React.PropTypes.string,
-  onShowAddJob: React.PropTypes.func,
+  projectIdGeted: PropTypes.string,
+  jobClassHide: PropTypes.string,
+  className: PropTypes.string,
+  onShowAddJob: PropTypes.func,
 
-  onLoadAdminAllJobs: React.PropTypes.func,
-  onLoadUserAllJobs: React.PropTypes.func,
-  onLoadAdminSingleJob: React.PropTypes.func,
-  onLoadAdminJobLogs: React.PropTypes.func,
-  onLoadUserJobLogs: React.PropTypes.func,
-  onOperateJob: React.PropTypes.func,
-  onShowEditJob: React.PropTypes.func,
-  onLoadJobDetail: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func
+  onLoadAdminAllJobs: PropTypes.func,
+  onLoadUserAllJobs: PropTypes.func,
+  onLoadAdminSingleJob: PropTypes.func,
+  onLoadAdminJobLogs: PropTypes.func,
+  onLoadUserJobLogs: PropTypes.func,
+  onOperateJob: PropTypes.func,
+  onShowEditJob: PropTypes.func,
+  onLoadJobDetail: PropTypes.func,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -877,14 +873,15 @@ export function mapDispatchToProps (dispatch) {
     onLoadAdminJobLogs: (projectId, jobId, resolve) => dispatch(loadAdminJobLogs(projectId, jobId, resolve)),
     onLoadUserJobLogs: (projectId, jobId, resolve) => dispatch(loadUserJobLogs(projectId, jobId, resolve)),
     onOperateJob: (values, resolve, reject) => dispatch(operateJob(values, resolve, reject)),
-    onLoadJobDetail: (value, resolve) => dispatch(loadJobDetail(value, resolve)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onLoadJobDetail: (value, resolve) => dispatch(loadJobDetail(value, resolve))
   }
 }
 
 const mapStateToProps = createStructuredSelector({
   jobs: selectJobs(),
-  error: selectError()
+  error: selectError(),
+  roleType: selectRoleType(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Job)

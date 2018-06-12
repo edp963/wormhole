@@ -19,8 +19,10 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
+import { connect } from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 
-import { forceCheckNum } from '../../utils/util'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -30,21 +32,22 @@ const FormItem = Form.Item
 import Radio from 'antd/lib/radio'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
+import { forceCheckNum } from '../../utils/util'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class FlowEtpConfigForm extends React.Component {
   forceChecColumnSave = (rule, value, callback) => {
-    const languageText = localStorage.getItem('preferredLanguage')
+    const { locale } = this.props
     if (!value.includes('，')) {
       callback()
     } else {
-      callback(languageText === 'en' ? 'No full-shaped comma' : '不允许出现中文逗号')
+      callback(locale === 'en' ? 'No full-shaped comma' : '不允许出现中文逗号')
     }
   }
 
   render () {
-    const { form } = this.props
+    const { form, locale } = this.props
     const { getFieldDecorator } = form
-    const languageText = localStorage.getItem('preferredLanguage')
 
     const itemStyle = {
       labelCol: { span: 7 },
@@ -59,12 +62,12 @@ export class FlowEtpConfigForm extends React.Component {
               {getFieldDecorator('checkColumns', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Please fill in check columns' : '请填写 Check Columns'
+                  message: locale === 'en' ? 'Please fill in check columns' : '请填写 Check Columns'
                 }, {
                   validator: this.forceChecColumnSave
                 }]
               })(
-                <Input placeholder={languageText === 'en' ? 'separate field names with half-angle commas' : '字段名，用英文逗号隔开'} />
+                <Input placeholder={locale === 'en' ? 'separate field names with half-angle commas' : '字段名，用英文逗号隔开'} />
               )}
             </FormItem>
           </Col>
@@ -73,7 +76,7 @@ export class FlowEtpConfigForm extends React.Component {
               {getFieldDecorator('checkRule', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Please select check rule' : '请选择 Check Rule'
+                  message: locale === 'en' ? 'Please select check rule' : '请选择 Check Rule'
                 }]
               })(
                 <RadioGroup>
@@ -88,7 +91,7 @@ export class FlowEtpConfigForm extends React.Component {
               {getFieldDecorator('ruleMode', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Please select rule mode' : '请选择 Rule Mode'
+                  message: locale === 'en' ? 'Please select rule mode' : '请选择 Rule Mode'
                 }]
               })(
                 <RadioGroup>
@@ -102,7 +105,7 @@ export class FlowEtpConfigForm extends React.Component {
               {getFieldDecorator('ruleParams', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Please fill in rule params' : '请填写 Rule Params'
+                  message: locale === 'en' ? 'Please fill in rule params' : '请填写 Rule Params'
                 }, {
                   validator: forceCheckNum
                 }]
@@ -111,7 +114,7 @@ export class FlowEtpConfigForm extends React.Component {
                   min={10}
                   max={1800}
                   step={1}
-                  placeholder={languageText === 'en' ? 'Timeout' : '超时时间'}
+                  placeholder={locale === 'en' ? 'Timeout' : '超时时间'}
                   style={{width: '50%'}}
                 />
               )}
@@ -123,7 +126,7 @@ export class FlowEtpConfigForm extends React.Component {
               {getFieldDecorator('againstAction', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Please select against action' : '请选择 Against Action'
+                  message: locale === 'en' ? 'Please select against action' : '请选择 Against Action'
                 }]
               })(
                 <RadioGroup>
@@ -141,7 +144,12 @@ export class FlowEtpConfigForm extends React.Component {
 }
 
 FlowEtpConfigForm.propTypes = {
-  form: React.PropTypes.any
+  form: PropTypes.any,
+  locale: PropTypes.string
 }
 
-export default Form.create({wrappedComponentRef: true})(FlowEtpConfigForm)
+const mapStateToProps = createStructuredSelector({
+  locale: selectLocale()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, null)(FlowEtpConfigForm))

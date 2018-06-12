@@ -76,11 +76,12 @@ object HdfsLogReadUtil extends EdpLogging {
   def getHdfsPathList(hdfsRoot: String, namespace: String, protocolTypeSet: Set[String]): Seq[String] = {
     val names = namespace.split("\\.")
 
-    var prefix = hdfsRoot + "/hdfslog/" + names(0) + "." + names(1) + "." + names(2) + "/" + names(3) //+ "/" + namespace.version + "/" + namespace.databasePar + "/" + namespace.tablePar + "/" + "protocoltype/right"
+    var prefix = hdfsRoot + "/hdfslog/" + names(0) + "." + names(1) + "." + names(2) + "/" + names(3)
+    //+ "/" + namespace.version + "/" + namespace.databasePar + "/" + namespace.tablePar + "/" + "protocoltype/right"
     val namespaceVersion = if (names(4) == "*") {
-      getHdfsFileList(prefix).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).head.toString
-    } else {
       names(4)
+    } else {
+      getHdfsFileList(prefix).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).head.toString
     }
     val pathList = ListBuffer.empty[String]
     prefix = prefix + "/" + namespaceVersion
@@ -108,8 +109,8 @@ object HdfsLogReadUtil extends EdpLogging {
     val fullPathList: Seq[String] = hdfsPathList.map(pfRight(_))
     val checkedPathList = fullPathList.filter(fullPath => {
       val exist = isPathExist(config, fullPath)
-      if(!exist) logError("path is not exist,path="+ fullPath)
-      else logInfo("path exist,path="+fullPath)
+      if (!exist) logError("path is not exist,path=" + fullPath)
+      else logInfo("path exist,path=" + fullPath)
       exist
     })
     checkedPathList.flatMap(fullPath => fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString))

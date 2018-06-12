@@ -24,26 +24,26 @@ package edp.rider.rest.router.user.api
 import akka.http.scaladsl.model.StatusCodes.OK
 import akka.http.scaladsl.server.Route
 import edp.rider.common.Action._
-import edp.rider.common.{RiderConfig, RiderLogger, StreamStatus}
+import edp.rider.common.{RiderLogger, StreamStatus}
+import edp.rider.kafka.GetLatestOffsetException
+import edp.rider.kafka.KafkaUtils._
 import edp.rider.rest.persistence.dal._
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
-import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils.{currentSec, minTimeOut}
-import edp.rider.rest.util.ProjectUtils._
 import edp.rider.rest.util.ResponseUtils.getHeader
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.rest.util.UdfUtils._
+import edp.rider.rest.util.{AuthorizationProvider, StreamUtils}
 import edp.rider.service.util.CacheMap
-import edp.rider.spark.{SparkJobClientLog, SubmitSparkJob}
+import edp.rider.spark.SparkJobClientLog
 import edp.rider.spark.SubmitSparkJob.runShellCommand
-import slick.jdbc.MySQLProfile.api._
-import edp.rider.kafka.KafkaUtils._
 import edp.wormhole.common.util.JsonUtils.json2caseClass
+import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
-
+import edp.rider.rest.util.ResponseUtils._
 
 class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal, streamUdfDal: RelStreamUdfDal, inTopicDal: StreamInTopicDal, flowDal: FlowDal) extends BaseUserApiImpl(streamDal) with RiderLogger with JsonSerializer {
 
@@ -79,16 +79,21 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           val insertStream = Stream(0, streamName, simpleStream.desc, projectId,
             simpleStream.instanceId, simpleStream.streamType, simpleStream.sparkConfig, simpleStream.startConfig, simpleStream.launchConfig,
             None, None, "new", None, None, active = true, currentSec, session.userId, currentSec, session.userId)
-          onComplete(streamDal.insert(insertStream).mapTo[Stream]) {
-            case Success(stream) =>
-              CacheMap.streamCacheMapRefresh
-              val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(stream.id))
-              complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail.head))
-            case Failure(ex) =>
-              riderLogger.error(s"user ${
-                session.userId
-              } insert stream failed", ex)
-              complete(OK, getHeader(451, ex.getMessage, session))
+          if (StreamUtils.checkYarnAppNameUnique(simpleStream.name, projectId)) {
+            onComplete(streamDal.insert(insertStream).mapTo[Stream]) {
+              case Success(stream) =>
+                CacheMap.streamCacheMapRefresh
+                val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(Seq(stream.id)))
+                complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail.head))
+              case Failure(ex) =>
+                riderLogger.error(s"user ${
+                  session.userId
+                } insert stream failed", ex)
+                complete(OK, getHeader(451, ex.getMessage, session))
+            }
+          } else {
+            riderLogger.warn(s"user ${session.userId} check stream name ${simpleStream.name} already exists success.")
+            complete(OK, getHeader(409, s"${simpleStream.name} already exists", session))
           }
         } else {
           riderLogger.error(s"user ${
@@ -135,22 +140,29 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
       try {
         (streamNameOpt, streamTypeOpt) match {
           case (Some(name), None) =>
-            val projectName = Await.result(projectDal.findById(projectId), minTimeOut).get.name
-            val realName = genStreamNameByProjectName(projectName, name)
-            onComplete(streamDal.checkStreamNameUnique(realName).mapTo[Seq[Stream]]) {
-              case Success(streams) =>
-                if (streams.isEmpty) {
-                  riderLogger.info(s"user ${session.userId} check stream name $name doesn't exist success.")
-                  complete(OK, ResponseJson[String](getHeader(200, session), name))
-                }
-                else {
-                  riderLogger.warn(s"user ${session.userId} check stream name $name already exists success.")
-                  complete(OK, getHeader(409, s"$name already exists", session))
-                }
-              case Failure(ex) =>
-                riderLogger.error(s"user ${session.userId} check stream name $name does exist failed", ex)
-                complete(OK, getHeader(451, ex.getMessage, session))
+            if (StreamUtils.checkYarnAppNameUnique(name, projectId)) {
+              riderLogger.info(s"user ${session.userId} check stream name $name doesn't exist success.")
+              complete(OK, ResponseJson[String](getHeader(200, session), name))
+            } else {
+              riderLogger.warn(s"user ${session.userId} check stream name $name already exists success.")
+              complete(OK, getHeader(409, s"$name already exists", session))
             }
+          //            val projectName = Await.result(projectDal.findById(projectId), minTimeOut).get.name
+          //            val realName = genStreamNameByProjectName(projectName, name)
+          //            onComplete(streamDal.checkYarnAppNameUnique(realName).mapTo[Seq[Stream]]) {
+          //              case Success(streams) =>
+          //                if (streams.isEmpty) {
+          //                  riderLogger.info(s"user ${session.userId} check stream name $name doesn't exist success.")
+          //                  complete(OK, ResponseJson[String](getHeader(200, session), name))
+          //                }
+          //                else {
+          //                  riderLogger.warn(s"user ${session.userId} check stream name $name already exists success.")
+          //                  complete(OK, getHeader(409, s"$name already exists", session))
+          //                }
+          //              case Failure(ex) =>
+          //                riderLogger.error(s"user ${session.userId} check stream name $name does exist failed", ex)
+          //                complete(OK, getHeader(451, ex.getMessage, session))
+          //            }
           case (None, Some(streamType)) =>
             val streams = streamDal.getBriefDetail(Some(projectId)).filter(_.stream.streamType == streamType).sortBy(_.stream.name)
             riderLogger.info(s"user ${session.userId} select streams where streamType is $streamType success.")
@@ -161,7 +173,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             complete(OK, ResponseSeqJson[StreamDetail](getHeader(200, session), streams))
           case (_, _) =>
             riderLogger.error(s"user ${session.userId} request url is not supported.")
-            complete(OK, getHeader(501, session))
+            complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
         }
       } catch {
         case ex: Exception =>
@@ -185,7 +197,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             }
             else {
               if (session.projectIdList.contains(projectId)) {
-                val stream = streamDal.getStreamDetail(Some(projectId), Some(streamId)).head
+                val stream = streamDal.getStreamDetail(Some(projectId), Some(Seq(streamId))).head
                 riderLogger.info(s"user ${session.userId} select streams where project id is $projectId success.")
                 complete(OK, ResponseJson[StreamDetail](getHeader(200, session), stream))
               } else {
@@ -223,7 +235,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
       if (formatCheck._1) {
         onComplete(streamDal.updateByPutRequest(putStream, session.userId).mapTo[Int]) {
           case Success(_) =>
-            val stream = streamDal.getBriefDetail(Some(projectId), Some(putStream.id)).head
+            val stream = streamDal.getBriefDetail(Some(projectId), Some(Seq(putStream.id))).head
             riderLogger.info(s"user ${session.userId} update stream ${putStream.id} success.")
             complete(OK, ResponseJson[StreamDetail](getHeader(200, session), stream))
           case Failure(ex) =>
@@ -240,22 +252,22 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     }
   }
 
-  def getDefaultSparkConfList(route: String): Route = path(route / "streams" / "default" / "config") {
-    authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
-      session =>
-        if (session.roleType != "user") {
-          riderLogger.warn(s"${
-            session.userId
-          } has no permission to access it.")
-          complete(OK, getHeader(403, session))
-        }
-        else {
-          val defaultConf = streamDal.getConfList
-          complete(OK, ResponseJson[String](getHeader(200, session), defaultConf))
-        }
-    }
-
-  }
+  //  def getDefaultSparkConfList(route: String): Route = path(route / "streams" / "default" / "config") {
+  //    authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+  //      session =>
+  //        if (session.roleType != "user") {
+  //          riderLogger.warn(s"${
+  //            session.userId
+  //          } has no permission to access it.")
+  //          complete(OK, getHeader(403, session))
+  //        }
+  //        else {
+  //          val defaultConf = streamDal.getDef
+  //          complete(OK, ResponseJson[String](getHeader(200, session), defaultConf))
+  //        }
+  //    }
+  //
+  //  }
 
   def getLogByStreamId(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "logs") {
     (id, streamId) =>
@@ -275,7 +287,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                     riderLogger.info(s"user ${
                       session.userId
                     } refresh stream log where stream id is $streamId success.")
-                    val log = SparkJobClientLog.getLogByAppName(stream.name)
+                    val log = SparkJobClientLog.getLogByAppName(stream.name, stream.logPath.getOrElse(""))
                     complete(OK, ResponseJson[String](getHeader(200, session), log))
                   case Failure(ex) =>
                     riderLogger.error(s"user ${
@@ -313,9 +325,9 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                   riderLogger.info(s"user ${
                     session.userId
                   } stop stream $streamId success.")
-                  onComplete(streamDal.updateByStatus(streamId, status, session.userId).mapTo[Int]) {
+                  onComplete(streamDal.updateByStatus(streamId, status, session.userId, stream.logPath.getOrElse("")).mapTo[Int]) {
                     case Success(_) =>
-                      val streamDetail = streamDal.getBriefDetail(Some(id), Some(streamId)).head
+                      val streamDetail = streamDal.getBriefDetail(Some(id), Some(Seq(streamId))).head
                       complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail))
                     case Failure(ex) =>
                       riderLogger.error(s"user ${session.userId} stop stream where project id is $id failed", ex)
@@ -370,7 +382,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
       if (checkAction(RENEW.toString, stream.status)) {
         renewStreamDirective(streamId, streamDirectiveOpt, session.userId)
         riderLogger.info(s"user ${session.userId} renew stream $streamId success")
-        val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(streamId)).head
+        val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(Seq(streamId))).head
         complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail))
       } else {
         riderLogger.info(s"user ${session.userId} can't stop stream $streamId now")
@@ -462,7 +474,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
 
   private def startResponse(projectId: Long, streamId: Long, streamDirectiveOpt: Option[StreamDirective], session: SessionClass): Route = {
     if (session.projectIdList.contains(projectId)) {
-      val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(streamId)).head
+      val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(Seq(streamId))).head
       val stream = streamDetail.stream
       if (checkAction(START.toString, stream.status)) {
         try {
@@ -478,12 +490,13 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             complete(OK, getHeader(507, "resource is not enough", session))
           } else {
             startStreamDirective(streamId, streamDirectiveOpt, session.userId)
-            runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(stream.name)}")
-            startStream(streamDetail)
+            //            runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(stream.name)}")
+            val logPath = getLogPath(stream.name)
+            startStream(streamDetail, logPath)
             riderLogger.info(s"user ${session.userId} start stream $streamId success")
-            onComplete(streamDal.updateByStatus(streamId, StreamStatus.STARTING.toString, session.userId).mapTo[Int]) {
+            onComplete(streamDal.updateByStatus(streamId, StreamStatus.STARTING.toString, session.userId, logPath).mapTo[Int]) {
               case Success(_) =>
-                val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(streamId)).head
+                val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(Seq(streamId))).head
                 complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail))
               case Failure(ex) =>
                 riderLogger.error(s"user ${session.userId} start stream where project id is $projectId failed", ex)
@@ -496,7 +509,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             complete(OK, getHeader(451, ex.getMessage, session))
         }
       } else {
-        riderLogger.info(s"user ${session.userId} can't stop stream $streamId now")
+        riderLogger.info(s"user ${session.userId} can't start stream $streamId now")
         complete(OK, getHeader(406, s"start is forbidden", session))
       }
     } else {
@@ -518,7 +531,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             }
             if (session.projectIdList.contains(id)) {
               try {
-                val streamDetailOpt = streamDal.getBriefDetail(Some(id), Some(streamId)).headOption
+                val streamDetailOpt = streamDal.getBriefDetail(Some(id), Some(Seq(streamId))).headOption
                 streamDetailOpt match {
                   case Some(streamDetail) =>
                     if (checkAction(DELETE.toString, streamDetail.stream.status)) {
@@ -535,7 +548,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                         Await.result(streamDal.deleteById(streamId), minTimeOut)
                         Await.result(inTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
                         CacheMap.streamCacheMapRefresh
-                        runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(streamDetail.stream.name)}")
+                        //                        runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(streamDetail.stream.name)}")
                         riderLogger.info(s"user ${session.userId} delete stream $streamId success")
                         complete(OK, getHeader(200, session))
                       }
@@ -559,7 +572,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
       }
   }
 
-  def getConfList(route: String): Route = path(route / "streams" / "default" / "config") {
+  def getDefaultJvmConf(route: String): Route = path(route / "streams" / "default" / "config" / "jvm") {
     authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
       session =>
         if (session.roleType != "user") {
@@ -569,7 +582,24 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           complete(OK, getHeader(403, session))
         }
         else {
-          val defaultConf = streamDal.getConfList
+          val defaultConf = StreamUtils.getDefaultJvmConf
+          complete(OK, ResponseJson[String](getHeader(200, session), defaultConf))
+        }
+    }
+
+  }
+
+  def getDefaultSparkConf(route: String): Route = path(route / "streams" / "default" / "config" / "spark") {
+    authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+      session =>
+        if (session.roleType != "user") {
+          riderLogger.warn(s"${
+            session.userId
+          } has no permission to access it.")
+          complete(OK, getHeader(403, session))
+        }
+        else {
+          val defaultConf = StreamUtils.getDefaultSparkConf
           complete(OK, ResponseJson[String](getHeader(200, session), defaultConf))
         }
     }
@@ -596,7 +626,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
   private def getLatestOffsetResponse(projectId: Long, streamId: Long, session: SessionClass): Route = {
     try {
       if (session.projectIdList.contains(projectId)) {
-        val streamDetail = streamDal.getStreamDetail(Some(projectId), Some(streamId)).head
+        val streamDetail = streamDal.getStreamDetail(Some(projectId), Some(Seq(streamId))).head
         if (streamDetail.topicInfo.nonEmpty) {
           val consumedOffsets = streamDetail.topicInfo.map(topic => ConsumedLatestOffset(topic.id, topic.name, topic.rate, topic.partitionOffsets))
           val topicSeq = inTopicDal.getStreamTopic(Seq(streamId))
@@ -624,6 +654,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
         complete(OK, getHeader(403, session))
       }
     } catch {
+      case kafkaEx: GetLatestOffsetException =>
+        complete(OK, getHeader(451, "failed to get kafka latest offset", session))
       case ex: Exception =>
         riderLogger.info(s"user ${session.userId} get stream $streamId topics latest offset failed", ex)
         complete(OK, getHeader(451, session))

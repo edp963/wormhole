@@ -7,7 +7,7 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.4.1-SNAPSHOTS</version>
+        <version>0.4.2-SNAPSHOTS</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -153,7 +153,7 @@
         <dependency>
             <groupId>com.datastax.cassandra</groupId>
             <artifactId>cassandra-driver-core</artifactId>
-            <version>3.0.0</version>
+            <version>3.1.1</version>
             <exclusions>
             <exclusion>
                 <groupId>io.netty</groupId>
@@ -167,25 +167,25 @@
             <!--<version>2.1.2</version>-->
         <!--</dependency>-->
 
-        <dependency>
-            <groupId>com.hortonworks</groupId>
-            <artifactId>shc-core</artifactId>
-            <version>1.1.1-2.1-s_2.11</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>junit</groupId>
-                    <artifactId>junit</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.github.stephenc.findbugs</groupId>
-                    <artifactId>findbugs-annotations</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.code.findbugs</groupId>
-                    <artifactId>jsr305</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>com.hortonworks</groupId>-->
+            <!--<artifactId>shc-core</artifactId>-->
+            <!--<version>1.1.1-2.1-s_2.11</version>-->
+            <!--<exclusions>-->
+                <!--<exclusion>-->
+                    <!--<groupId>junit</groupId>-->
+                    <!--<artifactId>junit</artifactId>-->
+                <!--</exclusion>-->
+                <!--<exclusion>-->
+                    <!--<groupId>com.github.stephenc.findbugs</groupId>-->
+                    <!--<artifactId>findbugs-annotations</artifactId>-->
+                <!--</exclusion>-->
+                <!--<exclusion>-->
+                    <!--<groupId>com.google.code.findbugs</groupId>-->
+                    <!--<artifactId>jsr305</artifactId>-->
+                <!--</exclusion>-->
+            <!--</exclusions>-->
+        <!--</dependency>-->
 
         <!-- hbase-->
         <dependency>
@@ -229,6 +229,12 @@
                     <artifactId>findbugs-annotations</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kudu</groupId>
+            <artifactId>kudu-client</artifactId>
+            <version>${kudu.version}</version>
         </dependency>
     </dependencies>
 

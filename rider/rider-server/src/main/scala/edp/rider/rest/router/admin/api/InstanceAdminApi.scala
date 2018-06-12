@@ -44,14 +44,14 @@ class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instan
         (visible, nsSys, conn_url, nsInstance) =>
           authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
             session =>
-              if (session.roleType != "admin") {
+              if (session.roleType == "user") {
                 riderLogger.warn(s"user ${session.userId} has no permission to access it.")
                 complete(OK, getHeader(403, session))
               }
               else {
                 (visible, nsSys, conn_url, nsInstance) match {
                   case (None, Some(sys), None, None) =>
-                    onComplete(instanceDal.findByFilter(instance => instance.nsSys === sys.toLowerCase && instance.active === true).mapTo[Seq[Instance]]) {
+                    onComplete(instanceDal.findByFilter(instance => instance.nsSys === sys.toLowerCase && instance.active === true && instance.desc =!= "dbus kafka !!!").mapTo[Seq[Instance]]) {
                       case Success(instances) =>
                         riderLogger.info(s"user ${session.userId} select $route success where nsSys is $sys.")
                         complete(OK, ResponseSeqJson[Instance](getHeader(200, session), instances.sortBy(_.connUrl)))
@@ -81,20 +81,31 @@ class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instan
                         complete(OK, getHeader(451, ex.getMessage, session))
                     }
                   case (None, Some(sys), None, Some(nsInstanceInput)) =>
-                    //                    val nsInstance = generateNsInstance(url)
-                    onComplete(instanceDal.findByFilter(instance => instance.nsInstance === nsInstanceInput && instance.nsSys === sys).mapTo[Seq[Instance]]) {
-                      case Success(instances) =>
-                        if (instances.isEmpty) {
-                          riderLogger.info(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput doesn't exist")
-                          complete(OK, ResponseJson[String](getHeader(200, session), nsInstanceInput))
-                        }
-                        else {
-                          riderLogger.info(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput already exists.")
-                          complete(OK, getHeader(409, s"$nsInstanceInput instance already exists", session))
-                        }
-                      case Failure(ex) =>
-                        riderLogger.error(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput does exist failed", ex)
-                        complete(OK, getHeader(451, ex.getMessage, session))
+                    if (namePattern.matcher(nsInstanceInput).matches()) {
+                      onComplete(instanceDal.findByFilter(instance => instance.nsInstance === nsInstanceInput && instance.nsSys === sys.toLowerCase).mapTo[Seq[Instance]]) {
+                        case Success(instances) =>
+                          if (session.roleType == "app") {
+                            if(instances.isEmpty)
+                              complete(OK, ResponseJson[String](getHeader(404, session), "Not Found"))
+                            else
+                              complete(OK, ResponseJson[Long](getHeader(200, session), instances.head.id))
+                          } else {
+                            if (instances.isEmpty) {
+                              riderLogger.info(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput doesn't exist")
+                              complete(OK, getHeader(200, session))
+                            }
+                            else {
+                              riderLogger.info(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput already exists.")
+                              complete(OK, getHeader(409, s"$nsInstanceInput instance already exists", session))
+                            }
+                          }
+                        case Failure(ex) =>
+                          riderLogger.error(s"user ${session.userId} check nsSys $sys instance nsInstance $nsInstanceInput does exist failed", ex)
+                          complete(OK, getHeader(451, ex.getMessage, session))
+                      }
+                    } else {
+                      riderLogger.info(s"user ${session.userId} nsSys $sys instance nsInstance $nsInstanceInput format is wrong.")
+                      complete(OK, getHeader(402, s"begin with a letter, certain special characters as '_', '-', end with a letter or number", session))
                     }
                   case (_, None, None, None) =>
                     val future = if (visible.getOrElse(true)) instanceDal.findByFilter(_.active === true) else instanceDal.findAll
@@ -108,7 +119,7 @@ class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instan
                     }
                   case (_, _, _, _) =>
                     riderLogger.error(s"user ${session.userId} request url is not supported.")
-                    complete(OK, getHeader(501, session))
+                    complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
                 }
               }
           }
@@ -123,31 +134,36 @@ class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instan
         simple =>
           authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
             session =>
-              if (session.roleType != "admin") {
+              if (session.roleType == "user") {
                 riderLogger.warn(s"user ${session.userId} has no permission to access it.")
                 complete(OK, getHeader(403, session))
               }
               else {
-                if (checkFormat(simple.nsSys, simple.connUrl)) {
-                  val instance = Instance(0, simple.nsInstance.trim, simple.desc, simple.nsSys.trim, simple.connUrl.trim, active = true, currentSec, session.userId, currentSec, session.userId)
-                  onComplete(instanceDal.insert(instance).mapTo[Instance]) {
-                    case Success(row) =>
-                      riderLogger.info(s"user ${session.userId} inserted instance $row success.")
-                      complete(OK, ResponseJson[Instance](getHeader(200, session), row))
-                    case Failure(ex) =>
-                      if (ex.toString.contains("Duplicate entry")) {
-                        riderLogger.error(s"user ${session.userId} insert instance failed", ex)
-                        complete(OK, getHeader(409, s"${simple.nsSys} system ${simple.nsInstance} instance already exists", session))
-                      }
-                      else {
-                        riderLogger.error(s"user ${session.userId} insert instance failed", ex)
-                        complete(OK, getHeader(451, ex.toString, session))
-                      }
+                if (namePattern.matcher(simple.nsInstance).matches()) {
+                  if (checkSys(simple.nsSys) && checkFormat(simple.nsSys, simple.connUrl)) {
+                    val instance = Instance(0, simple.nsInstance.trim, simple.desc, simple.nsSys.trim, simple.connUrl.trim, active = true, currentSec, session.userId, currentSec, session.userId)
+                    onComplete(instanceDal.insert(instance).mapTo[Instance]) {
+                      case Success(row) =>
+                        riderLogger.info(s"user ${session.userId} inserted instance $row success.")
+                        complete(OK, ResponseJson[Instance](getHeader(200, session), row))
+                      case Failure(ex) =>
+                        if (ex.toString.contains("Duplicate entry")) {
+                          riderLogger.error(s"user ${session.userId} insert instance failed", ex)
+                          complete(OK, getHeader(409, s"${simple.nsSys} system ${simple.nsInstance} instance already exists", session))
+                        }
+                        else {
+                          riderLogger.error(s"user ${session.userId} insert instance failed", ex)
+                          complete(OK, getHeader(451, ex.toString, session))
+                        }
+                    }
                   }
-                }
-                else {
-                  riderLogger.error(s"user ${session.userId} insert instance failed, ${simple.connUrl} format is wrong.")
-                  complete(OK, getHeader(400, getTip(simple.nsSys, simple.connUrl), session))
+                  else {
+                    riderLogger.error(s"user ${session.userId} insert instance failed, ${simple.connUrl} format is wrong.")
+                    complete(OK, getHeader(400, getTip(simple.nsSys, simple.connUrl), session))
+                  }
+                } else {
+                  riderLogger.info(s"user ${session.userId} nsSys ${simple.nsSys} instance nsInstance ${simple.nsInstance} format is wrong.")
+                  complete(OK, getHeader(402, s"begin with a letter, certain special characters as '_', '-', end with a letter or number", session))
                 }
               }
           }
@@ -166,26 +182,31 @@ class InstanceAdminApi(instanceDal: InstanceDal) extends BaseAdminApiImpl(instan
                 complete(OK, getHeader(403, session))
               }
               else {
-                if (checkFormat(instance.nsSys, instance.connUrl)) {
-                  val instanceUpdate = Instance(instance.id, instance.nsInstance.trim, instance.desc, instance.nsSys.trim, instance.connUrl.trim, instance.active, instance.createTime, instance.createBy, currentSec, session.userId)
-                  onComplete(instanceDal.update(instanceUpdate).mapTo[Int]) {
-                    case Success(_) =>
-                      riderLogger.info(s"user ${session.userId} update instance success.")
-                      complete(OK, ResponseJson[Instance](getHeader(200, session), instanceUpdate))
-                    case Failure(ex) =>
-                      if (ex.toString.contains("Duplicate entry")) {
-                        riderLogger.error(s"user ${session.userId} update instance failed", ex)
-                        complete(OK, getHeader(409, s"${instance.nsSys} system ${instance.connUrl} instance already exists", session))
-                      }
-                      else {
-                        riderLogger.error(s"user ${session.userId} update instance failed", ex)
-                        complete(OK, getHeader(451, ex.toString, session))
-                      }
+                if (namePattern.matcher(instance.nsInstance).matches()) {
+                  if (checkFormat(instance.nsSys, instance.connUrl)) {
+                    val instanceUpdate = Instance(instance.id, instance.nsInstance.trim, instance.desc, instance.nsSys.trim, instance.connUrl.trim, instance.active, instance.createTime, instance.createBy, currentSec, session.userId)
+                    onComplete(instanceDal.update(instanceUpdate).mapTo[Int]) {
+                      case Success(_) =>
+                        riderLogger.info(s"user ${session.userId} update instance success.")
+                        complete(OK, ResponseJson[Instance](getHeader(200, session), instanceUpdate))
+                      case Failure(ex) =>
+                        if (ex.toString.contains("Duplicate entry")) {
+                          riderLogger.error(s"user ${session.userId} update instance failed", ex)
+                          complete(OK, getHeader(409, s"${instance.nsSys} system ${instance.connUrl} instance already exists", session))
+                        }
+                        else {
+                          riderLogger.error(s"user ${session.userId} update instance failed", ex)
+                          complete(OK, getHeader(451, ex.toString, session))
+                        }
+                    }
                   }
-                }
-                else {
-                  riderLogger.error(s"user ${session.userId} updated instance failed, ${instance.connUrl} format is wrong.")
-                  complete(OK, getHeader(400, getTip(instance.nsSys, instance.connUrl), session))
+                  else {
+                    riderLogger.error(s"user ${session.userId} updated instance failed, ${instance.connUrl} format is wrong.")
+                    complete(OK, getHeader(400, getTip(instance.nsSys, instance.connUrl), session))
+                  }
+                } else {
+                  riderLogger.info(s"user ${session.userId} nsSys ${instance.nsSys} instance nsInstance ${instance.nsInstance} format is wrong.")
+                  complete(OK, getHeader(402, s"begin with a letter, certain special characters as '_', '-', end with a letter or number", session))
                 }
               }
           }

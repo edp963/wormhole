@@ -21,6 +21,7 @@
 
 package edp.rider.rest.persistence.dal
 
+import edp.rider.module.DbModule._
 import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
@@ -43,10 +44,10 @@ class UserDal(userTable: TableQuery[UserTable], relProjectUserDal: RelProjectUse
           users.foreach(
             user =>
               if (userProjectMap.contains(user.id))
-                userProjectSeq += UserProject(user.id, user.email, user.password, user.name, user.roleType, user.preferredLanguage, user.active,
+                userProjectSeq += UserProject(user.id, user.email, "", user.name, user.roleType, user.preferredLanguage, user.active,
                   user.createTime, user.createBy, user.updateTime, user.updateBy, userProjectMap(user.id).sorted.mkString(","))
               else
-                userProjectSeq += UserProject(user.id, user.email, user.password, user.name, user.roleType, user.preferredLanguage, user.active,
+                userProjectSeq += UserProject(user.id, user.email, "", user.name, user.roleType, user.preferredLanguage, user.active,
                   user.createTime, user.createBy, user.updateTime, user.updateBy, "")
           )
           userProjectSeq
@@ -74,5 +75,10 @@ class UserDal(userTable: TableQuery[UserTable], relProjectUserDal: RelProjectUse
         riderLogger.error(s"delete user $id failed", ex)
         throw new Exception(s"delete user $id failed", ex)
     }
+  }
+
+  def updateWithoutPwd(user: User): Future[Int] = {
+    db.run(userTable.filter(_.id === user.id).map(user => (user.name, user.preferredLanguage, user.roleType, user.updateTime, user.updateBy))
+      .update((user.name, user.preferredLanguage, user.roleType, user.updateTime, user.updateBy)))
   }
 }

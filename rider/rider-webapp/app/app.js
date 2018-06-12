@@ -28,7 +28,7 @@
 // Import CSS reset and Global Styles
 import './assets/less/main.less'
 
-import './assets/fonts/iconfont.css'
+// import './assets/fonts/iconfont.css'
 
 // Needed for redux-saga es6 generator support
 import 'babel-polyfill'

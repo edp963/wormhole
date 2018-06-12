@@ -21,8 +21,9 @@
 
 package edp.rider.kafka
 
+import akka.Done
 import akka.actor.Actor
-import akka.kafka.ConsumerMessage.{CommittableMessage, CommittableOffsetBatch}
+import akka.kafka.ConsumerMessage.CommittableOffsetBatch
 import akka.kafka.scaladsl.Consumer.Control
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Keep, Sink}
@@ -51,7 +52,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
 
   override def preStart(): Unit = {
     try {
-      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions)
+      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions, RiderConfig.consumer.refactor)
       riderLogger.info(s"initial create ${RiderConfig.consumer.feedbackTopic} topic success")
     } catch {
       case _: kafka.common.TopicExistsException =>
@@ -60,7 +61,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
         riderLogger.error(s"initial create ${RiderConfig.consumer.feedbackTopic} topic failed", ex)
     }
     try {
-      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic)
+      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic, 1, RiderConfig.consumer.refactor)
       riderLogger.info(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic success")
     } catch {
       case _: kafka.common.TopicExistsException =>
@@ -76,26 +77,33 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
   override def receive: Receive = {
     case Start =>
       riderLogger.info("Initializing RiderConsumer")
-      val (control, future) = createFromOffset(RiderConfig.consumer.group_id)(context.system)
-        .mapAsync(2)(processMessage)
-        .map(_.committableOffset)
-        .groupedWithin(10, minTimeOut)
-        .map(group => group.foldLeft(CommittableOffsetBatch.empty) { (batch, elem) => batch.updated(elem) })
-        .mapAsync(1)(_.commitScaladsl())
-        .toMat(Sink.ignore)(Keep.both)
-        .run()
 
-      context.become(running(control))
+      try {
 
-      future.onFailure {
-        case ex =>
-          riderLogger.error(s"RiderConsumer stream failed due to error", ex)
-          throw ex
+        createFromOffset(RiderConfig.consumer.group_id)(context.system).foreach(
+          source => {
+            val (control, future) = source.mapAsync(1)(processMessage)
+              .toMat(Sink.ignore)(Keep.both)
+              .run()
+            context.become(running(control))
+
+            future.onFailure {
+              case ex =>
+                riderLogger.error(s"RiderConsumer stream failed due to error", ex)
+                throw ex
+                self ! Stop
+            }
+          }
+        )
+
+        riderLogger.info("RiderConsumer started")
+      } catch {
+        case ex: Exception =>
+          riderLogger.error("RiderConsumer started failed", ex)
           self ! Stop
       }
-
-      riderLogger.info("RiderConsumer started")
   }
+
 
   def running(control: Control): Receive = {
     case Stop =>
@@ -124,21 +132,21 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
   }
 
   private def processMessage(msg: Message): Future[Message] = {
-    riderLogger.debug(s"Consumed: [topic,partition,offset](${msg.record.topic()}, ${msg.record.partition()}), ${msg.record.offset()}]")
-    if (msg.record.key() != null)
-      riderLogger.debug(s"Consumed key: ${msg.record.key().toString}")
+    riderLogger.debug(s"Consumed: [topic,partition,offset](${msg.topic()}, ${msg.partition()}), ${msg.offset()}]")
+    if (msg.key() != null)
+      riderLogger.info(s"Consumed key: ${msg.value().toString}")
     val curTs = currentMillSec
     val defaultStreamIdForRider = 0
-    CacheMap.setOffsetMap(defaultStreamIdForRider, msg.record.topic(), msg.record.partition(), msg.record.offset())
-    val partitionOffsetStr = CacheMap.getPartitionOffsetStrFromMap(defaultStreamIdForRider, msg.record.topic(), RiderConfig.consumer.partitions)
-    modules.feedbackOffsetDal.insert(FeedbackOffset(1, UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET.toString, curTs, 0, msg.record.topic(), RiderConfig.consumer.partitions, partitionOffsetStr, curTs))
+    CacheMap.setOffsetMap(defaultStreamIdForRider, msg.topic(), msg.partition(), msg.offset())
+    val partitionOffsetStr = CacheMap.getPartitionOffsetStrFromMap(defaultStreamIdForRider, msg.topic(), RiderConfig.consumer.partitions)
+    modules.feedbackOffsetDal.insert(FeedbackOffset(1, UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET.toString, curTs, 0, msg.topic(), RiderConfig.consumer.partitions, partitionOffsetStr, curTs))
 
-    if (msg.record.value() == null || msg.record.value() == "") {
+    if (msg.value() == null || msg.value() == "") {
       riderLogger.error(s"feedback message value is null: ${msg.toString}")
     } else {
       val messageService = new MessageService(modules)
       try {
-        val ums: Ums = json2Ums(msg.record.value())
+        val ums: Ums = json2Ums(msg.value())
         riderLogger.debug(s"Consumed protocol: ${ums.protocol.`type`.toString}")
         ums.protocol.`type` match {
           case FEEDBACK_DATA_INCREMENT_HEARTBEAT =>
@@ -162,7 +170,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
         }
       } catch {
         case e: Exception =>
-          riderLogger.error(s"parse protocol error key: ${msg.record.key()} value: ${msg.record.value()}", e)
+          riderLogger.error(s"parse protocol error key: ${msg.key()} value: ${msg.value()}", e)
       }
     }
     Future.successful(msg)
@@ -171,7 +179,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
 }
 
 object RiderConsumer extends RiderLogger {
-  type Message = CommittableMessage[Array[Byte], String]
+  type Message = ConsumerRecord[Array[Byte], String]
 
   case object Start
 

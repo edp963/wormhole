@@ -69,10 +69,11 @@ object BatchflowMainProcess extends EdpLogging {
   def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession): Unit = {
     stream.foreachRDD((streamRdd: RDD[ConsumerRecord[String, String]]) => {
       val offsetInfo: ArrayBuffer[OffsetRange] = getOffsets(streamRdd)
+      val batchId = UUID.randomUUID().toString
       try {
         logInfo("start foreachRDD")
         if (SparkUtils.isLocalMode(config.spark_config.master)) logWarning("rdd count ===> " + streamRdd.count())
-        val statsId = UUID.randomUUID().toString
+
         val rddTs = System.currentTimeMillis
         // val session = SparkSession.builder().config(streamRdd.sparkContext.getConf).getOrCreate()
 
@@ -84,7 +85,12 @@ object BatchflowMainProcess extends EdpLogging {
         val mainDataTs = System.currentTimeMillis
         //val dt1 =  dt2dateTime(currentyyyyMMddHHmmss)
 
-        val dataRepartitionRdd: RDD[(String, String)] = if (config.rdd_partition_number != -1) streamRdd.map(row => (row.key, row.value)).repartition(config.rdd_partition_number) else streamRdd.map(row => (row.key, row.value))
+        val dataRepartitionRdd: RDD[(String, String)] = if (config.rdd_partition_number != -1) streamRdd.map(row => {
+          if(row.key==null||row.key.trim.isEmpty){
+            val realNamespace = WormholeUtils.getFieldContentFromJson(row.value,"namespace")
+            (realNamespace,row.value)
+          }else (row.key, row.value)
+        }).repartition(config.rdd_partition_number) else streamRdd.map(row => (row.key, row.value))
         UdfDirective.registerUdfProcess(config.kafka_output.feedback_topic_name, config.kafka_output.brokers, session)
         //        dataRepartitionRdd.cache()
         //        dataRepartitionRdd.count()
@@ -108,23 +114,23 @@ object BatchflowMainProcess extends EdpLogging {
         logInfo("start doMainData")
 
         //   val dt5: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
-        val processedSourceNamespace = doMainData(session, classifyRdd, config, statsId, rddTs, directiveTs, mainDataTs, distinctSchema)
+        val processedSourceNamespace = doMainData(session, classifyRdd, config, batchId, rddTs, directiveTs, mainDataTs, distinctSchema)
         //        val dt6: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
         //        println("get doMainData duration:   " + dt6 + " - "+ dt5 +" = " + (Seconds.secondsBetween(dt5, dt6).getSeconds() % 60 + "seconds"))
         //
         logInfo("start doOtherData")
         val nonDataArray = classifyRdd.flatMap(_._3).collect()
-        doOtherData(nonDataArray, config, processedSourceNamespace, statsId)
+        doOtherData(nonDataArray, config, processedSourceNamespace, batchId)
 
         logInfo("start storeTopicPartition")
-        WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config)
+        WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config,batchId)
 
         classifyRdd.unpersist()
       } catch {
         case e: Throwable =>
           logAlert("batch error", e)
-          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, currentDateTime, UmsFeedbackStatus.FAIL, e.getMessage), None, config.kafka_output.brokers)
-          WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config)
+          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, currentDateTime, UmsFeedbackStatus.FAIL, e.getMessage,batchId), None, config.kafka_output.brokers)
+          WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config,batchId)
       }
       stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
     }
@@ -231,7 +237,7 @@ object BatchflowMainProcess extends EdpLogging {
   private def doMainData(session: SparkSession,
                          mainDataRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])],
                          config: WormholeConfig,
-                         statsId: String,
+                         batchId: String,
                          rddTs: Long,
                          directiveTs: Long,
                          mainDataTs: Long,
@@ -278,7 +284,7 @@ object BatchflowMainProcess extends EdpLogging {
 
             if (swiftsProcessConfig.nonEmpty && swiftsProcessConfig.get.swiftsSql.nonEmpty) {
 
-              val (returnUmsFields, tuplesRDD, unionDf) = swiftsProcess(swiftsProcessConfig, uuid, session, sourceTupleRDD, config, sourceNamespace, sinkNamespace, minTs, maxTs, count, sinkFields)
+              val (returnUmsFields, tuplesRDD, unionDf) = swiftsProcess(swiftsProcessConfig, uuid, session, sourceTupleRDD, config, sourceNamespace, sinkNamespace, minTs, maxTs, count, sinkFields,batchId)
               sinkFields = returnUmsFields
               sinkRDD = tuplesRDD
               afterUnionDf = unionDf
@@ -292,7 +298,7 @@ object BatchflowMainProcess extends EdpLogging {
               catch {
                 case e: Throwable =>
                   logAlert("sink,sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + ",count=" + count, e)
-                  WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(sourceNamespace, config.spark_config.stream_id, currentDateTime, sinkNamespace, UmsWatermark(maxTs), UmsWatermark(minTs), count, ""), None, config.kafka_output.brokers)
+                  WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(sourceNamespace, config.spark_config.stream_id, currentDateTime, sinkNamespace, UmsWatermark(maxTs), UmsWatermark(minTs), count, "",batchId), None, config.kafka_output.brokers)
               }
             } else logWarning("sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + "there is nothing to sinkProcess")
 
@@ -300,7 +306,7 @@ object BatchflowMainProcess extends EdpLogging {
             val doneTs = System.currentTimeMillis
             processedSourceNamespace.add(sourceNamespace)
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-              UmsProtocolUtils.feedbackFlowStats(sourceNamespace, protocolType.toString, currentDateTime, config.spark_config.stream_id, statsId, sinkNamespace,
+              UmsProtocolUtils.feedbackFlowStats(sourceNamespace, protocolType.toString, currentDateTime, config.spark_config.stream_id, batchId, sinkNamespace,
                 count, DateUtils.dt2date(maxTs.split("\\+")(0).replace("T", " ")).getTime, rddTs, directiveTs, mainDataTs, swiftsTs, sinkTs, doneTs), None, config.kafka_output.brokers)
           }
         }
@@ -350,7 +356,8 @@ object BatchflowMainProcess extends EdpLogging {
                             minTs: String,
                             maxTs: String,
                             count: Int,
-                            umsFields: Seq[UmsField]): (Seq[UmsField], RDD[Seq[String]], DataFrame) = {
+                            umsFields: Seq[UmsField],
+                            batchId:String): (Seq[UmsField], RDD[Seq[String]], DataFrame) = {
     val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
     val sourceDf = createSourceDf(session, sourceNamespace, umsFields, sourceTupleRDD)
     val dataSetShow = swiftsProcessConfig.get.datasetShow
@@ -372,31 +379,16 @@ object BatchflowMainProcess extends EdpLogging {
         UmsField(t._1, SparkUtils.sparkSqlType2UmsFieldType(t._3.toString), Some(true))
       }).toSeq
       val tuples: RDD[Seq[String]] = swiftsDf.map {
-        row =>
-          nameIndex.map {
-            case (_, index, dataType) =>
-              val value: Any = row.get(index)
-              logInfo("-----dataType:"+dataType+",value="+value)
-              if (value == null) null else {
-                if (dataType == BinaryType) {
-                  CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
-                } else if (dataType == FloatType) {
-                  java.lang.Float.parseFloat(value.toString).toString
-                } else if (dataType == DoubleType) {
-                  java.lang.Double.parseDouble(value.toString).toString
-                } else if (dataType == DecimalType) {
-                  new java.math.BigDecimal(value.toString).toPlainString()
-                } else {
-                  value.toString
-                }
-              }
-          }.toSeq
+        row => nameIndex.map{case (_, index, dataType) => {
+          val value = SparkUtils.sparkValue2Object(row.get(index), dataType)
+          if(value==null)null else value.toString
+        }}.toSeq
       }.rdd
       (umsFields, tuples, afterUnionDf)
     } catch {
       case e: Throwable =>
         logAlert(uuid + "swifts,sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + ",count=" + count, e)
-        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(sourceNamespace, config.spark_config.stream_id, currentDateTime, sinkNamespace, UmsWatermark(maxTs), UmsWatermark(minTs), count, ""), None, config.kafka_output.brokers)
+        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(sourceNamespace, config.spark_config.stream_id, currentDateTime, sinkNamespace, UmsWatermark(maxTs), UmsWatermark(minTs), count, "",batchId), None, config.kafka_output.brokers)
         (null, null, afterUnionDf)
     }
   }
@@ -677,7 +669,7 @@ object BatchflowMainProcess extends EdpLogging {
     } else HdfsUtils.deletePath(configuration, parquetAddr)
   }
 
-  def doOtherData(otherDataArray: Array[String], config: WormholeConfig, processedsourceNamespace: Set[String], statsId: String): Unit = {
+  def doOtherData(otherDataArray: Array[String], config: WormholeConfig, processedSourceNamespace: Set[String], batchId: String): Unit = {
     if (otherDataArray.nonEmpty) {
       otherDataArray.foreach(
         row => {
@@ -702,10 +694,10 @@ object BatchflowMainProcess extends EdpLogging {
                 val sinkNamespaceMap = ConfMemoryStorage.getFlowConfigMap(matchSourceNamespace)
                 sinkNamespaceMap.foreach {
                   case (sinkNamespace, _) =>
-                    if (!processedsourceNamespace(namespace)) {
+                    if (!processedSourceNamespace(namespace)) {
                       val currentTs = System.currentTimeMillis()
                       WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-                        UmsProtocolUtils.feedbackFlowStats(namespace, UmsProtocolType.DATA_INCREMENT_DATA.toString, currentDateTime, config.spark_config.stream_id, statsId, sinkNamespace,
+                        UmsProtocolUtils.feedbackFlowStats(namespace, UmsProtocolType.DATA_INCREMENT_DATA.toString, currentDateTime, config.spark_config.stream_id, batchId, sinkNamespace,
                           0, DateUtils.dt2date(umsts).getTime, currentTs, currentTs, currentTs, currentTs, currentTs, currentTs), None, config.kafka_output.brokers)
                     }
                 }

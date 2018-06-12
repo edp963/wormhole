@@ -42,15 +42,9 @@ const selectModalLoading = () => createSelector(
   (userState) => userState.get('modalLoading')
 )
 
-const selectEmailExited = () => createSelector(
-  selectUser(),
-  (userState) => userState.get('emailExited')
-)
-
 export {
   selectUser,
   selectUsers,
   selectError,
-  selectModalLoading,
-  selectEmailExited
+  selectModalLoading
 }

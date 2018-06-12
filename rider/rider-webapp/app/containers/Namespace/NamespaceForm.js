@@ -19,13 +19,12 @@
  */
 
 import React from 'react'
-
+import PropTypes from 'prop-types'
+import {connect} from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
-// import PlaceholderInputIntl from '../../components/PlaceholderInputIntl'
 
-import DataSystemSelector from '../../components/DataSystemSelector'
-import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -40,23 +39,31 @@ const FormItem = Form.Item
 import Select from 'antd/lib/select'
 const Option = Select.Option
 
+import DataSystemSelector from '../../components/DataSystemSelector'
+import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
+
+import { selectLocale } from '../LanguageProvider/selectors'
+
 export class NamespaceForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
       namespaceDSValue: '',
-      instanceIdGeted: 0,
       currentNamespaceUrlValue: []
     }
   }
 
   componentWillReceiveProps (props) {
     if (props.namespaceUrlValue) {
-      this.setState({ currentNamespaceUrlValue: props.namespaceUrlValue })
+      this.setState({
+        currentNamespaceUrlValue: props.namespaceUrlValue
+      }, () => {
+
+      })
     }
   }
 
-  // 显示 connection url 下拉框的内容
+  // 显示 connection url 内容
   onDatabaseDataSystemItemSelect = (value) => {
     this.setState({ namespaceDSValue: value })
     if (this.props.namespaceFormType === 'add') {
@@ -64,50 +71,31 @@ export class NamespaceForm extends React.Component {
     }
   }
 
-  onHandleChange = (name) => (e) => {
-    switch (name) {
-      case 'instance':
-        const selUrl = this.state.currentNamespaceUrlValue.find(s => s.id === Number(e))
-        this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
-        this.props.cleanNsTableData()
-        this.setState({
-          instanceIdGeted: selUrl.id
-        }, () => {
-          // 通过 instance id 显示 database 下拉框
-          this.props.onInitDatabaseSelectValue(this.state.instanceIdGeted, selUrl.connUrl)
-        })
-        break
-      case 'nsDatabase':
-        this.props.cleanNsTableData()
-        break
-      case 'nsSingleTableName':
-        this.props.onInitNsNameInputValue(e.target.value)
-        break
-      case 'nsSingleKeyValue':
-        this.props.onInitNsKeyInputValue(e.target.value)
-        break
-    }
+  onHandleChange = (e) => {
+    const { currentNamespaceUrlValue } = this.state
+
+    const selUrl = currentNamespaceUrlValue.find(s => s.id === Number(e))
+    this.props.form.setFieldsValue({ connectionUrl: selUrl.connUrl })
+
+    // 通过 instance id 显示 database 下拉框
+    this.props.onInitDatabaseSelectValue(selUrl.id, selUrl.connUrl)
+    this.props.cleanNsTableData()
   }
 
   render () {
     const { getFieldDecorator } = this.props.form
     const { currentNamespaceUrlValue, namespaceDSValue } = this.state
-    const { namespaceFormType, databaseSelectValue, queryConnUrl } = this.props
-    const { namespaceTableSource, onDeleteTable, onAddTable, deleteTableClass, addTableClass, addTableClassTable, addBtnDisabled } = this.props
-    const languageText = localStorage.getItem('preferredLanguage')
+    const {
+      namespaceFormType, databaseSelectValue, queryConnUrl, namespaceTableSource, onDeleteTable,
+      onAddTable, deleteTableClass, addTableClass, addTableClassTable, addBtnDisabled, locale
+    } = this.props
 
     const itemStyle = {
       labelCol: { span: 6 },
       wrapperCol: { span: 17 }
     }
 
-    // edit 时，不能修改部分元素
-    let disabledOrNot = false
-    if (namespaceFormType === 'add') {
-      disabledOrNot = false
-    } else if (namespaceFormType === 'edit') {
-      disabledOrNot = true
-    }
+    const disabledOrNot = namespaceFormType === 'edit'
 
     const instanceOptions = currentNamespaceUrlValue.map(s => (<Option key={s.id} value={`${s.id}`}>{s.nsInstance}</Option>))
     const databaseOptions = databaseSelectValue.map((s) => (<Option key={s.id} value={`${s.id}`}>{s.nsDatabase}</Option>))
@@ -116,36 +104,32 @@ export class NamespaceForm extends React.Component {
     let namespaceDBPlace = ''
     if (namespaceDSValue === 'es') {
       namespaceDBLabel = 'Index'
-      namespaceDBPlace = languageText === 'en' ? 'select an Index' : '请选择 Index'
+      namespaceDBPlace = locale === 'en' ? 'select an Index' : '请选择 Index'
     } else if (namespaceDSValue === 'hbase') {
       namespaceDBLabel = 'Namespace'
-      namespaceDBPlace = languageText === 'en' ? 'select a Hbase Namespace' : '请选择 Hbase Namespace'
+      namespaceDBPlace = locale === 'en' ? 'select a Hbase Namespace' : '请选择 Hbase Namespace'
     } else if (namespaceDSValue === 'kafka') {
       namespaceDBLabel = 'Topic'
-      namespaceDBPlace = languageText === 'en' ? 'select a Topic' : '请选择 Topic'
+      namespaceDBPlace = locale === 'en' ? 'select a Topic' : '请选择 Topic'
     } else {
       namespaceDBLabel = 'Database'
-      namespaceDBPlace = languageText === 'en' ? 'select a Database' : '请选择 Database'
+      namespaceDBPlace = locale === 'en' ? 'select a Database' : '请选择 Database'
     }
 
     let namespaceTablePlace = ''
     if (namespaceDSValue === 'es') {
       namespaceTablePlace = 'Type'
     } else if (namespaceDSValue === 'redis') {
-      namespaceTablePlace = languageText === 'en' ? 'You can fill in "default"' : '可填写 default'
+      namespaceTablePlace = locale === 'en' ? 'You can fill in "default"' : '可填写 default'
     } else {
       namespaceTablePlace = 'Table'
     }
 
-    const namespaceTableLabel = namespaceDSValue === 'es' ? 'Types' : 'Tables'
-
-    const disabledKeyOrNot = namespaceDSValue === 'redis'
-
     let namespaceKeyPlaceholder = ''
     if (namespaceDSValue === 'redis') {
-      namespaceKeyPlaceholder = languageText === 'en' ? 'No config for Key' : 'Key 无需配置'
+      namespaceKeyPlaceholder = locale === 'en' ? 'No config for Key' : 'Key 无需配置'
     } else {
-      namespaceKeyPlaceholder = languageText === 'en' ? 'Sep keys with commas' : '多个主键用逗号隔开'
+      namespaceKeyPlaceholder = locale === 'en' ? 'Sep keys with commas' : '多个主键用逗号隔开'
     }
 
     const questionOrNot = namespaceDSValue === 'kafka'
@@ -153,9 +137,10 @@ export class NamespaceForm extends React.Component {
         <Tooltip title={<FormattedMessage {...messages.nsHelp} />}>
           <Popover
             placement="top"
-            content={<div style={{ width: '400px', height: '38px' }}>
-              <p><FormattedMessage {...messages.nsModalTablesTablesKafkaMsg} /></p>
-            </div>}
+            content={
+              <div style={{ width: '400px', height: '38px' }}>
+                <p><FormattedMessage {...messages.nsModalTablesTablesKafkaMsg} /></p>
+              </div>}
             title={<h3><FormattedMessage {...messages.nsHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
@@ -165,7 +150,7 @@ export class NamespaceForm extends React.Component {
 
     const namespaceTableMsg = (
       <span>
-        {namespaceTableLabel}
+        {namespaceDSValue === 'es' ? 'Types' : 'Tables'}
         {questionOrNot}
       </span>
     )
@@ -227,7 +212,7 @@ export class NamespaceForm extends React.Component {
               {getFieldDecorator('dataBaseDataSystem', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Please select Data System' : '请选择 Data System'
+                  message: locale === 'en' ? 'Please select Data System' : '请选择 Data System'
                 }]
               })(
                 <DataSystemSelector
@@ -244,13 +229,13 @@ export class NamespaceForm extends React.Component {
               {getFieldDecorator('instance', {
                 rules: [{
                   required: true,
-                  message: languageText === 'en' ? 'Please select an Instance' : '请选择 Instance'
+                  message: locale === 'en' ? 'Please select an Instance' : '请选择 Instance'
                 }]
               })(
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
-                  onChange={this.onHandleChange('instance')}
-                  placeholder={languageText === 'en' ? 'Select an Instance' : '请选择 Instance'}
+                  onChange={this.onHandleChange}
+                  placeholder={locale === 'en' ? 'Select an Instance' : '请选择 Instance'}
                   disabled={disabledOrNot}
                 >
                   {instanceOptions}
@@ -272,12 +257,12 @@ export class NamespaceForm extends React.Component {
               {getFieldDecorator('nsDatabase', {
                 rules: [{
                   required: true,
-                  message: `${languageText === 'en' ? 'Please select a' : '请选择'} ${namespaceDBLabel}`
+                  message: `${locale === 'en' ? 'Please select a' : '请选择'} ${namespaceDBLabel}`
                 }]
               })(
                 <Select
                   dropdownClassName="ri-workbench-select-dropdown db-workbench-select-dropdown"
-                  onChange={this.onHandleChange('nsDatabase')}
+                  onChange={() => this.props.cleanNsTableData()}
                   placeholder={namespaceDBPlace}
                   disabled={disabledOrNot}
                 >
@@ -301,7 +286,7 @@ export class NamespaceForm extends React.Component {
                 {getFieldDecorator('nsSingleTableName', {})(
                   <Input
                     placeholder={namespaceTablePlace}
-                    onChange={this.onHandleChange('nsSingleTableName')}
+                    onChange={(e) => this.props.onInitNsNameInputValue(e.target.value)}
                     disabled={disabledOrNot}
                   />
                 )}
@@ -312,8 +297,8 @@ export class NamespaceForm extends React.Component {
                 {getFieldDecorator('nsSingleKeyValue', {})(
                   <Input
                     placeholder={namespaceKeyPlaceholder}
-                    onChange={this.onHandleChange('nsSingleKeyValue')}
-                    disabled={disabledKeyOrNot}
+                    onChange={(e) => this.props.onInitNsKeyInputValue(e.target.value)}
+                    disabled={namespaceDSValue === 'redis'}
                   />
                 )}
               </FormItem>
@@ -346,22 +331,27 @@ export class NamespaceForm extends React.Component {
 }
 
 NamespaceForm.propTypes = {
-  form: React.PropTypes.any,
-  namespaceFormType: React.PropTypes.string,
-  namespaceTableSource: React.PropTypes.array,
-  databaseSelectValue: React.PropTypes.array,
-  deleteTableClass: React.PropTypes.string,
-  addTableClass: React.PropTypes.string,
-  addTableClassTable: React.PropTypes.string,
-  queryConnUrl: React.PropTypes.string,
-  addBtnDisabled: React.PropTypes.bool,
-  onInitNamespaceUrlValue: React.PropTypes.func,
-  onInitDatabaseSelectValue: React.PropTypes.func,
-  onDeleteTable: React.PropTypes.func,
-  onAddTable: React.PropTypes.func,
-  cleanNsTableData: React.PropTypes.func,
-  onInitNsNameInputValue: React.PropTypes.func,
-  onInitNsKeyInputValue: React.PropTypes.func
+  form: PropTypes.any,
+  namespaceFormType: PropTypes.string,
+  namespaceTableSource: PropTypes.array,
+  databaseSelectValue: PropTypes.array,
+  deleteTableClass: PropTypes.string,
+  addTableClass: PropTypes.string,
+  addTableClassTable: PropTypes.string,
+  queryConnUrl: PropTypes.string,
+  addBtnDisabled: PropTypes.bool,
+  onInitNamespaceUrlValue: PropTypes.func,
+  onInitDatabaseSelectValue: PropTypes.func,
+  onDeleteTable: PropTypes.func,
+  onAddTable: PropTypes.func,
+  cleanNsTableData: PropTypes.func,
+  onInitNsNameInputValue: PropTypes.func,
+  onInitNsKeyInputValue: PropTypes.func,
+  locale: PropTypes.string
 }
 
-export default Form.create({wrappedComponentRef: true})(NamespaceForm)
+const mapStateToProps = createStructuredSelector({
+  locale: selectLocale()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, null)(NamespaceForm))

@@ -30,7 +30,7 @@ import edp.wormhole.ums.UmsDataSystem
 import org.apache.spark.sql._
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkxinterface.swifts.SwiftsSql
-import edp.wormhole.swifts.custom.{LookupHbase, LookupRedis}
+import edp.wormhole.swifts.custom.{LookupHbase, LookupKudu, LookupRedis}
 
 import scala.collection.mutable.ListBuffer
 
@@ -55,10 +55,6 @@ object SwiftsTransform extends EdpLogging {
         val lookupTableFields = if (operate.lookupTableFields.isDefined) operate.lookupTableFields.get else null
         val sql = operate.sql.trim
         SqlOptType.toSqlOptType(operate.optType) match {
-          //          case SqlOptType.PUSHDOWN_HBASE =>
-          //            currentDf = LookupHbase.transform(session,currentDf,operate,sourceNamespace,sinkNamespace)
-          //          case SqlOptType.PUSHDOWN_REDIS =>
-          //            currentDf = LookupRedis.transform(session,currentDf,operate,sourceNamespace,sinkNamespace)
           case SqlOptType.CUSTOM_CLASS =>
             val (obj, method) = ConfMemoryStorage.getSwiftsTransformReflectValue(operate.sql)
             currentDf = method.invoke(obj, session, currentDf, swiftsLogic).asInstanceOf[DataFrame]
@@ -100,6 +96,8 @@ object SwiftsTransform extends EdpLogging {
                   currentDf = LookupHbase.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig)
                 case UmsDataSystem.REDIS =>
                   currentDf = LookupRedis.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig)
+                case UmsDataSystem.KUDU =>
+                  currentDf = LookupKudu.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig)
                 case _ =>
                   currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.MYSQL)
               }

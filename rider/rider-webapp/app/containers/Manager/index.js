@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
 import {createStructuredSelector} from 'reselect'
 import Helmet from 'react-helmet'
@@ -40,11 +41,14 @@ import message from 'antd/lib/message'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
-import {loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
-  deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset} from './action'
-import {loadSingleUdf} from '../Udf/action'
-import {selectStreams, selectStreamStartModalLoading} from './selectors'
+import {
+  loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
+  deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset
+} from './action'
+import { loadSingleUdf } from '../Udf/action'
+import { selectStreams, selectStreamStartModalLoading } from './selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
+import { selectRoleType } from '../App/selectors'
 
 import { uuid, isEquivalent, operateLanguageText } from '../../utils/util'
 
@@ -113,12 +117,12 @@ export class Manager extends React.Component {
   }
 
   componentWillMount () {
-    if (localStorage.getItem('loginRoleType') === 'admin') {
-      if (!this.props.streamClassHide) {
+    const { streamClassHide, roleType } = this.props
+    if (roleType === 'admin') {
+      if (!streamClassHide) {
         this.props.onLoadAdminAllStreams(() => { this.refreshStreamState() })
       }
     }
-    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   componentWillReceiveProps (props) {
@@ -146,8 +150,7 @@ export class Manager extends React.Component {
   }
 
   searchOperater () {
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const { columnNameText, valueText, visibleBool, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
@@ -159,16 +162,18 @@ export class Manager extends React.Component {
   }
 
   refreshStream = () => {
+    const { projectIdGeted, streamClassHide, roleType } = this.props
+
     this.setState({
       refreshStreamLoading: true,
       refreshStreamText: 'Refreshing'
     })
-    if (localStorage.getItem('loginRoleType') === 'admin') {
-      this.props.streamClassHide === 'hide'
-        ? this.props.onLoadAdminSingleStream(this.props.projectIdGeted, () => { this.refreshStreamState() })
+    if (roleType === 'admin') {
+      streamClassHide === 'hide'
+        ? this.props.onLoadAdminSingleStream(projectIdGeted, () => { this.refreshStreamState() })
         : this.props.onLoadAdminAllStreams(() => { this.refreshStreamState() })
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
-      this.props.onLoadUserStreams(this.props.projectIdGeted, () => { this.refreshStreamState() })
+    } else if (roleType === 'user') {
+      this.props.onLoadUserStreams(projectIdGeted, () => { this.refreshStreamState() })
     }
   }
 
@@ -177,9 +182,7 @@ export class Manager extends React.Component {
       refreshStreamLoading: false,
       refreshStreamText: 'Refresh'
     })
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { paginationInfo, filteredInfo, sortedInfo } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const { columnNameText, valueText, visibleBool, paginationInfo, filteredInfo, sortedInfo, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
@@ -197,13 +200,7 @@ export class Manager extends React.Component {
       this.setState({
         visible
       }, () => {
-        let roleType = ''
-        if (localStorage.getItem('loginRoleType') === 'admin') {
-          roleType = 'admin'
-        } else if (localStorage.getItem('loginRoleType') === 'user') {
-          roleType = 'user'
-        }
-
+        const { roleType } = this.props
         this.props.onLoadStreamDetail(stream.projectId, stream.id, roleType, (result) => {
           this.setState({ showStreamdetails: result })
         })
@@ -282,7 +279,7 @@ export class Manager extends React.Component {
    * start操作  获取最新数据，并回显
    */
   onShowEditStart = (record) => (e) => {
-    const { projectIdGeted } = this.props
+    const { projectIdGeted, locale } = this.props
 
     this.setState({
       actionType: 'start',
@@ -313,7 +310,7 @@ export class Manager extends React.Component {
         createTime: '',
         desc: '',
         fullClassName: '',
-        functionName: localStorage.getItem('preferredLanguage') === 'en' ? 'Select all' : '全选',
+        functionName: locale === 'en' ? 'Select all' : '全选',
         id: -1,
         jarName: '',
         pubic: false,
@@ -359,6 +356,7 @@ export class Manager extends React.Component {
 
   onChangeEditSelect = () => {
     const { streamStartFormData } = this.state
+
     for (let i = 0; i < streamStartFormData.length; i++) {
       const partitionAndOffset = streamStartFormData[i].partitionOffsets.split(',')
 
@@ -376,147 +374,129 @@ export class Manager extends React.Component {
    */
   handleEditStartOk = (e) => {
     const { actionType, streamIdGeted, streamStartFormData, startUdfVals } = this.state
-    const { projectIdGeted } = this.props
-    const languageText = localStorage.getItem('preferredLanguage')
-    const offsetText = languageText === 'en' ? 'Offset cannot be empty' : 'Offset 不能为空！'
+    const { projectIdGeted, locale } = this.props
+    const offsetText = locale === 'en' ? 'Offset cannot be empty' : 'Offset 不能为空！'
 
     this.streamStartForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         let requestVal = {}
-        if (actionType === 'start') {
-          if (!streamStartFormData) {
-            if (!values.udfs) {
-              requestVal = {}
-            } else {
-              if (values.udfs.find(i => i === '-1')) {
-                // 全选
-                const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
-                requestVal = {
-                  udfInfo: startUdfValsOrigin.map(p => p.id)
-                }
+        switch (actionType) {
+          case 'start':
+            if (!streamStartFormData) {
+              if (!values.udfs) {
+                requestVal = {}
               } else {
-                requestVal = {
-                  udfInfo: values.udfs.map(q => Number(q))
-                }
-              }
-            }
-          } else {
-            const mergedData = streamStartFormData.map((i) => {
-              const parOffTemp = i.partitionOffsets
-              const partitionTemp = parOffTemp.split(',')
-
-              const offsetArr = []
-              for (let r = 0; r < partitionTemp.length; r++) {
-                const offsetArrTemp = values[`${i.id}_${r}`]
-                if (offsetArrTemp === '') {
-                  message.warning(offsetText, 3)
+                if (values.udfs.find(i => i === '-1')) {
+                  // 全选
+                  const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                  requestVal = { udfInfo: startUdfValsOrigin.map(p => p.id) }
                 } else {
-                  offsetArr.push(`${r}:${offsetArrTemp}`)
+                  requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
                 }
-              }
-              const offsetVal = offsetArr.join(',')
-
-              const robj = {
-                id: i.id,
-                partitionOffsets: offsetVal,
-                rate: Number(values[`${i.id}_${i.rate}_rate`])
-              }
-              return robj
-            })
-
-            if (!values.udfs) {
-              requestVal = {
-                topicInfo: mergedData
               }
             } else {
-              if (values.udfs.find(i => i === '-1')) {
-                // 全选
-                const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
-                requestVal = {
-                  udfInfo: startUdfValsOrigin.map(p => p.id),
-                  topicInfo: mergedData
+              const mergedData = streamStartFormData.map((i) => {
+                const parOffTemp = i.partitionOffsets
+                const partitionTemp = parOffTemp.split(',')
+
+                const offsetArr = []
+                for (let r = 0; r < partitionTemp.length; r++) {
+                  const offsetArrTemp = values[`${i.id}_${r}`]
+                  offsetArrTemp === ''
+                    ? message.warning(offsetText, 3)
+                    : offsetArr.push(`${r}:${offsetArrTemp}`)
                 }
+                const offsetVal = offsetArr.join(',')
+
+                const robj = {
+                  id: i.id,
+                  partitionOffsets: offsetVal,
+                  rate: Number(values[`${i.id}_${i.rate}_rate`])
+                }
+                return robj
+              })
+
+              if (!values.udfs) {
+                requestVal = { topicInfo: mergedData }
               } else {
-                requestVal = {
-                  udfInfo: values.udfs.map(q => Number(q)),
-                  topicInfo: mergedData
-                }
-              }
-            }
-          }
-        } else if (actionType === 'renew') {
-          if (!streamStartFormData) {
-            if (!values.udfs) {
-              requestVal = {}
-            } else {
-              requestVal = {
-                udfInfo: values.udfs.map(q => Number(q))
-              }
-            }
-          } else {
-            const mergedData = streamStartFormData.map((i) => {
-              const parOffTemp = i.partitionOffsets
-              const partitionTemp = parOffTemp.split(',')
-
-              const offsetArr = []
-              for (let r = 0; r < partitionTemp.length; r++) {
-                const offsetArrTemp = values[`${i.id}_${r}`]
-                if (offsetArrTemp === '') {
-                  message.warning(offsetText, 3)
+                if (values.udfs.find(i => i === '-1')) {
+                  // 全选
+                  const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                  requestVal = {
+                    udfInfo: startUdfValsOrigin.map(p => p.id),
+                    topicInfo: mergedData
+                  }
                 } else {
-                  offsetArr.push(`${r}:${offsetArrTemp}`)
-                }
-              }
-              const offsetVal = offsetArr.join(',')
-
-              const robj = {
-                id: i.id,
-                name: i.name,
-                partitionOffsets: offsetVal,
-                rate: Number(values[`${i.id}_${i.rate}_rate`])
-              }
-              return robj
-            })
-
-            // 接口参数：改动的topicInfo
-            let topicInfoTemp = []
-            for (let f = 0; f < streamStartFormData.length; f++) {
-              for (let g = 0; g < mergedData.length; g++) {
-                if (streamStartFormData[f].id === mergedData[g].id) {
-                  if (!isEquivalent(streamStartFormData[f], mergedData[g])) {
-                    topicInfoTemp.push({
-                      id: mergedData[g].id,
-                      partitionOffsets: mergedData[g].partitionOffsets,
-                      rate: mergedData[g].rate
-                    })
+                  requestVal = {
+                    udfInfo: values.udfs.map(q => Number(q)),
+                    topicInfo: mergedData
                   }
                 }
               }
             }
-
-            if (topicInfoTemp.length === 0) {
-              requestVal = (!values.udfs)
-                ? {}
-                : requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
+            break
+          case 'renew':
+            if (!streamStartFormData) {
+              requestVal = !values.udfs ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
             } else {
-              requestVal = (!values.udfs)
-                ? { topicInfo: topicInfoTemp }
-                : {
-                  udfInfo: values.udfs.map(q => Number(q)),
-                  topicInfo: topicInfoTemp
+              const mergedData = streamStartFormData.map((i) => {
+                const partitionTemp = i.partitionOffsets.split(',')
+
+                const offsetArr = []
+                for (let r = 0; r < partitionTemp.length; r++) {
+                  const offsetArrTemp = values[`${i.id}_${r}`]
+                  offsetArrTemp === ''
+                    ? message.warning(offsetText, 3)
+                    : offsetArr.push(`${r}:${offsetArrTemp}`)
                 }
+
+                const robj = {
+                  id: i.id,
+                  name: i.name,
+                  partitionOffsets: offsetArr.join(','),
+                  rate: Number(values[`${i.id}_${i.rate}_rate`])
+                }
+                return robj
+              })
+
+              // 接口参数：改动的topicInfo
+              let topicInfoTemp = []
+              for (let f = 0; f < streamStartFormData.length; f++) {
+                for (let g = 0; g < mergedData.length; g++) {
+                  if (streamStartFormData[f].id === mergedData[g].id) {
+                    if (!isEquivalent(streamStartFormData[f], mergedData[g])) {
+                      topicInfoTemp.push({
+                        id: mergedData[g].id,
+                        partitionOffsets: mergedData[g].partitionOffsets,
+                        rate: mergedData[g].rate
+                      })
+                    }
+                  }
+                }
+              }
+
+              if (topicInfoTemp.length === 0) {
+                requestVal = (!values.udfs) ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
+              } else {
+                requestVal = (!values.udfs)
+                  ? { topicInfo: topicInfoTemp }
+                  : {
+                    udfInfo: values.udfs.map(q => Number(q)),
+                    topicInfo: topicInfoTemp
+                  }
+              }
             }
-          }
+            break
         }
 
         let actionTypeRequest = ''
         let actionTypeMsg = ''
         if (actionType === 'start') {
           actionTypeRequest = 'start'
-          actionTypeMsg = languageText === 'en' ? 'Start Successfully!' : '启动成功！'
+          actionTypeMsg = locale === 'en' ? 'Start Successfully!' : '启动成功！'
         } else if (actionType === 'renew') {
           actionTypeRequest = 'renew'
-          actionTypeMsg = languageText === 'en' ? 'Renew Successfully!' : '生效！'
+          actionTypeMsg = locale === 'en' ? 'Renew Successfully!' : '生效！'
         }
 
         this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, () => {
@@ -527,7 +507,7 @@ export class Manager extends React.Component {
 
           message.success(actionTypeMsg, 3)
         }, (result) => {
-          const failText = languageText === 'en' ? 'Operation failed:' : '操作失败：'
+          const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
           message.error(`${failText} ${result}`, 3)
         })
       }
@@ -546,9 +526,9 @@ export class Manager extends React.Component {
   }
 
   stopStreamBtn = (record, action) => (e) => {
-    const languageText = localStorage.getItem('preferredLanguage')
-    const successText = languageText === 'en' ? 'Stop successfully!' : '停止成功！'
-    const failText = languageText === 'en' ? 'Operation failed:' : '操作失败：'
+    const { locale } = this.props
+    const successText = locale === 'en' ? 'Stop successfully!' : '停止成功！'
+    const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
     this.props.onOperateStream(this.props.projectIdGeted, record.id, 'stop', () => {
       message.success(successText, 3)
     }, (result) => {
@@ -582,12 +562,13 @@ export class Manager extends React.Component {
   }
 
   loadLogsData = (projectId, streamId) => {
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    const { roleType } = this.props
+    if (roleType === 'admin') {
       this.props.onLoadAdminLogsInfo(projectId, streamId, (result) => {
         this.setState({ logsContent: result })
         this.streamLogRefreshState()
       })
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       this.props.onLoadLogsInfo(projectId, streamId, (result) => {
         this.setState({ logsContent: result })
         this.streamLogRefreshState()
@@ -729,8 +710,13 @@ export class Manager extends React.Component {
   }
 
   render () {
-    const { refreshStreamLoading, refreshStreamText, showStreamdetails } = this.state
-    const { className, onShowAddStream, onShowEditStream, streamClassHide } = this.props
+    const {
+      refreshStreamLoading, refreshStreamText, showStreamdetails, logsModalVisible,
+      logsContent, refreshLogLoading, refreshLogText, logsProjectId, logsStreamId,
+      streamStartFormData, consumedOffsetValue, kafkaOffsetValue, actionType,
+      startUdfVals, renewUdfVals, currentUdfVal, topicInfoModal, currentStreams
+    } = this.state
+    const { className, onShowAddStream, onShowEditStream, streamClassHide, streamStartModalLoading, roleType } = this.props
 
     let {
       sortedInfo,
@@ -991,9 +977,9 @@ export class Manager extends React.Component {
       render: (text, record) => {
         const stream = this.state.currentStreams.find(s => s.id === record.id)
         let streamActionSelect = ''
-        if (localStorage.getItem('loginRoleType') === 'admin') {
+        if (roleType === 'admin') {
           streamActionSelect = ''
-        } else if (localStorage.getItem('loginRoleType') === 'user') {
+        } else if (roleType === 'user') {
           const deleteFormat = <FormattedMessage {...messages.streamDelete} />
           const sureDeleteFormat = <FormattedMessage {...messages.streamSureDelete} />
           const startFormat = <FormattedMessage {...messages.streamTableStart} />
@@ -1002,7 +988,8 @@ export class Manager extends React.Component {
           const sureStopFormat = <FormattedMessage {...messages.streamSureStop} />
           const modifyFormat = <FormattedMessage {...messages.streamModify} />
 
-          const strDelete = record.disableActions.includes('delete')
+          const { disableActions } = record
+          const strDelete = disableActions.includes('delete')
             ? (
               <Tooltip title={deleteFormat}>
                 <Button icon="delete" shape="circle" type="ghost" disabled></Button>
@@ -1016,19 +1003,11 @@ export class Manager extends React.Component {
               </Popconfirm>
             )
 
-          const strStart = record.disableActions.includes('start')
-            ? (
-              <Tooltip title={startFormat}>
-                <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
-              </Tooltip>
-            )
-            : (
-              <Tooltip title={startFormat}>
-                <Button icon="caret-right" shape="circle" type="ghost" onClick={this.onShowEditStart(record, 'start')}></Button>
-              </Tooltip>
-            )
+          const strStart = disableActions.includes('start')
+            ? <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
+            : <Button icon="caret-right" shape="circle" type="ghost" onClick={this.onShowEditStart(record, 'start')}></Button>
 
-          const strStop = record.disableActions.includes('stop')
+          const strStop = disableActions.includes('stop')
             ? (
               <Tooltip title={stopFormat}>
                 <Button shape="circle" type="ghost" disabled>
@@ -1046,26 +1025,22 @@ export class Manager extends React.Component {
               </Popconfirm>
             )
 
-          const strRenew = record.disableActions.includes('renew')
-            ? (
-              <Tooltip title={renewFormat}>
-                <Button icon="check" shape="circle" type="ghost" disabled></Button>
-              </Tooltip>
-            )
-            : (
-              <Tooltip title={renewFormat}>
-                <Button icon="check" shape="circle" type="ghost" onClick={this.updateStream(record, 'renew')}></Button>
-              </Tooltip>
-            )
+          const strRenew = disableActions.includes('renew')
+            ? <Button icon="check" shape="circle" type="ghost" disabled></Button>
+            : <Button icon="check" shape="circle" type="ghost" onClick={this.updateStream(record, 'renew')}></Button>
 
           streamActionSelect = (
             <span>
               <Tooltip title={modifyFormat}>
                 <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditStream(record)}></Button>
               </Tooltip>
-              {strStart}
+              <Tooltip title={startFormat}>
+                {strStart}
+              </Tooltip>
               {strStop}
-              {strRenew}
+              <Tooltip title={renewFormat}>
+                {strRenew}
+              </Tooltip>
               {strDelete}
             </span>
           )
@@ -1108,7 +1083,7 @@ export class Manager extends React.Component {
 
           streamDetailContent = (
             <div className="stream-detail">
-              <p className={this.props.streamClassHide}><strong>   Project Id：</strong>{detailTemp.projectId}</p>
+              <p className={streamClassHide}><strong>   Project Id：</strong>{detailTemp.projectId}</p>
               <p><strong>   Topic Info：</strong>{topicFinal}</p>
               <p><strong>   Current Udf：</strong>{currentUdfFinal}</p>
               <p><strong>   Using Udf：</strong>{usingUdfTempFinal}</p>
@@ -1167,22 +1142,22 @@ export class Manager extends React.Component {
     const streamStartForm = startModalVisible
       ? (
         <StreamStartForm
-          data={this.state.streamStartFormData}
-          consumedOffsetValue={this.state.consumedOffsetValue}
-          kafkaOffsetValue={this.state.kafkaOffsetValue}
-          streamActionType={this.state.actionType}
-          startUdfValsOption={this.state.startUdfVals}
-          renewUdfValsOption={this.state.renewUdfVals}
-          currentUdfVal={this.state.currentUdfVal}
+          data={streamStartFormData}
+          consumedOffsetValue={consumedOffsetValue}
+          kafkaOffsetValue={kafkaOffsetValue}
+          streamActionType={actionType}
+          startUdfValsOption={startUdfVals}
+          renewUdfValsOption={renewUdfVals}
+          currentUdfVal={currentUdfVal}
           ref={(f) => { this.streamStartForm = f }}
         />
       )
       : ''
 
     let StreamAddOrNot = ''
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       StreamAddOrNot = ''
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       StreamAddOrNot = (
         <Button icon="plus" type="primary" onClick={onShowAddStream}>
           <FormattedMessage {...messages.streamCreate} />
@@ -1190,12 +1165,9 @@ export class Manager extends React.Component {
       )
     }
 
-    const helmetHide = this.props.streamClassHide !== 'hide'
+    const helmetHide = streamClassHide !== 'hide'
       ? (<Helmet title="Stream" />)
       : (<Helmet title="Workbench" />)
-
-    const { topicInfoModal, actionType } = this.state
-    const editBtn = topicInfoModal === '' ? '' : 'hide'
 
     const modalTitle = actionType === 'start'
       ? <FormattedMessage {...messages.streamSureStart} />
@@ -1216,7 +1188,7 @@ export class Manager extends React.Component {
           <Button icon="poweroff" type="ghost" className="refresh-button-style" loading={refreshStreamLoading} onClick={this.refreshStream}>{refreshStreamText}</Button>
         </div>
         <Table
-          dataSource={this.state.currentStreams}
+          dataSource={currentStreams}
           columns={columns}
           onChange={this.handleStreamChange}
           pagination={pagination}
@@ -1231,7 +1203,7 @@ export class Manager extends React.Component {
           onCancel={this.handleEditStartCancel}
           footer={[
             <Button
-              className={`query-offset-btn ${this.state.topicInfoModal}`}
+              className={`query-offset-btn ${topicInfoModal}`}
               key="query"
               size="large"
               onClick={this.queryLastestoffset}
@@ -1239,7 +1211,7 @@ export class Manager extends React.Component {
               <FormattedMessage {...messages.streamModalView} /> Latest Offset
             </Button>,
             <Button
-              className={`edit-topic-btn ${editBtn}`}
+              className={`edit-topic-btn ${topicInfoModal === '' ? '' : 'hide'}`}
               type="default"
               onClick={this.onChangeEditSelect}
               key="renewEdit"
@@ -1257,7 +1229,7 @@ export class Manager extends React.Component {
               key="submit"
               size="large"
               type="primary"
-              loading={this.props.streamStartModalLoading}
+              loading={streamStartModalLoading}
               onClick={this.handleEditStartOk}
             >
               {modalOkBtn}
@@ -1269,18 +1241,18 @@ export class Manager extends React.Component {
 
         <Modal
           title="Logs"
-          visible={this.state.logsModalVisible}
+          visible={logsModalVisible}
           onCancel={this.handleLogsCancel}
           wrapClassName="ant-modal-xlarge ant-modal-no-footer"
           footer={<span></span>}
         >
           <StreamLogs
-            logsContent={this.state.logsContent}
-            refreshLogLoading={this.state.refreshLogLoading}
-            refreshLogText={this.state.refreshLogText}
+            logsContent={logsContent}
+            refreshLogLoading={refreshLogLoading}
+            refreshLogText={refreshLogText}
             onInitRefreshLogs={this.onInitRefreshLogs}
-            logsProjectId={this.state.logsProjectId}
-            logsStreamId={this.state.logsStreamId}
+            logsProjectId={logsProjectId}
+            logsStreamId={logsStreamId}
             ref={(f) => { this.streamLogs = f }}
           />
         </Modal>
@@ -1291,24 +1263,25 @@ export class Manager extends React.Component {
 }
 
 Manager.propTypes = {
-  className: React.PropTypes.string,
-  projectIdGeted: React.PropTypes.string,
-  streamClassHide: React.PropTypes.string,
-  onLoadUserStreams: React.PropTypes.func,
-  onLoadAdminSingleStream: React.PropTypes.func,
-  onLoadAdminAllStreams: React.PropTypes.func,
-  onShowAddStream: React.PropTypes.func,
-  onOperateStream: React.PropTypes.func,
-  onDeleteStream: React.PropTypes.func,
-  onStartOrRenewStream: React.PropTypes.func,
-  onLoadStreamDetail: React.PropTypes.func,
-  onLoadLogsInfo: React.PropTypes.func,
-  onLoadAdminLogsInfo: React.PropTypes.func,
-  onShowEditStream: React.PropTypes.func,
-  onLoadSingleUdf: React.PropTypes.func,
-  onLoadLastestOffset: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func,
-  streamStartModalLoading: React.PropTypes.bool
+  className: PropTypes.string,
+  projectIdGeted: PropTypes.string,
+  streamClassHide: PropTypes.string,
+  onLoadUserStreams: PropTypes.func,
+  onLoadAdminSingleStream: PropTypes.func,
+  onLoadAdminAllStreams: PropTypes.func,
+  onShowAddStream: PropTypes.func,
+  onOperateStream: PropTypes.func,
+  onDeleteStream: PropTypes.func,
+  onStartOrRenewStream: PropTypes.func,
+  onLoadStreamDetail: PropTypes.func,
+  onLoadLogsInfo: PropTypes.func,
+  onLoadAdminLogsInfo: PropTypes.func,
+  onShowEditStream: PropTypes.func,
+  onLoadSingleUdf: PropTypes.func,
+  onLoadLastestOffset: PropTypes.func,
+  streamStartModalLoading: PropTypes.bool,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1323,14 +1296,15 @@ export function mapDispatchToProps (dispatch) {
     onLoadLogsInfo: (projectId, streamId, resolve) => dispatch(loadLogsInfo(projectId, streamId, resolve)),
     onLoadAdminLogsInfo: (projectId, streamId, resolve) => dispatch(loadAdminLogsInfo(projectId, streamId, resolve)),
     onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
-    onLoadLastestOffset: (projectId, streamId, resolve) => dispatch(loadLastestOffset(projectId, streamId, resolve)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onLoadLastestOffset: (projectId, streamId, resolve) => dispatch(loadLastestOffset(projectId, streamId, resolve))
   }
 }
 
 const mapStateToProps = createStructuredSelector({
   streams: selectStreams(),
-  streamStartModalLoading: selectStreamStartModalLoading()
+  streamStartModalLoading: selectStreamStartModalLoading(),
+  roleType: selectRoleType(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Manager)

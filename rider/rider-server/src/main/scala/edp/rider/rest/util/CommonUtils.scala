@@ -21,6 +21,8 @@
 
 package edp.rider.rest.util
 
+import java.time.ZonedDateTime
+
 import com.alibaba.fastjson.JSON
 import edp.rider.common.RiderLogger
 import edp.wormhole.common.util.DateUtils._
@@ -30,13 +32,17 @@ import scala.concurrent.duration._
 
 object CommonUtils extends RiderLogger {
 
+  def getTimeZoneId = ZonedDateTime.now().getOffset.getId
+
   def currentSec = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_SEC)
+
+  def currentNodSec = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_NOD_SEC)
 
   def currentMillSec = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MILLISEC)
 
   def currentMicroSec = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MICROSEC)
 
-  def minTimeOut = 180.seconds
+  def minTimeOut = 120.seconds
 
   def maxTimeOut = 600.seconds
 
@@ -45,6 +51,8 @@ object CommonUtils extends RiderLogger {
   val keyEqualValuePattern = "([a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*=[a-zA-Z0-9]+[a-zA-z0-9\\_\\-\\.]*(&[a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*=[a-zA-Z0-9]+[a-zA-z0-9\\_\\-\\.]*)*)".r.pattern
 
   val streamSparkConfigPattern = "(.+=.+(,.+.+)*)".r.pattern
+
+  val namePattern = "[^\\.]*".r.pattern
 
   def formatResponseTimestamp(time: Option[String]): Option[String] = {
     if (time.getOrElse("") == "") Some("")
@@ -83,4 +91,5 @@ object CommonUtils extends RiderLogger {
       return true
     streamSparkConfigPattern.matcher(str).matches()
   }
+
 }

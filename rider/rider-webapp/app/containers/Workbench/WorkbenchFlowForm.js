@@ -19,10 +19,11 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
+import { connect } from 'react-redux'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import DataSystemSelector from '../../components/DataSystemSelector'
 import Form from 'antd/lib/form'
 const FormItem = Form.Item
 import Row from 'antd/lib/row'
@@ -43,14 +44,27 @@ import Radio from 'antd/lib/radio'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 
-import { prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
+import { loadSourceSinkTypeNamespace, loadSinkTypeNamespace } from '../Flow/action'
+
+import DataSystemSelector from '../../components/DataSystemSelector'
+
+import {
+  prettyShownText, uuid, forceCheckNum, operateLanguageSelect, operateLanguageFillIn
+} from '../../utils/util'
+import { sourceDataSystemData, sinkDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
+import { generateSourceSinkNamespaceHierarchy, generateHdfslogNamespaceHierarchy } from './workbenchFunction'
 
 export class WorkbenchFlowForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
       flowMode: '',
-      sinkConfigClass: ''
+      sinkConfigClass: '',
+      defaultSourceNsData: [],
+      defaultSinkNsData: [],
+      hdfslogSourceNsData: [],
+      hdfslogSinkDSValue: '',
+      routingNsData: []
     }
   }
 
@@ -66,49 +80,52 @@ export class WorkbenchFlowForm extends React.Component {
     }
   }
 
-  onHandleChange = (name) => (e) => {
-    switch (name) {
-      case 'resultFields':
-        this.props.initResultFieldClass(e.target.value) // result field show／hide
-        break
-      case 'dataframeShow':
-        this.props.initDataShowClass(e.target.value) // data frame number show／hide
-        break
-      case 'streamType':
-        this.props.onInitStreamTypeSelect(e.target.value)
-        break
-      case 'streamName':
-        this.props.onInitStreamNameSelect(e)
-        break
-      case 'hdfslogNamespace':
-        this.props.initialHdfslogCascader(e)
-        break
-      case 'routingNamespace':
-        this.props.initialRoutingCascader(e)
-        break
-      case 'routingSinkNs':
-        this.props.initialRoutingSinkCascader(e)
-        break
-    }
-  }
-
-  // 通过不同的 Source Data System 显示不同的 Source Namespace 的内容
+  // 通过不同的 Source Data System 显示不同的 Source Namespace 内容
   onSourceDataSystemItemSelect = (val) => {
-    const { streamDiffType, flowMode, projectIdGeted } = this.props
+    const { streamDiffType, flowMode, projectIdGeted, streamId } = this.props
     if (val) {
       switch (streamDiffType) {
         case 'default':
-          this.props.onInitSourceTypeNamespace(projectIdGeted, val, 'sourceType')
+          if (streamId !== 0) {
+            this.props.onLoadSourceSinkTypeNamespace(projectIdGeted, streamId, val, 'sourceType', (result) => {
+              this.setState({
+                defaultSourceNsData: generateSourceSinkNamespaceHierarchy(val, result)
+              })
+              // default source ns 和 sink ns 同时调同一个接口获得，保证两处的 placeholder 和单条数据回显都能正常
+              if (flowMode === 'add' || flowMode === 'copy') {
+                this.props.form.setFieldsValue({ sourceNamespace: undefined })
+              }
+            })
+          }
           break
         case 'hdfslog':
-          // placeholder 和单条数据回显
-          if (flowMode === 'add' || flowMode === 'copy') {
-            this.props.form.setFieldsValue({ hdfslogNamespace: undefined })
+          if (streamId !== 0) {
+            this.props.onLoadSourceSinkTypeNamespace(projectIdGeted, streamId, val, 'sourceType', (result) => {
+              this.setState({
+                hdfslogSourceNsData: generateHdfslogNamespaceHierarchy(val, result),
+                hdfslogSinkDSValue: val
+              })
+              // placeholder 和单条数据回显
+              if (flowMode === 'add' || flowMode === 'copy') {
+                this.props.form.setFieldsValue({ hdfslogNamespace: undefined })
+              }
+            })
           }
-          this.props.onInitHdfslogNamespace(projectIdGeted, val, 'sourceType')
           break
         case 'routing':
-          this.props.onInitRoutingNamespace(projectIdGeted, val, 'sourceType')
+          if (streamId !== 0) {
+            this.props.onLoadSourceSinkTypeNamespace(projectIdGeted, streamId, val, 'sourceType', (result) => {
+              this.setState({
+                routingNsData: generateSourceSinkNamespaceHierarchy(val, result)
+              })
+              if (flowMode === 'add' || flowMode === 'copy') {
+                this.props.form.setFieldsValue({
+                  routingNamespace: undefined,
+                  routingSinkNs: undefined
+                })
+              }
+            })
+          }
           break
       }
     }
@@ -117,7 +134,19 @@ export class WorkbenchFlowForm extends React.Component {
   // 通过不同的 Sink Data System 显示不同的 Sink Namespace 的内容
   onSinkDataSystemItemSelect = (val) => {
     if (val) {
-      this.props.onInitSinkTypeNamespace(this.props.projectIdGeted, val, 'sinkType')
+      const { flowMode, projectIdGeted, streamId } = this.props
+      this.props.onInitSinkTypeNamespace(val)
+
+      if (streamId !== 0) {
+        this.props.onLoadSinkTypeNamespace(projectIdGeted, streamId, val, 'sinkType', (result) => {
+          this.setState({
+            defaultSinkNsData: generateSourceSinkNamespaceHierarchy(val, result)
+          })
+          if (flowMode === 'add' || flowMode === 'copy') {
+            this.props.form.setFieldsValue({ sinkNamespace: undefined })
+          }
+        })
+      }
     }
     this.setState({
       sinkConfigClass: val === 'hbase' ? 'sink-config-class' : ''
@@ -127,24 +156,32 @@ export class WorkbenchFlowForm extends React.Component {
     }
   }
 
+  changeStreamType = (e) => {
+    this.props.onInitStreamTypeSelect(e.target.value)
+    this.setState({
+      hdfslogSinkDSValue: ''
+    })
+  }
+
   render () {
-    const { step, form, fieldSelected, dataframeShowSelected, streamDiffType } = this.props
-    const { hdfslogSinkDataSysValue, hdfslogSinkNsValue, routingSourceNsValue, routingSinkNsValue,
-      transformTableConfirmValue, flowKafkaTopicValue } = this.props
+    const {
+      step, form, fieldSelected, dataframeShowSelected, streamDiffType, hdfslogSinkNsValue, routingSourceNsValue,
+      routingSinkNsValue, transformTableConfirmValue, flowKafkaTopicValue,
+      onShowTransformModal, onShowEtpStrategyModal, onShowSinkConfigModal, onShowSpecialConfigModal,
+      transformTableSource, onDeleteSingleTransform, onAddTransform, onEditTransform, onUpTransform, onDownTransform,
+      step2SourceNamespace, step2SinkNamespace, etpStrategyCheck, transformTagClassName, transformTableClassName, transConnectClass,
+      selectStreamKafkaTopicValue, routingSinkTypeNsData, sinkConfigCopy,
+      initResultFieldClass, initDataShowClass, onInitStreamNameSelect,
+      initialHdfslogCascader, initialRoutingCascader, initialRoutingSinkCascader
+    } = this.props
+
     const { getFieldDecorator } = form
-    const { onShowTransformModal, onShowEtpStrategyModal, onShowSinkConfigModal, onShowSpecialConfigModal } = this.props
-    const { transformTableSource, onDeleteSingleTransform, onAddTransform, onEditTransform, onUpTransform, onDownTransform } = this.props
-    const { step2SourceNamespace, step2SinkNamespace, etpStrategyCheck, transformTagClassName, transformTableClassName, transConnectClass } = this.props
-    const { selectStreamKafkaTopicValue, sourceTypeNamespaceData, hdfslogNsData, routingNsData, sinkTypeNamespaceData, routingSinkTypeNsData } = this.props
-    const { flowMode, sinkConfigClass } = this.state
+
+    const { flowMode, sinkConfigClass, defaultSourceNsData, defaultSinkNsData, hdfslogSourceNsData,
+      hdfslogSinkDSValue, routingNsData } = this.state
 
     // edit 时，不能修改部分元素
-    let flowDisabledOrNot = false
-    if (flowMode === 'add' || flowMode === 'copy') {
-      flowDisabledOrNot = false
-    } else if (flowMode === 'edit') {
-      flowDisabledOrNot = true
-    }
+    const flowDisabledOrNot = flowMode === 'edit'
 
     const stepClassNames = [
       step === 0 ? '' : 'hide',
@@ -184,29 +221,6 @@ export class WorkbenchFlowForm extends React.Component {
       labelCol: { span: 14 },
       wrapperCol: { span: 10 }
     }
-
-    const sourceDataSystemData = [
-      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
-      { value: 'log', text: 'Log' },
-      { value: 'file', text: 'File' },
-      { value: 'app', text: 'App' },
-      { value: 'mysql', icon: 'icon-mysql' },
-      { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
-      { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} }
-    ]
-
-    const sinkDataSystemData = [
-      { value: 'oracle', icon: 'icon-amy-db-oracle', style: {lineHeight: '40px'} },
-      { value: 'mysql', icon: 'icon-mysql' },
-      { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
-      { value: 'hbase', icon: 'icon-hbase1' },
-      { value: 'phoenix', text: 'Phoenix' },
-      { value: 'kafka', icon: 'icon-kafka', style: {fontSize: '35px'} },
-      { value: 'postgresql', icon: 'icon-postgresql', style: {fontSize: '31px'} },
-      { value: 'cassandra', icon: 'icon-cass', style: {fontSize: '52px', lineHeight: '60px'} },
-      { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
-      { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} }
-    ]
 
     let formValues = this.props.form.getFieldsValue([
       'streamName',
@@ -280,12 +294,10 @@ export class WorkbenchFlowForm extends React.Component {
         <Icon type="minus-circle-o" /> <FormattedMessage {...messages.workbenchConfigBtn} />
       </Tag>
     )
-    let sinkConfigTag = ''
-    if (flowMode === 'copy') {
-      sinkConfigTag = this.props.sinkConfigCopy ? sinkConfigColor : sinkConfigNoColor
-    } else {
-      sinkConfigTag = form.getFieldValue('sinkConfig') ? sinkConfigColor : sinkConfigNoColor
-    }
+
+    const sinkConfigTag = flowMode === 'copy'
+      ? sinkConfigCopy ? sinkConfigColor : sinkConfigNoColor
+      : form.getFieldValue('sinkConfig') ? sinkConfigColor : sinkConfigNoColor
 
     const flowSpecialConfigTag = form.getFieldValue('flowSpecialConfig')
       ? (
@@ -415,7 +427,7 @@ export class WorkbenchFlowForm extends React.Component {
                   }],
                   initialValue: 'default'
                 })(
-                  <RadioGroup className="radio-group-style" onChange={this.onHandleChange('streamType')} size="default">
+                  <RadioGroup className="radio-group-style" onChange={this.changeStreamType} size="default">
                     <RadioButton value="default" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Default</RadioButton>
                     <RadioButton value="hdfslog" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Hdfslog</RadioButton>
                     <RadioButton value="routing" className="radio-btn-style" disabled={flowDisabledOrNot}>Routing</RadioButton>
@@ -440,7 +452,7 @@ export class WorkbenchFlowForm extends React.Component {
                 })(
                   <Select
                     dropdownClassName="ri-workbench-select-dropdown"
-                    onChange={this.onHandleChange('streamName')}
+                    onChange={(e) => onInitStreamNameSelect(e)}
                     placeholder="Select a Stream Name"
                     disabled={flowDisabledOrNot}
                   >
@@ -475,7 +487,7 @@ export class WorkbenchFlowForm extends React.Component {
                 })(
                   <DataSystemSelector
                     flowMode={flowMode}
-                    data={sourceDataSystemData}
+                    data={sourceDataSystemData()}
                     onItemSelect={this.onSourceDataSystemItemSelect}
                     dataSystemDisabled={flowDisabledOrNot}
                   />
@@ -495,7 +507,7 @@ export class WorkbenchFlowForm extends React.Component {
                     disabled={flowDisabledOrNot}
                     placeholder="Select a Source Namespace"
                     popupClassName="ri-workbench-select-dropdown"
-                    options={sourceTypeNamespaceData}
+                    options={defaultSourceNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
                   />
@@ -516,10 +528,10 @@ export class WorkbenchFlowForm extends React.Component {
                     disabled={flowDisabledOrNot}
                     placeholder="Select a Source Namespace"
                     popupClassName="ri-workbench-select-dropdown"
-                    options={hdfslogNsData}
+                    options={hdfslogSourceNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
-                    onChange={this.onHandleChange('hdfslogNamespace')}
+                    onChange={(e) => initialHdfslogCascader(e)}
                   />
                 )}
               </FormItem>
@@ -541,7 +553,7 @@ export class WorkbenchFlowForm extends React.Component {
                     options={routingNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
-                    onChange={this.onHandleChange('routingNamespace')}
+                    onChange={(e) => initialRoutingCascader(e)}
                   />
                 )}
               </FormItem>
@@ -578,7 +590,7 @@ export class WorkbenchFlowForm extends React.Component {
                 })(
                   <DataSystemSelector
                     flowMode={flowMode}
-                    data={sinkDataSystemData}
+                    data={sinkDataSystemData()}
                     onItemSelect={this.onSinkDataSystemItemSelect}
                     dataSystemDisabled={flowDisabledOrNot}
                   />
@@ -607,7 +619,7 @@ export class WorkbenchFlowForm extends React.Component {
                     disabled={flowDisabledOrNot}
                     placeholder="Select a Sink Namespace"
                     popupClassName="ri-workbench-select-dropdown"
-                    options={sinkTypeNamespaceData}
+                    options={defaultSinkNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
                   />
@@ -630,7 +642,7 @@ export class WorkbenchFlowForm extends React.Component {
                     options={routingSinkTypeNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
-                    onChange={this.onHandleChange('routingSinkNs')}
+                    onChange={(e) => initialRoutingSinkCascader(e)}
                   />
                 )}
               </FormItem>
@@ -645,7 +657,7 @@ export class WorkbenchFlowForm extends React.Component {
                   }],
                   hidden: stepHiddens[1] || streamTypeHiddens[0]
                 })(
-                  <RadioGroup className="radio-group-style" onChange={this.onHandleChange('resultFields')} size="default">
+                  <RadioGroup className="radio-group-style" onChange={(e) => initResultFieldClass(e.target.value)} size="default">
                     <RadioButton value="all" className="radio-btn-style fradio-btn-extra">All</RadioButton>
                     <RadioButton value="selected" className="radio-btn-style radio-btn-extra">Selected</RadioButton>
                   </RadioGroup>
@@ -682,11 +694,11 @@ export class WorkbenchFlowForm extends React.Component {
             </Col>
 
             <Col span={24} className={`ri-input-text ${streamTypeClass[1]}`}>
-              <FormItem label="Date System" {...itemStyle}>
+              <FormItem label="Data System" {...itemStyle}>
                 {getFieldDecorator('hdfslogDataSys', {
                   hidden: streamTypeHiddens[1]
                 })(
-                  <strong className="value-font-style">{hdfslogSinkDataSysValue}</strong>
+                  <strong className="value-font-style">{hdfslogSinkDSValue}</strong>
                 )}
               </FormItem>
             </Col>
@@ -788,7 +800,7 @@ export class WorkbenchFlowForm extends React.Component {
                 }],
                 hidden: stepHiddens[1] || transformTableClassName || streamTypeHiddens[0]
               })(
-                <RadioGroup className="radio-group-style" onChange={this.onHandleChange('dataframeShow')} size="default">
+                <RadioGroup className="radio-group-style" onChange={(e) => initDataShowClass(e.target.value)} size="default">
                   <RadioButton value="false" className="radio-btn-style radio-btn-extra">False</RadioButton>
                   <RadioButton value="true" className="radio-btn-style">True</RadioButton>
                 </RadioGroup>
@@ -933,7 +945,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <strong className="value-font-style">{hdfslogSinkDataSysValue}</strong>
+                    <strong className="value-font-style">{hdfslogSinkDSValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -961,7 +973,7 @@ export class WorkbenchFlowForm extends React.Component {
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <strong className="value-font-style">{hdfslogSinkDataSysValue}</strong>
+                    <strong className="value-font-style">{hdfslogSinkDSValue}</strong>
                   </div>
                 </Col>
               </Row>
@@ -1030,58 +1042,60 @@ export class WorkbenchFlowForm extends React.Component {
 }
 
 WorkbenchFlowForm.propTypes = {
-  step: React.PropTypes.number,
-  transformTableSource: React.PropTypes.array,
-  form: React.PropTypes.any,
-  projectIdGeted: React.PropTypes.string,
-  flowMode: React.PropTypes.string,
-  onShowTransformModal: React.PropTypes.func,
-  onShowEtpStrategyModal: React.PropTypes.func,
-  onShowSinkConfigModal: React.PropTypes.func,
-  onShowSpecialConfigModal: React.PropTypes.func,
-  onDeleteSingleTransform: React.PropTypes.func,
-  onAddTransform: React.PropTypes.func,
-  onEditTransform: React.PropTypes.func,
-  onUpTransform: React.PropTypes.func,
-  onDownTransform: React.PropTypes.func,
-  step2SourceNamespace: React.PropTypes.string,
-  step2SinkNamespace: React.PropTypes.string,
-  etpStrategyCheck: React.PropTypes.bool,
-  transformTagClassName: React.PropTypes.string,
-  transformTableClassName: React.PropTypes.string,
-  transConnectClass: React.PropTypes.string,
-  selectStreamKafkaTopicValue: React.PropTypes.array,
-  sourceTypeNamespaceData: React.PropTypes.array,
-  hdfslogNsData: React.PropTypes.array,
-  routingNsData: React.PropTypes.array,
-  sinkTypeNamespaceData: React.PropTypes.array,
-  routingSinkTypeNsData: React.PropTypes.array,
-  onInitSourceTypeNamespace: React.PropTypes.func,
-  onInitHdfslogNamespace: React.PropTypes.func,
-  onInitRoutingNamespace: React.PropTypes.func,
-  onInitSinkTypeNamespace: React.PropTypes.func,
-  onInitStreamNameSelect: React.PropTypes.func,
-  resultFieldsValue: React.PropTypes.string,
-  dataframeShowNumValue: React.PropTypes.string,
-  etpStrategyConfirmValue: React.PropTypes.string,
-  transConfigConfirmValue: React.PropTypes.string,
-  transformTableConfirmValue: React.PropTypes.string,
-  fieldSelected: React.PropTypes.string,
-  dataframeShowSelected: React.PropTypes.string,
-  streamDiffType: React.PropTypes.string,
-  hdfslogSinkDataSysValue: React.PropTypes.string,
-  hdfslogSinkNsValue: React.PropTypes.string,
-  routingSourceNsValue: React.PropTypes.string,
-  routingSinkNsValue: React.PropTypes.string,
-  initResultFieldClass: React.PropTypes.func,
-  initDataShowClass: React.PropTypes.func,
-  onInitStreamTypeSelect: React.PropTypes.func,
-  initialHdfslogCascader: React.PropTypes.func,
-  initialRoutingSinkCascader: React.PropTypes.func,
-  initialRoutingCascader: React.PropTypes.func,
-  flowKafkaTopicValue: React.PropTypes.string,
-  flowKafkaInstanceValue: React.PropTypes.string,
-  sinkConfigCopy: React.PropTypes.string
+  step: PropTypes.number,
+  transformTableSource: PropTypes.array,
+  form: PropTypes.any,
+  projectIdGeted: PropTypes.string,
+  flowMode: PropTypes.string,
+  streamId: PropTypes.number,
+  onShowTransformModal: PropTypes.func,
+  onShowEtpStrategyModal: PropTypes.func,
+  onShowSinkConfigModal: PropTypes.func,
+  onShowSpecialConfigModal: PropTypes.func,
+  onDeleteSingleTransform: PropTypes.func,
+  onAddTransform: PropTypes.func,
+  onEditTransform: PropTypes.func,
+  onUpTransform: PropTypes.func,
+  onDownTransform: PropTypes.func,
+  step2SourceNamespace: PropTypes.string,
+  step2SinkNamespace: PropTypes.string,
+  etpStrategyCheck: PropTypes.bool,
+  transformTagClassName: PropTypes.string,
+  transformTableClassName: PropTypes.string,
+  transConnectClass: PropTypes.string,
+  selectStreamKafkaTopicValue: PropTypes.array,
+  routingSinkTypeNsData: PropTypes.array,
+  onInitSinkTypeNamespace: PropTypes.func,
+  onInitStreamNameSelect: PropTypes.func,
+  resultFieldsValue: PropTypes.string,
+  dataframeShowNumValue: PropTypes.string,
+  etpStrategyConfirmValue: PropTypes.string,
+  transConfigConfirmValue: PropTypes.string,
+  transformTableConfirmValue: PropTypes.string,
+  fieldSelected: PropTypes.string,
+  dataframeShowSelected: PropTypes.string,
+  streamDiffType: PropTypes.string,
+  hdfslogSinkNsValue: PropTypes.string,
+  routingSourceNsValue: PropTypes.string,
+  routingSinkNsValue: PropTypes.string,
+  initResultFieldClass: PropTypes.func,
+  initDataShowClass: PropTypes.func,
+  onInitStreamTypeSelect: PropTypes.func,
+  initialHdfslogCascader: PropTypes.func,
+  initialRoutingSinkCascader: PropTypes.func,
+  initialRoutingCascader: PropTypes.func,
+  flowKafkaTopicValue: PropTypes.string,
+  flowKafkaInstanceValue: PropTypes.string,
+  onLoadSourceSinkTypeNamespace: PropTypes.func,
+  onLoadSinkTypeNamespace: PropTypes.func,
+  sinkConfigCopy: PropTypes.string
 }
 
-export default Form.create({wrappedComponentRef: true})(WorkbenchFlowForm)
+export function mapDispatchToProps (dispatch) {
+  return {
+    onLoadSourceSinkTypeNamespace: (projectId, streamId, value, type, resolve) => dispatch(loadSourceSinkTypeNamespace(projectId, streamId, value, type, resolve)),
+    onLoadSinkTypeNamespace: (projectId, streamId, value, type, resolve) => dispatch(loadSinkTypeNamespace(projectId, streamId, value, type, resolve))
+  }
+}
+
+export default Form.create({wrappedComponentRef: true})(connect(null, mapDispatchToProps)(WorkbenchFlowForm))

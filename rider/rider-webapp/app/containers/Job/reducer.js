@@ -51,7 +51,10 @@ import {
   EDIT_JOB,
   EDIT_JOB_SUCCESS,
   LOAD_JOB_DETAIL,
-  LOAD_JOB_DETAIL_SUCCESS
+  LOAD_JOB_DETAIL_SUCCESS,
+  LOAD_BACKFILL_TOPIC_SUCCUSS,
+  LOAD_BACKFILL_TOPIC_ERROR,
+  LOAD_BACKFILL_TOPIC
 } from './constants'
 import { fromJS } from 'immutable'
 
@@ -145,6 +148,12 @@ function jobReducer (state = initialState, { type, payload }) {
     case LOAD_JOB_DETAIL:
       return state.set('error', false)
     case LOAD_JOB_DETAIL_SUCCESS:
+      return state
+    case LOAD_BACKFILL_TOPIC:
+      return state
+    case LOAD_BACKFILL_TOPIC_SUCCUSS:
+      return state
+    case LOAD_BACKFILL_TOPIC_ERROR:
       return state
     default:
       return state

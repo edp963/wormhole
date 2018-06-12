@@ -19,10 +19,12 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
+import {connect} from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import { forceCheckNum } from '../../utils/util'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -32,11 +34,15 @@ import Button from 'antd/lib/button'
 import Select from 'antd/lib/select'
 import InputNumber from 'antd/lib/input-number'
 const FormItem = Form.Item
+import { forceCheckNum } from '../../utils/util'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class StreamStartForm extends React.Component {
   constructor (props) {
     super(props)
-    this.state = { data: [] || '' }
+    this.state = {
+      data: [] || ''
+    }
   }
 
   componentWillReceiveProps (props) {
@@ -68,15 +74,9 @@ export class StreamStartForm extends React.Component {
     this.setState({ data: dataFinal })
   }
 
-  onApplyConOffset = (i, index, consumerOffsetFinal) => (e) => {
+  onApplyOffset = (i, index, offset) => (e) => {
     this.props.form.setFieldsValue({
-      [`${i.id}_${index}`]: consumerOffsetFinal
-    })
-  }
-
-  onApplyKafkaOffset = (i, index, kafkaOffsetFinal) => (e) => {
-    this.props.form.setFieldsValue({
-      [`${i.id}_${index}`]: kafkaOffsetFinal
+      [`${i.id}_${index}`]: offset
     })
   }
 
@@ -99,10 +99,9 @@ export class StreamStartForm extends React.Component {
   }
 
   render () {
-    const { form, streamActionType, startUdfValsOption, renewUdfValsOption, currentUdfVal } = this.props
+    const { form, streamActionType, startUdfValsOption, renewUdfValsOption, currentUdfVal, locale } = this.props
     const { getFieldDecorator } = form
     const { data } = this.state
-    const languageText = localStorage.getItem('preferredLanguage')
 
     const noTopicCardTitle = (<Col span={24} style={{fontWeight: '500'}}><span className="modal-topic-name">Topic Name</span></Col>)
 
@@ -158,7 +157,7 @@ export class StreamStartForm extends React.Component {
                         {getFieldDecorator(`${i.id}_${index}`, {
                           rules: [{
                             required: true,
-                            message: languageText === 'en' ? 'Please fill in offset' : '请填写 Offset'
+                            message: locale === 'en' ? 'Please fill in offset' : '请填写 Offset'
                           }, {
                             validator: forceCheckNum
                           }],
@@ -176,7 +175,7 @@ export class StreamStartForm extends React.Component {
                           <div className="stream-start-lastest-consumed-offset">
                             <span style={{ marginRight: '5px' }}>{conOffFinal}</span>
                             <Tooltip title={applyFormat}>
-                              <Button shape="circle" type="ghost" onClick={this.onApplyConOffset(i, index, conOffFinal)}>
+                              <Button shape="circle" type="ghost" onClick={this.onApplyOffset(i, index, conOffFinal)}>
                                 <i className="iconfont icon-apply_icon_-copy-copy"></i>
                               </Button>
                             </Tooltip>
@@ -192,7 +191,7 @@ export class StreamStartForm extends React.Component {
                           <div className="stream-start-lastest-kafka-offset">
                             <span style={{ marginRight: '5px' }}>{kafOffFinal}</span>
                             <Tooltip title={applyFormat}>
-                              <Button shape="circle" type="ghost" onClick={this.onApplyKafkaOffset(i, index, kafOffFinal)}>
+                              <Button shape="circle" type="ghost" onClick={this.onApplyOffset(i, index, kafOffFinal)}>
                                 <i className="iconfont icon-apply_icon_-copy-copy"></i>
                               </Button>
                             </Tooltip>
@@ -255,7 +254,7 @@ export class StreamStartForm extends React.Component {
                         {getFieldDecorator(`${i.id}_${i.rate}_rate`, {
                           rules: [{
                             required: true,
-                            message: languageText === 'en' ? 'Please fill in rate' : '请填写 Rate'
+                            message: locale === 'en' ? 'Please fill in rate' : '请填写 Rate'
                           }, {
                             validator: forceCheckNum
                           }],
@@ -316,11 +315,16 @@ export class StreamStartForm extends React.Component {
 }
 
 StreamStartForm.propTypes = {
-  form: React.PropTypes.any,
-  streamActionType: React.PropTypes.string,
-  startUdfValsOption: React.PropTypes.array,
-  renewUdfValsOption: React.PropTypes.array,
-  currentUdfVal: React.PropTypes.array
+  form: PropTypes.any,
+  streamActionType: PropTypes.string,
+  startUdfValsOption: PropTypes.array,
+  renewUdfValsOption: PropTypes.array,
+  currentUdfVal: PropTypes.array,
+  locale: PropTypes.string
 }
 
-export default Form.create({wrappedComponentRef: true})(StreamStartForm)
+const mapStateToProps = createStructuredSelector({
+  locale: selectLocale()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, null)(StreamStartForm))

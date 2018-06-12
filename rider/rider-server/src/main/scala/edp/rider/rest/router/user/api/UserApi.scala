@@ -80,7 +80,9 @@ class UserApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) extends Ba
                   userOpt match {
                     case Some(user) =>
                       riderLogger.info(s"user ${session.userId} select user $id where project id is $id success.")
-                      complete(OK, ResponseJson[User](getHeader(200, session), user))
+                      val noPwdUser = User(user.id, user.email, "", user.name, user.roleType, user.preferredLanguage, user.active, user.createTime, user.createBy,
+                        user.updateTime, user.updateBy)
+                      complete(OK, ResponseJson[User](getHeader(200, session), noPwdUser))
                     case None =>
                       riderLogger.info(s"user ${session.userId} select user $id where project id is $id success.")
                       complete(OK, ResponseJson[String](getHeader(200, session), ""))
@@ -106,7 +108,7 @@ class UserApi(userDal: UserDal, relProjectUserDal: RelProjectUserDal) extends Ba
                   complete(OK, getHeader(403, session))
                 else {
                     val userEntity = User(user.id, user.email.trim, user.password.trim, user.name.trim, user.roleType.trim, user.preferredLanguage, user.active, user.createTime, user.createBy, currentSec, session.userId)
-                    onComplete(userDal.update(userEntity)) {
+                    onComplete(userDal.updateWithoutPwd(userEntity)) {
                       case Success(_) =>
                         riderLogger.info(s"user ${
                           session.userId

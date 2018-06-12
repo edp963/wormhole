@@ -32,14 +32,8 @@ const selectModalLoading = () => createSelector(
   (projectState) => projectState.get('modalLoading')
 )
 
-const selectProjectNameExited = () => createSelector(
-  selectProject(),
-  (projectState) => projectState.get('projectNameExited')
-)
-
 export {
   selectProject,
   selectProjects,
-  selectModalLoading,
-  selectProjectNameExited
+  selectModalLoading
 }

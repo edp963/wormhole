@@ -36,9 +36,9 @@ object ParseCassandraSql {
     if (!table.contains("\\.")) {
       finalSql = prefix + " " + dbName + "." + table + suffixTable
     }
-    if (!finalSql.toLowerCase().contains("allow filtering")) {
-      finalSql = finalSql + " allow filtering"
-    }
+//    if (!finalSql.toLowerCase().contains("allow filtering")) {
+//      finalSql = finalSql + " allow filtering"
+//    }
     finalSql
 
   }

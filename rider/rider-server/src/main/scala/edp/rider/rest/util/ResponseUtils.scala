@@ -32,7 +32,7 @@ object ResponseUtils {
   val msgMap = Map(200 -> "Success",
     210 -> "Wrong password",
     401 -> "Unauthorized",
-    403 -> "Insufficient Permissions",
+    403 -> "Insufficient Permission",
     404 -> "Not found",
     418 -> "app type user has no permission to login",
     451 -> "Request process failed",
@@ -45,21 +45,15 @@ object ResponseUtils {
   }
 
   def getHeader(code: Int, session: SessionClass): ResponseHeader = {
-    if (session != null) {
-      if (session.roleType == "app")
-        ResponseHeader(code, msgMap(code), generatePermanentToken(session))
-      else ResponseHeader(code, msgMap(code), generateToken(session))
-    }
+    if (session != null)
+      ResponseHeader(code, msgMap(code), generateToken(session))
     else
       ResponseHeader(code, msgMap(code))
   }
 
   def getHeader(code: Int, msg: String, session: SessionClass): ResponseHeader = {
-    if (session != null) {
-      if (session.roleType == "app")
-        ResponseHeader(code, msg, generatePermanentToken(session))
-      else ResponseHeader(code, msg, generateToken(session))
-    }
+    if (session != null)
+      ResponseHeader(code, msg, generateToken(session))
     else
       ResponseHeader(code, msg)
   }

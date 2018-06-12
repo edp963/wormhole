@@ -24,7 +24,7 @@ package edp.rider.rest.router
 import akka.http.scaladsl.server._
 import edp.rider.module._
 import edp.rider.rest.router.admin.routes._
-import edp.rider.rest.router.app.routes.{JobAppRoutes, FlowAppRoutes}
+import edp.rider.rest.router.app.routes._
 import edp.rider.rest.router.user.routes._
 import edp.rider.rest.util.CrossDomainSupport._
 
@@ -32,7 +32,7 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
 
   lazy val swagger = new SwaggerRoutes
   lazy val login = new LoginRoutes(modules)
-  lazy val genToken = new GenTokenRoutes(modules)
+//  lazy val genToken = new GenTokenRoutes(modules)
   lazy val changePwd = new ChangePwdRoutes(modules)
   lazy val instanceAdmin = new InstanceAdminRoutes(modules)
   lazy val databaseAdmin = new NsDatabaseAdminRoutes(modules)
@@ -59,6 +59,10 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
 
   lazy val flowApp = new FlowAppRoutes(modules)
   lazy val jobApp = new JobAppRoutes(modules)
+  lazy val instanceApp = new InstanceAppRoutes(modules)
+  lazy val nsDatabaseApp = new NsDatabaseAppRoutes(modules)
+  lazy val nsApp = new NamespaceAppRoutes(modules)
+
 
   lazy val routes: Route =
     crossDomainHandler(swagger.indexRoute) ~
@@ -67,7 +71,7 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
       pathPrefix("api" / "v1") {
         crossDomainHandler(login.routes) ~
           crossDomainHandler(changePwd.routes) ~
-          crossDomainHandler(genToken.routes) ~
+//          crossDomainHandler(genToken.routes) ~
           pathPrefix("admin") {
             crossDomainHandler(instanceAdmin.routes) ~
               crossDomainHandler(databaseAdmin.routes) ~
@@ -94,7 +98,10 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
           } ~
           pathPrefix("app") {
             crossDomainHandler(flowApp.routes) ~
-              crossDomainHandler(jobApp.routes)
+              crossDomainHandler(jobApp.routes) ~
+              crossDomainHandler(instanceApp.routes) ~
+              crossDomainHandler(nsDatabaseApp.routes) ~
+              crossDomainHandler(nsApp.routes)
           }
       }
 }

@@ -42,10 +42,10 @@ object SparkStatusQuery extends RiderLogger {
 
   def getSparkAllJobStatus(jobs: Seq[Job], sparkList: List[AppResult], projectName: String) = jobs.map(job => {
     val appInfo = mappingSparkJobStatus(job, sparkList)
-    modules.jobDal.updateJobStatus(job.id, appInfo)
+    modules.jobDal.updateJobStatus(job.id, appInfo, job.logPath.getOrElse(""))
     //    val startedTime = if (appInfo.startedTime != null) Some(appInfo.startedTime) else Some("")
     //    val stoppedTime = if (appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
-    val newJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.sourceType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
+    val newJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
       job.sinkConfig, job.tranConfig, appInfo.appState, Some(appInfo.appId), job.logPath, Option(appInfo.startedTime), Option(appInfo.finishedTime), job.createTime, job.createBy, job.updateTime, job.updateBy)
     FullJobInfo(newJob, projectName, getDisableAction(newJob))
   })
@@ -61,7 +61,7 @@ object SparkStatusQuery extends RiderLogger {
     val appInfo = getAppStatusByRest(sparkList, job.sparkAppid.getOrElse(""), job.name, job.status, startedTime, stoppedTime)
     val result = job.status match {
       case "starting" =>
-        val logInfo = getAppStatusByLog(job.name, job.status)
+        val logInfo = getAppStatusByLog(job.name, job.status, job.logPath.getOrElse(""))
         //        if (logInfo._2.toUpperCase == "WAITING" || logInfo._2.toUpperCase == "RUNNING" || logInfo._2.toUpperCase == "STARTING") {
         //          appInfo.appState.toUpperCase match {
         //            case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
@@ -133,6 +133,7 @@ object SparkStatusQuery extends RiderLogger {
     else
       AppInfo(result.appId, result.appStatus, result.startedTime, result.finishedTime)
   }
+
 
   //  def getAllStandaloneAppStatus: List[AppResult] = {
   //    var resultList: List[AppResult] = Nil

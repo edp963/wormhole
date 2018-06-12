@@ -106,18 +106,12 @@
 
   "rider.containers.Instance.Modal.create": "Create Instance",
   "rider.containers.Instance.Modal.modify": "Modify Instance",
-  "rider.containers.Instance.Modal.url.oracle.msg": "ip:port",
-  "rider.containers.Instance.Modal.url.es.msg": "if it acts as sink, fill in http://localhost:9200; if it acts as lookup, fill in localhost:9300.",
-  "rider.containers.Instance.Modal.url.hbase.msg": "zookeeper url list, localhost:2181/hbase,localhost1:2181/hbase.",
-  "rider.containers.Instance.Modal.url.phoenix.msg": "zookeeper url list",
-  "rider.containers.Instance.Modal.url.kafka.msg": "localhost:9092,localhost1:9092",
-  "rider.containers.Instance.Modal.url.cassandra.msg": "ip:port list",
-  "rider.containers.Instance.Modal.url.parquet.msg": "hdfs://nn1[:8020]/[user/test/test1]",
-  "rider.containers.Instance.Modal.url.others.msg": "Please Select Data System",
 
   "rider.containers.Database.table.column.ds": "Data System",
   "rider.containers.Database.modal.create.db": "Create Database",
   "rider.containers.Database.modal.modify.db": "Modify Database",
+  "rider.containers.Database.help.oracle": "Form: multiple lines of key=value or one line of key=value&key=value. When you select Oracle, \"service_name\" should be contained in Config.",
+  "rider.containers.Database.help.others": "Form: multiple lines of key=value or one line of key=value&key=value",
 
   "rider.containers.User.table.modify.user.information": "Modify User Information",
   "rider.containers.User.table.user.user": "Create User",

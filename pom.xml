@@ -6,7 +6,7 @@
 
     <groupId>edp.wormhole</groupId>
     <artifactId>wormhole-parent</artifactId>
-    <version>0.4.1-SNAPSHOTS</version>
+    <version>0.4.2-SNAPSHOTS</version>
     <packaging>pom</packaging>
 
     <licenses>
@@ -31,7 +31,9 @@
         <module>common/sql4es2</module>
         <module>common/redispool</module>
         <module>common/hadoop</module>
+        <!--<module>flinkx</module>-->
         <module>sparkx</module>
+
         <!--<module>rider/common/haservice</module>-->
         <module>rider/rider-server</module>
         <!--<module>rider/mad-server</module>-->
@@ -41,7 +43,7 @@
     <properties>
         <main.basedir>${project.basedir}</main.basedir>
         <ums.version>1.3</ums.version>
-        <project.version>0.4.1-SNAPSHOTS</project.version>
+        <project.version>0.4.2-SNAPSHOTS</project.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
@@ -61,13 +63,14 @@
         <jwt.version>0.12.1</jwt.version>
         <kafka.version>0.10.0.0</kafka.version>
         <hadoop.version>2.7.1</hadoop.version>
-        <hbase.version>1.1.2</hbase.version>
+        <hbase.version>1.1.3</hbase.version>
         <hive.version>1.2.1</hive.version>
         <spark.version>2.2.0</spark.version>
-        <flink.version>1.2.0</flink.version>
+        <!--<flink.version>1.4.2</flink.version>-->
         <zookeeper.version>3.4.6</zookeeper.version>
         <jackson.version>2.6.5</jackson.version>
         <json4s.version>3.2.11</json4s.version>
+        <kudu.version>1.7.0</kudu.version>
 
         <guava.version>19.0</guava.version>
         <sonar.core.codeCoveragePlugin>jacoco</sonar.core.codeCoveragePlugin>
@@ -93,10 +96,10 @@
             <id>alimaven</id>
             <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
         </repository>
-        <repository>
-            <id>hortonworks</id>
-            <url>http://repo.hortonworks.com/content/repositories/releases/</url>
-        </repository>
+        <!--<repository>-->
+            <!--<id>hortonworks</id>-->
+            <!--<url>http://repo.hortonworks.com/content/repositories/releases/</url>-->
+        <!--</repository>-->
         <repository>
             <id>conjars</id>
             <url>http://conjars.org/repo/</url>
@@ -111,7 +114,7 @@
     <pluginRepositories>
         <pluginRepository>
             <id>central</id>
-            <url>https://repo1.maven.org/maven2</url>
+            <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
             <releases>
                 <enabled>true</enabled>
             </releases>
@@ -144,10 +147,10 @@
             <version>${scalatest.version}</version>
             <scope>test</scope>
             <!--<exclusions>-->
-                <!--<exclusion>-->
-                    <!--<groupId>org.scala-lang.modules</groupId>-->
-                    <!--<artifactId>scala-xml_2.11</artifactId>-->
-                <!--</exclusion>-->
+            <!--<exclusion>-->
+            <!--<groupId>org.scala-lang.modules</groupId>-->
+            <!--<artifactId>scala-xml_2.11</artifactId>-->
+            <!--</exclusion>-->
             <!--</exclusions>-->
         </dependency>
 
@@ -208,15 +211,15 @@
             <!--<dependency>-->
             <!--<groupId>com.holdenkarau</groupId>-->
             <!--<artifactId>spark-testing-base_2.11</artifactId>-->
-            <!--<version>2.0.0-preview_0.4.1-preview</version>-->
+            <!--<version>2.0.0-preview_0.4.2-preview</version>-->
             <!--</dependency>-->
 
             <!-- ======= flink ========= -->
-            <dependency>
-                <groupId>org.apache.flink</groupId>
-                <artifactId>flink-core</artifactId>
-                <version>${flink.version}</version>
-            </dependency>
+            <!--<dependency>-->
+            <!--<groupId>org.apache.flink</groupId>-->
+            <!--<artifactId>flink-core</artifactId>-->
+            <!--<version>${flink.version}</version>-->
+            <!--</dependency>-->
         </dependencies>
     </dependencyManagement>
 
@@ -440,30 +443,30 @@
                 </executions>
             </plugin>
             <!--<plugin>-->
-                <!--<groupId>org.apache.maven.plugins</groupId>-->
-                <!--<artifactId>maven-assembly-plugin</artifactId>-->
-                <!--&lt;!&ndash; The Assembly Plugin for Maven is primarily intended to allow users to aggregate the project output along with its dependencies, modules, site documentation, and other files into a single distributable archive &ndash;&gt;-->
-                <!--<version>2.4</version>-->
-                <!--<configuration>-->
-                    <!--<finalName>${project.name}-${project.version}</finalName>-->
-                    <!--<descriptorRefs>-->
-                        <!--<descriptorRef>jar-with-dependencies</descriptorRef>-->
-                    <!--</descriptorRefs>-->
-                    <!--<archive>-->
-                        <!--<manifest>-->
-                            <!--<mainClass/>-->
-                        <!--</manifest>-->
-                    <!--</archive>-->
-                <!--</configuration>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<id>job</id>-->
-                        <!--<phase>package</phase>-->
-                        <!--<goals>-->
-                            <!--<goal>single</goal>-->
-                        <!--</goals>-->
-                    <!--</execution>-->
-                <!--</executions>-->
+            <!--<groupId>org.apache.maven.plugins</groupId>-->
+            <!--<artifactId>maven-assembly-plugin</artifactId>-->
+            <!--&lt;!&ndash; The Assembly Plugin for Maven is primarily intended to allow users to aggregate the project output along with its dependencies, modules, site documentation, and other files into a single distributable archive &ndash;&gt;-->
+            <!--<version>2.4</version>-->
+            <!--<configuration>-->
+            <!--<finalName>${project.name}-${project.version}</finalName>-->
+            <!--<descriptorRefs>-->
+            <!--<descriptorRef>jar-with-dependencies</descriptorRef>-->
+            <!--</descriptorRefs>-->
+            <!--<archive>-->
+            <!--<manifest>-->
+            <!--<mainClass/>-->
+            <!--</manifest>-->
+            <!--</archive>-->
+            <!--</configuration>-->
+            <!--<executions>-->
+            <!--<execution>-->
+            <!--<id>job</id>-->
+            <!--<phase>package</phase>-->
+            <!--<goals>-->
+            <!--<goal>single</goal>-->
+            <!--</goals>-->
+            <!--</execution>-->
+            <!--</executions>-->
             <!--</plugin>-->
 
             <!-- ========================================================== -->

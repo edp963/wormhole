@@ -21,10 +21,11 @@
 
 package edp.rider.rest.util
 
-import edp.rider.common.RiderLogger
 import edp.rider.RiderStarter.modules
-import edp.rider.rest.persistence.entities.{Instance, Namespace, NamespaceInfo, NsDatabase}
+import edp.rider.common.RiderLogger
+import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
+import edp.wormhole.ums.UmsDataSystem
 import slick.jdbc.MySQLProfile.api._
 
 import scala.collection.mutable.ListBuffer
@@ -35,6 +36,8 @@ object NamespaceUtils extends RiderLogger {
   def generateStandardNs(ns: NamespaceInfo) = Seq(ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar).mkString(".")
 
   def generateStandardNs(ns: Namespace) = Seq(ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar).mkString(".")
+
+  def generateStandardNs(ns: NamespaceAdmin) = Seq(ns.nsSys, ns.nsInstance, ns.nsDatabase, ns.nsTable, ns.nsVersion, ns.nsDbpar, ns.nsTablepar).mkString(".")
 
   def getConnUrl(instance: Instance, db: NsDatabase, connType: String = "sink") = {
     instance.nsSys match {
@@ -124,4 +127,45 @@ object NamespaceUtils extends RiderLogger {
     nonPermList ++ existList.filterNot(ns => nsIds.contains(ns.id)).map(_.nsTable)
   }
 
+  def getTopic(id: Long): String = {
+    val nsOpt = Await.result(modules.namespaceDal.findById(id), minTimeOut)
+    nsOpt match {
+      case Some(ns) =>
+        val instanceOpt = Await.result(modules.instanceDal.findById(ns.nsInstanceId), minTimeOut)
+        instanceOpt match {
+          case Some(instance) =>
+            UmsDataSystem.dataSystem(instance.nsSys) match {
+              case UmsDataSystem.KAFKA =>
+                Await.result(modules.databaseDal.findById(ns.nsDatabaseId), minTimeOut) match {
+                  case Some(db) => db.nsDatabase
+                  case None => throw new Exception(s"namespace $id not in any kafka")
+                }
+              case _ => throw new Exception(s"namespace $id not in kafka")
+            }
+          case None => throw new Exception(s"namespace $id not valid")
+        }
+      case None => throw new Exception(s"namespace $id not found")
+    }
+  }
+
+  def getTopic(ns: String): String = {
+    val nsOpt = modules.namespaceDal.getNamespaceByNs(ns)
+    nsOpt match {
+      case Some(ns) =>
+        val instanceOpt = Await.result(modules.instanceDal.findById(ns.nsInstanceId), minTimeOut)
+        instanceOpt match {
+          case Some(instance) =>
+            UmsDataSystem.dataSystem(instance.nsSys) match {
+              case UmsDataSystem.KAFKA =>
+                Await.result(modules.databaseDal.findById(ns.nsDatabaseId), minTimeOut) match {
+                  case Some(db) => db.nsDatabase
+                  case None => throw new Exception(s"namespace $ns not in any kafka")
+                }
+              case _ => throw new Exception(s"namespace $ns not in kafka")
+            }
+          case None => throw new Exception(s"namespace $ns not valid")
+        }
+      case None => throw new Exception(s"namespace $ns not found")
+    }
+  }
 }

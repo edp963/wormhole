@@ -34,9 +34,9 @@ import scala.concurrent.{Await, Future}
 
 class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTable]) extends BaseDalImpl[JobTable, Job](jobTable) {
 
-  def updateJobStatus(jobId: Long, appInfo: AppInfo): Int = {
-    Await.result(db.run(jobTable.filter(_.id === jobId).map(c => (c.sparkAppid, c.status, c.startedTime, c.stoppedTime, c.updateTime))
-      .update(Option(appInfo.appId), appInfo.appState, Option(appInfo.startedTime), Option(appInfo.finishedTime), currentSec)), minTimeOut)
+  def updateJobStatus(jobId: Long, appInfo: AppInfo, logPath: String): Int = {
+    Await.result(db.run(jobTable.filter(_.id === jobId).map(c => (c.sparkAppid, c.status, c.logPath, c.startedTime, c.stoppedTime, c.updateTime))
+      .update(Option(appInfo.appId), appInfo.appState, Option(logPath), Option(appInfo.startedTime), Option(appInfo.finishedTime), currentSec)), minTimeOut)
   }
 
   def updateJobStatus(jobId: Long, status: String): Int = {

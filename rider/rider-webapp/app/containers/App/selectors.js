@@ -43,8 +43,14 @@ const selectLocationState = () => {
   }
 }
 
+const selectRoleType = () => createSelector(
+  selectGlobal(),
+  (globalState) => globalState.get('roleType')
+)
+
 export {
   selectGlobal,
   selectCurrentProject,
-  selectLocationState
+  selectLocationState,
+  selectRoleType
 }

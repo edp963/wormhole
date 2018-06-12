@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 
@@ -29,7 +30,7 @@ import Input from 'antd/lib/input'
 import Button from 'antd/lib/button'
 import message from 'antd/lib/message'
 
-import { login } from './action'
+import { login } from '../App/actions'
 import { selectLocale } from '../../containers/LanguageProvider/selectors'
 import { changeLocale } from '../../containers/LanguageProvider/actions'
 
@@ -112,7 +113,6 @@ export class Login extends React.PureComponent {
   render () {
     const { getFieldDecorator } = this.props.form
     const languageText = localStorage.getItem('preferredLanguage')
-
     return (
       <div className="login-container">
         <div className="login-panel">
@@ -149,10 +149,10 @@ export class Login extends React.PureComponent {
 }
 
 Login.propTypes = {
-  form: React.PropTypes.any,
-  router: React.PropTypes.any,
-  onLogin: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func
+  form: PropTypes.any,
+  router: PropTypes.any,
+  onLogin: PropTypes.func,
+  onChangeLanguage: PropTypes.func
 }
 
 const mapStateToProps = createStructuredSelector({

@@ -45,6 +45,11 @@ case class Stream(id: Long,
                   createBy: Long,
                   updateTime: String,
                   updateBy: Long) extends BaseEntity {
+
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+
   def updateFromSpark(appInfo: AppInfo) = {
     Stream(this.id, this.name, this.desc, this.projectId, this.instanceId, this.streamType, this.sparkConfig, this.startConfig,
       this.launchConfig, Option(appInfo.appId), this.logPath, appInfo.appState, Option(appInfo.startedTime), Option(appInfo.finishedTime),
@@ -135,6 +140,8 @@ case class StreamHealth(streamStatus: String,
                         batchThreshold: Int,
                         batchDurationSecond: Int,
                         topics: Seq[TopicOffset])
+
+case class StreamInfo(name: String, streamType: String, status: String)
 
 class StreamTable(_tableTag: Tag) extends BaseTable[Stream](_tableTag, "stream") {
   def * = (id, name, desc, projectId, instanceId, streamType, sparkConfig, startConfig, launchConfig, sparkAppid, logPath, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <> (Stream.tupled, Stream.unapply)

@@ -47,25 +47,28 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     projectSeq.map(project => (project.id, project.name)).toMap
   }
 
-  def refreshStreamStatus(projectIdOpt: Option[Long] = None, streamIdOpt: Option[Long] = None, action: String = REFRESH.toString): Seq[Stream] = {
-    val streamSeq = getStreamSeq(projectIdOpt, streamIdOpt)
+  def refreshStreamStatus(projectIdOpt: Option[Long] = None, streamIdsOpt: Option[Seq[Long]] = None, action: String = REFRESH.toString): Seq[Stream] = {
+    val streamSeq = getStreamSeq(projectIdOpt, streamIdsOpt)
+    val streamMap = streamSeq.map(stream => (stream.id, (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime)))).toMap
     val refreshStreamSeq = getStatus(action, streamSeq)
-    Await.result(super.update(refreshStreamSeq), Inf)
+    val updateStreamSeq = refreshStreamSeq.filter(stream => {
+      if (streamMap(stream.id) == (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime))) false else true
+    })
+    updateByRefresh(updateStreamSeq)
     refreshStreamSeq
   }
 
-  def getStreamSeq(projectIdOpt: Option[Long] = None, streamIdOpt: Option[Long] = None): Seq[Stream] = {
-    (projectIdOpt, streamIdOpt) match {
-      case (Some(projectId), Some(streamId)) => Await.result(super.findByFilter(stream => stream.projectId === projectId && stream.id === streamId), minTimeOut)
+  def getStreamSeq(projectIdOpt: Option[Long] = None, streamIdsOpt: Option[Seq[Long]] = None): Seq[Stream] = {
+    (projectIdOpt, streamIdsOpt) match {
+      case (_, Some(streamIds)) => Await.result(super.findByFilter(stream => stream.id inSet streamIds), minTimeOut)
       case (Some(projectId), None) => Await.result(super.findByFilter(_.projectId === projectId), minTimeOut)
-      case (None, Some(streamId)) => Await.result(super.findByFilter(_.id === streamId), minTimeOut)
       case (None, None) => Await.result(super.findAll, minTimeOut)
     }
   }
 
-  def getBriefDetail(projectIdOpt: Option[Long] = None, streamIdOpt: Option[Long] = None, action: String = REFRESH.toString): Seq[StreamDetail] = {
+  def getBriefDetail(projectIdOpt: Option[Long] = None, streamIdsOpt: Option[Seq[Long]] = None, action: String = REFRESH.toString): Seq[StreamDetail] = {
     try {
-      val streamSeq = refreshStreamStatus(projectIdOpt, streamIdOpt, action)
+      val streamSeq = refreshStreamStatus(projectIdOpt, streamIdsOpt, action)
       val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
       val projectMap = getStreamProjectMap(streamSeq)
       streamSeq.map(
@@ -80,9 +83,9 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     }
   }
 
-  def getStreamDetail(projectIdOpt: Option[Long] = None, streamIdOpt: Option[Long] = None, action: String = REFRESH.toString): Seq[StreamDetail] = {
+  def getStreamDetail(projectIdOpt: Option[Long] = None, streamIdsOpt: Option[Seq[Long]] = None, action: String = REFRESH.toString): Seq[StreamDetail] = {
     try {
-      val streamSeq = refreshStreamStatus(projectIdOpt, streamIdOpt, action)
+      val streamSeq = refreshStreamStatus(projectIdOpt, streamIdsOpt, action)
       val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
       val streamIds = streamSeq.map(_.id)
       val streamTopicSeq = streamInTopicDal.getStreamTopic(streamIds)
@@ -118,17 +121,24 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       .update(putStream.desc, putStream.sparkConfig, putStream.startConfig, putStream.launchConfig, currentSec, userId)).mapTo[Int]
   }
 
-  def updateByStatus(streamId: Long, status: String, userId: Long): Future[Int] = {
+  def updateByStatus(streamId: Long, status: String, userId: Long, logPath: String): Future[Int] = {
 
     if (status == StreamStatus.STARTING.toString) {
       db.run(streamTable.filter(_.id === streamId)
-        .map(stream => (stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.updateTime, stream.updateBy))
-        .update(status, null, Some(currentSec), null, currentSec, userId)).mapTo[Int]
+        .map(stream => (stream.status, stream.sparkAppid, stream.logPath, stream.startedTime, stream.stoppedTime, stream.updateTime, stream.updateBy))
+        .update(status, null, Some(logPath), Some(currentSec), null, currentSec, userId)).mapTo[Int]
     } else {
       db.run(streamTable.filter(_.id === streamId)
         .map(stream => (stream.status, stream.updateTime, stream.updateBy))
         .update(status, currentSec, userId)).mapTo[Int]
     }
+  }
+
+  def updateByRefresh(streams: Seq[Stream]): Seq[Int] = {
+    streams.map(stream =>
+      Await.result(db.run(streamTable.filter(_.id === stream.id)
+        .map(stream => (stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime))
+        .update(stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime)).mapTo[Int], minTimeOut))
   }
 
   def getResource(projectId: Long): Future[Resource] = {
@@ -173,11 +183,6 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     }.result).mapTo[Seq[StreamCacheMap]]
   }
 
-  def getConfList = {
-    lazy val driverConf = RiderConfig.spark.driverExtraConf
-    lazy val executorConf = RiderConfig.spark.executorExtraConf
-    driverConf + "," + executorConf
-  }
 
   def updateStreamTable(stream: Stream): Future[Int] = {
     db.run(streamTable.filter(_.id === stream.id).update(stream))
@@ -186,11 +191,6 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   def updateStreamsTable(streams: Seq[Stream]) = {
     db.run(DBIO.seq(streams.map(stream => streamTable.filter(_.id === stream.id).update(stream)): _*))
   }
-
-  def checkStreamNameUnique(streamName: String) = {
-    db.run(streamTable.filter(_.name === streamName).result)
-  }
-
 
   def getProjectStreamsUsedResource(projectId: Long) = {
     val streamSeq: Seq[Stream] = Await.result(super.findByFilter(job => job.projectId === projectId && (job.status === "running" || job.status === "waiting" || job.status === "starting" || job.status === "stopping")), minTimeOut)

@@ -32,7 +32,6 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.JobUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.spark.SubmitSparkJob.getLogPath
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await
@@ -115,18 +114,17 @@ object AppUtils extends RiderLogger {
         if (jobSearch.nonEmpty) {
           val startedTime = Some(currentSec)
           val stoppedTime = if (jobSearch.get.stoppedTime.getOrElse("") == "") null else jobSearch.get.stoppedTime
-          val sourceType = if (appJob.get.sourceType.getOrElse("") == "") jobSearch.get.sourceType else appJob.get.sourceType.get
-          val jobUpdate = Job(jobSearch.get.id, jobSearch.get.name, projectId, sourceNs, sinkNs, sourceType, jobSearch.get.sparkConfig, jobSearch.get.startConfig,
+          val jobUpdate = Job(jobSearch.get.id, jobSearch.get.name, projectId, sourceNs, sinkNs, jobSearch.get.jobType, jobSearch.get.sparkConfig, jobSearch.get.startConfig,
             appJob.get.eventTsStart.getOrElse(""), appJob.get.eventTsEnd.getOrElse(""), jobSearch.get.sourceConfig, appJob.get.sinkConfig, Some(genJobTranConfigByColumns(jobSearch.get.tranConfig.getOrElse(""), appJob.get.sinkColumns.getOrElse(""))),
             "starting", None, jobSearch.get.logPath, startedTime, stoppedTime, jobSearch.get.createTime, jobSearch.get.createBy, currentSec, session.userId)
           Await.result(modules.jobDal.update(jobUpdate), minTimeOut)
           riderLogger.info(s"user ${session.userId} project $projectId update job success.")
           jobUpdate
         } else {
-          val jobInsert = Job(0, appJob.get.name.getOrElse(genJobName(projectId, sourceNs, sinkNs)), projectId, sourceNs, sinkNs, appJob.get.sourceType.getOrElse("hdfs_txt"),
+          val jobInsert = Job(0, appJob.get.name.getOrElse(genJobName(projectId, sourceNs, sinkNs)), projectId, sourceNs, getJobSinkNs(sourceNs, sinkNs, appJob.get.jobType), appJob.get.jobType,
             None, "", appJob.get.eventTsStart.getOrElse(""), appJob.get.eventTsEnd.getOrElse(""), None, appJob.get.sinkConfig,
             Some(genJobTranConfigByColumns(appJob.get.tranConfig.getOrElse(""), appJob.get.sinkColumns.getOrElse(""))),
-            "starting", None, Some(getLogPath(genJobName(projectId, sourceNs, sinkNs))), Some(currentSec), None, currentSec,
+            "starting", None, Some(""), Some(currentSec), None, currentSec,
             session.userId, currentSec, session.userId)
           val result = Await.result(modules.jobDal.insert(jobInsert), minTimeOut)
           riderLogger.info(s"user ${session.userId} project $projectId insert job success.")

@@ -19,6 +19,9 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
+import {connect} from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
@@ -39,6 +42,9 @@ const RadioButton = Radio.Button
 const FormItem = Form.Item
 import Select from 'antd/lib/select'
 const { Option, OptGroup } = Select
+
+import { selectRoleType } from '../App/selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
 
 export class SchemaTypeConfig extends React.Component {
   constructor (props) {
@@ -86,24 +92,14 @@ export class SchemaTypeConfig extends React.Component {
     }
   }
 
-  onChangeRowSelect = (record) => (e) => this.props.initChangeSelected(record)
-
-  onChangeUmsType = (e) => this.props.initChangeUmsType(e.target.value)
-
-  onChangeUmsId = (record) => (e) => this.props.initSelectUmsIdTs(record, 'ums_id_')
-
-  onChangeUmsTs = (record) => (e) => this.props.initSelectUmsIdTs(record, 'ums_ts_')
-
-  onRowSelectAll = () => this.props.initRowSelectedAll()
-
   handleChangeFieldType = (record) => (afterType) => {
-    const languageText = localStorage.getItem('preferredLanguage')
+    const { locale } = this.props
 
     const originType = record.fieldType
     const currentType = originType.includes('##') ? 'tuple' : originType
 
     if (this.state.tupleForm === 'edit') {
-      message.error(languageText === 'en' ? 'Tuple configuration has error!' : 'Tuple 配置失败！', 3)
+      message.error(locale === 'en' ? 'Tuple configuration has error!' : 'Tuple 配置失败！', 3)
     } else {
       let tupleTypeTemp = ''
       if (currentType !== 'tuple' && afterType !== 'tuple') { // other to other
@@ -149,7 +145,7 @@ export class SchemaTypeConfig extends React.Component {
   onChangeSizeValue = (value) => this.setState({ tupleSizeValue: value })
 
   checkFieldType = (record) => (e) => {
-    const languageText = localStorage.getItem('preferredLanguage')
+    const { locale } = this.props
     const sepTemp = document.getElementById('sep')
 
     if (sepTemp) {
@@ -158,11 +154,11 @@ export class SchemaTypeConfig extends React.Component {
 
       const reg = /^[0-9]*$/
       if (!sepValue) {
-        message.error(languageText === 'en' ? 'Please fill in separator!' : '请填写分隔符！', 3)
+        message.error(locale === 'en' ? 'Please fill in separator!' : '请填写分隔符！', 3)
       } else if (!tupleSizeValue) {
-        message.error(languageText === 'en' ? 'Please fill in length!' : '请填写长度！', 3)
+        message.error(locale === 'en' ? 'Please fill in length!' : '请填写长度！', 3)
       } else if (!reg.test(tupleSizeValue)) {
-        message.error(languageText === 'en' ? 'Length should be figures!' : '长度应为数字！', 3)
+        message.error(locale === 'en' ? 'Length should be figures!' : '长度应为数字！', 3)
       } else {
         this.setState({
           tupleForm: 'text'
@@ -210,12 +206,12 @@ export class SchemaTypeConfig extends React.Component {
   }
 
   isDisabledLoad () {
-    const { namespaceClassHide } = this.props
+    const { namespaceClassHide, roleType } = this.props
 
     let isDisabled = ''
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       isDisabled = namespaceClassHide === 'hide'
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       isDisabled = true
     }
     return isDisabled
@@ -249,7 +245,7 @@ export class SchemaTypeConfig extends React.Component {
               className="ant-checkbox-input"
               value="on"
               disabled={this.isDisabledLoad()}
-              onChange={this.onRowSelectAll}
+              onChange={() => this.props.initRowSelectedAll()}
             />
             <span className="ant-checkbox-inner"></span>
           </span>
@@ -263,12 +259,13 @@ export class SchemaTypeConfig extends React.Component {
         <Tooltip title={<FormattedMessage {...messages.nsHelp} />}>
           <Popover
             placement="top"
-            content={<div style={{ width: '450px', height: '185px' }}>
-              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaFieldTypeMsg1} /></p>
-              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaFieldTypeMsg2} /></p>
-              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaFieldTypeMsg3} /></p>
-              <p><FormattedMessage {...messages.nsShemaFieldTypeMsg4} /></p>
-            </div>}
+            content={
+              <div style={{ width: '450px', height: '185px' }}>
+                <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaFieldTypeMsg1} /></p>
+                <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaFieldTypeMsg2} /></p>
+                <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaFieldTypeMsg3} /></p>
+                <p><FormattedMessage {...messages.nsShemaFieldTypeMsg4} /></p>
+              </div>}
             title={<h3><FormattedMessage {...messages.nsHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
@@ -283,10 +280,11 @@ export class SchemaTypeConfig extends React.Component {
         <Tooltip title={<FormattedMessage {...messages.nsHelp} />}>
           <Popover
             placement="top"
-            content={<div style={{ width: '420px', height: '85px' }}>
-              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaUmsTsMsg1} /></p>
-              <p><FormattedMessage {...messages.nsShemaUmsTsMsg2} /></p>
-            </div>}
+            content={
+              <div style={{ width: '420px', height: '85px' }}>
+                <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaUmsTsMsg1} /></p>
+                <p><FormattedMessage {...messages.nsShemaUmsTsMsg2} /></p>
+              </div>}
             title={<h3><FormattedMessage {...messages.nsHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
@@ -301,10 +299,11 @@ export class SchemaTypeConfig extends React.Component {
         <Tooltip title={<FormattedMessage {...messages.nsHelp} />}>
           <Popover
             placement="top"
-            content={<div style={{ width: '420px', height: '65px' }}>
-              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaUmsIdMsg1} /></p>
-              <p><FormattedMessage {...messages.nsShemaUmsIdMsg2} /></p>
-            </div>}
+            content={
+              <div style={{ width: '420px', height: '65px' }}>
+                <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaUmsIdMsg1} /></p>
+                <p><FormattedMessage {...messages.nsShemaUmsIdMsg2} /></p>
+              </div>}
             title={<h3><FormattedMessage {...messages.nsHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
@@ -319,11 +318,12 @@ export class SchemaTypeConfig extends React.Component {
         <Tooltip title={<FormattedMessage {...messages.nsHelp} />}>
           <Popover
             placement="top"
-            content={<div style={{ width: '450px', height: '90px' }}>
-              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaUmsOpMsg1} /></p>
-              <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaUmsOpMsg2} /></p>
-              <p><FormattedMessage {...messages.nsShemaUmsOpMsg3} /></p>
-            </div>}
+            content={
+              <div style={{ width: '450px', height: '90px' }}>
+                <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaUmsOpMsg1} /></p>
+                <p className="schema-msg-class"><FormattedMessage {...messages.nsShemaUmsOpMsg2} /></p>
+                <p><FormattedMessage {...messages.nsShemaUmsOpMsg3} /></p>
+              </div>}
             title={<h3><FormattedMessage {...messages.nsHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
@@ -360,7 +360,7 @@ export class SchemaTypeConfig extends React.Component {
                       className="ant-checkbox-input"
                       value="on"
                       disabled={this.isDisabledLoad()}
-                      onChange={this.onChangeRowSelect(record)}
+                      onChange={() => this.props.initChangeSelected(record)}
                     />
                     <span className="ant-checkbox-inner"></span>
                   </span>
@@ -528,7 +528,7 @@ export class SchemaTypeConfig extends React.Component {
                   type="radio"
                   className="ant-radio-input"
                   disabled={this.isDisabledLoad()}
-                  onClick={this.onChangeUmsTs(record)}
+                  onClick={() => this.props.initSelectUmsIdTs(record, 'ums_ts_')}
                 />
                 <span className="ant-radio-inner"></span>
               </span>
@@ -559,7 +559,7 @@ export class SchemaTypeConfig extends React.Component {
                   className="ant-checkbox-input"
                   value="on"
                   disabled={this.isDisabledLoad()}
-                  onChange={this.onChangeUmsId(record)}
+                  onChange={() => this.props.initSelectUmsIdTs(record, 'ums_id_')}
                 />
                 <span className="ant-checkbox-inner"></span>
               </span>
@@ -689,7 +689,7 @@ export class SchemaTypeConfig extends React.Component {
                   message: '请选择 UMS Type'
                 }]
               })(
-                <RadioGroup className="radio-group-style" size="default" disabled={this.isDisabledLoad()} onChange={this.onChangeUmsType}>
+                <RadioGroup className="radio-group-style" size="default" disabled={this.isDisabledLoad()} onChange={(e) => this.props.initChangeUmsType(e.target.value)}>
                   <RadioButton value="ums" className="radio-btn-style radio-btn-extra">UMS</RadioButton>
                   <RadioButton value="ums_extension" className="ums-extension">UMS_Extension</RadioButton>
                 </RadioGroup>
@@ -733,21 +733,28 @@ export class SchemaTypeConfig extends React.Component {
 }
 
 SchemaTypeConfig.propTypes = {
-  form: React.PropTypes.any,
-  initChangeSelected: React.PropTypes.func,
-  initChangeUmsType: React.PropTypes.func,
-  onChangeJsonToTable: React.PropTypes.func,
-  umsFieldTypeSelectOk: React.PropTypes.func,
-  initUmsopOther2Tuple: React.PropTypes.func,
-  initEditRename: React.PropTypes.func,
-  initSelectUmsIdTs: React.PropTypes.func,
-  umsTypeSeleted: React.PropTypes.string,
-  selectAllState: React.PropTypes.string,
-  namespaceClassHide: React.PropTypes.string,
-  initRowSelectedAll: React.PropTypes.func,
-  initSelectUmsop: React.PropTypes.func,
-  repeatRenameArr: React.PropTypes.array,
-  repeatArrayArr: React.PropTypes.array
+  form: PropTypes.any,
+  initChangeSelected: PropTypes.func,
+  initChangeUmsType: PropTypes.func,
+  onChangeJsonToTable: PropTypes.func,
+  umsFieldTypeSelectOk: PropTypes.func,
+  initUmsopOther2Tuple: PropTypes.func,
+  initEditRename: PropTypes.func,
+  initSelectUmsIdTs: PropTypes.func,
+  umsTypeSeleted: PropTypes.string,
+  selectAllState: PropTypes.string,
+  namespaceClassHide: PropTypes.string,
+  initRowSelectedAll: PropTypes.func,
+  initSelectUmsop: PropTypes.func,
+  repeatRenameArr: PropTypes.array,
+  repeatArrayArr: PropTypes.array,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
-export default Form.create({wrappedComponentRef: true})(SchemaTypeConfig)
+const mapStateToProps = createStructuredSelector({
+  roleType: selectRoleType(),
+  locale: selectLocale()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, null)(SchemaTypeConfig))

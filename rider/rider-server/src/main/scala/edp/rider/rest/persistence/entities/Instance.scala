@@ -34,7 +34,11 @@ case class Instance(id: Long,
                     createTime: String,
                     createBy: Long,
                     updateTime: String,
-                    updateBy: Long) extends BaseEntity
+                    updateBy: Long) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
 
 
 case class SimpleInstance(desc: Option[String] = None,
@@ -42,8 +46,10 @@ case class SimpleInstance(desc: Option[String] = None,
                           nsInstance: String,
                           connUrl: String) extends SimpleBaseEntity
 
+case class InstanceName(id: Long, nsInstance: String)
+
 class InstanceTable(_tableTag: Tag) extends BaseTable[Instance](_tableTag, "instance") {
-  def * = (id, nsInstance, desc, nsSys, connUrl, active, createTime, createBy, updateTime, updateBy) <>(Instance.tupled, Instance.unapply)
+  def * = (id, nsInstance, desc, nsSys, connUrl, active, createTime, createBy, updateTime, updateBy) <> (Instance.tupled, Instance.unapply)
 
   /** Database column ns_instance SqlType(VARCHAR), Length(200,true) */
   val nsInstance: Rep[String] = column[String]("ns_instance", O.Length(200, varying = true))

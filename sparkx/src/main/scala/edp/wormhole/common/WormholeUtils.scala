@@ -266,13 +266,14 @@ object WormholeUtils extends EdpLogging {
       dt2timestamp(timestampStr)
     }
     else {
-      val timestampLong = if (timestampStr.split("").length < 16) timestampStr.toLong * 1000000 else timestampStr.toLong
+      val timestampLong = (timestampStr+"000000").substring(0,16).toLong
+
       dt2timestamp(timestampLong)
     }
   }
 
 
-  def sendTopicPartitionOffset(offsetInfo: ArrayBuffer[OffsetRange], feedbackTopicName: String, config: WormholeConfig): Unit = {
+  def sendTopicPartitionOffset(offsetInfo: ArrayBuffer[OffsetRange], feedbackTopicName: String, config: WormholeConfig,batchId:String): Unit = {
     val topicConfigMap = mutable.HashMap.empty[String, ListBuffer[PartitionOffsetConfig]]
 
     offsetInfo.foreach { offsetRange =>
@@ -289,7 +290,7 @@ object WormholeUtils extends EdpLogging {
       (topicName, partitionOffsetList.map(it => it.partition_num + ":" + it.offset).sorted.mkString(","))
     }
     }.toMap
-    WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority2, WormholeUms.feedbackStreamTopicOffset(currentDateTime, config.spark_config.stream_id, tp), None, config.kafka_output.brokers)
+    WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority2, WormholeUms.feedbackStreamTopicOffset(currentDateTime, config.spark_config.stream_id, tp,batchId), None, config.kafka_output.brokers)
   }
 
 
@@ -306,6 +307,42 @@ object WormholeUtils extends EdpLogging {
     //    val w = Window.partitionBy(keys.head, keys.tail: _*).orderBy(df(UmsSysField.TS.toString).desc)
 
     df.where(df(UmsSysField.TS.toString) >= fromTs).where(df(UmsSysField.TS.toString) <= toTs).withColumn("rn", row_number.over(w)).where("rn = 1").drop("rn").filter("ums_op_ != 'd'")
+  }
+
+  def getFieldContentFromJson(json:String, fieldName:String): String ={
+    var tmpValue = json
+    var realKey = null.asInstanceOf[String]
+    while(tmpValue!=null){
+      val namespacePosition = tmpValue.indexOf("\""+fieldName+"\"")
+      tmpValue = tmpValue.substring(namespacePosition+fieldName.length+2).trim
+      if(tmpValue.startsWith(":")){
+        val from = tmpValue.indexOf("\"")
+        val to = tmpValue.indexOf("\"",from+1)
+        realKey=tmpValue.substring(from+1,to)
+        tmpValue=null
+      }
+    }
+    realKey
+  }
+
+  def getProtocolTypeFromUms(ums:String): String ={
+    var tmpValue = ums
+    var realKey = null.asInstanceOf[String]
+    while(tmpValue!=null){
+      val strPosition = tmpValue.indexOf("\"protocol\"")
+      println(strPosition)
+      tmpValue = tmpValue.substring(strPosition+10).trim
+      if(tmpValue.startsWith(":")){
+        val from = tmpValue.indexOf("{")
+        val to = tmpValue.indexOf("}")
+        val subStr = tmpValue.substring(from,to+1)
+        if(subStr.contains("\"type\"")){
+          realKey = getFieldContentFromJson(subStr,"type")
+          tmpValue = null
+        }
+      }
+    }
+    realKey
   }
 
 }

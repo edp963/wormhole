@@ -37,7 +37,7 @@ trait SinkDbSchemaUtils {
     case UmsFieldType.LONG => value.trim.toLong
     case UmsFieldType.FLOAT => value.trim.toFloat
     case UmsFieldType.DOUBLE => value.trim.toDouble
-    case UmsFieldType.BINARY => value.getBytes//base64s2byte(value.trim)
+    case UmsFieldType.BINARY => base64s2byte(value.trim)
     case UmsFieldType.DECIMAL => new java.math.BigDecimal(value.trim).stripTrailingZeros()
     case UmsFieldType.BOOLEAN => value.trim.toBoolean
     case UmsFieldType.DATE => dt2sqlDate(value.trim)

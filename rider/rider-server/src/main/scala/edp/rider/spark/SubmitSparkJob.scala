@@ -22,6 +22,7 @@ package edp.rider.spark
 
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.entities.StartConfig
+import edp.rider.rest.util.CommonUtils
 
 import scala.language.postfixOps
 import scala.collection.mutable.ListBuffer
@@ -31,8 +32,6 @@ import scala.sys.process._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object SubmitSparkJob extends App with RiderLogger {
-
-  def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}$appName.log"
 
   //  def startSparkSubmit(args: String, streamID: Long, brokers: String, streamName: String, startConfig: StartConfig, launchConfig: LaunchConfig, sparkConfig: String, streamType: String): Unit = {
   //    val args = getConfig(streamID, streamName, brokers, launchConfig)
@@ -73,7 +72,7 @@ object SubmitSparkJob extends App with RiderLogger {
   //  }
 
 
-  def generateStreamStartSh(args: String, streamName: String, startConfig: StartConfig, sparkConfig: String, streamType: String, local: Boolean = false): String = {
+  def generateStreamStartSh(args: String, streamName: String, logPath: String, startConfig: StartConfig, sparkConfig: String, streamType: String, local: Boolean = false): String = {
     val submitPre = s"ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host} " + RiderConfig.spark.spark_home
     val executorsNum = startConfig.executorNums
     val driverMemory = startConfig.driverMemory
@@ -82,8 +81,6 @@ object SubmitSparkJob extends App with RiderLogger {
     val realJarPath =
       if (RiderConfig.spark.kafka08StreamNames.nonEmpty && RiderConfig.spark.kafka08StreamNames.contains(streamName))
         RiderConfig.spark.kafka08JarPath
-      else if (RiderConfig.spark.kafka11StreamNames.nonEmpty && RiderConfig.spark.kafka11StreamNames.contains(streamName))
-        RiderConfig.spark.kafka11JarPath
       else RiderConfig.spark.jarPath
 
     val confList: Seq[String] = {
@@ -92,8 +89,8 @@ object SubmitSparkJob extends App with RiderLogger {
         val riderConf = sparkConfig.split(",") :+ s"spark.yarn.tags=${RiderConfig.spark.app_tags}"
         conf ++= riderConf
       }
-      else Array(s"spark.yarn.tags=${RiderConfig.spark.app_tags}")
-      if (RiderConfig.spark.alert) {
+      else conf ++= Array(s"spark.yarn.tags=${RiderConfig.spark.app_tags}")
+      if (RiderConfig.spark.metricsConfPath != "") {
         conf += s"spark.metrics.conf=metrics.properties"
         conf += s"spark.metrics.namespace=$streamName"
       }
@@ -101,11 +98,10 @@ object SubmitSparkJob extends App with RiderLogger {
     }
 
     val files =
-      if (RiderConfig.spark.alert)
+      if (RiderConfig.spark.metricsConfPath != "")
         s"${RiderConfig.spark.sparkLog4jPath},${RiderConfig.spark.metricsConfPath}"
       else RiderConfig.spark.sparkLog4jPath
 
-    val logPath = getLogPath(streamName)
     runShellCommand(s"mkdir -p ${RiderConfig.spark.clientLogRootPath}")
     val startShell =
       if (local)
@@ -122,6 +118,7 @@ object SubmitSparkJob extends App with RiderLogger {
       else if (l.startsWith("--executor-mem")) s"  --executor-memory " + executorMemory + s"g "
       else if (l.startsWith("--executor-cores")) s"  --executor-cores " + executorCores + s" "
       else if (l.startsWith("--name")) s"  --name " + streamName + " "
+//      else if (l.startsWith("--jars")) s"  --jars " + RiderConfig.spark.sparkxInterfaceJarPath + " "
       else if (l.startsWith("--conf")) {
         confList.toList.map(conf => " --conf \"" + conf + "\" ").mkString("")
       }
@@ -135,7 +132,8 @@ object SubmitSparkJob extends App with RiderLogger {
       }
       else l
     }).mkString("").stripMargin.replace("\\", "  ") +
-      realJarPath + " " + args + " 1> " + logPath + " 2>&1"
+//      realJarPath + " " + args + " 1> " + logPath + " 2>&1"
+      realJarPath + " " + args + " > " + logPath + " 2>&1 "
 
     val finalCommand =
       if (RiderConfig.spark.alert)

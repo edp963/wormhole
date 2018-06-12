@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
@@ -42,11 +43,14 @@ import Popover from 'antd/lib/popover'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { selectFlows, selectError } from './selectors'
-import { loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm,
+import { selectRoleType } from '../App/selectors'
+import { selectLocale } from '../LanguageProvider/selectors'
+import {
+  loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm,
   saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail,
-  loadSourceInput, loadFlowDetail, chuckAwayFlow } from './action'
+  loadSourceInput, loadFlowDetail, chuckAwayFlow
+} from './action'
 
 // import { formatConcat } from '../../utils/util'
 
@@ -106,14 +110,13 @@ export class Flow extends React.Component {
 
   componentWillMount () {
     this.refreshFlow()
-    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   componentWillReceiveProps (props) {
     if (props.flows) {
       const originFlows = props.flows.map(s => {
         s.key = s.id
-        s.visible = false
+        // s.visible = false
         return s
       })
       this.setState({ originFlows: originFlows.slice() })
@@ -122,14 +125,14 @@ export class Flow extends React.Component {
         : this.searchOperater()
     }
   }
+
   componentWillUnmount () {
     // 频繁使用的组件，手动清除数据，避免出现闪现上一条数据
     this.props.onChuckAwayFlow()
   }
 
   searchOperater () {
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const { columnNameText, valueText, visibleBool, startTimeTextState, endTimeTextState } = this.state
 
     if (columnNameText !== '') {
       this.onSearch(columnNameText, valueText, visibleBool)()
@@ -149,12 +152,16 @@ export class Flow extends React.Component {
   }
 
   loadFlowData () {
-    if (localStorage.getItem('loginRoleType') === 'admin') {
-      this.props.flowClassHide === 'hide'
-        ? this.props.onLoadAdminSingleFlow(this.props.projectIdGeted, () => { this.flowRefreshState() })
-        : this.props.onLoadAdminAllFlows(() => { this.flowRefreshState() })
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
-      this.props.onLoadUserAllFlows(this.props.projectIdGeted, () => { this.flowRefreshState() })
+    const {
+      projectIdGeted, flowClassHide, onLoadAdminSingleFlow, onLoadAdminAllFlows, onLoadUserAllFlows, roleType
+    } = this.props
+
+    if (roleType === 'admin') {
+      flowClassHide === 'hide'
+        ? onLoadAdminSingleFlow(projectIdGeted, () => { this.flowRefreshState() })
+        : onLoadAdminAllFlows(() => { this.flowRefreshState() })
+    } else if (roleType === 'user') {
+      onLoadUserAllFlows(projectIdGeted, () => { this.flowRefreshState() })
     }
   }
 
@@ -164,9 +171,9 @@ export class Flow extends React.Component {
       refreshFlowText: 'Refresh'
     })
 
-    const { columnNameText, valueText, visibleBool } = this.state
-    const { paginationInfo, filteredInfo, sortedInfo } = this.state
-    const { startTimeTextState, endTimeTextState } = this.state
+    const {
+      columnNameText, valueText, visibleBool, paginationInfo, filteredInfo, sortedInfo, startTimeTextState, endTimeTextState
+    } = this.state
 
     if (columnNameText !== '') {
       if (columnNameText === 'startedTime' || columnNameText === 'stoppedTime') {
@@ -180,27 +187,28 @@ export class Flow extends React.Component {
 
   onSelectChange = (selectedRowKeys) => this.setState({ selectedRowKeys })
 
-  /**
-   * 批量操作
-   * @param selectedRowKeys
-   */
+  // 批量操作
   handleMenuClick = (selectedRowKeys) => (e) => {
-    const languagetext = localStorage.getItem('preferredLanguage')
+    const { locale } = this.props
     if (selectedRowKeys.length > 0) {
       let menuAction = ''
       let menuMsg = ''
       switch (e.key) {
         case 'menuStart':
           menuAction = 'start'
-          menuMsg = languagetext === 'en' ? 'Start' : '启动'
+          menuMsg = locale === 'en' ? 'Start' : '启动'
           break
         case 'menuStop':
           menuAction = 'stop'
-          menuMsg = languagetext === 'en' ? 'Stop' : '停止'
+          menuMsg = locale === 'en' ? 'Stop' : '停止'
           break
         case 'menuDelete':
           menuAction = 'delete'
-          menuMsg = languagetext === 'en' ? 'Delete' : '删除'
+          menuMsg = locale === 'en' ? 'Delete' : '删除'
+          break
+        case 'menuRenew':
+          menuAction = 'renew'
+          menuMsg = locale === 'en' ? 'Renew' : '生效'
           break
       }
 
@@ -212,7 +220,7 @@ export class Flow extends React.Component {
 
       this.props.onOperateUserFlow(requestValue, (result) => {
         this.setState({ selectedRowKeys: [] })
-        const languagetextSuccess = languagetext === 'en' ? 'successfully!' : '成功！'
+        const languagetextSuccess = locale === 'en' ? 'successfully!' : '成功！'
 
         if (typeof (result) === 'object') {
           const resultFailed = result.filter(i => i.msg.includes('failed'))
@@ -220,7 +228,7 @@ export class Flow extends React.Component {
             const resultFailedIdArr = resultFailed.map(i => i.id)
             const resultFailedIdStr = resultFailedIdArr.join('、')
 
-            const languagetextFailFlowId = languagetext === 'en'
+            const languagetextFailFlowId = locale === 'en'
               ? `It fails to ${menuMsg} Flow ID ${resultFailedIdStr}!`
               : `Flow ID ${resultFailedIdStr} ${menuMsg}失败！`
             message.error(languagetextFailFlowId, 5)
@@ -231,10 +239,10 @@ export class Flow extends React.Component {
           message.success(`${menuMsg}${languagetextSuccess}`, 3)
         }
       }, (result) => {
-        message.error(`${languagetext === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
+        message.error(`${locale === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
       })
     } else {
-      message.warning(`${languagetext === 'en' ? 'Please select Flow!' : '请选择 Flow！'}`, 3)
+      message.warning(`${locale === 'en' ? 'Please select Flow!' : '请选择 Flow！'}`, 3)
     }
   }
 
@@ -245,12 +253,9 @@ export class Flow extends React.Component {
     })
   }
 
-  /**
-   * 单行操作
-   * @param record
-   */
-  singleOpreateFlow (record, action) {
-    const languagetext = localStorage.getItem('preferredLanguage')
+  // 单行操作
+  singleOpreateFlow = (record, action) => (e) => {
+    const { locale } = this.props
     const requestValue = {
       projectId: record.projectId,
       action: action,
@@ -260,49 +265,36 @@ export class Flow extends React.Component {
     let singleMsg = ''
     switch (action) {
       case 'start':
-        singleMsg = languagetext === 'en' ? 'Start' : '启动'
+        singleMsg = locale === 'en' ? 'Start' : '启动'
         break
       case 'stop':
-        singleMsg = languagetext === 'en' ? 'Stop' : '停止'
+        singleMsg = locale === 'en' ? 'Stop' : '停止'
         break
       case 'delete':
-        singleMsg = languagetext === 'en' ? 'Delete' : '删除'
+        singleMsg = locale === 'en' ? 'Delete' : '删除'
         break
     }
 
     this.props.onOperateUserFlow(requestValue, (result) => {
-      const languagetextSuccess = languagetext === 'en' ? 'successfully!' : '成功！'
+      const languagetextSuccess = locale === 'en' ? 'successfully!' : '成功！'
       if (action === 'delete') {
         message.success(`${singleMsg}${languagetextSuccess}`, 3)
       } else {
         if (result.msg.includes('failed')) {
-          const languagetextFail = languagetext === 'en'
+          const languagetextFail = locale === 'en'
             ? `It fails to ${singleMsg} Flow ID ${result.id}!`
             : `Flow ID ${result.id} ${singleMsg}失败！`
 
           message.error(languagetextFail, 3)
         } else {
           action === 'renew'
-            ? message.success(languagetext === 'en' ? 'Renew successfully！' : '生效！', 3)
+            ? message.success(locale === 'en' ? 'Renew successfully！' : '生效！', 3)
             : message.success(`${singleMsg}${languagetextSuccess}`, 3)
         }
       }
     }, (result) => {
-      message.error(`${languagetext === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
+      message.error(`${locale === 'en' ? 'Operation failed:' : '操作失败：'}${result}`, 3)
     })
-  }
-
-  onShowFlowStart = (record, action) => (e) => this.singleOpreateFlow(record, action)
-
-  stopFlowBtn = (record, action) => (e) => this.singleOpreateFlow(record, action)
-
-  updateFlow = (record, action) => (e) => this.singleOpreateFlow(record, action)
-
-  onSingleDeleteFlow = (record, action) => (e) => this.singleOpreateFlow(record, action)
-
-  onShowBackfill =(record) => (e) => {
-    this.showTimeModal()
-    this.setState({ flowIdTemp: record.id })
   }
 
   onCopyFlow = (record) => (e) => this.props.onShowCopyFlow(record)
@@ -381,14 +373,6 @@ export class Flow extends React.Component {
     })
   }
 
-  showModal = (id) => () => {
-    this.setState({
-      modalVisible: true,
-      flowDetail: null,
-      flowId: id
-    })
-  }
-
   handleCancel = (e) => {
     this.setState({
       modalVisible: false,
@@ -400,9 +384,9 @@ export class Flow extends React.Component {
   handleTimeCancel = (e) => this.setState({ timeModalVisible: false })
 
   handleTimeOk = () => {
-    if (this.flowsTime.state.startValue === null) {
+    if (!this.flowsTime.state.startValue) {
       message.warning('开始时间不能为空！')
-    } else if (this.flowsTime.state.endValue === null) {
+    } else if (!this.flowsTime.state.endValue) {
       message.warning('结束时间不能为空！')
     } else {
       // const sVal = new Date(this.flowsTime.state.startValue._d)
@@ -470,18 +454,11 @@ export class Flow extends React.Component {
       this.setState({
         visible
       }, () => {
-        let roleType = ''
-        if (localStorage.getItem('loginRoleType') === 'admin') {
-          roleType = 'admin'
-        } else if (localStorage.getItem('loginRoleType') === 'user') {
-          roleType = 'user'
-        }
-
         const requestValue = {
           projectId: record.projectId,
           streamId: typeof (record.streamId) === 'object' ? record.streamIdOrigin : record.streamId,
           flowId: record.id,
-          roleType: roleType
+          roleType: this.props.roleType
         }
 
         this.props.onLoadFlowDetail(requestValue, (result) => this.setState({ showFlowDetails: result }))
@@ -490,9 +467,9 @@ export class Flow extends React.Component {
   }
 
   render () {
-    const { className, onShowAddFlow, onShowEditFlow, flowClassHide } = this.props
-    const { refreshFlowText, refreshFlowLoading } = this.state
-
+    const { className, onShowAddFlow, onShowEditFlow, flowClassHide, roleType } = this.props
+    const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails } = this.state
+    const { selectedRowKeys } = this.state
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
@@ -557,7 +534,9 @@ export class Flow extends React.Component {
           />
           <Button
             type="primary"
-            onClick={this.onSearch('sourceNs', 'searchTextSourceNs', 'filterDropdownVisibleSourceNs')}>Search</Button>
+            onClick={this.onSearch('sourceNs', 'searchTextSourceNs', 'filterDropdownVisibleSourceNs')}
+          >Search
+          </Button>
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleSourceNs,
@@ -587,7 +566,9 @@ export class Flow extends React.Component {
           />
           <Button
             type="primary"
-            onClick={this.onSearch('sinkNs', 'searchTextSinkNs', 'filterDropdownVisibleSinkNs')}>Search</Button>
+            onClick={this.onSearch('sinkNs', 'searchTextSinkNs', 'filterDropdownVisibleSinkNs')}
+          >Search
+          </Button>
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleSinkNs,
@@ -714,7 +695,9 @@ export class Flow extends React.Component {
           />
           <Button
             type="primary"
-            onClick={this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')}>Search</Button>
+            onClick={this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')}
+          >Search
+          </Button>
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleStreamId,
@@ -739,7 +722,9 @@ export class Flow extends React.Component {
           />
           <Button
             type="primary"
-            onClick={this.onSearch('streamType', 'searchTextStreamType', 'filterDropdownVisibleStreamType')}>Search</Button>
+            onClick={this.onSearch('streamType', 'searchTextStreamType', 'filterDropdownVisibleStreamType')}
+          >Search
+          </Button>
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleStreamType,
@@ -768,7 +753,12 @@ export class Flow extends React.Component {
             onChange={this.onRangeTimeChange}
             onPressEnter={this.onRangeTimeSearch('startedTime', 'startedStartTimeText', 'startedEndTimeText', 'filterDropdownVisibleStartedTime')}
           />
-          <Button type="primary" className="rangeFilter" onClick={this.onRangeTimeSearch('startedTime', 'startedStartTimeText', 'startedEndTimeText', 'filterDropdownVisibleStartedTime')}>Search</Button>
+          <Button
+            type="primary"
+            className="rangeFilter"
+            onClick={this.onRangeTimeSearch('startedTime', 'startedStartTimeText', 'startedEndTimeText', 'filterDropdownVisibleStartedTime')}
+          >Search
+          </Button>
         </div>
       ),
       filterDropdownVisible: this.state.filterDropdownVisibleStartedTime,
@@ -814,9 +804,9 @@ export class Flow extends React.Component {
       className: 'text-align-center',
       render: (text, record) => {
         let FlowActionSelect = ''
-        if (localStorage.getItem('loginRoleType') === 'admin') {
+        if (roleType === 'admin') {
           FlowActionSelect = ''
-        } else if (localStorage.getItem('loginRoleType') === 'user') {
+        } else if (roleType === 'user') {
           const modifyFormat = <FormattedMessage {...messages.flowTableModify} />
           const startFormat = <FormattedMessage {...messages.flowTableStart} />
           const sureStartFormat = <FormattedMessage {...messages.flowSureStart} />
@@ -826,18 +816,11 @@ export class Flow extends React.Component {
           const copyFormat = <FormattedMessage {...messages.flowTableCopy} />
           const deleteFormat = <FormattedMessage {...messages.flowTableDelete} />
           const sureDeleteFormat = <FormattedMessage {...messages.flowSureDelete} />
+          const sureRenewFormat = <FormattedMessage {...messages.flowSureRenew} />
 
           const strEdit = record.disableActions.includes('modify')
-            ? (
-              <Tooltip title={modifyFormat}>
-                <Button icon="edit" shape="circle" type="ghost" disabled></Button>
-              </Tooltip>
-            )
-            : (
-              <Tooltip title={modifyFormat}>
-                <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
-              </Tooltip>
-            )
+            ? <Button icon="edit" shape="circle" type="ghost" disabled></Button>
+            : <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
 
           const strStart = record.disableActions.includes('start')
             ? (
@@ -846,7 +829,7 @@ export class Flow extends React.Component {
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.onShowFlowStart(record, 'start')}>
+              <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'start')}>
                 <Tooltip title={startFormat}>
                   <Button icon="caret-right" shape="circle" type="ghost"></Button>
                 </Tooltip>
@@ -862,7 +845,7 @@ export class Flow extends React.Component {
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title={sureStopFormat} okText="Yes" cancelText="No" onConfirm={this.stopFlowBtn(record, 'stop')}>
+              <Popconfirm placement="bottom" title={sureStopFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'stop')}>
                 <Tooltip title={stopFormat}>
                   <Button shape="circle" type="ghost">
                     <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
@@ -878,30 +861,25 @@ export class Flow extends React.Component {
               </Tooltip>
             )
             : (
-              <Tooltip title={renewFormat}>
-                <Button icon="check" shape="circle" type="ghost" onClick={this.updateFlow(record, 'renew')}></Button>
-              </Tooltip>
+              <Popconfirm placement="bottom" title={sureRenewFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'renew')}>
+                <Tooltip title={renewFormat}>
+                  <Button icon="check" shape="circle" type="ghost"></Button>
+                </Tooltip>
+              </Popconfirm>
             )
 
           FlowActionSelect = (
             <span>
-              {/* <Tooltip title="数据质量">
-                <Button icon="file-excel" shape="circle" type="ghost" onClick={this.showModal(record.id)}></Button>
-              </Tooltip> */}
-
-              {strEdit}
+              <Tooltip title={modifyFormat}>
+                {strEdit}
+              </Tooltip>
               <Tooltip title={copyFormat}>
                 <Button icon="copy" shape="circle" type="ghost" onClick={this.onCopyFlow(record)}></Button>
               </Tooltip>
               {strStart}
               {strStop}
               {strRenew}
-
-              {/* <Tooltip title="backfill" onClick={this.onShowBackfill(record)}>
-               <Button icon="rollback" shape="circle" type="ghost" ></Button>
-               </Tooltip> */}
-
-              <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.onSingleDeleteFlow(record, 'delete')}>
+              <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'delete')}>
                 <Tooltip title={deleteFormat}>
                   <Button icon="delete" shape="circle" type="ghost"></Button>
                 </Tooltip>
@@ -909,8 +887,6 @@ export class Flow extends React.Component {
             </span>
           )
         }
-
-        const { showFlowDetails } = this.state
 
         let sinkConfigFinal = ''
         if (!showFlowDetails.sinkConfig) {
@@ -926,8 +902,8 @@ export class Flow extends React.Component {
               <Popover
                 placement="left"
                 content={
-                  <div style={{ width: '600px', overflowY: 'auto', height: '260px', overflowX: 'auto' }}>
-                    <p className={this.props.flowClassHide}><strong>   Project Id：</strong>{showFlowDetails.projectId}</p>
+                  <div className="flow-table-detail">
+                    <p className={flowClassHide}><strong>   Project Id：</strong>{showFlowDetails.projectId}</p>
                     <p><strong>   Protocol：</strong>{showFlowDetails.consumedProtocol}</p>
                     <p><strong>   Stream Name：</strong>{showFlowDetails.streamName}</p>
                     <p><strong>   Sink Config：</strong>{sinkConfigFinal}</p>
@@ -956,12 +932,10 @@ export class Flow extends React.Component {
       onChange: (current) => this.setState({ pageIndex: current })
     }
 
-    const { selectedRowKeys } = this.state
-
     let rowSelection = null
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       rowSelection = null
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       rowSelection = {
         selectedRowKeys,
         onChange: this.onSelectChange,
@@ -976,15 +950,17 @@ export class Flow extends React.Component {
         <Menu.Item key="menuStop">
           <i className="iconfont icon-8080pxtubiaokuozhan100" style={{ fontSize: '12px' }}></i> <FormattedMessage {...messages.flowTableStop} />
         </Menu.Item>
+        <Menu.Item key="menuRenew"><Icon type="check" /> <FormattedMessage {...messages.flowTableRenew} />
+        </Menu.Item>
         <Menu.Item key="menuDelete"><Icon type="delete" /> <FormattedMessage {...messages.flowTableDelete} />
         </Menu.Item>
       </Menu>
       )
 
     let FlowAddOrNot = ''
-    if (localStorage.getItem('loginRoleType') === 'admin') {
+    if (roleType === 'admin') {
       FlowAddOrNot = ''
-    } else if (localStorage.getItem('loginRoleType') === 'user') {
+    } else if (roleType === 'user') {
       FlowAddOrNot = (
         <span>
           <Button icon="plus" type="primary" onClick={onShowAddFlow}>
@@ -999,7 +975,7 @@ export class Flow extends React.Component {
       )
     }
 
-    const helmetHide = this.props.flowClassHide !== 'hide'
+    const helmetHide = flowClassHide !== 'hide'
       ? (<Helmet title="Flow" />)
       : (<Helmet title="Workbench" />)
 
@@ -1014,7 +990,7 @@ export class Flow extends React.Component {
           <Button icon="reload" type="ghost" className="refresh-button-style" loading={refreshFlowLoading} onClick={this.refreshFlow}>{refreshFlowText}</Button>
         </div>
         <Table
-          dataSource={this.state.currentFlows}
+          dataSource={currentFlows}
           columns={columns}
           onChange={this.handleFlowChange}
           pagination={pagination}
@@ -1023,13 +999,13 @@ export class Flow extends React.Component {
           bordered>
         </Table>
         <Modal
-          visible={this.state.modalVisible}
+          visible={modalVisible}
           onCancel={this.handleCancel}
           wrapClassName="ant-modal-xlarge ant-modal-no-footer"
           footer={<span></span>}
         >
           <FlowsDetail
-            flowIdGeted={this.state.flowId}
+            flowIdGeted={flowId}
             ref={(f) => { this.flowsDetail = f }}
             onEditLogForm={this.props.onEditLogForm}
             onSaveForm={this.props.onSaveForm}
@@ -1043,7 +1019,7 @@ export class Flow extends React.Component {
 
         <Modal
           title="设置时间"
-          visible={this.state.timeModalVisible}
+          visible={timeModalVisible}
           onCancel={this.handleTimeCancel}
           onOk={this.handleTimeOk}
         >
@@ -1060,28 +1036,29 @@ Flow.propTypes = {
   //   React.PropTypes.array,
   //   React.PropTypes.bool
   // ]),
-  className: React.PropTypes.string,
-  onShowAddFlow: React.PropTypes.func,
-  onShowEditFlow: React.PropTypes.func,
-  onShowCopyFlow: React.PropTypes.func,
+  className: PropTypes.string,
+  onShowAddFlow: PropTypes.func,
+  onShowEditFlow: PropTypes.func,
+  onShowCopyFlow: PropTypes.func,
 
-  onEditLogForm: React.PropTypes.func,
-  onSaveForm: React.PropTypes.func,
-  onCheckOutForm: React.PropTypes.func,
-  onLoadSourceLogDetail: React.PropTypes.func,
-  onLoadSourceSinkDetail: React.PropTypes.func,
-  onLoadSinkWriteRrrorDetail: React.PropTypes.func,
-  onLoadSourceInput: React.PropTypes.func,
-  projectIdGeted: React.PropTypes.string,
-  flowClassHide: React.PropTypes.string,
-  onLoadFlowDetail: React.PropTypes.func,
+  onEditLogForm: PropTypes.func,
+  onSaveForm: PropTypes.func,
+  onCheckOutForm: PropTypes.func,
+  onLoadSourceLogDetail: PropTypes.func,
+  onLoadSourceSinkDetail: PropTypes.func,
+  onLoadSinkWriteRrrorDetail: PropTypes.func,
+  onLoadSourceInput: PropTypes.func,
+  projectIdGeted: PropTypes.string,
+  flowClassHide: PropTypes.string,
+  onLoadFlowDetail: PropTypes.func,
 
-  onLoadAdminAllFlows: React.PropTypes.func,
-  onLoadUserAllFlows: React.PropTypes.func,
-  onLoadAdminSingleFlow: React.PropTypes.func,
-  onOperateUserFlow: React.PropTypes.func,
-  onChuckAwayFlow: React.PropTypes.func,
-  onChangeLanguage: React.PropTypes.func
+  onLoadAdminAllFlows: PropTypes.func,
+  onLoadUserAllFlows: PropTypes.func,
+  onLoadAdminSingleFlow: PropTypes.func,
+  onOperateUserFlow: PropTypes.func,
+  onChuckAwayFlow: PropTypes.func,
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1099,14 +1076,15 @@ export function mapDispatchToProps (dispatch) {
     onLoadSinkWriteRrrorDetail: (id, pageIndex, pageSize, resolve) => dispatch(loadSinkWriteRrrorDetail(id, pageIndex, pageSize, resolve)),
     onLoadSourceInput: (flowId, taskType, resolve) => dispatch(loadSourceInput(flowId, taskType, resolve)),
     onLoadFlowDetail: (requestValue, resolve) => dispatch(loadFlowDetail(requestValue, resolve)),
-    onChuckAwayFlow: () => dispatch(chuckAwayFlow()),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onChuckAwayFlow: () => dispatch(chuckAwayFlow())
   }
 }
 
 const mapStateToProps = createStructuredSelector({
   flows: selectFlows(),
-  error: selectError()
+  error: selectError(),
+  roleType: selectRoleType(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Flow)

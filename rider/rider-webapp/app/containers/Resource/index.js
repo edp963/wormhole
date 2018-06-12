@@ -19,6 +19,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import Helmet from 'react-helmet'
@@ -31,7 +32,6 @@ import Table from 'antd/lib/table'
 import Input from 'antd/lib/input'
 import Button from 'antd/lib/button'
 
-import { changeLocale } from '../../containers/LanguageProvider/actions'
 import { loadResources } from './action'
 import { selectResources } from './selectors'
 
@@ -45,10 +45,6 @@ export class Resource extends React.Component {
       searchResourceName: '',
       filterDropdownVisibleResourceName: false
     }
-  }
-
-  componentWillMount () {
-    this.props.onChangeLanguage(localStorage.getItem('preferredLanguage'))
   }
 
   componentWillReceiveProps (props) {
@@ -232,17 +228,15 @@ export class Resource extends React.Component {
 }
 
 Resource.propTypes = {
-  onChangeLanguage: React.PropTypes.func,
-  resources: React.PropTypes.oneOfType([
-    React.PropTypes.object,
-    React.PropTypes.bool
+  resources: PropTypes.oneOfType([
+    PropTypes.object,
+    PropTypes.bool
   ])
 }
 
 export function mapDispatchToProps (dispatch) {
   return {
-    onLoadResources: (projectId, roleType) => dispatch(loadResources(projectId, roleType)),
-    onChangeLanguage: (type) => dispatch(changeLocale(type))
+    onLoadResources: (projectId, roleType) => dispatch(loadResources(projectId, roleType))
   }
 }
 

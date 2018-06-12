@@ -32,10 +32,17 @@ case class Directive(id: Long,
                      directive: String,
                      zkPath: String,
                      createTime: String,
-                     createBy: Long) extends BaseEntity
+                     createBy: Long) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
+
+case class SimpleDirective(protocolType: String,
+                           flowId: Long)
 
 class DirectiveTable(_tableTag: Tag) extends BaseTable[Directive](_tableTag, "directive") {
-  def * = (id, protocolType, streamId, flowId, directive, zkPath, createTime, createBy) <>(Directive.tupled, Directive.unapply)
+  def * = (id, protocolType, streamId, flowId, directive, zkPath, createTime, createBy) <> (Directive.tupled, Directive.unapply)
 
   /** Database column protocol_type SqlType(VARCHAR), Length(200,true) */
   val protocolType: Rep[String] = column[String]("protocol_type", O.Length(200, varying = true))

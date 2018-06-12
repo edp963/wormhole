@@ -50,7 +50,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
             }
             else {
               if (session.projectIdList.contains(projectId)) {
-                streamDal.refreshStreamStatus(Some(projectId), Some(streamId))
+                streamDal.refreshStreamStatus(Some(projectId), Some(Seq(streamId)))
                 riderLogger.info(s"user ${session.userId} refresh streams.")
                 onComplete(flowDal.getById(projectId, flowId).mapTo[Option[FlowStreamInfo]]) {
                   case Success(flowStreamOpt) =>
@@ -117,7 +117,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
 
                       case (_, _, _) =>
                         riderLogger.error(s"user ${session.userId} request url is not supported.")
-                        complete(OK, getHeader(501, session))
+                        complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
                     }
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
@@ -200,7 +200,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                 if (session.roleType != "user")
                   complete(OK, getHeader(403, session))
                 else {
-                  streamDal.refreshStreamStatus(Some(projectId), Some(streamId))
+                  streamDal.refreshStreamStatus(Some(projectId), Some(Seq(streamId)))
                   riderLogger.info(s"user ${session.userId} refresh streams.")
                   if (session.projectIdList.contains(projectId)) {
                     val checkFormat = FlowUtils.checkConfigFormat(flow.sinkConfig.getOrElse(""), flow.tranConfig.getOrElse(""))
@@ -217,7 +217,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                         case Success(_) =>
                           if (streamId != flow.streamId)
                             FlowUtils.stopFlow(streamId, flow.id, session.userId, stream.streamType, existFlow.sourceNs, existFlow.sinkNs, flow.tranConfig.getOrElse(""))
-                          riderLogger.info(s"user ${session.userId} update flow $updateFlow where project id is $projectId success.")
+                          riderLogger.info(s"user ${session.userId} update flow ${updateFlow.id} where project id is $projectId success.")
                           onComplete(flowDal.defaultGetAll(_.id === updateFlow.id, "modify").mapTo[Seq[FlowStream]]) {
                             case Success(flowStream) =>
                               riderLogger.info(s"user ${session.userId} refresh flow where project id is $projectId and flow id is ${updateFlow.id} success.")
@@ -227,7 +227,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                               complete(OK, getHeader(451, ex.getMessage, session))
                           }
                         case Failure(ex) =>
-                          riderLogger.error(s"user ${session.userId} update flow $updateFlow where project id is $projectId failed", ex)
+                          riderLogger.error(s"user ${session.userId} update flow ${updateFlow.id} where project id is $projectId failed", ex)
                           complete(OK, getHeader(451, ex.getMessage, session))
                       }
                     } else {

@@ -19,11 +19,12 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
+import {connect} from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 import { FormattedMessage } from 'react-intl'
 import messages from './messages'
 
-import DataSystemSelector from '../../components/DataSystemSelector'
-import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
 import Form from 'antd/lib/form'
 import Row from 'antd/lib/row'
 import Col from 'antd/lib/col'
@@ -33,21 +34,30 @@ import Icon from 'antd/lib/icon'
 import Input from 'antd/lib/input'
 const FormItem = Form.Item
 
+import DataSystemSelector from '../../components/DataSystemSelector'
+import { loadDataSystemData } from '../../components/DataSystemSelector/dataSystemFunction'
+import { checkInstance } from './action'
+import { selectLocale } from '../LanguageProvider/selectors'
+
 export class InstanceForm extends React.Component {
   constructor (props) {
     super(props)
-    this.state = { instanceDSValue: '' }
+    this.state = {
+      instanceDSValue: ''
+    }
   }
 
-  onHandleChange = (name) => (e) => {
-    switch (name) {
-      case 'connectionUrl':
-        this.props.onInitInstanceInputValue(e.target.value)
-        break
-      case 'instance':
-        this.props.onInitInstanceExited(e.target.value)
-        break
-    }
+  checkInstanceName = (rule, value = '', callback) => {
+    const { onCheckInstance, instanceFormType } = this.props
+    const { instanceDSValue } = this.state
+
+    instanceFormType === 'add'
+      ? onCheckInstance(instanceDSValue, value, res => {
+        callback()
+      }, err => {
+        callback(err)
+      })
+      : callback()
   }
 
   onSourceDataSystemItemSelect = (e) => {
@@ -57,43 +67,29 @@ export class InstanceForm extends React.Component {
 
   render () {
     const { getFieldDecorator } = this.props.form
-    const { instanceFormType } = this.props
+    const { type, instanceFormType, locale } = this.props
     const { instanceDSValue } = this.state
-    const languageText = localStorage.getItem('preferredLanguage')
 
     const itemStyle = {
       labelCol: { span: 6 },
       wrapperCol: { span: 16 }
     }
 
-    // edit 时，不能修改部分元素
-    let disabledOrNot = false
-    if (instanceFormType === 'add') {
-      disabledOrNot = false
-    } else if (instanceFormType === 'edit') {
-      disabledOrNot = true
-    }
-
     // help
     let questionDS = ''
     if (instanceDSValue === 'oracle' || instanceDSValue === 'mysql' ||
-      instanceDSValue === 'postgresql' || instanceDSValue === 'vertica') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlOracleMsg} />
+      instanceDSValue === 'postgresql' || instanceDSValue === 'vertica' ||
+      instanceDSValue === 'phoenix') {
+      questionDS = 'ip:port'
     } else if (instanceDSValue === 'es') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlEsMsg} />
+      questionDS = 'sink: http url list, lookup: tcp url, ip:port'
     } else if (instanceDSValue === 'hbase') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlHbaseMsg} />
-    } else if (instanceDSValue === 'phoenix') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlPhienixMsg} />
-    } else if (instanceDSValue === 'kafka') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlKafkaMsg} />
-    } else if (instanceDSValue === 'cassandra' || instanceDSValue === 'redis' ||
-      instanceDSValue === 'mongodb') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlCassandraMsg} />
+      questionDS = 'zk node list'
+    } else if (instanceDSValue === 'kafka' || instanceDSValue === 'cassandra' ||
+      instanceDSValue === 'redis' || instanceDSValue === 'kudu') {
+      questionDS = 'ip:port list'
     } else if (instanceDSValue === 'parquet') {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlParquetMsg} />
-    } else {
-      questionDS = <FormattedMessage {...messages.instanceModalUrlOthersMsg} />
+      questionDS = 'hdfs root path: hdfs://ip:port/test'
     }
 
     const connectionURLMsg = (
@@ -102,10 +98,14 @@ export class InstanceForm extends React.Component {
         <Tooltip title={<FormattedMessage {...messages.instanceHelp} />}>
           <Popover
             placement="top"
-            content={<div style={{ width: '260px', height: '55px' }}>
-              <p>{questionDS}</p>
-            </div>}
-            title={<h3><FormattedMessage {...messages.instanceHelp} /></h3>}
+            content={
+              <div style={{ width: '260px', height: '55px' }}>
+                <p>{questionDS}</p>
+              </div>
+            }
+            title={
+              <h3><FormattedMessage {...messages.instanceHelp} /></h3>
+            }
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
           </Popover>
@@ -119,7 +119,7 @@ export class InstanceForm extends React.Component {
           <Col span={24}>
             <FormItem className="hide">
               {getFieldDecorator('id', {
-                hidden: this.props.type === 'add'
+                hidden: type === 'add'
               })(
                 <Input />
               )}
@@ -128,13 +128,13 @@ export class InstanceForm extends React.Component {
               {getFieldDecorator('instanceDataSystem', {
                 rules: [{
                   required: true,
-                  message: `${languageText === 'en' ? 'Please select Data System' : '请选择 Data System'}`
+                  message: `${locale === 'en' ? 'Please select Data System' : '请选择 Data System'}`
                 }]
               })(
                 <DataSystemSelector
                   data={loadDataSystemData()}
                   onItemSelect={this.onSourceDataSystemItemSelect}
-                  dataSystemDisabled={disabledOrNot}
+                  dataSystemDisabled={instanceFormType === 'edit'}
                 />
               )}
             </FormItem>
@@ -145,12 +145,14 @@ export class InstanceForm extends React.Component {
               {getFieldDecorator('instance', {
                 rules: [{
                   required: true,
-                  message: `${languageText === 'en' ? 'Please fill in instance' : '请填写 Instance'}`
+                  message: `${locale === 'en' ? 'Please fill in instance' : '请填写 Instance'}`
+                },
+                {
+                  validator: this.checkInstanceName
                 }]
               })(
                 <Input
                   placeholder="Instance"
-                  onChange={this.onHandleChange('instance')}
                   disabled={instanceFormType === 'edit'}
                 />
               )}
@@ -162,12 +164,12 @@ export class InstanceForm extends React.Component {
               {getFieldDecorator('connectionUrl', {
                 rules: [{
                   required: true,
-                  message: `${languageText === 'en' ? 'Please fill in connection url' : '请填写 Connection Url'}`
+                  message: `${locale === 'en' ? 'Please fill in connection url' : '请填写 Connection Url'}`
                 }]
               })(
                 <Input
                   placeholder="Connection URL"
-                  onChange={this.onHandleChange('connectionUrl')}
+                  onChange={(e) => this.props.onInitCheckUrl(e.target.value)}
                 />
               )}
             </FormItem>
@@ -188,12 +190,23 @@ export class InstanceForm extends React.Component {
 }
 
 InstanceForm.propTypes = {
-  form: React.PropTypes.any,
-  type: React.PropTypes.string,
-  instanceFormType: React.PropTypes.string,
-  onInitInstanceInputValue: React.PropTypes.func,
-  onInitInstanceExited: React.PropTypes.func,
-  onInitInstanceSourceDs: React.PropTypes.func
+  form: PropTypes.any,
+  type: PropTypes.string,
+  instanceFormType: PropTypes.string,
+  onInitInstanceSourceDs: PropTypes.func,
+  onCheckInstance: PropTypes.func,
+  onInitCheckUrl: PropTypes.func,
+  locale: PropTypes.string
 }
 
-export default Form.create({wrappedComponentRef: true})(InstanceForm)
+function mapDispatchToProps (dispatch) {
+  return {
+    onCheckInstance: (type, nsInstance, resolve, reject) => dispatch(checkInstance(type, nsInstance, resolve, reject))
+  }
+}
+
+const mapStateToProps = createStructuredSelector({
+  locale: selectLocale()
+})
+
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, mapDispatchToProps)(InstanceForm))

@@ -61,13 +61,13 @@ class FlowAppApi(flowDal: FlowDal, streamDal: StreamDal, projectDal: ProjectDal)
                             complete(OK, ResponseJson[AppFlowResponse](getHeader(200, null), AppFlowResponse(flow.id, flow.status)))
                           } else {
                             riderLogger.error(s"user ${session.userId} send flow ${flow.id} start directive failed")
-                            flowDal.updateFlowStatus(flow.id, "failed")
+                            flowDal.updateStatusByFeedback(flow.id, "failed")
                             complete(OK, getHeader(451, null))
                           }
                         } catch {
                           case ex: Exception =>
                             riderLogger.error(s"user ${session.userId} start flow ${flow.id} failed", ex)
-                            flowDal.updateFlowStatus(flow.id, "failed")
+                            flowDal.updateStatusByFeedback(flow.id, "failed")
                             complete(OK, getHeader(451, null))
                         }
                       case Left(response) => complete(OK, response)
@@ -115,7 +115,7 @@ class FlowAppApi(flowDal: FlowDal, streamDal: StreamDal, projectDal: ProjectDal)
                 if (flow.status != "stopped") {
                   if (stopFlow(stream.id, flowId, flow.updateBy, stream.streamType, flow.sourceNs, flow.sinkNs, flow.tranConfig.getOrElse(""))) {
                     riderLogger.info(s"user ${session.userId} stop flow $flowId success.")
-                    flowDal.updateFlowStatus(flowId, "stopped")
+                    flowDal.updateStatusByFeedback(flowId, "stopped")
                     complete(OK, ResponseJson[AppFlowResponse](getHeader(200, session), AppFlowResponse(flowId, "stopped")))
                   } else {
                     riderLogger.error(s"user ${session.userId} send flow $flowId stop directive failed")

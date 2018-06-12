@@ -19,12 +19,22 @@
  */
 
 import {
-  CHANGE_LOCALE
+  CHANGE_LOCALE,
+  SET_LOCALE
 } from './constants'
 
 export function changeLocale (languageLocale) {
   return {
     type: CHANGE_LOCALE,
     locale: languageLocale
+  }
+}
+
+export function setLocale (locale) {
+  return {
+    type: SET_LOCALE,
+    payload: {
+      locale
+    }
   }
 }
