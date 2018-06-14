@@ -74,6 +74,7 @@ trait PersistenceModule {
   val dbusDal: BaseDal[DbusTable, Dbus]
   val directiveDal: DirectiveDal
   val inTopicDal: StreamInTopicDal
+  val udfTopicDal: StreamUserDefinedTopicDal
 
   val jobDal: JobDal
   val udfDal: UdfDal
@@ -98,6 +99,7 @@ trait PersistenceModule {
   val dbusQuery = TableQuery[DbusTable]
   val directiveQuery = TableQuery[DirectiveTable]
   val streamInTopicQuery = TableQuery[StreamInTopicTable]
+  val udfTopicQuery = TableQuery[StreamUserDefinedTopicTable]
 
   val jobQuery = TableQuery[JobTable]
   val udfQuery = TableQuery[UdfTable]
@@ -128,6 +130,7 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val dbusDal = new BaseDalImpl[DbusTable, Dbus](dbusQuery)
   override lazy val directiveDal = new DirectiveDal(directiveQuery)
   override lazy val inTopicDal = new StreamInTopicDal(streamInTopicQuery, databaseQuery, feedbackOffsetQuery)
+  override lazy val udfTopicDal: StreamUserDefinedTopicDal = new StreamUserDefinedTopicDal(udfTopicQuery, streamQuery, instanceQuery)
 
   override lazy val jobDal = new JobDal(jobQuery, projectQuery)
   override lazy val udfDal = new UdfDal(udfQuery, relProjectUdfDal, relStreamUdfDal, projectDal, streamDal)
