@@ -21,6 +21,17 @@
 
 package edp.rider.common
 
+object UserRoleType extends Enumeration {
+  type UserRoleType = Value
+
+  val ADMIN = Value("admin")
+  val USER = Value("user")
+  val APP = Value("app")
+
+  def userRowType(s: String) = UserRoleType.withName(s.toLowerCase)
+}
+
+
 object FlowStatus extends Enumeration {
   type FlowStatus = Value
 

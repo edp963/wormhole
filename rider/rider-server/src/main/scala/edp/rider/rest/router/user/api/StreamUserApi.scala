@@ -22,9 +22,11 @@
 package edp.rider.rest.router.user.api
 
 import akka.http.scaladsl.model.StatusCodes.OK
+import akka.http.scaladsl.server
 import akka.http.scaladsl.server.Route
 import edp.rider.common.Action._
-import edp.rider.common.{RiderLogger, StreamStatus}
+import edp.rider.common.UserRoleType.UserRoleType
+import edp.rider.common.{RiderLogger, StreamStatus, UserRoleType}
 import edp.rider.kafka.GetLatestOffsetException
 import edp.rider.kafka.KafkaUtils._
 import edp.rider.rest.persistence.dal._
@@ -697,4 +699,47 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
         }
       }
   }
+
+  def postUserDefinedTopicRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "topics" / "userdefined") {
+    (id, streamId) =>
+      post {
+        entity(as[PostUserDefinedTopic]) {
+          postTopic => {
+            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+              session =>
+                if (session.roleType != "user") {
+                  riderLogger.warn(s"${session.userId} has no permission to access it.")
+                  complete(OK, getHeader(403, session))
+                }
+                else {
+                  if (session.projectIdList.contains(id)) {
+                    try {
+                      postUserDefinedTopicResponse(id, streamId, postTopic, session)
+                    } catch {
+                      case ex: Exception =>
+                        riderLogger.error(s"user ${session.userId} insert user defined topic failed", ex)
+                        complete(OK, setFailedResponse(session, ex.getMessage))
+                    }
+                  } else {
+                    riderLogger.error(s"user ${
+                      session.userId
+                    } doesn't have permission to access the project $id.")
+                    complete(OK, setFailedResponse(session, "Insufficient Permission"))
+                  }
+                }
+            }
+          }
+        }
+      }
+  }
+
+  def postUserDefinedTopicResponse(projectId: Long, streamId: Long, postTopic: PostUserDefinedTopic, session: SessionClass): Route = {
+    //生成 StreamUserDefinedTopic对象, 插入数据时验证唯一键冲突, 抛出异常
+    //返回对象UserDefinedTopicResponse
+    //for example
+    val topic = UserDefinedTopicResponse(1, "test", 100, "0:0", "0:0", "0:50")
+    riderLogger.info(s"user ${session.userId} insert user defined topic success.")
+    complete(OK, ResponseJson[UserDefinedTopicResponse](getHeader(200, session), topic))
+  }
+
 }
