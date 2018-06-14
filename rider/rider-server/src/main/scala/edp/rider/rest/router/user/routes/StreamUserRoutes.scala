@@ -35,7 +35,8 @@ import io.swagger.annotations.{ApiResponses, _}
 @Path("/user/projects")
 class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives with JsonSerializer {
   lazy val routes: Route = getStreamByAllRoute ~ putStreamRoute ~ postStreamRoute ~ renewRoute ~
-    getStreamById ~ getLogByStreamId ~ stop ~ startRoute ~ deleteStream ~ getSparkConf ~ getLatestOffset ~ getJvmConf
+    getStreamById ~ getLogByStreamId ~ stop ~ startRoute ~ deleteStream ~ getSparkConf ~ getLatestOffset ~ getJvmConf ~
+    postUserDefinedTopic
 
   lazy val basePath = "projects"
 
@@ -224,4 +225,22 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getLatestOffset: Route = modules.streamUserService.getLatestOffset(basePath)
+
+  //  post /user/projects/1/streams/1/topics/userdefined
+  @Path("/{id}/streams/{streamId}/topics/userdefined")
+  @ApiOperation(value = "new userdefined topic", notes = "", nickname = "", httpMethod = "POST")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "topicName", value = "topic name", required = true, dataType = "edp.rider.rest.persistence.entities.PostUserDefinedTopic", paramType = "body")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def postUserDefinedTopic: Route = modules.streamUserService.postUserDefinedTopicRoute(basePath)
+
 }
