@@ -24,7 +24,7 @@ package edp.rider.rest.util
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.directives.RespondWithDirectives._
-import edp.rider.rest.router.{ResponseHeader, SessionClass}
+import edp.rider.rest.router.{ResponseHeader, ResponseJson, SessionClass}
 import edp.rider.rest.util.JwtSupport._
 
 object ResponseUtils {
@@ -35,7 +35,7 @@ object ResponseUtils {
     403 -> "Insufficient Permission",
     404 -> "Not found",
     418 -> "app type user has no permission to login",
-    451 -> "Request process failed",
+    451 -> "Failed",
     501 -> "Not supported",
     406 -> "action is forbidden",
     507 -> "resource is not enough")
@@ -57,4 +57,11 @@ object ResponseUtils {
     else
       ResponseHeader(code, msg)
   }
+
+  def setSuccessResponse(session: SessionClass): ResponseJson[String] =
+    ResponseJson[String](getHeader(200, session), msgMap(200))
+
+  def setFailedResponse(session: SessionClass, msg: String = "Failed"): ResponseJson[String] =
+    ResponseJson[String](getHeader(451, session), msg)
 }
+
