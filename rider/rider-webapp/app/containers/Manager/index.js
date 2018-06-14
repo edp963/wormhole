@@ -112,7 +112,8 @@ export class Manager extends React.Component {
       currentUdfVal: [],
 
       consumedOffsetValue: [],
-      kafkaOffsetValue: []
+      kafkaOffsetValue: [],
+      kafkaEarliestOffset: []
     }
   }
 
@@ -269,7 +270,8 @@ export class Manager extends React.Component {
           this.setState({
             consumedOffsetValue: result.consumedLatestOffset,
             kafkaOffsetValue: result.kafkaLatestOffset,
-            streamStartFormData: result.consumedLatestOffset
+            streamStartFormData: result.consumedLatestOffset,
+            kafkaEarliestOffset: result.kafkaEarliestOffset
           })
         })
       })
@@ -327,7 +329,8 @@ export class Manager extends React.Component {
         this.setState({
           consumedOffsetValue: result.consumedLatestOffset,
           kafkaOffsetValue: result.kafkaLatestOffset,
-          streamStartFormData: result.consumedLatestOffset
+          streamStartFormData: result.consumedLatestOffset,
+          kafkaEarliestOffset: result.kafkaEarliestOffset
         })
       } else {
         this.setState({
@@ -349,7 +352,8 @@ export class Manager extends React.Component {
     this.props.onLoadLastestOffset(projectId, streamId, (result) => {
       this.setState({
         consumedOffsetValue: result.consumedLatestOffset,
-        kafkaOffsetValue: result.kafkaLatestOffset
+        kafkaOffsetValue: result.kafkaLatestOffset,
+        kafkaEarliestOffset: result.kafkaEarliestOffset
       })
     })
   }
@@ -713,7 +717,7 @@ export class Manager extends React.Component {
     const {
       refreshStreamLoading, refreshStreamText, showStreamdetails, logsModalVisible,
       logsContent, refreshLogLoading, refreshLogText, logsProjectId, logsStreamId,
-      streamStartFormData, consumedOffsetValue, kafkaOffsetValue, actionType,
+      streamStartFormData, consumedOffsetValue, kafkaOffsetValue, kafkaEarliestOffset, actionType,
       startUdfVals, renewUdfVals, currentUdfVal, topicInfoModal, currentStreams
     } = this.state
     const { className, onShowAddStream, onShowEditStream, streamClassHide, streamStartModalLoading, roleType } = this.props
@@ -1145,10 +1149,13 @@ export class Manager extends React.Component {
           data={streamStartFormData}
           consumedOffsetValue={consumedOffsetValue}
           kafkaOffsetValue={kafkaOffsetValue}
+          kafkaEarliestOffset={kafkaEarliestOffset}
           streamActionType={actionType}
           startUdfValsOption={startUdfVals}
           renewUdfValsOption={renewUdfVals}
           currentUdfVal={currentUdfVal}
+          projectIdGeted={this.props.projectIdGeted}
+          streamIdGeted={this.state.streamIdGeted}
           ref={(f) => { this.streamStartForm = f }}
         />
       )
