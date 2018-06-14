@@ -36,7 +36,9 @@ import {
   OPERATE_STREAMS,
   DELETE_STREAMS,
   STARTORRENEW_STREAMS,
-  LOAD_LASTEST_OFFSET
+  LOAD_LASTEST_OFFSET,
+  POST_USER_TOPIC,
+  DELETE_USER_TOPIC
 } from './constants'
 
 import {
@@ -57,7 +59,9 @@ import {
   streamDeleted,
   streamStartOrRenewed,
   streamOperatedError,
-  lastestOffsetLoaded
+  lastestOffsetLoaded,
+  postUserTopicLoaded,
+  deleteUserTopicLoaded
 } from './action'
 
 import request from '../../utils/request'
@@ -334,6 +338,42 @@ export function* getLastestOffsetWatcher () {
   yield fork(takeLatest, LOAD_LASTEST_OFFSET, getLastestOffset)
 }
 
+export function* addUserTopic ({payload}) {
+  try {
+    const result = yield call(request, {
+      method: 'post',
+      url: `${api.projectUserList}/${payload.projectId}/streams/${payload.streamId}/topics/userdefined`,
+      data: payload.topic
+    })
+    if (result.header.code && result.header.code === 200) {
+      yield put(postUserTopicLoaded(result.payload))
+      payload.resolve(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'addUserTopic')
+  }
+}
+
+export function* addUserTopicWatch () {
+  yield fork(takeEvery, POST_USER_TOPIC, addUserTopic)
+}
+
+export function* removeUserTopic ({payload}) {
+  try {
+    const result = yield call(request, {
+      method: 'delete',
+      url: `${api.projectUserList}/${payload.projectId}/streams/${payload.streamId}/topics/userdefined/${payload.topicId}`
+    })
+    yield put(deleteUserTopicLoaded(result.payload))
+    payload.resolve()
+  } catch (err) {
+    notifySagasError(err, 'removeUserTopic')
+  }
+}
+
+export function* removeUserTopicWatch () {
+  yield fork(takeEvery, DELETE_USER_TOPIC, removeUserTopic)
+}
 export default [
   getUserStreamsWatcher,
   getAdminAllFlowsWatcher,
@@ -350,5 +390,6 @@ export default [
   operateStreamWathcer,
   deleteStreamWathcer,
   startOrRenewStreamWathcer,
-  getLastestOffsetWatcher
+  getLastestOffsetWatcher,
+  addUserTopicWatch
 ]
