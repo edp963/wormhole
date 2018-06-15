@@ -161,6 +161,7 @@ object SparkUtils extends EdpLogging {
       case "StringType" => UmsFieldType.STRING
       case "DateType" => UmsFieldType.DATETIME
       case "TimestampType" => UmsFieldType.DATETIME
+      case "BooleanType" => UmsFieldType.BOOLEAN
       case "BinaryType" => UmsFieldType.BINARY
       case t if t.startsWith("StructType")  => UmsFieldType.JSONOBJECT
       case t if t.startsWith("ArrayType") => UmsFieldType.JSONARRAY
