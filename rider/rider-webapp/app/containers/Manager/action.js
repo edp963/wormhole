@@ -397,14 +397,15 @@ export function lastestOffsetLoaded (result) {
   }
 }
 
-export function postUserTopic (projectId, streamId, topic, resolve) {
+export function postUserTopic (projectId, streamId, topic, resolve, reject) {
   return {
     type: POST_USER_TOPIC,
     payload: {
       projectId,
       streamId,
       topic,
-      resolve
+      resolve,
+      reject
     }
   }
 }
@@ -418,14 +419,15 @@ export function postUserTopicLoaded (result) {
   }
 }
 
-export function deleteUserTopic (projectId, streamId, topicId, resolve) {
+export function deleteUserTopic (projectId, streamId, topicId, resolve, reject) {
   return {
     type: DELETE_USER_TOPIC,
     payload: {
       projectId,
       streamId,
       topicId,
-      resolve
+      resolve,
+      reject
     }
   }
 }
