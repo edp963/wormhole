@@ -33,7 +33,7 @@ import Tooltip from 'antd/lib/tooltip'
 import Button from 'antd/lib/button'
 import Select from 'antd/lib/select'
 import InputNumber from 'antd/lib/input-number'
-import { Collapse, Input, Icon } from 'antd'
+import { Collapse, Input, Icon, message } from 'antd'
 const Panel = Collapse.Panel
 const FormItem = Form.Item
 import { forceCheckNum } from '../../utils/util'
@@ -44,37 +44,40 @@ export class StreamStartForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      data: [] || ''
+      data: [] || '',
+      userDefinedTopics: []
     }
   }
 
   componentWillReceiveProps (props) {
     let dataFinal = []
+    let userDefinedTopics = []
     if (!props.data) {
       dataFinal = 'There is no topics now.'
     } else {
-      dataFinal = props.data.map(s => {
-        const conTemp = props.consumedOffsetValue.find(i => i.id === s.id)
-        const conTempObject = conTemp
-          ? {
-            id: conTemp.id,
-            name: conTemp.name,
-            conOffsetVal: conTemp.partitionOffsets,
-            rate: conTemp.rate,
-            key: conTemp.id
-          }
-          : {}
+      dataFinal = props.data.slice()
+      userDefinedTopics = props.userDefinedTopics.slice()
+      // props.data.map(s => {
+      //   const conTemp = props.autoRegisteredTopics.find(i => i.id === s.id)
+      //   const conTempObject = conTemp
+      //     ? {
+      //       id: conTemp.id,
+      //       name: conTemp.name,
+      //       conOffsetVal: conTemp.consumedLatestOffset,
+      //       rate: conTemp.rate,
+      //       key: conTemp.id
+      //     }
+      //     : {}
 
-        const kafTemp = props.kafkaOffsetValue.find(i => i.id === s.id)
-        const kafTempObject = kafTemp
-          ? {kafOffsetVal: kafTemp.partitionOffsets}
-          : {}
+      //   const kafTemp = props.autoRegisteredTopics.find(i => i.id === s.id)
+      //   const kafTempObject = kafTemp
+      //     ? {kafOffsetVal: kafTemp.kafkaLatestOffset, kafEarOffsetVal: kafTemp.kafkaEarliestOffset}
+      //     : {}
 
-        return Object.assign(conTempObject, kafTempObject)
-      })
+      //   return Object.assign(conTempObject, kafTempObject)
+      // })
     }
-
-    this.setState({ data: dataFinal })
+    this.setState({ data: dataFinal, userDefinedTopics })
   }
 
   onApplyOffset = (i, index, offset, type) => (e) => {
@@ -87,14 +90,13 @@ export class StreamStartForm extends React.Component {
     let arr = []
     switch (type) {
       case 'consumer':
-        arr = i.conOffsetVal.split(',')
+        arr = i.consumedLatestOffset.split(',')
         break
       case 'kafka':
-        arr = i.kafOffsetVal.split(',')
+        arr = i.kafkaLatestOffset.split(',')
         break
       case 'kafkaEar':
-      // NOTE: 新变量
-        arr = i.kafEarOffsetVal.split(',')
+        arr = i.kafkaEarliestOffset.split(',')
     }
     for (let item of arr) {
       const itemTemp = item.split(':')
@@ -106,30 +108,45 @@ export class StreamStartForm extends React.Component {
   toggleItem = (type, id) => (e) => {
     if (!type) return
     let { projectIdGeted, streamIdGeted } = this.props
-    if (type === 'add') {
-      this.props.form.validateFieldsAndScroll((err, values) => {
-        if (!err) {
-          let name = values.newTopicName
-          let req = { name }
-          this.props.onPostUserTopic(projectIdGeted, streamIdGeted, req, (result) => {
-            console.log('onPostUserTopic', result)
-          })
-        }
-      })
-    } else if (type === 'delete') {
-      this.props.form.validateFieldsAndScroll((err, values) => {
-        if (!err) {
-          this.props.onDeleteUserTopic(projectIdGeted, streamIdGeted, id, (result) => {
-            console.log('onDeleteUserTopic', result)
-          })
-        }
-      })
+    switch (type) {
+      case 'add':
+        this.props.form.validateFieldsAndScroll((err, values) => {
+          if (!err) {
+            let name = values.newTopicName
+            let req = { name }
+            this.props.onPostUserTopic(projectIdGeted, streamIdGeted, req, (result) => {
+              let userTopicList = this.state.userDefinedTopics.slice()
+              userTopicList = userTopicList.concat(result)
+              this.setState({userDefinedTopics: userTopicList})
+              this.props.emitStartFormDataFromSub(this.state.userDefinedTopics)
+              message.success('success', 3)
+            }, (error) => {
+              message.error(error, 3)
+            })
+          }
+        })
+        break
+      case 'delete':
+        this.props.onDeleteUserTopic(projectIdGeted, streamIdGeted, id, (result) => {
+          let userTopicList = this.state.userDefinedTopics.slice()
+          for (let i = 0; i < userTopicList.length; i++) {
+            if (userTopicList[i].id === id) {
+              userTopicList.splice(i, 1)
+            }
+          }
+          this.setState({userDefinedTopics: userTopicList})
+          this.props.emitStartFormDataFromSub(this.state.userDefinedTopics)
+          message.success(result, 3)
+        }, (error) => {
+          message.error(error, 3)
+        })
+        break
     }
   }
   render () {
     const { form, streamActionType, startUdfValsOption, renewUdfValsOption, currentUdfVal, locale } = this.props
     const { getFieldDecorator } = form
-    const { data } = this.state
+    const { data, userDefinedTopics } = this.state
 
     const noTopicCardTitle = (<Col span={24} style={{fontWeight: '500'}}><span className="modal-topic-name">Topic Name</span></Col>)
     const topicCardTitle = (<Col span={24} style={{fontWeight: '500'}}><span className="modal-topic-name">Topics</span></Col>)
@@ -164,22 +181,28 @@ export class StreamStartForm extends React.Component {
           : data.map(i => {
             let parOffInput = ''
 
-            if (i.conOffsetVal) {
-              const partitionOffsetsArr = i.conOffsetVal.split(',')
+            if (i.consumedLatestOffset) {
+              const partitionOffsetsArr = i.consumedLatestOffset.split(',')
 
               parOffInput = partitionOffsetsArr.map((g, index) => {
                 const gKey = g.substring(0, g.indexOf(':'))
                 const conOffFinal = g.substring(g.indexOf(':') + 1)
 
                 let kafOffFinal = ''
-                if (i.kafOffsetVal) {
-                  const kafOffArr = i.kafOffsetVal.split(',')
+                if (i.kafkaLatestOffset) {
+                  const kafOffArr = i.kafkaLatestOffset.split(',')
                   const kafOffFilter = kafOffArr.filter(s => s.substring(0, s.indexOf(':')) === gKey)
                   kafOffFinal = kafOffFilter[0].substring(kafOffFilter[0].indexOf(':') + 1)
                 } else {
                   kafOffFinal = ''
                 }
 
+                let kafEarOffFinal = ''
+                if (i.kafkaEarliestOffset) {
+                  const kafEarOffArr = i.kafkaEarliestOffset.split(',')
+                  const kafOffFilter = kafEarOffArr.filter(s => s.substring(0, s.indexOf(':')) === gKey)
+                  kafEarOffFinal = kafOffFilter[0].substring(kafOffFilter[0].indexOf(':') + 1)
+                }
                 const applyFormat = <FormattedMessage {...messages.streamModalApply} />
                 return (
                   <Row key={`${i.id}_${index}`}>
@@ -222,7 +245,7 @@ export class StreamStartForm extends React.Component {
                         <ol key={g}>
                           {getFieldDecorator(`kafkaEarliest_${i.id}_${index}_${type}`, {})(
                             <div className="stream-start-lastest-kafka-offset">
-                              <span style={{ marginRight: '5px' }}>{kafOffFinal}</span>
+                              <span style={{ marginRight: '5px' }}>{kafEarOffFinal}</span>
                               <Tooltip title={applyFormat}>
                                 <Button shape="circle" type="ghost" onClick={this.onApplyOffset(i, index, kafOffFinal, type)}>
                                   <i className="iconfont icon-apply_icon_-copy-copy"></i>
@@ -412,7 +435,7 @@ export class StreamStartForm extends React.Component {
               </Panel>
               <Panel header={userDefinedTopicsCardTitle}>
                 {userDefinedTopicsCardAddItem}
-                {userItemFactory(data)}
+                {userItemFactory(userDefinedTopics)}
               </Panel>
             </Collapse>
             {/* <Card title={autoRegisteredTopicsCardTitle} className="stream-start-form-card-style">
@@ -438,7 +461,8 @@ StreamStartForm.propTypes = {
   projectIdGeted: PropTypes.string,
   streamIdGeted: PropTypes.number,
   onPostUserTopic: PropTypes.func,
-  onDeleteUserTopic: PropTypes.func
+  onDeleteUserTopic: PropTypes.func,
+  emitStartFormDataFromSub: PropTypes.func
 }
 
 const mapStateToProps = createStructuredSelector({
@@ -447,8 +471,8 @@ const mapStateToProps = createStructuredSelector({
 
 function mapDispatchToProps (dispatch) {
   return {
-    onPostUserTopic: (projectId, streamId, topic, resolve) => dispatch(postUserTopic(projectId, streamId, topic, resolve)),
-    onDeleteUserTopic: (projectId, streamId, topicId, resolve) => dispatch(deleteUserTopic(projectId, streamId, topicId, resolve))
+    onPostUserTopic: (projectId, streamId, topic, resolve, reject) => dispatch(postUserTopic(projectId, streamId, topic, resolve, reject)),
+    onDeleteUserTopic: (projectId, streamId, topicId, resolve, reject) => dispatch(deleteUserTopic(projectId, streamId, topicId, resolve, reject))
   }
 }
 export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, mapDispatchToProps)(StreamStartForm))

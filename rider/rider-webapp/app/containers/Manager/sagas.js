@@ -321,7 +321,7 @@ export function* startOrRenewStreamWathcer () {
 
 export function* getLastestOffset ({ payload }) {
   try {
-    const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/topics/offsets/latest`)
+    const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/topics`)
     if (result.code && result.code === 200) {
       yield put(lastestOffsetLoaded(result.msg))
       payload.resolve(result.msg)
@@ -348,6 +348,8 @@ export function* addUserTopic ({payload}) {
     if (result.header.code && result.header.code === 200) {
       yield put(postUserTopicLoaded(result.payload))
       payload.resolve(result.payload)
+    } else {
+      payload.reject(result.payload)
     }
   } catch (err) {
     notifySagasError(err, 'addUserTopic')
@@ -364,8 +366,12 @@ export function* removeUserTopic ({payload}) {
       method: 'delete',
       url: `${api.projectUserList}/${payload.projectId}/streams/${payload.streamId}/topics/userdefined/${payload.topicId}`
     })
-    yield put(deleteUserTopicLoaded(result.payload))
-    payload.resolve()
+    if (result.header.code && result.header.code === 200) {
+      yield put(deleteUserTopicLoaded(result.payload))
+      payload.resolve(result.payload)
+    } else {
+      payload.reject(result.payload)
+    }
   } catch (err) {
     notifySagasError(err, 'removeUserTopic')
   }
@@ -391,5 +397,6 @@ export default [
   deleteStreamWathcer,
   startOrRenewStreamWathcer,
   getLastestOffsetWatcher,
-  addUserTopicWatch
+  addUserTopicWatch,
+  removeUserTopicWatch
 ]
