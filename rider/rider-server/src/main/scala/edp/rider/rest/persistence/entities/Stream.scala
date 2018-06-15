@@ -60,9 +60,8 @@ case class Stream(id: Long,
 case class StreamDetail(stream: Stream,
                         projectName: String,
                         kafkaInfo: StreamKafka,
-                        topicInfo: Seq[StreamTopic],
+                        topicInfo: Option[GetTopicsResponse],
                         currentUdf: Seq[StreamUdf],
-                        usingUdf: Seq[StreamZkUdf],
                         disableActions: String)
 
 
@@ -76,15 +75,19 @@ case class StreamZkUdfTemp(streamId: Long, functionName: String, fullClassName: 
 
 case class StreamZkUdf(functionName: String, fullClassName: String, jarName: String)
 
-case class PutStreamTopic(id: Long, partitionOffsets: String, rate: Int)
+case class PutTopicDirective(id: Long, partitionOffsets: String, rate: Int)
 
-case class StreamDirective(udfInfo: Option[Seq[Long]], topicInfo: Option[Seq[PutStreamTopic]])
+case class PutStreamTopic(autoRegisteredTopics: Seq[PutTopicDirective], userDefinedTopics: Seq[PutTopicDirective])
+
+case class StreamDirective(udfInfo: Seq[Long], topicInfo: Option[PutStreamTopic])
 
 case class ConsumedLatestOffset(id: Long, name: String, rate: Int, partitionOffsets: String)
 
 case class KafkaLatestOffset(id: Long, name: String, partitionOffsets: String)
 
 case class TopicLatestOffset(consumedLatestOffset: Seq[ConsumedLatestOffset], kafkaLatestOffset: Seq[KafkaLatestOffset])
+
+case class GetTopicsResponse(autoRegisteredTopics: Seq[TopicAllOffsets], userDefinedTopics: Seq[TopicAllOffsets])
 
 case class StreamTopicTemp(id: Long,
                            streamId: Long,
@@ -102,6 +105,7 @@ case class FeedbackOffsetInfo(streamId: Long,
                               partitionId: Int,
                               offset: Long)
 
+case class StreamIdKafkaUrl(streamId: Long, kafkaUrl: String)
 
 case class SimpleStream(name: String,
                         desc: Option[String] = None,
@@ -142,6 +146,8 @@ case class StreamHealth(streamStatus: String,
                         topics: Seq[TopicOffset])
 
 case class StreamInfo(name: String, streamType: String, status: String)
+
+case class StartResponse(disableActions: String)
 
 class StreamTable(_tableTag: Tag) extends BaseTable[Stream](_tableTag, "stream") {
   def * = (id, name, desc, projectId, instanceId, streamType, sparkConfig, startConfig, launchConfig, sparkAppid, logPath, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <> (Stream.tupled, Stream.unapply)

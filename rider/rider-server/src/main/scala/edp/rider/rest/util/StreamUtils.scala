@@ -22,7 +22,7 @@
 package edp.rider.rest.util
 
 import com.alibaba.fastjson.JSON
-import edp.rider.RiderStarter.modules
+import edp.rider.RiderStarter.modules._
 import edp.rider.common.Action._
 import edp.rider.common.StreamStatus._
 import edp.rider.common._
@@ -30,6 +30,7 @@ import edp.rider.kafka.KafkaUtils
 import edp.rider.module.DbModule.db
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
+import edp.rider.rest.util.UdfUtils.sendUdfDirective
 import edp.rider.spark.SparkJobClientLog
 import edp.rider.spark.SparkStatusQuery.{getAllYarnAppStatus, getAppStatusByRest}
 import edp.rider.spark.SubmitSparkJob.{generateStreamStartSh, runShellCommand}
@@ -47,8 +48,8 @@ import scala.concurrent.Await
 
 object StreamUtils extends RiderLogger {
 
-  def getDisableActions(status: String): String = {
-    streamStatus(status) match {
+  def getDisableActions(status: StreamStatus): String = {
+    status match {
       case NEW => s"$STOP, $RENEW"
       case STARTING => s"$START, $STOP, $DELETE"
       case WAITING => s"$START"
@@ -172,6 +173,35 @@ object StreamUtils extends RiderLogger {
     runShellCommand(commandSh)
   }
 
+  def genUdfsStartDirective(streamId: Long, udfIds: Seq[Long], userId: Long): Unit = {
+    if (udfIds.nonEmpty) {
+      val deleteUdfIds = relStreamUdfDal.getDeleteUdfIds(streamId, udfIds)
+      Await.result(relStreamUdfDal.deleteByFilter(udf => udf.streamId === streamId && udf.udfId.inSet(deleteUdfIds)), minTimeOut)
+      val insertUdfs = udfIds.map(
+        id => RelStreamUdf(0, streamId, id, currentSec, userId, currentSec, userId)
+      )
+      Await.result(relStreamUdfDal.insertOrUpdate(insertUdfs).mapTo[Int], minTimeOut)
+      sendUdfDirective(streamId, relStreamUdfDal.getStreamUdf(Seq(streamId)), userId)
+    } else {
+      Await.result(relStreamUdfDal.deleteByFilter(_.streamId === streamId), minTimeOut)
+    }
+  }
+
+  def genTopicsStartDirective(streamId: Long, putTopicOpt: Option[PutStreamTopic], userId: Long): Unit = {
+    val autoRegisteredTopicsMap = inTopicDal.getAutoRegisteredTopicNameMap(streamId)
+    val udfTopicsMap = udfTopicDal.getUdfTopicsMap(streamId)
+    if (putTopicOpt.nonEmpty) {
+      val autoRegisterTopics = putTopicOpt.get.autoRegisteredTopics.map {
+        topic => StreamTopicTemp(topic.id, streamId, autoRegisteredTopicsMap(topic.id), topic.partitionOffsets, topic.rate)
+      }
+      val udfTopics = putTopicOpt.get.userDefinedTopics.map {
+        topic => StreamTopicTemp(topic.id, streamId, udfTopicsMap(topic.id), topic.partitionOffsets, topic.rate)
+      }
+      val allTopics = autoRegisterTopics ++: udfTopics
+      sendTopicDirective(streamId, allTopics, userId)
+    }
+  }
+
   def sendTopicDirective(streamId: Long, topicSeq: Seq[StreamTopicTemp], userId: Long) = {
     try {
       val directiveSeq = new ArrayBuffer[Directive]
@@ -190,7 +220,7 @@ object StreamUtils extends RiderLogger {
       val directives: Seq[Directive] =
         if (directiveSeq.isEmpty) directiveSeq += blankTopic
         else {
-          Await.result(modules.directiveDal.insert(directiveSeq), minTimeOut)
+          Await.result(directiveDal.insert(directiveSeq), minTimeOut)
         }
       val topicUms = directives.map({
         directive =>
@@ -257,7 +287,7 @@ object StreamUtils extends RiderLogger {
   def sendUnsubscribeTopicDirective(streamId: Long, topicName: String, userId: Long) = {
     try {
       val zkConURL: String = RiderConfig.zk
-      val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, "", zkConURL, currentSec, userId)
+      val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, "", zkConURL, currentSec, userId)
       ), minTimeOut)
       val topicUms =
         s"""
@@ -411,13 +441,13 @@ object StreamUtils extends RiderLogger {
   }
 
   def checkAdminRemoveUdfs(projectId: Long, ids: Seq[Long]): (mutable.HashMap[Long, Seq[String]], ListBuffer[Long]) = {
-    val deleteUdfMap = Await.result(modules.udfDal.findByFilter(_.id inSet ids).mapTo[Seq[Udf]], minTimeOut)
+    val deleteUdfMap = Await.result(udfDal.findByFilter(_.id inSet ids).mapTo[Seq[Udf]], minTimeOut)
       .map(udf => (udf.id, udf.functionName)).toMap[Long, String]
     val notDeleteMap = new mutable.HashMap[Long, Seq[String]]
     val deleteUdfSeq = deleteUdfMap.keySet
     val notDeleteUdfIds = new ListBuffer[Long]
-    val streamIds = Await.result(modules.streamDal.findByFilter(stream => stream.projectId === projectId && stream.status =!= "new" && stream.status =!= "stopped" && stream.status =!= "failed"), minTimeOut).map(_.id)
-    val streamUdfs = Await.result(modules.relStreamUdfDal.findByFilter(_.streamId inSet streamIds), minTimeOut)
+    val streamIds = Await.result(streamDal.findByFilter(stream => stream.projectId === projectId && stream.status =!= "new" && stream.status =!= "stopped" && stream.status =!= "failed"), minTimeOut).map(_.id)
+    val streamUdfs = Await.result(relStreamUdfDal.findByFilter(_.streamId inSet streamIds), minTimeOut)
     streamUdfs.foreach(stream => {
       val notDeleteUdfSeq = new ListBuffer[String]
       if (deleteUdfSeq.contains(stream.udfId)) {
@@ -431,13 +461,13 @@ object StreamUtils extends RiderLogger {
   }
 
   def getProjectIdsByUdf(udf: Long): Seq[Long] = {
-    val streamIds = Await.result(modules.relStreamUdfDal.findByFilter(_.udfId === udf), minTimeOut).map(_.streamId).distinct
-    Await.result(modules.streamDal.findByFilter(_.id inSet (streamIds)), minTimeOut).map(_.projectId).distinct
+    val streamIds = Await.result(relStreamUdfDal.findByFilter(_.udfId === udf), minTimeOut).map(_.streamId).distinct
+    Await.result(streamDal.findByFilter(_.id inSet (streamIds)), minTimeOut).map(_.projectId).distinct
   }
 
   def getKafkaByStreamId(id: Long): String = {
-    val kakfaId = Await.result(modules.streamDal.findById(id), minTimeOut).get.instanceId
-    Await.result(modules.instanceDal.findById(kakfaId), minTimeOut).get.connUrl
+    val kakfaId = Await.result(streamDal.findById(id), minTimeOut).get.instanceId
+    Await.result(instanceDal.findById(kakfaId), minTimeOut).get.connUrl
   }
 
   def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}$appName-${CommonUtils.currentNodSec}.log"
@@ -456,13 +486,14 @@ object StreamUtils extends RiderLogger {
   }
 
   def checkYarnAppNameUnique(userDefinedName: String, projectId: Long): Boolean = {
-    val projectName = Await.result(modules.projectDal.getById(projectId), minTimeOut).get.name
+    val projectName = Await.result(projectDal.getById(projectId), minTimeOut).get.name
     val realName = genStreamNameByProjectName(projectName, userDefinedName)
-    if (Await.result(modules.streamDal.findByFilter(_.name === realName), minTimeOut).nonEmpty) {
+    if (Await.result(streamDal.findByFilter(_.name === realName), minTimeOut).nonEmpty) {
       false
     } else {
-      if (Await.result(modules.jobDal.findByFilter(_.name === realName), minTimeOut).nonEmpty) false
+      if (Await.result(jobDal.findByFilter(_.name === realName), minTimeOut).nonEmpty) false
       else true
     }
   }
+
 }
