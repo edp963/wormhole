@@ -50,7 +50,7 @@ import { selectStreams, selectStreamStartModalLoading } from './selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
 import { selectRoleType } from '../App/selectors'
 
-import { uuid, isEquivalent, operateLanguageText } from '../../utils/util'
+import { isEquivalent, operateLanguageText } from '../../utils/util'
 
 export class Manager extends React.Component {
   constructor (props) {
@@ -111,9 +111,11 @@ export class Manager extends React.Component {
       renewUdfVals: [],
       currentUdfVal: [],
 
-      consumedOffsetValue: [],
-      kafkaOffsetValue: [],
-      kafkaEarliestOffset: []
+      // consumedOffsetValue: [],
+      // kafkaOffsetValue: [],
+      // kafkaEarliestOffset: [],
+      autoRegisteredTopics: [],
+      userDefinedTopics: []
     }
   }
 
@@ -135,8 +137,7 @@ export class Manager extends React.Component {
           instance: s.kafkaInfo.instance,
           connUrl: s.kafkaInfo.connUrl,
           projectName: s.projectName,
-          currentUdf: s.currentUdf,
-          usingUdf: s.usingUdf
+          currentUdf: s.currentUdf
         })
         responseOriginStream.key = responseOriginStream.id
         responseOriginStream.visible = false
@@ -268,10 +269,12 @@ export class Manager extends React.Component {
         // 显示 Latest offset
         this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
           this.setState({
-            consumedOffsetValue: result.consumedLatestOffset,
-            kafkaOffsetValue: result.kafkaLatestOffset,
-            streamStartFormData: result.consumedLatestOffset,
-            kafkaEarliestOffset: result.kafkaEarliestOffset
+            autoRegisteredTopics: result.autoRegisteredTopics,
+            userDefinedTopics: result.userDefinedTopics,
+            streamStartFormData: result.autoRegisteredTopics
+            // consumedOffsetValue: result.consumedLatestOffset,
+            // kafkaOffsetValue: result.kafkaLatestOffset,
+            // kafkaEarliestOffset: result.kafkaEarliestOffset
           })
         })
       })
@@ -327,10 +330,12 @@ export class Manager extends React.Component {
     this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
       if (result) {
         this.setState({
-          consumedOffsetValue: result.consumedLatestOffset,
-          kafkaOffsetValue: result.kafkaLatestOffset,
-          streamStartFormData: result.consumedLatestOffset,
-          kafkaEarliestOffset: result.kafkaEarliestOffset
+          autoRegisteredTopics: result.autoRegisteredTopics,
+          userDefinedTopics: result.userDefinedTopics,
+          streamStartFormData: result.autoRegisteredTopics
+          // consumedOffsetValue: result.consumedLatestOffset,
+          // kafkaOffsetValue: result.kafkaLatestOffset,
+          // kafkaEarliestOffset: result.kafkaEarliestOffset
         })
       } else {
         this.setState({
@@ -351,9 +356,11 @@ export class Manager extends React.Component {
   loadLastestOffsetFunc (projectId, streamId) {
     this.props.onLoadLastestOffset(projectId, streamId, (result) => {
       this.setState({
-        consumedOffsetValue: result.consumedLatestOffset,
-        kafkaOffsetValue: result.kafkaLatestOffset,
-        kafkaEarliestOffset: result.kafkaEarliestOffset
+        autoRegisteredTopics: result.autoRegisteredTopics,
+        userDefinedTopics: result.userDefinedTopics
+        // consumedOffsetValue: result.consumedLatestOffset,
+        // kafkaOffsetValue: result.kafkaLatestOffset,
+        // kafkaEarliestOffset: result.kafkaEarliestOffset
       })
     })
   }
@@ -362,7 +369,7 @@ export class Manager extends React.Component {
     const { streamStartFormData } = this.state
 
     for (let i = 0; i < streamStartFormData.length; i++) {
-      const partitionAndOffset = streamStartFormData[i].partitionOffsets.split(',')
+      const partitionAndOffset = streamStartFormData[i].consumedLatestOffset.split(',')
 
       for (let j = 0; j < partitionAndOffset.length; j++) {
         this.streamStartForm.setFieldsValue({
@@ -377,12 +384,11 @@ export class Manager extends React.Component {
    *  start/renew ok
    */
   handleEditStartOk = (e) => {
-    const { actionType, streamIdGeted, streamStartFormData, startUdfVals } = this.state
+    const { actionType, streamIdGeted, streamStartFormData, userDefinedTopics, startUdfVals } = this.state
     const { projectIdGeted, locale } = this.props
     const offsetText = locale === 'en' ? 'Offset cannot be empty' : 'Offset 不能为空！'
-
     this.streamStartForm.validateFieldsAndScroll((err, values) => {
-      if (!err) {
+      if (!err || err.newTopicName) {
         let requestVal = {}
         switch (actionType) {
           case 'start':
@@ -399,26 +405,11 @@ export class Manager extends React.Component {
                 }
               }
             } else {
-              const mergedData = streamStartFormData.map((i) => {
-                const parOffTemp = i.partitionOffsets
-                const partitionTemp = parOffTemp.split(',')
-
-                const offsetArr = []
-                for (let r = 0; r < partitionTemp.length; r++) {
-                  const offsetArrTemp = values[`${i.id}_${r}`]
-                  offsetArrTemp === ''
-                    ? message.warning(offsetText, 3)
-                    : offsetArr.push(`${r}:${offsetArrTemp}`)
-                }
-                const offsetVal = offsetArr.join(',')
-
-                const robj = {
-                  id: i.id,
-                  partitionOffsets: offsetVal,
-                  rate: Number(values[`${i.id}_${i.rate}_rate`])
-                }
-                return robj
-              })
+              const mergedData = {}
+              const autoRegisteredData = this.formatTopicInfo(streamStartFormData, 'auto', values, offsetText)
+              const userDefinedData = this.formatTopicInfo(userDefinedTopics, 'user', values, offsetText)
+              mergedData.autoRegisteredTopics = autoRegisteredData
+              mergedData.userDefinedTopics = userDefinedData
 
               if (!values.udfs) {
                 requestVal = { topicInfo: mergedData }
@@ -444,7 +435,7 @@ export class Manager extends React.Component {
               requestVal = !values.udfs ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
             } else {
               const mergedData = streamStartFormData.map((i) => {
-                const partitionTemp = i.partitionOffsets.split(',')
+                const partitionTemp = i.consumedLatestOffset.split(',')
 
                 const offsetArr = []
                 for (let r = 0; r < partitionTemp.length; r++) {
@@ -515,6 +506,30 @@ export class Manager extends React.Component {
           message.error(`${failText} ${result}`, 3)
         })
       }
+    })
+  }
+
+  formatTopicInfo (data = [], type = 'auto', values, offsetText) {
+    if (data.length === 0) return []
+    return data.map((i) => {
+      const parOffTemp = i.consumedLatestOffset
+      const partitionTemp = parOffTemp.split(',')
+
+      const offsetArr = []
+      for (let r = 0; r < partitionTemp.length; r++) {
+        const offsetArrTemp = values[`${i.id}_${r}_${type}`]
+        offsetArrTemp === ''
+          ? message.warning(offsetText, 3)
+          : offsetArr.push(`${r}:${offsetArrTemp}`)
+      }
+      const offsetVal = offsetArr.join(',')
+
+      const robj = {
+        id: i.id,
+        partitionOffsets: offsetVal,
+        rate: Number(values[`${i.id}_${i.rate}_rate`])
+      }
+      return robj
     })
   }
 
@@ -713,11 +728,14 @@ export class Manager extends React.Component {
     })
   }
 
+  getStartFormDataFromSub = (userDefinedTopics) => {
+    this.setState({ userDefinedTopics })
+  }
   render () {
     const {
       refreshStreamLoading, refreshStreamText, showStreamdetails, logsModalVisible,
       logsContent, refreshLogLoading, refreshLogText, logsProjectId, logsStreamId,
-      streamStartFormData, consumedOffsetValue, kafkaOffsetValue, kafkaEarliestOffset, actionType,
+      streamStartFormData, actionType, autoRegisteredTopics, userDefinedTopics,
       startUdfVals, renewUdfVals, currentUdfVal, topicInfoModal, currentStreams
     } = this.state
     const { className, onShowAddStream, onShowEditStream, streamClassHide, streamStartModalLoading, roleType } = this.props
@@ -1054,11 +1072,11 @@ export class Manager extends React.Component {
         if (showStreamdetails) {
           const detailTemp = showStreamdetails.stream
 
-          const topicTemp = showStreamdetails.topicInfo
+          const topicTemp = showStreamdetails.topicInfo.autoRegisteredTopics
           const topicFinal = topicTemp.map(s => (
             <li key={s.id}>
               <strong>Topic Name：</strong>{s.name}
-              <strong>；Partition Offsets：</strong>{s.partitionOffsets}
+              <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
               <strong>；Rate：</strong>{s.rate}
             </li>
           ))
@@ -1074,23 +1092,23 @@ export class Manager extends React.Component {
               ))
             : null
 
-          const usingUdfTemp = showStreamdetails.usingUdf
-          const usingUdfTempFinal = usingUdfTemp.length !== 0
-            ? usingUdfTemp.map(s => (
-              <li key={uuid()}>
-                <strong>Function Name：</strong>{s.functionName}
-                <strong>；Full Class Name：</strong>strong>{s.fullClassName}
-                <strong>；Jar Name：</strong>{s.jarName}
-              </li>
-            ))
-            : null
+          // const usingUdfTemp = showStreamdetails.usingUdf
+          // const usingUdfTempFinal = usingUdfTemp.length !== 0
+          //   ? usingUdfTemp.map(s => (
+          //     <li key={uuid()}>
+          //       <strong>Function Name：</strong>{s.functionName}
+          //       <strong>；Full Class Name：</strong>strong>{s.fullClassName}
+          //       <strong>；Jar Name：</strong>{s.jarName}
+          //     </li>
+          //   ))
+          //   : null
 
           streamDetailContent = (
             <div className="stream-detail">
               <p className={streamClassHide}><strong>   Project Id：</strong>{detailTemp.projectId}</p>
               <p><strong>   Topic Info：</strong>{topicFinal}</p>
               <p><strong>   Current Udf：</strong>{currentUdfFinal}</p>
-              <p><strong>   Using Udf：</strong>{usingUdfTempFinal}</p>
+              {/* <p><strong>   Using Udf：</strong>{usingUdfTempFinal}</p> */}
               <p><strong>   Description：</strong>{detailTemp.desc}</p>
 
               <p><strong>   Launch Config：</strong>{detailTemp.launchConfig}</p>
@@ -1147,9 +1165,12 @@ export class Manager extends React.Component {
       ? (
         <StreamStartForm
           data={streamStartFormData}
-          consumedOffsetValue={consumedOffsetValue}
-          kafkaOffsetValue={kafkaOffsetValue}
-          kafkaEarliestOffset={kafkaEarliestOffset}
+          autoRegisteredTopics={autoRegisteredTopics}
+          userDefinedTopics={userDefinedTopics}
+          emitStartFormDataFromSub={this.getStartFormDataFromSub}
+          // consumedOffsetValue={consumedOffsetValue}
+          // kafkaOffsetValue={kafkaOffsetValue}
+          // kafkaEarliestOffset={kafkaEarliestOffset}
           streamActionType={actionType}
           startUdfValsOption={startUdfVals}
           renewUdfValsOption={renewUdfVals}
