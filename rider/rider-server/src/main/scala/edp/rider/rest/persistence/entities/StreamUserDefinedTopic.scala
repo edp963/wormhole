@@ -40,12 +40,12 @@ case class StreamUserDefinedTopic(id: Long,
   }
 }
 
-case class UserDefinedTopicResponse(id: Long,
-                                    name: String,
-                                    rate: Int,
-                                    consumedLatestOffset: String,
-                                    kafkaEarliestOffset: String,
-                                    kafkaLatestOffset: String)
+case class TopicAllOffsets(id: Long,
+                           name: String,
+                           rate: Int,
+                           consumedLatestOffset: String,
+                           kafkaEarliestOffset: String,
+                           kafkaLatestOffset: String)
 
 case class PostUserDefinedTopic(name: String)
 

@@ -25,38 +25,47 @@ import edp.wormhole.kafka.WormholeGetOffsetShell
 
 import scala.language.postfixOps
 
-case class GetLatestOffsetException(ex: Exception) extends Exception
 
 object KafkaUtils extends RiderLogger {
 
   def getKafkaLatestOffset(brokers: String, topic: String): String = {
     try {
-      WormholeGetOffsetShell.getTopicOffsets(brokers, topic)
+      val offset = WormholeGetOffsetShell.getTopicOffsets(brokers, topic)
+      if (offsetValid(offset)) offset
+      else throw new Exception(s"query topic $topic offset result is '', please check it.")
     } catch {
       case ex: Exception =>
         riderLogger.error(s"get kafka latest offset failed", ex)
-        throw GetLatestOffsetException(ex)
+        throw ex
     }
   }
 
   def getKafkaLatestOffset(brokers: String, topic: String, partition: Int): String = {
     try {
       val offsets = WormholeGetOffsetShell.getTopicOffsets(brokers, topic)
-      offsets.split(",")(partition).split(":")(1)
+      val offset = offsets.split(",")(partition).split(":")(1)
+      if (offsetValid(offset)) offset
+      else throw new Exception(s"query topic $topic offset result is '', please check it.")
     } catch {
       case ex: Exception =>
         riderLogger.error(s"get kafka latest offset failed", ex)
-        throw GetLatestOffsetException(ex)
+        throw ex
     }
   }
 
   def getKafkaEarliestOffset(brokers: String, topic: String): String = {
     try {
-      WormholeGetOffsetShell.getTopicOffsets(brokers, topic, -2)
+      val offset = WormholeGetOffsetShell.getTopicOffsets(brokers, topic, -2)
+      if (offsetValid(offset)) offset
+      else throw new Exception(s"query topic $topic offset result is '', please check it.")
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"get kafka latest offset failed", ex)
-        throw GetLatestOffsetException(ex)
+        riderLogger.error(s"get kafka earliest offset failed", ex)
+        throw ex
     }
+  }
+
+  def offsetValid(offset: String): Boolean = {
+    if (offset == "") false else true
   }
 }
