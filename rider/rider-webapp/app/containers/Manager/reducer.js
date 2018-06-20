@@ -138,7 +138,7 @@ function streamReducer (state = initialState, { type, payload }) {
     case STARTORRENEW_STREAMS:
       return state.set('streamStartModalLoading', true)
     case STARTORRENEW_STREAMS_SUCCESS:
-      const startIndexStartOrRenew = streams.indexOf(streams.find(p => Object.is(p.stream.id, payload.result.stream.id)))
+      const startIndexStartOrRenew = streams.indexOf(streams.find(p => Object.is(p.id, payload.result.id)))
       streams.fill(payload.result, startIndexStartOrRenew, startIndexStartOrRenew + 1)
       return state
         .set('streams', streams.slice())

@@ -56,7 +56,8 @@ import {
   POST_USER_TOPIC,
   POST_USER_TOPIC_SUCCESS,
   DELETE_USER_TOPIC,
-  DELETE_USER_TOPIC_SUCCESS
+  DELETE_USER_TOPIC_SUCCESS,
+  LOAD_UDFS
 } from './constants'
 
 export function loadUserStreams (projectId, resolve) {
@@ -437,6 +438,18 @@ export function deleteUserTopicLoaded (result) {
     type: DELETE_USER_TOPIC_SUCCESS,
     payload: {
       result
+    }
+  }
+}
+
+export function loadUdfs (projectId, streamId, roleType, resolve) {
+  return {
+    type: LOAD_UDFS,
+    payload: {
+      projectId,
+      streamId,
+      roleType,
+      resolve
     }
   }
 }

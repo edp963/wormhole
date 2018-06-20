@@ -38,7 +38,8 @@ import {
   STARTORRENEW_STREAMS,
   LOAD_LASTEST_OFFSET,
   POST_USER_TOPIC,
-  DELETE_USER_TOPIC
+  DELETE_USER_TOPIC,
+  LOAD_UDFS
 } from './constants'
 
 import {
@@ -380,6 +381,22 @@ export function* removeUserTopic ({payload}) {
 export function* removeUserTopicWatch () {
   yield fork(takeEvery, DELETE_USER_TOPIC, removeUserTopic)
 }
+
+export function* getUdfs ({payload}) {
+  const apiFinal = payload.roleType === 'admin'
+  ? `${api.projectAdminStream}`
+  : `${api.projectStream}`
+  try {
+    const result = yield call(request, `${apiFinal}/${payload.projectId}/streams/${payload.streamId}/udfs`)
+    payload.resolve(result.payload)
+  } catch (err) {
+    notifySagasError(err, 'getUdfs')
+  }
+}
+
+export function* getUdfsWatch () {
+  yield fork(takeEvery, LOAD_UDFS, getUdfs)
+}
 export default [
   getUserStreamsWatcher,
   getAdminAllFlowsWatcher,
@@ -398,5 +415,6 @@ export default [
   startOrRenewStreamWathcer,
   getLastestOffsetWatcher,
   addUserTopicWatch,
-  removeUserTopicWatch
+  removeUserTopicWatch,
+  getUdfsWatch
 ]
