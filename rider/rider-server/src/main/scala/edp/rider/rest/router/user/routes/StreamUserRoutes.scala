@@ -35,7 +35,8 @@ import io.swagger.annotations.{ApiResponses, _}
 @Path("/user/projects")
 class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives with JsonSerializer {
   lazy val routes: Route = getStreamByAllRoute ~ putStreamRoute ~ postStreamRoute ~ renewRoute ~
-    getStreamById ~ getLogByStreamId ~ stop ~ startRoute ~ deleteStream ~ getSparkConf ~ getLatestOffset ~ getJvmConf
+    getStreamById ~ getLogByStreamId ~ stop ~ startRoute ~ deleteStream ~ getSparkConf ~ getTopics ~ getJvmConf ~
+    postUserDefinedTopic ~ deleteUserDefinedTopic
 
   lazy val basePath = "projects"
 
@@ -210,8 +211,8 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
   ))
   def getSparkConf: Route = modules.streamUserService.getDefaultSparkConf(basePath)
 
-  @Path("/{id}/streams/{streamId}/topics/offsets/latest")
-  @ApiOperation(value = "get topic latest offset", notes = "", nickname = "", httpMethod = "GET")
+  @Path("/{id}/streams/{streamId}/topics")
+  @ApiOperation(value = "get topics detail", notes = "", nickname = "", httpMethod = "GET")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path")
@@ -223,5 +224,41 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def getLatestOffset: Route = modules.streamUserService.getLatestOffset(basePath)
+  def getTopics: Route = modules.streamUserService.getTopicsRoute(basePath)
+
+  //  post /user/projects/1/streams/1/topics/userdefined
+  @Path("/{id}/streams/{streamId}/topics/userdefined")
+  @ApiOperation(value = "new userdefined topic", notes = "", nickname = "", httpMethod = "POST")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "topicName", value = "topic name", required = true, dataType = "edp.rider.rest.persistence.entities.PostUserDefinedTopic", paramType = "body")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def postUserDefinedTopic: Route = modules.streamUserService.postUserDefinedTopicRoute(basePath)
+
+  // delete /user/projects/1/streams/1/topics/userdefined/
+  @Path("/{id}/streams/{streamId}/topics/userdefined/{topicId}")
+  @ApiOperation(value = "delete stream userdefined topic by id", notes = "", nickname = "", httpMethod = "DELETE")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "topicId", value = "topic id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 412, message = "can't delete stream now, please delete flow first"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def deleteUserDefinedTopic: Route = modules.streamUserService.deleteUserDefinedTopicRoute(basePath)
+
 }

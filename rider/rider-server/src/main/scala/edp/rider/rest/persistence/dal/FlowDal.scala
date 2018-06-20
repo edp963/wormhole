@@ -84,11 +84,11 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       val flowStreamOpt = Await.result(defaultGetAll(_.id === flowId), minTimeOut).headOption
       flowStreamOpt match {
         case Some(flowStream) =>
-          val stream = streamDal.getStreamDetail(Some(projectId), Some(Seq(flowStream.streamId))).head
+          val stream = streamDal.getBriefDetail(Some(projectId), Some(Seq(flowStream.streamId))).head
           val map = getDisableActions(Seq(flowStream))
           Future(Some(FlowStreamInfo(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol,
             flowStream.sinkConfig, flowStream.tranConfig, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
-            flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, map(flowStream.id), stream.kafkaInfo.instance, stream.topicInfo.map(_.name).mkString(","))))
+            flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, map(flowStream.id), stream.kafkaInfo.instance, "")))
         case None => Future(None)
       }
     } catch {

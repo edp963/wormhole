@@ -21,6 +21,8 @@
 
 package edp.rider.rest.persistence.dal
 
+import java.util
+import edp.rider.kafka.KafkaUtils._
 import edp.rider.common.Action._
 import edp.rider.common._
 import edp.rider.module.DbModule._
@@ -31,9 +33,10 @@ import edp.rider.rest.util.StreamUtils._
 import edp.wormhole.common.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
+import edp.rider.RiderStarter.modules._
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration.Inf
 import scala.concurrent.{Await, Future}
 
 class StreamDal(streamTable: TableQuery[StreamTable],
@@ -73,7 +76,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       val projectMap = getStreamProjectMap(streamSeq)
       streamSeq.map(
         stream => {
-          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), Seq[StreamTopic](), Seq[StreamUdf](), Seq[StreamZkUdf](), getDisableActions(stream.status))
+          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), None, Seq[StreamUdf](), getDisableActions(StreamStatus.withName(stream.status)))
         }
       )
     } catch {
@@ -88,23 +91,23 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       val streamSeq = refreshStreamStatus(projectIdOpt, streamIdsOpt, action)
       val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
       val streamIds = streamSeq.map(_.id)
-      val streamTopicSeq = streamInTopicDal.getStreamTopic(streamIds)
+      val streamTopicMap = getStreamTopicsMap(streamIds)
       val streamUdfSeq = streamUdfDal.getStreamUdf(streamIds)
-      val streamZkUdfSeq = getZkStreamUdf(streamIds)
+      //      val streamZkUdfSeq = getZkStreamUdf(streamIds)
       val projectMap = getStreamProjectMap(streamSeq)
 
       streamSeq.map(
         stream => {
-          val topics = streamTopicSeq.filter(_.streamId == stream.id).map(
-            topic => StreamTopic(topic.id, topic.name, topic.partitionOffsets, topic.rate)
-          )
+          //          val topics = streamTopicSeq.filter(_.streamId == stream.id).map(
+          //            topic => StreamTopic(topic.id, topic.name, topic.partitionOffsets, topic.rate)
+          //          )
           val udfs = streamUdfSeq.filter(_.streamId == stream.id).map(
             udf => StreamUdf(udf.id, udf.functionName, udf.fullClassName, udf.jarName)
           )
-          val zkUdfs = streamZkUdfSeq.filter(_.streamId == stream.id).map(
-            udf => StreamZkUdf(udf.functionName, udf.fullClassName, udf.jarName)
-          )
-          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), topics, udfs, zkUdfs, getDisableActions(stream.status))
+          //          val zkUdfs = streamZkUdfSeq.filter(_.streamId == stream.id).map(
+          //            udf => StreamZkUdf(udf.functionName, udf.fullClassName, udf.jarName)
+          //          )
+          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), Option(streamTopicMap(stream.id)), udfs, getDisableActions(StreamStatus.withName(stream.status)))
         }
       )
     } catch {
@@ -206,6 +209,72 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       }
     )
     (usedCores, usedMemory, streamResources)
+  }
+
+  def checkTopicExists(streamId: Long, topic: String): Boolean = {
+    var exist = false
+    if (streamInTopicDal.checkAutoRegisteredTopicExists(streamId, topic) || udfTopicDal.checkUdfTopicExists(streamId, topic))
+      exist = true
+    exist
+  }
+
+  // get kafka instance id, url
+  def getKafkaInfo(streamId: Long): (Long, String) = {
+    Await.result(db.run((streamQuery.filter(_.id === streamId) join instanceQuery on (_.instanceId === _.id))
+      .map {
+        case (_, instance) => (instance.id, instance.connUrl)
+      }.result.head).mapTo[(Long, String)], minTimeOut)
+  }
+
+  def getStreamKafkaMap(streamIds: Seq[Long]): Map[Long, String] = {
+    Await.result(db.run((streamQuery.filter(_.id inSet streamIds) join instanceQuery on (_.instanceId === _.id))
+      .map {
+        case (stream, instance) => (stream.id, instance.connUrl) <> (StreamIdKafkaUrl.tupled, StreamIdKafkaUrl.unapply)
+      }.result).mapTo[Seq[StreamIdKafkaUrl]], minTimeOut)
+      .map(streamKafka => (streamKafka.streamId, streamKafka.kafkaUrl)).toMap
+  }
+
+  def getTopicsAllOffsets(streamId: Long): GetTopicsResponse = {
+    val autoRegisteredTopics = inTopicDal.getAutoRegisteredTopics(streamId)
+    val udfTopics = udfTopicDal.getUdfTopics(streamId)
+    val kafkaInfo = getKafkaInfo(streamId)
+    val autoRegisteredTopicsResponse = autoRegisteredTopics.map(topic => {
+      val earliest = getKafkaEarliestOffset(kafkaInfo._2, topic.name)
+      val latest = getKafkaLatestOffset(kafkaInfo._2, topic.name)
+      val consumed = earliest //todo
+      TopicAllOffsets(topic.id, topic.name, topic.rate, consumed, earliest, latest)
+    })
+    val udfTopicsResponse = udfTopics.map(topic => {
+      val earliest = getKafkaEarliestOffset(kafkaInfo._2, topic.name)
+      val latest = getKafkaLatestOffset(kafkaInfo._2, topic.name)
+      val consumed = earliest //todo
+      TopicAllOffsets(topic.id, topic.name, topic.rate, consumed, earliest, latest)
+    })
+    GetTopicsResponse(autoRegisteredTopicsResponse, udfTopicsResponse)
+  }
+
+  def getStreamTopicsMap(streamIds: Seq[Long]): Map[Long, GetTopicsResponse] = {
+    val autoRegisteredTopics = inTopicDal.getAutoRegisteredTopics(streamIds)
+    val udfTopics = udfTopicDal.getUdfTopics(streamIds)
+    val kafkaMap = getStreamKafkaMap(streamIds)
+    streamIds.map(id => {
+      val autoTopicsResponse = autoRegisteredTopics.filter(_.streamId == id)
+        .map(topic => {
+          val earliest = getKafkaEarliestOffset(kafkaMap(topic.streamId), topic.name)
+          val latest = getKafkaLatestOffset(kafkaMap(topic.streamId), topic.name)
+          val consumed = earliest //todo
+          TopicAllOffsets(topic.id, topic.name, topic.rate, consumed, earliest, latest)
+        })
+      val udfTopicsResponse = udfTopics.filter(_.streamId == id)
+        .map(topic => {
+          val earliest = getKafkaEarliestOffset(kafkaMap(topic.streamId), topic.name)
+          val latest = getKafkaLatestOffset(kafkaMap(topic.streamId), topic.name)
+          val consumed = earliest //todo
+          TopicAllOffsets(topic.id, topic.name, topic.rate, consumed, earliest, latest)
+        })
+      (id, GetTopicsResponse(autoTopicsResponse, udfTopicsResponse))
+    }).toMap
+    //    GetTopicsResponse(autoRegisteredTopicsResponse, udfTopicsResponse)
   }
 
 }
