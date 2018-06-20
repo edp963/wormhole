@@ -53,6 +53,35 @@ class StreamInTopicDal(streamInTopicTable: TableQuery[StreamInTopicTable],
     }
   }
 
+  def getAutoRegisteredTopics(streamId: Long): Seq[StreamTopicTemp] = {
+    Await.result(db.run((streamInTopicTable.filter(_.streamId === streamId) join nsDatabaseTable on (_.nsDatabaseId === _.id))
+      .map {
+        case (streamInTopic, nsDatabase) => (streamInTopic.id, streamInTopic.streamId, nsDatabase.nsDatabase, streamInTopic.partitionOffsets, streamInTopic.rate) <> (StreamTopicTemp.tupled, StreamTopicTemp.unapply)
+      }.result).mapTo[Seq[StreamTopicTemp]], minTimeOut)
+  }
+
+  def getAutoRegisteredTopicNameMap(streamId: Long): Map[Long, String] = {
+    getAutoRegisteredTopics(streamId).map(topic => (topic.id, topic.name)).toMap
+  }
+
+  def getAutoRegisteredTopics(streamIds: Seq[Long]): Seq[StreamTopicTemp] = {
+    Await.result(db.run((streamInTopicTable.filter(_.streamId inSet streamIds) join nsDatabaseTable on (_.nsDatabaseId === _.id))
+      .map {
+        case (streamInTopic, nsDatabase) => (streamInTopic.id, streamInTopic.streamId, nsDatabase.nsDatabase, streamInTopic.partitionOffsets, streamInTopic.rate) <> (StreamTopicTemp.tupled, StreamTopicTemp.unapply)
+      }.result).mapTo[Seq[StreamTopicTemp]], minTimeOut)
+  }
+
+  def checkAutoRegisteredTopicExists(streamId: Long, topic: String): Boolean = {
+    var exist = false
+    val topicSearch = Await.result(db.run(
+      (nsDatabaseTable.filter(_.nsDatabase === topic) join streamInTopicTable.filter(_.streamId === streamId)
+        on (_.id === _.nsDatabaseId)).map {
+        case (db, _) => db
+      }.result).mapTo[Seq[NsDatabase]], minTimeOut)
+    if (topicSearch.nonEmpty) exist = true
+    exist
+  }
+
   def getConsumedMaxOffset(streamTopics: Seq[StreamTopicTemp]): Seq[StreamTopicTemp] = {
     try {
       val seq = new ListBuffer[StreamTopicTemp]
@@ -87,4 +116,5 @@ class StreamInTopicDal(streamInTopicTable: TableQuery[StreamInTopicTable],
       .map(topic => (topic.partitionOffsets, topic.rate, topic.updateTime, topic.updateBy))
       .update(offset, rate, currentSec, userId)).mapTo[Int]
   }
+
 }

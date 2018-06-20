@@ -119,7 +119,7 @@ object UdfUtils extends RiderLogger {
     }
   }
 
-  def removeUdfDirective(streamId: Long, function: Option[String] = None, userId: Long) = {
+  def removeUdfDirective(streamId: Long, function: Option[String] = None, userId: Long): Unit = {
     try {
       PushDirective.removeUdfDirective(streamId, function)
       riderLogger.info(s"user $userId remove udf directive success.")
@@ -130,5 +130,15 @@ object UdfUtils extends RiderLogger {
     }
   }
 
+  def removeUdfDirective(streamId: Long, userId: Long): Unit = {
+    try {
+      removeUdfDirective(streamId, None, userId)
+      riderLogger.info(s"user $userId remove udf directive success.")
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"user $userId remove udf directive failed", ex)
+        throw ex
+    }
+  }
 
 }
