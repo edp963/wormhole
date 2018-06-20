@@ -58,7 +58,7 @@ export class StreamStartForm extends React.Component {
       dataFinal = props.data.slice()
       userDefinedTopics = props.userDefinedTopics.slice()
       // props.data.map(s => {
-      //   const conTemp = props.autoRegisteredTopics.find(i => i.id === s.id)
+      //   const conTemp = props.autoRegisteredTopics.find(i => i.name === s.id)
       //   const conTempObject = conTemp
       //     ? {
       //       id: conTemp.id,
@@ -69,7 +69,7 @@ export class StreamStartForm extends React.Component {
       //     }
       //     : {}
 
-      //   const kafTemp = props.autoRegisteredTopics.find(i => i.id === s.id)
+      //   const kafTemp = props.autoRegisteredTopics.find(i => i.name === s.id)
       //   const kafTempObject = kafTemp
       //     ? {kafOffsetVal: kafTemp.kafkaLatestOffset, kafEarOffsetVal: kafTemp.kafkaEarliestOffset}
       //     : {}
@@ -82,7 +82,7 @@ export class StreamStartForm extends React.Component {
 
   onApplyOffset = (i, index, offset, type) => (e) => {
     this.props.form.setFieldsValue({
-      [`${i.id}_${index}_${type}`]: offset
+      [`${i.name}_${index}_${type}`]: offset
     })
   }
 
@@ -101,7 +101,7 @@ export class StreamStartForm extends React.Component {
     for (let item of arr) {
       const itemTemp = item.split(':')
       this.props.form.setFieldsValue({
-        [`${i.id}_${itemTemp[0]}_${topicsType}`]: itemTemp[1]
+        [`${i.name}_${itemTemp[0]}_${topicsType}`]: itemTemp[1]
       })
     }
   }
@@ -119,6 +119,7 @@ export class StreamStartForm extends React.Component {
               userTopicList = userTopicList.concat(result)
               this.setState({userDefinedTopics: userTopicList})
               this.props.emitStartFormDataFromSub(this.state.userDefinedTopics)
+              this.props.form.resetFields(['newTopicName'])
               message.success('success', 3)
             }, (error) => {
               message.error(error, 3)
@@ -205,12 +206,12 @@ export class StreamStartForm extends React.Component {
                 }
                 const applyFormat = <FormattedMessage {...messages.streamModalApply} />
                 return (
-                  <Row key={`${i.id}_${index}`}>
+                  <Row key={`${i.name}_${index}`}>
                     <Col span={2} className="partition-content">{g.substring(0, g.indexOf(':'))}</Col>
                     <Col span={6} className="offset-content">
                       <FormItem>
                         <ol key={g}>
-                          {getFieldDecorator(`${i.id}_${index}_${type}`, {
+                          {getFieldDecorator(`${i.name}_${index}_${type}`, {
                             rules: [{
                               required: true,
                               message: locale === 'en' ? 'Please fill in offset' : '请填写 Offset'
@@ -227,7 +228,7 @@ export class StreamStartForm extends React.Component {
                     <Col span={6} className="stream-start-offset-class">
                       <FormItem>
                         <ol key={g}>
-                          {getFieldDecorator(`consumedLatest_${i.id}_${index}_${type}`, {})(
+                          {getFieldDecorator(`consumedLatest_${i.name}_${index}_${type}`, {})(
                             <div className="stream-start-lastest-consumed-offset">
                               <span style={{ marginRight: '5px' }}>{conOffFinal}</span>
                               <Tooltip title={applyFormat}>
@@ -243,7 +244,7 @@ export class StreamStartForm extends React.Component {
                     <Col span={6} className="stream-start-offset-class">
                       <FormItem>
                         <ol key={g}>
-                          {getFieldDecorator(`kafkaEarliest_${i.id}_${index}_${type}`, {})(
+                          {getFieldDecorator(`kafkaEarliest_${i.name}_${index}_${type}`, {})(
                             <div className="stream-start-lastest-kafka-offset">
                               <span style={{ marginRight: '5px' }}>{kafEarOffFinal}</span>
                               <Tooltip title={applyFormat}>
@@ -259,7 +260,7 @@ export class StreamStartForm extends React.Component {
                     <Col span={2} offset={2} className="stream-start-offset-class">
                       <FormItem>
                         <ol key={g}>
-                          {getFieldDecorator(`kafkaLatest_${i.id}_${index}_${type}`, {})(
+                          {getFieldDecorator(`kafkaLatest_${i.name}_${index}_${type}`, {})(
                             <div className="stream-start-lastest-kafka-offset">
                               <span style={{ marginRight: '5px' }}>{kafOffFinal}</span>
                               <Tooltip title={applyFormat}>
@@ -280,7 +281,7 @@ export class StreamStartForm extends React.Component {
             }
 
             const cardTitle = (
-              <Row key={i.id}>
+              <Row key={i.name}>
                 <Col span={24} style={{fontWeight: '500'}}>
                   <span className="modal-topic-name">Topic Name</span>
                   {i.name}
@@ -290,7 +291,7 @@ export class StreamStartForm extends React.Component {
 
             const applyAllText = <FormattedMessage {...messages.streamModalApplyAll} />
             const cardContent = (
-              <Row key={i.id} className="apply-all-btn">
+              <Row key={i.name} className="apply-all-btn">
                 <div className="rate-topic-info-wrapper">
                   <Col span={2} className="card-content card-content-extra">Partition</Col>
                   <Col span={4} offset={1} className="card-content required-offset card-content-extra">Offset</Col>
@@ -321,7 +322,7 @@ export class StreamStartForm extends React.Component {
             )
 
             return (
-              <Row key={i.id}>
+              <Row key={i.name}>
                 <Card title={cardTitle} className="stream-start-form-card-style">
                   <div className="rate-topic-info-wrapper">
                     <div className="rate-class">
@@ -330,7 +331,7 @@ export class StreamStartForm extends React.Component {
                       </Col>
                       <Col span={24}>
                         <FormItem>
-                          {getFieldDecorator(`${i.id}_${i.rate}_rate`, {
+                          {getFieldDecorator(`${i.name}_${i.rate}_rate`, {
                             rules: [{
                               required: true,
                               message: locale === 'en' ? 'Please fill in rate' : '请填写 Rate'
@@ -349,7 +350,7 @@ export class StreamStartForm extends React.Component {
                     </div>
                     {
                       hasDel ? (
-                        <Button shape="circle" type="danger" style={{position: 'absolute', top: '5px', right: '5px'}} onClick={this.toggleItem('delete', i.id)}>
+                        <Button shape="circle" type="danger" style={{position: 'absolute', top: '5px', right: '5px'}} onClick={this.toggleItem('delete', i.name)}>
                           <Icon type="minus-circle" />
                         </Button>) : ''
                     }
@@ -375,8 +376,22 @@ export class StreamStartForm extends React.Component {
               <FormItem>
                 {getFieldDecorator(`newTopicName`, {
                   rules: [{
-                    required: true,
-                    message: locale === 'en' ? 'Please fill in topic name' : '请填写 topic name'
+                    validator: (rule, value, callback) => {
+                      let msg = ''
+                      if (value == null || value === '') {
+                        msg = locale === 'en' ? 'Please fill in topic name' : '请填写 topic name'
+                        callback(msg)
+                        return
+                      }
+                      for (let i = 0, len = userDefinedTopics.length; i < len; i++) {
+                        if (userDefinedTopics[i].name === value) {
+                          msg = locale === 'en' ? 'The topic name has already existed!' : 'Topic name 已存在'
+                          callback(msg)
+                          return
+                        }
+                      }
+                      callback()
+                    }
                   }]
                 })(
                   <Input className="rate-input" />
