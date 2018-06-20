@@ -43,7 +43,7 @@ const { RangePicker } = DatePicker
 
 import {
   loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
-  deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset
+  deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset, loadUdfs
 } from './action'
 import { loadSingleUdf } from '../Udf/action'
 import { selectStreams, selectStreamStartModalLoading } from './selectors'
@@ -293,18 +293,17 @@ export class Manager extends React.Component {
     })
 
     // 单条查询接口获得回显的topic Info，回显选中的UDFs
-    this.props.onLoadStreamDetail(projectIdGeted, record.id, 'user', (result) => {
+    this.props.onLoadUdfs(projectIdGeted, record.id, 'user', (result) => {
       this.setState({
-        topicInfoModal: result.topicInfo.length === 0 ? 'hide' : ''
+        topicInfoModal: result.length === 0 ? 'hide' : ''
       })
 
       // 回显选中的 topic，必须有 id
-      const currentUdfTemp = result.currentUdf
+      const currentUdfTemp = result
       let topicsSelectValue = []
       for (let i = 0; i < currentUdfTemp.length; i++) {
         topicsSelectValue.push(`${currentUdfTemp[i].id}`)
       }
-
       this.streamStartForm.setFieldsValue({ udfs: topicsSelectValue })
     })
 
@@ -373,8 +372,8 @@ export class Manager extends React.Component {
 
       for (let j = 0; j < partitionAndOffset.length; j++) {
         this.streamStartForm.setFieldsValue({
-          [`${streamStartFormData[i].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
-          [`${streamStartFormData[i].id}_${streamStartFormData[i].rate}_rate`]: streamStartFormData[i].rate
+          [`${streamStartFormData[i].name}_${j}_auto`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
+          [`${streamStartFormData[i].name}_${streamStartFormData[i].rate}_rate`]: streamStartFormData[i].rate
         })
       }
     }
@@ -439,17 +438,17 @@ export class Manager extends React.Component {
 
                 const offsetArr = []
                 for (let r = 0; r < partitionTemp.length; r++) {
-                  const offsetArrTemp = values[`${i.id}_${r}`]
+                  const offsetArrTemp = values[`${i.name}_${r}`]
                   offsetArrTemp === ''
                     ? message.warning(offsetText, 3)
                     : offsetArr.push(`${r}:${offsetArrTemp}`)
                 }
 
                 const robj = {
-                  id: i.id,
+                  // id: i.id,
                   name: i.name,
                   partitionOffsets: offsetArr.join(','),
-                  rate: Number(values[`${i.id}_${i.rate}_rate`])
+                  rate: Number(values[`${i.name}_${i.rate}_rate`])
                 }
                 return robj
               })
@@ -458,10 +457,10 @@ export class Manager extends React.Component {
               let topicInfoTemp = []
               for (let f = 0; f < streamStartFormData.length; f++) {
                 for (let g = 0; g < mergedData.length; g++) {
-                  if (streamStartFormData[f].id === mergedData[g].id) {
+                  if (streamStartFormData[f].name === mergedData[g].name) {
                     if (!isEquivalent(streamStartFormData[f], mergedData[g])) {
                       topicInfoTemp.push({
-                        id: mergedData[g].id,
+                        // id: mergedData[g].id,
                         partitionOffsets: mergedData[g].partitionOffsets,
                         rate: mergedData[g].rate
                       })
@@ -517,7 +516,7 @@ export class Manager extends React.Component {
 
       const offsetArr = []
       for (let r = 0; r < partitionTemp.length; r++) {
-        const offsetArrTemp = values[`${i.id}_${r}_${type}`]
+        const offsetArrTemp = values[`${i.name}_${r}_${type}`]
         offsetArrTemp === ''
           ? message.warning(offsetText, 3)
           : offsetArr.push(`${r}:${offsetArrTemp}`)
@@ -525,9 +524,10 @@ export class Manager extends React.Component {
       const offsetVal = offsetArr.join(',')
 
       const robj = {
-        id: i.id,
+        // id: i.id,
+        name: i.name,
         partitionOffsets: offsetVal,
-        rate: Number(values[`${i.id}_${i.rate}_rate`])
+        rate: Number(values[`${i.name}_${i.rate}_rate`])
       }
       return robj
     })
@@ -1074,7 +1074,7 @@ export class Manager extends React.Component {
 
           const topicTemp = showStreamdetails.topicInfo.autoRegisteredTopics
           const topicFinal = topicTemp.map(s => (
-            <li key={s.id}>
+            <li key={s.name}>
               <strong>Topic Name：</strong>{s.name}
               <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
               <strong>；Rate：</strong>{s.rate}
@@ -1084,7 +1084,7 @@ export class Manager extends React.Component {
           const currentudfTemp = showStreamdetails.currentUdf
           const currentUdfFinal = currentudfTemp.length !== 0
             ? currentudfTemp.map(s => (
-              <li key={s.id}>
+              <li key={s.name}>
                 <strong>Function Name：</strong>{s.functionName}
                 <strong>；Full Class Name：</strong>{s.fullClassName}
                 <strong>；Jar Name：</strong>{s.jarName}
@@ -1309,7 +1309,8 @@ Manager.propTypes = {
   onLoadLastestOffset: PropTypes.func,
   streamStartModalLoading: PropTypes.bool,
   roleType: PropTypes.string,
-  locale: PropTypes.string
+  locale: PropTypes.string,
+  onLoadUdfs: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1324,7 +1325,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadLogsInfo: (projectId, streamId, resolve) => dispatch(loadLogsInfo(projectId, streamId, resolve)),
     onLoadAdminLogsInfo: (projectId, streamId, resolve) => dispatch(loadAdminLogsInfo(projectId, streamId, resolve)),
     onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
-    onLoadLastestOffset: (projectId, streamId, resolve) => dispatch(loadLastestOffset(projectId, streamId, resolve))
+    onLoadLastestOffset: (projectId, streamId, resolve) => dispatch(loadLastestOffset(projectId, streamId, resolve)),
+    onLoadUdfs: (projectId, streamId, resolve) => dispatch(loadUdfs(projectId, streamId, resolve))
   }
 }
 
