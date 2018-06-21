@@ -28,7 +28,7 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
 **3. Kafka 集群中创建 source topic，并生成测试数据。若 Source Namespace 为 `kafka.test.source.ums_extension.*.*.*`，则 生成Kafka 消息时应设置消息的key为 `data_increment_data.kafka.test.source.ums_extension.*.*.*`。生成测试数据命令如下：**
 
    ```
-cd /usr/local/kafka/b
+cd /usr/local/kafka/bin
 ./kafka-console-producer.sh --broker-list hdp1:6667 --topic source --property "parse.key=true" --property "key.separator=@@@"
 data_increment_data.kafka.edp.source.test...*@@@{"id": 1,"name": "test","phone":"18074546423","address": "Beijing","time": "2017-12-22 10:00:00"}
    ```
@@ -121,4 +121,4 @@ data_increment_data.kafka.edp.source.test...*@@@{"id": 1,"name": "test","phone":
 
 **具体步骤及配置说明请参考其他章节~~**
 
-**demo过程中有问题可先参考FAQ章节排查~~**
+**demo过程中有问题可先参考[FAQ](https://edp963.github.io/wormhole/faq.html)章节排查~~**
