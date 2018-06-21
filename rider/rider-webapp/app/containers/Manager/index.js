@@ -50,7 +50,7 @@ import { selectStreams, selectStreamStartModalLoading } from './selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
 import { selectRoleType } from '../App/selectors'
 
-import { isEquivalent, operateLanguageText } from '../../utils/util'
+import { operateLanguageText } from '../../utils/util'
 
 export class Manager extends React.Component {
   constructor (props) {
@@ -115,7 +115,8 @@ export class Manager extends React.Component {
       // kafkaOffsetValue: [],
       // kafkaEarliestOffset: [],
       autoRegisteredTopics: [],
-      userDefinedTopics: []
+      userDefinedTopics: [],
+      tempUserTopics: []
     }
   }
 
@@ -271,7 +272,8 @@ export class Manager extends React.Component {
           this.setState({
             autoRegisteredTopics: result.autoRegisteredTopics,
             userDefinedTopics: result.userDefinedTopics,
-            streamStartFormData: result.autoRegisteredTopics
+            streamStartFormData: result.autoRegisteredTopics,
+            tempUserTopics: result.userDefinedTopics.slice()
             // consumedOffsetValue: result.consumedLatestOffset,
             // kafkaOffsetValue: result.kafkaLatestOffset,
             // kafkaEarliestOffset: result.kafkaEarliestOffset
@@ -356,7 +358,8 @@ export class Manager extends React.Component {
     this.props.onLoadLastestOffset(projectId, streamId, (result) => {
       this.setState({
         autoRegisteredTopics: result.autoRegisteredTopics,
-        userDefinedTopics: result.userDefinedTopics
+        userDefinedTopics: result.userDefinedTopics,
+        tempUserTopics: result.userDefinedTopics
         // consumedOffsetValue: result.consumedLatestOffset,
         // kafkaOffsetValue: result.kafkaLatestOffset,
         // kafkaEarliestOffset: result.kafkaEarliestOffset
@@ -433,52 +436,19 @@ export class Manager extends React.Component {
             if (!streamStartFormData) {
               requestVal = !values.udfs ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
             } else {
-              const mergedData = streamStartFormData.map((i) => {
-                const partitionTemp = i.consumedLatestOffset.split(',')
-
-                const offsetArr = []
-                for (let r = 0; r < partitionTemp.length; r++) {
-                  const offsetArrTemp = values[`${i.name}_${r}`]
-                  offsetArrTemp === ''
-                    ? message.warning(offsetText, 3)
-                    : offsetArr.push(`${r}:${offsetArrTemp}`)
-                }
-
-                const robj = {
-                  // id: i.id,
-                  name: i.name,
-                  partitionOffsets: offsetArr.join(','),
-                  rate: Number(values[`${i.name}_${i.rate}_rate`])
-                }
-                return robj
-              })
+              const mergedData = {}
+              const autoRegisteredData = this.formatTopicInfo(streamStartFormData, 'auto', values, offsetText)
+              const userDefinedData = this.formatTopicInfo(userDefinedTopics, 'user', values, offsetText)
 
               // 接口参数：改动的topicInfo
-              let topicInfoTemp = []
-              for (let f = 0; f < streamStartFormData.length; f++) {
-                for (let g = 0; g < mergedData.length; g++) {
-                  if (streamStartFormData[f].name === mergedData[g].name) {
-                    if (!isEquivalent(streamStartFormData[f], mergedData[g])) {
-                      topicInfoTemp.push({
-                        // id: mergedData[g].id,
-                        partitionOffsets: mergedData[g].partitionOffsets,
-                        rate: mergedData[g].rate
-                      })
-                    }
-                  }
-                }
-              }
-
-              if (topicInfoTemp.length === 0) {
-                requestVal = (!values.udfs) ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
-              } else {
-                requestVal = (!values.udfs)
-                  ? { topicInfo: topicInfoTemp }
-                  : {
-                    udfInfo: values.udfs.map(q => Number(q)),
-                    topicInfo: topicInfoTemp
-                  }
-              }
+              mergedData.autoRegisteredTopics = this.diffTopicInfo(streamStartFormData, autoRegisteredData)
+              mergedData.userDefinedTopics = this.diffTopicInfo(this.state.tempUserTopics, userDefinedData)
+              // mergedData.autoRegisteredTopics.length === 0 ? delete mergedData.autoRegisteredTopics : mergedData.userDefinedTopics.length === 0 ? delete mergedData.userDefinedTopics : ''
+              // if (mergedData.autoRegisteredTopics.length === 0 && mergedData.userDefinedTopics.length === 0) {
+              //   requestVal = (!values.udfs) ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
+              // } else {
+              requestVal = (!values.udfs) ? { topicInfo: mergedData } : { udfInfo: values.udfs.map(q => Number(q)), topicInfo: mergedData }
+            //   }
             }
             break
         }
@@ -509,7 +479,7 @@ export class Manager extends React.Component {
   }
 
   formatTopicInfo (data = [], type = 'auto', values, offsetText) {
-    if (data.length === 0) return []
+    if (data.length === 0) return
     return data.map((i) => {
       const parOffTemp = i.consumedLatestOffset
       const partitionTemp = parOffTemp.split(',')
@@ -531,6 +501,39 @@ export class Manager extends React.Component {
       }
       return robj
     })
+  }
+
+  diffTopicInfo (oldData = [], newData = []) {
+    if (oldData.length === 0 || newData.length === 0) return
+    let topicInfoTemp = []
+    for (let g = 0; g < newData.length; g++) {
+      for (let f = 0; f < oldData.length; f++) {
+        if (oldData[f].name === newData[g].name) {
+          let obj = {
+            name: newData[g].name,
+            partitionOffsets: newData[g].partitionOffsets,
+            rate: newData[g].rate
+          }
+          if (
+            oldData[f].consumedLatestOffset === newData[g].partitionOffsets &&
+            oldData[f].rate === newData[g].rate
+          ) {
+            obj.action = 0
+          } else {
+            obj.action = 1
+          }
+          topicInfoTemp.push(obj)
+        } else if (f === oldData.length - 1) {
+          topicInfoTemp.push({
+            name: newData[g].name,
+            partitionOffsets: newData[g].partitionOffsets,
+            rate: newData[g].rate,
+            action: 1
+          })
+        }
+      }
+    }
+    return topicInfoTemp
   }
 
   handleEditStartCancel = (e) => {
@@ -1326,7 +1329,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadAdminLogsInfo: (projectId, streamId, resolve) => dispatch(loadAdminLogsInfo(projectId, streamId, resolve)),
     onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
     onLoadLastestOffset: (projectId, streamId, resolve) => dispatch(loadLastestOffset(projectId, streamId, resolve)),
-    onLoadUdfs: (projectId, streamId, resolve) => dispatch(loadUdfs(projectId, streamId, resolve))
+    onLoadUdfs: (projectId, streamId, roleType, resolve) => dispatch(loadUdfs(projectId, streamId, roleType, resolve))
   }
 }
 

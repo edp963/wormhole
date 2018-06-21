@@ -38,7 +38,7 @@ const Panel = Collapse.Panel
 const FormItem = Form.Item
 import { forceCheckNum } from '../../utils/util'
 import { selectLocale } from '../LanguageProvider/selectors'
-import { postUserTopic, deleteUserTopic } from './action'
+import { postUserTopic } from './action'
 
 export class StreamStartForm extends React.Component {
   constructor (props) {
@@ -105,7 +105,7 @@ export class StreamStartForm extends React.Component {
       })
     }
   }
-  toggleItem = (type, id) => (e) => {
+  toggleItem = (type, name) => (e) => {
     if (!type) return
     let { projectIdGeted, streamIdGeted } = this.props
     switch (type) {
@@ -128,18 +128,14 @@ export class StreamStartForm extends React.Component {
         })
         break
       case 'delete':
-        this.props.onDeleteUserTopic(projectIdGeted, streamIdGeted, id, (result) => {
-          let userTopicList = this.state.userDefinedTopics.slice()
-          for (let i = 0; i < userTopicList.length; i++) {
-            if (userTopicList[i].id === id) {
-              userTopicList.splice(i, 1)
-            }
+        let userTopicList = this.state.userDefinedTopics.slice()
+        for (let i = 0; i < userTopicList.length; i++) {
+          if (userTopicList[i].name === name) {
+            userTopicList.splice(i, 1)
           }
-          this.setState({userDefinedTopics: userTopicList})
+        }
+        this.setState({userDefinedTopics: userTopicList}, () => {
           this.props.emitStartFormDataFromSub(this.state.userDefinedTopics)
-          message.success(result, 3)
-        }, (error) => {
-          message.error(error, 3)
         })
         break
     }
@@ -444,11 +440,11 @@ export class StreamStartForm extends React.Component {
             </div>
           </Card>
           <Card title={topicCardTitle} className="stream-start-form-card-style">
-            <Collapse>
-              <Panel header={autoRegisteredTopicsCardTitle}>
+            <Collapse defaultActiveKey={['auto', 'user']}>
+              <Panel header={autoRegisteredTopicsCardTitle} key="auto">
                 {itemFactory(data)}
               </Panel>
-              <Panel header={userDefinedTopicsCardTitle}>
+              <Panel header={userDefinedTopicsCardTitle} key="user">
                 {userDefinedTopicsCardAddItem}
                 {userItemFactory(userDefinedTopics)}
               </Panel>
@@ -476,7 +472,6 @@ StreamStartForm.propTypes = {
   projectIdGeted: PropTypes.string,
   streamIdGeted: PropTypes.number,
   onPostUserTopic: PropTypes.func,
-  onDeleteUserTopic: PropTypes.func,
   emitStartFormDataFromSub: PropTypes.func
 }
 
@@ -486,8 +481,7 @@ const mapStateToProps = createStructuredSelector({
 
 function mapDispatchToProps (dispatch) {
   return {
-    onPostUserTopic: (projectId, streamId, topic, resolve, reject) => dispatch(postUserTopic(projectId, streamId, topic, resolve, reject)),
-    onDeleteUserTopic: (projectId, streamId, topicId, resolve, reject) => dispatch(deleteUserTopic(projectId, streamId, topicId, resolve, reject))
+    onPostUserTopic: (projectId, streamId, topic, resolve, reject) => dispatch(postUserTopic(projectId, streamId, topic, resolve, reject))
   }
 }
 export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, mapDispatchToProps)(StreamStartForm))
