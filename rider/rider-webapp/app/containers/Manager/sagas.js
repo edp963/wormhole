@@ -36,7 +36,10 @@ import {
   OPERATE_STREAMS,
   DELETE_STREAMS,
   STARTORRENEW_STREAMS,
-  LOAD_LASTEST_OFFSET
+  LOAD_LASTEST_OFFSET,
+  POST_USER_TOPIC,
+  DELETE_USER_TOPIC,
+  LOAD_UDFS
 } from './constants'
 
 import {
@@ -57,7 +60,9 @@ import {
   streamDeleted,
   streamStartOrRenewed,
   streamOperatedError,
-  lastestOffsetLoaded
+  lastestOffsetLoaded,
+  postUserTopicLoaded,
+  deleteUserTopicLoaded
 } from './action'
 
 import request from '../../utils/request'
@@ -316,8 +321,18 @@ export function* startOrRenewStreamWathcer () {
 }
 
 export function* getLastestOffset ({ payload }) {
+  let req = null
+  if (payload.type === 'get') {
+    req = `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/topics`
+  } else if (payload.type === 'post') {
+    req = {
+      method: 'post',
+      url: `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/topics`,
+      data: payload.topics
+    }
+  }
   try {
-    const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/topics/offsets/latest`)
+    const result = yield call(request, req)
     if (result.code && result.code === 200) {
       yield put(lastestOffsetLoaded(result.msg))
       payload.resolve(result.msg)
@@ -334,6 +349,64 @@ export function* getLastestOffsetWatcher () {
   yield fork(takeLatest, LOAD_LASTEST_OFFSET, getLastestOffset)
 }
 
+export function* addUserTopic ({payload}) {
+  try {
+    const result = yield call(request, {
+      method: 'post',
+      url: `${api.projectUserList}/${payload.projectId}/streams/${payload.streamId}/topics/userdefined`,
+      data: payload.topic
+    })
+    if (result.header.code && result.header.code === 200) {
+      yield put(postUserTopicLoaded(result.payload))
+      payload.resolve(result.payload)
+    } else {
+      payload.reject(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'addUserTopic')
+  }
+}
+
+export function* addUserTopicWatch () {
+  yield fork(takeEvery, POST_USER_TOPIC, addUserTopic)
+}
+
+export function* removeUserTopic ({payload}) {
+  try {
+    const result = yield call(request, {
+      method: 'delete',
+      url: `${api.projectUserList}/${payload.projectId}/streams/${payload.streamId}/topics/userdefined/${payload.topicId}`
+    })
+    if (result.header.code && result.header.code === 200) {
+      yield put(deleteUserTopicLoaded(result.payload))
+      payload.resolve(result.payload)
+    } else {
+      payload.reject(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'removeUserTopic')
+  }
+}
+
+export function* removeUserTopicWatch () {
+  yield fork(takeEvery, DELETE_USER_TOPIC, removeUserTopic)
+}
+
+export function* getUdfs ({payload}) {
+  const apiFinal = payload.roleType === 'admin'
+  ? `${api.projectAdminStream}`
+  : `${api.projectStream}`
+  try {
+    const result = yield call(request, `${apiFinal}/${payload.projectId}/streams/${payload.streamId}/udfs`)
+    payload.resolve(result.payload)
+  } catch (err) {
+    notifySagasError(err, 'getUdfs')
+  }
+}
+
+export function* getUdfsWatch () {
+  yield fork(takeEvery, LOAD_UDFS, getUdfs)
+}
 export default [
   getUserStreamsWatcher,
   getAdminAllFlowsWatcher,
@@ -350,5 +423,8 @@ export default [
   operateStreamWathcer,
   deleteStreamWathcer,
   startOrRenewStreamWathcer,
-  getLastestOffsetWatcher
+  getLastestOffsetWatcher,
+  addUserTopicWatch,
+  removeUserTopicWatch,
+  getUdfsWatch
 ]
