@@ -321,8 +321,18 @@ export function* startOrRenewStreamWathcer () {
 }
 
 export function* getLastestOffset ({ payload }) {
+  let req = null
+  if (payload.type === 'get') {
+    req = `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/topics`
+  } else if (payload.type === 'post') {
+    req = {
+      method: 'post',
+      url: `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/topics`,
+      data: payload.topics
+    }
+  }
   try {
-    const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/topics`)
+    const result = yield call(request, req)
     if (result.code && result.code === 200) {
       yield put(lastestOffsetLoaded(result.msg))
       payload.resolve(result.msg)
