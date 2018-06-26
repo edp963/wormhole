@@ -45,13 +45,15 @@ export class StreamStartForm extends React.Component {
     super(props)
     this.state = {
       data: [] || '',
-      userDefinedTopics: []
+      userDefinedTopics: [],
+      unValidate: false
     }
   }
 
   componentWillReceiveProps (props) {
     let dataFinal = []
     let userDefinedTopics = []
+    let unValidate = props.unValidate
     if (!props.data) {
       dataFinal = 'There is no topics now.'
     } else {
@@ -77,7 +79,7 @@ export class StreamStartForm extends React.Component {
       //   return Object.assign(conTempObject, kafTempObject)
       // })
     }
-    this.setState({ data: dataFinal, userDefinedTopics })
+    this.setState({ data: dataFinal, userDefinedTopics, unValidate })
   }
 
   onApplyOffset = (i, index, offset, type) => (e) => {
@@ -143,7 +145,7 @@ export class StreamStartForm extends React.Component {
   render () {
     const { form, streamActionType, startUdfValsOption, renewUdfValsOption, currentUdfVal, locale } = this.props
     const { getFieldDecorator } = form
-    const { data, userDefinedTopics } = this.state
+    const { data, userDefinedTopics, unValidate } = this.state
 
     const noTopicCardTitle = (<Col span={24} style={{fontWeight: '500'}}><span className="modal-topic-name">Topic Name</span></Col>)
     const topicCardTitle = (<Col span={24} style={{fontWeight: '500'}}><span className="modal-topic-name">Topics</span></Col>)
@@ -216,12 +218,12 @@ export class StreamStartForm extends React.Component {
                             }],
                             initialValue: conOffFinal
                           })(
-                            <InputNumber size="medium" className="conform-table-input" />
+                            <InputNumber size="medium" className="conform-table-input" min={0} />
                           )}
                         </ol>
                       </FormItem>
                     </Col>
-                    <Col span={6} className="stream-start-offset-class">
+                    <Col span={4} className="stream-start-offset-class">
                       <FormItem>
                         <ol key={g}>
                           {getFieldDecorator(`consumedLatest_${i.name}_${index}_${type}`, {})(
@@ -237,7 +239,7 @@ export class StreamStartForm extends React.Component {
                         </ol>
                       </FormItem>
                     </Col>
-                    <Col span={6} className="stream-start-offset-class">
+                    <Col span={6} offset={2} className="stream-start-offset-class">
                       <FormItem>
                         <ol key={g}>
                           {getFieldDecorator(`kafkaEarliest_${i.name}_${index}_${type}`, {})(
@@ -289,9 +291,9 @@ export class StreamStartForm extends React.Component {
             const cardContent = (
               <Row key={i.name} className="apply-all-btn">
                 <div className="rate-topic-info-wrapper">
-                  <Col span={2} className="card-content card-content-extra">Partition</Col>
-                  <Col span={4} offset={1} className="card-content required-offset card-content-extra">Offset</Col>
-                  <Col span={6} className="card-content">Latest Consumed Offset
+                  <Col span={2} className="card-content ">Partition</Col>
+                  <Col span={4} offset={1} className="card-content required-offset ">Offset</Col>
+                  <Col span={7} className="card-content">Latest Consumed Offset
                     <Tooltip title={applyAllText}>
                       <Button shape="circle" type="ghost" onClick={this.onApplyAll(i, 'consumer', type)}>
                         <i className="iconfont icon-apply_icon_-copy-copy"></i>
@@ -305,7 +307,7 @@ export class StreamStartForm extends React.Component {
                       </Button>
                     </Tooltip>
                   </Col>
-                  <Col span={5} className="card-content">Latest Kafka Offset
+                  <Col span={6} className="card-content">Latest Kafka Offset
                     <Tooltip title={applyAllText}>
                       <Button shape="circle" type="ghost" onClick={this.onApplyAll(i, 'kafka', type)}>
                         <i className="iconfont icon-apply_icon_-copy-copy"></i>
@@ -322,7 +324,7 @@ export class StreamStartForm extends React.Component {
                 <Card title={cardTitle} className="stream-start-form-card-style">
                   <div className="rate-topic-info-wrapper">
                     <div className="rate-class">
-                      <Col span={24} className="card-content required-offset card-content-extra">
+                      <Col span={24} className="card-content required-offset ">
                         Rate (<FormattedMessage {...messages.streamModalRate} />)
                       </Col>
                       <Col span={24}>
@@ -336,7 +338,7 @@ export class StreamStartForm extends React.Component {
                             }],
                             initialValue: `${i.rate}`
                           })(
-                            <InputNumber size="medium" className="rate-input" />
+                            <InputNumber size="medium" className="rate-input" min={0} />
                           )}
                         </FormItem>
                       </Col>
@@ -347,7 +349,7 @@ export class StreamStartForm extends React.Component {
                     {
                       hasDel ? (
                         <Button shape="circle" type="danger" style={{position: 'absolute', top: '5px', right: '5px'}} onClick={this.toggleItem('delete', i.name)}>
-                          <Icon type="minus-circle" />
+                          <Icon type="minus" />
                         </Button>) : ''
                     }
                   </div>
@@ -363,9 +365,9 @@ export class StreamStartForm extends React.Component {
 
     const userDefinedTopicsCardAddItem = (
       <Row className="apply-all-btn">
-        <div className="rate-topic-info-wrapper">
-          <div className="rate-class">
-            <Col span={24} className="card-content required-offset card-content-extra">
+        <div className="rate-topic-info-wrapper" style={{backgroundColor: '#ddd', padding: '10px 24px', margin: '10px 0', borderRadius: '10px'}}>
+          <div>
+            <Col span={24} className="card-content required-offset ">
               Topic Name
             </Col>
             <Col span={24}>
@@ -373,6 +375,10 @@ export class StreamStartForm extends React.Component {
                 {getFieldDecorator(`newTopicName`, {
                   rules: [{
                     validator: (rule, value, callback) => {
+                      if (unValidate) {
+                        callback()
+                        return
+                      }
                       let msg = ''
                       if (value == null || value === '') {
                         msg = locale === 'en' ? 'Please fill in topic name' : '请填写 topic name'
@@ -390,18 +396,18 @@ export class StreamStartForm extends React.Component {
                     }
                   }]
                 })(
-                  <Input className="rate-input" />
+                  <Input />
                 )}
               </FormItem>
             </Col>
           </div>
           <div className="rate-class" style={{flexGrow: 1}}>
-            <Col offset={22} className="card-content card-content-extra">
+            <Col offset={22} className="card-content ">
               Add
             </Col>
             <Col offset={22}>
               <Button shape="circle" type="default" onClick={this.toggleItem('add')}>
-                <Icon type="plus-circle" />
+                <Icon type="plus" />
               </Button>
             </Col>
           </div>
