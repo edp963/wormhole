@@ -164,7 +164,7 @@ export class WorkbenchJobForm extends React.Component {
   render () {
     const { jobDiffType, step, form, jobMode, fieldSelected, jobTranTableConfirmValue, onShowJobTransModal,
       onShowJobSinkConfigModal, jobTransTableSource, onDeleteSingleTransform, onJobAddTransform,
-      onEditTransform, onUpTransform, onDownTransform, jobStepSourceNs, jobStepSinkNs,
+      onEditTransform, onUpTransform, onDownTransform, jobStepSourceNs, jobStepSinkNs, jobSourceNsSys,
       jobTranTagClassName, jobTranTableClassName, jobTranConfigConfirmValue, locale, initialBackfillCascader, backfillSinkNsValue
     } = this.props
     const { getFieldDecorator } = form
@@ -208,7 +208,7 @@ export class WorkbenchJobForm extends React.Component {
         'protocol'
       ])
     }
-
+    formValues.sourceDataSystem = jobSourceNsSys
     const step3ConfirmDSNS = Object.keys(formValues).map(key => (
       <Col span={24} key={key}>
         <div className="ant-row ant-form-item">
@@ -721,23 +721,23 @@ export class WorkbenchJobForm extends React.Component {
         <Row gutter={8} className={`ri-workbench-confirm-step ${stepClassNames[2]}`}>
           {step3ConfirmDSNS}
           <Col span={24}>
-            <div className="ant-row ant-form-item">
+            <div className={`ant-row ant-form-item ${jobTypeClass[1]}`}>
               <Row>
                 <Col span={8} className="ant-form-item-label">
                   <label htmlFor="#">Sink Data System</label>
                 </Col>
                 <Col span={15}>
                   <div className="ant-form-item-control">
-                    <strong className="value-font-style">{backfillSinkDSValue}</strong>
+                    <strong className="value-font-style">{jobSourceNsSys}</strong>
                   </div>
                 </Col>
               </Row>
             </div>
           </Col>
           <Col span={24}>
-            <div className="ant-row ant-form-item">
+            <div className={`ant-row ant-form-item ${jobTypeClass[1]}`}>
               <Row>
-                <Col span={8} className="ant-form-item-label">
+                <Col span={8} className={`ant-form-item-label`}>
                   <label htmlFor="#">Sink Namespace</label>
                 </Col>
                 <Col span={15}>
@@ -763,9 +763,9 @@ export class WorkbenchJobForm extends React.Component {
             </div>
           </Col>
           <Col span={24}>
-            <div className="ant-row ant-form-item">
+            <div className={`ant-row ant-form-item ${jobTypeClass[0]}`}>
               <Row>
-                <Col span={8} className={`ant-form-item-label ${jobTypeClass[0]}`}>
+                <Col span={8} className={`ant-form-item-label`}>
                   <label htmlFor="#">Transformation</label>
                 </Col>
                 <Col span={15}>
@@ -832,6 +832,7 @@ WorkbenchJobForm.propTypes = {
   onInitJobTypeSelect: PropTypes.func,
   backfillSinkNsValue: PropTypes.string,
   clearSinkData: PropTypes.func,
+  jobSourceNsSys: PropTypes.string,
 
   onLoadJobName: PropTypes.func,
   locale: PropTypes.string
