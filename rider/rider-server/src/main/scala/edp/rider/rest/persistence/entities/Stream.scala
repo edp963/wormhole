@@ -67,7 +67,7 @@ case class StreamDetail(stream: Stream,
 
 case class StreamKafka(instance: String, connUrl: String)
 
-case class StreamUdfTemp(id: Long, streamId: Long, functionName: String, fullClassName: String, jarName: String)
+case class StreamUdfResponse(id: Long, streamId: Long, functionName: String, fullClassName: String, jarName: String)
 
 case class StreamUdf(id: Long, functionName: String, fullClassName: String, jarName: String)
 
@@ -75,9 +75,11 @@ case class StreamZkUdfTemp(streamId: Long, functionName: String, fullClassName: 
 
 case class StreamZkUdf(functionName: String, fullClassName: String, jarName: String)
 
-case class PutTopicDirective(id: Long, partitionOffsets: String, rate: Int)
+case class PutTopicDirective(name: String, partitionOffsets: String, rate: Int, action: Option[Int])
 
 case class PutStreamTopic(autoRegisteredTopics: Seq[PutTopicDirective], userDefinedTopics: Seq[PutTopicDirective])
+
+case class GetTopicsOffsetRequest(autoRegisteredTopics: Seq[String], userDefinedTopics: Seq[String])
 
 case class StreamDirective(udfInfo: Seq[Long], topicInfo: Option[PutStreamTopic])
 
@@ -87,6 +89,22 @@ case class KafkaLatestOffset(id: Long, name: String, partitionOffsets: String)
 
 case class TopicLatestOffset(consumedLatestOffset: Seq[ConsumedLatestOffset], kafkaLatestOffset: Seq[KafkaLatestOffset])
 
+
+case class TopicAllOffsets(id: Long,
+                           name: String,
+                           rate: Int,
+                           consumedLatestOffset: String,
+                           kafkaEarliestOffset: String,
+                           kafkaLatestOffset: String)
+
+case class SimpleTopicAllOffsets(name: String,
+                                 rate: Int,
+                                 consumedLatestOffset: String,
+                                 kafkaEarliestOffset: String,
+                                 kafkaLatestOffset: String)
+
+case class GetTopicsOffsetResponse(autoRegisteredTopics: Seq[SimpleTopicAllOffsets], userDefinedTopics: Seq[SimpleTopicAllOffsets])
+
 case class GetTopicsResponse(autoRegisteredTopics: Seq[TopicAllOffsets], userDefinedTopics: Seq[TopicAllOffsets])
 
 case class StreamTopicTemp(id: Long,
@@ -94,6 +112,8 @@ case class StreamTopicTemp(id: Long,
                            name: String,
                            partitionOffsets: String,
                            rate: Int)
+
+case class UpdateTopicOffset(id: Long, offset: String)
 
 case class StreamTopic(id: Long,
                        name: String,
@@ -147,7 +167,7 @@ case class StreamHealth(streamStatus: String,
 
 case class StreamInfo(name: String, streamType: String, status: String)
 
-case class StartResponse(disableActions: String)
+case class StartResponse(id: Long, status: String, disableActions: String)
 
 class StreamTable(_tableTag: Tag) extends BaseTable[Stream](_tableTag, "stream") {
   def * = (id, name, desc, projectId, instanceId, streamType, sparkConfig, startConfig, launchConfig, sparkAppid, logPath, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <> (Stream.tupled, Stream.unapply)
