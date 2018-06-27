@@ -35,12 +35,12 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import scala.collection.mutable.ListBuffer
 
 object HdfsLogReadUtil extends EdpLogging {
-  def getHdfsLogPathListBetween(fullPathList: Seq[String], fromTsStr: String, toTsStr: String): Seq[String] = {
+  def getHdfsLogPathListBetween(conf:Configuration, fullPathList: Seq[String], fromTsStr: String, toTsStr: String): Seq[String] = {
     val fromTsLong: Long = if (fromTsStr != null) DateUtils.dt2long(fromTsStr) else 0
     val toTsLong: Long = if (toTsStr != null) DateUtils.dt2long(toTsStr) else 0
     println("fromTsLong:" + fromTsLong + "         " + fromTsStr)
     println("toTsLong:" + toTsLong + "     " + toTsStr)
-    val conf = new Configuration()
+//    val conf = new Configuration()
     val fileList = ListBuffer.empty[String]
     fullPathList.foreach(path => {
       val fileName = path.split("\\/").last
@@ -73,7 +73,7 @@ object HdfsLogReadUtil extends EdpLogging {
     fileList
   }
 
-  def getHdfsPathList(hdfsRoot: String, namespace: String, protocolTypeSet: Set[String]): Seq[String] = {
+  def getHdfsPathList(conf:Configuration, hdfsRoot: String, namespace: String, protocolTypeSet: Set[String]): Seq[String] = {
     val names = namespace.split("\\.")
 
     var prefix = hdfsRoot + "/hdfslog/" + names(0) + "." + names(1) + "." + names(2) + "/" + names(3)
@@ -81,11 +81,11 @@ object HdfsLogReadUtil extends EdpLogging {
     val namespaceVersion = if (names(4) == "*") {
       names(4)
     } else {
-      getHdfsFileList(prefix).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).head.toString
+      getHdfsFileList(conf,prefix).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).head.toString
     }
     val pathList = ListBuffer.empty[String]
     prefix = prefix + "/" + namespaceVersion
-    val parentPath = getHdfsFileList(prefix).flatMap(getHdfsFileList(_))
+    val parentPath = getHdfsFileList(conf,prefix).flatMap(getHdfsFileList(conf,_))
 
     if (protocolTypeSet.contains(UmsProtocolType.DATA_INITIAL_DATA.toString))
       parentPath.map(pathList += _ + "/" + UmsProtocolType.DATA_INITIAL_DATA.toString + "/right")
@@ -95,16 +95,14 @@ object HdfsLogReadUtil extends EdpLogging {
     pathList.toList
   }
 
-  def getHdfsFileList(hdfsPath: String): Seq[String] = {
-    val config = new Configuration()
+  def getHdfsFileList(config:Configuration, hdfsPath: String): Seq[String] = {
     val fileSystem = FileSystem.newInstance(config)
     val fullPath = pfRight(hdfsPath)
     assert(isPathExist(config, fullPath), s"The $fullPath does not exist")
     fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString).toList
   }
 
-  def getHdfsFileList(hdfsPathList: Seq[String]): Seq[String] = {
-    val config = new Configuration()
+  def getHdfsFileList(config:Configuration, hdfsPathList: Seq[String]): Seq[String] = {
     val fileSystem = FileSystem.newInstance(config)
     val fullPathList: Seq[String] = hdfsPathList.map(pfRight(_))
     val checkedPathList = fullPathList.filter(fullPath => {
