@@ -45,7 +45,7 @@ object UdfUtils extends RiderLogger {
     }
   }
 
-  def sendUdfDirective(streamId: Long, udfSeq: Seq[StreamUdfTemp], userId: Long) = {
+  def sendUdfDirective(streamId: Long, udfSeq: Seq[StreamUdfResponse], userId: Long) = {
     try {
       val directiveSeq = new ArrayBuffer[Directive]
       udfSeq.foreach({
