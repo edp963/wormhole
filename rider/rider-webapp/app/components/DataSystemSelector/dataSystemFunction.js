@@ -54,7 +54,8 @@ export function filterDataSystemData () {
     {text: 'redis', value: 'redis'},
     {text: 'vertica', value: 'vertica'},
     {text: 'parquet', value: 'parquet'},
-    {text: 'kudu', value: 'kudu'}
+    {text: 'kudu', value: 'kudu'},
+    {text: 'log', value: 'log'}
   ]
   return dataSystemValue
 }
