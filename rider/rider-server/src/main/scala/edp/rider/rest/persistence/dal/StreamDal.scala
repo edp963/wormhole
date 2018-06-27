@@ -21,10 +21,10 @@
 
 package edp.rider.rest.persistence.dal
 
-import java.util
-import edp.rider.kafka.KafkaUtils._
+import edp.rider.RiderStarter.modules._
 import edp.rider.common.Action._
 import edp.rider.common._
+import edp.rider.kafka.KafkaUtils._
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
@@ -33,9 +33,8 @@ import edp.rider.rest.util.StreamUtils._
 import edp.wormhole.common.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
-import edp.rider.RiderStarter.modules._
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 
@@ -235,22 +234,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   }
 
   def getTopicsAllOffsets(streamId: Long): GetTopicsResponse = {
-    val autoRegisteredTopics = inTopicDal.getAutoRegisteredTopics(streamId)
-    val udfTopics = udfTopicDal.getUdfTopics(streamId)
-    val kafkaInfo = getKafkaInfo(streamId)
-    val autoRegisteredTopicsResponse = autoRegisteredTopics.map(topic => {
-      val earliest = getKafkaEarliestOffset(kafkaInfo._2, topic.name)
-      val latest = getKafkaLatestOffset(kafkaInfo._2, topic.name)
-      val consumed = earliest //todo
-      TopicAllOffsets(topic.id, topic.name, topic.rate, consumed, earliest, latest)
-    })
-    val udfTopicsResponse = udfTopics.map(topic => {
-      val earliest = getKafkaEarliestOffset(kafkaInfo._2, topic.name)
-      val latest = getKafkaLatestOffset(kafkaInfo._2, topic.name)
-      val consumed = earliest //todo
-      TopicAllOffsets(topic.id, topic.name, topic.rate, consumed, earliest, latest)
-    })
-    GetTopicsResponse(autoRegisteredTopicsResponse, udfTopicsResponse)
+    getStreamTopicsMap(Seq(streamId))(streamId)
   }
 
   def getStreamTopicsMap(streamIds: Seq[Long]): Map[Long, GetTopicsResponse] = {
@@ -258,23 +242,64 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     val udfTopics = udfTopicDal.getUdfTopics(streamIds)
     val kafkaMap = getStreamKafkaMap(streamIds)
     streamIds.map(id => {
-      val autoTopicsResponse = autoRegisteredTopics.filter(_.streamId == id)
-        .map(topic => {
-          val earliest = getKafkaEarliestOffset(kafkaMap(topic.streamId), topic.name)
-          val latest = getKafkaLatestOffset(kafkaMap(topic.streamId), topic.name)
-          val consumed = earliest //todo
-          TopicAllOffsets(topic.id, topic.name, topic.rate, consumed, earliest, latest)
-        })
-      val udfTopicsResponse = udfTopics.filter(_.streamId == id)
-        .map(topic => {
-          val earliest = getKafkaEarliestOffset(kafkaMap(topic.streamId), topic.name)
-          val latest = getKafkaLatestOffset(kafkaMap(topic.streamId), topic.name)
-          val consumed = earliest //todo
-          TopicAllOffsets(topic.id, topic.name, topic.rate, consumed, earliest, latest)
-        })
+      val topics = autoRegisteredTopics.filter(_.streamId == id) ++: udfTopics.filter(_.streamId == id)
+      val feedbackOffsetMap = getConsumedMaxOffset(id, topics)
+
+      val autoTopicsResponse = genAllOffsets(autoRegisteredTopics, kafkaMap, feedbackOffsetMap)
+      val udfTopicsResponse = genAllOffsets(udfTopics, kafkaMap, feedbackOffsetMap)
+
+      //update offset in table
+      val autoRegisteredUpdateTopics = autoTopicsResponse.map(topic => UpdateTopicOffset(topic.id, topic.consumedLatestOffset))
+      val udfUpdateTopics = udfTopicsResponse.map(topic => UpdateTopicOffset(topic.id, topic.consumedLatestOffset))
+
+      streamInTopicDal.updateOffset(autoRegisteredUpdateTopics)
+      udfTopicDal.updateOffset(udfUpdateTopics)
       (id, GetTopicsResponse(autoTopicsResponse, udfTopicsResponse))
     }).toMap
     //    GetTopicsResponse(autoRegisteredTopicsResponse, udfTopicsResponse)
   }
+
+
+  def genAllOffsets(topics: Seq[StreamTopicTemp], kafkaMap: Map[Long, String], feedbackOffsetMap: Map[String, String]): Seq[TopicAllOffsets] = {
+    topics.map(topic => {
+      val earliest = getKafkaEarliestOffset(kafkaMap(topic.streamId), topic.name)
+      val latest = getKafkaLatestOffset(kafkaMap(topic.streamId), topic.name)
+      val consumed = feedbackOffsetMap(topic.name)
+      TopicAllOffsets(topic.id, topic.name, topic.rate, consumed, earliest, latest)
+    })
+  }
+
+  def getConsumedMaxOffset(streamId: Long, topics: Seq[StreamTopicTemp]): Map[String, String] = {
+    try {
+      //      val seq = new ListBuffer[StreamTopicTemp]
+      //      streamTopics.map(_.streamId).distinct.foreach(
+      //        streamId => {
+      //          val topicSeq = streamTopics.filter(_.streamId == streamId)
+      //          val topicFeedbackSeq = Await.result(db.run(feedbackOffsetTable.filter(_.streamId === streamId).sortBy(_.feedbackTime.desc).take(topicSeq.size + 1).result).mapTo[Seq[FeedbackOffset]], minTimeOut)
+      val topicFeedbackSeq = feedbackOffsetDal.getStreamTopicsFeedbackOffset(streamId, topics.size)
+      val topicOffsetMap = new mutable.HashMap[String, String]()
+      topicFeedbackSeq.foreach(topic => {
+        if (!topicOffsetMap.contains(topic.topicName))
+          topicOffsetMap(topic.topicName) = formatOffset(topic.partitionOffsets)
+      })
+      topics.foreach(
+        topic => {
+          if (!topicOffsetMap.contains(topic.name)) topicOffsetMap(topic.name) = formatOffset(topic.partitionOffsets)
+          //          if (map.contains(topic.name))
+          //            seq += StreamTopicTemp(topic.id, topic.streamId, topic.name, map(topic.name), topic.rate)
+          //          else seq += StreamTopicTemp(topic.id, topic.streamId, topic.name,
+          //            topic.partitionOffsets.split(",").sortBy(partOffset => partOffset.split(":")(0).toLong).mkString(","), topic.rate)
+        }
+      )
+      //        })
+      //      seq
+      topicOffsetMap.toMap
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"get stream consumed latest offset from feedback failed", ex)
+        throw ex
+    }
+  }
+
 
 }
