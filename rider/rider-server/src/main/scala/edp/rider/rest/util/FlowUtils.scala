@@ -21,16 +21,14 @@
 
 package edp.rider.rest.util
 
-import akka.http.scaladsl.model.StatusCodes.OK
 import com.alibaba.fastjson.{JSON, JSONArray}
 import edp.rider.RiderStarter.modules
 import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.kafka.{GetLatestOffsetException, KafkaUtils}
+import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
-import edp.rider.rest.util.ResponseUtils.getHeader
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.common.KVConfig
@@ -567,7 +565,6 @@ object FlowUtils extends RiderLogger {
       }
       true
     } catch {
-      case kafkaEx: GetLatestOffsetException => throw kafkaEx
       case ex: Exception =>
         riderLogger.error(s"user $userId send flow $flowId stop directive failed", ex)
         false
@@ -590,13 +587,11 @@ object FlowUtils extends RiderLogger {
           val inTopicInsert = StreamInTopic(0, streamId, ns.nsInstanceId, ns.nsDatabaseId, offset, RiderConfig.spark.topicDefaultRate,
             active = true, currentSec, userId, currentSec, userId)
           val inTopic = Await.result(modules.inTopicDal.insert(inTopicInsert), minTimeOut)
-          sendTopicDirective(streamId, Seq(StreamTopicTemp(inTopic.id, streamId, database.nsDatabase, inTopic.partitionOffsets, inTopic.rate)), userId)
+          sendTopicDirective(streamId, Seq(PutTopicDirective(database.nsDatabase, inTopic.partitionOffsets, inTopic.rate, None)), userId)
         }
       })
     }
     catch {
-      case kafkaEx: GetLatestOffsetException =>
-        throw kafkaEx
       case ex: Exception =>
         riderLogger.error(s"user $userId auto register topic to stream $streamId failed", ex)
         throw new Exception(ex)

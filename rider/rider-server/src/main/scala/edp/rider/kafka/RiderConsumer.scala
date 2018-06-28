@@ -21,9 +21,7 @@
 
 package edp.rider.kafka
 
-import akka.Done
 import akka.actor.Actor
-import akka.kafka.ConsumerMessage.CommittableOffsetBatch
 import akka.kafka.scaladsl.Consumer.Control
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Keep, Sink}
