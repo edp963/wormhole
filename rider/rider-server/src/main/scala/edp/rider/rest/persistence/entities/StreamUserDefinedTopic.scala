@@ -27,7 +27,6 @@ import slick.jdbc.MySQLProfile.api._
 
 case class StreamUserDefinedTopic(id: Long,
                                   streamId: Long,
-                                  nsInstanceId: Long,
                                   topic: String,
                                   partitionOffsets: String,
                                   rate: Int,
@@ -40,22 +39,13 @@ case class StreamUserDefinedTopic(id: Long,
   }
 }
 
-case class UserDefinedTopicResponse(id: Long,
-                                    name: String,
-                                    rate: Int,
-                                    consumedLatestOffset: String,
-                                    kafkaEarliestOffset: String,
-                                    kafkaLatestOffset: String)
-
 case class PostUserDefinedTopic(name: String)
 
 class StreamUserDefinedTopicTable(_tableTag: Tag) extends BaseTable[StreamUserDefinedTopic](_tableTag, "rel_stream_userdefined_topic") {
-  def * = (id, streamId, nsInstanceId, topic, partitionOffsets, rate, createTime, createBy, updateTime, updateBy) <> (StreamUserDefinedTopic.tupled, StreamUserDefinedTopic.unapply)
+  def * = (id, streamId, topic, partitionOffsets, rate, createTime, createBy, updateTime, updateBy) <> (StreamUserDefinedTopic.tupled, StreamUserDefinedTopic.unapply)
 
   /** Database column stream_id SqlType(BIGINT) */
   val streamId: Rep[Long] = column[Long]("stream_id")
-  /** Database column ns_instance_id SqlType(BIGINT) */
-  val nsInstanceId: Rep[Long] = column[Long]("ns_instance_id")
   /** Database column topic SqlType(VARCHAR) */
   val topic: Rep[String] = column[String]("topic")
   /** Database column partition_offsets SqlType(VARCHAR), Length(200,true) */
@@ -63,6 +53,6 @@ class StreamUserDefinedTopicTable(_tableTag: Tag) extends BaseTable[StreamUserDe
   /** Database column rate SqlType(INT) */
   val rate: Rep[Int] = column[Int]("rate")
 
-  val index1 = index("topic_UNIQUE", (streamId, nsInstanceId, topic), unique = true)
+  val index1 = index("topic_UNIQUE", (streamId, topic), unique = true)
 
 }
