@@ -573,9 +573,10 @@ export class WorkbenchFlowForm extends React.Component {
                   hidden: streamTypeHiddens[0]
                 })(
                   <RadioGroup className="radio-group-style" size="default">
-                    <RadioButton value="all" className="radio-btn-style radio-btn-extra">All</RadioButton>
+                    {/* <RadioButton value="all" className="radio-btn-style radio-btn-extra">All</RadioButton> */}
                     <RadioButton value="increment" className="radio-btn-style radio-btn-extra">Increment</RadioButton>
                     <RadioButton value="initial" className="radio-btn-style radio-btn-extra">Initial</RadioButton>
+                    <RadioButton value="backfill" className="radio-btn-style radio-btn-extra">Backfill</RadioButton>
                   </RadioGroup>
                 )}
               </FormItem>
