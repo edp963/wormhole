@@ -89,7 +89,7 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
     var ums: Ums = null
     var i = 1
     assert(filteredPathList.nonEmpty, "path list size is 0, there is no matched data")
-    var umsContent = HdfsUtils.readFileByLineNum(filteredPathList.head, i)
+    var umsContent = HdfsUtils.readFileByLineNum(filteredPathList.head, configuration, i)
     val umsContentList = ListBuffer.empty[String]
     while (ums == null && umsContent != null) {
       try {
@@ -102,7 +102,7 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
       } catch {
         case e: Throwable =>
           i += 1
-          umsContent = HdfsUtils.readFileByLineNum(filteredPathList.head, i)
+          umsContent = HdfsUtils.readFileByLineNum(filteredPathList.head, configuration, i)
           logAlert("umsContent=" + umsContent, e)
       }
     }
