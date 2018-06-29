@@ -2028,7 +2028,8 @@ export class Workbench extends React.Component {
               name: values.streamName,
               desc: values.desc,
               instanceId: Number(values.kafka),
-              streamType: values.type
+              functionType: values.type,
+              streamType: values.streamType
             }
 
             this.props.onAddStream(projectId, Object.assign(requestValues, streamConfigValues), () => {
