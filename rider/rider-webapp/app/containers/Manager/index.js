@@ -511,7 +511,7 @@ export class Manager extends React.Component {
 
       const offsetArr = []
       for (let r = 0; r < partitionTemp.length; r++) {
-        const offsetArrTemp = values[`${i.name}_${r}_${type}`]
+        const offsetArrTemp = values[`${i.name.replace(/\./g, '-')}_${r}_${type}`]
         offsetArrTemp === ''
           ? message.warning(offsetText, 3)
           : offsetArr.push(`${r}:${offsetArrTemp}`)
@@ -522,7 +522,7 @@ export class Manager extends React.Component {
         // id: i.id,
         name: i.name,
         partitionOffsets: offsetVal,
-        rate: Number(values[`${i.name}_${i.rate}_rate`])
+        rate: Number(values[`${i.name.replace(/\./g, '-')}_${i.rate}_rate`])
       }
       return robj
     })
@@ -1067,7 +1067,7 @@ export class Manager extends React.Component {
             )
 
           let strStart = ''
-          if (record.streamType === 'spark') {
+          if (record.streamType === 'default') {
             strStart = disableActions.includes('start')
               ? <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
               : <Button icon="caret-right" shape="circle" type="ghost" onClick={this.onShowEditStart(record, 'start')}></Button>
