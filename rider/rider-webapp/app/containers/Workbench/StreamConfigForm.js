@@ -54,6 +54,18 @@ export class StreamConfigForm extends React.Component {
     return (
       <Form>
         <Row>
+          <Col span={8}>
+            <FormItem label="Name：" {...itemStyleOthers}>
+              {getFieldDecorator('name', {
+                rules: [{
+                  required: true,
+                  message: textMessage
+                }]
+              })(
+                <Input />
+              )}
+            </FormItem>
+          </Col>
           <Col span={24}>
             <FormItem label="JVM：" {...itemStyle}>
               {getFieldDecorator('jvm', {

@@ -3371,6 +3371,7 @@ export class Workbench extends React.Component {
                     onCancel={this.hideConfigModal}>
                     <StreamConfigForm
                       tabPanelKey={this.state.tabPanelKey}
+                      subPanelKey={this.state.subPanelKey}
                       ref={(f) => { this.streamConfigForm = f }}
                     />
                   </Modal>
