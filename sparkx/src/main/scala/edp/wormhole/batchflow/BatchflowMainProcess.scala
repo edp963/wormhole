@@ -86,11 +86,10 @@ object BatchflowMainProcess extends EdpLogging {
         //val dt1 =  dt2dateTime(currentyyyyMMddHHmmss)
 
         val dataRepartitionRdd: RDD[(String, String)] = if (config.rdd_partition_number != -1) streamRdd.map(row => {
-          if(row.key==null||row.key.trim.isEmpty){
-            val realNamespace = WormholeUtils.getFieldContentFromJson(row.value,"namespace")
-            (realNamespace,row.value)
-          }else (row.key, row.value)
-        }).repartition(config.rdd_partition_number) else streamRdd.map(row => (row.key, row.value))
+          (checkAndGetKey( row.key, row.value), row.value)
+        }).repartition(config.rdd_partition_number) else streamRdd.map(row => {
+          (checkAndGetKey( row.key, row.value), row.value)
+        })
         UdfDirective.registerUdfProcess(config.kafka_output.feedback_topic_name, config.kafka_output.brokers, session)
         //        dataRepartitionRdd.cache()
         //        dataRepartitionRdd.count()
@@ -135,6 +134,11 @@ object BatchflowMainProcess extends EdpLogging {
       stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
     }
     )
+  }
+
+  private def checkAndGetKey( key:String, umsStr:String): String ={
+    if(key==null||key.trim.isEmpty) WormholeUtils.getFieldContentFromJson(umsStr, "namespace")
+    else key
   }
 
   private def getClassifyRdd(dataRepartitionRdd: RDD[(String, String)]): RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])] = {
