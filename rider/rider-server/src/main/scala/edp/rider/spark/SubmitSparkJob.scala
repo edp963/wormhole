@@ -59,7 +59,9 @@ object SubmitSparkJob extends App with RiderLogger {
         }
       })
     }
-    else Process(command).run()
+    else {
+      Process(command).run()
+    }
   }
 
   //  def commandGetJobInfo(streamName: String) = {
@@ -156,8 +158,10 @@ object SubmitSparkJob extends App with RiderLogger {
        |-tm ${resourceConfig.perTaskManagerMemoryGB * 1024}
        |-s ${resourceConfig.perTaskManagerSlots}
        |-jm ${resourceConfig.jobManagerMemoryGB * 1024}
+       |-qu ${RiderConfig.flink.yarnQueueName}
        |-nm ${stream.name}
+       |-d
        |> $logPath 2>&1
-     """.stripMargin.replaceAll("\\n", " ")
+     """.stripMargin.replaceAll("\n", " ").trim
   }
 }

@@ -465,16 +465,26 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
               val (projectTotalCore, projectTotalMemory) = (project.resCores, project.resMemoryG)
               val (jobUsedCore, jobUsedMemory, _) = jobDal.getProjectJobsUsedResource(projectId)
               val (streamUsedCore, streamUsedMemory, _) = streamDal.getProjectStreamsUsedResource(projectId)
-              //              val currentConfig = json2caseClass[StartConfig](stream.startConfig)
-              //              val currentNeededCore = currentConfig.driverCores + currentConfig.executorNums * currentConfig.perExecutorCores
-              //              val currentNeededMemory = currentConfig.driverMemory + currentConfig.executorNums * currentConfig.perExecutorMemory
-              //              if ((projectTotalCore - jobUsedCore - streamUsedCore - currentNeededCore) < 0 || (projectTotalMemory - jobUsedMemory - streamUsedMemory - currentNeededMemory) < 0) {
-              //                riderLogger.warn(s"user ${session.userId} start stream ${stream.id} failed, caused by resource is not enough")
-              //                complete(OK, setFailedResponse(session, "resource is not enough"))
-              //              } else
-              //              {
-              if (StreamType.withName(stream.streamType) == StreamType.SPARK)
-                startStreamDirective(streamId, streamDirectiveOpt, session.userId)
+              val (currentNeededCore, currentNeededMemory) =
+                StreamType.withName(stream.streamType) match {
+                  case StreamType.SPARK =>
+                    val currentConfig = json2caseClass[StartConfig](stream.startConfig)
+                    val currentNeededCore = currentConfig.driverCores + currentConfig.executorNums * currentConfig.perExecutorCores
+                    val currentNeededMemory = currentConfig.driverMemory + currentConfig.executorNums * currentConfig.perExecutorMemory
+                    (currentNeededCore, currentNeededMemory)
+                  case StreamType.FLINK =>
+                    val currentConfig = json2caseClass[FlinkResourceConfig](stream.startConfig)
+                    val currentNeededCore = currentConfig.taskManagersNumber * currentConfig.perTaskManagerSlots
+                    val currentNeededMemory = currentConfig.jobManagerMemoryGB + currentConfig.taskManagersNumber * currentConfig.perTaskManagerSlots
+                    (currentNeededCore, currentNeededMemory)
+                }
+
+              if ((projectTotalCore - jobUsedCore - streamUsedCore - currentNeededCore) < 0 || (projectTotalMemory - jobUsedMemory - streamUsedMemory - currentNeededMemory) < 0) {
+                riderLogger.warn(s"user ${session.userId} start stream ${stream.id} failed, caused by resource is not enough")
+                complete(OK, setFailedResponse(session, "resource is not enough"))
+              } else {
+                if (StreamType.withName(stream.streamType) == StreamType.SPARK)
+                  startStreamDirective(streamId, streamDirectiveOpt, session.userId)
                 //            runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(stream.name)}")
                 val logPath = getLogPath(stream.name)
                 startStream(stream, logPath)
@@ -485,12 +495,12 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} start stream where project id is $projectId failed", ex)
                     complete(OK, setFailedResponse(session, ex.getMessage))
-                  //                }
                 }
+              }
 
-             }catch {
+            } catch {
               case ex: Exception =>
-                riderLogger.error(s"user ${session.userId} start new stream failed", ex)
+                riderLogger.error(s"user ${session.userId} get resources for project ${projectId} failed when start new stream", ex)
                 complete(OK, setFailedResponse(session, ex.getMessage))
             }
           } else {
@@ -889,32 +899,32 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     complete(OK, setSuccessResponse(session))
   }
 
-  def getDefaultConfig(route: String): Route = path(route /"defaultconfigs") {
-      get {
-        parameter('streamType.as[String]) {
-          (streamType) =>
-            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
-              session =>
-                if (session.roleType != "user") {
-                  riderLogger.warn(s"${session.userId} has no permission to access it.")
-                  complete(OK, setFailedResponse(session, "Insufficient Permission"))
+  def getDefaultConfig(route: String): Route = path(route / "defaultconfigs") {
+    get {
+      parameter('streamType.as[String]) {
+        (streamType) =>
+          authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+            session =>
+              if (session.roleType != "user") {
+                riderLogger.warn(s"${session.userId} has no permission to access it.")
+                complete(OK, setFailedResponse(session, "Insufficient Permission"))
+              }
+              else {
+                StreamType.withName(streamType) match {
+                  case StreamType.SPARK =>
+                    val jvm = StreamUtils.getDefaultJvmConf
+                    val sparkResource = SparkResourceConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum,
+                      RiderConfig.spark.executorCores, RiderConfig.spark.executorMemory, RiderConfig.spark.batchDurationSec, RiderConfig.spark.parallelismPartition, RiderConfig.spark.maxPartitionFetchMb)
+                    val others = RiderConfig.spark.sparkConfig
+                    val defaultConfig = SparkDefaultConfig(jvm, sparkResource, others)
+                    complete(OK, ResponseJson[SparkDefaultConfig](getHeader(200, session), defaultConfig))
+                  case StreamType.FLINK =>
+                    val defaultConfig = RiderConfig.defaultFlinkConfig
+                    complete(OK, ResponseJson[FlinkDefaultConfig](getHeader(200, session), defaultConfig))
                 }
-                else {
-                  StreamType.withName(streamType) match {
-                    case StreamType.SPARK =>
-                      val jvm = StreamUtils.getDefaultJvmConf
-                      val sparkResource = SparkResourceConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum,
-                        RiderConfig.spark.executorCores, RiderConfig.spark.executorMemory, RiderConfig.spark.batchDurationSec, RiderConfig.spark.parallelismPartition,RiderConfig.spark.maxPartitionFetchMb)
-                      val others = RiderConfig.spark.sparkConfig
-                      val defaultConfig = SparkDefaultConfig(jvm, sparkResource, others)
-                      complete(OK, ResponseJson[SparkDefaultConfig](getHeader(200, session),  defaultConfig))
-                    case StreamType.FLINK =>
-                      val defaultConfig = RiderConfig.defaultFlinkConfig
-                      complete(OK, ResponseJson[FlinkDefaultConfig](getHeader(200, session),  defaultConfig))
-                  }
-                }
-            }
-        }
+              }
+          }
       }
+    }
   }
 }
