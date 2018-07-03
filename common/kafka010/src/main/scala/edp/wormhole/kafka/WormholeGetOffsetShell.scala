@@ -20,7 +20,6 @@ object WormholeGetOffsetShell {
       val topicsMetadata = ClientUtils.fetchTopicMetadata(Set(topic), metadataTargetBrokers, clientId, maxWaitMs).topicsMetadata
       if (topicsMetadata.size != 1 || !topicsMetadata(0).topic.equals(topic)) {
         throw new Exception(s"brokerList $brokerList topic $topic doesn't exist, please verify it.")
-        ""
       } else {
         val partitions = topicsMetadata.head.partitionsMetadata.map(_.partitionId)
         val offsetSeq = new ListBuffer[String]()
@@ -39,26 +38,24 @@ object WormholeGetOffsetShell {
                   } catch {
                     case _: Exception =>
                       throw new Exception(s"brokerList $brokerList topic $topic partition $partitionId doesn't have a leader, please verify it.")
-                      ""
                   } finally {
                     consumer.close()
                   }
                 case None =>
                   throw new Exception(s"brokerList $brokerList topic $topic partition $partitionId doesn't have a leader, please verify it.")
-                  ""
               }
             case None =>
               throw new Exception(s"brokerList $brokerList topic $topic partition $partitionId doesn't exist, please verify it.")
-              ""
           }
         }
-
-        offsetSeq.sortBy(offset => offset.split(":")(0).toLong).mkString(",")
+        val offset = offsetSeq.sortBy(offset => offset.split(":")(0).toLong).mkString(",")
+        if (offset == "")
+          throw new Exception(s"query topic $topic offset result is '', please check it.")
+        offset
       }
     } catch {
       case ex: Exception =>
-        throw new Exception(ex)
-        ""
+        throw ex
     }
   }
 }
