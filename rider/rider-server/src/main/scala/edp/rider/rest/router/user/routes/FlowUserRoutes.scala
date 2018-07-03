@@ -32,6 +32,7 @@ import io.swagger.annotations._
 class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
   lazy val routes: Route = postFlowRoute ~ getFlowByFilterRoute ~ putFlowRoute ~ getFlowByIdRoute ~ lookupSqlPermVerifyRoute
+//  ~ getDriftStreams
 
   lazy val basePath = "projects"
 
@@ -126,13 +127,12 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
   ))
   def lookupSqlPermVerifyRoute: Route = modules.flowUserService.lookupSqlVerifyRoute(basePath)
 
-  // post /user/projects/1/flows/1/topics
-//  @Path("/{projectId}/flows/{flowId}/topics")
-//  @ApiOperation(value = "get topic offsets by request topics", notes = "", nickname = "", httpMethod = "POST")
+//  @Path("/{projectId}/streams/{streamId}/flows/{flowId}/driftstreams")
+//  @ApiOperation(value = "get driftstreams", notes = "", nickname = "", httpMethod = "GET")
 //  @ApiImplicitParams(Array(
-//    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
-//    new ApiImplicitParam(name = "flowId", value = "flow id", required = true, dataType = "integer", paramType = "path"),
-//    new ApiImplicitParam(name = "topics", value = "topics name", required = true, dataType = "edp.rider.rest.persistence.entities.GetTopicsOffsetRequest", paramType = "body")
+//    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+//    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
+//    new ApiImplicitParam(name = "flowId", value = "flow id", required = true, dataType = "integer", paramType = "path")
 //  ))
 //  @ApiResponses(Array(
 //    new ApiResponse(code = 200, message = "OK"),
@@ -141,7 +141,6 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
 //    new ApiResponse(code = 451, message = "request process failed"),
 //    new ApiResponse(code = 500, message = "internal server error")
 //  ))
-//  def postFlowTopicsOffset: Route = modules.flowUserService.postFlowTopicsOffsetRoute(basePath)
-
+//  def getDriftStreams: Route = modules.flowUserService.getDriftStreamsRoute(basePath)
 }
 
