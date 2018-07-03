@@ -210,7 +210,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
             val config = json2caseClass[FlinkResourceConfig](stream.startConfig)
             usedCores += config.taskManagersNumber * config.perTaskManagerSlots
             usedMemory += config.jobManagerMemoryGB + config.taskManagersNumber * config.perTaskManagerSlots
-            AppResource(stream.name, 1, config.jobManagerMemoryGB, config.taskManagersNumber, config.perTaskManagerMemoryGB, config.perTaskManagerSlots)
+            AppResource(stream.name, 0, config.jobManagerMemoryGB, config.taskManagersNumber, config.perTaskManagerMemoryGB, config.perTaskManagerSlots)
         }
       }
     )
