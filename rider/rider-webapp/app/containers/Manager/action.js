@@ -52,7 +52,12 @@ import {
   STARTORRENEW_STREAMS_SUCCESS,
   OPERATE_STREAMS_ERROR,
   LOAD_LASTEST_OFFSET,
-  LOAD_LASTEST_OFFSET_SUCCESS
+  LOAD_LASTEST_OFFSET_SUCCESS,
+  POST_USER_TOPIC,
+  POST_USER_TOPIC_SUCCESS,
+  DELETE_USER_TOPIC,
+  DELETE_USER_TOPIC_SUCCESS,
+  LOAD_UDFS
 } from './constants'
 
 export function loadUserStreams (projectId, resolve) {
@@ -373,12 +378,14 @@ export function streamOperatedError (message) {
   }
 }
 
-export function loadLastestOffset (projectId, streamId, resolve) {
+export function loadLastestOffset (projectId, streamId, resolve, type = 'get', topics = []) {
   return {
     type: LOAD_LASTEST_OFFSET,
     payload: {
       projectId,
       streamId,
+      type,
+      topics,
       resolve
     }
   }
@@ -389,6 +396,62 @@ export function lastestOffsetLoaded (result) {
     type: LOAD_LASTEST_OFFSET_SUCCESS,
     payload: {
       result
+    }
+  }
+}
+
+export function postUserTopic (projectId, streamId, topic, resolve, reject) {
+  return {
+    type: POST_USER_TOPIC,
+    payload: {
+      projectId,
+      streamId,
+      topic,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function postUserTopicLoaded (result) {
+  return {
+    type: POST_USER_TOPIC_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function deleteUserTopic (projectId, streamId, topicId, resolve, reject) {
+  return {
+    type: DELETE_USER_TOPIC,
+    payload: {
+      projectId,
+      streamId,
+      topicId,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function deleteUserTopicLoaded (result) {
+  return {
+    type: DELETE_USER_TOPIC_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function loadUdfs (projectId, streamId, roleType, resolve) {
+  return {
+    type: LOAD_UDFS,
+    payload: {
+      projectId,
+      streamId,
+      roleType,
+      resolve
     }
   }
 }
