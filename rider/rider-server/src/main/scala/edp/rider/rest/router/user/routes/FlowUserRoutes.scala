@@ -32,6 +32,7 @@ import io.swagger.annotations._
 class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
   lazy val routes: Route = postFlowRoute ~ getFlowByFilterRoute ~ putFlowRoute ~ getFlowByIdRoute ~ lookupSqlPermVerifyRoute
+//  ~ getDriftStreams
 
   lazy val basePath = "projects"
 
@@ -125,5 +126,21 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def lookupSqlPermVerifyRoute: Route = modules.flowUserService.lookupSqlVerifyRoute(basePath)
+
+//  @Path("/{projectId}/streams/{streamId}/flows/{flowId}/driftstreams")
+//  @ApiOperation(value = "get driftstreams", notes = "", nickname = "", httpMethod = "GET")
+//  @ApiImplicitParams(Array(
+//    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+//    new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
+//    new ApiImplicitParam(name = "flowId", value = "flow id", required = true, dataType = "integer", paramType = "path")
+//  ))
+//  @ApiResponses(Array(
+//    new ApiResponse(code = 200, message = "OK"),
+//    new ApiResponse(code = 401, message = "authorization error"),
+//    new ApiResponse(code = 403, message = "user is not normal user"),
+//    new ApiResponse(code = 451, message = "request process failed"),
+//    new ApiResponse(code = 500, message = "internal server error")
+//  ))
+//  def getDriftStreams: Route = modules.flowUserService.getDriftStreamsRoute(basePath)
 }
 
