@@ -30,9 +30,9 @@ import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.UdfUtils.sendUdfDirective
-import edp.rider.spark.SparkJobClientLog
+import edp.rider.spark.{SparkJobClientLog, SubmitSparkJob}
 import edp.rider.spark.SparkStatusQuery.{getAllYarnAppStatus, getAppStatusByRest}
-import edp.rider.spark.SubmitSparkJob.{generateStreamStartSh, runShellCommand}
+import edp.rider.spark.SubmitSparkJob.{generateSparkStreamStartSh, runShellCommand}
 import edp.rider.wormhole.{BatchFlowConfig, KafkaInputBaseConfig, KafkaOutputConfig, SparkConfig}
 import edp.rider.zookeeper.PushDirective
 import edp.rider.zookeeper.PushDirective._
@@ -40,6 +40,8 @@ import edp.wormhole.common.util.JsonUtils.{caseClass2json, _}
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.UmsSchemaUtils.toUms
 import slick.jdbc.MySQLProfile.api._
+import edp.rider.common.StreamType
+import edp.rider.common.StreamType._
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -47,15 +49,35 @@ import scala.concurrent.Await
 
 object StreamUtils extends RiderLogger {
 
-  def getDisableActions(status: StreamStatus): String = {
-    status match {
-      case NEW => s"$STOP, $RENEW"
-      case STARTING => s"$START, $STOP, $DELETE"
-      case WAITING => s"$START"
-      case RUNNING => s"$START"
-      case STOPPING => s"$START, $RENEW"
-      case STOPPED => s"$STOP, $RENEW"
-      case FAILED => s"$RENEW"
+  def getDisableActions(streamType: String, status: String): String = {
+    StreamType.withName(streamType) match {
+      case SPARK =>
+        StreamStatus.withName(status) match {
+          case NEW => s"$STOP, $RENEW"
+          case STARTING => s"$START, $STOP, $DELETE"
+          case WAITING => s"$START"
+          case RUNNING => s"$START"
+          case STOPPING => s"$START, $RENEW"
+          case STOPPED => s"$STOP, $RENEW"
+          case FAILED => s"$RENEW"
+        }
+      case FLINK =>
+        StreamStatus.withName(status) match {
+          case NEW => s"$STOP, $RENEW"
+          case STARTING => s"$START, $STOP, $DELETE，$RENEW"
+          case WAITING => s"$START，$RENEW"
+          case RUNNING => s"$START，$RENEW"
+          case STOPPING => s"$START, $RENEW"
+          case STOPPED => s"$STOP, $RENEW"
+          case FAILED => s"$RENEW"
+        }
+    }
+  }
+
+  def getHideActions(streamType: String): String = {
+    StreamType.withName(streamType) match {
+      case FLINK => s"$RENEW"
+      case _ => ""
     }
   }
 
@@ -166,11 +188,18 @@ object StreamUtils extends RiderLogger {
   }
 
   def startStream(stream: Stream, logPath: String) = {
-    val args = getStreamConfig(stream)
-    val startConfig = json2caseClass[StartConfig](stream.startConfig)
-    val commandSh = generateStreamStartSh(s"'''$args'''", stream.name, logPath, startConfig, stream.sparkConfig.getOrElse(""), stream.streamType)
-    riderLogger.info(s"start stream ${stream.id} command: $commandSh")
-    runShellCommand(commandSh)
+    StreamType.withName(stream.streamType) match {
+      case StreamType.SPARK =>
+        val args = getStreamConfig(stream)
+        val startConfig = json2caseClass[StartConfig](stream.startConfig)
+        val commandSh = generateSparkStreamStartSh(s"'''$args'''", stream.name, logPath, startConfig, stream.streamConfig.getOrElse(""), stream.functionType)
+        riderLogger.info(s"start stream ${stream.id} command: $commandSh")
+        runShellCommand(commandSh)
+      case StreamType.FLINK =>
+        val commandSh = SubmitSparkJob.generateFlinkStreamStartSh(stream)
+        riderLogger.info(s"start stream ${stream.id} command: $commandSh")
+        runShellCommand(commandSh)
+    }
   }
 
   def genUdfsStartDirective(streamId: Long, udfIds: Seq[Long], userId: Long): Unit = {
@@ -415,16 +444,16 @@ object StreamUtils extends RiderLogger {
     } else 10
   }
 
-  def checkConfigFormat(startConfig: String, launchConfig: String, sparkConfig: String) = {
-    (isJson(startConfig), isJson(launchConfig), isStreamSparkConfig(sparkConfig)) match {
+  def checkConfigFormat(startConfig: String, launchConfig: String, streamConfig: String) = {
+    (isJson(startConfig), isJson(launchConfig), isStreamConfig(streamConfig)) match {
       case (true, true, true) => (true, "success")
-      case (true, true, false) => (false, s"sparkConfig $sparkConfig doesn't meet key=value,key1=value1 format")
+      case (true, true, false) => (false, s"streamConfig $streamConfig doesn't meet key=value,key1=value1 format")
       case (true, false, true) => (false, s"launchConfig $launchConfig is not json type")
-      case (true, false, false) => (false, s"launchConfig $launchConfig is not json type, sparkConfig $sparkConfig doesn't meet key=value,key1=value1 format")
+      case (true, false, false) => (false, s"launchConfig $launchConfig is not json type, streamConfig $streamConfig doesn't meet key=value,key1=value1 format")
       case (false, true, true) => (false, s"startConfig $startConfig is not json type")
-      case (false, true, false) => (false, s"startConfig $startConfig is not json type, sparkConfig $sparkConfig doesn't meet key=value,key1=value1 format")
+      case (false, true, false) => (false, s"startConfig $startConfig is not json type, streamConfig $streamConfig doesn't meet key=value,key1=value1 format")
       case (false, false, true) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type")
-      case (false, false, false) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type, sparkConfig $sparkConfig doesn't meet key=value,key1=value1 format")
+      case (false, false, false) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type, streamConfig $streamConfig doesn't meet key=value,key1=value1 format")
     }
   }
 
@@ -541,5 +570,6 @@ object StreamUtils extends RiderLogger {
   def formatOffset(offset: String): String = {
     offset.split(",").sortBy(partOffset => partOffset.split(":")(0).toLong).mkString(",")
   }
+
 
 }
