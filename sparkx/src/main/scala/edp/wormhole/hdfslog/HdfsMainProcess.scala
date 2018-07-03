@@ -168,7 +168,7 @@ object HdfsMainProcess extends EdpLogging {
   }
 
 
-  private def createFile(message: String, filePrefixShardingSlash: String, configuration: Configuration, minTs: String,
+  private def createFile(filePrefixShardingSlash: String, configuration: Configuration, minTs: String,
                          maxTs: String, zookeeperPath: String, index: Int): (String, String) = {
 
     //    val filePrefixShardingSlashSplit = filePrefixShardingSlash.split("/")
@@ -186,7 +186,7 @@ object HdfsMainProcess extends EdpLogging {
     logInfo("metaName:" + metaName)
     createPath(configuration, metaName)
     createPath(configuration, dataName)
-    writeString(metaContent, metaName)
+    writeString(configuration,metaContent, metaName)
     (metaContent, dataName)
   }
 
@@ -231,7 +231,7 @@ object HdfsMainProcess extends EdpLogging {
 
 
   private def writeAndCreateFile(currentMetaContent: String, fileName: String, configuration: Configuration, input: ByteArrayOutputStream,
-                                 content: Array[Byte], message: String, minTs: String, maxTs: String, finalMinTs: String, finalMaxTs: String,
+                                 content: Array[Byte],  minTs: String, maxTs: String, finalMinTs: String, finalMaxTs: String,
                                  splitMark: Array[Byte], zookeeperPath: String, index: Int) = {
     val metaName = getMetaName(fileName)
     setMetaDataFinished(metaName, currentMetaContent, configuration, minTs, finalMinTs, finalMaxTs)
@@ -244,7 +244,7 @@ object HdfsMainProcess extends EdpLogging {
     val slashPosition = fileName.lastIndexOf("/")
     val filePrefix = fileName.substring(0, slashPosition + 1)
     val filePrefixShardingSlash = filePrefix.substring(0, filePrefix.length - 6)
-    val (newMeta, newFileName) = createFile(message, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
+    val (newMeta, newFileName) = createFile( filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
     currentSize += content.length + splitMark.length
     input.write(content)
     input.write(splitMark)
@@ -288,6 +288,17 @@ object HdfsMainProcess extends EdpLogging {
       val hdfsRoot = if (hdfsPathGrp(1).contains("/")) hdfsPathGrp(0) + "//" + hdfsPathGrp(1).substring(0, hdfsPathGrp(1).indexOf("/")) else hdfsPathGrp(0) + "//" + hdfsPathGrp(1)
       configuration.set("fs.defaultFS", hdfsRoot)
       configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
+      if(config.hdfs_namenode_hosts.nonEmpty) {
+        val clusterName = hdfsRoot.split("//")(1)
+        configuration.set("dfs.nameservices", clusterName)
+        configuration.set(s"dfs.ha.namenodes.$clusterName", config.hdfs_namenode_ids.get)
+        val namenodeAddressSeq = config.hdfs_namenode_hosts.get.split(",")
+        val namenodeIdSeq = config.hdfs_namenode_ids.get.split(",")
+        for (i <- 0 until namenodeAddressSeq.length){
+          configuration.set(s"dfs.namenode.rpc-address.$clusterName." + namenodeIdSeq(i), namenodeAddressSeq(i))
+        }
+        configuration.set(s"dfs.client.failover.proxy.provider.$clusterName","org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
+      }
 
       dataList.foreach(data => {
         val splitMark = "\n".getBytes()
@@ -302,22 +313,25 @@ object HdfsMainProcess extends EdpLogging {
           case NonFatal(e) => logError(s"message convert failed:\n$data", e)
         }
 
-        if (minTs == null && errorFileName == null) {
-          val (meta, name) = createFile(data, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
+        if (minTs == null && errorFileName == null) {//获取minTs和maxTs异常，并且未创建错误文件，则创建meta文件和data文件
+          logInfo("获取minTs和maxTs异常，并且未创建错误文件，创建meta文件和data文件")
+          val (meta, name) = createFile(filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
           errorFileName = name
           currentErrorMetaContent = meta
           errorCurrentSize = 0
         }
 
         if (minTs == null && errorFileName != null) {
+          logInfo("获取minTs和maxTs异常，已创建错误文件")
           val errorMetaName = getMetaName(errorFileName)
           val metaContent = currentErrorMetaContent
           val metaContentSplit = metaContent.split("_")
           val length = metaContentSplit.length
           val originalProcessTime = metaContentSplit(length - 2)
           if (dt2timestamp(dt2dateTime(originalProcessTime).plusHours(hour)).compareTo(dt2timestamp(dt2dateTime(currentyyyyMMddHHmmssmls))) < 0) {
+            logInfo("获取minTs和maxTs异常，已创建错误文件，但文件已超过创建间隔，需要重新创建")
             setMetaDataFinished(errorMetaName, metaContent, configuration, minTs, finalMinTs, finalMaxTs)
-            val (meta, name) = createFile(data, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
+            val (meta, name) = createFile( filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
             errorFileName = name
             currentErrorMetaContent = meta
             errorCurrentSize = 0
@@ -325,7 +339,8 @@ object HdfsMainProcess extends EdpLogging {
         }
 
         if (minTs != null && correctFileName == null) {
-          val (meta, name) = createFile(data, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
+          logInfo("启动后第一次写数据，先创建文件")
+          val (meta, name) = createFile( filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
           correctFileName = name
           currentCorrectMetaContent = meta
           correctCurrentSize = 0
@@ -340,8 +355,9 @@ object HdfsMainProcess extends EdpLogging {
           val length = metaContentSplit.length
           val originalProcessTime = metaContentSplit(length - 3)
           if (dt2timestamp(dt2dateTime(originalProcessTime).plusHours(hour)).compareTo(dt2timestamp(dt2dateTime(currentyyyyMMddHHmmssmls))) < 0) {
+            logInfo("正常获取minTs和maxTs，已创建文件，但文件已超过创建间隔，需要重新创建")
             setMetaDataFinished(correctMetaName, metaContent, configuration, minTs, finalMinTs, finalMaxTs)
-            val (meta, name) = createFile(data, filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
+            val (meta, name) = createFile( filePrefixShardingSlash, configuration, minTs, maxTs, zookeeperPath, index)
             correctFileName = name
             currentCorrectMetaContent = meta
             correctCurrentSize = 0
@@ -359,12 +375,14 @@ object HdfsMainProcess extends EdpLogging {
             inputError.write(splitMark)
             val indexLastUnderScore = currentErrorMetaContent.lastIndexOf("_")
             currentErrorMetaContent = currentErrorMetaContent.substring(0, indexLastUnderScore + 1) + currentyyyyMMddHHmmssmls
+            logInfo("因获取minTs和maxTs异常，将所有数据写入错误文件中")
           } else {
             val errorTuple = writeAndCreateFile(currentErrorMetaContent, errorFileName, configuration, inputError,
-              content, data, minTs, maxTs, finalMinTs, finalMaxTs, splitMark, zookeeperPath, index)
+              content,  minTs, maxTs, finalMinTs, finalMaxTs, splitMark, zookeeperPath, index)
             errorFileName = errorTuple._1
             currentErrorMetaContent = errorTuple._2
             errorCurrentSize = errorTuple._3
+            logInfo("因获取minTs和maxTs异常，并且错误文件已经达到最大值，先新建错误文件，再将所有数据写入错误文件中")
           }
         } else {
           if (correctCurrentSize + content.length + splitMarkLength < fileMaxSize * 1024 * 1024) {
@@ -377,12 +395,13 @@ object HdfsMainProcess extends EdpLogging {
             currentCorrectMetaContent = currentCorrectMetaContentSplit(0) + "_0_" + currentCorrectMetaContentSplit(2) + "_" + finalMinTs + "_" + finalMaxTs
           } else {
             val correctTuple = writeAndCreateFile(currentCorrectMetaContent, correctFileName, configuration, inputCorrect, content,
-              data, minTs, maxTs, finalMinTs, finalMaxTs, splitMark, zookeeperPath, index)
+               minTs, maxTs, finalMinTs, finalMaxTs, splitMark, zookeeperPath, index)
             correctFileName = correctTuple._1
             currentCorrectMetaContent = correctTuple._2
             correctCurrentSize = correctTuple._3
             finalMinTs = minTs
             finalMaxTs = maxTs
+            logInfo("文件已经达到最大值，先新建文件")
           }
         }
       })
@@ -394,11 +413,13 @@ object HdfsMainProcess extends EdpLogging {
         appendToFile(configuration, errorFileName, inError)
         val errorMetaName = getMetaName(errorFileName)
         updateMeta(errorMetaName, currentErrorMetaContent, configuration)
+        logInfo("存在错误数据，写入错误文件，并更新错误meta文件")
       }
       if (bytesCorrect.nonEmpty) {
         appendToFile(configuration, correctFileName, inCorrect)
         val correctMetaName = getMetaName(correctFileName)
         updateMeta(correctMetaName, currentCorrectMetaContent, configuration)
+        logInfo("存在解析正确的数据，写入文件，并更新meta文件，共计："+dataList.size)
       }
     } catch {
       case e: Throwable =>
@@ -427,11 +448,11 @@ object HdfsMainProcess extends EdpLogging {
     } else {
       newMetaContent = splitCurrentMetaContent(0) + "_1_" + splitCurrentMetaContent(2) + "_" + currentyyyyMMddHHmmssmls
     }
-    writeString(newMetaContent, metaName)
+    writeString(configuration,newMetaContent, metaName)
   }
 
   def updateMeta(metaName: String, metaContent: String, configuration: Configuration): Unit = {
-    writeString(metaContent, metaName)
+    writeString(configuration,metaContent, metaName)
   }
 
   def getMetaName(fileName: String): String = {

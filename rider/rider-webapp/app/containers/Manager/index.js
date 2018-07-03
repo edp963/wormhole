@@ -43,14 +43,14 @@ const { RangePicker } = DatePicker
 
 import {
   loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
-  deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset
+  deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset, loadUdfs
 } from './action'
 import { loadSingleUdf } from '../Udf/action'
 import { selectStreams, selectStreamStartModalLoading } from './selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
 import { selectRoleType } from '../App/selectors'
 
-import { uuid, isEquivalent, operateLanguageText } from '../../utils/util'
+import { operateLanguageText } from '../../utils/util'
 
 export class Manager extends React.Component {
   constructor (props) {
@@ -111,8 +111,13 @@ export class Manager extends React.Component {
       renewUdfVals: [],
       currentUdfVal: [],
 
-      consumedOffsetValue: [],
-      kafkaOffsetValue: []
+      // consumedOffsetValue: [],
+      // kafkaOffsetValue: [],
+      // kafkaEarliestOffset: [],
+      autoRegisteredTopics: [],
+      userDefinedTopics: [],
+      tempUserTopics: [],
+      unValidate: false
     }
   }
 
@@ -134,8 +139,7 @@ export class Manager extends React.Component {
           instance: s.kafkaInfo.instance,
           connUrl: s.kafkaInfo.connUrl,
           projectName: s.projectName,
-          currentUdf: s.currentUdf,
-          usingUdf: s.usingUdf
+          currentUdf: s.currentUdf
         })
         responseOriginStream.key = responseOriginStream.id
         responseOriginStream.visible = false
@@ -267,9 +271,13 @@ export class Manager extends React.Component {
         // 显示 Latest offset
         this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
           this.setState({
-            consumedOffsetValue: result.consumedLatestOffset,
-            kafkaOffsetValue: result.kafkaLatestOffset,
-            streamStartFormData: result.consumedLatestOffset
+            autoRegisteredTopics: result.autoRegisteredTopics,
+            userDefinedTopics: result.userDefinedTopics,
+            streamStartFormData: result.autoRegisteredTopics,
+            tempUserTopics: result.userDefinedTopics.slice()
+            // consumedOffsetValue: result.consumedLatestOffset,
+            // kafkaOffsetValue: result.kafkaLatestOffset,
+            // kafkaEarliestOffset: result.kafkaEarliestOffset
           })
         })
       })
@@ -288,18 +296,17 @@ export class Manager extends React.Component {
     })
 
     // 单条查询接口获得回显的topic Info，回显选中的UDFs
-    this.props.onLoadStreamDetail(projectIdGeted, record.id, 'user', (result) => {
+    this.props.onLoadUdfs(projectIdGeted, record.id, 'user', (result) => {
       this.setState({
-        topicInfoModal: result.topicInfo.length === 0 ? 'hide' : ''
+        topicInfoModal: result.length === 0 ? 'hide' : ''
       })
 
       // 回显选中的 topic，必须有 id
-      const currentUdfTemp = result.currentUdf
+      const currentUdfTemp = result
       let topicsSelectValue = []
       for (let i = 0; i < currentUdfTemp.length; i++) {
         topicsSelectValue.push(`${currentUdfTemp[i].id}`)
       }
-
       this.streamStartForm.setFieldsValue({ udfs: topicsSelectValue })
     })
 
@@ -325,9 +332,12 @@ export class Manager extends React.Component {
     this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
       if (result) {
         this.setState({
-          consumedOffsetValue: result.consumedLatestOffset,
-          kafkaOffsetValue: result.kafkaLatestOffset,
-          streamStartFormData: result.consumedLatestOffset
+          autoRegisteredTopics: result.autoRegisteredTopics,
+          userDefinedTopics: result.userDefinedTopics,
+          streamStartFormData: result.autoRegisteredTopics
+          // consumedOffsetValue: result.consumedLatestOffset,
+          // kafkaOffsetValue: result.kafkaLatestOffset,
+          // kafkaEarliestOffset: result.kafkaEarliestOffset
         })
       } else {
         this.setState({
@@ -339,31 +349,47 @@ export class Manager extends React.Component {
 
   queryLastestoffset = (e) => {
     const { projectIdGeted } = this.props
-    const { streamIdGeted } = this.state
-
-    this.loadLastestOffsetFunc(projectIdGeted, streamIdGeted)
+    const { streamIdGeted, userDefinedTopics, autoRegisteredTopics } = this.state
+    userDefinedTopics
+    let topics = {}
+    topics.userDefinedTopics = userDefinedTopics.map((v, i) => v.name)
+    topics.autoRegisteredTopics = autoRegisteredTopics.map((v, i) => v.name)
+    this.loadLastestOffsetFunc(projectIdGeted, streamIdGeted, 'post', topics)
   }
 
   // Load Latest Offset
-  loadLastestOffsetFunc (projectId, streamId) {
+  loadLastestOffsetFunc (projectId, streamId, type, topics) {
     this.props.onLoadLastestOffset(projectId, streamId, (result) => {
       this.setState({
-        consumedOffsetValue: result.consumedLatestOffset,
-        kafkaOffsetValue: result.kafkaLatestOffset
+        autoRegisteredTopics: result.autoRegisteredTopics,
+        userDefinedTopics: result.userDefinedTopics,
+        tempUserTopics: result.userDefinedTopics
+        // consumedOffsetValue: result.consumedLatestOffset,
+        // kafkaOffsetValue: result.kafkaLatestOffset,
+        // kafkaEarliestOffset: result.kafkaEarliestOffset
       })
-    })
+    }, type, topics)
   }
 
   onChangeEditSelect = () => {
-    const { streamStartFormData } = this.state
+    const { streamStartFormData, userDefinedTopics } = this.state
 
     for (let i = 0; i < streamStartFormData.length; i++) {
-      const partitionAndOffset = streamStartFormData[i].partitionOffsets.split(',')
+      const partitionAndOffset = streamStartFormData[i].consumedLatestOffset.split(',')
 
       for (let j = 0; j < partitionAndOffset.length; j++) {
         this.streamStartForm.setFieldsValue({
-          [`${streamStartFormData[i].id}_${j}`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
-          [`${streamStartFormData[i].id}_${streamStartFormData[i].rate}_rate`]: streamStartFormData[i].rate
+          [`${streamStartFormData[i].name}_${j}_auto`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
+          [`${streamStartFormData[i].name}_${streamStartFormData[i].rate}_rate`]: streamStartFormData[i].rate
+        })
+      }
+    }
+    for (let i = 0; i < userDefinedTopics.length; i++) {
+      const partitionAndOffset = userDefinedTopics[i].consumedLatestOffset.split(',')
+      for (let j = 0; j < partitionAndOffset.length; j++) {
+        this.streamStartForm.setFieldsValue({
+          [`${userDefinedTopics[i].name}_${j}_user`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
+          [`${userDefinedTopics[i].name}_${userDefinedTopics[i].rate}_rate`]: userDefinedTopics[i].rate
         })
       }
     }
@@ -373,145 +399,160 @@ export class Manager extends React.Component {
    *  start/renew ok
    */
   handleEditStartOk = (e) => {
-    const { actionType, streamIdGeted, streamStartFormData, startUdfVals } = this.state
+    const { actionType, streamIdGeted, streamStartFormData, userDefinedTopics, startUdfVals } = this.state
     const { projectIdGeted, locale } = this.props
     const offsetText = locale === 'en' ? 'Offset cannot be empty' : 'Offset 不能为空！'
-
-    this.streamStartForm.validateFieldsAndScroll((err, values) => {
-      if (!err) {
-        let requestVal = {}
-        switch (actionType) {
-          case 'start':
-            if (!streamStartFormData) {
-              if (!values.udfs) {
-                requestVal = {}
-              } else {
-                if (values.udfs.find(i => i === '-1')) {
-                  // 全选
-                  const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
-                  requestVal = { udfInfo: startUdfValsOrigin.map(p => p.id) }
+    this.setState(
+      {unValidate: true}
+    )
+    setTimeout(() => {
+      this.streamStartForm.validateFieldsAndScroll((err, values) => {
+        if (!err || err.newTopicName) {
+          let requestVal = {}
+          switch (actionType) {
+            case 'start':
+              if (!streamStartFormData) {
+                if (!values.udfs) {
+                  requestVal = {}
                 } else {
-                  requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
-                }
-              }
-            } else {
-              const mergedData = streamStartFormData.map((i) => {
-                const parOffTemp = i.partitionOffsets
-                const partitionTemp = parOffTemp.split(',')
-
-                const offsetArr = []
-                for (let r = 0; r < partitionTemp.length; r++) {
-                  const offsetArrTemp = values[`${i.id}_${r}`]
-                  offsetArrTemp === ''
-                    ? message.warning(offsetText, 3)
-                    : offsetArr.push(`${r}:${offsetArrTemp}`)
-                }
-                const offsetVal = offsetArr.join(',')
-
-                const robj = {
-                  id: i.id,
-                  partitionOffsets: offsetVal,
-                  rate: Number(values[`${i.id}_${i.rate}_rate`])
-                }
-                return robj
-              })
-
-              if (!values.udfs) {
-                requestVal = { topicInfo: mergedData }
-              } else {
-                if (values.udfs.find(i => i === '-1')) {
-                  // 全选
-                  const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
-                  requestVal = {
-                    udfInfo: startUdfValsOrigin.map(p => p.id),
-                    topicInfo: mergedData
-                  }
-                } else {
-                  requestVal = {
-                    udfInfo: values.udfs.map(q => Number(q)),
-                    topicInfo: mergedData
+                  if (values.udfs.find(i => i === '-1')) {
+                    // 全选
+                    const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                    requestVal = { udfInfo: startUdfValsOrigin.map(p => p.id) }
+                  } else {
+                    requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
                   }
                 }
-              }
-            }
-            break
-          case 'renew':
-            if (!streamStartFormData) {
-              requestVal = !values.udfs ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
-            } else {
-              const mergedData = streamStartFormData.map((i) => {
-                const partitionTemp = i.partitionOffsets.split(',')
+              } else {
+                const mergedData = {}
+                const autoRegisteredData = this.formatTopicInfo(streamStartFormData, 'auto', values, offsetText)
+                const userDefinedData = this.formatTopicInfo(userDefinedTopics, 'user', values, offsetText)
+                mergedData.autoRegisteredTopics = autoRegisteredData
+                mergedData.userDefinedTopics = userDefinedData
 
-                const offsetArr = []
-                for (let r = 0; r < partitionTemp.length; r++) {
-                  const offsetArrTemp = values[`${i.id}_${r}`]
-                  offsetArrTemp === ''
-                    ? message.warning(offsetText, 3)
-                    : offsetArr.push(`${r}:${offsetArrTemp}`)
-                }
-
-                const robj = {
-                  id: i.id,
-                  name: i.name,
-                  partitionOffsets: offsetArr.join(','),
-                  rate: Number(values[`${i.id}_${i.rate}_rate`])
-                }
-                return robj
-              })
-
-              // 接口参数：改动的topicInfo
-              let topicInfoTemp = []
-              for (let f = 0; f < streamStartFormData.length; f++) {
-                for (let g = 0; g < mergedData.length; g++) {
-                  if (streamStartFormData[f].id === mergedData[g].id) {
-                    if (!isEquivalent(streamStartFormData[f], mergedData[g])) {
-                      topicInfoTemp.push({
-                        id: mergedData[g].id,
-                        partitionOffsets: mergedData[g].partitionOffsets,
-                        rate: mergedData[g].rate
-                      })
+                if (!values.udfs) {
+                  requestVal = { topicInfo: mergedData }
+                } else {
+                  if (values.udfs.find(i => i === '-1')) {
+                    // 全选
+                    const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                    requestVal = {
+                      udfInfo: startUdfValsOrigin.map(p => p.id),
+                      topicInfo: mergedData
+                    }
+                  } else {
+                    requestVal = {
+                      udfInfo: values.udfs.map(q => Number(q)),
+                      topicInfo: mergedData
                     }
                   }
                 }
               }
-
-              if (topicInfoTemp.length === 0) {
-                requestVal = (!values.udfs) ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
+              break
+            case 'renew':
+              if (!streamStartFormData) {
+                requestVal = !values.udfs ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
               } else {
-                requestVal = (!values.udfs)
-                  ? { topicInfo: topicInfoTemp }
-                  : {
-                    udfInfo: values.udfs.map(q => Number(q)),
-                    topicInfo: topicInfoTemp
-                  }
+                const mergedData = {}
+                const autoRegisteredData = this.formatTopicInfo(streamStartFormData, 'auto', values, offsetText)
+                const userDefinedData = this.formatTopicInfo(userDefinedTopics, 'user', values, offsetText)
+
+                // 接口参数：改动的topicInfo
+                mergedData.autoRegisteredTopics = this.diffTopicInfo(streamStartFormData, autoRegisteredData)
+                mergedData.userDefinedTopics = this.diffTopicInfo(this.state.tempUserTopics, userDefinedData)
+                // mergedData.autoRegisteredTopics.length === 0 ? delete mergedData.autoRegisteredTopics : mergedData.userDefinedTopics.length === 0 ? delete mergedData.userDefinedTopics : ''
+                // if (mergedData.autoRegisteredTopics.length === 0 && mergedData.userDefinedTopics.length === 0) {
+                //   requestVal = (!values.udfs) ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
+                // } else {
+                requestVal = (!values.udfs) ? { topicInfo: mergedData } : { udfInfo: values.udfs.map(q => Number(q)), topicInfo: mergedData }
+              //   }
               }
-            }
-            break
-        }
+              break
+          }
 
-        let actionTypeRequest = ''
-        let actionTypeMsg = ''
-        if (actionType === 'start') {
-          actionTypeRequest = 'start'
-          actionTypeMsg = locale === 'en' ? 'Start Successfully!' : '启动成功！'
-        } else if (actionType === 'renew') {
-          actionTypeRequest = 'renew'
-          actionTypeMsg = locale === 'en' ? 'Renew Successfully!' : '生效！'
-        }
+          let actionTypeRequest = ''
+          let actionTypeMsg = ''
+          if (actionType === 'start') {
+            actionTypeRequest = 'start'
+            actionTypeMsg = locale === 'en' ? 'Start Successfully!' : '启动成功！'
+          } else if (actionType === 'renew') {
+            actionTypeRequest = 'renew'
+            actionTypeMsg = locale === 'en' ? 'Renew Successfully!' : '生效！'
+          }
 
-        this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, () => {
-          this.setState({
-            startModalVisible: false,
-            streamStartFormData: []
+          this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, (result) => {
+            this.setState({
+              startModalVisible: false,
+              streamStartFormData: [],
+              unValidate: false
+            })
+            message.success(actionTypeMsg, 3)
+          }, (result) => {
+            const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
+            message.error(`${failText} ${result}`, 3)
+            this.setState({unValidate: false})
           })
+        }
+      })
+    }, 20)
+  }
 
-          message.success(actionTypeMsg, 3)
-        }, (result) => {
-          const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
-          message.error(`${failText} ${result}`, 3)
-        })
+  formatTopicInfo (data = [], type = 'auto', values, offsetText) {
+    if (data.length === 0) return
+    return data.map((i) => {
+      const parOffTemp = i.consumedLatestOffset
+      const partitionTemp = parOffTemp.split(',')
+
+      const offsetArr = []
+      for (let r = 0; r < partitionTemp.length; r++) {
+        const offsetArrTemp = values[`${i.name}_${r}_${type}`]
+        offsetArrTemp === ''
+          ? message.warning(offsetText, 3)
+          : offsetArr.push(`${r}:${offsetArrTemp}`)
       }
+      const offsetVal = offsetArr.join(',')
+
+      const robj = {
+        // id: i.id,
+        name: i.name,
+        partitionOffsets: offsetVal,
+        rate: Number(values[`${i.name}_${i.rate}_rate`])
+      }
+      return robj
     })
+  }
+
+  diffTopicInfo (oldData = [], newData = []) {
+    if (oldData.length === 0 || newData.length === 0) return
+    let topicInfoTemp = []
+    for (let g = 0; g < newData.length; g++) {
+      for (let f = 0; f < oldData.length; f++) {
+        if (oldData[f].name === newData[g].name) {
+          let obj = {
+            name: newData[g].name,
+            partitionOffsets: newData[g].partitionOffsets,
+            rate: newData[g].rate
+          }
+          if (
+            oldData[f].consumedLatestOffset === newData[g].partitionOffsets &&
+            oldData[f].rate === newData[g].rate
+          ) {
+            obj.action = 0
+          } else {
+            obj.action = 1
+          }
+          topicInfoTemp.push(obj)
+        } else if (f === oldData.length - 1) {
+          topicInfoTemp.push({
+            name: newData[g].name,
+            partitionOffsets: newData[g].partitionOffsets,
+            rate: newData[g].rate,
+            action: 1
+          })
+        }
+      }
+    }
+    return topicInfoTemp
   }
 
   handleEditStartCancel = (e) => {
@@ -709,11 +750,14 @@ export class Manager extends React.Component {
     })
   }
 
+  getStartFormDataFromSub = (userDefinedTopics) => {
+    this.setState({ userDefinedTopics })
+  }
   render () {
     const {
       refreshStreamLoading, refreshStreamText, showStreamdetails, logsModalVisible,
       logsContent, refreshLogLoading, refreshLogText, logsProjectId, logsStreamId,
-      streamStartFormData, consumedOffsetValue, kafkaOffsetValue, actionType,
+      streamStartFormData, actionType, autoRegisteredTopics, userDefinedTopics,
       startUdfVals, renewUdfVals, currentUdfVal, topicInfoModal, currentStreams
     } = this.state
     const { className, onShowAddStream, onShowEditStream, streamClassHide, streamStartModalLoading, roleType } = this.props
@@ -1050,11 +1094,11 @@ export class Manager extends React.Component {
         if (showStreamdetails) {
           const detailTemp = showStreamdetails.stream
 
-          const topicTemp = showStreamdetails.topicInfo
+          const topicTemp = showStreamdetails.topicInfo.autoRegisteredTopics
           const topicFinal = topicTemp.map(s => (
-            <li key={s.id}>
+            <li key={s.name}>
               <strong>Topic Name：</strong>{s.name}
-              <strong>；Partition Offsets：</strong>{s.partitionOffsets}
+              <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
               <strong>；Rate：</strong>{s.rate}
             </li>
           ))
@@ -1062,7 +1106,7 @@ export class Manager extends React.Component {
           const currentudfTemp = showStreamdetails.currentUdf
           const currentUdfFinal = currentudfTemp.length !== 0
             ? currentudfTemp.map(s => (
-              <li key={s.id}>
+              <li key={s.name}>
                 <strong>Function Name：</strong>{s.functionName}
                 <strong>；Full Class Name：</strong>{s.fullClassName}
                 <strong>；Jar Name：</strong>{s.jarName}
@@ -1070,23 +1114,23 @@ export class Manager extends React.Component {
               ))
             : null
 
-          const usingUdfTemp = showStreamdetails.usingUdf
-          const usingUdfTempFinal = usingUdfTemp.length !== 0
-            ? usingUdfTemp.map(s => (
-              <li key={uuid()}>
-                <strong>Function Name：</strong>{s.functionName}
-                <strong>；Full Class Name：</strong>strong>{s.fullClassName}
-                <strong>；Jar Name：</strong>{s.jarName}
-              </li>
-            ))
-            : null
+          // const usingUdfTemp = showStreamdetails.usingUdf
+          // const usingUdfTempFinal = usingUdfTemp.length !== 0
+          //   ? usingUdfTemp.map(s => (
+          //     <li key={uuid()}>
+          //       <strong>Function Name：</strong>{s.functionName}
+          //       <strong>；Full Class Name：</strong>strong>{s.fullClassName}
+          //       <strong>；Jar Name：</strong>{s.jarName}
+          //     </li>
+          //   ))
+          //   : null
 
           streamDetailContent = (
             <div className="stream-detail">
               <p className={streamClassHide}><strong>   Project Id：</strong>{detailTemp.projectId}</p>
               <p><strong>   Topic Info：</strong>{topicFinal}</p>
               <p><strong>   Current Udf：</strong>{currentUdfFinal}</p>
-              <p><strong>   Using Udf：</strong>{usingUdfTempFinal}</p>
+              {/* <p><strong>   Using Udf：</strong>{usingUdfTempFinal}</p> */}
               <p><strong>   Description：</strong>{detailTemp.desc}</p>
 
               <p><strong>   Launch Config：</strong>{detailTemp.launchConfig}</p>
@@ -1143,12 +1187,19 @@ export class Manager extends React.Component {
       ? (
         <StreamStartForm
           data={streamStartFormData}
-          consumedOffsetValue={consumedOffsetValue}
-          kafkaOffsetValue={kafkaOffsetValue}
+          autoRegisteredTopics={autoRegisteredTopics}
+          userDefinedTopics={userDefinedTopics}
+          emitStartFormDataFromSub={this.getStartFormDataFromSub}
+          // consumedOffsetValue={consumedOffsetValue}
+          // kafkaOffsetValue={kafkaOffsetValue}
+          // kafkaEarliestOffset={kafkaEarliestOffset}
           streamActionType={actionType}
           startUdfValsOption={startUdfVals}
           renewUdfValsOption={renewUdfVals}
           currentUdfVal={currentUdfVal}
+          projectIdGeted={this.props.projectIdGeted}
+          streamIdGeted={this.state.streamIdGeted}
+          unValidate={this.state.unValidate}
           ref={(f) => { this.streamStartForm = f }}
         />
       )
@@ -1281,7 +1332,8 @@ Manager.propTypes = {
   onLoadLastestOffset: PropTypes.func,
   streamStartModalLoading: PropTypes.bool,
   roleType: PropTypes.string,
-  locale: PropTypes.string
+  locale: PropTypes.string,
+  onLoadUdfs: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1296,7 +1348,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadLogsInfo: (projectId, streamId, resolve) => dispatch(loadLogsInfo(projectId, streamId, resolve)),
     onLoadAdminLogsInfo: (projectId, streamId, resolve) => dispatch(loadAdminLogsInfo(projectId, streamId, resolve)),
     onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
-    onLoadLastestOffset: (projectId, streamId, resolve) => dispatch(loadLastestOffset(projectId, streamId, resolve))
+    onLoadLastestOffset: (projectId, streamId, resolve, type, topics) => dispatch(loadLastestOffset(projectId, streamId, resolve, type, topics)),
+    onLoadUdfs: (projectId, streamId, roleType, resolve) => dispatch(loadUdfs(projectId, streamId, roleType, resolve))
   }
 }
 
