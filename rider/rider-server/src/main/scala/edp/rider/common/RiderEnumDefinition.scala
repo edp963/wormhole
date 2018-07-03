@@ -132,6 +132,16 @@ object JobType extends Enumeration {
   def getJobType(s: String) = JobType.withName(s.toLowerCase)
 }
 
+object ProtocolType extends Enumeration {
+  type JobType = Value
+
+  val INCREMENT = Value("1")
+  val INITIAL = Value("2")
+  val BATCH = Value("3")
+
+  def getProtocolType(s: String) = ProtocolType.withName(s.toLowerCase)
+}
+
 object JobSinkProtocol extends Enumeration {
   type JobSinkProtocol = Value
 

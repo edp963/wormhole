@@ -37,6 +37,7 @@ import edp.rider.wormhole.{BatchFlowConfig, KafkaInputBaseConfig, KafkaOutputCon
 import edp.rider.zookeeper.PushDirective
 import edp.rider.zookeeper.PushDirective._
 import edp.wormhole.common.util.JsonUtils.{caseClass2json, _}
+import edp.wormhole.kafka.WormholeTopicCommand
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.UmsSchemaUtils.toUms
 import slick.jdbc.MySQLProfile.api._
@@ -427,7 +428,7 @@ object StreamUtils extends RiderLogger {
 
   def removeStreamDirective(streamId: Long, userId: Long) = {
     try {
-      PushDirective.removeStreamDirective(streamId, RiderConfig.zk)
+      PushDirective.removeStreamDirective(streamId)
       riderLogger.info(s"user $userId remove stream $streamId directive success.")
     } catch {
       case ex: Exception =>
@@ -571,6 +572,5 @@ object StreamUtils extends RiderLogger {
   def formatOffset(offset: String): String = {
     offset.split(",").sortBy(partOffset => partOffset.split(":")(0).toLong).mkString(",")
   }
-
 
 }
