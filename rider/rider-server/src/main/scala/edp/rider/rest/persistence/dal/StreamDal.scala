@@ -75,7 +75,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       val projectMap = getStreamProjectMap(streamSeq)
       streamSeq.map(
         stream => {
-          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), None, Seq[StreamUdf](), getDisableActions(StreamStatus.withName(stream.status)))
+          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), None, Seq[StreamUdf](), getDisableActions(stream.streamType, stream.status), getHideActions(stream.streamType))
         }
       )
     } catch {
@@ -106,7 +106,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
           //          val zkUdfs = streamZkUdfSeq.filter(_.streamId == stream.id).map(
           //            udf => StreamZkUdf(udf.functionName, udf.fullClassName, udf.jarName)
           //          )
-          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), Option(streamTopicMap(stream.id)), udfs, getDisableActions(StreamStatus.withName(stream.status)))
+          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), Option(streamTopicMap(stream.id)), udfs, getDisableActions(stream.streamType, stream.status), getHideActions(stream.streamType))
         }
       )
     } catch {
@@ -119,8 +119,8 @@ class StreamDal(streamTable: TableQuery[StreamTable],
 
   def updateByPutRequest(putStream: PutStream, userId: Long): Future[Int] = {
     db.run(streamTable.filter(_.id === putStream.id)
-      .map(stream => (stream.desc, stream.sparkConfig, stream.startConfig, stream.launchConfig, stream.updateTime, stream.updateBy))
-      .update(putStream.desc, putStream.sparkConfig, putStream.startConfig, putStream.launchConfig, currentSec, userId)).mapTo[Int]
+      .map(stream => (stream.desc, stream.streamConfig, stream.startConfig, stream.launchConfig, stream.updateTime, stream.updateBy))
+      .update(putStream.desc, putStream.streamConfig, putStream.startConfig, putStream.launchConfig, currentSec, userId)).mapTo[Int]
   }
 
   def updateByStatus(streamId: Long, status: String, userId: Long, logPath: String): Future[Int] = {
@@ -200,11 +200,18 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     var usedMemory = 0
     val streamResources: Seq[AppResource] = streamSeq.map(
       stream => {
-        val config = json2caseClass[StartConfig](stream.startConfig)
-        usedCores += config.driverCores + config.executorNums * config.perExecutorCores
-        usedMemory += config.driverMemory + config.executorNums * config.perExecutorMemory
-        AppResource(stream.name, config.driverCores, config.driverMemory, config.executorNums, config.perExecutorMemory, config.perExecutorCores)
-
+        StreamType.withName(stream.streamType) match {
+          case StreamType.SPARK =>
+            val config = json2caseClass[StartConfig](stream.startConfig)
+            usedCores += config.driverCores + config.executorNums * config.perExecutorCores
+            usedMemory += config.driverMemory + config.executorNums * config.perExecutorMemory
+            AppResource(stream.name, config.driverCores, config.driverMemory, config.executorNums, config.perExecutorMemory, config.perExecutorCores)
+          case StreamType.FLINK =>
+            val config = json2caseClass[FlinkResourceConfig](stream.startConfig)
+            usedCores += config.taskManagersNumber * config.perTaskManagerSlots
+            usedMemory += config.jobManagerMemoryGB + config.taskManagersNumber * config.perTaskManagerSlots
+            AppResource(stream.name, 0, config.jobManagerMemoryGB, config.taskManagersNumber, config.perTaskManagerMemoryGB, config.perTaskManagerSlots)
+        }
       }
     )
     (usedCores, usedMemory, streamResources)

@@ -66,6 +66,7 @@ case class FlowStream(id: Long,
                       streamName: String,
                       streamStatus: String,
                       streamType: String,
+                      functionType: String,
                       disableActions: String,
                       msg: String)
 
@@ -88,6 +89,7 @@ case class FlowStreamInfo(id: Long,
                           streamName: String,
                           streamStatus: String,
                           streamType: String,
+                          functionType: String,
                           disableActions: String,
                           kafka: String,
                           topics: String)
@@ -112,6 +114,7 @@ case class FlowStreamAdmin(id: Long,
                            streamName: String,
                            streamStatus: String,
                            streamType: String,
+                           functionType: String,
                            disableActions: String,
                            msg: String)
 
