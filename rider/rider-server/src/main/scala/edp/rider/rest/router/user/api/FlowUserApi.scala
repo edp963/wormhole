@@ -146,7 +146,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                     val checkFormat = FlowUtils.checkConfigFormat(simple.sinkConfig.getOrElse(""), simple.tranConfig.getOrElse(""))
                     if (checkFormat._1) {
                       val flowInsertSeq =
-                        if (Await.result(streamDal.findById(streamId), minTimeOut).head.streamType != "hdfslog")
+                        if (Await.result(streamDal.findById(streamId), minTimeOut).head.functionType != "hdfslog")
                           Seq(Flow(0, simple.projectId, simple.streamId, simple.sourceNs.trim, simple.sinkNs.trim, simple.consumedProtocol.trim, simple.sinkConfig,
                             simple.tranConfig, "new", None, None, active = true, currentSec, session.userId, currentSec, session.userId))
                         else
@@ -216,7 +216,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                       onComplete(flowDal.update(updateFlow).mapTo[Int]) {
                         case Success(_) =>
                           if (streamId != flow.streamId)
-                            FlowUtils.stopFlow(streamId, flow.id, session.userId, stream.streamType, existFlow.sourceNs, existFlow.sinkNs, flow.tranConfig.getOrElse(""))
+                            FlowUtils.stopFlow(streamId, flow.id, session.userId, stream.functionType, existFlow.sourceNs, existFlow.sinkNs, flow.tranConfig.getOrElse(""))
                           riderLogger.info(s"user ${session.userId} update flow ${updateFlow.id} where project id is $projectId success.")
                           onComplete(flowDal.defaultGetAll(_.id === updateFlow.id, "modify").mapTo[Seq[FlowStream]]) {
                             case Success(flowStream) =>

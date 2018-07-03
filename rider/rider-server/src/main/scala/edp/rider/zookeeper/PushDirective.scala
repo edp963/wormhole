@@ -91,13 +91,12 @@ object PushDirective extends RiderLogger {
     setDataToPath(zkUrl, path, directive)
   }
 
-  def removeUdfDirective(streamId: Long, functionName: Option[String], zkUrl: String = RiderConfig.zk): Unit = {
-    val path =
-      functionName match {
-        case Some(function) => s"$rootPath$streamId$udfDir/$function"
-        case None => s"$rootPath$streamId$udfDir"
-      }
-    deleteData(zkUrl, path)
+  def removeUdfDirective(streamId: Long, zkUrl: String, functionName: String): Unit = {
+    deleteData(zkUrl, s"$rootPath$streamId$udfDir/$functionName")
+  }
+
+  def removeUdfDirective(streamId: Long, zkUrl: String): Unit = {
+    deleteData(zkUrl, s"$rootPath$streamId$udfDir")
   }
 
   def getUdfDirective(streamId: Long, zkUrl: String = RiderConfig.zk): Seq[String] = {
