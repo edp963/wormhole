@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS `stream` (
   `project_id` BIGINT NOT NULL,
   `instance_id` BIGINT NOT NULL,
   `stream_type` VARCHAR(100) NOT NULL,
+  `function_type` VARCHAR(100) NOT NULL,
   `spark_config` VARCHAR(5000) NULL,
   `start_config` VARCHAR(1000) NOT NULL,
   `launch_config` VARCHAR(1000) NOT NULL,
@@ -110,6 +111,7 @@ CREATE TABLE IF NOT EXISTS `stream` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `name_UNIQUE` (`name` ASC))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
 
 CREATE TABLE IF NOT EXISTS `project` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -256,7 +258,7 @@ CREATE TABLE IF NOT EXISTS `rel_stream_userdefined_topic` (
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `rel_stream_userdefinedtopic_UNIQUE` (`stream_id` ASC, `ns_instance_id` ASC, `topic` ASC))
+  UNIQUE INDEX `rel_stream_userdefinedtopic_UNIQUE` (`stream_id` ASC, `topic` ASC))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `job` (
