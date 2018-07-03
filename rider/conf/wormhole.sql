@@ -94,7 +94,6 @@ CREATE TABLE IF NOT EXISTS `stream` (
   `project_id` BIGINT NOT NULL,
   `instance_id` BIGINT NOT NULL,
   `stream_type` VARCHAR(100) NOT NULL,
-  `function_type` VARCHAR(100) NOT NULL,
   `spark_config` VARCHAR(5000) NULL,
   `start_config` VARCHAR(1000) NOT NULL,
   `launch_config` VARCHAR(1000) NOT NULL,
