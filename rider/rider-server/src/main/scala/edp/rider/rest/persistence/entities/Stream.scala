@@ -165,6 +165,11 @@ case class StreamHealth(streamStatus: String,
                         batchDurationSecond: Int,
                         topics: Seq[TopicOffset])
 
+case class StreamSelect(id: Long,
+                        name: String,
+                        kafkaInstance: String,
+                        topicInfo: Seq[String])
+
 case class StreamInfo(name: String, streamType: String, status: String)
 
 case class StartResponse(id: Long, status: String, disableActions: String)
