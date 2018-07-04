@@ -119,7 +119,9 @@ export function generateHdfslogNamespaceHierarchy (system, result) {
       if (!table) {
         const newTable = {
           value: item.nsTable,
-          label: item.nsTable
+          label: item.nsTable,
+          id: item.id,
+          nsSys: system
         }
         database.children.push(newTable)
       }

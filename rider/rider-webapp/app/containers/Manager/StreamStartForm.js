@@ -246,7 +246,7 @@ export class StreamStartForm extends React.Component {
                             <div className="stream-start-lastest-kafka-offset">
                               <span style={{ marginRight: '5px' }}>{kafEarOffFinal}</span>
                               <Tooltip title={applyFormat}>
-                                <Button shape="circle" type="ghost" onClick={this.onApplyOffset(i, index, kafOffFinal, type)}>
+                                <Button shape="circle" type="ghost" onClick={this.onApplyOffset(i, index, kafEarOffFinal, type)}>
                                   <i className="iconfont icon-apply_icon_-copy-copy"></i>
                                 </Button>
                               </Tooltip>
