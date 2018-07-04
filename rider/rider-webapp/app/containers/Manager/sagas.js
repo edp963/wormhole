@@ -39,7 +39,8 @@ import {
   LOAD_LASTEST_OFFSET,
   POST_USER_TOPIC,
   DELETE_USER_TOPIC,
-  LOAD_UDFS
+  LOAD_UDFS,
+  LOAD_STREAM_CONFIGS
 } from './constants'
 
 import {
@@ -160,7 +161,7 @@ export function* getKafka ({ payload }) {
 export function* getKafkaWatcher () {
   yield fork(takeLatest, LOAD_KAFKA, getKafka)
 }
-
+// ======= 由下面api替代 ====
 export function* getStreamConfigJvm ({ payload }) {
   try {
     const result = yield call(request, `${api.projectStream}/streams/default/config/jvm`)
@@ -188,6 +189,20 @@ export function* getStreamConfigSpark ({ payload }) {
 export function* getStreamConfigSparkWatcher () {
   yield fork(takeLatest, LOAD_STREAM_CONFIG_SPARK, getStreamConfigSpark)
 }
+// ------------ 下面 替代 上面 ---
+export function* getStreamDefaultconfigs ({ payload }) {
+  try {
+    const result = yield call(request, `${api.userStream}/streams/defaultconfigs?streamType=${payload.type}`)
+    payload.resolve(result.payload)
+  } catch (err) {
+    notifySagasError(err, 'getStreamDefaultconfigs')
+  }
+}
+
+export function* getStreamDefaultconfigsWatcher () {
+  yield fork(takeLatest, LOAD_STREAM_CONFIGS, getStreamDefaultconfigs)
+}
+// ============================
 
 export function* getLogs ({ payload }) {
   try {
@@ -367,7 +382,7 @@ export function* addUserTopic ({payload}) {
   }
 }
 
-export function* addUserTopicWatch () {
+export function* addUserTopicWatcher () {
   yield fork(takeEvery, POST_USER_TOPIC, addUserTopic)
 }
 
@@ -388,7 +403,7 @@ export function* removeUserTopic ({payload}) {
   }
 }
 
-export function* removeUserTopicWatch () {
+export function* removeUserTopicWatcher () {
   yield fork(takeEvery, DELETE_USER_TOPIC, removeUserTopic)
 }
 
@@ -404,7 +419,7 @@ export function* getUdfs ({payload}) {
   }
 }
 
-export function* getUdfsWatch () {
+export function* getUdfsWatcher () {
   yield fork(takeEvery, LOAD_UDFS, getUdfs)
 }
 export default [
@@ -424,7 +439,8 @@ export default [
   deleteStreamWathcer,
   startOrRenewStreamWathcer,
   getLastestOffsetWatcher,
-  addUserTopicWatch,
-  removeUserTopicWatch,
-  getUdfsWatch
+  addUserTopicWatcher,
+  removeUserTopicWatcher,
+  getUdfsWatcher,
+  getStreamDefaultconfigsWatcher
 ]

@@ -126,7 +126,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
                 }],
                 initialValue: 'spark'
               })(
-                <RadioGroup className="radio-group-style" disabled={streamMode === 'edit'} size="default">
+                <RadioGroup className="radio-group-style" disabled={streamMode === 'edit'} size="default" onChange={this.props.changeStreamType}>
                   <RadioButton value="spark" className="radio-btn-style radio-btn-extra">Spark</RadioButton>
                   <RadioButton value="flink" className="radio-btn-style radio-btn-extra">Flink</RadioButton>
                 </RadioGroup>
@@ -271,7 +271,8 @@ WorkbenchStreamForm.propTypes = {
   onLoadStreamNameValue: PropTypes.func,
   streamConfigCheck: PropTypes.bool,
   projectId: PropTypes.string,
-  locale: PropTypes.string
+  locale: PropTypes.string,
+  changeStreamType: PropTypes.func
 }
 
 function mapDispatchToProps (dispatch) {

@@ -1067,12 +1067,12 @@ export class Manager extends React.Component {
             )
 
           let strStart = ''
-          if (record.streamType === 'default') {
+          if (record.streamType === 'spark') {
             strStart = disableActions.includes('start')
               ? <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
               : <Button icon="caret-right" shape="circle" type="ghost" onClick={this.onShowEditStart(record, 'start')}></Button>
           } else if (record.streamType === 'flink') {
-            record.disableActions.includes('start')
+            strStart = record.disableActions.includes('start')
             ? (
               <Tooltip title={startFormat}>
                 <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
@@ -1107,7 +1107,7 @@ export class Manager extends React.Component {
           let strRenew = disableActions.includes('renew')
             ? <Button icon="check" shape="circle" type="ghost" disabled></Button>
             : <Button icon="check" shape="circle" type="ghost" onClick={this.updateStream(record, 'renew')}></Button>
-          if (hideActions && Array.isArray(hideActions)) {
+          if (hideActions) {
             if (hideActions.includes('delete')) strDelete = ''
             if (hideActions.includes('start')) strStart = ''
             if (hideActions.includes('stop')) strStop = ''
