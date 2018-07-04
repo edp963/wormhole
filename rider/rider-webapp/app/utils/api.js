@@ -38,5 +38,7 @@ export default {
   job: `${productionHost}/admin/jobs`,
 
   projectAdminStream: `${productionHost}/admin/projects`,
-  projectStream: `${productionHost}/user/projects`
+  projectStream: `${productionHost}/user/projects`,
+
+  userStream: `${productionHost}/user`
 }

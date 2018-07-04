@@ -72,7 +72,7 @@ import {
 
 import {
   loadUserStreams, loadAdminSingleStream, loadStreamNameValue, loadKafka,
-  loadStreamConfigJvm, loadStreamConfigSpark, addStream, loadStreamDetail, editStream
+  loadStreamConfigJvm, loadStreamConfigSpark, loadStreamConfigs, addStream, loadStreamDetail, editStream
 } from '../Manager/action'
 import { loadSelectNamespaces, loadUserNamespaces } from '../Namespace/action'
 import { loadUserUsers, loadSelectUsers } from '../User/action'
@@ -100,6 +100,7 @@ export class Workbench extends React.Component {
       jobMode: '',
       formStep: 0,
       tabPanelKey: '',
+      subPanelKey: 'spark',
 
       // all and parts of flow/stream/namespace/user
       userClassHide: 'hide',
@@ -1138,6 +1139,12 @@ export class Workbench extends React.Component {
       })
   }
 
+  changeStreamType = e => {
+    let value = e.target.value
+    this.setState({
+      subPanelKey: value
+    }, this.showAddStreamWorkbench)
+  }
   showAddStreamWorkbench = () => {
     this.workbenchStreamForm.resetFields()
     // 显示 jvm 数据，从而获得初始的 sparkConfig
@@ -1145,24 +1152,42 @@ export class Workbench extends React.Component {
       streamMode: 'add',
       streamConfigCheck: false
     })
+    const streamType = this.state.subPanelKey
+    this.workbenchStreamForm.setFieldsValue({streamType})
+    Promise.all(this.loadConfig(streamType)).then((values) => {
+      let startConfigJson = {}
+      let launchConfigJson = {}
 
-    Promise.all(this.loadConfig()).then((values) => {
-      const startConfigJson = {
-        driverCores: 1,
-        driverMemory: 2,
-        executorNums: 6,
-        perExecutorMemory: 2,
-        perExecutorCores: 1
-      }
-      const launchConfigJson = {
-        durations: 30,
-        partitions: 6,
-        maxRecords: 10
+      if (streamType === 'spark') {
+        const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores, durations, partitions, maxRecords } = values[0].spark
+
+        startConfigJson = {
+          driverCores,
+          driverMemory,
+          executorNums,
+          perExecutorMemory,
+          perExecutorCores
+        }
+        launchConfigJson = {
+          durations,
+          partitions,
+          maxRecords
+        }
+      } else if (streamType === 'flink') {
+        const { jobManagerMemoryGB, taskManagersNumber, perTaskManagerSlots, perTaskManagerMemoryGB } = values[0].flink
+
+        startConfigJson = {
+          jobManagerMemoryGB,
+          taskManagersNumber,
+          perTaskManagerSlots,
+          perTaskManagerMemoryGB
+        }
+        launchConfigJson = ''
       }
 
       this.setState({
         streamConfigValues: {
-          sparkConfig: `${values[0]},${values[1]}`,
+          streamConfig: `${values[0].jvm},${values[0].others}`,
           startConfig: `${JSON.stringify(startConfigJson)}`,
           launchConfig: `${JSON.stringify(launchConfigJson)}`
         }
@@ -1193,7 +1218,7 @@ export class Workbench extends React.Component {
         usingUdf: usingUdf
       })
 
-      const { name, streamType, desc, instance, sparkConfig, startConfig, launchConfig, id, projectId } = resultVal
+      const { name, streamType, desc, instance, streamConfig, startConfig, launchConfig, id, projectId } = resultVal
       this.workbenchStreamForm.setFieldsValue({
         streamName: name,
         type: streamType,
@@ -1203,9 +1228,9 @@ export class Workbench extends React.Component {
 
       this.setState({
         streamConfigValues: {
-          sparkConfig: sparkConfig,
-          startConfig: startConfig,
-          launchConfig: launchConfig
+          streamConfig,
+          startConfig,
+          launchConfig
         },
 
         streamQueryValues: {
@@ -1218,12 +1243,16 @@ export class Workbench extends React.Component {
 
   // Stream Config Modal
   onShowConfigModal = () => {
-    const { streamConfigValues } = this.state
+    const { streamConfigValues, subPanelKey: streamType, streamConfigCheck } = this.state
+    const subPanelKey = this.workbenchStreamForm.getFieldValue('streamType')
     this.setState({
+      subPanelKey,
       streamConfigModalVisible: true
     }, () => {
+      if (!streamConfigCheck) this.streamConfigForm.resetFields()
+
       // 点击 config 按钮时，回显数据。 有且只有2条 jvm 配置
-      const streamConArr = streamConfigValues.sparkConfig.split(',')
+      const streamConArr = streamConfigValues.streamConfig.split(',')
 
       const tempJvmArr = []
       const tempOthersArr = []
@@ -1238,21 +1267,35 @@ export class Workbench extends React.Component {
       const startConfigTemp = JSON.parse(streamConfigValues.startConfig)
       const launchConfigTemp = JSON.parse(streamConfigValues.launchConfig)
 
-      const { driverCores, driverMemory, executorNums, perExecutorCores, perExecutorMemory } = startConfigTemp
-      const { durations, partitions, maxRecords } = launchConfigTemp
-      this.streamConfigForm.setFieldsValue({
-        jvm: jvmTempValue,
-        driverCores: driverCores,
-        driverMemory: driverMemory,
-        executorNums: executorNums,
-        perExecutorCores: perExecutorCores,
-        perExecutorMemory: perExecutorMemory,
+      if (streamType === 'spark') {
+        const { driverCores, driverMemory, executorNums, perExecutorCores, perExecutorMemory } = startConfigTemp
+        const { durations, partitions, maxRecords } = launchConfigTemp
 
-        durations: durations,
-        partitions: partitions,
-        maxRecords: maxRecords,
-        personalConf: personalConfTempValue
-      })
+        this.streamConfigForm.setFieldsValue({
+          jvm: jvmTempValue,
+          driverCores: driverCores,
+          driverMemory: driverMemory,
+          executorNums: executorNums,
+          perExecutorCores: perExecutorCores,
+          perExecutorMemory: perExecutorMemory,
+
+          durations: durations,
+          partitions: partitions,
+          maxRecords: maxRecords,
+          personalConf: personalConfTempValue
+        })
+      } else if (streamType === 'flink') {
+        const { jobManagerMemoryGB, taskManagersNumber, perTaskManagerSlots, perTaskManagerMemoryGB } = startConfigTemp
+        this.streamConfigForm.setFieldsValue({
+          jobManagerMemoryGB,
+          taskManagersNumber,
+          perTaskManagerSlots,
+          perTaskManagerMemoryGB,
+
+          jvm: jvmTempValue,
+          personalConf: personalConfTempValue
+        })
+      }
     })
   }
 
@@ -1293,6 +1336,7 @@ export class Workbench extends React.Component {
 
   onConfigModalOk = () => {
     const { locale } = this.props
+    const { subPanelKey } = this.state
     this.streamConfigForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         values.personalConf = values.personalConf.trim()
@@ -1303,9 +1347,9 @@ export class Workbench extends React.Component {
         if (nJvm === 2) {
           jvmValTemp = values.jvm.replace(/\n/g, ',')
 
-          let sparkConfigValue = ''
+          let streamConfigValue = ''
           if (!values.personalConf) {
-            sparkConfigValue = jvmValTemp
+            streamConfigValue = jvmValTemp
           } else {
             const nOthers = (values.jvm.split('=')).length - 1
 
@@ -1313,29 +1357,41 @@ export class Workbench extends React.Component {
               ? values.personalConf
               : values.personalConf.replace(/\n/g, ',')
 
-            sparkConfigValue = `${jvmValTemp},${personalConfTemp}`
+            streamConfigValue = `${jvmValTemp},${personalConfTemp}`
           }
+          let startConfigJson = {}
+          let launchConfigJson = {}
+          if (subPanelKey === 'spark') {
+            const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores } = values
+            startConfigJson = {
+              driverCores: driverCores,
+              driverMemory: driverMemory,
+              executorNums: executorNums,
+              perExecutorMemory: perExecutorMemory,
+              perExecutorCores: perExecutorCores
+            }
 
-          const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores } = values
-          const startConfigJson = {
-            driverCores: driverCores,
-            driverMemory: driverMemory,
-            executorNums: executorNums,
-            perExecutorMemory: perExecutorMemory,
-            perExecutorCores: perExecutorCores
-          }
-
-          const { durations, partitions, maxRecords } = values
-          const launchConfigJson = {
-            durations: durations,
-            partitions: partitions,
-            maxRecords: maxRecords
+            const { durations, partitions, maxRecords } = values
+            launchConfigJson = {
+              durations: durations,
+              partitions: partitions,
+              maxRecords: maxRecords
+            }
+          } else if (subPanelKey === 'flink') {
+            const { jobManagerMemoryGB, perTaskManagerMemoryGB, perTaskManagerSlots, taskManagersNumber, name } = values
+            startConfigJson = {
+              jobManagerMemoryGB,
+              perTaskManagerMemoryGB,
+              perTaskManagerSlots,
+              taskManagersNumber,
+              name
+            }
           }
 
           this.setState({
             streamConfigCheck: true,
             streamConfigValues: {
-              sparkConfig: sparkConfigValue,
+              streamConfig: streamConfigValue,
               startConfig: JSON.stringify(startConfigJson),
               launchConfig: JSON.stringify(launchConfigJson)
             }
@@ -3046,18 +3102,24 @@ export class Workbench extends React.Component {
     }
   }
 
-  loadConfig () {
-    let jvm = new Promise((resolve) => {
-      this.props.onLoadStreamConfigJvm((result) => {
+  loadConfig (type) {
+    // let jvm = new Promise((resolve) => {
+    //   this.props.onLoadStreamConfigJvm((result) => {
+    //     resolve(result)
+    //   })
+    // })
+    // let spark = new Promise((resolve) => {
+    //   this.props.onLoadStreamConfigSpark((result) => {
+    //     resolve(result)
+    //   })
+    // })
+    // return [jvm, spark]
+    let con = new Promise((resolve) => {
+      this.props.onLoadStreamConfigs(type, result => {
         resolve(result)
       })
     })
-    let spark = new Promise((resolve) => {
-      this.props.onLoadStreamConfigSpark((result) => {
-        resolve(result)
-      })
-    })
-    return [jvm, spark]
+    return [con]
   }
 
   clearSinkData = () => {
@@ -3084,19 +3146,20 @@ export class Workbench extends React.Component {
         resultFields: 'all'
       })
     })
-
-    Promise.all(this.loadConfig()).then((values) => {
+    Promise.all(this.loadConfig('spark')).then((values) => {
+      // NOTE: job => sparkConfig? 结构 待修改
+      const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores } = values[0].spark
       const startConfigJson = {
-        driverCores: 1,
-        driverMemory: 2,
-        executorNums: 6,
-        perExecutorMemory: 2,
-        perExecutorCores: 1
+        driverCores,
+        driverMemory,
+        executorNums,
+        perExecutorMemory,
+        perExecutorCores
       }
 
       this.setState({
         jobSparkConfigValues: {
-          sparkConfig: `${values[0]},${values[1]}`,
+          sparkConfig: `${values[0].jvm},${values[0].others}`,
           startConfig: `${JSON.stringify(startConfigJson)}`
         }
       })
@@ -3358,6 +3421,7 @@ export class Workbench extends React.Component {
                     onShowConfigModal={this.onShowConfigModal}
                     streamConfigCheck={this.state.streamConfigCheck}
                     topicEditValues={this.state.topicEditValues}
+                    changeStreamType={this.changeStreamType}
 
                     ref={(f) => { this.workbenchStreamForm = f }}
                   />
@@ -3595,8 +3659,8 @@ Workbench.propTypes = {
   onEditFlow: PropTypes.func,
   onQueryFlow: PropTypes.func,
   onLoadkafka: PropTypes.func,
-  onLoadStreamConfigJvm: PropTypes.func,
-  onLoadStreamConfigSpark: PropTypes.func,
+  // onLoadStreamConfigJvm: PropTypes.func,
+  // onLoadStreamConfigSpark: PropTypes.func,
   onLoadStreamDetail: PropTypes.func,
   onLoadSelectStreamKafkaTopic: PropTypes.func,
   onLoadSourceSinkTypeNamespace: PropTypes.func,
@@ -3622,7 +3686,8 @@ Workbench.propTypes = {
   jobSubmitLoading: PropTypes.bool,
   roleType: PropTypes.string,
   locale: PropTypes.string,
-  onLoadJobBackfillTopic: PropTypes.func
+  onLoadJobBackfillTopic: PropTypes.func,
+  onLoadStreamConfigs: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -3645,6 +3710,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadkafka: (projectId, nsSys, resolve) => dispatch(loadKafka(projectId, nsSys, resolve)),
     onLoadStreamConfigJvm: (resolve) => dispatch(loadStreamConfigJvm(resolve)),
     onLoadStreamConfigSpark: (resolve) => dispatch(loadStreamConfigSpark(resolve)),
+    onLoadStreamConfigs: (type, resolve) => dispatch(loadStreamConfigs(type, resolve)),
     onLoadStreamNameValue: (projectId, value, resolve, reject) => dispatch(loadStreamNameValue(projectId, value, resolve, reject)),
     onLoadStreamDetail: (projectId, streamId, roleType, resolve) => dispatch(loadStreamDetail(projectId, streamId, roleType, resolve)),
     onLoadSelectStreamKafkaTopic: (projectId, value, resolve) => dispatch(loadSelectStreamKafkaTopic(projectId, value, resolve)),
