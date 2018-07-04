@@ -79,7 +79,7 @@ object HdfsLogReadUtil extends EdpLogging {
     var prefix = hdfsRoot + "/hdfslog/" + names(0) + "." + names(1) + "." + names(2) + "/" + names(3)
     //+ "/" + namespace.version + "/" + namespace.databasePar + "/" + namespace.tablePar + "/" + "protocoltype/right"
     val namespaceVersion = if (names(4) == "*") {
-      getHdfsFileList(prefix).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).head.toString
+      getHdfsFileList(conf, prefix).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).head.toString
     } else {
       names(4)
     } 
