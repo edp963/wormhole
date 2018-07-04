@@ -83,6 +83,7 @@ export class WorkbenchFlowForm extends React.Component {
   // 通过不同的 Source Data System 显示不同的 Source Namespace 内容
   onSourceDataSystemItemSelect = (val) => {
     const { streamDiffType, flowMode, projectIdGeted, streamId } = this.props
+    this.props.emitDataSystem(val)
     if (val) {
       switch (streamDiffType) {
         case 'default':
@@ -535,7 +536,7 @@ export class WorkbenchFlowForm extends React.Component {
                     options={hdfslogSourceNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
-                    onChange={(e) => initialHdfslogCascader(e)}
+                    onChange={(value, selectedOptions) => initialHdfslogCascader(value, selectedOptions)}
                   />
                 )}
               </FormItem>
@@ -557,7 +558,7 @@ export class WorkbenchFlowForm extends React.Component {
                     options={routingNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
-                    onChange={(value, sel) => initialRoutingCascader(value, sel)}
+                    onChange={(value, selectedOptions) => initialRoutingCascader(value, selectedOptions)}
                   />
                 )}
               </FormItem>
@@ -1095,7 +1096,8 @@ WorkbenchFlowForm.propTypes = {
   onLoadSourceSinkTypeNamespace: PropTypes.func,
   onLoadSinkTypeNamespace: PropTypes.func,
   sinkConfigCopy: PropTypes.string,
-  flowSourceNsSys: PropTypes.string
+  flowSourceNsSys: PropTypes.string,
+  emitDataSystem: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {

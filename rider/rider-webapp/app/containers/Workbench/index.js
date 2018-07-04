@@ -288,13 +288,23 @@ export class Workbench extends React.Component {
     this.setState({ tabPanelKey: key })
   }
 
+  getDataSystem = (value) => {
+    this.setState({
+      flowSourceNsSys: value
+    })
+  }
   initialDefaultCascader = (value, selectedOptions) => {
     if (selectedOptions && selectedOptions.length > 0) {
-      this.setState({flowSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys})
+      this.setState({flowSourceNsSys: this.state.flowSourceNsSys})
     }
   }
 
-  initialHdfslogCascader = (value) => this.setState({ hdfslogSinkNsValue: value.join('.') })
+  initialHdfslogCascader = (value, selectedOptions) => {
+    this.setState({
+      hdfslogSinkNsValue: value.join('.'),
+      flowSourceNsSys: this.state.flowSourceNsSys
+    })
+  }
 
   initialBackfillCascader = (value, selectedOptions) => {
     const { projectId } = this.state
@@ -311,14 +321,14 @@ export class Workbench extends React.Component {
         // }, 20)
       // }
     }
-    this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys })
+    this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys: this.state.flowSourceNsSys })
   }
   initialRoutingCascader = (value, selectedOptions) => {
     const { projectId, pipelineStreamId, routingSourceNsValue } = this.state
 
     this.setState({
       routingSourceNsValue: value.join('.'),
-      flowSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys
+      flowSourceNsSys: this.state.flowSourceNsSys
     }, () => {
       // 调显示 routing sink namespace 下拉框数据的接口
       this.props.onLoadSinkTypeNamespace(projectId, pipelineStreamId, 'kafka', 'sinkType', (result) => {
@@ -3241,6 +3251,7 @@ export class Workbench extends React.Component {
                     flowKafkaTopicValue={this.state.flowKafkaTopicValue}
                     sinkConfigCopy={this.state.sinkConfigCopy}
                     flowSourceNsSys={this.state.flowSourceNsSys}
+                    emitDataSystem={this.getDataSystem}
 
                     ref={(f) => { this.workbenchFlowForm = f }}
                   />
