@@ -116,6 +116,23 @@ export class WorkbenchStreamForm extends React.PureComponent {
     return (
       <Form className="ri-workbench-form workbench-stream-form">
         <Row gutter={8}>
+
+          <Col span={24}>
+            <FormItem label="Stream type" {...itemStyle}>
+              {getFieldDecorator('streamType', {
+                rules: [{
+                  required: true,
+                  message: operateLanguageSelect('type', 'Type')
+                }],
+                initialValue: 'spark'
+              })(
+                <RadioGroup className="radio-group-style" disabled={streamMode === 'edit'} size="default" onChange={this.props.changeStreamType}>
+                  <RadioButton value="spark" className="radio-btn-style radio-btn-extra">Spark</RadioButton>
+                  <RadioButton value="flink" className="radio-btn-style radio-btn-extra">Flink</RadioButton>
+                </RadioGroup>
+              )}
+            </FormItem>
+          </Col>
           <Col span={24}>
             <FormItem label="Name" {...itemStyle}>
               {getFieldDecorator('streamName', {
@@ -132,7 +149,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
           </Col>
 
           <Col span={24}>
-            <FormItem label="Type" {...itemStyle}>
+            <FormItem label="Function type" {...itemStyle}>
               {getFieldDecorator('type', {
                 rules: [{
                   required: true,
@@ -254,7 +271,8 @@ WorkbenchStreamForm.propTypes = {
   onLoadStreamNameValue: PropTypes.func,
   streamConfigCheck: PropTypes.bool,
   projectId: PropTypes.string,
-  locale: PropTypes.string
+  locale: PropTypes.string,
+  changeStreamType: PropTypes.func
 }
 
 function mapDispatchToProps (dispatch) {
