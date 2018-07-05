@@ -172,38 +172,25 @@ case class StreamInfo(name: String, streamType: String, functionType: String, st
 
 case class StartResponse(id: Long, status: String, disableActions: String, hideActions: String)
 
-//"jvm": "spark.driver.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc/,spark.executor.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc",
-//"payload" : {
-//"jvm": "",
-//"flink": {
-//"jobManagerMemoryGB": 2,
-//"taskManagersNumber": 6,
-//"perTaskManagerSlots": 1,
-//"perTaskManagerMemoryGB": 2
-//},
-//"others": ""
-//}
-//"others": "spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,s
 
-
+//   "startConfig" : "{\"driverCores\":1,\"driverMemory\":1,\"executorNums\":1,\"perExecutorMemory\":1,\"perExecutorCores\":1}",
+//"launchConfig" : "{\"durations\":30,\"partitions\":1,\"maxRecords\":10}",
 //get default config response
 case class SparkResourceConfig(driverCores: Int,
-                               driverMemoryGB: Int,
-                               executorsNumber: Int,
+                               driverMemory: Int,
+                               executorNums: Int,
                                perExecutorCores: Int,
-                               perExecutorMemoryGB: Int,
-                               batchDurationSec: Int,
-                               parallelismPartition: Int,
-                               maxPartitionFetchMb: Int
-                                     )
+                               perExecutorMemory: Int,
+                               durations: Int,
+                               partitions: Int,
+                               maxRecords: Int)
 
 case class SparkDefaultConfig(jvm: String, spark: SparkResourceConfig, others: String)
 
 case class FlinkResourceConfig(jobManagerMemoryGB: Int,
                                taskManagersNumber: Int,
                                perTaskManagerSlots: Int,
-                               perTaskManagerMemoryGB: Int
-                                     )
+                               perTaskManagerMemoryGB: Int)
 
 case class FlinkDefaultConfig(jvm: String, flink: FlinkResourceConfig, others: String)
 
