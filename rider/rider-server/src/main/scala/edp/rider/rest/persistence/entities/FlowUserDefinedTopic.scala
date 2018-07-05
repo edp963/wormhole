@@ -25,16 +25,16 @@ import edp.rider.rest.persistence.base.{BaseEntity, BaseTable}
 import slick.lifted.{Rep, Tag}
 import slick.jdbc.MySQLProfile.api._
 
-case class FlowInTopic(id: Long,
-                       flowId: Long,
-                       nsDatabaseId: Long,
-                       partitionOffsets: String,
-                       rate: Int,
-                       active: Boolean,
-                       createTime: String,
-                       createBy: Long,
-                       updateTime: String,
-                       updateBy: Long) extends BaseEntity {
+case class FlowUserDefinedTopic(id: Long,
+                               flowId: Long,
+                               topic: String,
+                               partitionOffsets: String,
+                               rate: Int,
+                               active: Boolean,
+                               createTime: String,
+                               createBy: Long,
+                               updateTime: String,
+                               updateBy: Long) extends BaseEntity {
   override def copyWithId(id: Long): this.type = {
     copy(id = id).asInstanceOf[this.type]
   }
@@ -56,18 +56,18 @@ case class FlowInTopic(id: Long,
 //
 //case class StreamTopicPartition(streamId: Long, topicName: String, partitions: Option[Int])
 
-class FlowInTopicTable(_tableTag: Tag) extends BaseTable[FlowInTopic](_tableTag, "rel_flow_intopic") {
-  def * = (id, flowId, nsDatabaseId, partitionOffsets, rate, active, createTime, createBy, updateTime, updateBy) <> (FlowInTopic.tupled, FlowInTopic.unapply)
+class FlowUserDefinedTopicTable(_tableTag: Tag) extends BaseTable[FlowUserDefinedTopic](_tableTag, "rel_flow_userdefined_topic") {
+  def * = (id, flowId, topic, partitionOffsets, rate, active, createTime, createBy, updateTime, updateBy) <> (FlowUserDefinedTopic.tupled, FlowUserDefinedTopic.unapply)
 
   /** Database column flow_id SqlType(BIGINT) */
   val flowId: Rep[Long] = column[Long]("stream_id")
-  /** Database column ns_database_id SqlType(BIGINT) */
-  val nsDatabaseId: Rep[Long] = column[Long]("ns_database_id")
+  /** Database column topic SqlType(VARCHAR) */
+  val topic: Rep[String] = column[String]("topic")
   /** Database column partition_offsets SqlType(VARCHAR), Length(200,true) */
   val partitionOffsets: Rep[String] = column[String]("partition_offsets", O.Length(200, varying = true))
   /** Database column rate SqlType(INT) */
   val rate: Rep[Int] = column[Int]("rate")
 
-  val index1 = index("topic_UNIQUE", (flowId, nsDatabaseId), unique = true)
+  val index1 = index("topic_UNIQUE", (flowId, topic), unique = true)
 
 }
