@@ -22,15 +22,12 @@
 package edp.rider.rest.persistence.entities
 
 import edp.rider.rest.persistence.base.{BaseEntity, BaseTable, SimpleBaseEntity}
-import slick.lifted.Tag
+import slick.lifted.{Rep, Tag}
 import slick.jdbc.MySQLProfile.api._
 
-case class Udf(id: Long,
-               functionName: String,
-               fullClassName: String,
-               jarName: String,
-               desc: Option[String],
-               pubic: Boolean,
+case class FlowUdf(id: Long,
+               flowId: Long,
+               udfId: Long,
                createTime: String,
                createBy: Long,
                updateTime: String,
@@ -40,38 +37,36 @@ case class Udf(id: Long,
   }
 }
 
+//
+//case class SimpleUdf(functionName: String,
+//                     fullClassName: String,
+//                     jarName: String,
+//                     desc: Option[String],
+//                     public: Boolean) extends SimpleBaseEntity
+//
+//case class UdfProjectName(udfId: Long,
+//                          name: String)
+//
+//case class UdfProject(id: Long,
+//                      functionName: String,
+//                      fullClassName: String,
+//                      jarName: String,
+//                      desc: Option[String],
+//                      pubic: Boolean,
+//                      createTime: String,
+//                      createBy: Long,
+//                      updateTime: String,
+//                      updateBy: Long,
+//                      projectNames: String)
 
-case class SimpleUdf(functionName: String,
-                     fullClassName: String,
-                     jarName: String,
-                     desc: Option[String],
-                     public: Boolean) extends SimpleBaseEntity
+class FlowUdfTable(_tableTag: Tag) extends BaseTable[FlowUdf](_tableTag, "rel_flow_udf") {
+  def * = (id, flowId, udfId, createTime, createBy, updateTime, updateBy) <> (FlowUdf.tupled, FlowUdf.unapply)
+  /** Database column flow_id SqlType(BIGINT) */
+  val flowId: Rep[Long] = column[Long]("flow_id")
+  /** Database column udf_id SqlType(BIGINT) */
+  val udfId: Rep[Long] = column[Long]("udf_id")
 
-case class UdfProjectName(udfId: Long,
-                          name: String)
+  val index1 = index("flowUdf_UNIQUE", (flowId, udfId), unique = true)
 
-case class UdfProject(id: Long,
-                      functionName: String,
-                      fullClassName: String,
-                      jarName: String,
-                      desc: Option[String],
-                      pubic: Boolean,
-                      createTime: String,
-                      createBy: Long,
-                      updateTime: String,
-                      updateBy: Long,
-                      projectNames: String)
-
-class UdfTable(_tableTag: Tag) extends BaseTable[Udf](_tableTag, "udf") {
-  def * = (id, functionName, fullClassName, jarName, desc, public, createTime, createBy, updateTime, updateBy) <> (Udf.tupled, Udf.unapply)
-
-  val functionName: Rep[String] = column[String]("function_name", O.Length(200, varying = true))
-  val fullClassName: Rep[String] = column[String]("full_class_name", O.Length(200, varying = true))
-  val jarName: Rep[String] = column[String]("jar_name", O.Length(200, varying = true))
-  val desc: Rep[Option[String]] = column[Option[String]]("desc", O.Length(200, varying = true), O.Default(None))
-  val public: Rep[Boolean] = column[Boolean]("public")
-
-  val index1 = index("functionName_UNIQUE", functionName, unique = true)
-  val index2 = index("fullClassName_UNIQUE", fullClassName, unique = true)
 }
 
