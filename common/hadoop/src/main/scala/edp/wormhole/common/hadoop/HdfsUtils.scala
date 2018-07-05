@@ -199,10 +199,10 @@ trait HdfsUtils {
   }
 
   def readFileByLineNum(txtFilePath: String, lineNum:Int): String = {
-    readFileByLineNum(new Path(txtFilePath), new Configuration(), lineNum)
+    readFileByLineNum(txtFilePath, new Configuration(), lineNum)
   }
 
-  def readFileByLineNum(txtFilePath: Path, conf: Configuration, lineNum:Int): String = {
+  def readFileByLineNum(txtFilePath: String, conf: Configuration, lineNum:Int): String = {
     conf.setBoolean("fs.hdfs.impl.disable.cache", true)
     var returnStr = ""
     var fsr: FSDataInputStream = null
@@ -211,7 +211,7 @@ trait HdfsUtils {
     try {
       var lineStr: String = null
       var i = 1
-      fsr = fs.open(txtFilePath)
+      fsr = fs.open(new Path(txtFilePath))
       bufferedReader = new BufferedReader(new InputStreamReader(fsr))
       lineStr = bufferedReader.readLine
       while (lineStr != null) {

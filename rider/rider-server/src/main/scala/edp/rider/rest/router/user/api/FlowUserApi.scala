@@ -288,4 +288,25 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
 
   }
 
+  def getDriftStreams(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows" / LongNumber / "driftstreams") {
+    (projectId, streamId, flowId) =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "user") {
+              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              if (session.projectIdList.contains(projectId)) {
+                complete(OK, setSuccessResponse(session))
+              } else {
+                riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
+                complete(OK, setFailedResponse(session, "Insufficient permission"))
+              }
+            }
+        }
+      }
+  }
+
 }
