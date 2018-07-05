@@ -342,10 +342,9 @@ export class Manager extends React.Component {
     })
   }
 
-  startFlink = () => () => {
+  startFlink = (id) => () => {
     const { projectIdGeted, locale } = this.props
-    const { streamIdGeted } = this.state
-    this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, null, 'start', (result) => {
+    this.props.onStartOrRenewStream(projectIdGeted, id, null, 'start', (result) => {
       let actionTypeMsg = locale === 'en' ? 'Start Successfully!' : '启动成功！'
       message.success(actionTypeMsg, 3)
     }, (result) => {
@@ -1079,7 +1078,7 @@ export class Manager extends React.Component {
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.startFlink()}>
+              <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.startFlink(record.id)}>
                 <Tooltip title={startFormat}>
                   <Button icon="caret-right" shape="circle" type="ghost"></Button>
                 </Tooltip>

@@ -53,23 +53,6 @@ export class StreamConfigForm extends React.Component {
 
     return (
       <Form>
-        {subPanelKey === 'flink' ? (
-          <Row>
-            <Col span={8}>
-              <FormItem label="Name：" {...itemStyleOthers}>
-                {getFieldDecorator('name', {
-                  rules: [{
-                    required: true,
-                    message: textMessage
-                  }]
-                })(
-                  <Input />
-                )}
-              </FormItem>
-            </Col>
-          </Row>
-          ) : ''
-        }
         <Row>
           <Col span={24}>
             <FormItem label="JVM：" {...itemStyle}>

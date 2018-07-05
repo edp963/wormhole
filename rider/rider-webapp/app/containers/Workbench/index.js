@@ -1218,10 +1218,11 @@ export class Workbench extends React.Component {
         usingUdf: usingUdf
       })
 
-      const { name, streamType, desc, instance, streamConfig, startConfig, launchConfig, id, projectId } = resultVal
+      const { name, streamType, functionType, desc, instance, streamConfig, startConfig, launchConfig, id, projectId } = resultVal
       this.workbenchStreamForm.setFieldsValue({
+        streamType,
         streamName: name,
-        type: streamType,
+        type: functionType,
         desc: desc,
         kafka: instance
       })
@@ -1243,10 +1244,10 @@ export class Workbench extends React.Component {
 
   // Stream Config Modal
   onShowConfigModal = () => {
-    const { streamConfigValues, subPanelKey: streamType, streamConfigCheck } = this.state
-    const subPanelKey = this.workbenchStreamForm.getFieldValue('streamType')
+    let { streamConfigValues, subPanelKey: streamType, streamConfigCheck } = this.state
+    streamType = this.workbenchStreamForm.getFieldValue('streamType')
     this.setState({
-      subPanelKey,
+      subPanelKey: streamType,
       streamConfigModalVisible: true
     }, () => {
       if (!streamConfigCheck) this.streamConfigForm.resetFields()
@@ -1265,7 +1266,7 @@ export class Workbench extends React.Component {
       const personalConfTempValue = tempOthersArr.join('\n')
 
       const startConfigTemp = JSON.parse(streamConfigValues.startConfig)
-      const launchConfigTemp = JSON.parse(streamConfigValues.launchConfig)
+      const launchConfigTemp = streamConfigValues.launchConfig && JSON.parse(streamConfigValues.launchConfig)
 
       if (streamType === 'spark') {
         const { driverCores, driverMemory, executorNums, perExecutorCores, perExecutorMemory } = startConfigTemp
@@ -1378,14 +1379,14 @@ export class Workbench extends React.Component {
               maxRecords: maxRecords
             }
           } else if (subPanelKey === 'flink') {
-            const { jobManagerMemoryGB, perTaskManagerMemoryGB, perTaskManagerSlots, taskManagersNumber, name } = values
+            const { jobManagerMemoryGB, perTaskManagerMemoryGB, perTaskManagerSlots, taskManagersNumber } = values
             startConfigJson = {
               jobManagerMemoryGB,
               perTaskManagerMemoryGB,
               perTaskManagerSlots,
-              taskManagersNumber,
-              name
+              taskManagersNumber
             }
+            launchConfigJson = ''
           }
 
           this.setState({
@@ -1393,7 +1394,7 @@ export class Workbench extends React.Component {
             streamConfigValues: {
               streamConfig: streamConfigValue,
               startConfig: JSON.stringify(startConfigJson),
-              launchConfig: JSON.stringify(launchConfigJson)
+              launchConfig: launchConfigJson && JSON.stringify(launchConfigJson)
             }
           })
           this.hideConfigModal()
