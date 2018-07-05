@@ -182,7 +182,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             riderLogger.error(s"user ${session.userId} request url is not supported.")
 //            complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
             complete(OK, setFailedResponse(session, "Insufficient Permission"))
-          case (None, None, None) =>
+          case (None, None, None ) =>
             val streams = streamDal.getBriefDetail(Some(projectId))
             riderLogger.info(s"user ${session.userId} select streams where project id is $projectId success.")
             complete(OK, ResponseSeqJson[StreamDetail](getHeader(200, session), streams))
