@@ -170,6 +170,13 @@ case class StreamHealth(streamStatus: String,
 
 case class StreamInfo(name: String, streamType: String, functionType: String, status: String)
 
+case class SimpleStreamInfo(id: Long,
+                            name: String,
+                            maxParallelism: Int,
+                            kafkaInstance: String,
+                            topicInfo: Seq[String]
+                           )
+
 case class StartResponse(id: Long, status: String, disableActions: String, hideActions: String)
 
 

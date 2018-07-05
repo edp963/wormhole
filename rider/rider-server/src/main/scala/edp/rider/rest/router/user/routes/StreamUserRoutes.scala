@@ -44,7 +44,8 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "streamName", value = "stream name", required = false, dataType = "string", paramType = "query", allowMultiple = false),
-    new ApiImplicitParam(name = "streamType", value = "stream type", required = false, dataType = "string", paramType = "query", allowMultiple = false)
+    new ApiImplicitParam(name = "streamType", value = "stream type", required = false, dataType = "string", paramType = "query", allowMultiple = false),
+    new ApiImplicitParam(name = "functionType", value = "function type", required = false, dataType = "string", paramType = "query", allowMultiple = false)
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),
