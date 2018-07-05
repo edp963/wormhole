@@ -8,7 +8,7 @@ import kafka.utils.{CommandLineUtils, ZkUtils}
 
 object WormholeTopicCommand {
 
-  def createOrAlterTopic(zkUrl: String, topic: String, partition: Int = 1, refactor: Int = 1, sessionTimeOut: Int = 30000, connectionTimeout: Int = 3000): Unit = {
+  def createOrAlterTopic(zkUrl: String, topic: String, partition: Int = 1, refactor: Int = 1, sessionTimeOut: Int = 30000, connectionTimeout: Int = 30000): Unit = {
     val zkUtils = ZkUtils(zkUrl, sessionTimeOut, connectionTimeout, false)
     try {
       val topicCommand = new TopicCommandOptions(Array[String]("if-not-exists", "--create", "--zookeeper", s"$zkUrl", "--partitions", s"$partition", "--replication-factor", s"$refactor", "--topic", s"$topic"))
@@ -40,8 +40,20 @@ object WormholeTopicCommand {
         AdminUtils.createOrUpdateTopicPartitionAssignmentPathInZK(zkUtils, topic, replicaAssignment, configs, update = true)
       }
     } catch {
-      case ex: kafka.admin.AdminOperationException =>
+      case _: kafka.admin.AdminOperationException =>
       case e: TopicExistsException => if (!ifNotExists) throw e
+    }
+  }
+
+  def checkTopicExists(zkUrl: String, topic: String, sessionTimeOut: Int = 30000, connectionTimeout: Int = 30000): Boolean = {
+    val zkUtils = ZkUtils(zkUrl, sessionTimeOut, connectionTimeout, false)
+    try {
+      AdminUtils.topicExists(zkUtils, topic)
+    } catch {
+      case ex: Exception =>
+        throw new Exception(ex)
+    } finally {
+      zkUtils.close()
     }
   }
 }
