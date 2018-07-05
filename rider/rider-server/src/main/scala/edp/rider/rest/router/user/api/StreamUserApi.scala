@@ -124,8 +124,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
   def getByFilterRoute(route: String): Route = path(route / LongNumber / "streams") {
     projectId =>
       get {
-        parameter('streamName.as[String].?, 'streamType.as[String].?) {
-          (streamNameOpt, streamTypeOpt) =>
+        parameter('streamName.as[String].?, 'streamType.as[String].?, 'functionType.as[String].?) {
+          (streamNameOpt, streamTypeOpt, functionTypeOpt) =>
             authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
               session =>
                 if (session.roleType != "user") {
@@ -134,18 +134,18 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                   complete(OK, setFailedResponse(session, "Insufficient Permission"))
                 }
                 else {
-                  getByFilterResponse(projectId, streamNameOpt, streamTypeOpt, session)
+                  getByFilterResponse(projectId, streamNameOpt, streamTypeOpt, functionTypeOpt, session)
                 }
             }
         }
       }
   }
 
-  private def getByFilterResponse(projectId: Long, streamNameOpt: Option[String], streamTypeOpt: Option[String], session: SessionClass): Route = {
+  private def getByFilterResponse(projectId: Long, streamNameOpt: Option[String], streamTypeOpt: Option[String], functionTypeOpt: Option[String], session: SessionClass): Route = {
     if (session.projectIdList.contains(projectId)) {
       try {
-        (streamNameOpt, streamTypeOpt) match {
-          case (Some(name), None) =>
+        (streamNameOpt, streamTypeOpt, functionTypeOpt) match {
+          case (Some(name), None, None) =>
             if (StreamUtils.checkYarnAppNameUnique(name, projectId)) {
               riderLogger.info(s"user ${session.userId} check stream name $name doesn't exist success.")
               complete(OK, ResponseJson[String](getHeader(200, session), name))
@@ -170,18 +170,29 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           //                riderLogger.error(s"user ${session.userId} check stream name $name does exist failed", ex)
           //                complete(OK, getHeader(451, ex.getMessage, session))
           //            }
-          case (None, Some(streamType)) =>
-            val streams = streamDal.getBriefDetail(Some(projectId)).filter(_.stream.streamType == streamType).sortBy(_.stream.name)
+          case (None, Some(streamType), None) =>
+            val streams = streamDal.getSimpleStreamInfo(Some(projectId), streamType)
             riderLogger.info(s"user ${session.userId} select streams where streamType is $streamType success.")
-            complete(OK, ResponseSeqJson[StreamDetail](getHeader(200, session), streams))
-          case (None, None) =>
+            complete(OK, ResponseSeqJson[SimpleStreamInfo](getHeader(200, session), streams))
+          case (None, None, Some(functionType)) =>
+            val streams = streamDal.getSimpleStreamInfo(Some(projectId), "spark", Some(functionType))
+            riderLogger.info(s"user ${session.userId} select streams where project id is $projectId success.")
+            complete(OK, ResponseSeqJson[SimpleStreamInfo](getHeader(200, session), streams))
+          case (None, Some(streamType), Some(functionType)) =>
+            riderLogger.error(s"user ${session.userId} request url is not supported.")
+//            complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
+            complete(OK, setFailedResponse(session, "Insufficient Permission"))
+          case (None, None, None) =>
             val streams = streamDal.getBriefDetail(Some(projectId))
             riderLogger.info(s"user ${session.userId} select streams where project id is $projectId success.")
             complete(OK, ResponseSeqJson[StreamDetail](getHeader(200, session), streams))
-          case (_, _) =>
-            riderLogger.error(s"user ${session.userId} request url is not supported.")
-            //complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
-            complete(OK, setFailedResponse(session, "Insufficient Permission"))
+          //          case (_, _, _) =>
+          ////            riderLogger.error(s"user ${session.userId} request url is not supported.")
+          ////            //complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
+          ////            complete(OK, setFailedResponse(session, "Insufficient Permission"))
+          //            val streams = streamDal.getSimpleStreamInfo(Some(projectId), "spark")++streamDal.getSimpleStreamInfo(Some(projectId), "flink")
+          //            riderLogger.info(s"user ${session.userId} select streams where project id is $projectId success.")
+          //            complete(OK, ResponseSeqJson[SimpleStreamInfo](getHeader(200, session), streams))
         }
       } catch {
         case ex: Exception =>
@@ -899,34 +910,6 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     complete(OK, setSuccessResponse(session))
   }
 
-  def getDefaultConfig(route: String): Route = path(route /"defaultconfigs") {
-      get {
-        parameter('streamType.as[String]) {
-          (streamType) =>
-            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
-              session =>
-                if (session.roleType != "user") {
-                  riderLogger.warn(s"${session.userId} has no permission to access it.")
-                  complete(OK, setFailedResponse(session, "Insufficient Permission"))
-                }
-                else {
-                  StreamType.withName(streamType) match {
-                    case StreamType.SPARK =>
-                      val jvm = StreamUtils.getDefaultJvmConf
-                      val sparkResource = SparkResourceConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum,
-                        RiderConfig.spark.executorCores, RiderConfig.spark.executorMemory, RiderConfig.spark.batchDurationSec, RiderConfig.spark.parallelismPartition,RiderConfig.spark.maxPartitionFetchMb)
-                      val others = RiderConfig.spark.sparkConfig
-                      val defaultConfig = SparkDefaultConfig(jvm, sparkResource, others)
-                      complete(OK, ResponseJson[SparkDefaultConfig](getHeader(200, session),  defaultConfig))
-                    case StreamType.FLINK =>
-                      val defaultConfig = RiderConfig.defaultFlinkConfig
-                      complete(OK, ResponseJson[FlinkDefaultConfig](getHeader(200, session),  defaultConfig))
-                  }
-                }
-            }
-        }
-      }
-  }
   def getDefaultConfig(route: String): Route = path(route / "defaultconfigs") {
     get {
       parameter('streamType.as[String]) {

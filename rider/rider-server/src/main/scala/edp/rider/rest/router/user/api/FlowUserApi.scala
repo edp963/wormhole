@@ -23,7 +23,8 @@ package edp.rider.rest.router.user.api
 
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
-import edp.rider.common.RiderLogger
+import edp.rider.common.{RiderConfig, RiderLogger}
+import edp.rider.kafka.KafkaUtils.{getKafkaEarliestOffset, getKafkaLatestOffset}
 import edp.rider.rest.persistence.dal.{FlowDal, StreamDal}
 import edp.rider.rest.persistence.entities._
 
@@ -287,5 +288,67 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
       }
 
   }
+//
+//  def postFlowTopicsOffsetRoute(route: String): Route = path(route / LongNumber / "flows" / LongNumber / "topics") {
+//    (id, flowId) =>
+//      post {
+//        entity(as[GetTopicsOffsetRequest]) {
+//          topics => {
+//            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+//              session =>
+//                if (session.roleType != "user") {
+//                  riderLogger.warn(s"${session.userId} has no permission to access it.")
+//                  //complete(OK, getHeader(403, session))
+//                  complete(OK, setFailedResponse(session, "Insufficient Permission"))
+//                }
+//                else {
+//                  if (session.projectIdList.contains(id)) {
+//                    try {
+//                      if (Await.result(flowDal.findById(flowId), minTimeOut).nonEmpty) {
+//                        postFlowTopicsOffsetResponse(id, flowId, topics, session)
+//                      } else {
+//                        riderLogger.error(s"user ${session.userId} insert user defined topic failed caused by flow $flowId not found.")
+//                        complete(OK, setFailedResponse(session, "flow not found."))
+//                      }
+//                    } catch {
+//                      case ex: Exception =>
+//                        riderLogger.error(s"user ${session.userId} insert user defined topic failed", ex)
+//                        complete(OK, setFailedResponse(session, ex.getMessage))
+//                    }
+//                  } else {
+//                    riderLogger.error(s"user ${
+//                      session.userId
+//                    } doesn't have permission to access the project $id.")
+//                    complete(OK, setFailedResponse(session, "Insufficient Permission"))
+//                  }
+//                }
+//            }
+//          }
+//        }
+//      }
+//  }
+//
+//  def postFlowTopicsOffsetResponse(id: Long, flowId: Long, topics: GetTopicsOffsetRequest, session: SessionClass): Route = {
+//    val allTopics = streamDal.getTopicsAllOffsets(streamId)
+//    val a = flowDal
+//    val userDefinedTopics = allTopics.userDefinedTopics
+//    val userDefinedTopicsName = userDefinedTopics.map(_.name)
+//    val newTopics = topics.userDefinedTopics.filter(!userDefinedTopicsName.contains(_))
+//    val newTopicsOffset = newTopics.map(topic => {
+//      val kafkaInfo = streamDal.getKafkaInfo(streamId)
+//      val latestOffset = getKafkaLatestOffset(kafkaInfo._2, topic)
+//      val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, topic)
+//      val consumedOffset = earliestOffset
+//      SimpleTopicAllOffsets(topic, RiderConfig.spark.topicDefaultRate, consumedOffset, earliestOffset, latestOffset)
+//    })
+//    val response = GetTopicsOffsetResponse(
+//      allTopics.autoRegisteredTopics.map(topic =>
+//        SimpleTopicAllOffsets(topic.name, topic.rate, topic.consumedLatestOffset, topic.kafkaEarliestOffset, topic.kafkaLatestOffset)),
+//      userDefinedTopics.filter(topic => topics.userDefinedTopics.contains(topic.name)).map(topic =>
+//        SimpleTopicAllOffsets(topic.name, topic.rate, topic.consumedLatestOffset, topic.kafkaEarliestOffset, topic.kafkaLatestOffset))
+//        ++: newTopicsOffset)
+//    riderLogger.info(s"user ${session.userId} get stream $streamId topics offset success.")
+//    complete(OK, ResponseJson[GetTopicsOffsetResponse](getHeader(200, session), response))
+//  }
 
 }

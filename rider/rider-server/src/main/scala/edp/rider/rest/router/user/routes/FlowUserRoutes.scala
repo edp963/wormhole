@@ -125,5 +125,23 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def lookupSqlPermVerifyRoute: Route = modules.flowUserService.lookupSqlVerifyRoute(basePath)
+
+  // post /user/projects/1/flows/1/topics
+//  @Path("/{projectId}/flows/{flowId}/topics")
+//  @ApiOperation(value = "get topic offsets by request topics", notes = "", nickname = "", httpMethod = "POST")
+//  @ApiImplicitParams(Array(
+//    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
+//    new ApiImplicitParam(name = "flowId", value = "flow id", required = true, dataType = "integer", paramType = "path"),
+//    new ApiImplicitParam(name = "topics", value = "topics name", required = true, dataType = "edp.rider.rest.persistence.entities.GetTopicsOffsetRequest", paramType = "body")
+//  ))
+//  @ApiResponses(Array(
+//    new ApiResponse(code = 200, message = "OK"),
+//    new ApiResponse(code = 401, message = "authorization error"),
+//    new ApiResponse(code = 403, message = "user is not normal user"),
+//    new ApiResponse(code = 451, message = "request process failed"),
+//    new ApiResponse(code = 500, message = "internal server error")
+//  ))
+//  def postFlowTopicsOffset: Route = modules.flowUserService.postFlowTopicsOffsetRoute(basePath)
+
 }
 
