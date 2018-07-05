@@ -240,7 +240,7 @@ object StreamUtils extends RiderLogger {
         // insert or update user defined topics by start
         udfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
         // send topics start directive
-        sendTopicDirective(streamId, autoRegisteredTopics ++: userdefinedTopics, userId)
+        sendTopicDirective(streamId, autoRegisteredTopics ++: userdefinedTopics, userId, true)
       case None =>
         // delete all user defined topics by stream id
         Await.result(udfTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
@@ -261,7 +261,7 @@ object StreamUtils extends RiderLogger {
         // insert or update user defined topics by start
         udfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
         // send topics renew directive which action is 1
-        sendTopicDirective(streamId, (autoRegisteredTopics ++: userdefinedTopics).filter(_.action.getOrElse(0) == 1), userId)
+        sendTopicDirective(streamId, (autoRegisteredTopics ++: userdefinedTopics).filter(_.action.getOrElse(0) == 1), userId, false)
       case None =>
         val deleteTopics = udfTopicDal.deleteByStartOrRenew(streamId, Seq())
         // delete topics directive in zookeeper
@@ -269,26 +269,27 @@ object StreamUtils extends RiderLogger {
     }
   }
 
-  def sendTopicDirective(streamId: Long, topicSeq: Seq[PutTopicDirective], userId: Long) = {
+  def sendTopicDirective(streamId: Long, topicSeq: Seq[PutTopicDirective], userId: Long, addDefaultTopic: Boolean) = {
     try {
       val directiveSeq = new ArrayBuffer[Directive]
       val zkConURL: String = RiderConfig.zk
+      topicSeq.filter(_.rate == 0).map(
+        topic => sendUnsubscribeTopicDirective(streamId, topic.name, userId)
+      )
       topicSeq.filter(_.rate != 0).foreach({
         topic =>
           val tuple = Seq(streamId, currentMicroSec, topic.name, topic.rate, topic.partitionOffsets).mkString("#")
           directiveSeq += Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, tuple, zkConURL, currentSec, userId)
       })
-      val blankTopic = if (directiveSeq.isEmpty) {
+      if (addDefaultTopic && topicSeq.isEmpty) {
         val broker = getKafkaByStreamId(streamId)
         val blankTopicOffset = KafkaUtils.getKafkaLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic)
-        Directive(0, null, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, blankTopicOffset).mkString("#"), zkConURL, currentSec, userId)
-      } else null
+        val blankTopic = Directive(0, null, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, blankTopicOffset).mkString("#"), zkConURL, currentSec, userId)
+        directiveSeq += blankTopic
+      }
 
-      val directives: Seq[Directive] =
-        if (directiveSeq.isEmpty) directiveSeq += blankTopic
-        else {
-          Await.result(directiveDal.insert(directiveSeq), minTimeOut)
-        }
+      val directives = Await.result(directiveDal.insert(directiveSeq), minTimeOut)
+
       val topicUms = directives.map({
         directive =>
           val topicInfo = directive.directive.split("#")
@@ -407,22 +408,22 @@ object StreamUtils extends RiderLogger {
     }
   }
 
-  def removeAndSendTopicDirective(streamId: Long, topicSeq: Seq[PutTopicDirective], userId: Long) = {
-    try {
-      if (topicSeq.nonEmpty) {
-        PushDirective.removeTopicDirective(streamId)
-        riderLogger.info(s"user $userId remove topic directive success.")
-      } else {
-        PushDirective.removeTopicDirective(streamId)
-        riderLogger.info(s"user $userId remove topic directive success.")
-      }
-      sendTopicDirective(streamId, topicSeq, userId)
-    } catch {
-      case ex: Exception =>
-        riderLogger.error(s"remove and send stream $streamId topic directive failed", ex)
-        throw ex
-    }
-  }
+  //  def removeAndSendTopicDirective(streamId: Long, topicSeq: Seq[PutTopicDirective], userId: Long) = {
+  //    try {
+  //      if (topicSeq.nonEmpty) {
+  //        PushDirective.removeTopicDirective(streamId)
+  //        riderLogger.info(s"user $userId remove topic directive success.")
+  //      } else {
+  //        PushDirective.removeTopicDirective(streamId)
+  //        riderLogger.info(s"user $userId remove topic directive success.")
+  //      }
+  //      sendTopicDirective(streamId, topicSeq, userId, true)
+  //    } catch {
+  //      case ex: Exception =>
+  //        riderLogger.error(s"remove and send stream $streamId topic directive failed", ex)
+  //        throw ex
+  //    }
+  //  }
 
   def removeStreamDirective(streamId: Long, userId: Long) = {
     try {

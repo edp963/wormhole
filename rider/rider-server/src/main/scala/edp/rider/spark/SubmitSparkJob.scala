@@ -118,7 +118,7 @@ object SubmitSparkJob extends App with RiderLogger {
       else if (l.startsWith("--executor-mem")) s"  --executor-memory " + executorMemory + s"g "
       else if (l.startsWith("--executor-cores")) s"  --executor-cores " + executorCores + s" "
       else if (l.startsWith("--name")) s"  --name " + streamName + " "
-      //      else if (l.startsWith("--jars")) s"  --jars " + RiderConfig.spark.sparkxInterfaceJarPath + " "
+//      else if (l.startsWith("--jars")) s"  --jars " + RiderConfig.spark.sparkxInterfaceJarPath + " "
       else if (l.startsWith("--conf")) {
         confList.toList.map(conf => " --conf \"" + conf + "\" ").mkString("")
       }
@@ -132,7 +132,7 @@ object SubmitSparkJob extends App with RiderLogger {
       }
       else l
     }).mkString("").stripMargin.replace("\\", "  ") +
-      //      realJarPath + " " + args + " 1> " + logPath + " 2>&1"
+//      realJarPath + " " + args + " 1> " + logPath + " 2>&1"
       realJarPath + " " + args + " > " + logPath + " 2>&1 "
 
     val finalCommand =
@@ -156,8 +156,10 @@ object SubmitSparkJob extends App with RiderLogger {
        |-tm ${resourceConfig.perTaskManagerMemoryGB * 1024}
        |-s ${resourceConfig.perTaskManagerSlots}
        |-jm ${resourceConfig.jobManagerMemoryGB * 1024}
+       |-qu ${RiderConfig.flink.yarnQueueName}
        |-nm ${stream.name}
+       |-d
        |> $logPath 2>&1
-     """.stripMargin.replaceAll("\\n", " ")
+     """.stripMargin.replaceAll("\n", " ").trim
   }
 }
