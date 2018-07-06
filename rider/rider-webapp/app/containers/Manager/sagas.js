@@ -310,6 +310,9 @@ export function* startOrRenewStream ({ payload }) {
     } else if (result.header.code && result.header.code === 200) {
       yield put(streamStartOrRenewed(result.payload))
       payload.resolve()
+    } else {
+      yield put(streamOperatedError(result.payload))
+      payload.reject(result.payload)
     }
   } catch (err) {
     notifySagasError(err, 'startOrRenewStream')
