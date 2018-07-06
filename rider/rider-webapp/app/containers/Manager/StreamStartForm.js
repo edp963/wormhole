@@ -84,7 +84,7 @@ export class StreamStartForm extends React.Component {
 
   onApplyOffset = (i, index, offset, type) => (e) => {
     this.props.form.setFieldsValue({
-      [`${i.name}_${index}_${type}`]: offset
+      [`${i.name.replace(/\./g, '-')}_${index}_${type}`]: offset
     })
   }
 
@@ -103,7 +103,7 @@ export class StreamStartForm extends React.Component {
     for (let item of arr) {
       const itemTemp = item.split(':')
       this.props.form.setFieldsValue({
-        [`${i.name}_${itemTemp[0]}_${topicsType}`]: itemTemp[1]
+        [`${i.name.replace(/\./g, '-')}_${itemTemp[0]}_${topicsType}`]: itemTemp[1]
       })
     }
   }
@@ -179,7 +179,7 @@ export class StreamStartForm extends React.Component {
           )
           : data.map(i => {
             let parOffInput = ''
-
+            let myName = i.name.replace(/\./g, '-')
             if (i.consumedLatestOffset) {
               const partitionOffsetsArr = i.consumedLatestOffset.split(',')
 
@@ -204,12 +204,12 @@ export class StreamStartForm extends React.Component {
                 }
                 const applyFormat = <FormattedMessage {...messages.streamModalApply} />
                 return (
-                  <Row key={`${i.name}_${index}`}>
+                  <Row key={`${myName}_${index}`}>
                     <Col span={2} className="partition-content">{g.substring(0, g.indexOf(':'))}</Col>
                     <Col span={6} className="offset-content">
                       <FormItem>
                         <ol key={g}>
-                          {getFieldDecorator(`${i.name}_${index}_${type}`, {
+                          {getFieldDecorator(`${myName}_${index}_${type}`, {
                             rules: [{
                               required: true,
                               message: locale === 'en' ? 'Please fill in offset' : '请填写 Offset'
@@ -226,7 +226,7 @@ export class StreamStartForm extends React.Component {
                     <Col span={4} className="stream-start-offset-class">
                       <FormItem>
                         <ol key={g}>
-                          {getFieldDecorator(`consumedLatest_${i.name}_${index}_${type}`, {})(
+                          {getFieldDecorator(`consumedLatest_${myName}_${index}_${type}`, {})(
                             <div className="stream-start-lastest-consumed-offset">
                               <span style={{ marginRight: '5px' }}>{conOffFinal}</span>
                               <Tooltip title={applyFormat}>
@@ -242,11 +242,11 @@ export class StreamStartForm extends React.Component {
                     <Col span={6} offset={2} className="stream-start-offset-class">
                       <FormItem>
                         <ol key={g}>
-                          {getFieldDecorator(`kafkaEarliest_${i.name}_${index}_${type}`, {})(
+                          {getFieldDecorator(`kafkaEarliest_${myName}_${index}_${type}`, {})(
                             <div className="stream-start-lastest-kafka-offset">
                               <span style={{ marginRight: '5px' }}>{kafEarOffFinal}</span>
                               <Tooltip title={applyFormat}>
-                                <Button shape="circle" type="ghost" onClick={this.onApplyOffset(i, index, kafOffFinal, type)}>
+                                <Button shape="circle" type="ghost" onClick={this.onApplyOffset(i, index, kafEarOffFinal, type)}>
                                   <i className="iconfont icon-apply_icon_-copy-copy"></i>
                                 </Button>
                               </Tooltip>
@@ -258,7 +258,7 @@ export class StreamStartForm extends React.Component {
                     <Col span={2} offset={2} className="stream-start-offset-class">
                       <FormItem>
                         <ol key={g}>
-                          {getFieldDecorator(`kafkaLatest_${i.name}_${index}_${type}`, {})(
+                          {getFieldDecorator(`kafkaLatest_${myName}_${index}_${type}`, {})(
                             <div className="stream-start-lastest-kafka-offset">
                               <span style={{ marginRight: '5px' }}>{kafOffFinal}</span>
                               <Tooltip title={applyFormat}>
@@ -279,7 +279,7 @@ export class StreamStartForm extends React.Component {
             }
 
             const cardTitle = (
-              <Row key={i.name}>
+              <Row key={myName}>
                 <Col span={24} style={{fontWeight: '500'}}>
                   <span className="modal-topic-name">Topic Name</span>
                   {i.name}
@@ -289,7 +289,7 @@ export class StreamStartForm extends React.Component {
 
             const applyAllText = <FormattedMessage {...messages.streamModalApplyAll} />
             const cardContent = (
-              <Row key={i.name} className="apply-all-btn">
+              <Row key={myName} className="apply-all-btn">
                 <div className="rate-topic-info-wrapper">
                   <Col span={2} className="card-content ">Partition</Col>
                   <Col span={4} offset={1} className="card-content required-offset ">Offset</Col>
@@ -320,7 +320,7 @@ export class StreamStartForm extends React.Component {
             )
 
             return (
-              <Row key={i.name}>
+              <Row key={myName}>
                 <Card title={cardTitle} className="stream-start-form-card-style">
                   <div className="rate-topic-info-wrapper">
                     <div className="rate-class">
@@ -329,7 +329,7 @@ export class StreamStartForm extends React.Component {
                       </Col>
                       <Col span={24}>
                         <FormItem>
-                          {getFieldDecorator(`${i.name}_${i.rate}_rate`, {
+                          {getFieldDecorator(`${myName}_${i.rate}_rate`, {
                             rules: [{
                               required: true,
                               message: locale === 'en' ? 'Please fill in rate' : '请填写 Rate'
