@@ -76,7 +76,8 @@ export function generateHdfslogNamespaceHierarchy (system, result) {
         label: '*',
         children: [{
           value: '*',
-          label: '*'
+          label: '*',
+          nsSys: 'log'
         }]
       }]
     }]
@@ -88,6 +89,7 @@ export function generateHdfslogNamespaceHierarchy (system, result) {
         const newInstance = {
           value: item.nsInstance,
           label: item.nsInstance,
+          nsSys: item.nsSys,
           children: [{
             value: '*',
             label: '*',
@@ -121,7 +123,7 @@ export function generateHdfslogNamespaceHierarchy (system, result) {
           value: item.nsTable,
           label: item.nsTable,
           id: item.id,
-          nsSys: system
+          nsSys: item.nsSys
         }
         database.children.push(newTable)
       }

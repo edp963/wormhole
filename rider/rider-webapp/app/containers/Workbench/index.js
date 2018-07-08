@@ -296,14 +296,14 @@ export class Workbench extends React.Component {
   }
   initialDefaultCascader = (value, selectedOptions) => {
     if (selectedOptions && selectedOptions.length > 0) {
-      this.setState({flowSourceNsSys: this.state.flowSourceNsSys})
+      this.setState({flowSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys})
     }
   }
 
   initialHdfslogCascader = (value, selectedOptions) => {
     this.setState({
       hdfslogSinkNsValue: value.join('.'),
-      flowSourceNsSys: this.state.flowSourceNsSys
+      flowSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys
     })
   }
 
@@ -322,7 +322,7 @@ export class Workbench extends React.Component {
         // }, 20)
       // }
     }
-    this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys: this.state.flowSourceNsSys })
+    this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys: selectedOptions[selectedOptions.lenght - 1].nsSys })
   }
   initialRoutingCascader = (value, selectedOptions) => {
     const { projectId, pipelineStreamId, routingSourceNsValue } = this.state
@@ -1946,7 +1946,7 @@ export class Workbench extends React.Component {
         streamId: Number(values.flowStreamId),
         sourceNs: sourceDataInfo,
         sinkNs: sinkDataInfo,
-        consumedProtocol: values.protocol,
+        consumedProtocol: values.protocol.join(','),
         sinkConfig: `${sinkConfigRequest}`,
         tranConfig: tranConfigRequest
       }
@@ -1965,7 +1965,7 @@ export class Workbench extends React.Component {
       const editData = {
         sinkConfig: `${sinkConfigRequest}`,
         tranConfig: tranConfigRequest,
-        consumedProtocol: values.protocol
+        consumedProtocol: values.protocol.join(',')
       }
 
       this.props.onEditFlow(Object.assign(editData, singleFlowResult), () => {
