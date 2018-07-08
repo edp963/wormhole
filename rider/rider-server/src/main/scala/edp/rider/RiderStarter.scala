@@ -64,6 +64,7 @@ object RiderStarter extends App with RiderLogger {
 
       ElasticSearch.initial(RiderConfig.es, RiderConfig.grafana)
 
+      //TODO 开启kafka消费者
       new ConsumerManager(modules)
       riderLogger.info(s"WormholeServer Consumer started")
       Scheduler.start

@@ -98,7 +98,11 @@ object BatchflowMainProcess extends EdpLogging {
 
 
         logInfo("start create classifyRdd")
-        val classifyRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])] = getClassifyRdd(dataRepartitionRdd).cache()
+        //FIXME 对数据进行分类
+        val classifyRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])],
+          ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])],
+          ListBuffer[String],
+          Array[((UmsProtocolType, String), Seq[UmsField])])] = getClassifyRdd(dataRepartitionRdd).cache()
         val distinctSchema: mutable.Map[(UmsProtocolType, String), (Seq[UmsField], Long)] = getDistinctSchema(classifyRdd)
         //        classifyRdd.count
         //        val dt3: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
@@ -141,10 +145,17 @@ object BatchflowMainProcess extends EdpLogging {
     else key
   }
 
-  private def getClassifyRdd(dataRepartitionRdd: RDD[(String, String)]): RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])] = {
+  private def getClassifyRdd(dataRepartitionRdd: RDD[(String, String)]): RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])],
+    ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])],
+    ListBuffer[String],
+    Array[((UmsProtocolType, String), Seq[UmsField])])] = {
+
     val streamLookupNamespaceSet = ConfMemoryStorage.getAllLookupNamespaceSet
     val mainNamespaceSet = ConfMemoryStorage.getAllMainNamespaceSet
     val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
+
+    //FIXME 重点逻辑
+
     dataRepartitionRdd.mapPartitions(partition => {
       val mainDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
       val lookupDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
@@ -152,17 +163,25 @@ object BatchflowMainProcess extends EdpLogging {
       val nsSchemaMap = mutable.HashMap.empty[(UmsProtocolType, String), Seq[UmsField]]
       partition.foreach(row => {
         try {
+          //TODO 通过kafka数据中的key获取协议类型和命名空间
           val (protocolType, namespace) = WormholeUtils.getTypeNamespaceFromKafkaKey(row._1)
-          if (protocolType == UmsProtocolType.DATA_INCREMENT_DATA || protocolType == UmsProtocolType.DATA_BATCH_DATA || protocolType == UmsProtocolType.DATA_INITIAL_DATA) {
+          if (protocolType == UmsProtocolType.DATA_INCREMENT_DATA ||
+            protocolType == UmsProtocolType.DATA_BATCH_DATA ||
+            protocolType == UmsProtocolType.DATA_INITIAL_DATA) {
             if (ConfMemoryStorage.existNamespace(mainNamespaceSet, namespace)) {
-              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
-              if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
+              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) =
+                //FIXME 将json格式的数据转化成ums格式！
+                WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
+              if (!nsSchemaMap.contains((protocolType, namespace)))
+                nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
               mainDataList += (((protocolType, namespace), schemaValueTuple._2))
             }
             if (ConfMemoryStorage.existNamespace(streamLookupNamespaceSet, namespace)) {
               //todo change  if back to if, efficiency
-              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
-              if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
+              val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) =
+                WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
+              if (!nsSchemaMap.contains((protocolType, namespace)))
+                nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
               lookupDataList += (((protocolType, namespace), schemaValueTuple._2))
             }
           } else if (checkOtherData(protocolType.toString)) otherList += row._2
@@ -223,12 +242,14 @@ object BatchflowMainProcess extends EdpLogging {
         val matchLookupNamespace = ConfMemoryStorage.getMatchLookupNamespaceRule(namespace)
         if (matchLookupNamespace != null) {
           val protocolType: UmsProtocolType = schema._1._1
+          //FIXME 创建DataFrame用于查询
           val lookupDf = createSourceDf(session, namespace, schema._2._1, umsRdd.filter(row => {
             row._1 == protocolType && row._2 == namespace
           }).flatMap(_._3))
           ConfMemoryStorage.getSourceAndSinkByStreamLookupNamespace(matchLookupNamespace).foreach {
             case (sourceNs, sinkNs) =>
               val path = config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/" + config.spark_config.stream_id + "/" + sourceNs.replaceAll("\\*", "-") + "/" + sinkNs + "/streamLookupNamespace" + "/" + matchLookupNamespace.replaceAll("\\*", "-")
+              //TODO 将查询结果写入parquet文件
               lookupDf.write.mode(SaveMode.Append).parquet(path) //if not exists will have "WARN: delete very recently?" it is ok.
           }
         }
@@ -297,6 +318,7 @@ object BatchflowMainProcess extends EdpLogging {
             val sinkTs = System.currentTimeMillis
             if (sinkRDD != null) {
               try {
+                //FIXME 数据落地逻辑
                 validityAndSinkProcess(protocolType, sourceNamespace, sinkNamespace, session, sinkRDD, sinkFields, afterUnionDf, swiftsProcessConfig, sinkProcessConfig, config, minTs, maxTs, uuid) //,jsonUmsSysFields)
               }
               catch {
@@ -533,6 +555,7 @@ object BatchflowMainProcess extends EdpLogging {
     })
 
 
+    //FIXME 通过反射机制加载sinkObject和sinkMethod，并通过SinkProcessor.publicProcess将数据落地
     val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
     sinkMethod.invoke(sinkObject, session, protocolType, sourceNamespace, sinkNamespace, sinkProcessConfig, resultSchemaMap, sendData, connectionConfig)
 

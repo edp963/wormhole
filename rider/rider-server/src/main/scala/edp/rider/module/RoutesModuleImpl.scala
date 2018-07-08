@@ -29,6 +29,7 @@ import edp.rider.rest.router.user.api._
 trait RoutesModuleImpl {
   this: ConfigurationModule with PersistenceModule =>
 
+  //FIXME 路由层
   lazy val instanceAdminService = new InstanceAdminApi(instanceDal)
   lazy val databaseAdminService = new NsDatabaseAdminApi(databaseDal)
   lazy val namespaceAdminService = new NamespaceAdminApi(namespaceDal, databaseDal, relProjectNsDal)

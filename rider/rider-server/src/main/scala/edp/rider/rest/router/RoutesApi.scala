@@ -48,6 +48,7 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
 
   lazy val projectUser = new ProjectUserRoutes(modules)
   lazy val namespaceUser = new NamespaceUserRoutes(modules)
+  //FIXME 处理流式任务的路由
   lazy val streamUser = new StreamUserRoutes(modules)
   lazy val flowUser = new FlowUserRoutes(modules)
   lazy val actionUser = new ActionUserRoutes(modules)
@@ -64,6 +65,7 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
   lazy val nsApp = new NamespaceAppRoutes(modules)
 
 
+  //TODO wormhole后台路由
   lazy val routes: Route =
     crossDomainHandler(swagger.indexRoute) ~
       crossDomainHandler(swagger.routes) ~

@@ -129,7 +129,9 @@ case class LdapInfo(enabled: Boolean,
 
 object RiderConfig {
 
-  lazy val riderRootPath = s"${System.getenv("WORMHOLE_HOME")}"
+  //FIXME for test config
+  lazy val riderRootPath = "/Users/lukong/wormhole/wormhole-0.4.2"
+//    s"${System.getenv("WORMHOLE_HOME")}"
 
   lazy val riderServer = RiderServer(
     config.getString("wormholeServer.host"), config.getInt("wormholeServer.port"),

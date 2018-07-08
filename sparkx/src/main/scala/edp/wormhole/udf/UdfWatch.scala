@@ -31,28 +31,28 @@ object UdfWatch extends EdpLogging {
 
   val udfRelativePath = "/udf"
 
-  def initUdf(config: WormholeConfig, appId: String,session:SparkSession): Unit = {
+  def initUdf(config: WormholeConfig, appId: String, session: SparkSession): Unit = {
     logInfo("init udf,appId=" + appId)
 
     val udfPath = WormholeConstants.CheckpointRootPath + config.spark_config.stream_id + udfRelativePath
-    if(!WormholeZkClient.checkExist(config.zookeeper_path, udfPath)) WormholeZkClient.createPath(config.zookeeper_path, udfPath)
-//    val udfList = WormholeZkClient.getChildren(config.zookeeper_path, udfPath)
-//    udfList.toArray.foreach(udf => {
-//      val udfContent = WormholeZkClient.getData(config.zookeeper_path, udfPath + "/" + udf)
-//      add(config.kafka_output.feedback_topic_name,config.kafka_output.brokers,session)(udfPath + "/" + udf, new String(udfContent))
-//    })
+    if (!WormholeZkClient.checkExist(config.zookeeper_path, udfPath)) WormholeZkClient.createPath(config.zookeeper_path, udfPath)
+    //    val udfList = WormholeZkClient.getChildren(config.zookeeper_path, udfPath)
+    //    udfList.toArray.foreach(udf => {
+    //      val udfContent = WormholeZkClient.getData(config.zookeeper_path, udfPath + "/" + udf)
+    //      add(config.kafka_output.feedback_topic_name,config.kafka_output.brokers,session)(udfPath + "/" + udf, new String(udfContent))
+    //    })
 
     WormholeZkClient.setPathChildrenCacheListener(config.zookeeper_path, udfPath, add, remove, update)
   }
 
   def add(path: String, data: String, time: Long = 1): Unit = {
     try {
-      logInfo("add"+data)
+      logInfo("add" + data)
       val ums = UmsSchemaUtils.toUms(data)
       ums.protocol.`type` match {
-        case UmsProtocolType.DIRECTIVE_UDF_ADD  =>
+        case UmsProtocolType.DIRECTIVE_UDF_ADD =>
           UdfDirective.addUdfProcess(ums)
-       case _ => logWarning("ums type: " + ums.protocol.`type` + " is not supported")
+        case _ => logWarning("ums type: " + ums.protocol.`type` + " is not supported")
       }
     } catch {
       case e: Throwable => logAlert("udf add error:" + data, e)
@@ -64,7 +64,7 @@ object UdfWatch extends EdpLogging {
   }
 
   def update(path: String, data: String, time: Long): Unit = {
-    logInfo("update"+data)
+    logInfo("update" + data)
     add(path, data)
   }
 

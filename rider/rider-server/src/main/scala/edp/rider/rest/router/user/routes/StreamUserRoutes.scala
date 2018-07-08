@@ -138,6 +138,7 @@ class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with 
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
+  //TODO 处理启动流式任务的请求
   def startRoute: Route = modules.streamUserService.startRoute(basePath)
 
   @Path("/{id}/streams/{streamId}/stop")

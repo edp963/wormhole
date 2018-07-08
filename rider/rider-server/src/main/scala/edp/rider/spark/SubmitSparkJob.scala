@@ -142,6 +142,9 @@ object SubmitSparkJob extends App with RiderLogger {
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     //    println("final:" + submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1")
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+
+    //FIXME 拼接好提交任务命令，然后根据主类的不同运行不同的应用
+
     submitPre + "/bin/spark-submit " + finalCommand
   }
 }

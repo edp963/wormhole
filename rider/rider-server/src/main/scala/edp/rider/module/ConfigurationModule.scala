@@ -34,8 +34,10 @@ trait ConfigurationModule {
 trait ConfigurationModuleImpl extends ConfigurationModule {
   private lazy val internalConfig: Config = {
     PropertyConfigurator.configure(s"${RiderConfig.riderRootPath}/conf/log4j.properties")
+    //FIXME 从classpath中加载配置信息
     val configDefaults = ConfigFactory.load(this.getClass.getClassLoader, "application.conf")
     if (RiderConfig.riderRootPath != null) {
+      //FIXME 从配置文件中加载配置信息
       ConfigFactory.parseFile(new File(s"${RiderConfig.riderRootPath}/conf/application.conf")).withFallback(configDefaults)
     } else {
       configDefaults

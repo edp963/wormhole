@@ -167,6 +167,7 @@ object StreamUtils extends RiderLogger {
   }
 
   def startStream(stream: Stream, logPath: String) = {
+    //FIXME 传入spark-submit应用主类的入参是什么？
     val args = getStreamConfig(stream)
     val startConfig = json2caseClass[StartConfig](stream.startConfig)
     val commandSh = generateStreamStartSh(s"'''$args'''", stream.name, logPath, startConfig, stream.sparkConfig.getOrElse(""), stream.streamType)

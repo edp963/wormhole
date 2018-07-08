@@ -45,6 +45,7 @@ abstract class SinkProcessor {
                     schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                     data: RDD[Seq[String]],
                     connectionConfig:ConnectionConfig): Unit ={
+    //FIXME 将处理后的数据落地
     data.foreachPartition(partition=>{
       process(protocolType,
         sourceNamespace,

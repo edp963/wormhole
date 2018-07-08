@@ -117,6 +117,9 @@ trait PersistenceModule {
 trait PersistenceModuleImpl extends PersistenceModule {
   this: ConfigurationModule =>
 
+
+  //FIXME 数据访问层
+
   override lazy val instanceDal = new InstanceDal(instanceQuery, databaseDal)
   override lazy val databaseDal = new NsDatabaseDal(databaseQuery, instanceQuery)
   override lazy val namespaceDal = new NamespaceDal(namespaceQuery, databaseDal, instanceDal, dbusDal)

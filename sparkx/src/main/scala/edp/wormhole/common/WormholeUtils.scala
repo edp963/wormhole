@@ -76,6 +76,7 @@ object WormholeUtils extends EdpLogging {
       val mapValue: (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)]) = jsonSourceParseMap((protocolType, namespace))
       (mapValue._1, dataParse(json, mapValue._2, mapValue._3))
     } else {
+      //TODO 将json格式数据转ums
       val ums = json2Ums(json)
       (ums.schema.fields_get, ums.payload_get)
     }
