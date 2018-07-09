@@ -67,7 +67,7 @@ export class FlowTransformForm extends React.Component {
   }
 
   render () {
-    const { form, transformValue, transformSinkTypeNamespaceData, flowTransNsData, step2SourceNamespace, step2SinkNamespace } = this.props
+    const { form, transformValue, transformSinkTypeNamespaceData, flowTransNsData, step2SourceNamespace, step2SinkNamespace, flowSubPanelKey } = this.props
     const { dsHideOrNot, selectValue } = this.state
     const { getFieldDecorator } = form
 
@@ -80,7 +80,11 @@ export class FlowTransformForm extends React.Component {
       labelCol: { span: 6 },
       wrapperCol: { span: 18 }
     }
-
+    const diffType = [
+      flowSubPanelKey === 'spark' ? '' : 'hide',
+      flowSubPanelKey === 'flink' ? '' : 'hide'
+    ]
+  // ----- spark -------
     const transformTypeClassNames = [
       transformValue === 'lookupSql' ? '' : 'hide',
       transformValue === 'sparkSql' ? '' : 'hide',
@@ -104,7 +108,24 @@ export class FlowTransformForm extends React.Component {
       { value: 'leftJoin', text: 'Left Join' },
       { value: 'innerJoin', text: 'Inner Join' }
     ]
+  // --------------------
+  // ------ flink -------
+    const flinkTransformTypeClassNames = [
+      transformValue === 'lookupSql' ? '' : 'hide',
+      transformValue === 'sparkSql' ? '' : 'hide',
+      transformValue === 'cep' ? '' : 'hide'
+    ]
 
+    const flinkTransformTypeHiddens = [
+      transformValue !== 'lookupSql',
+      transformValue !== 'sparkSql',
+      transformValue !== 'cep'
+    ]
+
+    const flinkFlowLookupSqlType = [
+      { value: 'leftJoin', text: 'Left Join' }
+    ]
+  // ----------------------
     const sinkDataSystemData = dsHideOrNot
       ? flowTransformationDadaHide()
       : flowTransformationDadaShow()
@@ -176,9 +197,13 @@ export class FlowTransformForm extends React.Component {
               })(
                 <RadioGroup onChange={this.onTransformTypeSelect}>
                   <RadioButton value="lookupSql">Lookup SQL</RadioButton>
-                  <RadioButton value="sparkSql">Spark SQL</RadioButton>
-                  <RadioButton value="streamJoinSql">Stream Join SQL</RadioButton>
-                  <RadioButton value="transformClassName">ClassName</RadioButton>
+
+                  <RadioButton value="sparkSql" className={diffType[0]}>Spark SQL</RadioButton>
+                  <RadioButton value="streamJoinSql" className={diffType[0]}>Stream Join SQL</RadioButton>
+                  <RadioButton value="transformClassName" className={diffType[0]}>ClassName</RadioButton>
+
+                  <RadioButton value="flinkSql" className={diffType[1]}>Flink SQL</RadioButton>
+                  <RadioButton value="cep" className={diffType[1]}>CEP</RadioButton>
                 </RadioGroup>
               )}
             </FormItem>
@@ -195,7 +220,7 @@ export class FlowTransformForm extends React.Component {
                 hidden: transformTypeHiddens[0]
               })(
                 <DataSystemSelector
-                  data={flowLookupSqlType}
+                  data={flowSubPanelKey === 'spark' ? flowLookupSqlType : flowSubPanelKey === 'flink' ? flinkFlowLookupSqlType : []}
                   onItemSelect={this.onLookupSqlTypeItemSelect}
                 />
               )}
@@ -252,21 +277,33 @@ export class FlowTransformForm extends React.Component {
             />
           </Col>
 
-          {/* 设置 Spark Sql */}
-          <Col span={6} className={transformTypeClassNames[1]}>
-            <FormItem label={sqlHtml} className="tran-sql-label">
-              {getFieldDecorator('sparkSql', {
-                hidden: transformTypeHiddens[1]
-              })(
-                <Input className="hide" />
-              )}
-            </FormItem>
+          {/* 设置 Spark/ Flink Sql */}
+          {flowSubPanelKey === 'spark' ? (
+            <Col span={6} className={transformTypeClassNames[1]}>
+              <FormItem label={sqlHtml} className="tran-sql-label">
+                {getFieldDecorator('sparkSql', {
+                  hidden: transformTypeHiddens[1]
+                })(
+                  <Input className="hide" />
+                )}
+              </FormItem>
+            </Col>
+          ) : flowSubPanelKey === 'flink' ? (
+            <Col span={6} className={transformTypeClassNames[1]}>
+              <FormItem label={sqlHtml} className="tran-sql-label">
+                {getFieldDecorator('flinkSql', {
+                  hidden: flinkTransformTypeHiddens[1]
+                })(
+                  <Input className="hide" />
+                )}
+              </FormItem>
+            </Col>
+          ) : ''}
 
-          </Col>
           <Col span={17} className={`${transformTypeClassNames[1]} cm-sql-textarea`}>
             <textarea
               id="sparkSqlTextarea"
-              placeholder="Spark SQL"
+              placeholder={flowSubPanelKey === 'spark' ? 'Spark SQL' : flowSubPanelKey === 'flink' ? 'Flink SQL' : ''}
             />
           </Col>
 
@@ -368,7 +405,8 @@ FlowTransformForm.propTypes = {
   step2SourceNamespace: PropTypes.string,
   flowTransNsData: PropTypes.array,
   onInitTransformValue: PropTypes.func,
-  onInitTransformSinkTypeNamespace: PropTypes.func
+  onInitTransformSinkTypeNamespace: PropTypes.func,
+  flowSubPanelKey: PropTypes.string
 }
 
 export default Form.create({wrappedComponentRef: true})(FlowTransformForm)

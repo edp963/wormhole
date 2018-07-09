@@ -430,11 +430,27 @@ export class WorkbenchFlowForm extends React.Component {
         <Row gutter={8} className={stepClassNames[0]}>
           <Card title="Stream" className="ri-workbench-form-card-style stream-card">
             <Col span={24}>
-              <FormItem label="Stream Type" {...itemStyle}>
+              <FormItem label="Stream type" {...itemStyle}>
                 {getFieldDecorator('streamType', {
                   rules: [{
                     required: true,
-                    message: operateLanguageSelect('stream type', 'Stream Type')
+                    message: operateLanguageSelect('type', 'Type')
+                  }],
+                  initialValue: 'spark'
+                })(
+                  <RadioGroup className="radio-group-style" disabled={flowDisabledOrNot} size="default" onChange={this.props.changeStreamType('flow')}>
+                    <RadioButton value="spark" className="radio-btn-style radio-btn-extra">Spark</RadioButton>
+                    <RadioButton value="flink" className="radio-btn-style radio-btn-extra">Flink</RadioButton>
+                  </RadioGroup>
+                )}
+              </FormItem>
+            </Col>
+            <Col span={24}>
+              <FormItem label="Function Type" {...itemStyle}>
+                {getFieldDecorator('functionType', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('function type', 'Function Type')
                   }],
                   initialValue: 'default'
                 })(
@@ -483,6 +499,19 @@ export class WorkbenchFlowForm extends React.Component {
               <FormItem label="Exist Kafka Topics" {...itemStyle}>
                 {getFieldDecorator('kafkaTopic', {})(
                   <strong className="value-font-style">{flowKafkaTopicValue}</strong>
+                )}
+              </FormItem>
+            </Col>
+            <Col span={24}>
+              <FormItem label="Parallelism" {...itemStyle}>
+                {getFieldDecorator('parallelism', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageFillIn('parallelism', 'Parallelism')
+                  }],
+                  initialValue: 1
+                })(
+                  <InputNumber min={1} />
                 )}
               </FormItem>
             </Col>
@@ -1106,7 +1135,8 @@ WorkbenchFlowForm.propTypes = {
   onLoadSinkTypeNamespace: PropTypes.func,
   sinkConfigCopy: PropTypes.string,
   flowSourceNsSys: PropTypes.string,
-  emitDataSystem: PropTypes.func
+  emitDataSystem: PropTypes.func,
+  changeStreamType: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
