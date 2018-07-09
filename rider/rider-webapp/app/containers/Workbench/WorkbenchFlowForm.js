@@ -41,6 +41,8 @@ import Icon from 'antd/lib/icon'
 import Table from 'antd/lib/table'
 import Card from 'antd/lib/card'
 import Radio from 'antd/lib/radio'
+import { Checkbox } from 'antd'
+const CheckboxGroup = Checkbox.Group
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 
@@ -411,6 +413,11 @@ export class WorkbenchFlowForm extends React.Component {
       }
     }
 
+    const flowProtocolCheckboxList = [
+      { label: 'Increment', value: 'increment' },
+      { label: 'Initial', value: 'initial' },
+      { label: 'Backfill', value: 'backfill' }
+    ]
     const streamNameOptions = selectStreamKafkaTopicValue.length === 0
       ? undefined
       : selectStreamKafkaTopicValue.map(s => (<Option key={s.id} value={`${s.name}`}>{s.name}</Option>))
@@ -571,14 +578,16 @@ export class WorkbenchFlowForm extends React.Component {
                     required: true,
                     message: operateLanguageSelect('protocol', 'Protocol')
                   }],
-                  hidden: streamTypeHiddens[0]
+                  hidden: streamTypeHiddens[0],
+                  initialValue: ['increment', 'initial']
                 })(
-                  <RadioGroup className="radio-group-style" size="default">
-                    {/* <RadioButton value="all" className="radio-btn-style radio-btn-extra">All</RadioButton> */}
-                    <RadioButton value="increment" className="radio-btn-style radio-btn-extra">Increment</RadioButton>
-                    <RadioButton value="initial" className="radio-btn-style radio-btn-extra">Initial</RadioButton>
-                    <RadioButton value="backfill" className="radio-btn-style radio-btn-extra">Backfill</RadioButton>
-                  </RadioGroup>
+                  <CheckboxGroup options={flowProtocolCheckboxList} />
+                  // <RadioGroup className="radio-group-style" size="default">
+                  //   {/* <RadioButton value="all" className="radio-btn-style radio-btn-extra">All</RadioButton> */}
+                  //   <RadioButton value="increment" className="radio-btn-style radio-btn-extra">Increment</RadioButton>
+                  //   <RadioButton value="initial" className="radio-btn-style radio-btn-extra">Initial</RadioButton>
+                  //   <RadioButton value="backfill" className="radio-btn-style radio-btn-extra">Backfill</RadioButton>
+                  // </RadioGroup>
                 )}
               </FormItem>
             </Col>
