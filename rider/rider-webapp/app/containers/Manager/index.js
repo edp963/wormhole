@@ -71,7 +71,7 @@ export class Manager extends React.Component {
       startModalVisible: false,
       showStreamdetails: null,
       streamStartFormData: [],
-      topicInfoModal: '',
+      // topicInfoModal: '',
       streamIdGeted: 0,
       actionType: '',
 
@@ -226,7 +226,7 @@ export class Manager extends React.Component {
         resolve(result)
 
         this.setState({
-          topicInfoModal: result.topicInfo.length === 0 ? 'hide' : '',
+          // topicInfoModal: result.topicInfo.length === 0 ? 'hide' : '',
           currentUdfVal: result.currentUdf
         })
       })
@@ -297,9 +297,9 @@ export class Manager extends React.Component {
 
     // 单条查询接口获得回显的topic Info，回显选中的UDFs
     this.props.onLoadUdfs(projectIdGeted, record.id, 'user', (result) => {
-      this.setState({
-        topicInfoModal: result.length === 0 ? 'hide' : ''
-      })
+      // this.setState({
+      //   topicInfoModal: result.length === 0 ? 'hide' : ''
+      // })
 
       // 回显选中的 topic，必须有 id
       const currentUdfTemp = result
@@ -758,7 +758,7 @@ export class Manager extends React.Component {
       refreshStreamLoading, refreshStreamText, showStreamdetails, logsModalVisible,
       logsContent, refreshLogLoading, refreshLogText, logsProjectId, logsStreamId,
       streamStartFormData, actionType, autoRegisteredTopics, userDefinedTopics,
-      startUdfVals, renewUdfVals, currentUdfVal, topicInfoModal, currentStreams
+      startUdfVals, renewUdfVals, currentUdfVal, currentStreams
     } = this.state
     const { className, onShowAddStream, onShowEditStream, streamClassHide, streamStartModalLoading, roleType } = this.props
 
@@ -1177,10 +1177,10 @@ export class Manager extends React.Component {
 
     const pagination = {
       defaultPageSize: 10,
-      showSizeChanger: true,
-      onChange: (current) => {
-        console.log('Current: ', current)
-      }
+      showSizeChanger: true
+      // onChange: (current) => {
+      //   console.log('Current: ', current)
+      // }
     }
 
     const streamStartForm = startModalVisible
@@ -1254,7 +1254,7 @@ export class Manager extends React.Component {
           onCancel={this.handleEditStartCancel}
           footer={[
             <Button
-              className={`query-offset-btn ${topicInfoModal}`}
+              className={`query-offset-btn`}
               key="query"
               size="large"
               onClick={this.queryLastestoffset}
@@ -1262,7 +1262,7 @@ export class Manager extends React.Component {
               <FormattedMessage {...messages.streamModalView} /> Latest Offset
             </Button>,
             <Button
-              className={`edit-topic-btn ${topicInfoModal === '' ? '' : 'hide'}`}
+              className={`edit-topic-btn`}
               type="default"
               onClick={this.onChangeEditSelect}
               key="renewEdit"
@@ -1361,4 +1361,3 @@ const mapStateToProps = createStructuredSelector({
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Manager)
-
