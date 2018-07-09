@@ -44,10 +44,15 @@ import scala.concurrent.Await
 object FlowUtils extends RiderLogger {
 
   def getConsumptionType(consType: String): String = {
-    consType match {
+    val consumedTypeFormat = consType.split(",").map(_.trim).sorted.mkString(",")
+    consumedTypeFormat match {
       case "increment" => "{\"initial\": false, \"increment\": true, \"batch\": false}"
       case "initial" => "{\"initial\": true, \"increment\": false, \"batch\": false}"
-      case "all" => "{\"initial\": true, \"increment\": true, \"batch\": false}"
+      case "backfill" => "{\"initial\": false, \"increment\": false, \"batch\": true}"
+      case "increment,initial" => "{\"initial\": true, \"increment\": true, \"batch\": false}"
+      case "backfill,increment" => "{\"initial\": false, \"increment\": true, \"batch\": true}"
+      case "backfill,initial" => "{\"initial\": true, \"increment\": false, \"batch\": true}"
+      case "backfill,increment,initial" => "{\"initial\": true, \"increment\": true, \"batch\": true}"
     }
   }
 
