@@ -296,7 +296,7 @@ export class Workbench extends React.Component {
   }
   initialDefaultCascader = (value, selectedOptions) => {
     if (selectedOptions && selectedOptions.length > 0) {
-      this.setState({flowSourceNsSys: this.state.flowSourceNsSys})
+      this.setState({flowSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys})
     }
   }
 
