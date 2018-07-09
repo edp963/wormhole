@@ -34,7 +34,7 @@ import { selectLocale } from '../LanguageProvider/selectors'
 
 export class StreamConfigForm extends React.Component {
   render () {
-    const { form, tabPanelKey, locale, subPanelKey } = this.props
+    const { form, tabPanelKey, locale, streamSubPanelKey } = this.props
     const { getFieldDecorator } = form
     const textMessage = locale === 'en' ? 'It cannot be empty' : '不能为空'
 
@@ -68,7 +68,7 @@ export class StreamConfigForm extends React.Component {
           </Col>
         </Row>
         {/* spark */}
-        {subPanelKey === 'spark' ? (
+        {streamSubPanelKey === 'spark' ? (
           <Row>
             <Col span={8}>
               <FormItem label="Driver Cores：" {...itemStyleOthers}>
@@ -101,7 +101,7 @@ export class StreamConfigForm extends React.Component {
           </Row>
           ) : ''
         }
-        {subPanelKey === 'spark' ? (
+        {streamSubPanelKey === 'spark' ? (
 
           <Row>
             <Col span={8}>
@@ -149,7 +149,7 @@ export class StreamConfigForm extends React.Component {
           </Row>
           ) : ''
         }
-        {subPanelKey === 'spark' ? (
+        {streamSubPanelKey === 'spark' ? (
           <Row>
             <Col span={8} className={`${tabPanelKey === 'stream' ? '' : 'hide'}`}>
               <FormItem label="Batch Duration (Sec)：" {...itemStyleOthers}>
@@ -197,7 +197,7 @@ export class StreamConfigForm extends React.Component {
           ) : ''
         }
         {/* flink */}
-        {subPanelKey === 'flink' ? (
+        {streamSubPanelKey === 'flink' ? (
           <Row>
             <Col span={8}>
               <FormItem label="JobManager Memory(GB)：" {...itemStyleOthers}>
@@ -230,7 +230,7 @@ export class StreamConfigForm extends React.Component {
           </Row>
           ) : ''
         }
-        {subPanelKey === 'flink' ? (
+        {streamSubPanelKey === 'flink' ? (
           <Row>
             <Col span={8}>
               <FormItem label="Per TaskManager Memory(GB)：" {...itemStyleOthers}>
@@ -285,7 +285,7 @@ StreamConfigForm.propTypes = {
   form: PropTypes.any,
   tabPanelKey: PropTypes.string,
   locale: PropTypes.string,
-  subPanelKey: PropTypes.string
+  streamSubPanelKey: PropTypes.string
 }
 
 const mapStateToProps = createStructuredSelector({

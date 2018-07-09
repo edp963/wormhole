@@ -100,7 +100,8 @@ export class Workbench extends React.Component {
       jobMode: '',
       formStep: 0,
       tabPanelKey: '',
-      subPanelKey: 'spark',
+      streamSubPanelKey: 'spark',
+      flowSubPanelKey: 'spark',
 
       // all and parts of flow/stream/namespace/user
       userClassHide: 'hide',
@@ -765,7 +766,7 @@ export class Workbench extends React.Component {
           flowStreamId: streamId,
           streamName: streamName,
           streamType: streamType,
-          protocol: consumedProtocol
+          protocol: consumedProtocol.split(',')
         })
 
         const { kafka, topics, id, projectId, sourceNs, sinkNs, status, active,
@@ -1149,11 +1150,20 @@ export class Workbench extends React.Component {
       })
   }
 
-  changeStreamType = e => {
+  changeStreamType = (panel) => e => {
     let value = e.target.value
-    this.setState({
-      subPanelKey: value
-    }, this.showAddStreamWorkbench)
+    switch (panel) {
+      case 'flow':
+        this.setState({
+          flowSubPanelKey: value
+        })
+        break
+      case 'stream':
+        this.setState({
+          streamSubPanelKey: value
+        }, this.showAddStreamWorkbench)
+        break
+    }
   }
   showAddStreamWorkbench = () => {
     this.workbenchStreamForm.resetFields()
@@ -1162,7 +1172,7 @@ export class Workbench extends React.Component {
       streamMode: 'add',
       streamConfigCheck: false
     })
-    const streamType = this.state.subPanelKey
+    const streamType = this.state.streamSubPanelKey
     this.workbenchStreamForm.setFieldsValue({streamType})
     Promise.all(this.loadConfig(streamType)).then((values) => {
       let startConfigJson = {}
@@ -1254,10 +1264,10 @@ export class Workbench extends React.Component {
 
   // Stream Config Modal
   onShowConfigModal = () => {
-    let { streamConfigValues, subPanelKey: streamType, streamConfigCheck } = this.state
+    let { streamConfigValues, streamSubPanelKey: streamType, streamConfigCheck } = this.state
     streamType = this.workbenchStreamForm.getFieldValue('streamType')
     this.setState({
-      subPanelKey: streamType,
+      streamSubPanelKey: streamType,
       streamConfigModalVisible: true
     }, () => {
       if (!streamConfigCheck) this.streamConfigForm.resetFields()
@@ -1347,7 +1357,7 @@ export class Workbench extends React.Component {
 
   onConfigModalOk = () => {
     const { locale } = this.props
-    const { subPanelKey } = this.state
+    const { streamSubPanelKey } = this.state
     this.streamConfigForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         values.personalConf = values.personalConf.trim()
@@ -1372,7 +1382,7 @@ export class Workbench extends React.Component {
           }
           let startConfigJson = {}
           let launchConfigJson = {}
-          if (subPanelKey === 'spark') {
+          if (streamSubPanelKey === 'spark') {
             const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores } = values
             startConfigJson = {
               driverCores: driverCores,
@@ -1388,7 +1398,7 @@ export class Workbench extends React.Component {
               partitions: partitions,
               maxRecords: maxRecords
             }
-          } else if (subPanelKey === 'flink') {
+          } else if (streamSubPanelKey === 'flink') {
             const { jobManagerMemoryGB, perTaskManagerMemoryGB, perTaskManagerSlots, taskManagersNumber } = values
             startConfigJson = {
               jobManagerMemoryGB,
@@ -3317,6 +3327,7 @@ export class Workbench extends React.Component {
                     sinkConfigCopy={this.state.sinkConfigCopy}
                     flowSourceNsSys={this.state.flowSourceNsSys}
                     emitDataSystem={this.getDataSystem}
+                    changeStreamType={this.changeStreamType}
 
                     ref={(f) => { this.workbenchFlowForm = f }}
                   />
@@ -3340,6 +3351,7 @@ export class Workbench extends React.Component {
                       step2SourceNamespace={this.state.step2SourceNamespace}
                       onInitTransformSinkTypeNamespace={this.onInitTransformSinkTypeNamespace}
                       transformSinkTypeNamespaceData={this.state.transformSinkTypeNamespaceData}
+                      flowSubPanelKey={this.state.flowSubPanelKey}
                     />
                   </Modal>
                   {/* Flow Sink Config Modal */}
@@ -3447,7 +3459,7 @@ export class Workbench extends React.Component {
                     onCancel={this.hideConfigModal}>
                     <StreamConfigForm
                       tabPanelKey={this.state.tabPanelKey}
-                      subPanelKey={this.state.subPanelKey}
+                      streamSubPanelKey={this.state.streamSubPanelKey}
                       ref={(f) => { this.streamConfigForm = f }}
                     />
                   </Modal>
