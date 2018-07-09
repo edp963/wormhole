@@ -478,7 +478,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
               }
             } catch {
               case ex: Exception =>
-                riderLogger.error(s"user ${session.userId} get resources for project ${projectId}  failed when start new stream", ex)
+                riderLogger.error(s"user ${session.userId} start new stream failed", ex)
                 complete(OK, setFailedResponse(session, ex.getMessage))
             }
           } else {

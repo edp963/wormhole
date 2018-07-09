@@ -55,8 +55,12 @@ object JobUtils extends RiderLogger {
     val sourceTypeFinal = "hdfs_txt"
     val specialConfig = if (sourceConfig.isDefined && sourceConfig.get != "" && sourceConfig.get.contains("protocol")) Some(base64byte2s(getConsumptionProtocol(sourceConfig.get).trim.getBytes())) else None
     val (instance, db, _) = modules.namespaceDal.getNsDetail(sourceNs)
+    val hdfsRoot = RiderConfig.spark.remoteHdfsRoot match {
+      case Some(_) => RiderConfig.spark.remoteHdfsActiveNamenodeHost.get
+      case None => RiderConfig.spark.hdfsRoot
+    }
     SourceConfig(eventTsStartFinal, eventTsEndFinal, sourceNs,
-      ConnectionConfig(RiderConfig.spark.hdfs_root, None, None, None),
+      ConnectionConfig(hdfsRoot, None, None, None),
       getSourceProcessClass(sourceTypeFinal), specialConfig)
   }
 
