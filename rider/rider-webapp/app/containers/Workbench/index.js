@@ -321,7 +321,7 @@ export class Workbench extends React.Component {
         // }, 20)
       // }
     }
-    this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys: selectedOptions[selectedOptions.lenght - 1].nsSys })
+    this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys })
   }
   initialRoutingCascader = (value, selectedOptions) => {
     const { projectId, pipelineStreamId, routingSourceNsValue } = this.state
