@@ -178,15 +178,36 @@ object StreamUtils extends RiderLogger {
 
   def genStreamNameByProjectName(projectName: String, name: String): String = s"wormhole_${projectName}_$name"
 
+  //  def getStreamConfig(stream: Stream) = {
+  //    val kafkaUrl = getKafkaByStreamId(stream.id)
+  //    val launchConfig = json2caseClass[LaunchConfig](stream.launchConfig)
+  //    val config = BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
+  //      KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
+  //      SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
+  //      launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfs_root))
+  //    caseClass2json[BatchFlowConfig](config)
+  //  }
+
   def getStreamConfig(stream: Stream) = {
-    val kafkaUrl = getKafkaByStreamId(stream.id)
     val launchConfig = json2caseClass[LaunchConfig](stream.launchConfig)
-    val config = BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
-      KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
-      SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
-      launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfs_root))
+    val kafkaUrl = getKafkaByStreamId(stream.id)
+    val config =
+      RiderConfig.spark.remoteHdfsRoot match {
+        case Some(_) =>
+          BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
+            KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
+            SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
+            launchConfig.partitions.toInt, RiderConfig.zk, false,
+            RiderConfig.spark.remoteHdfsRoot, RiderConfig.spark.remoteHdfsNamenodeHosts, RiderConfig.spark.remoteHdfsNamenodeIds)
+        case None =>
+          BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
+            KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
+            SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
+            launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfsRoot))
+      }
     caseClass2json[BatchFlowConfig](config)
   }
+
 
   def startStream(stream: Stream, logPath: String) = {
     StreamType.withName(stream.streamType) match {
@@ -285,7 +306,7 @@ object StreamUtils extends RiderLogger {
       if (addDefaultTopic && topicSeq.isEmpty) {
         val broker = getKafkaByStreamId(streamId)
         val blankTopicOffset = KafkaUtils.getKafkaLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic)
-        val blankTopic = Directive(0, null, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, blankTopicOffset).mkString("#"), zkConURL, currentSec, userId)
+        val blankTopic = Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, blankTopicOffset).mkString("#"), zkConURL, currentSec, userId)
         directiveSeq += blankTopic
       }
 
