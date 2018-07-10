@@ -69,6 +69,7 @@ object SparkContextUtils extends EdpLogging{
 
   def createKafkaStream(ssc: StreamingContext, kafkaInput: KafkaInputConfig): WormholeDirectKafkaInputDStream[String, String] = {
     logInfo(s" stream start from topic:" + kafkaInput.toString)
+    //FIXME 设置位点信息
     val partitionOffsetMap = mutable.HashMap.empty[TopicPartition, Long]
     val partitionRateMap = mutable.HashMap.empty[TopicPartition, Long]
     val topicList = mutable.ListBuffer.empty[String]

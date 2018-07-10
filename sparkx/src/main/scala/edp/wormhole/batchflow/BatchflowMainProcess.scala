@@ -79,6 +79,7 @@ object BatchflowMainProcess extends EdpLogging {
 
         logInfo("start doDirectiveTopic")
         val directiveTs = System.currentTimeMillis
+        //TODO 更新topic信息
         BatchflowDirective.doDirectiveTopic(config, stream)
 
         logInfo("start Repartition")
@@ -98,7 +99,7 @@ object BatchflowMainProcess extends EdpLogging {
 
 
         logInfo("start create classifyRdd")
-        //FIXME 对数据进行分类
+        //FIXME 对数据进行分类，根据配置分类成主体数据、查询数据、其他数据
         val classifyRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])],
           ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])],
           ListBuffer[String],
@@ -135,7 +136,9 @@ object BatchflowMainProcess extends EdpLogging {
           WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, currentDateTime, UmsFeedbackStatus.FAIL, e.getMessage,batchId), None, config.kafka_output.brokers)
           WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config,batchId)
       }
-      stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
+
+      //FIXME 暂时取消异步提交位点的功能
+//      stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
     }
     )
   }
@@ -150,12 +153,12 @@ object BatchflowMainProcess extends EdpLogging {
     ListBuffer[String],
     Array[((UmsProtocolType, String), Seq[UmsField])])] = {
 
-    val streamLookupNamespaceSet = ConfMemoryStorage.getAllLookupNamespaceSet
-    val mainNamespaceSet = ConfMemoryStorage.getAllMainNamespaceSet
-    val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
+    //FIXME 从内存里获取下列配置信息
+    val streamLookupNamespaceSet = ConfMemoryStorage.getAllLookupNamespaceSet// swiftsStr
+    val mainNamespaceSet = ConfMemoryStorage.getAllMainNamespaceSet// sinksStr
+    val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap // source
 
     //FIXME 重点逻辑
-
     dataRepartitionRdd.mapPartitions(partition => {
       val mainDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
       val lookupDataList = ListBuffer.empty[((UmsProtocolType, String), Seq[UmsTuple])]
@@ -164,24 +167,32 @@ object BatchflowMainProcess extends EdpLogging {
       partition.foreach(row => {
         try {
           //TODO 通过kafka数据中的key获取协议类型和命名空间
+          logInfo("kafkaKey->" + row._1 + " kafkaValue->" + row._2)
           val (protocolType, namespace) = WormholeUtils.getTypeNamespaceFromKafkaKey(row._1)
           if (protocolType == UmsProtocolType.DATA_INCREMENT_DATA ||
             protocolType == UmsProtocolType.DATA_BATCH_DATA ||
             protocolType == UmsProtocolType.DATA_INITIAL_DATA) {
+            //mainData
             if (ConfMemoryStorage.existNamespace(mainNamespaceSet, namespace)) {
               val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) =
                 //FIXME 将json格式的数据转化成ums格式！
                 WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
+
               if (!nsSchemaMap.contains((protocolType, namespace)))
                 nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
+              logWarning("mainData schemaValueTuple--->" + schemaValueTuple._2)
               mainDataList += (((protocolType, namespace), schemaValueTuple._2))
             }
+            //lookupData
             if (ConfMemoryStorage.existNamespace(streamLookupNamespaceSet, namespace)) {
               //todo change  if back to if, efficiency
               val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) =
                 WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
+
               if (!nsSchemaMap.contains((protocolType, namespace)))
                 nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
+
+              logWarning("lookup schemaValueTuple--->" + schemaValueTuple._2)
               lookupDataList += (((protocolType, namespace), schemaValueTuple._2))
             }
           } else if (checkOtherData(protocolType.toString)) otherList += row._2
@@ -212,6 +223,7 @@ object BatchflowMainProcess extends EdpLogging {
       var maxTs = ""
       var count = 0
       partition.foreach(umsRow => {
+        logWarning("partition rows--->" + umsRow.mkString(","))
         count += 1
         val dataTs = umsRow(umsTsIndex)
         if (minTs.isEmpty || !SinkCommonUtils.firstTimeAfterSecond(dataTs, minTs)) minTs = dataTs
@@ -239,6 +251,7 @@ object BatchflowMainProcess extends EdpLogging {
       val umsRdd: RDD[(UmsProtocolType, String, ArrayBuffer[Seq[String]])] = formatRdd(allDataRdd, "lookup")
       distinctSchema.foreach(schema => {
         val namespace = schema._1._2
+        logWarning("lookup schema--->" + namespace)
         val matchLookupNamespace = ConfMemoryStorage.getMatchLookupNamespaceRule(namespace)
         if (matchLookupNamespace != null) {
           val protocolType: UmsProtocolType = schema._1._1
@@ -250,6 +263,7 @@ object BatchflowMainProcess extends EdpLogging {
             case (sourceNs, sinkNs) =>
               val path = config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/" + config.spark_config.stream_id + "/" + sourceNs.replaceAll("\\*", "-") + "/" + sinkNs + "/streamLookupNamespace" + "/" + matchLookupNamespace.replaceAll("\\*", "-")
               //TODO 将查询结果写入parquet文件
+              logWarning("lookup write to path [" + path + "]")
               lookupDf.write.mode(SaveMode.Append).parquet(path) //if not exists will have "WARN: delete very recently?" it is ok.
           }
         }
@@ -274,6 +288,7 @@ object BatchflowMainProcess extends EdpLogging {
       val uuid = UUID.randomUUID().toString
       val protocolType: UmsProtocolType = schema._1._1
       val sourceNamespace: String = schema._1._2
+      logWarning("------------------------mainData--------------------")
       logInfo(uuid + ",schema loop,sourceNamespace:" + sourceNamespace)
       val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
 
@@ -282,6 +297,7 @@ object BatchflowMainProcess extends EdpLogging {
       }).flatMap(_._3).cache
 
       //  val jsonUmsSysFields: UmsSysRename = if (ConfMemoryStorage.existJsonSourceParseMap(protocolType,sourceNamespace)) ConfMemoryStorage.getJsonUmsFieldsName(protocolType,sourceNamespace) else null
+      logWarning("UmsFields--->" + schema._2._1)
       val (minTs, maxTs, count) = getMinMaxTsAndCount(protocolType, sourceNamespace, sourceTupleRDD, schema._2._1) //,jsonUmsSysFields)
       logInfo(uuid + "sourceNamespace:" + sourceNamespace + ",minTs:" + minTs + ",maxTs:" + maxTs + ",sourceDf.count:" + count)
       if (count > 0) {
@@ -309,9 +325,10 @@ object BatchflowMainProcess extends EdpLogging {
 
             if (swiftsProcessConfig.nonEmpty && swiftsProcessConfig.get.swiftsSql.nonEmpty) {
 
+              //FIXME 执行transform操作
               val (returnUmsFields, tuplesRDD, unionDf) = swiftsProcess(swiftsProcessConfig, uuid, session, sourceTupleRDD, config, sourceNamespace, sinkNamespace, minTs, maxTs, count, sinkFields,batchId)
-              sinkFields = returnUmsFields
-              sinkRDD = tuplesRDD
+              sinkFields = returnUmsFields // 数据落地字段
+              sinkRDD = tuplesRDD //transform后的数据
               afterUnionDf = unionDf
             }
 
@@ -385,16 +402,20 @@ object BatchflowMainProcess extends EdpLogging {
                             umsFields: Seq[UmsField],
                             batchId:String): (Seq[UmsField], RDD[Seq[String]], DataFrame) = {
     val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
+    //TODO 创建源DF
     val sourceDf = createSourceDf(session, sourceNamespace, umsFields, sourceTupleRDD)
     val dataSetShow = swiftsProcessConfig.get.datasetShow
     if (dataSetShow.get) {
       sourceDf.show(swiftsProcessConfig.get.datasetShowNum.get)
     }
 
+    //TODO union parquet文件里面的DF-->为什么需要union离线文件parquet里的df?
     val afterUnionDf = unionParquetNonTimeoutDf(swiftsProcessConfig, uuid, session, sourceDf, config, sourceNamespace, sinkNamespace).cache
     println("sourceNamespace=" + sourceNamespace + ",afterUnionDf.count" + afterUnionDf.count)
 
     try {
+      //FIXME 执行transform操作
+      logWarning("begin to transform....")
       val swiftsDf: DataFrame = SwiftsTransform.transform(session, sourceNamespace, sinkNamespace, afterUnionDf, matchSourceNamespace, config)
       val resultSchema = swiftsDf.schema
       val nameIndex: Array[(String, Int, DataType)] = resultSchema.fieldNames.map(name => (name, resultSchema.fieldIndex(name), resultSchema.apply(resultSchema.fieldIndex(name)).dataType)).sortBy(_._2)
@@ -410,6 +431,9 @@ object BatchflowMainProcess extends EdpLogging {
           if(value==null)null else value.toString
         }}.toSeq
       }.rdd
+
+      logWarning("sink umsFields------->" + umsFields.mkString(","))
+
       (umsFields, tuples, afterUnionDf)
     } catch {
       case e: Throwable =>
@@ -451,6 +475,7 @@ object BatchflowMainProcess extends EdpLogging {
 
       par.foreach(allList => {
         val formatList: mutable.Seq[((UmsProtocolType, String), Seq[UmsTuple])] = if (dataType == "main") allList._1 else allList._2
+        logWarning("lookup formatList---->" + formatList)
         formatList.foreach(row => {
           if (namespace2ValueMap.contains((row._1._1, row._1._2))) {
             namespace2ValueMap((row._1._1, row._1._2)) ++= row._2.map(_.tuple)
@@ -495,6 +520,7 @@ object BatchflowMainProcess extends EdpLogging {
                                      minTs: String,
                                      maxTs: String,
                                      uuid: String) = {
+    logWarning("begin put data to sink......")
     val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(sinkNamespace)
     val (resultSchemaMap: Map[String, (Int, UmsFieldType, Boolean)], originalSchemaMap, renameMap) = SparkUtils.getSchemaMap(sinkFields, sinkProcessConfig.sinkOutput)
     logInfo(uuid + s",$sinkNamespace schemaMap:" + resultSchemaMap)
@@ -524,9 +550,11 @@ object BatchflowMainProcess extends EdpLogging {
       if (partition.nonEmpty) {
         logInfo(uuid + ",partition.nonEmpty")
 
-        val (sendList: ListBuffer[Seq[String]], saveList: ListBuffer[String]) = doValidityAndGetData(swiftsProcessConfig, partition, resultSchemaMap, originalSchemaMap, renameMap, minTs, sourceNamespace, sinkNamespace) //,jsonUmsSysFields)
+        //FIXME sendList saveList
+        val (sendList: ListBuffer[Seq[String]], saveList: ListBuffer[String]) =
+          doValidityAndGetData(swiftsProcessConfig, partition, resultSchemaMap, originalSchemaMap, renameMap, minTs, sourceNamespace, sinkNamespace) //,jsonUmsSysFields)
 
-        //        sendList.foreach(data => logInfo("before merge:" + data))
+//        sendList.foreach(data => logInfo("before merge:" + data))
         logInfo(uuid + ",@sendList size: " + sendList.size + " saveList size: " + saveList.size)
         val mergeSendList: Seq[Seq[String]] = if (SourceMutationType.INSERT_ONLY.toString == mutationType) {
           logInfo(uuid + "special config is i, merge not happen")
@@ -557,6 +585,10 @@ object BatchflowMainProcess extends EdpLogging {
 
     //FIXME 通过反射机制加载sinkObject和sinkMethod，并通过SinkProcessor.publicProcess将数据落地
     val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
+    logWarning(s"sinkObject->$sinkObject sinkMethod->$sinkMethod")
+    logWarning("sendData---------->" + sendData.count())
+
+    //FIXME 上面的sendData有数， 而sinkMethod.invoke(...)参数没数？？？
     sinkMethod.invoke(sinkObject, session, protocolType, sourceNamespace, sinkNamespace, sinkProcessConfig, resultSchemaMap, sendData, connectionConfig)
 
     val nonTimeoutUids: Array[String] = send2saveData.mapPartitions(par => {
@@ -604,15 +636,18 @@ object BatchflowMainProcess extends EdpLogging {
                                    renameMap: Option[Map[String, String]],
                                    minTs: String,
                                    sourceNamespace: String,
-                                   sinkNamespace: String): (mutable.ListBuffer[Seq[String]], mutable.ListBuffer[String])
+                                   sinkNamespace: String): (mutable.ListBuffer[Seq[String]], mutable.ListBuffer[String]) = {
 
-  = {
+    logWarning("do Validity and get data....")
     val sendList = ListBuffer.empty[Seq[String]]
     val saveList = ListBuffer.empty[String]
+
+    //FIXME 验证数据正确性和获取数据
     if (swiftsProcessConfig.nonEmpty) {
       //has swifts process
       if (swiftsProcessConfig.get.validityConfig.nonEmpty) {
         val validityConfig: ValidityConfig = swiftsProcessConfig.get.validityConfig.get
+        logWarning("validityConfig---->" + validityConfig)
         dataSeq.foreach(row => {
           val originalDataArray = SparkUtils.getRowData(row, originalSchemaMap, originalSchemaMap, renameMap)
           val ifValidity = checkValidity(validityConfig, originalDataArray, originalSchemaMap)
@@ -641,7 +676,9 @@ object BatchflowMainProcess extends EdpLogging {
         })
       } else sendList ++= dataSeq.map(row => SparkUtils.getRowData(row, resultSchemaMap, originalSchemaMap, renameMap)) //has swifts process and not lack column and not need validity
     } else sendList ++= dataSeq.map(row => SparkUtils.getRowData(row, resultSchemaMap, originalSchemaMap, renameMap)) //not swifts process
+
     logInfo(sourceNamespace + ":" + sinkNamespace + ",sendList.size=" + sendList.size + ",saveList.size=" + saveList.size)
+
     (sendList, saveList)
   }
 

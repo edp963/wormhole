@@ -101,6 +101,7 @@ object BatchflowDirective extends Directive {
 
         val SwiftsSqlArr = if (action != null) {
           val sqlStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(action))
+          logInfo("sqlStr: " + sqlStr)
           ParseSwiftsSql.parse(sqlStr, sourceNamespace, fullsinkNamespace, if (validity == null) false else true, dataType)
         } else None
         Some(SwiftsProcessConfig(SwiftsSqlArr, validityConfig, dataframe_show, dataframe_show_num, Some(swiftsSpecialConfig)))
@@ -108,6 +109,9 @@ object BatchflowDirective extends Directive {
         None
       }
     } else None
+
+
+    logWarning("swiftsProcessConfig: " + swiftsProcessConfig)
 
     val sinks = JSON.parseObject(sinksStr)
     val sink_connection_url = sinks.getString("sink_connection_url").trim.toLowerCase
@@ -143,20 +147,22 @@ object BatchflowDirective extends Directive {
 
     if (dataType != "ums") {
       val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
+      //FIXME 注册源配置
       ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
     }
 
     val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_schema, sink_process_class_fullname, sink_retry_times, sink_retry_seconds)
 
+    logWarning("sinkProcessConfig: " + sinkProcessConfig)
 
     val swiftsStrCache = if (swiftsStr == null) "" else swiftsStr
 
 
+    //FIXME 将解析后的配置信息注册到内存里
     ConfMemoryStorage.registerStreamLookupNamespaceMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig)
     ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap)
-
-
     ConfMemoryStorage.registerDataStoreConnectionsMap(fullsinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
+
     WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
 
   }
@@ -172,14 +178,18 @@ object BatchflowDirective extends Directive {
         val swiftsEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "swifts")
 
         val swiftsStr = if (swiftsEncoded != null && !swiftsEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(swiftsEncoded.toString)) else null
+        //swiftsStr:{"pushdown_connection":[],"dataframe_show":"true","action":"c3Bhcmtfc3FsID0gc2VsZWN0IGlkLCBuYW1lLCBjYXJkQmFuayBmcm9tIHVtc19leHRlbnNpb247\n","dataframe_show_num":10}
         logInfo("swiftsStr:" + swiftsStr)
         val sinksStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(UmsFieldType.umsFieldValue(tuple.tuple, schemas, "sinks").toString))
+        //sinksStr:{"sink_connection_url": "jdbc:mysql://localhost:3306/mysql-sink","sink_connection_username": "wormhole","sink_connection_password": "wormhole","sink_table_keys": "id","sink_output": "","sink_connection_config": "","sink_process_class_fullname": "edp.wormhole.sinks.dbsink.Data2DbSink","sink_specific_config": {"mutation_type":"iud"},"sink_retry_times": "3","sink_retry_seconds": "300"}
         logInfo("sinksStr:" + sinksStr)
         val fullSinkNamespace = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "sink_namespace").toString.toLowerCase
         val consumptionDataStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(UmsFieldType.umsFieldValue(tuple.tuple, schemas, "consumption_protocol").toString))
+        logInfo("consumptionStr: " + consumptionDataStr)
         val dataType = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_type").toString.toLowerCase
         val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
         val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
+        //TODO 注册flow启动指令, 将配置信息存储到内存
         registerFlowStartDirective(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, feedbackTopicName, brokers, consumptionDataStr, dataType, dataParseStr)
       } catch {
         case e: Throwable =>

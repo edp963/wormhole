@@ -68,6 +68,7 @@ object SwiftsTransform extends EdpLogging {
                   tmpTableNameList ++= tableNameArrMD5
                   val newSql = SqlBinding.getSlidingUnionSql(session, currentDf, sourceTableFields, lookupTableFields, sql)
                   logInfo(uuid + ",lookupStreamMap JOIN newSql@:" + newSql)
+                  //FIXME 执行sql操作
                   val df1 = session.sql(newSql)
                   currentDf = DataframeObtain.getJoinDf(currentDf, session, operate, df1)
                 } catch {
@@ -103,6 +104,8 @@ object SwiftsTransform extends EdpLogging {
               }
             }
           case SqlOptType.SPARK_SQL =>
+            //FIXME 处理spark-sql
+            logWarning("--------------------spark-sql------------------")
             val tmpTableName = "a" + UUID.randomUUID().toString.replaceAll("-", "")
             currentDf = DataFrameTransform.getMapDf(session, sql + " ", sourceNamespace, uuid, currentDf, dataSetShow.get, dataSetShowNum, tmpTableName) //to solve no where clause bug. select a, b from table;
             tmpTableNameList += tmpTableName

@@ -50,6 +50,7 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
   lazy val namespaceUser = new NamespaceUserRoutes(modules)
   //FIXME 处理流式任务的路由
   lazy val streamUser = new StreamUserRoutes(modules)
+  //FIXME 处理flow的路由
   lazy val flowUser = new FlowUserRoutes(modules)
   lazy val actionUser = new ActionUserRoutes(modules)
   lazy val databaseUser = new NsDatabaseUserRoutes(modules)
@@ -99,6 +100,7 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
               crossDomainHandler(user.routes)
           } ~
           pathPrefix("app") {
+            //FIXME flow配置信息写入zk
             crossDomainHandler(flowApp.routes) ~
               crossDomainHandler(jobApp.routes) ~
               crossDomainHandler(instanceApp.routes) ~

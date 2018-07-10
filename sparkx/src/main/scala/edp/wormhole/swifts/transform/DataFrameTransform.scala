@@ -274,8 +274,10 @@ object DataFrameTransform extends EdpLogging {
   def getMapDf(session: SparkSession, sql: String, sourceNamespace: String, uuid: String, tmpLastDf: DataFrame, dataSetShow: Boolean, dataSetShowNum: Int, tmpTableName: String): DataFrame = {
     val tableName = sourceNamespace.split("\\.")(3)
     val mapSql = sql.replaceAll(" " + tableName + " ", " " + tmpTableName + " ")
+    logWarning("spark-sql---------->" + mapSql)
     logInfo(uuid + ",MAP SQL:" + mapSql)
     tmpLastDf.createOrReplaceTempView(tmpTableName)
+    tmpLastDf.show()
     try {
       session.sql(mapSql)
     } catch {

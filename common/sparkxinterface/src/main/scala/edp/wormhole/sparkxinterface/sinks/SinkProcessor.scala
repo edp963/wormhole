@@ -47,6 +47,7 @@ abstract class SinkProcessor {
                     connectionConfig:ConnectionConfig): Unit ={
     //FIXME 将处理后的数据落地
     data.foreachPartition(partition=>{
+      println(s"partition----------->" + partition.size)
       process(protocolType,
         sourceNamespace,
         sinkNamespace,

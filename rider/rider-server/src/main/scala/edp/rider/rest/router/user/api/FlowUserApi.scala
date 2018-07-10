@@ -160,6 +160,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                         riderLogger.info(s"user ${session.userId} insert flows where project id is $projectId success.")
                         onComplete(flowDal.defaultGetAll(_.id inSet flows.map(_.id)).mapTo[Seq[FlowStream]]) {
                           case Success(flowStream) =>
+                            //FIXME 将flow的配置持久化到数据库，查询出一份放入内存
                             CacheMap.flowCacheMapRefresh
                             complete(OK, ResponseJson[Seq[FlowStream]](getHeader(200, session), flowStream))
                           case Failure(ex) =>

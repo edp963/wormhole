@@ -90,6 +90,7 @@ object OffsetPersistenceManager extends EdpLogging {
 
     if (topicConfigMap == null) throw new Exception("do not config kafka any topic,include heardbeat topic")
 
+    //FIXME 监控位点信息
     DirectiveOffsetWatch.offsetWatch(config, appId)
     KafkaInputConfig(kafkaBaseConfig, topicConfigMap.values.toList,inWatch)
   }

@@ -36,6 +36,7 @@ object PushDirective extends RiderLogger {
 
   def sendFlowStartDirective(streamId: Long, sourceNamespace: String, sinkNamespace: String, flowStartJson: String, zkUrl: String = RiderConfig.zk): Boolean = {
     val path = s"$rootPath$streamId${flowDir}/batchflow->$sourceNamespace->$sinkNamespace"
+    //FIXME flow启动配置写入ZK
     setDataToPath(zkUrl, path, flowStartJson)
   }
 

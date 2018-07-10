@@ -56,6 +56,7 @@ object BatchflowStarter extends App with EdpLogging {
   val session: SparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
   val ssc: StreamingContext = new StreamingContext(sparkContext, Seconds(config.kafka_input.batch_duration_seconds))
 
+  //TODO UDF初始化
   UdfWatch.initUdf(config, appId, session)
 
   //  if (config.udf.isDefined) {
@@ -63,8 +64,10 @@ object BatchflowStarter extends App with EdpLogging {
   //    new UdfRegister().udfRegister(config.udf.get, session.sqlContext)
   //  }
 
+  //TODO 初始化Flow， 从zk里面获取配置然后写内存里
   DirectiveFlowWatch.initFlow(config, appId)
 
+  //TODO 初始化位点信息
   val kafkaInput: KafkaInputConfig = OffsetPersistenceManager.initOffset(config, appId)
   val kafkaStream = createKafkaStream(ssc, kafkaInput)
   //FIXME 处理数据流

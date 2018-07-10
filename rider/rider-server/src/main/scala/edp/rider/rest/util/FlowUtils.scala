@@ -267,6 +267,7 @@ object FlowUtils extends RiderLogger {
   }
 
 
+  //FIXME 启动flow
   def startFlow(streamId: Long, streamType: String, flowId: Long, sourceNs: String, sinkNs: String, consumedProtocol: String, sinkConfig: String, tranConfig: String, userId: Long): Boolean = {
     try {
       autoDeleteTopic(userId, streamId)
@@ -382,6 +383,7 @@ object FlowUtils extends RiderLogger {
         riderLogger.info(s"user ${
           directive.createBy
         } send flow $flowId start directive: $flow_start_ums")
+        //FIXME 将flow配置信息写入zk
         PushDirective.sendFlowStartDirective(streamId, sourceNs, sinkNs, jsonCompact(flow_start_ums))
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
       } else if (streamType == "hdfslog") {

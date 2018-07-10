@@ -45,6 +45,7 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
     logInfo("process KafkaLog2DbSnapshot")
+    logWarning("data----------->" + tupleList.size)
     val dt1: DateTime = dt2dateTime(currentyyyyMMddHHmmss)
 
     val sinkSpecificConfig =
@@ -87,12 +88,16 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
     val tableKeyNames: Seq[String] = sinkProcessConfig.tableKeyList
     val sysIdName = systemRenameMap(UmsSysField.ID.toString)
     val sourceMutationType = SourceMutationType.sourceMutationType(sinkSpecificConfig.`mutation_type.get`)
-    val specialSqlProcessor: SplitTableSqlProcessor = new SplitTableSqlProcessor(sinkProcessConfig, schemaMap, sinkSpecificConfig, sinkNamespace, connectionConfig)
+    //TODO 连接数据库，执行ddl
+    val specialSqlProcessor: SplitTableSqlProcessor = new SplitTableSqlProcessor(sinkProcessConfig,
+      schemaMap, sinkSpecificConfig, sinkNamespace, connectionConfig)
 
     sourceMutationType match {
       case SourceMutationType.INSERT_ONLY =>
         logInfo("INSERT_ONLY: " + sinkSpecificConfig.`mutation_type.get`)
         val insertSql = SqlProcessor.getInsertSql(sourceMutationType, dataSys, tableName, systemRenameMap, allFieldNames)
+        logWarning("insert sql----->" + insertSql)
+        logWarning("begin exec insert sql....")
         val errorList = SqlProcessor.executeProcess(tupleList, insertSql, batchSize, UmsOpType.INSERT, sourceMutationType, connectionConfig, allFieldNames,
           renameSchema, systemRenameMap, tableKeyNames, sysIdName)
         if (errorList.nonEmpty) throw new Exception(SourceMutationType.INSERT_ONLY + ",some data error ,data records=" + errorList.length)

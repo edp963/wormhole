@@ -73,7 +73,9 @@ object WormholeUtils extends EdpLogging {
 
   def jsonGetValue(namespace: String, protocolType: UmsProtocolType, json: String, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])]): (Seq[UmsField], Seq[UmsTuple]) = {
     if (jsonSourceParseMap.contains((protocolType, namespace))) {
+        //TODO 通过jsonSourceParseMap获取字段schema
       val mapValue: (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)]) = jsonSourceParseMap((protocolType, namespace))
+      //FIXME 根据字段schema解析kafka中的数据
       (mapValue._1, dataParse(json, mapValue._2, mapValue._3))
     } else {
       //TODO 将json格式数据转ums
@@ -86,6 +88,9 @@ object WormholeUtils extends EdpLogging {
 
   def dataParse(jsonStr: String, allFieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)]): Seq[UmsTuple] = {
 
+
+    logWarning("begin parse dataStr: " + jsonStr)
+    logWarning("allFieldInfo: " + allFieldsInfo.mkString(""))
     val jsonParse = JSON.parseObject(jsonStr)
     val fieldNameSeq = twoFieldsArr.map(_._1)
 //    val outFieldNameSeq=allFieldsInfo.map(_.name)

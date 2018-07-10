@@ -67,7 +67,7 @@ class FlowAppRoutes(modules: ConfigurationModule with PersistenceModule with Bus
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def postRoute: Route = modules.flowAppService.postRoute(basePath)
-
+  //FIXME flow配置信息写入zk
 
   @Path("/{projectId}/streams/{streamId}/flows/{flowId}/actions/stop")
   @ApiOperation(value = "insert/update/start flow of the system", notes = "", nickname = "", httpMethod = "PUT")

@@ -210,7 +210,10 @@ object SqlProcessor extends EdpLogging {
   def executeProcess(tupleList: Seq[Seq[String]], sql: String, batchSize: Int, optType: UmsOpType, sourceMutationType: SourceMutationType,
                      connectionConfig: ConnectionConfig, fieldNames: Seq[String], renameSchema: collection.Map[String, (Int, UmsFieldType, Boolean)],
                      systemRenameMap: Map[String, String], tableKeyNames: Seq[String], sysIdName: String): Seq[Seq[String]] = {
+
+    logWarning("insert data size---------->" + tupleList.size)
     if (tupleList.nonEmpty) {
+      logWarning("begin exec .....")
       val errorTupleList = executeSql(tupleList, sql, optType, batchSize, sourceMutationType,
         connectionConfig, fieldNames, renameSchema, systemRenameMap, tableKeyNames, sysIdName)
       if (errorTupleList.nonEmpty) {

@@ -38,10 +38,12 @@ object DirectiveFlowWatch extends EdpLogging {
     logInfo("init flow,appId=" + appId)
 
     val watchPath = WormholeConstants.CheckpointRootPath + config.spark_config.stream_id + flowRelativePath
-    if(!WormholeZkClient.checkExist(config.zookeeper_path, watchPath))WormholeZkClient.createPath(config.zookeeper_path, watchPath)
+    if(!WormholeZkClient.checkExist(config.zookeeper_path, watchPath))
+      WormholeZkClient.createPath(config.zookeeper_path, watchPath)
     val flowList = WormholeZkClient.getChildren(config.zookeeper_path, watchPath)
     flowList.toArray.foreach(flow => {
       val flowContent = WormholeZkClient.getData(config.zookeeper_path, watchPath + "/" + flow)
+      //FIXME 通过zk获取flow配置信息并写入kafka，而zk里面的配置信息是由flow页面触发添加的
       add(config.kafka_output.feedback_topic_name,config.kafka_output.brokers)(watchPath + "/" + flow, new String(flowContent))
     })
 
@@ -54,9 +56,11 @@ object DirectiveFlowWatch extends EdpLogging {
       if (!data.startsWith("{")) {
         logWarning("data is " + data + ", not in ums")
       } else {
+        //TODO 将flow的配置信息转化成UMS
         val ums = UmsSchemaUtils.toUms(data)
         ums.protocol.`type` match {
           case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_FLOW_STOP =>
+            //FIXME 启动flow进程
             BatchflowDirective.flowStartProcess(ums, feedbackTopicName, brokers)
           case UmsProtocolType.DIRECTIVE_ROUTER_FLOW_START | UmsProtocolType.DIRECTIVE_ROUTER_FLOW_STOP =>
             RouterDirective.flowStartProcess(ums, feedbackTopicName, brokers)

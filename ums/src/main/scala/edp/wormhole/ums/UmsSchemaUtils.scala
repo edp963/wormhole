@@ -46,8 +46,10 @@ trait UmsSchemaUtils {
       context=Some(jsonObj.getString("context"))
     }
 
+    //TODO 将json格式的schema转化成umsSchema
     val umsSchema = toUmsSchemaFromJsonObject(schema)
 
+    //TODO 解析payload， 并封装到UmsTuple
     val payloadArr: Option[Seq[UmsTuple]] = parsePayload(jsonObj)
 //      if (jsonObj.containsKey("payload") && jsonObj.getJSONArray("payload").size() > 0) {
 //      val payloadJsonArr = jsonObj.getJSONArray("payload")
