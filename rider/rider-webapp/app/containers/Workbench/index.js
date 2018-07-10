@@ -417,15 +417,18 @@ export class Workbench extends React.Component {
     // 显示 Stream 信息
     this.props.onLoadSelectStreamKafkaTopic(projectId, val, (result) => {
       const resultFinal = result.map(s => {
-        const responseResult = Object.assign(s.stream, {
-          disableActions: s.disableActions,
+        const responseResult = {
+          id: s.id,
+          maxParallelism: s.maxParallelism,
           topicInfo: s.topicInfo,
-          instance: s.kafkaInfo.instance,
-          connUrl: s.kafkaInfo.connUrl,
-          projectName: s.projectName,
-          currentUdf: s.currentUdf,
-          usingUdf: s.usingUdf
-        })
+          instance: s.kafkaInstance,
+          name: s.name
+          // disableActions: s.disableActions,
+          // connUrl: s.kafkaInfo.connUrl,
+          // projectName: s.projectName,
+          // currentUdf: s.currentUdf,
+          // usingUdf: s.usingUdf
+        }
         responseResult.key = responseResult.id
         return responseResult
       })
@@ -516,15 +519,17 @@ export class Workbench extends React.Component {
       this.workbenchFlowForm.resetFields()
       this.props.onLoadSelectStreamKafkaTopic(this.state.projectId, flow.streamType, (result) => {
         const resultFinal = result.map(s => {
-          const responseResult = Object.assign(s.stream, {
-            disableActions: s.disableActions,
+          const responseResult = {
+            id: s.id,
+            maxParallelism: s.maxParallelism,
             topicInfo: s.topicInfo,
-            instance: s.kafkaInfo.instance,
-            connUrl: s.kafkaInfo.connUrl,
-            projectName: s.projectName,
-            currentUdf: s.currentUdf,
-            usingUdf: s.usingUdf
-          })
+            instance: s.kafkaInstance,
+            name: s.name
+            // connUrl: s.kafkaInfo.connUrl,
+            // projectName: s.projectName,
+            // currentUdf: s.currentUdf,
+            // usingUdf: s.usingUdf
+          }
           responseResult.key = responseResult.id
           return responseResult
         })
@@ -3328,6 +3333,7 @@ export class Workbench extends React.Component {
                     flowSourceNsSys={this.state.flowSourceNsSys}
                     emitDataSystem={this.getDataSystem}
                     changeStreamType={this.changeStreamType}
+                    flowSubPanelKey={this.state.flowSubPanelKey}
 
                     ref={(f) => { this.workbenchFlowForm = f }}
                   />

@@ -35,6 +35,7 @@ import InputNumber from 'antd/lib/input-number'
 import Select from 'antd/lib/select'
 import Cascader from 'antd/lib/cascader'
 import Radio from 'antd/lib/radio'
+import { Table, Card } from 'antd'
 const RadioButton = Radio.Button
 const RadioGroup = Radio.Group
 
@@ -47,7 +48,8 @@ export class FlowTransformForm extends React.Component {
     super(props)
     this.state = {
       dsHideOrNot: '',
-      selectValue: ''
+      selectValue: '',
+      cepDataSource: []
     }
   }
 
@@ -68,7 +70,7 @@ export class FlowTransformForm extends React.Component {
 
   render () {
     const { form, transformValue, transformSinkTypeNamespaceData, flowTransNsData, step2SourceNamespace, step2SinkNamespace, flowSubPanelKey } = this.props
-    const { dsHideOrNot, selectValue } = this.state
+    const { dsHideOrNot, selectValue, cepDataSource } = this.state
     const { getFieldDecorator } = form
 
     const itemStyle = {
@@ -112,13 +114,13 @@ export class FlowTransformForm extends React.Component {
   // ------ flink -------
     const flinkTransformTypeClassNames = [
       transformValue === 'lookupSql' ? '' : 'hide',
-      transformValue === 'sparkSql' ? '' : 'hide',
+      transformValue === 'flinkSql' ? '' : 'hide',
       transformValue === 'cep' ? '' : 'hide'
     ]
 
     const flinkTransformTypeHiddens = [
       transformValue !== 'lookupSql',
-      transformValue !== 'sparkSql',
+      transformValue !== 'flinkSql',
       transformValue !== 'cep'
     ]
 
@@ -164,7 +166,40 @@ export class FlowTransformForm extends React.Component {
         </Tooltip>
       </span>
     )
-
+    const columnsCEP = [
+      {
+        title: 'Operator',
+        dataIndex: 'operator',
+        key: 'operator',
+        width: '33%'
+      },
+      {
+        title: 'Conditions',
+        dataIndex: 'conditions',
+        key: 'conditions',
+        width: '33%'
+      },
+      {
+        title: 'Quartifier',
+        dataIndex: 'quartifier',
+        key: 'quartifier',
+        width: '33%'
+      }
+    ]
+    const pagination = {
+      defaultPageSize: 5,
+      pageSizeOptions: ['5', '10', '15'],
+      showSizeChanger: true,
+      onShowSizeChange: (current, pageSize) => {
+        this.setState({
+          pageIndex: current,
+          pageSize: pageSize
+        })
+      },
+      onChange: (current) => {
+        this.setState({ pageIndex: current })
+      }
+    }
     return (
       <Form className="transform-modal-style">
         <Row>
@@ -210,7 +245,7 @@ export class FlowTransformForm extends React.Component {
           </Col>
 
           {/* 设置 Lookup Sql */}
-          <Col span={24} className={transformTypeClassNames[0]}>
+          <Col span={24} className={`${transformTypeClassNames[0] || flinkTransformTypeClassNames[0]}`}>
             <FormItem label="Type" {...itemStyle} style={{lineHeight: '36px'}}>
               {getFieldDecorator('lookupSqlType', {
                 rules: [{
@@ -226,14 +261,14 @@ export class FlowTransformForm extends React.Component {
               )}
             </FormItem>
           </Col>
-          <Col span={24} className={transformTypeClassNames[0]}>
+          <Col span={24} className={transformTypeClassNames[0] || flinkTransformTypeClassNames[0]}>
             <FormItem label="Data System" {...itemStyle} style={{lineHeight: '36px'}}>
               {getFieldDecorator('transformSinkDataSystem', {
                 rules: [{
                   required: true,
                   message: operateLanguageSelect('data system', 'Data System')
                 }],
-                hidden: transformTypeHiddens[0]
+                hidden: transformTypeHiddens[0] || flinkTransformTypeClassNames[0]
               })(
                 <DataSystemSelector
                   data={sinkDataSystemData}
@@ -277,7 +312,7 @@ export class FlowTransformForm extends React.Component {
             />
           </Col>
 
-          {/* 设置 Spark/ Flink Sql */}
+          {/* 设置 Spark/Flink Sql */}
           {flowSubPanelKey === 'spark' ? (
             <Col span={6} className={transformTypeClassNames[1]}>
               <FormItem label={sqlHtml} className="tran-sql-label">
@@ -289,7 +324,7 @@ export class FlowTransformForm extends React.Component {
               </FormItem>
             </Col>
           ) : flowSubPanelKey === 'flink' ? (
-            <Col span={6} className={transformTypeClassNames[1]}>
+            <Col span={6} className={flinkTransformTypeClassNames[1]}>
               <FormItem label={sqlHtml} className="tran-sql-label">
                 {getFieldDecorator('flinkSql', {
                   hidden: flinkTransformTypeHiddens[1]
@@ -299,96 +334,174 @@ export class FlowTransformForm extends React.Component {
               </FormItem>
             </Col>
           ) : ''}
-
-          <Col span={17} className={`${transformTypeClassNames[1]} cm-sql-textarea`}>
-            <textarea
-              id="sparkSqlTextarea"
-              placeholder={flowSubPanelKey === 'spark' ? 'Spark SQL' : flowSubPanelKey === 'flink' ? 'Flink SQL' : ''}
-            />
-          </Col>
-
+          {flowSubPanelKey === 'spark' ? (
+            <Col span={17} className={`${transformTypeClassNames[1]} cm-sql-textarea`}>
+              <textarea
+                id="sparkSqlTextarea"
+                placeholder={'Spark SQL'}
+              />
+            </Col>
+          ) : flowSubPanelKey === 'flink' ? (
+            <Col span={17} className={`${flinkTransformTypeClassNames[1]} cm-sql-textarea`}>
+              <textarea
+                id="flinkSqlTextarea"
+                placeholder={'Flink SQL'}
+              />
+            </Col>
+          ) : ''}
           {/* 设置 Stream Join Sql */}
-          <Col span={24} className={transformTypeClassNames[2]}>
-            <FormItem label="Type" {...itemStyle} style={{lineHeight: '36px'}}>
-              {getFieldDecorator('streamJoinSqlType', {
-                rules: [{
-                  required: true,
-                  message: operateLanguageSelect('type', 'Type')
-                }],
-                hidden: transformTypeHiddens[2]
-              })(
-                <DataSystemSelector
-                  data={flowStreamJoinSqlType}
-                  onItemSelect={this.onStreamJoinSqlTypeItemSelect}
-                />
-              )}
-            </FormItem>
-          </Col>
-
-          <Col span={24} className={transformTypeClassNames[2]}>
-            <FormItem label="Namespace" {...itemStyle}>
-              {getFieldDecorator('streamJoinSqlNs', {
-                rules: [{
-                  required: true,
-                  message: operateLanguageSelect('namespace', 'Namespace')
-                }],
-                hidden: transformTypeHiddens[2]
-              })(
-                <Select
-                  mode="multiple"
-                  placeholder="Select namespaces"
-                >
-                  {nsChildren}
-                </Select>
-              )}
-            </FormItem>
-          </Col>
-          <Col span={24} className={transformTypeClassNames[2]}>
-            <FormItem label="Retention time (Sec)" {...itemStyleTimeout}>
-              {getFieldDecorator('timeout', {
-                rules: [{
-                  required: true,
-                  message: operateLanguageFillIn('retention time', 'Retention Time')
-                }, {
-                  validator: forceCheckNum
-                }],
-                hidden: transformTypeHiddens[2]
-              })(
-                <InputNumber min={10} max={1800} step={1} placeholder="Time" />
-              )}
-            </FormItem>
-          </Col>
-
-          <Col span={6} className={transformTypeClassNames[2]}>
-            <FormItem label="SQL" className="tran-sql-label">
-              {getFieldDecorator('streamJoinSql', {
-                hidden: transformTypeHiddens[2]
-              })(
-                <Input className="hide" />
-              )}
-            </FormItem>
-          </Col>
-          <Col span={17} className={`${transformTypeClassNames[2]} cm-sql-textarea`}>
-            <textarea
-              id="streamJoinSqlTextarea"
-              placeholder="Stream Join SQL"
-            />
-          </Col>
-
+          {flowSubPanelKey === 'spark' ? (
+            <Col span={24} className={transformTypeClassNames[2]}>
+              <FormItem label="Type" {...itemStyle} style={{lineHeight: '36px'}}>
+                {getFieldDecorator('streamJoinSqlType', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('type', 'Type')
+                  }],
+                  hidden: transformTypeHiddens[2]
+                })(
+                  <DataSystemSelector
+                    data={flowStreamJoinSqlType}
+                    onItemSelect={this.onStreamJoinSqlTypeItemSelect}
+                  />
+                )}
+              </FormItem>
+            </Col>
+          ) : '' }
+          {flowSubPanelKey === 'spark' ? (
+            <Col span={24} className={transformTypeClassNames[2]}>
+              <FormItem label="Namespace" {...itemStyle}>
+                {getFieldDecorator('streamJoinSqlNs', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('namespace', 'Namespace')
+                  }],
+                  hidden: transformTypeHiddens[2]
+                })(
+                  <Select
+                    mode="multiple"
+                    placeholder="Select namespaces"
+                  >
+                    {nsChildren}
+                  </Select>
+                )}
+              </FormItem>
+            </Col>
+          ) : '' }
+          {flowSubPanelKey === 'spark' ? (
+            <Col span={24} className={transformTypeClassNames[2]}>
+              <FormItem label="Retention time (Sec)" {...itemStyleTimeout}>
+                {getFieldDecorator('timeout', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageFillIn('retention time', 'Retention Time')
+                  }, {
+                    validator: forceCheckNum
+                  }],
+                  hidden: transformTypeHiddens[2]
+                })(
+                  <InputNumber min={10} max={1800} step={1} placeholder="Time" />
+                )}
+              </FormItem>
+            </Col>
+          ) : '' }
+          {flowSubPanelKey === 'spark' ? (
+            <Col span={6} className={transformTypeClassNames[2]}>
+              <FormItem label="SQL" className="tran-sql-label">
+                {getFieldDecorator('streamJoinSql', {
+                  hidden: transformTypeHiddens[2]
+                })(
+                  <Input className="hide" />
+                )}
+              </FormItem>
+            </Col>
+          ) : '' }
+          {flowSubPanelKey === 'spark' ? (
+            <Col span={17} className={`${transformTypeClassNames[2]} cm-sql-textarea`}>
+              <textarea
+                id="streamJoinSqlTextarea"
+                placeholder="Stream Join SQL"
+              />
+            </Col>
+          ) : '' }
           {/* 设置 ClassName */}
-          <Col span={24} className={transformTypeClassNames[3]}>
-            <FormItem label="ClassName" {...itemStyle}>
-              {getFieldDecorator('transformClassName', {
-                rules: [{
-                  required: true,
-                  message: operateLanguageFillIn('className', 'ClassName')
-                }],
-                hidden: transformTypeHiddens[3]
-              })(
-                <Input type="textarea" placeholder="ClassName" autosize={{ minRows: 5, maxRows: 8 }} />
-              )}
-            </FormItem>
-          </Col>
+          {flowSubPanelKey === 'spark' ? (
+            <Col span={24} className={transformTypeClassNames[3]}>
+              <FormItem label="ClassName" {...itemStyle}>
+                {getFieldDecorator('transformClassName', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageFillIn('className', 'ClassName')
+                  }],
+                  hidden: transformTypeHiddens[3]
+                })(
+                  <Input type="textarea" placeholder="ClassName" autosize={{ minRows: 5, maxRows: 8 }} />
+                )}
+              </FormItem>
+            </Col>
+          ) : '' }
+          {/* 设置 Flink CEP  */}
+          {flowSubPanelKey === 'flink' ? (
+            <Card title="Pattern" className={`${flinkTransformTypeClassNames[2]}`}>
+              <Col span={24} className={transformTypeClassNames[3]}>
+                <Table
+                  dataSource={cepDataSource}
+                  columns={columnsCEP}
+                  pagination={pagination}
+                  bordered
+                  className="tran-table-style"
+                />
+              </Col>
+              <Col span={24}>
+                <FormItem label="Operator" {...itemStyle}>
+                  {getFieldDecorator('operator', {
+                    rules: [{
+                      required: true,
+                      message: operateLanguageSelect('operator', 'Operator')
+                    }]
+                  })(
+                    <RadioGroup size="default">
+                      <RadioButton value="begin" className="radio-btn-style">Begin</RadioButton>
+                      <RadioButton value="next" className="radio-btn-style">Next</RadioButton>
+                      <RadioButton value="followBy" className="radio-btn-style">FollowBy</RadioButton>
+                      <RadioButton value="notNext" className="radio-btn-style">NotNext</RadioButton>
+                      <RadioButton value="notFollowBy" className="radio-btn-style">NotFollowBy</RadioButton>
+                    </RadioGroup>
+                  )}
+                </FormItem>
+              </Col>
+              <Col span={24}>
+                <FormItem label="Conditions" {...itemStyle}>
+                  {getFieldDecorator('conditions', {
+                    rules: [{
+                      required: true,
+                      message: operateLanguageSelect('conditions', 'Conditions')
+                      // hidden: flinkTransformTypeHiddens[2]
+                    }]
+                  })(
+                    <div>111</div>
+                  )}
+                </FormItem>
+              </Col>
+              <Col span={24}>
+                <FormItem label="Quartifier" {...itemStyle}>
+                  {getFieldDecorator('quartifier', {
+                    rules: [{
+                      required: true,
+                      message: operateLanguageSelect('quartifier', 'Quartifier')
+                      // hidden: flinkTransformTypeHiddens[2]
+                    }]
+                  })(
+                    <RadioGroup size="default">
+                      <RadioButton value="oneOrMore" className="radio-btn-style">OneOrMore</RadioButton>
+                      <RadioButton value="times" className="radio-btn-style">Times($int$)</RadioButton>
+                      <RadioButton value="timesOrMore" className="radio-btn-style">TimesOrMore($int$)</RadioButton>
+                    </RadioGroup>
+                  )}
+                </FormItem>
+              </Col>
+            </Card>
+          ) : ''}
         </Row>
       </Form>
 
