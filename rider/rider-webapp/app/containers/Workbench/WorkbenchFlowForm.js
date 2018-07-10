@@ -422,8 +422,12 @@ export class WorkbenchFlowForm extends React.Component {
       ? undefined
       : selectStreamKafkaTopicValue.map(s => (<Option key={s.id} value={`${s.name}`}>{s.name}</Option>))
 
-    const { etpStrategyConfirmValue, transConfigConfirmValue, resultFieldsValue, flowKafkaInstanceValue } = this.props
+    const { etpStrategyConfirmValue, transConfigConfirmValue, resultFieldsValue, flowKafkaInstanceValue, flowSubPanelKey, streamId } = this.props
 
+    let maxParallelism = 0
+    for (let v of selectStreamKafkaTopicValue) {
+      if (v.id === streamId) maxParallelism = v.maxParallelism
+    }
     return (
       <Form className="ri-workbench-form workbench-flow-form">
         {/* Step 1 */}
@@ -502,19 +506,21 @@ export class WorkbenchFlowForm extends React.Component {
                 )}
               </FormItem>
             </Col>
-            <Col span={24}>
-              <FormItem label="Parallelism" {...itemStyle}>
-                {getFieldDecorator('parallelism', {
-                  rules: [{
-                    required: true,
-                    message: operateLanguageFillIn('parallelism', 'Parallelism')
-                  }],
-                  initialValue: 1
-                })(
-                  <InputNumber min={1} />
-                )}
-              </FormItem>
-            </Col>
+            {flowSubPanelKey === 'flink' ? (
+              <Col span={24}>
+                <FormItem label="Parallelism" {...itemStyle}>
+                  {getFieldDecorator('parallelism', {
+                    rules: [{
+                      required: true,
+                      message: operateLanguageFillIn('parallelism', 'Parallelism')
+                    }],
+                    initialValue: 1
+                  })(
+                    <InputNumber min={1} max={maxParallelism} />
+                  )}
+                </FormItem>
+              </Col>
+            ) : ''}
           </Card>
           <Card title="Source" className="ri-workbench-form-card-style source-card">
             <Col span={24}>
@@ -1136,7 +1142,8 @@ WorkbenchFlowForm.propTypes = {
   sinkConfigCopy: PropTypes.string,
   flowSourceNsSys: PropTypes.string,
   emitDataSystem: PropTypes.func,
-  changeStreamType: PropTypes.func
+  changeStreamType: PropTypes.func,
+  flowSubPanelKey: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {

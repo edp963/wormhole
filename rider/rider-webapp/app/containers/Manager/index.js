@@ -1216,10 +1216,10 @@ export class Manager extends React.Component {
 
     const pagination = {
       defaultPageSize: 10,
-      showSizeChanger: true,
-      onChange: (current) => {
-        console.log('Current: ', current)
-      }
+      showSizeChanger: true
+      // onChange: (current) => {
+      //   console.log('Current: ', current)
+      // }
     }
 
     const streamStartForm = startModalVisible
