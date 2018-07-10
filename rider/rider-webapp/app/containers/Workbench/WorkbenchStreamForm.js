@@ -137,7 +137,8 @@ export class WorkbenchStreamForm extends React.PureComponent {
                 rules: [{
                   required: true,
                   message: operateLanguageSelect('type', 'Type')
-                }]
+                }],
+                initialValue: 'default'
               })(
                 <RadioGroup className="radio-group-style" disabled={streamMode === 'edit'} size="default">
                   <RadioButton value="default" className="radio-btn-style radio-btn-extra">Default</RadioButton>

@@ -45,7 +45,7 @@ object SparkStatusQuery extends RiderLogger {
     modules.jobDal.updateJobStatus(job.id, appInfo, job.logPath.getOrElse(""))
     //    val startedTime = if (appInfo.startedTime != null) Some(appInfo.startedTime) else Some("")
     //    val stoppedTime = if (appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
-    val newJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.sourceType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
+    val newJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
       job.sinkConfig, job.tranConfig, appInfo.appState, Some(appInfo.appId), job.logPath, Option(appInfo.startedTime), Option(appInfo.finishedTime), job.createTime, job.createBy, job.updateTime, job.updateBy)
     FullJobInfo(newJob, projectName, getDisableAction(newJob))
   })

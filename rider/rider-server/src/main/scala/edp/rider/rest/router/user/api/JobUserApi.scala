@@ -2,26 +2,21 @@ package edp.rider.rest.router.user.api
 
 import akka.http.scaladsl.model.StatusCodes.OK
 import akka.http.scaladsl.server.Route
-import edp.rider.common.RiderLogger
+import edp.rider.common.{JobStatus, RiderLogger}
 import edp.rider.rest.persistence.dal.{JobDal, ProjectDal, StreamDal}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, SessionClass}
-import edp.rider.spark.{SparkJobClientLog, SparkStatusQuery, SubmitSparkJob}
-import edp.rider.rest.util.{AuthorizationProvider, JobUtils, StreamUtils}
 import edp.rider.rest.util.CommonUtils.{currentSec, minTimeOut}
-import edp.rider.rest.util.JobUtils.killJob
-import edp.rider.rest.util.ResponseUtils.getHeader
+import edp.rider.rest.util.JobUtils.{getDisableAction, killJob}
+import edp.rider.rest.util.ResponseUtils.{getHeader, _}
 import edp.rider.rest.util.StreamUtils.genStreamNameByProjectName
+import edp.rider.rest.util.{AuthorizationProvider, JobUtils, NamespaceUtils, StreamUtils}
+import edp.rider.spark.SubmitSparkJob.runShellCommand
+import edp.rider.spark.{SparkJobClientLog, SparkStatusQuery}
+import edp.wormhole.common.util.JsonUtils.json2caseClass
 import slick.jdbc.MySQLProfile.api._
-import edp.rider.common.JobStatus
-import edp.rider.module.DbModule.db
-import edp.rider.rest.util.JobUtils.getDisableAction
-import edp.rider.rest.util.ProjectUtils.isResourceEnough
 
 import scala.concurrent.Await
-import edp.rider.spark.SubmitSparkJob.runShellCommand
-import edp.wormhole.common.util.JsonUtils.json2caseClass
-
 import scala.util.{Failure, Success}
 
 class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) extends BaseUserApiImpl[JobTable, Job](jobDal) with RiderLogger with JsonSerializer {
@@ -38,17 +33,22 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                 } else {
                   if (session.projectIdList.contains(projectId)) {
                     val projectName = jobDal.adminGetRow(projectId)
-                    val jobInsert = Job(0, genStreamNameByProjectName(projectName, simple.name), projectId, simple.sourceNs, simple.sinkNs, simple.sourceType, simple.sparkConfig, simple.startConfig, simple.eventTsStart, simple.eventTsEnd,
+                    val jobInsert = Job(0, genStreamNameByProjectName(projectName, simple.name), projectId, simple.sourceNs, JobUtils.getJobSinkNs(simple.sourceNs, simple.sinkNs, simple.jobType), simple.jobType, simple.sparkConfig, simple.startConfig, simple.eventTsStart, simple.eventTsEnd,
                       simple.sourceConfig, simple.sinkConfig, simple.tranConfig, "new", None, Some(""), None, None, currentSec, session.userId, currentSec, session.userId)
                     try {
-                      onComplete(jobDal.insert(jobInsert)) {
-                        case Success(job) =>
-                          riderLogger.info(s"user ${session.userId} inserted job where project id is $projectId success.")
-                          val projectName = jobDal.adminGetRow(job.projectId)
-                          complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(job))))
-                        case Failure(ex) =>
-                          riderLogger.error(s"user ${session.userId} inserted job where project id is $projectId failed", ex)
-                          complete(OK, getHeader(451, ex.getMessage, session))
+                      if (StreamUtils.checkYarnAppNameUnique(jobInsert.name, projectId)) {
+                        onComplete(jobDal.insert(jobInsert)) {
+                          case Success(job) =>
+                            riderLogger.info(s"user ${session.userId} inserted job where project id is $projectId success.")
+                            val projectName = jobDal.adminGetRow(job.projectId)
+                            complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(job))))
+                          case Failure(ex) =>
+                            riderLogger.error(s"user ${session.userId} inserted job where project id is $projectId failed", ex)
+                            complete(OK, getHeader(451, ex.getMessage, session))
+                        }
+                      } else {
+                        riderLogger.warn(s"user ${session.userId} check stream name ${jobInsert.name} already exists success.")
+                        complete(OK, getHeader(409, s"${jobInsert.name} already exists", session))
                       }
                     } catch {
                       case ex: Exception =>
@@ -99,7 +99,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                           complete(OK, getHeader(507, "resource is not enough", session))
                         } else {
                           val logPath = StreamUtils.getLogPath(job.name)
-                          val updateJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.sourceType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd,
+                          val updateJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd,
                             job.sourceConfig, job.sinkConfig, job.tranConfig, JobStatus.STARTING.toString, None, Option(logPath), Some(currentSec), None, job.createTime, job.createBy, currentSec, session.userId)
                           JobUtils.startJob(job, logPath)
                           Await.result(jobDal.update(updateJob), minTimeOut)
@@ -145,7 +145,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                     riderLogger.info(s"user ${session.userId} refresh job.")
                     val job = JobUtils.refreshJob(jobId)
                     val projectName = jobDal.adminGetRow(job.projectId)
-                    complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(job, projectName, getDisableAction(job))))
+                    complete(OK, ResponseJson[JobTopicInfo](getHeader(200, session), JobTopicInfo(job, projectName, NamespaceUtils.getTopic(job.sourceNs), getDisableAction(job))))
                   case None =>
                     complete(OK, ResponseJson[String](getHeader(200, session), ""))
 
@@ -207,24 +207,16 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                           complete(OK, ResponseJson[Seq[FullJobInfo]](getHeader(200, session), Seq()))
                         }
                       case (None, None, Some(jobName)) =>
-                        val projectName = jobDal.adminGetRow(projectId)
-                        onComplete(jobDal.checkJobNameUnique("wormhole_" + projectName + "_" + jobName)) {
-                          case Success(jobs) =>
-                            if (jobs.isEmpty) {
-                              riderLogger.info(s"user ${session.userId} check job name $jobName doesn't exist success.")
-                              complete(OK, ResponseJson[String](getHeader(200, session), jobName))
-                            }
-                            else {
-                              riderLogger.warn(s"user ${session.userId} check job name $jobName already exists success.")
-                              complete(OK, getHeader(409, s"$jobName already exists", session))
-                            }
-                          case Failure(ex) =>
-                            riderLogger.error(s"user ${session.userId} check job name $jobName does exist failed", ex)
-                            complete(OK, getHeader(451, ex.getMessage, session))
+                        if (StreamUtils.checkYarnAppNameUnique(jobName, projectId)) {
+                          riderLogger.info(s"user ${session.userId} check stream name $jobName doesn't exist success.")
+                          complete(OK, ResponseJson[String](getHeader(200, session), jobName))
+                        } else {
+                          riderLogger.warn(s"user ${session.userId} check stream name $jobName already exists success.")
+                          complete(OK, getHeader(409, s"$jobName already exists", session))
                         }
                       case (_, _, _) =>
                         riderLogger.error(s"user ${session.userId} request url is not supported.")
-                        complete(OK, getHeader(501, session))
+                        complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
                     }
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
@@ -268,7 +260,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                   riderLogger.info(s"user ${session.userId} stop job $jobId success.")
                   val projectName = jobDal.adminGetRow(projectId)
                   val jobGet = job.get
-                  val updateJob = Job(jobGet.id, jobGet.name, jobGet.projectId, jobGet.sourceNs, jobGet.sinkNs, jobGet.sourceType, jobGet.sparkConfig, jobGet.startConfig, jobGet.eventTsStart, jobGet.eventTsEnd,
+                  val updateJob = Job(jobGet.id, jobGet.name, jobGet.projectId, jobGet.sourceNs, jobGet.sinkNs, jobGet.jobType, jobGet.sparkConfig, jobGet.startConfig, jobGet.eventTsStart, jobGet.eventTsEnd,
                     jobGet.sourceConfig, jobGet.sinkConfig, jobGet.tranConfig, status, jobGet.sparkAppid, jobGet.logPath, jobGet.startedTime, jobGet.stoppedTime, jobGet.createTime, jobGet.createBy, jobGet.updateTime, jobGet.updateBy)
                   complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(updateJob))))
                 }
@@ -381,7 +373,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                   complete(OK, getHeader(403, session))
                 } else {
                   if (session.projectIdList.contains(projectId)) {
-                    val newJob = Job(updatedJob.id, updatedJob.name, updatedJob.projectId, updatedJob.sourceNs, updatedJob.sinkNs, updatedJob.sourceType, updatedJob.sparkConfig, updatedJob.startConfig, updatedJob.eventTsStart, updatedJob.eventTsEnd,
+                    val newJob = Job(updatedJob.id, updatedJob.name, updatedJob.projectId, updatedJob.sourceNs, updatedJob.sinkNs, updatedJob.jobType, updatedJob.sparkConfig, updatedJob.startConfig, updatedJob.eventTsStart, updatedJob.eventTsEnd,
                       updatedJob.sourceConfig, updatedJob.sinkConfig, updatedJob.tranConfig, updatedJob.status, updatedJob.sparkAppid, updatedJob.logPath, if (updatedJob.startedTime.isEmpty || updatedJob.startedTime.get == null || updatedJob.startedTime.get.trim.isEmpty) null else updatedJob.startedTime, if (updatedJob.stoppedTime.isEmpty || updatedJob.stoppedTime.get.trim.isEmpty) null else updatedJob.stoppedTime, updatedJob.createTime, updatedJob.createBy, currentSec, session.userId)
                     onComplete(jobDal.update(newJob)) {
                       case Success(_) =>

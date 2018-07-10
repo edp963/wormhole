@@ -25,14 +25,18 @@ import edp.rider.rest.persistence.base.{BaseEntity, BaseTable, SimpleBaseEntity}
 import slick.lifted.Tag
 import slick.jdbc.MySQLProfile.api._
 
-case class RelProjectUser(id: Long,
+case class RelProjectUser(override val id: Long,
                           projectId: Long,
                           userId: Long,
                           active: Boolean,
                           createTime: String,
                           createBy: Long,
                           updateTime: String,
-                          updateBy: Long) extends BaseEntity
+                          updateBy: Long) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
 
 
 case class SimpleRelProjectUser(projectId: Long,

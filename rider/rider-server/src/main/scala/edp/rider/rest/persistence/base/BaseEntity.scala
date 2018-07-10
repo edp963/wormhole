@@ -23,6 +23,8 @@ package edp.rider.rest.persistence.base
 
 trait BaseEntity {
   val id: Long
+
+  def copyWithId(id: Long): this.type
 }
 
 trait SimpleBaseEntity {

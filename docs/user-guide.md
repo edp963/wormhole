@@ -126,15 +126,35 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-sparkxinterface</artifactId>
-     <version>0.4.0</version>
+     <version>0.4.2</version>
   </dependency>
+  ```
+
+- clone wormhole github 项目，本地安装 wormhole-sparkxinterface jar 包
+
+  ```
+  方式1：wormhole 目录下执行安装全量包，大约8分钟左右
+
+  mvn clean install package -Pwormhole 
+
+  方式2：单独安装 wormhole-sparkxinterface 包，大约1分钟左右
+
+  wormhole 目录下执行
+
+  mvn clean install package
+
+  wormhole/common/sparkxinterface 目录下执行
+
+  mvn clean install package
   ```
 
 - 继承 并实现 wormhole/common/sparkxinterface module 下的 edp.wormhole.sparkxinterface.swifts.SwiftsInterface 接口，可参考 wormhole/sparkx module 下的 edp.wormhole.swifts.custom.CustomTemplate 类
 
-- 编译打包，Jar 包放置在 $SPARK_HOME/jars 目录下
+- 编译打包，将带有 Dependencies 的 Jar 包放置在 $SPARK_HOME/jars 目录下
 
 - 页面配置时，选择 Custom Class，输入方法名全路径，如 edp.wormhole.swifts.custom.CustomTemplate
+
+- Flow 启动或生效，重启 Stream
 
 ##### SQL
 

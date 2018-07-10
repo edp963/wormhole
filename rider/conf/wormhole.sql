@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   `role_type` VARCHAR(100) NOT NULL,
   `preferred_language` VARCHAR(20) NOT NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `instance` (
   `ns_sys` VARCHAR(30) NOT NULL,
   `conn_url` VARCHAR(200) NOT NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS `ns_database` (
   `partitions` INT NOT NULL,
   `config` VARCHAR(2000) NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS `namespace` (
   `ns_database_id` BIGINT NOT NULL,
   `ns_instance_id` BIGINT NOT NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS `stream` (
   `started_time` TIMESTAMP NULL,
   `stopped_time` TIMESTAMP NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS `project` (
   `res_cores` INT NOT NULL,
   `res_memory_g` INT NOT NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS `rel_project_ns` (
   `project_id` BIGINT NOT NULL,
   `ns_id` BIGINT NOT NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
@@ -145,7 +145,7 @@ CREATE TABLE IF NOT EXISTS `rel_project_user` (
   `project_id` BIGINT NOT NULL,
   `user_id` BIGINT NOT NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS `rel_project_udf` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `project_id` BIGINT NOT NULL,
   `udf_id` BIGINT NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS `rel_stream_udf` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `stream_id` BIGINT NOT NULL,
   `udf_id` BIGINT NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
@@ -186,8 +186,8 @@ CREATE TABLE IF NOT EXISTS `dbus` (
   `topic` VARCHAR(200) NOT NULL,
   `instance_id` BIGINT NOT NULL,
   `database_id` BIGINT NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `synchronized_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `synchronized_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   PRIMARY KEY (`id`),
   UNIQUE INDEX `dbus_UNIQUE` (`namespace` ASC))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
@@ -205,7 +205,7 @@ CREATE TABLE IF NOT EXISTS `flow` (
   `started_time` TIMESTAMP NULL,
   `stopped_time` TIMESTAMP NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
@@ -222,7 +222,7 @@ CREATE TABLE IF NOT EXISTS `directive` (
   `flow_id` BIGINT NOT NULL,
   `directive` VARCHAR(2000) NOT NULL,
   `zk_path` VARCHAR(200) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`))
   ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
@@ -237,7 +237,7 @@ CREATE TABLE IF NOT EXISTS `rel_stream_intopic` (
   `partition_offsets` VARCHAR(5000) NOT NULL,
   `rate` INT NOT NULL,
   `active` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
@@ -253,7 +253,7 @@ CREATE TABLE IF NOT EXISTS `job` (
   `project_id` BIGINT NOT NULL,
   `source_ns` VARCHAR(200) NOT NULL,
   `sink_ns` VARCHAR(200) NOT NULL,
-  `source_type` VARCHAR(30) NOT NULL,
+  `job_type` VARCHAR(30) NOT NULL,
   `spark_config` VARCHAR(4000) NULL,
   `start_config` VARCHAR(1000) NOT NULL,
   `event_ts_start` VARCHAR(50) NOT NULL,
@@ -266,7 +266,7 @@ CREATE TABLE IF NOT EXISTS `job` (
   `log_path` VARCHAR(200) NULL,
   `started_time` TIMESTAMP NULL,
   `stopped_time` TIMESTAMP NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
@@ -279,6 +279,7 @@ alter table `job` drop column `consumed_protocol`;
 alter table `job` drop column `job_config`;
 alter table `job` add column `spark_config` VARCHAR(4000) NULL after `source_type`;
 alter table `job` add column `start_config` VARCHAR(1000) NOT NULL after `spark_config`;
+alter table `job` change column `source_type` `job_type` VARCHAR(30);
 
 
 CREATE TABLE IF NOT EXISTS `udf` (
@@ -288,7 +289,7 @@ CREATE TABLE IF NOT EXISTS `udf` (
   `jar_name` VARCHAR(200) NOT NULL,
   `desc` VARCHAR(200) NULL,
   `public` TINYINT(1) NOT NULL,
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
@@ -305,7 +306,7 @@ CREATE TABLE IF NOT EXISTS `feedback_heartbeat` (
   `ums_ts` TIMESTAMP NOT NULL,
   `stream_id` BIGINT NOT NULL,
   `namespace` VARCHAR(1000) NOT NULL,
-  `feedback_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `feedback_time` TIMESTAMP NOT NULL,
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -317,7 +318,7 @@ CREATE TABLE IF NOT EXISTS `feedback_stream_offset` (
   `topic_name` VARCHAR(200) NOT NULL,
   `partition_num` INT NOT NULL,
   `partition_offsets` VARCHAR(5000) NOT NULL,
-  `feedback_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `feedback_time` TIMESTAMP NOT NULL,
   PRIMARY KEY (`id`),
   KEY `streamIndex` (`stream_id`),
   KEY `timeIndex` (`feedback_time`)
@@ -333,7 +334,7 @@ CREATE TABLE IF NOT EXISTS `feedback_stream_error` (
   `stream_id`   BIGINT NOT NULL,
   `status`    VARCHAR(32) NOT NULL,
   `result_desc` VARCHAR(5000) NOT NULL,
-  `feedback_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `feedback_time` TIMESTAMP NOT NULL,
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -347,10 +348,10 @@ CREATE TABLE IF NOT EXISTS `feedback_flow_error` (
   `source_namespace`  VARCHAR(1000) NOT NULL,
   `sink_namespace`  VARCHAR(1000) NOT NULL,
   `error_count`   INT NOT NULL,
-  `error_max_watermark_ts`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `error_min_watermark_ts`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `error_max_watermark_ts` TIMESTAMP NOT NULL,
+  `error_min_watermark_ts` TIMESTAMP NOT NULL,
   `error_info` VARCHAR(5000) NOT NULL,
-  `feedback_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `feedback_time` TIMESTAMP NOT NULL,
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -364,7 +365,7 @@ CREATE TABLE IF NOT EXISTS `feedback_directive` (
   `directive_id`  BIGINT NOT NULL,
   `status`      VARCHAR(32) NOT NULL,
   `result_desc` VARCHAR(5000),
-  `feedback_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `feedback_time` TIMESTAMP NOT NULL,
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 

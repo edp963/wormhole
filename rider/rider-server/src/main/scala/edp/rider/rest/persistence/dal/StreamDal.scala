@@ -183,11 +183,6 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     }.result).mapTo[Seq[StreamCacheMap]]
   }
 
-  def getConfList = {
-    lazy val driverConf = RiderConfig.spark.driverExtraConf
-    lazy val executorConf = RiderConfig.spark.executorExtraConf
-    driverConf + "," + executorConf
-  }
 
   def updateStreamTable(stream: Stream): Future[Int] = {
     db.run(streamTable.filter(_.id === stream.id).update(stream))
@@ -196,11 +191,6 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   def updateStreamsTable(streams: Seq[Stream]) = {
     db.run(DBIO.seq(streams.map(stream => streamTable.filter(_.id === stream.id).update(stream)): _*))
   }
-
-  def checkStreamNameUnique(streamName: String) = {
-    db.run(streamTable.filter(_.name === streamName).result)
-  }
-
 
   def getProjectStreamsUsedResource(projectId: Long) = {
     val streamSeq: Seq[Stream] = Await.result(super.findByFilter(job => job.projectId === projectId && (job.status === "running" || job.status === "waiting" || job.status === "starting" || job.status === "stopping")), minTimeOut)
