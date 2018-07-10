@@ -34,6 +34,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.kafka010.{CanCommitOffsets, HasOffsetRanges, OffsetRange, WormholeDirectKafkaInputDStream}
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 object RouterMainProcess extends EdpLogging {
@@ -81,7 +82,10 @@ object RouterMainProcess extends EdpLogging {
             }
           }
           partition.foreach { case (key, value) => {
-            val keys = key.split("\\.")
+
+            val sinkNamespaceMap = mutable.HashMap.empty[String,String]
+
+            val keys: Array[String] = key.split("\\.")
             val (protocolType, namespace) = if (keys.length > 7) (keys(0).toLowerCase, keys.slice(1, 8).mkString(".")) else (keys(0).toLowerCase, "")
             val matchNamespace = (namespace.split("\\.").take(4).mkString(".") + ".*.*.*").toLowerCase()
             if (ConfMemoryStorage.existNamespace(routerKeys, matchNamespace)) {
@@ -91,10 +95,14 @@ object RouterMainProcess extends EdpLogging {
                 val prefix = value.substring(0, messageIndex)
                 val suffix = value.substring(messageIndex + namespace.length)
                 routerMap(matchNamespace)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
+                  if(!sinkNamespaceMap.contains(sinkNamespace)) sinkNamespaceMap(sinkNamespace) = getNewSinkNamespace(keys,sinkNamespace)
+
+                  val newSinkNamespace = sinkNamespaceMap(sinkNamespace)
+
                   val messageBuf = new StringBuilder
-                  messageBuf ++= prefix ++= sinkNamespace ++= suffix
+                  messageBuf ++= prefix ++= newSinkNamespace ++= suffix
                   val kafkaMessage = messageBuf.toString
-                  WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + sinkNamespace + "..." + UUID.randomUUID().toString), kafkaBroker)
+                  WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + newSinkNamespace + "..." + UUID.randomUUID().toString), kafkaBroker)
                 }
               } else {
                 routerMap(matchNamespace)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
@@ -136,5 +144,18 @@ object RouterMainProcess extends EdpLogging {
         logAlert("router from " + sourceNamespace + " to " + sinkNamespace + " does not exist")
       }
     }
+  }
+
+  def getNewSinkNamespace(keys:Array[String],sinkNamespace:String): String ={
+    val sinkNsGrp =sinkNamespace.split("\\.")
+    val tableName = if(sinkNsGrp(3)=="*") keys(4) else sinkNsGrp(3)
+    val sinkVersion = if(sinkNsGrp(4)=="*") keys(5) else sinkNsGrp(4)
+    val sinkDbPar = if(sinkNsGrp(5)=="*") keys(6) else sinkNsGrp(5)
+    val sinkTablePar = if(sinkNsGrp(6)=="*") keys(7) else sinkNsGrp(6)
+
+    val messageBuf = new StringBuilder
+    messageBuf ++= sinkNsGrp(0) ++= "." ++= sinkNsGrp(1) ++= "." ++= sinkNsGrp(2) ++= "."++= tableName ++= "." ++= sinkVersion ++= "." ++= sinkDbPar ++= "." ++= sinkTablePar
+
+    messageBuf.toString()
   }
 }
