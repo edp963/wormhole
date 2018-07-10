@@ -27,8 +27,8 @@ import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{NamespaceDal, RelProjectNsDal}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
-import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils._
+import edp.rider.rest.util.{AuthorizationProvider, NamespaceUtils}
 
 import scala.util.{Failure, Success}
 
@@ -92,7 +92,7 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
 
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
-                    complete(OK, getHeader(501, session))
+                    complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
                   }
                 }
 
@@ -148,7 +148,7 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
                     }
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
-                    complete(OK, getHeader(501, session))
+                    complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
                   }
                 }
             }
@@ -178,7 +178,7 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
                 }
               } else {
                 riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
-                complete(OK, getHeader(501, session))
+                complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
               }
             }
         }
@@ -207,9 +207,37 @@ class NamespaceUserApi(namespaceDal: NamespaceDal, relProjectNsDal: RelProjectNs
                 }
               } else {
                 riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
-                complete(OK, getHeader(501, session))
+                complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
               }
 
+            }
+        }
+      }
+  }
+
+  def getTopicRoute(route: String): Route = path(route / LongNumber / "namespaces" / LongNumber / "topic") {
+    (id, nsId) =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "user") {
+              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              if (session.projectIdList.contains(id)) {
+                try {
+                  val topic = NamespaceUtils.getTopic(nsId)
+                  complete(OK, ResponseJson[String](getHeader(200, session), topic))
+                } catch {
+                  case ex: Exception =>
+                    riderLogger.error(s"user ${session.userId} get namespace $nsId topic failed", ex)
+                    complete(OK, ResponseJson[String](getHeader(451, session), ex.getMessage))
+                }
+              } else {
+                riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $id.")
+                complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
+              }
             }
         }
       }

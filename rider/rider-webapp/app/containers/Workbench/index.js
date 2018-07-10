@@ -78,7 +78,7 @@ import { loadSelectNamespaces, loadUserNamespaces } from '../Namespace/action'
 import { loadUserUsers, loadSelectUsers } from '../User/action'
 import { loadResources } from '../Resource/action'
 import { loadSingleUdf } from '../Udf/action'
-import { loadJobSourceToSinkExist, addJob, queryJob, editJob } from '../Job/action'
+import { loadJobSourceToSinkExist, addJob, queryJob, editJob, loadJobBackfillTopic } from '../Job/action'
 
 import { selectFlows, selectFlowSubmitLoading } from '../Flow/selectors'
 import { selectStreams, selectStreamSubmitLoading } from '../Manager/selectors'
@@ -199,12 +199,21 @@ export class Workbench extends React.Component {
       jobSpecialConfigModalVisible: false,
       jobSinkConfigModalVisible: false,
       jobTranConfigConfirmValue: '',
+      jobDiffType: 'default',
+      backfillTopicValueProp: '',
 
       routingSinkTypeNsData: [],
       routingSourceNsValue: '',
       transConfigConfirmValue: '',
       sinkConfigCopy: '',
-      sinkDSCopy: ''
+      sinkDSCopy: '',
+      backfillSinkNsValue: '',
+      mapJobType: {
+        'default': '1',
+        'backfill': '2',
+        '1': 'default',
+        '2': 'backfill'
+      }
     }
   }
 
@@ -279,6 +288,23 @@ export class Workbench extends React.Component {
 
   initialHdfslogCascader = (value) => this.setState({ hdfslogSinkNsValue: value.join('.') })
 
+  initialBackfillCascader = (value, selectedOptions) => {
+    const { projectId } = this.state
+    if (Object.prototype.toString.call(selectedOptions) !== '[object Array]') return
+    if (selectedOptions.length === 0) return
+    if (selectedOptions[selectedOptions.length - 1]) {
+      let id = selectedOptions[selectedOptions.length - 1].id
+      // if (this.state.namespaceId !== id) {
+        // setTimeout(() => {
+      this.setState({namespaceId: id})
+      this.props.onLoadJobBackfillTopic(projectId, id, (result) => {
+        this.setState({backfillTopicValueProp: result})
+      })
+        // }, 20)
+      // }
+    }
+    this.setState({ backfillSinkNsValue: value.join('.') })
+  }
   initialRoutingCascader = (value) => {
     const { projectId, pipelineStreamId, routingSourceNsValue } = this.state
 
@@ -455,6 +481,9 @@ export class Workbench extends React.Component {
     }
   }
 
+  onInitJobTypeSelect = (val) => {
+    this.setState({ jobDiffType: val })
+  }
   showCopyFlowWorkbench = (flow) => {
     this.setState({
       flowMode: 'copy',
@@ -489,7 +518,8 @@ export class Workbench extends React.Component {
   }
 
   showEditJobWorkbench = (job) => () => {
-    this.setState({ jobMode: 'edit' })
+    const { mapJobType } = this.state
+    this.setState({ jobMode: 'edit', jobDiffType: job.jobType })
 
     new Promise((resolve) => {
       const requestData = {
@@ -503,15 +533,20 @@ export class Workbench extends React.Component {
         this.workbenchJobForm.setFieldsValue({
           protocol: JSON.parse(sourceConfigTemp).protocol,
           jobName: resultFinal.name,
-          type: resultFinal.jobType,
+          type: mapJobType[resultFinal.jobType],
           eventStartTs: resultFinal.eventTsStart === '' ? null : Moment(formatString(resultFinal.eventTsStart)),
           eventEndTs: resultFinal.eventTsEnd === '' ? null : Moment(formatString(resultFinal.eventTsEnd))
         })
 
         const { sparkConfig, startConfig, id, name, projectId, sourceNs, sinkNs, jobType,
           sparkAppid, logPath, startedTime, stoppedTime, status, createTime, createBy, updateTime, updateBy } = resultFinal
+
+        const jobResultSinkNsArr = resultFinal.sinkNs.split('.')
+        const jobResultSinkNsFinal = [jobResultSinkNsArr[1], jobResultSinkNsArr[2], jobResultSinkNsArr[3]].join('.')
         this.setState({
           formStep: 0,
+          backfillSinkNsValue: jobResultSinkNsFinal,
+          backfillTopicValueProp: result.topic,
           jobSparkConfigValues: {
             sparkConfig: sparkConfig,
             startConfig: startConfig
@@ -1358,7 +1393,7 @@ export class Workbench extends React.Component {
   hideJobWorkbench = () => this.setState({ jobMode: '' })
 
   forwardStep = () => {
-    const { tabPanelKey, streamDiffType } = this.state
+    const { tabPanelKey, streamDiffType, jobDiffType } = this.state
 
     switch (tabPanelKey) {
       case 'flow':
@@ -1369,7 +1404,11 @@ export class Workbench extends React.Component {
         }
         break
       case 'job':
-        this.handleForwardJob()
+        if (jobDiffType === 'default') {
+          this.handleForwardJob()
+        } else if (jobDiffType === 'backfill') {
+          this.handleForwardJobBackfill()
+        }
         break
     }
   }
@@ -1513,20 +1552,23 @@ export class Workbench extends React.Component {
     })
   }
 
-  loadJobSTSExit (values) {
-    const { jobMode, formStep, projectId } = this.state
-
+  loadJobSTSExit (values, step = 1) {
+    const { jobMode, formStep, projectId, jobDiffType } = this.state
+    let jobStepSourceNs = [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.')
+    let jobStepSinkNs = jobDiffType === 'backfill' ? jobStepSourceNs : [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
     switch (jobMode) {
       case 'add':
         // 新增 Job 时验证 source to sink 是否存在
         const sourceInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
-        const sinkInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
+        const sinkInfo = jobDiffType === 'backfill'
+          ? sourceInfo
+          : [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
 
         this.props.onLoadJobSourceToSinkExist(projectId, sourceInfo, sinkInfo, () => {
           this.setState({
-            formStep: formStep + 1,
-            jobStepSourceNs: [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.'),
-            jobStepSinkNs: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
+            formStep: formStep + step,
+            jobStepSourceNs,
+            jobStepSinkNs
           })
         }, () => {
           message.error(operateLanguageSourceToSink(), 3)
@@ -1534,9 +1576,9 @@ export class Workbench extends React.Component {
         break
       case 'edit':
         this.setState({
-          formStep: formStep + 1,
-          jobStepSourceNs: [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.'),
-          jobStepSinkNs: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
+          formStep: formStep + step,
+          jobStepSourceNs,
+          jobStepSinkNs
         })
         break
     }
@@ -1596,8 +1638,19 @@ export class Workbench extends React.Component {
     })
   }
 
+  handleForwardJobBackfill () {
+    const { formStep } = this.state
+    this.workbenchJobForm.validateFieldsAndScroll((err, values) => {
+      if (!err) {
+        if (formStep === 0) {
+          this.loadJobSTSExit(values, 2)
+        }
+      }
+    })
+  }
+
   backwardStep = () => {
-    const { streamDiffType, formStep, tabPanelKey } = this.state
+    const { streamDiffType, formStep, tabPanelKey, jobDiffType } = this.state
 
     switch (tabPanelKey) {
       case 'flow':
@@ -1606,7 +1659,7 @@ export class Workbench extends React.Component {
         })
         break
       case 'job':
-        this.setState({ formStep: formStep - 1 })
+        this.setState({ formStep: jobDiffType === 'default' ? formStep - 1 : formStep - 2 })
         break
     }
   }
@@ -1667,7 +1720,7 @@ export class Workbench extends React.Component {
   submitJobForm = () => {
     const values = this.workbenchJobForm.getFieldsValue()
 
-    const { projectId, jobMode, startTsVal, endTsVal, singleJobResult } = this.state
+    const { projectId, jobMode, startTsVal, endTsVal, singleJobResult, jobDiffType, mapJobType } = this.state
     const { jobResultFiledsOutput, jobTranTableRequestValue, jobSparkConfigValues } = this.state
     const { locale } = this.props
 
@@ -1690,19 +1743,23 @@ export class Workbench extends React.Component {
     }
 
     let sinkConfigRequest = ''
-    if (values.resultFields === 'all') {
-      if (!values.sinkConfig) {
-        sinkConfigRequest = values.sinkProtocol ? JSON.stringify(obj1) : maxRecord
+    if (jobDiffType === 'default') {
+      if (values.resultFields === 'all') {
+        if (!values.sinkConfig) {
+          sinkConfigRequest = values.sinkProtocol ? JSON.stringify(obj1) : maxRecord
+        } else {
+          sinkConfigRequest = values.sinkProtocol ? JSON.stringify(obj3) : JSON.stringify(obj2)
+        }
       } else {
-        sinkConfigRequest = values.sinkProtocol ? JSON.stringify(obj3) : JSON.stringify(obj2)
+        const obg4 = { sink_output: values.resultFieldsSelected }
+        if (!values.sinkConfig) {
+          sinkConfigRequest = values.sinkProtocol ? JSON.stringify(Object.assign(obj1, obg4)) : maxRecordAndResult
+        } else {
+          sinkConfigRequest = values.sinkProtocol ? JSON.stringify(Object.assign(obj3, obg4)) : JSON.stringify(Object.assign(obj2, obg4))
+        }
       }
-    } else {
-      const obg4 = { sink_output: values.resultFieldsSelected }
-      if (!values.sinkConfig) {
-        sinkConfigRequest = values.sinkProtocol ? JSON.stringify(Object.assign(obj1, obg4)) : maxRecordAndResult
-      } else {
-        sinkConfigRequest = values.sinkProtocol ? JSON.stringify(Object.assign(obj3, obg4)) : JSON.stringify(Object.assign(obj2, obg4))
-      }
+    } else if (jobDiffType === 'backfill') {
+      sinkConfigRequest = ''
     }
 
     let tranConfigRequest = {}
@@ -1725,13 +1782,13 @@ export class Workbench extends React.Component {
     if (jobMode === 'add') {
       // source data system 选择log后，根据接口返回的nsSys值，拼接 sourceDataInfo
       const sourceDataInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
-      const sinkDataInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
+      const sinkDataInfo = jobDiffType === 'backfill' ? sourceDataInfo : [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
 
       const submitJobData = {
         name: values.jobName,
         sourceNs: sourceDataInfo,
         sinkNs: sinkDataInfo,
-        jobType: values.type,
+        jobType: mapJobType[values.type],
         sourceConfig: `{"protocol":"${values.protocol}"}`
       }
 
@@ -2994,9 +3051,12 @@ export class Workbench extends React.Component {
     return [jvm, spark]
   }
 
+  clearSinkData = () => {
+    this.setState({backfillTopicValueProp: '', backfillSinkNsValue: ''})
+  }
+
   showAddJobWorkbench = () => {
     this.workbenchJobForm.resetFields()
-
     this.setState({
       jobMode: 'add',
       formStep: 0,
@@ -3005,10 +3065,13 @@ export class Workbench extends React.Component {
       jobTranTagClassName: '',
       jobTranTableClassName: 'hide',
       fieldSelected: 'hide',
-      resultFieldsValue: 'all'
+      resultFieldsValue: 'all',
+      backfillSinkNsValue: '',
+      jobDiffType: 'default',
+      backfillTopicValueProp: ''
     }, () => {
       this.workbenchJobForm.setFieldsValue({
-        type: 'hdfs_txt',
+        // type: 'default',
         resultFields: 'all'
       })
     })
@@ -3381,6 +3444,12 @@ export class Workbench extends React.Component {
                     onUpTransform={this.onJobUpTransform}
                     onDownTransform={this.onJobDownTransform}
                     jobTranTableConfirmValue={this.state.jobTranTableConfirmValue}
+                    initialBackfillCascader={this.initialBackfillCascader}
+                    backfillSinkNsValue={this.state.backfillSinkNsValue}
+                    onInitJobTypeSelect={this.onInitJobTypeSelect}
+                    jobDiffType={this.state.jobDiffType}
+                    backfillTopicValueProp={this.state.backfillTopicValueProp}
+                    clearSinkData={this.clearSinkData}
 
                     ref={(f) => { this.workbenchJobForm = f }}
                   />
@@ -3539,7 +3608,8 @@ Workbench.propTypes = {
   onLoadLookupSql: PropTypes.func,
   jobSubmitLoading: PropTypes.bool,
   roleType: PropTypes.string,
-  locale: PropTypes.string
+  locale: PropTypes.string,
+  onLoadJobBackfillTopic: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -3574,7 +3644,8 @@ export function mapDispatchToProps (dispatch) {
     onAddJob: (projectId, values, resolve, final) => dispatch(addJob(projectId, values, resolve, final)),
     onQueryJob: (values, resolve, final) => dispatch(queryJob(values, resolve, final)),
     onEditJob: (values, resolve, final) => dispatch(editJob(values, resolve, final)),
-    onLoadLookupSql: (values, resolve, reject) => dispatch(loadLookupSql(values, resolve, reject))
+    onLoadLookupSql: (values, resolve, reject) => dispatch(loadLookupSql(values, resolve, reject)),
+    onLoadJobBackfillTopic: (projectId, namespaceId, value, resolve) => dispatch(loadJobBackfillTopic(projectId, namespaceId, value, resolve))
   }
 }
 

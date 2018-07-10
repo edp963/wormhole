@@ -34,7 +34,11 @@ case class Udf(id: Long,
                createTime: String,
                createBy: Long,
                updateTime: String,
-               updateBy: Long) extends BaseEntity
+               updateBy: Long) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
 
 
 case class SimpleUdf(functionName: String,

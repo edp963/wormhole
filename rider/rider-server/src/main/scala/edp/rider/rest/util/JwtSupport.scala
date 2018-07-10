@@ -40,10 +40,10 @@ object JwtSupport {
     Jwt.encode(header, claim, secret)
   }
 
-  def generatePermanentToken(session: SessionClass): String = {
-    val claim = JwtClaim(caseClass2json(genCurrentSession(session)))
-    Jwt.encode(header, claim, secret)
-  }
+//  def generatePermanentToken(session: SessionClass): String = {
+//    val claim = JwtClaim(caseClass2json(genCurrentSession(session)))
+//    Jwt.encode(header, claim, secret)
+//  }
 
   def decodeToken(token: String): SessionClass = {
     val decodeToken = Jwt.decodeRawAll(token, secret, Seq(algorithm))

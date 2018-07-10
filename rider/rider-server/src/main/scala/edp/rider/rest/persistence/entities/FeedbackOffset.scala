@@ -34,7 +34,11 @@ case class FeedbackOffset(id: Long,
                           topicName: String,
                           partitionNum: Int,
                           partitionOffsets: String,
-                          feedbackTime: String) extends BaseEntity
+                          feedbackTime: String) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
 
 class FeedbackOffsetTable(_tableTag: Tag) extends BaseTable[FeedbackOffset](_tableTag, "feedback_stream_offset") {
   def * = (id, projectType, umsTs, streamId, topicName, partitionNum, partitionOffsets, feedbackTime) <> (FeedbackOffset.tupled, FeedbackOffset.unapply)

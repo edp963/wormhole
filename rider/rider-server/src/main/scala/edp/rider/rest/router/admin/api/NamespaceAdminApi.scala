@@ -147,7 +147,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                   case (_, None, None, None) => synchronizeNs(session, visible.getOrElse(true))
                   case (_, _, _, _) =>
                     riderLogger.error(s"user ${session.userId} request url is not supported.")
-                    complete(OK, getHeader(501, session))
+                    complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
                 }
               }
           }

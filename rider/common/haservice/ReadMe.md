@@ -1,1 +1,0 @@
-mvn clean deploy -Dassembly.skipAssembly=true -U -Dmaven.test.skip=true

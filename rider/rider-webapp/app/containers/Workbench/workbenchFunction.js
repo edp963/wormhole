@@ -51,7 +51,8 @@ export function generateSourceSinkNamespaceHierarchy (system, result) {
       if (!table) {
         const newTable = {
           value: item.nsTable,
-          label: item.nsTable
+          label: item.nsTable,
+          id: item.id
         }
         database.children.push(newTable)
       }

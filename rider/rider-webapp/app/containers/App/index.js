@@ -49,7 +49,6 @@ export class App extends React.Component {
 
   render () {
     const { router, params, children } = this.props
-
     const navOrNot = localStorage.getItem('token')
       ? (
         <Navigator

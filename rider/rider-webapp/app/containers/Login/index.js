@@ -113,7 +113,6 @@ export class Login extends React.PureComponent {
   render () {
     const { getFieldDecorator } = this.props.form
     const languageText = localStorage.getItem('preferredLanguage')
-
     return (
       <div className="login-container">
         <div className="login-panel">

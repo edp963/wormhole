@@ -33,7 +33,11 @@ case class FeedbackDirective(id: Long,
                              status: String,
                              resultDesc: String,
                              feedbackTime: String
-                            ) extends BaseEntity
+                            ) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
 
 class FeedbackDirectiveTable(_tableTag: Tag) extends BaseTable[FeedbackDirective](_tableTag, "feedback_directive") {
   def * = (id, projectType, umsTs, streamId, directiveId, status, resultDesc, feedbackTime) <> (FeedbackDirective.tupled, FeedbackDirective.unapply)

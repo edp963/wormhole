@@ -76,8 +76,7 @@ case class RiderSpark(user: String,
                       jarPath: String,
                       kafka08JarPath: String,
                       kafka08StreamNames: String,
-                      kafka11JarPath: String,
-                      kafka11StreamNames: String,
+                      sparkxInterfaceJarPath: String,
                       wormholeHeartBeatTopic: String,
                       driverMemory: Int,
                       driverCores: Int,
@@ -191,10 +190,10 @@ object RiderConfig {
 
   lazy val appTags = getStringConfig("spark.app.tags", "wormhole")
   lazy val wormholeClientLogPath = getStringConfig("spark.wormhole.client.log.root.path", s"${RiderConfig.riderRootPath}/logs/streams").concat("/")
-  lazy val wormholeJarPath = getStringConfig("spark.wormhole.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.4.1-SNAPSHOTS-jar-with-dependencies.jar")
-  lazy val wormholeKafka08JarPath = getStringConfig("spark.wormhole.kafka08.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.4.1-SNAPSHOTS-jar-with-dependencies-kafka08.jar")
+  lazy val wormholeJarPath = getStringConfig("spark.wormhole.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.4.2-SNAPSHOTS-jar-with-dependencies.jar")
+  lazy val wormholeKafka08JarPath = getStringConfig("spark.wormhole.kafka08.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.4.2-SNAPSHOTS-jar-with-dependencies-kafka08.jar")
   lazy val kafka08StreamNames = getStringConfig("spark.wormhole.kafka08.streams", "")
-  lazy val wormholeKafka11JarPath = getStringConfig("spark.wormhole.kafka11.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.4.1-SNAPSHOTS-jar-with-dependencies-kafka11.jar")
+  lazy val sparkxInterfaceJarPath = getStringConfig("spark.wormhole.sparkxinterface.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-sparkxinterface-0.4.2-SNAPSHOTS.jar")
   lazy val kafka11StreamNames = getStringConfig("spark.wormhole.kafka11.streams", "")
   lazy val wormholeUser = config.getString("spark.wormholeServer.user")
   lazy val sshPort = config.getInt("spark.wormholeServer.ssh.port")
@@ -206,6 +205,9 @@ object RiderConfig {
   lazy val metricsConfPath = getStringConfig("spark.wormhole.metric.conf.path", "")
   lazy val alertEmails = getStringConfig("spark.wormhole.alert.emails", "")
   lazy val kafkaConsumerCache = getBooleanConfig("spark.streaming.kafka.consumer.cache.enabled", false)
+  lazy val streamDefaultDriverJvmConfig = getStringConfig("spark.driver.extraJavaOptions", "spark.driver.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc/")
+  lazy val streamDefaultExecutorJvmConfig = getStringConfig("spark.executor.extraJavaOptions", "spark.executor.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc")
+  lazy val streamDefaultSaprkConfig = getStringConfig("spark.wormhole.default.conf", s"spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3,spark.streaming.kafka.consumer.cache.enabled=$kafkaConsumerCache")
   lazy val spark = RiderSpark(wormholeUser,
     sshPort,
     config.getString("spark.spark.home"),
@@ -229,12 +231,9 @@ object RiderConfig {
     wormholeClientLogPath,
     s"${RiderConfig.riderRootPath}/conf/sparkx.log4j.properties",
     wormholeJarPath,
-    wormholeKafka08JarPath, kafka08StreamNames, wormholeKafka11JarPath, kafka11StreamNames,
+    wormholeKafka08JarPath, kafka08StreamNames, sparkxInterfaceJarPath,
     consumer.heartbeatTopic, 2, 1, 6, 4, 2, 100, 600,
-    "spark.driver.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc/",
-    "spark.executor.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc",
-    s"spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3,spark.streaming.kafka.consumer.cache.enabled=$kafkaConsumerCache",
-    alert, metricsConfPath, alertEmails)
+    streamDefaultDriverJvmConfig, streamDefaultExecutorJvmConfig, streamDefaultSaprkConfig, alert, metricsConfPath, alertEmails)
 
   lazy val es =
     if (config.hasPath("elasticSearch") && config.getString("elasticSearch.http.url").nonEmpty) {

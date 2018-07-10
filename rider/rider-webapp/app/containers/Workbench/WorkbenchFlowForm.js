@@ -156,6 +156,13 @@ export class WorkbenchFlowForm extends React.Component {
     }
   }
 
+  changeStreamType = (e) => {
+    this.props.onInitStreamTypeSelect(e.target.value)
+    this.setState({
+      hdfslogSinkDSValue: ''
+    })
+  }
+
   render () {
     const {
       step, form, fieldSelected, dataframeShowSelected, streamDiffType, hdfslogSinkNsValue, routingSourceNsValue,
@@ -164,7 +171,7 @@ export class WorkbenchFlowForm extends React.Component {
       transformTableSource, onDeleteSingleTransform, onAddTransform, onEditTransform, onUpTransform, onDownTransform,
       step2SourceNamespace, step2SinkNamespace, etpStrategyCheck, transformTagClassName, transformTableClassName, transConnectClass,
       selectStreamKafkaTopicValue, routingSinkTypeNsData, sinkConfigCopy,
-      initResultFieldClass, initDataShowClass, onInitStreamTypeSelect, onInitStreamNameSelect,
+      initResultFieldClass, initDataShowClass, onInitStreamNameSelect,
       initialHdfslogCascader, initialRoutingCascader, initialRoutingSinkCascader
     } = this.props
 
@@ -420,7 +427,7 @@ export class WorkbenchFlowForm extends React.Component {
                   }],
                   initialValue: 'default'
                 })(
-                  <RadioGroup className="radio-group-style" onChange={(e) => onInitStreamTypeSelect(e.target.value)} size="default">
+                  <RadioGroup className="radio-group-style" onChange={this.changeStreamType} size="default">
                     <RadioButton value="default" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Default</RadioButton>
                     <RadioButton value="hdfslog" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Hdfslog</RadioButton>
                     <RadioButton value="routing" className="radio-btn-style" disabled={flowDisabledOrNot}>Routing</RadioButton>

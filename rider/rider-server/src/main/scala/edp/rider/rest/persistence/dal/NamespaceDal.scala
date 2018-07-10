@@ -298,5 +298,4 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         throw new Exception(s"delete namespace $id failed", ex)
     }
   }
-
 }
