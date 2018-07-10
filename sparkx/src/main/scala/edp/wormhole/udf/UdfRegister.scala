@@ -61,7 +61,11 @@ object UdfRegister extends EdpLogging {
   }
 
   private def loadJar(path: String): Unit = {
-    URL.setURLStreamHandlerFactory(new FsUrlStreamHandlerFactory());
+    try{
+      URL.setURLStreamHandlerFactory(new FsUrlStreamHandlerFactory())
+    }catch{
+      case e:Throwable=>logWarning("setURLStreamHandlerFactory "+e.getMessage)
+    }
     val url = new URL(path)
     val classLoader = getClass.getClassLoader.asInstanceOf[URLClassLoader]
     val loaderMethod = classOf[URLClassLoader].getDeclaredMethod("addURL", classOf[URL])
