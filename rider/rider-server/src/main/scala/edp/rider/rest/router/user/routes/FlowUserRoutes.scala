@@ -31,7 +31,7 @@ import io.swagger.annotations._
 @Path("/user/projects")
 class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
-  lazy val routes: Route = postFlowRoute ~ getFlowByFilterRoute ~ putFlowRoute ~ getFlowByIdRoute ~ lookupSqlPermVerifyRoute
+  lazy val routes: Route = postFlowRoute ~ getFlowByFilterRoute ~ putFlowRoute ~ getFlowByIdRoute ~ lookupSqlPermVerifyRoute ~ postFlowTopicsOffset ~ postUserDefinedTopic ~ getTopics ~ getUdfs
 
   lazy val basePath = "projects"
 
@@ -126,22 +126,68 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
   ))
   def lookupSqlPermVerifyRoute: Route = modules.flowUserService.lookupSqlVerifyRoute(basePath)
 
-  // post /user/projects/1/flows/1/topics
-//  @Path("/{projectId}/flows/{flowId}/topics")
-//  @ApiOperation(value = "get topic offsets by request topics", notes = "", nickname = "", httpMethod = "POST")
-//  @ApiImplicitParams(Array(
-//    new ApiImplicitParam(name = "id", value = "project id", required = true, dataType = "integer", paramType = "path"),
-//    new ApiImplicitParam(name = "flowId", value = "flow id", required = true, dataType = "integer", paramType = "path"),
-//    new ApiImplicitParam(name = "topics", value = "topics name", required = true, dataType = "edp.rider.rest.persistence.entities.GetTopicsOffsetRequest", paramType = "body")
-//  ))
-//  @ApiResponses(Array(
-//    new ApiResponse(code = 200, message = "OK"),
-//    new ApiResponse(code = 401, message = "authorization error"),
-//    new ApiResponse(code = 403, message = "user is not normal user"),
-//    new ApiResponse(code = 451, message = "request process failed"),
-//    new ApiResponse(code = 500, message = "internal server error")
-//  ))
-//  def postFlowTopicsOffset: Route = modules.flowUserService.postFlowTopicsOffsetRoute(basePath)
+   //post /user/projects/1/flows/1/topics
+  @Path("/{projectId}/flows/{flowId}/topics")
+  @ApiOperation(value = "get topic offsets by request topics", notes = "", nickname = "", httpMethod = "POST")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "flowId", value = "flow id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "topics", value = "topics name", required = true, dataType = "edp.rider.rest.persistence.entities.GetTopicsOffsetRequest", paramType = "body")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def postFlowTopicsOffset: Route = modules.flowUserService.postFlowTopicsOffsetRoute(basePath)
 
+  // post /user/projects/1/streams/1/topics/userdefined
+  @Path("/{projectId}/flows/{flowId}/topics/userdefined")
+  @ApiOperation(value = "get userdefined topic offsets", notes = "", nickname = "", httpMethod = "POST")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "flowId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "topicName", value = "topic name", required = true, dataType = "edp.rider.rest.persistence.entities.PostUserDefinedTopic", paramType = "body")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def postUserDefinedTopic: Route = modules.flowUserService.postFlowUserDefinedTopicRoute(basePath)
+
+  @Path("/{projectId}/flows/{flowId}/topics")
+  @ApiOperation(value = "get topics detail", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "flowId", value = "flow id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+    def getTopics: Route = modules.flowUserService.getFlowTopicsRoute(basePath)
+
+  @Path("/{projectId}/flows/{flowId}/udfs")
+  @ApiOperation(value = "get flow udfs", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "flowId", value = "flow id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal user"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getUdfs: Route = modules.flowUserService.getFlowUdfsRoute(basePath)
 }
 

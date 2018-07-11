@@ -258,6 +258,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     exist
   }
 
+
   // get kafka instance id, url
   def getKafkaInfo(streamId: Long): (Long, String) = {
     Await.result(db.run((streamQuery.filter(_.id === streamId) join instanceQuery on (_.instanceId === _.id))
