@@ -50,7 +50,7 @@ import { selectStreams, selectStreamStartModalLoading } from './selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
 import { selectRoleType } from '../App/selectors'
 
-import { operateLanguageText } from '../../utils/util'
+import { operateLanguageText, transformStringWithDot } from '../../utils/util'
 
 export class Manager extends React.Component {
   constructor (props) {
@@ -270,11 +270,19 @@ export class Manager extends React.Component {
 
         // 显示 Latest offset
         this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
+          let autoRegisteredTopics = result.autoRegisteredTopics.map(v => {
+            v.name = transformStringWithDot(v.name)
+            return v
+          })
+          let userDefinedTopics = result.userDefinedTopics.map(v => {
+            v.name = transformStringWithDot(v.name)
+            return v
+          })
           this.setState({
-            autoRegisteredTopics: result.autoRegisteredTopics,
-            userDefinedTopics: result.userDefinedTopics,
-            streamStartFormData: result.autoRegisteredTopics,
-            tempUserTopics: result.userDefinedTopics.slice()
+            autoRegisteredTopics: autoRegisteredTopics,
+            userDefinedTopics: userDefinedTopics,
+            streamStartFormData: autoRegisteredTopics,
+            tempUserTopics: userDefinedTopics.slice()
             // consumedOffsetValue: result.consumedLatestOffset,
             // kafkaOffsetValue: result.kafkaLatestOffset,
             // kafkaEarliestOffset: result.kafkaEarliestOffset
@@ -331,10 +339,18 @@ export class Manager extends React.Component {
     // 显示 Latest offset
     this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
       if (result) {
+        let autoRegisteredTopics = result.autoRegisteredTopics.map(v => {
+          v.name = transformStringWithDot(v.name)
+          return v
+        })
+        let userDefinedTopics = result.userDefinedTopics.map(v => {
+          v.name = transformStringWithDot(v.name)
+          return v
+        })
         this.setState({
-          autoRegisteredTopics: result.autoRegisteredTopics,
-          userDefinedTopics: result.userDefinedTopics,
-          streamStartFormData: result.autoRegisteredTopics
+          autoRegisteredTopics: autoRegisteredTopics,
+          userDefinedTopics: userDefinedTopics,
+          streamStartFormData: autoRegisteredTopics
           // consumedOffsetValue: result.consumedLatestOffset,
           // kafkaOffsetValue: result.kafkaLatestOffset,
           // kafkaEarliestOffset: result.kafkaEarliestOffset
@@ -360,10 +376,18 @@ export class Manager extends React.Component {
   // Load Latest Offset
   loadLastestOffsetFunc (projectId, streamId, type, topics) {
     this.props.onLoadLastestOffset(projectId, streamId, (result) => {
+      let autoRegisteredTopics = result.autoRegisteredTopics.map(v => {
+        v.name = transformStringWithDot(v.name)
+        return v
+      })
+      let userDefinedTopics = result.userDefinedTopics.map(v => {
+        v.name = transformStringWithDot(v.name)
+        return v
+      })
       this.setState({
-        autoRegisteredTopics: result.autoRegisteredTopics,
-        userDefinedTopics: result.userDefinedTopics,
-        tempUserTopics: result.userDefinedTopics
+        autoRegisteredTopics: autoRegisteredTopics,
+        userDefinedTopics: userDefinedTopics,
+        tempUserTopics: userDefinedTopics
         // consumedOffsetValue: result.consumedLatestOffset,
         // kafkaOffsetValue: result.kafkaLatestOffset,
         // kafkaEarliestOffset: result.kafkaEarliestOffset
@@ -403,98 +427,111 @@ export class Manager extends React.Component {
     const { projectIdGeted, locale } = this.props
     const offsetText = locale === 'en' ? 'Offset cannot be empty' : 'Offset 不能为空！'
     this.setState(
-      {unValidate: true}
-    )
-    setTimeout(() => {
-      this.streamStartForm.validateFieldsAndScroll((err, values) => {
-        if (!err || err.newTopicName) {
-          let requestVal = {}
-          switch (actionType) {
-            case 'start':
-              if (!streamStartFormData) {
-                if (!values.udfs) {
-                  requestVal = {}
-                } else {
-                  if (values.udfs.find(i => i === '-1')) {
-                    // 全选
-                    const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
-                    requestVal = { udfInfo: startUdfValsOrigin.map(p => p.id) }
+      {unValidate: true},
+      () => {
+        this.streamStartForm.validateFieldsAndScroll((err, values) => {
+          if (!err || err.newTopicName) {
+            let requestVal = {}
+            switch (actionType) {
+              case 'start':
+                if (!streamStartFormData) {
+                  if (!values.udfs) {
+                    requestVal = {}
                   } else {
-                    requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
-                  }
-                }
-              } else {
-                const mergedData = {}
-                const autoRegisteredData = this.formatTopicInfo(streamStartFormData, 'auto', values, offsetText)
-                const userDefinedData = this.formatTopicInfo(userDefinedTopics, 'user', values, offsetText)
-                mergedData.autoRegisteredTopics = autoRegisteredData
-                mergedData.userDefinedTopics = userDefinedData
-
-                if (!values.udfs) {
-                  requestVal = { topicInfo: mergedData }
-                } else {
-                  if (values.udfs.find(i => i === '-1')) {
-                    // 全选
-                    const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
-                    requestVal = {
-                      udfInfo: startUdfValsOrigin.map(p => p.id),
-                      topicInfo: mergedData
-                    }
-                  } else {
-                    requestVal = {
-                      udfInfo: values.udfs.map(q => Number(q)),
-                      topicInfo: mergedData
+                    if (values.udfs.find(i => i === '-1')) {
+                      // 全选
+                      const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                      requestVal = { udfInfo: startUdfValsOrigin.map(p => p.id) }
+                    } else {
+                      requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
                     }
                   }
+                } else {
+                  const mergedData = {}
+                  const autoRegisteredData = this.formatTopicInfo(streamStartFormData, 'auto', values, offsetText)
+                  const userDefinedData = this.formatTopicInfo(userDefinedTopics, 'user', values, offsetText)
+                  mergedData.autoRegisteredTopics = autoRegisteredData
+                  mergedData.userDefinedTopics = userDefinedData
+                  mergedData.autoRegisteredTopics.forEach(v => {
+                    v.name = transformStringWithDot(v.name, false)
+                  })
+                  mergedData.userDefinedTopics.forEach(v => {
+                    v.name = transformStringWithDot(v.name, false)
+                  })
+                  if (!values.udfs) {
+                    requestVal = { topicInfo: mergedData }
+                  } else {
+                    if (values.udfs.find(i => i === '-1')) {
+                      // 全选
+                      const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                      requestVal = {
+                        udfInfo: startUdfValsOrigin.map(p => p.id),
+                        topicInfo: mergedData
+                      }
+                    } else {
+                      requestVal = {
+                        udfInfo: values.udfs.map(q => Number(q)),
+                        topicInfo: mergedData
+                      }
+                    }
+                  }
                 }
-              }
-              break
-            case 'renew':
-              if (!streamStartFormData) {
-                requestVal = !values.udfs ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
-              } else {
-                const mergedData = {}
-                const autoRegisteredData = this.formatTopicInfo(streamStartFormData, 'auto', values, offsetText)
-                const userDefinedData = this.formatTopicInfo(userDefinedTopics, 'user', values, offsetText)
+                break
+              case 'renew':
+                if (!streamStartFormData) {
+                  requestVal = !values.udfs ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
+                } else {
+                  const mergedData = {}
+                  const autoRegisteredData = this.formatTopicInfo(streamStartFormData, 'auto', values, offsetText)
+                  const userDefinedData = this.formatTopicInfo(userDefinedTopics, 'user', values, offsetText)
 
-                // 接口参数：改动的topicInfo
-                mergedData.autoRegisteredTopics = this.diffTopicInfo(streamStartFormData, autoRegisteredData)
-                mergedData.userDefinedTopics = this.diffTopicInfo(this.state.tempUserTopics, userDefinedData)
-                // mergedData.autoRegisteredTopics.length === 0 ? delete mergedData.autoRegisteredTopics : mergedData.userDefinedTopics.length === 0 ? delete mergedData.userDefinedTopics : ''
-                // if (mergedData.autoRegisteredTopics.length === 0 && mergedData.userDefinedTopics.length === 0) {
-                //   requestVal = (!values.udfs) ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
-                // } else {
-                requestVal = (!values.udfs) ? { topicInfo: mergedData } : { udfInfo: values.udfs.map(q => Number(q)), topicInfo: mergedData }
-              //   }
-              }
-              break
-          }
+                  // 接口参数：改动的topicInfo
+                  mergedData.autoRegisteredTopics = this.diffTopicInfo(streamStartFormData, autoRegisteredData)
+                  mergedData.userDefinedTopics = this.diffTopicInfo(this.state.tempUserTopics, userDefinedData)
+                  mergedData.autoRegisteredTopics.forEach(v => {
+                    v.name = transformStringWithDot(v.name, false)
+                  })
+                  mergedData.userDefinedTopics.forEach(v => {
+                    v.name = transformStringWithDot(v.name, false)
+                  })
+                  // mergedData.autoRegisteredTopics.length === 0 ? delete mergedData.autoRegisteredTopics : mergedData.userDefinedTopics.length === 0 ? delete mergedData.userDefinedTopics : ''
+                  // if (mergedData.autoRegisteredTopics.length === 0 && mergedData.userDefinedTopics.length === 0) {
+                  //   requestVal = (!values.udfs) ? {} : { udfInfo: values.udfs.map(q => Number(q)) }
+                  // } else {
+                  requestVal = (!values.udfs) ? { topicInfo: mergedData } : { udfInfo: values.udfs.map(q => Number(q)), topicInfo: mergedData }
+                //   }
+                }
+                break
+            }
 
-          let actionTypeRequest = ''
-          let actionTypeMsg = ''
-          if (actionType === 'start') {
-            actionTypeRequest = 'start'
-            actionTypeMsg = locale === 'en' ? 'Start Successfully!' : '启动成功！'
-          } else if (actionType === 'renew') {
-            actionTypeRequest = 'renew'
-            actionTypeMsg = locale === 'en' ? 'Renew Successfully!' : '生效！'
-          }
+            let actionTypeRequest = ''
+            let actionTypeMsg = ''
+            if (actionType === 'start') {
+              actionTypeRequest = 'start'
+              actionTypeMsg = locale === 'en' ? 'Start Successfully!' : '启动成功！'
+            } else if (actionType === 'renew') {
+              actionTypeRequest = 'renew'
+              actionTypeMsg = locale === 'en' ? 'Renew Successfully!' : '生效！'
+            }
 
-          this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, (result) => {
-            this.setState({
-              startModalVisible: false,
-              streamStartFormData: [],
-              unValidate: false
+            this.props.onStartOrRenewStream(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, (result) => {
+              this.setState({
+                startModalVisible: false,
+                streamStartFormData: [],
+                userDefinedData: [],
+                tempUserTopics: [],
+                unValidate: false
+              })
+              message.success(actionTypeMsg, 3)
+            }, (result) => {
+              const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
+              message.error(`${failText} ${result}`, 3)
+              this.setState({unValidate: false})
             })
-            message.success(actionTypeMsg, 3)
-          }, (result) => {
-            const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
-            message.error(`${failText} ${result}`, 3)
-            this.setState({unValidate: false})
-          })
-        }
-      })
-    }, 20)
+          }
+        })
+      }
+    )
   }
 
   formatTopicInfo (data = [], type = 'auto', values, offsetText) {
@@ -505,7 +542,7 @@ export class Manager extends React.Component {
 
       const offsetArr = []
       for (let r = 0; r < partitionTemp.length; r++) {
-        const offsetArrTemp = values[`${i.name.replace(/\./g, '-')}_${r}_${type}`]
+        const offsetArrTemp = values[`${i.name}_${r}_${type}`]
         offsetArrTemp === ''
           ? message.warning(offsetText, 3)
           : offsetArr.push(`${r}:${offsetArrTemp}`)
@@ -516,39 +553,51 @@ export class Manager extends React.Component {
         // id: i.id,
         name: i.name,
         partitionOffsets: offsetVal,
-        rate: Number(values[`${i.name.replace(/\./g, '-')}_${i.rate}_rate`])
+        rate: Number(values[`${i.name}_${i.rate}_rate`])
       }
       return robj
     })
   }
 
   diffTopicInfo (oldData = [], newData = []) {
-    if (oldData.length === 0 || newData.length === 0) return
     let topicInfoTemp = []
-    for (let g = 0; g < newData.length; g++) {
-      for (let f = 0; f < oldData.length; f++) {
-        if (oldData[f].name === newData[g].name) {
-          let obj = {
-            name: newData[g].name,
-            partitionOffsets: newData[g].partitionOffsets,
-            rate: newData[g].rate
+    if (oldData.length === 0 && newData.length > 0) {
+      topicInfoTemp = newData.map(v => {
+        v.action = 1
+        return v
+      })
+    } else if (oldData.length > 0 && newData.length === 0) {
+      topicInfoTemp = oldData.map(v => {
+        v.action = 0
+        return v
+      })
+    } else {
+      for (let g = 0; g < newData.length; g++) {
+        for (let f = 0; f < oldData.length; f++) {
+          if (oldData[f].name === newData[g].name) {
+            let obj = {
+              name: newData[g].name,
+              partitionOffsets: newData[g].partitionOffsets,
+              rate: newData[g].rate
+            }
+            if (
+              oldData[f].consumedLatestOffset === newData[g].partitionOffsets &&
+              oldData[f].rate === newData[g].rate
+            ) {
+              obj.action = 0
+            } else {
+              obj.action = 1
+            }
+            topicInfoTemp.push(obj)
+            break
+          } else if (f === oldData.length - 1) {
+            topicInfoTemp.push({
+              name: newData[g].name,
+              partitionOffsets: newData[g].partitionOffsets,
+              rate: newData[g].rate,
+              action: 1
+            })
           }
-          if (
-            oldData[f].consumedLatestOffset === newData[g].partitionOffsets &&
-            oldData[f].rate === newData[g].rate
-          ) {
-            obj.action = 0
-          } else {
-            obj.action = 1
-          }
-          topicInfoTemp.push(obj)
-        } else if (f === oldData.length - 1) {
-          topicInfoTemp.push({
-            name: newData[g].name,
-            partitionOffsets: newData[g].partitionOffsets,
-            rate: newData[g].rate,
-            action: 1
-          })
         }
       }
     }
