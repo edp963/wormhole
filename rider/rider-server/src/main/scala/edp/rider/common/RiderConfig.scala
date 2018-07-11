@@ -299,7 +299,7 @@ object RiderConfig {
   lazy val defaultFlinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "")
 
   lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"))
-
+  lazy val flinkDefaultRate = 0
   def getStringConfig(path: String, default: String): String = {
     if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")
       config.getString(path)

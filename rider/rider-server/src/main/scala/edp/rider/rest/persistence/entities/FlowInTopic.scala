@@ -39,6 +39,15 @@ case class FlowInTopic(id: Long,
     copy(id = id).asInstanceOf[this.type]
   }
 }
+
+case class FlowTopicTemp(id: Long,
+                         flowId: Long,
+                         name: String,
+                         partitionOffsets: String,
+                         rate: Int)
+
+
+
 //
 //case class StreamInTopicName(id: Long,
 //                             streamId: Long,
@@ -60,7 +69,7 @@ class FlowInTopicTable(_tableTag: Tag) extends BaseTable[FlowInTopic](_tableTag,
   def * = (id, flowId, nsDatabaseId, partitionOffsets, rate, active, createTime, createBy, updateTime, updateBy) <> (FlowInTopic.tupled, FlowInTopic.unapply)
 
   /** Database column flow_id SqlType(BIGINT) */
-  val flowId: Rep[Long] = column[Long]("stream_id")
+  val flowId: Rep[Long] = column[Long]("flow_id")
   /** Database column ns_database_id SqlType(BIGINT) */
   val nsDatabaseId: Rep[Long] = column[Long]("ns_database_id")
   /** Database column partition_offsets SqlType(VARCHAR), Length(200,true) */

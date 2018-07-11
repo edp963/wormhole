@@ -266,6 +266,47 @@ CREATE TABLE IF NOT EXISTS `rel_stream_userdefined_topic` (
   UNIQUE INDEX `rel_stream_userdefinedtopic_UNIQUE` (`stream_id` ASC, `topic` ASC))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `rel_flow_intopic` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `flow_id` BIGINT NOT NULL,
+  `ns_database_id` BIGINT NOT NULL,
+  `partition_offsets` VARCHAR(5000) NOT NULL,
+  `rate` INT NOT NULL,
+  `active` TINYINT(1) NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `create_by` BIGINT NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `update_by` BIGINT NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `rel_flow_intopic_UNIQUE` (`flow_id` ASC, `ns_database_id` ASC))
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `rel_flow_userdefined_topic` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `flow_id` BIGINT NOT NULL,
+  `topic` VARCHAR(200) NOT NULL,
+  `partition_offsets` VARCHAR(5000) NOT NULL,
+  `rate` INT NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `create_by` BIGINT NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `update_by` BIGINT NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `rel_flow_userdefinedtopic_UNIQUE` (`flow_id` ASC, `topic` ASC))
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `rel_flow_udf` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `flow_id` BIGINT NOT NULL,
+  `udf_id` BIGINT NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `create_by` BIGINT NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `update_by` BIGINT NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `rel_flow_udf_UNIQUE` (`flow_id` ASC, `udf_id` ASC))
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `job` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(200) NOT NULL,
