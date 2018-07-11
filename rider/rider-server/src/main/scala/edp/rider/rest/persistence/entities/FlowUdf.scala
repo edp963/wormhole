@@ -26,12 +26,12 @@ import slick.lifted.{Rep, Tag}
 import slick.jdbc.MySQLProfile.api._
 
 case class FlowUdf(id: Long,
-               flowId: Long,
-               udfId: Long,
-               createTime: String,
-               createBy: Long,
-               updateTime: String,
-               updateBy: Long) extends BaseEntity {
+                   flowId: Long,
+                   udfId: Long,
+                   createTime: String,
+                   createBy: Long,
+                   updateTime: String,
+                   updateBy: Long) extends BaseEntity {
   override def copyWithId(id: Long): this.type = {
     copy(id = id).asInstanceOf[this.type]
   }

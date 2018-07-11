@@ -23,7 +23,9 @@ package edp.rider.rest.util
 
 import com.alibaba.fastjson.{JSON, JSONArray}
 import edp.rider.RiderStarter.modules
-import edp.rider.common.{RiderConfig, RiderLogger}
+import edp.rider.common.Action.RENEW
+import edp.rider.common.StreamType.FLINK
+import edp.rider.common.{RiderConfig, RiderLogger, StreamType}
 import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
@@ -235,6 +237,13 @@ object FlowUtils extends RiderLogger {
     flowSeq.foreach(flow =>
       map(flow.id) = getDisableActions(flow, projectNsMap(flow.projectId)))
     map
+  }
+
+  def getHideActions(streamType: String): String = {
+    StreamType.withName(streamType) match {
+      case FLINK => s"$RENEW"
+      case _ => ""
+    }
   }
 
   def getDisableActions(flow: FlowStream, projectNsSeq: Seq[String]): String = {

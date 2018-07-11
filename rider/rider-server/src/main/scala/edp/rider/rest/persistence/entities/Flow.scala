@@ -68,7 +68,10 @@ case class FlowStream(id: Long,
                       streamType: String,
                       functionType: String,
                       disableActions: String,
+                      hideActions: String,
                       msg: String)
+
+case class FlowAllInfo(flowStream: FlowStream, topicInfo: GetTopicsResponse, currentUdf: Seq[FlowUdfResponse])
 
 case class FlowStreamInfo(id: Long,
                           projectId: Long,
@@ -118,6 +121,33 @@ case class FlowStreamAdmin(id: Long,
                            disableActions: String,
                            msg: String)
 
+case class FlowStreamAdminInfo(id: Long,
+                               projectId: Long,
+                               projectName: String,
+                               streamId: Long,
+                               sourceNs: String,
+                               sinkNs: String,
+                               consumedProtocol: String,
+                               sinkConfig: Option[String] = None,
+                               tranConfig: Option[String] = None,
+                               startedTime: Option[String],
+                               stoppedTime: Option[String],
+                               status: String,
+                               active: Boolean,
+                               createTime: String,
+                               createBy: Long,
+                               updateTime: String,
+                               updateBy: Long,
+                               streamName: String,
+                               streamStatus: String,
+                               streamType: String,
+                               functionType: String,
+                               disableActions: String,
+                               hideActions: String,
+                               msg: String)
+
+case class FlowAdminAllInfo(flowStream: FlowStreamAdminInfo, topicInfo: GetTopicsResponse, currentUdf: Seq[FlowUdfResponse])
+
 case class SimpleFlow(projectId: Long,
                       streamId: Long,
                       sourceNs: String,
@@ -143,6 +173,20 @@ case class FlowHealth(flowStatus: String,
 case class Sql(sql: String)
 
 case class DeleteTopic(ids: Seq[Long], topics: Seq[String])
+
+
+
+case class SimpleFlowTopicAllOffsets(name: String,
+                                     rate: Int,
+                                     consumedLatestOffset: String,
+                                     kafkaEarliestOffset: String,
+                                     kafkaLatestOffset: String)
+
+case class GetFlowTopicsOffsetResponse(autoRegisteredTopics: Seq[SimpleFlowTopicAllOffsets], userDefinedTopics: Seq[SimpleFlowTopicAllOffsets])
+
+case class FlowIdKafkaUrl(flowId: Long, kafkaUrl: String)
+
+case class FlowUdfResponse(id: Long, functionName: String, fullClassName: String, jarName: String)
 
 class FlowTable(_tableTag: Tag) extends BaseTable[Flow](_tableTag, "flow") {
   def * = (id, projectId, streamId, sourceNs, sinkNs, consumedProtocol, sinkConfig, tranConfig, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <> (Flow.tupled, Flow.unapply)
