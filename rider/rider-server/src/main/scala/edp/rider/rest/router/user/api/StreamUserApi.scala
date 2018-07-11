@@ -464,6 +464,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                 riderLogger.warn(s"user ${session.userId} start stream ${stream.id} failed, caused by resource is not enough")
                 complete(OK, setFailedResponse(session, "resource is not enough"))
               } else {
+                //FIXME 获取udf
                 startStreamDirective(streamId, streamDirectiveOpt, session.userId)
                 //            runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(stream.name)}")
                 val logPath = getLogPath(stream.name)

@@ -55,6 +55,7 @@ object SwiftsTransform extends EdpLogging {
         val lookupTableFields = if (operate.lookupTableFields.isDefined) operate.lookupTableFields.get else null
         val sql = operate.sql.trim
         SqlOptType.toSqlOptType(operate.optType) match {
+            //FIXME 自定义类， 进行转换
           case SqlOptType.CUSTOM_CLASS =>
             val (obj, method) = ConfMemoryStorage.getSwiftsTransformReflectValue(operate.sql)
             currentDf = method.invoke(obj, session, currentDf, swiftsLogic).asInstanceOf[DataFrame]

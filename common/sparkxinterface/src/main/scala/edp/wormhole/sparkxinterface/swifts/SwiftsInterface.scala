@@ -24,5 +24,6 @@ package edp.wormhole.sparkxinterface.swifts
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 abstract class SwiftsInterface {
+  //FIXME 可以自定义Transformation操作， 用来解析数据
   def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig): DataFrame
 }

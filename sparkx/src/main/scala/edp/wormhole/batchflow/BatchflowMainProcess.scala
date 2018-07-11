@@ -327,7 +327,8 @@ object BatchflowMainProcess extends EdpLogging {
             if (swiftsProcessConfig.nonEmpty && swiftsProcessConfig.get.swiftsSql.nonEmpty) {
 
               //FIXME 执行transform操作
-              val (returnUmsFields, tuplesRDD, unionDf) = swiftsProcess(swiftsProcessConfig, uuid, session, sourceTupleRDD, config, sourceNamespace, sinkNamespace, minTs, maxTs, count, sinkFields,batchId)
+              val (returnUmsFields, tuplesRDD, unionDf) =
+                swiftsProcess(swiftsProcessConfig, uuid, session, sourceTupleRDD, config, sourceNamespace, sinkNamespace, minTs, maxTs, count, sinkFields,batchId)
               sinkFields = returnUmsFields // 数据落地字段
               sinkRDD = tuplesRDD //transform后的数据
               afterUnionDf = unionDf
