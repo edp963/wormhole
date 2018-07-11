@@ -67,6 +67,7 @@ object UdfRegister extends EdpLogging {
     loaderMethod.invoke(classLoader, url)
   }
 
+  //FIXME 注册UDF
   private def registerUdf(paramCount: Int, session: SparkSession, udfName: String, udfClassName: String, returnDataType: DataType): Unit = {
 
     paramCount match {

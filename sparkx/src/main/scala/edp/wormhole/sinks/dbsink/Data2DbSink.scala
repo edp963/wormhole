@@ -46,6 +46,7 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
                        connectionConfig: ConnectionConfig): Unit = {
     logInfo("process KafkaLog2DbSnapshot")
     logWarning("data----------->" + tupleList.size)
+    logWarning(s"tupleList--------->$tupleList")
     val dt1: DateTime = dt2dateTime(currentyyyyMMddHHmmss)
 
     val sinkSpecificConfig =
@@ -98,6 +99,8 @@ class Data2DbSink extends SinkProcessor with EdpLogging {
         val insertSql = SqlProcessor.getInsertSql(sourceMutationType, dataSys, tableName, systemRenameMap, allFieldNames)
         logWarning("insert sql----->" + insertSql)
         logWarning("begin exec insert sql....")
+        //FIXME for test
+//        val tupleList1: Seq[Seq[String]] = tupleList.++(List(List("1", "test")))
         val errorList = SqlProcessor.executeProcess(tupleList, insertSql, batchSize, UmsOpType.INSERT, sourceMutationType, connectionConfig, allFieldNames,
           renameSchema, systemRenameMap, tableKeyNames, sysIdName)
         if (errorList.nonEmpty) throw new Exception(SourceMutationType.INSERT_ONLY + ",some data error ,data records=" + errorList.length)

@@ -48,13 +48,20 @@ abstract class SinkProcessor {
     //FIXME 将处理后的数据落地
     data.foreachPartition(partition=>{
       println(s"partition----------->" + partition.size)
+      println("partition rows--------------->" + partition.mkString(","))
+      println("--------------------------------------------")
+      val partitionSeq = partition.toSeq
+      println(s"partitionList---------->$partitionSeq")
+      println("partitionList size--------->" + partitionSeq.size)
+
       process(protocolType,
         sourceNamespace,
         sinkNamespace,
         sinkProcessConfig,
         schemaMap,
-        partition.toList,
+        partitionSeq,
         connectionConfig)
+
     })
   }
 

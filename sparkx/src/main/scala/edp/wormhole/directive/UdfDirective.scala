@@ -58,7 +58,7 @@ object UdfDirective extends EdpLogging {
         //          UdfUtils.removeUdf(udfName)
         //        })
         try {
-          UdfRegister.register(udfName, udfClassFullname, udfJarPath, session,true)
+          UdfRegister.register(udfName, udfClassFullname, udfJarPath, session, true)
           WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
         } catch {
           case e: Throwable =>

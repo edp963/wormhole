@@ -91,6 +91,7 @@ object BatchflowMainProcess extends EdpLogging {
         }).repartition(config.rdd_partition_number) else streamRdd.map(row => {
           (checkAndGetKey( row.key, row.value), row.value)
         })
+        //FIXME 注册UDF
         UdfDirective.registerUdfProcess(config.kafka_output.feedback_topic_name, config.kafka_output.brokers, session)
         //        dataRepartitionRdd.cache()
         //        dataRepartitionRdd.count()
@@ -587,8 +588,8 @@ object BatchflowMainProcess extends EdpLogging {
     val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
     logWarning(s"sinkObject->$sinkObject sinkMethod->$sinkMethod")
     logWarning("sendData---------->" + sendData.count())
+    logWarning("sendData---------->" + sendData.first())
 
-    //FIXME 上面的sendData有数， 而sinkMethod.invoke(...)参数没数？？？
     sinkMethod.invoke(sinkObject, session, protocolType, sourceNamespace, sinkNamespace, sinkProcessConfig, resultSchemaMap, sendData, connectionConfig)
 
     val nonTimeoutUids: Array[String] = send2saveData.mapPartitions(par => {

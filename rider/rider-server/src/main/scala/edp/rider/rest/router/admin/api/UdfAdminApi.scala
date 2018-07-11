@@ -158,9 +158,7 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
 
   }
 
-  private def postResponse(simpleUdf: SimpleUdf, session: SessionClass): Route
-
-  = {
+  private def postResponse(simpleUdf: SimpleUdf, session: SessionClass): Route = {
     if (!checkHdfsPathExist(simpleUdf.jarName)) {
       riderLogger.warn(s"user ${
         session.userId
