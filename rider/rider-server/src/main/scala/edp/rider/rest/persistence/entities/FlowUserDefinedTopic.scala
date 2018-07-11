@@ -30,7 +30,6 @@ case class FlowUserDefinedTopic(id: Long,
                                topic: String,
                                partitionOffsets: String,
                                rate: Int,
-                               active: Boolean,
                                createTime: String,
                                createBy: Long,
                                updateTime: String,
@@ -57,10 +56,10 @@ case class FlowUserDefinedTopic(id: Long,
 //case class StreamTopicPartition(streamId: Long, topicName: String, partitions: Option[Int])
 
 class FlowUserDefinedTopicTable(_tableTag: Tag) extends BaseTable[FlowUserDefinedTopic](_tableTag, "rel_flow_userdefined_topic") {
-  def * = (id, flowId, topic, partitionOffsets, rate, active, createTime, createBy, updateTime, updateBy) <> (FlowUserDefinedTopic.tupled, FlowUserDefinedTopic.unapply)
+  def * = (id, flowId, topic, partitionOffsets, rate, createTime, createBy, updateTime, updateBy) <> (FlowUserDefinedTopic.tupled, FlowUserDefinedTopic.unapply)
 
   /** Database column flow_id SqlType(BIGINT) */
-  val flowId: Rep[Long] = column[Long]("stream_id")
+  val flowId: Rep[Long] = column[Long]("flow_id")
   /** Database column topic SqlType(VARCHAR) */
   val topic: Rep[String] = column[String]("topic")
   /** Database column partition_offsets SqlType(VARCHAR), Length(200,true) */

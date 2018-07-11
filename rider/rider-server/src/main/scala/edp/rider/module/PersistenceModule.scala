@@ -74,7 +74,10 @@ trait PersistenceModule {
   val dbusDal: BaseDal[DbusTable, Dbus]
   val directiveDal: DirectiveDal
   val inTopicDal: StreamInTopicDal
+  val flowInTopicDal: FlowInTopicDal
   val udfTopicDal: StreamUserDefinedTopicDal
+  val flowUdfTopicDal: FlowUserDefinedTopicDal
+  val flowUdfDal: FlowUdfDal
 
   val jobDal: JobDal
   val udfDal: UdfDal
@@ -99,8 +102,10 @@ trait PersistenceModule {
   val dbusQuery = TableQuery[DbusTable]
   val directiveQuery = TableQuery[DirectiveTable]
   val streamInTopicQuery = TableQuery[StreamInTopicTable]
+  val flowInTopicQuery = TableQuery[FlowInTopicTable]
   val udfTopicQuery = TableQuery[StreamUserDefinedTopicTable]
-
+  val flowUdfTopicQuery = TableQuery[FlowUserDefinedTopicTable]
+  val flowUdfQuery = TableQuery[FlowUdfTable]
   val jobQuery = TableQuery[JobTable]
   val udfQuery = TableQuery[UdfTable]
   val relProjectUdfQuery = TableQuery[RelProjectUdfTable]
@@ -124,14 +129,16 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val relProjectUserDal = new RelProjectUserDal(userQuery, projectQuery, relProjectUserQuery)
   override lazy val relStreamUdfDal = new RelStreamUdfDal(relStreamUdfQuery, udfQuery)
   override lazy val streamDal = new StreamDal(streamQuery, instanceDal, inTopicDal, relStreamUdfDal, projectQuery)
-  override lazy val flowDal = new FlowDal(flowQuery, streamQuery, projectQuery, streamDal, inTopicDal)
+  override lazy val flowDal = new FlowDal(flowQuery, streamQuery, projectQuery, streamDal, inTopicDal, flowInTopicDal, flowUdfTopicDal)
   override lazy val relProjectNsDal = new RelProjectNsDal(namespaceQuery, databaseQuery, instanceQuery, projectQuery, relProjectNsQuery, streamQuery)
   override lazy val projectDal = new ProjectDal(projectQuery, relProjectNsDal, relProjectUserDal, relProjectUdfDal, streamDal)
   override lazy val dbusDal = new BaseDalImpl[DbusTable, Dbus](dbusQuery)
   override lazy val directiveDal = new DirectiveDal(directiveQuery)
   override lazy val inTopicDal = new StreamInTopicDal(streamInTopicQuery, databaseQuery, feedbackOffsetQuery)
+  override lazy val flowInTopicDal = new FlowInTopicDal(flowInTopicQuery, databaseQuery, feedbackOffsetQuery)
   override lazy val udfTopicDal: StreamUserDefinedTopicDal = new StreamUserDefinedTopicDal(udfTopicQuery, streamQuery, instanceQuery)
-
+  override lazy val flowUdfTopicDal: FlowUserDefinedTopicDal = new FlowUserDefinedTopicDal(flowUdfTopicQuery, flowQuery, instanceQuery)
+  override lazy val flowUdfDal: FlowUdfDal = new FlowUdfDal(udfQuery, relProjectUdfDal, flowUdfQuery, projectDal, streamDal)
   override lazy val jobDal = new JobDal(jobQuery, projectQuery)
   override lazy val udfDal = new UdfDal(udfQuery, relProjectUdfDal, relStreamUdfDal, projectDal, streamDal)
   override lazy val relProjectUdfDal = new RelProjectUdfDal(udfQuery, projectQuery, relProjectUdfQuery)
