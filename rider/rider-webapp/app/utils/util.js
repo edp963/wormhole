@@ -345,3 +345,11 @@ export function operateLanguageFillIn (typeEn, typeZh) {
   const languageType = localStorage.getItem('preferredLanguage')
   return languageType === 'en' ? `Please fill in ${typeEn}` : `请填写${typeZh}`
 }
+
+export function transformStringWithDot (str = '', isParse = true) {
+  if (isParse) {
+    return str.replace(/\./g, '^!^')
+  } else {
+    return str.replace(/\^!\^/g, '.')
+  }
+}
