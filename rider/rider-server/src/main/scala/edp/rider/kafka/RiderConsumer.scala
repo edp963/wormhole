@@ -80,6 +80,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
 
         createFromOffset(RiderConfig.consumer.group_id)(context.system).foreach(
           source => {
+            //FIXME 消费topic[wormhole_feedback]里面的数据，并处理
             val (control, future) = source.mapAsync(1)(processMessage)
               .toMat(Sink.ignore)(Keep.both)
               .run()
@@ -159,6 +160,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
             messageService.doFeedbackFlowError(ums)
           case FEEDBACK_FLOW_STATS =>
             if (RiderConfig.es != null)
+              //FIXME 如果es配置不为空，增将数据写入ES
               messageService.doFeedbackFlowStats(ums)
           case FEEDBACK_STREAM_BATCH_ERROR =>
             messageService.doFeedbackStreamBatchError(ums)

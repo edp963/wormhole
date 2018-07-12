@@ -24,8 +24,15 @@ package edp.wormhole.swifts.custom
 import edp.wormhole.sparkxinterface.swifts.{SwiftsInterface, SwiftsProcessConfig}
 import org.apache.spark.sql._
 
+case class User(id: Int,
+                name: String)
+
 class CustomTemplate extends SwiftsInterface {
   override def transform(session: SparkSession, df: DataFrame, config: SwiftsProcessConfig): DataFrame = {
-   df.withColumn("addColumn",functions.lit(0))
+    val rdd = df.rdd.map(row =>
+      //TODO 解析数据逻辑
+      row.mkString(""))
+    session.sqlContext.createDataFrame(rdd, classOf[User])
+//   df.withColumn("addColumn",functions.lit(0))
   }
 }

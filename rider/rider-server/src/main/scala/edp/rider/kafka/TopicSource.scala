@@ -118,6 +118,7 @@ object TopicSource extends RiderLogger {
     })
 
     topicMap.toMap.map(
+      //FIXME 消费topic[wormhole_feedback]里面的数据，并处理
       topic => Consumer.plainSource(consumerSettings, Subscriptions.assignmentWithOffset(topic))
     ).toSeq
 
