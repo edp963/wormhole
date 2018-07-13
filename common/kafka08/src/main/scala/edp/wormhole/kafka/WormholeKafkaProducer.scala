@@ -41,7 +41,7 @@ object WormholeKafkaProducer extends Serializable {
     props
   }
 
-  def init(brokers: String, kvConfig: Option[Seq[KVConfig]]): Unit = synchronized {
+  def init(brokers: String, kvConfig: Option[Seq[KVConfig]]): Unit = {
     if (!producerMap.contains(brokers) || producerMap(brokers) == null) {
       synchronized {
         if (!producerMap.contains(brokers) || producerMap(brokers) == null) {
