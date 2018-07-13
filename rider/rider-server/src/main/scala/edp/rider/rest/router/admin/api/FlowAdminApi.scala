@@ -51,7 +51,7 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
                 onComplete(flowDal.adminGetAllInfo(visible.getOrElse(true)).mapTo[Seq[FlowAdminAllInfo]]) {
                   case Success(flowStreams) =>
                     riderLogger.info(s"user ${session.userId} select all $route success.")
-                    complete(OK, ResponseSeqJson[FlowAdminAllInfo](getHeader(200, session), flowStreams.sortBy(_.flowStream.id)))
+                    complete(OK, ResponseSeqJson[FlowAdminAllInfo](getHeader(200, session), flowStreams.sortBy(_.id)))
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} select all $route failed", ex)
                     complete(OK, getHeader(451, ex.getMessage, session))
@@ -113,7 +113,7 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
               onComplete(flowDal.getFlowAllInfo(flow => flow.active === true && flow.projectId === id).mapTo[Seq[FlowAllInfo]]) {
                 case Success(flowStreams) =>
                   riderLogger.info(s"user ${session.userId} select all flows success where project id is $id.")
-                  complete(OK, ResponseSeqJson[FlowAllInfo](getHeader(200, session), flowStreams.sortBy(_.flowStream.id)))
+                  complete(OK, ResponseSeqJson[FlowAllInfo](getHeader(200, session), flowStreams.sortBy(_.id)))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} select all flows failed where project id is $id", ex)
                   complete(OK, getHeader(451, ex.getMessage, session))

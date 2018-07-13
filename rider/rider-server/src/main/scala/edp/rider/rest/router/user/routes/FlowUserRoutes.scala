@@ -189,5 +189,22 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getUdfs: Route = modules.flowUserService.getFlowUdfsRoute(basePath)
+
+  @Path("/{projectId}/flinkstreams/flows/{flowId}/start")
+  @ApiOperation(value = "start flink flow by id", notes = "", nickname = "", httpMethod = "PUT")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "flowId", value = "flow id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "flowDirective", value = "topics offset and udfs information", required = false, dataType = "edp.rider.rest.persistence.entities.FlowDirective", paramType = "body")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "action is forbidden"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def startRoute: Route = modules.flowUserService.startFlinkRoute(basePath)
 }
 
