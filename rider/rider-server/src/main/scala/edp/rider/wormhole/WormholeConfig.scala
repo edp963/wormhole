@@ -21,6 +21,7 @@
 
 package edp.rider.wormhole
 
+import edp.rider.rest.persistence.entities.FlinkDefaultConfig
 import edp.wormhole.common.{ConnectionConfig, KVConfig}
 
 case class BatchJobConfig(sourceConfig: SourceConfig,
@@ -92,3 +93,20 @@ case class KafkaTopicConfig(topic_name: String,
 
 case class PartitionOffsetConfig(partition_num: Int, offset: Long)
 
+case class KafkaBaseConfig( group_id: String,
+                            brokers: String,
+                            `session.timeout.ms`: Int = 30000,
+                            `group.max.session.timeout.ms`: Int = 60000,
+                            `key.deserializer`: String = "org.apache.kafka.common.serialization.StringDeserializer",
+                           `value.deserializer`: String = "org.apache.kafka.common.serialization.StringDeserializer",
+                           `auto.offset.reset`: String = "earliest"
+                           )
+
+case class KafkaFlinkTopic(topic_name: String,
+                           topic_partition: Seq[PartitionOffsetConfig])
+
+
+case class kafka_input(kafka_base_config: KafkaBaseConfig, kafka_topics: Seq[KafkaFlinkTopic])
+
+case class whConfig(kafka_input: kafka_input, kafka_output: KafkaOutputConfig, flink_config: FlinkDefaultConfig,
+                    parallelism: Int, zookeeper_address: String)

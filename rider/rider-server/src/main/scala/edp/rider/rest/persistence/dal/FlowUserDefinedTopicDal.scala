@@ -52,40 +52,4 @@ class FlowUserDefinedTopicDal(flowUdfTopicQuery: TableQuery[FlowUserDefinedTopic
   }
 
 
-//  def getUdfTopics(streamId: Long): Seq[StreamTopicTemp] = {
-//    Await.result(super.findByFilter(_.streamId === streamId), minTimeOut).map(topic => StreamTopicTemp(topic.id, topic.streamId, topic.topic, topic.partitionOffsets, topic.rate))
-//  }
-//
-//  def getUdfTopics(streamIds: Seq[Long]): Seq[StreamTopicTemp] = {
-//    Await.result(super.findByFilter(_.streamId inSet streamIds), minTimeOut).map(topic => StreamTopicTemp(topic.id, topic.streamId, topic.topic, topic.partitionOffsets, topic.rate))
-//  }
-//
-//  def getUdfTopicsMap(streamId: Long): Map[Long, String] = {
-//    getUdfTopics(streamId).map(topic => (topic.id, topic.name)).toMap
-//  }
-//
-//  def updateOffset(topics: Seq[UpdateTopicOffset]): Seq[Int] = {
-//    topics.map(topic =>
-//      Await.result(db.run(udfTopicQuery.filter(_.id === topic.id).map(topic => (topic.partitionOffsets)).update(topic.offset)).mapTo[Int], minTimeOut))
-//  }
-//
-//  // get deleted topics name
-//  def deleteByStartOrRenew(streamId: Long, topics: Seq[PutTopicDirective]): Seq[String] = {
-//    val topicNames = topics.map(_.name)
-//    // find topics not in start/renew topics
-//    val deleteTopics = Await.result(super.findByFilter(topic => topic.streamId === streamId && !(topic.topic inSet topicNames)), minTimeOut)
-//    // delete topics
-//    Await.result(super.deleteById(deleteTopics.map(_.id)), minTimeOut)
-//    // return delete topics name
-//    deleteTopics.map(_.topic)
-//  }
-//
-//  // action = 0 offset没有更新, action = 1 offset更新, 动态生效
-//  def insertUpdateByStartOrRenew(streamId: Long, topics: Seq[PutTopicDirective], userId: Long): Boolean = {
-//    // set insert topic objects
-//    val insertUpdateTopics = topics.filter(_.action.getOrElse(1) == 1).map(
-//      topic => StreamUserDefinedTopic(0, streamId, topic.name, topic.partitionOffsets, topic.rate, currentSec, userId, currentSec, userId))
-//    Await.result(super.insertOrUpdate(insertUpdateTopics), minTimeOut)
-//    true
-//  }
 }

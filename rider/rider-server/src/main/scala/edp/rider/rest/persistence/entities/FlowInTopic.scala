@@ -48,23 +48,6 @@ case class FlowTopicTemp(id: Long,
 
 
 
-//
-//case class StreamInTopicName(id: Long,
-//                             streamId: Long,
-////                             nsInstanceId: Long,
-//                             nsDatabaseId: Long,
-//                             nsDatabase: String,
-//                             partitions: Int,
-//                             partitionOffsets: String,
-//                             rate: Int,
-//                             active: Boolean,
-//                             createTime: String,
-//                             createBy: Long,
-//                             updateTime: String,
-//                             updateBy: Long)
-//
-//case class StreamTopicPartition(streamId: Long, topicName: String, partitions: Option[Int])
-
 class FlowInTopicTable(_tableTag: Tag) extends BaseTable[FlowInTopic](_tableTag, "rel_flow_intopic") {
   def * = (id, flowId, nsDatabaseId, partitionOffsets, rate, active, createTime, createBy, updateTime, updateBy) <> (FlowInTopic.tupled, FlowInTopic.unapply)
 
