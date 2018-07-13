@@ -38,22 +38,7 @@ case class FlowUserDefinedTopic(id: Long,
     copy(id = id).asInstanceOf[this.type]
   }
 }
-//
-//case class StreamInTopicName(id: Long,
-//                             streamId: Long,
-////                             nsInstanceId: Long,
-//                             nsDatabaseId: Long,
-//                             nsDatabase: String,
-//                             partitions: Int,
-//                             partitionOffsets: String,
-//                             rate: Int,
-//                             active: Boolean,
-//                             createTime: String,
-//                             createBy: Long,
-//                             updateTime: String,
-//                             updateBy: Long)
-//
-//case class StreamTopicPartition(streamId: Long, topicName: String, partitions: Option[Int])
+
 
 class FlowUserDefinedTopicTable(_tableTag: Tag) extends BaseTable[FlowUserDefinedTopic](_tableTag, "rel_flow_userdefined_topic") {
   def * = (id, flowId, topic, partitionOffsets, rate, createTime, createBy, updateTime, updateBy) <> (FlowUserDefinedTopic.tupled, FlowUserDefinedTopic.unapply)
