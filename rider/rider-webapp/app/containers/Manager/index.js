@@ -450,8 +450,8 @@ export class Manager extends React.Component {
                   const mergedData = {}
                   const autoRegisteredData = this.formatTopicInfo(streamStartFormData, 'auto', values, offsetText)
                   const userDefinedData = this.formatTopicInfo(userDefinedTopics, 'user', values, offsetText)
-                  mergedData.autoRegisteredTopics = autoRegisteredData
-                  mergedData.userDefinedTopics = userDefinedData
+                  mergedData.autoRegisteredTopics = autoRegisteredData || []
+                  mergedData.userDefinedTopics = userDefinedData || []
                   mergedData.autoRegisteredTopics.forEach(v => {
                     v.name = transformStringWithDot(v.name, false)
                   })
@@ -563,14 +563,16 @@ export class Manager extends React.Component {
     let topicInfoTemp = []
     if (oldData.length === 0 && newData.length > 0) {
       topicInfoTemp = newData.map(v => {
-        v.action = 1
-        return v
+        let obj = {
+          name: v.name,
+          partitionOffsets: v.partitionOffsets,
+          rate: v.rate,
+          action: 1
+        }
+        return obj
       })
     } else if (oldData.length > 0 && newData.length === 0) {
-      topicInfoTemp = oldData.map(v => {
-        v.action = 0
-        return v
-      })
+      topicInfoTemp = []
     } else {
       for (let g = 0; g < newData.length; g++) {
         for (let f = 0; f < oldData.length; f++) {

@@ -119,6 +119,12 @@ export class StreamStartForm extends React.Component {
             this.props.onPostUserTopic(projectIdGeted, streamIdGeted, req, (result) => {
               let userTopicList = this.state.userDefinedTopics.slice()
               result.name = transformStringWithDot(result.name)
+              for (let i = 0; i < userTopicList.length; i++) {
+                if (userTopicList[i].name === result.name) {
+                  message.error('topic already exist')
+                  return
+                }
+              }
               userTopicList = userTopicList.concat(result)
               this.setState({userDefinedTopics: userTopicList}, () => {
                 this.props.emitStartFormDataFromSub(this.state.userDefinedTopics)
@@ -350,7 +356,7 @@ export class StreamStartForm extends React.Component {
                     </div>
                     {
                       hasDel ? (
-                        <Button shape="circle" type="danger" style={{position: 'absolute', top: '5px', right: '5px'}} onClick={this.toggleItem('delete', i.name)}>
+                        <Button shape="circle" type="danger" style={{position: 'absolute', top: '5px', right: '5px'}} onClick={this.toggleItem('delete', myName)}>
                           <Icon type="minus" />
                         </Button>) : ''
                     }
