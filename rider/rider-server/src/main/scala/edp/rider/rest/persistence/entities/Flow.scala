@@ -71,7 +71,29 @@ case class FlowStream(id: Long,
                       hideActions: String,
                       msg: String)
 
-case class FlowAllInfo(flowStream: FlowStream, topicInfo: GetTopicsResponse, currentUdf: Seq[FlowUdfResponse])
+case class FlowAllInfo(id: Long,
+                       projectId: Long,
+                       streamId: Long,
+                       sourceNs: String,
+                       sinkNs: String,
+                       consumedProtocol: String,
+                       sinkConfig: Option[String] = None,
+                       tranConfig: Option[String] = None,
+                       status: String,
+                       startedTime: Option[String],
+                       stoppedTime: Option[String],
+                       active: Boolean,
+                       createTime: String,
+                       createBy: Long,
+                       updateTime: String,
+                       updateBy: Long,
+                       streamName: String,
+                       streamStatus: String,
+                       streamType: String,
+                       functionType: String,
+                       disableActions: String,
+                       hideActions: String,
+                       topicInfo: GetTopicsResponse, currentUdf: Seq[FlowUdfResponse], msg: String)
 
 case class FlowStreamInfo(id: Long,
                           projectId: Long,
@@ -146,7 +168,30 @@ case class FlowStreamAdminInfo(id: Long,
                                hideActions: String,
                                msg: String)
 
-case class FlowAdminAllInfo(flowStream: FlowStreamAdminInfo, topicInfo: GetTopicsResponse, currentUdf: Seq[FlowUdfResponse])
+case class FlowAdminAllInfo(id: Long,
+                            projectId: Long,
+                            projectName: String,
+                            streamId: Long,
+                            sourceNs: String,
+                            sinkNs: String,
+                            consumedProtocol: String,
+                            sinkConfig: Option[String] = None,
+                            tranConfig: Option[String] = None,
+                            status: String,
+                            startedTime: Option[String],
+                            stoppedTime: Option[String],
+                            active: Boolean,
+                            createTime: String,
+                            createBy: Long,
+                            updateTime: String,
+                            updateBy: Long,
+                            streamName: String,
+                            streamStatus: String,
+                            streamType: String,
+                            functionType: String,
+                            disableActions: String,
+                            hideActions: String,
+                            topicInfo: GetTopicsResponse, currentUdf: Seq[FlowUdfResponse], msg: String)
 
 case class SimpleFlow(projectId: Long,
                       streamId: Long,
@@ -174,6 +219,11 @@ case class Sql(sql: String)
 
 case class DeleteTopic(ids: Seq[Long], topics: Seq[String])
 
+case class FlowDirective(udfInfo: Seq[Long], topicInfo: Option[PutFlowTopic])
+
+case class PutFlowTopic(autoRegisteredTopics: Seq[PutFlowTopicDirective], userDefinedTopics: Seq[PutFlowTopicDirective])
+
+case class PutFlowTopicDirective(name: String, partitionOffsets: String)
 
 
 case class SimpleFlowTopicAllOffsets(name: String,

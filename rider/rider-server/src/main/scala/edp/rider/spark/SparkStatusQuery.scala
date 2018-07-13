@@ -274,4 +274,5 @@ object SparkStatusQuery extends RiderLogger {
     }
   }
 
+
 }

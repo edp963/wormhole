@@ -37,27 +37,7 @@ case class FlowUdf(id: Long,
   }
 }
 
-//
-//case class SimpleUdf(functionName: String,
-//                     fullClassName: String,
-//                     jarName: String,
-//                     desc: Option[String],
-//                     public: Boolean) extends SimpleBaseEntity
-//
-//case class UdfProjectName(udfId: Long,
-//                          name: String)
-//
-//case class UdfProject(id: Long,
-//                      functionName: String,
-//                      fullClassName: String,
-//                      jarName: String,
-//                      desc: Option[String],
-//                      pubic: Boolean,
-//                      createTime: String,
-//                      createBy: Long,
-//                      updateTime: String,
-//                      updateBy: Long,
-//                      projectNames: String)
+
 
 class FlowUdfTable(_tableTag: Tag) extends BaseTable[FlowUdf](_tableTag, "rel_flow_udf") {
   def * = (id, flowId, udfId, createTime, createBy, updateTime, updateBy) <> (FlowUdf.tupled, FlowUdf.unapply)
