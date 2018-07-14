@@ -556,6 +556,7 @@ export class Workbench extends React.Component {
         const resultFinal = result.job
         resolve(resultFinal)
         const sourceConfigTemp = resultFinal.sourceConfig
+
         this.workbenchJobForm.setFieldsValue({
           protocol: JSON.parse(sourceConfigTemp).protocol,
           jobName: resultFinal.name,
@@ -563,7 +564,6 @@ export class Workbench extends React.Component {
           eventStartTs: resultFinal.eventTsStart === '' ? null : Moment(formatString(resultFinal.eventTsStart)),
           eventEndTs: resultFinal.eventTsEnd === '' ? null : Moment(formatString(resultFinal.eventTsEnd))
         })
-
         const { sparkConfig, startConfig, id, name, projectId, sourceNs, sinkNs, jobType,
           sparkAppid, logPath, startedTime, stoppedTime, status, createTime, createBy, updateTime, updateBy } = resultFinal
 
@@ -652,7 +652,7 @@ export class Workbench extends React.Component {
           const sinkConfigVal = JSON.parse(resultFinal.sinkConfig)
           sinkConfigShow = sinkConfigVal.sink_specific_config ? sinkConfigVal.sink_specific_config : ''
           maxRecordShow = sinkConfigVal.maxRecordPerPartitionProcessed ? sinkConfigVal.maxRecordPerPartitionProcessed : 5000
-          sinkProtocolShow = sinkConfigVal.sink_protocol
+          sinkProtocolShow = sinkConfigVal.sink_protocol && sinkConfigVal.sink_protocol.indexOf('snapshot') > -1
 
           if (!resultFinal.sinkConfig.includes('output')) {
             resultFieldsVal = 'all'
