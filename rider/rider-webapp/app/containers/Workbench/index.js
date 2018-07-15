@@ -562,7 +562,8 @@ export class Workbench extends React.Component {
           jobName: resultFinal.name,
           type: mapJobType[resultFinal.jobType],
           eventStartTs: resultFinal.eventTsStart === '' ? null : Moment(formatString(resultFinal.eventTsStart)),
-          eventEndTs: resultFinal.eventTsEnd === '' ? null : Moment(formatString(resultFinal.eventTsEnd))
+          eventEndTs: resultFinal.eventTsEnd === '' ? null : Moment(formatString(resultFinal.eventTsEnd)),
+          sinkProtocol: resultFinal.sinkConfig.indexOf('snapshot') > 0
         })
         const { sparkConfig, startConfig, id, name, projectId, sourceNs, sinkNs, jobType,
           sparkAppid, logPath, startedTime, stoppedTime, status, createTime, createBy, updateTime, updateBy } = resultFinal
@@ -2170,6 +2171,9 @@ export class Workbench extends React.Component {
             this.cmStreamJoinSql.doc.setValue(this.cmStreamJoinSql.doc.getValue() || '')
             this.loadTransNs()
             break
+          case 'flinkSql':
+            this.cmflinkSql.doc.setValue(this.cmflinkSql.doc.getValue() || '')
+            break
         }
       }
     })
@@ -2234,6 +2238,19 @@ export class Workbench extends React.Component {
             lineWrapping: true
           })
           this.cmStreamJoinSql.setSize('100%', '238px')
+        }
+        break
+      case 'flinkSql':
+        if (!this.cmflinkSql) {
+          const temp = document.getElementById('flinkSqlTextarea')
+          this.cmflinkSql = CodeMirror.fromTextArea(temp, {
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            mode: 'text/x-sql',
+            lineWrapping: true
+          })
+          this.cmflinkSql.setSize('100%', '238px')
         }
         break
     }
@@ -3169,7 +3186,8 @@ export class Workbench extends React.Component {
     }, () => {
       this.workbenchJobForm.setFieldsValue({
         // type: 'default',
-        resultFields: 'all'
+        resultFields: 'all',
+        sinkProtocol: false
       })
     })
     Promise.all(this.loadConfig('spark')).then((values) => {
