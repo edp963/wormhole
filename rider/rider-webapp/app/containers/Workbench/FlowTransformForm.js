@@ -35,13 +35,14 @@ import InputNumber from 'antd/lib/input-number'
 import Select from 'antd/lib/select'
 import Cascader from 'antd/lib/cascader'
 import Radio from 'antd/lib/radio'
-import { Table, Card } from 'antd'
+import { Table, Card, Button, Modal } from 'antd'
 const RadioButton = Radio.Button
 const RadioGroup = Radio.Group
 
 import { forceCheckNum, operateLanguageSelect, operateLanguageFillIn } from '../../utils/util'
 import DataSystemSelector from '../../components/DataSystemSelector'
 import { flowTransformationDadaHide, flowTransformationDadaShow } from '../../components/DataSystemSelector/dataSystemFunction'
+import FilterComponent from './components/FilterComponent'
 
 export class FlowTransformForm extends React.Component {
   constructor (props) {
@@ -49,7 +50,10 @@ export class FlowTransformForm extends React.Component {
     this.state = {
       dsHideOrNot: '',
       selectValue: '',
-      cepDataSource: []
+      cepDataSource: [],
+      operatorBtnInitVal: '',
+      outputType: 'agg',
+      patternModalShow: false
     }
   }
 
@@ -68,19 +72,54 @@ export class FlowTransformForm extends React.Component {
     this.props.onInitTransformSinkTypeNamespace(this.props.projectIdGeted, val, 'transType')
   }
 
+  changeStrategy = (e) => {
+    console.log(e)
+  }
+  changeOutput = (e) => {
+    let outputType = e.target.value
+    this.setState({outputType})
+  }
+  doFilterQuery = (sql) => {
+    console.log('__sql__: ', sql)
+  }
+
+  addPattern = () => {
+    console.log('addPattern')
+  }
+
+  openPatternModal = () => {
+    const { cepDataSource } = this.state
+    if (cepDataSource.length === 0) {
+      this.setState({operatorBtnInitVal: 'begin'})
+    }
+    this.setState({
+      patternModalShow: true
+    })
+    console.log('openPatternModal')
+  }
+  closePatternModal = () => {
+    this.setState({
+      patternModalShow: false
+    })
+    console.log('closePatternModal')
+  }
   render () {
     const { form, transformValue, transformSinkTypeNamespaceData, flowTransNsData, step2SourceNamespace, step2SinkNamespace, flowSubPanelKey } = this.props
-    const { dsHideOrNot, selectValue, cepDataSource } = this.state
+    const { dsHideOrNot, selectValue, cepDataSource, outputType, patternModalShow, operatorBtnInitVal } = this.state
     const { getFieldDecorator } = form
 
     const itemStyle = {
-      labelCol: { span: 6 },
-      wrapperCol: { span: 17 }
+      labelCol: { span: 4 },
+      wrapperCol: { span: 10 }
     }
 
-    const itemStyleTimeout = {
-      labelCol: { span: 6 },
-      wrapperCol: { span: 18 }
+    // const itemStyleTimeout = {
+    //   labelCol: { span: 6 },
+    //   wrapperCol: { span: 18 }
+    // }
+    const patternItemStyle = {
+      labelCol: { span: 4 },
+      wrapperCol: { span: 20 }
     }
     const diffType = [
       flowSubPanelKey === 'spark' ? '' : 'hide',
@@ -122,6 +161,10 @@ export class FlowTransformForm extends React.Component {
       transformValue !== 'lookupSql',
       transformValue !== 'flinkSql',
       transformValue !== 'cep'
+    ]
+
+    const outputHiddens = [
+      outputType === 'detail'
     ]
 
     const flinkFlowLookupSqlType = [
@@ -296,7 +339,7 @@ export class FlowTransformForm extends React.Component {
               )}
             </FormItem>
           </Col>
-          <Col span={6} className={transformTypeClassNames[0]}>
+          <Col span={4} className={transformTypeClassNames[0]}>
             <FormItem label={sqlHtml} className="tran-sql-label">
               {getFieldDecorator('lookupSql', {
                 hidden: transformTypeHiddens[0]
@@ -313,42 +356,50 @@ export class FlowTransformForm extends React.Component {
           </Col>
 
           {/* 设置 Spark/Flink Sql */}
-          {flowSubPanelKey === 'spark' ? (
-            <Col span={6} className={transformTypeClassNames[1]}>
-              <FormItem label={sqlHtml} className="tran-sql-label">
-                {getFieldDecorator('sparkSql', {
-                  hidden: transformTypeHiddens[1]
-                })(
-                  <Input className="hide" />
-                )}
-              </FormItem>
-            </Col>
-          ) : flowSubPanelKey === 'flink' ? (
-            <Col span={6} className={flinkTransformTypeClassNames[1]}>
-              <FormItem label={sqlHtml} className="tran-sql-label">
-                {getFieldDecorator('flinkSql', {
-                  hidden: flinkTransformTypeHiddens[1]
-                })(
-                  <Input className="hide" />
-                )}
-              </FormItem>
-            </Col>
-          ) : ''}
-          {flowSubPanelKey === 'spark' ? (
-            <Col span={17} className={`${transformTypeClassNames[1]} cm-sql-textarea`}>
-              <textarea
-                id="sparkSqlTextarea"
-                placeholder={'Spark SQL'}
-              />
-            </Col>
-          ) : flowSubPanelKey === 'flink' ? (
-            <Col span={17} className={`${flinkTransformTypeClassNames[1]} cm-sql-textarea`}>
-              <textarea
-                id="flinkSqlTextarea"
-                placeholder={'Flink SQL'}
-              />
-            </Col>
-          ) : ''}
+          {/* {flowSubPanelKey === 'spark' ? ( */}
+          <Col span={4} className={transformTypeClassNames[1]}>
+            <FormItem label={sqlHtml} className="tran-sql-label">
+              {getFieldDecorator('sparkSql', {
+                hidden: transformTypeHiddens[1]
+              })(
+                <Input className="hide" />
+              )}
+            </FormItem>
+          </Col>
+          {/* ) : flowSubPanelKey === 'flink' ? ( */}
+          <Col span={4} className={flinkTransformTypeClassNames[1]}>
+            <FormItem label={sqlHtml} className="tran-sql-label">
+              {getFieldDecorator('flinkSql', {
+                hidden: flinkTransformTypeHiddens[1]
+              })(
+                <Input className="hide" />
+              )}
+            </FormItem>
+          </Col>
+          {/* ) : ''} */}
+          {/* <Col span={17} className={`${transformValue === 'sparkSql' || transformValue === 'flinkSql' ? '' : 'hide'} cm-sql-textarea`}>
+            <textarea
+              id="sparkOrFlinkSqlTextarea"
+              placeholder={flowSubPanelKey === 'spark' ? 'Spark SQL' : flowSubPanelKey === 'flink' ? 'Flink SQL' : ''}
+            />
+          </Col> */}
+          {/* {flowSubPanelKey === 'spark' ? ( */}
+          <Col span={17} className={`${transformTypeClassNames[1]} cm-sql-textarea`}>
+            <textarea
+              id="sparkSqlTextarea"
+              placeholder={'Spark SQL'}
+            />
+          </Col>
+          {/* ) : flowSubPanelKey === 'flink' ? ( */}
+          <Col span={17} className={`${flinkTransformTypeClassNames[1]} cm-sql-textarea`}>
+            <textarea
+              id="flinkSqlTextarea"
+              placeholder={'Flink SQL'}
+              // className={`ant-input ant-input-extra`}
+            />
+          </Col>
+          {/* ) : ''} */}
+
           {/* 设置 Stream Join Sql */}
           {flowSubPanelKey === 'spark' ? (
             <Col span={24} className={transformTypeClassNames[2]}>
@@ -390,7 +441,7 @@ export class FlowTransformForm extends React.Component {
           ) : '' }
           {flowSubPanelKey === 'spark' ? (
             <Col span={24} className={transformTypeClassNames[2]}>
-              <FormItem label="Retention time (Sec)" {...itemStyleTimeout}>
+              <FormItem label="Retention time (Sec)" {...itemStyle}>
                 {getFieldDecorator('timeout', {
                   rules: [{
                     required: true,
@@ -406,7 +457,7 @@ export class FlowTransformForm extends React.Component {
             </Col>
           ) : '' }
           {flowSubPanelKey === 'spark' ? (
-            <Col span={6} className={transformTypeClassNames[2]}>
+            <Col span={4} className={transformTypeClassNames[2]}>
               <FormItem label="SQL" className="tran-sql-label">
                 {getFieldDecorator('streamJoinSql', {
                   hidden: transformTypeHiddens[2]
@@ -424,6 +475,7 @@ export class FlowTransformForm extends React.Component {
               />
             </Col>
           ) : '' }
+
           {/* 设置 ClassName */}
           {flowSubPanelKey === 'spark' ? (
             <Col span={24} className={transformTypeClassNames[3]}>
@@ -440,67 +492,177 @@ export class FlowTransformForm extends React.Component {
               </FormItem>
             </Col>
           ) : '' }
+
           {/* 设置 Flink CEP  */}
           {flowSubPanelKey === 'flink' ? (
-            <Card title="Pattern" className={`${flinkTransformTypeClassNames[2]}`}>
-              <Col span={24} className={transformTypeClassNames[3]}>
-                <Table
-                  dataSource={cepDataSource}
-                  columns={columnsCEP}
-                  pagination={pagination}
-                  bordered
-                  className="tran-table-style"
-                />
-              </Col>
-              <Col span={24}>
-                <FormItem label="Operator" {...itemStyle}>
-                  {getFieldDecorator('operator', {
-                    rules: [{
-                      required: true,
-                      message: operateLanguageSelect('operator', 'Operator')
-                    }]
-                  })(
-                    <RadioGroup size="default">
-                      <RadioButton value="begin" className="radio-btn-style">Begin</RadioButton>
-                      <RadioButton value="next" className="radio-btn-style">Next</RadioButton>
-                      <RadioButton value="followBy" className="radio-btn-style">FollowBy</RadioButton>
-                      <RadioButton value="notNext" className="radio-btn-style">NotNext</RadioButton>
-                      <RadioButton value="notFollowBy" className="radio-btn-style">NotFollowBy</RadioButton>
-                    </RadioGroup>
-                  )}
-                </FormItem>
-              </Col>
-              <Col span={24}>
-                <FormItem label="Conditions" {...itemStyle}>
-                  {getFieldDecorator('conditions', {
-                    rules: [{
-                      required: true,
-                      message: operateLanguageSelect('conditions', 'Conditions')
-                      // hidden: flinkTransformTypeHiddens[2]
-                    }]
-                  })(
-                    <div>111</div>
-                  )}
-                </FormItem>
-              </Col>
-              <Col span={24}>
-                <FormItem label="Quartifier" {...itemStyle}>
-                  {getFieldDecorator('quartifier', {
-                    rules: [{
-                      required: true,
-                      message: operateLanguageSelect('quartifier', 'Quartifier')
-                      // hidden: flinkTransformTypeHiddens[2]
-                    }]
-                  })(
-                    <RadioGroup size="default">
-                      <RadioButton value="oneOrMore" className="radio-btn-style">OneOrMore</RadioButton>
-                      <RadioButton value="times" className="radio-btn-style">Times($int$)</RadioButton>
-                      <RadioButton value="timesOrMore" className="radio-btn-style">TimesOrMore($int$)</RadioButton>
-                    </RadioGroup>
-                  )}
-                </FormItem>
-              </Col>
-            </Card>
+            <Col span={24} className={flinkTransformTypeClassNames[2]}>
+              <FormItem label="Windowtime" {...itemStyle}>
+                {getFieldDecorator('windowTime', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageFillIn('windowtime', 'Windowtime')
+                  }],
+                  hidden: flinkTransformTypeHiddens[2]
+                })(
+                  <InputNumber step={1} placeholder="seconds" />
+                )}
+              </FormItem>
+            </Col>
+          ) : '' }
+          {flowSubPanelKey === 'flink' ? (
+            <Col span={24} className={flinkTransformTypeClassNames[2]}>
+              <FormItem label="Strategy" {...itemStyle}>
+                {getFieldDecorator('strategy', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('strategy', 'Strategy')
+                  }]
+                })(
+                  <Select
+                    dropdownClassName="ri-workbench-select-dropdown"
+                    onChange={(e) => this.changeStrategy(e)}
+                    placeholder="Select a strategy"
+                    // disabled={flowDisabledOrNot}
+                  >
+                    {/* NOTE: 待添加 */}
+                    <Select.Option key={1} value={1}>1</Select.Option>
+                  </Select>
+                )}
+              </FormItem>
+            </Col>
+          ) : '' }
+          {flowSubPanelKey === 'flink' ? (
+            <Col span={24} className={flinkTransformTypeClassNames[2]}>
+              <FormItem label="KeyBy" {...itemStyle}>
+                {getFieldDecorator('keyBy', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageFillIn('keyBy', 'Keyby')
+                  }],
+                  hidden: flinkTransformTypeHiddens[2]
+                })(
+                  <Input />
+                )}
+              </FormItem>
+            </Col>
+          ) : '' }
+          {flowSubPanelKey === 'flink' ? (
+            <Col span={12} offset={2} className={flinkTransformTypeClassNames[2]}>
+              <FormItem label="Output" labelCol={{span: 4}} wrapperCol={{span: 10}}>
+                {getFieldDecorator('output', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('output', 'Output')
+                  }],
+                  initialValue: 'agg'
+                })(
+                  <RadioGroup onChange={this.changeOutput}>
+                    <RadioButton value="agg">Agg</RadioButton>
+                    <RadioButton value="detail">Detail</RadioButton>
+                    <RadioButton value="filteredRow">FilteredRow</RadioButton>
+                  </RadioGroup>
+                )}
+              </FormItem>
+            </Col>
+          ) : '' }
+          {flowSubPanelKey === 'flink' ? (
+            <Col span={4} pull={4} className={`${flinkTransformTypeClassNames[2]} ${outputHiddens[0] ? 'hide' : ''}`}>
+              <FormItem>
+                {getFieldDecorator('outputText', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('output', 'Output')
+                  }],
+                  hidden: outputHiddens[0]
+                })(
+                  <Input />
+                )}
+              </FormItem>
+            </Col>
+          ) : ''}
+          {flowSubPanelKey === 'flink' ? (
+            <Col span={20} offset={4} className={flinkTransformTypeClassNames[2]}>
+              <Table
+                dataSource={cepDataSource}
+                columns={columnsCEP}
+                pagination={pagination}
+                bordered
+              />
+            </Col>
+          ) : ''}
+          {flowSubPanelKey === 'flink' ? (
+            <Col span={24} offset={4} className={flinkTransformTypeClassNames[2]}>
+              <Button onClick={this.openPatternModal}>添加Pattern</Button>
+            </Col>
+          ) : ''}
+          {flowSubPanelKey === 'flink' ? (
+            <Modal
+              title="Pattern"
+              okText="确定"
+              visible={patternModalShow}
+              wrapClassName="transform-form-style-sub"
+              onOk={this.addPattern}
+              onCancel={this.closePatternModal}
+            >
+              <Card className={`${flinkTransformTypeClassNames[2]}`}>
+                <Col span={24}>
+                  <FormItem label="Operator" {...patternItemStyle}>
+                    {getFieldDecorator('operator', {
+                      rules: [{
+                        required: true,
+                        message: operateLanguageSelect('operator', 'Operator')
+                      }],
+                      initialValue: operatorBtnInitVal
+                    })(
+                      <RadioGroup size="default">
+                        <RadioButton value="begin" className="radio-btn-style" disabled={cepDataSource.length > 0}>Begin</RadioButton>
+                        <RadioButton value="next" className="radio-btn-style" disabled={cepDataSource.length === 0}>Next</RadioButton>
+                        <RadioButton value="followBy" className="radio-btn-style" disabled={cepDataSource.length === 0}>FollowBy</RadioButton>
+                        <RadioButton value="notNext" className="radio-btn-style" disabled={cepDataSource.length === 0}>NotNext</RadioButton>
+                        <RadioButton value="notFollowBy" className="radio-btn-style" disabled={cepDataSource.length === 0}>NotFollowBy</RadioButton>
+                      </RadioGroup>
+                    )}
+                  </FormItem>
+                </Col>
+                <Col span={24}>
+                  <FormItem label="Quartifier" {...patternItemStyle}>
+                    {getFieldDecorator('quartifier', {
+                      rules: [{
+                        required: true,
+                        message: operateLanguageSelect('quartifier', 'Quartifier')
+                        // hidden: flinkTransformTypeHiddens[2]
+                      }]
+                    })(
+                      <RadioGroup size="default">
+                        <RadioButton value="oneOrMore" className="radio-btn-style">OneOrMore</RadioButton>
+                        <RadioButton value="times" className="radio-btn-style">Times($int$)</RadioButton>
+                        <RadioButton value="timesOrMore" className="radio-btn-style">TimesOrMore($int$)</RadioButton>
+                      </RadioGroup>
+                    )}
+                  </FormItem>
+                </Col>
+                <Col span={24}>
+                  <FormItem label="Conditions" {...patternItemStyle}>
+                    {getFieldDecorator('conditions', {
+                      rules: [{
+                        required: true,
+                        message: operateLanguageSelect('conditions', 'Conditions')
+                        // hidden: flinkTransformTypeHiddens[2]
+                      }]
+                    })(
+                      <div style={{width: '100%', height: '260px', padding: '20px', overflow: 'scroll', border: '1px solid #ddd'}}>
+                        <FilterComponent
+                          loginUser={null}
+                          itemId={null}
+                          onQuery={this.doFilterQuery}
+                          wrappedComponentRef={f => { this.filterComponent = f }}
+                        ></FilterComponent>
+                      </div>
+                    )}
+                  </FormItem>
+                </Col>
+              </Card>
+            </Modal>
           ) : ''}
         </Row>
       </Form>

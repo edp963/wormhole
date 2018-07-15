@@ -440,7 +440,7 @@ export class WorkbenchFlowForm extends React.Component {
                     required: true,
                     message: operateLanguageSelect('type', 'Type')
                   }],
-                  initialValue: 'spark'
+                  initialValue: flowSubPanelKey
                 })(
                   <RadioGroup className="radio-group-style" disabled={flowDisabledOrNot} size="default" onChange={this.props.changeStreamType('flow')}>
                     <RadioButton value="spark" className="radio-btn-style radio-btn-extra">Spark</RadioButton>

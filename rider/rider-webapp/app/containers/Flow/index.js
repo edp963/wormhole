@@ -88,6 +88,8 @@ export class Flow extends React.Component {
       filterDropdownVisibleStreamId: false,
       searchTextStreamType: '',
       filterDropdownVisibleStreamType: false,
+      searchTextFunctionType: '',
+      filterDropdownVisibleFunctionType: false,
       startTimeText: '',
       endTimeText: '',
       startedStartTimeText: '',
@@ -731,6 +733,34 @@ export class Flow extends React.Component {
       onFilterDropdownVisibleChange: visible => this.setState({
         filterDropdownVisibleStreamType: visible
       }, () => this.searchInput.focus())
+    },
+    {
+      title: 'Function Type',
+      dataIndex: 'functionType',
+      key: 'functionType',
+      // className: 'text-align-center',
+      sorter: (a, b) => a.streamType < b.streamType ? -1 : 1,
+      sortOrder: sortedInfo.columnKey === 'functionType' && sortedInfo.order,
+      filterDropdown: (
+        <div className="custom-filter-dropdown">
+          <Input
+            ref={ele => { this.searchInput = ele }}
+            placeholder="Function Type"
+            value={this.state.searchTextFunctionType}
+            onChange={this.onInputChange('searchTextFunctionType')}
+            onPressEnter={this.onSearch('streamType', 'searchTextFunctionType', 'filterDropdownVisibleFunctionType')}
+          />
+          <Button
+            type="primary"
+            onClick={this.onSearch('streamType', 'searchTextFunctionType', 'filterDropdownVisibleFunctionType')}
+          >Search
+          </Button>
+        </div>
+      ),
+      filterDropdownVisible: this.state.filterDropdownVisibleFunctionType,
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleFunctionType: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Start Time',
       dataIndex: 'startedTime',
@@ -939,7 +969,9 @@ export class Flow extends React.Component {
       rowSelection = {
         selectedRowKeys,
         onChange: this.onSelectChange,
-        onShowSizeChange: this.onShowSizeChange
+        getCheckboxProps: record => ({
+          disabled: record.streamType === 'flink'
+        })
       }
     }
 
