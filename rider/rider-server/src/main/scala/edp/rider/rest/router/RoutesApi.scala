@@ -32,7 +32,7 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
 
   lazy val swagger = new SwaggerRoutes
   lazy val login = new LoginRoutes(modules)
-//  lazy val genToken = new GenTokenRoutes(modules)
+  lazy val genToken = new GenTokenRoutes(modules)
   lazy val changePwd = new ChangePwdRoutes(modules)
   lazy val instanceAdmin = new InstanceAdminRoutes(modules)
   lazy val databaseAdmin = new NsDatabaseAdminRoutes(modules)
@@ -71,7 +71,7 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
       pathPrefix("api" / "v1") {
         crossDomainHandler(login.routes) ~
           crossDomainHandler(changePwd.routes) ~
-//          crossDomainHandler(genToken.routes) ~
+          crossDomainHandler(genToken.routes) ~
           pathPrefix("admin") {
             crossDomainHandler(instanceAdmin.routes) ~
               crossDomainHandler(databaseAdmin.routes) ~

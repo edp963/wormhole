@@ -213,7 +213,9 @@ export class Workbench extends React.Component {
         'backfill': '2',
         '1': 'default',
         '2': 'backfill'
-      }
+      },
+      flowSourceNsSys: '',
+      jobSourceNsSys: ''
     }
   }
 
@@ -286,7 +288,23 @@ export class Workbench extends React.Component {
     this.setState({ tabPanelKey: key })
   }
 
-  initialHdfslogCascader = (value) => this.setState({ hdfslogSinkNsValue: value.join('.') })
+  getDataSystem = (value) => {
+    this.setState({
+      flowSourceNsSys: value
+    })
+  }
+  initialDefaultCascader = (value, selectedOptions) => {
+    if (selectedOptions && selectedOptions.length > 0) {
+      this.setState({flowSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys})
+    }
+  }
+
+  initialHdfslogCascader = (value, selectedOptions) => {
+    this.setState({
+      hdfslogSinkNsValue: value.join('.'),
+      flowSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys
+    })
+  }
 
   initialBackfillCascader = (value, selectedOptions) => {
     const { projectId } = this.state
@@ -303,13 +321,14 @@ export class Workbench extends React.Component {
         // }, 20)
       // }
     }
-    this.setState({ backfillSinkNsValue: value.join('.') })
+    this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys })
   }
-  initialRoutingCascader = (value) => {
+  initialRoutingCascader = (value, selectedOptions) => {
     const { projectId, pipelineStreamId, routingSourceNsValue } = this.state
 
     this.setState({
-      routingSourceNsValue: value.join('.')
+      routingSourceNsValue: value.join('.'),
+      flowSourceNsSys: this.state.flowSourceNsSys
     }, () => {
       // 调显示 routing sink namespace 下拉框数据的接口
       this.props.onLoadSinkTypeNamespace(projectId, pipelineStreamId, 'kafka', 'sinkType', (result) => {
@@ -426,7 +445,7 @@ export class Workbench extends React.Component {
         this.setState({
           pipelineStreamId: id,
           flowKafkaInstanceValue: instance,
-          flowKafkaTopicValue: topicInfo.map(j => j.name).join(',')
+          flowKafkaTopicValue: topicInfo ? topicInfo.map(j => j.name).join(',') : ''
         })
         this.workbenchFlowForm.setFieldsValue({
           flowStreamId: id,
@@ -448,7 +467,7 @@ export class Workbench extends React.Component {
     this.setState({
       pipelineStreamId: Number(id),
       flowKafkaInstanceValue: instance,
-      flowKafkaTopicValue: topicInfo.map(j => j.name).join(',')
+      flowKafkaTopicValue: topicInfo ? topicInfo.map(j => j.name).join(',') : ''
     })
 
     switch (streamDiffType) {
@@ -745,7 +764,7 @@ export class Workbench extends React.Component {
           flowStreamId: streamId,
           streamName: streamName,
           streamType: streamType,
-          protocol: consumedProtocol
+          protocol: consumedProtocol.split(',')
         })
 
         const { kafka, topics, id, projectId, sourceNs, sinkNs, status, active,
@@ -1414,17 +1433,17 @@ export class Workbench extends React.Component {
   }
 
   loadSTSExit (values) {
-    const { flowMode } = this.state
+    const { flowMode, flowSourceNsSys } = this.state
 
     if (flowMode === 'add' || flowMode === 'copy') {
       // 新增flow时验证source to sink 是否存在
-      const sourceInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
+      const sourceInfo = [flowSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
       const sinkInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
 
       this.props.onLoadSourceToSinkExist(this.state.projectId, sourceInfo, sinkInfo, () => {
         this.setState({
           formStep: this.state.formStep + 1,
-          step2SourceNamespace: [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.'),
+          step2SourceNamespace: [flowSourceNsSys, values.sourceNamespace.join('.')].join('.'),
           step2SinkNamespace: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
         })
       }, () => {
@@ -1433,7 +1452,7 @@ export class Workbench extends React.Component {
     } else if (flowMode === 'edit') {
       this.setState({
         formStep: this.state.formStep + 1,
-        step2SourceNamespace: [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.'),
+        step2SourceNamespace: [flowSourceNsSys, values.sourceNamespace.join('.')].join('.'),
         step2SinkNamespace: [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
       })
     }
@@ -1526,15 +1545,15 @@ export class Workbench extends React.Component {
   }
 
   handleForwardHdfslogOrRouting () {
-    const { flowMode, projectId, formStep, streamDiffType } = this.state
+    const { flowMode, projectId, formStep, streamDiffType, flowSourceNsSys } = this.state
 
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (flowMode === 'add' || flowMode === 'copy') {
           // 新增flow时验证source to sink 是否存在
           const sourceInfo = streamDiffType === 'hdfslog'
-            ? [values.sourceDataSystem, values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2], '*', '*', '*'].join('.')
-            : [values.sourceDataSystem, values.routingNamespace[0], values.routingNamespace[1], values.routingNamespace[2], '*', '*', '*'].join('.')
+            ? [flowSourceNsSys, values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2], '*', '*', '*'].join('.')
+            : [flowSourceNsSys, values.routingNamespace[0], values.routingNamespace[1], values.routingNamespace[2], '*', '*', '*'].join('.')
 
           const sinkInfo = streamDiffType === 'hdfslog'
             ? sourceInfo
@@ -1553,13 +1572,13 @@ export class Workbench extends React.Component {
   }
 
   loadJobSTSExit (values, step = 1) {
-    const { jobMode, formStep, projectId, jobDiffType } = this.state
-    let jobStepSourceNs = [values.sourceDataSystem, values.sourceNamespace.join('.')].join('.')
+    const { jobMode, formStep, projectId, jobDiffType, jobSourceNsSys } = this.state
+    let jobStepSourceNs = [jobSourceNsSys, values.sourceNamespace.join('.')].join('.')
     let jobStepSinkNs = jobDiffType === 'backfill' ? jobStepSourceNs : [values.sinkDataSystem, values.sinkNamespace.join('.')].join('.')
     switch (jobMode) {
       case 'add':
         // 新增 Job 时验证 source to sink 是否存在
-        const sourceInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
+        const sourceInfo = [jobSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
         const sinkInfo = jobDiffType === 'backfill'
           ? sourceInfo
           : [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
@@ -1720,8 +1739,7 @@ export class Workbench extends React.Component {
   submitJobForm = () => {
     const values = this.workbenchJobForm.getFieldsValue()
 
-    const { projectId, jobMode, startTsVal, endTsVal, singleJobResult, jobDiffType, mapJobType } = this.state
-    const { jobResultFiledsOutput, jobTranTableRequestValue, jobSparkConfigValues } = this.state
+    const { projectId, jobMode, startTsVal, endTsVal, singleJobResult, jobDiffType, mapJobType, jobSourceNsSys, jobResultFiledsOutput, jobTranTableRequestValue, jobSparkConfigValues } = this.state
     const { locale } = this.props
 
     const maxRecordJson = { maxRecordPerPartitionProcessed: values.maxRecordPerPartitionProcessed }
@@ -1781,7 +1799,7 @@ export class Workbench extends React.Component {
 
     if (jobMode === 'add') {
       // source data system 选择log后，根据接口返回的nsSys值，拼接 sourceDataInfo
-      const sourceDataInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
+      const sourceDataInfo = [jobSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
       const sinkDataInfo = jobDiffType === 'backfill' ? sourceDataInfo : [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
 
       const submitJobData = {
@@ -1837,7 +1855,7 @@ export class Workbench extends React.Component {
   handleSubmitFlowDefault () {
     const values = this.workbenchFlowForm.getFieldsValue()
     const { projectId, flowMode, singleFlowResult } = this.state
-    const { resultFiledsOutput, dataframeShowOrNot, etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue } = this.state
+    const { resultFiledsOutput, dataframeShowOrNot, etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue, flowSourceNsSys } = this.state
     const { locale } = this.props
 
     let sinkConfigRequest = ''
@@ -1863,7 +1881,7 @@ export class Workbench extends React.Component {
     }
 
     if (flowMode === 'add' || flowMode === 'copy') {
-      const sourceDataInfo = [values.sourceDataSystem, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
+      const sourceDataInfo = [flowSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
       const sinkDataInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
 
       const submitFlowData = {
@@ -1871,7 +1889,7 @@ export class Workbench extends React.Component {
         streamId: Number(values.flowStreamId),
         sourceNs: sourceDataInfo,
         sinkNs: sinkDataInfo,
-        consumedProtocol: values.protocol,
+        consumedProtocol: values.protocol.join(','),
         sinkConfig: `${sinkConfigRequest}`,
         tranConfig: tranConfigRequest
       }
@@ -1890,7 +1908,7 @@ export class Workbench extends React.Component {
       const editData = {
         sinkConfig: `${sinkConfigRequest}`,
         tranConfig: tranConfigRequest,
-        consumedProtocol: values.protocol
+        consumedProtocol: values.protocol.join(',')
       }
 
       this.props.onEditFlow(Object.assign(editData, singleFlowResult), () => {
@@ -1915,12 +1933,12 @@ export class Workbench extends React.Component {
   }
 
   handleSubmitFlowHdfslog () {
-    const { flowMode, projectId, singleFlowResult } = this.state
+    const { flowMode, projectId, singleFlowResult, flowSourceNsSys } = this.state
 
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (flowMode === 'add' || flowMode === 'copy') {
-          const sourceDataInfo = [values.sourceDataSystem, values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2], '*', '*', '*'].join('.')
+          const sourceDataInfo = [flowSourceNsSys, values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2], '*', '*', '*'].join('.')
 
           const submitFlowData = {
             projectId: Number(projectId),
@@ -1961,12 +1979,12 @@ export class Workbench extends React.Component {
   }
 
   handleSubmitFlowRouting () {
-    const { flowMode, projectId, singleFlowResult } = this.state
+    const { flowMode, projectId, singleFlowResult, flowSourceNsSys } = this.state
 
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (flowMode === 'add' || flowMode === 'copy') {
-          const sourceDataInfo = [values.sourceDataSystem, values.routingNamespace[0], values.routingNamespace[1], values.routingNamespace[2], '*', '*', '*'].join('.')
+          const sourceDataInfo = [flowSourceNsSys, values.routingNamespace[0], values.routingNamespace[1], values.routingNamespace[2], '*', '*', '*'].join('.')
           const sinkDataInfo = ['kafka', values.routingSinkNs[0], values.routingSinkNs[1], values.routingSinkNs[2], '*', '*', '*'].join('.')
 
           const submitFlowData = {
@@ -3224,6 +3242,7 @@ export class Workbench extends React.Component {
                     hdfslogSinkNsValue={this.state.hdfslogSinkNsValue}
                     routingSourceNsValue={this.state.routingSourceNsValue}
                     routingSinkNsValue={this.state.routingSinkNsValue}
+                    initialDefaultCascader={this.initialDefaultCascader}
                     initialHdfslogCascader={this.initialHdfslogCascader}
                     initialRoutingCascader={this.initialRoutingCascader}
                     initialRoutingSinkCascader={this.initialRoutingSinkCascader}
@@ -3231,6 +3250,8 @@ export class Workbench extends React.Component {
                     flowKafkaInstanceValue={this.state.flowKafkaInstanceValue}
                     flowKafkaTopicValue={this.state.flowKafkaTopicValue}
                     sinkConfigCopy={this.state.sinkConfigCopy}
+                    flowSourceNsSys={this.state.flowSourceNsSys}
+                    emitDataSystem={this.getDataSystem}
 
                     ref={(f) => { this.workbenchFlowForm = f }}
                   />
@@ -3450,6 +3471,7 @@ export class Workbench extends React.Component {
                     jobDiffType={this.state.jobDiffType}
                     backfillTopicValueProp={this.state.backfillTopicValueProp}
                     clearSinkData={this.clearSinkData}
+                    jobSourceNsSys={this.state.jobSourceNsSys}
 
                     ref={(f) => { this.workbenchJobForm = f }}
                   />

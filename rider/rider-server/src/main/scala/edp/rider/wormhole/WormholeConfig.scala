@@ -58,7 +58,9 @@ case class BatchFlowConfig(kafka_input: KafkaInputBaseConfig,
                            rdd_partition_number: Int, //-1 do not repartition
                            zookeeper_path: String,
                            kafka_persistence_config_isvalid: Boolean,
-                           stream_hdfs_address: Option[String])
+                           stream_hdfs_address: Option[String],
+                           hdfs_namenode_hosts: Option[String] = None,
+                           hdfs_namenode_ids: Option[String] = None)
 
 //for parquet，data is main namespace or join namespace
 
