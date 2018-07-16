@@ -83,11 +83,13 @@ export class FlowTransformForm extends React.Component {
     console.log('__sql__: ', sql)
   }
 
-  addPattern = () => {
-    console.log('addPattern')
+  addOrEditPattern = () => {
+    console.log('addOrEditPattern')
   }
-
-  openPatternModal = () => {
+  onEditPattern = () => {
+    console.log('onEditPattern')
+  }
+  onPatternModal = () => {
     const { cepDataSource } = this.state
     if (cepDataSource.length === 0) {
       this.setState({operatorBtnInitVal: 'begin'})
@@ -95,7 +97,7 @@ export class FlowTransformForm extends React.Component {
     this.setState({
       patternModalShow: true
     })
-    console.log('openPatternModal')
+    console.log('onPatternModal')
   }
   closePatternModal = () => {
     this.setState({
@@ -214,19 +216,32 @@ export class FlowTransformForm extends React.Component {
         title: 'Operator',
         dataIndex: 'operator',
         key: 'operator',
-        width: '33%'
+        width: '20%',
+        className: 'text-align-center'
       },
       {
         title: 'Conditions',
         dataIndex: 'conditions',
         key: 'conditions',
-        width: '33%'
+        width: '40%',
+        className: 'text-align-center'
       },
       {
         title: 'Quartifier',
         dataIndex: 'quartifier',
         key: 'quartifier',
-        width: '33%'
+        width: '20%',
+        className: 'text-align-center'
+      },
+      {
+        title: 'Action',
+        dataIndex: 'action',
+        key: 'action',
+        width: '20%',
+        className: 'text-align-center',
+        render: (text, record) => {
+          <Button icon="edit" shape="circle" type="ghost" onClick={this.onEditPattern(record)}></Button>
+        }
       }
     ]
     const pagination = {
@@ -525,7 +540,7 @@ export class FlowTransformForm extends React.Component {
                     // disabled={flowDisabledOrNot}
                   >
                     {/* NOTE: 待添加 */}
-                    <Select.Option key={1} value={1}>1</Select.Option>
+                    <Select.Option key={1} value={'1'}>1</Select.Option>
                   </Select>
                 )}
               </FormItem>
@@ -581,6 +596,17 @@ export class FlowTransformForm extends React.Component {
             </Col>
           ) : ''}
           {flowSubPanelKey === 'flink' ? (
+            <Col span={24} className={`${flinkTransformTypeClassNames[2]}`}>
+              <FormItem label="Pattern" {...itemStyle}>
+                {getFieldDecorator('patternBtn', {
+                  hidden: true
+                })(
+                  <Button onClick={this.onPatternModal}>添加Pattern</Button>
+                )}
+              </FormItem>
+            </Col>
+          ) : ''}
+          {flowSubPanelKey === 'flink' ? (
             <Col span={20} offset={4} className={flinkTransformTypeClassNames[2]}>
               <Table
                 dataSource={cepDataSource}
@@ -591,17 +617,12 @@ export class FlowTransformForm extends React.Component {
             </Col>
           ) : ''}
           {flowSubPanelKey === 'flink' ? (
-            <Col span={24} offset={4} className={flinkTransformTypeClassNames[2]}>
-              <Button onClick={this.openPatternModal}>添加Pattern</Button>
-            </Col>
-          ) : ''}
-          {flowSubPanelKey === 'flink' ? (
             <Modal
               title="Pattern"
               okText="确定"
               visible={patternModalShow}
               wrapClassName="transform-form-style-sub"
-              onOk={this.addPattern}
+              onOk={this.addOrEditPattern}
               onCancel={this.closePatternModal}
             >
               <Card className={`${flinkTransformTypeClassNames[2]}`}>
