@@ -57,6 +57,9 @@ export class DashboardItemFilters extends PureComponent {
       this.initTree(nextProps)
     }
   }
+  componentDidMount () {
+    this.props.onRef(this)
+  }
 
   initTree = (props) => {
     const { loginUser, itemId } = props
@@ -137,19 +140,17 @@ export class DashboardItemFilters extends PureComponent {
 
     return (
       <div className={itemClass} key={filter.id}>
-        {/* <FormItem className={`${styles.filterFormItem} ${styles.filterFormKey}`}>
+        <FormItem className={`filterFormItem filterFormKey`}>
           {getFieldDecorator(`${filter.id}KeySelect`, {
             rules: [{
               required: true,
-              message: 'Column 不能为空'
+              message: 'Name 不能为空'
             }],
             initialValue: filter.filterKey
           })(
-            <Select placeholder="Column" onSelect={this.changeFilterKey(filter)}>
-              {keySelectOptions}
-            </Select>
+            <Input />
           )}
-        </FormItem> */}
+        </FormItem>
         <FormItem className={`filterFormItem filterFormOperator`}>
           {getFieldDecorator(`${filter.id}OperatorSelect`, {
             rules: [{
@@ -200,8 +201,8 @@ export class DashboardItemFilters extends PureComponent {
 
   generateFilterOperatorOptions = (type) => {
     const operators = [
-      ['=', 'like', '>', '<', '>=', '<=', '!='],
-      ['=', '>', '<', '>=', '<=', '!=']
+      ['=', '>', '<', '>=', '<=', '!=', 'contains', 'startWith', 'endWidth'],
+      ['=', '>', '<', '>=', '<=', '!=', 'contains', 'startWith', 'endWidth']
     ]
 
     const stringOptions = operators[0].slice().map(o => (
@@ -502,7 +503,8 @@ DashboardItemFilters.propTypes = {
   // types: PropTypes.array,
   loginUser: PropTypes.object,
   itemId: PropTypes.number,
-  onQuery: PropTypes.func
+  onQuery: PropTypes.func,
+  onRef: PropTypes.func
 }
 
 export default Form.create()(DashboardItemFilters)

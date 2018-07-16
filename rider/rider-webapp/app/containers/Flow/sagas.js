@@ -130,12 +130,15 @@ export function* getAdminSingleFlowWatcher () {
 export function* getSelectStreamKafkaTopic ({ payload }) {
   try {
     let type = ''
-    if (payload.value === 'flink') {
+    let value = ''
+    if (payload.streamType === 'flink') {
       type = 'streamType'
+      value = payload.streamType
     } else {
       type = 'functionType'
+      value = payload.functionType
     }
-    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/streams?${type}=${payload.value}`)
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/streams?${type}=${value}`)
     yield put(selectStreamKafkaTopicLoaded(result.payload))
     payload.resolve(result.payload)
   } catch (err) {

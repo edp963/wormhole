@@ -1224,7 +1224,7 @@ export class Manager extends React.Component {
               <p><strong>   Description：</strong>{detailTemp.desc}</p>
 
               <p><strong>   Launch Config：</strong>{detailTemp.launchConfig}</p>
-              <p><strong>   spark Config：</strong>{detailTemp.sparkConfig}</p>
+              <p><strong>{record.streamType} Config：</strong>{detailTemp.sparkConfig}</p>
               <p><strong>   start Config：</strong>{detailTemp.startConfig}</p>
 
               <p><strong>   Create Time：</strong>{detailTemp.createTime}</p>

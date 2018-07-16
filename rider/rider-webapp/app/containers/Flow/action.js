@@ -132,12 +132,13 @@ export function adminSingleFlowLoaded (flow) {
   }
 }
 
-export function loadSelectStreamKafkaTopic (projectId, value, resolve) {
+export function loadSelectStreamKafkaTopic (projectId, streamType, functionType, resolve) {
   return {
     type: LOAD_SELECT_STREAM_KAFKA_TOPIC,
     payload: {
       projectId,
-      value,
+      streamType,
+      functionType,
       resolve
     }
   }
