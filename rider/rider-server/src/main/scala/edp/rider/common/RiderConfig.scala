@@ -63,10 +63,14 @@ case class RiderDatabase(url: String, user: String, pwd: String)
 
 case class RiderSpark(user: String,
                       sshPort: Int,
-                      spark_home: String,
-                      queue_name: String,
-                      app_tags: String,
-                      hdfs_root: String,
+                      sparkHome: String,
+                      queueName: String,
+                      appTags: String,
+                      hdfsRoot: String,
+                      remoteHdfsRoot: Option[String],
+                      remoteHdfsNamenodeHosts: Option[String],
+                      remoteHdfsActiveNamenodeHost: Option[String],
+                      remoteHdfsNamenodeIds: Option[String],
                       rm1Url: String,
                       rm2Url: String,
                       kafkaSessionTimeOut: Int,
@@ -149,7 +153,7 @@ object RiderConfig {
     getStringConfig("wormholeServer.normal.username", "normal"),
     getStringConfig("wormholeServer.normal.password", "normal"))
 
-  lazy val udfRootPath = s"${spark.hdfs_root.stripSuffix("/")}/udfjars"
+  lazy val udfRootPath = s"${spark.hdfsRoot.stripSuffix("/")}/udfjars"
 
   lazy val riderDomain = getStringConfig("wormholeServer.domain.url", "")
 
@@ -222,6 +226,10 @@ object RiderConfig {
     config.getString("spark.yarn.queue.name"),
     appTags,
     config.getString("spark.wormhole.hdfs.root.path"),
+    getStringConfig("spark.wormhole.hdfslog.remote.root.path", None),
+    getStringConfig("spark.wormhole.hdfslog.remote.hdfs.namenode.hosts", None),
+    getStringConfig("spark.wormhole.hdfslog.remote.hdfs.activenamenode.host", None),
+    getStringConfig("spark.wormhole.hdfslog.remote.hdfs.namenode.ids", None),
     rm1Url, rm2Url, kafkaSessionTimeOut, kafkaGroupMaxSessionTimeOut,
     s"""
        |--class edp.wormhole.WormholeStarter \\
@@ -271,8 +279,8 @@ object RiderConfig {
       config.getStringList("dbus.namespace.rest.api.url")
     else null
 
-  lazy val riderInfo = RiderInfo(zk, consumer.brokers, consumer.feedbackTopic, spark.wormholeHeartBeatTopic, spark.hdfs_root,
-    spark.user, spark.app_tags, spark.rm1Url, spark.rm2Url)
+  lazy val riderInfo = RiderInfo(zk, consumer.brokers, consumer.feedbackTopic, spark.wormholeHeartBeatTopic, spark.hdfsRoot,
+    spark.user, spark.appTags, spark.rm1Url, spark.rm2Url)
 
   lazy val ldapEnabled = getBooleanConfig("ldap.enabled", false)
 
@@ -295,6 +303,12 @@ object RiderConfig {
   def getStringConfig(path: String, default: String): String = {
     if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")
       config.getString(path)
+    else default
+  }
+
+  def getStringConfig(path: String, default: Option[String]): Option[String] = {
+    if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")
+      Option(config.getString(path))
     else default
   }
 

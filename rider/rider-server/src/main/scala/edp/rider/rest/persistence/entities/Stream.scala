@@ -169,6 +169,12 @@ case class StreamHealth(streamStatus: String,
                         topics: Seq[TopicOffset])
 
 case class StreamInfo(name: String, streamType: String, functionType: String, status: String)
+case class StreamSelect(id: Long,
+                        name: String,
+                        kafkaInstance: String,
+                        topicInfo: Seq[String])
+
+case class StreamInfo(name: String, streamType: String, status: String)
 
 case class SimpleStreamInfo(id: Long,
                             name: String,

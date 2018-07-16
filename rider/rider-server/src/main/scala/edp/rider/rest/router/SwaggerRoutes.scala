@@ -38,7 +38,7 @@ class SwaggerRoutes extends SwaggerHttpService with HasActorSystem {
   override implicit val materializer: ActorMaterializer = RiderStarter.materializer
   override val apiTypes = Seq(
     typeOf[LoginRoutes],
-//    typeOf[GenTokenRoutes],
+    typeOf[GenTokenRoutes],
     typeOf[ChangePwdRoutes],
     typeOf[UserAdminRoutes],
     typeOf[InstanceAdminRoutes],
