@@ -110,10 +110,10 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
             else {
               streamDal.refreshStreamStatus(Some(id))
               riderLogger.info(s"user ${session.userId} refresh streams.")
-              onComplete(flowDal.getFlowAllInfo(flow => flow.active === true && flow.projectId === id).mapTo[Seq[FlowAllInfo]]) {
+              onComplete(flowDal.defaultGetAll(flow => flow.active === true && flow.projectId === id).mapTo[Seq[FlowStream]]) {
                 case Success(flowStreams) =>
                   riderLogger.info(s"user ${session.userId} select all flows success where project id is $id.")
-                  complete(OK, ResponseSeqJson[FlowAllInfo](getHeader(200, session), flowStreams.sortBy(_.id)))
+                  complete(OK, ResponseSeqJson[FlowStream](getHeader(200, session), flowStreams.sortBy(_.id)))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} select all flows failed where project id is $id", ex)
                   complete(OK, getHeader(451, ex.getMessage, session))

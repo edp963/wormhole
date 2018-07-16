@@ -88,7 +88,7 @@ object SubmitSparkJob extends App with RiderLogger {
 
 
   def generateSparkStreamStartSh(args: String, streamName: String, logPath: String, startConfig: StartConfig, sparkConfig: String, functionType: String, local: Boolean = false): String = {
-    val submitPre = s"ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host} " + RiderConfig.spark.spark_home
+    val submitPre = s"ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host} " + RiderConfig.spark.sparkHome
     val executorsNum = startConfig.executorNums
     val driverMemory = startConfig.driverMemory
     val executorMemory = startConfig.perExecutorMemory
