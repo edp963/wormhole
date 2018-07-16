@@ -100,8 +100,8 @@ export class Workbench extends React.Component {
       jobMode: '',
       formStep: 0,
       tabPanelKey: '',
-      streamSubPanelKey: 'spark',
       flowSubPanelKey: 'spark',
+      flowFunctionType: 'default',
 
       // all and parts of flow/stream/namespace/user
       userClassHide: 'hide',
@@ -140,6 +140,7 @@ export class Workbench extends React.Component {
 
       streamConfigValues: {},
       streamQueryValues: {},
+      streamSubPanelKey: 'spark',
 
       // streamDagModalShow: 'hide',
       // flowDagModalShow: 'hide',
@@ -405,17 +406,17 @@ export class Workbench extends React.Component {
         dataframeShow: 'false',
         dataframeShowNum: 10
       })
-      this.onInitStreamTypeSelect('default')
+      this.onInitStreamTypeSelect(this.state.flowFunctionType)
     })
   }
 
   onInitStreamTypeSelect = (val) => {
-    const { projectId } = this.state
+    const { projectId, flowSubPanelKey } = this.state
     const { locale } = this.props
     this.setState({ streamDiffType: val })
 
     // 显示 Stream 信息
-    this.props.onLoadSelectStreamKafkaTopic(projectId, val, (result) => {
+    this.props.onLoadSelectStreamKafkaTopic(projectId, flowSubPanelKey, val, (result) => {
       const resultFinal = result.map(s => {
         const responseResult = {
           id: s.id,
@@ -517,7 +518,7 @@ export class Workbench extends React.Component {
     new Promise((resolve) => {
       resolve(flow)
       this.workbenchFlowForm.resetFields()
-      this.props.onLoadSelectStreamKafkaTopic(this.state.projectId, flow.streamType, (result) => {
+      this.props.onLoadSelectStreamKafkaTopic(this.state.projectId, flow.streamType, flow.functionTYpe, (result) => {
         const resultFinal = result.map(s => {
           const responseResult = {
             id: s.id,
@@ -1162,6 +1163,8 @@ export class Workbench extends React.Component {
       case 'flow':
         this.setState({
           flowSubPanelKey: value
+        }, () => {
+          this.onInitStreamTypeSelect(this.state.flowFunctionType)
         })
         break
       case 'stream':
@@ -1170,6 +1173,9 @@ export class Workbench extends React.Component {
         }, this.showAddStreamWorkbench)
         break
     }
+  }
+  getFlowFunctionType = (flowFunctionType) => {
+    this.setState({flowFunctionType})
   }
   showAddStreamWorkbench = () => {
     this.workbenchStreamForm.resetFields()
@@ -3351,6 +3357,7 @@ export class Workbench extends React.Component {
                     emitDataSystem={this.getDataSystem}
                     changeStreamType={this.changeStreamType}
                     flowSubPanelKey={this.state.flowSubPanelKey}
+                    emitFlowFunctionType={this.getFlowFunctionType}
 
                     ref={(f) => { this.workbenchFlowForm = f }}
                   />
@@ -3464,6 +3471,7 @@ export class Workbench extends React.Component {
                     streamMode={this.state.streamMode}
                     projectId={projectId}
                     kafkaValues={this.state.kafkaValues}
+                    streamSubPanelKey={this.state.streamSubPanelKey}
 
                     onShowConfigModal={this.onShowConfigModal}
                     streamConfigCheck={this.state.streamConfigCheck}
@@ -3760,7 +3768,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadStreamConfigs: (type, resolve) => dispatch(loadStreamConfigs(type, resolve)),
     onLoadStreamNameValue: (projectId, value, resolve, reject) => dispatch(loadStreamNameValue(projectId, value, resolve, reject)),
     onLoadStreamDetail: (projectId, streamId, roleType, resolve) => dispatch(loadStreamDetail(projectId, streamId, roleType, resolve)),
-    onLoadSelectStreamKafkaTopic: (projectId, value, resolve) => dispatch(loadSelectStreamKafkaTopic(projectId, value, resolve)),
+    onLoadSelectStreamKafkaTopic: (projectId, streamType, functionType, resolve) => dispatch(loadSelectStreamKafkaTopic(projectId, streamType, functionType, resolve)),
 
     onLoadSourceSinkTypeNamespace: (projectId, streamId, value, type, resolve) => dispatch(loadSourceSinkTypeNamespace(projectId, streamId, value, type, resolve)),
     onLoadSinkTypeNamespace: (projectId, streamId, value, type, resolve) => dispatch(loadSinkTypeNamespace(projectId, streamId, value, type, resolve)),

@@ -160,6 +160,7 @@ export class WorkbenchFlowForm extends React.Component {
   }
 
   changeStreamType = (e) => {
+    this.props.emitFlowFunctionType(e.target.value)
     this.props.onInitStreamTypeSelect(e.target.value)
     this.setState({
       hdfslogSinkDSValue: ''
@@ -1143,7 +1144,8 @@ WorkbenchFlowForm.propTypes = {
   flowSourceNsSys: PropTypes.string,
   emitDataSystem: PropTypes.func,
   changeStreamType: PropTypes.func,
-  flowSubPanelKey: PropTypes.string
+  flowSubPanelKey: PropTypes.string,
+  emitFlowFunctionType: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {

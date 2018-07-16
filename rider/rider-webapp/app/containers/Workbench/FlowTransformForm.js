@@ -84,6 +84,7 @@ export class FlowTransformForm extends React.Component {
   }
 
   addOrEditPattern = () => {
+    this.filterComponent.doQuery()
     console.log('addOrEditPattern')
   }
   onEditPattern = () => {
@@ -258,6 +259,7 @@ export class FlowTransformForm extends React.Component {
         this.setState({ pageIndex: current })
       }
     }
+
     return (
       <Form className="transform-modal-style">
         <Row>
@@ -539,8 +541,10 @@ export class FlowTransformForm extends React.Component {
                     placeholder="Select a strategy"
                     // disabled={flowDisabledOrNot}
                   >
-                    {/* NOTE: 待添加 */}
-                    <Select.Option key={1} value={'1'}>1</Select.Option>
+                    <Select.Option key="NO_SKIP" value="NO_SKIP">NO_SKIP</Select.Option>
+                    <Select.Option key="SKIP_PAST_LAST_EVENT" value="SKIP_PAST_LAST_EVENT">SKIP_PAST_LAST_EVENT</Select.Option>
+                    <Select.Option key="SKIP_TO_FIRST" value="SKIP_TO_FIRST">SKIP_TO_FIRST</Select.Option>
+                    <Select.Option key="SKIP_TO_LAST" value="SKIP_TO_LAST">SKIP_TO_LAST</Select.Option>
                   </Select>
                 )}
               </FormItem>
@@ -676,7 +680,7 @@ export class FlowTransformForm extends React.Component {
                           loginUser={null}
                           itemId={null}
                           onQuery={this.doFilterQuery}
-                          wrappedComponentRef={f => { this.filterComponent = f }}
+                          onRef={ref => { this.filterComponent = ref }}
                         ></FilterComponent>
                       </div>
                     )}

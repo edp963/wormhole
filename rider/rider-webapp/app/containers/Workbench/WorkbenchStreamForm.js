@@ -73,7 +73,7 @@ export class WorkbenchStreamForm extends React.PureComponent {
   }
 
   render () {
-    const { isWormhole, onShowConfigModal, streamConfigCheck, kafkaValues, locale } = this.props
+    const { isWormhole, onShowConfigModal, streamConfigCheck, kafkaValues, locale, streamSubPanelKey } = this.props
     const { streamMode } = this.state
     const { getFieldDecorator } = this.props.form
     const itemStyle = {
@@ -159,8 +159,8 @@ export class WorkbenchStreamForm extends React.PureComponent {
               })(
                 <RadioGroup className="radio-group-style" disabled={streamMode === 'edit'} size="default">
                   <RadioButton value="default" className="radio-btn-style radio-btn-extra">Default</RadioButton>
-                  <RadioButton value="hdfslog" className="radio-btn-style radio-btn-extra">Hdfslog</RadioButton>
-                  <RadioButton value="routing" className="radio-btn-style radio-btn-final">Routing</RadioButton>
+                  <RadioButton value="hdfslog" className={`radio-btn-style radio-btn-extra ${streamSubPanelKey === 'flink' ? 'hide' : ''}`}>Hdfslog</RadioButton>
+                  <RadioButton value="routing" className={`radio-btn-style radio-btn-extra ${streamSubPanelKey === 'flink' ? 'hide' : ''}`}>Routing</RadioButton>
                 </RadioGroup>
               )}
             </FormItem>
@@ -272,7 +272,8 @@ WorkbenchStreamForm.propTypes = {
   streamConfigCheck: PropTypes.bool,
   projectId: PropTypes.string,
   locale: PropTypes.string,
-  changeStreamType: PropTypes.func
+  changeStreamType: PropTypes.func,
+  streamSubPanelKey: PropTypes.string
 }
 
 function mapDispatchToProps (dispatch) {
