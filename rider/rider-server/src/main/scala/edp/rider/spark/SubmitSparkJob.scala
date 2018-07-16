@@ -21,9 +21,10 @@
 package edp.rider.spark
 
 import com.alibaba.fastjson.JSON
-import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.rest.persistence.entities.{FlinkDefaultConfig, FlinkResourceConfig, FlowDirective, LaunchConfig, StartConfig, Stream}
-import edp.rider.rest.util.CommonUtils.minTimeOut
+import edp.rider.RiderStarter.modules
+import edp.rider.common.{AppResult, RiderConfig, RiderLogger, StreamType}
+import edp.rider.rest.persistence.entities.{Directive, FlinkDefaultConfig, FlinkResourceConfig, Flow, FlowDirective, LaunchConfig, SourceSchema, StartConfig, Stream}
+import edp.rider.rest.util.CommonUtils.{currentMicroSec, currentSec, minTimeOut}
 import edp.rider.rest.util.StreamUtils.getLogPath
 
 import scala.collection.mutable.ListBuffer
@@ -35,8 +36,13 @@ import edp.wormhole.common.util.JsonUtils._
 import edp.rider.wormhole.{BatchFlowConfig, KafkaInputBaseConfig, KafkaOutputConfig, SparkConfig}
 import spray.json.JsonParser
 import edp.rider.RiderStarter.modules._
+import edp.rider.rest.util.FlowUtils._
+import edp.rider.spark.SparkJobClientLog.riderLogger
 import edp.rider.wormhole._
-import edp.wormhole.common.PartitionOffsetConfig
+import edp.wormhole.common.util.CommonUtils.base64byte2s
+import edp.wormhole.common.util.DateUtils.{dt2date, dt2string}
+import edp.wormhole.common.util.DtFormat
+import edp.wormhole.ums.UmsProtocolType.DIRECTIVE_FLOW_START
 
 import scalaj.http.{Http, HttpResponse}
 
@@ -172,14 +178,23 @@ object SubmitSparkJob extends App with RiderLogger {
      """.stripMargin.replaceAll("\n", " ").trim
   }
 
-  def generateFlinkFlowStartSh(sparkAppid: String): String = {
-//    val logPath = getLogPath(stream.name)
-//    val resourceConfig = json2caseClass[FlinkResourceConfig](stream.startConfig)
-    val address = getAddressOnYarn(sparkAppid).split("\\:").head
-    val port = getPortOnYarn(sparkAppid)
+  def startFlinkFlow(stream: Stream, flow: Flow, flowDirectiveOpt: FlowDirective) = {
+        val commandSh = SubmitSparkJob.generateFlinkFlowStartSh(stream, flow, flowDirectiveOpt)
+        riderLogger.info(s"start flow ${flow.id} command: $commandSh")
+        runShellCommand(commandSh)
+
+  }
+
+  def generateFlinkFlowStartSh(stream: Stream, flow: Flow, flowDirectiveOpt: FlowDirective): String = {
+    val logPath = getLogPath(stream.name)
+    val address = getAddressOnYarn(stream.sparkAppid.get).split("\\:").head
+    riderLogger.info(address)
+    val port = getPortOnYarn(stream.sparkAppid.get)
+    val config1 = getWhConfig(stream, flowDirectiveOpt, flow)
+    val config2 = getUms(flow, stream)
     s"""
-       |${RiderConfig.flink.homePath}/flink
-       |-m ${address}:${port} wormhole-ums_1.3-flinkx_1.4.2-0.4.1-SNAPSHOTS-jar-with-dependencies.jar ${1} ${2}
+       |${RiderConfig.flink.homePath}/bin/flink
+       |-m ${address}:${port} wormhole-ums_1.3-flinkx_1.4.2-0.4.1-SNAPSHOTS-jar-with-dependencies.jar ${config1} ${config2}
        |-d
        |> $logPath 2>&1
      """.stripMargin.replaceAll("\n", " ").trim
@@ -191,14 +206,18 @@ object SubmitSparkJob extends App with RiderLogger {
     val url =s"http://hdp2:8088/ws/v1/cluster/apps/${sparkAppid}"
     try {
       val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
+      riderLogger.info(response.toString)
       val json = JsonParser.apply(response.body).toString()
-      address = JSON.parseObject(json).getString("amHostHttpAddress")
+       val app = JSON.parseObject(json).getString("app")
+      address = JSON.parseObject(app).getString("amHostHttpAddress")
     } catch {
       case e: Exception =>
         riderLogger.error(s"Flink Application refresh yarn rest url $url failed", e)
     }
+    riderLogger.info(address)
     address
   }
+
 
   def getPortOnYarn(sparkAppid: String): String = {
     var port :String = null
@@ -215,25 +234,156 @@ object SubmitSparkJob extends App with RiderLogger {
   }
 
 
-  def getWhConfig(stream: Stream, flowDirectiveOpt: FlowDirective) : whConfig = {
+  def getWhConfig(stream: Stream, flowDirectiveOpt: FlowDirective, flow: Flow) = {
     val kafkaUrl = getKafkaByStreamId(stream.id)
-    val launchConfig = json2caseClass[LaunchConfig](stream.launchConfig)
-    val baseConfig = KafkaBaseConfig(group.id, kafkaUrl,RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut)
+    val baseConfig = KafkaBaseConfig(flow.sourceNs+"-"+flow.sinkNs, kafkaUrl,RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut)
     val outputConfig = KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers)
-    val flinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "")
-    val autoRegisteredOffset = flowDirectiveOpt.
-    val poc = topicPartition.split(",").map(tp => {
+//    var autoRegisteredpoc = Seq[KafkaFlinkTopic](null, null)
+//    var userDefinedpoc = Seq[KafkaFlinkTopic](null, null)
+    val flinkTopic =flowDirectiveOpt.topicInfo match {
+      case Some(topic) =>
+//    val autoRegisteredOffset = flowDirectiveOpt.topicInfo.get.autoRegisteredTopics
+//    val userDefinedOffset = flowDirectiveOpt.topicInfo.get.userDefinedTopics
+        val autoRegisteredOffset = topic.autoRegisteredTopics
+           val userDefinedOffset = topic.userDefinedTopics
+    val autoRegisteredpoc = autoRegisteredOffset.map(offset => KafkaFlinkTopic(offset.name, offset.partitionOffsets.split(",").map(tp => {
       val tpo = tp.split(":")
       PartitionOffsetConfig(tpo(0).toInt, tpo(1).toLong)
-    })
-      SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
-    launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfs_root))
-    whConfig(baseConfig, outputConfig, flinkConfig, 1, RiderConfig.zk)
-    caseClass2json[BatchFlowConfig](config)
+    })))
+   val userDefinedpoc = userDefinedOffset.map(offset => KafkaFlinkTopic(offset.name, offset.partitionOffsets.split(",").map(tp => {
+      val tpo = tp.split(":")
+      PartitionOffsetConfig(tpo(0).toInt, tpo(1).toLong)
+    })))
+       autoRegisteredpoc ++ userDefinedpoc
+      case  None => Seq[KafkaFlinkTopic](null, null)++Seq[KafkaFlinkTopic](null, null)
+    }
+
+    //val flinkTopic = autoRegisteredpoc ++ userDefinedpoc
+
+    val config = whConfig(kafka_input(baseConfig, flinkTopic), outputConfig, "", 1, RiderConfig.zk)
+    caseClass2json[whConfig](config)
 
   }
   def getKafkaByStreamId(id: Long): String = {
     val kakfaId = Await.result(streamDal.findById(id), minTimeOut).get.instanceId
     Await.result(instanceDal.findById(kakfaId), minTimeOut).get.connUrl
+  }
+
+  def getUms(flow: Flow, stream: Stream) ={
+    val consumedProtocolSet = getConsumptionType(flow.consumedProtocol)
+    val sinkConfigSet = getSinkConfig(flow.sinkNs, flow.sinkConfig.get)
+    val tranConfigFinal = getTranConfig(flow.tranConfig.getOrElse(""))
+
+    val sourceNsObj = modules.namespaceDal.getNamespaceByNs(flow.sourceNs).get
+    val umsInfoOpt =
+      if (sourceNsObj.sourceSchema.nonEmpty)
+        json2caseClass[Option[SourceSchema]](modules.namespaceDal.getNamespaceByNs(flow.sourceNs).get.sourceSchema.get)
+      else None
+    val umsType = umsInfoOpt match {
+      case Some(umsInfo) => umsInfo.umsType.getOrElse("ums")
+      case None => "ums"
+    }
+    val umsSchema = umsInfoOpt match {
+      case Some(umsInfo) => umsInfo.umsSchema match {
+        case Some(schema) => caseClass2json[Object](schema)
+        case None => ""
+      }
+      case None => ""
+    }
+
+    val base64Tuple = Seq(stream.id, flow.id, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), flow.sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
+      base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))
+    val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, stream.id, flow.id, "", RiderConfig.zk, currentSec, flow.updateBy)), minTimeOut)
+    //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_START.toString} success.")
+    val flow_start_ums =
+      s"""
+         |{
+         |"protocol": {
+         |"type": "${
+        DIRECTIVE_FLOW_START.toString
+      }"
+         |},
+         |"schema": {
+         |"namespace": "${flow.sourceNs}",
+         |"fields": [
+         |{
+         |"name": "directive_id",
+         |"type": "long",
+         |"nullable": false
+         |},
+         |{
+         |"name": "stream_id",
+         |"type": "long",
+         |"nullable": false
+         |},
+         |{
+         |"name": "job_id",
+         |"type": "long",
+         |"nullable": false
+         |},
+         |{
+         |"name": "ums_ts_",
+         |"type": "datetime",
+         |"nullable": false
+         |},
+         |{
+         |"name": "data_type",
+         |"type": "string",
+         |"nullable": false
+         |},
+         |{
+         |"name": "data_parse",
+         |"type": "string",
+         |"nullable": true
+         |},
+         |{
+         |"name": "sink_namespace",
+         |"type": "string",
+         |"nullable": false
+         |},
+         |{
+         |"name": "consumption_protocol",
+         |"type": "string",
+         |"nullable": false
+         |},
+         |{
+         |"name": "sinks",
+         |"type": "string",
+         |"nullable": false
+         |},
+         |{
+         |"name": "swifts",
+         |"type": "string",
+         |"nullable": true
+         |}
+         |]
+         |},
+         |"payload": [
+         |{
+         |"tuple": [${
+        directive.id
+      }, ${
+        base64Tuple.head
+      }, "${
+        base64Tuple(1)
+      }", "${
+        base64Tuple(2)
+      }", "${
+        base64Tuple(3)
+      }", "${
+        base64Tuple(4)
+      }", "${
+        base64Tuple(5)
+      }", "${
+        base64Tuple(6)
+      }", "${
+        base64Tuple(7)
+      }", "${
+        base64Tuple(8)
+      }"]
+         |}
+         |]
+         |}
+        """.stripMargin.replaceAll("\n", "")
   }
 }
