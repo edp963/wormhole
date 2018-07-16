@@ -26,6 +26,7 @@ import akka.http.scaladsl.server.Route
 import edp.rider.common.Action.START
 import edp.rider.common.{RiderConfig, RiderLogger, StreamStatus, StreamType}
 import edp.rider.kafka.KafkaUtils.{getKafkaEarliestOffset, getKafkaLatestOffset}
+import edp.rider.module.DbModule.db
 import edp.rider.rest.persistence.dal.{FlowDal, FlowUdfDal, StreamDal}
 import edp.rider.rest.persistence.entities._
 
@@ -38,6 +39,7 @@ import edp.rider.rest.util.{AuthorizationProvider, FlowUtils, NamespaceUtils, Ns
 import edp.rider.service.util.CacheMap
 import edp.wormhole.common.util.JsonUtils.json2caseClass
 import slick.jdbc.MySQLProfile.api._
+import edp.rider.spark.SubmitSparkJob.startFlinkFlow
 
 import scala.util.{Failure, Success}
 
@@ -476,7 +478,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
     complete(OK, ResponseSeqJson[FlowUdfResponse](getHeader(200, session), udfs))
   }
 
-  def startFlinkRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "start") {
+  def startFlinkRoute(route: String): Route = path(route / LongNumber /"flinkstreams"/"flows"/ LongNumber / "start") {
     (projectId, flowId) =>
       put {
         entity(as[Option[FlowDirective]]) {
@@ -499,67 +501,39 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
   }
 
   private def startResponse(projectId: Long, flowId: Long, flowDirectiveOpt: Option[FlowDirective], session: SessionClass): Route = {
-    if (session.projectIdList.contains(projectId)) {
-      val streamOpt = Await.result(streamDal.findById(streamId), minTimeOut)
-      streamOpt match {
-        case Some(stream) =>
-          if (checkAction(stream.streamType, START.toString, stream.status)) {
-            try {
-              val project: Project = Await.result(projectDal.findById(projectId), minTimeOut).head
-              val (projectTotalCore, projectTotalMemory) = (project.resCores, project.resMemoryG)
-              val (jobUsedCore, jobUsedMemory, _) = jobDal.getProjectJobsUsedResource(projectId)
-              val (streamUsedCore, streamUsedMemory, _) = streamDal.getProjectStreamsUsedResource(projectId)
-              val (currentNeededCore, currentNeededMemory) =
-                StreamType.withName(stream.streamType) match {
-                  case StreamType.SPARK =>
-                    val currentConfig = json2caseClass[StartConfig](stream.startConfig)
-                    val currentNeededCore = currentConfig.driverCores + currentConfig.executorNums * currentConfig.perExecutorCores
-                    val currentNeededMemory = currentConfig.driverMemory + currentConfig.executorNums * currentConfig.perExecutorMemory
-                    (currentNeededCore, currentNeededMemory)
-                  case StreamType.FLINK =>
-                    val currentConfig = json2caseClass[FlinkResourceConfig](stream.startConfig)
-                    val currentNeededCore = currentConfig.taskManagersNumber * currentConfig.perTaskManagerSlots
-                    val currentNeededMemory = currentConfig.jobManagerMemoryGB + currentConfig.taskManagersNumber * currentConfig.perTaskManagerSlots
-                    (currentNeededCore, currentNeededMemory)
-                }
+    try {
+      if (session.projectIdList.contains(projectId)) {
+        val flow = Await.result(flowDal.findById(flowId), minTimeOut).head
+        val stream = Await.result(streamDal.findById(flow.streamId), minTimeOut).head
 
-              if ((projectTotalCore - jobUsedCore - streamUsedCore - currentNeededCore) < 0 || (projectTotalMemory - jobUsedMemory - streamUsedMemory - currentNeededMemory) < 0) {
-                riderLogger.warn(s"user ${session.userId} start stream ${stream.id} failed, caused by resource is not enough")
-                complete(OK, setFailedResponse(session, "resource is not enough"))
-              } else {
-                if (StreamType.withName(stream.streamType) == StreamType.SPARK)
-                  startStreamDirective(streamId, streamDirectiveOpt, session.userId)
-                //            runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(stream.name)}")
-                val logPath = getLogPath(stream.name)
-                startStream(stream, logPath)
-                riderLogger.info(s"user ${session.userId} start stream $streamId success.")
-                onComplete(streamDal.updateByStatus(streamId, StreamStatus.STARTING.toString, session.userId, logPath).mapTo[Int]) {
-                  case Success(_) =>
-                    complete(OK, ResponseJson[StartResponse](getHeader(200, session), StartResponse(streamId, StreamStatus.STARTING.toString, getDisableActions(stream.streamType, StreamStatus.STARTING.toString), getHideActions(stream.streamType))))
-                  case Failure(ex) =>
-                    riderLogger.error(s"user ${session.userId} start stream where project id is $projectId failed", ex)
-                    complete(OK, setFailedResponse(session, ex.getMessage))
-                }
-              }
+        streamDal.refreshStreamStatus(Some(projectId), Some(Seq(stream.id)))
+        riderLogger.info(s"user ${session.userId} refresh streams.")
 
-            } catch {
-              case ex: Exception =>
-                riderLogger.error(s"user ${session.userId} get resources for project ${projectId}  failed when start new stream", ex)
-                complete(OK, setFailedResponse(session, ex.getMessage))
-            }
-          } else {
-            riderLogger.info(s"user ${session.userId} can't start stream $streamId now")
-            complete(OK, setFailedResponse(session, "start is forbidden"))
-          }
-        case None =>
-          riderLogger.info(s"user ${session.userId} start stream $streamId failed caused by stream not found.")
-          complete(OK, setFailedResponse(session, "stream not found."))
+//        if (stream.status == "running") {
+          startFlinkFlow(stream, flow, flowDirectiveOpt.get)
+          riderLogger.info(s"user ${session.userId} start stream $stream.Id success.")
+         // onComplete(Await.result(db.run(flow.status = "running"), minTimeOut)){
+            //flowDal Await.result(db.run(flowTable.filter(_.id === flowId).map(c => (c.status, c.startedTime, c.stoppedTime)).update(flowNewStatus, startTime, stopTime)), minTimeOut) {
+           // case Success(_) =>
+              complete(OK, ResponseJson[FlinkStartResponse](getHeader(200, session), FlinkStartResponse(flow.id, getDisableActions(stream.streamType, StreamStatus.STARTING.toString), getHideActions(stream.streamType))))
+//            case Failure(ex) =>
+//              riderLogger.error(s"user ${session.userId} start stream where project id is $projectId failed", ex)
+//              complete(OK, setFailedResponse(session, ex.getMessage))
+//          }
+//        } else {
+//          riderLogger.info(s"user ${session.userId} can't start flow cause stream status isn't running")
+//          complete(OK, setFailedResponse(session, "start is forbidden"))
+//        }
+      } else {
+        riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
+        complete(OK, setFailedResponse(session, "Insufficient Permission"))
       }
-
-    } else {
-      riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
-      complete(OK, setFailedResponse(session, "Insufficient Permission"))
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"user ${session.userId} get resources for project ${projectId}  failed when start new flow", ex)
+        complete(OK, setFailedResponse(session, ex.getMessage))
     }
   }
+
 
 }

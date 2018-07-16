@@ -106,5 +106,5 @@ case class KafkaFlinkTopic(topic_name: String,
 
 case class kafka_input(kafka_base_config: KafkaBaseConfig, kafka_topics: Seq[KafkaFlinkTopic])
 
-case class whConfig(kafka_input: kafka_input, kafka_output: KafkaOutputConfig, flink_config: FlinkDefaultConfig,
+case class whConfig(kafka_input: kafka_input, kafka_output: KafkaOutputConfig, flink_config: String,
                     parallelism: Int, zookeeper_address: String)
