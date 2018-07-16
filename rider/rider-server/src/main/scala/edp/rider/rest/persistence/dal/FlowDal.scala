@@ -21,7 +21,7 @@
 
 package edp.rider.rest.persistence.dal
 
-import edp.rider.common.RiderLogger
+import edp.rider.common.{RiderLogger, StreamStatus}
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
@@ -356,10 +356,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
         .map {
           case ((flow, _), instance) => (flow.id, instance.connUrl)
         }.result.head).mapTo[(Long, String)], minTimeOut)
-    //    Await.result(db.run((streamQuery.filter(_.id === streamId) join instanceQuery on (_.instanceId === _.id))
-    //      .map {
-    //        case (_, instance) => (instance.id, instance.connUrl)
-    //      }.result.head).mapTo[(Long, String)], minTimeOut)
+
   }
 
   def getFlowKafkaMap(flowIds: Seq[Long]): Map[Long, String] = {
@@ -369,7 +366,6 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
         case ((flow, _), instance) => (flow.id, instance.connUrl) <> (FlowIdKafkaUrl.tupled, FlowIdKafkaUrl.unapply)
       }.result).mapTo[Seq[FlowIdKafkaUrl]], minTimeOut)
       .map(flowKafka => (flowKafka.flowId, flowKafka.kafkaUrl)).toMap
-
   }
 
   def getFlowTopicsMap(flowIds: Seq[Long]): Map[Long, GetTopicsResponse] = {
@@ -383,12 +379,6 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       val autoTopicsResponse = genFlowAllOffsets(autoRegisteredTopics, kafkaMap)
       val udfTopicsResponse = genFlowAllOffsets(udfTopics, kafkaMap)
 
-      //update offset in table
-//      val autoRegisteredUpdateTopics = autoTopicsResponse.map(topic => UpdateTopicOffset(topic.id, topic.consumedLatestOffset))
-//      val udfUpdateTopics = udfTopicsResponse.map(topic => UpdateTopicOffset(topic.id, topic.consumedLatestOffset))
-//
-//      flowInTopicDal.updateOffset(autoRegisteredUpdateTopics)
-//      flowUdfTopicDal.updateOffset(udfUpdateTopics)
       (id, GetTopicsResponse(autoTopicsResponse, udfTopicsResponse))
     }).toMap
     //    GetTopicsResponse(autoRegisteredTopicsResponse, udfTopicsResponse)
@@ -401,5 +391,18 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       //val consumed = feedbackOffsetMap(topic.name)
       TopicAllOffsets(topic.id, topic.name, topic.rate, earliest, earliest, latest)
     })
+  }
+
+  def updateByFlowStatus(flowId: Long, status: String) = {
+
+    if (status == StreamStatus.STARTING.toString) {
+      db.run(flowTable.filter(_.id === flowId)
+        .map(flow => (flow.status))
+        .update("running"))
+    } else {
+      db.run(flowTable.filter(_.id === flowId)
+        .map(flow => (flow.status))
+        .update("running"))
+    }
   }
 }
