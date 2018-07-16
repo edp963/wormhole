@@ -68,7 +68,7 @@ export class StreamConfigForm extends React.Component {
           </Col>
         </Row>
         {/* spark */}
-        {streamSubPanelKey === 'spark' ? (
+        {streamSubPanelKey === 'spark' || tabPanelKey === 'job' ? (
           <Row>
             <Col span={8}>
               <FormItem label="Driver Cores：" {...itemStyleOthers}>
@@ -101,7 +101,7 @@ export class StreamConfigForm extends React.Component {
           </Row>
           ) : ''
         }
-        {streamSubPanelKey === 'spark' ? (
+        {streamSubPanelKey === 'spark' || tabPanelKey === 'job' ? (
 
           <Row>
             <Col span={8}>
@@ -149,7 +149,7 @@ export class StreamConfigForm extends React.Component {
           </Row>
           ) : ''
         }
-        {streamSubPanelKey === 'spark' ? (
+        {streamSubPanelKey === 'spark' || tabPanelKey === 'job' ? (
           <Row>
             <Col span={8} className={`${tabPanelKey === 'stream' ? '' : 'hide'}`}>
               <FormItem label="Batch Duration (Sec)：" {...itemStyleOthers}>
