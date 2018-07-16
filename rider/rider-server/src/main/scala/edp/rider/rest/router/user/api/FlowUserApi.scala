@@ -28,7 +28,7 @@ import edp.rider.common.{RiderConfig, RiderLogger, StreamStatus, StreamType}
 import edp.rider.kafka.KafkaUtils.{getKafkaEarliestOffset, getKafkaLatestOffset}
 import edp.rider.module.DbModule.db
 import edp.rider.rest.persistence.dal.{FlowDal, FlowUdfDal, StreamDal}
-import edp.rider.rest.persistence.entities._
+import edp.rider.rest.persistence.entities.{FlowTable, _}
 
 import scala.concurrent.Await
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
@@ -37,7 +37,6 @@ import edp.rider.rest.util.ResponseUtils._
 import edp.rider.rest.util.StreamUtils.{getDisableActions, getHideActions, getLogPath, startStream}
 import edp.rider.rest.util.{AuthorizationProvider, FlowUtils, NamespaceUtils, NsDatabaseUtils}
 import edp.rider.service.util.CacheMap
-import edp.wormhole.common.util.JsonUtils.json2caseClass
 import slick.jdbc.MySQLProfile.api._
 import edp.rider.spark.SubmitSparkJob.startFlinkFlow
 
@@ -509,21 +508,21 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
         streamDal.refreshStreamStatus(Some(projectId), Some(Seq(stream.id)))
         riderLogger.info(s"user ${session.userId} refresh streams.")
 
-//        if (stream.status == "running") {
+        if (stream.status == "running") {
           startFlinkFlow(stream, flow, flowDirectiveOpt.get)
           riderLogger.info(s"user ${session.userId} start stream $stream.Id success.")
-         // onComplete(Await.result(db.run(flow.status = "running"), minTimeOut)){
+          onComplete(flowDal.updateByFlowStatus(flowId, flow.status)) {
             //flowDal Await.result(db.run(flowTable.filter(_.id === flowId).map(c => (c.status, c.startedTime, c.stoppedTime)).update(flowNewStatus, startTime, stopTime)), minTimeOut) {
-           // case Success(_) =>
-              complete(OK, ResponseJson[FlinkStartResponse](getHeader(200, session), FlinkStartResponse(flow.id, getDisableActions(stream.streamType, StreamStatus.STARTING.toString), getHideActions(stream.streamType))))
-//            case Failure(ex) =>
-//              riderLogger.error(s"user ${session.userId} start stream where project id is $projectId failed", ex)
-//              complete(OK, setFailedResponse(session, ex.getMessage))
-//          }
-//        } else {
-//          riderLogger.info(s"user ${session.userId} can't start flow cause stream status isn't running")
-//          complete(OK, setFailedResponse(session, "start is forbidden"))
-//        }
+            case Success(_) =>
+              complete(OK, ResponseJson[FlinkStartResponse](getHeader(200, session), FlinkStartResponse(flow.id, getDisableActions(stream.streamType, StreamStatus.STARTING.toString), "renew, batchSelect")))
+            case Failure(ex) =>
+              riderLogger.error(s"user ${session.userId} start stream where project id is $projectId failed", ex)
+              complete(OK, setFailedResponse(session, ex.getMessage))
+          }
+        } else {
+          riderLogger.info(s"user ${session.userId} can't start flow cause stream status isn't running")
+          complete(OK, setFailedResponse(session, "start is forbidden"))
+        }
       } else {
         riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
         complete(OK, setFailedResponse(session, "Insufficient Permission"))
