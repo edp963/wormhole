@@ -7,7 +7,7 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
 
 {:toc}
 
-**本章节以一个流式项目的实施示例介绍 Wormhole 页面的使用流程。**
+**本章节以一个流式项目的实施示例介绍 Wormhole 页面的使用流程。实施过程中可参考 Tutorial 相关章节。**
 
 **业务需求：实时处理 Kafka 中数据，处理过程中关联 Mysql 数据库某表，然后转换过滤数据，写入 Mysql 系统中。**
 
@@ -19,9 +19,15 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
 
 **2. Admin 创建 Source Namespace**
 
+​    **新建instance**
+
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-source-instance-create.png" alt="" width="600"/>
 
+   **新建database, 对于Kafka系统，database对应Kafka中的Topic**
+
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-source-database-create.png" alt="" width="600"/>
+
+   **新建namespace, 选中Kafka Topic后, 填写table名字, 相当于为当前Topic下的数据分类, table名字后面配       置数据的唯一标识字段**
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-source-namespace-create.png" alt="" width="600"/>
 
@@ -30,7 +36,7 @@ description: Wormhole WH_VERSION_SHORT Quick Start page
    ```
 cd /usr/local/kafka/bin
 ./kafka-console-producer.sh --broker-list hdp1:6667 --topic source --property "parse.key=true" --property "key.separator=@@@"
-data_increment_data.kafka.edp.source.test...*@@@{"id": 1,"name": "test","phone":"18074546423","address": "Beijing","time": "2017-12-22 10:00:00"}
+data_increment_data.kafka.edp.source.test.*.*.*@@@{"id": 1,"name": "test","phone":"18074546423","address": "Beijing","time": "2017-12-22 10:00:00"}
    ```
 
 **4. Admin 配置 Source Namespace Schema**
@@ -47,13 +53,13 @@ data_increment_data.kafka.edp.source.test...*@@@{"id": 1,"name": "test","phone":
 
 **6. Admin 创建 Lookup Namespace**
 
-   Lookup Instance/Database 配置图省略
+   **Lookup Instance/Database 配置图省略**
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-lookup-ns.png" alt="" width="600"/>
 
 **7. Admin 创建 Project 并授权 Namespaces 和 Users**
 
-   将 Source Namespace, Sink Namespace, Lookup Namespace 和 demo User 授权给 Project
+   **将 Source Namespace, Sink Namespace, Lookup Namespace 和 demo User 授权给 Project**
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-project.png" alt="" width="600"/>
 
