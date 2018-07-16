@@ -31,7 +31,7 @@ import io.swagger.annotations._
 @Path("/user/projects")
 class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
-  lazy val routes: Route = postFlowRoute ~ getFlowByFilterRoute ~ putFlowRoute ~ getFlowByIdRoute ~ lookupSqlPermVerifyRoute ~ postFlowTopicsOffset ~ postUserDefinedTopic ~ getTopics ~ getUdfs
+  lazy val routes: Route = postFlowRoute ~ getFlowByFilterRoute ~ putFlowRoute ~ getFlowByIdRoute ~ lookupSqlPermVerifyRoute ~ postFlowTopicsOffset ~ postUserDefinedTopic ~ getTopics ~ getUdfs ~ startRoute
 
   lazy val basePath = "projects"
 
