@@ -174,8 +174,6 @@ case class StreamSelect(id: Long,
                         kafkaInstance: String,
                         topicInfo: Seq[String])
 
-case class StreamInfo(name: String, streamType: String, status: String)
-
 case class SimpleStreamInfo(id: Long,
                             name: String,
                             maxParallelism: Int,

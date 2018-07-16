@@ -31,6 +31,7 @@ case class Flow(id: Long,
                 streamId: Long,
                 sourceNs: String,
                 sinkNs: String,
+                parallelism: Option[Int],
                 consumedProtocol: String,
                 sinkConfig: Option[String],
                 tranConfig: Option[String],
@@ -52,6 +53,7 @@ case class FlowStream(id: Long,
                       streamId: Long,
                       sourceNs: String,
                       sinkNs: String,
+                      parallelism: Option[Int],
                       consumedProtocol: String,
                       sinkConfig: Option[String] = None,
                       tranConfig: Option[String] = None,
@@ -69,6 +71,8 @@ case class FlowStream(id: Long,
                       functionType: String,
                       disableActions: String,
                       hideActions: String,
+                      topicInfo: Option[GetTopicsResponse],
+                      currentUdf: Seq[FlowUdfResponse],
                       msg: String)
 
 case class FlowAllInfo(id: Long,
@@ -76,6 +80,7 @@ case class FlowAllInfo(id: Long,
                        streamId: Long,
                        sourceNs: String,
                        sinkNs: String,
+                       parallelism: Option[Int],
                        consumedProtocol: String,
                        sinkConfig: Option[String] = None,
                        tranConfig: Option[String] = None,
@@ -100,6 +105,7 @@ case class FlowStreamInfo(id: Long,
                           streamId: Long,
                           sourceNs: String,
                           sinkNs: String,
+                          parallelism: Option[Int],
                           consumedProtocol: String,
                           sinkConfig: Option[String] = None,
                           tranConfig: Option[String] = None,
@@ -125,6 +131,7 @@ case class FlowStreamAdmin(id: Long,
                            streamId: Long,
                            sourceNs: String,
                            sinkNs: String,
+                           parallelism: Option[Int],
                            consumedProtocol: String,
                            sinkConfig: Option[String] = None,
                            tranConfig: Option[String] = None,
@@ -149,6 +156,7 @@ case class FlowStreamAdminInfo(id: Long,
                                streamId: Long,
                                sourceNs: String,
                                sinkNs: String,
+                               parallelism: Option[Int],
                                consumedProtocol: String,
                                sinkConfig: Option[String] = None,
                                tranConfig: Option[String] = None,
@@ -174,6 +182,7 @@ case class FlowAdminAllInfo(id: Long,
                             streamId: Long,
                             sourceNs: String,
                             sinkNs: String,
+                            parallelism: Option[Int],
                             consumedProtocol: String,
                             sinkConfig: Option[String] = None,
                             tranConfig: Option[String] = None,
@@ -197,6 +206,7 @@ case class SimpleFlow(projectId: Long,
                       streamId: Long,
                       sourceNs: String,
                       sinkNs: String,
+                      parallelism: Option[Int],
                       consumedProtocol: String,
                       sinkConfig: Option[String],
                       tranConfig: Option[String]) extends SimpleBaseEntity
@@ -240,7 +250,7 @@ case class FlowUdfResponse(id: Long, functionName: String, fullClassName: String
 
 case class FlinkStartResponse(id: Long, disableActions: String, hiddenAction: String)
 class FlowTable(_tableTag: Tag) extends BaseTable[Flow](_tableTag, "flow") {
-  def * = (id, projectId, streamId, sourceNs, sinkNs, consumedProtocol, sinkConfig, tranConfig, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <> (Flow.tupled, Flow.unapply)
+  def * = (id, projectId, streamId, sourceNs, sinkNs, parallelism, consumedProtocol, sinkConfig, tranConfig, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <> (Flow.tupled, Flow.unapply)
 
   /** Database column project_id SqlType(BIGINT) */
   val projectId: Rep[Long] = column[Long]("project_id")
@@ -250,6 +260,8 @@ class FlowTable(_tableTag: Tag) extends BaseTable[Flow](_tableTag, "flow") {
   val sourceNs: Rep[String] = column[String]("source_ns", O.Length(200, varying = true))
   /** Database column sink_ns SqlType(VARCHAR), Length(200,true) */
   val sinkNs: Rep[String] = column[String]("sink_ns", O.Length(200, varying = true))
+
+  val parallelism: Rep[Option[Int]] = column[Option[Int]]("parallelism")
   /** Database column consumed_protocol SqlType(VARCHAR), Length(20,true) */
   val consumedProtocol: Rep[String] = column[String]("consumed_protocol", O.Length(20, varying = true))
   /** Database column tran_config SqlType(VARCHAR), Length(5000,true) */

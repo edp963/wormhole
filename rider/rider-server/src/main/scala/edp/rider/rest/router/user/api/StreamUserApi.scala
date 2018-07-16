@@ -154,22 +154,6 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
               //complete(OK, getHeader(409, s"$name already exists", session))
               complete(OK, setFailedResponse(session, s"$name already exists"))
             }
-          //            val projectName = Await.result(projectDal.findById(projectId), minTimeOut).get.name
-          //            val realName = genStreamNameByProjectName(projectName, name)
-          //            onComplete(streamDal.checkYarnAppNameUnique(realName).mapTo[Seq[Stream]]) {
-          //              case Success(streams) =>
-          //                if (streams.isEmpty) {
-          //                  riderLogger.info(s"user ${session.userId} check stream name $name doesn't exist success.")
-          //                  complete(OK, ResponseJson[String](getHeader(200, session), name))
-          //                }
-          //                else {
-          //                  riderLogger.warn(s"user ${session.userId} check stream name $name already exists success.")
-          //                  complete(OK, getHeader(409, s"$name already exists", session))
-          //                }
-          //              case Failure(ex) =>
-          //                riderLogger.error(s"user ${session.userId} check stream name $name does exist failed", ex)
-          //                complete(OK, getHeader(451, ex.getMessage, session))
-          //            }
           case (None, Some(streamType), None) =>
             val streams = streamDal.getSimpleStreamInfo(Some(projectId), streamType)
             riderLogger.info(s"user ${session.userId} select streams where streamType is $streamType success.")
@@ -180,17 +164,17 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             complete(OK, ResponseSeqJson[SimpleStreamInfo](getHeader(200, session), streams))
           case (None, Some(streamType), Some(functionType)) =>
             riderLogger.error(s"user ${session.userId} request url is not supported.")
-//            complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
+            //            complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
             complete(OK, setFailedResponse(session, "Insufficient Permission"))
           case (None, None, None) =>
             val streams = streamDal.getBriefDetail(Some(projectId))
             riderLogger.info(s"user ${session.userId} select streams where project id is $projectId success.")
             complete(OK, ResponseSeqJson[StreamDetail](getHeader(200, session), streams))
-          //          case (_, _, _) =>
-          ////            riderLogger.error(s"user ${session.userId} request url is not supported.")
-          ////            //complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
-          ////            complete(OK, setFailedResponse(session, "Insufficient Permission"))
-          //            val streams = streamDal.getSimpleStreamInfo(Some(projectId), "spark")++streamDal.getSimpleStreamInfo(Some(projectId), "flink")
+          case (_, _, _) =>
+            riderLogger.error(s"user ${session.userId} request url is not supported.")
+            //complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
+            complete(OK, setFailedResponse(session, "Insufficient Permission"))
+          //            val streams = streamDal.getSimpleStreamInfo(Some(projectId), "spark") ++ streamDal.getSimpleStreamInfo(Some(projectId), "flink")
           //            riderLogger.info(s"user ${session.userId} select streams where project id is $projectId success.")
           //            complete(OK, ResponseSeqJson[SimpleStreamInfo](getHeader(200, session), streams))
         }
