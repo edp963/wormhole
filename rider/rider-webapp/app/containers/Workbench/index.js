@@ -323,7 +323,7 @@ export class Workbench extends React.Component {
         // }, 20)
       // }
     }
-    this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys: selectedOptions[selectedOptions.lenght - 1].nsSys })
+    this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys })
   }
   initialRoutingCascader = (value, selectedOptions) => {
     const { projectId, pipelineStreamId, routingSourceNsValue } = this.state
@@ -563,7 +563,7 @@ export class Workbench extends React.Component {
           type: mapJobType[resultFinal.jobType],
           eventStartTs: resultFinal.eventTsStart === '' ? null : Moment(formatString(resultFinal.eventTsStart)),
           eventEndTs: resultFinal.eventTsEnd === '' ? null : Moment(formatString(resultFinal.eventTsEnd)),
-          sinkProtocol: resultFinal.sinkConfig.indexOf('snapshot') > 0
+          sinkProtocol: resultFinal.sinkConfig.indexOf('snapshot') > -1
         })
         const { sparkConfig, startConfig, id, name, projectId, sourceNs, sinkNs, jobType,
           sparkAppid, logPath, startedTime, stoppedTime, status, createTime, createBy, updateTime, updateBy } = resultFinal
@@ -3186,8 +3186,7 @@ export class Workbench extends React.Component {
     }, () => {
       this.workbenchJobForm.setFieldsValue({
         // type: 'default',
-        resultFields: 'all',
-        sinkProtocol: false
+        resultFields: 'all'
       })
     })
     Promise.all(this.loadConfig('spark')).then((values) => {
@@ -3790,3 +3789,4 @@ const mapStateToProps = createStructuredSelector({
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Workbench)
+
