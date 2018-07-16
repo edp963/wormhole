@@ -156,15 +156,36 @@ object StreamUtils extends RiderLogger {
 
   def genStreamNameByProjectName(projectName: String, name: String): String = s"wormhole_${projectName}_$name"
 
+  //  def getStreamConfig(stream: Stream) = {
+  //    val kafkaUrl = getKafkaByStreamId(stream.id)
+  //    val launchConfig = json2caseClass[LaunchConfig](stream.launchConfig)
+  //    val config = BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
+  //      KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
+  //      SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
+  //      launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfs_root))
+  //    caseClass2json[BatchFlowConfig](config)
+  //  }
+
   def getStreamConfig(stream: Stream) = {
-    val kafkaUrl = getKafkaByStreamId(stream.id)
     val launchConfig = json2caseClass[LaunchConfig](stream.launchConfig)
-    val config = BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
-      KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
-      SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
-      launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfs_root))
+    val kafkaUrl = getKafkaByStreamId(stream.id)
+    val config =
+      RiderConfig.spark.remoteHdfsRoot match {
+        case Some(_) =>
+          BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
+            KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
+            SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
+            launchConfig.partitions.toInt, RiderConfig.zk, false,
+            RiderConfig.spark.remoteHdfsRoot, RiderConfig.spark.remoteHdfsNamenodeHosts, RiderConfig.spark.remoteHdfsNamenodeIds)
+        case None =>
+          BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
+            KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
+            SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
+            launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfsRoot))
+      }
     caseClass2json[BatchFlowConfig](config)
   }
+
 
   def startStream(stream: Stream, logPath: String) = {
     val args = getStreamConfig(stream)
@@ -256,7 +277,7 @@ object StreamUtils extends RiderLogger {
       if (addDefaultTopic && topicSeq.isEmpty) {
         val broker = getKafkaByStreamId(streamId)
         val blankTopicOffset = KafkaUtils.getKafkaLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic)
-        val blankTopic = Directive(0, null, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, blankTopicOffset).mkString("#"), zkConURL, currentSec, userId)
+        val blankTopic = Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, blankTopicOffset).mkString("#"), zkConURL, currentSec, userId)
         directiveSeq += blankTopic
       }
 
@@ -380,22 +401,22 @@ object StreamUtils extends RiderLogger {
     }
   }
 
-//  def removeAndSendTopicDirective(streamId: Long, topicSeq: Seq[PutTopicDirective], userId: Long) = {
-//    try {
-//      if (topicSeq.nonEmpty) {
-//        PushDirective.removeTopicDirective(streamId)
-//        riderLogger.info(s"user $userId remove topic directive success.")
-//      } else {
-//        PushDirective.removeTopicDirective(streamId)
-//        riderLogger.info(s"user $userId remove topic directive success.")
-//      }
-//      sendTopicDirective(streamId, topicSeq, userId, true)
-//    } catch {
-//      case ex: Exception =>
-//        riderLogger.error(s"remove and send stream $streamId topic directive failed", ex)
-//        throw ex
-//    }
-//  }
+  //  def removeAndSendTopicDirective(streamId: Long, topicSeq: Seq[PutTopicDirective], userId: Long) = {
+  //    try {
+  //      if (topicSeq.nonEmpty) {
+  //        PushDirective.removeTopicDirective(streamId)
+  //        riderLogger.info(s"user $userId remove topic directive success.")
+  //      } else {
+  //        PushDirective.removeTopicDirective(streamId)
+  //        riderLogger.info(s"user $userId remove topic directive success.")
+  //      }
+  //      sendTopicDirective(streamId, topicSeq, userId, true)
+  //    } catch {
+  //      case ex: Exception =>
+  //        riderLogger.error(s"remove and send stream $streamId topic directive failed", ex)
+  //        throw ex
+  //    }
+  //  }
 
   def removeStreamDirective(streamId: Long, userId: Long) = {
     try {

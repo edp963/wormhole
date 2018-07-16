@@ -73,7 +73,7 @@ object SubmitSparkJob extends App with RiderLogger {
 
 
   def generateStreamStartSh(args: String, streamName: String, logPath: String, startConfig: StartConfig, sparkConfig: String, streamType: String, local: Boolean = false): String = {
-    val submitPre = s"ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host} " + RiderConfig.spark.spark_home
+    val submitPre = s"ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host} " + RiderConfig.spark.sparkHome
     val executorsNum = startConfig.executorNums
     val driverMemory = startConfig.driverMemory
     val executorMemory = startConfig.perExecutorMemory
@@ -86,10 +86,10 @@ object SubmitSparkJob extends App with RiderLogger {
     val confList: Seq[String] = {
       val conf = new ListBuffer[String]
       if (sparkConfig != "") {
-        val riderConf = sparkConfig.split(",") :+ s"spark.yarn.tags=${RiderConfig.spark.app_tags}"
+        val riderConf = sparkConfig.split(",") :+ s"spark.yarn.tags=${RiderConfig.spark.appTags}"
         conf ++= riderConf
       }
-      else conf ++= Array(s"spark.yarn.tags=${RiderConfig.spark.app_tags}")
+      else conf ++= Array(s"spark.yarn.tags=${RiderConfig.spark.appTags}")
       if (RiderConfig.spark.metricsConfPath != "") {
         conf += s"spark.metrics.conf=metrics.properties"
         conf += s"spark.metrics.namespace=$streamName"
@@ -114,7 +114,7 @@ object SubmitSparkJob extends App with RiderLogger {
       if (l.startsWith("--num-exe")) s" --num-executors " + executorsNum + " "
       else if (l.startsWith("--driver-mem")) s" --driver-memory " + driverMemory + s"g "
       else if (l.startsWith("--files")) s" --files " + files + s" "
-      else if (l.startsWith("--queue")) s" --queue " + RiderConfig.spark.queue_name + s" "
+      else if (l.startsWith("--queue")) s" --queue " + RiderConfig.spark.queueName + s" "
       else if (l.startsWith("--executor-mem")) s"  --executor-memory " + executorMemory + s"g "
       else if (l.startsWith("--executor-cores")) s"  --executor-cores " + executorCores + s" "
       else if (l.startsWith("--name")) s"  --name " + streamName + " "
