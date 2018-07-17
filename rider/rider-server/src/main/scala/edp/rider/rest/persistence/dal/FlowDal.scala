@@ -21,7 +21,7 @@
 
 package edp.rider.rest.persistence.dal
 
-import edp.rider.common.{RiderLogger, StreamStatus}
+import edp.rider.common.{RiderLogger, FlowStatus}
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
@@ -381,16 +381,16 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     })
   }
 
-  def updateByFlowStatus(flowId: Long, status: String) = {
-
-    if (status == StreamStatus.STARTING.toString) {
+  def updateByFlowStatus(flowId: Long, status: String, userId: Long) : Future[Int]= {
+    if (status == FlowStatus.STARTING.toString) {
       db.run(flowTable.filter(_.id === flowId)
-        .map(flow => (flow.status))
-        .update("running"))
+        .map(flow => (flow.status, flow.startedTime, flow.stoppedTime, flow.updateTime, flow.updateBy))
+        .update(status, Some(currentSec), null, currentSec, userId)).mapTo[Int]
     } else {
       db.run(flowTable.filter(_.id === flowId)
-        .map(flow => (flow.status))
-        .update("running"))
+        .map(flow => (flow.status, flow.updateTime, flow.updateBy))
+        .update(status, currentSec, userId)).mapTo[Int]
     }
   }
+
 }

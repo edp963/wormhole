@@ -21,6 +21,7 @@
 
 package edp.rider.rest.util
 
+import akka.http.scaladsl.model.StatusCodes.OK
 import com.alibaba.fastjson.{JSON, JSONArray}
 import edp.rider.RiderStarter.modules
 import edp.rider.common.Action._
@@ -42,8 +43,11 @@ import edp.rider.spark.SubmitSparkJob._
 import edp.rider.spark.SparkStatusQuery._
 import edp.rider.wormhole._
 import edp.rider.RiderStarter.modules._
-import edp.rider.rest.util.UdfUtils.sendUdfDirective
+import edp.rider.common.FlowStatus._
+import edp.rider.rest.util.ResponseUtils.setFailedResponse
 
+
+import scalaj.http.{Http, HttpResponse}
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -1002,4 +1006,20 @@ object FlowUtils extends RiderLogger {
     flowUdfTopicDal.insertUpdateByStart(flowId, userdefinedTopics, userId)
   }
 
+  def stopFlinkFlow(sparkAppid: Option[String], flow: Flow): String = {
+    if (flow.status == RUNNING.toString) {
+      if (sparkAppid.getOrElse("") != "") {
+        val jobId = getJobIdOnYarn(sparkAppid.get, flow)
+        val url = s"http://hdp2:8088/proxy/${sparkAppid.get}/job/${jobId}/cancel"
+        val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
+        if(response.isSuccess) {
+          riderLogger.info(s"stop flink flow")
+          STOPPING.toString
+        }else{
+          riderLogger.error(s"stop flink failed")
+          FAILED.toString
+        }
+      } else STOPPED.toString
+    } else STOPPED.toString
+  }
 }

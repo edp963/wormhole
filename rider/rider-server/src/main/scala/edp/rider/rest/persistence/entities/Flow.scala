@@ -248,7 +248,7 @@ case class FlowIdKafkaUrl(flowId: Long, kafkaUrl: String)
 
 case class FlowUdfResponse(id: Long, functionName: String, fullClassName: String, jarName: String)
 
-case class FlinkStartResponse(id: Long, disableActions: String, hiddenActions: String)
+case class FlinkResponse(id: Long, disableActions: String, hiddenActions: String)
 
 class FlowTable(_tableTag: Tag) extends BaseTable[Flow](_tableTag, "flow") {
   def * = (id, projectId, streamId, sourceNs, sinkNs, parallelism, consumedProtocol, sinkConfig, tranConfig, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <> (Flow.tupled, Flow.unapply)
