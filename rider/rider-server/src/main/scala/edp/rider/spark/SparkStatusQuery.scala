@@ -24,7 +24,7 @@ package edp.rider.spark
 import com.alibaba.fastjson.JSON
 import edp.rider.RiderStarter.modules
 import edp.rider.common
-import edp.rider.common.StreamStatus._
+import edp.rider.rest.persistence.entities.Flow
 import edp.rider.common._
 import edp.rider.rest.persistence.entities.{FullJobInfo, Job}
 import edp.rider.rest.util.JobUtils.getDisableAction
@@ -305,6 +305,25 @@ object SparkStatusQuery extends RiderLogger {
         riderLogger.error(s"Get Flink JobManager address failed by request url $url", ex)
         throw ex
     }
+  }
+
+  def getJobIdOnYarn(sparkAppid: String, flow: Flow): String = {
+    var jobId :String = null
+    val url =s"http://hdp2:8088/proxy/${sparkAppid}/jobs/overview"
+    try {
+      val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
+      val json = JsonParser.apply(response.body).toString()
+      val jobsSeq = JSON.parseObject(json).getJSONArray("jobs")
+      for (i <- 0 until jobsSeq.size()) {
+        val info = jobsSeq.getString(i)
+        if(JSON.parseObject(info).getString("name").equals(s"${flow.sourceNs}-${flow.sinkNs}"))
+          jobId = JSON.parseObject(info).getString("jid")
+      }
+    } catch {
+      case e: Exception =>
+        riderLogger.error(s"Flink Application refresh yarn rest url $url failed", e)
+    }
+    jobId
   }
 
 }
