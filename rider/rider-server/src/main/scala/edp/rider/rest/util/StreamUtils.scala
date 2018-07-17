@@ -256,16 +256,16 @@ object StreamUtils extends RiderLogger {
         val autoRegisteredTopics = putTopic.autoRegisteredTopics
         val userdefinedTopics = putTopic.userDefinedTopics
         // update auto registered topics
-        inTopicDal.updateByStartOrRenew(streamId, autoRegisteredTopics, userId)
+        streamInTopicDal.updateByStartOrRenew(streamId, autoRegisteredTopics, userId)
         // delete user defined topics by start
-        udfTopicDal.deleteByStartOrRenew(streamId, userdefinedTopics)
+        streamUdfTopicDal.deleteByStartOrRenew(streamId, userdefinedTopics)
         // insert or update user defined topics by start
-        udfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
+        streamUdfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
         // send topics start directive
         sendTopicDirective(streamId, autoRegisteredTopics ++: userdefinedTopics, userId, true)
       case None =>
         // delete all user defined topics by stream id
-        Await.result(udfTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
+        Await.result(streamUdfTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
     }
   }
 
@@ -275,17 +275,17 @@ object StreamUtils extends RiderLogger {
         val autoRegisteredTopics = putTopic.autoRegisteredTopics
         val userdefinedTopics = putTopic.userDefinedTopics
         // update auto registered topics
-        inTopicDal.updateByStartOrRenew(streamId, autoRegisteredTopics, userId)
+        streamInTopicDal.updateByStartOrRenew(streamId, autoRegisteredTopics, userId)
         // delete user defined topics by start
-        val deleteTopics = udfTopicDal.deleteByStartOrRenew(streamId, userdefinedTopics)
+        val deleteTopics = streamUdfTopicDal.deleteByStartOrRenew(streamId, userdefinedTopics)
         // delete topics directive in zookeeper
         sendUnsubscribeTopicDirective(streamId, deleteTopics, userId)
         // insert or update user defined topics by start
-        udfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
+        streamUdfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
         // send topics renew directive which action is 1
         sendTopicDirective(streamId, (autoRegisteredTopics ++: userdefinedTopics).filter(_.action.getOrElse(0) == 1), userId, false)
       case None =>
-        val deleteTopics = udfTopicDal.deleteByStartOrRenew(streamId, Seq())
+        val deleteTopics = streamUdfTopicDal.deleteByStartOrRenew(streamId, Seq())
         // delete topics directive in zookeeper
         sendUnsubscribeTopicDirective(streamId, deleteTopics, userId)
     }

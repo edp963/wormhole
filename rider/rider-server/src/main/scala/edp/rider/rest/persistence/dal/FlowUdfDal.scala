@@ -56,4 +56,9 @@ class FlowUdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdf
   def getFlowUdf(flowId: Long): Seq[FlowUdfResponse] = {
     getFlowUdf(Seq(flowId))
   }
+
+  def getDeleteUdfIds(flowId: Long, udfIds: Seq[Long]): Seq[Long] = {
+    val udfs = Await.result(super.findByFilter(udf => udf.flowId === flowId), minTimeOut)
+    udfs.filter(udf => !udfIds.contains(udf.udfId)).map(_.udfId)
+  }
 }

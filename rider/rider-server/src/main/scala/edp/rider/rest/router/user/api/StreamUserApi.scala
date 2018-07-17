@@ -633,35 +633,6 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
 
 
   private def getTopicsResponse(projectId: Long, streamId: Long, session: SessionClass): Route = {
-    //    try {
-    //      val streamDetail = streamDal.getStreamDetail(Some(projectId), Some(Seq(streamId))).head
-    //      if (streamDetail.topicInfo.nonEmpty) {
-    //        val consumedOffsets = streamDetail.topicInfo.map(topic => ConsumedLatestOffset(topic.id, topic.name, topic.rate, topic.partitionOffsets))
-    //        val topicSeq = inTopicDal.getStreamTopic(Seq(streamId))
-    //        val kafkaOffsets = topicSeq.map(topic =>
-    //          KafkaLatestOffset(topic.id, topic.name, getKafkaLatestOffset(streamDetail.kafkaInfo.connUrl, topic.name)))
-    //        val finalOffsets = consumedOffsets.map(topic => {
-    //          val consumedPart = topic.partitionOffsets.split(",").length
-    //          val kafkaOffset = kafkaOffsets.filter(_.id == topic.id).head
-    //          val kafkaPart = kafkaOffset.partitionOffsets.split(",").length
-    //          val offset = if (kafkaPart > consumedPart) {
-    //            topic.partitionOffsets + "," + (consumedPart until kafkaPart).toList.mkString(":0,") + ":0"
-    //          } else if (kafkaPart < consumedPart) {
-    //            topic.partitionOffsets.split(",").take(kafkaPart).mkString(",")
-    //          } else topic.partitionOffsets
-    //          ConsumedLatestOffset(topic.id, topic.name, topic.rate, offset)
-    //        })
-    //        riderLogger.info(s"user ${session.userId} get stream $streamId topics latest offset success")
-    //        complete(OK, ResponseJson[TopicLatestOffset](getHeader(200, session), TopicLatestOffset(finalOffsets, kafkaOffsets)))
-    //      } else {
-    //        riderLogger.info(s"user ${session.userId} get stream $streamId topics latest offset success, there is no topics")
-    //        complete(OK, getHeader(200, "There is no topics now.", session))
-    //      }
-    //    } catch {
-    //      case ex: Exception =>
-    //        riderLogger.info(s"user ${session.userId} get stream $streamId topics latest offset failed", ex)
-    //        complete(OK, getHeader(451, session))
-    //    }
     val topics = streamDal.getTopicsAllOffsets(streamId)
     riderLogger.info(s"user ${session.userId} get stream $streamId topics success.")
     complete(OK, ResponseJson[GetTopicsResponse](getHeader(200, session), topics))
@@ -859,40 +830,40 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     complete(OK, ResponseJson[GetTopicsOffsetResponse](getHeader(200, session), response))
   }
 
-  def deleteUserDefinedTopicRoute(route: String) = path(route / LongNumber / "streams" / LongNumber / "topics" / "userdefined" / LongNumber) {
-    (id, streamId, topicId) =>
-      delete {
-        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
-          session =>
-            if (session.roleType != "user") {
-              riderLogger.warn(s"${session.userId} has no permission to access it.")
-              complete(OK, getHeader(403, session))
-            }
-            else {
-              if (session.projectIdList.contains(id)) {
-                try {
-                  deleteUserDefinedTopicResponse(id, streamId, topicId, session)
-                } catch {
-                  case ex: Exception =>
-                    riderLogger.error(s"user ${session.userId} delete user defined topic $topicId failed", ex)
-                    complete(OK, setFailedResponse(session, ex.getMessage))
-                }
-              } else {
-                riderLogger.error(s"user ${
-                  session.userId
-                } doesn't have permission to access the project $id.")
-                complete(OK, setFailedResponse(session, "Insufficient Permission"))
-              }
-            }
-        }
-      }
-  }
+//  def deleteUserDefinedTopicRoute(route: String) = path(route / LongNumber / "streams" / LongNumber / "topics" / "userdefined" / LongNumber) {
+//    (id, streamId, topicId) =>
+//      delete {
+//        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+//          session =>
+//            if (session.roleType != "user") {
+//              riderLogger.warn(s"${session.userId} has no permission to access it.")
+//              complete(OK, getHeader(403, session))
+//            }
+//            else {
+//              if (session.projectIdList.contains(id)) {
+//                try {
+//                  deleteUserDefinedTopicResponse(id, streamId, topicId, session)
+//                } catch {
+//                  case ex: Exception =>
+//                    riderLogger.error(s"user ${session.userId} delete user defined topic $topicId failed", ex)
+//                    complete(OK, setFailedResponse(session, ex.getMessage))
+//                }
+//              } else {
+//                riderLogger.error(s"user ${
+//                  session.userId
+//                } doesn't have permission to access the project $id.")
+//                complete(OK, setFailedResponse(session, "Insufficient Permission"))
+//              }
+//            }
+//        }
+//      }
+//  }
 
-  def deleteUserDefinedTopicResponse(id: Long, streamId: Long, topicId: Long, session: SessionClass): Route = {
-    Await.result(udfTopicDal.deleteById(topicId), minTimeOut)
-    riderLogger.info(s"user ${session.userId} delete user defined topic $topicId success.")
-    complete(OK, setSuccessResponse(session))
-  }
+//  def deleteUserDefinedTopicResponse(id: Long, streamId: Long, topicId: Long, session: SessionClass): Route = {
+//    Await.result(streamUdfTopicDal.deleteById(topicId), minTimeOut)
+//    riderLogger.info(s"user ${session.userId} delete user defined topic $topicId success.")
+//    complete(OK, setSuccessResponse(session))
+//  }
 
   def getDefaultConfig(route: String): Route = path(route / "defaultconfigs") {
     get {

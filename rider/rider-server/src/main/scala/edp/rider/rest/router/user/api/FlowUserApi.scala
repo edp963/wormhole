@@ -23,17 +23,16 @@ package edp.rider.rest.router.user.api
 
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
-import edp.rider.common.{RiderConfig, RiderLogger, StreamStatus}
+import edp.rider.common.Action._
+import edp.rider.common._
 import edp.rider.kafka.KafkaUtils.{getKafkaEarliestOffset, getKafkaLatestOffset}
 import edp.rider.rest.persistence.dal.{FlowDal, FlowUdfDal, StreamDal}
 import edp.rider.rest.persistence.entities.{FlowTable, _}
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.rest.util.StreamUtils.getDisableActions
 import edp.rider.rest.util.{AuthorizationProvider, FlowUtils}
 import edp.rider.service.util.CacheMap
-import edp.rider.spark.SubmitSparkJob.startFlinkFlow
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await
@@ -475,7 +474,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
   def startFlinkRoute(route: String): Route = path(route / LongNumber / "flinkstreams" / "flows" / LongNumber / "start") {
     (projectId, flowId) =>
       put {
-        entity(as[Option[FlowDirective]]) {
+        entity(as[FlowDirective]) {
           flowDirective =>
             authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
               session =>
@@ -494,28 +493,21 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
       }
   }
 
-  private def startResponse(projectId: Long, flowId: Long, flowDirectiveOpt: Option[FlowDirective], session: SessionClass): Route = {
+  private def startResponse(projectId: Long, flowId: Long, flowDirective: FlowDirective, session: SessionClass): Route = {
     try {
       if (session.projectIdList.contains(projectId)) {
         val flow = Await.result(flowDal.findById(flowId), minTimeOut).head
-        val stream = Await.result(streamDal.findById(flow.streamId), minTimeOut).head
-
-        streamDal.refreshStreamStatus(Some(projectId), Some(Seq(stream.id)))
+        val stream = streamDal.refreshStreamStatus(Some(projectId), Some(Seq(flow.streamId))).head
         riderLogger.info(s"user ${session.userId} refresh streams.")
 
-        if (stream.status == "running") {
-          startFlinkFlow(stream, flow, flowDirectiveOpt.get)
+        if (!FlowUtils.getDisableActions(flow).contains("start") && stream.status == "running") {
+          FlowUtils.updateUdfsByStart(flowId, flowDirective.udfInfo, session.userId)
+          FlowUtils.startFlinkFlow(stream.sparkAppid.get, flow, flowDirective, session.userId)
           riderLogger.info(s"user ${session.userId} start stream $stream.Id success.")
-          onComplete(flowDal.updateByFlowStatus(flowId, flow.status)) {
-            //flowDal Await.result(db.run(flowTable.filter(_.id === flowId).map(c => (c.status, c.startedTime, c.stoppedTime)).update(flowNewStatus, startTime, stopTime)), minTimeOut) {
-            case Success(_) =>
-              complete(OK, ResponseJson[FlinkStartResponse](getHeader(200, session), FlinkStartResponse(flow.id, getDisableActions(stream.streamType, StreamStatus.STARTING.toString), "renew, batchSelect")))
-            case Failure(ex) =>
-              riderLogger.error(s"user ${session.userId} start stream where project id is $projectId failed", ex)
-              complete(OK, setFailedResponse(session, ex.getMessage))
-          }
+          flowDal.updateStatusByAction(flowId, "starting", Option(currentSec), None)
+          complete(OK, ResponseJson[FlinkStartResponse](getHeader(200, session), FlinkStartResponse(flow.id, s"$START,$RENEW,$STOP", FlowUtils.getHideActions(stream.streamType))))
         } else {
-          riderLogger.info(s"user ${session.userId} can't start flow cause stream status isn't running")
+          riderLogger.info(s"user ${session.userId} can't start flow.")
           complete(OK, setFailedResponse(session, "start is forbidden"))
         }
       } else {
