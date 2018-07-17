@@ -136,7 +136,8 @@ case class LdapInfo(enabled: Boolean,
                     connectPoolEnabled: Boolean)
 
 case class RiderFlink(homePath: String,
-                      yarnQueueName: String)
+                      yarnQueueName: String,
+                      jarPath: String)
 
 
 object RiderConfig {
@@ -298,7 +299,8 @@ object RiderConfig {
 
   lazy val defaultFlinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "")
 
-  lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"))
+  lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"),
+    getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-flinkx_1.4.2-0.4.2-SNAPSHOTS-jar-with-dependencies.jar"))
   lazy val flinkDefaultRate = 0
   def getStringConfig(path: String, default: String): String = {
     if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")

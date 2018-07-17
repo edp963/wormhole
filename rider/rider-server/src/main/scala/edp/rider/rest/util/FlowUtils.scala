@@ -38,6 +38,11 @@ import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.ums.UmsProtocolType._
 import slick.jdbc.MySQLProfile.api._
+import edp.rider.spark.SubmitSparkJob._
+import edp.rider.spark.SparkStatusQuery._
+import edp.rider.wormhole._
+import edp.rider.RiderStarter.modules._
+import edp.rider.rest.util.UdfUtils.sendUdfDirective
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -245,7 +250,7 @@ object FlowUtils extends RiderLogger {
 
   def getHideActions(streamType: String): String = {
     StreamType.withName(streamType) match {
-      case FLINK => s"$RENEW,$BATCHOPERATIONS"
+      case FLINK => s"$RENEW,$BATCHSELECT"
       case _ => ""
     }
   }
@@ -585,7 +590,7 @@ object FlowUtils extends RiderLogger {
       val streamJoinNs = getStreamJoinNamespaces(tranConfig)
       val nsSeq = (streamJoinNs += sourceNs).map(ns => modules.namespaceDal.getNamespaceByNs(ns).get)
       nsSeq.distinct.foreach(ns => {
-        val topicSearch = Await.result(modules.inTopicDal.findByFilter(rel => rel.streamId === streamId && rel.nsDatabaseId === ns.nsDatabaseId), minTimeOut)
+        val topicSearch = Await.result(modules.streamInTopicDal.findByFilter(rel => rel.streamId === streamId && rel.nsDatabaseId === ns.nsDatabaseId), minTimeOut)
         if (topicSearch.isEmpty) {
           val instance = Await.result(modules.instanceDal.findByFilter(_.id === ns.nsInstanceId), minTimeOut).head
           val database = Await.result(modules.databaseDal.findByFilter(_.id === ns.nsDatabaseId), minTimeOut).head
@@ -595,7 +600,7 @@ object FlowUtils extends RiderLogger {
             else KafkaUtils.getKafkaLatestOffset(instance.connUrl, database.nsDatabase)
           val inTopicInsert = StreamInTopic(0, streamId, ns.nsDatabaseId, offset, RiderConfig.spark.topicDefaultRate,
             active = true, currentSec, userId, currentSec, userId)
-          val inTopic = Await.result(modules.inTopicDal.insert(inTopicInsert), minTimeOut)
+          val inTopic = Await.result(modules.streamInTopicDal.insert(inTopicInsert), minTimeOut)
           sendTopicDirective(streamId, Seq(PutTopicDirective(database.nsDatabase, inTopic.partitionOffsets, inTopic.rate, None)), userId, false)
         }
       })
@@ -635,7 +640,7 @@ object FlowUtils extends RiderLogger {
     val flows = Await.result(modules.flowDal
       .findByFilter(flow => flow.streamId === streamId && flow.status =!= "new" && flow.status =!= "stopping" && flow.status =!= "stopped")
       , minTimeOut)
-    val streamTopicIds = Await.result(modules.inTopicDal.findByFilter(_.streamId === streamId), minTimeOut).map(_.nsDatabaseId)
+    val streamTopicIds = Await.result(modules.streamInTopicDal.findByFilter(_.streamId === streamId), minTimeOut).map(_.nsDatabaseId)
     val ids = new ListBuffer[Long]
     val flowSearch = if (flowId.isEmpty) flows else flows.filter(_.id != flowId.get)
     flowSearch.foreach(flow =>
@@ -646,7 +651,7 @@ object FlowUtils extends RiderLogger {
     if (deleteIds.nonEmpty) {
       val topicMap = Await.result(modules.databaseDal.findByFilter(_.id inSet deleteIds), minTimeOut).map(db => (db.id, db.nsDatabase)).toMap[Long, String]
       deleteIds.foreach(id => StreamUtils.sendUnsubscribeTopicDirective(streamId, topicMap(id), userId))
-      Await.result(modules.inTopicDal.deleteByFilter(topic => (topic.nsDatabaseId inSet deleteIds) && (topic.streamId === streamId)), minTimeOut)
+      Await.result(modules.streamInTopicDal.deleteByFilter(topic => (topic.nsDatabaseId inSet deleteIds) && (topic.streamId === streamId)), minTimeOut)
       riderLogger.info(s"drop topic ${
         topicMap.values.mkString(",")
       } directive")
@@ -821,4 +826,180 @@ object FlowUtils extends RiderLogger {
     }
     nsSeq
   }
+
+  def startFlinkFlow(appId: String, flow: Flow, flowDirective: FlowDirective, userId: Long) = {
+    val commandSh = generateFlinkFlowStartSh(appId, flow, flowDirective, userId: Long)
+    riderLogger.info(s"start flow ${flow.id} command: $commandSh")
+    runShellCommand(commandSh)
+  }
+
+  def generateFlinkFlowStartSh(appId: String, flow: Flow, flowDirective: FlowDirective, userId: Long): String = {
+    val logPath = getLogPath(getFlowName(flow.sourceNs, flow.sinkNs))
+    val address = getJobManagerAddressOnYarn(appId)
+    riderLogger.info(s"Flow ${flow.id} JobManager address: $address")
+    val config1 = getWhFlinkConfig(flowDirective, flow)
+    val config2 = getFlinkFlowConfig(flow, userId)
+    s"""
+       |${RiderConfig.flink.homePath}/bin/flink
+       |-m $address ${RiderConfig.flink.jarPath} ${config1} ${config2}
+       |-d
+       |> $logPath 2>&1
+     """.stripMargin.replaceAll("\n", " ").trim
+  }
+
+  def getWhFlinkConfig(flowDirective: FlowDirective, flow: Flow) = {
+    val kafkaUrl = StreamUtils.getKafkaByStreamId(flow.streamId)
+    val baseConfig = KafkaBaseConfig(getFlowName(flow.sourceNs, flow.sinkNs), kafkaUrl, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut)
+    val outputConfig = KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers)
+    val autoRegisteredTopics = flowDirective.topicInfo.autoRegisteredTopics.map(topic => KafkaFlinkTopic(topic.name, topic.partitionOffsets))
+    val userDefinedTopics = flowDirective.topicInfo.userDefinedTopics.map(topic => KafkaFlinkTopic(topic.name, topic.partitionOffsets))
+    val flinkTopic = autoRegisteredTopics ++ userDefinedTopics
+    val config = WhFlinkConfig(KafkaInput(baseConfig, flinkTopic), outputConfig, flow.parallelism.get, RiderConfig.zk)
+    caseClass2json[WhFlinkConfig](config)
+  }
+
+  def getFlinkFlowConfig(flow: Flow, userId: Long) = {
+    val consumedProtocol = getConsumptionType(flow.consumedProtocol)
+    val sinkConfig = getSinkConfig(flow.sinkNs, flow.sinkConfig.get)
+    val tranConfigFinal = getTranConfig(flow.tranConfig.getOrElse(""))
+
+    val sourceNsObj = namespaceDal.getNamespaceByNs(flow.sourceNs).get
+    val umsInfoOpt =
+      if (sourceNsObj.sourceSchema.nonEmpty)
+        json2caseClass[Option[SourceSchema]](modules.namespaceDal.getNamespaceByNs(flow.sourceNs).get.sourceSchema.get)
+      else None
+    val umsType = umsInfoOpt match {
+      case Some(umsInfo) => umsInfo.umsType.getOrElse("ums")
+      case None => "ums"
+    }
+    val umsSchema = umsInfoOpt match {
+      case Some(umsInfo) => umsInfo.umsSchema match {
+        case Some(schema) => caseClass2json[Object](schema)
+        case None => ""
+      }
+      case None => ""
+    }
+
+    val base64Tuple = Seq(flow.streamId, flow.id, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), flow.sinkNs, base64byte2s(consumedProtocol.trim.getBytes),
+      base64byte2s(sinkConfig.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))
+    val directive = Await.result(modules.directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, flow.streamId, flow.id, "", RiderConfig.zk, currentSec, userId)), minTimeOut)
+    //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_START.toString} success.")
+    val flow_start_ums =
+      s"""
+         |{
+         |"protocol": {
+         |"type": "${
+        DIRECTIVE_FLOW_START.toString
+      }"
+         |},
+         |"schema": {
+         |"namespace": "${flow.sourceNs}",
+         |"fields": [
+         |{
+         |"name": "directive_id",
+         |"type": "long",
+         |"nullable": false
+         |},
+         |{
+         |"name": "stream_id",
+         |"type": "long",
+         |"nullable": false
+         |},
+         |{
+         |"name": "job_id",
+         |"type": "long",
+         |"nullable": false
+         |},
+         |{
+         |"name": "ums_ts_",
+         |"type": "datetime",
+         |"nullable": false
+         |},
+         |{
+         |"name": "data_type",
+         |"type": "string",
+         |"nullable": false
+         |},
+         |{
+         |"name": "data_parse",
+         |"type": "string",
+         |"nullable": true
+         |},
+         |{
+         |"name": "sink_namespace",
+         |"type": "string",
+         |"nullable": false
+         |},
+         |{
+         |"name": "consumption_protocol",
+         |"type": "string",
+         |"nullable": false
+         |},
+         |{
+         |"name": "sinks",
+         |"type": "string",
+         |"nullable": false
+         |},
+         |{
+         |"name": "swifts",
+         |"type": "string",
+         |"nullable": true
+         |}
+         |]
+         |},
+         |"payload": [
+         |{
+         |"tuple": [${
+        directive.id
+      }, ${
+        base64Tuple.head
+      }, "${
+        base64Tuple(1)
+      }", "${
+        base64Tuple(2)
+      }", "${
+        base64Tuple(3)
+      }", "${
+        base64Tuple(4)
+      }", "${
+        base64Tuple(5)
+      }", "${
+        base64Tuple(6)
+      }", "${
+        base64Tuple(7)
+      }", "${
+        base64Tuple(8)
+      }"]
+         |}
+         |]
+         |}
+        """.stripMargin.replaceAll("\n", "")
+  }
+
+  def getFlowName(sourceNs: String, sinkNs: String): String = s"$sourceNs-$sinkNs"
+
+  def updateUdfsByStart(flowId: Long, udfIds: Seq[Long], userId: Long): Unit = {
+    if (udfIds.nonEmpty) {
+      val deleteUdfIds = flowUdfDal.getDeleteUdfIds(flowId, udfIds)
+      Await.result(flowUdfDal.deleteByFilter(udf => udf.flowId === flowId && udf.udfId.inSet(deleteUdfIds)), minTimeOut)
+      val insertUdfs = udfIds.map(
+        id => FlowUdf(0, flowId, id, currentSec, userId, currentSec, userId)
+      )
+      Await.result(flowUdfDal.insertOrUpdate(insertUdfs).mapTo[Int], minTimeOut)
+    } else {
+      Await.result(flowUdfDal.deleteByFilter(_.flowId === flowId), minTimeOut)
+    }
+  }
+
+  def updateTopicsByStart(flowId: Long, putTopic: PutStreamTopic, userId: Long): Unit = {
+    val autoRegisteredTopics = putTopic.autoRegisteredTopics
+    val userdefinedTopics = putTopic.userDefinedTopics
+    // update auto registered topics
+    flowInTopicDal.updateByStart(flowId, autoRegisteredTopics, userId)
+    // delete user defined topics by start
+    flowUdfTopicDal.deleteByStart(flowId, userdefinedTopics)
+    // insert or update user defined topics by start
+    flowUdfTopicDal.insertUpdateByStart(flowId, userdefinedTopics, userId)
+  }
+
 }

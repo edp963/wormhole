@@ -157,7 +157,7 @@ object SparkStatusQuery extends RiderLogger {
     val rmUrl = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
     //    riderLogger.info(s"active resourceManager: $rmUrl")
     if (rmUrl != "") {
-//      val url = s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=$fromTimeLong&&applicationTags=${RiderConfig.spark.app_tags}&&applicationTypes=spark"
+      //      val url = s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=$fromTimeLong&&applicationTags=${RiderConfig.spark.app_tags}&&applicationTypes=spark"
       val url = s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=$fromTimeLong"
       riderLogger.info(s"Spark Application refresh yarn rest url: $url")
       queryAppListOnYarn(url)
@@ -274,5 +274,37 @@ object SparkStatusQuery extends RiderLogger {
     }
   }
 
+//  def getJobManagerAddressOnYarn(appId: String): String = {
+//    val activeRm = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
+//    val url = s"http://$activeRm/ws/v1/cluster/apps/${appId}"
+//    try {
+//      val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
+////      riderLogger.info(response.toString)
+//      val json = JsonParser.apply(response.body).toString()
+//      val app = JSON.parseObject(json).getString("app")
+//      JSON.parseObject(app).getString("amHostHttpAddress")
+//    } catch {
+//      case ex: Exception =>
+//        riderLogger.error(s"Get Flink JobManager address failed by request url $url", ex)
+//        throw ex
+//    }
+//  }
+
+
+  def getJobManagerAddressOnYarn(appId: String): String = {
+    val activeRm = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
+    val url = s"http://$activeRm/proxy/${appId}/jobmanager/config"
+    try {
+      val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
+      val json = JsonParser.apply(response.body).toString()
+      val host = JSON.parseObject(json).getString("jobmanager.rpc.address")
+      val port = JSON.parseObject(json).getString("jobmanager.rpc.port")
+      s"$host:$port"
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"Get Flink JobManager address failed by request url $url", ex)
+        throw ex
+    }
+  }
 
 }

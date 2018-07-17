@@ -51,5 +51,24 @@ class FlowUserDefinedTopicDal(flowUdfTopicQuery: TableQuery[FlowUserDefinedTopic
       Await.result(db.run(flowUdfTopicQuery.filter(_.id === topic.id).map(topic => (topic.partitionOffsets)).update(topic.offset)).mapTo[Int], minTimeOut))
   }
 
+  // get deleted topics name
+  def deleteByStart(flowId: Long, topics: Seq[PutTopicDirective]): Seq[String] = {
+    val topicNames = topics.map(_.name)
+    // find topics not in start/renew topics
+    val deleteTopics = Await.result(super.findByFilter(topic => topic.flowId === flowId && !(topic.topic inSet topicNames)), minTimeOut)
+    // delete topics
+    Await.result(super.deleteById(deleteTopics.map(_.id)), minTimeOut)
+    // return delete topics name
+    deleteTopics.map(_.topic)
+  }
+
+  // action = 0 offset没有更新, action = 1 offset更新, 动态生效
+  def insertUpdateByStart(flowId: Long, topics: Seq[PutTopicDirective], userId: Long): Boolean = {
+    // set insert topic objects
+    val insertUpdateTopics = topics.map(
+      topic => FlowUserDefinedTopic(0, flowId, topic.name, topic.partitionOffsets, topic.rate, currentSec, userId, currentSec, userId))
+    Await.result(super.insertOrUpdate(insertUpdateTopics), minTimeOut)
+    true
+  }
 
 }
