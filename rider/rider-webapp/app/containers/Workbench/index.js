@@ -737,7 +737,7 @@ export class Workbench extends React.Component {
   // Flow 调单条查询的接口，回显数据
   queryFlowInfo = (flow) => {
     this.setState({
-      streamDiffType: typeof (flow.streamType) === 'object' ? flow.streamTypeOrigin : flow.streamType,
+      streamDiffType: flow.functionType,
       transformTableConfirmValue: '',
       transConfigConfirmValue: '',
       flowFormTranTableSource: [],
