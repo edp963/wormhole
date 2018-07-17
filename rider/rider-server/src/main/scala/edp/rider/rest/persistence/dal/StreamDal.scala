@@ -253,7 +253,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
 
   def checkTopicExists(streamId: Long, topic: String): Boolean = {
     var exist = false
-    if (streamInTopicDal.checkAutoRegisteredTopicExists(streamId, topic) || udfTopicDal.checkUdfTopicExists(streamId, topic))
+    if (streamInTopicDal.checkAutoRegisteredTopicExists(streamId, topic) || streamUdfTopicDal.checkUdfTopicExists(streamId, topic))
       exist = true
     exist
   }
@@ -280,8 +280,8 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   }
 
   def getStreamTopicsMap(streamIds: Seq[Long]): Map[Long, GetTopicsResponse] = {
-    val autoRegisteredTopics = inTopicDal.getAutoRegisteredTopics(streamIds)
-    val udfTopics = udfTopicDal.getUdfTopics(streamIds)
+    val autoRegisteredTopics = streamInTopicDal.getAutoRegisteredTopics(streamIds)
+    val udfTopics = streamUdfTopicDal.getUdfTopics(streamIds)
     val kafkaMap = getStreamKafkaMap(streamIds)
     streamIds.map(id => {
       val topics = autoRegisteredTopics.filter(_.streamId == id) ++: udfTopics.filter(_.streamId == id)
@@ -295,15 +295,15 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       val udfUpdateTopics = udfTopicsResponse.map(topic => UpdateTopicOffset(topic.id, topic.consumedLatestOffset))
 
       streamInTopicDal.updateOffset(autoRegisteredUpdateTopics)
-      udfTopicDal.updateOffset(udfUpdateTopics)
+      streamUdfTopicDal.updateOffset(udfUpdateTopics)
       (id, GetTopicsResponse(autoTopicsResponse, udfTopicsResponse))
     }).toMap
     //    GetTopicsResponse(autoRegisteredTopicsResponse, udfTopicsResponse)
   }
     //getStreamTopicsName for getSimpleStreamInfo
   def getStreamTopicsName(streamIds: Long): (Long, Seq[String]) = {
-    val autoRegisteredTopics = inTopicDal.getAutoRegisteredTopics(streamIds)
-    val udfTopics = udfTopicDal.getUdfTopics(streamIds)
+    val autoRegisteredTopics = streamInTopicDal.getAutoRegisteredTopics(streamIds)
+    val udfTopics = streamUdfTopicDal.getUdfTopics(streamIds)
     val topics = autoRegisteredTopics.filter(_.streamId == streamIds) ++: udfTopics.filter(_.streamId == streamIds)
     val topicsName = topics.map(topics => topics.name)
     val topicInfo = (streamIds, topicsName)

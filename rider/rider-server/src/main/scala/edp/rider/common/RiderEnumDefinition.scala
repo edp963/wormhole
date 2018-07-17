@@ -56,7 +56,7 @@ object Action extends Enumeration {
   val MODIFY = Value("modify")
   val RENEW = Value("renew")
   val DELETE = Value("delete")
-  val BATCHOPERATIONS = Value("batchOperations")
+  val BATCHSELECT = Value("batchSelect")
 
   def action(s: String) = Action.withName(s.toLowerCase)
 }
