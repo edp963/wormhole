@@ -34,6 +34,7 @@ import edp.rider.rest.util.ResponseUtils._
 import edp.rider.rest.util.{AuthorizationProvider, FlowUtils}
 import edp.rider.service.util.CacheMap
 import slick.jdbc.MySQLProfile.api._
+import edp.rider.rest.util.FlowUtils._
 
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
@@ -503,9 +504,9 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
         if (!FlowUtils.getDisableActions(flow).contains("start") && stream.status == "running") {
           FlowUtils.updateUdfsByStart(flowId, flowDirective.udfInfo, session.userId)
           FlowUtils.startFlinkFlow(stream.sparkAppid.get, flow, flowDirective, session.userId)
-          riderLogger.info(s"user ${session.userId} start stream $stream.Id success.")
+          riderLogger.info(s"user ${session.userId} start flow ${flow.id} success.")
           flowDal.updateStatusByAction(flowId, "starting", Option(currentSec), None)
-          complete(OK, ResponseJson[FlinkStartResponse](getHeader(200, session), FlinkStartResponse(flow.id, s"$START,$RENEW,$STOP", FlowUtils.getHideActions(stream.streamType))))
+          complete(OK, ResponseJson[FlinkResponse](getHeader(200, session), FlinkResponse(flow.id, s"$START,$RENEW,$STOP", FlowUtils.getHideActions(stream.streamType))))
         } else {
           riderLogger.info(s"user ${session.userId} can't start flow.")
           complete(OK, setFailedResponse(session, "start is forbidden"))
@@ -520,6 +521,48 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
         complete(OK, setFailedResponse(session, ex.getMessage))
     }
   }
+
+  def stopFlinkRoute(route: String): Route = path(route / LongNumber / "flinkstreams" / "flows" / LongNumber / "stop") {
+    (projectId, flowId) =>
+      put {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "user") {
+              riderLogger.warn(s"${
+                session.userId
+              } has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              if (session.projectIdList.contains(projectId)) {
+                val flow = Await.result(flowDal.findById(flowId), minTimeOut).head
+                val stream = Await.result(streamDal.findById(flow.streamId), minTimeOut).head
+                if (!FlowUtils.getDisableActions(flow).contains("stop")) {
+                  val status = stopFlinkFlow(stream.sparkAppid, flow)
+                  riderLogger.info(s"user ${session.userId} stop flow $flowId success.")
+                  flowDal.updateStatusByAction(flowId, status, flow.startedTime, Option(currentSec))
+                  complete(OK, ResponseJson[FlinkResponse](getHeader(200, session), FlinkResponse(flow.id, s"$START,$RENEW,$STOP", FlowUtils.getHideActions(stream.streamType))))
+                } else {
+                  riderLogger.info(s"user ${session.userId} can't stop flow $flowId now")
+                  complete(OK, getHeader(406, s"stop is forbidden", session))
+                }
+              }
+              else {
+                riderLogger.error(s"user ${
+                  session.userId
+                } doesn't have permission to access the project $projectId.")
+                complete(OK, getHeader(403, session))
+              }
+            }
+        }
+      }
+  }
+
+//  private def checkAction(flow: Flow, action: String): Boolean = {
+//    if (getDisableActions(flow).contains(action)) false
+//    else true
+//  }
+
 
 
 }
