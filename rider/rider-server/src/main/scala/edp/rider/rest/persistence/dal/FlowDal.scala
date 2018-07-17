@@ -375,6 +375,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     topics.map(topic => {
       val earliest = getKafkaEarliestOffset(kafkaMap(topic.flowId), topic.name)
       val latest = getKafkaLatestOffset(kafkaMap(topic.flowId), topic.name)
+      //todo get consumed offset
       //val consumed = feedbackOffsetMap(topic.name)
       TopicAllOffsets(topic.id, topic.name, topic.rate, earliest, earliest, latest)
     })

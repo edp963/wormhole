@@ -61,6 +61,15 @@ class FlowInTopicDal(flowInTopicTable: TableQuery[FlowInTopicTable],
       Await.result(db.run(flowInTopicTable.filter(_.id === topic.id).map(topic => (topic.partitionOffsets)).update(topic.offset)).mapTo[Int], minTimeOut))
   }
 
-
+  def updateByStart(flowId: Long, topics: Seq[PutTopicDirective], userId: Long): Boolean = {
+    val topicMap = getAutoRegisteredTopics(Seq(flowId)).map(topic => (topic.name, topic.id)).toMap
+    topics.filter(_.action.getOrElse(1) == 1).map(
+      topic => Await.result(
+        db.run(flowInTopicTable.filter(_.id === topicMap(topic.name))
+          .map(topic => (topic.partitionOffsets,topic.updateTime, topic.updateBy))
+          .update(topic.partitionOffsets, currentSec, userId)), minTimeOut)
+    )
+    true
+  }
 
 }
