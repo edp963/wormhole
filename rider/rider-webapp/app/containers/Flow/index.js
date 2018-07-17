@@ -43,7 +43,7 @@ import Popover from 'antd/lib/popover'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { selectFlows, selectError } from './selectors'
+import { selectFlows, selectError, selectFlowStartModalLoading } from './selectors'
 import { selectRoleType } from '../App/selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
 import {
@@ -51,8 +51,11 @@ import {
   saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail,
   loadSourceInput, loadFlowDetail, chuckAwayFlow
 } from './action'
+import { loadLastestOffset, loadUdfs } from '../Manager/action'
+import { loadSingleUdf } from '../Udf/action'
+import StreamStartForm from '../Manager/StreamStartForm'
 
-// import { formatConcat } from '../../utils/util'
+import { transformStringWithDot } from '../../utils/util'
 
 export class Flow extends React.Component {
   constructor (props) {
@@ -106,7 +109,16 @@ export class Flow extends React.Component {
       endTimeTextState: '',
       paginationInfo: null,
       startTextState: '',
-      endTextState: ''
+      endTextState: '',
+      startModalVisible: false,
+      streamStartFormData: [],
+      autoRegisteredTopics: [],
+      userDefinedTopics: [],
+      tempUserTopics: [],
+      actionType: '',
+      startUdfVals: [],
+      renewUdfVals: [],
+      currentUdfVal: []
     }
   }
 
@@ -299,6 +311,70 @@ export class Flow extends React.Component {
     })
   }
 
+  onShowEditStart = (record) => (e) => {
+    const { projectIdGeted, locale } = this.props
+
+    this.setState({
+      actionType: 'start',
+      startModalVisible: true,
+      streamIdGeted: record.id
+    })
+
+    // 单条查询接口获得回显的topic Info，回显选中的UDFs
+    this.props.onLoadUdfs(projectIdGeted, record.id, 'user', 'flows', (result) => {
+      // 回显选中的 topic，必须有 id
+      const currentUdfTemp = result
+      let topicsSelectValue = []
+      for (let i = 0; i < currentUdfTemp.length; i++) {
+        topicsSelectValue.push(`${currentUdfTemp[i].id}`)
+      }
+      this.streamStartForm.setFieldsValue({ udfs: topicsSelectValue })
+    })
+
+    // 与user UDF table相同的接口获得全部的UDFs
+    this.props.onLoadSingleUdf(projectIdGeted, 'user', (result) => {
+      const allOptionVal = {
+        createBy: 1,
+        createTime: '',
+        desc: '',
+        fullClassName: '',
+        functionName: locale === 'en' ? 'Select all' : '全选',
+        id: -1,
+        jarName: '',
+        pubic: false,
+        updateBy: 1,
+        updateTime: ''
+      }
+      result.unshift(allOptionVal)
+      this.setState({ startUdfVals: result })
+    })
+
+    // 显示 Latest offset
+    this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
+      if (result) {
+        let autoRegisteredTopics = result.autoRegisteredTopics.map(v => {
+          v.name = transformStringWithDot(v.name)
+          return v
+        })
+        let userDefinedTopics = result.userDefinedTopics.map(v => {
+          v.name = transformStringWithDot(v.name)
+          return v
+        })
+        this.setState({
+          autoRegisteredTopics: autoRegisteredTopics,
+          userDefinedTopics: userDefinedTopics,
+          streamStartFormData: autoRegisteredTopics
+          // consumedOffsetValue: result.consumedLatestOffset,
+          // kafkaOffsetValue: result.kafkaLatestOffset,
+          // kafkaEarliestOffset: result.kafkaEarliestOffset
+        })
+      } else {
+        this.setState({
+          streamStartFormData: []
+        })
+      }
+    }, 'get', [], 'flows')
+  }
   onCopyFlow = (record) => (e) => this.props.onShowCopyFlow(record)
 
   handleFlowChange = (pagination, filters, sorter) => {
@@ -469,10 +545,10 @@ export class Flow extends React.Component {
   }
 
   render () {
-    const { className, onShowAddFlow, onShowEditFlow, flowClassHide, roleType } = this.props
+    const { className, onShowAddFlow, onShowEditFlow, flowClassHide, roleType, flowStartModalLoading } = this.props
     const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails } = this.state
     const { selectedRowKeys } = this.state
-    let { sortedInfo, filteredInfo } = this.state
+    let { sortedInfo, filteredInfo, startModalVisible, streamStartFormData, autoRegisteredTopics, userDefinedTopics, startUdfVals, renewUdfVals, currentUdfVal, actionType } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
 
@@ -851,20 +927,26 @@ export class Flow extends React.Component {
           const strEdit = record.disableActions.includes('modify')
             ? <Button icon="edit" shape="circle" type="ghost" disabled></Button>
             : <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
-
-          const strStart = record.disableActions.includes('start')
-            ? (
-              <Tooltip title={startFormat}>
-                <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
-              </Tooltip>
-            )
-            : (
-              <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'start')}>
+          let strStart = ''
+          if (record.streamType === 'spark') {
+            strStart = record.disableActions.includes('start')
+              ? (
                 <Tooltip title={startFormat}>
-                  <Button icon="caret-right" shape="circle" type="ghost"></Button>
+                  <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
                 </Tooltip>
-              </Popconfirm>
-            )
+              )
+              : (
+                <Popconfirm placement="bottom" title={sureStartFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'start')}>
+                  <Tooltip title={startFormat}>
+                    <Button icon="caret-right" shape="circle" type="ghost"></Button>
+                  </Tooltip>
+                </Popconfirm>
+              )
+          } else if (record.streamType === 'flink') {
+            strStart = record.disableActions.includes('start')
+              ? <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
+              : <Button icon="caret-right" shape="circle" type="ghost" onClick={this.onShowEditStart(record, 'start')}></Button>
+          }
 
           const strStop = record.disableActions.includes('stop')
             ? (
@@ -1011,6 +1093,35 @@ export class Flow extends React.Component {
       ? (<Helmet title="Flow" />)
       : (<Helmet title="Workbench" />)
 
+    const modalTitle = actionType === 'start'
+    ? <FormattedMessage {...messages.flowSureStart} />
+    : <FormattedMessage {...messages.flowSureRenew} />
+
+    const modalOkBtn = actionType === 'start'
+    ? <FormattedMessage {...messages.flowTableStart} />
+    : <FormattedMessage {...messages.flowTableRenew} />
+
+    const streamStartForm = startModalVisible
+      ? (
+        <StreamStartForm
+          data={streamStartFormData}
+          autoRegisteredTopics={autoRegisteredTopics}
+          userDefinedTopics={userDefinedTopics}
+          emitStartFormDataFromSub={this.getStartFormDataFromSub}
+          // consumedOffsetValue={consumedOffsetValue}
+          // kafkaOffsetValue={kafkaOffsetValue}
+          // kafkaEarliestOffset={kafkaEarliestOffset}
+          streamActionType={actionType}
+          startUdfValsOption={startUdfVals}
+          renewUdfValsOption={renewUdfVals}
+          currentUdfVal={currentUdfVal}
+          projectIdGeted={this.props.projectIdGeted}
+          streamIdGeted={this.state.streamIdGeted}
+          unValidate={this.state.unValidate}
+          ref={(f) => { this.streamStartForm = f }}
+        />
+      )
+      : ''
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>
         {helmetHide}
@@ -1058,6 +1169,48 @@ export class Flow extends React.Component {
           <FlowsTime
             ref={(f) => { this.flowsTime = f }} />
         </Modal>
+        <Modal
+          title={modalTitle}
+          visible={startModalVisible}
+          wrapClassName="ant-modal-large stream-start-renew-modal"
+          onCancel={this.handleEditStartCancel}
+          footer={[
+            <Button
+              className={`query-offset-btn`}
+              key="query"
+              size="large"
+              onClick={this.queryLastestoffset}
+            >
+              <FormattedMessage {...messages.flowModalView} /> Latest Offset
+            </Button>,
+            <Button
+              className={`edit-topic-btn`}
+              type="default"
+              onClick={this.onChangeEditSelect}
+              key="renewEdit"
+              size="large">
+              <FormattedMessage {...messages.flowModalReset} />
+            </Button>,
+            <Button
+              key="cancel"
+              size="large"
+              onClick={this.handleEditStartCancel}
+            >
+              <FormattedMessage {...messages.flowModalCancel} />
+            </Button>,
+            <Button
+              key="submit"
+              size="large"
+              type="primary"
+              loading={flowStartModalLoading}
+              onClick={this.handleEditStartOk}
+            >
+              {modalOkBtn}
+            </Button>
+          ]}
+        >
+          {streamStartForm}
+        </Modal>
       </div>
     )
   }
@@ -1090,7 +1243,11 @@ Flow.propTypes = {
   onOperateUserFlow: PropTypes.func,
   onChuckAwayFlow: PropTypes.func,
   roleType: PropTypes.string,
-  locale: PropTypes.string
+  locale: PropTypes.string,
+  onLoadLastestOffset: PropTypes.func,
+  onLoadSingleUdf: PropTypes.func,
+  onLoadUdfs: PropTypes.func,
+  flowStartModalLoading: PropTypes.bool
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1108,7 +1265,11 @@ export function mapDispatchToProps (dispatch) {
     onLoadSinkWriteRrrorDetail: (id, pageIndex, pageSize, resolve) => dispatch(loadSinkWriteRrrorDetail(id, pageIndex, pageSize, resolve)),
     onLoadSourceInput: (flowId, taskType, resolve) => dispatch(loadSourceInput(flowId, taskType, resolve)),
     onLoadFlowDetail: (requestValue, resolve) => dispatch(loadFlowDetail(requestValue, resolve)),
-    onChuckAwayFlow: () => dispatch(chuckAwayFlow())
+    onChuckAwayFlow: () => dispatch(chuckAwayFlow()),
+    onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
+    onLoadLastestOffset: (projectId, streamId, resolve, type, topics, tabType) => dispatch(loadLastestOffset(projectId, streamId, resolve, type, topics, tabType)),
+    onLoadUdfs: (projectId, streamId, roleType, tabType, resolve) => dispatch(loadUdfs(projectId, streamId, roleType, tabType, resolve))
+
   }
 }
 
@@ -1116,7 +1277,8 @@ const mapStateToProps = createStructuredSelector({
   flows: selectFlows(),
   error: selectError(),
   roleType: selectRoleType(),
-  locale: selectLocale()
+  locale: selectLocale(),
+  flowStartModalLoading: selectFlowStartModalLoading()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Flow)

@@ -23,8 +23,6 @@ import classnames from 'classnames'
 
 import Form from 'antd/lib/form'
 import Input from 'antd/lib/input'
-import InputNumber from 'antd/lib/input-number'
-import DatePicker from 'antd/lib/date-picker'
 import Select from 'antd/lib/select'
 import Radio from 'antd/lib/radio'
 import Button from 'antd/lib/button'
@@ -35,10 +33,6 @@ const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 
 import { uuid } from '../../../utils/util'
-// import { SQL_NUMBER_TYPES, SQL_DATE_TYPES } from '../../../globalConstants'
-
-const SQL_NUMBER_TYPES = ['TINYINT', 'SMALLINT', 'MEDIUMINT', 'INT', 'BIGINT', 'FLOAT', 'DOUBLE', 'DOUBLE PRECISION', 'REAL', 'DECIMAL', 'BIT', 'SERIAL', 'BOOL', 'BOOLEAN', 'DEC', 'FIXED', 'NUMERIC']
-const SQL_DATE_TYPES = ['DATE', 'DATETIME', 'TIMESTAMP', 'TIME', 'YEAR']
 export class DashboardItemFilters extends PureComponent {
   constructor (props) {
     super(props)
@@ -130,13 +124,11 @@ export class DashboardItemFilters extends PureComponent {
       <Button shape="circle" icon="fork" type="primary" onClick={this.forkNode(filter.id)} />
     )
 
-    // const keySelectOptions = keys.map((k, index) => (
-    //   <Option key={k} value={`${k}:${types[index]}`}>{k}</Option>
-    // ))
-
     const operatorSelectOptions = this.generateFilterOperatorOptions(filter.filterType)
 
     const valueInput = this.generateFilterValueInput(filter)
+
+    const keyValueInput = this.generateFilterKeyValueInput(filter)
 
     return (
       <div className={itemClass} key={filter.id}>
@@ -148,7 +140,7 @@ export class DashboardItemFilters extends PureComponent {
             }],
             initialValue: filter.filterKey
           })(
-            <Input />
+            keyValueInput
           )}
         </FormItem>
         <FormItem className={`filterFormItem filterFormOperator`}>
@@ -199,53 +191,29 @@ export class DashboardItemFilters extends PureComponent {
     }
   }
 
+  generateFilterKeyValueInput = (filter) => {
+    const stringInput = (
+      <Input onChange={this.changeStringFilterKeyValue(filter)} />
+    )
+    return stringInput
+  }
+
   generateFilterOperatorOptions = (type) => {
     const operators = [
-      ['=', '>', '<', '>=', '<=', '!=', 'contains', 'startWith', 'endWidth'],
       ['=', '>', '<', '>=', '<=', '!=', 'contains', 'startWith', 'endWidth']
     ]
 
-    const stringOptions = operators[0].slice().map(o => (
+    const numbersAndDateOptions = operators[0].slice().map(o => (
       <Option key={o} value={o}>{o}</Option>
     ))
-
-    const numbersAndDateOptions = operators[1].slice().map(o => (
-      <Option key={o} value={o}>{o}</Option>
-    ))
-
-    if (SQL_NUMBER_TYPES.indexOf(type) >= 0 || SQL_DATE_TYPES.indexOf(type) >= 0) {
-      return numbersAndDateOptions
-    } else {
-      return stringOptions
-    }
+    return numbersAndDateOptions
   }
 
   generateFilterValueInput = (filter) => {
     const stringInput = (
       <Input onChange={this.changeStringFilterValue(filter)} />
     )
-
-    const numberInput = (
-      <InputNumber className={`inputNumber`} onChange={this.changeNumberFilterValue(filter)} />
-    )
-
-    const dateInput = (
-      <DatePicker format="YYYY-MM-DD" onChange={this.changeDateFilterValue(filter)} />
-    )
-
-    const datetimeInput = (
-      <DatePicker showTime format="YYYY-MM-DD HH:mm:ss" onOk={this.changeDateFilterValue(filter)} />
-    )
-
-    if (SQL_NUMBER_TYPES.indexOf(filter.filterType) >= 0) {
-      return numberInput
-    } else if (filter.filterType === 'DATE') {
-      return dateInput
-    } else if (filter.filterType === 'DATETIME') {
-      return datetimeInput
-    } else {
-      return stringInput
-    }
+    return stringInput
   }
 
   addTreeRoot = () => {
@@ -405,6 +373,11 @@ export class DashboardItemFilters extends PureComponent {
   //   filter.filterValue = ''
   //   filter.inputUuid = uuid(8, 16)
   // }
+
+  changeStringFilterKeyValue = (filter) => (event) => {
+    filter.filterKey = event.target.value
+    console.log(filter.filterKey)
+  }
 
   changeFilterOperator = (filter) => (val) => {
     filter.filterOperator = val

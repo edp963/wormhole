@@ -36,5 +36,6 @@ export default defineMessages({
   workbenchNext: { id: 'rider.containers.Flow.step.next' },
   workbenchSubmit: { id: 'rider.app.modal.submit' },
   workbenchJobFormAdd: { id: 'rider.containers.Namespace.Modal.tables.add' },
-  workbenchTransResource: { id: 'rider.containers.Workbench.transformation.resource.configuration' }
+  workbenchTransResource: { id: 'rider.containers.Workbench.transformation.resource.configuration' },
+  workbenchFlowTransCepOutput: { id: 'rider.containers.Workbench.tranformation.cep.output' }
 })

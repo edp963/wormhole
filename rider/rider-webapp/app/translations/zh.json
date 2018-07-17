@@ -56,6 +56,8 @@
   "rider.containers.Flow.step.back": "上一步",
   "rider.containers.Flow.step.next": "下一步",
   "rider.containers.Flow.batch.action": "批量操作",
+  "rider.containers.Flow.view.btn": "查看",
+  "rider.containers.Flow.reset.btn": "还原",
 
   "rider.containers.Stream.view.btn": "查看",
   "rider.containers.Stream.reset.btn": "还原",
@@ -131,5 +133,6 @@
   "rider.containers.Workbench.transformation.down": "向下",
   "rider.containers.Workbench.transformation.lookup.msg": "若lookup表为user,源namespace为kafka.test.test.test, SQL语句: select id as id1, name as name1 from user where (id,name) in (kafka.test.test.test.id, kafka.test.test.test.name);",
   "rider.containers.Workbench.transformation.spark.msg": "sql 语句中的 table 为 source namespace 中第四层, for example: source namespace 为 kafka.test.test1.test2.*.*.*, sql 语句为 select * from test2;",
-  "rider.containers.Workbench.transformation.resource.configuration": "Dirver/Executor 资源配置"
+  "rider.containers.Workbench.transformation.resource.configuration": "Dirver/Executor 资源配置",
+  "rider.containers.Workbench.tranformation.cep.output": "字段定义方式：字段名称:聚合函数。多个字段定义之间用逗号分隔。例如: age:max,salary:avg"
 }

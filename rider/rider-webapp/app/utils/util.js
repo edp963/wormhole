@@ -346,6 +346,14 @@ export function operateLanguageFillIn (typeEn, typeZh) {
   return languageType === 'en' ? `Please fill in ${typeEn}` : `请填写${typeZh}`
 }
 
+/**
+ *
+ * 为避免antd 控件的嵌套语法，转换所有'.'字符
+ * @export
+ * @param {string} [str='']
+ * @param {boolean} [isParse=true]
+ * @returns
+ */
 export function transformStringWithDot (str = '', isParse = true) {
   if (isParse) {
     return str.replace(/\./g, '^!^')
