@@ -43,11 +43,12 @@ import {
   CHECKOUT_FORM,
   EDIT_FLOWS,
   QUERY_FLOW,
-  STARTORRENEW_FLOWS,
+  STARTFLINK_FLOWS,
   LOAD_LASTEST_OFFSET,
   POST_USER_TOPIC,
   DELETE_USER_TOPIC,
-  LOAD_UDFS
+  LOAD_UDFS,
+  STOPFLINK_FLOWS
 } from './constants'
 
 import {
@@ -85,7 +86,7 @@ import {
   flowEdited,
   flowQueryed,
   flowOperatedError,
-  flowStartOrRenewed,
+  flinkFlowStartSucc,
   lastestOffsetLoaded,
   postUserTopicLoaded,
   deleteUserTopicLoaded
@@ -544,30 +545,56 @@ export function* queryLookupSqlWatcher () {
   yield fork(takeEvery, LOAD_LOOKUP_SQL, queryLookupSql)
 }
 
-export function* startOrRenewFlow ({ payload }) {
+export function* startFlinkFlow ({ payload }) {
   try {
     const result = yield call(request, {
       method: 'put',
-      url: `${api.projectStream}/${payload.projectId}/flows/${payload.id}/${payload.action}`,
+      url: `${api.projectStream}/${payload.projectId}/flinkstreams/flows/${payload.id}/${payload.action}`,
       data: payload.topicResult
     })
     if (result.code && result.code !== 200) {
       yield put(flowOperatedError(result.msg))
       payload.reject(result.msg)
     } else if (result.header.code && result.header.code === 200) {
-      yield put(flowStartOrRenewed(result.payload))
+      yield put(flinkFlowStartSucc(result.payload))
       payload.resolve()
     } else {
       yield put(flowOperatedError(result.payload))
       payload.reject(result.payload)
     }
   } catch (err) {
-    notifySagasError(err, 'startOrRenewFlow')
+    notifySagasError(err, 'startFlinkFlow')
   }
 }
 
-export function* startOrRenewFlowWathcer () {
-  yield fork(takeEvery, STARTORRENEW_FLOWS, startOrRenewFlow)
+export function* startFlinkFlowWathcer () {
+  yield fork(takeEvery, STARTFLINK_FLOWS, startFlinkFlow)
+}
+
+export function* stopFlinkFlow ({payload}) {
+  try {
+    const result = yield call(request, {
+      method: 'put',
+      url: `${api.projectStream}/${payload.projectId}/flinkstreams/flows/${payload.id}/stop`,
+      data: null
+    })
+    if (result.code && result.code !== 200) {
+      yield put(flowOperatedError(result.msg))
+      payload.reject(result.msg)
+    } else if (result.header.code && result.header.code === 200) {
+      yield put(flinkFlowStartSucc(result.payload))
+      payload.resolve()
+    } else {
+      yield put(flowOperatedError(result.payload))
+      payload.reject(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'stopFlinkFlow')
+  }
+}
+
+export function* stopFlinkFlowWathcer () {
+  yield fork(takeEvery, STOPFLINK_FLOWS, stopFlinkFlow)
 }
 
 export function* getLastestOffset ({ payload }) {
@@ -603,7 +630,7 @@ export function* addUserTopic ({payload}) {
   try {
     const result = yield call(request, {
       method: 'post',
-      url: `${api.projectUserList}/${payload.projectId}/streams/${payload.streamId}/topics/userdefined`,
+      url: `${api.projectUserList}/${payload.projectId}/flows/${payload.streamId}/topics/userdefined`,
       data: payload.topic
     })
     if (result.header.code && result.header.code === 200) {
@@ -625,7 +652,7 @@ export function* removeUserTopic ({payload}) {
   try {
     const result = yield call(request, {
       method: 'delete',
-      url: `${api.projectUserList}/${payload.projectId}/streams/${payload.streamId}/topics/userdefined/${payload.topicId}`
+      url: `${api.projectUserList}/${payload.projectId}/flows/${payload.streamId}/topics/userdefined/${payload.topicId}`
     })
     if (result.header.code && result.header.code === 200) {
       yield put(deleteUserTopicLoaded(result.payload))
@@ -646,7 +673,7 @@ export function* getUdfs ({payload}) {
   ? `${api.projectAdminStream}`
   : `${api.projectStream}`
   try {
-    const result = yield call(request, `${apiFinal}/${payload.projectId}/streams/${payload.streamId}/udfs`)
+    const result = yield call(request, `${apiFinal}/${payload.projectId}/flows/${payload.streamId}/udfs`)
     payload.resolve(result.payload)
   } catch (err) {
     notifySagasError(err, 'getUdfs')
@@ -680,9 +707,10 @@ export default [
   editFlowWatcher,
   queryFormWatcher,
 
-  startOrRenewFlowWathcer,
+  startFlinkFlowWathcer,
   getLastestOffsetWatcher,
   addUserTopicWatcher,
   removeUserTopicWatcher,
-  getUdfsWatcher
+  getUdfsWatcher,
+  stopFlinkFlowWathcer
 ]

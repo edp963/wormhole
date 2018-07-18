@@ -74,8 +74,8 @@ import {
   LOAD_SOURCEINPUT,
   LOAD_SOURCEINPUT_SUCCESS,
   LOAD_SOURCEINPUT_ERROR,
-  STARTORRENEW_FLOWS,
-  STARTORRENEW_FLOWS_SUCCESS,
+  STARTFLINK_FLOWS,
+  STARTFLINK_FLOWS_SUCCESS,
   OPERATE_FLOWS_ERROR
 } from './constants'
 import { fromJS } from 'immutable'
@@ -232,18 +232,18 @@ function flowReducer (state = initialState, { type, payload }) {
       return state
         .set('flows', flows.slice())
         .set('flowSubmitLoading', false)
-    case STARTORRENEW_FLOWS:
-      return state.set('streamStartModalLoading', true)
-    case STARTORRENEW_FLOWS_SUCCESS:
+    case STARTFLINK_FLOWS:
+      return state.set('flowStartModalLoading', true)
+    case STARTFLINK_FLOWS_SUCCESS:
       const startIndexStartOrRenew = flows.indexOf(flows.find(p => Object.is(p.stream.id, payload.result.id)))
       flows[startIndexStartOrRenew].disableActions = payload.result.disableActions
       flows[startIndexStartOrRenew].stream.status = payload.result.status
       // streams.fill(payload.result, startIndexStartOrRenew, startIndexStartOrRenew + 1)
       return state
-        .set('streams', flows.slice())
-        .set('streamStartModalLoading', false)
+        .set('flows', flows.slice())
+        .set('flowStartModalLoading', false)
     case OPERATE_FLOWS_ERROR:
-      return state.set('streamStartModalLoading', false)
+      return state.set('flowStartModalLoading', false)
     default:
       return state
   }

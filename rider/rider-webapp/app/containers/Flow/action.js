@@ -74,8 +74,8 @@ import {
   LOAD_SOURCEINPUT_ERROR,
   QUERY_FLOW,
   QUERY_FLOW_SUCCESS,
-  STARTORRENEW_FLOWS,
-  STARTORRENEW_FLOWS_SUCCESS,
+  STARTFLINK_FLOWS,
+  STARTFLINK_FLOWS_SUCCESS,
   OPERATE_FLOWS_ERROR,
   LOAD_LASTEST_OFFSET,
   LOAD_LASTEST_OFFSET_SUCCESS,
@@ -83,7 +83,8 @@ import {
   POST_USER_TOPIC_SUCCESS,
   DELETE_USER_TOPIC,
   DELETE_USER_TOPIC_SUCCESS,
-  LOAD_UDFS
+  LOAD_UDFS,
+  STOPFLINK_FLOWS
 } from './constants'
 
 export function loadAdminAllFlows (resolve) {
@@ -623,9 +624,9 @@ export function chuckAwayFlow () {
   }
 }
 
-export function startOrRenewFlow (projectId, id, topicResult, action, resolve, reject) {
+export function startFlinkFlow (projectId, id, topicResult, action, resolve, reject) {
   return {
-    type: STARTORRENEW_FLOWS,
+    type: STARTFLINK_FLOWS,
     payload: {
       projectId,
       id,
@@ -637,15 +638,26 @@ export function startOrRenewFlow (projectId, id, topicResult, action, resolve, r
   }
 }
 
-export function flowStartOrRenewed (result) {
+export function flinkFlowStartSucc (result) {
   return {
-    type: STARTORRENEW_FLOWS_SUCCESS,
+    type: STARTFLINK_FLOWS_SUCCESS,
     payload: {
       result
     }
   }
 }
 
+export function stopFlinkFlow (projectId, id, resolve, reject) {
+  return {
+    type: STOPFLINK_FLOWS,
+    payload: {
+      projectId,
+      id,
+      resolve,
+      reject
+    }
+  }
+}
 export function flowOperatedError (message) {
   return {
     type: OPERATE_FLOWS_ERROR,
