@@ -844,7 +844,7 @@ object FlowUtils extends RiderLogger {
     val config1 = getWhFlinkConfig(flowDirective, flow)
     val config2 = getFlinkFlowConfig(flow, userId)
     s"""
-       |${RiderConfig.flink.homePath}/bin/flink
+       |${RiderConfig.flink.homePath}/bin/flink run
        |-m $address ${RiderConfig.flink.jarPath} ${config1} ${config2}
        |-d
        |> $logPath 2>&1
@@ -1010,7 +1010,8 @@ object FlowUtils extends RiderLogger {
     if (flow.status == RUNNING.toString) {
       if (sparkAppid.getOrElse("") != "") {
         val jobId = getJobIdOnYarn(sparkAppid.get, flow)
-        val url = s"http://hdp2:8088/proxy/${sparkAppid.get}/job/${jobId}/cancel"
+        val activeRm = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
+        val url = s"http://$activeRm/proxy/${sparkAppid.get}/job/${jobId}/cancel"
         val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
         if(response.isSuccess) {
           riderLogger.info(s"stop flink flow")

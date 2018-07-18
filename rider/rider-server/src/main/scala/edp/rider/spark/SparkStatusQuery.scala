@@ -297,8 +297,14 @@ object SparkStatusQuery extends RiderLogger {
     try {
       val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
       val json = JsonParser.apply(response.body).toString()
-      val host = JSON.parseObject(json).getString("jobmanager.rpc.address")
-      val port = JSON.parseObject(json).getString("jobmanager.rpc.port")
+      val hostString = JSON.parseArray(json).getString(2).split("\\:")(1)
+      riderLogger.info(hostString)
+      riderLogger.info(JSON.parseArray(json).getString(2))
+      val host = hostString.substring(1, hostString.length-7)
+      val portString = JSON.parseArray(json).getString(5).split("\\:")(1)
+      val port = portString.substring(1, portString.length-7)
+//      val host = JSON.parseArray(JSON.parseObject(json).getString("jobmanager.rpc.address"))
+//      val port = JSON.parseArray(JSON.parseObject(json).getString("jobmanager.rpc.port"))
       s"$host:$port"
     } catch {
       case ex: Exception =>
@@ -309,7 +315,8 @@ object SparkStatusQuery extends RiderLogger {
 
   def getJobIdOnYarn(sparkAppid: String, flow: Flow): String = {
     var jobId :String = null
-    val url =s"http://hdp2:8088/proxy/${sparkAppid}/jobs/overview"
+    val activeRm = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
+    val url =s"http://$activeRm/proxy/${sparkAppid}/jobs/overview"
     try {
       val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
       val json = JsonParser.apply(response.body).toString()
