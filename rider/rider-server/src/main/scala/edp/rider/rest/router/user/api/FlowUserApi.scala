@@ -500,13 +500,12 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
         val flow = Await.result(flowDal.findById(flowId), minTimeOut).head
         val stream = streamDal.refreshStreamStatus(Some(projectId), Some(Seq(flow.streamId))).head
         riderLogger.info(s"user ${session.userId} refresh streams.")
-
         if (!FlowUtils.getDisableActions(flow).contains("start") && stream.status == "running") {
           FlowUtils.updateUdfsByStart(flowId, flowDirective.udfInfo, session.userId)
           FlowUtils.startFlinkFlow(stream.sparkAppid.get, flow, flowDirective, session.userId)
           riderLogger.info(s"user ${session.userId} start flow ${flow.id} success.")
           flowDal.updateStatusByAction(flowId, "starting", Option(currentSec), None)
-          complete(OK, ResponseJson[FlinkResponse](getHeader(200, session), FlinkResponse(flow.id, s"$START,$RENEW,$STOP", FlowUtils.getHideActions(stream.streamType))))
+          complete(OK, ResponseJson[FlinkResponse](getHeader(200, session), FlinkResponse(flow.id, s"$START,$RENEW,$STOP,$DELETE", FlowUtils.getHideActions(stream.streamType))))
         } else {
           riderLogger.info(s"user ${session.userId} can't start flow.")
           complete(OK, setFailedResponse(session, "start is forbidden"))
@@ -541,7 +540,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                   val status = stopFlinkFlow(stream.sparkAppid, flow)
                   riderLogger.info(s"user ${session.userId} stop flow $flowId success.")
                   flowDal.updateStatusByAction(flowId, status, flow.startedTime, Option(currentSec))
-                  complete(OK, ResponseJson[FlinkResponse](getHeader(200, session), FlinkResponse(flow.id, s"$START,$RENEW,$STOP", FlowUtils.getHideActions(stream.streamType))))
+                  complete(OK, ResponseJson[FlinkResponse](getHeader(200, session), FlinkResponse(flow.id, s"$START,$STOP,$DELETE", FlowUtils.getHideActions(stream.streamType))))
                 } else {
                   riderLogger.info(s"user ${session.userId} can't stop flow $flowId now")
                   complete(OK, getHeader(406, s"stop is forbidden", session))
