@@ -49,11 +49,10 @@ import { selectLocale } from '../LanguageProvider/selectors'
 import {
   loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm,
   saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail,
-  loadSourceInput, loadFlowDetail, chuckAwayFlow
+  loadSourceInput, loadFlowDetail, chuckAwayFlow, loadLastestOffset, loadUdfs, startFlinkFlow, stopFlinkFlow
 } from './action'
-import { loadLastestOffset, loadUdfs } from '../Manager/action'
 import { loadSingleUdf } from '../Udf/action'
-import StreamStartForm from '../Manager/StreamStartForm'
+import FlowStartForm from './FlowStartForm'
 
 import { transformStringWithDot } from '../../utils/util'
 
@@ -111,7 +110,7 @@ export class Flow extends React.Component {
       startTextState: '',
       endTextState: '',
       startModalVisible: false,
-      streamStartFormData: [],
+      flowStartFormData: [],
       autoRegisteredTopics: [],
       userDefinedTopics: [],
       tempUserTopics: [],
@@ -321,14 +320,14 @@ export class Flow extends React.Component {
     })
 
     // 单条查询接口获得回显的topic Info，回显选中的UDFs
-    this.props.onLoadUdfs(projectIdGeted, record.id, 'user', 'flows', (result) => {
+    this.props.onLoadUdfs(projectIdGeted, record.id, 'user', (result) => {
       // 回显选中的 topic，必须有 id
       const currentUdfTemp = result
       let topicsSelectValue = []
       for (let i = 0; i < currentUdfTemp.length; i++) {
         topicsSelectValue.push(`${currentUdfTemp[i].id}`)
       }
-      this.streamStartForm.setFieldsValue({ udfs: topicsSelectValue })
+      this.flowStartForm.setFieldsValue({ udfs: topicsSelectValue })
     })
 
     // 与user UDF table相同的接口获得全部的UDFs
@@ -363,17 +362,246 @@ export class Flow extends React.Component {
         this.setState({
           autoRegisteredTopics: autoRegisteredTopics,
           userDefinedTopics: userDefinedTopics,
-          streamStartFormData: autoRegisteredTopics
+          flowStartFormData: autoRegisteredTopics
           // consumedOffsetValue: result.consumedLatestOffset,
           // kafkaOffsetValue: result.kafkaLatestOffset,
           // kafkaEarliestOffset: result.kafkaEarliestOffset
         })
       } else {
         this.setState({
-          streamStartFormData: []
+          flowStartFormData: []
         })
       }
-    }, 'get', [], 'flows')
+    })
+  }
+
+  stopFlinkFlowBtn = (record) => () => {
+    const { locale } = this.props
+    const successText = locale === 'en' ? 'Stop successfully!' : '停止成功！'
+    const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
+    this.props.onStopFlinkFlow(this.props.projectIdGeted, record.id, () => {
+      message.success(successText, 3)
+    }, (result) => {
+      message.error(`${failText} ${result}`, 3)
+    })
+  }
+
+  handleEditStartOk = (e) => {
+    const { streamIdGeted, flowStartFormData, userDefinedTopics, startUdfVals } = this.state
+    const { projectIdGeted, locale } = this.props
+    const offsetText = locale === 'en' ? 'Offset cannot be empty' : 'Offset 不能为空！'
+    this.setState(
+      {unValidate: true},
+      () => {
+        this.flowStartForm.validateFieldsAndScroll((err, values) => {
+          if (!err || err.newTopicName) {
+            let requestVal = {}
+
+            if (!flowStartFormData) {
+              if (!values.udfs) {
+                requestVal = {}
+              } else {
+                if (values.udfs.find(i => i === '-1')) {
+                  // 全选
+                  const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                  requestVal = { udfInfo: startUdfValsOrigin.map(p => p.id) }
+                } else {
+                  requestVal = { udfInfo: values.udfs.map(q => Number(q)) }
+                }
+              }
+            } else {
+              const mergedData = {}
+              const autoRegisteredData = this.formatTopicInfo(flowStartFormData, 'auto', values, offsetText)
+              const userDefinedData = this.formatTopicInfo(userDefinedTopics, 'user', values, offsetText)
+              mergedData.autoRegisteredTopics = autoRegisteredData || []
+              mergedData.userDefinedTopics = userDefinedData || []
+              mergedData.autoRegisteredTopics.forEach(v => {
+                v.name = transformStringWithDot(v.name, false)
+              })
+              mergedData.userDefinedTopics.forEach(v => {
+                v.name = transformStringWithDot(v.name, false)
+              })
+              if (!values.udfs) {
+                requestVal = { topicInfo: mergedData }
+              } else {
+                if (values.udfs.find(i => i === '-1')) {
+                  // 全选
+                  const startUdfValsOrigin = startUdfVals.filter(k => k.id !== -1)
+                  requestVal = {
+                    udfInfo: startUdfValsOrigin.map(p => p.id),
+                    topicInfo: mergedData
+                  }
+                } else {
+                  requestVal = {
+                    udfInfo: values.udfs.map(q => Number(q)),
+                    topicInfo: mergedData
+                  }
+                }
+              }
+            }
+
+            let actionTypeRequest = ''
+            let actionTypeMsg = ''
+            actionTypeRequest = 'start'
+            actionTypeMsg = locale === 'en' ? 'Start Successfully!' : '启动成功！'
+
+            this.props.onStartFlinkFlow(projectIdGeted, streamIdGeted, requestVal, actionTypeRequest, (result) => {
+              this.setState({
+                startModalVisible: false,
+                flowStartFormData: [],
+                userDefinedData: [],
+                tempUserTopics: [],
+                unValidate: false
+              })
+              message.success(actionTypeMsg, 3)
+            }, (result) => {
+              const failText = locale === 'en' ? 'Operation failed:' : '操作失败：'
+              message.error(`${failText} ${result}`, 3)
+              this.setState({unValidate: false})
+            })
+          }
+        })
+      }
+    )
+  }
+
+  formatTopicInfo (data = [], type = 'auto', values, offsetText) {
+    if (data.length === 0) return
+    return data.map((i) => {
+      const parOffTemp = i.consumedLatestOffset
+      const partitionTemp = parOffTemp.split(',')
+
+      const offsetArr = []
+      for (let r = 0; r < partitionTemp.length; r++) {
+        const offsetArrTemp = values[`${i.name}_${r}_${type}`]
+        offsetArrTemp === ''
+          ? message.warning(offsetText, 3)
+          : offsetArr.push(`${r}:${offsetArrTemp}`)
+      }
+      const offsetVal = offsetArr.join(',')
+
+      const robj = {
+        // id: i.id,
+        name: i.name,
+        partitionOffsets: offsetVal,
+        rate: Number(values[`${i.name}_${i.rate}_rate`])
+      }
+      return robj
+    })
+  }
+
+  diffTopicInfo (oldData = [], newData = []) {
+    let topicInfoTemp = []
+    if (oldData.length === 0 && newData.length > 0) {
+      topicInfoTemp = newData.map(v => {
+        let obj = {
+          name: v.name,
+          partitionOffsets: v.partitionOffsets,
+          rate: v.rate,
+          action: 1
+        }
+        return obj
+      })
+    } else if (oldData.length > 0 && newData.length === 0) {
+      topicInfoTemp = []
+    } else {
+      for (let g = 0; g < newData.length; g++) {
+        for (let f = 0; f < oldData.length; f++) {
+          if (oldData[f].name === newData[g].name) {
+            let obj = {
+              name: newData[g].name,
+              partitionOffsets: newData[g].partitionOffsets,
+              rate: newData[g].rate
+            }
+            if (
+              oldData[f].consumedLatestOffset === newData[g].partitionOffsets &&
+              oldData[f].rate === newData[g].rate
+            ) {
+              obj.action = 0
+            } else {
+              obj.action = 1
+            }
+            topicInfoTemp.push(obj)
+            break
+          } else if (f === oldData.length - 1) {
+            topicInfoTemp.push({
+              name: newData[g].name,
+              partitionOffsets: newData[g].partitionOffsets,
+              rate: newData[g].rate,
+              action: 1
+            })
+          }
+        }
+      }
+    }
+    return topicInfoTemp
+  }
+
+  handleEditStartCancel = (e) => {
+    this.setState({
+      startModalVisible: false
+    }, () => {
+      this.setState({
+        flowStartFormData: []
+      })
+    })
+    this.flowStartForm.resetFields()
+  }
+
+  queryLastestoffset = (e) => {
+    const { projectIdGeted } = this.props
+    const { streamIdGeted, userDefinedTopics, autoRegisteredTopics } = this.state
+    userDefinedTopics
+    let topics = {}
+    topics.userDefinedTopics = userDefinedTopics.map((v, i) => v.name)
+    topics.autoRegisteredTopics = autoRegisteredTopics.map((v, i) => v.name)
+    this.loadLastestOffsetFunc(projectIdGeted, streamIdGeted, 'post', topics)
+  }
+  loadLastestOffsetFunc (projectId, streamId, type, topics) {
+    this.props.onLoadLastestOffset(projectId, streamId, (result) => {
+      let autoRegisteredTopics = result.autoRegisteredTopics.map(v => {
+        v.name = transformStringWithDot(v.name)
+        return v
+      })
+      let userDefinedTopics = result.userDefinedTopics.map(v => {
+        v.name = transformStringWithDot(v.name)
+        return v
+      })
+      this.setState({
+        autoRegisteredTopics: autoRegisteredTopics,
+        userDefinedTopics: userDefinedTopics,
+        tempUserTopics: userDefinedTopics
+        // consumedOffsetValue: result.consumedLatestOffset,
+        // kafkaOffsetValue: result.kafkaLatestOffset,
+        // kafkaEarliestOffset: result.kafkaEarliestOffset
+      })
+    }, type, topics)
+  }
+  onChangeEditSelect = () => {
+    const { flowStartFormData, userDefinedTopics } = this.state
+
+    for (let i = 0; i < flowStartFormData.length; i++) {
+      const partitionAndOffset = flowStartFormData[i].consumedLatestOffset.split(',')
+
+      for (let j = 0; j < partitionAndOffset.length; j++) {
+        this.flowStartForm.setFieldsValue({
+          [`${flowStartFormData[i].name}_${j}_auto`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
+          [`${flowStartFormData[i].name}_${flowStartFormData[i].rate}_rate`]: flowStartFormData[i].rate
+        })
+      }
+    }
+    for (let i = 0; i < userDefinedTopics.length; i++) {
+      const partitionAndOffset = userDefinedTopics[i].consumedLatestOffset.split(',')
+      for (let j = 0; j < partitionAndOffset.length; j++) {
+        this.flowStartForm.setFieldsValue({
+          [`${userDefinedTopics[i].name}_${j}_user`]: partitionAndOffset[j].substring(partitionAndOffset[j].indexOf(':') + 1),
+          [`${userDefinedTopics[i].name}_${userDefinedTopics[i].rate}_rate`]: userDefinedTopics[i].rate
+        })
+      }
+    }
+  }
+  getStartFormDataFromSub = (userDefinedTopics) => {
+    this.setState({ userDefinedTopics })
   }
   onCopyFlow = (record) => (e) => this.props.onShowCopyFlow(record)
 
@@ -548,7 +776,7 @@ export class Flow extends React.Component {
     const { className, onShowAddFlow, onShowEditFlow, flowClassHide, roleType, flowStartModalLoading } = this.props
     const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails } = this.state
     const { selectedRowKeys } = this.state
-    let { sortedInfo, filteredInfo, startModalVisible, streamStartFormData, autoRegisteredTopics, userDefinedTopics, startUdfVals, renewUdfVals, currentUdfVal, actionType } = this.state
+    let { sortedInfo, filteredInfo, startModalVisible, flowStartFormData, autoRegisteredTopics, userDefinedTopics, startUdfVals, renewUdfVals, currentUdfVal, actionType } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
 
@@ -948,7 +1176,7 @@ export class Flow extends React.Component {
               : <Button icon="caret-right" shape="circle" type="ghost" onClick={this.onShowEditStart(record, 'start')}></Button>
           }
 
-          const strStop = record.disableActions.includes('stop')
+          let strStop = record.disableActions.includes('stop')
             ? (
               <Tooltip title={stopFormat}>
                 <Button shape="circle" type="ghost" disabled>
@@ -957,7 +1185,7 @@ export class Flow extends React.Component {
               </Tooltip>
             )
             : (
-              <Popconfirm placement="bottom" title={sureStopFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'stop')}>
+              <Popconfirm placement="bottom" title={sureStopFormat} okText="Yes" cancelText="No" onConfirm={record.streamType === 'spark' ? this.singleOpreateFlow(record, 'stop') : record.streamType === 'flink' ? this.stopFlinkFlowBtn(record) : null}>
                 <Tooltip title={stopFormat}>
                   <Button shape="circle" type="ghost">
                     <i className="iconfont icon-8080pxtubiaokuozhan100"></i>
@@ -966,7 +1194,7 @@ export class Flow extends React.Component {
               </Popconfirm>
             )
 
-          const strRenew = record.disableActions.includes('renew')
+          let strRenew = record.disableActions.includes('renew')
             ? (
               <Tooltip title={renewFormat}>
                 <Button icon="check" shape="circle" type="ghost" disabled></Button>
@@ -979,7 +1207,11 @@ export class Flow extends React.Component {
                 </Tooltip>
               </Popconfirm>
             )
-
+          if (record.hideActions) {
+            if (record.hideActions.includes('start')) strStart = ''
+            if (record.hideActions.includes('stop')) strStop = ''
+            if (record.hideActions.includes('renew')) strRenew = ''
+          }
           FlowActionSelect = (
             <span>
               <Tooltip title={modifyFormat}>
@@ -1101,10 +1333,10 @@ export class Flow extends React.Component {
     ? <FormattedMessage {...messages.flowTableStart} />
     : <FormattedMessage {...messages.flowTableRenew} />
 
-    const streamStartForm = startModalVisible
+    const flowStartForm = startModalVisible
       ? (
-        <StreamStartForm
-          data={streamStartFormData}
+        <FlowStartForm
+          data={flowStartFormData}
           autoRegisteredTopics={autoRegisteredTopics}
           userDefinedTopics={userDefinedTopics}
           emitStartFormDataFromSub={this.getStartFormDataFromSub}
@@ -1118,7 +1350,7 @@ export class Flow extends React.Component {
           projectIdGeted={this.props.projectIdGeted}
           streamIdGeted={this.state.streamIdGeted}
           unValidate={this.state.unValidate}
-          ref={(f) => { this.streamStartForm = f }}
+          ref={(f) => { this.flowStartForm = f }}
         />
       )
       : ''
@@ -1209,7 +1441,7 @@ export class Flow extends React.Component {
             </Button>
           ]}
         >
-          {streamStartForm}
+          {flowStartForm}
         </Modal>
       </div>
     )
@@ -1247,7 +1479,9 @@ Flow.propTypes = {
   onLoadLastestOffset: PropTypes.func,
   onLoadSingleUdf: PropTypes.func,
   onLoadUdfs: PropTypes.func,
-  flowStartModalLoading: PropTypes.bool
+  flowStartModalLoading: PropTypes.bool,
+  onStartFlinkFlow: PropTypes.func,
+  onStopFlinkFlow: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1268,8 +1502,9 @@ export function mapDispatchToProps (dispatch) {
     onChuckAwayFlow: () => dispatch(chuckAwayFlow()),
     onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
     onLoadLastestOffset: (projectId, streamId, resolve, type, topics, tabType) => dispatch(loadLastestOffset(projectId, streamId, resolve, type, topics, tabType)),
-    onLoadUdfs: (projectId, streamId, roleType, tabType, resolve) => dispatch(loadUdfs(projectId, streamId, roleType, tabType, resolve))
-
+    onLoadUdfs: (projectId, streamId, roleType, tabType, resolve) => dispatch(loadUdfs(projectId, streamId, roleType, tabType, resolve)),
+    onStartFlinkFlow: (projectId, id, topicResult, action, resolve, reject) => dispatch(startFlinkFlow(projectId, id, topicResult, action, resolve, reject)),
+    onStopFlinkFlow: (projectId, id, topicResult, action, resolve, reject) => dispatch(stopFlinkFlow(projectId, id, topicResult, action, resolve, reject))
   }
 }
 

@@ -38,5 +38,9 @@ export default defineMessages({
   flowTableCopy: { id: 'rider.app.table.copy.action' },
   flowModalView: { id: 'rider.containers.Flow.view.btn' },
   flowModalReset: { id: 'rider.containers.Flow.reset.btn' },
-  flowModalCancel: { id: 'rider.app.modal.cancel' }
+  flowModalCancel: { id: 'rider.app.modal.cancel' },
+  streamModalRate: { id: 'rider.containers.Stream.modal.rate' },
+  streamModalApply: { id: 'rider.containers.Stream.modal.apply' },
+  streamModalApplyAll: { id: 'rider.containers.Stream.modal.apply.all' },
+  streaSureStart: { id: 'rider.app.table.sure.start' }
 })
