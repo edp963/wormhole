@@ -156,13 +156,13 @@ object BatchflowMainProcess extends EdpLogging {
           if (protocolType == UmsProtocolType.DATA_INCREMENT_DATA || protocolType == UmsProtocolType.DATA_BATCH_DATA || protocolType == UmsProtocolType.DATA_INITIAL_DATA) {
             if (ConfMemoryStorage.existNamespace(mainNamespaceSet, namespace)) {
               val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
-              if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
+              if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1.map(f=>UmsField(f.name.toLowerCase,f.`type`,f.nullable))
               mainDataList += (((protocolType, namespace), schemaValueTuple._2))
             }
             if (ConfMemoryStorage.existNamespace(streamLookupNamespaceSet, namespace)) {
               //todo change  if back to if, efficiency
               val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
-              if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1
+              if (!nsSchemaMap.contains((protocolType, namespace))) nsSchemaMap((protocolType, namespace)) = schemaValueTuple._1.map(f=>UmsField(f.name.toLowerCase,f.`type`,f.nullable))
               lookupDataList += (((protocolType, namespace), schemaValueTuple._2))
             }
           } else if (checkOtherData(protocolType.toString)) otherList += row._2
@@ -474,7 +474,7 @@ object BatchflowMainProcess extends EdpLogging {
                                      maxTs: String,
                                      uuid: String) = {
     val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(sinkNamespace)
-    val (resultSchemaMap: Map[String, (Int, UmsFieldType, Boolean)], originalSchemaMap, renameMap) = SparkUtils.getSchemaMap(sinkFields, sinkProcessConfig.sinkOutput)
+    val (resultSchemaMap: Map[String, (Int, UmsFieldType, Boolean)], originalSchemaMap: Map[String, (Int, UmsFieldType, Boolean)], renameMap: Option[Map[String, String]]) = SparkUtils.getSchemaMap(sinkFields, sinkProcessConfig.sinkOutput)
     logInfo(uuid + s",$sinkNamespace schemaMap:" + resultSchemaMap)
     val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(sourceNamespace)
 
