@@ -45,14 +45,14 @@ class Snapshot extends SwiftsInterface with EdpLogging {
     val toTs = if (endTime == null) DateUtils.dt2timestamp(DateUtils.currentDateTime) else DateUtils.dt2timestamp(DateUtils.dt2dateTime(endTime))
 
     df.createOrReplaceTempView(tableName)
-    val resultDf = session.sql(getSnapshotSqlByTs(keys, fromTs, toTs, tableName))
+    val resultDf = session.sql(getSnapshotSqlByTs(keys, fromTs, toTs, tableName,df.columns.mkString(",")))
     session.sqlContext.dropTempTable(tableName)
     resultDf
   }
 
-  def getSnapshotSqlByTs(keys: String, fromTs: Timestamp, toTs: Timestamp, tableName: String): String = {
+  def getSnapshotSqlByTs(keys: String, fromTs: Timestamp, toTs: Timestamp, tableName: String,columns:String): String = {
     s"""
-       |select * from
+       |select ${columns} from
        |    (select *, row_number() over
        |      (partition by $keys order by ${UmsSysField.ID.toString} desc) as rn
        |    from ${tableName}
