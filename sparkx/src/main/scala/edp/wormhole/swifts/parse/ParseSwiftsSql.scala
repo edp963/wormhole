@@ -441,7 +441,6 @@ object ParseSwiftsSql extends EdpLogging {
     val namespaceArray = sourceNamespace.split("\\.")
     val fourDigitNamespace = (for (i <- 0 until 4) yield namespaceArray(i)).mkString(".")
     val joinPosition = sqlStr.toLowerCase.indexOf(fourDigitNamespace)
-//    val inPosition = sqlStr.toLowerCase.lastIndexOf(" in ", joinPosition)
     val temp_inPosition = sqlStr.toLowerCase.lastIndexOf(" in ", joinPosition)
     val inPosition = if(temp_inPosition<0) sqlStr.toLowerCase.lastIndexOf(" in(", joinPosition) else temp_inPosition
     val valueLeftPosition = sqlStr.indexOf("(", inPosition)
