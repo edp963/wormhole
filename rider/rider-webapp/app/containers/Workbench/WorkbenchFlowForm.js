@@ -461,8 +461,8 @@ export class WorkbenchFlowForm extends React.Component {
                 })(
                   <RadioGroup className="radio-group-style" onChange={this.changeStreamType} size="default">
                     <RadioButton value="default" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Default</RadioButton>
-                    <RadioButton value="hdfslog" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Hdfslog</RadioButton>
-                    <RadioButton value="routing" className="radio-btn-style" disabled={flowDisabledOrNot}>Routing</RadioButton>
+                    <RadioButton value="hdfslog" className={`radio-btn-style radio-btn-extra ${flowSubPanelKey === 'flink' ? 'hide' : ''}`} disabled={flowDisabledOrNot}>Hdfslog</RadioButton>
+                    <RadioButton value="routing" className={`radio-btn-style radio-btn-extra ${flowSubPanelKey === 'flink' ? 'hide' : ''}`} disabled={flowDisabledOrNot}>Routing</RadioButton>
                   </RadioGroup>
                 )}
               </FormItem>
@@ -825,65 +825,89 @@ export class WorkbenchFlowForm extends React.Component {
               })(<Input />)}
             </FormItem>
           </Col>
-
-          <Col span={24} className={transConnectClass}>
-            <div className="ant-col-6 ant-form-item-label">
-              <label htmlFor="#">Event Time Processing</label>
-            </div>
-            <div className="ant-col-17">
-              <div className="ant-form-item-control">
-                {etpStrategyTag}
+          {flowSubPanelKey === 'flink' ? '' : (
+            <Col span={24} className={transConnectClass}>
+              <div className="ant-col-6 ant-form-item-label">
+                <label htmlFor="#">Event Time Processing</label>
               </div>
-            </div>
-          </Col>
+              <div className="ant-col-17">
+                <div className="ant-form-item-control">
+                  {etpStrategyTag}
+                </div>
+              </div>
+            </Col>
+          )}
           <Col span={24} className="hide">
             <FormItem>
-              {getFieldDecorator('etpStrategy', {})(<Input />)}
+              {getFieldDecorator('etpStrategy', {
+                hidden: flowSubPanelKey === 'flink'
+              })(<Input />)}
             </FormItem>
           </Col>
-
-          <Col span={16} className={`ds-class ${transConnectClass}`}>
-            <FormItem label="Sample Show" {...itemStyleDFS}>
-              {getFieldDecorator('dataframeShow', {
-                rules: [{
-                  required: true,
-                  message: operateLanguageSelect('sample show', 'Sample Show')
-                }],
-                hidden: stepHiddens[1] || transformTableClassName || streamTypeHiddens[0]
-              })(
-                <RadioGroup className="radio-group-style" onChange={(e) => initDataShowClass(e.target.value)} size="default">
-                  <RadioButton value="false" className="radio-btn-style radio-btn-extra">False</RadioButton>
-                  <RadioButton value="true" className="radio-btn-style">True</RadioButton>
-                </RadioGroup>
-              )}
-            </FormItem>
-          </Col>
-          <Col span={7} className={`ds-class ${dataframeShowSelected}`}>
-            <FormItem label="Number" {...itemStyleDFSN}>
-              {getFieldDecorator('dataframeShowNum', {
-                rules: [{
-                  required: true,
-                  message: operateLanguageFillIn('number', 'Number')
-                }, {
-                  validator: forceCheckNum
-                }],
-                initialValue: 10,
-                hidden: stepHiddens[1] || streamTypeHiddens[0]
-              })(
-                <InputNumber min={10} step={10} />
-              )}
-            </FormItem>
-          </Col>
-
-          <Col span={24} className="hide">
-            <FormItem label="Swifts Specific Config" {...itemStyle}>
-              {getFieldDecorator('swiftsSpecificConfig', {
-                hidden: stepHiddens[1] || streamTypeHiddens[0]
-              })(
-                <Input placeholder="Swifts Specific Config" />
-              )}
-            </FormItem>
-          </Col>
+          {flowSubPanelKey === 'flink' ? '' : (
+            <Col span={16} className={`ds-class ${transConnectClass}`}>
+              <FormItem label="Sample Show" {...itemStyleDFS}>
+                {getFieldDecorator('dataframeShow', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('sample show', 'Sample Show')
+                  }],
+                  hidden: stepHiddens[1] || transformTableClassName || streamTypeHiddens[0]
+                })(
+                  <RadioGroup className="radio-group-style" onChange={(e) => initDataShowClass(e.target.value)} size="default">
+                    <RadioButton value="false" className="radio-btn-style radio-btn-extra">False</RadioButton>
+                    <RadioButton value="true" className="radio-btn-style">True</RadioButton>
+                  </RadioGroup>
+                )}
+              </FormItem>
+            </Col>
+          )}
+          {flowSubPanelKey === 'flink' ? '' : (
+            <Col span={7} className={`ds-class ${dataframeShowSelected}`}>
+              <FormItem label="Number" {...itemStyleDFSN}>
+                {getFieldDecorator('dataframeShowNum', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageFillIn('number', 'Number')
+                  }, {
+                    validator: forceCheckNum
+                  }],
+                  initialValue: 10,
+                  hidden: stepHiddens[1] || streamTypeHiddens[0]
+                })(
+                  <InputNumber min={10} step={10} />
+                )}
+              </FormItem>
+            </Col>
+          )}
+          {flowSubPanelKey === 'flink' ? '' : (
+            <Col span={24} className="hide">
+              <FormItem label="Swifts Specific Config" {...itemStyle}>
+                {getFieldDecorator('swiftsSpecificConfig', {
+                  hidden: stepHiddens[1] || streamTypeHiddens[0]
+                })(
+                  <Input placeholder="Swifts Specific Config" />
+                )}
+              </FormItem>
+            </Col>
+          )}
+          {flowSubPanelKey === 'flink' ? (
+            <Col span={16} className={`ds-class ${transConnectClass}`}>
+              <FormItem label="Time Characteristic" {...itemStyleDFS}>
+                {getFieldDecorator('time_characteristic', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('Time Characteristic', 'Time Characteristic')
+                  }],
+                  initialValue: 'time_characteristic'
+                })(
+                  <RadioGroup className="radio-group-style" size="default">
+                    <RadioButton value="time_characteristic">Time Characteristic</RadioButton>
+                  </RadioGroup>
+                )}
+              </FormItem>
+            </Col>
+          ) : ''}
         </Row>
         {/* Step 3 */}
         <Row gutter={8} className={`ri-workbench-confirm-step ${stepClassNames[2]}`}>
@@ -959,35 +983,38 @@ export class WorkbenchFlowForm extends React.Component {
               </Row>
             </div>
           </Col>
-          <Col span={24} className={`${transConnectClass} ${streamTypeClass[0]}`}>
-            <div className="ant-row ant-form-item">
-              <Row>
-                <Col span={8} className="ant-form-item-label">
-                  <label htmlFor="#">Event Time Processing</label>
-                </Col>
-                <Col span={15}>
-                  <div className="ant-form-item-control">
-                    <strong className="value-font-style">{etpStrategyConfirmValue}</strong>
-                  </div>
-                </Col>
-              </Row>
-            </div>
-          </Col>
-          <Col span={24} className={`${transConnectClass} ${streamTypeClass[0]}`}>
-            <div className="ant-row ant-form-item">
-              <Row>
-                <Col span={8} className="ant-form-item-label">
-                  <label htmlFor="#">Dataframe Show</label>
-                </Col>
-                <Col span={15}>
-                  <div className="ant-form-item-control">
-                    <strong className="value-font-style">{this.props.dataframeShowNumValue}</strong>
-                  </div>
-                </Col>
-              </Row>
-            </div>
-          </Col>
-
+          {flowSubPanelKey === 'flink' ? '' : (
+            <Col span={24} className={`${transConnectClass} ${streamTypeClass[0]}`}>
+              <div className="ant-row ant-form-item">
+                <Row>
+                  <Col span={8} className="ant-form-item-label">
+                    <label htmlFor="#">Event Time Processing</label>
+                  </Col>
+                  <Col span={15}>
+                    <div className="ant-form-item-control">
+                      <strong className="value-font-style">{etpStrategyConfirmValue}</strong>
+                    </div>
+                  </Col>
+                </Row>
+              </div>
+            </Col>
+          )}
+          {flowSubPanelKey === 'flink' ? '' : (
+            <Col span={24} className={`${transConnectClass} ${streamTypeClass[0]}`}>
+              <div className="ant-row ant-form-item">
+                <Row>
+                  <Col span={8} className="ant-form-item-label">
+                    <label htmlFor="#">Dataframe Show</label>
+                  </Col>
+                  <Col span={15}>
+                    <div className="ant-form-item-control">
+                      <strong className="value-font-style">{this.props.dataframeShowNumValue}</strong>
+                    </div>
+                  </Col>
+                </Row>
+              </div>
+            </Col>
+          )}
           <Col span={24} className={streamTypeClass[1]}>
             <div className="ant-row ant-form-item">
               <Row>

@@ -102,6 +102,7 @@ export class Workbench extends React.Component {
       tabPanelKey: '',
       flowSubPanelKey: 'spark',
       flowFunctionType: 'default',
+      flowPatternCepDataSource: [],
 
       // all and parts of flow/stream/namespace/user
       userClassHide: 'hide',
@@ -413,6 +414,9 @@ export class Workbench extends React.Component {
   onInitStreamTypeSelect = (val) => {
     const { projectId, flowSubPanelKey } = this.state
     const { locale } = this.props
+    if (flowSubPanelKey === 'flink') {
+      val = 'default'
+    }
     this.setState({ streamDiffType: val })
 
     // 显示 Stream 信息
@@ -722,7 +726,8 @@ export class Workbench extends React.Component {
   showEditFlowWorkbench = (flow) => () => {
     this.setState({
       flowMode: 'edit',
-      fieldSelected: 'hide'
+      fieldSelected: 'hide',
+      flowSubPanelKey: flow.streamType
     })
 
     new Promise((resolve) => {
@@ -744,16 +749,20 @@ export class Workbench extends React.Component {
       etpStrategyConfirmValue: ''
     }, () => {
       const { streamDiffType } = this.state
-      switch (streamDiffType) {
-        case 'default':
-          this.queryFlowDefault(flow)
-          break
-        case 'hdfslog':
-          this.queryFlowHdfslog(flow)
-          break
-        case 'routing':
-          this.queryFlowRouting(flow)
-          break
+      if (flow.streamType === 'spark') {
+        switch (streamDiffType) {
+          case 'default':
+            this.queryFlowDefault(flow)
+            break
+          case 'hdfslog':
+            this.queryFlowHdfslog(flow)
+            break
+          case 'routing':
+            this.queryFlowRouting(flow)
+            break
+        }
+      } else if (flow.streamType === 'flink') {
+        this.queryFlowDefault(flow)
       }
     })
   }
@@ -1542,7 +1551,14 @@ export class Workbench extends React.Component {
     const { locale } = this.props
 
     let tranRequestTempArr = []
-    flowFormTranTableSource.map(i => tranRequestTempArr.push(preProcessSql(i.transformConfigInfoRequest)))
+    flowFormTranTableSource.map(i => {
+      let isCep = i.transformConfigInfoRequest.split('=')[0].indexOf('cep') > -1
+      if (isCep) {
+        tranRequestTempArr.push(i.transformConfigInfoRequest)
+      } else {
+        tranRequestTempArr.push(preProcessSql(i.transformConfigInfoRequest))
+      }
+    })
     const tranRequestTempString = tranRequestTempArr.join('')
     this.setState({
       transformTableRequestValue: tranRequestTempString === '' ? {} : {'action': tranRequestTempString},
@@ -1933,7 +1949,7 @@ export class Workbench extends React.Component {
 
   handleSubmitFlowDefault () {
     const values = this.workbenchFlowForm.getFieldsValue()
-    const { projectId, flowMode, singleFlowResult } = this.state
+    const { projectId, flowMode, singleFlowResult, flowSubPanelKey } = this.state
     const { resultFiledsOutput, dataframeShowOrNot, etpStrategyRequestValue, transformTableRequestValue, pushdownConnectRequestValue, flowSourceNsSys } = this.state
     const { locale } = this.props
 
@@ -1962,7 +1978,7 @@ export class Workbench extends React.Component {
     if (flowMode === 'add' || flowMode === 'copy') {
       const sourceDataInfo = [flowSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
       const sinkDataInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
-
+      const parallelism = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.parallelism : null
       const submitFlowData = {
         projectId: Number(projectId),
         streamId: Number(values.flowStreamId),
@@ -1970,7 +1986,8 @@ export class Workbench extends React.Component {
         sinkNs: sinkDataInfo,
         consumedProtocol: values.protocol.join(','),
         sinkConfig: `${sinkConfigRequest}`,
-        tranConfig: tranConfigRequest
+        tranConfig: tranConfigRequest,
+        parallelism
       }
 
       this.props.onAddFlow(submitFlowData, () => {
@@ -2007,17 +2024,19 @@ export class Workbench extends React.Component {
       etpStrategyCheck: false,
       etpStrategyRequestValue: {},
       dataframeShowSelected: 'hide',
-      flowFormTranTableSource: []
+      flowFormTranTableSource: [],
+      flowPatternCepDataSource: []
     })
   }
 
   handleSubmitFlowHdfslog () {
-    const { flowMode, projectId, singleFlowResult, flowSourceNsSys } = this.state
+    const { flowMode, projectId, singleFlowResult, flowSourceNsSys, flowSubPanelKey } = this.state
 
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (flowMode === 'add' || flowMode === 'copy') {
           const sourceDataInfo = [flowSourceNsSys, values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2], '*', '*', '*'].join('.')
+          const parallelism = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.parallelism : null
 
           const submitFlowData = {
             projectId: Number(projectId),
@@ -2026,7 +2045,8 @@ export class Workbench extends React.Component {
             sinkNs: sourceDataInfo,
             consumedProtocol: 'all',
             sinkConfig: '',
-            tranConfig: ''
+            tranConfig: '',
+            parallelism
           }
 
           this.props.onAddFlow(submitFlowData, (result) => {
@@ -2058,13 +2078,14 @@ export class Workbench extends React.Component {
   }
 
   handleSubmitFlowRouting () {
-    const { flowMode, projectId, singleFlowResult, flowSourceNsSys } = this.state
+    const { flowMode, projectId, singleFlowResult, flowSourceNsSys, flowSubPanelKey } = this.state
 
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (flowMode === 'add' || flowMode === 'copy') {
           const sourceDataInfo = [flowSourceNsSys, values.routingNamespace[0], values.routingNamespace[1], values.routingNamespace[2], '*', '*', '*'].join('.')
           const sinkDataInfo = ['kafka', values.routingSinkNs[0], values.routingSinkNs[1], values.routingSinkNs[2], '*', '*', '*'].join('.')
+          const parallelism = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.parallelism : null
 
           const submitFlowData = {
             projectId: Number(projectId),
@@ -2073,7 +2094,8 @@ export class Workbench extends React.Component {
             sinkNs: sinkDataInfo,
             consumedProtocol: 'all',
             sinkConfig: '',
-            tranConfig: ''
+            tranConfig: '',
+            parallelism
           }
 
           this.props.onAddFlow(submitFlowData, (result) => {
@@ -2178,7 +2200,7 @@ export class Workbench extends React.Component {
             this.loadTransNs()
             break
           case 'flinkSql':
-            this.cmflinkSql.doc.setValue(this.cmflinkSql.doc.getValue() || '')
+            this.cmFlinkSql.doc.setValue(this.cmFlinkSql.doc.getValue() || '')
             break
         }
       }
@@ -2247,16 +2269,16 @@ export class Workbench extends React.Component {
         }
         break
       case 'flinkSql':
-        if (!this.cmflinkSql) {
+        if (!this.cmFlinkSql) {
           const temp = document.getElementById('flinkSqlTextarea')
-          this.cmflinkSql = CodeMirror.fromTextArea(temp, {
+          this.cmFlinkSql = CodeMirror.fromTextArea(temp, {
             lineNumbers: true,
             matchBrackets: true,
             autoCloseBrackets: true,
             mode: 'text/x-sql',
             lineWrapping: true
           })
-          this.cmflinkSql.setSize('100%', '238px')
+          this.cmFlinkSql.setSize('100%', '238px')
         }
         break
     }
@@ -2350,6 +2372,22 @@ export class Workbench extends React.Component {
         case 'transformClassName':
           this.flowTransformForm.setFieldsValue({ transformClassName: record.transformConfigInfo })
           break
+        case 'cep':
+          let cepFormData = record.tranConfigInfoSql && JSON.parse(record.tranConfigInfoSql)
+          let outputText = ''
+          if (cepFormData.output) {
+            if (cepFormData.output.type === 'agg' || cepFormData.output.type === 'filteredRow') {
+              outputText = cepFormData.output && cepFormData.output.field_list
+            }
+          }
+          this.flowTransformForm.setFieldsValue({
+            windowTime: cepFormData.max_interval_seconds || '',
+            strategy: cepFormData.strategy,
+            keyBy: cepFormData.key_by_fields,
+            output: cepFormData.output && cepFormData.output.type,
+            outputText
+          })
+          break
       }
     })
   }
@@ -2414,6 +2452,9 @@ export class Workbench extends React.Component {
     }
     if (this.cmStreamJoinSql) {
       this.cmStreamJoinSql.doc.setValue('')
+    }
+    if (this.cmFlinkSql) {
+      this.cmFlinkSql.doc.setValue('')
     }
   }
 
@@ -2544,8 +2585,16 @@ export class Workbench extends React.Component {
     this.hideJobTransModal()
   }
 
+  setFlowTransformFormRef = el => {
+    this.flowTransformForm = el
+  }
+  getCepSourceData = (cepDataSource) => {
+    this.setState({
+      flowPatternCepDataSource: cepDataSource
+    })
+  }
   onTransformModalOk = () => {
-    const { transformMode, transformSinkNamespaceArray } = this.state
+    const { transformMode, transformSinkNamespaceArray, flowPatternCepDataSource } = this.state
     this.flowTransformForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         let transformConfigInfoString = ''
@@ -2666,6 +2715,43 @@ export class Workbench extends React.Component {
               transformConfigInfoRequestString = `custom_class = ${transformClassNameVal};`
             }
             break
+          case 'flinkSql':
+            const cmFlinkSql = this.cmFlinkSql.doc.getValue()
+            if (!cmFlinkSql) {
+              message.error(operateLanguageSql('fillIn'), 3)
+            } else {
+              const flinkSqlValTemp = cmFlinkSql.replace(/(^\s*)|(\s*$)/g, '')
+              const flinkSqlVal = preProcessSql(flinkSqlValTemp)
+
+              transformConfigInfoString = flinkSqlVal
+              tranConfigInfoSqlString = flinkSqlVal
+              transformConfigInfoRequestString = `spark_sql = ${flinkSqlVal}`
+              pushdownConnectionJson = {}
+
+              num = (flinkSqlVal.split(';')).length - 1
+              finalVal = flinkSqlVal.substring(flinkSqlVal.length - 1)
+            }
+            break
+          case 'cep':
+            let windowTime = values.windowTime == null ? -1 : values.windowTime
+            let outputText = values.outputText == null ? '' : `${values.outputText}`
+            let partterSeq = flowPatternCepDataSource.slice()
+            partterSeq.forEach(v => {
+              v.quartifier = v.quartifier ? JSON.parse(v.quartifier) : JSON.stringify({})
+            })
+            let cep = {
+              key_by_fields: values.keyBy,
+              max_interval_seconds: windowTime,
+              output: {
+                type: values.output,
+                field_list: outputText
+              },
+              strategy: values.strategy,
+              pattern_seq: partterSeq
+            }
+            tranConfigInfoSqlString = JSON.stringify(cep)
+            transformConfigInfoRequestString = `cep = ${tranConfigInfoSqlString}`
+            transformConfigInfoString = tranConfigInfoSqlString
         }
 
         if (values.transformation === 'transformClassName') {
@@ -2702,6 +2788,8 @@ export class Workbench extends React.Component {
             } else {
               this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionJson)
             }
+          } else {
+            this.flowTransSetState(transformMode, values, transformConfigInfoString, tranConfigInfoSqlString, transformConfigInfoRequestString, pushdownConnectionJson)
           }
         }
       }
@@ -3370,7 +3458,7 @@ export class Workbench extends React.Component {
                     onOk={this.onTransformModalOk}
                     onCancel={this.hideTransformModal}>
                     <FlowTransformForm
-                      ref={(f) => { this.flowTransformForm = f }}
+                      ref={this.setFlowTransformFormRef}
                       projectIdGeted={projectId}
                       tabPanelKey={this.state.tabPanelKey}
                       flowTransNsData={this.state.flowTransNsData}
@@ -3382,6 +3470,9 @@ export class Workbench extends React.Component {
                       onInitTransformSinkTypeNamespace={this.onInitTransformSinkTypeNamespace}
                       transformSinkTypeNamespaceData={this.state.transformSinkTypeNamespaceData}
                       flowSubPanelKey={this.state.flowSubPanelKey}
+                      emitCepSourceData={this.getCepSourceData}
+                      cepPropData={flowFormTranTableSource}
+                      transformModalVisible={transformModalVisible}
                     />
                   </Modal>
                   {/* Flow Sink Config Modal */}
