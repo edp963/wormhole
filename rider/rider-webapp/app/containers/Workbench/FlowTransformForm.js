@@ -55,7 +55,32 @@ export class FlowTransformForm extends React.Component {
       outputType: 'agg',
       patternModalShow: false,
       quartifierTimesBtnToInput: false,
-      quartifierTimesOrMoreBtnToInput: false
+      quartifierTimesOrMoreBtnToInput: false,
+      patternSourceDataConditions: null,
+      editRow: -1
+    }
+  }
+  componentWillReceiveProps (props) {
+    if (this.props.transformModalVisible === props.transformModalVisible) return
+    this.setState({
+      flowMode: props.flowMode
+    })
+    if (props.cepPropData) {
+      props.cepPropData.map(s => {
+        if (s.transformType === 'cep') {
+          let cepDataSource = []
+          let tranConfigInfoSql = JSON.parse(s.tranConfigInfoSql)
+          cepDataSource = tranConfigInfoSql.pattern_seq.map(v => {
+            if (v.quartifier === '{}') {
+              v.quartifier = ''
+            } else {
+              v.quartifier = JSON.stringify(v.quartifier)
+            }
+            return v
+          })
+          this.setState({cepDataSource})
+        }
+      })
     }
   }
 
@@ -82,7 +107,8 @@ export class FlowTransformForm extends React.Component {
     this.setState({outputType})
   }
   doFilterQuery = (conditions) => {
-    const { cepDataSource } = this.state
+    window.p = this.props.form
+    const { cepDataSource, editRow } = this.state
     let patternValue = {}
     let quartifierObj = {}
     this.props.form.validateFieldsAndScroll(['operator', 'quartifier', 'conditions'], (err, values) => {
@@ -90,15 +116,15 @@ export class FlowTransformForm extends React.Component {
       quartifierObj.type = values.quartifier
       switch (quartifier) {
         case 'oneormore':
-          quartifierObj.oftimes = 1
+          quartifierObj.value = 1
           break
         case 'times':
-          let timesInput = Number(this.refs.quartifierTimesInput.value)
-          quartifierObj.oftimes = timesInput
+          let timesInput = this.quartifierTimesInput.value
+          quartifierObj.value = timesInput
           break
         case 'timesormore':
-          let timesOrMoreInput = Number(this.refs.quartifierTimesOrMoreInput.value)
-          quartifierObj.oftimes = timesOrMoreInput
+          let timesOrMoreInput = this.quartifierTimesOrMoreInput.value
+          quartifierObj.value = timesOrMoreInput
           break
         default:
           quartifierObj = ''
@@ -108,15 +134,24 @@ export class FlowTransformForm extends React.Component {
         patternValue = {
           pattern_type: operator,
           quartifier: quartifierObj,
-          conditions
+          conditions: JSON.stringify(conditions)
         }
         let newCepTableDataSource = cepDataSource.slice()
-        newCepTableDataSource.push(patternValue)
+        if (editRow > -1) {
+          newCepTableDataSource[editRow] = patternValue
+        } else {
+          newCepTableDataSource.push(patternValue)
+        }
         this.setState({
           cepDataSource: newCepTableDataSource,
-          patternModalShow: false
+          editRow: -1
         }, () => {
-          this.clearPatterModalData()
+          this.props.emitCepSourceData(newCepTableDataSource)
+          this.clearPatterModalData(() => {
+            this.setState({
+              patternModalShow: false
+            })
+          })
         })
       }
     })
@@ -129,24 +164,24 @@ export class FlowTransformForm extends React.Component {
         quartifierTimesBtnToInput: true,
         quartifierTimesOrMoreBtnToInput: false
       }, () => {
-        this.refs.quartifierTimesInput.value = ''
-        this.refs.quartifierTimesOrMoreInput.value = ''
+        this.quartifierTimesInput.value = ''
+        this.quartifierTimesOrMoreInput.value = ''
       })
     } else if (value === 'timesormore') {
       this.setState({
         quartifierTimesBtnToInput: false,
         quartifierTimesOrMoreBtnToInput: true
       }, () => {
-        this.refs.quartifierTimesInput.value = ''
-        this.refs.quartifierTimesOrMoreInput.value = ''
+        this.quartifierTimesInput.value = ''
+        this.quartifierTimesOrMoreInput.value = ''
       })
     } else {
       this.setState({
         quartifierTimesOrMoreBtnToInput: false,
         quartifierTimesBtnToInput: false
       }, () => {
-        this.refs.quartifierTimesInput.value = ''
-        this.refs.quartifierTimesOrMoreInput.value = ''
+        this.quartifierTimesInput.value = ''
+        this.quartifierTimesOrMoreInput.value = ''
       })
     }
   }
@@ -154,47 +189,108 @@ export class FlowTransformForm extends React.Component {
     this.filterComponent.doQuery()
     console.log('addOrEditPattern')
   }
-  onEditPattern = () => {
-    console.log('onEditPattern')
-  }
-  onPatternModal = () => {
-    const { cepDataSource } = this.state
-    if (cepDataSource.length === 0) {
-      this.setState({operatorBtnInitVal: 'begin'})
-    } else {
-      this.setState({operatorBtnInitVal: ''})
+  onEditPattern = (record, index) => (e) => {
+    console.log(record)
+    let patternSourceDataConditions = record.conditions
+    let quartifierObj = record.quartifier && JSON.parse(record.quartifier)
+    this.props.form.setFieldsValue({
+      operator: record.pattern_type,
+      quartifier: quartifierObj.type
+    })
+    switch (quartifierObj.type) {
+      case 'times':
+        this.setState({
+          quartifierTimesBtnToInput: true,
+          quartifierTimesOrMoreBtnToInput: false
+        }, () => {
+          this.quartifierTimesInput.value = quartifierObj.value
+        })
+        break
+      case 'timesormore':
+        this.setState({
+          quartifierTimesBtnToInput: false,
+          quartifierTimesOrMoreBtnToInput: true
+        }, () => {
+          this.quartifierTimesOrMoreInput.value = quartifierObj.value
+        })
+        break
     }
     this.setState({
-      patternModalShow: true
+      operatorBtnInitVal: record.pattern_type,
+      patternSourceDataConditions,
+      patternModalShow: true,
+      editRow: index
+    }, () => {
+      this.props.form.setFieldsValue({conditions: JSON.parse(patternSourceDataConditions)})
     })
-    console.log('onPatternModal')
+    console.log('onEditPattern')
   }
-  closePatternModal = () => {
-    this.setState({
-      patternModalShow: false
+  onDeletePattern = (index) => () => {
+    let cepDataSource = this.state.cepDataSource.slice()
+    cepDataSource.splice(index, 1)
+    this.setState({cepDataSource})
+    console.log('onDeletePattern')
+  }
+  addPatternModal = () => {
+    const { cepDataSource } = this.state
+    this.clearPatterModalData(() => {
+      if (cepDataSource.length === 0) {
+        this.setState({operatorBtnInitVal: 'begin'})
+        this.props.form.setFieldsValue({operator: 'begin'})
+      } else {
+        this.setState({operatorBtnInitVal: ''})
+      }
+      this.setState({
+        patternModalShow: true
+      })
     })
-    console.log('closePatternModal')
+    console.log('addPatternModal')
+  }
+  offPatternModal = () => {
+    this.clearPatterModalData(() => {
+      this.setState({
+        patternModalShow: false
+      })
+    })
+    console.log('offPatternModal')
   }
 
-  clearPatterModalData = () => {
+  clearPatterModalData = (fn) => {
     this.props.form.setFieldsValue({
-      'operator': '',
-      'quartifier': '',
-      'conditions': ''
+      operator: '',
+      quartifier: '',
+      conditions: ''
     })
     this.setState({
       operatorBtnInitVal: '',
       quartifierTimesBtnToInput: false,
-      quartifierTimesOrMoreBtnToInput: false
+      quartifierTimesOrMoreBtnToInput: false,
+      patternSourceDataConditions: null,
+      editRow: -1
     }, () => {
-      this.refs.quartifierTimesInput.value = ''
-      this.refs.quartifierTimesOrMoreInput.value = ''
-      this.filterComponent.resetTree()
+      if (this.quartifierTimesInput) {
+        this.quartifierTimesInput.value = ''
+      }
+      if (this.quartifierTimesOrMoreInput) {
+        this.quartifierTimesOrMoreInput.value = ''
+      }
+      if (this.filterComponent) {
+        this.filterComponent.resetTree()
+      }
+      if (fn) fn()
     })
+  }
+
+  setQuartifierTimesInputRef = el => {
+    this.quartifierTimesInput = el
+  }
+
+  setQuartifierTimesOrMoreInputRef = el => {
+    this.quartifierTimesOrMoreInput = el
   }
   render () {
     const { form, transformValue, transformSinkTypeNamespaceData, flowTransNsData, step2SourceNamespace, step2SinkNamespace, flowSubPanelKey } = this.props
-    const { dsHideOrNot, selectValue, cepDataSource, outputType, patternModalShow, operatorBtnInitVal, quartifierTimesBtnToInput, quartifierTimesOrMoreBtnToInput } = this.state
+    const { dsHideOrNot, selectValue, cepDataSource, outputType, patternModalShow, operatorBtnInitVal, quartifierTimesBtnToInput, quartifierTimesOrMoreBtnToInput, patternSourceDataConditions } = this.state
     const { getFieldDecorator } = form
 
     const itemStyle = {
@@ -276,7 +372,7 @@ export class FlowTransformForm extends React.Component {
     let sqlMsg = ''
     if (selectValue === 'lookupSql') {
       sqlMsg = <FormattedMessage {...messages.workbenchTransLookup} />
-    } else if (selectValue === 'sparkSql') {
+    } else if (selectValue === 'sparkSql' || selectValue === 'flinkSql') {
       sqlMsg = <FormattedMessage {...messages.workbenchTransSpark} />
     }
 
@@ -326,7 +422,22 @@ export class FlowTransformForm extends React.Component {
         key: 'action',
         width: '20%',
         className: 'text-align-center',
-        render: (text, record) => <Button icon="edit" shape="circle" type="ghost" onClick={this.onEditPattern(record)}></Button>
+        render: (value, record, index) => {
+          const modifyFormat = <FormattedMessage {...messages.workbenchTransModify} />
+          const deleteFormat = <FormattedMessage {...messages.workbenchTransDelete} />
+          return (
+            <span className="ant-table-action-column">
+              <Tooltip title={modifyFormat}>
+                <Button icon="edit" shape="circle" type="ghost" onClick={this.onEditPattern(record, index)}></Button>
+              </Tooltip>
+              <Tooltip title={deleteFormat}>
+                <Button shape="circle" type="ghost" onClick={this.onDeletePattern(index)}>
+                  <i className="anticon anticon-delete"></i>
+                </Button>
+              </Tooltip>
+            </span>
+          )
+        }
       }
     ]
     const pagination = {
@@ -613,7 +724,8 @@ export class FlowTransformForm extends React.Component {
                   rules: [{
                     required: true,
                     message: operateLanguageSelect('strategy', 'Strategy')
-                  }]
+                  }],
+                  hidden: flinkTransformTypeHiddens[2]
                 })(
                   <Select
                     dropdownClassName="ri-workbench-select-dropdown"
@@ -621,10 +733,10 @@ export class FlowTransformForm extends React.Component {
                     placeholder="Select a strategy"
                     // disabled={flowDisabledOrNot}
                   >
-                    <Select.Option key="NO_SKIP" value="NO_SKIP">NO_SKIP</Select.Option>
-                    <Select.Option key="SKIP_PAST_LAST_EVENT" value="SKIP_PAST_LAST_EVENT">SKIP_PAST_LAST_EVENT</Select.Option>
-                    <Select.Option key="SKIP_TO_FIRST" value="SKIP_TO_FIRST">SKIP_TO_FIRST</Select.Option>
-                    <Select.Option key="SKIP_TO_LAST" value="SKIP_TO_LAST">SKIP_TO_LAST</Select.Option>
+                    <Select.Option key="NO_SKIP" value="no_skip">NO_SKIP</Select.Option>
+                    <Select.Option key="SKIP_PAST_LAST_EVENT" value="skip_past_last_event">SKIP_PAST_LAST_EVENT</Select.Option>
+                    <Select.Option key="SKIP_TO_FIRST" value="skip_to_first">SKIP_TO_FIRST</Select.Option>
+                    <Select.Option key="SKIP_TO_LAST" value="skip_to_last">SKIP_TO_LAST</Select.Option>
                   </Select>
                 )}
               </FormItem>
@@ -653,7 +765,8 @@ export class FlowTransformForm extends React.Component {
                     required: true,
                     message: operateLanguageSelect('output', 'Output')
                   }],
-                  initialValue: 'agg'
+                  initialValue: 'agg',
+                  hidden: flinkTransformTypeHiddens[2]
                 })(
                   <RadioGroup onChange={this.changeOutput}>
                     <RadioButton value="agg">Agg</RadioButton>
@@ -672,7 +785,7 @@ export class FlowTransformForm extends React.Component {
                     required: true,
                     message: operateLanguageSelect('output', 'Output')
                   }],
-                  hidden: outputHiddens[0]
+                  hidden: outputHiddens[0] || flinkTransformTypeHiddens[2]
                 })(
                   <Input />
                 )}
@@ -701,7 +814,7 @@ export class FlowTransformForm extends React.Component {
                 {getFieldDecorator('patternBtn', {
                   hidden: true
                 })(
-                  <Button onClick={this.onPatternModal}>添加Pattern</Button>
+                  <Button onClick={this.addPatternModal}>添加Pattern</Button>
                 )}
               </FormItem>
             </Col>
@@ -723,7 +836,7 @@ export class FlowTransformForm extends React.Component {
               visible={patternModalShow}
               wrapClassName="transform-form-style-sub"
               onOk={this.addOrEditPattern}
-              onCancel={this.closePatternModal}
+              onCancel={this.offPatternModal}
             >
               <Card className={`${flinkTransformTypeClassNames[2]}`}>
                 <Col span={24}>
@@ -734,14 +847,14 @@ export class FlowTransformForm extends React.Component {
                         message: operateLanguageSelect('operator', 'Operator')
                       }],
                       initialValue: operatorBtnInitVal,
-                      hidden: flinkTransformTypeHiddens[2]
+                      hidden: flinkTransformTypeHiddens[2] || !patternModalShow
                     })(
                       <RadioGroup size="default">
-                        <RadioButton value="begin" className="radio-btn-style" disabled={cepDataSource.length > 0}>Begin</RadioButton>
-                        <RadioButton value="next" className="radio-btn-style" disabled={cepDataSource.length === 0}>Next</RadioButton>
-                        <RadioButton value="followby" className="radio-btn-style" disabled={cepDataSource.length === 0}>FollowBy</RadioButton>
-                        <RadioButton value="notnext" className="radio-btn-style" disabled={cepDataSource.length === 0}>NotNext</RadioButton>
-                        <RadioButton value="notfollowby" className="radio-btn-style" disabled={cepDataSource.length === 0}>NotFollowBy</RadioButton>
+                        <RadioButton value="begin" className="radio-btn-style" disabled={operatorBtnInitVal !== 'begin'}>Begin</RadioButton>
+                        <RadioButton value="next" className="radio-btn-style" disabled={operatorBtnInitVal === 'begin'}>Next</RadioButton>
+                        <RadioButton value="followby" className="radio-btn-style" disabled={operatorBtnInitVal === 'begin'}>FollowBy</RadioButton>
+                        <RadioButton value="notnext" className="radio-btn-style" disabled={operatorBtnInitVal === 'begin'}>NotNext</RadioButton>
+                        <RadioButton value="notfollowby" className="radio-btn-style" disabled={operatorBtnInitVal === 'begin'}>NotFollowBy</RadioButton>
                       </RadioGroup>
                     )}
                   </FormItem>
@@ -749,14 +862,14 @@ export class FlowTransformForm extends React.Component {
                 <Col span={24}>
                   <FormItem label="Quartifier" {...patternItemStyle}>
                     {getFieldDecorator('quartifier', {
-                      hidden: flinkTransformTypeHiddens[2]
+                      hidden: flinkTransformTypeHiddens[2] || !patternModalShow
                     })(
                       <RadioGroup size="default" onChange={this.changeQuartifier}>
                         <RadioButton value="oneormore" className="radio-btn-style">OneOrMore</RadioButton>
                         <RadioButton value="times" className={`radio-btn-style ${quartifierTimesBtnToInput ? 'hide' : ''}`}>Times($int$)</RadioButton>
-                        <input ref="quartifierTimesInput" className={`${quartifierTimesBtnToInput ? '' : 'hide'}`} />
+                        <input ref={this.setQuartifierTimesInputRef} className={`${quartifierTimesBtnToInput ? '' : 'hide'}`} />
                         <RadioButton value="timesormore" className={`radio-btn-style ${quartifierTimesOrMoreBtnToInput ? 'hide' : ''}`}>TimesOrMore($int$)</RadioButton>
-                        <input ref="quartifierTimesOrMoreInput" className={`${quartifierTimesOrMoreBtnToInput ? '' : 'hide'}`} />
+                        <input ref={this.setQuartifierTimesOrMoreInputRef} className={`${quartifierTimesOrMoreBtnToInput ? '' : 'hide'}`} />
                       </RadioGroup>
                     )}
                   </FormItem>
@@ -768,16 +881,14 @@ export class FlowTransformForm extends React.Component {
                         required: true,
                         message: operateLanguageSelect('conditions', 'Conditions')
                       }],
-                      hidden: flinkTransformTypeHiddens[2]
+                      hidden: flinkTransformTypeHiddens[2] || !patternModalShow
                     })(
-                      <div style={{width: '100%', height: '260px', padding: '20px', overflow: 'scroll', border: '1px solid #ddd'}}>
-                        <FilterComponent
-                          loginUser={null}
-                          itemId={null}
-                          onQuery={this.doFilterQuery}
-                          onRef={ref => { this.filterComponent = ref }}
-                        ></FilterComponent>
-                      </div>
+                      <FilterComponent
+                        sourceData={patternSourceDataConditions}
+                        onQuery={this.doFilterQuery}
+                        isOpen={patternModalShow}
+                        onRef={ref => { this.filterComponent = ref }}
+                      ></FilterComponent>
                     )}
                   </FormItem>
                 </Col>
@@ -800,7 +911,9 @@ FlowTransformForm.propTypes = {
   flowTransNsData: PropTypes.array,
   onInitTransformValue: PropTypes.func,
   onInitTransformSinkTypeNamespace: PropTypes.func,
-  flowSubPanelKey: PropTypes.string
+  flowSubPanelKey: PropTypes.string,
+  emitCepSourceData: PropTypes.func,
+  transformModalVisible: PropTypes.bool
 }
 
 export default Form.create({wrappedComponentRef: true})(FlowTransformForm)

@@ -235,9 +235,10 @@ function flowReducer (state = initialState, { type, payload }) {
     case STARTFLINK_FLOWS:
       return state.set('flowStartModalLoading', true)
     case STARTFLINK_FLOWS_SUCCESS:
-      const startIndexStartOrRenew = flows.indexOf(flows.find(p => Object.is(p.stream.id, payload.result.id)))
+      const startIndexStartOrRenew = flows.indexOf(flows.find(p => Object.is(p.id, payload.result.id)))
       flows[startIndexStartOrRenew].disableActions = payload.result.disableActions
-      flows[startIndexStartOrRenew].stream.status = payload.result.status
+      flows[startIndexStartOrRenew].status = payload.result.status
+
       // streams.fill(payload.result, startIndexStartOrRenew, startIndexStartOrRenew + 1)
       return state
         .set('flows', flows.slice())
