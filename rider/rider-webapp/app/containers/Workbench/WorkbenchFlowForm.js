@@ -893,16 +893,18 @@ export class WorkbenchFlowForm extends React.Component {
           )}
           {flowSubPanelKey === 'flink' ? (
             <Col span={16} className={`ds-class ${transConnectClass}`}>
-              <FormItem label="Time Characteristic" {...itemStyleDFS}>
+              <FormItem label="Time Characteristic" labelCol={{span: 9}} wrapperCol={{span: 14}}>
                 {getFieldDecorator('time_characteristic', {
                   rules: [{
                     required: true,
                     message: operateLanguageSelect('Time Characteristic', 'Time Characteristic')
                   }],
-                  initialValue: 'time_characteristic'
+                  hidden: stepHiddens[1],
+                  initialValue: 'processing_time'
                 })(
                   <RadioGroup className="radio-group-style" size="default">
-                    <RadioButton value="time_characteristic">Time Characteristic</RadioButton>
+                    <RadioButton value="processing_time">Processing Time</RadioButton>
+                    <RadioButton value="event_time">Event Time</RadioButton>
                   </RadioGroup>
                 )}
               </FormItem>

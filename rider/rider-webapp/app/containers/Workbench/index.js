@@ -119,11 +119,13 @@ export class Workbench extends React.Component {
 
       // Flow Modal Transform
       flowFormTranTableSource: [],
+      cepPropData: {},
       transformTagClassName: '',
       transformTableClassName: 'hide',
       transformValue: '',
       transConnectClass: 'hide',
       flowTransNsData: [],
+      hasPattern: true,
 
       step2SinkNamespace: '',
       step2SourceNamespace: '',
@@ -848,25 +850,30 @@ export class Workbench extends React.Component {
                 etpStrategyResponseValue: ''
               })
             }
-
-            if (result.tranConfig.includes('dataframe_show_num')) {
-              dataframeShowVal = 'true'
-              this.setState({
-                dataframeShowSelected: ''
-              }, () => {
-                this.workbenchFlowForm.setFieldsValue({ dataframeShowNum: tranConfigVal.dataframe_show_num })
-              })
-            } else {
-              dataframeShowVal = 'false'
-              this.setState({ dataframeShowSelected: 'hide' })
-              this.workbenchFlowForm.setFieldsValue({
-                dataframeShow: 'false',
-                dataframeShowNum: 10
-              })
+            if (result.streamType === 'spark') {
+              if (result.tranConfig.includes('dataframe_show_num')) {
+                dataframeShowVal = 'true'
+                this.setState({
+                  dataframeShowSelected: ''
+                }, () => {
+                  this.workbenchFlowForm.setFieldsValue({ dataframeShowNum: tranConfigVal.dataframe_show_num })
+                })
+              } else {
+                dataframeShowVal = 'false'
+                this.setState({ dataframeShowSelected: 'hide' })
+                this.workbenchFlowForm.setFieldsValue({
+                  dataframeShow: 'false',
+                  dataframeShowNum: 10
+                })
+              }
             }
-
-            const tranActionArr = tranConfigVal.action.split(';')
-            tranActionArr.splice(tranActionArr.length - 1, 1)
+            let tranActionArr = []
+            if (result.streamType === 'spark') {
+              tranActionArr = tranConfigVal.action.split(';')
+              tranActionArr.splice(tranActionArr.length - 1, 1)
+            } else if (result.streamType === 'flink') {
+              tranActionArr = tranConfigVal.action.split(';')
+            }
 
             this.state.flowFormTranTableSource = tranActionArr.map((i, index) => {
               const tranTableSourceTemp = {}
@@ -933,7 +940,16 @@ export class Workbench extends React.Component {
                 tranTypeTepm = 'sparkSql'
                 pushdownConTepm = {}
               }
+              if (i.includes('flink_sql')) {
+                const sparkAfterPart = i.substring(i.indexOf('=') + 1)
+                const sparkAfterPartTepmTemp = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
+                const sparkAfterPartTepm = preProcessSql(sparkAfterPartTepmTemp)
 
+                tranConfigInfoTemp = `${sparkAfterPartTepm};`
+                tranConfigInfoSqlTemp = `${sparkAfterPartTepm};`
+                tranTypeTepm = 'flinkSql'
+                pushdownConTepm = {}
+              }
               if (i.includes('custom_class')) {
                 const classAfterPart = i.substring(i.indexOf('=') + 1)
                 const classAfterPartTepmTemp = classAfterPart.replace(/(^\s*)|(\s*$)/g, '')
@@ -945,6 +961,18 @@ export class Workbench extends React.Component {
                 pushdownConTepm = {}
               }
 
+              if (i.includes('cep')) {
+                const classAfterPartTepm = i.split('=')[1]
+
+                tranConfigInfoTemp = classAfterPartTepm
+                tranConfigInfoSqlTemp = classAfterPartTepm
+                tranTypeTepm = 'cep'
+                pushdownConTepm = {}
+                this.workbenchFlowForm.setFieldsValue({
+                  time_characteristic: tranConfigVal.time_characteristic || '',
+                  parallelism: result.parallelism || 0
+                })
+              }
               tranTableSourceTemp.order = index + 1
               tranTableSourceTemp.transformConfigInfo = tranConfigInfoTemp
               tranTableSourceTemp.tranConfigInfoSql = tranConfigInfoSqlTemp
@@ -1022,9 +1050,13 @@ export class Workbench extends React.Component {
 
             sinkConfig: this.state.sinkConfigCopy,
             resultFields: resultFieldsVal,
-            dataframeShow: dataframeShowVal,
             flowSpecialConfig: flowSpecialConfigVal
           })
+          if (result.streamType === 'spark') {
+            this.workbenchFlowForm.setFieldsValue({
+              dataframeShow: dataframeShowVal
+            })
+          }
         })
       })
   }
@@ -1547,7 +1579,7 @@ export class Workbench extends React.Component {
   }
 
   handleForwardDefault () {
-    const { formStep, flowFormTranTableSource, streamDiffType } = this.state
+    const { formStep, flowFormTranTableSource, streamDiffType, flowSubPanelKey } = this.state
     const { locale } = this.props
 
     let tranRequestTempArr = []
@@ -1560,10 +1592,18 @@ export class Workbench extends React.Component {
       }
     })
     const tranRequestTempString = tranRequestTempArr.join('')
-    this.setState({
-      transformTableRequestValue: tranRequestTempString === '' ? {} : {'action': tranRequestTempString},
-      transformTableConfirmValue: tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`
-    })
+    if (flowSubPanelKey === 'flink') {
+      let timeCharacteristic = this.workbenchFlowForm.getFieldsValue(['time_characteristic'])
+      this.setState({
+        transformTableRequestValue: tranRequestTempString === '' ? {} : Object.assign({'action': tranRequestTempString}, timeCharacteristic),
+        transformTableConfirmValue: tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`
+      })
+    } else if (flowSubPanelKey === 'spark') {
+      this.setState({
+        transformTableRequestValue: tranRequestTempString === '' ? {} : {'action': tranRequestTempString},
+        transformTableConfirmValue: tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`
+      })
+    }
 
     // 只有 lookup sql 才有 pushdownConnection
     let tempSource = flowFormTranTableSource.filter(s => s.pushdownConnection['name_space'])
@@ -1979,6 +2019,7 @@ export class Workbench extends React.Component {
       const sourceDataInfo = [flowSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], '*', '*', '*'].join('.')
       const sinkDataInfo = [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
       const parallelism = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.parallelism : null
+
       const submitFlowData = {
         projectId: Number(projectId),
         streamId: Number(values.flowStreamId),
@@ -2030,13 +2071,13 @@ export class Workbench extends React.Component {
   }
 
   handleSubmitFlowHdfslog () {
-    const { flowMode, projectId, singleFlowResult, flowSourceNsSys, flowSubPanelKey } = this.state
+    const { flowMode, projectId, singleFlowResult, flowSourceNsSys } = this.state
 
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (flowMode === 'add' || flowMode === 'copy') {
           const sourceDataInfo = [flowSourceNsSys, values.hdfslogNamespace[0], values.hdfslogNamespace[1], values.hdfslogNamespace[2], '*', '*', '*'].join('.')
-          const parallelism = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.parallelism : null
+          // const parallelism = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.parallelism : null
 
           const submitFlowData = {
             projectId: Number(projectId),
@@ -2045,8 +2086,8 @@ export class Workbench extends React.Component {
             sinkNs: sourceDataInfo,
             consumedProtocol: 'all',
             sinkConfig: '',
-            tranConfig: '',
-            parallelism
+            tranConfig: ''
+            // parallelism
           }
 
           this.props.onAddFlow(submitFlowData, (result) => {
@@ -2078,14 +2119,14 @@ export class Workbench extends React.Component {
   }
 
   handleSubmitFlowRouting () {
-    const { flowMode, projectId, singleFlowResult, flowSourceNsSys, flowSubPanelKey } = this.state
+    const { flowMode, projectId, singleFlowResult, flowSourceNsSys } = this.state
 
     this.workbenchFlowForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         if (flowMode === 'add' || flowMode === 'copy') {
           const sourceDataInfo = [flowSourceNsSys, values.routingNamespace[0], values.routingNamespace[1], values.routingNamespace[2], '*', '*', '*'].join('.')
           const sinkDataInfo = ['kafka', values.routingSinkNs[0], values.routingSinkNs[1], values.routingSinkNs[2], '*', '*', '*'].join('.')
-          const parallelism = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.parallelism : null
+          // const parallelism = flowSubPanelKey === 'spark' ? null : flowSubPanelKey === 'flink' ? values.parallelism : null
 
           const submitFlowData = {
             projectId: Number(projectId),
@@ -2094,8 +2135,8 @@ export class Workbench extends React.Component {
             sinkNs: sinkDataInfo,
             consumedProtocol: 'all',
             sinkConfig: '',
-            tranConfig: '',
-            parallelism
+            tranConfig: ''
+            // parallelism
           }
 
           this.props.onAddFlow(submitFlowData, (result) => {
@@ -2312,84 +2353,114 @@ export class Workbench extends React.Component {
 
   onEditTransform = (record) => (e) => {
     // 加隐藏字段获得 record.transformType
-    this.setState({
-      transformMode: 'edit',
-      transformModalVisible: true,
-      transformValue: record.transformType
-    }, () => {
-      this.flowTransformForm.setFieldsValue({
-        editTransformId: record.order,
-        transformation: record.transformType
-      })
-
-      if (record.transformType !== 'transformClassName') {
-        this.makeSqlCodeMirrorInstance(record.transformType)
-      }
-
-      switch (record.transformType) {
-        case 'lookupSql':
-          // 以"." 为分界线(注：sql语句中可能会出现 ".")
-          const tranLookupVal1 = record.transformConfigInfo.substring(record.transformConfigInfo.indexOf('.') + 1) // 去除第一项后的字符串
-          const tranLookupVal2 = tranLookupVal1.substring(tranLookupVal1.indexOf('.') + 1)  // 去除第二项后的字符串
-          const tranLookupVal3 = tranLookupVal2.substring(tranLookupVal2.indexOf('.') + 1)  // 去除第三项后的字符串
-          const tranLookupVal4 = tranLookupVal3.substring(tranLookupVal3.indexOf('.') + 1)  // 去除第四项后的字符串
-
-          this.flowTransformForm.setFieldsValue({
-            lookupSqlType: record.transformConfigInfo.substring(0, record.transformConfigInfo.indexOf('.')),
-            transformSinkDataSystem: tranLookupVal1.substring(0, tranLookupVal1.indexOf('.'))
-          })
-          this.cmLookupSql.doc.setValue(tranLookupVal4)
-
-          setTimeout(() => {
-            this.flowTransformForm.setFieldsValue({
-              transformSinkNamespace: [
-                tranLookupVal2.substring(0, tranLookupVal2.indexOf('.')),
-                tranLookupVal3.substring(0, tranLookupVal3.indexOf('.'))
-              ]
-            })
-          }, 50)
-          break
-        case 'sparkSql':
-          this.cmSparkSql.doc.setValue(record.transformConfigInfo)
-          break
-        case 'streamJoinSql':
-          // 以"."为分界线
-          const tranStreamJoinVal1 = record.transformConfigInfo.substring(record.transformConfigInfo.indexOf('.') + 1) // 去除第一项后的字符串
-          const tranStreamJoinVal2 = tranStreamJoinVal1.substring(tranStreamJoinVal1.indexOf('.') + 1)  // 去除第二项后的字符串
-
-          const tempArr = record.transformConfigInfoRequest.split(' ')
-          const selectedNsArr = tempArr[4].split(',').map((i) => i.substring(0, i.indexOf('(')))
-
-          this.flowTransformForm.setFieldsValue({
-            streamJoinSqlType: record.transformConfigInfo.substring(0, record.transformConfigInfo.indexOf('.')),
-            timeout: tranStreamJoinVal1.substring(0, tranStreamJoinVal1.indexOf('.')),
-            streamJoinSqlNs: selectedNsArr
-          })
-
-          this.loadTransNs()
-          this.cmStreamJoinSql.doc.setValue(tranStreamJoinVal2)
-          break
-        case 'transformClassName':
-          this.flowTransformForm.setFieldsValue({ transformClassName: record.transformConfigInfo })
-          break
-        case 'cep':
-          let cepFormData = record.tranConfigInfoSql && JSON.parse(record.tranConfigInfoSql)
-          let outputText = ''
-          if (cepFormData.output) {
-            if (cepFormData.output.type === 'agg' || cepFormData.output.type === 'filteredRow') {
-              outputText = cepFormData.output && cepFormData.output.field_list
-            }
+    if (record.transformType === 'cep') {
+      this.setState({
+        cepPropData: this.state.flowFormTranTableSource[record.order - 1],
+        transformMode: 'edit',
+        transformValue: record.transformType
+      }, () => {
+        let cepFormData = record.tranConfigInfoSql && JSON.parse(record.tranConfigInfoSql)
+        let outputText = ''
+        if (cepFormData.output) {
+          if (cepFormData.output.type === 'agg' || cepFormData.output.type === 'filteredRow') {
+            outputText = cepFormData.output && cepFormData.output.field_list
           }
+        }
+        this.setState({
+          transformModalVisible: true
+        }, () => {
           this.flowTransformForm.setFieldsValue({
             windowTime: cepFormData.max_interval_seconds || '',
             strategy: cepFormData.strategy,
             keyBy: cepFormData.key_by_fields,
             output: cepFormData.output && cepFormData.output.type,
-            outputText
+            outputText,
+            editTransformId: record.order,
+            transformation: record.transformType
           })
-          break
-      }
-    })
+        })
+      })
+    } else {
+      this.setState({
+        transformMode: 'edit',
+        transformModalVisible: true,
+        transformValue: record.transformType
+      }, () => {
+        this.flowTransformForm.setFieldsValue({
+          editTransformId: record.order,
+          transformation: record.transformType
+        })
+
+        if (record.transformType !== 'transformClassName') {
+          this.makeSqlCodeMirrorInstance(record.transformType)
+        }
+
+        switch (record.transformType) {
+          case 'lookupSql':
+            // 以"." 为分界线(注：sql语句中可能会出现 ".")
+            const tranLookupVal1 = record.transformConfigInfo.substring(record.transformConfigInfo.indexOf('.') + 1) // 去除第一项后的字符串
+            const tranLookupVal2 = tranLookupVal1.substring(tranLookupVal1.indexOf('.') + 1)  // 去除第二项后的字符串
+            const tranLookupVal3 = tranLookupVal2.substring(tranLookupVal2.indexOf('.') + 1)  // 去除第三项后的字符串
+            const tranLookupVal4 = tranLookupVal3.substring(tranLookupVal3.indexOf('.') + 1)  // 去除第四项后的字符串
+
+            this.flowTransformForm.setFieldsValue({
+              lookupSqlType: record.transformConfigInfo.substring(0, record.transformConfigInfo.indexOf('.')),
+              transformSinkDataSystem: tranLookupVal1.substring(0, tranLookupVal1.indexOf('.'))
+            })
+            this.cmLookupSql.doc.setValue(tranLookupVal4)
+
+            setTimeout(() => {
+              this.flowTransformForm.setFieldsValue({
+                transformSinkNamespace: [
+                  tranLookupVal2.substring(0, tranLookupVal2.indexOf('.')),
+                  tranLookupVal3.substring(0, tranLookupVal3.indexOf('.'))
+                ]
+              })
+            }, 50)
+            break
+          case 'sparkSql':
+            this.cmSparkSql.doc.setValue(record.transformConfigInfo)
+            break
+          case 'streamJoinSql':
+            // 以"."为分界线
+            const tranStreamJoinVal1 = record.transformConfigInfo.substring(record.transformConfigInfo.indexOf('.') + 1) // 去除第一项后的字符串
+            const tranStreamJoinVal2 = tranStreamJoinVal1.substring(tranStreamJoinVal1.indexOf('.') + 1)  // 去除第二项后的字符串
+
+            const tempArr = record.transformConfigInfoRequest.split(' ')
+            const selectedNsArr = tempArr[4].split(',').map((i) => i.substring(0, i.indexOf('(')))
+
+            this.flowTransformForm.setFieldsValue({
+              streamJoinSqlType: record.transformConfigInfo.substring(0, record.transformConfigInfo.indexOf('.')),
+              timeout: tranStreamJoinVal1.substring(0, tranStreamJoinVal1.indexOf('.')),
+              streamJoinSqlNs: selectedNsArr
+            })
+
+            this.loadTransNs()
+            this.cmStreamJoinSql.doc.setValue(tranStreamJoinVal2)
+            break
+          case 'transformClassName':
+            this.flowTransformForm.setFieldsValue({ transformClassName: record.transformConfigInfo })
+            break
+          // case 'cep':
+          //   let cepFormData = record.tranConfigInfoSql && JSON.parse(record.tranConfigInfoSql)
+          //   let outputText = ''
+          //   if (cepFormData.output) {
+          //     if (cepFormData.output.type === 'agg' || cepFormData.output.type === 'filteredRow') {
+          //       outputText = cepFormData.output && cepFormData.output.field_list
+          //     }
+          //   }
+          //   this.setState({cepPropData: this.state.flowFormTranTableSource[record.order - 1]})
+          //   this.flowTransformForm.setFieldsValue({
+          //     windowTime: cepFormData.max_interval_seconds || '',
+          //     strategy: cepFormData.strategy,
+          //     keyBy: cepFormData.key_by_fields,
+          //     output: cepFormData.output && cepFormData.output.type,
+          //     outputText
+          //   })
+          //   break
+        }
+      })
+    }
   }
 
   onJobEditTransform = (record) => (e) => {
@@ -2417,11 +2488,12 @@ export class Workbench extends React.Component {
   onAddTransform = (record) => (e) => {
     this.setState({
       transformMode: 'add',
-      transformModalVisible: true,
       transformValue: ''
     }, () => {
-      this.flowTransformForm.resetFields()
-      this.flowTransformForm.setFieldsValue({ editTransformId: record.order })
+      this.setState({transformModalVisible: true}, () => {
+        this.flowTransformForm.resetFields()
+        this.flowTransformForm.setFieldsValue({ editTransformId: record.order })
+      })
     })
   }
 
@@ -2735,6 +2807,10 @@ export class Workbench extends React.Component {
           case 'cep':
             let windowTime = values.windowTime == null ? -1 : values.windowTime
             let outputText = values.outputText == null ? '' : `${values.outputText}`
+            if (flowPatternCepDataSource && flowPatternCepDataSource.length === 0) {
+              this.setState({hasPattern: false})
+              return
+            }
             let partterSeq = flowPatternCepDataSource.slice()
             partterSeq.forEach(v => {
               v.quartifier = v.quartifier ? JSON.parse(v.quartifier) : JSON.stringify({})
@@ -3336,7 +3412,7 @@ export class Workbench extends React.Component {
       flowFormTranTableSource, jobFormTranTableSource, namespaceClassHide, userClassHide,
       udfClassHide, flowSpecialConfigModalVisible, transformModalVisible, sinkConfigModalVisible,
       etpStrategyModalVisible, streamConfigModalVisible, sparkConfigModalVisible,
-      jobSinkConfigModalVisible, jobTransModalVisible, jobSpecialConfigModalVisible, pipelineStreamId
+      jobSinkConfigModalVisible, jobTransModalVisible, jobSpecialConfigModalVisible, pipelineStreamId, cepPropData, transformMode, hasPattern
     } = this.state
     const { streams, projectNamespaces, streamSubmitLoading, locale } = this.props
 
@@ -3471,8 +3547,10 @@ export class Workbench extends React.Component {
                       transformSinkTypeNamespaceData={this.state.transformSinkTypeNamespaceData}
                       flowSubPanelKey={this.state.flowSubPanelKey}
                       emitCepSourceData={this.getCepSourceData}
-                      cepPropData={flowFormTranTableSource}
+                      cepPropData={cepPropData}
                       transformModalVisible={transformModalVisible}
+                      transformMode={transformMode}
+                      hasPattern={hasPattern}
                     />
                   </Modal>
                   {/* Flow Sink Config Modal */}
