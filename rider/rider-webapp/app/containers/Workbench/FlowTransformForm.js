@@ -60,30 +60,35 @@ export class FlowTransformForm extends React.Component {
       editRow: -1
     }
   }
+  componentDidMount () {
+    const { cepPropData } = this.props
+    this.formatCepPatternData(cepPropData)
+  }
   componentWillReceiveProps (props) {
     if (this.props.transformModalVisible === props.transformModalVisible) return
-    this.setState({
-      flowMode: props.flowMode
-    })
-    if (props.cepPropData) {
-      props.cepPropData.map(s => {
-        if (s.transformType === 'cep') {
-          let cepDataSource = []
-          let tranConfigInfoSql = JSON.parse(s.tranConfigInfoSql)
-          cepDataSource = tranConfigInfoSql.pattern_seq.map(v => {
-            if (v.quartifier === '{}') {
-              v.quartifier = ''
-            } else {
-              v.quartifier = JSON.stringify(v.quartifier)
-            }
-            return v
-          })
-          this.setState({cepDataSource})
-        }
-      })
+    if (props.transformMode === 'add') {
+      this.setState({cepDataSource: []})
+    } else if (props.transformMode === 'edit') {
+      if (props.cepPropData) {
+        this.formatCepPatternData(props.cepPropData)
+      }
     }
   }
-
+  formatCepPatternData = (data) => {
+    if (data.transformType === 'cep') {
+      let cepDataSource = []
+      let tranConfigInfoSql = JSON.parse(data.tranConfigInfoSql)
+      cepDataSource = tranConfigInfoSql.pattern_seq.map(v => {
+        if (v.quartifier === '{}') {
+          v.quartifier = ''
+        } else {
+          v.quartifier = JSON.stringify(v.quartifier)
+        }
+        return v
+      })
+      this.setState({cepDataSource})
+    }
+  }
   onTransformTypeSelect = (e) => {
     this.setState({
       selectValue: e.target.value
@@ -229,6 +234,7 @@ export class FlowTransformForm extends React.Component {
     let cepDataSource = this.state.cepDataSource.slice()
     cepDataSource.splice(index, 1)
     this.setState({cepDataSource})
+    this.props.emitCepSourceData(cepDataSource)
     console.log('onDeletePattern')
   }
   addPatternModal = () => {
@@ -440,20 +446,20 @@ export class FlowTransformForm extends React.Component {
         }
       }
     ]
-    const pagination = {
-      defaultPageSize: 5,
-      pageSizeOptions: ['5', '10', '15'],
-      showSizeChanger: true,
-      onShowSizeChange: (current, pageSize) => {
-        this.setState({
-          pageIndex: current,
-          pageSize: pageSize
-        })
-      },
-      onChange: (current) => {
-        this.setState({ pageIndex: current })
-      }
-    }
+    // const pagination = {
+    //   defaultPageSize: 5,
+    //   pageSizeOptions: ['5', '10', '15'],
+    //   showSizeChanger: true,
+    //   onShowSizeChange: (current, pageSize) => {
+    //     this.setState({
+    //       pageIndex: current,
+    //       pageSize: pageSize
+    //     })
+    //   },
+    //   onChange: (current) => {
+    //     this.setState({ pageIndex: current })
+    //   }
+    // }
 
     return (
       <Form className="transform-modal-style">
@@ -507,6 +513,7 @@ export class FlowTransformForm extends React.Component {
                   required: true,
                   message: operateLanguageSelect('type', 'Type')
                 }],
+                initialValue: 'leftJoin',
                 hidden: transformTypeHiddens[0]
               })(
                 <DataSystemSelector
@@ -710,6 +717,10 @@ export class FlowTransformForm extends React.Component {
             <Col span={24} className={flinkTransformTypeClassNames[2]}>
               <FormItem label="Windowtime" {...itemStyle}>
                 {getFieldDecorator('windowTime', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('windowTime', 'Windowtime')
+                  }],
                   hidden: flinkTransformTypeHiddens[2]
                 })(
                   <InputNumber step={1} placeholder="seconds" />
@@ -735,8 +746,8 @@ export class FlowTransformForm extends React.Component {
                   >
                     <Select.Option key="NO_SKIP" value="no_skip">NO_SKIP</Select.Option>
                     <Select.Option key="SKIP_PAST_LAST_EVENT" value="skip_past_last_event">SKIP_PAST_LAST_EVENT</Select.Option>
-                    <Select.Option key="SKIP_TO_FIRST" value="skip_to_first">SKIP_TO_FIRST</Select.Option>
-                    <Select.Option key="SKIP_TO_LAST" value="skip_to_last">SKIP_TO_LAST</Select.Option>
+                    {/* <Select.Option key="SKIP_TO_FIRST" value="skip_to_first">SKIP_TO_FIRST</Select.Option>
+                    <Select.Option key="SKIP_TO_LAST" value="skip_to_last">SKIP_TO_LAST</Select.Option> */}
                   </Select>
                 )}
               </FormItem>
@@ -810,12 +821,13 @@ export class FlowTransformForm extends React.Component {
           ) : ''}
           {flowSubPanelKey === 'flink' ? (
             <Col span={24} className={`${flinkTransformTypeClassNames[2]}`}>
-              <FormItem label="Pattern" {...itemStyle}>
-                {getFieldDecorator('patternBtn', {
-                  hidden: true
-                })(
-                  <Button onClick={this.addPatternModal}>添加Pattern</Button>
-                )}
+              <FormItem
+                label="Pattern"
+                {...itemStyle}
+                validateStatus={cepDataSource.length > 0 ? 'success' : 'error'}
+                help={operateLanguageFillIn('patternBtn', 'Pattern')}
+              >
+                <Button onClick={this.addPatternModal}>添加Pattern</Button>
               </FormItem>
             </Col>
           ) : ''}
@@ -824,7 +836,7 @@ export class FlowTransformForm extends React.Component {
               <Table
                 dataSource={cepDataSource}
                 columns={columnsCEP}
-                pagination={pagination}
+                pagination={false}
                 bordered
               />
             </Col>
@@ -862,6 +874,10 @@ export class FlowTransformForm extends React.Component {
                 <Col span={24}>
                   <FormItem label="Quartifier" {...patternItemStyle}>
                     {getFieldDecorator('quartifier', {
+                      rules: [{
+                        required: true,
+                        message: operateLanguageSelect('quartifier', 'Quartifier')
+                      }],
                       hidden: flinkTransformTypeHiddens[2] || !patternModalShow
                     })(
                       <RadioGroup size="default" onChange={this.changeQuartifier}>
@@ -913,7 +929,8 @@ FlowTransformForm.propTypes = {
   onInitTransformSinkTypeNamespace: PropTypes.func,
   flowSubPanelKey: PropTypes.string,
   emitCepSourceData: PropTypes.func,
-  transformModalVisible: PropTypes.bool
+  transformModalVisible: PropTypes.bool,
+  cepPropData: PropTypes.object
 }
 
 export default Form.create({wrappedComponentRef: true})(FlowTransformForm)

@@ -86,6 +86,7 @@ export class DashboardItemFilters extends PureComponent {
 
   componentDidMount () {
     this.props.onRef(this)
+    this.initTree(this.props)
   }
 
   initTree = (props) => {
@@ -231,7 +232,7 @@ export class DashboardItemFilters extends PureComponent {
 
   generateFilterKeyValueInput = (filter) => {
     const stringInput = (
-      <Input onChange={this.changeStringFilterKeyValue(filter)} />
+      <Input placeholder="Name" onChange={this.changeStringFilterKeyValue(filter)} />
     )
     return stringInput
   }
@@ -245,7 +246,7 @@ export class DashboardItemFilters extends PureComponent {
 
   generateFilterValueInput = (filter) => {
     const stringInput = (
-      <Input onChange={this.changeStringFilterValue(filter)} />
+      <Input placeholder="Value" onChange={this.changeStringFilterValue(filter)} />
     )
     return stringInput
   }
@@ -641,7 +642,7 @@ export class DashboardItemFilters extends PureComponent {
     } = this.state
 
     return (
-      <div style={{width: '100%', height: '260px', padding: '20px', overflow: 'scroll', border: '1px solid #ddd'}}>
+      <div style={{width: '100%', height: '260px', padding: '20px', border: '1px solid #ddd'}}>
         <div className={`filtersComponent`}>
           <Form className={`filterFormComponent`}>
             {this.renderFilters(filterTree)}
