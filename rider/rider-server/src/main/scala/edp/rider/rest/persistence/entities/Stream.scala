@@ -168,7 +168,7 @@ case class StreamHealth(streamStatus: String,
                         batchDurationSecond: Int,
                         topics: Seq[TopicOffset])
 
-case class StreamInfo(name: String, streamType: String, functionType: String, status: String)
+case class StreamInfo(name: String, appId: Option[String], streamType: String, functionType: String, status: String)
 case class StreamSelect(id: Long,
                         name: String,
                         kafkaInstance: String,

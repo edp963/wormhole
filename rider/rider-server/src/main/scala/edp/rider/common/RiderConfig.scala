@@ -137,7 +137,8 @@ case class LdapInfo(enabled: Boolean,
 
 case class RiderFlink(homePath: String,
                       yarnQueueName: String,
-                      jarPath: String)
+                      jarPath: String,
+                      clientLogPath: String)
 
 
 object RiderConfig {
@@ -202,7 +203,7 @@ object RiderConfig {
   lazy val zk = config.getString("zookeeper.connection.url")
 
   lazy val appTags = getStringConfig("spark.app.tags", "wormhole")
-  lazy val wormholeClientLogPath = getStringConfig("spark.wormhole.client.log.root.path", s"${RiderConfig.riderRootPath}/logs/streams").concat("/")
+  lazy val wormholeClientLogPath = getStringConfig("spark.wormhole.client.log.path", s"${RiderConfig.riderRootPath}/logs/streams")
   lazy val wormholeJarPath = getStringConfig("spark.wormhole.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.4.2-SNAPSHOTS-jar-with-dependencies.jar")
   lazy val wormholeKafka08JarPath = getStringConfig("spark.wormhole.kafka08.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-sparkx_2.2.0-0.4.2-SNAPSHOTS-jar-with-dependencies-kafka08.jar")
   lazy val kafka08StreamNames = getStringConfig("spark.wormhole.kafka08.streams", "")
@@ -300,7 +301,8 @@ object RiderConfig {
   lazy val defaultFlinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "")
 
   lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"),
-    getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-flinkx_1.4.2-0.4.2-SNAPSHOTS-jar-with-dependencies.jar"))
+    getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-flinkx_1.5.1-0.4.2-SNAPSHOTS-jar-with-dependencies.jar"),
+    getStringConfig("flink.wormhole.client.log.path", s"$riderRootPath/logs/flows"))
   lazy val flinkDefaultRate = 0
   def getStringConfig(path: String, default: String): String = {
     if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")
