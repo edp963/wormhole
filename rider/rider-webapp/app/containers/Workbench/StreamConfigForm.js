@@ -53,20 +53,23 @@ export class StreamConfigForm extends React.Component {
 
     return (
       <Form>
-        <Row>
-          <Col span={24}>
-            <FormItem label="JVM：" {...itemStyle}>
-              {getFieldDecorator('jvm', {
-                rules: [{
-                  required: true,
-                  message: textMessage
-                }]
-              })(
-                <Input type="textarea" placeholder="JVM" autosize={{ minRows: 4, maxRows: 6 }} />
-              )}
-            </FormItem>
-          </Col>
-        </Row>
+        {streamSubPanelKey === 'spark' ? (
+          <Row>
+            <Col span={24}>
+              <FormItem label="JVM：" {...itemStyle}>
+                {getFieldDecorator('jvm', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }]
+                })(
+                  <Input type="textarea" placeholder="JVM" autosize={{ minRows: 4, maxRows: 6 }} />
+                )}
+              </FormItem>
+            </Col>
+          </Row>
+          ) : ''
+        }
         {/* spark */}
         {streamSubPanelKey === 'spark' || tabPanelKey === 'job' ? (
           <Row>
@@ -196,10 +199,26 @@ export class StreamConfigForm extends React.Component {
           </Row>
           ) : ''
         }
+        {streamSubPanelKey === 'spark' ? (
+          <Row>
+            <Col span={24}>
+              <FormItem label="Others：" {...itemStyle}>
+                {getFieldDecorator('personalConf', {})(
+                  <Input
+                    type="textarea"
+                    placeholder={locale === 'en' ? 'Format: key=value; enter into a new line as long as there is a new item' : '格式如：key=value，多条时换行输入'}
+                    autosize={{ minRows: 6, maxRows: 10 }}
+                  />
+                )}
+              </FormItem>
+            </Col>
+          </Row>
+          ) : ''
+        }
         {/* flink */}
         {streamSubPanelKey === 'flink' ? (
           <Row>
-            <Col span={8}>
+            <Col span={12}>
               <FormItem label="JobManager Memory(GB)：" {...itemStyleOthers}>
                 {getFieldDecorator('jobManagerMemoryGB', {
                   rules: [{
@@ -213,7 +232,7 @@ export class StreamConfigForm extends React.Component {
                 )}
               </FormItem>
             </Col>
-            <Col span={8}>
+            <Col span={12}>
               <FormItem label="TaskManager Number：" {...itemStyleOthers}>
                 {getFieldDecorator('taskManagersNumber', {
                   rules: [{
@@ -232,7 +251,7 @@ export class StreamConfigForm extends React.Component {
         }
         {streamSubPanelKey === 'flink' ? (
           <Row>
-            <Col span={8}>
+            <Col span={12}>
               <FormItem label="Per TaskManager Memory(GB)：" {...itemStyleOthers}>
                 {getFieldDecorator('perTaskManagerMemoryGB', {
                   rules: [{
@@ -246,7 +265,7 @@ export class StreamConfigForm extends React.Component {
                 )}
               </FormItem>
             </Col>
-            <Col span={8}>
+            <Col span={12}>
               <FormItem label="Per TaskManager Slots：" {...itemStyleOthers}>
                 {getFieldDecorator('perTaskManagerSlots', {
                   rules: [{
@@ -263,19 +282,6 @@ export class StreamConfigForm extends React.Component {
           </Row>
           ) : ''
         }
-        <Row>
-          <Col span={24}>
-            <FormItem label="Others：" {...itemStyle}>
-              {getFieldDecorator('personalConf', {})(
-                <Input
-                  type="textarea"
-                  placeholder={locale === 'en' ? 'Format: key=value; enter into a new line as long as there is a new item' : '格式如：key=value，多条时换行输入'}
-                  autosize={{ minRows: 6, maxRows: 10 }}
-                />
-              )}
-            </FormItem>
-          </Col>
-        </Row>
       </Form>
     )
   }

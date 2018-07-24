@@ -232,7 +232,7 @@ export class DashboardItemFilters extends PureComponent {
 
   generateFilterKeyValueInput = (filter) => {
     const stringInput = (
-      <Input placeholder="Name" onChange={this.changeStringFilterKeyValue(filter)} />
+      <Input placeholder="Field Name" onChange={this.changeStringFilterKeyValue(filter)} />
     )
     return stringInput
   }
@@ -246,7 +246,7 @@ export class DashboardItemFilters extends PureComponent {
 
   generateFilterValueInput = (filter) => {
     const stringInput = (
-      <Input placeholder="Value" onChange={this.changeStringFilterValue(filter)} />
+      <Input placeholder="Field Value" onChange={this.changeStringFilterValue(filter)} />
     )
     return stringInput
   }
