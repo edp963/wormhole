@@ -21,22 +21,20 @@
 
 package edp.rider.rest.persistence.dal
 
-import edp.rider.common.{RiderLogger, FlowStatus}
+import edp.rider.RiderStarter.modules._
+import edp.rider.common.{FlowStatus, RiderLogger, StreamStatus, StreamType}
+import edp.rider.kafka.KafkaUtils.{getKafkaEarliestOffset, getKafkaLatestOffset}
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.ActionClass
-import edp.rider.rest.util.{CommonUtils, StreamUtils}
+import edp.rider.rest.util.{CommonUtils, FlowUtils}
 import edp.rider.rest.util.CommonUtils._
-import slick.jdbc.MySQLProfile.api._
-import slick.lifted.{CanBeQueryCondition, TableQuery}
 import edp.rider.rest.util.FlowUtils._
 import edp.rider.service.util.CacheMap
-import slick.lifted.TableQuery
-import edp.rider.RiderStarter.modules._
-import edp.rider.kafka.KafkaUtils.{getKafkaEarliestOffset, getKafkaLatestOffset}
+import slick.jdbc.MySQLProfile.api._
+import slick.lifted.{CanBeQueryCondition, TableQuery}
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
@@ -48,61 +46,61 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     val flows = Await.result(super.findByFilter(f), minTimeOut)
 
     val streamIds = flows.map(_.streamId).distinct
-    val streamMap = Await.result(streamDal.findByFilter(_.id inSet (streamIds)), minTimeOut)
-      .map(stream => (stream.id, StreamInfo(stream.name, stream.streamType, stream.functionType, stream.status)))
+
+    val streamMap = streamDal.refreshStreamStatus(None, Some(streamIds))
+      .map(stream => (stream.id, StreamInfo(stream.name, stream.sparkAppid, stream.streamType, stream.functionType, stream.status)))
       .toMap[Long, StreamInfo]
 
-    val flowStreams = flows.map(flow => FlowStream(flow.id, flow.projectId, flow.streamId, flow.sourceNs, flow.sinkNs, flow.parallelism, flow.consumedProtocol,
-      flow.sinkConfig, flow.tranConfig, flow.status, flow.startedTime, flow.stoppedTime, flow.active, flow.createTime,
-      flow.createBy, flow.updateTime, flow.updateBy, streamMap(flow.streamId).name, streamMap(flow.streamId).status, streamMap(flow.streamId).streamType, streamMap(flow.streamId).functionType, "", "", None, Seq(), ""))
+    val flowStreams = FlowUtils.getFlowStatusByYarn(flows.map(flow => FlowStream(flow.id, flow.projectId, flow.streamId, flow.sourceNs, flow.sinkNs, flow.parallelism, flow.consumedProtocol,
+      flow.sinkConfig, flow.tranConfig, flow.status, flow.startedTime, flow.stoppedTime, flow.logPath, flow.active, flow.createTime,
+      flow.createBy, flow.updateTime, flow.updateBy, streamMap(flow.streamId).name, streamMap(flow.streamId).appId, streamMap(flow.streamId).status, streamMap(flow.streamId).streamType, streamMap(flow.streamId).functionType, "", "", None, Seq(), "")))
 
     val flowDisableActions = getDisableActions(flows)
 
     Future(flowStreams.map(flowStream => {
       genFlowStreamByAction(FlowStream(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
-        flowStream.sinkConfig, flowStream.tranConfig, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.active, flowStream.createTime,
-        flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowDisableActions(flowStream.id), getHideActions(flowStream.streamType), flowStream.topicInfo, flowStream.currentUdf, flowStream.msg), action)
+        flowStream.sinkConfig, flowStream.tranConfig, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.logPath, flowStream.active, flowStream.createTime,
+        flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamAppId, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowDisableActions(flowStream.id), getHideActions(flowStream.streamType), flowStream.topicInfo, flowStream.currentUdf, flowStream.msg), action)
     }))
 
   }
 
-//  def getFlowAllInfo[C: CanBeQueryCondition](f: (FlowTable) => C, action: String = "refresh"): Future[Seq[FlowAllInfo]] = {
-//    val flows = Await.result(super.findByFilter(f), minTimeOut)
-//
-//    val streamIds = flows.map(_.streamId).distinct
-//    val streamMap = Await.result(streamDal.findByFilter(_.id inSet (streamIds)), minTimeOut)
-//      .map(stream => (stream.id, StreamInfo(stream.name, stream.streamType, stream.functionType, stream.status)))
-//      .toMap[Long, StreamInfo]
-//
-//    val flowStreams = flows.map(flow => FlowStream(flow.id, flow.projectId, flow.streamId, flow.sourceNs, flow.sinkNs, flow.parallelism, flow.consumedProtocol,
-//      flow.sinkConfig, flow.tranConfig, flow.status, flow.startedTime, flow.stoppedTime, flow.active, flow.createTime,
-//      flow.createBy, flow.updateTime, flow.updateBy, streamMap(flow.streamId).name, streamMap(flow.streamId).status, streamMap(flow.streamId).streamType, streamMap(flow.streamId).functionType, "", "", ""))
-//
-//    val flowDisableActions = getDisableActions(flows)
-//
-//    val flowStream = flowStreams.map(flowStream => {
-//      newFlowStream(FlowStream(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
-//        flowStream.sinkConfig, flowStream.tranConfig, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.active, flowStream.createTime,
-//        flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowDisableActions(flowStream.id), getHideActions(flowStream.streamType), flowStream.msg), action)
-//    })
-//
-//    Future(flowStream.map(flowStream => FlowAllInfo(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
-//      flowStream.sinkConfig, flowStream.tranConfig, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.active, flowStream.createTime,
-//      flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowStream.disableActions, flowStream.hideActions, getFlowTopicsAllOffsets(flowStream.id), flowUdfDal.getFlowUdf(flowStream.id), flowStream.msg)))
-//  }
+  //  def getFlowAllInfo[C: CanBeQueryCondition](f: (FlowTable) => C, action: String = "refresh"): Future[Seq[FlowAllInfo]] = {
+  //    val flows = Await.result(super.findByFilter(f), minTimeOut)
+  //
+  //    val streamIds = flows.map(_.streamId).distinct
+  //    val streamMap = Await.result(streamDal.findByFilter(_.id inSet (streamIds)), minTimeOut)
+  //      .map(stream => (stream.id, StreamInfo(stream.name, stream.streamType, stream.functionType, stream.status)))
+  //      .toMap[Long, StreamInfo]
+  //
+  //    val flowStreams = flows.map(flow => FlowStream(flow.id, flow.projectId, flow.streamId, flow.sourceNs, flow.sinkNs, flow.parallelism, flow.consumedProtocol,
+  //      flow.sinkConfig, flow.tranConfig, flow.status, flow.startedTime, flow.stoppedTime, flow.active, flow.createTime,
+  //      flow.createBy, flow.updateTime, flow.updateBy, streamMap(flow.streamId).name, streamMap(flow.streamId).status, streamMap(flow.streamId).streamType, streamMap(flow.streamId).functionType, "", "", ""))
+  //
+  //    val flowDisableActions = getDisableActions(flows)
+  //
+  //    val flowStream = flowStreams.map(flowStream => {
+  //      newFlowStream(FlowStream(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
+  //        flowStream.sinkConfig, flowStream.tranConfig, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.active, flowStream.createTime,
+  //        flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowDisableActions(flowStream.id), getHideActions(flowStream.streamType), flowStream.msg), action)
+  //    })
+  //
+  //    Future(flowStream.map(flowStream => FlowAllInfo(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
+  //      flowStream.sinkConfig, flowStream.tranConfig, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.active, flowStream.createTime,
+  //      flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowStream.disableActions, flowStream.hideActions, getFlowTopicsAllOffsets(flowStream.id), flowUdfDal.getFlowUdf(flowStream.id), flowStream.msg)))
+  //  }
 
 
   def getById(projectId: Long, flowId: Long): Future[Option[FlowStream]] = {
     try {
-
       val flowStreamOpt = Await.result(defaultGetAll(_.id === flowId), minTimeOut).headOption
       flowStreamOpt match {
         case Some(flowStream) =>
           Future(Some(FlowStream(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
-            flowStream.sinkConfig, flowStream.tranConfig, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.active, flowStream.createTime,
-            flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType,
+            flowStream.sinkConfig, flowStream.tranConfig, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.logPath, flowStream.active, flowStream.createTime,
+            flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamAppId, flowStream.streamStatus, flowStream.streamType,
             flowStream.functionType, flowStream.disableActions, flowStream.hideActions,
-            Option(getFlowTopicsAllOffsets(flowId)),flowUdfDal.getFlowUdf(flowId), flowStream.msg)))
+            Option(getFlowTopicsAllOffsets(flowId)), flowUdfDal.getFlowUdf(flowId), flowStream.msg)))
         case None => Future(None)
       }
     }
@@ -230,16 +228,18 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
   def genFlowStreamByAction(flowStream: FlowStream, action: String): FlowStream = {
     try {
       val flowStatus = actionRule(flowStream, action)
-      val startedTime = if (action == "start" || action == "renew") Some(currentSec) else flowStream.startedTime
-      val stoppedTime = if (action == "stop") Some(currentSec)
-      else if (action == "start" || action == "renew") null
-      else flowStream.stoppedTime
+//      val startedTime = if (action == "start" || action == "renew") Some(currentSec) else flowStream.startedTime
+//      val stoppedTime = if (action == "stop" && flowStatus.flowStatus == FlowStatus.STOPPED.toString) Some(currentSec)
+//      else if (action == "start" || action == "renew") null
+//      else if (flowStream.stoppedTime.getOrElse("") == "" && (flowStatus.flowStatus == FlowStatus.FAILED.toString || flowStatus.flowStatus == FlowStatus.STOPPED.toString))
+//        Some(currentSec)
+//      else flowStream.stoppedTime
 
-      updateStatusByAction(flowStream.id, flowStatus.flowStatus, startedTime, stoppedTime)
+      updateStatusByAction(flowStream.id, flowStatus.flowStatus, flowStatus.startTime, flowStatus.stopTime)
 
       val flow = FlowStream(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
-        flowStream.sinkConfig, flowStream.tranConfig, flowStatus.flowStatus, startedTime, stoppedTime, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
-        flowStream.updateBy, flowStream.streamName, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowStatus.disableActions, flowStream.hideActions,
+        flowStream.sinkConfig, flowStream.tranConfig, flowStatus.flowStatus, flowStatus.startTime, flowStatus.stopTime, flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
+        flowStream.updateBy, flowStream.streamName, flowStream.streamAppId, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowStatus.disableActions, flowStream.hideActions,
         flowStream.topicInfo, flowStream.currentUdf, flowStatus.msg)
       flow
     } catch {
@@ -264,15 +264,15 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
         deleteFlow(flowSeq, userId)
       } else {
         updateTimeAndUser(flowIdSeq, userId)
-        val flowStreamSeq = defaultGetAll(_.id inSet flowIdSeq)
-        flowStreamSeq.map[Seq[FlowStream]] {
-          flowStreamSeq => {
-            streamDal.refreshStreamStatus(None, Some(flowStreamSeq.map(_.streamId).distinct))
-            flowStreamSeq.map {
-              flowStream => genFlowStreamByAction(flowStream, flowAction.action)
-            }
-          }
-        }
+        defaultGetAll(_.id inSet flowIdSeq, flowAction.action)
+        //        flowStreamSeq.map[Seq[FlowStream]] {
+        //          flowStreamSeq => {
+        //            streamDal.refreshStreamStatus(None, Some(flowStreamSeq.map(_.streamId).distinct))
+        //            flowStreamSeq.map {
+        //              flowStream => genFlowStreamByAction(flowStream, flowAction.action)
+        //            }
+        //          }
+        //        }
       }
     } catch {
       case ex: Exception =>
@@ -306,7 +306,12 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
   def deleteFlow(flowSeq: Seq[Flow], userId: Long) = {
     val flowStream = Await.result(defaultGetAll(_.id inSet flowSeq.map(_.id)), minTimeOut)
     flowStream.foreach(flow => {
-      stopFlow(flow.streamId, flow.id, userId, flow.streamType, flow.sourceNs, flow.sinkNs, flow.tranConfig.getOrElse(""))
+      if (flow.streamType == StreamType.SPARK.toString)
+        stopFlow(flow.streamId, flow.id, userId, flow.streamType, flow.sourceNs, flow.sinkNs, flow.tranConfig.getOrElse(""))
+      else {
+        if (flow.streamStatus == StreamStatus.RUNNING.toString && flow.status == FlowStatus.RUNNING.toString)
+          stopFlinkFlow(flow.streamAppId.get, getFlowName(flow.sourceNs, flow.sinkNs))
+      }
       Await.result(super.deleteById(flow.id), minTimeOut)
       CacheMap.flowCacheMapRefresh
     })
@@ -381,7 +386,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     })
   }
 
-  def updateByFlowStatus(flowId: Long, status: String, userId: Long) : Future[Int]= {
+  def updateByFlowStatus(flowId: Long, status: String, userId: Long): Future[Int] = {
     if (status == FlowStatus.STARTING.toString) {
       db.run(flowTable.filter(_.id === flowId)
         .map(flow => (flow.status, flow.startedTime, flow.stoppedTime, flow.updateTime, flow.updateBy))
@@ -392,5 +397,22 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
         .update(status, currentSec, userId)).mapTo[Int]
     }
   }
+
+  def updateStatusByStreamStop(flowIds: Seq[Long], status: String): Future[Int] = {
+    if (status == FlowStatus.STOPPED.toString || status == FlowStatus.FAILED.toString) {
+      db.run(flowTable.filter(_.id inSet flowIds)
+        .map(flow => (flow.status, flow.stoppedTime))
+        .update(status, Some(currentSec))).mapTo[Int]
+    } else {
+      db.run(flowTable.filter(_.id inSet flowIds)
+        .map(flow => (flow.status))
+        .update(status)).mapTo[Int]
+    }
+  }
+
+  def updateLogPath(flowId: Long, logPath: String): Int = {
+    Await.result(db.run(flowTable.filter(_.id === flowId).map(_.logPath).update(Option(logPath))), minTimeOut)
+  }
+
 
 }
