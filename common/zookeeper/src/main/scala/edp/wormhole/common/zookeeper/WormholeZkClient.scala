@@ -47,7 +47,7 @@ object WormholeZkClient {
 
   def closeZkClient(): Unit ={
     try{
-      if (zkClient == null) {
+      if (zkClient != null) {
         zkClient.close()
       }
     }catch{
