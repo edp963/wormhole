@@ -461,8 +461,12 @@ export class WorkbenchFlowForm extends React.Component {
                 })(
                   <RadioGroup className="radio-group-style" onChange={this.changeStreamType} size="default">
                     <RadioButton value="default" className="radio-btn-style radio-btn-extra" disabled={flowDisabledOrNot}>Default</RadioButton>
-                    <RadioButton value="hdfslog" className={`radio-btn-style radio-btn-extra ${flowSubPanelKey === 'flink' ? 'hide' : ''}`} disabled={flowDisabledOrNot}>Hdfslog</RadioButton>
-                    <RadioButton value="routing" className={`radio-btn-style radio-btn-extra ${flowSubPanelKey === 'flink' ? 'hide' : ''}`} disabled={flowDisabledOrNot}>Routing</RadioButton>
+                    {flowSubPanelKey === 'flink' ? '' : (
+                      <RadioButton value="hdfslog" className={`radio-btn-style radio-btn-extra`} disabled={flowDisabledOrNot}>Hdfslog</RadioButton>
+                    )}
+                    {flowSubPanelKey === 'flink' ? '' : (
+                      <RadioButton value="routing" className={`radio-btn-style radio-btn-extra`} disabled={flowDisabledOrNot}>Routing</RadioButton>
+                    )}
                   </RadioGroup>
                 )}
               </FormItem>

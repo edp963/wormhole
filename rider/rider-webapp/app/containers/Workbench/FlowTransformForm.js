@@ -862,11 +862,21 @@ export class FlowTransformForm extends React.Component {
                       hidden: flinkTransformTypeHiddens[2] || !patternModalShow
                     })(
                       <RadioGroup size="default">
-                        <RadioButton value="begin" className="radio-btn-style" disabled={operatorBtnInitVal !== 'begin'}>Begin</RadioButton>
-                        <RadioButton value="next" className="radio-btn-style" disabled={operatorBtnInitVal === 'begin'}>Next</RadioButton>
-                        <RadioButton value="followby" className="radio-btn-style" disabled={operatorBtnInitVal === 'begin'}>FollowBy</RadioButton>
-                        <RadioButton value="notnext" className="radio-btn-style" disabled={operatorBtnInitVal === 'begin'}>NotNext</RadioButton>
-                        <RadioButton value="notfollowby" className="radio-btn-style" disabled={operatorBtnInitVal === 'begin'}>NotFollowBy</RadioButton>
+                        {operatorBtnInitVal === 'begin' ? (
+                          <RadioButton value="begin" className={`radio-btn-style`}>Begin</RadioButton>
+                        ) : ''}
+                        {operatorBtnInitVal !== 'begin' ? (
+                          <RadioButton value="next" className={`radio-btn-style`}>Next</RadioButton>
+                        ) : ''}
+                        {operatorBtnInitVal !== 'begin' ? (
+                          <RadioButton value="followedby" className={`radio-btn-style`}>FollowedBy</RadioButton>
+                        ) : ''}
+                        {operatorBtnInitVal !== 'begin' ? (
+                          <RadioButton value="notnext" className={`radio-btn-style`}>NotNext</RadioButton>
+                        ) : ''}
+                        {operatorBtnInitVal !== 'begin' ? (
+                          <RadioButton value="notfollowedby" className={`radio-btn-style`}>NotFollowedBy</RadioButton>
+                        ) : ''}
                       </RadioGroup>
                     )}
                   </FormItem>
@@ -882,9 +892,9 @@ export class FlowTransformForm extends React.Component {
                     })(
                       <RadioGroup size="default" onChange={this.changeQuartifier}>
                         <RadioButton value="oneormore" className="radio-btn-style">OneOrMore</RadioButton>
-                        <RadioButton value="times" className={`radio-btn-style ${quartifierTimesBtnToInput ? 'hide' : ''}`}>Times($int$)</RadioButton>
+                        <RadioButton value="times" className={`radio-btn-style ${quartifierTimesBtnToInput ? 'hide' : ''}`}>Times</RadioButton>
                         <input ref={this.setQuartifierTimesInputRef} className={`${quartifierTimesBtnToInput ? '' : 'hide'}`} />
-                        <RadioButton value="timesormore" className={`radio-btn-style ${quartifierTimesOrMoreBtnToInput ? 'hide' : ''}`}>TimesOrMore($int$)</RadioButton>
+                        <RadioButton value="timesormore" className={`radio-btn-style ${quartifierTimesOrMoreBtnToInput ? 'hide' : ''}`}>TimesOrMore</RadioButton>
                         <input ref={this.setQuartifierTimesOrMoreInputRef} className={`${quartifierTimesOrMoreBtnToInput ? '' : 'hide'}`} />
                       </RadioGroup>
                     )}
