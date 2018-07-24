@@ -325,7 +325,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
               if (session.projectIdList.contains(id)) {
                 val stream = Await.result(streamDal.findById(streamId), minTimeOut).get
                 if (checkAction(stream.streamType, STOP.toString, stream.status)) {
-                  val status = stopStream(stream.sparkAppid, stream.status)
+                  val status = stopStream(stream.id, stream.streamType, stream.sparkAppid, stream.status)
                   riderLogger.info(s"user ${
                     session.userId
                   } stop stream $streamId success.")

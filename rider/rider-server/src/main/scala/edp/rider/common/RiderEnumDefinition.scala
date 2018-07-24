@@ -95,8 +95,8 @@ object DbPermission extends Enumeration {
   def dbPermission(s: String) = DbPermission.withName(s)
 }
 
-object SparkAppStatus extends Enumeration {
-  type SparkAppStatus = Value
+object YarnAppStatus extends Enumeration {
+  type YarnAppStatus = Value
 
   val STARTING = Value("STARTING")
   val ACCEPTED = Value("ACCEPTED")
@@ -104,8 +104,10 @@ object SparkAppStatus extends Enumeration {
   val SUCCEEDED = Value("SUCCEEDED")
   val KILLED = Value("KILLED")
   val FINISHED = Value("FINISHED")
+  val FAILED = Value("FAILED")
+  val CANCELED = Value("CANCELED")
 
-  def sparkAppStatus(s: String) = StreamStatus.withName(s.toUpperCase)
+  def yarnAppStatus(s: String) = YarnAppStatus.withName(s.toUpperCase)
 }
 
 
