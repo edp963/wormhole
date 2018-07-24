@@ -23,7 +23,7 @@ package edp.rider.spark
 
 import java.io.File
 
-import edp.rider.common.SparkAppStatus._
+import edp.rider.common.YarnAppStatus._
 import edp.rider.common.{RiderLogger, StreamStatus}
 import edp.rider.spark.SubmitSparkJob._
 
@@ -33,24 +33,23 @@ import scala.sys.process._
 object SparkJobClientLog extends RiderLogger {
 
   def getLogByAppName(appName: String, logPath: String) = {
-    assert(appName != "" || appName != null, "Refresh Spark Application log, app name couldn't be null or blank.")
+    assert(appName != "" || appName != null, "Refresh log, name couldn't be null or blank.")
 //    val logPath = getLogPath(appName)
     if (new File(logPath).exists) {
       val command = s"tail -500 $logPath"
-      riderLogger.debug(s"Refresh Spark Application $appName client log command: $command.")
       try {
         command !!
       } catch {
         case runTimeEx: java.lang.RuntimeException =>
-          riderLogger.warn(s"Refresh Spark Application $appName client log command failed", runTimeEx)
+          riderLogger.warn(s"Refresh $appName client log command failed", runTimeEx)
           if (runTimeEx.getMessage.contains("Nonzero exit value: 1"))
-            "The stream/job log file doesn't exist."
+            "The log file doesn't exist."
           else runTimeEx.getMessage
         case ex: Exception => ex.getMessage
       }
     } else {
-      riderLogger.warn(s"Spark Application $appName client log file $logPath doesn't exist.")
-      "The stream log/job file doesn't exist."
+      riderLogger.warn(s"$appName client log file $logPath doesn't exist.")
+      "The log file doesn't exist."
     }
 
   }

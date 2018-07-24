@@ -139,6 +139,7 @@ object StreamUtils extends RiderLogger {
                 }
                 case "running" =>
                   if (List("FAILED", "KILLED", "FINISHED").contains(sparkStatus.appState.toUpperCase)) {
+                    FlowUtils.updateStatusByStreamStop(stream.id, stream.streamType, "failed")
                     AppInfo(sparkStatus.appId, "failed", sparkStatus.startedTime, sparkStatus.finishedTime)
                   }
                   else {
@@ -146,6 +147,7 @@ object StreamUtils extends RiderLogger {
                   }
                 case "stopping" =>
                   if (sparkStatus.appState == "KILLED" || sparkStatus.appState == "FAILED" || sparkStatus.appState == "FINISHED") {
+                    FlowUtils.updateStatusByStreamStop(stream.id, stream.streamType, "stopped")
                     AppInfo(sparkStatus.appId, "stopped", sparkStatus.startedTime, sparkStatus.finishedTime)
                   }
                   else {
@@ -523,15 +525,22 @@ object StreamUtils extends RiderLogger {
     seq
   }
 
-  def stopStream(sparkAppid: Option[String], status: String): String = {
+  def stopStream(streamId: Long, streamType: String, sparkAppid: Option[String], status: String): String = {
     if (status == RUNNING.toString || status == WAITING.toString) {
       if (sparkAppid.getOrElse("") != "") {
         val cmdStr = "yarn application -kill " + sparkAppid.get
         riderLogger.info(s"stop stream command: $cmdStr")
         runShellCommand(cmdStr)
+        FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPING.toString)
         STOPPING.toString
-      } else STOPPED.toString
-    } else STOPPED.toString
+      } else {
+        FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPED.toString)
+        STOPPED.toString
+      }
+    } else {
+      FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPED.toString)
+      STOPPED.toString
+    }
   }
 
   def checkAdminRemoveUdfs(projectId: Long, ids: Seq[Long]): (mutable.HashMap[Long, Seq[String]], ListBuffer[Long]) = {

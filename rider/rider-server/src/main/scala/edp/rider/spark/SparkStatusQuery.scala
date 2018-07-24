@@ -23,10 +23,8 @@ package edp.rider.spark
 
 import com.alibaba.fastjson.JSON
 import edp.rider.RiderStarter.modules
-import edp.rider.common
-import edp.rider.rest.persistence.entities.Flow
 import edp.rider.common._
-import edp.rider.rest.persistence.entities.{FullJobInfo, Job}
+import edp.rider.rest.persistence.entities.{FlinkJobStatus, FullJobInfo, Job}
 import edp.rider.rest.util.JobUtils.getDisableAction
 import edp.rider.spark.SparkJobClientLog._
 import edp.wormhole.common.util.DateUtils._
@@ -34,6 +32,7 @@ import edp.wormhole.common.util.DtFormat
 import edp.wormhole.common.util.JsonUtils._
 import spray.json.JsonParser
 
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scalaj.http.{Http, HttpResponse}
 
@@ -128,7 +127,7 @@ object SparkStatusQuery extends RiderLogger {
           riderLogger.debug("refresh spark/yarn api response is null")
         }
     }
-    if (result.finalStatus != null && result.finalStatus == SparkAppStatus.SUCCEEDED.toString)
+    if (result.finalStatus != null && result.finalStatus == YarnAppStatus.SUCCEEDED.toString)
       AppInfo(result.appId, StreamStatus.DONE.toString, result.startedTime, result.finishedTime)
     else
       AppInfo(result.appId, result.appStatus, result.startedTime, result.finishedTime)
@@ -186,14 +185,12 @@ object SparkStatusQuery extends RiderLogger {
           val appSeq = JSON.parseObject(app).getJSONArray("app")
           for (i <- 0 until appSeq.size()) {
             val info = appSeq.getString(i)
-            val stopTime =
-              if (JSON.parseObject(info).getLong("finishedTime") == 0) null
-              else dt2string(dt2date(JSON.parseObject(info).getLong("finishedTime") * 1000), DtFormat.TS_DASH_SEC)
+            val stopTime = formatTime(JSON.parseObject(info).getLong("finishedTime"))
             resultList += AppResult(JSON.parseObject(info).getString("id"),
               JSON.parseObject(info).getString("name"),
               JSON.parseObject(info).getString("state"),
               JSON.parseObject(info).getString("finalStatus"),
-              dt2string(dt2date(JSON.parseObject(info).getLong("startedTime") * 1000), DtFormat.TS_DASH_SEC),
+              formatTime(JSON.parseObject(info).getLong("startedTime")),
               stopTime
             )
           }
@@ -274,38 +271,34 @@ object SparkStatusQuery extends RiderLogger {
     }
   }
 
-//  def getJobManagerAddressOnYarn(appId: String): String = {
-//    val activeRm = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
-//    val url = s"http://$activeRm/ws/v1/cluster/apps/${appId}"
-//    try {
-//      val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
-////      riderLogger.info(response.toString)
-//      val json = JsonParser.apply(response.body).toString()
-//      val app = JSON.parseObject(json).getString("app")
-//      JSON.parseObject(app).getString("amHostHttpAddress")
-//    } catch {
-//      case ex: Exception =>
-//        riderLogger.error(s"Get Flink JobManager address failed by request url $url", ex)
-//        throw ex
-//    }
-//  }
+  //  def getJobManagerAddressOnYarn(appId: String): String = {
+  //    val activeRm = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
+  //    val url = s"http://$activeRm/ws/v1/cluster/apps/${appId}"
+  //    try {
+  //      val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
+  ////      riderLogger.info(response.toString)
+  //      val json = JsonParser.apply(response.body).toString()
+  //      val app = JSON.parseObject(json).getString("app")
+  //      JSON.parseObject(app).getString("amHostHttpAddress")
+  //    } catch {
+  //      case ex: Exception =>
+  //        riderLogger.error(s"Get Flink JobManager address failed by request url $url", ex)
+  //        throw ex
+  //    }
+  //  }
 
 
   def getJobManagerAddressOnYarn(appId: String): String = {
     val activeRm = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
-    val url = s"http://$activeRm/proxy/${appId}/jobmanager/config"
+    //    val url = s"http://$activeRm/proxy/$appId/jobmanager/config"
+    val url = s"http://$activeRm/proxy/$appId/jars"
     try {
       val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
       val json = JsonParser.apply(response.body).toString()
-      val hostString = JSON.parseArray(json).getString(2).split("\\:")(1)
-      riderLogger.info(hostString)
-      riderLogger.info(JSON.parseArray(json).getString(2))
-      val host = hostString.substring(1, hostString.length-7)
-      val portString = JSON.parseArray(json).getString(5).split("\\:")(1)
-      val port = portString.substring(1, portString.length-7)
-//      val host = JSON.parseArray(JSON.parseObject(json).getString("jobmanager.rpc.address"))
-//      val port = JSON.parseArray(JSON.parseObject(json).getString("jobmanager.rpc.port"))
-      s"$host:$port"
+      //      val host = JSON.parseObject(json).getString("jobmanager.rpc.address")
+      //      val port = JSON.parseObject(json).getString("jobmanager.rpc.port")
+      //      s"$host:$port"
+      JSON.parseObject(json).getString("address").split("//")(1).trim
     } catch {
       case ex: Exception =>
         riderLogger.error(s"Get Flink JobManager address failed by request url $url", ex)
@@ -313,24 +306,67 @@ object SparkStatusQuery extends RiderLogger {
     }
   }
 
-  def getJobIdOnYarn(sparkAppid: String, flow: Flow): String = {
-    var jobId :String = null
+  def getFlinkJobStatusOnYarn(appIds: Seq[String]): Map[String, FlinkJobStatus] = {
     val activeRm = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
-    val url =s"http://$activeRm/proxy/${sparkAppid}/jobs/overview"
+    val flinkJobMap = HashMap.empty[String, FlinkJobStatus]
+    appIds.foreach {
+      appId =>
+        val url = s"http://$activeRm/proxy/$appId/jobs/overview"
+        try {
+          val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
+          //          riderLogger.info("flow yarn response: " + response)
+          val json = JsonParser.apply(response.body).toString()
+          val jobs = JSON.parseObject(json).getJSONArray("jobs")
+          for (i <- 0 until jobs.size) {
+            val jobJson = JSON.parseObject(jobs.getString(i))
+            val jobName = jobJson.getString("name")
+            val jobId = jobJson.getString("jid")
+            val startTime = formatTime(jobJson.getLong("start-time"))
+            val stopTime = formatTime(jobJson.getLong("end-time"))
+            val state = jobJson.getString("state")
+            if (flinkJobMap.contains(jobName)) {
+              if (startTime > flinkJobMap(jobName).startTime)
+                flinkJobMap(jobName) = FlinkJobStatus(jobName, jobId, state, startTime, stopTime)
+            } else
+              flinkJobMap.put(jobName, FlinkJobStatus(jobName, jobId, state, startTime, stopTime))
+          }
+        } catch {
+          case ex: Exception =>
+            riderLogger.error(s"Get Flink job status failed by request url $url", ex)
+            throw ex
+        }
+    }
+    flinkJobMap.toMap
+  }
+
+  def getJobIdOnYarn(appId: String, flowName: String): String = {
+    var jobId = ""
+    val activeRm = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
+    val url = s"http://$activeRm/proxy/$appId/jobs/overview"
     try {
       val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
+      //      riderLogger.info("flow yarn response: " + response)
       val json = JsonParser.apply(response.body).toString()
       val jobsSeq = JSON.parseObject(json).getJSONArray("jobs")
       for (i <- 0 until jobsSeq.size()) {
         val info = jobsSeq.getString(i)
-        if(JSON.parseObject(info).getString("name").equals(s"${flow.sourceNs}-${flow.sinkNs}"))
+        if (JSON.parseObject(info).getString("name").equals(flowName)) {
           jobId = JSON.parseObject(info).getString("jid")
+        }
+        else
+          throw new Exception(s"flow $flowName not found on url $url")
       }
+      jobId
     } catch {
-      case e: Exception =>
-        riderLogger.error(s"Flink Application refresh yarn rest url $url failed", e)
+      case ex: Exception =>
+        riderLogger.error(s"Get Flink Job id failed by request url $url", ex)
+        throw ex
     }
-    jobId
   }
 
+  private def formatTime(time: Long): String = {
+    if (time != 0 && time != -1)
+      dt2string(dt2date(time * 1000), DtFormat.TS_DASH_SEC)
+    else null
+  }
 }
