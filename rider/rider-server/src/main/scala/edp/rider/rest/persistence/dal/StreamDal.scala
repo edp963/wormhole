@@ -75,7 +75,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       val projectMap = getStreamProjectMap(streamSeq)
       streamSeq.map(
         stream => {
-          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), None, Seq[StreamUdf](), getDisableActions(StreamStatus.withName(stream.status)))
+          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), None, Seq[StreamUdf](), getDisableActions(stream.streamType, stream.status), getHideActions(stream.streamType))
         }
       )
     } catch {
@@ -83,6 +83,40 @@ class StreamDal(streamTable: TableQuery[StreamTable],
         riderLogger.error(s"get stream detail failed", ex)
         throw GetStreamDetailException(ex.getMessage, ex.getCause)
     }
+  }
+
+  def getSimpleStreamInfo(projectIdOpt: Option[Long] = None, streamType: String, functionTypeOpt: Option[String] = None, streamIdsOpt: Option[Seq[Long]] = None, action: String = REFRESH.toString): Seq[SimpleStreamInfo] = {
+    if(streamType.equals("flink")){
+      val streamSeq = refreshStreamStatus(projectIdOpt, streamIdsOpt, action).filter(_.streamType == "flink")
+      val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
+      val startConfigMap = streamSeq.map(stream => (stream.id, stream.startConfig)).toMap[Long, String]
+      val configMap = streamSeq.map(stream => (stream.id, json2caseClass[FlinkResourceConfig](startConfigMap(stream.id)))).toMap[Long, FlinkResourceConfig]
+      val maxParallelismMap = streamSeq.map(stream =>(stream.id, configMap(stream.id).taskManagersNumber*configMap(stream.id).perTaskManagerSlots)).toMap[Long, Int]
+      streamSeq.map(
+        stream => {
+          SimpleStreamInfo(stream.id, stream.name, maxParallelismMap(stream.id), streamKafkaMap(stream.id).instance, getStreamTopicsName(stream.id)._2)
+        }
+      )
+    } else {
+      if (functionTypeOpt.isEmpty) {
+        val streamSeq = refreshStreamStatus(projectIdOpt, streamIdsOpt, action).filter(_.streamType == "spark")
+        val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
+        streamSeq.map(
+          stream => {
+            SimpleStreamInfo(stream.id, stream.name, 0, streamKafkaMap(stream.id).instance, getStreamTopicsName(stream.id)._2)
+          }
+        )
+      } else {
+        val streamSeq = refreshStreamStatus(projectIdOpt, streamIdsOpt, action).filter(_.streamType == "spark").filter(_.functionType == functionTypeOpt.get)
+        val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
+        streamSeq.map(
+          stream => {
+            SimpleStreamInfo(stream.id, stream.name, 0, streamKafkaMap(stream.id).instance, getStreamTopicsName(stream.id)._2)
+          }
+        )
+      }
+    }
+
   }
 
   def getStreamDetail(projectIdOpt: Option[Long] = None, streamIdsOpt: Option[Seq[Long]] = None, action: String = REFRESH.toString): Seq[StreamDetail] = {
@@ -106,7 +140,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
           //          val zkUdfs = streamZkUdfSeq.filter(_.streamId == stream.id).map(
           //            udf => StreamZkUdf(udf.functionName, udf.fullClassName, udf.jarName)
           //          )
-          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), Option(streamTopicMap(stream.id)), udfs, getDisableActions(StreamStatus.withName(stream.status)))
+          StreamDetail(stream, projectMap(stream.projectId), streamKafkaMap(stream.id), Option(streamTopicMap(stream.id)), udfs, getDisableActions(stream.streamType, stream.status), getHideActions(stream.streamType))
         }
       )
     } catch {
@@ -119,8 +153,8 @@ class StreamDal(streamTable: TableQuery[StreamTable],
 
   def updateByPutRequest(putStream: PutStream, userId: Long): Future[Int] = {
     db.run(streamTable.filter(_.id === putStream.id)
-      .map(stream => (stream.desc, stream.sparkConfig, stream.startConfig, stream.launchConfig, stream.updateTime, stream.updateBy))
-      .update(putStream.desc, putStream.sparkConfig, putStream.startConfig, putStream.launchConfig, currentSec, userId)).mapTo[Int]
+      .map(stream => (stream.desc, stream.streamConfig, stream.startConfig, stream.launchConfig, stream.updateTime, stream.updateBy))
+      .update(putStream.desc, putStream.streamConfig, putStream.startConfig, putStream.launchConfig, currentSec, userId)).mapTo[Int]
   }
 
   def updateByStatus(streamId: Long, status: String, userId: Long, logPath: String): Future[Int] = {
@@ -200,11 +234,18 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     var usedMemory = 0
     val streamResources: Seq[AppResource] = streamSeq.map(
       stream => {
-        val config = json2caseClass[StartConfig](stream.startConfig)
-        usedCores += config.driverCores + config.executorNums * config.perExecutorCores
-        usedMemory += config.driverMemory + config.executorNums * config.perExecutorMemory
-        AppResource(stream.name, config.driverCores, config.driverMemory, config.executorNums, config.perExecutorMemory, config.perExecutorCores)
-
+        StreamType.withName(stream.streamType) match {
+          case StreamType.SPARK =>
+            val config = json2caseClass[StartConfig](stream.startConfig)
+            usedCores += config.driverCores + config.executorNums * config.perExecutorCores
+            usedMemory += config.driverMemory + config.executorNums * config.perExecutorMemory
+            AppResource(stream.name, config.driverCores, config.driverMemory, config.executorNums, config.perExecutorMemory, config.perExecutorCores)
+          case StreamType.FLINK =>
+            val config = json2caseClass[FlinkResourceConfig](stream.startConfig)
+            usedCores += config.taskManagersNumber * config.perTaskManagerSlots
+            usedMemory += config.jobManagerMemoryGB + config.taskManagersNumber * config.perTaskManagerSlots
+            AppResource(stream.name, 0, config.jobManagerMemoryGB, config.taskManagersNumber, config.perTaskManagerMemoryGB, config.perTaskManagerSlots)
+        }
       }
     )
     (usedCores, usedMemory, streamResources)
@@ -212,10 +253,11 @@ class StreamDal(streamTable: TableQuery[StreamTable],
 
   def checkTopicExists(streamId: Long, topic: String): Boolean = {
     var exist = false
-    if (streamInTopicDal.checkAutoRegisteredTopicExists(streamId, topic) || udfTopicDal.checkUdfTopicExists(streamId, topic))
+    if (streamInTopicDal.checkAutoRegisteredTopicExists(streamId, topic) || streamUdfTopicDal.checkUdfTopicExists(streamId, topic))
       exist = true
     exist
   }
+
 
   // get kafka instance id, url
   def getKafkaInfo(streamId: Long): (Long, String) = {
@@ -238,8 +280,8 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   }
 
   def getStreamTopicsMap(streamIds: Seq[Long]): Map[Long, GetTopicsResponse] = {
-    val autoRegisteredTopics = inTopicDal.getAutoRegisteredTopics(streamIds)
-    val udfTopics = udfTopicDal.getUdfTopics(streamIds)
+    val autoRegisteredTopics = streamInTopicDal.getAutoRegisteredTopics(streamIds)
+    val udfTopics = streamUdfTopicDal.getUdfTopics(streamIds)
     val kafkaMap = getStreamKafkaMap(streamIds)
     streamIds.map(id => {
       val topics = autoRegisteredTopics.filter(_.streamId == id) ++: udfTopics.filter(_.streamId == id)
@@ -253,10 +295,19 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       val udfUpdateTopics = udfTopicsResponse.map(topic => UpdateTopicOffset(topic.id, topic.consumedLatestOffset))
 
       streamInTopicDal.updateOffset(autoRegisteredUpdateTopics)
-      udfTopicDal.updateOffset(udfUpdateTopics)
+      streamUdfTopicDal.updateOffset(udfUpdateTopics)
       (id, GetTopicsResponse(autoTopicsResponse, udfTopicsResponse))
     }).toMap
     //    GetTopicsResponse(autoRegisteredTopicsResponse, udfTopicsResponse)
+  }
+    //getStreamTopicsName for getSimpleStreamInfo
+  def getStreamTopicsName(streamIds: Long): (Long, Seq[String]) = {
+    val autoRegisteredTopics = streamInTopicDal.getAutoRegisteredTopics(streamIds)
+    val udfTopics = streamUdfTopicDal.getUdfTopics(streamIds)
+    val topics = autoRegisteredTopics.filter(_.streamId == streamIds) ++: udfTopics.filter(_.streamId == streamIds)
+    val topicsName = topics.map(topics => topics.name)
+    val topicInfo = (streamIds, topicsName)
+    topicInfo
   }
 
 

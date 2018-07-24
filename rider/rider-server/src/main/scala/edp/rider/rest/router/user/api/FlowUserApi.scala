@@ -23,21 +23,23 @@ package edp.rider.rest.router.user.api
 
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
-import edp.rider.common.RiderLogger
-import edp.rider.rest.persistence.dal.{FlowDal, StreamDal}
-import edp.rider.rest.persistence.entities._
-
-import scala.concurrent.Await
+import edp.rider.RiderStarter.modules._
+import edp.rider.common._
+import edp.rider.kafka.KafkaUtils
+import edp.rider.kafka.KafkaUtils.{getKafkaEarliestOffset, getKafkaLatestOffset}
+import edp.rider.rest.persistence.dal.{FlowDal, FlowUdfDal, StreamDal}
+import edp.rider.rest.persistence.entities.{FlowTable, _}
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.rest.util.{AuthorizationProvider, FlowUtils, NamespaceUtils, NsDatabaseUtils}
+import edp.rider.rest.util.{AuthorizationProvider, FlowUtils}
 import edp.rider.service.util.CacheMap
 import slick.jdbc.MySQLProfile.api._
 
+import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
-class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImpl[FlowTable, Flow](flowDal) with RiderLogger with JsonSerializer {
+class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal) extends BaseUserApiImpl[FlowTable, Flow](flowDal) with RiderLogger with JsonSerializer {
 
   override def getByIdRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows" / LongNumber) {
     (projectId, streamId, flowId) =>
@@ -46,26 +48,27 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
           session =>
             if (session.roleType != "user") {
               riderLogger.warn(s"user ${session.userId} has no permission to access it.")
-              complete(OK, getHeader(403, session))
+              complete(OK, setFailedResponse(session, "Insufficient permission"))
             }
             else {
               if (session.projectIdList.contains(projectId)) {
                 streamDal.refreshStreamStatus(Some(projectId), Some(Seq(streamId)))
                 riderLogger.info(s"user ${session.userId} refresh streams.")
-                onComplete(flowDal.getById(projectId, flowId).mapTo[Option[FlowStreamInfo]]) {
+                onComplete(flowDal.getById(projectId, flowId).mapTo[Option[FlowStream]]) {
                   case Success(flowStreamOpt) =>
                     riderLogger.info(s"user ${session.userId} select flow where project id is $projectId and flow id is $flowId success.")
                     flowStreamOpt match {
-                      case Some(flowStream) => complete(OK, ResponseJson[FlowStreamInfo](getHeader(200, session), flowStream))
+                      case Some(flowStream) =>
+                        complete(OK, ResponseJson[FlowStream](getHeader(200, session), flowStream))
                       case None => complete(OK, ResponseJson[String](getHeader(200, session), ""))
                     }
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} select flow where project id is $projectId and flow id is $flowId failed", ex)
-                    complete(OK, getHeader(451, ex.getMessage, session))
+                    complete(OK, setFailedResponse(session, ex.getMessage))
                 }
               } else {
                 riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
-                complete(OK, getHeader(403, session))
+                complete(OK, setFailedResponse(session, "Insufficient permission"))
               }
             }
         }
@@ -99,7 +102,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                             }
                           case Failure(ex) =>
                             riderLogger.error(s"user ${session.userId} check flow source namespace $sourceNs and sink namespace $sinkNs does exist failed", ex)
-                            complete(OK, getHeader(451, ex.getMessage, session))
+                            complete(OK, setFailedResponse(session, ex.getMessage))
                         }
                       case (_, None, None) =>
                         streamDal.refreshStreamStatus(Some(projectId))
@@ -112,16 +115,16 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                             complete(OK, ResponseSeqJson[FlowStream](getHeader(200, session), flowStreams.sortBy(_.id)))
                           case Failure(ex) =>
                             riderLogger.error(s"user ${session.userId} refresh project $projectId all flows failed", ex)
-                            complete(OK, getHeader(451, ex.getMessage, session))
+                            complete(OK, setFailedResponse(session, ex.getMessage))
                         }
 
                       case (_, _, _) =>
                         riderLogger.error(s"user ${session.userId} request url is not supported.")
-                        complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
+                        complete(OK, setFailedResponse(session, "Insufficient permission"))
                     }
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
-                    complete(OK, getHeader(403, session))
+                    complete(OK, setFailedResponse(session, "Insufficient permission"))
                   }
                 }
             }
@@ -146,41 +149,55 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                     val checkFormat = FlowUtils.checkConfigFormat(simple.sinkConfig.getOrElse(""), simple.tranConfig.getOrElse(""))
                     if (checkFormat._1) {
                       val flowInsertSeq =
-                        if (Await.result(streamDal.findById(streamId), minTimeOut).head.streamType != "hdfslog")
-                          Seq(Flow(0, simple.projectId, simple.streamId, simple.sourceNs.trim, simple.sinkNs.trim, simple.consumedProtocol.trim, simple.sinkConfig,
-                            simple.tranConfig, "new", None, None, active = true, currentSec, session.userId, currentSec, session.userId))
+                        if (Await.result(streamDal.findById(streamId), minTimeOut).head.functionType != "hdfslog")
+                          Seq(Flow(0, simple.projectId, simple.streamId, simple.sourceNs.trim, simple.sinkNs.trim, simple.parallelism, simple.consumedProtocol.trim, simple.sinkConfig,
+                            simple.tranConfig, "new", None, None, None, active = true, currentSec, session.userId, currentSec, session.userId))
                         else
                           FlowUtils.flowMatch(projectId, streamId, simple.sourceNs).map(
                             sourceNs =>
-                              Flow(0, simple.projectId, simple.streamId, sourceNs, sourceNs, simple.consumedProtocol, simple.sinkConfig,
-                                simple.tranConfig, "new", None, None, active = true, currentSec, session.userId, currentSec, session.userId)
+                              Flow(0, simple.projectId, simple.streamId, sourceNs, sourceNs, simple.parallelism, simple.consumedProtocol, simple.sinkConfig,
+                                simple.tranConfig, "new", None, None, None, active = true, currentSec, session.userId, currentSec, session.userId)
                           )
                       try {
                         val flows = flowDal.insertOrAbort(flowInsertSeq)
                         riderLogger.info(s"user ${session.userId} insert flows where project id is $projectId success.")
                         onComplete(flowDal.defaultGetAll(_.id inSet flows.map(_.id)).mapTo[Seq[FlowStream]]) {
                           case Success(flowStream) =>
+                            val autoRegisteredTopics = flowStream.filter(_.streamType == StreamType.FLINK.toString)
+                              .map {
+                                flow =>
+                                  val ns = namespaceDal.getNsDetail(flow.sourceNs)
+                                  val latestOffset =
+                                    try {
+                                      KafkaUtils.getKafkaLatestOffset(ns._1.connUrl, ns._2.nsDatabase)
+                                    } catch {
+                                      case _: Exception =>
+                                        ""
+                                    }
+                                  FlowInTopic(0, flow.id, ns._3.nsDatabaseId, latestOffset, 1, true, currentSec, session.userId, currentSec, session.userId)
+                              }
+                            Await.result(flowInTopicDal.insert(autoRegisteredTopics), minTimeOut)
                             CacheMap.flowCacheMapRefresh
                             complete(OK, ResponseJson[Seq[FlowStream]](getHeader(200, session), flowStream))
-                          case Failure(ex) =>
+                          case Failure(ex)
+                          =>
                             riderLogger.error(s"user ${session.userId} refresh flow where project id is $projectId failed", ex)
-                            complete(OK, getHeader(451, ex.getMessage, session))
+                            complete(OK, setFailedResponse(session, ex.getMessage))
                         }
-                      } catch {
+                      }
+                      catch {
                         case ex: Exception =>
                           riderLogger.error(s"user ${session.userId} insert flows where project id is $projectId failed", ex)
-                          if (ex.getMessage.contains("Duplicate entry"))
-                            complete(OK, getHeader(409, "this source to sink already exists", session))
-                          else
-                            complete(OK, getHeader(451, ex.getMessage, session))
+                          complete(OK, setFailedResponse(session, ex.getMessage))
                       }
-                    } else {
+                    }
+                    else {
                       riderLogger.warn(s"user ${session.userId} insert flow failed, caused by ${checkFormat._2}")
-                      complete(OK, getHeader(400, checkFormat._2, session))
+                      complete(OK, setFailedResponse(session, checkFormat._2))
                     }
                   } else {
                     riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
-                    complete(OK, getHeader(403, session))
+                    complete(OK, setFailedResponse(session, "Insufficient permission"))
                   }
                 }
             }
@@ -207,8 +224,8 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                     if (checkFormat._1) {
                       val startedTime = if (flow.startedTime.getOrElse("") == "") null else flow.startedTime
                       val stoppedTime = if (flow.stoppedTime.getOrElse("") == "") null else flow.stoppedTime
-                      val updateFlow = Flow(flow.id, flow.projectId, flow.streamId, flow.sourceNs.trim, flow.sinkNs.trim, flow.consumedProtocol.trim, flow.sinkConfig,
-                        flow.tranConfig, flow.status, startedTime, stoppedTime, flow.active, flow.createTime, flow.createBy, currentSec, session.userId)
+                      val updateFlow = Flow(flow.id, flow.projectId, flow.streamId, flow.sourceNs.trim, flow.sinkNs.trim, flow.parallelism, flow.consumedProtocol.trim, flow.sinkConfig,
+                        flow.tranConfig, flow.status, startedTime, stoppedTime, flow.logPath, flow.active, flow.createTime, flow.createBy, currentSec, session.userId)
 
                       val stream = Await.result(streamDal.findById(streamId), minTimeOut).head
                       val existFlow = Await.result(flowDal.findById(flow.id), minTimeOut).head
@@ -216,7 +233,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
                       onComplete(flowDal.update(updateFlow).mapTo[Int]) {
                         case Success(_) =>
                           if (streamId != flow.streamId)
-                            FlowUtils.stopFlow(streamId, flow.id, session.userId, stream.streamType, existFlow.sourceNs, existFlow.sinkNs, flow.tranConfig.getOrElse(""))
+                            FlowUtils.stopFlow(streamId, flow.id, session.userId, stream.functionType, existFlow.sourceNs, existFlow.sinkNs, flow.tranConfig.getOrElse(""))
                           riderLogger.info(s"user ${session.userId} update flow ${updateFlow.id} where project id is $projectId success.")
                           onComplete(flowDal.defaultGetAll(_.id === updateFlow.id, "modify").mapTo[Seq[FlowStream]]) {
                             case Success(flowStream) =>
@@ -288,25 +305,299 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseUserApiImp
 
   }
 
-  def getDriftStreams(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows" / LongNumber / "driftstreams") {
-    (projectId, streamId, flowId) =>
+  def postFlowTopicsOffsetRoute(route: String): Route = path(route / LongNumber / "flows" / LongNumber / "topics") {
+    (projectId, flowId) =>
+      post {
+        entity(as[GetTopicsOffsetRequest]) {
+          topics => {
+            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+              session =>
+                if (session.roleType != "user") {
+                  riderLogger.warn(s"${session.userId} has no permission to access it.")
+                  //complete(OK, getHeader(403, session))
+                  complete(OK, setFailedResponse(session, "Insufficient Permission"))
+                }
+                else {
+                  if (session.projectIdList.contains(projectId)) {
+                    try {
+                      if (Await.result(flowDal.findById(flowId), minTimeOut).nonEmpty) {
+                        postFlowTopicsOffsetResponse(projectId, flowId, topics, session)
+                      } else {
+                        riderLogger.error(s"user ${session.userId} insert user defined topic failed caused by flow $flowId not found.")
+                        complete(OK, setFailedResponse(session, "flow not found."))
+                      }
+                    } catch {
+                      case ex: Exception =>
+                        riderLogger.error(s"user ${session.userId} insert user defined topic failed", ex)
+                        complete(OK, setFailedResponse(session, ex.getMessage))
+                    }
+                  } else {
+                    riderLogger.error(s"user ${
+                      session.userId
+                    } doesn't have permission to access the project $projectId.")
+                    complete(OK, setFailedResponse(session, "Insufficient Permission"))
+                  }
+                }
+            }
+          }
+        }
+      }
+  }
+
+  def postFlowTopicsOffsetResponse(id: Long, flowId: Long, topics: GetTopicsOffsetRequest, session: SessionClass): Route = {
+    val allTopics = flowDal.getFlowTopicsAllOffsets(flowId)
+    val userDefinedTopics = allTopics.userDefinedTopics
+    val userDefinedTopicsName = userDefinedTopics.map(_.name)
+    val newTopics = topics.userDefinedTopics.filter(!userDefinedTopicsName.contains(_))
+    val newTopicsOffset = newTopics.map(topic => {
+      val kafkaInfo = flowDal.getFlowKafkaInfo(flowId)
+      val latestOffset = getKafkaLatestOffset(kafkaInfo._2, topic)
+      val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, topic)
+      val consumedOffset = earliestOffset
+      SimpleFlowTopicAllOffsets(topic, RiderConfig.flinkDefaultRate, consumedOffset, earliestOffset, latestOffset)
+    })
+    val response = GetFlowTopicsOffsetResponse(
+      allTopics.autoRegisteredTopics.map(topic =>
+        SimpleFlowTopicAllOffsets(topic.name, RiderConfig.flinkDefaultRate, topic.consumedLatestOffset, topic.kafkaEarliestOffset, topic.kafkaLatestOffset)),
+      userDefinedTopics.filter(topic => topics.userDefinedTopics.contains(topic.name)).map(topic =>
+        SimpleFlowTopicAllOffsets(topic.name, RiderConfig.flinkDefaultRate, topic.consumedLatestOffset, topic.kafkaEarliestOffset, topic.kafkaLatestOffset))
+        ++: newTopicsOffset)
+    riderLogger.info(s"user ${session.userId} get flow $flowId topics offset success.")
+    complete(OK, ResponseJson[GetFlowTopicsOffsetResponse](getHeader(200, session), response))
+  }
+
+  def postFlowUserDefinedTopicRoute(route: String): Route = path(route / LongNumber / "flows" / LongNumber / "topics" / "userdefined") {
+    (projectId, flowId) =>
+      post {
+        entity(as[PostUserDefinedTopic]) {
+          postTopic => {
+            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+              session =>
+                if (session.roleType != "user") {
+                  riderLogger.warn(s"${session.userId} has no permission to access it.")
+                  complete(OK, getHeader(403, session))
+                }
+                else {
+                  if (session.projectIdList.contains(projectId)) {
+                    try {
+                      if (Await.result(flowDal.findById(flowId), minTimeOut).nonEmpty) {
+                        postUserDefinedTopicResponse(projectId, flowId, postTopic, session)
+                      } else {
+                        riderLogger.error(s"user ${session.userId} insert user defined topic failed caused by stream $flowId not found.")
+                        complete(OK, setFailedResponse(session, "flow not found."))
+                      }
+                    } catch {
+                      case ex: Exception =>
+                        riderLogger.error(s"user ${session.userId} insert user defined topic failed", ex)
+                        complete(OK, setFailedResponse(session, ex.getMessage))
+                    }
+                  } else {
+                    riderLogger.error(s"user ${
+                      session.userId
+                    } doesn't have permission to access the project $projectId.")
+                    complete(OK, setFailedResponse(session, "Insufficient Permission"))
+                  }
+                }
+            }
+          }
+        }
+      }
+  }
+
+  def postUserDefinedTopicResponse(projectId: Long, flowId: Long, postTopic: PostUserDefinedTopic, session: SessionClass): Route = {
+    // topic duplication check
+    if (flowDal.checkFlowTopicExists(flowId, postTopic.name)) {
+      throw new Exception("flow topic relation already exists.")
+    }
+    val kafkaInfo = flowDal.getFlowKafkaInfo(flowId)
+    // get kafka earliest/latest offset
+    val latestOffset = getKafkaLatestOffset(kafkaInfo._2, postTopic.name)
+    val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, postTopic.name)
+
+    // response
+    val topicResponse = SimpleFlowTopicAllOffsets(postTopic.name, RiderConfig.flinkDefaultRate, earliestOffset, earliestOffset, latestOffset)
+
+    riderLogger.info(s"user ${session.userId} get user defined topic offsets success.")
+    complete(OK, ResponseJson[SimpleFlowTopicAllOffsets](getHeader(200, session), topicResponse))
+  }
+
+  def getFlowTopicsRoute(route: String): Route = path(route / LongNumber / "flows" / LongNumber / "topics") {
+    (projectId, flowId) =>
       get {
         authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
           session =>
             if (session.roleType != "user") {
-              riderLogger.warn(s"user ${session.userId} has no permission to access it.")
+              riderLogger.warn(s"${session.userId} has no permission to access it.")
               complete(OK, getHeader(403, session))
             }
             else {
               if (session.projectIdList.contains(projectId)) {
-                complete(OK, setSuccessResponse(session))
+                Await.result(flowDal.findById(flowId), minTimeOut) match {
+                  case Some(_) => getTopicsResponse(projectId, flowId, session)
+                  case None =>
+                    riderLogger.info(s"user ${session.userId} get flow $flowId topics failed caused by flow not found.")
+                    complete(OK, setFailedResponse(session, "flow not found."))
+                }
               } else {
-                riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
-                complete(OK, setFailedResponse(session, "Insufficient permission"))
+                riderLogger.error(s"user ${
+                  session.userId
+                } doesn't have permission to access the project $projectId.")
+                complete(OK, setFailedResponse(session, "Insufficient Permission"))
               }
             }
         }
       }
   }
+
+
+  private def getTopicsResponse(projectId: Long, flowId: Long, session: SessionClass): Route
+  = {
+
+    val topics = flowDal.getFlowTopicsAllOffsets(flowId)
+    riderLogger.info(s"user ${session.userId} get flow $flowId topics success.")
+    complete(OK, ResponseJson[GetTopicsResponse](getHeader(200, session), topics))
+  }
+
+  def getFlowUdfsRoute(route: String): Route = path(route / LongNumber / "flows" / LongNumber / "udfs") {
+    (projectId, flowId) =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "user") {
+              riderLogger.warn(s"${session.userId} has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            } else {
+              if (session.projectIdList.contains(projectId)) {
+                Await.result(flowDal.findById(flowId), minTimeOut) match {
+                  case Some(_) => getFlowUdfsResponse(flowId, session)
+                  case None =>
+                    riderLogger.info(s"user ${session.userId} get flow $flowId topics failed caused by flow not found.")
+                    complete(OK, setFailedResponse(session, "flow not found."))
+                }
+              } else {
+                riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
+                complete(OK, setFailedResponse(session, "Insufficient Permission"))
+              }
+            }
+        }
+      }
+  }
+
+  def getFlowUdfsResponse(flowId: Long, session: SessionClass): Route = {
+    val udfs = flowUdfDal.getFlowUdf(flowId)
+    riderLogger.info(s"user ${session.userId} get flow $flowId topics success.")
+    complete(OK, ResponseSeqJson[FlowUdfResponse](getHeader(200, session), udfs))
+  }
+
+  def startFlinkRoute(route: String): Route = path(route / LongNumber / "flinkstreams" / "flows" / LongNumber / "start") {
+    (projectId, flowId) =>
+      put {
+        entity(as[FlowDirective]) {
+          flowDirective =>
+            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+              session =>
+                if (session.roleType != "user") {
+                  riderLogger.warn(s"${
+                    session.userId
+                  } has no permission to access it.")
+                  //complete(OK, getHeader(403, session))
+                  complete(OK, setFailedResponse(session, "Insufficient Permission"))
+                }
+                else {
+                  startResponse(projectId, flowId, flowDirective, session)
+                }
+            }
+        }
+      }
+  }
+
+  private def startResponse(projectId: Long, flowId: Long, flowDirective: FlowDirective, session: SessionClass): Route
+
+  = {
+    try {
+      if (session.projectIdList.contains(projectId)) {
+        //        val flow = Await.result(flowDal.findById(flowId), minTimeOut).head
+        //        val stream = streamDal.refreshStreamStatus(Some(projectId), Some(Seq(flow.streamId))).head
+        //        riderLogger.info(s"user ${session.userId} refresh streams.")
+        //        if (!FlowUtils.getDisableActions(flow).contains("start") && stream.status == "running") {
+        FlowUtils.updateUdfsByStart(flowId, flowDirective.udfInfo, session.userId)
+        FlowUtils.updateTopicsByStart(flowId, flowDirective.topicInfo, session.userId)
+        val flowStream = Await.result(flowDal.defaultGetAll(_.id === flowId, "start"), minTimeOut).head
+        if (flowStream.msg.contains("success")) {
+          riderLogger.info(s"user ${session.userId} start flow $flowId success.")
+          flowDal.updateTimeAndUser(Seq(flowId), session.userId)
+          //          complete(OK, ResponseJson[FlowStream](getHeader(200, session), flowStream))
+          complete(OK, ResponseJson[FlinkResponse](getHeader(200, session), FlinkResponse(flowId, flowStream.status, flowStream.disableActions, FlowUtils.getHideActions(flowStream.streamType))))
+        } else {
+          riderLogger.info(s"user ${session.userId} can't start flow.")
+          complete(OK, setFailedResponse(session, flowStream.msg))
+        }
+        //          flowDal.updateStatusByAction(flowId, "starting", Option(currentSec), None)
+        //          complete(OK, ResponseJson[FlinkResponse](getHeader(200, session), FlinkResponse(flow.id, s"$START,$RENEW,$STOP", FlowUtils.getHideActions(stream.streamType))))
+        //        } else {
+        //          riderLogger.info(s"user ${session.userId} can't start flow.")
+        //          complete(OK, setFailedResponse(session, "start is forbidden"))
+        //        }
+      } else {
+        riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
+        complete(OK, setFailedResponse(session, "Insufficient Permission"))
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"user ${session.userId} get resources for project ${projectId}  failed when start new flow", ex)
+        complete(OK, setFailedResponse(session, ex.getMessage))
+    }
+  }
+
+  def stopFlinkRoute(route: String): Route = path(route / LongNumber / "flinkstreams" / "flows" / LongNumber / "stop") {
+    (projectId, flowId) =>
+      put {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "user") {
+              riderLogger.warn(s"${
+                session.userId
+              } has no permission to access it.")
+              complete(OK, getHeader(403, session))
+            }
+            else {
+              if (session.projectIdList.contains(projectId)) {
+                val flowStream = Await.result(flowDal.defaultGetAll(_.id === flowId, "stop"), minTimeOut).head
+                if (flowStream.msg.contains("success")) {
+                  riderLogger.info(s"user ${session.userId} stop flow $flowId success.")
+                  flowDal.updateTimeAndUser(Seq(flowId), session.userId)
+                  complete(OK, ResponseJson[FlinkResponse](getHeader(200, session), FlinkResponse(flowId, flowStream.status, flowStream.disableActions, FlowUtils.getHideActions(flowStream.streamType))))
+                } else {
+                  riderLogger.info(s"user ${session.userId} can't stop flow.")
+                  complete(OK, setFailedResponse(session, flowStream.msg))
+                }
+                //                val flow = Await.result(flowDal.findById(flowId), minTimeOut).head
+                //                val stream = Await.result(streamDal.findById(flow.streamId), minTimeOut).head
+                //                if (!FlowUtils.getDisableActions(flow).contains("stop")) {
+                //                  val status = stopFlinkFlow(stream.sparkAppid.get, FlowUtils.getFlowName(flow.sourceNs, flow.sinkNs), flow.status)
+                //                  riderLogger.info(s"user ${session.userId} stop flow $flowId success.")
+                //                  flowDal.updateStatusByAction(flowId, status, flow.startedTime, Option(currentSec))
+                //                  complete(OK, ResponseJson[FlinkResponse](getHeader(200, session), FlinkResponse(flow.id, s"$START,$RENEW,$STOP", FlowUtils.getHideActions(stream.streamType))))
+                //                } else {
+                //                  riderLogger.info(s"user ${session.userId} can't stop flow $flowId now")
+                //                  complete(OK, getHeader(406, s"stop is forbidden", session))
+                //                }
+              }
+              else {
+                riderLogger.error(s"user ${
+                  session.userId
+                } doesn't have permission to access the project $projectId.")
+                complete(OK, setFailedResponse(session, "Insufficient Permission"))
+              }
+            }
+        }
+      }
+  }
+
+  //  private def checkAction(flow: Flow, action: String): Boolean = {
+  //    if (getDisableActions(flow).contains(action)) false
+  //    else true
+  //  }
+
 
 }

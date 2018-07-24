@@ -48,10 +48,10 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
               else {
                 streamDal.refreshStreamStatus()
                 riderLogger.info(s"user ${session.userId} refresh streams.")
-                onComplete(flowDal.adminGetAll(visible.getOrElse(true)).mapTo[Seq[FlowStreamAdmin]]) {
+                onComplete(flowDal.adminGetAllInfo(visible.getOrElse(true)).mapTo[Seq[FlowAdminAllInfo]]) {
                   case Success(flowStreams) =>
                     riderLogger.info(s"user ${session.userId} select all $route success.")
-                    complete(OK, ResponseSeqJson[FlowStreamAdmin](getHeader(200, session), flowStreams.sortBy(_.id)))
+                    complete(OK, ResponseSeqJson[FlowAdminAllInfo](getHeader(200, session), flowStreams.sortBy(_.id)))
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} select all $route failed", ex)
                     complete(OK, getHeader(451, ex.getMessage, session))
@@ -75,12 +75,12 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
             else {
               streamDal.refreshStreamStatus()
               riderLogger.info(s"user ${session.userId} refresh streams.")
-              onComplete(flowDal.adminGetById(id, flowId).mapTo[Option[FlowStreamAdmin]]) {
+              onComplete(flowDal.adminGetById(id, flowId).mapTo[Option[FlowAdminAllInfo]]) {
                 case Success(flowOpt) =>
                   flowOpt match {
                     case Some(flow) =>
                       riderLogger.info(s"user ${session.userId} select flow $flowId success.")
-                      complete(OK, ResponseJson[FlowStreamAdmin](getHeader(200, session), flow))
+                      complete(OK, ResponseJson[FlowAdminAllInfo](getHeader(200, session), flow))
                     case None =>
                       riderLogger.info(s"user ${session.userId} select flow $flowId success, but it doesn't exist.")
                       complete(OK, ResponseJson[String](getHeader(200, session), ""))

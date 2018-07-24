@@ -21,6 +21,7 @@
 
 package edp.rider.wormhole
 
+import edp.rider.rest.persistence.entities.FlinkDefaultConfig
 import edp.wormhole.common.{ConnectionConfig, KVConfig}
 
 case class BatchJobConfig(sourceConfig: SourceConfig,
@@ -70,10 +71,6 @@ case class SparkConfig(stream_id: Long,
 
 case class KafkaOutputConfig(feedback_topic_name: String, brokers: String, config: Option[Seq[KVConfig]] = None)
 
-case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,
-                            kafka_topics: Seq[KafkaTopicConfig],
-                            inWatch: Boolean)
-
 case class KafkaInputBaseConfig(group_id: String,
                                 batch_duration_seconds: Int,
                                 brokers: String,
@@ -85,10 +82,24 @@ case class KafkaInputBaseConfig(group_id: String,
                                 `value.deserializer`: String = "org.apache.kafka.common.serialization.StringDeserializer",
                                 `enable.auto.commit`: Boolean = false)
 
+case class KafkaBaseConfig(group_id: String,
+                           brokers: String,
+                           `session.timeout.ms`: Int = 30000,
+                           `group.max.session.timeout.ms`: Int = 60000,
+                           `key.deserializer`: String = "org.apache.kafka.common.serialization.StringDeserializer",
+                           `value.deserializer`: String = "org.apache.kafka.common.serialization.StringDeserializer",
+                           `auto.offset.reset`: String = "earliest"
+                          )
 
-case class KafkaTopicConfig(topic_name: String,
-                            topic_rate: Int,
-                            topic_partition: Seq[PartitionOffsetConfig])
+case class KafkaFlinkTopic(topic_name: String,
+                           topic_partition: String)
 
-case class PartitionOffsetConfig(partition_num: Int, offset: Long)
+
+case class KafkaInput(kafka_base_config: KafkaBaseConfig, kafka_topics: Seq[KafkaFlinkTopic])
+
+case class WhFlinkConfig(kafka_input: KafkaInput,
+                         kafka_output: KafkaOutputConfig,
+                         parallelism: Int,
+                         zookeeper_address: String,
+                         flink_config: String = "")
 
