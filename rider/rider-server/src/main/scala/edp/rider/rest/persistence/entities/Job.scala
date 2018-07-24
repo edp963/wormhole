@@ -26,27 +26,27 @@ import slick.lifted.{Rep, Tag}
 import slick.jdbc.MySQLProfile.api._
 
 case class Job(id: Long,
-               name: String, // 1
-               projectId: Long, // 1
-               sourceNs: String, // 1
-               sinkNs: String, // 1
-               jobType: String, //1
-               sparkConfig: Option[String] = None,
-               startConfig: String,
-               eventTsStart: String, // 1
-               eventTsEnd: String,
-               sourceConfig: Option[String],
-               sinkConfig: Option[String],
-               tranConfig: Option[String],
-               status: String,
-               sparkAppid: Option[String] = None,
-               logPath: Option[String] = None,
-               startedTime: Option[String] = None,
-               stoppedTime: Option[String] = None,
-               createTime: String,
-               createBy: Long,
-               updateTime: String,
-               updateBy: Long) extends BaseEntity {
+    name: String, // 1
+    projectId: Long, // 1
+    sourceNs: String, // 1
+    sinkNs: String, // 1
+    jobType: String, //1
+    sparkConfig: Option[String] = None,
+    startConfig: String,
+    eventTsStart: String, // 1
+    eventTsEnd: String,
+    sourceConfig: Option[String],
+    sinkConfig: Option[String],
+    tranConfig: Option[String],
+    status: String,
+    sparkAppid: Option[String] = None,
+    logPath: Option[String] = None,
+    startedTime: Option[String] = None,
+    stoppedTime: Option[String] = None,
+    createTime: String,
+    createBy: Long,
+    updateTime: String,
+    updateBy: Long) extends BaseEntity {
   override def copyWithId(id: Long): this.type = {
     copy(id = id).asInstanceOf[this.type]
   }

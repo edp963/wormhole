@@ -56,6 +56,7 @@ object Action extends Enumeration {
   val MODIFY = Value("modify")
   val RENEW = Value("renew")
   val DELETE = Value("delete")
+  val BATCHSELECT = Value("batchSelect")
 
   def action(s: String) = Action.withName(s.toLowerCase)
 }
@@ -94,8 +95,8 @@ object DbPermission extends Enumeration {
   def dbPermission(s: String) = DbPermission.withName(s)
 }
 
-object SparkAppStatus extends Enumeration {
-  type SparkAppStatus = Value
+object YarnAppStatus extends Enumeration {
+  type YarnAppStatus = Value
 
   val STARTING = Value("STARTING")
   val ACCEPTED = Value("ACCEPTED")
@@ -103,8 +104,10 @@ object SparkAppStatus extends Enumeration {
   val SUCCEEDED = Value("SUCCEEDED")
   val KILLED = Value("KILLED")
   val FINISHED = Value("FINISHED")
+  val FAILED = Value("FAILED")
+  val CANCELED = Value("CANCELED")
 
-  def sparkAppStatus(s: String) = StreamStatus.withName(s.toUpperCase)
+  def yarnAppStatus(s: String) = YarnAppStatus.withName(s.toUpperCase)
 }
 
 
@@ -148,4 +151,23 @@ object JobSinkProtocol extends Enumeration {
   val SNAPSHOT = Value("snapshot")
 
   def getJobSinkProtocol(s: String) = JobSinkProtocol.withName(s.toLowerCase)
+}
+
+object FunctionType extends Enumeration {
+  type FunctionType = Value
+  val BATCHFLOW = Value("batchflow")
+  val HDFSLOG = Value("hdfslog")
+  val ROUTER = Value("router")
+
+  def functionType(s: String) = FunctionType.withName(s.toLowerCase)
+
+}
+
+object StreamType extends Enumeration {
+  type StreamType = Value
+  val SPARK = Value("spark")
+  val FLINK = Value("flink")
+
+  def streamType(s: String) = StreamType.withName(s.toLowerCase)
+
 }
