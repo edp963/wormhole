@@ -210,6 +210,7 @@ CREATE TABLE IF NOT EXISTS `flow` (
   `status` VARCHAR(200) NOT NULL,
   `started_time` TIMESTAMP NULL,
   `stopped_time` TIMESTAMP NULL,
+  `log_path` VARCHAR(2000) NULL,
   `active` TINYINT(1) NOT NULL,
   `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
@@ -222,6 +223,7 @@ ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 alter table `flow`  modify column `tran_config` LONGTEXT;
 alter table `flow` modify column `consumed_protocol` VARCHAR(100);
 alter table `flow` add column `parallelism` INT NULL after `sink_ns`;
+alter table `flow` add column `log_path` VARCHAR(2000) NULL after `stopped_time`;
 
 
 CREATE TABLE IF NOT EXISTS `directive` (

@@ -148,8 +148,8 @@ object SubmitSparkJob extends App with RiderLogger {
   // ./bin/yarn-session.sh -n 2 -tm 1024 -s 4 -jm 1024 -nm flinktest
 
   def generateFlinkStreamStartSh(stream: Stream): String = {
-    val logPath = getLogPath(stream.name)
     val resourceConfig = json2caseClass[FlinkResourceConfig](stream.startConfig)
+    val logPath = getLogPath(stream.name)
     s"""
        |${RiderConfig.flink.homePath}/bin/yarn-session.sh
        |-n ${resourceConfig.taskManagersNumber}
@@ -158,7 +158,6 @@ object SubmitSparkJob extends App with RiderLogger {
        |-jm ${resourceConfig.jobManagerMemoryGB * 1024}
        |-qu ${RiderConfig.flink.yarnQueueName}
        |-nm ${stream.name}
-       |-d
        |> $logPath 2>&1
      """.stripMargin.replaceAll("\n", " ").trim
   }

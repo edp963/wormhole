@@ -42,6 +42,8 @@ object CommonUtils extends RiderLogger {
 
   def currentMicroSec = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_DASH_MICROSEC)
 
+  def currentNodMicroSec = yyyyMMddHHmmssToString(currentyyyyMMddHHmmss, DtFormat.TS_NOD_MILLISEC)
+
   def minTimeOut = 120.seconds
 
   def maxTimeOut = 600.seconds
