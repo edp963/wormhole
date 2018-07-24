@@ -46,7 +46,7 @@ object JobUtils extends RiderLogger {
   def getBatchJobConfigConfig(job: Job) =
     BatchJobConfig(getSourceConfig(job.sourceNs, job.eventTsStart, job.eventTsEnd, job.sourceConfig),
       getTranConfig(job.tranConfig.getOrElse(""), job.sinkConfig.getOrElse(""), job.sinkNs, job.jobType),
-      getSinkConfig(job.sinkNs, job.sinkConfig.getOrElse(""), job.jobType),
+      getSinkConfig(job.sinkNs, job.sinkConfig.getOrElse(""), job.jobType, job.eventTsEnd),
       getJobConfig(job.name, job.sparkConfig))
 
   def getSourceConfig(sourceNs: String, eventTsStart: String = null, eventTsEnd: String = null, sourceConfig: Option[String]) = {
@@ -64,7 +64,7 @@ object JobUtils extends RiderLogger {
       getSourceProcessClass(sourceTypeFinal), specialConfig)
   }
 
-  def getSinkConfig(sinkNs: String, sinkConfig: String, jobType: String) = {
+  def getSinkConfig(sinkNs: String, sinkConfig: String, jobType: String, eventTsEnd: String) = {
     val (instance, db, ns) = modules.namespaceDal.getNsDetail(sinkNs)
 
     val maxRecord =
@@ -91,8 +91,20 @@ object JobUtils extends RiderLogger {
       None
     }
 
+    val sinkConnection =
+      if (instance.nsSys != UmsDataSystem.PARQUET.toString)
+        getConnConfig(instance, db)
+      else {
+        val endTs =
+          if (eventTsEnd != null && eventTsEnd != "" && eventTsEnd != "30000101000000")
+            eventTsEnd
+          else currentNodSec
+        val connUrl = getConnUrl(instance, db).stripSuffix("/") + "/" + sinkNs + "/" + endTs
+        ConnectionConfig(connUrl, db.user, db.pwd, getDbConfig(instance.nsSys, db.config.getOrElse("")))
+      }
+
     val sinkSys = if (jobType != JobType.BACKFILL.toString) ns.nsSys else UmsDataSystem.KAFKA.toString
-    SinkConfig(sinkNs, getConnConfig(instance, db), maxRecord, Some(getSinkProcessClass(sinkSys, ns.sinkSchema)), specialConfig, sinkKeys, projection)
+    SinkConfig(sinkNs, sinkConnection, maxRecord, Some(getSinkProcessClass(sinkSys, ns.sinkSchema)), specialConfig, sinkKeys, projection)
   }
 
   def getTranConfig(tranConfig: String, sinkConfig: String, sinkNs: String, jobType: String) = {
