@@ -23,6 +23,7 @@ package edp.rider.common
 import java.util.concurrent.TimeUnit
 
 import edp.rider.RiderStarter.modules.config
+import edp.rider.rest.persistence.entities.{FlinkDefaultConfig, FlinkResourceConfig}
 import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeserializer}
 
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -87,6 +88,9 @@ case class RiderSpark(user: String,
                       executorNum: Int,
                       executorMemory: Int,
                       executorCores: Int,
+                      batchDurationSec: Int,
+                      parallelismPartition: Int,
+                      maxPartitionFetchMb: Int,
                       topicDefaultRate: Int,
                       jobMaxRecordPerPartitionProcessed: Int,
                       driverExtraConf: String,
@@ -95,6 +99,7 @@ case class RiderSpark(user: String,
                       alert: Boolean,
                       metricsConfPath: String,
                       alertEmails: String)
+
 
 case class RiderEs(url: String,
                    wormholeIndex: String,
@@ -129,6 +134,9 @@ case class LdapInfo(enabled: Boolean,
                     readTimeout: Int,
                     connectTimeout: Int,
                     connectPoolEnabled: Boolean)
+
+case class RiderFlink(homePath: String,
+                      yarnQueueName: String)
 
 
 object RiderConfig {
@@ -211,7 +219,7 @@ object RiderConfig {
   lazy val kafkaConsumerCache = getBooleanConfig("spark.streaming.kafka.consumer.cache.enabled", false)
   lazy val streamDefaultDriverJvmConfig = getStringConfig("spark.driver.extraJavaOptions", "spark.driver.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc/")
   lazy val streamDefaultExecutorJvmConfig = getStringConfig("spark.executor.extraJavaOptions", "spark.executor.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc")
-  lazy val streamDefaultSaprkConfig = getStringConfig("spark.wormhole.default.conf", s"spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3,spark.streaming.kafka.consumer.cache.enabled=$kafkaConsumerCache")
+  lazy val streamDefaultSparkConfig = getStringConfig("spark.wormhole.default.conf", s"spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3,spark.streaming.kafka.consumer.cache.enabled=$kafkaConsumerCache")
   lazy val spark = RiderSpark(wormholeUser,
     sshPort,
     config.getString("spark.spark.home"),
@@ -240,8 +248,8 @@ object RiderConfig {
     s"${RiderConfig.riderRootPath}/conf/sparkx.log4j.properties",
     wormholeJarPath,
     wormholeKafka08JarPath, kafka08StreamNames, sparkxInterfaceJarPath,
-    consumer.heartbeatTopic, 2, 1, 6, 4, 2, 100, 600,
-    streamDefaultDriverJvmConfig, streamDefaultExecutorJvmConfig, streamDefaultSaprkConfig, alert, metricsConfPath, alertEmails)
+    consumer.heartbeatTopic, 2, 1, 6, 2, 1, 30, 6, 10, 100, 600,
+    streamDefaultDriverJvmConfig, streamDefaultExecutorJvmConfig, streamDefaultSparkConfig, alert, metricsConfPath, alertEmails)
 
   lazy val es =
     if (config.hasPath("elasticSearch") && config.getString("elasticSearch.http.url").nonEmpty) {
@@ -285,6 +293,12 @@ object RiderConfig {
   lazy val ldapPoolEnabled = getBooleanConfig("ldap.connect.pool", true)
 
   lazy val ldap = LdapInfo(ldapEnabled, ldapUser, ldapPwd, ldapUrl, ldapDc, readTimeout, connectTimeout, ldapPoolEnabled)
+
+  //set default flink stream config
+
+  lazy val defaultFlinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "")
+
+  lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"))
 
   def getStringConfig(path: String, default: String): String = {
     if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")
