@@ -75,8 +75,9 @@ object KafkaUtils extends RiderLogger {
       groupOffset(topic)
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"get group id $groupId consumed offset failed", ex)
+        riderLogger.warn(s"get group id $groupId consumed offset failed", ex)
         throw ex
     }
   }
+
 }
