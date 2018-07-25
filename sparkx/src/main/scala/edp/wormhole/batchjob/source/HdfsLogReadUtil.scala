@@ -82,7 +82,7 @@ object HdfsLogReadUtil extends EdpLogging {
       getHdfsFileList(conf, prefix).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).head.toString
     } else {
       names(4)
-    } 
+    }
     val pathList = ListBuffer.empty[String]
     prefix = prefix + "/" + namespaceVersion
     val parentPath = getHdfsFileList(conf,prefix).flatMap(getHdfsFileList(conf,_))
