@@ -48,7 +48,9 @@ import {
   POST_USER_TOPIC,
   DELETE_USER_TOPIC,
   LOAD_UDFS,
-  STOPFLINK_FLOWS
+  STOPFLINK_FLOWS,
+  LOAD_ADMIN_LOGS_INFO,
+  LOAD_LOGS_INFO
 } from './constants'
 
 import {
@@ -89,7 +91,9 @@ import {
   flinkFlowStartSucc,
   lastestOffsetLoaded,
   postUserTopicLoaded,
-  deleteUserTopicLoaded
+  deleteUserTopicLoaded,
+  adminLogsInfoLoaded,
+  logsInfoLoaded
 } from './action'
 
 import request from '../../utils/request'
@@ -682,6 +686,34 @@ export function* getUdfs ({payload}) {
 
 export function* getUdfsWatcher () {
   yield fork(takeEvery, LOAD_UDFS, getUdfs)
+}
+
+export function* getLogs ({ payload }) {
+  try {
+    const result = yield call(request, `${api.projectStream}/${payload.projectId}/flows/${payload.flowId}/logs`)
+    yield put(logsInfoLoaded(result.payload))
+    payload.resolve(result.payload)
+  } catch (err) {
+    notifySagasError(err, 'getLogs')
+  }
+}
+
+export function* getLogsWatcher () {
+  yield fork(takeLatest, LOAD_LOGS_INFO, getLogs)
+}
+
+export function* getAdminLogs ({ payload }) {
+  try {
+    const result = yield call(request, `${api.projectList}/${payload.projectId}/flows/${payload.flowId}/logs`)
+    yield put(adminLogsInfoLoaded(result.payload))
+    payload.resolve(result.payload)
+  } catch (err) {
+    notifySagasError(err, 'getAdminLogs')
+  }
+}
+
+export function* getAdminLogsWatcher () {
+  yield fork(takeLatest, LOAD_ADMIN_LOGS_INFO, getAdminLogs)
 }
 export default [
   getAdminAllFlowsWatcher,

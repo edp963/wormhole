@@ -85,4 +85,7 @@ export const POST_USER_TOPIC_SUCCESS = 'rider/Flow/POST_USER_TOPIC_SUCCESS'
 export const DELETE_USER_TOPIC = 'rider/Flow/DELETE_USER_TOPIC'
 export const DELETE_USER_TOPIC_SUCCESS = 'rider/Flow/DELETE_USER_TOPIC_SUCCESS'
 export const STOPFLINK_FLOWS = 'rider/Flow/STOPFLINK_FLOWS'
-
+export const LOAD_ADMIN_LOGS_INFO = 'rider/Manager/LOAD_ADMIN_LOGS_INFO'
+export const LOAD_ADMIN_LOGS_INFO_SUCCESS = 'rider/Manager/LOAD_ADMIN_LOGS_INFO_SUCCESS'
+export const LOAD_LOGS_INFO = 'rider/Manager/LOAD_LOGS_INFO'
+export const LOAD_LOGS_INFO_SUCCESS = 'rider/Manager/LOAD_LOGS_INFO_SUCCESS'

@@ -84,7 +84,11 @@ import {
   DELETE_USER_TOPIC,
   DELETE_USER_TOPIC_SUCCESS,
   LOAD_UDFS,
-  STOPFLINK_FLOWS
+  STOPFLINK_FLOWS,
+  LOAD_ADMIN_LOGS_INFO,
+  LOAD_ADMIN_LOGS_INFO_SUCCESS,
+  LOAD_LOGS_INFO,
+  LOAD_LOGS_INFO_SUCCESS
 } from './constants'
 
 export function loadAdminAllFlows (resolve) {
@@ -741,6 +745,46 @@ export function loadUdfs (projectId, streamId, roleType, resolve) {
       streamId,
       roleType,
       resolve
+    }
+  }
+}
+
+export function loadLogsInfo (projectId, flowId, resolve) {
+  return {
+    type: LOAD_LOGS_INFO,
+    payload: {
+      projectId,
+      flowId,
+      resolve
+    }
+  }
+}
+
+export function logsInfoLoaded (result) {
+  return {
+    type: LOAD_LOGS_INFO_SUCCESS,
+    payload: {
+      result
+    }
+  }
+}
+
+export function loadAdminLogsInfo (projectId, flowId, resolve) {
+  return {
+    type: LOAD_ADMIN_LOGS_INFO,
+    payload: {
+      projectId,
+      flowId,
+      resolve
+    }
+  }
+}
+
+export function adminLogsInfoLoaded (result) {
+  return {
+    type: LOAD_ADMIN_LOGS_INFO_SUCCESS,
+    payload: {
+      result
     }
   }
 }
