@@ -68,4 +68,15 @@ object KafkaUtils extends RiderLogger {
   def offsetValid(offset: String): Boolean = {
     if (offset == "") false else true
   }
+
+  def getKafkaOffsetByGroupId(brokers: String, topic: String, groupId: String): String = {
+    try {
+      val groupOffset = WormholeGetOffsetShell.getConsumerOffset(brokers, groupId)
+      groupOffset(topic)
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"get group id $groupId consumed offset failed", ex)
+        throw ex
+    }
+  }
 }

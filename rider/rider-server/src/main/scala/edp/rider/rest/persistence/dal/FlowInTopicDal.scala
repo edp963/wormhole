@@ -62,7 +62,7 @@ class FlowInTopicDal(flowInTopicTable: TableQuery[FlowInTopicTable],
   }
 
   def updateByStart(flowId: Long, topics: Seq[PutFlowTopicDirective], userId: Long): Boolean = {
-    val topicMap = getAutoRegisteredTopics(Seq(flowId)).map(topic => (topic.name, topic.id)).toMap
+    val topicMap = getAutoRegisteredTopics(Seq(flowId)).map(topic => (topic.topicName, topic.id)).toMap
     topics.map(
       topic => Await.result(
         db.run(flowInTopicTable.filter(_.id === topicMap(topic.name))
