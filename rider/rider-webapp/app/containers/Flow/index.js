@@ -49,11 +49,11 @@ import { selectLocale } from '../LanguageProvider/selectors'
 import {
   loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm,
   saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail,
-  loadSourceInput, loadFlowDetail, chuckAwayFlow, loadLastestOffset, loadUdfs, startFlinkFlow, stopFlinkFlow
+  loadSourceInput, loadFlowDetail, chuckAwayFlow, loadLastestOffset, loadUdfs, startFlinkFlow, stopFlinkFlow, loadAdminLogsInfo, loadLogsInfo
 } from './action'
 import { loadSingleUdf } from '../Udf/action'
 import FlowStartForm from './FlowStartForm'
-
+import FlowLogs from './FlowLogs'
 import { transformStringWithDot } from '../../utils/util'
 
 export class Flow extends React.Component {
@@ -117,7 +117,13 @@ export class Flow extends React.Component {
       actionType: '',
       startUdfVals: [],
       renewUdfVals: [],
-      currentUdfVal: []
+      currentUdfVal: [],
+      logsModalVisible: false,
+      logsProjectId: 0,
+      logsFlowId: 0,
+      refreshLogLoading: false,
+      refreshLogText: 'Refresh',
+      logsContent: ''
     }
   }
 
@@ -771,10 +777,48 @@ export class Flow extends React.Component {
       })
     }
   }
+  onShowLogs = (record) => (e) => {
+    this.setState({
+      logsModalVisible: true,
+      logsProjectId: record.projectId,
+      logsFlowId: record.id
+    })
+    this.loadLogsData(record.projectId, record.id)
+  }
+  onInitRefreshLogs = (projectId, flowId) => {
+    this.setState({
+      refreshLogLoading: true,
+      refreshLogText: 'Refreshing'
+    })
+    this.loadLogsData(projectId, flowId)
+  }
+  loadLogsData = (projectId, streamId) => {
+    const { roleType } = this.props
+    if (roleType === 'admin') {
+      this.props.onLoadAdminLogsInfo(projectId, streamId, (result) => {
+        this.setState({ logsContent: result })
+        this.flowLogRefreshState()
+      })
+    } else if (roleType === 'user') {
+      this.props.onLoadLogsInfo(projectId, streamId, (result) => {
+        this.setState({ logsContent: result })
+        this.flowLogRefreshState()
+      })
+    }
+  }
+  flowLogRefreshState () {
+    this.setState({
+      refreshLogLoading: false,
+      refreshLogText: 'Refresh'
+    })
+  }
 
+  handleLogsCancel = (e) => {
+    this.setState({ logsModalVisible: false })
+  }
   render () {
     const { className, onShowAddFlow, onShowEditFlow, flowClassHide, roleType, flowStartModalLoading } = this.props
-    const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails } = this.state
+    const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails, logsModalVisible, logsProjectId, logsFlowId, refreshLogLoading, refreshLogText, logsContent } = this.state
     const { selectedRowKeys } = this.state
     let { sortedInfo, filteredInfo, startModalVisible, flowStartFormData, autoRegisteredTopics, userDefinedTopics, startUdfVals, renewUdfVals, currentUdfVal, actionType } = this.state
     sortedInfo = sortedInfo || {}
@@ -1152,6 +1196,16 @@ export class Flow extends React.Component {
           const sureDeleteFormat = <FormattedMessage {...messages.flowSureDelete} />
           const sureRenewFormat = <FormattedMessage {...messages.flowSureRenew} />
 
+          let strLog = ''
+          if (record.streamType === 'flink') {
+            strLog = (
+              <Tooltip title="logs">
+                <Button shape="circle" type="ghost" onClick={this.onShowLogs(record)}>
+                  <i className="iconfont icon-log"></i>
+                </Button>
+              </Tooltip>
+            )
+          }
           const strEdit = record.disableActions.includes('modify')
             ? <Button icon="edit" shape="circle" type="ghost" disabled></Button>
             : <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
@@ -1228,6 +1282,7 @@ export class Flow extends React.Component {
                   <Button icon="delete" shape="circle" type="ghost"></Button>
                 </Tooltip>
               </Popconfirm>
+              {strLog}
             </span>
           )
         }
@@ -1443,6 +1498,23 @@ export class Flow extends React.Component {
         >
           {flowStartForm}
         </Modal>
+        <Modal
+          title="Logs"
+          visible={logsModalVisible}
+          onCancel={this.handleLogsCancel}
+          wrapClassName="ant-modal-xlarge ant-modal-no-footer"
+          footer={<span></span>}
+        >
+          <FlowLogs
+            logsContent={logsContent}
+            refreshLogLoading={refreshLogLoading}
+            refreshLogText={refreshLogText}
+            onInitRefreshLogs={this.onInitRefreshLogs}
+            logsProjectId={logsProjectId}
+            logsFlowId={logsFlowId}
+            ref={(f) => { this.streamLogs = f }}
+          />
+        </Modal>
       </div>
     )
   }
@@ -1481,7 +1553,9 @@ Flow.propTypes = {
   onLoadUdfs: PropTypes.func,
   flowStartModalLoading: PropTypes.bool,
   onStartFlinkFlow: PropTypes.func,
-  onStopFlinkFlow: PropTypes.func
+  onStopFlinkFlow: PropTypes.func,
+  onLoadAdminLogsInfo: PropTypes.func,
+  onLoadLogsInfo: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1504,7 +1578,9 @@ export function mapDispatchToProps (dispatch) {
     onLoadLastestOffset: (projectId, streamId, resolve, type, topics, tabType) => dispatch(loadLastestOffset(projectId, streamId, resolve, type, topics, tabType)),
     onLoadUdfs: (projectId, streamId, roleType, tabType, resolve) => dispatch(loadUdfs(projectId, streamId, roleType, tabType, resolve)),
     onStartFlinkFlow: (projectId, id, topicResult, action, resolve, reject) => dispatch(startFlinkFlow(projectId, id, topicResult, action, resolve, reject)),
-    onStopFlinkFlow: (projectId, id, topicResult, action, resolve, reject) => dispatch(stopFlinkFlow(projectId, id, topicResult, action, resolve, reject))
+    onStopFlinkFlow: (projectId, id, topicResult, action, resolve, reject) => dispatch(stopFlinkFlow(projectId, id, topicResult, action, resolve, reject)),
+    onLoadAdminLogsInfo: (projectId, flowId, resolve) => dispatch(loadAdminLogsInfo(projectId, flowId, resolve)),
+    onLoadLogsInfo: (projectId, flowId, resolve) => dispatch(loadLogsInfo(projectId, flowId, resolve))
   }
 }
 
