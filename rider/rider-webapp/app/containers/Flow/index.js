@@ -327,7 +327,7 @@ export class Flow extends React.Component {
       for (let i = 0; i < currentUdfTemp.length; i++) {
         topicsSelectValue.push(`${currentUdfTemp[i].id}`)
       }
-      this.flowStartForm.setFieldsValue({ udfs: topicsSelectValue })
+      // this.flowStartForm.setFieldsValue({ udfs: topicsSelectValue })
     })
 
     // 与user UDF table相同的接口获得全部的UDFs
