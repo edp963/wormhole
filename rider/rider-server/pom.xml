@@ -42,7 +42,7 @@
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
-            <artifactId>wormhole-kafka-010</artifactId>
+            <artifactId>wormhole-kafka-010-2</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -172,7 +172,7 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_${scala.binary.version}</artifactId>
-            <version>${kafka.version}</version>
+            <version>0.10.2.2</version>
             <exclusions>
                 <exclusion>
                     <groupId>junit</groupId>
