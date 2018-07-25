@@ -50,7 +50,7 @@ object CommonUtils extends RiderLogger {
 
   val keyEqualValuePattern = "([a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*=[a-zA-Z0-9]+[a-zA-z0-9\\_\\-\\.]*(&[a-zA-Z]+[a-zA-z0-9\\_\\-\\.]*=[a-zA-Z0-9]+[a-zA-z0-9\\_\\-\\.]*)*)".r.pattern
 
-  val streamSparkConfigPattern = "(.+=.+(,.+.+)*)".r.pattern
+  val streamConfigPattern = "(.+=.+(,.+.+)*)".r.pattern
 
   val namePattern = "[^\\.]*".r.pattern
 
@@ -86,10 +86,10 @@ object CommonUtils extends RiderLogger {
     keyEqualValuePattern.matcher(str.split(",").mkString("&")).matches()
   }
 
-  def isStreamSparkConfig(str: String): Boolean = {
+  def isStreamConfig(str: String): Boolean = {
     if (str == "" || str == null)
       return true
-    streamSparkConfigPattern.matcher(str).matches()
+    streamConfigPattern.matcher(str).matches()
   }
 
 }

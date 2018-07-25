@@ -149,3 +149,22 @@ object JobSinkProtocol extends Enumeration {
 
   def getJobSinkProtocol(s: String) = JobSinkProtocol.withName(s.toLowerCase)
 }
+
+object StreamFunctionType extends Enumeration {
+  type FunctionType = Value
+  val BATCHFLOW = Value("batchflow")
+  val HDFSLOG = Value("hdfslog")
+  val ROUTER = Value("router")
+
+  def functionType(s: String) = StreamFunctionType.withName(s.toLowerCase)
+
+}
+
+object StreamType extends Enumeration {
+  type StreamType = Value
+  val SPARK = Value("spark")
+  val FLINK = Value("flink")
+
+  def streamType(s: String) = StreamType.withName(s.toLowerCase)
+
+}
