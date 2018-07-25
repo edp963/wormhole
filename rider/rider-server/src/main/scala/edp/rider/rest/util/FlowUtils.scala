@@ -920,8 +920,8 @@ object FlowUtils extends RiderLogger {
     val kafkaUrl = StreamUtils.getKafkaByStreamId(flow.streamId)
     val baseConfig = KafkaBaseConfig(getFlowName(flow.sourceNs, flow.sinkNs), kafkaUrl, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut)
     val outputConfig = KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers)
-    val autoRegisteredTopics = flowInTopicDal.getAutoRegisteredTopics(Seq(flow.id)).map(topic => KafkaFlinkTopic(topic.name, topic.partitionOffsets))
-    val userDefinedTopics = flowUdfTopicDal.getUdfTopics(Seq(flow.id)).map(topic => KafkaFlinkTopic(topic.name, topic.partitionOffsets))
+    val autoRegisteredTopics = flowInTopicDal.getAutoRegisteredTopics(Seq(flow.id)).map(topic => KafkaFlinkTopic(topic.topicName, topic.partitionOffsets))
+    val userDefinedTopics = flowUdfTopicDal.getUdfTopics(Seq(flow.id)).map(topic => KafkaFlinkTopic(topic.topicName, topic.partitionOffsets))
     val flinkTopic = autoRegisteredTopics ++ userDefinedTopics
     val config = WhFlinkConfig(KafkaInput(baseConfig, flinkTopic), outputConfig, flow.parallelism.get, RiderConfig.zk)
     caseClass2json[WhFlinkConfig](config)
@@ -1095,28 +1095,34 @@ object FlowUtils extends RiderLogger {
   }
 
   def getFlowStatusByYarn(flowStreams: Seq[FlowStream]): Seq[FlowStream] = {
-    val flowYarnMap = getFlinkJobStatusOnYarn(
-      flowStreams.filter(stream => stream.streamType == StreamType.FLINK.toString && stream.streamStatus == StreamStatus.RUNNING.toString)
-        .map(_.streamAppId.get).distinct)
-    flowStreams.map {
-      flowStream =>
-        if (flowStream.streamType == StreamType.FLINK.toString && flowStream.streamStatus == StreamStatus.RUNNING.toString) {
-          val flowName = getFlowName(flowStream.sourceNs, flowStream.sinkNs)
-          val logStatus =
-            if (FlowStatus.withName(flowStream.status) == FlowStatus.STARTING)
-              getFlowStatusByLog(flowName, flowStream.logPath.getOrElse(""), flowStream.status)
-            else flowStream.status
-          val yarnFlow = if (!flowYarnMap.contains(flowName) && FlowStatus.withName(logStatus) == FlowStatus.STOPPING) {
-            FlinkFlowStatus(FlowStatus.STOPPED.toString, flowStream.startedTime, flowStream.stoppedTime)
-          } else if (flowYarnMap.contains(flowName) && flowStream.startedTime.orNull != null && yyyyMMddHHmmss(flowYarnMap(flowName).startTime) > yyyyMMddHHmmss(flowStream.startedTime.get)) {
-            getFlowStatusByYarnAndLog(FlinkFlowStatus(logStatus, flowStream.startedTime, flowStream.stoppedTime), flowYarnMap(flowName))
-          } else FlinkFlowStatus(logStatus, flowStream.startedTime, flowStream.stoppedTime)
-          FlowStream(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
-            flowStream.sinkConfig, flowStream.tranConfig, yarnFlow.status, yarnFlow.startTime, yarnFlow.stopTime,
-            flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
-            flowStream.updateBy, flowStream.streamName, flowStream.streamAppId, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowStream.disableActions, flowStream.hideActions,
-            flowStream.topicInfo, flowStream.currentUdf, flowStream.msg)
-        } else flowStream
+    try {
+      val flowYarnMap = getFlinkJobStatusOnYarn(
+        flowStreams.filter(stream => stream.streamType == StreamType.FLINK.toString && stream.streamStatus == StreamStatus.RUNNING.toString)
+          .map(_.streamAppId.get).distinct)
+      flowStreams.map {
+        flowStream =>
+          if (flowStream.streamType == StreamType.FLINK.toString && flowStream.streamStatus == StreamStatus.RUNNING.toString) {
+            val flowName = getFlowName(flowStream.sourceNs, flowStream.sinkNs)
+            val logStatus =
+              if (FlowStatus.withName(flowStream.status) == FlowStatus.STARTING)
+                getFlowStatusByLog(flowName, flowStream.logPath.getOrElse(""), flowStream.status)
+              else flowStream.status
+            val yarnFlow = if (!flowYarnMap.contains(flowName) && FlowStatus.withName(logStatus) == FlowStatus.STOPPING) {
+              FlinkFlowStatus(FlowStatus.STOPPED.toString, flowStream.startedTime, flowStream.stoppedTime)
+            } else if (flowYarnMap.contains(flowName) && flowStream.startedTime.orNull != null && yyyyMMddHHmmss(flowYarnMap(flowName).startTime) > yyyyMMddHHmmss(flowStream.startedTime.get)) {
+              getFlowStatusByYarnAndLog(FlinkFlowStatus(logStatus, flowStream.startedTime, flowStream.stoppedTime), flowYarnMap(flowName))
+            } else FlinkFlowStatus(logStatus, flowStream.startedTime, flowStream.stoppedTime)
+            FlowStream(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
+              flowStream.sinkConfig, flowStream.tranConfig, yarnFlow.status, yarnFlow.startTime, yarnFlow.stopTime,
+              flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
+              flowStream.updateBy, flowStream.streamName, flowStream.streamAppId, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowStream.disableActions, flowStream.hideActions,
+              flowStream.topicInfo, flowStream.currentUdf, flowStream.msg)
+          } else flowStream
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.error("refresh flow on yarn failed", ex)
+        flowStreams
     }
   }
 

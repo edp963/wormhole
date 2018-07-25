@@ -23,7 +23,7 @@ package edp.rider.rest.persistence.dal
 
 import edp.rider.RiderStarter.modules._
 import edp.rider.common.{FlowStatus, RiderLogger, StreamStatus, StreamType}
-import edp.rider.kafka.KafkaUtils.{getKafkaEarliestOffset, getKafkaLatestOffset}
+import edp.rider.kafka.KafkaUtils._
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
@@ -228,12 +228,12 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
   def genFlowStreamByAction(flowStream: FlowStream, action: String): FlowStream = {
     try {
       val flowStatus = actionRule(flowStream, action)
-//      val startedTime = if (action == "start" || action == "renew") Some(currentSec) else flowStream.startedTime
-//      val stoppedTime = if (action == "stop" && flowStatus.flowStatus == FlowStatus.STOPPED.toString) Some(currentSec)
-//      else if (action == "start" || action == "renew") null
-//      else if (flowStream.stoppedTime.getOrElse("") == "" && (flowStatus.flowStatus == FlowStatus.FAILED.toString || flowStatus.flowStatus == FlowStatus.STOPPED.toString))
-//        Some(currentSec)
-//      else flowStream.stoppedTime
+      //      val startedTime = if (action == "start" || action == "renew") Some(currentSec) else flowStream.startedTime
+      //      val stoppedTime = if (action == "stop" && flowStatus.flowStatus == FlowStatus.STOPPED.toString) Some(currentSec)
+      //      else if (action == "start" || action == "renew") null
+      //      else if (flowStream.stoppedTime.getOrElse("") == "" && (flowStatus.flowStatus == FlowStatus.FAILED.toString || flowStatus.flowStatus == FlowStatus.STOPPED.toString))
+      //        Some(currentSec)
+      //      else flowStream.stoppedTime
 
       updateStatusByAction(flowStream.id, flowStatus.flowStatus, flowStatus.startTime, flowStatus.stopTime)
 
@@ -311,6 +311,9 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       else {
         if (flow.streamStatus == StreamStatus.RUNNING.toString && flow.status == FlowStatus.RUNNING.toString)
           stopFlinkFlow(flow.streamAppId.get, getFlowName(flow.sourceNs, flow.sinkNs))
+        Await.result(flowUdfDal.deleteByFilter(_.flowId === flow.id), minTimeOut)
+        Await.result(flowInTopicDal.deleteByFilter(_.flowId === flow.id), minTimeOut)
+        Await.result(flowUdfTopicDal.deleteByFilter(_.flowId === flow.id), minTimeOut)
       }
       Await.result(super.deleteById(flow.id), minTimeOut)
       CacheMap.flowCacheMapRefresh
@@ -378,11 +381,18 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
   //需要进行获得当前的kafka的offset进行修改
   def genFlowAllOffsets(topics: Seq[FlowTopicTemp], kafkaMap: Map[Long, String]): Seq[TopicAllOffsets] = {
     topics.map(topic => {
-      val earliest = getKafkaEarliestOffset(kafkaMap(topic.flowId), topic.name)
-      val latest = getKafkaLatestOffset(kafkaMap(topic.flowId), topic.name)
-      //todo get consumed offset
-      //val consumed = feedbackOffsetMap(topic.name)
-      TopicAllOffsets(topic.id, topic.name, topic.rate, earliest, earliest, latest)
+      val earliest = getKafkaEarliestOffset(kafkaMap(topic.flowId), topic.topicName)
+      val latest = getKafkaLatestOffset(kafkaMap(topic.flowId), topic.topicName)
+      val consumedLatestOffset =
+        try {
+          val flow = Await.result(flowDal.findById(topic.flowId), minTimeOut).get
+          val flowName = FlowUtils.getFlowName(flow.sourceNs, flow.sinkNs)
+          getKafkaOffsetByGroupId(kafkaMap(topic.flowId), topic.topicName, flowName)
+        } catch {
+          case _: Exception =>
+            ""
+        }
+      TopicAllOffsets(topic.id, topic.topicName, topic.rate, consumedLatestOffset, earliest, latest)
     })
   }
 

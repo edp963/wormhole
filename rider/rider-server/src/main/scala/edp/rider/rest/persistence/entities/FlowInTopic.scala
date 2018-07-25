@@ -42,7 +42,7 @@ case class FlowInTopic(id: Long,
 
 case class FlowTopicTemp(id: Long,
                          flowId: Long,
-                         name: String,
+                         topicName: String,
                          partitionOffsets: String,
                          rate: Int)
 
