@@ -37,5 +37,10 @@ export default defineMessages({
   workbenchSubmit: { id: 'rider.app.modal.submit' },
   workbenchJobFormAdd: { id: 'rider.containers.Namespace.Modal.tables.add' },
   workbenchTransResource: { id: 'rider.containers.Workbench.transformation.resource.configuration' },
-  workbenchFlowTransCepOutput: { id: 'rider.containers.Workbench.tranformation.cep.output' }
+  workbenchFlowTransCepOutput: { id: 'rider.containers.Workbench.tranformation.cep.output' },
+  workbenchFlowTransCepWindowtime: { id: 'rider.containers.Workbench.tranformation.cep.windowtime' },
+  workbenchFlowTransCepStrategy: { id: 'rider.containers.Workbench.tranformation.cep.strategy' },
+  workbenchFlowTransCepKeyby: { id: 'rider.containers.Workbench.tranformation.cep.keyby' },
+  workbenchFlowTransCepOperator: { id: 'rider.containers.Workbench.tranformation.cep.operator' },
+  workbenchFlowTransCepQuartifier: { id: 'rider.containers.Workbench.tranformation.cep.quartifier' }
 })

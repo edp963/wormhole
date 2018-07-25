@@ -126,6 +126,7 @@ export class Workbench extends React.Component {
       transConnectClass: 'hide',
       flowTransNsData: [],
       hasPattern: true,
+      outputType: 'agg',
 
       step2SinkNamespace: '',
       step2SourceNamespace: '',
@@ -402,7 +403,8 @@ export class Workbench extends React.Component {
       dataframeShowSelected: 'hide',
       resultFieldsValue: 'all',
       etpStrategyConfirmValue: '',
-      etpStrategyRequestValue: {}
+      etpStrategyRequestValue: {},
+      cepPropData: {}
     }, () => {
       this.workbenchFlowForm.setFieldsValue({
         resultFields: 'all',
@@ -873,6 +875,7 @@ export class Workbench extends React.Component {
               tranActionArr.splice(tranActionArr.length - 1, 1)
             } else if (result.streamType === 'flink') {
               tranActionArr = tranConfigVal.action.split(';')
+              tranActionArr.splice(tranActionArr.length - 1, 1)
             }
 
             this.state.flowFormTranTableSource = tranActionArr.map((i, index) => {
@@ -976,7 +979,7 @@ export class Workbench extends React.Component {
               tranTableSourceTemp.order = index + 1
               tranTableSourceTemp.transformConfigInfo = tranConfigInfoTemp
               tranTableSourceTemp.tranConfigInfoSql = tranConfigInfoSqlTemp
-              tranTableSourceTemp.transformConfigInfoRequest = `${i};`
+              tranTableSourceTemp.transformConfigInfoRequest = `${i}`
               tranTableSourceTemp.transformType = tranTypeTepm
               tranTableSourceTemp.pushdownConnection = pushdownConTepm
               return tranTableSourceTemp
@@ -1586,7 +1589,7 @@ export class Workbench extends React.Component {
     flowFormTranTableSource.map(i => {
       let isCep = i.transformConfigInfoRequest.split('=')[0].indexOf('cep') > -1
       if (isCep) {
-        tranRequestTempArr.push(i.transformConfigInfoRequest)
+        tranRequestTempArr.push(`${i.transformConfigInfoRequest};`)
       } else {
         tranRequestTempArr.push(preProcessSql(i.transformConfigInfoRequest))
       }
@@ -2047,7 +2050,9 @@ export class Workbench extends React.Component {
         tranConfig: tranConfigRequest,
         consumedProtocol: values.protocol.join(',')
       }
-
+      if (values.parallelism != null) {
+        editData.parallelism = values.parallelism
+      }
       this.props.onEditFlow(Object.assign(editData, singleFlowResult), () => {
         message.success(locale === 'en' ? 'Flow is modified successfully!' : 'Flow 修改成功！', 3)
       }, () => {
@@ -2367,6 +2372,7 @@ export class Workbench extends React.Component {
           }
         }
         this.setState({
+          outputType: cepFormData.output && cepFormData.output.type,
           transformModalVisible: true
         }, () => {
           this.flowTransformForm.setFieldsValue({
@@ -3412,7 +3418,7 @@ export class Workbench extends React.Component {
       flowFormTranTableSource, jobFormTranTableSource, namespaceClassHide, userClassHide,
       udfClassHide, flowSpecialConfigModalVisible, transformModalVisible, sinkConfigModalVisible,
       etpStrategyModalVisible, streamConfigModalVisible, sparkConfigModalVisible,
-      jobSinkConfigModalVisible, jobTransModalVisible, jobSpecialConfigModalVisible, pipelineStreamId, cepPropData, transformMode, hasPattern
+      jobSinkConfigModalVisible, jobTransModalVisible, jobSpecialConfigModalVisible, pipelineStreamId, cepPropData, transformMode, hasPattern, outputType
     } = this.state
     const { streams, projectNamespaces, streamSubmitLoading, locale } = this.props
 
@@ -3551,6 +3557,7 @@ export class Workbench extends React.Component {
                       transformModalVisible={transformModalVisible}
                       transformMode={transformMode}
                       hasPattern={hasPattern}
+                      outputType={outputType}
                     />
                   </Modal>
                   {/* Flow Sink Config Modal */}

@@ -78,7 +78,6 @@ export class DashboardItemFilters extends PureComponent {
     // }
   }
   componentWillUpdate (nextProps) {
-    console.log('nextprops', nextProps)
     if (nextProps.sourceData && nextProps.sourceData !== this.props.sourceData) {
       this.initTree(nextProps)
     }
@@ -405,8 +404,6 @@ export class DashboardItemFilters extends PureComponent {
   changeStringFilterKeyValue = (filter) => (event) => {
     filter.filterKey = event.target.value
     this.triggerChange(filter)
-
-    console.log(filter.filterKey)
   }
 
   changeFilterOperator = (filter) => (val) => {

@@ -61,7 +61,8 @@ export class FlowTransformForm extends React.Component {
     }
   }
   componentDidMount () {
-    const { cepPropData } = this.props
+    const { cepPropData, outputType } = this.props
+    this.setState({outputType})
     this.formatCepPatternData(cepPropData)
   }
   componentWillReceiveProps (props) {
@@ -86,7 +87,11 @@ export class FlowTransformForm extends React.Component {
         }
         return v
       })
-      this.setState({cepDataSource})
+      this.setState({
+        cepDataSource
+      }, () => {
+        this.props.emitCepSourceData(cepDataSource)
+      })
     }
   }
   onTransformTypeSelect = (e) => {
@@ -104,15 +109,11 @@ export class FlowTransformForm extends React.Component {
     this.props.onInitTransformSinkTypeNamespace(this.props.projectIdGeted, val, 'transType')
   }
 
-  changeStrategy = (e) => {
-    console.log(e)
-  }
   changeOutput = (e) => {
     let outputType = e.target.value
     this.setState({outputType})
   }
   doFilterQuery = (conditions) => {
-    window.p = this.props.form
     const { cepDataSource, editRow } = this.state
     let patternValue = {}
     let quartifierObj = {}
@@ -192,10 +193,8 @@ export class FlowTransformForm extends React.Component {
   }
   addOrEditPattern = () => {
     this.filterComponent.doQuery()
-    console.log('addOrEditPattern')
   }
   onEditPattern = (record, index) => (e) => {
-    console.log(record)
     let patternSourceDataConditions = record.conditions
     let quartifierObj = record.quartifier && JSON.parse(record.quartifier)
     this.props.form.setFieldsValue({
@@ -228,14 +227,12 @@ export class FlowTransformForm extends React.Component {
     }, () => {
       this.props.form.setFieldsValue({conditions: JSON.parse(patternSourceDataConditions)})
     })
-    console.log('onEditPattern')
   }
   onDeletePattern = (index) => () => {
     let cepDataSource = this.state.cepDataSource.slice()
     cepDataSource.splice(index, 1)
     this.setState({cepDataSource})
     this.props.emitCepSourceData(cepDataSource)
-    console.log('onDeletePattern')
   }
   addPatternModal = () => {
     const { cepDataSource } = this.state
@@ -250,7 +247,6 @@ export class FlowTransformForm extends React.Component {
         patternModalShow: true
       })
     })
-    console.log('addPatternModal')
   }
   offPatternModal = () => {
     this.clearPatterModalData(() => {
@@ -258,7 +254,6 @@ export class FlowTransformForm extends React.Component {
         patternModalShow: false
       })
     })
-    console.log('offPatternModal')
   }
 
   clearPatterModalData = (fn) => {
@@ -303,11 +298,6 @@ export class FlowTransformForm extends React.Component {
       labelCol: { span: 4 },
       wrapperCol: { span: 10 }
     }
-
-    // const itemStyleTimeout = {
-    //   labelCol: { span: 6 },
-    //   wrapperCol: { span: 18 }
-    // }
     const patternItemStyle = {
       labelCol: { span: 4 },
       wrapperCol: { span: 20 }
@@ -393,6 +383,95 @@ export class FlowTransformForm extends React.Component {
                 <p>{sqlMsg}</p>
               </div>
             }
+            title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
+            trigger="click">
+            <Icon type="question-circle-o" className="question-class" />
+          </Popover>
+        </Tooltip>
+      </span>
+    )
+
+    const windowTimeHelp = (
+      <span>
+        Windowtime
+        <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />} placement="bottom">
+          <Popover
+            placement="top"
+            content={
+              <div style={{ width: '280px', height: '35px' }}>
+                <p><FormattedMessage {...messages.workbenchFlowTransCepWindowtime} /></p>
+              </div>}
+            title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
+            trigger="click">
+            <Icon type="question-circle-o" className="question-class" />
+          </Popover>
+        </Tooltip>
+      </span>
+    )
+    const strategyHelp = (
+      <span>
+        Strategy
+        <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />} placement="bottom">
+          <Popover
+            placement="top"
+            content={
+              <div style={{ width: '280px', height: '80px' }}>
+                <p><FormattedMessage {...messages.workbenchFlowTransCepStrategy} /></p>
+              </div>}
+            title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
+            trigger="click">
+            <Icon type="question-circle-o" className="question-class" />
+          </Popover>
+        </Tooltip>
+      </span>
+    )
+
+    const keyByHelp = (
+      <span>
+        KeyBy
+        <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />} placement="bottom">
+          <Popover
+            placement="top"
+            content={
+              <div style={{ width: '280px', height: '110px' }}>
+                <p><FormattedMessage {...messages.workbenchFlowTransCepKeyby} /></p>
+              </div>}
+            title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
+            trigger="click">
+            <Icon type="question-circle-o" className="question-class" />
+          </Popover>
+        </Tooltip>
+      </span>
+    )
+
+    const operatorHelp = (
+      <span>
+        Operator
+        <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />} placement="bottom">
+          <Popover
+            placement="top"
+            content={
+              <div style={{ width: '280px', height: '100px' }}>
+                <p><FormattedMessage {...messages.workbenchFlowTransCepOperator} /></p>
+              </div>}
+            title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
+            trigger="click">
+            <Icon type="question-circle-o" className="question-class" />
+          </Popover>
+        </Tooltip>
+      </span>
+    )
+
+    const quartifierHelp = (
+      <span>
+        Quartifier
+        <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />} placement="bottom">
+          <Popover
+            placement="top"
+            content={
+              <div style={{ width: '280px', height: '60px' }}>
+                <p><FormattedMessage {...messages.workbenchFlowTransCepQuartifier} /></p>
+              </div>}
             title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
             <Icon type="question-circle-o" className="question-class" />
@@ -715,7 +794,7 @@ export class FlowTransformForm extends React.Component {
           {/* 设置 Flink CEP  */}
           {flowSubPanelKey === 'flink' ? (
             <Col span={24} className={flinkTransformTypeClassNames[2]}>
-              <FormItem label="Windowtime" {...itemStyle}>
+              <FormItem label={windowTimeHelp} {...itemStyle}>
                 {getFieldDecorator('windowTime', {
                   rules: [{
                     required: true,
@@ -730,7 +809,7 @@ export class FlowTransformForm extends React.Component {
           ) : '' }
           {flowSubPanelKey === 'flink' ? (
             <Col span={24} className={flinkTransformTypeClassNames[2]}>
-              <FormItem label="Strategy" {...itemStyle}>
+              <FormItem label={strategyHelp} {...itemStyle}>
                 {getFieldDecorator('strategy', {
                   rules: [{
                     required: true,
@@ -740,7 +819,6 @@ export class FlowTransformForm extends React.Component {
                 })(
                   <Select
                     dropdownClassName="ri-workbench-select-dropdown"
-                    onChange={(e) => this.changeStrategy(e)}
                     placeholder="Select a strategy"
                     // disabled={flowDisabledOrNot}
                   >
@@ -755,7 +833,7 @@ export class FlowTransformForm extends React.Component {
           ) : '' }
           {flowSubPanelKey === 'flink' ? (
             <Col span={24} className={flinkTransformTypeClassNames[2]}>
-              <FormItem label="KeyBy" {...itemStyle}>
+              <FormItem label={keyByHelp} {...itemStyle}>
                 {getFieldDecorator('keyBy', {
                   rules: [{
                     required: true,
@@ -770,7 +848,7 @@ export class FlowTransformForm extends React.Component {
           ) : '' }
           {flowSubPanelKey === 'flink' ? (
             <Col span={12} offset={2} className={flinkTransformTypeClassNames[2]}>
-              <FormItem label="Output" labelCol={{span: 4}} wrapperCol={{span: 10}}>
+              <FormItem label="Output" {...itemStyle}>
                 {getFieldDecorator('output', {
                   rules: [{
                     required: true,
@@ -852,7 +930,7 @@ export class FlowTransformForm extends React.Component {
             >
               <Card className={`${flinkTransformTypeClassNames[2]}`}>
                 <Col span={24}>
-                  <FormItem label="Operator" {...patternItemStyle}>
+                  <FormItem label={operatorHelp} {...patternItemStyle}>
                     {getFieldDecorator('operator', {
                       rules: [{
                         required: true,
@@ -882,7 +960,7 @@ export class FlowTransformForm extends React.Component {
                   </FormItem>
                 </Col>
                 <Col span={24}>
-                  <FormItem label="Quartifier" {...patternItemStyle}>
+                  <FormItem label={quartifierHelp} {...patternItemStyle}>
                     {getFieldDecorator('quartifier', {
                       rules: [{
                         required: true,
@@ -940,7 +1018,8 @@ FlowTransformForm.propTypes = {
   flowSubPanelKey: PropTypes.string,
   emitCepSourceData: PropTypes.func,
   transformModalVisible: PropTypes.bool,
-  cepPropData: PropTypes.object
+  cepPropData: PropTypes.object,
+  outputType: PropTypes.string
 }
 
 export default Form.create({wrappedComponentRef: true})(FlowTransformForm)
