@@ -1189,4 +1189,7 @@ object FlowUtils extends RiderLogger {
     }
   }
 
+  def getWhDefaultFlowConsumedOffsetByLatestOffset(offset: String): String = {
+    offset.split(",").map(partOffset => partOffset.split(":")(0) + ":").mkString(",")
+  }
 }
