@@ -174,7 +174,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                                       case _: Exception =>
                                         ""
                                     }
-                                  FlowInTopic(0, flow.id, ns._3.nsDatabaseId, latestOffset, 1, true, currentSec, session.userId, currentSec, session.userId)
+                                  FlowInTopic(0, flow.id, ns._3.nsDatabaseId, latestOffset, RiderConfig.flinkDefaultRate, true, currentSec, session.userId, currentSec, session.userId)
                               }
                             Await.result(flowInTopicDal.insert(autoRegisteredTopics), minTimeOut)
                             CacheMap.flowCacheMapRefresh

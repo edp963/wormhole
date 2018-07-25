@@ -303,7 +303,7 @@ object RiderConfig {
   lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"),
     getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-flinkx_1.5.1-0.4.2-SNAPSHOTS-jar-with-dependencies.jar"),
     getStringConfig("flink.wormhole.client.log.path", s"$riderRootPath/logs/flows"))
-  lazy val flinkDefaultRate = 0
+  lazy val flinkDefaultRate = 1
   def getStringConfig(path: String, default: String): String = {
     if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")
       config.getString(path)
