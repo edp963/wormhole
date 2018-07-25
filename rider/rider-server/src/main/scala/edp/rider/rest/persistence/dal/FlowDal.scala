@@ -228,12 +228,12 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
   def genFlowStreamByAction(flowStream: FlowStream, action: String): FlowStream = {
     try {
       val flowStatus = actionRule(flowStream, action)
-      //      val startedTime = if (action == "start" || action == "renew") Some(currentSec) else flowStream.startedTime
-      //      val stoppedTime = if (action == "stop" && flowStatus.flowStatus == FlowStatus.STOPPED.toString) Some(currentSec)
-      //      else if (action == "start" || action == "renew") null
-      //      else if (flowStream.stoppedTime.getOrElse("") == "" && (flowStatus.flowStatus == FlowStatus.FAILED.toString || flowStatus.flowStatus == FlowStatus.STOPPED.toString))
-      //        Some(currentSec)
-      //      else flowStream.stoppedTime
+//      val startedTime = if (action == "start" || action == "renew") Some(currentSec) else flowStream.startedTime
+//      val stoppedTime = if (action == "stop" && flowStatus.flowStatus == FlowStatus.STOPPED.toString) Some(currentSec)
+//      else if (action == "start" || action == "renew") null
+//      else if (flowStream.stoppedTime.getOrElse("") == "" && (flowStatus.flowStatus == FlowStatus.FAILED.toString || flowStatus.flowStatus == FlowStatus.STOPPED.toString))
+//        Some(currentSec)
+//      else flowStream.stoppedTime
 
       updateStatusByAction(flowStream.id, flowStatus.flowStatus, flowStatus.startTime, flowStatus.stopTime)
 
@@ -393,6 +393,12 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
             ""
         }
       TopicAllOffsets(topic.id, topic.topicName, topic.rate, consumedLatestOffset, earliest, latest)
+      val earliest = getKafkaEarliestOffset(kafkaMap(topic.flowId), topic.name)
+      val latest = getKafkaLatestOffset(kafkaMap(topic.flowId), topic.name)
+      //todo get consumed offset
+      //val consumed = feedbackOffsetMap(topic.name)
+      TopicAllOffsets(topic.id, topic.name, topic.rate, earliest, earliest, latest)
+
     })
   }
 
