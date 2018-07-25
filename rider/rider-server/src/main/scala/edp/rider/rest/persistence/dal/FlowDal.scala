@@ -390,7 +390,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
           getKafkaOffsetByGroupId(kafkaMap(topic.flowId), topic.topicName, flowName)
         } catch {
           case _: Exception =>
-            ""
+            getWhDefaultFlowConsumedOffsetByLatestOffset(latest)
         }
       TopicAllOffsets(topic.id, topic.topicName, topic.rate, consumedLatestOffset, earliest, latest)
     })
