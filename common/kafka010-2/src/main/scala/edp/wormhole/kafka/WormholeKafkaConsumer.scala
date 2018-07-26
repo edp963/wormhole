@@ -40,14 +40,14 @@ object WormholeKafkaConsumer {
 
   def subscribeTopicFromBeginning(consumer: KafkaConsumer[String, String], topicPartitionCount: Map[String, Int]): Unit = {
     consumer.subscribe(topicPartitionCount.keys)
-    consumer.poll(0)
+//    consumer.poll(0)
     val tpList = getAllTopicPartition(topicPartitionCount)
     consumer.seekToBeginning(tpList)
   }
 
   def subscribeTopicFromEnd(consumer: KafkaConsumer[String, String], topicPartitionCount: Map[String, Int]): Unit = {
     consumer.subscribe(topicPartitionCount.keys)
-    consumer.poll(0)
+//    consumer.poll(0)
     val tpList = getAllTopicPartition(topicPartitionCount)
     consumer.seekToEnd(tpList)
   }
