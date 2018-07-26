@@ -61,14 +61,12 @@ object WormholeKafkaConsumer {
 
       @Override
       def onPartitionsAssigned(partitions:util.Collection[TopicPartition]):Unit= {
-        Iterator<TopicPartition> it = partitions.iterator()
-        while(it.hasNext()) {
-          TopicPartition tp = it.next()
-          long tmpOffset = tpMap.get(tp)
+        val it = partitions.iterator()
+        it.foreach(tp=>{
 
-          consumer.seek(tp, tmpOffset)
+          consumer.seek(tp, tpMap.get(tp).get)
 
-        }
+        })
       }
 
     })
