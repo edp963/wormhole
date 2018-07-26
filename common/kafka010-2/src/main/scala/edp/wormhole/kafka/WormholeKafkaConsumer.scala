@@ -1,9 +1,10 @@
 package edp.wormhole.kafka
 
+import java.util
 import java.util.Properties
 
 import edp.wormhole.common.KVConfig
-import org.apache.kafka.clients.consumer.{ConsumerRecords, KafkaConsumer}
+import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, ConsumerRecords, KafkaConsumer}
 import org.apache.kafka.common.TopicPartition
 
 import scala.collection.JavaConversions._
@@ -52,10 +53,22 @@ object WormholeKafkaConsumer {
   }
 
   def subscribeTopicFromOffset(consumer: KafkaConsumer[String, String], topicPartitions: Map[String, Seq[(Int, Long)]]): Unit = {
-    consumer.subscribe(topicPartitions.keys)
-    consumer.poll(0)
-    getAllTopicPartitionOffset(topicPartitions).foreach(tp => {
-      consumer.seek(tp._1, tp._2)
+    val tpMap: Map[TopicPartition, Long] = getAllTopicPartitionOffset(topicPartitions)
+    consumer.subscribe(topicPartitions.keys,new ConsumerRebalanceListener(){
+      def onPartitionsRevoked( partitions:util.Collection[TopicPartition]):Unit= {
+
+      }
+
+      @Override
+      def onPartitionsAssigned(partitions:util.Collection[TopicPartition]):Unit= {
+        val it = partitions.iterator()
+        it.foreach(tp=>{
+
+          consumer.seek(tp, tpMap.get(tp).get)
+
+        })
+      }
+
     })
 
   }
