@@ -54,6 +54,17 @@
         </dependency>
 
         <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-interface</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-dbpool</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-scala_${scala.binary.version}</artifactId>
             <version>${flink.version}</version>
@@ -100,7 +111,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>PatternDemo</mainClass>
+                            <mainClass>edp.wormhole.WormholeFlinkxStarter</mainClass>
 
                         </manifest>
                     </archive>
