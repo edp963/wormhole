@@ -1,9 +1,10 @@
 package edp.wormhole.kafka
 
+import java.util
 import java.util.Properties
 
 import edp.wormhole.common.KVConfig
-import org.apache.kafka.clients.consumer.{ConsumerRecords, KafkaConsumer}
+import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, ConsumerRecords, KafkaConsumer}
 import org.apache.kafka.common.TopicPartition
 
 import scala.collection.JavaConversions._
@@ -39,24 +40,42 @@ object WormholeKafkaConsumer {
 
   def subscribeTopicFromBeginning(consumer: KafkaConsumer[String, String], topicPartitionCount: Map[String, Int]): Unit = {
     consumer.subscribe(topicPartitionCount.keys)
-    consumer.poll(0)
+//    consumer.poll(0)
     val tpList = getAllTopicPartition(topicPartitionCount)
     consumer.seekToBeginning(tpList)
   }
 
   def subscribeTopicFromEnd(consumer: KafkaConsumer[String, String], topicPartitionCount: Map[String, Int]): Unit = {
     consumer.subscribe(topicPartitionCount.keys)
-    consumer.poll(0)
+//    consumer.poll(0)
     val tpList = getAllTopicPartition(topicPartitionCount)
     consumer.seekToEnd(tpList)
   }
 
   def subscribeTopicFromOffset(consumer: KafkaConsumer[String, String], topicPartitions: Map[String, Seq[(Int, Long)]]): Unit = {
-    consumer.subscribe(topicPartitions.keys)
-    consumer.poll(0)
-    getAllTopicPartitionOffset(topicPartitions).foreach(tp => {
-      consumer.seek(tp._1, tp._2)
+    val tpMap: Map[TopicPartition, Long] = getAllTopicPartitionOffset(topicPartitions)
+    consumer.subscribe(topicPartitions.keys,new ConsumerRebalanceListener(){
+      def onPartitionsRevoked( partitions:util.Collection[TopicPartition]):Unit= {
+
+      }
+
+      @Override
+      def onPartitionsAssigned(partitions:util.Collection[TopicPartition]):Unit= {
+        Iterator<TopicPartition> it = partitions.iterator()
+        while(it.hasNext()) {
+          TopicPartition tp = it.next()
+          long tmpOffset = tpMap.get(tp)
+
+          consumer.seek(tp, tmpOffset)
+
+        }
+      }
+
     })
+//    consumer.poll(0)
+//    getAllTopicPartitionOffset(topicPartitions).foreach(tp => {
+//      consumer.seek(tp._1, tp._2)
+//    })
 
   }
 
