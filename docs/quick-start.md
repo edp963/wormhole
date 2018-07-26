@@ -65,6 +65,10 @@ data_increment_data.kafka.edp.source.test.*.*.*@@@{"id": 1,"name": "test","phone
 
 ## User 用户
 
+​    **Wormhole支持Spark和Flink，下面分别对Spark项目和Flink项目建立流程进行介绍。**
+
+### Spark使用流程
+
 **1. User 登录系统后创建 Stream**
 
 ​    **新建 Stream**           
@@ -76,6 +80,10 @@ data_increment_data.kafka.edp.source.test.*.*.*@@@{"id": 1,"name": "test","phone
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-stream-configs.png" alt="" width="600"/>
 
 **2. User 创建并启动 Flow**
+
+   **选择stream类型**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-stream.png" alt="" width="600"/>
 
    **选择数据源**
 
@@ -126,5 +134,87 @@ data_increment_data.kafka.edp.source.test.*.*.*@@@{"id": 1,"name": "test","phone
 **Stream切换到running状态后，若出现数据写不进去，Flow状态为Failed等问题，请在 Yarn Application页面上查看 Stream  Driver/Executor日志**
 
 **具体步骤及配置说明请参考其他章节~~**
+
+### Flink使用流程
+
+**1. User 登录系统后创建 Stream**
+
+​    **新建 Stream**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-stream-flink.png" alt="" width="600"/>
+
+   **配置 Stream 资源**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-stream-configs-flink.png" alt="" width="600"/>
+
+**2. User 创建并启动 Flow**
+
+   **选择stream类型**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-stream-flink.png" alt="" width="600"/>
+
+   **选择数据源**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-source-flink.png" alt="" width="600"/>
+
+   **选择目标端**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-sink-flink.png" alt="" width="600"/>
+
+   **配置 Sink 类型，Source Namespace 中数据只配置了 "ums_ts_" 系统字段，"mutation_type" 只能设置为 "i"，即 "insert only"。具体介绍请参考 [Concept](https://edp963.github.io/wormhole/concept.html) 和 [User Guide](https://edp963.github.io/wormhole/user-guide.html) 章节**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-sinkConfig.png" alt="" width="600"/>
+
+   **配置数据转换逻辑，即 Transformation 配置**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-transform-flink.png" alt="" width="600"/>
+
+   **配置Lookup SQL，流上 Source Namespace 关联 MySQL userCard 表**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-lookupSql-flink.png" alt="" width="600"/>
+
+   **Flink SQL，过滤部分字段**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-flinkSql.png" alt="" width="600"/>
+
+​    **CEP，复杂事件处理**
+
+​    	**①基本配置**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-cep-flink.png" alt="" width="600"/>
+
+​    	**②pattern配置 **
+
+​        **首次操作**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-cep-pattern-begin-flink.png" alt="" width="600"/>
+
+​    	**追加操作：包括Next，FollowedBy，NotNext，NotFollowBy**
+
+ <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-cep-pattern-next-flink.png" alt="" width="600"/>
+
+​	**③CEP 配置结果**
+
+ <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-cep-result-flink.png" alt="" width="600"/>
+
+**flink SQL 配置结果**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-transform-result-flink.png" alt="" width="600"/>
+
+   **启动 Flow, 将 Source Namespace 对应 Flow 配置信息发送给 Stream**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-start-conf-flink.png" alt="" width="600"/>
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-start-flink.png" alt="" width="600"/>
+
+**3. 提前创建Lookup Table，Sink Table**
+
+**注：sink table 中应有`id, name, cardBank, age, city, ums_ts_`字段**
+
+**4. User 启动 Stream**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-stream-running-flink.png" alt="" width="600"/>
+
+**Stream切换到running状态后，若出现数据写不进去，Flow状态为Failed等问题，请在 Yarn Application页面上查看 Stream  Driver/Executor日志**
 
 **demo过程中有问题可先参考[FAQ](https://edp963.github.io/wormhole/faq.html)章节排查~~**
