@@ -67,7 +67,7 @@ export class FlowTransformForm extends React.Component {
   }
   componentWillReceiveProps (props) {
     if (this.props.transformModalVisible === props.transformModalVisible) return
-    if (props.transformMode === 'add') {
+    if (props.transformMode === 'add' || props.flowMode === 'add') {
       this.setState({cepDataSource: []})
     } else if (props.transformMode === 'edit') {
       if (props.cepPropData) {
