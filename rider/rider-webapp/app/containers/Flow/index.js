@@ -792,15 +792,15 @@ export class Flow extends React.Component {
     })
     this.loadLogsData(projectId, flowId)
   }
-  loadLogsData = (projectId, streamId) => {
+  loadLogsData = (projectId, flowId) => {
     const { roleType } = this.props
     if (roleType === 'admin') {
-      this.props.onLoadAdminLogsInfo(projectId, streamId, (result) => {
+      this.props.onLoadAdminLogsInfo(projectId, flowId, (result) => {
         this.setState({ logsContent: result })
         this.flowLogRefreshState()
       })
     } else if (roleType === 'user') {
-      this.props.onLoadLogsInfo(projectId, streamId, (result) => {
+      this.props.onLoadLogsInfo(projectId, flowId, (result) => {
         this.setState({ logsContent: result })
         this.flowLogRefreshState()
       })

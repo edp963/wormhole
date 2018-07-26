@@ -3558,6 +3558,7 @@ export class Workbench extends React.Component {
                       transformMode={transformMode}
                       hasPattern={hasPattern}
                       outputType={outputType}
+                      flowMode={flowMode}
                     />
                   </Modal>
                   {/* Flow Sink Config Modal */}

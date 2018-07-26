@@ -744,5 +744,7 @@ export default [
   addUserTopicWatcher,
   removeUserTopicWatcher,
   getUdfsWatcher,
-  stopFlinkFlowWathcer
+  stopFlinkFlowWathcer,
+  getLogsWatcher,
+  getAdminLogsWatcher
 ]
