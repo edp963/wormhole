@@ -89,7 +89,7 @@ object SparkUtils extends EdpLogging {
   }
 
   def getSchemaMap(sinkFields: Seq[UmsField], outputField: String): (Map[String, (Int, UmsFieldType, Boolean)], Map[String, (Int, UmsFieldType, Boolean)], Option[Map[String, String]]) = {
-    val schemaArr: Seq[(String, (Int, UmsFieldType, Boolean))] = sinkFields.zipWithIndex.map(t => (t._1.name, (t._2, t._1.`type`, t._1.nullable.get)))
+    val schemaArr: Seq[(String, (Int, UmsFieldType, Boolean))] = sinkFields.zipWithIndex.map(t => (t._1.name.toLowerCase, (t._2, t._1.`type`, t._1.nullable.get)))
     val tmpSchema: Map[String, (Int, UmsFieldType, Boolean)] = schemaArr.toMap
     if (outputField.nonEmpty) {
       val resultMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
@@ -99,16 +99,16 @@ object SparkUtils extends EdpLogging {
           if (!tmpSchema.contains(nameField.toLowerCase)) {
             throw new Exception("output Fields DO NOT contains field " + nameField + " you configure at sink step.")
           } else {
-            resultMap(nameField) = tmpSchema(nameField.toLowerCase)
+            resultMap(nameField.toLowerCase) = tmpSchema(nameField.toLowerCase)
           }
         } else {
           val colonIndex = nameField.indexOf(":")
-          val (beforeName, afterName) = (nameField.substring(0, colonIndex), nameField.substring(colonIndex + 1))
-          if (!tmpSchema.contains(beforeName.toLowerCase)) {
+          val (beforeName, afterName) = (nameField.substring(0, colonIndex).toLowerCase, nameField.substring(colonIndex + 1).toLowerCase)
+          if (!tmpSchema.contains(beforeName)) {
             throw new Exception("output Fields DO NOT contains field " + beforeName + " you configure at sink step.")
           } else {
             renameMap(afterName) = beforeName
-            resultMap(afterName) = tmpSchema(beforeName.toLowerCase)
+            resultMap(afterName) = tmpSchema(beforeName)
           }
         }
       }
