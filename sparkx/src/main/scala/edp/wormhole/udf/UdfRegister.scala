@@ -61,12 +61,17 @@ object UdfRegister extends EdpLogging {
   }
 
   private def loadJar(path: String): Unit = {
-    URL.setURLStreamHandlerFactory(new FsUrlStreamHandlerFactory());
-    val url = new URL(path)
-    val classLoader = getClass.getClassLoader.asInstanceOf[URLClassLoader]
-    val loaderMethod = classOf[URLClassLoader].getDeclaredMethod("addURL", classOf[URL])
-    loaderMethod.setAccessible(true)
-    loaderMethod.invoke(classLoader, url)
+    try{
+      URL.setURLStreamHandlerFactory(new FsUrlStreamHandlerFactory())
+    }catch{
+      case e:Throwable=>logWarning(e.getMessage)
+    }
+      val url = new URL(path)
+      val classLoader = getClass.getClassLoader.asInstanceOf[URLClassLoader]
+      val loaderMethod = classOf[URLClassLoader].getDeclaredMethod("addURL", classOf[URL])
+      loaderMethod.setAccessible(true)
+      loaderMethod.invoke(classLoader, url)
+
   }
 
   private def registerUdf(paramCount: Int, session: SparkSession, udfName: String, udfClassName: String, returnDataType: DataType): Unit = {
