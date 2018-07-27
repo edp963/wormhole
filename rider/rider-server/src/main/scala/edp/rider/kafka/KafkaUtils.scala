@@ -80,4 +80,16 @@ object KafkaUtils extends RiderLogger {
     }
   }
 
+  def formatConsumedOffsetByLatestOffset(consumedOffset: String, latestOffset: String): String = {
+    val consumedPartition = consumedOffset.split(",").size
+    val currentPartition = latestOffset.split(",").size
+    if (consumedPartition == currentPartition) {
+      consumedOffset
+    } else if (consumedPartition > currentPartition) {
+      consumedOffset.split(",").slice(0, currentPartition).mkString(",")
+    } else {
+      consumedOffset + "," + (consumedPartition until currentPartition).map(part => s"$part:0").mkString(",")
+    }
+  }
+
 }
