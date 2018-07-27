@@ -228,7 +228,12 @@ case class FlowIdKafkaUrl(flowId: Long, kafkaUrl: String)
 
 case class FlowUdfResponse(id: Long, functionName: String, fullClassName: String, jarName: String)
 
-case class FlinkResponse(id: Long, status: String, disableActions: String, hiddenActions: String)
+case class StartFlinkFlowResponse(id: Long,
+                                  status: String,
+                                  disableActions: String,
+                                  hiddenActions: String,
+                                  startedTime: Option[String] = None,
+                                  stoppedTime: Option[String]= None)
 
 case class FlinkJobStatus(name: String, jobId: String, state: String, startTime: String, stopTime: String)
 

@@ -151,7 +151,6 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
               complete(OK, ResponseJson[String](getHeader(200, session), name))
             } else {
               riderLogger.warn(s"user ${session.userId} check stream name $name already exists success.")
-              //complete(OK, getHeader(409, s"$name already exists", session))
               complete(OK, setFailedResponse(session, s"$name already exists"))
             }
           case (None, Some(streamType), None) =>
@@ -162,9 +161,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             val streams = streamDal.getSimpleStreamInfo(Some(projectId), "spark", Some(functionType))
             riderLogger.info(s"user ${session.userId} select streams where project id is $projectId success.")
             complete(OK, ResponseSeqJson[SimpleStreamInfo](getHeader(200, session), streams))
-          case (None, Some(streamType), Some(functionType)) =>
+          case (None, Some(_), Some(_)) =>
             riderLogger.error(s"user ${session.userId} request url is not supported.")
-            //            complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
             complete(OK, setFailedResponse(session, "Insufficient Permission"))
           case (None, None, None) =>
             val streams = streamDal.getBriefDetail(Some(projectId))
@@ -172,11 +170,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
             complete(OK, ResponseSeqJson[StreamDetail](getHeader(200, session), streams))
           case (_, _, _) =>
             riderLogger.error(s"user ${session.userId} request url is not supported.")
-            //complete(OK, ResponseJson[String](getHeader(403, session), msgMap(403)))
             complete(OK, setFailedResponse(session, "Insufficient Permission"))
-          //            val streams = streamDal.getSimpleStreamInfo(Some(projectId), "spark") ++ streamDal.getSimpleStreamInfo(Some(projectId), "flink")
-          //            riderLogger.info(s"user ${session.userId} select streams where project id is $projectId success.")
-          //            complete(OK, ResponseSeqJson[SimpleStreamInfo](getHeader(200, session), streams))
         }
       } catch {
         case ex: Exception =>
@@ -255,23 +249,6 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
       complete(OK, getHeader(403, session))
     }
   }
-
-  //  def getDefaultSparkConfList(route: String): Route = path(route / "streams" / "default" / "config") {
-  //    authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
-  //      session =>
-  //        if (session.roleType != "user") {
-  //          riderLogger.warn(s"${
-  //            session.userId
-  //          } has no permission to access it.")
-  //          complete(OK, getHeader(403, session))
-  //        }
-  //        else {
-  //          val defaultConf = streamDal.getDef
-  //          complete(OK, ResponseJson[String](getHeader(200, session), defaultConf))
-  //        }
-  //    }
-  //
-  //  }
 
   def getLogByStreamId(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "logs") {
     (id, streamId) =>
@@ -388,11 +365,9 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           if (checkAction(stream.streamType, RENEW.toString, stream.status)) {
             renewStreamDirective(streamId, streamDirective, session.userId)
             riderLogger.info(s"user ${session.userId} renew stream $streamId success")
-            //        val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(Seq(streamId))).head
             complete(OK, ResponseJson[StartResponse](getHeader(200, session), StartResponse(streamId, stream.status, getDisableActions(stream.streamType, stream.status), getHideActions(stream.streamType))))
           } else {
             riderLogger.info(s"user ${session.userId} can't stop stream $streamId now")
-            //        complete(OK, getHeader(406, s"renew is forbidden", session))
             complete(OK, setFailedResponse(session, "renew is forbidden"))
           }
         case None =>
@@ -449,8 +424,6 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
 
   private def startResponse(projectId: Long, streamId: Long, streamDirectiveOpt: Option[StreamDirective], session: SessionClass): Route = {
     if (session.projectIdList.contains(projectId)) {
-      //      val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(Seq(streamId))).head
-      //      val stream = streamDetail.stream
       val streamOpt = Await.result(streamDal.findById(streamId), minTimeOut)
       streamOpt match {
         case Some(stream) =>
@@ -480,13 +453,19 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
               } else {
                 if (StreamType.withName(stream.streamType) == StreamType.SPARK)
                   startStreamDirective(streamId, streamDirectiveOpt, session.userId)
-                //            runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(stream.name)}")
                 val logPath = getLogPath(stream.name)
                 startStream(stream, logPath)
                 riderLogger.info(s"user ${session.userId} start stream $streamId success.")
                 onComplete(streamDal.updateByStatus(streamId, StreamStatus.STARTING.toString, session.userId, logPath).mapTo[Int]) {
                   case Success(_) =>
-                    complete(OK, ResponseJson[StartResponse](getHeader(200, session), StartResponse(streamId, StreamStatus.STARTING.toString, getDisableActions(stream.streamType, StreamStatus.STARTING.toString), getHideActions(stream.streamType))))
+                    val stream = Await.result(streamDal.findById(streamId), minTimeOut).get
+                    val startResponse = StartResponse(streamId,
+                      StreamStatus.STARTING.toString,
+                      getDisableActions(stream.streamType, StreamStatus.STARTING.toString),
+                      getHideActions(stream.streamType),
+                      stream.sparkAppid, stream.startedTime, stream.stoppedTime
+                    )
+                    complete(OK, ResponseJson[StartResponse](getHeader(200, session), startResponse))
                   case Failure(ex) =>
                     riderLogger.error(s"user ${session.userId} start stream where project id is $projectId failed", ex)
                     complete(OK, setFailedResponse(session, ex.getMessage))
@@ -542,8 +521,10 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                         }
                         Await.result(streamDal.deleteById(streamId), minTimeOut)
                         Await.result(inTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
+                        Await.result(streamUdfTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
+                        Await.result(streamUdfDal.deleteByFilter(_.streamId === streamId), minTimeOut)
+
                         CacheMap.streamCacheMapRefresh
-                        //                        runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(streamDetail.stream.name)}")
                         riderLogger.info(s"user ${session.userId} delete stream $streamId success")
                         complete(OK, getHeader(200, session))
                       }
@@ -591,7 +572,6 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           riderLogger.warn(s"${
             session.userId
           } has no permission to access it.")
-          //complete(OK, getHeader(403, session))
           complete(OK, setFailedResponse(session, "Insufficient Permission"))
         }
         else {
@@ -678,7 +658,6 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           session =>
             if (session.roleType != "user") {
               riderLogger.warn(s"${session.userId} has no permission to access it.")
-              //complete(OK, getHeader(403, session))
               complete(OK, setFailedResponse(session, "Insufficient Permission"))
             }
             else {
@@ -757,11 +736,6 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     val latestOffset = getKafkaLatestOffset(kafkaInfo._2, postTopic.name)
     val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, postTopic.name)
 
-    // insert userdefined topic
-    //    val topicInsert = Await.result(udfTopicDal.insert(
-    //      StreamUserDefinedTopic(0, streamId, kafkaInfo._1, postTopic.name, earliestOffset, RiderConfig.spark.topicDefaultRate, currentSec, session.userId, currentSec, session.userId)), minTimeOut)
-
-    // response
     val topicResponse = SimpleTopicAllOffsets(postTopic.name, RiderConfig.spark.topicDefaultRate, earliestOffset, earliestOffset, latestOffset)
 
     riderLogger.info(s"user ${session.userId} get user defined topic offsets success.")
@@ -830,40 +804,6 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     complete(OK, ResponseJson[GetTopicsOffsetResponse](getHeader(200, session), response))
   }
 
-//  def deleteUserDefinedTopicRoute(route: String) = path(route / LongNumber / "streams" / LongNumber / "topics" / "userdefined" / LongNumber) {
-//    (id, streamId, topicId) =>
-//      delete {
-//        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
-//          session =>
-//            if (session.roleType != "user") {
-//              riderLogger.warn(s"${session.userId} has no permission to access it.")
-//              complete(OK, getHeader(403, session))
-//            }
-//            else {
-//              if (session.projectIdList.contains(id)) {
-//                try {
-//                  deleteUserDefinedTopicResponse(id, streamId, topicId, session)
-//                } catch {
-//                  case ex: Exception =>
-//                    riderLogger.error(s"user ${session.userId} delete user defined topic $topicId failed", ex)
-//                    complete(OK, setFailedResponse(session, ex.getMessage))
-//                }
-//              } else {
-//                riderLogger.error(s"user ${
-//                  session.userId
-//                } doesn't have permission to access the project $id.")
-//                complete(OK, setFailedResponse(session, "Insufficient Permission"))
-//              }
-//            }
-//        }
-//      }
-//  }
-
-//  def deleteUserDefinedTopicResponse(id: Long, streamId: Long, topicId: Long, session: SessionClass): Route = {
-//    Await.result(streamUdfTopicDal.deleteById(topicId), minTimeOut)
-//    riderLogger.info(s"user ${session.userId} delete user defined topic $topicId success.")
-//    complete(OK, setSuccessResponse(session))
-//  }
 
   def getDefaultConfig(route: String): Route = path(route / "defaultconfigs") {
     get {

@@ -169,6 +169,7 @@ case class StreamHealth(streamStatus: String,
                         topics: Seq[TopicOffset])
 
 case class StreamInfo(name: String, appId: Option[String], streamType: String, functionType: String, status: String)
+
 case class StreamSelect(id: Long,
                         name: String,
                         kafkaInstance: String,
@@ -181,7 +182,14 @@ case class SimpleStreamInfo(id: Long,
                             topicInfo: Seq[String]
                            )
 
-case class StartResponse(id: Long, status: String, disableActions: String, hideActions: String)
+case class StartResponse(id: Long,
+                         status: String,
+                         disableActions: String,
+                         hideActions: String,
+                         appId: Option[String] = None,
+                         startedTime: Option[String] = None,
+                         stoppedTime: Option[String] = None
+                        )
 
 
 //   "startConfig" : "{\"driverCores\":1,\"driverMemory\":1,\"executorNums\":1,\"perExecutorMemory\":1,\"perExecutorCores\":1}",

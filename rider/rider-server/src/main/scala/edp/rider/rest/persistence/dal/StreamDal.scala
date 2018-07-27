@@ -315,7 +315,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     topics.map(topic => {
       val earliest = getKafkaEarliestOffset(kafkaMap(topic.streamId), topic.name)
       val latest = getKafkaLatestOffset(kafkaMap(topic.streamId), topic.name)
-      val consumed = feedbackOffsetMap(topic.name)
+      val consumed = formatConsumedOffsetByLatestOffset(feedbackOffsetMap(topic.name), latest)
       TopicAllOffsets(topic.id, topic.name, topic.rate, consumed, earliest, latest)
     })
   }
