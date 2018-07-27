@@ -137,8 +137,12 @@ case class LdapInfo(enabled: Boolean,
 
 case class RiderFlink(homePath: String,
                       yarnQueueName: String,
+                      defaultRate: Int,
+                      defaultParallelism: Int,
                       jarPath: String,
-                      clientLogPath: String)
+                      clientLogPath: String,
+                      kafkaSessionTimeOut: Int,
+                      kafkaGroupMaxSessionTimeOut: Int)
 
 
 object RiderConfig {
@@ -300,10 +304,13 @@ object RiderConfig {
 
   lazy val defaultFlinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "")
 
-  lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"),
+  lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"), 1,1,
     getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-flinkx_1.5.1-0.4.2-SNAPSHOTS-jar-with-dependencies.jar"),
-    getStringConfig("flink.wormhole.client.log.path", s"$riderRootPath/logs/flows"))
-  lazy val flinkDefaultRate = 1
+    getStringConfig("flink.wormhole.client.log.path", s"$riderRootPath/logs/flows"),
+    getIntConfig("spark.kafka.session.timeout", 30000),
+    getIntConfig("spark.kafka.group.max.session.timeout.ms", 60000)
+  )
+
   def getStringConfig(path: String, default: String): String = {
     if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")
       config.getString(path)

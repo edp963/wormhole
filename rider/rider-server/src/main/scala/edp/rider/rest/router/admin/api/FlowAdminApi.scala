@@ -27,7 +27,7 @@ import edp.rider.common.RiderLogger
 import edp.rider.rest.persistence.dal.{FlowDal, StreamDal}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
-import edp.rider.rest.util.AuthorizationProvider
+import edp.rider.rest.util.{AuthorizationProvider, FlowUtils}
 import edp.rider.rest.util.ResponseUtils._
 import slick.jdbc.MySQLProfile.api._
 
@@ -124,4 +124,29 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
 
   }
 
+  def getLogByFlowId(route: String): Route = path(route / LongNumber / "flows" / LongNumber / "logs") {
+    (id, flowId) =>
+      get {
+        authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+          session =>
+            if (session.roleType != "admin") {
+              riderLogger.warn(s"${
+                session.userId
+              } has no permission to access it.")
+              complete(OK, setFailedResponse(session, "Insufficient Permission"))
+            }
+            else {
+              if (session.projectIdList.contains(id)) {
+                val log = FlowUtils.getLog(flowId)
+                complete(OK, ResponseJson[String](getHeader(200, session), log))
+              } else {
+                riderLogger.error(s"user ${
+                  session.userId
+                } doesn't have permission to access the project $id.")
+                complete(OK, setFailedResponse(session, "Insufficient Permission"))
+              }
+            }
+        }
+      }
+  }
 }
