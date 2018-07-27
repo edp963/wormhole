@@ -217,19 +217,19 @@ object FlowUtils extends RiderLogger {
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "start failed")
 
         case ("running", "starting" | "updating" | "stopping" | "suspending" | "running" | "failed", "stop") =>
-          if (stopFlow(flowStream.streamId, flowStream.id, flowStream.updateBy, flowStream.streamType, flowStream.sourceNs, flowStream.sinkNs, flowStream.tranConfig.getOrElse("")))
+          if (stopFlow(flowStream.streamId, flowStream.id, flowStream.updateBy, flowStream.functionType, flowStream.sourceNs, flowStream.sinkNs, flowStream.tranConfig.getOrElse("")))
             FlowInfo(flowStream.id, "stopped", "renew,stop", flowStream.startedTime, Option(currentSec), s"$action success")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "stop failed")
 
         case ("running", "starting" | "updating" | "running" | "suspending", "renew") =>
-          if (startFlow(flowStream.streamId, flowStream.streamType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.updateBy))
+          if (startFlow(flowStream.streamId, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.updateBy))
             FlowInfo(flowStream.id, "updating", "start", Option(currentSec), null, s"$action success")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "renew failed")
 
         case ("running", "new" | "stopped" | "failed", "start") =>
-          if (startFlow(flowStream.streamId, flowStream.streamType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.updateBy))
+          if (startFlow(flowStream.streamId, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.updateBy))
             FlowInfo(flowStream.id, "starting", "start", Option(currentSec), null, s"$action success")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "start failed")
@@ -335,11 +335,11 @@ object FlowUtils extends RiderLogger {
     } else {
       flow.status match {
         case "new" => "renew,stop"
-        case "starting" => "start,stop"
+        case "starting" => "start"
         case "running" => "start"
-        case "updating" => "start,stop"
+        case "updating" => "start"
         case "suspending" => "start"
-        case "stopping" => "start,renew,stop"
+        case "stopping" => "start,renew"
         case "stopped" => "renew,stop"
         case "failed" => ""
       }
