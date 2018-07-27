@@ -243,7 +243,6 @@ alter table `directive` modify column `directive` VARCHAR(2000);
 CREATE TABLE IF NOT EXISTS `rel_stream_intopic` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `stream_id` BIGINT NOT NULL,
-  `ns_instance_id` BIGINT NOT NULL,
   `ns_database_id` BIGINT NOT NULL,
   `partition_offsets` VARCHAR(5000) NOT NULL,
   `rate` INT NOT NULL,
@@ -255,6 +254,8 @@ CREATE TABLE IF NOT EXISTS `rel_stream_intopic` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `rel_stream_intopic_UNIQUE` (`stream_id` ASC, `ns_instance_id` ASC, `ns_database_id` ASC))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+alter table `rel_stream_intopic` drop column `ns_instance_id`;
 
 CREATE TABLE IF NOT EXISTS `rel_stream_userdefined_topic` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
