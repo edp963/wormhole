@@ -95,7 +95,7 @@ class UdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdfDal,
       } else {
         val jarName = Await.result(super.findById(id), minTimeOut).get.jarName
         val sameJarUdfs = Await.result(super.findByFilter(udf => udf.jarName === jarName && udf.id =!= id), minTimeOut)
-        if (sameJarUdfs.nonEmpty)
+        if (sameJarUdfs.isEmpty)
           UdfUtils.deleteHdfsPath(jarName)
         Await.result(super.deleteById(id), minTimeOut)
         (true, "success")
