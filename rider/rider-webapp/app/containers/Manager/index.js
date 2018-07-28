@@ -1185,6 +1185,7 @@ export class Manager extends React.Component {
           const detailTemp = showStreamdetails.stream
 
           const topicTemp = showStreamdetails.topicInfo.autoRegisteredTopics
+          const topicUserTemp = showStreamdetails.topicInfo.userDefinedTopics
           const topicFinal = topicTemp.map(s => (
             <li key={s.name}>
               <strong>Topic Name：</strong>{s.name}
@@ -1192,7 +1193,13 @@ export class Manager extends React.Component {
               <strong>；Rate：</strong>{s.rate}
             </li>
           ))
-
+          const topicUserFinal = topicUserTemp.map(s => (
+            <li key={s.name}>
+              <strong>Topic Name：</strong>{s.name}
+              <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
+              <strong>；Rate：</strong>{s.rate}
+            </li>
+          ))
           const currentudfTemp = showStreamdetails.currentUdf
           const currentUdfFinal = currentudfTemp.length !== 0
             ? currentudfTemp.map(s => (
@@ -1218,14 +1225,15 @@ export class Manager extends React.Component {
           streamDetailContent = (
             <div className="stream-detail">
               <p className={streamClassHide}><strong>   Project Id：</strong>{detailTemp.projectId}</p>
-              <p><strong>   Topic Info：</strong>{topicFinal}</p>
+              <p><strong>   Auto Registered Topics：</strong>{topicFinal}</p>
+              <p><strong>   User Defined Topics：</strong>{topicUserFinal}</p>
               <p><strong>   Current Udf：</strong>{currentUdfFinal}</p>
               {/* <p><strong>   Using Udf：</strong>{usingUdfTempFinal}</p> */}
               <p><strong>   Description：</strong>{detailTemp.desc}</p>
 
               <p><strong>   Launch Config：</strong>{detailTemp.launchConfig}</p>
-              <p><strong>{record.streamType} Config：</strong>{detailTemp.sparkConfig}</p>
-              <p><strong>   start Config：</strong>{detailTemp.startConfig}</p>
+              <p><strong>   Stream Config：</strong>{detailTemp.streamConfig}</p>
+              <p><strong>   Start Config：</strong>{detailTemp.startConfig}</p>
 
               <p><strong>   Create Time：</strong>{detailTemp.createTime}</p>
               <p><strong>   Update Time：</strong>{detailTemp.updateTime}</p>

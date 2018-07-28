@@ -237,7 +237,8 @@ function flowReducer (state = initialState, { type, payload }) {
     case STARTFLINK_FLOWS_SUCCESS:
       const startIndexStartOrRenew = flows.indexOf(flows.find(p => Object.is(p.id, payload.result.id)))
       flows[startIndexStartOrRenew].disableActions = payload.result.disableActions
-      flows[startIndexStartOrRenew].status = payload.result.status
+      flows[startIndexStartOrRenew].startedTime = payload.result.startedTime
+      flows[startIndexStartOrRenew].stoppedTime = payload.result.stoppedTime
 
       // streams.fill(payload.result, startIndexStartOrRenew, startIndexStartOrRenew + 1)
       return state

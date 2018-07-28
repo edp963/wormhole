@@ -40,7 +40,7 @@ import Input from 'antd/lib/input'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
-import { loadAdminAllUsers, loadUserUsers, addUser, editUser, loadSelectUsers, loadUserDetail, deleteUser } from './action'
+import { loadAdminAllUsers, loadUserUsers, addUser, editUser, loadSelectUsers, loadUserDetail, deleteUser, editroleTypeUserPsw } from './action'
 import { selectUsers, selectError, selectModalLoading } from './selectors'
 import { selectRoleType } from '../App/selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
@@ -220,7 +220,7 @@ export class User extends React.PureComponent {
 
   onModalOk = () => {
     const { formType, editUsersMsgData, editUsersPswData } = this.state
-    const { onAddUser, onEditUser, locale } = this.props
+    const { onAddUser, onEditUser, onEditroleTypeUserPsw, locale } = this.props
 
     this.userForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
@@ -237,17 +237,18 @@ export class User extends React.PureComponent {
             break
           case 'editMsg':
             onEditUser(Object.assign(editUsersMsgData, values, {
-              preferredLanguage: locale
+              preferredLanguage: locale === 'en' ? 'english' : locale === 'zh' ? 'chinese' : ''
             }), () => {
               this.hideForm()
               message.success(userInfoSuccesstext, 3)
             })
             break
           case 'editPsw':
-            onEditUser(Object.assign(editUsersPswData, {
-              password: values.password,
-              preferredLanguage: locale
-            }), () => {
+            const requestValue = {
+              id: Number(editUsersPswData.id),
+              newPass: values.password
+            }
+            onEditroleTypeUserPsw(requestValue, () => {
               this.hideForm()
               message.success(pwdSuccesstext, 3)
             })
@@ -667,7 +668,8 @@ User.propTypes = {
   onLoadUserDetail: PropTypes.func,
   onDeleteUser: PropTypes.func,
   roleType: PropTypes.string,
-  locale: PropTypes.string
+  locale: PropTypes.string,
+  onEditroleTypeUserPsw: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -678,7 +680,8 @@ export function mapDispatchToProps (dispatch) {
     onAddUser: (user, resolve) => dispatch(addUser(user, resolve)),
     onEditUser: (user, resolve) => dispatch(editUser(user, resolve)),
     onLoadUserDetail: (userId, resolve) => dispatch(loadUserDetail(userId, resolve)),
-    onDeleteUser: (userId, resolve, reject) => dispatch(deleteUser(userId, resolve, reject))
+    onDeleteUser: (userId, resolve, reject) => dispatch(deleteUser(userId, resolve, reject)),
+    onEditroleTypeUserPsw: (pwdValues, resolve, reject) => dispatch(editroleTypeUserPsw(pwdValues, resolve, reject))
   }
 }
 

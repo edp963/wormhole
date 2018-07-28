@@ -404,7 +404,9 @@ export class Workbench extends React.Component {
       resultFieldsValue: 'all',
       etpStrategyConfirmValue: '',
       etpStrategyRequestValue: {},
-      cepPropData: {}
+      cepPropData: {},
+      outputType: 'agg',
+      transformMode: ''
     }, () => {
       this.workbenchFlowForm.setFieldsValue({
         resultFields: 'all',
@@ -459,7 +461,7 @@ export class Workbench extends React.Component {
         this.setState({
           pipelineStreamId: id,
           flowKafkaInstanceValue: instance,
-          flowKafkaTopicValue: topicInfo ? topicInfo.map(j => j.name).join(',') : ''
+          flowKafkaTopicValue: topicInfo && topicInfo.length > 0 ? topicInfo.join(',') : ''
         })
         this.workbenchFlowForm.setFieldsValue({
           flowStreamId: id,
@@ -481,7 +483,7 @@ export class Workbench extends React.Component {
     this.setState({
       pipelineStreamId: Number(id),
       flowKafkaInstanceValue: instance,
-      flowKafkaTopicValue: topicInfo ? topicInfo.map(j => j.name).join(',') : ''
+      flowKafkaTopicValue: topicInfo && topicInfo.length > 0 ? topicInfo.join(',') : ''
     })
 
     switch (streamDiffType) {
@@ -1367,10 +1369,7 @@ export class Workbench extends React.Component {
           jobManagerMemoryGB,
           taskManagersNumber,
           perTaskManagerSlots,
-          perTaskManagerMemoryGB,
-
-          jvm: jvmTempValue,
-          personalConf: personalConfTempValue
+          perTaskManagerMemoryGB
         })
       }
     })
@@ -1416,29 +1415,30 @@ export class Workbench extends React.Component {
     const { streamSubPanelKey } = this.state
     this.streamConfigForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
-        values.personalConf = values.personalConf.trim()
-        values.jvm = values.jvm.trim()
+        let startConfigJson = {}
+        let launchConfigJson = {}
+        let streamConfigValue = ''
 
-        const nJvm = (values.jvm.split('extraJavaOptions')).length - 1
-        let jvmValTemp = ''
-        if (nJvm === 2) {
-          jvmValTemp = values.jvm.replace(/\n/g, ',')
+        if (streamSubPanelKey === 'spark') {
+          values.personalConf = values.personalConf.trim()
+          values.jvm = values.jvm.trim()
 
-          let streamConfigValue = ''
-          if (!values.personalConf) {
-            streamConfigValue = jvmValTemp
-          } else {
-            const nOthers = (values.jvm.split('=')).length - 1
+          const nJvm = (values.jvm.split('extraJavaOptions')).length - 1
+          let jvmValTemp = ''
+          if (nJvm === 2) {
+            jvmValTemp = values.jvm.replace(/\n/g, ',')
 
-            const personalConfTemp = nOthers === 1
-              ? values.personalConf
-              : values.personalConf.replace(/\n/g, ',')
+            if (!values.personalConf) {
+              streamConfigValue = jvmValTemp
+            } else {
+              const nOthers = (values.jvm.split('=')).length - 1
 
-            streamConfigValue = `${jvmValTemp},${personalConfTemp}`
-          }
-          let startConfigJson = {}
-          let launchConfigJson = {}
-          if (streamSubPanelKey === 'spark') {
+              const personalConfTemp = nOthers === 1
+                ? values.personalConf
+                : values.personalConf.replace(/\n/g, ',')
+
+              streamConfigValue = `${jvmValTemp},${personalConfTemp}`
+            }
             const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores } = values
             startConfigJson = {
               driverCores: driverCores,
@@ -1454,29 +1454,29 @@ export class Workbench extends React.Component {
               partitions: partitions,
               maxRecords: maxRecords
             }
-          } else if (streamSubPanelKey === 'flink') {
-            const { jobManagerMemoryGB, perTaskManagerMemoryGB, perTaskManagerSlots, taskManagersNumber } = values
-            startConfigJson = {
-              jobManagerMemoryGB,
-              perTaskManagerMemoryGB,
-              perTaskManagerSlots,
-              taskManagersNumber
-            }
-            launchConfigJson = ''
+          } else {
+            message.warning(locale === 'en' ? 'Please configure JVM correctly!' : '请正确配置 JVM！', 3)
+            return
           }
-
-          this.setState({
-            streamConfigCheck: true,
-            streamConfigValues: {
-              streamConfig: streamConfigValue,
-              startConfig: JSON.stringify(startConfigJson),
-              launchConfig: launchConfigJson && JSON.stringify(launchConfigJson)
-            }
-          })
-          this.hideConfigModal()
-        } else {
-          message.warning(locale === 'en' ? 'Please configure JVM correctly!' : '请正确配置 JVM！', 3)
+        } else if (streamSubPanelKey === 'flink') {
+          const { jobManagerMemoryGB, perTaskManagerMemoryGB, perTaskManagerSlots, taskManagersNumber } = values
+          startConfigJson = {
+            jobManagerMemoryGB,
+            perTaskManagerMemoryGB,
+            perTaskManagerSlots,
+            taskManagersNumber
+          }
+          launchConfigJson = ''
         }
+        this.setState({
+          streamConfigCheck: true,
+          streamConfigValues: {
+            streamConfig: streamConfigValue,
+            startConfig: JSON.stringify(startConfigJson),
+            launchConfig: launchConfigJson && JSON.stringify(launchConfigJson)
+          }
+        })
+        this.hideConfigModal()
       }
     })
   }
@@ -3558,7 +3558,6 @@ export class Workbench extends React.Component {
                       transformMode={transformMode}
                       hasPattern={hasPattern}
                       outputType={outputType}
-                      flowMode={flowMode}
                     />
                   </Modal>
                   {/* Flow Sink Config Modal */}

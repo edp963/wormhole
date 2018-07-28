@@ -52,7 +52,7 @@ export class FlowTransformForm extends React.Component {
       selectValue: '',
       cepDataSource: [],
       operatorBtnInitVal: '',
-      outputType: 'agg',
+      outputType: '',
       patternModalShow: false,
       quartifierTimesBtnToInput: false,
       quartifierTimesOrMoreBtnToInput: false,
@@ -67,15 +67,22 @@ export class FlowTransformForm extends React.Component {
   }
   componentWillReceiveProps (props) {
     if (this.props.transformModalVisible === props.transformModalVisible) return
-    if (props.transformMode === 'add' || props.flowMode === 'add') {
-      this.setState({cepDataSource: []})
-    } else if (props.transformMode === 'edit') {
-      if (props.cepPropData) {
-        this.formatCepPatternData(props.cepPropData)
-      }
+    if (props.cepPropData) {
+      this.formatCepPatternData(props.cepPropData)
     }
+    // if (props.transformMode === 'add') {
+    //   this.setState({cepDataSource: []})
+    // } else if (props.transformMode === 'edit') {
+    //   if (props.cepPropData) {
+    //     this.formatCepPatternData(props.cepPropData)
+    //   }
+    // }
   }
   formatCepPatternData = (data) => {
+    if (!data.tranConfigInfoSql) {
+      this.setState({cepDataSource: []})
+      return
+    }
     if (data.transformType === 'cep') {
       let cepDataSource = []
       let tranConfigInfoSql = JSON.parse(data.tranConfigInfoSql)
@@ -114,34 +121,49 @@ export class FlowTransformForm extends React.Component {
     this.setState({outputType})
   }
   doFilterQuery = (conditions) => {
-    const { cepDataSource, editRow } = this.state
+    const { cepDataSource, editRow, operatorBtnInitVal } = this.state
     let patternValue = {}
     let quartifierObj = {}
-    this.props.form.validateFieldsAndScroll(['operator', 'quartifier', 'conditions'], (err, values) => {
+    let patternOperHiddenQuartifier = false
+    let validateStr = []
+    if (operatorBtnInitVal === 'notnext' || operatorBtnInitVal === 'notfollowedby') patternOperHiddenQuartifier = true
+    if (patternOperHiddenQuartifier) {
+      validateStr = ['operator', 'conditions']
+    } else {
+      validateStr = ['operator', 'quartifier', 'conditions']
+    }
+    this.props.form.validateFieldsAndScroll(validateStr, (err, values) => {
       let { operator, quartifier } = values
-      quartifierObj.type = values.quartifier
-      switch (quartifier) {
-        case 'oneormore':
-          quartifierObj.value = 1
-          break
-        case 'times':
-          let timesInput = this.quartifierTimesInput.value
-          quartifierObj.value = timesInput
-          break
-        case 'timesormore':
-          let timesOrMoreInput = this.quartifierTimesOrMoreInput.value
-          quartifierObj.value = timesOrMoreInput
-          break
-        default:
-          quartifierObj = ''
-      }
-      quartifierObj = quartifierObj === '' ? '' : JSON.stringify(quartifierObj)
-      if (!err) {
+      if (!patternOperHiddenQuartifier) {
+        quartifierObj.type = values.quartifier
+        switch (quartifier) {
+          case 'oneormore':
+            quartifierObj.value = 1
+            break
+          case 'times':
+            let timesInput = this.quartifierTimesInput.value
+            quartifierObj.value = timesInput
+            break
+          case 'timesormore':
+            let timesOrMoreInput = this.quartifierTimesOrMoreInput.value
+            quartifierObj.value = timesOrMoreInput
+            break
+          default:
+            quartifierObj = ''
+        }
+        quartifierObj = quartifierObj === '' ? '' : JSON.stringify(quartifierObj)
         patternValue = {
           pattern_type: operator,
           quartifier: quartifierObj,
           conditions: JSON.stringify(conditions)
         }
+      } else {
+        patternValue = {
+          pattern_type: operator,
+          conditions: JSON.stringify(conditions)
+        }
+      }
+      if (!err) {
         let newCepTableDataSource = cepDataSource.slice()
         if (editRow > -1) {
           newCepTableDataSource[editRow] = patternValue
@@ -197,28 +219,35 @@ export class FlowTransformForm extends React.Component {
   onEditPattern = (record, index) => (e) => {
     let patternSourceDataConditions = record.conditions
     let quartifierObj = record.quartifier && JSON.parse(record.quartifier)
-    this.props.form.setFieldsValue({
-      operator: record.pattern_type,
-      quartifier: quartifierObj.type
-    })
-    switch (quartifierObj.type) {
-      case 'times':
-        this.setState({
-          quartifierTimesBtnToInput: true,
-          quartifierTimesOrMoreBtnToInput: false
-        }, () => {
-          this.quartifierTimesInput.value = quartifierObj.value
-        })
-        break
-      case 'timesormore':
-        this.setState({
-          quartifierTimesBtnToInput: false,
-          quartifierTimesOrMoreBtnToInput: true
-        }, () => {
-          this.quartifierTimesOrMoreInput.value = quartifierObj.value
-        })
-        break
+    if (quartifierObj) {
+      this.props.form.setFieldsValue({
+        operator: record.pattern_type,
+        quartifier: quartifierObj.type
+      })
+      switch (quartifierObj.type) {
+        case 'times':
+          this.setState({
+            quartifierTimesBtnToInput: true,
+            quartifierTimesOrMoreBtnToInput: false
+          }, () => {
+            this.quartifierTimesInput.value = quartifierObj.value
+          })
+          break
+        case 'timesormore':
+          this.setState({
+            quartifierTimesBtnToInput: false,
+            quartifierTimesOrMoreBtnToInput: true
+          }, () => {
+            this.quartifierTimesOrMoreInput.value = quartifierObj.value
+          })
+          break
+      }
+    } else {
+      this.props.form.setFieldsValue({
+        operator: record.pattern_type
+      })
     }
+
     this.setState({
       operatorBtnInitVal: record.pattern_type,
       patternSourceDataConditions,
@@ -289,6 +318,10 @@ export class FlowTransformForm extends React.Component {
   setQuartifierTimesOrMoreInputRef = el => {
     this.quartifierTimesOrMoreInput = el
   }
+  operatorChange = (event) => {
+    let operatorBtnInitVal = event.target.value
+    this.setState({operatorBtnInitVal})
+  }
   render () {
     const { form, transformValue, transformSinkTypeNamespaceData, flowTransNsData, step2SourceNamespace, step2SinkNamespace, flowSubPanelKey } = this.props
     const { dsHideOrNot, selectValue, cepDataSource, outputType, patternModalShow, operatorBtnInitVal, quartifierTimesBtnToInput, quartifierTimesOrMoreBtnToInput, patternSourceDataConditions } = this.state
@@ -346,6 +379,13 @@ export class FlowTransformForm extends React.Component {
 
     const outputHiddens = [
       outputType === 'detail'
+    ]
+
+    const patternOperatorAboutHiddens = [
+      operatorBtnInitVal === 'next',
+      operatorBtnInitVal === 'followedby',
+      operatorBtnInitVal === 'notnext',
+      operatorBtnInitVal === 'notfollowedby'
     ]
 
     const flinkFlowLookupSqlType = [
@@ -435,6 +475,24 @@ export class FlowTransformForm extends React.Component {
             content={
               <div style={{ width: '280px', height: '110px' }}>
                 <p><FormattedMessage {...messages.workbenchFlowTransCepKeyby} /></p>
+              </div>}
+            title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
+            trigger="click">
+            <Icon type="question-circle-o" className="question-class" />
+          </Popover>
+        </Tooltip>
+      </span>
+    )
+
+    const outputHelp = (
+      <span>
+        Output
+        <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />} placement="bottom">
+          <Popover
+            placement="top"
+            content={
+              <div style={{ width: '280px', height: '100px' }}>
+                <p><FormattedMessage {...messages.workbenchFlowTransCepOutput} /></p>
               </div>}
             title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
             trigger="click">
@@ -802,7 +860,7 @@ export class FlowTransformForm extends React.Component {
                   }],
                   hidden: flinkTransformTypeHiddens[2]
                 })(
-                  <InputNumber step={1} placeholder="seconds" />
+                  <InputNumber step={1} min={0} placeholder="seconds" />
                 )}
               </FormItem>
             </Col>
@@ -848,7 +906,7 @@ export class FlowTransformForm extends React.Component {
           ) : '' }
           {flowSubPanelKey === 'flink' ? (
             <Col span={12} offset={2} className={flinkTransformTypeClassNames[2]}>
-              <FormItem label="Output" {...itemStyle}>
+              <FormItem label={outputHelp} {...itemStyle}>
                 {getFieldDecorator('output', {
                   rules: [{
                     required: true,
@@ -879,22 +937,6 @@ export class FlowTransformForm extends React.Component {
                   <Input />
                 )}
               </FormItem>
-            </Col>
-          ) : ''}
-          {flowSubPanelKey === 'flink' ? (
-            <Col span={1} pull={4} className={`${flinkTransformTypeClassNames[2]} ${outputHiddens[0] ? 'hide' : ''}`}>
-              <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />} placement="bottom">
-                <Popover
-                  placement="top"
-                  content={
-                    <div style={{ width: '280px', height: '35px' }}>
-                      <p><FormattedMessage {...messages.workbenchFlowTransCepOutput} /></p>
-                    </div>}
-                  title={<h3><FormattedMessage {...messages.workbenchHelp} /></h3>}
-                  trigger="click">
-                  <Icon type="question-circle-o" className="question-class" />
-                </Popover>
-              </Tooltip>
             </Col>
           ) : ''}
           {flowSubPanelKey === 'flink' ? (
@@ -939,7 +981,7 @@ export class FlowTransformForm extends React.Component {
                       initialValue: operatorBtnInitVal,
                       hidden: flinkTransformTypeHiddens[2] || !patternModalShow
                     })(
-                      <RadioGroup size="default">
+                      <RadioGroup size="default" onChange={this.operatorChange}>
                         {operatorBtnInitVal === 'begin' ? (
                           <RadioButton value="begin" className={`radio-btn-style`}>Begin</RadioButton>
                         ) : ''}
@@ -959,14 +1001,14 @@ export class FlowTransformForm extends React.Component {
                     )}
                   </FormItem>
                 </Col>
-                <Col span={24}>
+                <Col span={24} className={patternOperatorAboutHiddens[2] || patternOperatorAboutHiddens[3] ? 'hide' : ''}>
                   <FormItem label={quartifierHelp} {...patternItemStyle}>
                     {getFieldDecorator('quartifier', {
                       rules: [{
                         required: true,
                         message: operateLanguageSelect('quartifier', 'Quartifier')
                       }],
-                      hidden: flinkTransformTypeHiddens[2] || !patternModalShow
+                      hidden: flinkTransformTypeHiddens[2] || !patternModalShow || patternOperatorAboutHiddens[2] || patternOperatorAboutHiddens[3]
                     })(
                       <RadioGroup size="default" onChange={this.changeQuartifier}>
                         <RadioButton value="oneormore" className="radio-btn-style">OneOrMore</RadioButton>
