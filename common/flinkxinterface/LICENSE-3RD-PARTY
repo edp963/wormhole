@@ -1,0 +1,20 @@
+
+List of third-party dependencies grouped by their license type.
+
+    Apache 2.0:
+
+        * scalatest (org.scalatest:scalatest_2.11:2.2.5 - http://www.scalatest.org)
+
+    BSD:
+
+        * Scala Library (org.scala-lang:scala-library:2.11.8 - http://www.scala-lang.org/)
+        * Scala Compiler (org.scala-lang:scala-reflect:2.11.2 - http://www.scala-lang.org/)
+        * scala-xml (org.scala-lang.modules:scala-xml_2.11:1.0.2 - http://www.scala-lang.org/)
+
+    MIT:
+
+        * SLF4J API Module (org.slf4j:slf4j-api:1.7.21 - http://www.slf4j.org)
+
+    The Apache Software License, Version 2.0:
+
+        * Apache Log4j (log4j:log4j:1.2.17 - http://logging.apache.org/log4j/1.2/)

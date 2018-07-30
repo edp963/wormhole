@@ -54,6 +54,17 @@
         </dependency>
 
         <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-interface</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-dbpool</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-scala_${scala.binary.version}</artifactId>
             <version>${flink.version}</version>
@@ -100,7 +111,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>PatternDemo</mainClass>
+                            <mainClass>edp.wormhole.WormholeFlinkxStarter</mainClass>
 
                         </manifest>
                     </archive>
@@ -112,46 +123,6 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <!--<configuration>-->
-                <!--<relocations>-->
-                <!--<relocation>-->
-                <!--<pattern>com.google.common</pattern>-->
-                <!--<shadedPattern>com.foo.com.google.common</shadedPattern>-->
-                <!--</relocation>-->
-                <!--</relocations>-->
-                <!--<finalName>${project.artifactId}-${project.version}-jar-with-dependencies</finalName>-->
-                <!--</configuration>-->
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                            <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
-                            <transformers>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>PatternDemo</mainClass>
-                                </transformer>
-                            </transformers>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
