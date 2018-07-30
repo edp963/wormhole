@@ -18,13 +18,18 @@
  * >>
  */
 
-package edp.wormhole.config
+package edp.wormhole.ordering
 
-case class KafkaConfig(format: Option[String] = None,
-                       preserveSystemField: Option[Boolean] = None,
-                       `batch_size`: Option[Int] = None,
-                       sinkKafkaTopic:Option[String]) {
-                         lazy val messageFormat = format.getOrElse("ums")
-                         lazy val limitNum = `batch_size`.getOrElse(50)
-                         lazy val hasSystemField = preserveSystemField.getOrElse(false)
-                       }
+import java.sql.{Date, Timestamp}
+
+import scala.math.Ordering
+
+object OrderingImplicit {
+  implicit val timestampOrdered: Ordering[Timestamp] = new Ordering[Timestamp] {
+    override def compare(x: Timestamp, y: Timestamp): Int = x.compareTo(y)
+  }
+
+  implicit val sqlDateOrdering: Ordering[Date] = new Ordering[Date] {
+    def compare(x: Date, y: Date): Int = x compareTo y
+  }
+}
