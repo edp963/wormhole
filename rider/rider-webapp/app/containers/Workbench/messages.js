@@ -42,5 +42,5 @@ export default defineMessages({
   workbenchFlowTransCepStrategy: { id: 'rider.containers.Workbench.tranformation.cep.strategy' },
   workbenchFlowTransCepKeyby: { id: 'rider.containers.Workbench.tranformation.cep.keyby' },
   workbenchFlowTransCepOperator: { id: 'rider.containers.Workbench.tranformation.cep.operator' },
-  workbenchFlowTransCepQuartifier: { id: 'rider.containers.Workbench.tranformation.cep.quartifier' }
+  workbenchFlowTransCepQuartifier: { id: 'rider.containers.Workbench.tranformation.cep.quantifier' }
 })

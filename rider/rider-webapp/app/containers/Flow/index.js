@@ -1288,32 +1288,60 @@ export class Flow extends React.Component {
         }
 
         let sinkConfigFinal = ''
+        let flowDetailContent = ''
         if (!showFlowDetails.sinkConfig) {
           sinkConfigFinal = ''
         } else {
           const sinkJson = JSON.parse(showFlowDetails.sinkConfig)
           sinkConfigFinal = JSON.stringify(sinkJson['sink_specific_config'])
         }
-
+        if (showFlowDetails) {
+          const topicTemp = showFlowDetails.topicInfo && showFlowDetails.topicInfo.autoRegisteredTopics
+          const topicUserTemp = showFlowDetails.topicInfo && showFlowDetails.topicInfo.userDefinedTopics
+          let topicFinal = ''
+          let topicUserFinal = ''
+          if (topicTemp) {
+            topicFinal = topicTemp.map(s => (
+              <li key={s.name}>
+                <strong>Topic Name：</strong>{s.name}
+                <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
+                <strong>；Rate：</strong>{s.rate}
+              </li>
+            ))
+          }
+          if (topicUserFinal) {
+            topicUserFinal = topicUserTemp.map(s => (
+              <li key={s.name}>
+                <strong>Topic Name：</strong>{s.name}
+                <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
+                <strong>；Rate：</strong>{s.rate}
+              </li>
+            ))
+          }
+          flowDetailContent = (
+            <div className="flow-table-detail">
+              <p className={flowClassHide}><strong>   Project Id：</strong>{showFlowDetails.projectId}</p>
+              <p><strong>   Auto Registered Topics：</strong>{topicFinal}</p>
+              <p><strong>   User Defined Topics：</strong>{topicUserFinal}</p>
+              <p><strong>   Protocol：</strong>{showFlowDetails.consumedProtocol}</p>
+              <p><strong>   Stream Name：</strong>{showFlowDetails.streamName}</p>
+              <p><strong>   Sink Config：</strong>{sinkConfigFinal}</p>
+              <p><strong>   Transformation Config：</strong>{showFlowDetails.tranConfig}</p>
+              <p><strong>   Create Time：</strong>{showFlowDetails.createTime}</p>
+              <p><strong>   Update Time：</strong>{showFlowDetails.updateTime}</p>
+              <p><strong>   Create By：</strong>{showFlowDetails.createBy}</p>
+              <p><strong>   Update By：</strong>{showFlowDetails.updateBy}</p>
+              <p><strong>   Disable Actions：</strong>{showFlowDetails.disableActions}</p>
+              <p><strong>   Message：</strong>{showFlowDetails.msg}</p>
+            </div>
+          )
+        }
         return (
           <span className="ant-table-action-column">
             <Tooltip title={<FormattedMessage {...messages.flowViewDetails} />}>
               <Popover
                 placement="left"
-                content={
-                  <div className="flow-table-detail">
-                    <p className={flowClassHide}><strong>   Project Id：</strong>{showFlowDetails.projectId}</p>
-                    <p><strong>   Protocol：</strong>{showFlowDetails.consumedProtocol}</p>
-                    <p><strong>   Stream Name：</strong>{showFlowDetails.streamName}</p>
-                    <p><strong>   Sink Config：</strong>{sinkConfigFinal}</p>
-                    <p><strong>   Transformation Config：</strong>{showFlowDetails.tranConfig}</p>
-                    <p><strong>   Create Time：</strong>{showFlowDetails.createTime}</p>
-                    <p><strong>   Update Time：</strong>{showFlowDetails.updateTime}</p>
-                    <p><strong>   Create By：</strong>{showFlowDetails.createBy}</p>
-                    <p><strong>   Update By：</strong>{showFlowDetails.updateBy}</p>
-                    <p><strong>   Disable Actions：</strong>{showFlowDetails.disableActions}</p>
-                    <p><strong>   Message：</strong>{showFlowDetails.msg}</p>
-                  </div>}
+                content={flowDetailContent}
                 title={<h3><FormattedMessage {...messages.flowDetails} /></h3>}
                 trigger="click"
                 onVisibleChange={this.handleVisibleChangeFlow(record)}>

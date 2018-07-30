@@ -239,7 +239,7 @@ function flowReducer (state = initialState, { type, payload }) {
       flows[startIndexStartOrRenew].disableActions = payload.result.disableActions
       flows[startIndexStartOrRenew].startedTime = payload.result.startedTime
       flows[startIndexStartOrRenew].stoppedTime = payload.result.stoppedTime
-
+      flows[startIndexStartOrRenew].status = payload.result.status
       // streams.fill(payload.result, startIndexStartOrRenew, startIndexStartOrRenew + 1)
       return state
         .set('flows', flows.slice())

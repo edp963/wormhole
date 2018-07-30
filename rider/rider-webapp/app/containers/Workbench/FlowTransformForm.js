@@ -67,17 +67,12 @@ export class FlowTransformForm extends React.Component {
   }
   componentWillReceiveProps (props) {
     if (this.props.transformModalVisible === props.transformModalVisible) return
+    this.setState({outputType: props.outputType})
     if (props.cepPropData) {
       this.formatCepPatternData(props.cepPropData)
     }
-    // if (props.transformMode === 'add') {
-    //   this.setState({cepDataSource: []})
-    // } else if (props.transformMode === 'edit') {
-    //   if (props.cepPropData) {
-    //     this.formatCepPatternData(props.cepPropData)
-    //   }
-    // }
   }
+
   formatCepPatternData = (data) => {
     if (!data.tranConfigInfoSql) {
       this.setState({cepDataSource: []})
@@ -85,12 +80,12 @@ export class FlowTransformForm extends React.Component {
     }
     if (data.transformType === 'cep') {
       let cepDataSource = []
-      let tranConfigInfoSql = JSON.parse(data.tranConfigInfoSql)
+      let tranConfigInfoSql = typeof data.tranConfigInfoSql === 'string' && JSON.parse(data.tranConfigInfoSql.split(';')[0])
       cepDataSource = tranConfigInfoSql.pattern_seq.map(v => {
-        if (v.quartifier === '{}') {
-          v.quartifier = ''
+        if (v.quantifier === '{}') {
+          v.quantifier = ''
         } else {
-          v.quartifier = JSON.stringify(v.quartifier)
+          v.quantifier = JSON.stringify(v.quantifier)
         }
         return v
       })
@@ -130,13 +125,13 @@ export class FlowTransformForm extends React.Component {
     if (patternOperHiddenQuartifier) {
       validateStr = ['operator', 'conditions']
     } else {
-      validateStr = ['operator', 'quartifier', 'conditions']
+      validateStr = ['operator', 'quantifier', 'conditions']
     }
     this.props.form.validateFieldsAndScroll(validateStr, (err, values) => {
-      let { operator, quartifier } = values
+      let { operator, quantifier } = values
       if (!patternOperHiddenQuartifier) {
-        quartifierObj.type = values.quartifier
-        switch (quartifier) {
+        quartifierObj.type = values.quantifier
+        switch (quantifier) {
           case 'oneormore':
             quartifierObj.value = 1
             break
@@ -154,7 +149,7 @@ export class FlowTransformForm extends React.Component {
         quartifierObj = quartifierObj === '' ? '' : JSON.stringify(quartifierObj)
         patternValue = {
           pattern_type: operator,
-          quartifier: quartifierObj,
+          quantifier: quartifierObj,
           conditions: JSON.stringify(conditions)
         }
       } else {
@@ -218,11 +213,11 @@ export class FlowTransformForm extends React.Component {
   }
   onEditPattern = (record, index) => (e) => {
     let patternSourceDataConditions = record.conditions
-    let quartifierObj = record.quartifier && JSON.parse(record.quartifier)
+    let quartifierObj = record.quantifier && JSON.parse(record.quantifier)
     if (quartifierObj) {
       this.props.form.setFieldsValue({
         operator: record.pattern_type,
-        quartifier: quartifierObj.type
+        quantifier: quartifierObj.type
       })
       switch (quartifierObj.type) {
         case 'times':
@@ -288,7 +283,7 @@ export class FlowTransformForm extends React.Component {
   clearPatterModalData = (fn) => {
     this.props.form.setFieldsValue({
       operator: '',
-      quartifier: '',
+      quantifier: '',
       conditions: ''
     })
     this.setState({
@@ -522,7 +517,7 @@ export class FlowTransformForm extends React.Component {
 
     const quartifierHelp = (
       <span>
-        Quartifier
+        Quantifier
         <Tooltip title={<FormattedMessage {...messages.workbenchHelp} />} placement="bottom">
           <Popover
             placement="top"
@@ -553,9 +548,9 @@ export class FlowTransformForm extends React.Component {
         className: 'text-align-center'
       },
       {
-        title: 'Quartifier',
-        dataIndex: 'quartifier',
-        key: 'quartifier',
+        title: 'Quantifier',
+        dataIndex: 'quantifier',
+        key: 'quantifier',
         width: '30%',
         className: 'text-align-center'
       },
@@ -1003,10 +998,10 @@ export class FlowTransformForm extends React.Component {
                 </Col>
                 <Col span={24} className={patternOperatorAboutHiddens[2] || patternOperatorAboutHiddens[3] ? 'hide' : ''}>
                   <FormItem label={quartifierHelp} {...patternItemStyle}>
-                    {getFieldDecorator('quartifier', {
+                    {getFieldDecorator('quantifier', {
                       rules: [{
                         required: true,
-                        message: operateLanguageSelect('quartifier', 'Quartifier')
+                        message: operateLanguageSelect('quantifier', 'Quantifier')
                       }],
                       hidden: flinkTransformTypeHiddens[2] || !patternModalShow || patternOperatorAboutHiddens[2] || patternOperatorAboutHiddens[3]
                     })(

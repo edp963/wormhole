@@ -59,25 +59,6 @@ export class StreamStartForm extends React.Component {
     } else {
       dataFinal = props.data.slice()
       userDefinedTopics = props.userDefinedTopics.slice()
-      // props.data.map(s => {
-      //   const conTemp = props.autoRegisteredTopics.find(i => i.name === s.id)
-      //   const conTempObject = conTemp
-      //     ? {
-      //       id: conTemp.id,
-      //       name: conTemp.name,
-      //       conOffsetVal: conTemp.consumedLatestOffset,
-      //       rate: conTemp.rate,
-      //       key: conTemp.id
-      //     }
-      //     : {}
-
-      //   const kafTemp = props.autoRegisteredTopics.find(i => i.name === s.id)
-      //   const kafTempObject = kafTemp
-      //     ? {kafOffsetVal: kafTemp.kafkaLatestOffset, kafEarOffsetVal: kafTemp.kafkaEarliestOffset}
-      //     : {}
-
-      //   return Object.assign(conTempObject, kafTempObject)
-      // })
     }
     this.setState({ data: dataFinal, userDefinedTopics, unValidate })
   }

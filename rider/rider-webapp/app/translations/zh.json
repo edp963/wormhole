@@ -139,5 +139,5 @@
   "rider.containers.Workbench.tranformation.cep.strategy": "数据处理方式：NO_SKIP->Every possible match will be emitted；SKIP_PAST_LAST_EVENT->Discards every partial match that contains event of the match",
   "rider.containers.Workbench.tranformation.cep.keyby": "分组，可指定一个或多个字段，“,”分割",
   "rider.containers.Workbench.tranformation.cep.operator": "规则衔接方式，Begin：第一个规则只能是Begin/Next：符合下一规则的数据必须紧邻符合上一规则的数据/FollowedBy：可以与符合上一个规则的数据间隔其他数据/NotNext：与next相反/NotFllowedBy：与FllowedBy相反",
-  "rider.containers.Workbench.tranformation.cep.quartifier": "匹配规则数据出现条数，符合即进入下一个规则。OneOrMore->一次或多次；Times->固定次数；TimesOrMore->大于等于指定次数"
+  "rider.containers.Workbench.tranformation.cep.quantifier": "匹配规则数据出现条数，符合即进入下一个规则。OneOrMore->一次或多次；Times->固定次数；TimesOrMore->大于等于指定次数"
 }
