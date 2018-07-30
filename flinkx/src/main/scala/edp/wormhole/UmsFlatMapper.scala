@@ -20,7 +20,7 @@
 
 package edp.wormhole
 
-import edp.wormhole.ums.{UmsCommonUtils, UmsSchemaUtils}
+import edp.wormhole.ums.UmsCommonUtils
 import edp.wormhole.util.FlinkSchemaUtils
 import edp.wormhole.util.FlinkSchemaUtils.matchNamespace
 import org.apache.flink.api.common.functions.RichFlatMapFunction
@@ -33,6 +33,7 @@ class UmsFlatMapper(sourceSchemaMap: Map[String, (TypeInformation[_], Int)], sou
   private lazy val logger = Logger.getLogger(this.getClass)
 
   override def flatMap(value: (String, String, String, Int, Long), out: Collector[Row]): Unit = {
+    logger.info("in UmsFlatMapper source data from kafka " + value._2)
     val ums = UmsCommonUtils.json2Ums(value._2)
     logger.info("in UmsFlatMapper " + sourceSchemaMap.size)
     if (matchNamespace(ums.schema.namespace, sourceNamespace) && ums.payload.nonEmpty && ums.schema.fields.nonEmpty)
