@@ -112,7 +112,6 @@
                     <archive>
                         <manifest>
                             <mainClass>edp.wormhole.WormholeFlinkxStarter</mainClass>
-
                         </manifest>
                     </archive>
                 </configuration>
