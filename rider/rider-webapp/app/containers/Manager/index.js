@@ -371,7 +371,6 @@ export class Manager extends React.Component {
   queryLastestoffset = (e) => {
     const { projectIdGeted } = this.props
     const { streamIdGeted, userDefinedTopics, autoRegisteredTopics } = this.state
-    userDefinedTopics
     let topics = {}
     topics.userDefinedTopics = userDefinedTopics.map((v, i) => v.name)
     topics.autoRegisteredTopics = autoRegisteredTopics.map((v, i) => v.name)
@@ -392,7 +391,8 @@ export class Manager extends React.Component {
       this.setState({
         autoRegisteredTopics: autoRegisteredTopics,
         userDefinedTopics: userDefinedTopics,
-        tempUserTopics: userDefinedTopics
+        tempUserTopics: userDefinedTopics,
+        streamStartFormData: autoRegisteredTopics
         // consumedOffsetValue: result.consumedLatestOffset,
         // kafkaOffsetValue: result.kafkaLatestOffset,
         // kafkaEarliestOffset: result.kafkaEarliestOffset
@@ -1184,22 +1184,28 @@ export class Manager extends React.Component {
         if (showStreamdetails) {
           const detailTemp = showStreamdetails.stream
 
-          const topicTemp = showStreamdetails.topicInfo.autoRegisteredTopics
-          const topicUserTemp = showStreamdetails.topicInfo.userDefinedTopics
-          const topicFinal = topicTemp.map(s => (
-            <li key={s.name}>
-              <strong>Topic Name：</strong>{s.name}
-              <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
-              <strong>；Rate：</strong>{s.rate}
-            </li>
-          ))
-          const topicUserFinal = topicUserTemp.map(s => (
-            <li key={s.name}>
-              <strong>Topic Name：</strong>{s.name}
-              <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
-              <strong>；Rate：</strong>{s.rate}
-            </li>
-          ))
+          const topicTemp = showStreamdetails.topicInfo && showStreamdetails.topicInfo.autoRegisteredTopics
+          const topicUserTemp = showStreamdetails.topicInfo && showStreamdetails.topicInfo.userDefinedTopics
+          let topicFinal = ''
+          let topicUserFinal = ''
+          if (topicTemp) {
+            topicFinal = topicTemp.map(s => (
+              <li key={s.name}>
+                <strong>Topic Name：</strong>{s.name}
+                <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
+                <strong>；Rate：</strong>{s.rate}
+              </li>
+            ))
+          }
+          if (topicUserFinal) {
+            topicUserFinal = topicUserTemp.map(s => (
+              <li key={s.name}>
+                <strong>Topic Name：</strong>{s.name}
+                <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
+                <strong>；Rate：</strong>{s.rate}
+              </li>
+            ))
+          }
           const currentudfTemp = showStreamdetails.currentUdf
           const currentUdfFinal = currentudfTemp.length !== 0
             ? currentudfTemp.map(s => (

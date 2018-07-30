@@ -423,7 +423,7 @@ export class WorkbenchFlowForm extends React.Component {
       ? undefined
       : selectStreamKafkaTopicValue.map(s => (<Option key={s.id} value={`${s.name}`}>{s.name}</Option>))
 
-    const { etpStrategyConfirmValue, transConfigConfirmValue, resultFieldsValue, flowKafkaInstanceValue, flowSubPanelKey, streamId } = this.props
+    const { etpStrategyConfirmValue, transConfigConfirmValue, resultFieldsValue, flowKafkaInstanceValue, flowSubPanelKey, streamId, timeCharacteristic } = this.props
 
     let maxParallelism = 0
     for (let v of selectStreamKafkaTopicValue) {
@@ -1021,6 +1021,22 @@ export class WorkbenchFlowForm extends React.Component {
               </div>
             </Col>
           )}
+          {flowSubPanelKey === 'flink' ? (
+            <Col span={24} className={`${transConnectClass} ${streamTypeClass[0]}`}>
+              <div className="ant-row ant-form-item">
+                <Row>
+                  <Col span={8} className="ant-form-item-label">
+                    <label htmlFor="#">Time Characteristic</label>
+                  </Col>
+                  <Col span={15}>
+                    <div className="ant-form-item-control">
+                      <strong className="value-font-style">{timeCharacteristic}</strong>
+                    </div>
+                  </Col>
+                </Row>
+              </div>
+            </Col>
+          ) : ''}
           <Col span={24} className={streamTypeClass[1]}>
             <div className="ant-row ant-form-item">
               <Row>
@@ -1178,7 +1194,8 @@ WorkbenchFlowForm.propTypes = {
   emitDataSystem: PropTypes.func,
   changeStreamType: PropTypes.func,
   flowSubPanelKey: PropTypes.string,
-  emitFlowFunctionType: PropTypes.func
+  emitFlowFunctionType: PropTypes.func,
+  timeCharacteristic: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {

@@ -165,6 +165,7 @@ export class Workbench extends React.Component {
       dataframeShowNumValue: 'false',
       etpStrategyConfirmValue: '',
       transformTableConfirmValue: '',
+      timeCharacteristic: '',
 
       etpStrategyResponseValue: '',
       topicEditValues: [],
@@ -734,6 +735,8 @@ export class Workbench extends React.Component {
       flowMode: 'edit',
       fieldSelected: 'hide',
       flowSubPanelKey: flow.streamType
+    }, () => {
+      this.onInitStreamTypeSelect(this.state.flowFunctionType)
     })
 
     new Promise((resolve) => {
@@ -752,7 +755,8 @@ export class Workbench extends React.Component {
       transformTableConfirmValue: '',
       transConfigConfirmValue: '',
       flowFormTranTableSource: [],
-      etpStrategyConfirmValue: ''
+      etpStrategyConfirmValue: '',
+      timeCharacteristic: ''
     }, () => {
       const { streamDiffType } = this.state
       if (flow.streamType === 'spark') {
@@ -877,7 +881,9 @@ export class Workbench extends React.Component {
               tranActionArr.splice(tranActionArr.length - 1, 1)
             } else if (result.streamType === 'flink') {
               tranActionArr = tranConfigVal.action.split(';')
-              tranActionArr.splice(tranActionArr.length - 1, 1)
+              if (!tranActionArr[tranActionArr.length - 1]) {
+                tranActionArr.splice(tranActionArr.length - 1, 1)
+              }
             }
 
             this.state.flowFormTranTableSource = tranActionArr.map((i, index) => {
@@ -981,7 +987,7 @@ export class Workbench extends React.Component {
               tranTableSourceTemp.order = index + 1
               tranTableSourceTemp.transformConfigInfo = tranConfigInfoTemp
               tranTableSourceTemp.tranConfigInfoSql = tranConfigInfoSqlTemp
-              tranTableSourceTemp.transformConfigInfoRequest = `${i}`
+              tranTableSourceTemp.transformConfigInfoRequest = `${i};`
               tranTableSourceTemp.transformType = tranTypeTepm
               tranTableSourceTemp.pushdownConnection = pushdownConTepm
               return tranTableSourceTemp
@@ -1589,7 +1595,7 @@ export class Workbench extends React.Component {
     flowFormTranTableSource.map(i => {
       let isCep = i.transformConfigInfoRequest.split('=')[0].indexOf('cep') > -1
       if (isCep) {
-        tranRequestTempArr.push(`${i.transformConfigInfoRequest};`)
+        tranRequestTempArr.push(`${i.transformConfigInfoRequest}`)
       } else {
         tranRequestTempArr.push(preProcessSql(i.transformConfigInfoRequest))
       }
@@ -1599,7 +1605,8 @@ export class Workbench extends React.Component {
       let timeCharacteristic = this.workbenchFlowForm.getFieldsValue(['time_characteristic'])
       this.setState({
         transformTableRequestValue: tranRequestTempString === '' ? {} : Object.assign({'action': tranRequestTempString}, timeCharacteristic),
-        transformTableConfirmValue: tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`
+        transformTableConfirmValue: tranRequestTempString === '' ? '' : `"${tranRequestTempString}"`,
+        timeCharacteristic: timeCharacteristic.time_characteristic
       })
     } else if (flowSubPanelKey === 'spark') {
       this.setState({
@@ -2364,7 +2371,7 @@ export class Workbench extends React.Component {
         transformMode: 'edit',
         transformValue: record.transformType
       }, () => {
-        let cepFormData = record.tranConfigInfoSql && JSON.parse(record.tranConfigInfoSql)
+        let cepFormData = typeof record.tranConfigInfoSql === 'string' && JSON.parse(record.tranConfigInfoSql.split(';')[0])
         let outputText = ''
         if (cepFormData.output) {
           if (cepFormData.output.type === 'agg' || cepFormData.output.type === 'filteredRow') {
@@ -2426,6 +2433,9 @@ export class Workbench extends React.Component {
             break
           case 'sparkSql':
             this.cmSparkSql.doc.setValue(record.transformConfigInfo)
+            break
+          case 'flinkSql':
+            this.cmFlinkSql.doc.setValue(record.transformConfigInfo)
             break
           case 'streamJoinSql':
             // 以"."为分界线
@@ -2494,7 +2504,9 @@ export class Workbench extends React.Component {
   onAddTransform = (record) => (e) => {
     this.setState({
       transformMode: 'add',
-      transformValue: ''
+      transformValue: '',
+      outputType: 'agg',
+      cepPropData: {}
     }, () => {
       this.setState({transformModalVisible: true}, () => {
         this.flowTransformForm.resetFields()
@@ -2671,6 +2683,9 @@ export class Workbench extends React.Component {
       flowPatternCepDataSource: cepDataSource
     })
   }
+  /**
+   * transformation 弹出框确认
+   */
   onTransformModalOk = () => {
     const { transformMode, transformSinkNamespaceArray, flowPatternCepDataSource } = this.state
     this.flowTransformForm.validateFieldsAndScroll((err, values) => {
@@ -2803,7 +2818,7 @@ export class Workbench extends React.Component {
 
               transformConfigInfoString = flinkSqlVal
               tranConfigInfoSqlString = flinkSqlVal
-              transformConfigInfoRequestString = `spark_sql = ${flinkSqlVal}`
+              transformConfigInfoRequestString = `flink_sql = ${flinkSqlVal}`
               pushdownConnectionJson = {}
 
               num = (flinkSqlVal.split(';')).length - 1
@@ -2819,7 +2834,7 @@ export class Workbench extends React.Component {
             }
             let partterSeq = flowPatternCepDataSource.slice()
             partterSeq.forEach(v => {
-              v.quartifier = v.quartifier ? JSON.parse(v.quartifier) : JSON.stringify({})
+              v.quantifier = v.quantifier ? JSON.parse(v.quantifier) : JSON.stringify({})
             })
             let cep = {
               key_by_fields: values.keyBy,
@@ -2831,7 +2846,7 @@ export class Workbench extends React.Component {
               strategy: values.strategy,
               pattern_seq: partterSeq
             }
-            tranConfigInfoSqlString = JSON.stringify(cep)
+            tranConfigInfoSqlString = `${JSON.stringify(cep)};`
             transformConfigInfoRequestString = `cep = ${tranConfigInfoSqlString}`
             transformConfigInfoString = tranConfigInfoSqlString
         }
@@ -3509,6 +3524,7 @@ export class Workbench extends React.Component {
                     etpStrategyConfirmValue={this.state.etpStrategyConfirmValue}
                     transConfigConfirmValue={this.state.transConfigConfirmValue}
                     transformTableConfirmValue={this.state.transformTableConfirmValue}
+                    timeCharacteristic={this.state.timeCharacteristic}
 
                     transformTableRequestValue={this.state.transformTableRequestValue}
                     streamDiffType={this.state.streamDiffType}
