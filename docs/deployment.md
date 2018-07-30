@@ -14,6 +14,7 @@ description: Wormhole WH_VERSION_SHORT Deployment page
 - JDK1.8
 - Hadoop-client（HDFS，YARN）（支持版本 2.6+）
 - Spark-client （支持版本 2.2.0，2.2.1）
+- Flink-client （支持版本 1.5.1）
 
 #### 依赖服务
 
@@ -131,12 +132,6 @@ kafka = {
 #  url = "http://localhost:3000"
 #  admin.token = "jihefouglokoj"
 #}
-
-#delete feedback history data on time
-maintenance = {
-  mysql.feedback.remain.maxDays = 7
-  elasticSearch.feedback.remain.maxDays = 7
-}
 
 #Dbus integration, if not set, please comment it
 #dbus.namespace.rest.api.url = ["http://localhost:8080/webservice/tables/riderSearch"]
