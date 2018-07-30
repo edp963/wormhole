@@ -89,6 +89,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     val resultSchemaMap = mutable.HashMap.empty[String, (TypeInformation[_], Int)]
     var index = 0
     tableSchema.getColumnNames.foreach(s => {
+      logger.info(s"field $index in table $s")
       resultSchemaMap += s -> (tableSchema.getType(s).get, index)
       index += 1
     }

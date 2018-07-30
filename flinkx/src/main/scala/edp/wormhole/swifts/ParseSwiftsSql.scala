@@ -39,7 +39,7 @@ class ParseSwiftsSql(sqlStr: String, sourceNamespace: String) {
 
   def parse(dataType: String, dataStoreConnectionsMap: Map[String, ConnectionConfig]): Option[Array[SwiftsSql]] = {
     val pushDownSqlBeginIndex = 12
-    if (sqlStr.trim.nonEmpty) {
+    if (null != sqlStr && sqlStr.trim.nonEmpty) {
       val sqlArray = sqlStr.trim.replaceAll("\r", " ").replaceAll("\n", " ").replaceAll("\t", " ").split(";").map(sql => {
         val trimSql = sql.trim
         if (trimSql.startsWith(SqlOptType.PUSHDOWN_SQL.toString)) trimSql.substring(pushDownSqlBeginIndex).trim
