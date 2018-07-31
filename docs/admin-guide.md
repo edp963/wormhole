@@ -2,7 +2,7 @@
 layout: global
 displayTitle: Admin Guide
 title: Admin Guide
-description: Wormhole WH_VERSION_SHORT Admin Guide page
+description: Wormhole Admin Guide page
 
 ---
 

@@ -2,7 +2,7 @@
 layout: global
 displayTitle: Deployment
 title: Deployment
-description: Wormhole WH_VERSION_SHORT Deployment page
+description: Wormhole Deployment page
 ---
 
 * This will become a table of contents (this text will be scraped).
@@ -13,14 +13,14 @@ description: Wormhole WH_VERSION_SHORT Deployment page
 #### 环境准备
 - JDK1.8
 - Hadoop-client（HDFS，YARN）（支持版本 2.6+）
-- Spark-client （支持版本 2.2.0，2.2.1）
-- Flink-client （支持版本 1.5.1）
+- Spark-client （支持版本 2.2.0，2.2.1）(若使用Spark Streaming引擎，须部署Spark-client)
+- Flink-client （支持版本 1.5.1）(若使用Flink引擎，须部署Flink-client)
 
 #### 依赖服务
 
 - Hadoop 集群（HDFS，YARN）（支持版本 2.6+）
 - Zookeeper
-- Kafka （支持版本 0.10.0.0）
+- Kafka （支持版本 0.10.2.2）
 - Elasticsearch（支持版本 5.x）（非必须，若无则无法查看 wormhole 处理数据的吞吐和延时）
 - Grafana （支持版本 4.x）（非必须，若无则无法查看 wormhole 处理数据的吞吐和延时的图形化展示）
 - MySQL
@@ -29,12 +29,14 @@ description: Wormhole WH_VERSION_SHORT Deployment page
 mysql-connector-java-{your-db-version}.jar
 
 
+## 注意：升级至0.5.0-beta版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试
+
 ## 部署配置
 
 **下载 wormhole-0.5.0-beta.tar.gz 包 (链接:https://pan.baidu.com/s/1nYATEEtH05cbx-fwd3Zb-Q  密码:em8w)，或者自编译**
 
 ```
-wget https://github.com/edp963/wormhole/releases/download/0.4.2/wormhole-0.4.2.tar.gz
+wget https://github.com/edp963/wormhole/releases/download/0.5.0-beta/wormhole-0.5.0-beta.tar.gz
 tar -xvf wormhole-0.5.0-beta.tar.gz
 或者自编译，生成的 tar 包在 wormhole/target
 git clone -b 0.5 https://github.com/edp963/wormhole.git
@@ -42,7 +44,7 @@ cd wormhole
 mvn install package -Pwormhole
 ```
 
-***注意：0.4.2版本升级到0.5.0-beta版前须手动执行以下操作***
+***注意：0.4.2版本升级至0.5.0-beta版前须手动执行以下操作***
 
 ```
 1. stream表中增加function_type字段，原stream_type值赋值给function_type，stream_type值改为"spark"
@@ -50,6 +52,8 @@ mvn install package -Pwormhole
 alter table `stream` add column `function_type` VARCHAR(100) NULL after `stream_type`;
 
 update `stream` a join `stream` b on a.id = b.id set a.`function_type` = b.`stream_type`;
+
+update `stream` set `stream_type` = "spark";
 
 ```
 
