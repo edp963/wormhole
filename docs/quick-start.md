@@ -139,7 +139,7 @@ data_increment_data.kafka.edp.source.test.*.*.*@@@{"id": 1,"name": "test","phone
 
 **1. User 登录系统后创建 Stream**
 
-​    **新建 Stream**
+​   **新建 Stream**
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-stream-flink.png" alt="" width="600"/>
 
@@ -163,7 +163,7 @@ data_increment_data.kafka.edp.source.test.*.*.*@@@{"id": 1,"name": "test","phone
    
    如图，Source Namespace为`kakfa.test.flinksource.source.*.*.*`，发送测试数据命令如下：
    ```
-   ./kafka-console-producer.sh --broker-list hdp1:6667 --topic flinksource --property "parse.key=true" --property "key.separator=###" 
+   ./kafka-console-producer.sh --broker-list localhost:9092 --topic flinksource --property "parse.key=true" --property "key.separator=###" 
     data_increment_data.kafka.test.flinksource.source.*.*.*###{"protocol":{"type":"data_increment_data"},"schema":{"namespace":"kafka.test.flinksource.source.*.*.*","fields":[{"name":"ums_id_","type":"long","nullable":false},{"name":"ums_ts_","type":"datetime","nullable":false},{"name":"ums_op_","type":"string","nullable":false},{"name":"key","type":"int","nullable":false},{"name":"value1","type":"string","nullable":true},{"name":"value2","type":"long","nullable":false}]},"payload":[{"tuple":["1","2016-04-11 12:23:34.345123","i","10","aa1","10"]},{"tuple":["2","2016-04-11 15:23:34.345123","u","10","aa2","11"]},{"tuple":["3","2016-04-11 16:23:34.345123","d","10","aa3","12"]}]}
     data_increment_data.kafka.test.flinksource.source.*.*.*###{"protocol":{"type":"data_increment_data"},"schema":{"namespace":"kafka.test.flinksource.source.*.*.*","fields":[{"name":"ums_id_","type":"long","nullable":false},{"name":"ums_ts_","type":"datetime","nullable":false},{"name":"ums_op_","type":"string","nullable":false},{"name":"key","type":"int","nullable":false},{"name":"value1","type":"string","nullable":true},{"name":"value2","type":"long","nullable":false}]},"payload":[{"tuple":["1","2016-04-11 12:23:34.345123","i","11","aa4","13"]},{"tuple":["2","2016-04-11 15:23:34.345123","u","11","aa5","14"]},{"tuple":["3","2016-04-11 16:23:34.345123","d","11","aa6","15"]}]}
     data_increment_data.kafka.test.flinksource.source.*.*.*###{"protocol":{"type":"data_increment_data"},"schema":{"namespace":"kafka.test.flinksource.source.*.*.*","fields":[{"name":"ums_id_","type":"long","nullable":false},{"name":"ums_ts_","type":"datetime","nullable":false},{"name":"ums_op_","type":"string","nullable":false},{"name":"key","type":"int","nullable":false},{"name":"value1","type":"string","nullable":true},{"name":"value2","type":"long","nullable":false}]},"payload":[{"tuple":["1","2016-04-11 12:23:34.345123","i","12","aa7","13"]},{"tuple":["2","2016-04-11 15:23:34.345123","u","12","aa8","15"]},{"tuple":["3","2016-04-11 16:23:34.345123","d","12","aa9","16"]}]}
@@ -200,6 +200,8 @@ data_increment_data.kafka.edp.source.test.*.*.*@@@{"id": 1,"name": "test","phone
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-transform-result-flink.png" alt="" width="600"/>
 
    **启动 Flow, 配置Topic Offset信息**
+   
+   Stream处于running状态时，才可以启动Flow
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-start-conf-flink.png" alt="" width="600"/>
 
