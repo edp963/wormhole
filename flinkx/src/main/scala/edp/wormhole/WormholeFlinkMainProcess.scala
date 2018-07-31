@@ -44,7 +44,7 @@ import org.apache.log4j.Logger
 
 
 class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) extends Serializable {
-  private val logger = Logger.getLogger(this.getClass)
+  private lazy val logger = Logger.getLogger(this.getClass)
   private val flowStartFields = umsFlowStart.schema.fields_get
   private val flowStartPayload = umsFlowStart.payload_get.head
   private val swiftsString: String = UmsFlowStartUtils.extractSwifts(flowStartFields, flowStartPayload)
@@ -107,17 +107,18 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
 
   private def assignTimestamp(inputStream: DataStream[Row], sourceSchemaMap: Map[String, (TypeInformation[_], Int)]) = {
     if (timeCharacteristic != SwiftsConstants.PROCESSING_TIME)
-      inputStream.assignTimestampsAndWatermarks(new AscendingTimestampExtractor[Row] {
-        override def extractAscendingTimestamp(element: Row): Long = DateUtils.dt2long(element.getField(sourceSchemaMap(UmsSysField.TS.toString)._2).asInstanceOf[Timestamp])
-      })
-    inputStream
+      inputStream.assignTimestampsAndWatermarks(new FlinkxTimestampExtractor(sourceSchemaMap))
+    else inputStream
   }
 
   private def getSwiftsSql(swiftsString: String, sourceNamespace: String): Option[Array[SwiftsSql]] = {
     val action: String = if (swifts.containsKey("action") && swifts.getString("action").trim.nonEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(swifts.getString("action").trim)) else null
-    val parser = new ParseSwiftsSql(action, sourceNamespace)
-    parser.registerConnections(swifts)
-    parser.parse("ums", SwiftsConfMemoryStorage.getDataStoreConnectionsMap)
+    if (null != action) {
+      logger.info(s"action in getSwiftsSql $action")
+      val parser = new ParseSwiftsSql(action, sourceNamespace)
+      parser.registerConnections(swifts)
+      parser.parse("ums", SwiftsConfMemoryStorage.getDataStoreConnectionsMap)
+    } else None
   }
 
 
