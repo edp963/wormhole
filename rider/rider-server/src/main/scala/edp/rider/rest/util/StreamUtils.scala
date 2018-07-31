@@ -58,7 +58,7 @@ object StreamUtils extends RiderLogger {
           case STARTING => s"$START, $STOP, $DELETE"
           case WAITING => s"$START"
           case RUNNING => s"$START"
-          case STOPPING => s"$START, $RENEW"
+          case STOPPING => s"$START, $RENEW, $DELETE"
           case STOPPED => s"$STOP, $RENEW"
           case FAILED => s"$RENEW"
         }
@@ -68,7 +68,7 @@ object StreamUtils extends RiderLogger {
           case STARTING => s"$START, $STOP, $DELETE，$RENEW"
           case WAITING => s"$START，$RENEW"
           case RUNNING => s"$START，$RENEW"
-          case STOPPING => s"$START, $RENEW"
+          case STOPPING => s"$START, $RENEW, $DELETE"
           case STOPPED => s"$STOP, $RENEW"
           case FAILED => s"$RENEW"
         }
