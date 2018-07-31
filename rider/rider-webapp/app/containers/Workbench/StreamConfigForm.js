@@ -34,7 +34,7 @@ import { selectLocale } from '../LanguageProvider/selectors'
 
 export class StreamConfigForm extends React.Component {
   render () {
-    const { form, tabPanelKey, locale } = this.props
+    const { form, tabPanelKey, locale, streamSubPanelKey } = this.props
     const { getFieldDecorator } = form
     const textMessage = locale === 'en' ? 'It cannot be empty' : '不能为空'
 
@@ -53,155 +53,235 @@ export class StreamConfigForm extends React.Component {
 
     return (
       <Form>
-        <Row>
-          <Col span={24}>
-            <FormItem label="JVM：" {...itemStyle}>
-              {getFieldDecorator('jvm', {
-                rules: [{
-                  required: true,
-                  message: textMessage
-                }]
-              })(
-                <Input type="textarea" placeholder="JVM" autosize={{ minRows: 4, maxRows: 6 }} />
-              )}
-            </FormItem>
-          </Col>
-          <Col span={8}>
-            <FormItem label="Driver Cores：" {...itemStyleOthers}>
-              {getFieldDecorator('driverCores', {
-                rules: [{
-                  required: true,
-                  message: textMessage
-                }, {
-                  validator: forceCheckNum
-                }],
-                initialValue: 1
-              })(
-                <InputNumber min={1} step={1} />
-              )}
-            </FormItem>
-          </Col>
-          <Col span={8}>
-            <FormItem label="Driver Memory (GB)：" {...itemStyleOthers}>
-              {getFieldDecorator('driverMemory', {
-                rules: [{
-                  required: true,
-                  message: textMessage
-                }, {
-                  validator: forceCheckNum
-                }],
-                initialValue: 2
-              })(
-                <InputNumber min={1} step={1} />
-              )}
-            </FormItem>
-          </Col>
-        </Row>
-        <Row>
-          <Col span={8}>
-            <FormItem label="Executors Number：" {...itemStyleOthers}>
-              {getFieldDecorator('executorNums', {
-                rules: [{
-                  required: true,
-                  message: textMessage
-                }, {
-                  validator: forceCheckNum
-                }],
-                initialValue: 6
-              })(
-                <InputNumber min={1} step={1} />
-              )}
-            </FormItem>
-          </Col>
-          <Col span={8}>
-            <FormItem label="Per Executor Cores：" {...itemStyleOthers}>
-              {getFieldDecorator('perExecutorCores', {
-                rules: [{
-                  required: true,
-                  message: textMessage
-                }, {
-                  validator: forceCheckNum
-                }],
-                initialValue: 1
-              })(
-                <InputNumber min={1} step={1} />
-              )}
-            </FormItem>
-          </Col>
-          <Col span={8}>
-            <FormItem label="Per Executor Memory (GB)：" {...itemStylePEM}>
-              {getFieldDecorator('perExecutorMemory', {
-                rules: [{
-                  required: true,
-                  message: textMessage
-                }, {
-                  validator: forceCheckNum
-                }],
-                initialValue: 2
-              })(
-                <InputNumber min={1} step={1} />
-              )}
-            </FormItem>
-          </Col>
-        </Row>
-        <Row>
-          <Col span={8} className={`${tabPanelKey === 'stream' ? '' : 'hide'}`}>
-            <FormItem label="Batch Duration (Sec)：" {...itemStyleOthers}>
-              {getFieldDecorator('durations', {
-                rules: [{
-                  required: true,
-                  message: textMessage
-                }, {
-                  validator: forceCheckNum
-                }],
-                initialValue: 30
-              })(
-                <InputNumber min={1} step={1} />
-              )}
-            </FormItem>
-          </Col>
-          <Col span={8} className={`${tabPanelKey === 'stream' ? '' : 'hide'}`}>
-            <FormItem label="Parallelism Partition：" {...itemStyleOthers}>
-              {getFieldDecorator('partitions', {
-                rules: [{
-                  required: true,
-                  message: textMessage
-                }, {
-                  validator: forceCheckNumsPart
-                }],
-                initialValue: 6
-              })(
-                <InputNumber min={-1} step={1} />
-              )}
-            </FormItem>
-          </Col>
-          <Col span={8} className="hide">
-            <FormItem label="Max Batch Data Size (Mb)：" {...itemStylePEM}>
-              {getFieldDecorator('maxRecords', {
-                rules: [{
-                  required: true,
-                  message: textMessage
-                }, {
-                  validator: forceCheckNum
-                }],
-                initialValue: 10
-              })(
-                <InputNumber min={10} max={50} />
-              )}
-            </FormItem>
-          </Col>
-          <Col span={24}>
-            <FormItem label="Others：" {...itemStyle}>
-              {getFieldDecorator('personalConf', {})(
-                <Input
-                  type="textarea"
-                  placeholder={locale === 'en' ? 'Format: key=value; enter into a new line as long as there is a new item' : '格式如：key=value，多条时换行输入'}
-                  autosize={{ minRows: 6, maxRows: 10 }}
-                />
-              )}
-            </FormItem>
-          </Col>
-        </Row>
+        {streamSubPanelKey === 'spark' ? (
+          <Row>
+            <Col span={24}>
+              <FormItem label="JVM：" {...itemStyle}>
+                {getFieldDecorator('jvm', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }]
+                })(
+                  <Input type="textarea" placeholder="JVM" autosize={{ minRows: 4, maxRows: 6 }} />
+                )}
+              </FormItem>
+            </Col>
+          </Row>
+          ) : ''
+        }
+        {/* spark */}
+        {streamSubPanelKey === 'spark' || tabPanelKey === 'job' ? (
+          <Row>
+            <Col span={8}>
+              <FormItem label="Driver Cores：" {...itemStyleOthers}>
+                {getFieldDecorator('driverCores', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }, {
+                    validator: forceCheckNum
+                  }]
+                })(
+                  <InputNumber min={1} step={1} />
+                )}
+              </FormItem>
+            </Col>
+            <Col span={8}>
+              <FormItem label="Driver Memory (GB)：" {...itemStyleOthers}>
+                {getFieldDecorator('driverMemory', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }, {
+                    validator: forceCheckNum
+                  }]
+                })(
+                  <InputNumber min={1} step={1} />
+                )}
+              </FormItem>
+            </Col>
+          </Row>
+          ) : ''
+        }
+        {streamSubPanelKey === 'spark' || tabPanelKey === 'job' ? (
+
+          <Row>
+            <Col span={8}>
+              <FormItem label="Executors Number：" {...itemStyleOthers}>
+                {getFieldDecorator('executorNums', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }, {
+                    validator: forceCheckNum
+                  }]
+                })(
+                  <InputNumber min={1} step={1} />
+                )}
+              </FormItem>
+            </Col>
+            <Col span={8}>
+              <FormItem label="Per Executor Cores：" {...itemStyleOthers}>
+                {getFieldDecorator('perExecutorCores', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }, {
+                    validator: forceCheckNum
+                  }]
+                })(
+                  <InputNumber min={1} step={1} />
+                )}
+              </FormItem>
+            </Col>
+            <Col span={8}>
+              <FormItem label="Per Executor Memory (GB)：" {...itemStylePEM}>
+                {getFieldDecorator('perExecutorMemory', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }, {
+                    validator: forceCheckNum
+                  }]
+                })(
+                  <InputNumber min={1} step={1} />
+                )}
+              </FormItem>
+            </Col>
+          </Row>
+          ) : ''
+        }
+        {streamSubPanelKey === 'spark' || tabPanelKey === 'job' ? (
+          <Row>
+            <Col span={8} className={`${tabPanelKey === 'stream' ? '' : 'hide'}`}>
+              <FormItem label="Batch Duration (Sec)：" {...itemStyleOthers}>
+                {getFieldDecorator('durations', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }, {
+                    validator: forceCheckNum
+                  }]
+                })(
+                  <InputNumber min={1} step={1} />
+                )}
+              </FormItem>
+            </Col>
+            <Col span={8} className={`${tabPanelKey === 'stream' ? '' : 'hide'}`}>
+              <FormItem label="Parallelism Partition：" {...itemStyleOthers}>
+                {getFieldDecorator('partitions', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }, {
+                    validator: forceCheckNumsPart
+                  }]
+                })(
+                  <InputNumber min={-1} step={1} />
+                )}
+              </FormItem>
+            </Col>
+            <Col span={8} className="hide">
+              <FormItem label="Max Batch Data Size (Mb)：" {...itemStylePEM}>
+                {getFieldDecorator('maxRecords', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }, {
+                    validator: forceCheckNum
+                  }]
+                })(
+                  <InputNumber min={10} max={50} />
+                )}
+              </FormItem>
+            </Col>
+          </Row>
+          ) : ''
+        }
+        {streamSubPanelKey === 'spark' ? (
+          <Row>
+            <Col span={24}>
+              <FormItem label="Others：" {...itemStyle}>
+                {getFieldDecorator('personalConf', {})(
+                  <Input
+                    type="textarea"
+                    placeholder={locale === 'en' ? 'Format: key=value; enter into a new line as long as there is a new item' : '格式如：key=value，多条时换行输入'}
+                    autosize={{ minRows: 6, maxRows: 10 }}
+                  />
+                )}
+              </FormItem>
+            </Col>
+          </Row>
+          ) : ''
+        }
+        {/* flink */}
+        {streamSubPanelKey === 'flink' ? (
+          <Row>
+            <Col span={12}>
+              <FormItem label="JobManager Memory(GB)：" {...itemStyleOthers}>
+                {getFieldDecorator('jobManagerMemoryGB', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }, {
+                    validator: forceCheckNum
+                  }]
+                })(
+                  <InputNumber min={1} step={1} />
+                )}
+              </FormItem>
+            </Col>
+            <Col span={12}>
+              <FormItem label="TaskManager Number：" {...itemStyleOthers}>
+                {getFieldDecorator('taskManagersNumber', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }, {
+                    validator: forceCheckNum
+                  }]
+                })(
+                  <InputNumber min={1} step={1} />
+                )}
+              </FormItem>
+            </Col>
+          </Row>
+          ) : ''
+        }
+        {streamSubPanelKey === 'flink' ? (
+          <Row>
+            <Col span={12}>
+              <FormItem label="Per TaskManager Memory(GB)：" {...itemStyleOthers}>
+                {getFieldDecorator('perTaskManagerMemoryGB', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }, {
+                    validator: forceCheckNum
+                  }]
+                })(
+                  <InputNumber min={1} step={1} />
+                )}
+              </FormItem>
+            </Col>
+            <Col span={12}>
+              <FormItem label="Per TaskManager Slots：" {...itemStyleOthers}>
+                {getFieldDecorator('perTaskManagerSlots', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }, {
+                    validator: forceCheckNum
+                  }]
+                })(
+                  <InputNumber min={1} step={1} />
+                )}
+              </FormItem>
+            </Col>
+          </Row>
+          ) : ''
+        }
       </Form>
     )
   }
@@ -210,7 +290,8 @@ export class StreamConfigForm extends React.Component {
 StreamConfigForm.propTypes = {
   form: PropTypes.any,
   tabPanelKey: PropTypes.string,
-  locale: PropTypes.string
+  locale: PropTypes.string,
+  streamSubPanelKey: PropTypes.string
 }
 
 const mapStateToProps = createStructuredSelector({
