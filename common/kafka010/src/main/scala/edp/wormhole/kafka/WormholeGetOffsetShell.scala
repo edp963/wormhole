@@ -58,5 +58,9 @@ object WormholeGetOffsetShell {
         throw ex
     }
   }
+
+  def getConsumerOffset(broker:String,groupid:String): Map[String, String] ={
+    throw new Exception("not support with kafka version 0.10.0.* or 0.10.1.*")
+  }
 }
 
