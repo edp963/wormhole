@@ -2,7 +2,7 @@
 layout: global
 displayTitle: Wormhole Overview
 title: Overview
-description: Wormhole WH_VERSION_SHORT documentation homepage
+description: Wormhole documentation homepage
 ---
 > 来自[宜信](http://www.creditease.com/)[技术研发中心](http://crdc.creditease.cn/)的流式处理平台
 

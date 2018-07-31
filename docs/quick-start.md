@@ -2,7 +2,7 @@
 layout: global
 displayTitle: Quick Start
 title: Quick Start
-description: Wormhole WH_VERSION_SHORT Quick Start page
+description: Wormhole Quick Start page
 ---
 
 {:toc}

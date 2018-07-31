@@ -2,7 +2,7 @@
 layout: global
 displayTitle: How To
 title: How To
-description: Wormhole WH_VERSION_SHORT How To page
+description: Wormhole How To page
 
 ---
 

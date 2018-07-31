@@ -2,7 +2,7 @@
 layout: global
 displayTitle: User Guide
 title: User Guide
-description: Wormhole WH_VERSION_SHORT User Guide page
+description: Wormhole User Guide page
 
 ---
 

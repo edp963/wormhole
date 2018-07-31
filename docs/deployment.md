@@ -2,7 +2,7 @@
 layout: global
 displayTitle: Deployment
 title: Deployment
-description: Wormhole WH_VERSION_SHORT Deployment page
+description: Wormhole Deployment page
 ---
 
 * This will become a table of contents (this text will be scraped).
