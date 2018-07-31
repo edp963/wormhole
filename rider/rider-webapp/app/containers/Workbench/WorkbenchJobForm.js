@@ -184,7 +184,7 @@ export class WorkbenchJobForm extends React.Component {
       wrapperCol: { span: 17 }
     }
 
-    let formValues = ''
+    let formValues = {}
     if (jobDiffType === 'default') {
       formValues = this.props.form.getFieldsValue([
         'jobName',

@@ -31,7 +31,7 @@ import Col from 'antd/lib/col'
 import Card from 'antd/lib/card'
 import Tooltip from 'antd/lib/tooltip'
 import Button from 'antd/lib/button'
-import Select from 'antd/lib/select'
+// import Select from 'antd/lib/select'
 import InputNumber from 'antd/lib/input-number'
 import { Collapse, Input, Icon, message } from 'antd'
 const Panel = Collapse.Panel
@@ -40,7 +40,7 @@ import { forceCheckNum, transformStringWithDot } from '../../utils/util'
 import { selectLocale } from '../LanguageProvider/selectors'
 import { postUserTopic } from './action'
 
-export class StreamStartForm extends React.Component {
+export class FlowStartForm extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
@@ -59,6 +59,25 @@ export class StreamStartForm extends React.Component {
     } else {
       dataFinal = props.data.slice()
       userDefinedTopics = props.userDefinedTopics.slice()
+      // props.data.map(s => {
+      //   const conTemp = props.autoRegisteredTopics.find(i => i.name === s.id)
+      //   const conTempObject = conTemp
+      //     ? {
+      //       id: conTemp.id,
+      //       name: conTemp.name,
+      //       conOffsetVal: conTemp.consumedLatestOffset,
+      //       rate: conTemp.rate,
+      //       key: conTemp.id
+      //     }
+      //     : {}
+
+      //   const kafTemp = props.autoRegisteredTopics.find(i => i.name === s.id)
+      //   const kafTempObject = kafTemp
+      //     ? {kafOffsetVal: kafTemp.kafkaLatestOffset, kafEarOffsetVal: kafTemp.kafkaEarliestOffset}
+      //     : {}
+
+      //   return Object.assign(conTempObject, kafTempObject)
+      // })
     }
     this.setState({ data: dataFinal, userDefinedTopics, unValidate })
   }
@@ -132,7 +151,8 @@ export class StreamStartForm extends React.Component {
     }
   }
   render () {
-    const { form, streamActionType, startUdfValsOption, renewUdfValsOption, currentUdfVal, locale } = this.props
+    // const {  streamActionType, startUdfValsOption, renewUdfValsOption, currentUdfVal } = this.props
+    const { form, locale } = this.props
     const { getFieldDecorator } = form
     const { data, userDefinedTopics, unValidate } = this.state
 
@@ -149,7 +169,7 @@ export class StreamStartForm extends React.Component {
             <Row className="no-topic-card-class">
               <Card title={noTopicCardTitle} className="stream-start-form-card-style">
                 <div className="rate-topic-info-wrapper">
-                  <div className="rate-class">
+                  <div className="rate-class hide">
                     <Col span={24} className="card-content required-offset">
                       Rate (<FormattedMessage {...messages.streamModalRate} />)
                     </Col>
@@ -312,7 +332,7 @@ export class StreamStartForm extends React.Component {
               <Row key={myName}>
                 <Card title={cardTitle} className="stream-start-form-card-style">
                   <div className="rate-topic-info-wrapper">
-                    <div className="rate-class">
+                    <div className="rate-class hide">
                       <Col span={24} className="card-content required-offset ">
                         Rate (<FormattedMessage {...messages.streamModalRate} />)
                       </Col>
@@ -403,21 +423,21 @@ export class StreamStartForm extends React.Component {
         </div>
       </Row>
     )
-    const itemStyleUdf = {
-      wrapperCol: { span: 24 }
-    }
-    const udfChildren = streamActionType === 'start'
-      ? startUdfValsOption.map(i => (<Select.Option key={i.id} value={`${i.id}`}>{i.functionName}</Select.Option>))
-      : renewUdfValsOption.map(i => (<Select.Option key={i.id} value={`${i.id}`}>{i.functionName}</Select.Option>))
+    // const itemStyleUdf = {
+    //   wrapperCol: { span: 24 }
+    // }
+    // const udfChildren = streamActionType === 'start'
+    //   ? startUdfValsOption.map(i => (<Select.Option key={i.id} value={`${i.id}`}>{i.functionName}</Select.Option>))
+    //   : renewUdfValsOption.map(i => (<Select.Option key={i.id} value={`${i.id}`}>{i.functionName}</Select.Option>))
 
-    const currentUdfsShow = currentUdfVal.length === 0
-      ? ''
-      : currentUdfVal.map(i => i.functionName).join(', ')
+    // const currentUdfsShow = currentUdfVal.length === 0
+    //   ? ''
+    //   : currentUdfVal.map(i => i.functionName).join(', ')
 
     return (
       <Form>
         <Row>
-          <Card title="UDFs：" className={streamActionType === 'start' ? 'stream-start-form-udf-style' : 'stream-renew-form-udf-style'}>
+          {/* <Card title="UDFs：" className={streamActionType === 'start' ? 'stream-start-form-udf-style' : 'stream-renew-form-udf-style'}>
             <div className="udf-info-wrapper">
               <div className={`${streamActionType === 'start' ? 'hide' : ''} selected-udf-class`}>Selected UDFs：{currentUdfsShow}</div>
               <Col span={24} className="stream-udf">
@@ -433,7 +453,7 @@ export class StreamStartForm extends React.Component {
                 </FormItem>
               </Col>
             </div>
-          </Card>
+          </Card> */}
           <Card title={topicCardTitle} className="stream-start-form-card-style">
             <Collapse defaultActiveKey={['auto', 'user']}>
               <Panel header={autoRegisteredTopicsCardTitle} key="auto">
@@ -457,12 +477,12 @@ export class StreamStartForm extends React.Component {
   }
 }
 
-StreamStartForm.propTypes = {
+FlowStartForm.propTypes = {
   form: PropTypes.any,
-  streamActionType: PropTypes.string,
-  startUdfValsOption: PropTypes.array,
-  renewUdfValsOption: PropTypes.array,
-  currentUdfVal: PropTypes.array,
+  // streamActionType: PropTypes.string,
+  // startUdfValsOption: PropTypes.array,
+  // renewUdfValsOption: PropTypes.array,
+  // currentUdfVal: PropTypes.array,
   locale: PropTypes.string,
   projectIdGeted: PropTypes.string,
   streamIdGeted: PropTypes.number,
@@ -479,4 +499,4 @@ function mapDispatchToProps (dispatch) {
     onPostUserTopic: (projectId, streamId, topic, resolve, reject) => dispatch(postUserTopic(projectId, streamId, topic, resolve, reject))
   }
 }
-export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, mapDispatchToProps)(StreamStartForm))
+export default Form.create({wrappedComponentRef: true})(connect(mapStateToProps, mapDispatchToProps)(FlowStartForm))
