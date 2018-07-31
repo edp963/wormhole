@@ -140,16 +140,16 @@ object AppUtils extends RiderLogger {
           val startedTime = if (flowSearch.get.startedTime.getOrElse("") == "") Some(currentSec) else flowSearch.get.startedTime
           val stoppedTime = if (flowSearch.get.stoppedTime.getOrElse("") == "") null else flowSearch.get.stoppedTime
           val consumedProtocol = if (appFlow.get.consumedProtocol.getOrElse("") == "") flowSearch.get.consumedProtocol else appFlow.get.consumedProtocol.get
-          val flowUpdate = Flow(flowSearch.get.id, projectId, streamId.get, sourceNs, sinkNs, consumedProtocol, Some(appFlow.get.sinkConfig),
+          val flowUpdate = Flow(flowSearch.get.id, projectId, streamId.get, sourceNs, sinkNs, flowSearch.get.parallelism, consumedProtocol, Some(appFlow.get.sinkConfig),
             Some(genFlowTranConfigByColumns(flowSearch.get.tranConfig.getOrElse(""), appFlow.get.sinkColumns)), "updating",
-            startedTime, stoppedTime, active = true, flowSearch.get.createTime, flowSearch.get.createBy, currentSec, session.userId)
+            startedTime, stoppedTime, flowSearch.get.logPath, active = true, flowSearch.get.createTime, flowSearch.get.createBy, currentSec, session.userId)
           Await.result(modules.flowDal.update(flowUpdate), minTimeOut)
           riderLogger.info(s"user ${session.userId} project $projectId update flow success.")
           flowUpdate
         } else {
-          val flowInsert = Flow(0, projectId, streamId.get, sourceNs, sinkNs, appFlow.get.consumedProtocol.getOrElse("all"), Some(appFlow.get.sinkConfig),
+          val flowInsert = Flow(0, projectId, streamId.get, sourceNs, sinkNs, appFlow.get.parallelism, appFlow.get.consumedProtocol.getOrElse("all"), Some(appFlow.get.sinkConfig),
             Some(genFlowTranConfigByColumns(sinkColumns = appFlow.get.sinkColumns)), "starting",
-            Some(currentSec), None, active = true, currentSec, session.userId, currentSec, session.userId)
+            Some(currentSec), None, None, active = true, currentSec, session.userId, currentSec, session.userId)
           val result = Await.result(modules.flowDal.insert(flowInsert), minTimeOut)
           riderLogger.info(s"user ${session.userId} project $projectId insert flow success.")
           result

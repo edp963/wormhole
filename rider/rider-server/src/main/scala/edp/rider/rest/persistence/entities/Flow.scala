@@ -31,12 +31,14 @@ case class Flow(id: Long,
                 streamId: Long,
                 sourceNs: String,
                 sinkNs: String,
+                parallelism: Option[Int],
                 consumedProtocol: String,
                 sinkConfig: Option[String],
                 tranConfig: Option[String],
                 status: String,
                 startedTime: Option[String],
                 stoppedTime: Option[String],
+                logPath: Option[String],
                 active: Boolean,
                 createTime: String,
                 createBy: Long,
@@ -52,21 +54,28 @@ case class FlowStream(id: Long,
                       streamId: Long,
                       sourceNs: String,
                       sinkNs: String,
+                      parallelism: Option[Int],
                       consumedProtocol: String,
                       sinkConfig: Option[String] = None,
                       tranConfig: Option[String] = None,
                       status: String,
                       startedTime: Option[String],
                       stoppedTime: Option[String],
+                      logPath: Option[String],
                       active: Boolean,
                       createTime: String,
                       createBy: Long,
                       updateTime: String,
                       updateBy: Long,
                       streamName: String,
+                      streamAppId: Option[String],
                       streamStatus: String,
                       streamType: String,
+                      functionType: String,
                       disableActions: String,
+                      hideActions: String,
+                      topicInfo: Option[GetTopicsResponse],
+                      currentUdf: Seq[FlowUdfResponse],
                       msg: String)
 
 case class FlowStreamInfo(id: Long,
@@ -74,6 +83,7 @@ case class FlowStreamInfo(id: Long,
                           streamId: Long,
                           sourceNs: String,
                           sinkNs: String,
+                          parallelism: Option[Int],
                           consumedProtocol: String,
                           sinkConfig: Option[String] = None,
                           tranConfig: Option[String] = None,
@@ -88,6 +98,7 @@ case class FlowStreamInfo(id: Long,
                           streamName: String,
                           streamStatus: String,
                           streamType: String,
+                          functionType: String,
                           disableActions: String,
                           kafka: String,
                           topics: String)
@@ -98,6 +109,7 @@ case class FlowStreamAdmin(id: Long,
                            streamId: Long,
                            sourceNs: String,
                            sinkNs: String,
+                           parallelism: Option[Int],
                            consumedProtocol: String,
                            sinkConfig: Option[String] = None,
                            tranConfig: Option[String] = None,
@@ -112,13 +124,67 @@ case class FlowStreamAdmin(id: Long,
                            streamName: String,
                            streamStatus: String,
                            streamType: String,
+                           functionType: String,
                            disableActions: String,
                            msg: String)
+
+case class FlowStreamAdminInfo(id: Long,
+                               projectId: Long,
+                               projectName: String,
+                               streamId: Long,
+                               sourceNs: String,
+                               sinkNs: String,
+                               parallelism: Option[Int],
+                               consumedProtocol: String,
+                               sinkConfig: Option[String] = None,
+                               tranConfig: Option[String] = None,
+                               startedTime: Option[String],
+                               stoppedTime: Option[String],
+                               status: String,
+                               active: Boolean,
+                               createTime: String,
+                               createBy: Long,
+                               updateTime: String,
+                               updateBy: Long,
+                               streamName: String,
+                               streamStatus: String,
+                               streamType: String,
+                               functionType: String,
+                               disableActions: String,
+                               hideActions: String,
+                               msg: String)
+
+case class FlowAdminAllInfo(id: Long,
+                            projectId: Long,
+                            projectName: String,
+                            streamId: Long,
+                            sourceNs: String,
+                            sinkNs: String,
+                            parallelism: Option[Int],
+                            consumedProtocol: String,
+                            sinkConfig: Option[String] = None,
+                            tranConfig: Option[String] = None,
+                            status: String,
+                            startedTime: Option[String],
+                            stoppedTime: Option[String],
+                            active: Boolean,
+                            createTime: String,
+                            createBy: Long,
+                            updateTime: String,
+                            updateBy: Long,
+                            streamName: String,
+                            streamStatus: String,
+                            streamType: String,
+                            functionType: String,
+                            disableActions: String,
+                            hideActions: String,
+                            topicInfo: GetTopicsResponse, currentUdf: Seq[FlowUdfResponse], msg: String)
 
 case class SimpleFlow(projectId: Long,
                       streamId: Long,
                       sourceNs: String,
                       sinkNs: String,
+                      parallelism: Option[Int],
                       consumedProtocol: String,
                       sinkConfig: Option[String],
                       tranConfig: Option[String]) extends SimpleBaseEntity
@@ -126,6 +192,8 @@ case class SimpleFlow(projectId: Long,
 case class FlowInfo(id: Long,
                     flowStatus: String,
                     disableActions: String,
+                    startTime: Option[String],
+                    stopTime: Option[String],
                     msg: String)
 
 case class FlowCacheMap(flowName: String, flowId: Long)
@@ -141,8 +209,38 @@ case class Sql(sql: String)
 
 case class DeleteTopic(ids: Seq[Long], topics: Seq[String])
 
+case class FlowDirective(udfInfo: Seq[Long], topicInfo: PutFlowTopic)
+
+case class PutFlowTopic(autoRegisteredTopics: Seq[PutFlowTopicDirective], userDefinedTopics: Seq[PutFlowTopicDirective])
+
+case class PutFlowTopicDirective(name: String, partitionOffsets: String)
+
+
+case class SimpleFlowTopicAllOffsets(name: String,
+                                     rate: Int,
+                                     consumedLatestOffset: String,
+                                     kafkaEarliestOffset: String,
+                                     kafkaLatestOffset: String)
+
+case class GetFlowTopicsOffsetResponse(autoRegisteredTopics: Seq[SimpleFlowTopicAllOffsets], userDefinedTopics: Seq[SimpleFlowTopicAllOffsets])
+
+case class FlowIdKafkaUrl(flowId: Long, kafkaUrl: String)
+
+case class FlowUdfResponse(id: Long, functionName: String, fullClassName: String, jarName: String)
+
+case class StartFlinkFlowResponse(id: Long,
+                                  status: String,
+                                  disableActions: String,
+                                  hiddenActions: String,
+                                  startedTime: Option[String] = None,
+                                  stoppedTime: Option[String]= None)
+
+case class FlinkJobStatus(name: String, jobId: String, state: String, startTime: String, stopTime: String)
+
+case class FlinkFlowStatus(status: String, startTime: Option[String], stopTime: Option[String])
+
 class FlowTable(_tableTag: Tag) extends BaseTable[Flow](_tableTag, "flow") {
-  def * = (id, projectId, streamId, sourceNs, sinkNs, consumedProtocol, sinkConfig, tranConfig, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <> (Flow.tupled, Flow.unapply)
+  def * = (id, projectId, streamId, sourceNs, sinkNs, parallelism, consumedProtocol, sinkConfig, tranConfig, status, startedTime, stoppedTime, logPath, active, createTime, createBy, updateTime, updateBy) <> (Flow.tupled, Flow.unapply)
 
   /** Database column project_id SqlType(BIGINT) */
   val projectId: Rep[Long] = column[Long]("project_id")
@@ -152,6 +250,8 @@ class FlowTable(_tableTag: Tag) extends BaseTable[Flow](_tableTag, "flow") {
   val sourceNs: Rep[String] = column[String]("source_ns", O.Length(200, varying = true))
   /** Database column sink_ns SqlType(VARCHAR), Length(200,true) */
   val sinkNs: Rep[String] = column[String]("sink_ns", O.Length(200, varying = true))
+
+  val parallelism: Rep[Option[Int]] = column[Option[Int]]("parallelism")
   /** Database column consumed_protocol SqlType(VARCHAR), Length(20,true) */
   val consumedProtocol: Rep[String] = column[String]("consumed_protocol", O.Length(20, varying = true))
   /** Database column tran_config SqlType(VARCHAR), Length(5000,true) */
@@ -164,6 +264,7 @@ class FlowTable(_tableTag: Tag) extends BaseTable[Flow](_tableTag, "flow") {
   val startedTime: Rep[Option[String]] = column[Option[String]]("started_time", O.Length(1000, varying = true), O.Default(None))
   /** Database column update_time SqlType(TIMESTAMP) */
   val stoppedTime: Rep[Option[String]] = column[Option[String]]("stopped_time", O.Length(1000, varying = true), O.Default(None))
+  val logPath: Rep[Option[String]] = column[Option[String]]("log_path", O.Length(2000, varying = true), O.Default(None))
 
   /** Uniqueness Index over (sourceNsId,sinkNsId,streamId,projectId) (database name flow_UNIQUE) */
   val index1 = index("flow_UNIQUE", (sourceNs, sinkNs), unique = true)

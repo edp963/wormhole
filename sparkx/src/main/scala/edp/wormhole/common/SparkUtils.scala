@@ -70,30 +70,40 @@ object SparkUtils extends EdpLogging {
         schemaMap(field.name.toLowerCase) = (index, SparkSchemaUtils.spark2umsType(field.dataType), field.nullable)
       }
     })
-    if (schemaMap.contains(UmsSysField.UID.toString)) {
-      val swapFieldName = schemaMap.filter(_._2._1 == schemaMap.size - 1).head._1 // to delete ums_uid_, move ums_uid to the last one
-      schemaMap(swapFieldName) = (schemaMap(UmsSysField.UID.toString)._1, schemaMap(swapFieldName)._2, schemaMap(swapFieldName)._3)
-      schemaMap(UmsSysField.UID.toString) = (schemaMap.size - 1, schemaMap(UmsSysField.UID.toString)._2, schemaMap(UmsSysField.UID.toString)._3)
-    }
+//    logInfo("schemaMap:"+schemaMap)
+
+//    val r = schemaMap.toMap.filter(_._1 != UmsSysField.UID.toString)
+//    schemaMap.remove(UmsSysField.UID.toString)
+    logInfo("schemaMap:"+schemaMap)
+        if (schemaMap.contains(UmsSysField.UID.toString)) {
+          val swapFieldName = schemaMap.filter(_._2._1 == schemaMap.size - 1).head._1 // to delete ums_uid_, move ums_uid to the last one
+          schemaMap(swapFieldName) = (schemaMap(UmsSysField.UID.toString)._1, schemaMap(swapFieldName)._2, schemaMap(swapFieldName)._3)
+          schemaMap(UmsSysField.UID.toString) = (schemaMap.size - 1, schemaMap(UmsSysField.UID.toString)._2, schemaMap(UmsSysField.UID.toString)._3)
+        }
+    logInfo("swap schemaMap:"+schemaMap)
+    schemaMap.remove(UmsSysField.UID.toString)
+    logInfo("remove schemaMap:"+schemaMap)
     schemaMap.toMap
+//    r
+
   }
 
   def getSchemaMap(sinkFields: Seq[UmsField], outputField: String): (Map[String, (Int, UmsFieldType, Boolean)], Map[String, (Int, UmsFieldType, Boolean)], Option[Map[String, String]]) = {
-    val schemaArr = sinkFields.zipWithIndex.map(t => (t._1.name, (t._2, t._1.`type`, t._1.nullable.get)))
-    val tmpSchema = schemaArr.toMap
+    val schemaArr: Seq[(String, (Int, UmsFieldType, Boolean))] = sinkFields.zipWithIndex.map(t => (t._1.name.toLowerCase, (t._2, t._1.`type`, t._1.nullable.get)))
+    val tmpSchema: Map[String, (Int, UmsFieldType, Boolean)] = schemaArr.toMap
     if (outputField.nonEmpty) {
       val resultMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
       val renameMap  = mutable.HashMap.empty[String,String]
       outputField.split(",").foreach { case nameField =>
         if (!nameField.contains(":")) {
-          if (!tmpSchema.contains(nameField)) {
+          if (!tmpSchema.contains(nameField.toLowerCase)) {
             throw new Exception("output Fields DO NOT contains field " + nameField + " you configure at sink step.")
           } else {
-            resultMap(nameField) = tmpSchema(nameField)
+            resultMap(nameField.toLowerCase) = tmpSchema(nameField.toLowerCase)
           }
         } else {
           val colonIndex = nameField.indexOf(":")
-          val (beforeName, afterName) = (nameField.substring(0, colonIndex), nameField.substring(colonIndex + 1))
+          val (beforeName, afterName) = (nameField.substring(0, colonIndex).toLowerCase, nameField.substring(colonIndex + 1).toLowerCase)
           if (!tmpSchema.contains(beforeName)) {
             throw new Exception("output Fields DO NOT contains field " + beforeName + " you configure at sink step.")
           } else {
@@ -138,7 +148,7 @@ object SparkUtils extends EdpLogging {
   def getRowData(row: Seq[String], resultSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], originalSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],renameMap:Option[Map[String, String]]): ArrayBuffer[String] = {
     val dataArray = ArrayBuffer.fill(resultSchemaMap.size) {""}
     resultSchemaMap.foreach { case (columnName, (index, fieldType, _)) => {
-      val data = if (renameMap.isDefined && renameMap.get.contains(columnName)) row(originalSchemaMap(renameMap.get(columnName))._1) else row(originalSchemaMap(columnName)._1)
+      val data = if (renameMap.isDefined && renameMap.get.contains(columnName)) row(originalSchemaMap(renameMap.get(columnName).toLowerCase)._1) else row(originalSchemaMap(columnName.toLowerCase)._1)
 //      if (fieldType == UmsFieldType.BINARY) {
 //        dataArray(index) = if (null != data) {
 //          if (data != null) new String(data.asInstanceOf[Array[Byte]]) else null.asInstanceOf[String]

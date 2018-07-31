@@ -2,7 +2,7 @@
 layout: global
 displayTitle: Wormhole Overview
 title: Overview
-description: Wormhole WH_VERSION_SHORT documentation homepage
+description: Wormhole documentation homepage
 ---
 > 来自[宜信](http://www.creditease.com/)[技术研发中心](http://crdc.creditease.cn/)的流式处理平台
 
@@ -87,7 +87,7 @@ Please refer to [Wormhole用户手册](https://edp963.github.io/wormhole).
 
 ## Latest Release
 
-Please download the latest [RELEASE](https://github.com/edp963/wormhole/releases/download/0.4.2/wormhole-0.4.2.tar.gz).
+Please download the latest [RELEASE](https://github.com/edp963/wormhole/releases/download/0.5.0-beta/wormhole-0.5.0-beta.tar.gz).
 
 ## Get Help
 

@@ -2,7 +2,7 @@
 layout: global
 displayTitle: Deployment
 title: Deployment
-description: Wormhole WH_VERSION_SHORT Deployment page
+description: Wormhole Deployment page
 ---
 
 * This will become a table of contents (this text will be scraped).
@@ -13,13 +13,14 @@ description: Wormhole WH_VERSION_SHORT Deployment page
 #### 环境准备
 - JDK1.8
 - Hadoop-client（HDFS，YARN）（支持版本 2.6+）
-- Spark-client （支持版本 2.2.0，2.2.1）
+- Spark-client （支持版本 2.2.0，2.2.1）(若使用Spark Streaming引擎，须部署Spark-client)
+- Flink-client （支持版本 1.5.1）(若使用Flink引擎，须部署Flink-client)
 
 #### 依赖服务
 
 - Hadoop 集群（HDFS，YARN）（支持版本 2.6+）
 - Zookeeper
-- Kafka （支持版本 0.10.0.0）
+- Kafka （支持版本 0.10.2.2）
 - Elasticsearch（支持版本 5.x）（非必须，若无则无法查看 wormhole 处理数据的吞吐和延时）
 - Grafana （支持版本 4.x）（非必须，若无则无法查看 wormhole 处理数据的吞吐和延时的图形化展示）
 - MySQL
@@ -28,31 +29,29 @@ description: Wormhole WH_VERSION_SHORT Deployment page
 mysql-connector-java-{your-db-version}.jar
 
 
+**注意：升级至0.5.0-beta版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
+
 ## 部署配置
 
-**下载 wormhole-0.4.2.tar.gz 包 (链接:https://pan.baidu.com/s/1nYATEEtH05cbx-fwd3Zb-Q  密码:em8w)，或者自编译**
+**下载 wormhole-0.5.0-beta.tar.gz 包 (链接:https://pan.baidu.com/s/1nYATEEtH05cbx-fwd3Zb-Q  密码:em8w)，或者自编译**
 
 ```
-wget https://github.com/edp963/wormhole/releases/download/0.4.2/wormhole-0.4.2.tar.gz
-tar -xvf wormhole-0.4.2.tar.gz
-或者自编译，生成的 tar 包在 wormhole/target
-git clone -b 0.4 https://github.com/edp963/wormhole.git
+wget https://github.com/edp963/wormhole/releases/download/0.5.0-beta/wormhole-0.5.0-beta.tar.gz
+tar -xvf wormhole-0.5.0-beta.tar.gz
+或者自编译，生成的tar包在 wormhole/target
+git clone -b 0.5 https://github.com/edp963/wormhole.git
 cd wormhole
+git checkout 0.5.0-beta
 mvn install package -Pwormhole
 ```
 
-***注意：0.4.1版本升级到0.4.2前须手动执行下面两步***
+**注意：0.4.2版本升级至0.5.0-beta版前须手动执行以下操作**
 
 ```
-1. 删除原Elasticsearch wormhole_feedback index
-
-curl -XDELETE 'localhost:9200/wormhole_feedback'
-
-2. 修改数据库中原wormhole job字段名及值
-
-alter table `job` change column `source_type` `job_type` VARCHAR(30);
-
-update `job` set job_type = "1";
+1. stream表中增加function_type字段，原stream_type值赋值给function_type，stream_type值改为"spark"
+alter table `stream` add column `function_type` VARCHAR(100) NULL after `stream_type`;
+update `stream` a join `stream` b on a.id = b.id set a.`function_type` = b.`stream_type`;
+update `stream` set `stream_type` = "spark";
 ```
 
 **配置 WORMHOLE_HOME/SPARK_HOME/HADOOP_HOME 环境变量**
@@ -92,6 +91,11 @@ spark = {
   yarn.rm2.http.url = "localhost2:8088"   #Yarn StandbyResourceManager address
 }
 
+flink = {
+  home = "/usr/local/flink"
+  yarn.queue.name = "default"
+}
+
 zookeeper.connection.url = "localhost:2181"  #WormholeServer stream and flow interaction channel
 
 kafka = {
@@ -129,12 +133,6 @@ kafka = {
 #  url = "http://localhost:3000"
 #  admin.token = "jihefouglokoj"
 #}
-
-#delete feedback history data on time
-maintenance = {
-  mysql.feedback.remain.maxDays = 7
-  elasticSearch.feedback.remain.maxDays = 7
-}
 
 #Dbus integration, if not set, please comment it
 #dbus.namespace.rest.api.url = ["http://localhost:8080/webservice/tables/riderSearch"]
