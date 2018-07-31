@@ -228,46 +228,56 @@ Spark SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 
 配置数据转换逻辑，支持 SQL ，可以配置多条转换逻辑，调整逻辑顺序。
 
-支持两种事件模型Processing Time和Event Time。Processing Time为数据进入到Flink的时间，即数据进入source operator时获取时间戳；Event Time为事件产生的时间，即数据产生时自带时间戳，在Wormhole系统中对应```ums_ts_```字段。
+支持两种事件模型Processing Time和Event Time。Processing Time为数据进入到Flink的时间，即数据进入source operator时获取时间戳；Event Time为事件产生的时间，即数据产生时自带时间戳，在Wormhole系统中对应```ums_ts_```字段。暂时不支持Event Time，只支持Processing Time。
 
 ##### CEP
 
-CEP用于快速定义复杂的事件模式。每个模式包含多个阶段（stage）或者状态（state）。为了从一个状态切换到另一个状态，可以指定条件，这些条件可以作用在邻近的事件或独立事件上。
+Wormhole Flink版对传输的流数据除了提供Lookup SQL、Flink SQL两种Transformation操作之外，还提供了CEP（复杂事件处理）这种转换机制。
+
+ CEP里面的几个必填属性的含义和用途如下：
 
 须设定以下参数：
 
-Windowtime：窗口失效时间
+1）WindowTime：它是指在触发了符合Begin Pattern的数据记录后的窗口时间，如果watermark的time超过了触发时间+窗口时间，本次pattern结束
 
-- 在特定时间内，Pattern未匹配成功，则该窗口失效并被丢弃，对新窗口重新按照规则匹配
+2）KeyBy：依据数据中的哪个字段来做分区，举个例子，比如，现在有一条数据，它的schema包括ums_id_,ums_op_,ums_ts_,value1,value2这几个字段，这里选定value1来做分区的依赖字段，那么，value1字段相同的数据将被分配到同一个分组上。CEP操作将分别针对每一分组的数据进行处理
 
-KeyBy：分组策略
+3）Strategy：策略分为NO_SKIP和SKIP_PAST_LAST_EVENT两种，前者对应数据滑动策略，后者对应数据滚动策略，具体区别可以借鉴下面的例子：（假设一次处理4条）
 
-- 按照key对事件进行分组，将分组后的事件分别按照Pattern进行匹配
+- 数据滑动
 
-Strategy：窗口策略
+  a1 a2 a3 a4 ........
 
-- NO-SKIP：通过滑动窗口将数据流切分成有重叠的窗口，即一个事件可以对应多个窗口
-- SKIP_PAST_LAST_EVENT：通过滚动窗口将数据流切分成不重叠的窗口，即每一个事件只能属于一个窗口
+  a2 a3 a4 a5 ........
 
-Output：输出格式
+  a3 a4 a5 a6 ........
 
-- Agg：对所有匹配的事件做聚合，输出聚合结果
-- Detail：将匹配的事件全部输出
-- FilteredRow：支持min、max、first、last操作。对匹配的事件进行上述一个或者多个操作后筛选出某一事件输出
+- 数据滚动
 
-Pattern
+  a1 a2 a3 a4 ........
 
-- Operator：模式对事件的选择策略
+  a5 a6 a7 a8  ........
+
+  a9 a10 a11 a12 .....
+
+4）Output：输出结果的形式，大致分为三类：Agg、Detail、FilteredRow
+
+- Agg：将匹配的多条数据做聚合，生成一条数据输出,例：field1:avg,field2:max（目前支持max/min/avg/sum）
+- Detail：将匹配的多条数据逐一输出
+- FilteredRow：按条件选择指定的一条数据输出，例：head/last/ field1:min/max
+
+5）Pattern：筛选数据的规则。每个CEP由若干个pattern组成。
+
+每个Pattern包括以下三个必填信息：
+
+- Operator:操作类型，每个CEP中的第一个Pattern，其Operator只能为begin，其后的每个Pattern Operator只能为next、followed by、not next、not followed by这四种类型中的一种，其含义分别为：
   - Begin：每个模式必须以一个初始状态开始，Begin用来构建初始Pattern
-  - Next：会在既有的Pattern之后，追加一个新的Pattern。表示当前模式运算符所匹配的事件和它前一个模式运算符所匹配的事件，必须是严格紧邻的，即两个被匹配的事件必须是前后紧邻，中间没有其他元素
-  - FollowedBy：会在既有的Pattern之后，追加一个新的Pattern。表示当前运算符所匹配的事件不必严格紧邻，即两个被匹配的两个事件之间允许插入其他元素
-  - NotNext：会在既有的Pattern之后，追加一个新的Pattern。表示当前模式运算符所匹配的事件和它前一个模式运算符所匹配的事件，必须不相邻，即两个被匹配的事件不能紧邻，中间必须有其他元素
-  - NotFollowedBy：会在既有的Pattern之后，追加一个新的Pattern。表示当前模式的前一个模式运算符所匹配的事件后不能出现当前模式运算符所匹配的事件。注：该操作不能作为最后一个Pattern
-- Quantifier：匹配次数
-  - OneOrMore：该pattern中condition匹配次数须为一次或一次以上，则匹配成功
-  - Times：假设数值设置为n，该pattern中condition匹配次数须为n，则匹配成功
-  - TimesOrMore：假设数值设置为n，该pattern中condition匹配次数须为n次或n次以上，则匹配成功
-- Condition：匹配条件包括=、>、>=、<、<=、!=、like、startwith、endwith
+  - Next：会追加一个新的Pattern对象到既有的Pattern之后，它表示当前模式运算符所匹配的事件必须是严格紧邻的，这意味着两个被匹配的事件必须是前后紧邻，中间没有其他元素
+  - FollowedBy：会追加一个新的Pattern到既有的Pattern之后（其实返回的是一个FollowedByPattern对象，它是Pattern的派生类），它表示当前运算符所匹配的事件不必严格紧邻，这意味着其他事件被允许穿插在匹配的两个事件之间
+  - NotNext：增加一个新的否定模式。匹配(否定)事件必须直接输出先前的匹配事件(严格紧邻)，以便将部分匹配丢弃
+  - NotFollowedBy：会丢弃或者跳过已匹配的事件；(注：not FollowedBy不能为最后一个Pattern)
+- Quantifier：用来匹配满足该pattern的一条或多条数据。目前配置包括：一条及以上，指定条数，指定条数及以上；这块需要特殊说明的是，notNext、not FollowedBy这两种操作类型无法设置Quantifier。它代表的意思就是后面没有符合该Pattern的数据才属于符合条件
+- Conditions：具体的判断依据，在这一项中，用户可以具体针对数据的某一个或多个属性进行判断条件设置，例如，我可以设置只有符合value1 like a and value2 >=10的数据才是符合条件的数据
 
 ##### SQL
 
