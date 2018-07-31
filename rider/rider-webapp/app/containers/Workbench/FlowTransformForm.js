@@ -131,6 +131,13 @@ export class FlowTransformForm extends React.Component {
     }
     this.props.form.validateFieldsAndScroll(validateStr, (err, values) => {
       let { operator, quantifier } = values
+      if (err && err.quantifier) {
+        this.setState({
+          quantifierInputValidate: 'error',
+          quantifierInputValidateTxt: '请填写quantifier'
+        })
+        return
+      }
       if (!patternOperHiddenQuartifier) {
         quartifierObj.type = values.quantifier
         switch (quantifier) {
@@ -169,7 +176,9 @@ export class FlowTransformForm extends React.Component {
         }
         this.setState({
           cepDataSource: newCepTableDataSource,
-          editRow: -1
+          editRow: -1,
+          quantifierInputValidate: '',
+          quantifierInputValidateTxt: ''
         }, () => {
           this.props.emitCepSourceData(newCepTableDataSource)
           this.clearPatterModalData(() => {
@@ -213,7 +222,6 @@ export class FlowTransformForm extends React.Component {
     }
   }
   quantifierInputChange = (e) => {
-    console.log(e.target.value)
     let value = e.target.value
     if (value === '') {
       if (!this.state.quantifierInputValidate) {
@@ -233,38 +241,27 @@ export class FlowTransformForm extends React.Component {
   }
   addOrEditPattern = () => {
     let quantifierBtn = this.props.form.getFieldValue('quantifier')
-    if (quantifierBtn === 'times') {
-      if (this.quartifierTimesInput.value === '') {
-        this.setState({
-          quantifierInputValidate: 'error',
-          quantifierInputValidateTxt: '请填写quantifier'
-        })
-        return
-      }
-    } else if (quantifierBtn === 'timesormore') {
-      if (this.quartifierTimesOrMoreInput.value === '') {
-        this.setState({
-          quantifierInputValidate: 'error',
-          quantifierInputValidateTxt: '请填写quantifier'
-        })
-        return
+    let operatorBtn = this.props.form.getFieldValue('operator')
+    if (operatorBtn === 'begin' || operatorBtn === 'next' || operatorBtn === 'followedby') {
+      if (quantifierBtn === 'times') {
+        if (this.quartifierTimesInput.value === '') {
+          this.setState({
+            quantifierInputValidate: 'error',
+            quantifierInputValidateTxt: '请填写quantifier'
+          })
+          return
+        }
+      } else if (quantifierBtn === 'timesormore') {
+        if (this.quartifierTimesOrMoreInput.value === '') {
+          this.setState({
+            quantifierInputValidate: 'error',
+            quantifierInputValidateTxt: '请填写quantifier'
+          })
+          return
+        }
       }
     }
-    this.props.form.validateFieldsAndScroll(['operator', 'quantifier'], (err, values) => {
-      if (err && err.quantifier) {
-        this.setState({
-          quantifierInputValidate: 'error',
-          quantifierInputValidateTxt: '请填写quantifier'
-        })
-      }
-      if (!err) {
-        this.filterComponent.doQuery()
-        this.setState({
-          quantifierInputValidate: '',
-          quantifierInputValidateTxt: ''
-        })
-      }
-    })
+    this.filterComponent.doQuery()
   }
   onEditPattern = (record, index) => (e) => {
     let patternSourceDataConditions = record.conditions
