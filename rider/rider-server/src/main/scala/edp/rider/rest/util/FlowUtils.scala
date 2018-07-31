@@ -184,16 +184,19 @@ object FlowUtils extends RiderLogger {
           FlowInfo(flowStream.id, flowStream.status, "renew,stop", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
 
         case ("new" | "starting" | "waiting" | "failed" | "stopped" | "stopping", "stopping", "refresh" | "modify") =>
-          FlowInfo(flowStream.id, flowStream.status, "renew,start", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
+          FlowInfo(flowStream.id, flowStream.status, "renew,start,delete", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
 
-        case ("running", "starting" | "updating" | "running" | "suspending", "refresh" | "modify") =>
+        case ("running", "starting", "refresh" | "modify") =>
+          FlowInfo(flowStream.id, flowStream.status, "start,stop,delete", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
+
+        case ("running", "updating" | "running" | "suspending", "refresh" | "modify") =>
           FlowInfo(flowStream.id, flowStream.status, "start", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
 
         case ("running", "failed", "refresh" | "modify") =>
           FlowInfo(flowStream.id, flowStream.status, "renew", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
 
         case ("running", "stopping", "refresh" | "modify") =>
-          FlowInfo(flowStream.id, flowStream.status, "renew,start", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
+          FlowInfo(flowStream.id, flowStream.status, "renew,start,delete", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
 
         case ("running", "new" | "stopped", "refresh" | "modify") =>
           FlowInfo(flowStream.id, flowStream.status, "renew,stop", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
@@ -212,7 +215,7 @@ object FlowUtils extends RiderLogger {
 
         case ("new" | "starting" | "waiting" | "failed" | "stopped" | "stopping", "new" | "stopped" | "failed", "start") =>
           if (startFlow(flowStream.streamId, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.updateBy))
-            FlowInfo(flowStream.id, "starting", "start", Option(currentSec), null, s"$action success")
+            FlowInfo(flowStream.id, "starting", "start,delete", Option(currentSec), null, s"$action success")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "start failed")
 
@@ -230,7 +233,7 @@ object FlowUtils extends RiderLogger {
 
         case ("running", "new" | "stopped" | "failed", "start") =>
           if (startFlow(flowStream.streamId, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.updateBy))
-            FlowInfo(flowStream.id, "starting", "start", Option(currentSec), null, s"$action success")
+            FlowInfo(flowStream.id, "starting", "start,delete", Option(currentSec), null, s"$action success")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "start failed")
 
@@ -239,10 +242,16 @@ object FlowUtils extends RiderLogger {
       }
     } else {
       (flowStream.streamStatus, flowStream.status, action) match {
-        case ("new" | "starting" | "waiting", "new" | "starting" | "running" | "stopped", "refresh" | "modify") =>
+        case ("new" | "starting" | "waiting", "starting", "refresh" | "modify") =>
+          FlowInfo(flowStream.id, flowStream.status, "start,renew,stop,delete", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
+
+        case ("new" | "starting" | "waiting", "new" | "running" | "stopped", "refresh" | "modify") =>
           FlowInfo(flowStream.id, flowStream.status, "start,renew,stop", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
 
-        case ("new" | "starting" | "waiting", "stopping" | "failed", "refresh" | "modify") =>
+        case ("new" | "starting" | "waiting", "stopping", "refresh" | "modify") =>
+          FlowInfo(flowStream.id, flowStream.status, "start,renew,delete", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
+
+        case ("new" | "starting" | "waiting", "failed", "refresh" | "modify") =>
           FlowInfo(flowStream.id, flowStream.status, "start,renew", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
 
         case ("stopping" | "stopped" | "failed", "new" | "stopped", "refresh" | "modify") =>
@@ -252,7 +261,7 @@ object FlowUtils extends RiderLogger {
           FlowInfo(flowStream.id, flowStream.status, "start,renew", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
 
         case ("stopping", "starting" | "running" | "stopping", "refresh" | "modify") =>
-          FlowInfo(flowStream.id, "stopping", "start,renew", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
+          FlowInfo(flowStream.id, "stopping", "start,renew,delete", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
 
         case ("failed", "starting" | "running" | "stopping", "refresh" | "modify") =>
           FlowInfo(flowStream.id, "failed", "start,renew", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
@@ -264,7 +273,7 @@ object FlowUtils extends RiderLogger {
           FlowInfo(flowStream.id, flowStream.status, "renew,stop", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
 
         case ("running", "starting", "refresh" | "modify") =>
-          FlowInfo(flowStream.id, flowStream.status, "start,renew,stop", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
+          FlowInfo(flowStream.id, flowStream.status, "start,renew,stop,delete", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
 
         case ("running", "running" | "stopping", "refresh" | "modify") =>
           FlowInfo(flowStream.id, flowStream.status, "start,renew", flowStream.startedTime, flowStream.stoppedTime, s"$action success.")
@@ -277,7 +286,7 @@ object FlowUtils extends RiderLogger {
 
         case ("running", "new" | "stopped" | "failed", "start") =>
           if (startFlinkFlow(flowStream.streamAppId.get, getFlowByFlowStream(flowStream)))
-            FlowInfo(flowStream.id, "starting", "start,renew,stop", Option(currentSec), null, s"$action success.")
+            FlowInfo(flowStream.id, "starting", "start,renew,stop,delete", Option(currentSec), null, s"$action success.")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "start failed")
 
@@ -286,7 +295,7 @@ object FlowUtils extends RiderLogger {
 
         case ("running", "running" | "stopping", "stop") =>
           if (stopFlinkFlow(flowStream.streamAppId.get, getFlowName(flowStream.sourceNs, flowStream.sinkNs)))
-            FlowInfo(flowStream.id, "stopping", "start,renew", flowStream.startedTime, Option(currentSec), s"$action success.")
+            FlowInfo(flowStream.id, "stopping", "start,renew,delete", flowStream.startedTime, Option(currentSec), s"$action success.")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "stop failed")
         case (_, _, _) =>
@@ -335,11 +344,11 @@ object FlowUtils extends RiderLogger {
     } else {
       flow.status match {
         case "new" => "renew,stop"
-        case "starting" => "start"
+        case "starting" => "start,delete"
         case "running" => "start"
         case "updating" => "start"
         case "suspending" => "start"
-        case "stopping" => "start,renew"
+        case "stopping" => "start,renew,delete"
         case "stopped" => "renew,stop"
         case "failed" => ""
       }
@@ -1048,7 +1057,7 @@ object FlowUtils extends RiderLogger {
     jsonCompact(flow_start_ums)
   }
 
-  def getFlowName(sourceNs: String, sinkNs: String): String = s"$sourceNs-$sinkNs"
+  def getFlowName(sourceNs: String, sinkNs: String): String = s"$sourceNs-$sinkNs".toLowerCase
 
   def updateUdfsByStart(flowId: Long, udfIds: Seq[Long], userId: Long): Unit = {
     if (udfIds.nonEmpty) {
@@ -1065,13 +1074,13 @@ object FlowUtils extends RiderLogger {
 
   def updateTopicsByStart(flowId: Long, putTopic: PutFlowTopic, userId: Long): Unit = {
     val autoRegisteredTopics = putTopic.autoRegisteredTopics
-    val userdefinedTopics = putTopic.userDefinedTopics
+    val userDefinedTopics = putTopic.userDefinedTopics
     // update auto registered topics
     flowInTopicDal.updateByStart(flowId, autoRegisteredTopics, userId)
     // delete user defined topics by start
-    flowUdfTopicDal.deleteByStart(flowId, userdefinedTopics)
+    flowUdfTopicDal.deleteByStart(flowId, userDefinedTopics)
     // insert or update user defined topics by start
-    flowUdfTopicDal.insertUpdateByStart(flowId, userdefinedTopics, userId)
+    flowUdfTopicDal.insertUpdateByStart(flowId, userDefinedTopics, userId)
   }
 
   def stopFlinkFlow(appId: String, flowName: String): Boolean = {

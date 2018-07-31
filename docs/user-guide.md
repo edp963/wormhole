@@ -2,7 +2,7 @@
 layout: global
 displayTitle: User Guide
 title: User Guide
-description: Wormhole WH_VERSION_SHORT User Guide page
+description: Wormhole User Guide page
 
 ---
 
@@ -25,8 +25,6 @@ Wormhole 系统中有三类用户角色 Admin，User，App。本章介绍 User �
 - routing：可将某 Topic 上数据分发到其他 Topic 中
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-stream-type-spark.png" alt="" width="600"/>
-
-
 
 #### 资源配置
 
@@ -84,19 +82,17 @@ Stream 状态转换图如下，其中 refresh 代表 Refresh 按钮，start 代�
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-stream-state-exchange.png" alt="" width="600"/>
 
-### Flink Stream管理
+### Flink Stream 管理
 
 #### 类型
 
-Flink中支持的Stream类型暂时只有default，理论上可以处理所有类型的数据，可将数据写入Kafka/RDBS/Elasticsearch/Hbase/Phoenix/Cassandra/MongoDB 系统中，但fFlink Stream暂时只支持将数据写入Kafka系统，其他系统后续版本将进行支持
+Flink中支持的Stream类型只有default，理论上可以处理所有类型的数据，将数据写入Kafka/RDBS/Elasticsearch/Hbase/Phoenix/Cassandra/MongoDB系统中，但目前只支持处理UMS数据类型，目标系统只支持Kafka，UMS_Extension类型及其他目标系统会在后续版本支持
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-stream-type-flink.png" alt="" width="600"/>
 
-
-
 #### 资源配置
 
-- JobManage内存
+- JobManager内存
 - TaskManager数量
 - 每个TaskManager内存及slots数量
 
@@ -108,20 +104,11 @@ Flink中支持的Stream类型暂时只有default，理论上可以处理所有�
 
   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-stream-start-flink.png" alt="" width="600"/>
 
-**注意事项：**
-
-- Stream 启动时会检查其所占用资源是否大于该 Project 下剩余可用资源，如果大于会提示资源不足，无法启动。可调小资源或停止其他流或调整该 Project 可用的计算资源
-- 若正常启动后，一直处于 starting 状态或转为 failed 状态，可点击查看日志按钮，根据日志错误信息调整，重启即可。
-
-#### 状态转换
-
-- Flink Stream与Spark Stream中状态转换相同，请参考Spark Stream状态转换章节
-
 ## Flow 管理
 
 需指定 Stream，Source Namespace，Protocol，Sink Namespace，配置数据转换逻辑等。
 
-### Stream
+### 选择 Stream
 
 #### Spark Stream
 
@@ -129,20 +116,19 @@ Flink中支持的Stream类型暂时只有default，理论上可以处理所有�
 
 #### Flink Stream
 
-- 暂时仅支持Default类型
-- Parallelism并行度：一个Stream的并行度。Flink一个Stream的并行度总是等于生成它的Operator的并行度，Flink一个Operator可以被分成多个Operator Subtask，每一个Operator Subtask是在不同的线程中独立执行的
+- 设置Parallelism并行度：Flow在Flink Stream中处理的并行度
 
 ### Protocol
 
 - increment 代表只处理 data_increment_data 协议的数据
 - initial 代表只处理 data_initial_data 协议的数据
-- all 代表处理两种协议的数据
+- backfill 代表只处理 data_batch_data 协议的数据（通过Wormhole Job回灌到Kafka中的数据协议类型为 data_batch_data）
 
 ### Source Namespace
 
-- 若 Wormhole 未对接 Dbus，源数据系统只支持 Kafka
-- 若 Wormhole 已对接 Dbus，选择在 Dbus 中配置的源数据系统类型
-- 可选的 Namespace 有一定的权限控制，其中 Source Namespace 是 Stream 对应 Kafka Instance 下的 Namespaces 与 Flow 所在 Project 下可访问 Namespaces 的交集；Sink Namespace 是 Flow 所在 Project 下可访问的Namespaces 且去除从 Dbus 系统同步的 Namespace
+- 若 Wormhole 未对接 DBus，源数据系统只支持 Kafka
+- 若 Wormhole 已对接 DBus，选择在 DBus 中配置的源数据系统类型
+- 可选的 Namespace 有一定的权限控制，其中 Source Namespace 是 Stream 对应 Kafka Instance 下的 Namespaces 与 Flow 所在 Project 下可访问 Namespaces 的交集；Sink Namespace 是 Flow 所在 Project 下可访问的Namespaces 且去除从 DBus 系统同步的 Namespace
 - 注：Flink Flow暂时只支持UMS类型数据源，用户自定义json类型数据源将在后续版本进行支持
 
 ### Sink Namespace
@@ -164,7 +150,7 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 
 ### Transformation
 
-#### Spark Transformation
+#### Spark Flow Transformation
 
 配置数据转换逻辑，支持 SQL 和自定义 Class 方式，可以配置多条转换逻辑，调整逻辑顺序
 
@@ -176,7 +162,7 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-sparkxinterface</artifactId>
-     <version>0.4.2</version>
+     <version>0.5.0-beta</version>
   </dependency>
   ```
 
@@ -238,23 +224,17 @@ Spark SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 - Stream Join SQL 处理过程中会将没有关联上的数据保存到 HDFS 上，data retention time 代表数据的有效期
 - select 语句规则同 Spark SQL
 
-#### Flink Transformation
+#### Flink Flow Transformation
 
 配置数据转换逻辑，支持 SQL ，可以配置多条转换逻辑，调整逻辑顺序。
 
-支持两种事件模型Processing Time和Event Time。Processing Time为数据进入到Flink的时间，即数据进入source operator时获取时间戳 ；Event Time为事件产生的时间，即数据产生时自带时间戳。
-
-##### Lookup SQL
-
-与Spark Transformation中Lookup SQL类似，具体请参考Spark Transformation的Lookup SQL章节
-
-##### Flink SQL
-
-Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Flink SQL 支持使用 UDF 方法，UDF 方法须包含在该 Flow 对应的 Stream 中。
+支持两种事件模型Processing Time和Event Time。Processing Time为数据进入到Flink的时间，即数据进入source operator时获取时间戳；Event Time为事件产生的时间，即数据产生时自带时间戳，在Wormhole系统中对应```ums_ts_```字段。
 
 ##### CEP
 
-CEP用于快速定义复杂的事件模式。每个模式包含多个阶段（stage）或者状态（state）。为了从一个状态切换到另一个状态，可以指定条件，这些条件可以作用在邻近的事件或独立事件上。须设定以下参数：
+CEP用于快速定义复杂的事件模式。每个模式包含多个阶段（stage）或者状态（state）。为了从一个状态切换到另一个状态，可以指定条件，这些条件可以作用在邻近的事件或独立事件上。
+
+须设定以下参数：
 
 Windowtime：窗口失效时间
 
@@ -282,12 +262,22 @@ Pattern
   - Next：会在既有的Pattern之后，追加一个新的Pattern。表示当前模式运算符所匹配的事件和它前一个模式运算符所匹配的事件，必须是严格紧邻的，即两个被匹配的事件必须是前后紧邻，中间没有其他元素
   - FollowedBy：会在既有的Pattern之后，追加一个新的Pattern。表示当前运算符所匹配的事件不必严格紧邻，即两个被匹配的两个事件之间允许插入其他元素
   - NotNext：会在既有的Pattern之后，追加一个新的Pattern。表示当前模式运算符所匹配的事件和它前一个模式运算符所匹配的事件，必须不相邻，即两个被匹配的事件不能紧邻，中间必须有其他元素
-  - NotFollowBy：会在既有的Pattern之后，追加一个新的Pattern。表示当前模式的前一个模式运算符所匹配的事件后不能出现当前模式运算符所匹配的事件。注：该操作不能作为最后一个Pattern
-- Quartifier：匹配次数
-  - OneOrMore：该patterm中condition匹配次数须为一次或一次以上，则匹配成功
-  - Times：假设数值设置为n，该patterm中condition匹配次数须为n，则匹配成功
-  - TimesOrMore：假设数值设置为n，该patterm中condition匹配次数须为n次或n次以上，则匹配成功
+  - NotFollowedBy：会在既有的Pattern之后，追加一个新的Pattern。表示当前模式的前一个模式运算符所匹配的事件后不能出现当前模式运算符所匹配的事件。注：该操作不能作为最后一个Pattern
+- Quantifier：匹配次数
+  - OneOrMore：该pattern中condition匹配次数须为一次或一次以上，则匹配成功
+  - Times：假设数值设置为n，该pattern中condition匹配次数须为n，则匹配成功
+  - TimesOrMore：假设数值设置为n，该pattern中condition匹配次数须为n次或n次以上，则匹配成功
 - Condition：匹配条件包括=、>、>=、<、<=、!=、like、startwith、endwith
+
+##### SQL
+
+####### Lookup SQL
+
+具体可参考Spark Flow Transformation的Lookup SQL章节
+
+####### Flink SQL
+
+Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Flink SQL UDF 功能会在后续版本支持。
 
 ### 修改 Flow
 
@@ -295,29 +285,26 @@ Pattern
 
 ### 启动 Flow
 
-#### 启动Spark Flow
+#### 启动 Spark Flow
 
 - Sink 端为 RDBMS 时，需将相应的 jdbc connector jar 放至 $SPARK_HOME/jars 目录下，然后启动或重启 Stream
 - 点击启动按钮，后台会将 Flow 的信息提交给 Stream，且会将 Flow Source Namespace 和 Stream Join Namespaces 所在 Topic 绑定到 Stream 上
 - Stream 接收到 Flow 指令后解析，若成功解析，返回成功信息，Flow 的状态由 starting 转成 running；若解析失败，Flow 的状态由 starting 转成 failed。可在 Yarn 上查看 Driver 日志，根据错误提示重新配置 Flow
 
-#### 启动Flink Flow
+#### 启动 Flink Flow
 
-- 配置：选择 UDF；配置每个 Topic 的消费速度 Rate (单位为条/秒)，每个 Topic Partition 消费的起始 Offset；配置用户自定义Topic
-- 点击启动按钮，后台会将Flow的信息提交给Stream
-- Stream 接收到 Flow 指令后解析，若成功解析，返回成功信息，Flow 的状态由 starting 转成 running；若解析失败，Flow 的状态由 starting 转成 failed。可在 Yarn 上查看 Driver 日志，根据错误提示重新配置 Flow
+- Stream running状态下才可以启动Flow
+- 配置每个Topic Partition消费的起始Offset，可配置用户自定义Topic
+- 点击启动按钮，后台会向对应Flink Stream JobManager上提交创建TaskManager请求
+- 启动Flow后可点击查看日志按钮，若创建成功状态会转至running状态，若创建失败状态会转至failed状态，可根据日志错误提示重新配置
 
 ### 生效 Flow
 
-#### 生效Spark Flow
+#### 生效 Spark Flow
 
 - Flow 运行过程中，可修改 Flow 逻辑，点击生效按钮，动态更新 Stream 的配置
 - 若修改了 Flow 所用 Namespaces/Databases/Instances 的配置，须点击生效按钮，动态更新 Stream 的配置
 - 点击生效按钮后，Flow 的状态转换为 updating，收到 Stream 反馈后转换成 running 或 failed
-
-#### 生效Flink Flow
-
-- Flow 运行过程中，可修改 Flow 逻辑，修改后，点击保存后即可生效
 
 ### 停止 Flow
 
@@ -327,7 +314,7 @@ Pattern
 
 #### 停止 Flink Flow
 
-点击停止按钮即可停止Flink Flow
+点击停止按钮提交取消对应Flink Task请求
 
 ### Flow 状态转换
 
