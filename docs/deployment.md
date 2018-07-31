@@ -29,7 +29,7 @@ description: Wormhole Deployment page
 mysql-connector-java-{your-db-version}.jar
 
 
-## 注意：升级至0.5.0-beta版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试
+**注意：升级至0.5.0-beta版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
 
 ## 部署配置
 
@@ -38,23 +38,20 @@ mysql-connector-java-{your-db-version}.jar
 ```
 wget https://github.com/edp963/wormhole/releases/download/0.5.0-beta/wormhole-0.5.0-beta.tar.gz
 tar -xvf wormhole-0.5.0-beta.tar.gz
-或者自编译，生成的 tar 包在 wormhole/target
+或者自编译，生成的tar包在 wormhole/target
 git clone -b 0.5 https://github.com/edp963/wormhole.git
 cd wormhole
+git checkout 0.5.0-beta
 mvn install package -Pwormhole
 ```
 
-***注意：0.4.2版本升级至0.5.0-beta版前须手动执行以下操作***
+**注意：0.4.2版本升级至0.5.0-beta版前须手动执行以下操作**
 
 ```
 1. stream表中增加function_type字段，原stream_type值赋值给function_type，stream_type值改为"spark"
-
 alter table `stream` add column `function_type` VARCHAR(100) NULL after `stream_type`;
-
 update `stream` a join `stream` b on a.id = b.id set a.`function_type` = b.`stream_type`;
-
 update `stream` set `stream_type` = "spark";
-
 ```
 
 **配置 WORMHOLE_HOME/SPARK_HOME/HADOOP_HOME 环境变量**
