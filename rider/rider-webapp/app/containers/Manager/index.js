@@ -1192,16 +1192,20 @@ export class Manager extends React.Component {
             topicFinal = topicTemp.map(s => (
               <li key={s.name}>
                 <strong>Topic Name：</strong>{s.name}
-                <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
+                <strong>；Consumed Latest Offset：</strong>{s.consumedLatestOffset}
+                <strong>；Earliest Kafka Offset：</strong>{s.kafkaEarliestOffset}
+                <strong>；Latest Kafka Offset：</strong>{s.kafkaLatestOffset}
                 <strong>；Rate：</strong>{s.rate}
               </li>
             ))
           }
-          if (topicUserFinal) {
+          if (topicUserTemp) {
             topicUserFinal = topicUserTemp.map(s => (
               <li key={s.name}>
                 <strong>Topic Name：</strong>{s.name}
-                <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
+                <strong>；Consumed Latest Offset：</strong>{s.consumedLatestOffset}
+                <strong>；Earliest Kafka Offset：</strong>{s.kafkaEarliestOffset}
+                <strong>；Latest Kafka Offset：</strong>{s.kafkaLatestOffset}
                 <strong>；Rate：</strong>{s.rate}
               </li>
             ))

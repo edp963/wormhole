@@ -389,7 +389,9 @@ export class Workbench extends React.Component {
 
   initResultFieldClass = (value) => this.setState({ fieldSelected: value === 'all' ? 'hide' : '' })
   initDataShowClass = (value) => this.setState({ dataframeShowSelected: value === 'true' ? '' : 'hide' })
-
+  /**
+   * 新建 Flow
+   */
   showAddFlowWorkbench = () => {
     this.workbenchFlowForm.resetFields()
     this.setState({
@@ -407,7 +409,8 @@ export class Workbench extends React.Component {
       etpStrategyRequestValue: {},
       cepPropData: {},
       outputType: 'agg',
-      transformMode: ''
+      transformMode: '',
+      flowSubPanelKey: 'spark'
     }, () => {
       this.workbenchFlowForm.setFieldsValue({
         resultFields: 'all',
@@ -795,13 +798,13 @@ export class Workbench extends React.Component {
           protocol: consumedProtocol.split(',')
         })
 
-        const { kafka, topics, id, projectId, sourceNs, sinkNs, status, active,
+        const { id, projectId, sourceNs, sinkNs, status, active,
           createTime, createBy, updateTime, updateBy, startedTime, stoppedTime } = result
         this.setState({
           formStep: 0,
           pipelineStreamId: streamId,
-          flowKafkaInstanceValue: kafka,
-          flowKafkaTopicValue: topics,
+          // flowKafkaInstanceValue: kafka,
+          // flowKafkaTopicValue: topics,
           singleFlowResult: {
             id: id,
             projectId: projectId,
@@ -1208,14 +1211,37 @@ export class Workbench extends React.Component {
         })
       })
   }
-
+  /**
+   * Flow streamType 切换
+   */
   changeStreamType = (panel) => e => {
     let value = e.target.value
     switch (panel) {
       case 'flow':
+        this.workbenchFlowForm.resetFields()
         this.setState({
+          flowMode: 'add',
+          formStep: 0,
+          flowFormTranTableSource: [],
+          transformTagClassName: '',
+          transformTableClassName: 'hide',
+          transConnectClass: 'hide',
+          fieldSelected: 'hide',
+          etpStrategyCheck: false,
+          dataframeShowSelected: 'hide',
+          resultFieldsValue: 'all',
+          etpStrategyConfirmValue: '',
+          etpStrategyRequestValue: {},
+          cepPropData: {},
+          outputType: 'agg',
+          transformMode: '',
           flowSubPanelKey: value
         }, () => {
+          this.workbenchFlowForm.setFieldsValue({
+            resultFields: 'all',
+            dataframeShow: 'false',
+            dataframeShowNum: 10
+          })
           this.onInitStreamTypeSelect(this.state.flowFunctionType)
         })
         break

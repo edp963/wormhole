@@ -1261,10 +1261,24 @@ export class Flow extends React.Component {
                 </Tooltip>
               </Popconfirm>
             )
+          let strDel = record.disableActions.includes('delete')
+            ? (
+              <Tooltip title={deleteFormat}>
+                <Button icon="delete" shape="circle" type="ghost" disabled></Button>
+              </Tooltip>
+            )
+            : (
+              <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'delete')}>
+                <Tooltip title={deleteFormat}>
+                  <Button icon="delete" shape="circle" type="ghost"></Button>
+                </Tooltip>
+              </Popconfirm>
+            )
           if (record.hideActions) {
             if (record.hideActions.includes('start')) strStart = ''
             if (record.hideActions.includes('stop')) strStop = ''
             if (record.hideActions.includes('renew')) strRenew = ''
+            if (record.hideActions.includes('delete')) strDel = ''
           }
           FlowActionSelect = (
             <span>
@@ -1277,11 +1291,7 @@ export class Flow extends React.Component {
               {strStart}
               {strStop}
               {strRenew}
-              <Popconfirm placement="bottom" title={sureDeleteFormat} okText="Yes" cancelText="No" onConfirm={this.singleOpreateFlow(record, 'delete')}>
-                <Tooltip title={deleteFormat}>
-                  <Button icon="delete" shape="circle" type="ghost"></Button>
-                </Tooltip>
-              </Popconfirm>
+              {strDel}
               {strLog}
             </span>
           )
@@ -1304,17 +1314,21 @@ export class Flow extends React.Component {
             topicFinal = topicTemp.map(s => (
               <li key={s.name}>
                 <strong>Topic Name：</strong>{s.name}
-                <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
-                <strong>；Rate：</strong>{s.rate}
+                <strong>；Consumed Latest Offset：</strong>{s.consumedLatestOffset}
+                <strong>；Earliest Kafka Offset：</strong>{s.kafkaEarliestOffset}
+                <strong>；Latest Kafka Offset：</strong>{s.kafkaLatestOffset}
+                {/* <strong>；Rate：</strong>{s.rate} */}
               </li>
             ))
           }
-          if (topicUserFinal) {
+          if (topicUserTemp) {
             topicUserFinal = topicUserTemp.map(s => (
               <li key={s.name}>
                 <strong>Topic Name：</strong>{s.name}
                 <strong>；Partition Offsets：</strong>{s.consumedLatestOffset}
-                <strong>；Rate：</strong>{s.rate}
+                <strong>；Earliest Kafka Offset：</strong>{s.kafkaEarliestOffset}
+                <strong>；Latest Kafka Offset：</strong>{s.kafkaLatestOffset}
+                {/* <strong>；Rate：</strong>{s.rate} */}
               </li>
             ))
           }
