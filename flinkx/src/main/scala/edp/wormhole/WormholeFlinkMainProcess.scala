@@ -20,12 +20,10 @@
 
 package edp.wormhole
 
-import java.sql.Timestamp
 import java.util.Properties
 
 import com.alibaba.fastjson
 import com.alibaba.fastjson.JSON
-import edp.wormhole.common.util.DateUtils
 import edp.wormhole.deserialization.WormholeDeserializationStringSchema
 import edp.wormhole.sink.SinkProcess
 import edp.wormhole.swifts._
@@ -35,7 +33,6 @@ import edp.wormhole.util.{UmsFlowStartUtils, WormholeFlinkxConfigUtils}
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.TimeCharacteristic
-import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010
 import org.apache.flink.table.api.{TableEnvironment, Types}
@@ -53,7 +50,6 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   private val timeCharacteristic = UmsFlowStartUtils.extractTimeCharacteristic(swifts)
 
   def process(): JobExecutionResult = {
-    sourceSchemaMap.foreach(logger.info(_))
     val sourceNamespace: String = UmsFlowStartUtils.extractSourceNamespace(umsFlowStart)
     val swiftsSql = getSwiftsSql(swiftsString, sourceNamespace)
     val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
@@ -63,8 +59,6 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase, sourceNamespace)
     assignTimestamp(inputStream, sourceSchemaMap.toMap)
     inputStream.print()
-    println("the input stream")
-
     try {
       val (stream, schemaMap) = SwiftsProcess.process(inputStream, TableEnvironment.getTableEnvironment(env), swiftsSql)
       SinkProcess.doProcess(stream, umsFlowStart, schemaMap)

@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS `stream` (
   UNIQUE INDEX `name_UNIQUE` (`name` ASC))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-alter table `stream` add column `function_type` VARCHAR(100) NULL after `stream_type`;
+alter table `stream` add column `function_type` VARCHAR(100) NOT NULL after `stream_type`;
 alter table `stream` change column `spark_config` `stream_config` VARCHAR(5000) NULL;
 
 

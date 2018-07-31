@@ -20,8 +20,6 @@
 
 package edp.wormhole.pattern
 
-import java.util.Date
-
 import com.alibaba.fastjson.JSONObject
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.pattern.Condition._
