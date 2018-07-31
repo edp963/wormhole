@@ -66,8 +66,8 @@ object RiderStarter extends App with RiderLogger {
 
       new ConsumerManager(modules)
       riderLogger.info(s"WormholeServer Consumer started")
-      Scheduler.start
-      riderLogger.info(s"Wormhole Scheduler started")
+//      Scheduler.start
+//      riderLogger.info(s"Wormhole Scheduler started")
 
     case Failure(e) =>
       riderLogger.error(e.getMessage)

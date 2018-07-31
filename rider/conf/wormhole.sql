@@ -252,10 +252,12 @@ CREATE TABLE IF NOT EXISTS `rel_stream_intopic` (
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `rel_stream_intopic_UNIQUE` (`stream_id` ASC, `ns_instance_id` ASC, `ns_database_id` ASC))
+  UNIQUE INDEX `rel_stream_intopic_UNIQUE` (`stream_id` ASC, `ns_database_id` ASC))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `rel_stream_intopic` drop column `ns_instance_id`;
+drop index `rel_stream_intopic_UNIQUE` on `rel_stream_intopic`;
+alter table `rel_stream_intopic` add UNIQUE index `rel_stream_intopic_UNIQUE` (`stream_id` ASC, `ns_database_id` ASC);
 
 CREATE TABLE IF NOT EXISTS `rel_stream_userdefined_topic` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
