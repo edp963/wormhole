@@ -36,6 +36,7 @@ class UmsFlatMapper(sourceSchemaMap: Map[String, (TypeInformation[_], Int)], sou
     logger.info("in UmsFlatMapper source data from kafka " + value._2)
     val ums = UmsCommonUtils.json2Ums(value._2)
     logger.info("in UmsFlatMapper " + sourceSchemaMap.size)
+    sourceSchemaMap.foreach(println)
     if (matchNamespace(ums.schema.namespace, sourceNamespace) && ums.payload.nonEmpty && ums.schema.fields.nonEmpty)
       ums.payload_get.map(_.tuple).foreach(tuple => {
         val row = new Row(tuple.size + 1)

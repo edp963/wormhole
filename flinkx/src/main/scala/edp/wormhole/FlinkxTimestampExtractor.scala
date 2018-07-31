@@ -15,7 +15,9 @@ class FlinkxTimestampExtractor(sourceSchemaMap: Map[String, (TypeInformation[_],
   override def extractAscendingTimestamp(element: Row): Long = {
     val umsTs = element.getField(sourceSchemaMap(UmsSysField.TS.toString)._2)
     logger.info(s"umsTs in assignTimestamp $umsTs")
-    DateUtils.dt2long(umsTs.asInstanceOf[Timestamp])
+    val umsTsInLong = DateUtils.dt2long(umsTs.asInstanceOf[Timestamp])
+    logger.info("umsTsInLong " + umsTsInLong)
+    umsTsInLong
   }
 
 }
