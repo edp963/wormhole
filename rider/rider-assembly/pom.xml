@@ -7,12 +7,12 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.4.2-SNAPSHOTS</version>
+        <version>0.5.0-beta-SNAPSHOTS</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>wormhole</artifactId>
-    <version>0.4.2</version>
+    <version>0.5.0-beta</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -26,12 +26,12 @@
         <dependency>
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-rider-server_${ums.version}</artifactId>
-            <version>0.4.2-SNAPSHOTS</version>
+            <version>0.5.0-beta-SNAPSHOTS</version>
         </dependency>
         <!--<dependency>-->
             <!--<groupId>edp.wormhole</groupId>-->
             <!--<artifactId>wormhole-mad-server_${ums.version}</artifactId>-->
-            <!--<version>0.4.2-SNAPSHOTS</version>-->
+            <!--<version>0.5.0-beta-SNAPSHOTS</version>-->
         <!--</dependency>-->
     </dependencies>
 
