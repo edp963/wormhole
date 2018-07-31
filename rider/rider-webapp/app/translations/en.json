@@ -130,5 +130,6 @@
   "rider.containers.Workbench.transformation.down": "Down",
   "rider.containers.Workbench.transformation.lookup.msg": "if lookup table is user, source namespace is kafka.test.test.test, SQL sentence for example: select id as id1, name as name1 from user where (id,name) in (kafka.test.test.test.id, kafka.test.test.test.name);",
   "rider.containers.Workbench.transformation.spark.msg": "Table in SQL sentence is the fourth layer in source namespace; for example, if source namespace is kafka.test.test1.test2.*.*.*,  SQL sentence should be select * from test2;",
-  "rider.containers.Workbench.transformation.resource.configuration": "Dirver/Executor resource configuration"
+  "rider.containers.Workbench.transformation.resource.configuration": "Dirver/Executor resource configuration",
+  "rider.containers.Workbench.tranformation.cep.output": "字段定义方式：字段名称:聚合函数。多个字段定义之间用逗号分隔。例如: age:max,salary:avg"
 }
