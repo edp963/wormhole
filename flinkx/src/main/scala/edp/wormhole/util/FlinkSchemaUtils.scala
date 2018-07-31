@@ -89,6 +89,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     val resultSchemaMap = mutable.HashMap.empty[String, (TypeInformation[_], Int)]
     var index = 0
     tableSchema.getColumnNames.foreach(s => {
+      logger.info(s"field $index in table $s")
       resultSchemaMap += s -> (tableSchema.getType(s).get, index)
       index += 1
     }
@@ -143,6 +144,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
             val r: ConsumerRecord[String, String] = it.next()
             println(r.offset() + " offset")
             val (key, value) = (r.key(), r.value())
+            println("key is " + key + " value is " + value)
             correctData = isCorrectRecord(key, value, sourceNamespace)
             if (correctData) {
               val ums = UmsCommonUtils.json2Ums(value)
@@ -161,6 +163,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
 
     WormholeKafkaConsumer.close(consumer)
     val umsSchema: UmsSchema = record
+
     //    WormholeZkClient.createAndSetData(zkAddress, zkPath, jsonSchema.getBytes("UTF-8"))
     //    WormholeZkClient.closeZkClient()
     umsSchema

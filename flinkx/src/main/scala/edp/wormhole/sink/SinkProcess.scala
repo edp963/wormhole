@@ -34,6 +34,7 @@ import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala.{DataStream, _}
 import org.apache.flink.types.Row
 import org.apache.log4j.Logger
+import edp.wormhole.swifts.SwiftsConstants.PROTOCOL_TYPE
 
 import scala.collection.mutable.ListBuffer
 
@@ -57,15 +58,17 @@ object SinkProcess extends Serializable {
     val umsDataStream: DataStream[String] = dataStream.map {
       row =>
         val listBuffer = ListBuffer.empty[String]
-        for (index <- 1 until rowSize) listBuffer.append(row.getField(index).toString)
+        for (index <- 1 until rowSize) {
+          val fieldInRow = row.getField(index)
+          logger.info(s"field in row in umsDataStream map $fieldInRow")
+          if (null == fieldInRow) listBuffer.append(null.asInstanceOf[String])
+          else listBuffer.append(fieldInRow.toString)
+        }
         val umsTuple = UmsTuple(listBuffer)
-        val protocol = UmsProtocol(UmsProtocolType.umsProtocolType(row.getField(0).toString))
-        val str = toJsonCompact(Ums(
-          protocol,
-          schema,
-          payload = Some(Seq(umsTuple))))
-        logger.info("in SinkProcess.doProcess " + str)
-        str
+        val protocol = UmsProtocol(UmsProtocolType.umsProtocolType(row.getField(schemaMap(PROTOCOL_TYPE)._2).toString))
+        val umsJson = toJsonCompact(Ums(protocol, schema, payload = Some(Seq(umsTuple))))
+        logger.info("in SinkProcess.doProcess " + umsJson)
+        umsJson
     }
     new Data2KafkaSink().process(umsDataStream, sinkNamespace, getSinkProcessConfig(sinks))
   }

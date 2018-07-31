@@ -82,7 +82,7 @@ object SwiftsProcess extends Serializable {
     val pattern = patternGenerator.getPattern
     val keyByFields = patternSeq.getString(KEYBYFILEDS.toString).trim
     val patternStream = if (keyByFields != null && keyByFields.nonEmpty) {
-      val keyArray = keyByFields.split(";").map(key => preSchemaMap(key)._2)
+      val keyArray = keyByFields.split(",").map(key => preSchemaMap(key)._2)
       CEP.pattern(dataStream.keyBy(keyArray: _*), pattern)
     } else CEP.pattern(dataStream, pattern)
     val resultDataStream = new PatternOutput(patternSeq.getJSONObject(OUTPUT.toString), preSchemaMap).getOutput(patternStream, patternGenerator, keyByFields)
