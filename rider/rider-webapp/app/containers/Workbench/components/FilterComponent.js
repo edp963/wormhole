@@ -35,7 +35,7 @@ const RadioButton = Radio.Button
 import { uuid } from '../../../utils/util'
 
 const operators = [
-  ['=', '>', '<', '>=', '<=', '!=', 'like', 'startWith', 'endWidth']
+  ['=', '>', '<', '>=', '<=', '!=', 'like', 'startWith', 'endWith']
 ]
 const operatorsMap = {
   '=': 'equiv',

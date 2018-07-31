@@ -57,7 +57,9 @@ export class FlowTransformForm extends React.Component {
       quartifierTimesBtnToInput: false,
       quartifierTimesOrMoreBtnToInput: false,
       patternSourceDataConditions: null,
-      editRow: -1
+      editRow: -1,
+      quantifierInputValidate: '',
+      quantifierInputValidateTxt: ''
     }
   }
   componentDidMount () {
@@ -201,15 +203,68 @@ export class FlowTransformForm extends React.Component {
     } else {
       this.setState({
         quartifierTimesOrMoreBtnToInput: false,
-        quartifierTimesBtnToInput: false
+        quartifierTimesBtnToInput: false,
+        quantifierInputValidate: '',
+        quantifierInputValidateTxt: ''
       }, () => {
         this.quartifierTimesInput.value = ''
         this.quartifierTimesOrMoreInput.value = ''
       })
     }
   }
+  quantifierInputChange = (e) => {
+    console.log(e.target.value)
+    let value = e.target.value
+    if (value === '') {
+      if (!this.state.quantifierInputValidate) {
+        this.setState({
+          quantifierInputValidate: 'error',
+          quantifierInputValidateTxt: '请填写quantifier'
+        })
+      }
+    } else {
+      if (this.state.quantifierInputValidate) {
+        this.setState({
+          quantifierInputValidate: '',
+          quantifierInputValidateTxt: ''
+        })
+      }
+    }
+  }
   addOrEditPattern = () => {
-    this.filterComponent.doQuery()
+    let quantifierBtn = this.props.form.getFieldValue('quantifier')
+    if (quantifierBtn === 'times') {
+      if (this.quartifierTimesInput.value === '') {
+        this.setState({
+          quantifierInputValidate: 'error',
+          quantifierInputValidateTxt: '请填写quantifier'
+        })
+        return
+      }
+    } else if (quantifierBtn === 'timesormore') {
+      if (this.quartifierTimesOrMoreInput.value === '') {
+        this.setState({
+          quantifierInputValidate: 'error',
+          quantifierInputValidateTxt: '请填写quantifier'
+        })
+        return
+      }
+    }
+    this.props.form.validateFieldsAndScroll(['operator', 'quantifier'], (err, values) => {
+      if (err && err.quantifier) {
+        this.setState({
+          quantifierInputValidate: 'error',
+          quantifierInputValidateTxt: '请填写quantifier'
+        })
+      }
+      if (!err) {
+        this.filterComponent.doQuery()
+        this.setState({
+          quantifierInputValidate: '',
+          quantifierInputValidateTxt: ''
+        })
+      }
+    })
   }
   onEditPattern = (record, index) => (e) => {
     let patternSourceDataConditions = record.conditions
@@ -291,7 +346,9 @@ export class FlowTransformForm extends React.Component {
       quartifierTimesBtnToInput: false,
       quartifierTimesOrMoreBtnToInput: false,
       patternSourceDataConditions: null,
-      editRow: -1
+      editRow: -1,
+      quantifierInputValidate: '',
+      quantifierInputValidateTxt: ''
     }, () => {
       if (this.quartifierTimesInput) {
         this.quartifierTimesInput.value = ''
@@ -319,7 +376,7 @@ export class FlowTransformForm extends React.Component {
   }
   render () {
     const { form, transformValue, transformSinkTypeNamespaceData, flowTransNsData, step2SourceNamespace, step2SinkNamespace, flowSubPanelKey } = this.props
-    const { dsHideOrNot, selectValue, cepDataSource, outputType, patternModalShow, operatorBtnInitVal, quartifierTimesBtnToInput, quartifierTimesOrMoreBtnToInput, patternSourceDataConditions } = this.state
+    const { dsHideOrNot, selectValue, cepDataSource, outputType, patternModalShow, operatorBtnInitVal, quartifierTimesBtnToInput, quartifierTimesOrMoreBtnToInput, patternSourceDataConditions, quantifierInputValidate, quantifierInputValidateTxt } = this.state
     const { getFieldDecorator } = form
 
     const itemStyle = {
@@ -953,6 +1010,7 @@ export class FlowTransformForm extends React.Component {
                 columns={columnsCEP}
                 pagination={false}
                 bordered
+                rowKey="conditions"
               />
             </Col>
           ) : ''}
@@ -997,7 +1055,7 @@ export class FlowTransformForm extends React.Component {
                   </FormItem>
                 </Col>
                 <Col span={24} className={patternOperatorAboutHiddens[2] || patternOperatorAboutHiddens[3] ? 'hide' : ''}>
-                  <FormItem label={quartifierHelp} {...patternItemStyle}>
+                  <FormItem label={quartifierHelp} {...patternItemStyle} validateStatus={quantifierInputValidate} help={quantifierInputValidateTxt}>
                     {getFieldDecorator('quantifier', {
                       rules: [{
                         required: true,
@@ -1008,9 +1066,9 @@ export class FlowTransformForm extends React.Component {
                       <RadioGroup size="default" onChange={this.changeQuartifier}>
                         <RadioButton value="oneormore" className="radio-btn-style">OneOrMore</RadioButton>
                         <RadioButton value="times" className={`radio-btn-style ${quartifierTimesBtnToInput ? 'hide' : ''}`}>Times</RadioButton>
-                        <input ref={this.setQuartifierTimesInputRef} className={`${quartifierTimesBtnToInput ? '' : 'hide'}`} />
+                        <input onChange={this.quantifierInputChange} ref={this.setQuartifierTimesInputRef} className={`${quartifierTimesBtnToInput ? '' : 'hide'}`} />
                         <RadioButton value="timesormore" className={`radio-btn-style ${quartifierTimesOrMoreBtnToInput ? 'hide' : ''}`}>TimesOrMore</RadioButton>
-                        <input ref={this.setQuartifierTimesOrMoreInputRef} className={`${quartifierTimesOrMoreBtnToInput ? '' : 'hide'}`} />
+                        <input onChange={this.quantifierInputChange} ref={this.setQuartifierTimesOrMoreInputRef} className={`${quartifierTimesOrMoreBtnToInput ? '' : 'hide'}`} />
                       </RadioGroup>
                     )}
                   </FormItem>
