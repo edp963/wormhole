@@ -291,6 +291,7 @@ Pattern
 
 #### 启动Flink Flow
 
+- Stream running状态下才可以启动Flow
 - 配置每个Topic Partition消费的起始Offset，可配置用户自定义Topic
 - 点击启动按钮，后台会向对应Flink Stream JobManager上提交创建TaskManager请求
 - 启动Flow后可点击查看日志按钮，若创建成功状态会转至running状态，若创建失败状态会转至failed状态，可根据日志错误提示重新配置
