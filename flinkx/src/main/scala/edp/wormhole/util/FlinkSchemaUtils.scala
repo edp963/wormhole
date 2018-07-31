@@ -144,12 +144,13 @@ object FlinkSchemaUtils extends java.io.Serializable {
             val r: ConsumerRecord[String, String] = it.next()
             println(r.offset() + " offset")
             val (key, value) = (r.key(), r.value())
-            println("key is " + key + " value is " + value)
+            println("key is " + key)
             correctData = isCorrectRecord(key, value, sourceNamespace)
             if (correctData) {
+              println(s"the true value $value")
               val ums = UmsCommonUtils.json2Ums(value)
               if (ums.payload.isEmpty || ums.schema.fields.isEmpty || !matchNamespace(ums.schema.namespace, sourceNamespace)) {
-                logger.info("ums is not correct")
+                println("ums is not correct")
                 correctData = false
               }
               else record = ums.schema
@@ -182,13 +183,16 @@ object FlinkSchemaUtils extends java.io.Serializable {
 
   def matchNamespace(dataNamespace: String, sourceNamespace: String): Boolean = {
     val dataNamespacePart = dataNamespace.split("\\.")
+    println("the dataNamespace is " + dataNamespace)
     val sourceNamespacePart = sourceNamespace.split("\\.")
+    println("the sourceNamespace is " + sourceNamespace)
     var compareNum = 4
     if (sourceNamespacePart(4) == "*") compareNum = 4
     else if (sourceNamespacePart(5) == "*") compareNum = 5
     else if (sourceNamespacePart(6) == "*") compareNum = 6
     else compareNum = 7
-    dataNamespacePart.slice(0, compareNum - 1).mkString("") == sourceNamespacePart.slice(0, compareNum - 1).mkString("")
+    println("the final compareNum is " + compareNum)
+    dataNamespacePart.slice(0, compareNum ).mkString("") == sourceNamespacePart.slice(0, compareNum).mkString("")
   }
 
 
@@ -285,7 +289,6 @@ object FlinkSchemaUtils extends java.io.Serializable {
   else {
     val fieldNames = getFieldNamesFromSchema(schemaMap)
     val flinkTypes = fieldNames.map(field => schemaMap(field)._1)
-    logger.info("in getRelValue ,the size of sourceTypeArray is  " + flinkTypes.length)
     flinkTypes(fieldIndex) match {
       case Types.STRING => value.trim
       case Types.INT => value.trim.toInt
