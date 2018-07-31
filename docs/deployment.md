@@ -14,6 +14,7 @@ description: Wormhole WH_VERSION_SHORT Deployment page
 - JDK1.8
 - Hadoop-client（HDFS，YARN）（支持版本 2.6+）
 - Spark-client （支持版本 2.2.0，2.2.1）
+- Flink-client （支持版本 1.5.1）
 
 #### 依赖服务
 
@@ -30,29 +31,26 @@ mysql-connector-java-{your-db-version}.jar
 
 ## 部署配置
 
-**下载 wormhole-0.4.2.tar.gz 包 (链接:https://pan.baidu.com/s/1nYATEEtH05cbx-fwd3Zb-Q  密码:em8w)，或者自编译**
+**下载 wormhole-0.5.0-beta.tar.gz 包 (链接:https://pan.baidu.com/s/1nYATEEtH05cbx-fwd3Zb-Q  密码:em8w)，或者自编译**
 
 ```
 wget https://github.com/edp963/wormhole/releases/download/0.4.2/wormhole-0.4.2.tar.gz
-tar -xvf wormhole-0.4.2.tar.gz
+tar -xvf wormhole-0.5.0-beta.tar.gz
 或者自编译，生成的 tar 包在 wormhole/target
-git clone -b 0.4 https://github.com/edp963/wormhole.git
+git clone -b 0.5 https://github.com/edp963/wormhole.git
 cd wormhole
 mvn install package -Pwormhole
 ```
 
-***注意：0.4.1版本升级到0.4.2前须手动执行下面两步***
+***注意：0.4.2版本升级到0.5.0-beta版前须手动执行以下操作***
 
 ```
-1. 删除原Elasticsearch wormhole_feedback index
+1. stream表中增加function_type字段，原stream_type值赋值给function_type，stream_type值改为"spark"
 
-curl -XDELETE 'localhost:9200/wormhole_feedback'
+alter table `stream` add column `function_type` VARCHAR(100) NULL after `stream_type`;
 
-2. 修改数据库中原wormhole job字段名及值
+update `stream` a join `stream` b on a.id = b.id set a.`function_type` = b.`stream_type`;
 
-alter table `job` change column `source_type` `job_type` VARCHAR(30);
-
-update `job` set job_type = "1";
 ```
 
 **配置 WORMHOLE_HOME/SPARK_HOME/HADOOP_HOME 环境变量**
@@ -92,6 +90,11 @@ spark = {
   yarn.rm2.http.url = "localhost2:8088"   #Yarn StandbyResourceManager address
 }
 
+flink = {
+  home = "/usr/local/flink"
+  yarn.queue.name = "default"
+}
+
 zookeeper.connection.url = "localhost:2181"  #WormholeServer stream and flow interaction channel
 
 kafka = {
@@ -129,12 +132,6 @@ kafka = {
 #  url = "http://localhost:3000"
 #  admin.token = "jihefouglokoj"
 #}
-
-#delete feedback history data on time
-maintenance = {
-  mysql.feedback.remain.maxDays = 7
-  elasticSearch.feedback.remain.maxDays = 7
-}
 
 #Dbus integration, if not set, please comment it
 #dbus.namespace.rest.api.url = ["http://localhost:8080/webservice/tables/riderSearch"]
