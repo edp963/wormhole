@@ -35,7 +35,6 @@ import org.apache.flink.types.Row
 import org.apache.log4j.Logger
 
 
-
 object SwiftsProcess extends Serializable {
   val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -50,7 +49,7 @@ object SwiftsProcess extends Serializable {
         element.optType match {
           case SqlOptType.FLINK_SQL => transformedStream = doFlinkSql(transformedStream, tableEnv, element.sql, index)
           case SqlOptType.CEP => transformedStream = doCEP(transformedStream, element.sql, index)
-          case SqlOptType.JOIN | SqlOptType.LEFT_JOIN => transformedStream = doLookup(dataStream, element, index)
+          case SqlOptType.JOIN | SqlOptType.LEFT_JOIN => transformedStream = doLookup(transformedStream, element, index)
         }
       }
     }
@@ -80,13 +79,16 @@ object SwiftsProcess extends Serializable {
     val patternSeq = JSON.parseObject(sql)
     val patternGenerator = new PatternGenerator(patternSeq, preSchemaMap)
     val pattern = patternGenerator.getPattern
+
     val keyByFields = patternSeq.getString(KEYBYFILEDS.toString).trim
     val patternStream = if (keyByFields != null && keyByFields.nonEmpty) {
       val keyArray = keyByFields.split(",").map(key => preSchemaMap(key)._2)
       CEP.pattern(dataStream.keyBy(keyArray: _*), pattern)
     } else CEP.pattern(dataStream, pattern)
+
     val resultDataStream = new PatternOutput(patternSeq.getJSONObject(OUTPUT.toString), preSchemaMap).getOutput(patternStream, patternGenerator, keyByFields)
     resultDataStream.print()
+    println(resultDataStream.dataType)
     logger.info(resultDataStream.dataType.toString + "in  doCep")
     setSwiftsSchemaWithCEP(patternSeq, index, keyByFields)
     resultDataStream
