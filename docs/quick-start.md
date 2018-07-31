@@ -181,7 +181,7 @@ data_increment_data.kafka.test.flinksource.source.*.*.*###{"protocol":{"type":"d
 
    **配置数据转换逻辑，即 Transformation 配置**
 
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-transform.png" alt="" width="600"/>
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-flink-transform.png" alt="" width="600"/>
 
 ​   **CEP，复杂事件处理**
 
