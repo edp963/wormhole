@@ -175,7 +175,7 @@ data_increment_data.kafka.test.flinksource.source.*.*.*###{"protocol":{"type":"d
 
    **选择目标端**
    
-   **目前Flink Flow目标数据源只支持Kafka系统**
+   **目前Flink Flow目标数据系统只支持Kafka系统**
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-sink-flink.png" alt="" width="600"/>
 

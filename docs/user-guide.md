@@ -126,9 +126,9 @@ Flink中支持的Stream类型只有default，理论上可以处理所有类型�
 
 ### Source Namespace
 
-- 若 Wormhole 未对接 Dbus，源数据系统只支持 Kafka
-- 若 Wormhole 已对接 Dbus，选择在 Dbus 中配置的源数据系统类型
-- 可选的 Namespace 有一定的权限控制，其中 Source Namespace 是 Stream 对应 Kafka Instance 下的 Namespaces 与 Flow 所在 Project 下可访问 Namespaces 的交集；Sink Namespace 是 Flow 所在 Project 下可访问的Namespaces 且去除从 Dbus 系统同步的 Namespace
+- 若 Wormhole 未对接 DBus，源数据系统只支持 Kafka
+- 若 Wormhole 已对接 DBus，选择在 DBus 中配置的源数据系统类型
+- 可选的 Namespace 有一定的权限控制，其中 Source Namespace 是 Stream 对应 Kafka Instance 下的 Namespaces 与 Flow 所在 Project 下可访问 Namespaces 的交集；Sink Namespace 是 Flow 所在 Project 下可访问的Namespaces 且去除从 DBus 系统同步的 Namespace
 - 注：Flink Flow暂时只支持UMS类型数据源，用户自定义json类型数据源将在后续版本进行支持
 
 ### Sink Namespace
@@ -150,7 +150,7 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 
 ### Transformation
 
-#### Spark Transformation
+#### Spark Flow Transformation
 
 配置数据转换逻辑，支持 SQL 和自定义 Class 方式，可以配置多条转换逻辑，调整逻辑顺序
 
@@ -224,19 +224,11 @@ Spark SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 - Stream Join SQL 处理过程中会将没有关联上的数据保存到 HDFS 上，data retention time 代表数据的有效期
 - select 语句规则同 Spark SQL
 
-#### Flink Transformation
+#### Flink Flow Transformation
 
 配置数据转换逻辑，支持 SQL ，可以配置多条转换逻辑，调整逻辑顺序。
 
 支持两种事件模型Processing Time和Event Time。Processing Time为数据进入到Flink的时间，即数据进入source operator时获取时间戳；Event Time为事件产生的时间，即数据产生时自带时间戳，在Wormhole系统中对应```ums_ts_```字段。
-
-##### Lookup SQL
-
-与Spark Transformation中Lookup SQL类似，具体请参考Spark Transformation的Lookup SQL章节
-
-##### Flink SQL
-
-Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Flink SQL UDF 功能会在后续版本支持。
 
 ##### CEP
 
@@ -277,19 +269,29 @@ Pattern
   - TimesOrMore：假设数值设置为n，该pattern中condition匹配次数须为n次或n次以上，则匹配成功
 - Condition：匹配条件包括=、>、>=、<、<=、!=、like、startwith、endwith
 
+##### SQL
+
+####### Lookup SQL
+
+具体可参考Spark Flow Transformation的Lookup SQL章节
+
+####### Flink SQL
+
+Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Flink SQL UDF 功能会在后续版本支持。
+
 ### 修改 Flow
 
 修改 Flow 时，不能修改所选 Stream，SourceNamespace 和 SinkNamespace，可以修改 Protocol 类型，Result Fields，Sink Config 和 Transformation 转换逻辑
 
 ### 启动 Flow
 
-#### 启动Spark Flow
+#### 启动 Spark Flow
 
 - Sink 端为 RDBMS 时，需将相应的 jdbc connector jar 放至 $SPARK_HOME/jars 目录下，然后启动或重启 Stream
 - 点击启动按钮，后台会将 Flow 的信息提交给 Stream，且会将 Flow Source Namespace 和 Stream Join Namespaces 所在 Topic 绑定到 Stream 上
 - Stream 接收到 Flow 指令后解析，若成功解析，返回成功信息，Flow 的状态由 starting 转成 running；若解析失败，Flow 的状态由 starting 转成 failed。可在 Yarn 上查看 Driver 日志，根据错误提示重新配置 Flow
 
-#### 启动Flink Flow
+#### 启动 Flink Flow
 
 - Stream running状态下才可以启动Flow
 - 配置每个Topic Partition消费的起始Offset，可配置用户自定义Topic
@@ -298,7 +300,7 @@ Pattern
 
 ### 生效 Flow
 
-#### 生效Spark Flow
+#### 生效 Spark Flow
 
 - Flow 运行过程中，可修改 Flow 逻辑，点击生效按钮，动态更新 Stream 的配置
 - 若修改了 Flow 所用 Namespaces/Databases/Instances 的配置，须点击生效按钮，动态更新 Stream 的配置
