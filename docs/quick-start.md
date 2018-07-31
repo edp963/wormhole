@@ -123,7 +123,7 @@ data_increment_data.kafka.edp.source.test.*.*.*@@@{"id": 1，"name": "test"，"p
 
 **3. 提前创建Lookup Table，Sink Table**
 
-**注：sink table 中应有`id， name， cardBank， age， city， ums_ts_`字段**
+**注：sink table 中应有`id,name,cardBank,age,city,ums_ts_`字段**
 
 **4. User 启动 Stream**
 
