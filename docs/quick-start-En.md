@@ -2,7 +2,7 @@
 layout: global
 displayTitle: Quick Start
 title: Quick Start
-description: Wormhole WH_VERSION_SHORT Quick Start page
+description: Wormhole Quick Start page
 ---
 
 In this chapter, the application process of Wormhole is introduced through the implementation example of a streaming project.
