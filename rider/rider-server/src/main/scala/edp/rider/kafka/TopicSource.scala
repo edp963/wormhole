@@ -108,14 +108,14 @@ object TopicSource extends RiderLogger {
         topicMap(partition._1) = earliestMap(partition._1)
     })
 
-    if (topicMap == null || topicMap.isEmpty) {
-      riderLogger.error(s"topicMap is empty")
-    }
-
-    topicMap.foreach(part => {
-      CacheMap.setOffsetMap(0, RiderConfig.consumer.feedbackTopic, part._1.partition(), part._2)
-      riderLogger.info(s"topic ${RiderConfig.consumer.feedbackTopic} partition ${part._1.partition()} offset ${part._2}")
-    })
+//    if (topicMap == null || topicMap.isEmpty) {
+//      riderLogger.error(s"topicMap is empty")
+//    }
+//
+//    topicMap.foreach(part => {
+//      CacheMap.setOffsetMap(0, RiderConfig.consumer.feedbackTopic, part._1.partition(), part._2)
+//      riderLogger.info(s"topic ${RiderConfig.consumer.feedbackTopic} partition ${part._1.partition()} offset ${part._2}")
+//    })
 
     topicMap.toMap.map(
       topic => Consumer.plainSource(consumerSettings, Subscriptions.assignmentWithOffset(topic))

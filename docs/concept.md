@@ -2,7 +2,7 @@
 layout: global
 displayTitle: Concept
 title: Concept
-description: Wormhole WH_VERSION_SHORT Concept page
+description: Wormhole Concept page
 ---
 
 * This will become a table of contents (this text will be scraped).

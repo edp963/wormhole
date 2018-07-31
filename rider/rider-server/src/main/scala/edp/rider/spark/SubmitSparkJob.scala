@@ -21,15 +21,15 @@
 package edp.rider.spark
 
 import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.rest.persistence.entities.StartConfig
-import edp.rider.rest.util.CommonUtils
+import edp.rider.rest.persistence.entities.{FlinkResourceConfig, StartConfig, Stream}
+import edp.rider.rest.util.StreamUtils.getLogPath
+import edp.wormhole.common.util.JsonUtils._
 
-import scala.language.postfixOps
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.Future
-import scala.sys.process.Process
-import scala.sys.process._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.language.postfixOps
+import scala.sys.process.{Process, _}
 
 object SubmitSparkJob extends App with RiderLogger {
 
@@ -72,7 +72,7 @@ object SubmitSparkJob extends App with RiderLogger {
   //  }
 
 
-  def generateStreamStartSh(args: String, streamName: String, logPath: String, startConfig: StartConfig, sparkConfig: String, streamType: String, local: Boolean = false): String = {
+  def generateSparkStreamStartSh(args: String, streamName: String, logPath: String, startConfig: StartConfig, sparkConfig: String, functionType: String, local: Boolean = false): String = {
     val submitPre = s"ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host} " + RiderConfig.spark.sparkHome
     val executorsNum = startConfig.executorNums
     val driverMemory = startConfig.driverMemory
@@ -123,7 +123,7 @@ object SubmitSparkJob extends App with RiderLogger {
         confList.toList.map(conf => " --conf \"" + conf + "\" ").mkString("")
       }
       else if (l.startsWith("--class")) {
-        streamType match {
+        functionType match {
           case "default" => s"  --class edp.wormhole.batchflow.BatchflowStarter  "
           case "hdfslog" => s"  --class edp.wormhole.hdfslog.HdfsLogStarter  "
           case "routing" => s"  --class edp.wormhole.router.RouterStarter  "
@@ -144,4 +144,22 @@ object SubmitSparkJob extends App with RiderLogger {
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     submitPre + "/bin/spark-submit " + finalCommand
   }
+
+  // ./bin/yarn-session.sh -n 2 -tm 1024 -s 4 -jm 1024 -nm flinktest
+
+  def generateFlinkStreamStartSh(stream: Stream): String = {
+    val resourceConfig = json2caseClass[FlinkResourceConfig](stream.startConfig)
+    val logPath = getLogPath(stream.name)
+    s"""
+       |${RiderConfig.flink.homePath}/bin/yarn-session.sh
+       |-n ${resourceConfig.taskManagersNumber}
+       |-tm ${resourceConfig.perTaskManagerMemoryGB * 1024}
+       |-s ${resourceConfig.perTaskManagerSlots}
+       |-jm ${resourceConfig.jobManagerMemoryGB * 1024}
+       |-qu ${RiderConfig.flink.yarnQueueName}
+       |-nm ${stream.name}
+       |> $logPath 2>&1
+     """.stripMargin.replaceAll("\n", " ").trim
+  }
+
 }

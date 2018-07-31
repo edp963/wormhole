@@ -21,22 +21,18 @@
 
 package edp.rider.rest.util
 
-import javax.naming.NamingEnumeration
-import javax.naming.directory.{SearchControls, SearchResult}
-
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.directives.Credentials
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.module.{ConfigurationModuleImpl, PersistenceModuleImpl}
 import edp.rider.rest.persistence.entities.User
 import edp.rider.rest.router.{LoginClass, LoginResult, SessionClass}
-import slick.jdbc.MySQLProfile.api._
 import edp.rider.rest.util.CommonUtils._
+import slick.jdbc.MySQLProfile.api._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success, Try}
 
 sealed abstract class AuthorizationError extends Exception {
   val statusCode = Unauthorized
