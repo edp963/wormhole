@@ -57,7 +57,8 @@ import {
   POST_USER_TOPIC_SUCCESS,
   DELETE_USER_TOPIC,
   DELETE_USER_TOPIC_SUCCESS,
-  LOAD_UDFS
+  LOAD_UDFS,
+  LOAD_STREAM_CONFIGS
 } from './constants'
 
 export function loadUserStreams (projectId, resolve) {
@@ -223,6 +224,15 @@ export function streamConfigSparkLoaded (result) {
   }
 }
 
+export function loadStreamConfigs (type, resolve) {
+  return {
+    type: LOAD_STREAM_CONFIGS,
+    payload: {
+      type,
+      resolve
+    }
+  }
+}
 export function loadLogsInfo (projectId, streamId, resolve) {
   return {
     type: LOAD_LOGS_INFO,
