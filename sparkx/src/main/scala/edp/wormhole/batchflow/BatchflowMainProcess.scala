@@ -100,11 +100,13 @@ object BatchflowMainProcess extends EdpLogging {
 
 
         logInfo("start create classifyRdd")
-        //FIXME 对数据进行分类，根据配置分类成主体数据、查询数据、其他数据
+        //FIXME 对数据进行分类，根据配置分类成主体数据、查询数据、其他数据， 同时获取当前数据源中有多少中的类型（key不相同）
         val classifyRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])],
           ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])],
           ListBuffer[String],
           Array[((UmsProtocolType, String), Seq[UmsField])])] = getClassifyRdd(dataRepartitionRdd).cache()
+
+        //FIXME 获取schema的用途是为了构建多个flow
         val distinctSchema: mutable.Map[(UmsProtocolType, String), (Seq[UmsField], Long)] = getDistinctSchema(classifyRdd)
         //        classifyRdd.count
         //        val dt3: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
@@ -285,6 +287,8 @@ object BatchflowMainProcess extends EdpLogging {
     val processedSourceNamespace = mutable.HashSet.empty[String]
     // val dt1: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
     val umsRdd: RDD[(UmsProtocolType, String, ArrayBuffer[Seq[String]])] = formatRdd(mainDataRdd, "main").cache
+
+    //FIXME 获取多个schema, 遍历处理多个flow
     distinctSchema.foreach(schema => {
       val uuid = UUID.randomUUID().toString
       val protocolType: UmsProtocolType = schema._1._1
@@ -302,6 +306,7 @@ object BatchflowMainProcess extends EdpLogging {
       val (minTs, maxTs, count) = getMinMaxTsAndCount(protocolType, sourceNamespace, sourceTupleRDD, schema._2._1) //,jsonUmsSysFields)
       logInfo(uuid + "sourceNamespace:" + sourceNamespace + ",minTs:" + minTs + ",maxTs:" + maxTs + ",sourceDf.count:" + count)
       if (count > 0) {
+        //TODO 动态获取flow的配置
         val flowConfigMap = ConfMemoryStorage.getFlowConfigMap(matchSourceNamespace)
         flowConfigMap.foreach(flow => {
           val isProcessed = protocolType match {
@@ -460,6 +465,7 @@ object BatchflowMainProcess extends EdpLogging {
 
   private def getDistinctSchema(umsRdd: RDD[(ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[((UmsProtocolType, String), Seq[UmsTuple])], ListBuffer[String], Array[((UmsProtocolType, String), Seq[UmsField])])]): mutable.Map[(UmsProtocolType.UmsProtocolType, String), (Seq[UmsField], Long)] = {
     val schemaMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], Long)]
+    //FIXME 将schema配置信息聚合到driver
     umsRdd.map(_._4).collect().foreach(_.foreach {
       case ((protocol, ns), schema) =>
         if (!schemaMap.contains((protocol, ns))) {

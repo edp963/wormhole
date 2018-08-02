@@ -326,6 +326,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   }
 
   def getAllMainNamespaceSet: Set[String] = {
+    //FIXME 从内存里获取flow配置集合
     flowConfigMap.keySet.toSet
   }
 

@@ -91,6 +91,7 @@ object DirectiveFlowWatch extends EdpLogging {
   def update(feedbackTopicName: String,brokers:String)(path: String, data: String, time: Long): Unit = {
     try {
       logInfo("update"+data)
+      //FIXME 更新配置信息
       add(feedbackTopicName,brokers)(path, data, time)
     } catch {
       case e: Throwable => logAlert("flow update error:" + data, e)
