@@ -36,6 +36,7 @@
         <module>sparkx</module>
         <module>common/flinkxinterface</module>
         <module>common/wormholeinterface</module>
+        <module>common/sinks</module>
 
         <!--<module>rider/common/haservice</module>-->
         <module>rider/rider-server</module>
