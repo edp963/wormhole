@@ -37,6 +37,7 @@
         <module>common/flinkxinterface</module>
         <module>common/wormholeinterface</module>
         <module>common/sinks</module>
+        <module>common/common</module>
 
         <!--<module>rider/common/haservice</module>-->
         <module>rider/rider-server</module>
