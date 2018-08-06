@@ -573,7 +573,7 @@ object StreamUtils extends RiderLogger {
     Await.result(instanceDal.findById(kakfaId), minTimeOut).get.connUrl
   }
 
-  def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}$appName-${CommonUtils.currentNodSec}.log"
+  def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}/$appName-${CommonUtils.currentNodSec}.log"
 
   def getStreamTime(time: Option[String]) =
     if (time.nonEmpty) time.get.split("\\.")(0) else null
