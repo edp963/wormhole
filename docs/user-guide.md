@@ -169,17 +169,18 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 - clone wormhole github 项目，本地安装 wormhole-sparkxinterface jar 包
 
   ```
-  方式1：wormhole 目录下执行安装全量包，大约8分钟左右
 
-  mvn clean install package -Pwormhole 
+  安装wormhole-sparkxinterface包至本地maven仓库
 
-  方式2：单独安装 wormhole-sparkxinterface 包，大约1分钟左右
-
-  wormhole 目录下执行
+  wormhole/common/util目录下执行
 
   mvn clean install package
+  
+  wormhole/ums目录下执行
+  
+  mvn clean install package
 
-  wormhole/common/sparkxinterface 目录下执行
+  wormhole/common/sparkxinterface目录下执行
 
   mvn clean install package
   ```
