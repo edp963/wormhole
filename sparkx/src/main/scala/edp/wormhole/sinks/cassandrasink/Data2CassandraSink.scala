@@ -110,7 +110,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
           }
         }else{
           tupleList.foreach(tuple=>{
-            val filterableStatement = checkTableBykeyMutilTableKey(keyspace, table, tableKeys, tableKeysInfo, tuple)
+            val filterableStatement = checkTableBykeyMutilTableKey(keyspace, table, tableKeys, tableKeysInfo, tuple,cassandraSpecialConfig.`allow_filtering`)
 //            logInfo("mutil filterableStatement:::"+filterableStatement)
             val resultRows: util.List[Row] = session.execute(filterableStatement).all()
             if(!resultRows.isEmpty){
@@ -287,7 +287,7 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
 
   }
 
-  private def checkTableBykeyMutilTableKey(keyspace: String, table: String, tableKeys: List[String], tableKeysInfo: List[(Int, UmsFieldType)], tuple: Seq[String]) = {
+  private def checkTableBykeyMutilTableKey(keyspace: String, table: String, tableKeys: List[String], tableKeysInfo: List[(Int, UmsFieldType)], tuple: Seq[String],allow_filtering:Option[Boolean]) = {
     var whereContent = ""
     for(i<- tableKeys.indices){
       if(tableKeysInfo(i)._2== UmsFieldType.STRING)
@@ -300,9 +300,10 @@ class Data2CassandraSink extends SinkProcessor with EdpLogging {
 
     val selectColumns = tableKeys.mkString(",") + "," + UmsSysField.ID.toString
 
-    "SELECT " + selectColumns + " from " + keyspace + "." + table + " where " + whereContent + ";"
-
-
+    var cql = "SELECT " + selectColumns + " from " + keyspace + "." + table + " where " + whereContent
+    if(allow_filtering.nonEmpty&&allow_filtering.get) cql = cql + "ALLOW FILTERING ;"
+    else cql = cql +";"
+    cql
   }
 
   private def bindWithDifferentTypes(bound: BoundStatement, columnName: String, fieldType: UmsFieldType, value: String): Unit =
