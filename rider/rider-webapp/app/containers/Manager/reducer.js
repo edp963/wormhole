@@ -141,6 +141,9 @@ function streamReducer (state = initialState, { type, payload }) {
       const startIndexStartOrRenew = streams.indexOf(streams.find(p => Object.is(p.stream.id, payload.result.id)))
       streams[startIndexStartOrRenew].disableActions = payload.result.disableActions
       streams[startIndexStartOrRenew].stream.status = payload.result.status
+      streams[startIndexStartOrRenew].stream.startedTime = payload.result.startedTime
+      streams[startIndexStartOrRenew].stream.stoppedTime = payload.result.stoppedTime
+      streams[startIndexStartOrRenew].stream.sparkAppid = payload.result.appId
       // streams.fill(payload.result, startIndexStartOrRenew, startIndexStartOrRenew + 1)
       return state
         .set('streams', streams.slice())

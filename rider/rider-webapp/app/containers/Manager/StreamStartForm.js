@@ -36,7 +36,7 @@ import InputNumber from 'antd/lib/input-number'
 import { Collapse, Input, Icon, message } from 'antd'
 const Panel = Collapse.Panel
 const FormItem = Form.Item
-import { forceCheckNum } from '../../utils/util'
+import { forceCheckNum, transformStringWithDot } from '../../utils/util'
 import { selectLocale } from '../LanguageProvider/selectors'
 import { postUserTopic } from './action'
 
@@ -59,25 +59,6 @@ export class StreamStartForm extends React.Component {
     } else {
       dataFinal = props.data.slice()
       userDefinedTopics = props.userDefinedTopics.slice()
-      // props.data.map(s => {
-      //   const conTemp = props.autoRegisteredTopics.find(i => i.name === s.id)
-      //   const conTempObject = conTemp
-      //     ? {
-      //       id: conTemp.id,
-      //       name: conTemp.name,
-      //       conOffsetVal: conTemp.consumedLatestOffset,
-      //       rate: conTemp.rate,
-      //       key: conTemp.id
-      //     }
-      //     : {}
-
-      //   const kafTemp = props.autoRegisteredTopics.find(i => i.name === s.id)
-      //   const kafTempObject = kafTemp
-      //     ? {kafOffsetVal: kafTemp.kafkaLatestOffset, kafEarOffsetVal: kafTemp.kafkaEarliestOffset}
-      //     : {}
-
-      //   return Object.assign(conTempObject, kafTempObject)
-      // })
     }
     this.setState({ data: dataFinal, userDefinedTopics, unValidate })
   }
@@ -118,11 +99,19 @@ export class StreamStartForm extends React.Component {
             let req = { name }
             this.props.onPostUserTopic(projectIdGeted, streamIdGeted, req, (result) => {
               let userTopicList = this.state.userDefinedTopics.slice()
+              result.name = transformStringWithDot(result.name)
+              for (let i = 0; i < userTopicList.length; i++) {
+                if (userTopicList[i].name === result.name) {
+                  message.error('topic already exist')
+                  return
+                }
+              }
               userTopicList = userTopicList.concat(result)
-              this.setState({userDefinedTopics: userTopicList})
-              this.props.emitStartFormDataFromSub(this.state.userDefinedTopics)
-              this.props.form.resetFields(['newTopicName'])
-              message.success('success', 3)
+              this.setState({userDefinedTopics: userTopicList}, () => {
+                this.props.emitStartFormDataFromSub(this.state.userDefinedTopics)
+                this.props.form.resetFields(['newTopicName'])
+                message.success('success', 3)
+              })
             }, (error) => {
               message.error(error, 3)
             })
@@ -179,7 +168,7 @@ export class StreamStartForm extends React.Component {
           )
           : data.map(i => {
             let parOffInput = ''
-            let myName = i.name.replace(/\./g, '-')
+            let myName = i.name
             if (i.consumedLatestOffset) {
               const partitionOffsetsArr = i.consumedLatestOffset.split(',')
 
@@ -204,11 +193,11 @@ export class StreamStartForm extends React.Component {
                 }
                 const applyFormat = <FormattedMessage {...messages.streamModalApply} />
                 return (
-                  <Row key={`${myName}_${index}`}>
+                  <Row key={`${myName}_${index}_${type}`}>
                     <Col span={2} className="partition-content">{g.substring(0, g.indexOf(':'))}</Col>
                     <Col span={6} className="offset-content">
                       <FormItem>
-                        <ol key={g}>
+                        <ol key={index}>
                           {getFieldDecorator(`${myName}_${index}_${type}`, {
                             rules: [{
                               required: true,
@@ -225,7 +214,7 @@ export class StreamStartForm extends React.Component {
                     </Col>
                     <Col span={4} className="stream-start-offset-class">
                       <FormItem>
-                        <ol key={g}>
+                        <ol key={index}>
                           {getFieldDecorator(`consumedLatest_${myName}_${index}_${type}`, {})(
                             <div className="stream-start-lastest-consumed-offset">
                               <span style={{ marginRight: '5px' }}>{conOffFinal}</span>
@@ -241,7 +230,7 @@ export class StreamStartForm extends React.Component {
                     </Col>
                     <Col span={6} offset={2} className="stream-start-offset-class">
                       <FormItem>
-                        <ol key={g}>
+                        <ol key={index}>
                           {getFieldDecorator(`kafkaEarliest_${myName}_${index}_${type}`, {})(
                             <div className="stream-start-lastest-kafka-offset">
                               <span style={{ marginRight: '5px' }}>{kafEarOffFinal}</span>
@@ -257,7 +246,7 @@ export class StreamStartForm extends React.Component {
                     </Col>
                     <Col span={2} offset={2} className="stream-start-offset-class">
                       <FormItem>
-                        <ol key={g}>
+                        <ol key={index}>
                           {getFieldDecorator(`kafkaLatest_${myName}_${index}_${type}`, {})(
                             <div className="stream-start-lastest-kafka-offset">
                               <span style={{ marginRight: '5px' }}>{kafOffFinal}</span>
@@ -282,7 +271,7 @@ export class StreamStartForm extends React.Component {
               <Row key={myName}>
                 <Col span={24} style={{fontWeight: '500'}}>
                   <span className="modal-topic-name">Topic Name</span>
-                  {i.name}
+                  {transformStringWithDot(i.name, false)}
                 </Col>
               </Row>
             )
@@ -348,7 +337,7 @@ export class StreamStartForm extends React.Component {
                     </div>
                     {
                       hasDel ? (
-                        <Button shape="circle" type="danger" style={{position: 'absolute', top: '5px', right: '5px'}} onClick={this.toggleItem('delete', i.name)}>
+                        <Button shape="circle" type="danger" style={{position: 'absolute', top: '5px', right: '5px'}} onClick={this.toggleItem('delete', myName)}>
                           <Icon type="minus" />
                         </Button>) : ''
                     }

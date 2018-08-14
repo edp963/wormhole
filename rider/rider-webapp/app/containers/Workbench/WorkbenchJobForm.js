@@ -61,7 +61,6 @@ export class WorkbenchJobForm extends React.Component {
     super(props)
     this.state = {
       sinkConfigClass: '',
-      checked: false,
       sourceNsData: [],
       sinkNsData: [],
       backfillSinkDSValue: '',
@@ -91,8 +90,6 @@ export class WorkbenchJobForm extends React.Component {
       callback(locale === 'en' ? textEn : textZh)
     }
   }
-
-  onChangeCheckbox = (e) => this.setState({ checked: e.target.checked })
 
   // 通过 Source Data System 显示 Source Namespace 内容
   onSourceDataSystemItemSelect = (val) => {
@@ -187,7 +184,7 @@ export class WorkbenchJobForm extends React.Component {
       wrapperCol: { span: 17 }
     }
 
-    let formValues = ''
+    let formValues = {}
     if (jobDiffType === 'default') {
       formValues = this.props.form.getFieldsValue([
         'jobName',
@@ -599,12 +596,10 @@ export class WorkbenchJobForm extends React.Component {
 
             <Col span={24} className={jobTypeClass[0]}>
               <FormItem label="Sink Protocol" {...itemStyle}>
-                {getFieldDecorator('sinkProtocol', {})(
-                  <Checkbox
-                    checked={this.state.checked}
-                    onChange={this.onChangeCheckbox}
-                  >Snapshot
-                  </Checkbox>
+                {getFieldDecorator('sinkProtocol', {
+                  valuePropName: 'checked'
+                })(
+                  <Checkbox>Snapshot</Checkbox>
                 )}
               </FormItem>
             </Col>

@@ -2,7 +2,7 @@
 layout: global
 displayTitle: Admin Guide
 title: Admin Guide
-description: Wormhole WH_VERSION_SHORT Admin Guide page
+description: Wormhole Admin Guide page
 
 ---
 
@@ -34,7 +34,7 @@ Admin 配置好 User，Namespace，UDF 和 Project 的访问权限后，User 类
 
 目前只须在 Wormhole 上配置前四部分，Table Version/Database Partition/Table Partition 默认为 “*”。
 
-数据源系统只支持 Kafka，目标端系统支持 Kafka/RDBS/Elasticsearch/Hbase/Phoenix/Cassandra/MongoDB。
+数据源系统只支持 Kafka，目标端系统支持 Kafka/RDBS/Elasticsearch/Hbase/Phoenix/Cassandra/MongoDB/Kudu等。
 
 数据源表，目标表及 Flow 处理逻辑中需要关联的表都需要在 Wormhole 上配置。
 
@@ -107,7 +107,7 @@ UMS_Extension 格式支持的字段类型如下。
 ## UDF 管理
 
 Spark SQL 支持 UDF(User Define Function) 功能，用户可以在 Spark SQL 里自定义函数来处理数据，Wormhole 有提供 UDF 管理功能。
- 
+
 UDF 只支持 Java 语言编写，编译打包后将 Jar 包上传至 application.conf 中 spark.wormhole.hdfs.root.path 配置项对应 hdfs 目录的 /udfjars 子目录下。
 
 UDF 由 Admin 统一管理，有公有、私有两种类型，所有 Project 都可以访问公有 UDF，私有 UDF 需要 Admin 授权。

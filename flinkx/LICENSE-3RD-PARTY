@@ -1,0 +1,114 @@
+
+List of third-party dependencies grouped by their license type.
+
+    Apache 2:
+
+        * chill-java (com.twitter:chill-java:0.7.4 - https://github.com/twitter/chill)
+        * chill (com.twitter:chill_2.11:0.7.4 - https://github.com/twitter/chill)
+        * Objenesis (org.objenesis:objenesis:2.1 - http://objenesis.org)
+
+    Apache 2.0:
+
+        * config (com.typesafe:config:1.3.0 - https://github.com/typesafehub/config)
+        * ssl-config-core (com.typesafe:ssl-config-core_2.11:0.2.1 - https://github.com/typesafehub/ssl-config)
+        * akka-actor (com.typesafe.akka:akka-actor_2.11:2.4.20 - http://akka.io/)
+        * akka-protobuf (com.typesafe.akka:akka-protobuf_2.11:2.4.20 - http://akka.io/)
+        * akka-slf4j (com.typesafe.akka:akka-slf4j_2.11:2.4.20 - http://akka.io/)
+        * akka-stream (com.typesafe.akka:akka-stream_2.11:2.4.20 - http://akka.io/)
+        * Metrics Core Library (com.yammer.metrics:metrics-core:2.2.0 - http://metrics.codahale.com/metrics-core/)
+        * Apache Commons CLI (commons-cli:commons-cli:1.3.1 - http://commons.apache.org/proper/commons-cli/)
+        * Apache Commons Collections (commons-collections:commons-collections:3.2.2 - http://commons.apache.org/collections/)
+        * wormhole-dbpool (edp.wormhole:wormhole-dbpool:0.5.0-beta - no url defined)
+        * wormhole-flinkxinterface (edp.wormhole:wormhole-flinkxinterface:0.5.0-beta - no url defined)
+        * wormhole-interface (edp.wormhole:wormhole-interface:0.5.0-beta - no url defined)
+        * wormhole-kafka-010 (edp.wormhole:wormhole-kafka-010:0.5.0-beta - no url defined)
+        * wormhole-ums_1.3 (edp.wormhole:wormhole-ums_1.3:0.5.0-beta - no url defined)
+        * wormhole-util (edp.wormhole:wormhole-util:0.5.0-beta - no url defined)
+        * wormhole-zookeeper (edp.wormhole:wormhole-zookeeper:0.5.0-beta - no url defined)
+        * The Netty Project (io.netty:netty:3.7.0.Final - http://netty.io/)
+        * force-shading (org.apache.flink:force-shading:1.5.1 - https://www.apache.org/force-shading/)
+        * Javassist (org.javassist:javassist:3.18.2-GA - http://www.javassist.org/)
+        * scalatest (org.scalatest:scalatest_2.11:2.2.5 - http://www.scalatest.org)
+
+    BSD:
+
+        * JLine (jline:jline:0.9.94 - http://jline.sourceforge.net)
+        * grizzled-slf4j (org.clapper:grizzled-slf4j_2.11:1.0.2 - https://github.com/bmc/grizzled-slf4j/#readme)
+        * Scala Compiler (org.scala-lang:scala-compiler:2.11.12 - http://www.scala-lang.org/)
+        * Scala Library (org.scala-lang:scala-library:2.11.8 - http://www.scala-lang.org/)
+        * Scala Compiler (org.scala-lang:scala-reflect:2.11.12 - http://www.scala-lang.org/)
+        * scala-java8-compat (org.scala-lang.modules:scala-java8-compat_2.11:0.7.0 - http://www.scala-lang.org/)
+        * scala-parser-combinators (org.scala-lang.modules:scala-parser-combinators_2.11:1.0.4 - http://www.scala-lang.org/)
+        * scala-xml (org.scala-lang.modules:scala-xml_2.11:1.0.2 - http://www.scala-lang.org/)
+
+    CC0:
+
+        * reactive-streams (org.reactivestreams:reactive-streams:1.0.0 - http://www.reactive-streams.org/)
+
+    LGPL:
+
+        * Javassist (org.javassist:javassist:3.18.2-GA - http://www.javassist.org/)
+
+    MIT:
+
+        * scopt (com.github.scopt:scopt_2.11:3.5.0 - https://github.com/scopt/scopt)
+        * JOpt Simple (net.sf.jopt-simple:jopt-simple:4.9 - http://pholser.github.com/jopt-simple)
+        * SLF4J API Module (org.slf4j:slf4j-api:1.7.21 - http://www.slf4j.org)
+        * SLF4J LOG4J-12 Binding (org.slf4j:slf4j-log4j12:1.7.21 - http://www.slf4j.org)
+
+    MPL:
+
+        * Javassist (org.javassist:javassist:3.18.2-GA - http://www.javassist.org/)
+
+    New BSD License:
+
+        * Kryo (com.esotericsoftware.kryo:kryo:2.24.0 - https://github.com/EsotericSoftware/kryo)
+        * MinLog (com.esotericsoftware.minlog:minlog:1.2 - http://code.google.com/p/minlog/)
+
+    Public Domain:
+
+        * XZ for Java (org.tukaani:xz:1.0 - http://tukaani.org/xz/java.html)
+
+    The Apache Software License, Version 2.0:
+
+        * ZkClient (com.101tec:zkclient:0.8 - https://github.com/sgroschupf/zkclient)
+        * FindBugs-jsr305 (com.google.code.findbugs:jsr305:1.3.9 - http://findbugs.sourceforge.net/)
+        * Guava: Google Core Libraries for Java (com.google.guava:guava:16.0.1 - http://code.google.com/p/guava-libraries/guava)
+        * Commons IO (commons-io:commons-io:2.4 - http://commons.apache.org/io/)
+        * Apache Log4j (log4j:log4j:1.2.17 - http://logging.apache.org/log4j/1.2/)
+        * LZ4 and xxHash (net.jpountz.lz4:lz4:1.3.0 - https://github.com/jpountz/lz4-java)
+        * Commons Compress (org.apache.commons:commons-compress:1.4.1 - http://commons.apache.org/compress/)
+        * Apache Commons Lang (org.apache.commons:commons-lang3:3.3.2 - http://commons.apache.org/proper/commons-lang/)
+        * Apache Commons Math (org.apache.commons:commons-math3:3.5 - http://commons.apache.org/proper/commons-math/)
+        * Curator Client (org.apache.curator:curator-client:2.7.1 - http://curator.apache.org/curator-client)
+        * Curator Framework (org.apache.curator:curator-framework:2.7.1 - http://curator.apache.org/curator-framework)
+        * Curator Recipes (org.apache.curator:curator-recipes:2.7.1 - http://curator.apache.org/curator-recipes)
+        * flink-annotations (org.apache.flink:flink-annotations:1.5.1 - http://flink.apache.org/flink-annotations)
+        * flink-cep-scala (org.apache.flink:flink-cep-scala_2.11:1.5.1 - http://flink.apache.org/flink-libraries/flink-cep-scala_2.11)
+        * flink-cep (org.apache.flink:flink-cep_2.11:1.5.1 - http://flink.apache.org/flink-libraries/flink-cep_2.11)
+        * flink-clients (org.apache.flink:flink-clients_2.11:1.5.1 - http://flink.apache.org/flink-clients_2.11)
+        * flink-connector-kafka-0.10 (org.apache.flink:flink-connector-kafka-0.10_2.11:1.5.1 - http://flink.apache.org/flink-connectors/flink-connector-kafka-0.10_2.11)
+        * flink-connector-kafka-0.9 (org.apache.flink:flink-connector-kafka-0.9_2.11:1.5.1 - http://flink.apache.org/flink-connectors/flink-connector-kafka-0.9_2.11)
+        * flink-connector-kafka-base (org.apache.flink:flink-connector-kafka-base_2.11:1.5.1 - http://flink.apache.org/flink-connectors/flink-connector-kafka-base_2.11)
+        * flink-core (org.apache.flink:flink-core:1.5.1 - http://flink.apache.org/flink-core)
+        * flink-hadoop-fs (org.apache.flink:flink-hadoop-fs:1.5.1 - http://flink.apache.org/flink-filesystems/flink-hadoop-fs)
+        * flink-java (org.apache.flink:flink-java:1.5.1 - http://flink.apache.org/flink-java)
+        * flink-metrics-core (org.apache.flink:flink-metrics-core:1.5.1 - http://flink.apache.org/flink-metrics/flink-metrics-core)
+        * flink-optimizer (org.apache.flink:flink-optimizer_2.11:1.5.1 - http://flink.apache.org/flink-optimizer_2.11)
+        * flink-queryable-state-client-java (org.apache.flink:flink-queryable-state-client-java_2.11:1.5.1 - http://flink.apache.org/flink-queryable-state/flink-queryable-state-client-java_2.11)
+        * flink-runtime (org.apache.flink:flink-runtime_2.11:1.5.1 - http://flink.apache.org/flink-runtime_2.11)
+        * flink-scala (org.apache.flink:flink-scala_2.11:1.5.1 - http://flink.apache.org/flink-scala_2.11)
+        * flink-shaded-asm-5 (org.apache.flink:flink-shaded-asm:5.0.4-2.0 - http://flink.apache.org/flink-shaded-asm)
+        * flink-shaded-guava-18 (org.apache.flink:flink-shaded-guava:18.0-2.0 - http://flink.apache.org/flink-shaded-guava)
+        * flink-shaded-jackson-2 (org.apache.flink:flink-shaded-jackson:2.7.9-3.0 - http://flink.apache.org/flink-shaded-jackson-parent/flink-shaded-jackson)
+        * flink-shaded-netty-4 (org.apache.flink:flink-shaded-netty:4.0.27.Final-2.0 - http://flink.apache.org/flink-shaded-netty)
+        * flink-streaming-java (org.apache.flink:flink-streaming-java_2.11:1.5.1 - http://flink.apache.org/flink-streaming-java_2.11)
+        * flink-streaming-scala (org.apache.flink:flink-streaming-scala_2.11:1.5.1 - http://flink.apache.org/flink-streaming-scala_2.11)
+        * flink-table (org.apache.flink:flink-table_2.11:1.5.1 - http://flink.apache.org/flink-libraries/flink-table_2.11)
+        * Apache Kafka (org.apache.kafka:kafka-clients:0.10.0.0 - http://kafka.apache.org)
+        * Apache Kafka (org.apache.kafka:kafka_2.11:0.10.0.0 - http://kafka.apache.org)
+        * snappy-java (org.xerial.snappy:snappy-java:1.1.2.4 - https://github.com/xerial/snappy-java)
+
+    Unknown License:
+
+        * zookeeper (org.apache.zookeeper:zookeeper:3.4.6 - no url defined)

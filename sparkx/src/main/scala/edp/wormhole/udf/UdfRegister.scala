@@ -24,6 +24,7 @@ import java.lang.reflect.Method
 import java.net.{URI, URL, URLClassLoader}
 
 import edp.wormhole.spark.log.EdpLogging
+import org.apache.hadoop.fs.FsUrlStreamHandlerFactory
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.expressions.{Expression, ScalaUDF}
 import org.apache.spark.sql.types._
@@ -60,11 +61,17 @@ object UdfRegister extends EdpLogging {
   }
 
   private def loadJar(path: String): Unit = {
-    val url = new URI(path).toURL
-    val classLoader = getClass.getClassLoader.asInstanceOf[URLClassLoader]
-    val loaderMethod = classOf[URLClassLoader].getDeclaredMethod("addURL", classOf[URL])
-    loaderMethod.setAccessible(true)
-    loaderMethod.invoke(classLoader, url)
+    try{
+      URL.setURLStreamHandlerFactory(new FsUrlStreamHandlerFactory())
+    }catch{
+      case e:Throwable=>logWarning(e.getMessage)
+    }
+      val url = new URL(path)
+      val classLoader = getClass.getClassLoader.asInstanceOf[URLClassLoader]
+      val loaderMethod = classOf[URLClassLoader].getDeclaredMethod("addURL", classOf[URL])
+      loaderMethod.setAccessible(true)
+      loaderMethod.invoke(classLoader, url)
+
   }
 
   private def registerUdf(paramCount: Int, session: SparkSession, udfName: String, udfClassName: String, returnDataType: DataType): Unit = {

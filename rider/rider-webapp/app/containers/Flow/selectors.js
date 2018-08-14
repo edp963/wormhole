@@ -37,9 +37,15 @@ const selectFlowSubmitLoading = () => createSelector(
   (flowState) => flowState.get('flowSubmitLoading')
 )
 
+const selectFlowStartModalLoading = () => createSelector(
+  selectFlow(),
+  (flowState) => flowState.get('flowStartModalLoading')
+)
+
 export {
   selectFlow,
   selectFlows,
   selectError,
-  selectFlowSubmitLoading
+  selectFlowSubmitLoading,
+  selectFlowStartModalLoading
 }

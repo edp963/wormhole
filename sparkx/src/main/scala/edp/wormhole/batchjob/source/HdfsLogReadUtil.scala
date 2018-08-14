@@ -79,10 +79,10 @@ object HdfsLogReadUtil extends EdpLogging {
     var prefix = hdfsRoot + "/hdfslog/" + names(0) + "." + names(1) + "." + names(2) + "/" + names(3)
     //+ "/" + namespace.version + "/" + namespace.databasePar + "/" + namespace.tablePar + "/" + "protocoltype/right"
     val namespaceVersion = if (names(4) == "*") {
-      getHdfsFileList(prefix).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).head.toString
+      getHdfsFileList(conf, prefix).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).head.toString
     } else {
       names(4)
-    } 
+    }
     val pathList = ListBuffer.empty[String]
     prefix = prefix + "/" + namespaceVersion
     val parentPath = getHdfsFileList(conf,prefix).flatMap(getHdfsFileList(conf,_))
@@ -114,17 +114,17 @@ object HdfsLogReadUtil extends EdpLogging {
     checkedPathList.flatMap(fullPath => fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString))
   }
 
-  def getSnapshotSqlByTs(keys: String, fromTs: Timestamp, toTs: Timestamp): String = {
-    s"""
-       |select * from
-       |    (select *, row_number() over
-       |      (partition by $keys order by ${UmsSysField.ID.toString} desc) as rn
-       |    from increment
-       |      where ${UmsSysField.TS.toString} >= '$fromTs' and ${UmsSysField.TS.toString} <= '$toTs')
-       |    increment_filter
-       |  where ${UmsSysField.OP.toString} != '${UmsOpType.DELETE.toString.toLowerCase}' and ${UmsSysField.OP.toString} != '${UmsOpType.DELETE.toString.toUpperCase()}' and rn = 1
-          """.stripMargin.replace("\n", " ")
-  }
+//  def getSnapshotSqlByTs(keys: String, fromTs: Timestamp, toTs: Timestamp): String = {
+//    s"""
+//       |select * from
+//       |    (select *, row_number() over
+//       |      (partition by $keys order by ${UmsSysField.ID.toString} desc) as rn
+//       |    from increment
+//       |      where ${UmsSysField.TS.toString} >= '$fromTs' and ${UmsSysField.TS.toString} <= '$toTs')
+//       |    increment_filter
+//       |  where ${UmsSysField.OP.toString} != '${UmsOpType.DELETE.toString.toLowerCase}' and ${UmsSysField.OP.toString} != '${UmsOpType.DELETE.toString.toUpperCase()}' and rn = 1
+//          """.stripMargin.replace("\n", " ")
+//  }
 
 
 }

@@ -56,6 +56,8 @@
   "rider.containers.Flow.step.back": "上一步",
   "rider.containers.Flow.step.next": "下一步",
   "rider.containers.Flow.batch.action": "批量操作",
+  "rider.containers.Flow.view.btn": "查看",
+  "rider.containers.Flow.reset.btn": "还原",
 
   "rider.containers.Stream.view.btn": "查看",
   "rider.containers.Stream.reset.btn": "还原",
@@ -131,5 +133,11 @@
   "rider.containers.Workbench.transformation.down": "向下",
   "rider.containers.Workbench.transformation.lookup.msg": "若lookup表为user,源namespace为kafka.test.test.test, SQL语句: select id as id1, name as name1 from user where (id,name) in (kafka.test.test.test.id, kafka.test.test.test.name);",
   "rider.containers.Workbench.transformation.spark.msg": "sql 语句中的 table 为 source namespace 中第四层, for example: source namespace 为 kafka.test.test1.test2.*.*.*, sql 语句为 select * from test2;",
-  "rider.containers.Workbench.transformation.resource.configuration": "Dirver/Executor 资源配置"
+  "rider.containers.Workbench.transformation.resource.configuration": "Dirver/Executor 资源配置",
+  "rider.containers.Workbench.tranformation.cep.output": "输出方式：Agg->将匹配的多条数据做聚合，形成一条数据输出，例：field1:avg,field2:max（目前支持max/min/avg/sum）；Detail->将匹配的多条数据逐一输出；FilteredRow->按条件选择指定的一条数据输出，例：head/last/field1:min/max",
+  "rider.containers.Workbench.tranformation.cep.windowtime": "Defines the maximum time interval for an event sequence to match the pattern",
+  "rider.containers.Workbench.tranformation.cep.strategy": "数据处理方式：NO_SKIP->Every possible match will be emitted；SKIP_PAST_LAST_EVENT->Discards every partial match that contains event of the match",
+  "rider.containers.Workbench.tranformation.cep.keyby": "分组，可指定一个或多个字段，“,”分割",
+  "rider.containers.Workbench.tranformation.cep.operator": "规则衔接方式，Begin：第一个规则只能是Begin/Next：符合下一规则的数据必须紧邻符合上一规则的数据/FollowedBy：可以与符合上一个规则的数据间隔其他数据/NotNext：与next相反/NotFllowedBy：与FllowedBy相反",
+  "rider.containers.Workbench.tranformation.cep.quantifier": "匹配规则数据出现条数，符合即进入下一个规则。OneOrMore->一次或多次；Times->固定次数；TimesOrMore->大于等于指定次数"
 }

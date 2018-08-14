@@ -152,6 +152,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
       })
 
       val dbusInsertSeq = Await.result(dbusDal.insert(dbusSeq), maxTimeOut)
+      Await.result(dbusDal.update(dbusUpdateSeq), minTimeOut)
       Future(dbusInsertSeq ++ dbusUpdateSeq)
     } catch {
       case ex: Exception =>

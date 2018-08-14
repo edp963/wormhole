@@ -94,7 +94,8 @@ CREATE TABLE IF NOT EXISTS `stream` (
   `project_id` BIGINT NOT NULL,
   `instance_id` BIGINT NOT NULL,
   `stream_type` VARCHAR(100) NOT NULL,
-  `spark_config` VARCHAR(5000) NULL,
+  `function_type` VARCHAR(100) NOT NULL,
+  `stream_config` VARCHAR(5000) NULL,
   `start_config` VARCHAR(1000) NOT NULL,
   `launch_config` VARCHAR(1000) NOT NULL,
   `spark_appid` VARCHAR(200) NULL,
@@ -110,6 +111,9 @@ CREATE TABLE IF NOT EXISTS `stream` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `name_UNIQUE` (`name` ASC))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+alter table `stream` add column `function_type` VARCHAR(100) NOT NULL after `stream_type`;
+alter table `stream` change column `spark_config` `stream_config` VARCHAR(5000) NULL;
 
 
 CREATE TABLE IF NOT EXISTS `project` (
@@ -199,12 +203,14 @@ CREATE TABLE IF NOT EXISTS `flow` (
   `stream_id` BIGINT NOT NULL,
   `source_ns` VARCHAR(200) NOT NULL,
   `sink_ns` VARCHAR(200) NOT NULL,
-  `consumed_protocol` VARCHAR(20) NOT NULL,
+  `parallelism` INT NULL,
+  `consumed_protocol` VARCHAR(100) NOT NULL,
   `sink_config` VARCHAR(5000) NOT NULL,
   `tran_config` LONGTEXT NULL,
   `status` VARCHAR(200) NOT NULL,
   `started_time` TIMESTAMP NULL,
   `stopped_time` TIMESTAMP NULL,
+  `log_path` VARCHAR(2000) NULL,
   `active` TINYINT(1) NOT NULL,
   `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_by` BIGINT NOT NULL,
@@ -215,6 +221,10 @@ CREATE TABLE IF NOT EXISTS `flow` (
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `flow`  modify column `tran_config` LONGTEXT;
+alter table `flow` modify column `consumed_protocol` VARCHAR(100);
+alter table `flow` add column `parallelism` INT NULL after `sink_ns`;
+alter table `flow` add column `log_path` VARCHAR(2000) NULL after `stopped_time`;
+
 
 CREATE TABLE IF NOT EXISTS `directive` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -233,7 +243,6 @@ alter table `directive` modify column `directive` VARCHAR(2000);
 CREATE TABLE IF NOT EXISTS `rel_stream_intopic` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `stream_id` BIGINT NOT NULL,
-  `ns_instance_id` BIGINT NOT NULL,
   `ns_database_id` BIGINT NOT NULL,
   `partition_offsets` VARCHAR(5000) NOT NULL,
   `rate` INT NOT NULL,
@@ -243,8 +252,12 @@ CREATE TABLE IF NOT EXISTS `rel_stream_intopic` (
   `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `rel_stream_intopic_UNIQUE` (`stream_id` ASC, `ns_instance_id` ASC, `ns_database_id` ASC))
+  UNIQUE INDEX `rel_stream_intopic_UNIQUE` (`stream_id` ASC, `ns_database_id` ASC))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+alter table `rel_stream_intopic` drop column `ns_instance_id`;
+drop index `rel_stream_intopic_UNIQUE` on `rel_stream_intopic`;
+alter table `rel_stream_intopic` add UNIQUE index `rel_stream_intopic_UNIQUE` (`stream_id` ASC, `ns_database_id` ASC);
 
 CREATE TABLE IF NOT EXISTS `rel_stream_userdefined_topic` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -258,6 +271,47 @@ CREATE TABLE IF NOT EXISTS `rel_stream_userdefined_topic` (
   `update_by` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `rel_stream_userdefinedtopic_UNIQUE` (`stream_id` ASC, `topic` ASC))
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `rel_flow_intopic` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `flow_id` BIGINT NOT NULL,
+  `ns_database_id` BIGINT NOT NULL,
+  `partition_offsets` VARCHAR(5000) NOT NULL,
+  `rate` INT NOT NULL,
+  `active` TINYINT(1) NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `create_by` BIGINT NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `update_by` BIGINT NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `rel_flow_intopic_UNIQUE` (`flow_id` ASC, `ns_database_id` ASC))
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `rel_flow_userdefined_topic` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `flow_id` BIGINT NOT NULL,
+  `topic` VARCHAR(200) NOT NULL,
+  `partition_offsets` VARCHAR(5000) NOT NULL,
+  `rate` INT NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `create_by` BIGINT NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `update_by` BIGINT NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `rel_flow_userdefinedtopic_UNIQUE` (`flow_id` ASC, `topic` ASC))
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `rel_flow_udf` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `flow_id` BIGINT NOT NULL,
+  `udf_id` BIGINT NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `create_by` BIGINT NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `update_by` BIGINT NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `rel_flow_udf_UNIQUE` (`flow_id` ASC, `udf_id` ASC))
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `job` (
