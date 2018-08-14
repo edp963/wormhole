@@ -32,7 +32,7 @@
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
-            <artifactId>wormhole-kafka-010</artifactId>
+            <artifactId>wormhole-kafka-010-2</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -79,6 +79,16 @@
         <dependency>
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-util</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-interface</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-sinks</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

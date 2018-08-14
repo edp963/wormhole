@@ -22,11 +22,12 @@
 package edp.wormhole.batchjob
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.common.{ConnectionConfig, SparkUtils}
+import edp.wormhole.common.ConnectionConfig
+import  edp.wormhole.spark.common.SparkUtils
 import edp.wormhole.common.util.JsonUtils.json2caseClass
 import edp.wormhole.batchjob.transform.Transform
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.sparkxinterface.sinks.SinkProcessConfig
+import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.udf.UdfRegister
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType

@@ -23,8 +23,9 @@ package edp.wormhole.swifts.transform
 
 import java.sql.{Connection, ResultSet, SQLTransientConnectionException}
 
-import edp.wormhole.common.{ConnectionConfig, WormholeUtils}
-import edp.wormhole.common.SparkSchemaUtils._
+import edp.wormhole.common.ConnectionConfig
+import edp.wormhole.spark.common.WormholeUtils
+import edp.wormhole.spark.common.SparkSchemaUtils._
 import edp.wormhole.common.db.DbConnection
 import edp.wormhole.common.util.CommonUtils
 import edp.wormhole.spark.log.EdpLogging
