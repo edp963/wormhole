@@ -25,7 +25,7 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
-import edp.wormhole.common.WormholeUtils.dataParse
+//import edp.wormhole.common.WormholeUtils.dataParse
 import edp.wormhole.common._
 import edp.wormhole.common.util.DateUtils
 import edp.wormhole.kafka.WormholeKafkaProducer
@@ -195,7 +195,7 @@ object HdfsMainProcess extends EdpLogging {
     var currentUmsTsMax: String = ""
     if (jsonInfoMap.contains(namespace)) {
       val mapValue: (Seq[FieldInfo], ArrayBuffer[(String, String)], Seq[UmsField]) = jsonInfoMap(namespace)
-      val value: Seq[UmsTuple] = dataParse(message, mapValue._1, mapValue._2)
+      val value: Seq[UmsTuple] = JsonParseUtils.dataParse(message, mapValue._1, mapValue._2)
       val schema = mapValue._3
       val umsTsIndex = schema.map(_.name).indexOf(TS.toString)
       value.foreach(tuple => {
