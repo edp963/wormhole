@@ -19,7 +19,7 @@
  */
 
 
-package edp.wormhole.common
+package edp.wormhole.spark.common
 
 import edp.wormhole.common.WormholeDefault._
 import edp.wormhole.common.util.CommonUtils

@@ -19,10 +19,10 @@
  */
 
 
-package edp.wormhole.common
+package edp.wormhole.spark.common
 
 import com.alibaba.fastjson.{JSONArray, JSONObject}
-import edp.wormhole.common.SparkSchemaUtils.ss2sparkTuple
+import edp.wormhole.spark.common.SparkSchemaUtils.ss2sparkTuple
 import edp.wormhole.common.util.CommonUtils
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums

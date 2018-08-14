@@ -22,10 +22,11 @@
 package edp.wormhole.batchjob.source
 
 import com.alibaba.fastjson.JSON
-import edp.wormhole.common.SparkSchemaUtils.createDf
+import edp.wormhole.spark.common.SparkSchemaUtils.createDf
 import edp.wormhole.common.hadoop.HdfsUtils
 import edp.wormhole.common.util.DateUtils
-import edp.wormhole.common.{ConnectionConfig, InputDataRequirement, KVConfig, SparkUtils}
+import edp.wormhole.common.{ConnectionConfig, InputDataRequirement, KVConfig}
+import edp.wormhole.spark.common.SparkUtils
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.batchjob.source.ObtainSourceDataInterface
 import edp.wormhole.ums._
