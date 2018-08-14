@@ -51,6 +51,10 @@ mvn install package -Pwormhole
 alter table `stream` add column `function_type` VARCHAR(100) NULL after `stream_type`;
 update `stream` a join `stream` b on a.id = b.id set a.`function_type` = b.`stream_type`;
 update `stream` set `stream_type` = "spark";
+
+2. flow表中consumed_protocol字段值修改，all改为"increment,initial"
+
+update `flow` set `consumed_protocol` = "increment,initial" where `consumed_protocol` = "all";
 ```
 
 **配置 WORMHOLE_HOME/SPARK_HOME/HADOOP_HOME 环境变量**

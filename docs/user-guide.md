@@ -351,3 +351,29 @@ Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-guide-job-list.png" alt="" width="600"/>
 
+## 监控预警
+
+Stream运行过程中会将每批处理的错误信息，offset信息，数据量信息和延时等信息发送至wormhole_feedback topic中。Wormhole Web应用负责消费这些信息，其中错误信息和offset信息保存在MySQL数据库中，数据量信息和延时统计信息保存在Elasticsearch中。
+
+Wormhole项目内Performance页面通过嵌入Grafana Dashboard展示每个项目下Stream/Flow吞吐和延时信息。（使用此功能Wormhole配置文件中须配置Grafana/Elasticsearch信息） 
+
+吞吐和延时信息从Stream/Flow两个维度展示，监控项说明如下。
+
+#### Latency
+
+- ReceivedDelay   每批次开始处理时间 — 每批次随机取一条数据 ums_ts_
+- PreprocessDelay    每批次预处理完成时间 — 每批次开始处理时间
+- SwiftsDelay  每批次Transformation逻辑处理完成时间 — 每批次预处理完成时间
+- WriteSinkDely  每批次Sink目标表完成时间 — 每批次Transformation逻辑处理完成时间
+- WormholeDelay  每批次Sink目标表完成时间 — 每批次开始处理时间
+
+#### Records
+
+每批次处理的数据条数，对于UMS类型数据，指每批处理的ums消息payload中tuple总条数。
+
+#### Throughput
+
+Records/WormholeDelay
+
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-stream-monitor.png" alt="" width="600"/>
+<img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-flow-monitor.png" alt="" width="600"/>
