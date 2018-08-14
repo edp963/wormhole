@@ -59,9 +59,7 @@ object SwiftsConfMemoryStorage extends Serializable {
 
   def getDataStoreConnections(namespace: String): ConnectionConfig = {
     val connectionNs = namespace.split("\\.").slice(0, 3).mkString(".")
-    for (elem <- dataStoreConnectionsMap.keySet) {
 
-    }
     if (dataStoreConnectionsMap.contains(connectionNs)) {
       dataStoreConnectionsMap(connectionNs)
     } else {
