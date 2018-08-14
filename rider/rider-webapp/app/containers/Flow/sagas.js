@@ -42,7 +42,15 @@ import {
   SAVE_FORM,
   CHECKOUT_FORM,
   EDIT_FLOWS,
-  QUERY_FLOW
+  QUERY_FLOW,
+  STARTFLINK_FLOWS,
+  LOAD_LASTEST_OFFSET,
+  POST_USER_TOPIC,
+  DELETE_USER_TOPIC,
+  LOAD_UDFS,
+  STOPFLINK_FLOWS,
+  LOAD_ADMIN_LOGS_INFO,
+  LOAD_LOGS_INFO
 } from './constants'
 
 import {
@@ -78,7 +86,14 @@ import {
   formCheckOuted,
   formCheckOutingError,
   flowEdited,
-  flowQueryed
+  flowQueryed,
+  flowOperatedError,
+  flinkFlowStartSucc,
+  lastestOffsetLoaded,
+  postUserTopicLoaded,
+  deleteUserTopicLoaded,
+  adminLogsInfoLoaded,
+  logsInfoLoaded
 } from './action'
 
 import request from '../../utils/request'
@@ -129,7 +144,16 @@ export function* getAdminSingleFlowWatcher () {
 
 export function* getSelectStreamKafkaTopic ({ payload }) {
   try {
-    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/streams?streamType=${payload.value}`)
+    let type = ''
+    let value = ''
+    if (payload.streamType === 'flink') {
+      type = 'streamType'
+      value = payload.streamType
+    } else {
+      type = 'functionType'
+      value = payload.functionType
+    }
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/streams?${type}=${value}`)
     yield put(selectStreamKafkaTopicLoaded(result.payload))
     payload.resolve(result.payload)
   } catch (err) {
@@ -525,6 +549,172 @@ export function* queryLookupSqlWatcher () {
   yield fork(takeEvery, LOAD_LOOKUP_SQL, queryLookupSql)
 }
 
+export function* startFlinkFlow ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'put',
+      url: `${api.projectStream}/${payload.projectId}/flinkstreams/flows/${payload.id}/${payload.action}`,
+      data: payload.topicResult
+    })
+    if (result.code && result.code !== 200) {
+      yield put(flowOperatedError(result.msg))
+      payload.reject(result.msg)
+    } else if (result.header.code && result.header.code === 200) {
+      yield put(flinkFlowStartSucc(result.payload))
+      payload.resolve()
+    } else {
+      yield put(flowOperatedError(result.payload))
+      payload.reject(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'startFlinkFlow')
+  }
+}
+
+export function* startFlinkFlowWathcer () {
+  yield fork(takeEvery, STARTFLINK_FLOWS, startFlinkFlow)
+}
+
+export function* stopFlinkFlow ({payload}) {
+  try {
+    const result = yield call(request, {
+      method: 'put',
+      url: `${api.projectStream}/${payload.projectId}/flinkstreams/flows/${payload.id}/stop`,
+      data: null
+    })
+    if (result.code && result.code !== 200) {
+      yield put(flowOperatedError(result.msg))
+      payload.reject(result.msg)
+    } else if (result.header.code && result.header.code === 200) {
+      yield put(flinkFlowStartSucc(result.payload))
+      payload.resolve()
+    } else {
+      yield put(flowOperatedError(result.payload))
+      payload.reject(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'stopFlinkFlow')
+  }
+}
+
+export function* stopFlinkFlowWathcer () {
+  yield fork(takeEvery, STOPFLINK_FLOWS, stopFlinkFlow)
+}
+
+export function* getLastestOffset ({ payload }) {
+  let req = null
+  if (payload.type === 'get') {
+    req = `${api.projectStream}/${payload.projectId}/flows/${payload.streamId}/topics`
+  } else if (payload.type === 'post') {
+    req = {
+      method: 'post',
+      url: `${api.projectStream}/${payload.projectId}/flows/${payload.streamId}/topics`,
+      data: payload.topics
+    }
+  }
+  try {
+    const result = yield call(request, req)
+    if (result.code && result.code === 200) {
+      yield put(lastestOffsetLoaded(result.msg))
+      payload.resolve(result.msg)
+    } else if (result.header.code && result.header.code === 200) {
+      yield put(lastestOffsetLoaded(result.payload))
+      payload.resolve(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'getLastestOffset')
+  }
+}
+
+export function* getLastestOffsetWatcher () {
+  yield fork(takeLatest, LOAD_LASTEST_OFFSET, getLastestOffset)
+}
+
+export function* addUserTopic ({payload}) {
+  try {
+    const result = yield call(request, {
+      method: 'post',
+      url: `${api.projectUserList}/${payload.projectId}/flows/${payload.streamId}/topics/userdefined`,
+      data: payload.topic
+    })
+    if (result.header.code && result.header.code === 200) {
+      yield put(postUserTopicLoaded(result.payload))
+      payload.resolve(result.payload)
+    } else {
+      payload.reject(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'addUserTopic')
+  }
+}
+
+export function* addUserTopicWatcher () {
+  yield fork(takeEvery, POST_USER_TOPIC, addUserTopic)
+}
+
+export function* removeUserTopic ({payload}) {
+  try {
+    const result = yield call(request, {
+      method: 'delete',
+      url: `${api.projectUserList}/${payload.projectId}/flows/${payload.streamId}/topics/userdefined/${payload.topicId}`
+    })
+    if (result.header.code && result.header.code === 200) {
+      yield put(deleteUserTopicLoaded(result.payload))
+      payload.resolve(result.payload)
+    } else {
+      payload.reject(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'removeUserTopic')
+  }
+}
+
+export function* removeUserTopicWatcher () {
+  yield fork(takeEvery, DELETE_USER_TOPIC, removeUserTopic)
+}
+export function* getUdfs ({payload}) {
+  const apiFinal = payload.roleType === 'admin'
+  ? `${api.projectAdminStream}`
+  : `${api.projectStream}`
+  try {
+    const result = yield call(request, `${apiFinal}/${payload.projectId}/flows/${payload.streamId}/udfs`)
+    payload.resolve(result.payload)
+  } catch (err) {
+    notifySagasError(err, 'getUdfs')
+  }
+}
+
+export function* getUdfsWatcher () {
+  yield fork(takeEvery, LOAD_UDFS, getUdfs)
+}
+
+export function* getLogs ({ payload }) {
+  try {
+    const result = yield call(request, `${api.projectStream}/${payload.projectId}/flows/${payload.flowId}/logs`)
+    yield put(logsInfoLoaded(result.payload))
+    payload.resolve(result.payload)
+  } catch (err) {
+    notifySagasError(err, 'getLogs')
+  }
+}
+
+export function* getLogsWatcher () {
+  yield fork(takeLatest, LOAD_LOGS_INFO, getLogs)
+}
+
+export function* getAdminLogs ({ payload }) {
+  try {
+    const result = yield call(request, `${api.projectList}/${payload.projectId}/flows/${payload.flowId}/logs`)
+    yield put(adminLogsInfoLoaded(result.payload))
+    payload.resolve(result.payload)
+  } catch (err) {
+    notifySagasError(err, 'getAdminLogs')
+  }
+}
+
+export function* getAdminLogsWatcher () {
+  yield fork(takeLatest, LOAD_ADMIN_LOGS_INFO, getAdminLogs)
+}
 export default [
   getAdminAllFlowsWatcher,
   getUserAllFlowsWatcher,
@@ -547,5 +737,14 @@ export default [
   saveFormWatcher,
   checkOutFormWatcher,
   editFlowWatcher,
-  queryFormWatcher
+  queryFormWatcher,
+
+  startFlinkFlowWathcer,
+  getLastestOffsetWatcher,
+  addUserTopicWatcher,
+  removeUserTopicWatcher,
+  getUdfsWatcher,
+  stopFlinkFlowWathcer,
+  getLogsWatcher,
+  getAdminLogsWatcher
 ]

@@ -2,7 +2,7 @@
 layout: global
 displayTitle: Concept
 title: Concept
-description: Wormhole WH_VERSION_SHORT Concept page
+description: Wormhole Concept page
 ---
 
 * This will become a table of contents (this text will be scraped).
@@ -21,7 +21,7 @@ Namespace是Wormhole定义的唯一定位数据系统上数据表的规范，由
 - Database Partition 代表 Database 的分区名称（目前 Wormhole 中处理时用“*”匹配所有分区的数据）
 - Table Partition 代表 Table 的分表名称（目前 Wormhole 中处理时用“*”匹配所有分表的数据）
 
-例如：mysql.test.social.user.*.*.*    kafka.test.social.user.*.*.*
+例如：`mysql.test.social.user.*.*.*    kafka.test.social.user.*.*.*`
 
 ## UMS（统一消息规范）
 

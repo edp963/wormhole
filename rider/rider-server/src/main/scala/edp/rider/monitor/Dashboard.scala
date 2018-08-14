@@ -49,12 +49,12 @@ object Dashboard extends RiderLogger {
 
   private def grafanaPostData(token: String, uri: Uri, userData: ByteString) = {
     val authorization: Authorization = headers.Authorization(HttpCredentials.createOAuth2BearerToken(token))
-    val a = headers.`Content-Type`.apply(ContentTypes.`application/json`)
-    val b = headers.Accept.apply(MediaTypes.`application/json`)
+//    val a = headers.`Content-Type`.apply(ContentTypes.`application/json`)
+//    val b = headers.Accept.apply(MediaTypes.`application/json`)
     val httpRequest: HttpRequest = HttpRequest(
       HttpMethods.POST,
       uri,
-      headers = List(authorization, a, b),
+      headers = List(authorization),
       protocol = HttpProtocols.`HTTP/1.1`,
       entity = HttpEntity.apply(ContentTypes.`application/json`, userData)
     )

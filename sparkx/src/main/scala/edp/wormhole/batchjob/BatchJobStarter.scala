@@ -32,7 +32,7 @@ import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.{UmsDataSystem, UmsNamespace, UmsProtocolType, UmsSysField}
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 
 import scala.collection.mutable.ListBuffer
 
@@ -91,15 +91,25 @@ object BatchJobStarter extends App with EdpLogging {
   var outPutTransformDf = transformDf.select(projectionFields.head, projectionFields.tail: _*)
   println("after!!!!!!!!!!! outPutTransformDf")
 
+  val specialConfig: Option[String] = if (sinkConfig.specialConfig.isDefined) Some(new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkConfig.specialConfig.get.toString.split(" ").mkString("")))) else None
   if (UmsNamespace(sinkConfig.sinkNamespace).dataSys == UmsDataSystem.PARQUET) {
-    outPutTransformDf.write.parquet(sinkConfig.connectionConfig.connectionUrl)
+    //*   - `overwrite`: overwrite the existing data.
+    //*   - `append`: append the data.
+    //*   - `ignore`: ignore the operation (i.e. no-op).
+    //*   - `error`: default option, throw an exception at runtime.
+
+    var saveMode = "overwrite"
+    if(specialConfig.nonEmpty && specialConfig.get.nonEmpty) {
+      val specialJson = JSON.parseObject(specialConfig.get)
+      if(specialJson.containsKey("savemode")) saveMode = specialJson.getString("savemode")
+    }
+    outPutTransformDf.write.mode(saveMode).parquet(sinkConfig.connectionConfig.connectionUrl)
   } else {
     val schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)] = SparkUtils.getSchemaMap(outPutTransformDf.schema)
     val limit = sinkConfig.maxRecordPerPartitionProcessed
     val sinkClassFullName = sinkConfig.classFullName.get
     val sinkNamespace = sinkConfig.sinkNamespace
     val sourceNamespace = sourceConfig.sourceNamespace
-    val specialConfig: Option[String] = if (sinkConfig.specialConfig.isDefined) Some(new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkConfig.specialConfig.get.toString.split(" ").mkString("")))) else None
     val sinkConnectionConfig = sinkConfig.connectionConfig
     val sinkProcessConfig = SinkProcessConfig("", sinkConfig.tableKeys, specialConfig, None, sinkClassFullName, 1, 1) //todo json to replace none
     outPutTransformDf.foreachPartition(partition => {
