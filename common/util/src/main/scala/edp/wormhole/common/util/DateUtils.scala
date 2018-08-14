@@ -21,14 +21,15 @@
 
 package edp.wormhole.common.util
 
-import java.sql.{Date => SqlDate, Timestamp}
+import java.sql.{Timestamp, Date => SqlDate}
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.{Calendar, Date, TimeZone}
 
 import edp.wormhole.common.WormholeDefault._
 import edp.wormhole.common.util.DtFormat.DtFormat
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+
 import scala.util.matching.Regex
 
 
@@ -100,26 +101,25 @@ trait DateUtils {
     val DATE_H_DASH = "yyyy-MM-dd HH"
     val DATE_HM_DASH = "yyyy-MM-dd HH:mm"
     val DATE_HMS_DASH = "yyyy-MM-dd HH:mm:ss"
+    val DATE_HMS_Z_DASH = "yyyy-MM-dd HH:mm:ss'Z'"
     val DATE_HMS_M_DASH = "yyyy-MM-dd HH:mm:ss.SSS"
+    val DATE_HMS_M_Z_DASH = "yyyy-MM-dd HH:mm:ss.SSS'Z'"
+    val DATE_T_HMS_M_DASH = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+    val DATE_T_HMS_M_Z_DASH = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
 
     val DATE_REGEX_DASH = """\d{4}-\d{2}-\d{2}"""
-    val SEPARATOR_REGEX = """(T?|\s*)"""
+    val SEPARATOR_REGEX = """(\s*)"""
+    val SEPARATOR_REGEX_T = """(T?)"""
     val DATE_FORMAT_VALIDATORS = List(
       DATE_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + """\s*$"""),
       DATE_H_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX + """\d\d\s*$"""),
       DATE_HM_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX + """\d\d:\d\d\s*$"""),
       DATE_HMS_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX + """\d\d:\d\d:\d\d\s*$"""),
-      DATE_HMS_M_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX + """\d\d:\d\d:\d\d\.\d{1,3}\s*$"""))
-
-    //    def prepare(timeString: String): String = {
-    //      val s =
-    //        if (timeString.contains("-")) timeString
-    //        else if (timeString.contains("/")) timeString.replaceAll("[/]", "-")
-    //        else timeString.substring(0, 4) + "-" + timeString.substring(4, 6) + "-" + timeString.substring(6)
-    //      val dotStart = s.indexOf('.') + 1
-    //      val toTrunc = if (dotStart > 0 && s.length > dotStart + 3) s.length - (dotStart + 3) else 0
-    //      s.dropRight(toTrunc)
-    //    }
+      DATE_HMS_Z_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX + """\d\d:\d\d:\d\d[Z]\s*$"""),
+      DATE_HMS_M_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX + """\d\d:\d\d:\d\d\.\d{1,3}\s*$"""),
+      DATE_HMS_M_Z_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX + """\d\d:\d\d:\d\d\.\d{1,3}[Z]\s*$"""),
+      DATE_T_HMS_M_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX_T + """\d\d:\d\d:\d\d\.\d{1,3}\s*$"""),
+      DATE_T_HMS_M_Z_DASH -> new Regex( """^\s*""" + DATE_REGEX_DASH + SEPARATOR_REGEX_T + """\d\d:\d\d:\d\d\.\d{1,3}[Z]\s*$"""))
 
     def prepare(timeString: String): String = {
       val s =
@@ -131,12 +131,27 @@ trait DateUtils {
       val msLength = dotStart + 3
       val overMsLength = s.length - msLength
       val lessMsLength = msLength - s.length
-      if (hasDot && overMsLength >= 0) return s.dropRight(overMsLength)
-      if (hasDot && lessMsLength >= 0) return (0 until lessMsLength).foldLeft(s)((soFar, i) => soFar + "0")
-      if (hasDot) s + ".000" else s
+      val ts = if(s.endsWith("Z")) s
+      else if (hasDot && overMsLength >= 0) s.dropRight(overMsLength)
+      else if (hasDot && lessMsLength >= 0) (0 until lessMsLength).foldLeft(s)((soFar, i) => soFar + "0")
+      else if (hasDot) s + ".000"
+      else s
+
+      ts
     }
 
-    DATE_FORMAT_VALIDATORS.find(_._2.findFirstIn(prepare(timeString)).isDefined).map(_._1).map(getDateFormat(_).parse(prepare(timeString))).get
+    val preT =prepare(timeString)
+
+    DATE_FORMAT_VALIDATORS.find(_._2.findFirstIn(preT).isDefined).map(_._1).map(f=>{
+      val df = getDateFormat(f)
+      val dt: Date = df.parse(preT)
+      if(timeString.endsWith("Z")) {
+        val cal = Calendar.getInstance()
+        cal.setTime(dt)
+        cal.add(Calendar.HOUR, 8)
+        cal.getTime()
+      } else dt
+    }).get
   }
 
   def dt2date(timeString: String): Date = try {
