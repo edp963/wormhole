@@ -28,13 +28,13 @@ import scala.collection.mutable
 import java.lang.reflect.Method
 
 import edp.wormhole.common.{ConnectionConfig, FieldInfo, KVConfig}
+import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils.firstTimeAfterSecond
-import edp.wormhole.sparkxinterface.sinks.SinkProcessConfig
 import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
 import edp.wormhole.ums.UmsField
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType._
-import org.apache.spark.rdd.RDD
+//import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
@@ -131,14 +131,13 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
       if (!sinkTransformReflectMap.contains(className)) {
         val clazz = Class.forName(className)
         val obj = clazz.newInstance()
-        val method = clazz.getMethod("publicProcess",
-          classOf[SparkSession],
+        val method = clazz.getMethod("process",
           classOf[UmsProtocolType],
           classOf[String],
           classOf[String],
           classOf[SinkProcessConfig],
           classOf[collection.Map[String, (Int, UmsFieldType, Boolean)]],
-          classOf[RDD[Seq[String]]],
+          classOf[Seq[Seq[String]]],
           classOf[ConnectionConfig])
         sinkTransformReflectMap(className) = (obj, method)
       }

@@ -37,6 +37,11 @@
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-hadoop</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-ums_${ums.version}</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -69,6 +74,11 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-sinks</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-scala_${scala.binary.version}</artifactId>

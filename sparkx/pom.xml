@@ -87,6 +87,16 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-interface</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-sinks</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch-spark-20_2.11</artifactId>
             <version>5.5.2</version>
