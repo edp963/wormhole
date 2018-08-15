@@ -30,7 +30,7 @@ import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, Ses
 import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.CommonUtils.minTimeOut
 import edp.rider.rest.util.ResponseUtils._
-import edp.rider.spark.SparkJobClientLog
+import edp.rider.yarn.YarnClientLog
 
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
@@ -144,7 +144,7 @@ class StreamAdminApi(streamDal: StreamDal, projectDal:ProjectDal, jobDal:JobDal)
               onComplete(streamDal.getStreamNameByStreamID(streamId).mapTo[Stream]) {
                 case Success(stream) =>
                   riderLogger.info(s"user ${session.userId} refresh stream log where stream id is $streamId success.")
-                  val log = SparkJobClientLog.getLogByAppName(stream.name, stream.logPath.getOrElse(""))
+                  val log = YarnClientLog.getLogByAppName(stream.name, stream.logPath.getOrElse(""))
                   complete(OK, ResponseJson[String](getHeader(200, session), log))
                 case Failure(ex) =>
                   riderLogger.error(s"user ${session.userId} refresh stream log where stream id is $streamId failed", ex)

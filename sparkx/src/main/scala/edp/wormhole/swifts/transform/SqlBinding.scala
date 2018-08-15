@@ -22,7 +22,7 @@
 package edp.wormhole.swifts.transform
 
 
-import edp.wormhole.common.WormholeUtils
+import edp.wormhole.spark.common.WormholeUtils
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.swifts.SwiftsConstants
 import org.apache.spark.sql._

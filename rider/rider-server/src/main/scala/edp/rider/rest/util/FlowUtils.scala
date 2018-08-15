@@ -31,9 +31,9 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
 import edp.rider.rest.util.StreamUtils._
-import edp.rider.spark.SparkJobClientLog
-import edp.rider.spark.SparkStatusQuery._
-import edp.rider.spark.SubmitSparkJob._
+import edp.rider.yarn.YarnClientLog
+import edp.rider.yarn.YarnStatusQuery._
+import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.wormhole._
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.common.KVConfig
@@ -1165,7 +1165,7 @@ object FlowUtils extends RiderLogger {
   def getFlowStatusByLog(flowName: String, logPath: String, preStatus: String): String = {
     val failedPattern = "The program finished with the following exception".r
     try {
-      val fileLines = SparkJobClientLog.getLogByAppName(flowName, logPath)
+      val fileLines = YarnClientLog.getLogByAppName(flowName, logPath)
       if (failedPattern.findFirstIn(fileLines).nonEmpty)
         FlowStatus.FAILED.toString
       else preStatus
@@ -1212,7 +1212,7 @@ object FlowUtils extends RiderLogger {
   def getLog(flowId: Long): String = {
     val flow = Await.result(flowDal.findById(flowId), minTimeOut).get
     val flowName = getFlowName(flow.sourceNs, flow.sinkNs)
-    SparkJobClientLog.getLogByAppName(flowName, flow.logPath.getOrElse(""))
+    YarnClientLog.getLogByAppName(flowName, flow.logPath.getOrElse(""))
   }
 
   def getFlowTopicsMap(flowIds: Seq[Long]): Map[Long, GetTopicsResponse] = {

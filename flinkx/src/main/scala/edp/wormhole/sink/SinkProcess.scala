@@ -23,25 +23,19 @@ package edp.wormhole.sink
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.util.JsonUtils
 import edp.wormhole.common.KVConfig
-import edp.wormhole.config.SinkProcessConfig
+import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.swifts.SwiftsConfMemoryStorage
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
-import edp.wormhole.ums.WormholeUms.toJsonCompact
 import edp.wormhole.ums._
 import edp.wormhole.util.{FlinkSchemaUtils, UmsFlowStartUtils}
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala.{DataStream, _}
 import org.apache.flink.types.Row
-import org.apache.log4j.Logger
-import edp.wormhole.swifts.SwiftsConstants.PROTOCOL_TYPE
 
-import scala.collection.mutable.ListBuffer
 
 object SinkProcess extends Serializable {
-  private lazy val logger = Logger.getLogger(this.getClass)
 
-  def doProcess(dataStream: DataStream[Row], umsFlowStart: Ums, schemaMap: Map[String, (TypeInformation[_], Int)]): DataStreamSink[String] = {
+  def doProcess(dataStream: DataStream[Row], umsFlowStart: Ums, schemaMap: Map[String, (TypeInformation[_], Int)]): Unit= {
     val umsFlowStartSchemas: Seq[UmsField] = umsFlowStart.schema.fields_get
     val umsFlowStartPayload: UmsTuple = umsFlowStart.payload_get.head
     val sinksStr = UmsFlowStartUtils.extractSinks(umsFlowStartSchemas, umsFlowStartPayload)
@@ -49,28 +43,8 @@ object SinkProcess extends Serializable {
     val schemaMapWithUmsType: Map[String, (Int, UmsFieldType, Boolean)] = schemaMap.map(entry => (entry._1, (entry._2._2, FlinkSchemaUtils.FlinkType2UmsType(entry._2._1), true)))
     val sinkNamespace = UmsFlowStartUtils.extractSinkNamespace(umsFlowStartSchemas, umsFlowStartPayload)
     registerConnection(sinks, sinkNamespace)
-
-    val rowSize = schemaMapWithUmsType.size
-    val schemaList: Seq[(String, (Int, UmsFieldType, Boolean))] = schemaMapWithUmsType.toSeq.sortBy(_._2._1)
-    val seqUmsField: Seq[UmsField] = schemaList.map(kv => UmsField(kv._1, kv._2._2, Some(kv._2._3))).drop(1)
-    val schema = UmsSchema(sinkNamespace, Some(seqUmsField))
-
-    val umsDataStream: DataStream[String] = dataStream.map {
-      row =>
-        val listBuffer = ListBuffer.empty[String]
-        for (index <- 1 until rowSize) {
-          val fieldInRow = row.getField(index)
-          logger.info(s"field in row in umsDataStream map $fieldInRow")
-          if (null == fieldInRow) listBuffer.append(null.asInstanceOf[String])
-          else listBuffer.append(fieldInRow.toString)
-        }
-        val umsTuple = UmsTuple(listBuffer)
-        val protocol = UmsProtocol(UmsProtocolType.umsProtocolType(row.getField(schemaMap(PROTOCOL_TYPE)._2).toString))
-        val umsJson = toJsonCompact(Ums(protocol, schema, payload = Some(Seq(umsTuple))))
-        logger.info("in SinkProcess.doProcess " + umsJson)
-        umsJson
-    }
-    new Data2KafkaSink().process(umsDataStream, sinkNamespace, getSinkProcessConfig(sinks))
+    val sinkProcessConfig:SinkProcessConfig=getSinkProcessConfig(sinks)
+    dataStream.map(new SinkMapper(schemaMapWithUmsType,sinkNamespace,sinkProcessConfig,umsFlowStart,SwiftsConfMemoryStorage.getDataStoreConnections(sinkNamespace)))
   }
 
   private def registerConnection(sinks: JSONObject, sinkNamespace: String): Unit = {

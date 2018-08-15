@@ -32,7 +32,12 @@
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
-            <artifactId>wormhole-kafka-010</artifactId>
+            <artifactId>wormhole-kafka-010-2</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-hadoop</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -63,7 +68,17 @@
             <artifactId>wormhole-dbpool</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-sinks</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-scala_${scala.binary.version}</artifactId>
