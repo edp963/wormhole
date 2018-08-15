@@ -908,7 +908,7 @@ export class WorkbenchFlowForm extends React.Component {
                 })(
                   <RadioGroup className="radio-group-style" size="default">
                     <RadioButton value="processing_time">Processing Time</RadioButton>
-                    {/* <RadioButton value="event_time">Event Time</RadioButton> */}
+                    <RadioButton value="event_time">Event Time</RadioButton>
                   </RadioGroup>
                 )}
               </FormItem>
