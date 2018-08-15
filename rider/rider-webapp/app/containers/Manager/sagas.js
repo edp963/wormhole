@@ -132,9 +132,9 @@ export function* getStreamDetailWatcher () {
 export function* getStreamNameValue ({ payload }) {
   try {
     const result = yield call(request, `${api.projectStream}/${payload.projectId}/streams?streamName=${payload.value}`)
-    if (result.code === 409) {
-      yield put(streamNameValueErrorLoaded(result.msg))
-      payload.reject(result.msg)
+    if (result.header && result.header.code === 451) {
+      yield put(streamNameValueErrorLoaded(result.payload))
+      payload.reject(result.payload)
     } else {
       yield put(streamNameValueLoaded(result.payload))
       payload.resolve()
