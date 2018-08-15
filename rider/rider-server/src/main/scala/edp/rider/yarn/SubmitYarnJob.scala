@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.rider.spark
+package edp.rider.yarn
 
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.entities.{FlinkResourceConfig, StartConfig, Stream}
@@ -31,7 +31,7 @@ import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.sys.process.{Process, _}
 
-object SubmitSparkJob extends App with RiderLogger {
+object SubmitYarnJob extends App with RiderLogger {
 
   //  def startSparkSubmit(args: String, streamID: Long, brokers: String, streamName: String, startConfig: StartConfig, launchConfig: LaunchConfig, sparkConfig: String, streamType: String): Unit = {
   //    val args = getConfig(streamID, streamName, brokers, launchConfig)

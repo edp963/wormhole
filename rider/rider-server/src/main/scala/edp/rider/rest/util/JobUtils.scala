@@ -29,8 +29,8 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.FlowUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
-import edp.rider.spark.SparkStatusQuery.getSparkJobStatus
-import edp.rider.spark.SubmitSparkJob._
+import edp.rider.yarn.YarnStatusQuery.getSparkJobStatus
+import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.wormhole._
 import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.common.util.CommonUtils._
