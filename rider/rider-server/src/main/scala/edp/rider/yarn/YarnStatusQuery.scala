@@ -19,14 +19,14 @@
  */
 
 
-package edp.rider.spark
+package edp.rider.yarn
 
 import com.alibaba.fastjson.JSON
 import edp.rider.RiderStarter.modules
 import edp.rider.common._
 import edp.rider.rest.persistence.entities.{FlinkJobStatus, FullJobInfo, Job}
 import edp.rider.rest.util.JobUtils.getDisableAction
-import edp.rider.spark.SparkJobClientLog._
+import edp.rider.yarn.YarnClientLog._
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.common.util.DtFormat
 import edp.wormhole.common.util.JsonUtils._
@@ -37,7 +37,7 @@ import scala.collection.mutable.ListBuffer
 import scalaj.http.{Http, HttpResponse}
 
 
-object SparkStatusQuery extends RiderLogger {
+object YarnStatusQuery extends RiderLogger {
 
   def getSparkAllJobStatus(jobs: Seq[Job], sparkList: List[AppResult], projectName: String) = jobs.map(job => {
     val appInfo = mappingSparkJobStatus(job, sparkList)
@@ -271,23 +271,6 @@ object SparkStatusQuery extends RiderLogger {
     }
   }
 
-  //  def getJobManagerAddressOnYarn(appId: String): String = {
-  //    val activeRm = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
-  //    val url = s"http://$activeRm/ws/v1/cluster/apps/${appId}"
-  //    try {
-  //      val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
-  ////      riderLogger.info(response.toString)
-  //      val json = JsonParser.apply(response.body).toString()
-  //      val app = JSON.parseObject(json).getString("app")
-  //      JSON.parseObject(app).getString("amHostHttpAddress")
-  //    } catch {
-  //      case ex: Exception =>
-  //        riderLogger.error(s"Get Flink JobManager address failed by request url $url", ex)
-  //        throw ex
-  //    }
-  //  }
-
-
   def getJobManagerAddressOnYarn(appId: String): String = {
     val activeRm = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
     //    val url = s"http://$activeRm/proxy/$appId/jobmanager/config"
@@ -337,31 +320,6 @@ object SparkStatusQuery extends RiderLogger {
         }
     }
     flinkJobMap.toMap
-  }
-
-  def getJobIdOnYarn(appId: String, flowName: String): String = {
-    var jobId = ""
-    val activeRm = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
-    val url = s"http://$activeRm/proxy/$appId/jobs/overview"
-    try {
-      val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
-      //      riderLogger.info("flow yarn response: " + response)
-      val json = JsonParser.apply(response.body).toString()
-      val jobsSeq = JSON.parseObject(json).getJSONArray("jobs")
-      for (i <- 0 until jobsSeq.size()) {
-        val info = jobsSeq.getString(i)
-        if (JSON.parseObject(info).getString("name").equals(flowName)) {
-          jobId = JSON.parseObject(info).getString("jid")
-        }
-        else
-          throw new Exception(s"flow $flowName not found on url $url")
-      }
-      jobId
-    } catch {
-      case ex: Exception =>
-        riderLogger.error(s"Get Flink Job id failed by request url $url", ex)
-        throw ex
-    }
   }
 
   private def formatTime(time: Long): String = {

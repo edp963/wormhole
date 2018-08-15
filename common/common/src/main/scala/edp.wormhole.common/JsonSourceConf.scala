@@ -2,12 +2,10 @@ package edp.wormhole.common
 
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import edp.wormhole.ums.{UmsField, UmsFieldType}
-import org.apache.log4j.Logger
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
-object JsonSourceConf{
-  private lazy val logger = Logger.getLogger(this.getClass)
+object JsonSourceConf {
   def parse(dataSchema: String): RegularJsonSchema = {
     val jsonObj = JSON.parseObject(dataSchema)
     val fieldsValue = jsonObj.getString("fields")
@@ -28,12 +26,12 @@ object JsonSourceConf{
         val actualName = if (rename.isDefined) (name, rename.get) else (name, name)
         val umsFieldName=if (rename.isDefined) rename.get else name
         umsFieldName match {
-            case "ums_ts_" => umsTsField = name
-            case "ums_id_" => umsIdField = name
-            case "ums_op_" => umsOpField = name
-            case "ums_uid_" => umsUidField = name
-            case _ =>
-          }
+          case "ums_ts_" => umsTsField = name
+          case "ums_id_" => umsIdField = name
+          case "ums_op_" => umsOpField = name
+          case "ums_uid_" => umsUidField = name
+          case _ =>
+        }
         val nullable = if (jsonObj.containsKey("nullable") && jsonObj.getString("nullable").nonEmpty) Some(jsonObj.getBooleanValue("nullable")) else Some(true)
         val separator = if (jsonObj.containsKey("tuple_sep") && jsonObj.getString("tuple_sep").nonEmpty) Some(jsonObj.getString("tuple_sep")) else None
         if (`type` == "jsonarray" || `type` == "tuple" || `type` == "jsonobject") {
@@ -58,12 +56,7 @@ object JsonSourceConf{
     }
     RegularJsonSchema(schemaArr, twoFieldArr, seqField)
   }
-
-  def judgeIfIsDefined(judgeStr: String): Option[String] = {
-    if (judgeStr == "") None else Some(judgeStr)
-  }
 }
-
 case class RegularJsonSchema(fieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)], schemaField: Seq[UmsField])
 
 //case class UmsSysRename(umsSysTs: String, umsSysId: Option[String], umsSysOp: Option[String], umsSysUid: Option[String])
@@ -76,5 +69,3 @@ case class FieldInfo(name: String,
                      rename: Option[String],
                      separator: Option[String]
                     )
-
-

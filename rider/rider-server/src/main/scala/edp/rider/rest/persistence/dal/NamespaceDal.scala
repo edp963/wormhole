@@ -141,11 +141,11 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
       val dbusSearch = Await.result(dbusDal.findAll, minTimeOut)
       simpleDbusSeq.foreach(simple => {
-        val dbusExist = dbusSearch.filter(_.namespace == simple.namespace)
+        val dbusExist = dbusSearch.filter(_.dbusId == simple.id)
         if (dbusExist.isEmpty)
           dbusSeq += Dbus(0, simple.id, simple.namespace, simple.kafka, simple.topic, kafkaIdMap(simple.kafka), topicIdMap(simple.topic), simple.createTime, currentSec)
         else {
-          val dbusUpdate = dbusExist.filter(dbus => dbus.dbusId == simple.id && dbus.kafka == simple.kafka && dbus.topic == simple.topic)
+          val dbusUpdate = dbusExist.filter(dbus => dbus.kafka == simple.kafka && dbus.topic == simple.topic && dbus.namespace == simple.namespace)
           if (dbusUpdate.isEmpty)
             dbusUpdateSeq += Dbus(dbusExist.head.id, simple.id, simple.namespace, simple.kafka, simple.topic, kafkaIdMap(simple.kafka), topicIdMap(simple.topic), simple.createTime, currentSec)
         }
