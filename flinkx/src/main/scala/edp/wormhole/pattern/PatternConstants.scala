@@ -116,6 +116,7 @@ object Quantifier extends Enumeration {
 
   val TIMES = Value("times")
   val TIMESORMORE = Value("timesormore")
+  val ONEORMORE=Value("oneormore")
 
 
   def quantifier(s: String) = Quantifier.withName(s.toLowerCase())
