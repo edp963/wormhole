@@ -196,7 +196,7 @@ object HdfsMainProcess extends EdpLogging {
     var currentUmsTsMax: String = ""
     if (jsonInfoMap.contains(namespace)) {
       val mapValue: (Seq[FieldInfo], ArrayBuffer[(String, String)], Seq[UmsField]) = jsonInfoMap(namespace)
-      val value: Seq[UmsTuple] = dataParse(message, mapValue._1, mapValue._2)
+      val value: Seq[UmsTuple] = JsonParseUtils.dataParse(message, mapValue._1, mapValue._2)
       val schema = mapValue._3
       val umsTsIndex = schema.map(_.name).indexOf(TS.toString)
       value.foreach(tuple => {

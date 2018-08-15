@@ -1,5 +1,23 @@
-package edp.wormhole.spark.common;
-
+/*-
+ * <<
+ * wormhole
+ * ==
+ * Copyright (C) 2016 - 2017 EDP
+ * ==
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * >>
+ */
+package edp.wormhole.spark.common
 import java.sql.Timestamp
 
 import com.alibaba.fastjson.{JSON, JSONObject}
@@ -16,10 +34,20 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.streaming.kafka010.OffsetRange
+import org.apache.spark.sql.expressions.Window
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.util.control.NonFatal
+import org.apache.spark.sql.functions._
+import java.sql.Timestamp
+
+//import com.alibaba.fastjson.{JSON, JSONObject}
+import edp.wormhole.kafka.WormholeKafkaProducer
+//import edp.wormhole.common.util.DateUtils.dt2timestamp
+import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
+import org.apache.spark.sql.types.StructField
+//import org.joda.time.DateTime
 
 object WormholeUtils {
   private lazy val logger = Logger.getLogger(this.getClass)
@@ -52,7 +80,7 @@ object WormholeUtils {
   def jsonGetValue(namespace: String, protocolType: UmsProtocolType, json: String, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])]): (Seq[UmsField], Seq[UmsTuple]) = {
     if (jsonSourceParseMap.contains((protocolType, namespace))) {
       val mapValue: (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)]) = jsonSourceParseMap((protocolType, namespace))
-      (mapValue._1, dataParse(json, mapValue._2, mapValue._3))
+      (mapValue._1, JsonParseUtils.dataParse(json, mapValue._2, mapValue._3))
     } else {
       val ums = json2Ums(json)
       (ums.schema.fields_get, ums.payload_get)
@@ -61,7 +89,7 @@ object WormholeUtils {
 
 
 
-  def dataParse(jsonStr: String, allFieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)]): Seq[UmsTuple] = {
+  /*def dataParse(jsonStr: String, allFieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)]): Seq[UmsTuple] = {
 
     val jsonParse = JSON.parseObject(jsonStr)
     val fieldNameSeq = twoFieldsArr.map(_._1)
@@ -248,7 +276,7 @@ object WormholeUtils {
 
       dt2timestamp(timestampLong)
     }
-  }
+  }*/
 
 
   def sendTopicPartitionOffset(offsetInfo: ArrayBuffer[OffsetRange], feedbackTopicName: String, config: WormholeConfig,batchId:String): Unit = {
