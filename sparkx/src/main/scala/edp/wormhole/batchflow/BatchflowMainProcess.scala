@@ -24,9 +24,10 @@ package edp.wormhole.batchflow
 import java.util.UUID
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.common.SparkSchemaUtils._
-import edp.wormhole.common.WormholeUtils.json2Ums
+import edp.wormhole.spark.common.SparkSchemaUtils._
+import edp.wormhole.spark.common.WormholeUtils.json2Ums
 import edp.wormhole.common._
+import  edp.wormhole.spark.common._
 import edp.wormhole.common.hadoop.HdfsUtils
 import edp.wormhole.common.util.{CommonUtils, DateUtils}
 import edp.wormhole.common.util.DateUtils._
@@ -40,7 +41,7 @@ import edp.wormhole.sinks.SourceMutationType
 import org.apache.spark.HashPartitioner
 import edp.wormhole.sinks.utils.SinkCommonUtils
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.sparkxinterface.sinks.SinkProcessConfig
+import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, ValidityConfig}
 import edp.wormhole.swifts.transform.SwiftsTransform
 import edp.wormhole.swifts.validity.{ValidityAgainstAction, ValidityCheckRule}
@@ -528,13 +529,13 @@ object BatchflowMainProcess extends EdpLogging {
       }
     }).cache()
 
-    val sendData: RDD[Seq[String]] = send2saveData.mapPartitions(par => {
-      par.flatMap(_._1)
+    send2saveData.foreachPartition(partition => {
+      val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
+      sinkMethod.invoke(sinkObject, protocolType, sourceNamespace, sinkNamespace, sinkProcessConfig, resultSchemaMap, partition.flatMap(_._1).toList, connectionConfig)
+
     })
 
 
-    val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
-    sinkMethod.invoke(sinkObject, session, protocolType, sourceNamespace, sinkNamespace, sinkProcessConfig, resultSchemaMap, sendData, connectionConfig)
 
     val nonTimeoutUids: Array[String] = send2saveData.mapPartitions(par => {
       par.flatMap(_._2)
