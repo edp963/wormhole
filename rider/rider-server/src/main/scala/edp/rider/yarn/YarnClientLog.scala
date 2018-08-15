@@ -19,18 +19,18 @@
  */
 
 
-package edp.rider.spark
+package edp.rider.yarn
 
 import java.io.File
 
 import edp.rider.common.YarnAppStatus._
 import edp.rider.common.{RiderLogger, StreamStatus}
-import edp.rider.spark.SubmitSparkJob._
+import edp.rider.yarn.SubmitYarnJob._
 
 import scala.language.postfixOps
 import scala.sys.process._
 
-object SparkJobClientLog extends RiderLogger {
+object YarnClientLog extends RiderLogger {
 
   def getLogByAppName(appName: String, logPath: String) = {
     assert(appName != "" || appName != null, "Refresh log, name couldn't be null or blank.")
