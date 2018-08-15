@@ -18,20 +18,13 @@
  * >>
  */
 package edp.wormhole.spark.common
-import java.sql.Timestamp
 
-import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.common.util.DateUtils.{currentDateTime, dt2timestamp}
+import edp.wormhole.common.util.DateUtils.currentDateTime
 import edp.wormhole.common.util.{CommonUtils, DateUtils}
-import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.UmsSchemaUtils.toUms
 import edp.wormhole.ums._
 import edp.wormhole.common._
 import org.apache.log4j.Logger
-import org.apache.spark.sql.expressions.Window
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.streaming.kafka010.OffsetRange
 import org.apache.spark.sql.expressions.Window
@@ -41,13 +34,9 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.util.control.NonFatal
 import org.apache.spark.sql.functions._
 import java.sql.Timestamp
-
-//import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.kafka.WormholeKafkaProducer
-//import edp.wormhole.common.util.DateUtils.dt2timestamp
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import org.apache.spark.sql.types.StructField
-//import org.joda.time.DateTime
 
 object WormholeUtils {
   private lazy val logger = Logger.getLogger(this.getClass)

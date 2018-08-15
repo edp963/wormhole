@@ -40,14 +40,14 @@ object SwiftsProcess extends Serializable {
 
   private var preSchemaMap: Map[String, (TypeInformation[_], Int)] = FlinkSchemaUtils.sourceSchemaMap.toMap
 
-  def process(dataStream: DataStream[Row], tableEnv: StreamTableEnvironment, swiftsSql: Option[Array[SwiftsSql]]): (DataStream[Row], Map[String, (TypeInformation[_], Int)]) = {
+  def process(dataStream: DataStream[Row],sourceNamespace:String, tableEnv: StreamTableEnvironment, swiftsSql: Option[Array[SwiftsSql]]): (DataStream[Row], Map[String, (TypeInformation[_], Int)]) = {
     var transformedStream = dataStream
     if (swiftsSql.nonEmpty) {
       val swiftsSqlGet = swiftsSql.get
       for (index <- swiftsSqlGet.indices) {
         val element = swiftsSqlGet(index)
         element.optType match {
-          case SqlOptType.FLINK_SQL => transformedStream = doFlinkSql(transformedStream, tableEnv, element.sql, index)
+          case SqlOptType.FLINK_SQL => transformedStream = doFlinkSql(transformedStream,sourceNamespace, tableEnv, element.sql, index)
           case SqlOptType.CEP => transformedStream = doCEP(transformedStream, element.sql, index)
           case SqlOptType.JOIN | SqlOptType.LEFT_JOIN => transformedStream = doLookup(transformedStream, element, index)
         }
@@ -57,12 +57,15 @@ object SwiftsProcess extends Serializable {
   }
 
 
-  private def doFlinkSql(dataStream: DataStream[Row], tableEnv: StreamTableEnvironment, sql: String, index: Int) = {
+  private def doFlinkSql(dataStream: DataStream[Row], sourceNamespace: String, tableEnv: StreamTableEnvironment, sql: String, index: Int) = {
     var table = tableEnv.fromDataStream(dataStream)
     table.printSchema()
-    val newSql = sql.substring(0, sql.indexOf("from"))
-    logger.info( s"""$newSql from $table""")
-    table = tableEnv.sqlQuery(s"""$newSql from $table""")
+    val projectClause = sql.substring(0, sql.indexOf("from")).trim
+    val namespaceTable = sourceNamespace.split("\\.").apply(3)
+    val whereClause = sql.substring(sql.indexOf(namespaceTable) + namespaceTable.length).trim
+    val newSql =s"""$projectClause FROM $table $whereClause"""
+    println(newSql+" "+table)
+    table = tableEnv.sqlQuery(newSql)
     table.printSchema()
     val key = s"swifts$index"
     val value = FlinkSchemaUtils.getSchemaMapFromTable(table.getSchema)

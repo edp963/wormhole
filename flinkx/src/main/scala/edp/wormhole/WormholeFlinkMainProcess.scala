@@ -62,10 +62,10 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
 
     assignTimeCharacteristic(env)
     val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase, sourceNamespace)
-    assignTimestamp(inputStream, sourceSchemaMap.toMap)
-    inputStream.print()
+   val watermarkStream = assignTimestamp(inputStream, sourceSchemaMap.toMap)
+    watermarkStream.print()
     try {
-      val (stream, schemaMap) = SwiftsProcess.process(inputStream, TableEnvironment.getTableEnvironment(env), swiftsSql)
+      val (stream, schemaMap) = SwiftsProcess.process(watermarkStream,sourceNamespace, TableEnvironment.getTableEnvironment(env), swiftsSql)
       SinkProcess.doProcess(stream, umsFlowStart, schemaMap)
     } catch {
       case e: Throwable => logger.error("swifts and sink", e)
