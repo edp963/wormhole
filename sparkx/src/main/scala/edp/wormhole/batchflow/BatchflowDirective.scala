@@ -27,7 +27,7 @@ import edp.wormhole.common._
 import edp.wormhole.directive._
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
-import edp.wormhole.sparkxinterface.sinks.SinkProcessConfig
+import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, ValidityConfig}
 import edp.wormhole.swifts.parse.ParseSwiftsSql
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective

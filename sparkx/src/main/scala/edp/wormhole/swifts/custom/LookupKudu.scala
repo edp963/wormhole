@@ -1,7 +1,8 @@
 package edp.wormhole.swifts.custom
 
-import edp.wormhole.common.{ConnectionConfig, SparkSchemaUtils}
-import edp.wormhole.common.SparkSchemaUtils.ums2sparkType
+import edp.wormhole.common.ConnectionConfig
+import edp.wormhole.spark.common.SparkSchemaUtils
+import edp.wormhole.spark.common.SparkSchemaUtils.ums2sparkType
 import edp.wormhole.sinks.kudu.KuduConnection
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.swifts.SwiftsSql
