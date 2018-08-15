@@ -90,7 +90,7 @@ Please refer to [Wormhole用户手册](https://edp963.github.io/wormhole).
 
 ## Latest Release
 
-Please download the latest [RELEASE](https://github.com/edp963/wormhole/releases/download/0.5.0-beta/wormhole-0.5.0-beta.tar.gz).
+Please download the latest RELEASE(链接:https://pan.baidu.com/s/1VmkhSCQ77ga-6GmVquUXoQ  密码:j4hz).
 
 ## Get Help
 

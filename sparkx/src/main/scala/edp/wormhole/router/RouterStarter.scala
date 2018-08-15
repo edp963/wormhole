@@ -22,7 +22,8 @@
 package edp.wormhole.router
 
 import edp.wormhole.common._
-import edp.wormhole.common.SparkContextUtils.createKafkaStream
+import edp.wormhole.spark.common._
+import edp.wormhole.spark.common.SparkContextUtils.createKafkaStream
 import edp.wormhole.common.util.JsonUtils
 import edp.wormhole.common.zookeeper.WormholeZkClient
 import edp.wormhole.directive.DirectiveFlowWatch

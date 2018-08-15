@@ -30,9 +30,9 @@ import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.UdfUtils.sendUdfDirective
-import edp.rider.spark.{SparkJobClientLog, SubmitSparkJob}
-import edp.rider.spark.SparkStatusQuery.{getAllYarnAppStatus, getAppStatusByRest}
-import edp.rider.spark.SubmitSparkJob.{generateSparkStreamStartSh, runShellCommand}
+import edp.rider.yarn.{YarnClientLog, SubmitYarnJob}
+import edp.rider.yarn.YarnStatusQuery.{getAllYarnAppStatus, getAppStatusByRest}
+import edp.rider.yarn.SubmitYarnJob.{generateSparkStreamStartSh, runShellCommand}
 import edp.rider.wormhole.{BatchFlowConfig, KafkaInputBaseConfig, KafkaOutputConfig, SparkConfig}
 import edp.rider.zookeeper.PushDirective
 import edp.rider.zookeeper.PushDirective._
@@ -109,7 +109,7 @@ object StreamUtils extends RiderLogger {
               case "refresh_spark" =>
                 getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, stream.status, startedTime, stoppedTime)
               case "refresh_log" =>
-                val logInfo = SparkJobClientLog.getAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""))
+                val logInfo = YarnClientLog.getAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""))
                 logInfo._2 match {
                   case "running" =>
                     getAppStatusByRest(appInfoList, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
@@ -220,7 +220,7 @@ object StreamUtils extends RiderLogger {
         riderLogger.info(s"start stream ${stream.id} command: $commandSh")
         runShellCommand(commandSh)
       case StreamType.FLINK =>
-        val commandSh = SubmitSparkJob.generateFlinkStreamStartSh(stream)
+        val commandSh = SubmitYarnJob.generateFlinkStreamStartSh(stream)
         riderLogger.info(s"start stream ${stream.id} command: $commandSh")
         runShellCommand(commandSh)
     }

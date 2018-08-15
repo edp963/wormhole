@@ -17,15 +17,14 @@
  * limitations under the License.
  * >>
  */
+package edp.wormhole.spark.common
 
-
-package edp.wormhole.common
-
-import edp.wormhole.common.util.{CommonUtils, DateUtils}
 import edp.wormhole.common.util.DateUtils.currentDateTime
-import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.ums._
+import edp.wormhole.common.util.{CommonUtils, DateUtils}
 import edp.wormhole.ums.UmsSchemaUtils.toUms
+import edp.wormhole.ums._
+import edp.wormhole.common._
+import org.apache.log4j.Logger
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.streaming.kafka010.OffsetRange
 import org.apache.spark.sql.expressions.Window
@@ -35,16 +34,12 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.util.control.NonFatal
 import org.apache.spark.sql.functions._
 import java.sql.Timestamp
-
-import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.common.util.DateUtils.dt2timestamp
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import org.apache.spark.sql.types.StructField
-import org.joda.time.DateTime
 
-object WormholeUtils extends EdpLogging {
-
+object WormholeUtils {
+  private lazy val logger = Logger.getLogger(this.getClass)
   def getFieldContentByType(row: Row, schema: Array[StructField], i: Int): Any = {
     if (schema(i).dataType.toString.equals("StringType")) {
       //if (row.get(i) == null) "''"  // join fields cannot be null
@@ -66,7 +61,7 @@ object WormholeUtils extends EdpLogging {
     try {
       toUms(json)
     } catch {
-      case NonFatal(e) => logError(s"message convert failed:\n$json", e)
+      case NonFatal(e) => logger.error(s"message convert failed:\n$json", e)
         Ums(UmsProtocol(UmsProtocolType.FEEDBACK_DIRECTIVE), UmsSchema("defaultNamespace"), None)
     }
   }
@@ -74,7 +69,7 @@ object WormholeUtils extends EdpLogging {
   def jsonGetValue(namespace: String, protocolType: UmsProtocolType, json: String, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])]): (Seq[UmsField], Seq[UmsTuple]) = {
     if (jsonSourceParseMap.contains((protocolType, namespace))) {
       val mapValue: (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)]) = jsonSourceParseMap((protocolType, namespace))
-      (mapValue._1, dataParse(json, mapValue._2, mapValue._3))
+      (mapValue._1, JsonParseUtils.dataParse(json, mapValue._2, mapValue._3))
     } else {
       val ums = json2Ums(json)
       (ums.schema.fields_get, ums.payload_get)
@@ -83,7 +78,7 @@ object WormholeUtils extends EdpLogging {
 
 
 
-  def dataParse(jsonStr: String, allFieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)]): Seq[UmsTuple] = {
+  /*def dataParse(jsonStr: String, allFieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)]): Seq[UmsTuple] = {
 
     val jsonParse = JSON.parseObject(jsonStr)
     val fieldNameSeq = twoFieldsArr.map(_._1)
@@ -270,18 +265,18 @@ object WormholeUtils extends EdpLogging {
 
       dt2timestamp(timestampLong)
     }
-  }
+  }*/
 
 
   def sendTopicPartitionOffset(offsetInfo: ArrayBuffer[OffsetRange], feedbackTopicName: String, config: WormholeConfig,batchId:String): Unit = {
     val topicConfigMap = mutable.HashMap.empty[String, ListBuffer[PartitionOffsetConfig]]
 
     offsetInfo.foreach { offsetRange =>
-      logInfo(s"----------- $offsetRange")
+      logger.info(s"----------- $offsetRange")
       val topicName = offsetRange.topic
       val partition = offsetRange.partition
       val offset = offsetRange.untilOffset
-      logInfo("brokers:" + config.kafka_output.brokers + ",topic:" + feedbackTopicName)
+      logger.info("brokers:" + config.kafka_output.brokers + ",topic:" + feedbackTopicName)
       if (!topicConfigMap.contains(topicName)) topicConfigMap(topicName) = new ListBuffer[PartitionOffsetConfig]
       topicConfigMap(topicName) += PartitionOffsetConfig(partition, offset)
     }
@@ -346,4 +341,3 @@ object WormholeUtils extends EdpLogging {
   }
 
 }
-

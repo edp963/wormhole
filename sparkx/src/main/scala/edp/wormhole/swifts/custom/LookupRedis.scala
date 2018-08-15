@@ -21,8 +21,10 @@
 package edp.wormhole.swifts.custom
 
 import com.alibaba.fastjson.JSON
-import edp.wormhole.common.{ConnectionConfig, KVConfig, SparkSchemaUtils, WormholeUtils}
-import edp.wormhole.common.SparkSchemaUtils.ums2sparkType
+import edp.wormhole.common.{ConnectionConfig, KVConfig}
+import edp.wormhole.spark.common.SparkSchemaUtils.ums2sparkType
+import edp.wormhole.spark.common.SparkSchemaUtils
+import edp.wormhole.spark.common.WormholeUtils
 import edp.wormhole.redis.JedisConnection
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.swifts.SwiftsSql

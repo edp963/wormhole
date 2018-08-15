@@ -27,7 +27,7 @@ import edp.wormhole.common._
 import edp.wormhole.directive._
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
-import edp.wormhole.sparkxinterface.sinks.SinkProcessConfig
+import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, ValidityConfig}
 import edp.wormhole.swifts.parse.ParseSwiftsSql
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
@@ -143,7 +143,13 @@ object BatchflowDirective extends Directive {
 
     if (dataType != "ums") {
       val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
-      ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
+      if(initial)
+        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INITIAL_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
+      if(increment)
+        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
+      if(batch)
+        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_BATCH_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
+
     }
 
     val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_schema, sink_process_class_fullname, sink_retry_times, sink_retry_seconds)
