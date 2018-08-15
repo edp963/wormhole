@@ -36,8 +36,8 @@ import edp.rider.rest.util.StreamUtils._
 import edp.rider.rest.util.UdfUtils._
 import edp.rider.rest.util.{AuthorizationProvider, StreamUtils}
 import edp.rider.service.util.CacheMap
-import edp.rider.spark.SparkJobClientLog
-import edp.rider.spark.SubmitSparkJob.runShellCommand
+import edp.rider.yarn.YarnClientLog
+import edp.rider.yarn.SubmitYarnJob.runShellCommand
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.common.util.JsonUtils.json2caseClass
 import slick.jdbc.MySQLProfile.api._
@@ -268,7 +268,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                     riderLogger.info(s"user ${
                       session.userId
                     } refresh stream log where stream id is $streamId success.")
-                    val log = SparkJobClientLog.getLogByAppName(stream.name, stream.logPath.getOrElse(""))
+                    val log = YarnClientLog.getLogByAppName(stream.name, stream.logPath.getOrElse(""))
                     complete(OK, ResponseJson[String](getHeader(200, session), log))
                   case Failure(ex) =>
                     riderLogger.error(s"user ${

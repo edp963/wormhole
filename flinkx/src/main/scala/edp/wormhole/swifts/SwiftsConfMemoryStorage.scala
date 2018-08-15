@@ -21,7 +21,12 @@
 
 package edp.wormhole.swifts
 
+import java.lang.reflect.Method
+
 import edp.wormhole.common.{ConnectionConfig, KVConfig}
+import edp.wormhole.sinks.SinkProcessConfig
+import edp.wormhole.ums.UmsFieldType.UmsFieldType
+import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import org.apache.log4j.Logger
 
 import scala.collection.mutable
@@ -29,12 +34,14 @@ import scala.collection.mutable
 object SwiftsConfMemoryStorage extends Serializable {
   private val logger: Logger = Logger.getLogger(SwiftsConfMemoryStorage.getClass)
   private val dataStoreConnectionsMap = mutable.HashMap.empty[String, ConnectionConfig]
+  private val sinkTransformReflectMap = mutable.HashMap.empty[String, (Any, Method)]
 
   def getDataStoreConnectionsMap = dataStoreConnectionsMap.toMap
 
   def registerDataStoreConnectionsMap(lookupNamespace: String, connectionUrl: String, username: Option[String], password: Option[String], parameters: Option[Seq[KVConfig]]) {
     logger.info("register datastore,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
     val connectionNamespace = lookupNamespace.split("\\.").slice(0, 3).mkString(".")
+    println("connectionNamespace:"+connectionNamespace)
     if (!dataStoreConnectionsMap.contains(connectionNamespace)) {
       dataStoreConnectionsMap(connectionNamespace) = ConnectionConfig(connectionUrl, username, password, parameters)
       logger.info("register datastore success,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
@@ -52,6 +59,9 @@ object SwiftsConfMemoryStorage extends Serializable {
 
   def getDataStoreConnections(namespace: String): ConnectionConfig = {
     val connectionNs = namespace.split("\\.").slice(0, 3).mkString(".")
+    for (elem <- dataStoreConnectionsMap.keySet) {
+
+    }
     if (dataStoreConnectionsMap.contains(connectionNs)) {
       dataStoreConnectionsMap(connectionNs)
     } else {
@@ -59,5 +69,26 @@ object SwiftsConfMemoryStorage extends Serializable {
     }
   }
 
+  def getSinkTransformReflect(className: String): (Any, Method) = {
+    if (!sinkTransformReflectMap.contains(className)) setSinkTransformReflectMap(className)
+    sinkTransformReflectMap(className)
+  }
 
+  def setSinkTransformReflectMap(className: String): Unit = {
+    synchronized {
+      if (!sinkTransformReflectMap.contains(className)) {
+        val clazz = Class.forName(className)
+        val obj = clazz.newInstance()
+        val method = clazz.getMethod("process",
+          classOf[UmsProtocolType],
+          classOf[String],
+          classOf[String],
+          classOf[SinkProcessConfig],
+          classOf[collection.Map[String, (Int, UmsFieldType, Boolean)]],
+          classOf[Seq[Seq[String]]],
+          classOf[ConnectionConfig])
+        sinkTransformReflectMap(className) = (obj, method)
+      }
+    }
+  }
 }

@@ -24,9 +24,12 @@ import java.util.Properties
 
 import com.alibaba.fastjson
 import com.alibaba.fastjson.JSON
+import edp.wormhole.common.FieldInfo
 import edp.wormhole.deserialization.WormholeDeserializationStringSchema
+import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.sink.SinkProcess
 import edp.wormhole.swifts._
+import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
 import edp.wormhole.util.FlinkSchemaUtils._
 import edp.wormhole.util.{UmsFlowStartUtils, WormholeFlinkxConfigUtils}
@@ -38,6 +41,8 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010
 import org.apache.flink.table.api.{TableEnvironment, Types}
 import org.apache.flink.types.Row
 import org.apache.log4j.Logger
+
+import scala.collection.mutable.ArrayBuffer
 
 
 class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) extends Serializable {
@@ -57,10 +62,10 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
 
     assignTimeCharacteristic(env)
     val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase, sourceNamespace)
-    assignTimestamp(inputStream, sourceSchemaMap.toMap)
-    inputStream.print()
+   val watermarkStream = assignTimestamp(inputStream, sourceSchemaMap.toMap)
+    watermarkStream.print()
     try {
-      val (stream, schemaMap) = SwiftsProcess.process(inputStream, TableEnvironment.getTableEnvironment(env), swiftsSql)
+      val (stream, schemaMap) = SwiftsProcess.process(watermarkStream,sourceNamespace, TableEnvironment.getTableEnvironment(env), swiftsSql)
       SinkProcess.doProcess(stream, umsFlowStart, schemaMap)
     } catch {
       case e: Throwable => logger.error("swifts and sink", e)
@@ -89,7 +94,9 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
       val (umsProtocolType, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(event._1)
       consumeProtocolMap.contains(umsProtocolType) && consumeProtocolMap(umsProtocolType) && matchNamespace(namespace, flowNamespace)
     })
-    initialStream.flatMap(new UmsFlatMapper(sourceSchemaMap.toMap, sourceNamespace))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
+
+    val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
+    initialStream.flatMap(new UmsFlatMapper(sourceSchemaMap.toMap, sourceNamespace, jsonSourceParseMap))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
   }
 
   private def assignTimeCharacteristic(env: StreamExecutionEnvironment): Unit = {

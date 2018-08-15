@@ -164,7 +164,6 @@ object FlinkSchemaUtils extends java.io.Serializable {
 
     WormholeKafkaConsumer.close(consumer)
     val umsSchema: UmsSchema = record
-
     //    WormholeZkClient.createAndSetData(zkAddress, zkPath, jsonSchema.getBytes("UTF-8"))
     //    WormholeZkClient.closeZkClient()
     umsSchema

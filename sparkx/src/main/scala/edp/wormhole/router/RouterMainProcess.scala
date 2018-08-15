@@ -24,7 +24,8 @@ package edp.wormhole.router
 import java.util.UUID
 
 import edp.wormhole.common.util.DateUtils
-import edp.wormhole.common.{FeedbackPriority, SparkUtils, WormholeConfig, WormholeUtils}
+import edp.wormhole.common.{FeedbackPriority,WormholeConfig }
+import edp.wormhole.spark.common.{SparkUtils,WormholeUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.spark.log.EdpLogging

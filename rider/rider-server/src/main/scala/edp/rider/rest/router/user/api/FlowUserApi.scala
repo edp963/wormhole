@@ -34,7 +34,7 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
 import edp.rider.rest.util.{AuthorizationProvider, FlowUtils}
 import edp.rider.service.util.CacheMap
-import edp.rider.spark.SparkJobClientLog
+import edp.rider.yarn.YarnClientLog
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await

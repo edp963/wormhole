@@ -11,8 +11,8 @@ import edp.rider.rest.util.JobUtils.{getDisableAction, killJob}
 import edp.rider.rest.util.ResponseUtils.{getHeader, _}
 import edp.rider.rest.util.StreamUtils.genStreamNameByProjectName
 import edp.rider.rest.util.{AuthorizationProvider, JobUtils, NamespaceUtils, StreamUtils}
-import edp.rider.spark.SubmitSparkJob.runShellCommand
-import edp.rider.spark.{SparkJobClientLog, SparkStatusQuery}
+import edp.rider.yarn.SubmitYarnJob.runShellCommand
+import edp.rider.yarn.{YarnClientLog, YarnStatusQuery}
 import edp.wormhole.common.util.JsonUtils.json2caseClass
 import slick.jdbc.MySQLProfile.api._
 
@@ -199,8 +199,8 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                           val jobList = jobs.filter(_.startedTime.isDefined)
                           val minStartTime = if (jobList.isEmpty) "" else jobList.map(_.startedTime.get).sorted.head
                           //check null to option None todo
-                          val allAppStatus = SparkStatusQuery.getAllAppStatus(minStartTime).filter(t => jobsNameSet.contains(t.appName))
-                          val rst: Seq[FullJobInfo] = SparkStatusQuery.getSparkAllJobStatus(jobs, allAppStatus, projectName)
+                          val allAppStatus = YarnStatusQuery.getAllAppStatus(minStartTime).filter(t => jobsNameSet.contains(t.appName))
+                          val rst: Seq[FullJobInfo] = YarnStatusQuery.getSparkAllJobStatus(jobs, allAppStatus, projectName)
                           complete(OK, ResponseJson[Seq[FullJobInfo]](getHeader(200, session), rst.sortBy(_.job.id)))
                         } else {
                           riderLogger.info(s"user ${session.userId} refresh project $projectId, but no jobs in project.")
@@ -341,7 +341,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                   case Success(job) =>
                     if (job.isDefined) {
                       riderLogger.info(s"user ${session.userId} refresh job log where job id is $jobId success.")
-                      val log = SparkJobClientLog.getLogByAppName(job.get.name, job.get.logPath.getOrElse(""))
+                      val log = YarnClientLog.getLogByAppName(job.get.name, job.get.logPath.getOrElse(""))
                       complete(OK, ResponseJson[String](getHeader(200, session), log))
                     } else {
                       riderLogger.error(s"user ${session.userId} refresh job log where job id is $jobId, but job does not exist")
