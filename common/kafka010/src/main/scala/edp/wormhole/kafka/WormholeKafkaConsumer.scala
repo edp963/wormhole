@@ -31,6 +31,7 @@ object WormholeKafkaConsumer {
   }
 
   def consumerRecords(consumer: KafkaConsumer[String, String], timeout: Long): ConsumerRecords[String, String] = {
+    println("----------------start consumerRecords")
     consumer.poll(timeout)
   }
 
