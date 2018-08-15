@@ -25,7 +25,6 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
-import edp.wormhole.spark.common.WormholeUtils.dataParse
 import edp.wormhole.common._
 import edp.wormhole.spark.common._
 import edp.wormhole.common.util.DateUtils
