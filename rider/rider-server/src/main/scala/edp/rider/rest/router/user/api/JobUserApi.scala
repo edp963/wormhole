@@ -13,7 +13,6 @@ import edp.rider.rest.util.StreamUtils.genStreamNameByProjectName
 import edp.rider.rest.util.{AuthorizationProvider, JobUtils, NamespaceUtils, StreamUtils}
 import edp.rider.yarn.SubmitYarnJob.runShellCommand
 import edp.rider.yarn.{YarnClientLog, YarnStatusQuery}
-import edp.wormhole.common.util.JsonUtils.json2caseClass
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await

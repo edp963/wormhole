@@ -26,7 +26,6 @@ import edp.wormhole.sinks.{SourceMutationType, _IDHelper}
 import edp.wormhole.ums.{UmsNamespace, UmsSysField}
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType._
-import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
 import org.apache.log4j.Logger
 

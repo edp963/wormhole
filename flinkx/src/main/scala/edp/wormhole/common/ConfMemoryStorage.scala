@@ -1,6 +1,6 @@
 package edp.wormhole.memorystorage
 
-import edp.wormhole.common.FieldInfo
+import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.ums.UmsField
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 

@@ -22,7 +22,6 @@
 package edp.wormhole.sinks.hbasesink
 
 import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.ums.UmsFieldType
 import org.apache.hadoop.conf.Configuration

@@ -33,8 +33,6 @@ import java.lang.{Double, Float, Long}
 import java.util
 
 import scala.collection.mutable.ListBuffer
-import edp.wormhole.common.util.JsonUtils._
-import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
 import org.apache.log4j.Logger
 

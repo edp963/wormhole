@@ -27,15 +27,17 @@ import java.util.UUID
 
 import edp.wormhole.common._
 import edp.wormhole.spark.common._
-import edp.wormhole.common.util.DateUtils
 import edp.wormhole.kafka.WormholeKafkaProducer
 import org.apache.spark.streaming.kafka010.CanCommitOffsets
+import edp.wormhole.common.hadoop.HdfsUtils._
+import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.sinks.utils.SinkCommonUtils._
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.UmsSchemaUtils._
 import edp.wormhole.ums._
 import edp.wormhole.ums.UmsSysField._
+import edp.wormhole.util.DateUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.rdd.RDD

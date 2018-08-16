@@ -39,7 +39,6 @@ import edp.rider.service.util.CacheMap
 import edp.rider.yarn.YarnClientLog
 import edp.rider.yarn.SubmitYarnJob.runShellCommand
 import edp.rider.zookeeper.PushDirective
-import edp.wormhole.common.util.JsonUtils.json2caseClass
 import slick.jdbc.MySQLProfile.api._
 
 import scala.collection.mutable.ListBuffer

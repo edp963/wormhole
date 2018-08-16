@@ -23,12 +23,12 @@ package edp.wormhole.directive
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import edp.wormhole.common.FeedbackPriority
-import edp.wormhole.common.util.DateUtils
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.udf.UdfRegister
 import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType}
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
+import edp.wormhole.util.DateUtils
 import org.apache.spark.sql.SparkSession
 
 object UdfDirective extends EdpLogging {

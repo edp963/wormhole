@@ -2,9 +2,9 @@ package edp.wormhole.common;
 
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import edp.wormhole.common.WormholeDefault.isNull
-import edp.wormhole.common.util.CommonUtils
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.{UmsActiveType, UmsFieldType, UmsOpType, UmsSysField}
+import edp.wormhole.util.CommonUtils
 
 object JsonParseHelper {
   def jsonObjHelper(tuple: Seq[String], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], subFields: JSONArray): JSONObject = {
