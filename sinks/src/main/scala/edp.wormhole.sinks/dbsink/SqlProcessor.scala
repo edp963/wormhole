@@ -24,7 +24,7 @@ package edp.wormhole.sinks.dbsink
 import java.sql._
 
 import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.common.db.DbConnection
+import edp.wormhole.dbdriver.dbpool.DbConnection
 import edp.wormhole.sinks.SourceMutationType.SourceMutationType
 import edp.wormhole.sinks.utils.SinkDefault._
 import edp.wormhole.ums.UmsDataSystem.UmsDataSystem
