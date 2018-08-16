@@ -21,7 +21,6 @@
 
 package edp.wormhole.spark.common
 
-import edp.wormhole.common.zookeeper.WormholeZkClient
 import edp.wormhole.spark.kafka010.WormholePerPartitionConfig
 import edp.wormhole.spark.log.EdpLogging
 import org.apache.kafka.common.TopicPartition
@@ -29,6 +28,8 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.kafka010._
 import edp.wormhole.common._
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient
+
 import scala.collection.mutable
 
 object SparkContextUtils extends EdpLogging{

@@ -21,7 +21,7 @@
 package edp.wormhole.util
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.common.zookeeper.WormholeZkClient
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.swifts.InputDataProtocolBaseType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
