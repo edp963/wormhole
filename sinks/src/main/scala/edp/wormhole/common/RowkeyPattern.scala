@@ -20,8 +20,8 @@
 
 package edp.wormhole.common
 
-import edp.wormhole.common.util.MD5Utils
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
+import edp.wormhole.util.MD5Utils
 
 import scala.collection.mutable.ListBuffer
 import scala.math.abs

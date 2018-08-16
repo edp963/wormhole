@@ -23,7 +23,6 @@ package edp.wormhole.pattern
 import java.sql.{Date, Timestamp}
 
 import com.alibaba.fastjson.JSONObject
-import edp.wormhole.common.util.DateUtils.{dt2sqlDate, dt2timestamp}
 import edp.wormhole.ordering.OrderingImplicit._
 import edp.wormhole.pattern.Functions.{HEAD, LAST, MAX, MIN}
 import edp.wormhole.pattern.Output._

@@ -23,7 +23,6 @@ package edp.rider.rest.util
 
 import edp.rider.common.RiderConfig
 import edp.rider.rest.router.SessionClass
-import edp.wormhole.common.util.JsonUtils._
 import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim, JwtHeader}
 import edp.rider.rest.util.AuthorizationProvider._
 

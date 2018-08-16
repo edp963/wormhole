@@ -20,8 +20,8 @@
 
 package edp.wormhole.spark.common
 
-import edp.wormhole.common.util.MD5Utils
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
+import edp.wormhole.util.MD5Utils
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructField
 

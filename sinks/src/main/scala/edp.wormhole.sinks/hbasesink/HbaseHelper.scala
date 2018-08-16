@@ -21,8 +21,8 @@
 
 package edp.wormhole.sinks.hbasesink
 
-import edp.wormhole.common.util.MD5Utils
 import edp.wormhole.ums.{UmsActiveType, UmsSysField}
+import edp.wormhole.util.MD5Utils
 import org.apache.hadoop.hbase.util.Bytes
 
 import scala.util.hashing.MurmurHash3

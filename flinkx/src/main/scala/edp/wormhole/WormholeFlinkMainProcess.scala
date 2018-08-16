@@ -24,7 +24,7 @@ import java.util.Properties
 
 import com.alibaba.fastjson
 import com.alibaba.fastjson.JSON
-import edp.wormhole.common.FieldInfo
+import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.deserialization.WormholeDeserializationStringSchema
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.sink.SinkProcess

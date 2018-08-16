@@ -27,9 +27,7 @@ import edp.wormhole.sinks.{DbHelper, SourceMutationType}
 import edp.wormhole.ums.UmsFieldType._
 //import edp.wormhole.sinks.utils.SinkDefault._
 import edp.wormhole.ums.UmsProtocolType._
-import edp.wormhole.common.util.JsonUtils._
 import org.joda.time.{DateTime, Seconds}
-import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.ums.UmsDataSystem.UmsDataSystem
 import edp.wormhole.ums.{UmsNamespace, UmsOpType, UmsSysField}

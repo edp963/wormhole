@@ -19,8 +19,8 @@
  */
 package edp.wormhole.spark.common
 
-import edp.wormhole.common.util.DateUtils.currentDateTime
-import edp.wormhole.common.util.{CommonUtils, DateUtils}
+import edp.wormhole.util.DateUtils.currentDateTime
+import edp.wormhole.common.util.CommonUtils
 import edp.wormhole.ums.UmsSchemaUtils.toUms
 import edp.wormhole.ums._
 import edp.wormhole.common._
@@ -34,8 +34,11 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.util.control.NonFatal
 import org.apache.spark.sql.functions._
 import java.sql.Timestamp
+
+import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
+import edp.wormhole.util.{CommonUtils, DateUtils}
 import org.apache.spark.sql.types.StructField
 
 object WormholeUtils {

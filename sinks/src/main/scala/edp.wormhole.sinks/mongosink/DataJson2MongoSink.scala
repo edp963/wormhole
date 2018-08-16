@@ -25,7 +25,6 @@ import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import com.mongodb.casbah._
 import com.mongodb.casbah.commons.{Imports, MongoDBList, MongoDBObject}
 import com.mongodb.{ReadPreference, WriteConcern, casbah}
-import edp.wormhole.common.util.JsonUtils.json2caseClass
 import edp.wormhole.common.{ConnectionConfig, JsonParseHelper}
 import edp.wormhole.sinks.SourceMutationType.INSERT_ONLY
 import edp.wormhole.sinks.{SourceMutationType, _IDHelper}

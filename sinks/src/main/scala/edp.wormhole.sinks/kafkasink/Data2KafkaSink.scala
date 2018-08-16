@@ -27,7 +27,6 @@ import com.alibaba.fastjson.JSONObject
 import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.WormholeUms._
-import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.ums._

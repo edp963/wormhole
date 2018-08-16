@@ -28,8 +28,8 @@ import edp.rider.rest.persistence.entities.{FlinkJobStatus, FullJobInfo, Job}
 import edp.rider.rest.util.JobUtils.getDisableAction
 import edp.rider.yarn.YarnClientLog._
 import edp.wormhole.common.util.DateUtils._
-import edp.wormhole.common.util.DtFormat
-import edp.wormhole.common.util.JsonUtils._
+import edp.wormhole.util.DtFormat
+import edp.wormhole.util.JsonUtils._
 import spray.json.JsonParser
 
 import scala.collection.mutable.HashMap
