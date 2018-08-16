@@ -23,10 +23,10 @@ package edp.wormhole.batchjob.source
 
 import java.sql.Timestamp
 
-import edp.wormhole.common.hadoop.HdfsUtils
 import edp.wormhole.common.hadoop.HdfsUtils._
 import edp.wormhole.common.util.DateUtils
 import edp.wormhole.common.util.FileUtils._
+import edp.wormhole.externalclient.hadoop.HdfsUtils
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.{UmsNamespace, UmsOpType, UmsProtocolType, UmsSysField}
 import org.apache.hadoop.conf.Configuration
