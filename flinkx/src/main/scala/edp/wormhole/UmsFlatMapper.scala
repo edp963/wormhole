@@ -21,11 +21,11 @@
 package edp.wormhole
 
 import edp.wormhole.common.FieldInfo
+import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.{UmsCommonUtils, UmsField}
 import edp.wormhole.util.FlinkSchemaUtils
-import edp.wormhole.common.JsonParseUtils
 import edp.wormhole.util.FlinkSchemaUtils.matchNamespace
 import org.apache.flink.api.common.functions.RichFlatMapFunction
 import org.apache.flink.api.common.typeinfo.TypeInformation

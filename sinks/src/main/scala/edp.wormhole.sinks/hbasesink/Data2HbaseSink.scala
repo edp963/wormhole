@@ -34,7 +34,6 @@ import edp.wormhole.sinks.utils.SinkDefault._
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsNamespace
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
-import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
 import org.apache.log4j.Logger
 

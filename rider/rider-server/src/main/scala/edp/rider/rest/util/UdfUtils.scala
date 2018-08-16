@@ -12,7 +12,6 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Await
 import scala.sys.process._
 import scala.language.postfixOps
-import edp.wormhole.common.util.JsonUtils._
 
 object UdfUtils extends RiderLogger {
   def checkHdfsPathExist(jarName: String): Boolean = {

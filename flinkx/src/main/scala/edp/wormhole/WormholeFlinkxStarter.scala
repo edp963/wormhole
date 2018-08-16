@@ -20,9 +20,8 @@
 
 package edp.wormhole
 
-
-import edp.wormhole.common.util.JsonUtils
 import edp.wormhole.ums.{Ums, UmsSchemaUtils}
+import edp.wormhole.util.JsonUtils
 //import edp.wormhole.util.FlinkSchemaUtils.{findJsonSchema}
 //import edp.wormhole.util.UmsFlowStartUtils.{extractVersion, formatZkPath}
 //import edp.wormhole.util.{FlinkSchemaUtils, UmsFlowStartUtils}

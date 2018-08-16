@@ -27,11 +27,12 @@ import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.spark.common.SparkSchemaUtils._
 import edp.wormhole.spark.common.WormholeUtils.json2Ums
 import edp.wormhole.common._
-import  edp.wormhole.spark.common._
+import edp.wormhole.spark.common._
 import edp.wormhole.common.hadoop.HdfsUtils
-import edp.wormhole.common.util.{CommonUtils, DateUtils}
-import edp.wormhole.common.util.DateUtils._
-import edp.wormhole.common.util.JsonUtils.json2caseClass
+import edp.wormhole.common.json.FieldInfo
+import edp.wormhole.common.util.CommonUtils
+import edp.wormhole.util.DateUtils._
+import edp.wormhole.util.JsonUtils.json2caseClass
 import edp.wormhole.directive.UdfDirective
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
@@ -48,6 +49,7 @@ import edp.wormhole.swifts.validity.{ValidityAgainstAction, ValidityCheckRule}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
+import edp.wormhole.util.DateUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.rdd.RDD

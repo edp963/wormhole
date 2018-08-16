@@ -22,7 +22,6 @@
 package edp.wormhole.router
 
 import edp.wormhole.common.FeedbackPriority
-import edp.wormhole.common.util.DateUtils
 import edp.wormhole.directive.Directive
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
@@ -30,6 +29,7 @@ import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType}
 
 import scala.collection.mutable
 import edp.wormhole.memorystorage.ConfMemoryStorage.routerMap
+import edp.wormhole.util.DateUtils
 
 object RouterDirective extends Directive {
 

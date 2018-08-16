@@ -37,9 +37,6 @@ import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.wormhole._
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.common.KVConfig
-import edp.wormhole.common.util.CommonUtils._
-import edp.wormhole.common.util.DateUtils.yyyyMMddHHmmss
-import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.ums.UmsProtocolType._
 import slick.jdbc.MySQLProfile.api._
 

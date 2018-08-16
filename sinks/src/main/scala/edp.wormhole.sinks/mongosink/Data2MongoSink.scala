@@ -27,7 +27,6 @@ import java.util
 import com.mongodb.ConnectionString
 import com.mongodb.async.client.MongoClients
 import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.common.util.JsonUtils.json2caseClass
 import edp.wormhole.sinks.mongosink.MongoHelper._
 import edp.wormhole.sinks.{SourceMutationType, _IDHelper}
 import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}

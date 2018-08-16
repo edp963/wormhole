@@ -21,13 +21,12 @@
 package edp.wormhole.sink
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.common.util.JsonUtils
 import edp.wormhole.common.KVConfig
 import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.swifts.SwiftsConfMemoryStorage
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums._
-import edp.wormhole.util.{FlinkSchemaUtils, UmsFlowStartUtils}
+import edp.wormhole.util.{FlinkSchemaUtils, JsonUtils, UmsFlowStartUtils}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.scala.{DataStream, _}
 import org.apache.flink.types.Row

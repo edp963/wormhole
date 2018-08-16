@@ -2,6 +2,7 @@ package edp.wormhole
 
 //import edp.wormhole.common.{JsonSourceConf, RegularJsonSchema}
 import com.alibaba.fastjson.JSON
+import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.ums.Ums
 //import edp.wormhole.WormholeFlinkxStarter.{config, umsFlowStart}
 import edp.wormhole.common._
