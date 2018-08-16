@@ -24,7 +24,7 @@ package org.apache.spark.rdd
 import java.sql.{Connection, PreparedStatement, ResultSet}
 
 import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.common.db.DbConnection
+import edp.wormhole.dbdriver.dbpool.DbConnection
 import org.apache.spark.api.java.JavaSparkContext.fakeClassTag
 import org.apache.spark.api.java.function.{Function => JFunction}
 import org.apache.spark.api.java.{JavaRDD, JavaSparkContext}
