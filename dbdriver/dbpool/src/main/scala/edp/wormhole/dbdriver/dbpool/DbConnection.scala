@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,12 +19,12 @@
  */
 
 
-package edp.wormhole.common.db
+package edp.wormhole.dbdriver.dbpool
 
 import java.sql.Connection
 
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
-import edp.wormhole.common.ConnectionConfig
+import edp.wormhole.util.config.ConnectionConfig
 
 import scala.collection.mutable
 
@@ -34,7 +34,7 @@ object DbConnection extends Serializable {
 
   def getConnection(jdbcConfig: ConnectionConfig): Connection = {
     val tmpJdbcUrl = jdbcConfig.connectionUrl.toLowerCase
-    var tmpUsername = jdbcConfig.username.getOrElse("").toLowerCase
+    val tmpUsername = jdbcConfig.username.getOrElse("").toLowerCase
     if (!datasourceMap.contains((tmpJdbcUrl,tmpUsername)) || datasourceMap((tmpJdbcUrl,tmpUsername)) == null) {
       synchronized {
         if (!datasourceMap.contains((tmpJdbcUrl,tmpUsername)) || datasourceMap((tmpJdbcUrl,tmpUsername)) == null) {
