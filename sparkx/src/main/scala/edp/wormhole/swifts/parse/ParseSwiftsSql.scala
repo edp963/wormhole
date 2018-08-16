@@ -26,7 +26,7 @@ import java.security.MessageDigest
 import java.sql.ResultSetMetaData
 
 import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.common.db.DbConnection
+import edp.wormhole.dbdriver.dbpool.DbConnection
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.swifts.SwiftsSql

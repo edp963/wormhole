@@ -25,8 +25,8 @@ import java.sql.ResultSetMetaData
 
 import com.alibaba.fastjson.JSONObject
 import edp.wormhole.common.{ConnectionConfig, KVConfig}
-import edp.wormhole.common.db.DbConnection
 import edp.wormhole.common.util.JsonUtils
+import edp.wormhole.dbdriver.dbpool.DbConnection
 import edp.wormhole.swifts.SqlOptType.SqlOptType
 import edp.wormhole.ums.{UmsDataSystem, UmsSysField}
 import org.apache.log4j.Logger

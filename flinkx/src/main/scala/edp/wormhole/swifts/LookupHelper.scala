@@ -22,9 +22,9 @@ package edp.wormhole.swifts
 
 import java.sql.{Connection, ResultSet}
 
-import edp.wormhole.common.db.DbConnection
 import edp.wormhole.common.util.CommonUtils
 import edp.wormhole.common.ConnectionConfig
+import edp.wormhole.dbdriver.dbpool.DbConnection
 import edp.wormhole.ums.{UmsDataSystem, UmsFieldType}
 import edp.wormhole.util.FlinkSchemaUtils
 import org.apache.flink.api.common.typeinfo.TypeInformation

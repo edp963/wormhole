@@ -24,7 +24,7 @@ package edp.wormhole.sinks.phoenixsink
 import java.sql.{Connection, PreparedStatement, SQLTransientConnectionException}
 
 import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.common.db.DbConnection
+import edp.wormhole.dbdriver.dbpool.DbConnection
 import edp.wormhole.ums.{UmsNamespace, _}
 import edp.wormhole.ums.UmsSysField._
 import edp.wormhole.ums.UmsOpType._
