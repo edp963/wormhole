@@ -3,7 +3,7 @@ package edp.wormhole.kafka
 import java.util
 import java.util.Properties
 
-import edp.wormhole.common.KVConfig
+import edp.wormhole.util.config.KVConfig
 import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, ConsumerRecords, KafkaConsumer}
 import org.apache.kafka.common.TopicPartition
 
