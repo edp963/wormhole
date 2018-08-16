@@ -26,8 +26,8 @@ import java.sql.{Connection, ResultSet, SQLTransientConnectionException}
 import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.spark.common.WormholeUtils
 import edp.wormhole.spark.common.SparkSchemaUtils._
-import edp.wormhole.common.db.DbConnection
 import edp.wormhole.common.util.CommonUtils
+import edp.wormhole.dbdriver.dbpool.DbConnection
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.swifts.SwiftsSql
 import edp.wormhole.swifts.parse.SqlOptType
