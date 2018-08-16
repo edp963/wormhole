@@ -19,12 +19,10 @@
  */
 
 
-package edp.wormhole.common
+package edp.wormhole.util.config
 
 import java.nio.charset.{Charset, CodingErrorAction}
 import java.util.TimeZone
-
-import edp.wormhole.common.util._
 
 import scala.io.Codec
 
