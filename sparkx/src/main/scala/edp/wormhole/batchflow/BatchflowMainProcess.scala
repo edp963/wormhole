@@ -27,12 +27,12 @@ import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.spark.common.SparkSchemaUtils._
 import edp.wormhole.spark.common.WormholeUtils.json2Ums
 import edp.wormhole.common._
-import  edp.wormhole.spark.common._
-import edp.wormhole.common.hadoop.HdfsUtils
+import edp.wormhole.spark.common._
 import edp.wormhole.common.util.{CommonUtils, DateUtils}
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.common.util.JsonUtils.json2caseClass
 import edp.wormhole.directive.UdfDirective
+import edp.wormhole.externalclient.hadoop.HdfsUtils
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.sinks.elasticsearchsink.EsConfig
