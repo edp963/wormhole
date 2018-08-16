@@ -30,11 +30,11 @@
             <artifactId>wormhole-ums_${ums.version}</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>edp.wormhole</groupId>
-            <artifactId>wormhole-hadoop</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>edp.wormhole</groupId>-->
+            <!--<artifactId>wormhole-hadoop</artifactId>-->
+            <!--<version>${project.version}</version>-->
+        <!--</dependency>-->
     </dependencies>
 
     <build>
