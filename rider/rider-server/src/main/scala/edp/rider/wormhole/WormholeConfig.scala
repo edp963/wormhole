@@ -21,8 +21,8 @@
 
 package edp.rider.wormhole
 
-import edp.rider.rest.persistence.entities.FlinkDefaultConfig
-import edp.wormhole.common.{ConnectionConfig, KVConfig}
+import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
+
 
 case class BatchJobConfig(sourceConfig: SourceConfig,
                           transformationConfig: Option[TransformationConfig],

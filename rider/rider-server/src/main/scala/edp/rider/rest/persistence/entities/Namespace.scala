@@ -22,7 +22,7 @@
 package edp.rider.rest.persistence.entities
 
 import edp.rider.rest.persistence.base.{BaseEntity, BaseTable, SimpleBaseEntity}
-import edp.wormhole.common.KVConfig
+import edp.wormhole.util.config.KVConfig
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.{Rep, Tag}
 
