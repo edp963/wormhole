@@ -1,12 +1,12 @@
 package edp.wormhole.sinks.kudu
 
-import edp.wormhole.common.ConnectionConfig
+import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.sinks.SourceMutationType
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.{UmsNamespace, UmsSysField}
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.util.JsonUtils
+import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
 
 import scala.collection.mutable

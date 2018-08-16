@@ -23,8 +23,10 @@ package edp.wormhole.sinks.utils
 
 import edp.wormhole.ums.UmsFieldType
 import edp.wormhole.ums.UmsFieldType._
-import java.lang.{Long,Float, Double, Boolean}
+import java.lang.{Boolean, Double, Float, Long}
 import java.util.Date
+
+import edp.wormhole.util.DateUtils
 
 object SinkCassandraSchemaUtils extends SinkCassandraSchemaUtils
 //NOT USED YET
@@ -36,8 +38,8 @@ trait SinkCassandraSchemaUtils {
     case UmsFieldType.FLOAT => if (value == null) null else Float.valueOf(value.trim)
     case UmsFieldType.DOUBLE => if (value == null) null else Double.valueOf(value.trim)
     case UmsFieldType.BOOLEAN => if (value == null) null else Boolean.valueOf(value.trim)
-    case UmsFieldType.DATE => if (value == null) null else new Date(dt2date(value.trim).getTime)
-    case UmsFieldType.DATETIME => if (value == null) null else new Date(dt2date(value.trim).getTime)
+    case UmsFieldType.DATE => if (value == null) null else new Date(DateUtils.dt2date(value.trim).getTime)
+    case UmsFieldType.DATETIME => if (value == null) null else new Date(DateUtils.dt2date(value.trim).getTime)
     case _ => throw new UnsupportedOperationException(s"Unknown Type: $umsFieldType")
   }
 }

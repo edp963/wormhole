@@ -23,11 +23,11 @@ package edp.wormhole.sinks.elasticsearchsink
 
 import java.util.Date
 
-import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.util.JsonUtils._
 import edp.wormhole.sinks.SourceMutationType
 import edp.wormhole.ums.{UmsNamespace, UmsSysField}
 import edp.wormhole.util.DateUtils
+import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
 import org.json4s.JValue
 

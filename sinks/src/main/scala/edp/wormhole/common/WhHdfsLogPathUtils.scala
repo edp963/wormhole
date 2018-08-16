@@ -21,7 +21,7 @@
 
 package edp.wormhole.common
 
-import edp.wormhole.common.util.{CommonUtils, DateUtils, DtFormat, FileUtils}
+import edp.wormhole.util.{CommonUtils, DateUtils, DtFormat, FileUtils}
 import edp.wormhole.externalclient.hadoop.HdfsUtils
 import edp.wormhole.ums.{UmsNamespace, UmsWatermark}
 import org.apache.hadoop.conf.Configuration

@@ -24,13 +24,14 @@ package edp.wormhole.sinks.kafkasink
 import java.util.UUID
 
 import com.alibaba.fastjson.JSONObject
-import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.WormholeUms._
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
+import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.ums._
 import edp.wormhole.ums.UmsFieldType._
+import edp.wormhole.util.JsonUtils
+import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
 
 class Data2KafkaSink extends SinkProcessor {
@@ -44,7 +45,7 @@ class Data2KafkaSink extends SinkProcessor {
                        connectionConfig: ConnectionConfig): Unit = {
     logger.info("In Data2KafkaSink"+tupleList)
     WormholeKafkaProducer.init(connectionConfig.connectionUrl, connectionConfig.parameters)
-    val sinkSpecificConfig = if (sinkProcessConfig.specialConfig.isDefined) json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get) else KafkaConfig(None, None, None,None)
+    val sinkSpecificConfig = if (sinkProcessConfig.specialConfig.isDefined) JsonUtils.json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get) else KafkaConfig(None, None, None,None)
 
     val schemaList: Seq[(String, (Int, UmsFieldType, Boolean))] = schemaMap.toSeq.sortBy(_._2._1)
     val protocol: UmsProtocol = UmsProtocol(protocolType)

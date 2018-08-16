@@ -23,6 +23,7 @@ package edp.wormhole.sinks.utils
 
 import edp.wormhole.ums.UmsFieldType
 import edp.wormhole.ums.UmsFieldType._
+import edp.wormhole.util.{CommonUtils, DateUtils}
 
 
 object SinkDbSchemaUtils extends SinkDbSchemaUtils
@@ -35,11 +36,11 @@ trait SinkDbSchemaUtils {
     case UmsFieldType.LONG => value.trim.toLong
     case UmsFieldType.FLOAT => value.trim.toFloat
     case UmsFieldType.DOUBLE => value.trim.toDouble
-    case UmsFieldType.BINARY => base64s2byte(value.trim)
+    case UmsFieldType.BINARY => CommonUtils.base64s2byte(value.trim)
     case UmsFieldType.DECIMAL => new java.math.BigDecimal(value.trim).stripTrailingZeros()
     case UmsFieldType.BOOLEAN => value.trim.toBoolean
-    case UmsFieldType.DATE => dt2sqlDate(value.trim)
-    case UmsFieldType.DATETIME => dt2timestamp(value.trim)
+    case UmsFieldType.DATE => DateUtils.dt2sqlDate(value.trim)
+    case UmsFieldType.DATETIME => DateUtils.dt2timestamp(value.trim)
     case _ => throw new UnsupportedOperationException(s"Unknown Type: $umsFieldType")
   }
 

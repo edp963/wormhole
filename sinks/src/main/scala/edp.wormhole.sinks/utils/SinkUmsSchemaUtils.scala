@@ -25,8 +25,8 @@ import SinkDefault._
 import edp.wormhole.ums.UmsFieldType
 import edp.wormhole.ums.UmsFieldType._
 import org.joda.time.DateTime
-import edp.wormhole.common.util.DateUtils._
-import edp.wormhole.common.util.CommonUtils._
+import edp.wormhole.util.DateUtils._
+import edp.wormhole.util.CommonUtils._
 import edp.wormhole.util.DtFormat
 
 object SinkUmsSchemaUtils extends SinkUmsSchemaUtils

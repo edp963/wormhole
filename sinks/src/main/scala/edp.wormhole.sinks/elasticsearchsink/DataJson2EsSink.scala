@@ -21,13 +21,15 @@
 package edp.wormhole.sinks.elasticsearchsink
 
 import com.alibaba.fastjson.{JSON, JSONArray}
-import edp.wormhole.common.{ConnectionConfig, JsonParseHelper}
+import edp.wormhole.common.JsonParseHelper
+import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.sinks.SourceMutationType.INSERT_ONLY
 import edp.wormhole.sinks.{SourceMutationType, _IDHelper}
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.{UmsFieldType, UmsNamespace, UmsSysField}
+import edp.wormhole.util.JsonUtils
+import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
 
 import scala.collection.mutable
@@ -57,7 +59,7 @@ class DataJson2EsSink extends SinkProcessor {
     if (cc.connectionUrl.isEmpty) new Exception(connectionConfig.connectionUrl + " are all not available")
     val sinkSpecificConfig: EsConfig =
       if (sinkProcessConfig.specialConfig.isDefined)
-        json2caseClass[EsConfig](sinkProcessConfig.specialConfig.get)
+        JsonUtils.json2caseClass[EsConfig](sinkProcessConfig.specialConfig.get)
       else EsConfig()
 
     val namespace = UmsNamespace(sinkNamespace)
