@@ -23,7 +23,7 @@ package edp.wormhole.directive
 
 import edp.wormhole._
 import edp.wormhole.common.{WormholeConfig, WormholeConstants}
-import edp.wormhole.common.zookeeper.WormholeZkClient
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.memorystorage.OffsetPersistenceManager
 import edp.wormhole.spark.log.EdpLogging
 

@@ -21,8 +21,8 @@
 package edp.wormhole.udf
 
 import edp.wormhole.common.{WormholeConfig, WormholeConstants}
-import edp.wormhole.common.zookeeper.WormholeZkClient
 import edp.wormhole.directive.UdfDirective
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums.{UmsProtocolType, UmsSchemaUtils}
 import org.apache.spark.sql.SparkSession

@@ -26,13 +26,12 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 import edp.wormhole._
 import edp.wormhole.common._
-import edp.wormhole.common.util.DateUtils
-import edp.wormhole.common.zookeeper.WormholeZkClient
+import edp.wormhole.common.util.{DateUtils, JsonUtils}
 import edp.wormhole.directive._
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums._
-import edp.wormhole.util.{DateUtils, JsonUtils}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer

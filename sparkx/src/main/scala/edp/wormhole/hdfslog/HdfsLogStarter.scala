@@ -22,14 +22,14 @@
 package edp.wormhole.hdfslog
 
 import edp.wormhole.spark.common.SparkContextUtils.createKafkaStream
-import edp.wormhole.common.zookeeper.WormholeZkClient
 import edp.wormhole.directive.DirectiveFlowWatch
 import edp.wormhole.memorystorage.OffsetPersistenceManager
 import edp.wormhole.common._
 import edp.wormhole.spark.common._
+import edp.wormhole.common.util.JsonUtils
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.spark.log.EdpLogging
-import edp.wormhole.util.JsonUtils
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 
