@@ -22,7 +22,6 @@
 package edp.rider.rest.util
 
 import edp.rider.rest.persistence.entities.{Resource, StartConfig}
-import edp.wormhole.common.util.JsonUtils._
 
 object ProjectUtils {
 

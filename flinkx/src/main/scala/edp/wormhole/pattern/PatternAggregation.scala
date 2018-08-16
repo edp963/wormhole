@@ -23,7 +23,6 @@ package edp.wormhole.pattern
 import java.sql.Timestamp
 import java.util.Date
 
-import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.ordering.OrderingImplicit._
 import edp.wormhole.pattern.Functions._
 import org.apache.flink.api.common.typeinfo.TypeInformation

@@ -24,7 +24,6 @@ package edp.wormhole.batchjob
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.ConnectionConfig
 import  edp.wormhole.spark.common.SparkUtils
-import edp.wormhole.common.util.JsonUtils.json2caseClass
 import edp.wormhole.batchjob.transform.Transform
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.sinks.SinkProcessConfig

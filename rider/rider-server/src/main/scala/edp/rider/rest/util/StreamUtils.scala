@@ -36,7 +36,6 @@ import edp.rider.yarn.SubmitYarnJob.{generateSparkStreamStartSh, runShellCommand
 import edp.rider.wormhole.{BatchFlowConfig, KafkaInputBaseConfig, KafkaOutputConfig, SparkConfig}
 import edp.rider.zookeeper.PushDirective
 import edp.rider.zookeeper.PushDirective._
-import edp.wormhole.common.util.JsonUtils.{caseClass2json, _}
 import edp.wormhole.kafka.WormholeTopicCommand
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.UmsSchemaUtils.toUms

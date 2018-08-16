@@ -2,8 +2,8 @@ package edp.wormhole
 
 import java.sql.Timestamp
 
-import edp.wormhole.common.util.DateUtils
 import edp.wormhole.ums.UmsSysField
+import edp.wormhole.util.DateUtils
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor
 import org.apache.flink.types.Row

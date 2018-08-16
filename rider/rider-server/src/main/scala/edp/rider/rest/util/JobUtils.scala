@@ -33,9 +33,6 @@ import edp.rider.yarn.YarnStatusQuery.getSparkJobStatus
 import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.wormhole._
 import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.common.util.CommonUtils._
-import edp.wormhole.common.util.DateUtils._
-import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.ums.UmsDataSystem
 
 import scala.collection.mutable.ListBuffer

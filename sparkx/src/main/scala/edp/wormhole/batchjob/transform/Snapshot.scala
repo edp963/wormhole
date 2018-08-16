@@ -25,10 +25,10 @@ import java.sql.Timestamp
 import java.util.UUID
 
 import com.alibaba.fastjson.JSON
-import edp.wormhole.common.util.DateUtils
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.swifts.{SwiftsInterface, SwiftsProcessConfig}
 import edp.wormhole.ums.{UmsOpType, UmsSysField}
+import edp.wormhole.util.DateUtils
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 class Snapshot extends SwiftsInterface with EdpLogging {

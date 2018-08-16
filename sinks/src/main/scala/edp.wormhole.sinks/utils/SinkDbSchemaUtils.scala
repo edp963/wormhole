@@ -21,8 +21,6 @@
 
 package edp.wormhole.sinks.utils
 
-import edp.wormhole.common.util.DateUtils._
-import edp.wormhole.common.util.CommonUtils._
 import edp.wormhole.ums.UmsFieldType
 import edp.wormhole.ums.UmsFieldType._
 

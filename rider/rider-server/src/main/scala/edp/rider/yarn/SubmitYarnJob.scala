@@ -23,7 +23,6 @@ package edp.rider.yarn
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.entities.{FlinkResourceConfig, StartConfig, Stream}
 import edp.rider.rest.util.StreamUtils.getLogPath
-import edp.wormhole.common.util.JsonUtils._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global

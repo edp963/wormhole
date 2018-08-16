@@ -21,7 +21,6 @@
 package edp.wormhole.pattern
 
 import com.alibaba.fastjson.JSONObject
-import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.pattern.Condition._
 import edp.wormhole.util.FlinkSchemaUtils.{object2TrueValue, s2TrueValue}
 import org.apache.flink.api.common.typeinfo.TypeInformation

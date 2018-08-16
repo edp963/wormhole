@@ -23,11 +23,11 @@ package edp.wormhole.spark.common
 
 import com.alibaba.fastjson.{JSONArray, JSONObject}
 import edp.wormhole.spark.common.SparkSchemaUtils.ss2sparkTuple
-import edp.wormhole.common.util.CommonUtils
 import edp.wormhole.spark.log.EdpLogging
 import edp.wormhole.ums
 import edp.wormhole.ums.{UmsField, UmsFieldType, UmsSysField}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
+import edp.wormhole.util.CommonUtils
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types._

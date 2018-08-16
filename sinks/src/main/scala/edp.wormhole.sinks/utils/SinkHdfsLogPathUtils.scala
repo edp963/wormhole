@@ -21,14 +21,14 @@
 
 package edp.wormhole.sinks.utils
 
-import edp.wormhole.common.util.DtFormat
 import edp.wormhole.ums.{UmsNamespace, UmsWatermark}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
 import edp.wormhole.common.hadoop.HdfsUtils._
 import edp.wormhole.common.util.DateUtils._
-import edp.wormhole.common.util.FileUtils._
+import edp.wormhole.util.FileUtils._
 import edp.wormhole.common.util.CommonUtils._
+import edp.wormhole.util.DtFormat
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
