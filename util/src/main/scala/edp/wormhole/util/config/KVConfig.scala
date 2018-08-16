@@ -19,6 +19,6 @@
  */
 
 
-package edp.wormhole.common
+package edp.wormhole.util.config
 
 case class KVConfig(key: String, value: String)
