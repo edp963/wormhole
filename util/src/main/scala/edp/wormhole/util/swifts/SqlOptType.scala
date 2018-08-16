@@ -29,6 +29,7 @@ object SqlOptType extends Enumeration {
   val FLINK_SQL = Value("flink_sql")
   val PARQUET_SQL = Value("parquet_sql")
   val CUSTOM_CLASS = Value("custom_class")
+  val SPARK_SQL = Value("spark_sql")
   val CEP = Value("cep")
 
 //  val PUSHDOWN_HBASE = Value("pushdown_hbase")
