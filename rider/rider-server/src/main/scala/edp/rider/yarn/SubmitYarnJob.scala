@@ -23,6 +23,7 @@ package edp.rider.yarn
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.entities.{FlinkResourceConfig, StartConfig, Stream}
 import edp.rider.rest.util.StreamUtils.getLogPath
+import edp.wormhole.util.JsonUtils
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -147,7 +148,7 @@ object SubmitYarnJob extends App with RiderLogger {
   // ./bin/yarn-session.sh -n 2 -tm 1024 -s 4 -jm 1024 -nm flinktest
 
   def generateFlinkStreamStartSh(stream: Stream): String = {
-    val resourceConfig = json2caseClass[FlinkResourceConfig](stream.startConfig)
+    val resourceConfig = JsonUtils.json2caseClass[FlinkResourceConfig](stream.startConfig)
     val logPath = getLogPath(stream.name)
     s"""
        |${RiderConfig.flink.homePath}/bin/yarn-session.sh

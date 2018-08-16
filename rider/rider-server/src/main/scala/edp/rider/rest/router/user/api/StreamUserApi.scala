@@ -39,6 +39,7 @@ import edp.rider.service.util.CacheMap
 import edp.rider.yarn.YarnClientLog
 import edp.rider.yarn.SubmitYarnJob.runShellCommand
 import edp.rider.zookeeper.PushDirective
+import edp.wormhole.util.JsonUtils
 import slick.jdbc.MySQLProfile.api._
 
 import scala.collection.mutable.ListBuffer
@@ -435,12 +436,12 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
               val (currentNeededCore, currentNeededMemory) =
                 StreamType.withName(stream.streamType) match {
                   case StreamType.SPARK =>
-                    val currentConfig = json2caseClass[StartConfig](stream.startConfig)
+                    val currentConfig = JsonUtils.json2caseClass[StartConfig](stream.startConfig)
                     val currentNeededCore = currentConfig.driverCores + currentConfig.executorNums * currentConfig.perExecutorCores
                     val currentNeededMemory = currentConfig.driverMemory + currentConfig.executorNums * currentConfig.perExecutorMemory
                     (currentNeededCore, currentNeededMemory)
                   case StreamType.FLINK =>
-                    val currentConfig = json2caseClass[FlinkResourceConfig](stream.startConfig)
+                    val currentConfig = JsonUtils.json2caseClass[FlinkResourceConfig](stream.startConfig)
                     val currentNeededCore = currentConfig.taskManagersNumber * currentConfig.perTaskManagerSlots
                     val currentNeededMemory = currentConfig.jobManagerMemoryGB + currentConfig.taskManagersNumber * currentConfig.perTaskManagerSlots
                     (currentNeededCore, currentNeededMemory)

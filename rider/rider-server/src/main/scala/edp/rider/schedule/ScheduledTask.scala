@@ -27,7 +27,7 @@ import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.module._
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.util.CommonUtils
-import edp.wormhole.common.util.DateUtils
+import edp.wormhole.util.DateUtils
 import edp.wormhole.util.{DateUtils, DtFormat}
 
 object ScheduledTask extends RiderLogger {
