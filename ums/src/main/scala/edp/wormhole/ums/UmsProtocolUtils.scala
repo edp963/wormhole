@@ -21,13 +21,12 @@
 
 package edp.wormhole.ums
 
-import edp.wormhole.common.util.DtFormat
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.UmsSchemaUtils._
 import org.joda.time.DateTime
-import edp.wormhole.common.WormholeDefault._
-import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.ums.UmsFeedbackStatus.UmsFeedbackStatus
+import edp.wormhole.util.config.WormholeDefault
+import edp.wormhole.util.{DateUtils, DtFormat}
 
 object UmsProtocolUtils extends UmsProtocolUtils
 
@@ -38,7 +37,7 @@ trait UmsProtocolUtils {
   def dataIncrementHeartbeat(sourceNamespace: String, heartbeatTimestamp: DateTime) = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.DATA_INCREMENT_HEARTBEAT),
     schema = UmsSchema(sourceNamespace, Some(Seq(UmsField(UmsSysField.TS.toString, UmsFieldType.DATETIME)))),
-    payload = Some(Seq(UmsTuple(Seq(dt2string(heartbeatTimestamp, dtFormat)))))))
+    payload = Some(Seq(UmsTuple(Seq(DateUtils.dt2string(heartbeatTimestamp, dtFormat)))))))
 
   // data_increment_data
     def dataInitialData(sourceNamespace: String, fields: Seq[UmsField], payload: Seq[UmsTuple]) = dataToJson(
@@ -60,7 +59,7 @@ trait UmsProtocolUtils {
   def dataBatchTermination(sourceNamespace: String, terminationTimestamp: DateTime) = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.DATA_BATCH_TERMINATION),
     schema = UmsSchema(sourceNamespace, Some(Seq(UmsField(UmsSysField.TS.toString, UmsFieldType.DATETIME)))),
-    payload = Some(Seq(UmsTuple(Seq(dt2string(terminationTimestamp, dtFormat)))))))
+    payload = Some(Seq(UmsTuple(Seq(DateUtils.dt2string(terminationTimestamp, dtFormat)))))))
 
   private def dataToJson(umsProtocolType: UmsProtocolType, sourceNamespace: String, fields: Seq[UmsField], payload: Seq[UmsTuple]) = toJsonCompact(Ums(
     protocol = UmsProtocol(umsProtocolType),
@@ -70,7 +69,7 @@ trait UmsProtocolUtils {
   private def incrementTermination(umsProtocolType: UmsProtocolType, sourceNamespace: String, terminationTimestamp: DateTime) = toJsonCompact(Ums(
     protocol = UmsProtocol(umsProtocolType),
     schema = UmsSchema(sourceNamespace, Some(Seq(UmsField(UmsSysField.TS.toString, UmsFieldType.DATETIME)))),
-    payload = Some(Seq(UmsTuple(Seq(dt2string(terminationTimestamp, dtFormat)))))))
+    payload = Some(Seq(UmsTuple(Seq(DateUtils.dt2string(terminationTimestamp, dtFormat)))))))
 
   // directive_flow_start
   def WormholeDirectiveFlowStart(sourceNamespace: String,
@@ -91,7 +90,7 @@ trait UmsProtocolUtils {
     payload = Some(Seq(UmsTuple(Seq(
       directiveId.toString,
       streamID.toString,
-      dt2string(timeNow, dtFormat),
+      DateUtils.dt2string(timeNow, dtFormat),
       swifts,
       sinks))))))
 
@@ -112,7 +111,7 @@ trait UmsProtocolUtils {
     payload = Some(Seq(UmsTuple(Seq(
       directiveId.toString,
       streamID.toString,
-      dt2string(timeNow, dtFormat),
+      DateUtils.dt2string(timeNow, dtFormat),
       namespaceRule,
       hourDuration))))))
 
@@ -136,7 +135,7 @@ trait UmsProtocolUtils {
     payload = Some(Seq(UmsTuple(Seq(
       directiveId.toString,
       streamID.toString,
-      dt2string(timeNow, dtFormat),
+      DateUtils.dt2string(timeNow, dtFormat),
       topicName,
       topicRate.toString,
       partitionOffset))))))
@@ -152,7 +151,7 @@ trait UmsProtocolUtils {
     payload = Some(Seq(UmsTuple(Seq(
       directiveId.toString,
       streamID.toString,
-      dt2string(timeNow, dtFormat),
+      DateUtils.dt2string(timeNow, dtFormat),
       topicName))))))
 
   // feedback_data_increment_termination
@@ -199,7 +198,7 @@ trait UmsProtocolUtils {
       UmsField("stream_id", UmsFieldType.LONG),
       UmsField("result_desc", UmsFieldType.STRING)))),
     payload = Some(Seq(UmsTuple(Seq(
-      dt2string(timeNow, dtFormat),
+      DateUtils.dt2string(timeNow, dtFormat),
       directiveId.toString, status.toString,streamId.toString,resultDesc))))))
 
   // feedback_flow_error
@@ -223,11 +222,11 @@ trait UmsProtocolUtils {
       UmsField("error_info", UmsFieldType.STRING),
       UmsField("batch_id", UmsFieldType.STRING)))),
     payload = Some(Seq(UmsTuple(Seq(
-      dt2string(timeNow, dtFormat),
+      DateUtils.dt2string(timeNow, dtFormat),
       sinkNamespace,
       streamId.toString,
-      dt2string(maxWatermark.ts, dtFormat),
-      dt2string(minWatermark.ts, dtFormat),
+      DateUtils.dt2string(maxWatermark.ts, dtFormat),
+      DateUtils.dt2string(minWatermark.ts, dtFormat),
       errorCount.toString,
       errorInfo,
       batchId))))))
@@ -266,7 +265,7 @@ trait UmsProtocolUtils {
     ))),
     payload = Some(Seq(UmsTuple(Seq(
       dataType,
-      dt2string(timestamp, dtFormat),
+      DateUtils.dt2string(timestamp, dtFormat),
       streamId.toString,
       batchId,
       batchId,
@@ -292,7 +291,7 @@ trait UmsProtocolUtils {
       UmsField("batch_id", UmsFieldType.STRING)))),
     payload = Some(Seq(UmsTuple(Seq(
       streamID.toString,
-      dt2string(timeNow, dtFormat),
+      DateUtils.dt2string(timeNow, dtFormat),
       status.toString,
       resultDesc.toString,
       batchId))))))
@@ -301,14 +300,14 @@ trait UmsProtocolUtils {
   def feedbackStreamTopicOffset(timeNow: DateTime, streamID: Long,tp:Map[String, String],batchId:String) = {
     toJsonCompact(Ums(
       protocol = UmsProtocol(UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET),
-      schema = UmsSchema(empty, Some(Seq(
+      schema = UmsSchema(WormholeDefault.empty, Some(Seq(
         UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
         UmsField("stream_id", UmsFieldType.INT),
         UmsField("topic_name", UmsFieldType.STRING),
         UmsField("partition_offsets", UmsFieldType.STRING),
         UmsField("batch_id", UmsFieldType.STRING)
       ))),
-      payload = Some(tp.map{case (topicName, partitionOffsets) => UmsTuple(Seq(dt2string(timeNow, dtFormat), streamID.toString, topicName, partitionOffsets,batchId))}.toSeq)))
+      payload = Some(tp.map{case (topicName, partitionOffsets) => UmsTuple(Seq(DateUtils.dt2string(timeNow, dtFormat), streamID.toString, topicName, partitionOffsets,batchId))}.toSeq)))
   }
 
 
