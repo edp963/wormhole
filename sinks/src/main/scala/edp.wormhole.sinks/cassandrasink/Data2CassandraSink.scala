@@ -23,7 +23,6 @@ package edp.wormhole.sinks.cassandrasink
 
 import com.datastax.driver.core._
 import com.datastax.driver.core.exceptions.NoHostAvailableException
-import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.sinks.SourceMutationType
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType._
@@ -32,8 +31,12 @@ import edp.wormhole.ums.UmsSysField
 import java.lang.{Double, Float, Long}
 import java.util
 
+import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
+import edp.wormhole.util.DateUtils._
+import edp.wormhole.util.JsonUtils._
+
 import scala.collection.mutable.ListBuffer
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
+import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
 
 import scala.collection.mutable

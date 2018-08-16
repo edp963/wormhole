@@ -23,14 +23,14 @@ package edp.wormhole.sinks.phoenixsink
 
 import java.sql.{Connection, PreparedStatement, SQLTransientConnectionException}
 
-import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.dbdriver.dbpool.DbConnection
+import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.{UmsNamespace, _}
 import edp.wormhole.ums.UmsSysField._
 import edp.wormhole.ums.UmsOpType._
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.sinks.utils.SinkDefault._
-import edp.wormhole.sinks.SinkProcessConfig
+import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
 
 

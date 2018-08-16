@@ -21,13 +21,10 @@
 
 package edp.wormhole.sinks.mongosink
 
-import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import org.mongodb.scala._
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 

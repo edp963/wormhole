@@ -22,8 +22,8 @@
 package edp.wormhole.sinks.utils
 
 
-import edp.wormhole.common.{WormholeDefault}
 import edp.wormhole.ums.WormholeUms
+import edp.wormhole.util.config.WormholeDefault
 
 
 object SinkDefault extends SinkCommonUtils

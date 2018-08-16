@@ -23,15 +23,14 @@ package edp.wormhole.sinks.dbsink
 
 import java.sql.{Connection, PreparedStatement, ResultSet, SQLTransientConnectionException}
 
-import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.dbdriver.dbpool.DbConnection
-import edp.wormhole.sinks.utils.{SinkCommonUtils, SinkDbSchemaUtils, SinkUmsSchemaUtils}
-//import edp.wormhole.sinks.utils.SinkDefault._
+import edp.wormhole.publicinterface.sinks.SinkProcessConfig
+import edp.wormhole.sinks.utils.{SinkCommonUtils, SinkDbSchemaUtils}
 import edp.wormhole.ums.{UmsFieldType, _}
 import edp.wormhole.ums.UmsSysField._
 import edp.wormhole.sinks.DbHelper._
-import edp.wormhole.sinks.SinkProcessConfig
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
+import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
 
 import scala.collection.mutable

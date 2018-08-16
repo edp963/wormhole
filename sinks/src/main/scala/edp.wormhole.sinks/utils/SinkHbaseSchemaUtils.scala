@@ -23,6 +23,8 @@ package edp.wormhole.sinks.utils
 
 import edp.wormhole.ums.UmsFieldType
 import edp.wormhole.ums.UmsFieldType._
+import edp.wormhole.util.CommonUtils
+import edp.wormhole.util.DateUtils._
 import org.apache.hadoop.hbase.util.Bytes
 
 object SinkHbaseSchemaUtils extends SinkHbaseSchemaUtils
@@ -38,7 +40,7 @@ trait SinkHbaseSchemaUtils {
     case UmsFieldType.DECIMAL => if (value == null) null else Bytes.toBytes(new java.math.BigDecimal(value.trim).stripTrailingZeros())
     case UmsFieldType.DATE => if (value == null) null else Bytes.toBytes(dt2date(value).getTime)
     case UmsFieldType.DATETIME => if (value == null) null else Bytes.toBytes(dt2date(value).getTime)
-    case UmsFieldType.BINARY => if (value == null) null else base64s2byte(value.trim)
+    case UmsFieldType.BINARY => if (value == null) null else CommonUtils.base64s2byte(value.trim)
     case _ => throw new UnsupportedOperationException(s"Unknown Type: $umsFieldType")
   }
 //def s2hbaseValue(umsFieldType: DataType, value: String): Array[Byte] =

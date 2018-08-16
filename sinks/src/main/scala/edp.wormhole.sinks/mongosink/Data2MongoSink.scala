@@ -26,13 +26,14 @@ import java.util
 
 import com.mongodb.ConnectionString
 import com.mongodb.async.client.MongoClients
-import edp.wormhole.common.ConnectionConfig
+import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.sinks.mongosink.MongoHelper._
 import edp.wormhole.sinks.{SourceMutationType, _IDHelper}
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.{UmsFieldType, _}
+import edp.wormhole.util.JsonUtils
+import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
 import org.mongodb.scala.bson.{BsonArray, BsonBinary, BsonBoolean, BsonDateTime, BsonDocument, BsonDouble, BsonInt32, BsonInt64, BsonString, BsonValue}
 import org.mongodb.scala.connection._
@@ -62,7 +63,7 @@ class Data2MongoSink extends SinkProcessor  {
 
       val sinkSpecificConfig =
         if (sinkProcessConfig.specialConfig.isDefined)
-          json2caseClass[MongoConfig](sinkProcessConfig.specialConfig.get)
+          JsonUtils.json2caseClass[MongoConfig](sinkProcessConfig.specialConfig.get)
         else MongoConfig()
       if (sinkSpecificConfig.`mutation_type.get` == SourceMutationType.I_U_D.toString) {
         tupleList.foreach(payload => {

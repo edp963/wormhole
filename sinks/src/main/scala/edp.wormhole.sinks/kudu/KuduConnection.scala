@@ -1,9 +1,9 @@
 package edp.wormhole.sinks.kudu
 
-import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.ums.{UmsActiveType, UmsFieldType, UmsOpType, UmsSysField}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.util.DateUtils
+import edp.wormhole.util.config.ConnectionConfig
 import org.apache.kudu.Type
 import org.apache.kudu.client._
 import org.apache.log4j.Logger

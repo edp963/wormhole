@@ -23,7 +23,6 @@ package edp.wormhole.sinks.dbsink
 
 import java.sql._
 
-import edp.wormhole.common.ConnectionConfig
 import edp.wormhole.dbdriver.dbpool.DbConnection
 import edp.wormhole.sinks.SourceMutationType.SourceMutationType
 import edp.wormhole.sinks.utils.SinkDefault._
@@ -31,6 +30,7 @@ import edp.wormhole.ums.UmsDataSystem.UmsDataSystem
 import edp.wormhole.ums.{UmsFieldType, UmsOpType, UmsSysField, _}
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsOpType._
+import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
 
 import scala.collection.mutable
