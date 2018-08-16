@@ -1,4 +1,4 @@
-package edp.wormhole.common.util
+package edp.wormhole.util
 
 import java.security.MessageDigest
 

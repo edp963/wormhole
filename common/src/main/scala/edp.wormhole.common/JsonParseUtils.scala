@@ -1,8 +1,7 @@
 package edp.wormhole.common
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-//import edp.wormhole.common.FieldInfo
-import edp.wormhole.common.util.DateUtils.dt2timestamp
+import edp.wormhole.util.DateUtils
 import edp.wormhole.ums.UmsTuple
 import org.apache.log4j.Logger
 
@@ -23,11 +22,11 @@ object JsonParseUtils {
 
   def convertLongTimestamp(timestampStr: String) = {
     if (timestampStr.substring(0,2)=="20") {
-      dt2timestamp(timestampStr)
+      DateUtils.dt2timestamp(timestampStr)
     }
     else {
       val timestampLong = (timestampStr+"000000").substring(0,16).toLong
-      dt2timestamp(timestampLong)
+      DateUtils.dt2timestamp(timestampLong)
     }
   }
 

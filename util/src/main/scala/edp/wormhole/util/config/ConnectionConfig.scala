@@ -19,6 +19,6 @@
  */
 
 
-package edp.wormhole.common
+package edp.wormhole.util.config
 
 case class ConnectionConfig(connectionUrl:String, username:Option[String], password:Option[String], parameters:Option[Seq[KVConfig]])
