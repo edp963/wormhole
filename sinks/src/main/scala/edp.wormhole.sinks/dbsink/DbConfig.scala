@@ -21,10 +21,8 @@
 
 package edp.wormhole.sinks.dbsink
 
-import edp.wormhole.common.KVConfig
 import edp.wormhole.sinks.SourceMutationType
 import edp.wormhole.sinks.utils.SinkCommonUtils
-//import edp.wormhole.sinks.utils.SinkDefault._
 
 case class DbConfig(`mutation_type`: Option[String] = None,
                     `batch_size`: Option[Int] = None,

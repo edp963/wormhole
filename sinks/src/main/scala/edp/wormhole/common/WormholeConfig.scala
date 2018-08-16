@@ -21,6 +21,8 @@
 
 package edp.wormhole.common
 
+import edp.wormhole.util.config.KVConfig
+
 case class WormholeConfig(kafka_input: KafkaInputBaseConfig,
                           kafka_output: KafkaOutputConfig,
                           //                          udf: Option[Seq[String]],

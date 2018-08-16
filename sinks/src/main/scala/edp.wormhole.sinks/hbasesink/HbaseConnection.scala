@@ -21,9 +21,9 @@
 
 package edp.wormhole.sinks.hbasesink
 
-import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.sinks.SinkProcessConfig
+import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.UmsFieldType
+import edp.wormhole.util.config.ConnectionConfig
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.{HBaseConfiguration, TableName}
 import org.apache.hadoop.hbase.client._
