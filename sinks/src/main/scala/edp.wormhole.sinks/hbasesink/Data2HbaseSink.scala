@@ -20,7 +20,8 @@
 
 package edp.wormhole.sinks.hbasesink
 
-import edp.wormhole.common.{ConnectionConfig, RowkeyPatternContent, RowkeyPatternType, RowkeyTool}
+import edp.wormhole.common.{RowkeyPatternContent, RowkeyPatternType, RowkeyTool}
+import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.sinks.SourceMutationType
 import edp.wormhole.sinks.hbasesink.HbaseConstants._
 import org.apache.hadoop.hbase.client._
@@ -34,7 +35,8 @@ import edp.wormhole.sinks.utils.SinkDefault._
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsNamespace
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
+import edp.wormhole.util.JsonUtils
+import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
 
 class Data2HbaseSink extends SinkProcessor{
@@ -97,7 +99,7 @@ class Data2HbaseSink extends SinkProcessor{
     }
 
     val namespace = UmsNamespace(sinkNamespace)
-    val hbaseConfig = json2caseClass[HbaseConfig](sinkProcessConfig.specialConfig.get)
+    val hbaseConfig = JsonUtils.json2caseClass[HbaseConfig](sinkProcessConfig.specialConfig.get)
     val zk = HbaseConnection.getZookeeperInfo(connectionConfig.connectionUrl)
     val rowkeyConfig: String = hbaseConfig.`hbase.rowKey`
 

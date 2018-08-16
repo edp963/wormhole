@@ -21,17 +21,20 @@
 package edp.wormhole.sinks.mongosink
 
 import javax.net.SocketFactory
+
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import com.mongodb.casbah._
 import com.mongodb.casbah.commons.{Imports, MongoDBList, MongoDBObject}
 import com.mongodb.{ReadPreference, WriteConcern, casbah}
-import edp.wormhole.common.{ConnectionConfig, JsonParseHelper}
+import edp.wormhole.common.JsonParseHelper
+import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.sinks.SourceMutationType.INSERT_ONLY
 import edp.wormhole.sinks.{SourceMutationType, _IDHelper}
-import edp.wormhole.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.{UmsFieldType, UmsNamespace, UmsSysField}
+import edp.wormhole.util.JsonUtils
+import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
 import org.mongodb.scala.{MongoCredential, ServerAddress}
 
@@ -117,7 +120,7 @@ class DataJson2MongoSink extends SinkProcessor{
     val keys = sinkProcessConfig.tableKeyList
     val sinkSpecificConfig =
       if (sinkProcessConfig.specialConfig.isDefined)
-        json2caseClass[MongoConfig](sinkProcessConfig.specialConfig.get)
+        JsonUtils.json2caseClass[MongoConfig](sinkProcessConfig.specialConfig.get)
       else MongoConfig()
     try {
       SourceMutationType.sourceMutationType(sinkSpecificConfig.`mutation_type.get`) match {
