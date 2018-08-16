@@ -30,7 +30,6 @@ import edp.wormhole.spark.common._
 import edp.wormhole.common.util.DateUtils
 import edp.wormhole.kafka.WormholeKafkaProducer
 import org.apache.spark.streaming.kafka010.CanCommitOffsets
-import edp.wormhole.common.hadoop.HdfsUtils._
 import edp.wormhole.common.util.DateUtils._
 import edp.wormhole.sinks.utils.SinkCommonUtils._
 import edp.wormhole.spark.log.EdpLogging
