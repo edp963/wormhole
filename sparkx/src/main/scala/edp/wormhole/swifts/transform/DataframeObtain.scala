@@ -29,7 +29,6 @@ import edp.wormhole.swifts.parse.SqlOptType
 
 //import edp.wormhole.common.ConnectionConfig
 //import edp.wormhole.common.JdbcPushdown.jdbcDf
-import edp.wormhole.common.hadoop.HdfsUtils._
 import edp.wormhole.spark.log.EdpLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql._
