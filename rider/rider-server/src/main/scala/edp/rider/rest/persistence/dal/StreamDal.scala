@@ -30,6 +30,7 @@ import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.StreamUtils._
+import edp.wormhole.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 

@@ -30,7 +30,7 @@ import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.UdfUtils.sendUdfDirective
-import edp.rider.yarn.{YarnClientLog, SubmitYarnJob}
+import edp.rider.yarn.{SubmitYarnJob, YarnClientLog}
 import edp.rider.yarn.YarnStatusQuery.{getAllYarnAppStatus, getAppStatusByRest}
 import edp.rider.yarn.SubmitYarnJob.{generateSparkStreamStartSh, runShellCommand}
 import edp.rider.wormhole.{BatchFlowConfig, KafkaInputBaseConfig, KafkaOutputConfig, SparkConfig}
@@ -42,6 +42,7 @@ import edp.wormhole.ums.UmsSchemaUtils.toUms
 import slick.jdbc.MySQLProfile.api._
 import edp.rider.common.StreamType
 import edp.rider.common.StreamType._
+import edp.wormhole.util.JsonUtils._
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
