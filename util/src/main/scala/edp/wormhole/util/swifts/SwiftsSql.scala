@@ -20,9 +20,9 @@
 
 
 
-package edp.wormhole.publicinterface.swifts
+package edp.wormhole.util.swifts
 
-import edp.wormhole.publicinterface.swifts.SqlOptType.SqlOptType
+import edp.wormhole.util.swifts.SqlOptType.SqlOptType
 
 
 case class SwiftsSql(optType: SqlOptType,

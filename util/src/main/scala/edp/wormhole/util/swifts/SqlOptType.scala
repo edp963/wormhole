@@ -18,25 +18,28 @@
  * >>
  */
 
-package edp.wormhole.publicinterface.swifts
-
-object StreamType extends Enumeration {
-  type StreamType = Value
-  val BATCHFLOW = Value("batchflow")
-  val HDFSLOG = Value("hdfslog")
-  val ROUTER = Value("router")
-
-  def streamType(s: String) = StreamType.withName(s.toLowerCase)
-
-}
 
 
-object InputDataProtocolBaseType extends Enumeration {
-  type InputDataProtocolBaseType = Value
-  val INITIAL = Value("initial")
-  val INCREMENT = Value("increment")
-  val BATCH = Value("batch")
+package edp.wormhole.util.swifts
 
-  def inputDataRequirement(s: String) = InputDataProtocolBaseType.withName(s.toLowerCase)
+object SqlOptType extends Enumeration {
+  type SqlOptType = Value
+
+  val PUSHDOWN_SQL = Value("pushdown_sql")
+  val FLINK_SQL = Value("flink_sql")
+  val PARQUET_SQL = Value("parquet_sql")
+  val CUSTOM_CLASS = Value("custom_class")
+  val CEP = Value("cep")
+
+//  val PUSHDOWN_HBASE = Value("pushdown_hbase")
+//  val PUSHDOWN_REDIS = Value("pushdown_redis")
+
+  val UNION = Value("union")
+  val INNER_JOIN = Value("inner join")
+  val JOIN = Value("join")
+  val LEFT_JOIN = Value("left join")
+  val RIGHT_JOIN = Value("right join")
+
+  def toSqlOptType(s: String) = SqlOptType.withName(s.toLowerCase)
 
 }
