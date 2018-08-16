@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.wormhole.redis
+package edp.wormhole.dbdriver.redis
 
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import redis.clients.jedis.{ JedisShardInfo, ShardedJedis, ShardedJedisPool}

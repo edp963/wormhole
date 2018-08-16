@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.wormhole.redis
+package edp.wormhole.dbdriver.redis
 
 import redis.clients.jedis.{JedisCluster, ShardedJedisPool}
 
