@@ -23,7 +23,7 @@ package edp.wormhole.directive
 
 import edp.wormhole.batchflow.BatchflowDirective
 import edp.wormhole.common.{StreamType, WormholeConfig, WormholeConstants}
-import edp.wormhole.common.zookeeper.WormholeZkClient
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.hdfslog.{HdfsDirective, HdfsMainProcess}
 import edp.wormhole.memorystorage.ConfMemoryStorage
 import edp.wormhole.router.{RouterDirective, RouterMainProcess}
