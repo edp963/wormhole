@@ -23,7 +23,7 @@ package edp.wormhole.kafka
 
 import java.util.Properties
 
-import edp.wormhole.common.KVConfig
+import edp.wormhole.util.config.KVConfig
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 
 import scala.collection.mutable
