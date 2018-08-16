@@ -60,7 +60,12 @@
 
         <dependency>
             <groupId>edp.wormhole</groupId>
-            <artifactId>wormhole-interface</artifactId>
+            <artifactId>wormhole-publicinterface</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-flinkxinterface</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
