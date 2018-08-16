@@ -21,10 +21,10 @@
 
 package edp.wormhole.ums
 
-import edp.wormhole.common.util.CommonUtils
-import edp.wormhole.common.util.DateUtils.dt2timestamp
+import edp.wormhole.util.DateUtils.dt2timestamp
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.UmsSchemaUtils.toUms
+import edp.wormhole.util.CommonUtils
 import org.slf4j.LoggerFactory
 
 object UmsCommonUtils extends Serializable {
