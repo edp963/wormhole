@@ -1,8 +1,8 @@
-package edp.wormhole.common
+package edp.wormhole.common.json
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.util.DateUtils
 import edp.wormhole.ums.UmsTuple
+import edp.wormhole.util.DateUtils
 import org.apache.log4j.Logger
 
 import scala.collection.mutable.ArrayBuffer
