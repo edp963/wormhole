@@ -23,9 +23,9 @@ package edp.rider.rest.util
 
 import edp.rider.common.RiderConfig
 import edp.rider.rest.router.SessionClass
-import edp.wormhole.common.util.JsonUtils._
 import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim, JwtHeader}
 import edp.rider.rest.util.AuthorizationProvider._
+import edp.wormhole.util.JsonUtils
 
 object JwtSupport {
 
@@ -36,7 +36,7 @@ object JwtSupport {
   private val header = JwtHeader(algorithm, typ)
 
   def generateToken(session: SessionClass): String = {
-    val claim = JwtClaim(caseClass2json(genCurrentSession(session))).expiresIn(timeout)
+    val claim = JwtClaim(JsonUtils.caseClass2json(genCurrentSession(session))).expiresIn(timeout)
     Jwt.encode(header, claim, secret)
   }
 
@@ -47,7 +47,7 @@ object JwtSupport {
 
   def decodeToken(token: String): SessionClass = {
     val decodeToken = Jwt.decodeRawAll(token, secret, Seq(algorithm))
-    val session = json2caseClass[SessionClass](decodeToken.get._2)
+    val session = JsonUtils.json2caseClass[SessionClass](decodeToken.get._2)
     session
   }
 

@@ -20,24 +20,24 @@
 
     <modules>
         <module>ums</module>
-        <module>common/kafka08</module>
-        <module>common/kafka010</module>
-        <module>common/kafka010-2</module>
-        <module>common/util</module>
-        <module>common/zookeeper</module>
-        <module>common/dbpool</module>
-        <module>common/sparkxinterface</module>
+        <module>kafkatool/kafka08</module>
+        <module>kafkatool/kafka010</module>
+        <module>kafkatool/kafka010-2</module>
+        <module>util</module>
+        <module>externalclient/zookeeper</module>
+        <module>dbdriver/dbpool</module>
+        <module>interface/sparkxinterface</module>
         <!--<module>common/phoenix-jdbc</module>-->
-        <module>common/sql4es5</module>
-        <module>common/sql4es2</module>
-        <module>common/redispool</module>
-        <module>common/hadoop</module>
+        <module>dbdriver/sql4es5</module>
+        <module>dbdriver/sql4es2</module>
+        <module>dbdriver/redispool</module>
+        <module>externalclient/hadoop</module>
         <module>flinkx</module>
         <module>sparkx</module>
-        <module>common/flinkxinterface</module>
-        <module>common/wormholeinterface</module>
-        <module>common/sinks</module>
-        <module>common/common</module>
+        <module>interface/flinkxinterface</module>
+        <module>interface/publicinterface</module>
+        <module>sinks</module>
+        <module>common</module>
 
         <!--<module>rider/common/haservice</module>-->
         <module>rider/rider-server</module>

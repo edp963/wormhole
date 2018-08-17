@@ -22,7 +22,7 @@
 package edp.rider.zookeeper
 
 import edp.rider.common.{GetZookeeperDataException, RiderConfig, RiderLogger}
-import edp.wormhole.common.zookeeper.WormholeZkClient
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 
 case class SendDirectiveException(message: String) extends Exception(message)
 

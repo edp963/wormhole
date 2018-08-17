@@ -29,8 +29,8 @@ import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.service.util.{CacheMap, FeedbackOffsetUtil}
-import edp.wormhole.common.util.{DateUtils, DtFormat}
 import edp.wormhole.ums._
+import edp.wormhole.util.{DateUtils, DtFormat}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
