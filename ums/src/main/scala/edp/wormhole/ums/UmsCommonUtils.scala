@@ -117,4 +117,13 @@ object UmsCommonUtils extends Serializable {
     realKey
   }
 
+
+  private def checkAndGetKey( key:String, umsStr:String): String ={
+    if(key==null||key.trim.isEmpty) getFieldContentFromJson(umsStr, "namespace")
+    else UmsProtocolType.DATA_INCREMENT_DATA.toString+"."+key
+  }
+
+
+
+
 }
