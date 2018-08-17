@@ -6,6 +6,7 @@ if [ -z "${WORMHOLE_HOME}" ]; then
     exit 1
 fi
 
+
 if [ -z "${SPARK_HOME}" ]; then
     echo "ERROR!!: SPARK_HOME is not defined correctly, please specify SPARK_HOME first."
     exit 1

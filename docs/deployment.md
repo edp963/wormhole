@@ -29,22 +29,22 @@ description: Wormhole Deployment page
 mysql-connector-java-{your-db-version}.jar
 
 
-**注意：升级至0.5.0-beta版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
+**注意：升级至0.5.1-beta版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
 
 ## 部署配置
 
-**下载 wormhole-0.5.0-beta.tar.gz 包 (链接:https://pan.baidu.com/s/1VmkhSCQ77ga-6GmVquUXoQ  密码:j4hz)，或者自编译**
+**下载 wormhole-0.5.1-beta.tar.gz 包 (链接:https://pan.baidu.com/s/1rRAXOvGLG8KyKjqGCkRGwA  密码:gcqs)，或者自编译**
 
 ```
-下载wormhole-0.5.0-beta.tar.gz安装包
-tar -xvf wormhole-0.5.0-beta.tar.gz
+下载wormhole-0.5.1-beta.tar.gz安装包
+tar -xvf wormhole-0.5.1-beta.tar.gz
 或者自编译，生成的tar包在 wormhole/target
 git clone -b 0.5 https://github.com/edp963/wormhole.git
 cd wormhole
 mvn install package -Pwormhole
 ```
 
-**注意：0.4.2版本升级至0.5.0-beta版前须手动执行以下操作**
+**注意：0.4.2版本升级至0.5.1-beta版前须手动执行以下操作**
 
 ```
 1. stream表中增加function_type字段，原stream_type值赋值给function_type，stream_type值改为"spark"
