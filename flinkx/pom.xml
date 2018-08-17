@@ -7,7 +7,7 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.5.0-beta</version>
+        <version>0.5.1-beta</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -60,7 +60,12 @@
 
         <dependency>
             <groupId>edp.wormhole</groupId>
-            <artifactId>wormhole-interface</artifactId>
+            <artifactId>wormhole-publicinterface</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-flinkxinterface</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -126,7 +131,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>edp.wormhole.WormholeFlinkxStarter</mainClass>
+                            <mainClass>edp.wormhole.flinkx.WormholeFlinkxStarter</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

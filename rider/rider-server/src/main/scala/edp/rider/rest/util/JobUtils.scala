@@ -32,11 +32,11 @@ import edp.rider.rest.util.NsDatabaseUtils._
 import edp.rider.yarn.YarnStatusQuery.getSparkJobStatus
 import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.wormhole._
-import edp.wormhole.common.ConnectionConfig
-import edp.wormhole.common.util.CommonUtils._
-import edp.wormhole.common.util.DateUtils._
-import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.ums.UmsDataSystem
+import edp.wormhole.util.JsonUtils._
+import edp.wormhole.util.CommonUtils._
+import edp.wormhole.util.DateUtils
+import edp.wormhole.util.config.ConnectionConfig
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -212,7 +212,7 @@ object JobUtils extends RiderLogger {
 
   def genJobName(projectId: Long, sourceNs: String, sinkNs: String) = {
     val projectName = Await.result(modules.projectDal.findById(projectId), minTimeOut).head.name
-    s"wormhole_${projectName}_job_${sourceNs}_${sinkNs}_$currentyyyyMMddHHmmss"
+    s"wormhole_${projectName}_job_${sourceNs}_${sinkNs}_$DateUtils.currentyyyyMMddHHmmss"
   }
 
   def refreshJob(id: Long) = {
