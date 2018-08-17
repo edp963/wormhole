@@ -319,7 +319,7 @@
                             <transformers>
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>edp.wormhole.batchflow.BatchflowStarter</mainClass>
+                                    <mainClass>edp.wormhole.sparkx.batchflow.BatchflowStarter</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
