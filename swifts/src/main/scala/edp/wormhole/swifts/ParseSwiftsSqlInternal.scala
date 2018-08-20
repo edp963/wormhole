@@ -68,7 +68,7 @@ object ParseSwiftsSqlInternal {
         sqlSecondPart = getCassandraSql(sql, lookupNSArr(2))
       case _ =>
     }
-    val connectionConfig = ConnectionMemoryStorage.getDataStoreConnectionConfig(unionNamespace)
+    val connectionConfig = ConnectionMemoryStorage.getDataStoreConnections(unionNamespace)
     val selectSchema = getSchema(sqlSecondPart, connectionConfig)
 
     val selectFieldsList = getIndependentFieldsFromSql(sqlSecondPart)
@@ -96,7 +96,6 @@ object ParseSwiftsSqlInternal {
       val index = sql.toLowerCase.indexOf(" where ")
       testSql = sql.substring(0, index) + " limit 1;"
     }
-    logger.info(connectionConfig.connectionUrl+"in getSchema")
     val conn = DbConnection.getConnection(connectionConfig)
     val statement = conn.createStatement()
     logger.info(testSql)
@@ -109,7 +108,7 @@ object ParseSwiftsSqlInternal {
       val columnType: String = schema.getColumnTypeName(i + 1)
       fieldSchema ++= columnName
       fieldSchema ++= ":"
-      fieldSchema ++= DbType.convert(columnType.toUpperCase)
+      fieldSchema ++= DbType.convert(columnType)
       if (i != columnCount - 1)
         fieldSchema ++= ","
     }
@@ -241,7 +240,7 @@ object ParseSwiftsSqlInternal {
 
   private def getFieldsWithType(joinNamespace: String, sql: String) = {
     val lookupNamespacesArr = joinNamespace.split(",").map(_.trim)
-    val connectionConfig = ConnectionMemoryStorage.getDataStoreConnectionConfig(lookupNamespacesArr(0))
+    val connectionConfig = ConnectionMemoryStorage.getDataStoreConnections(lookupNamespacesArr(0))
     val fieldsStr = if (joinNamespace.startsWith(UmsDataSystem.HBASE.toString) || joinNamespace.startsWith(UmsDataSystem.REDIS.toString) || joinNamespace.startsWith(UmsDataSystem.KUDU.toString)) {
       Some(getFieldsFromHbaseOrRedisOrKudu(sql))
     } else {
@@ -370,7 +369,7 @@ object ParseSwiftsSqlInternal {
   }
 
 
-  def getFlinkSql(sqlStrEle: String, dataType: String, sourceNamespace: String, sourceSchemaFieldSet: collection.Set[String]): SwiftsSql = {
+  def getFlinkSql(sqlStrEle: String, dataType: String, sourceNamespace: String): SwiftsSql = {
     val tableName = sourceNamespace.split("\\.")(3)
     var sql = "select "
     val selectFields = sqlStrEle
@@ -383,10 +382,10 @@ object ParseSwiftsSqlInternal {
       if (dataType == "ums" && !selectFields.contains(UmsSysField.TS.toString)) {
         sql = sql + UmsSysField.TS.toString + ", "
       }
-      if (dataType == "ums" && (!selectFields.contains(UmsSysField.ID.toString)) && sourceSchemaFieldSet.contains(UmsSysField.ID.toString)) {
+      if (dataType == "ums" && !selectFields.contains(UmsSysField.ID.toString)) {
         sql = sql + UmsSysField.ID.toString + ", "
       }
-      if (dataType == "ums" && !selectFields.contains(UmsSysField.OP.toString) && sourceSchemaFieldSet.contains(UmsSysField.OP.toString)) {
+      if (dataType == "ums" && !selectFields.contains(UmsSysField.OP.toString)) {
         sql = sql + UmsSysField.OP.toString + ", "
       }
       sql = sql + SwiftsConstants.PROTOCOL_TYPE + ", "

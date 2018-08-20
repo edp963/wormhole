@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.wormhole.flinkx.eventflow
+package edp.wormhole.flinkx
 
 import java.util.Properties
 
@@ -30,7 +30,7 @@ import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
 import edp.wormhole.flinkx.sink.SinkProcess
 import edp.wormhole.flinkx.swifts.{ParseSwiftsSql, SwiftsProcess}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
-import edp.wormhole.flinkx.util.{FlinkxTimestampExtractor, UmsFlowStartUtils, WormholeFlinkxConfigUtils}
+import edp.wormhole.flinkx.util.{UmsFlowStartUtils, WormholeFlinkxConfigUtils}
 import edp.wormhole.swifts.SwiftsConstants
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
@@ -55,16 +55,16 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   logger.info(swiftsString + "------swifts string")
   private val swifts: fastjson.JSONObject = JSON.parseObject(swiftsString)
   private val timeCharacteristic = UmsFlowStartUtils.extractTimeCharacteristic(swifts)
-  private val sinkNamespace = UmsFlowStartUtils.extractSinkNamespace(flowStartFields, flowStartPayload)
-  private val sourceNamespace: String = UmsFlowStartUtils.extractSourceNamespace(umsFlowStart)
 
   def process(): JobExecutionResult = {
-    val swiftsSql = getSwiftsSql(swiftsString, UmsFlowStartUtils.extractDataType(flowStartFields, flowStartPayload))
+    val sinkNamespace = UmsFlowStartUtils.extractSinkNamespace(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head)
+    val sourceNamespace: String = UmsFlowStartUtils.extractSourceNamespace(umsFlowStart)
+    val swiftsSql = getSwiftsSql(swiftsString, sourceNamespace, sinkNamespace)
     val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
     env.setParallelism(config.parallelism)
 
     assignTimeCharacteristic(env)
-    val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase)
+    val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase, sourceNamespace)
     val watermarkStream = assignTimestamp(inputStream, sourceSchemaMap.toMap)
     watermarkStream.print()
     try {
@@ -77,7 +77,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     env.execute(s"$sourceNamespace-$sinkNamespace")
   }
 
-  private def createKafkaStream(env: StreamExecutionEnvironment, flowNamespace: String) = {
+  private def createKafkaStream(env: StreamExecutionEnvironment, flowNamespace: String, sourceNamespace: String) = {
     val properties = new Properties()
     properties.setProperty("bootstrap.servers", config.kafka_input.kafka_base_config.brokers)
     properties.setProperty("zookeeper.connect", config.zookeeper_address)
@@ -92,12 +92,10 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val specificStartOffsets = flinkxConfigUtils.getTopicPartitionOffsetMap
     myConsumer.setStartFromSpecificOffsets(specificStartOffsets)
     val consumeProtocolMap = UmsFlowStartUtils.extractConsumeProtocol(flowStartFields, flowStartPayload)
-    val initialStream: DataStream[(String, String, String, Int, Long)] = env.addSource(myConsumer)
-      .map(event => (UmsCommonUtils.checkAndGetKey(event._1, event._2), event._2, event._3, event._4, event._5))
-      .filter(event => {
-        val (umsProtocolType, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(event._1)
-        consumeProtocolMap.contains(umsProtocolType) && consumeProtocolMap(umsProtocolType) && matchNamespace(namespace, flowNamespace)
-      })
+    val initialStream: DataStream[(String, String, String, Int, Long)] = env.addSource(myConsumer).filter(event => {
+      val (umsProtocolType, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(event._1)
+      consumeProtocolMap.contains(umsProtocolType) && consumeProtocolMap(umsProtocolType) && matchNamespace(namespace, flowNamespace)
+    })
 
     val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
     initialStream.flatMap(new UmsFlatMapper(sourceSchemaMap.toMap, sourceNamespace, jsonSourceParseMap))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
@@ -116,13 +114,13 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     else inputStream
   }
 
-  private def getSwiftsSql(swiftsString: String, dataType: String): Option[Array[SwiftsSql]] = {
+  private def getSwiftsSql(swiftsString: String, sourceNamespace: String, sinkNamespace: String): Option[Array[SwiftsSql]] = {
     val action: String = if (swifts.containsKey("action") && swifts.getString("action").trim.nonEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(swifts.getString("action").trim)) else null
     if (null != action) {
       logger.info(s"action in getSwiftsSql $action")
       val parser = new ParseSwiftsSql(action, sourceNamespace, sinkNamespace)
       parser.registerConnections(swifts)
-      parser.parse(dataType, sourceSchemaMap.keySet)
+      parser.parse("ums")
     } else None
   }
 

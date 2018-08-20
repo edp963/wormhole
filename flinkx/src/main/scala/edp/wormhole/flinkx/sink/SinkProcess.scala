@@ -44,7 +44,7 @@ object SinkProcess extends Serializable {
     val sinkNamespace = UmsFlowStartUtils.extractSinkNamespace(umsFlowStartSchemas, umsFlowStartPayload)
     registerConnection(sinks, sinkNamespace)
     val sinkProcessConfig:SinkProcessConfig=getSinkProcessConfig(sinks)
-    dataStream.map(new SinkMapper(schemaMapWithUmsType,sinkNamespace,sinkProcessConfig,umsFlowStart,ConnectionMemoryStorage.getDataStoreConnectionConfig(sinkNamespace)))
+    dataStream.map(new SinkMapper(schemaMapWithUmsType,sinkNamespace,sinkProcessConfig,umsFlowStart,ConnectionMemoryStorage.getDataStoreConnections(sinkNamespace)))
   }
 
   private def registerConnection(sinks: JSONObject, sinkNamespace: String): Unit = {
