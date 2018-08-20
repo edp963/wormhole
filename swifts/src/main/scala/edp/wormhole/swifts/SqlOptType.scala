@@ -20,7 +20,7 @@
 
 
 
-package edp.wormhole.util.swifts
+package edp.wormhole.swifts
 
 object SqlOptType extends Enumeration {
   type SqlOptType = Value

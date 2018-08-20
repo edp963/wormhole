@@ -23,7 +23,6 @@ package edp.wormhole.flinkx.pattern
 import java.sql.{Date, Timestamp}
 
 import com.alibaba.fastjson.JSONObject
-import edp.wormhole.flinkx.swifts.SwiftsConstants
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.flinkx.ordering.OrderingImplicit._
 import edp.wormhole.flinkx.pattern.Functions.{HEAD, LAST, MAX, MIN}
@@ -31,6 +30,7 @@ import edp.wormhole.flinkx.pattern.Output._
 import edp.wormhole.flinkx.pattern.OutputType._
 import edp.wormhole.ums.UmsSysField
 import edp.wormhole.flinkx.util.FlinkSchemaUtils.object2TrueValue
+import edp.wormhole.swifts.SwiftsConstants
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.cep.scala.PatternStream
 import org.apache.flink.streaming.api.scala._

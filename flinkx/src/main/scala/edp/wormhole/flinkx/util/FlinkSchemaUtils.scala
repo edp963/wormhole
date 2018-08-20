@@ -24,8 +24,8 @@ import java.sql.{Date, Timestamp}
 
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.flinkx.WormholeFlinkxConfig
-import edp.wormhole.flinkx.swifts.SwiftsConstants
 import edp.wormhole.kafka.WormholeKafkaConsumer
+import edp.wormhole.swifts.SwiftsConstants
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType.{DATA_BATCH_DATA, DATA_INCREMENT_DATA, DATA_INITIAL_DATA}
 import edp.wormhole.ums.{UmsCommonUtils, UmsSchema, UmsSysField}
@@ -226,31 +226,16 @@ object FlinkSchemaUtils extends java.io.Serializable {
 
   def s2FlinkType(fieldType: String): TypeInformation[_] = {
     fieldType match {
-      case "TIMESTAMP" => Types.SQL_TIMESTAMP
-      case "DATE" => Types.SQL_DATE
-      case "DATETIME" => Types.SQL_TIMESTAMP
-      case "DECIMAL" => Types.DECIMAL
-      case "SMALLINT" | "INT" => Types.INT
-      case "BIGINT" => Types.LONG
-      case "FLOAT" => Types.FLOAT
-      case "DOUBLE" => Types.DOUBLE
-      case "VARCHAR" | "TEXT" | "LONGTEXT" | "CHAR" | "VARCHAR2" | "CLOB" => Types.STRING
-      case "BLOB" | "LONGBLOB" | "BINARY" => BasicArrayTypeInfo.BYTE_ARRAY_TYPE_INFO
+      case "datetime" => Types.SQL_TIMESTAMP
+      case "date" => Types.SQL_DATE
+      case "decimal" => Types.DECIMAL
+      case "int" => Types.INT
+      case "long" => Types.LONG
+      case "float" => Types.FLOAT
+      case "double" => Types.DOUBLE
+      case "String" => Types.STRING
+      case "binary" => BasicArrayTypeInfo.BYTE_ARRAY_TYPE_INFO
 
-      //oracle
-      case "INTEGER" => Types.INT
-      case "RAW" | "LONG RAW" => BasicArrayTypeInfo.BYTE_ARRAY_TYPE_INFO
-      case "NUMBER" => Types.DECIMAL
-
-      //cassandra
-      case "JAVA.MATH.BIGDECIMAL" => BasicArrayTypeInfo.BYTE_ARRAY_TYPE_INFO
-      case "JAVA.SQL.TIMESTAMP" => Types.SQL_TIMESTAMP
-      case "JAVA.SQL.DATE" => Types.SQL_DATE
-      case "JAVA.LANG.LONG" => Types.LONG
-      case "JAVA.LANG.FLOAT" => Types.FLOAT
-      case "JAVA.LANG.DOUBLE" => Types.DOUBLE
-      case "JAVA.LANG.INTEGER" => Types.INT
-      case "JAVA.LANG.STRING" => Types.STRING
       case unknown =>
         throw new Exception("unknown type:" + unknown)
     }
