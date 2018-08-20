@@ -26,7 +26,8 @@ import java.security.MessageDigest
 
 import edp.wormhole.externalclient.hadoop.HdfsUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.util.swifts.{SqlOptType, SwiftsSql}
+import edp.wormhole.swifts.SqlOptType
+import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql._
 

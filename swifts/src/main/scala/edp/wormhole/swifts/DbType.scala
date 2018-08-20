@@ -19,7 +19,7 @@
  */
 
 
-package edp.wormhole.sparkx.swifts.parse
+package edp.wormhole.swifts
 
 object DbType {
   def convert(dataTytpe: String): String = dataTytpe.toUpperCase match {

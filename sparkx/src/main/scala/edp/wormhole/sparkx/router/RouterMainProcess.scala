@@ -28,7 +28,7 @@ import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.common.{SparkUtils, WormholeUtils}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.ums.{UmsFeedbackStatus, UmsProtocolType, UmsProtocolUtils}
+import edp.wormhole.ums.{UmsCommonUtils, UmsFeedbackStatus, UmsProtocolType, UmsProtocolUtils}
 import edp.wormhole.util.DateUtils
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.rdd.RDD
@@ -64,7 +64,7 @@ object RouterMainProcess extends EdpLogging {
         val dataRepartitionRdd: RDD[(String, String)] =
           if (config.rdd_partition_number != -1) streamRdd.map(row => {
             if(row.key==null||row.key.trim.isEmpty){
-              val realNamespace = WormholeUtils.getFieldContentFromJson(row.value,"namespace")
+              val realNamespace = UmsCommonUtils.getFieldContentFromJson(row.value,"namespace")
               (realNamespace,row.value)
             }else (row.key, row.value)
           }).repartition(config.rdd_partition_number)
