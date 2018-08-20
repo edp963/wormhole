@@ -134,7 +134,7 @@ object BatchflowMainProcess extends EdpLogging {
   }
 
   private def checkAndGetKey( key:String, umsStr:String): String ={
-    if(key==null||key.trim.isEmpty) WormholeUtils.getFieldContentFromJson(umsStr, "namespace")
+    if(key==null||key.trim.isEmpty) UmsCommonUtils.getFieldContentFromJson(umsStr, "namespace")
     else key
   }
 
@@ -149,7 +149,7 @@ object BatchflowMainProcess extends EdpLogging {
       val nsSchemaMap = mutable.HashMap.empty[(UmsProtocolType, String), Seq[UmsField]]
       partition.foreach(row => {
         try {
-          val (protocolType, namespace) = WormholeUtils.getTypeNamespaceFromKafkaKey(row._1)
+          val (protocolType, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(row._1)
           if (protocolType == UmsProtocolType.DATA_INCREMENT_DATA || protocolType == UmsProtocolType.DATA_BATCH_DATA || protocolType == UmsProtocolType.DATA_INITIAL_DATA) {
             if (ConfMemoryStorage.existNamespace(mainNamespaceSet, namespace)) {
               val schemaValueTuple: (Seq[UmsField], Seq[UmsTuple]) = WormholeUtils.jsonGetValue(namespace, protocolType, row._2, jsonSourceParseMap)
@@ -674,7 +674,7 @@ object BatchflowMainProcess extends EdpLogging {
     if (otherDataArray.nonEmpty) {
       otherDataArray.foreach(
         row => {
-          val ums = WormholeUtils.json2Ums(row)
+          val ums = UmsCommonUtils.json2Ums(row)
           val umsTsIndex = ums.schema.fields.get.zipWithIndex.filter(_._1.name == UmsSysField.TS.toString).head._2
           val namespace = ums.schema.namespace
           val umsts = ums.payload_get.head.tuple(umsTsIndex)
