@@ -44,7 +44,6 @@ object LookupHelper extends java.io.Serializable {
   def getDbOutPutSchemaMap(swiftsSql: SwiftsSql): Map[String, (String, String, Int)] = {
     var fieldIndex: Int = -1
     swiftsSql.fields.get.split(",").map(field => {
-      fieldIndex += 1
       val fields = field.split(":")
       val fields1trim = fields(1).trim
       val fieldTuple = if (fields1trim.toLowerCase.contains(" as ")) {
@@ -55,6 +54,7 @@ object LookupHelper extends java.io.Serializable {
       } else {
         (fields(0).trim, (fields(0).trim, fields(1).trim, fieldIndex))
       }
+      fieldIndex += 1
       fieldTuple
     }).toMap
   } //order is not same as input order !!!
@@ -100,7 +100,7 @@ object LookupHelper extends java.io.Serializable {
         val arrayBuf: Array[Any] = Array.fill(dbOutPutSchemaMap.size) {
           ""
         }
-        dbOutPutSchemaMap.foreach { case (_, (name, dataType, index)) =>
+        dbOutPutSchemaMap.foreach { case (name, (dataType, _, index)) =>
           val value = rs.getObject(name)
           arrayBuf(index) = if (value != null) {
             if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
