@@ -2,7 +2,7 @@
  * <<
  * wormhole
  * ==
- * Copyright (C) 2016 - 2017 EDP
+ * Copyright (C) 2016 - 2018 EDP
  * ==
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,25 @@
  * >>
  */
 
+package edp.wormhole.swifts
 
-package edp.wormhole.sparkx.swifts
+object StreamType extends Enumeration {
+  type StreamType = Value
+  val BATCHFLOW = Value("batchflow")
+  val HDFSLOG = Value("hdfslog")
+  val ROUTER = Value("router")
 
-object SwiftsConstants {
+  def streamType(s: String) = StreamType.withName(s.toLowerCase)
 
-  val REPLACE_STRING_INSQL = "swifts_join_fields_values"
+}
+
+
+object InputDataProtocolBaseType extends Enumeration {
+  type InputDataProtocolBaseType = Value
+  val INITIAL = Value("initial")
+  val INCREMENT = Value("increment")
+  val BATCH = Value("batch")
+
+  def inputDataRequirement(s: String) = InputDataProtocolBaseType.withName(s.toLowerCase)
 
 }
