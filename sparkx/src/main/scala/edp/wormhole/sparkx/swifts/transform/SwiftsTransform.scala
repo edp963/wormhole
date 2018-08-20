@@ -27,7 +27,7 @@ import edp.wormhole.common.WormholeConfig
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkx.swifts.custom.{LookupHbase, LookupKudu, LookupRedis}
-import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
+import edp.wormhole.swifts.SqlOptType
 import edp.wormhole.ums.UmsDataSystem
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.spark.sql._
@@ -83,7 +83,7 @@ object SwiftsTransform extends EdpLogging {
               //select id as newid,name,age,degree as degree1 from customer where  swifts_join_fields_values
               val schema = operate.fields.get
               logInfo("schema::" + schema)
-              val connectionConfig = ConnectionMemoryStorage.getDataStoreConnectionsMap(lookupNamespace)
+              val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(lookupNamespace)
               val lookupNameSpaceArr: Array[String] = lookupNamespace.split("\\.")
               assert(lookupNameSpaceArr.length == 3, "lookup namespace is invalid in pattern list sql")
               //  val jsonSchema = JsonSchemaObtain.getJsonSchema(schema)
@@ -110,7 +110,7 @@ object SwiftsTransform extends EdpLogging {
             val columns = sourceTableFields.map(name => new Column(name))
             currentDf = currentDf.repartition(config.rdd_partition_number, columns: _*)
             val schema = operate.fields.get
-            val connectionConfig = ConnectionMemoryStorage.getDataStoreConnectionsMap(lookupNamespace)
+            val connectionConfig = ConfMemoryStorage.getDataStoreConnectionsMap(lookupNamespace)
             val lookupNameSpaceArr = lookupNamespace.split("\\.")
             assert(lookupNameSpaceArr.size == 3, "lookup namespace is invalid in pattern list sql")
             //       val jsonSchema = JsonSchemaObtain.getJsonSchema(schema)
