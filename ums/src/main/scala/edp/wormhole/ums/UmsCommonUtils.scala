@@ -21,6 +21,8 @@
 
 package edp.wormhole.ums
 
+import java.sql.Timestamp
+
 import edp.wormhole.util.DateUtils.dt2timestamp
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.UmsSchemaUtils.toUms
@@ -70,7 +72,7 @@ object UmsCommonUtils extends Serializable {
     else dataType
   }
 
-  def convertLongTimestamp(timestampStr: String) = {
+  def convertLongTimestamp(timestampStr: String): Timestamp = {
     if (timestampStr.substring(0, 2) == "20") {
       dt2timestamp(timestampStr)
     }
@@ -80,6 +82,7 @@ object UmsCommonUtils extends Serializable {
       dt2timestamp(timestampLong)
     }
   }
+
 
   def getFieldContentFromJson(json: String, fieldName: String): String = {
     var tmpValue = json
@@ -103,18 +106,30 @@ object UmsCommonUtils extends Serializable {
     while (tmpValue != null) {
       val strPosition = tmpValue.indexOf("\"protocol\"")
       println(strPosition)
-      tmpValue = tmpValue.substring(strPosition + 10).trim
-      if (tmpValue.startsWith(":")) {
-        val from = tmpValue.indexOf("{")
-        val to = tmpValue.indexOf("}")
-        val subStr = tmpValue.substring(from, to + 1)
-        if (subStr.contains("\"type\"")) {
-          realKey = getFieldContentFromJson(subStr, "type")
-          tmpValue = null
+      if (strPosition > 0) {
+        tmpValue = tmpValue.substring(strPosition + 10).trim
+        if (tmpValue.startsWith(":")) {
+          val from = tmpValue.indexOf("{")
+          val to = tmpValue.indexOf("}")
+          val subStr = tmpValue.substring(from, to + 1)
+          if (subStr.contains("\"type\"")) {
+            realKey = getFieldContentFromJson(subStr, "type")
+            tmpValue = null
+          }
         }
-      }
+      } else tmpValue = null
     }
     realKey
   }
 
+
+  def checkAndGetKey(key: String, umsStr: String): String = {
+    if (key == null || key.trim.isEmpty) {
+      val protocolType = getProtocolTypeFromUms(umsStr)
+      val namespace = getFieldContentFromJson(umsStr, "namespace")
+      if (protocolType == null)
+        UmsProtocolType.DATA_INCREMENT_DATA.toString + "." + getFieldContentFromJson(umsStr, "namespace")
+      else protocolType + "." + namespace
+    } else key
+  }
 }

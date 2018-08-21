@@ -31,6 +31,7 @@ import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.swifts.parse.ParseSwiftsSql
 import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, ValidityConfig}
+import edp.wormhole.swifts.ConnectionMemoryStorage
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
 import edp.wormhole.ums._
 import edp.wormhole.util.config.KVConfig
@@ -98,7 +99,7 @@ object BatchflowDirective extends Directive {
               logInfo("not contains connection_config")
               None
             }
-            ConfMemoryStorage.registerDataStoreConnectionsMap(name_space, jdbc_url, username, password, parameters)
+            ConnectionMemoryStorage.registerDataStoreConnectionsMap(name_space, jdbc_url, username, password, parameters)
           }
         }
 
@@ -146,11 +147,11 @@ object BatchflowDirective extends Directive {
 
     if (dataType != "ums") {
       val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
-      if(initial)
+      if (initial)
         ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INITIAL_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
-      if(increment)
+      if (increment)
         ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
-      if(batch)
+      if (batch)
         ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_BATCH_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
 
     }
@@ -165,7 +166,7 @@ object BatchflowDirective extends Directive {
     ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap)
 
 
-    ConfMemoryStorage.registerDataStoreConnectionsMap(fullsinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
+    ConnectionMemoryStorage.registerDataStoreConnectionsMap(fullsinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
     WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
 
   }
