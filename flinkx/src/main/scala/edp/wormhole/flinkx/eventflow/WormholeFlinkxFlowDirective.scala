@@ -1,4 +1,4 @@
-package edp.wormhole.flinkx
+package edp.wormhole.flinkx.eventflow
 
 import com.alibaba.fastjson.JSON
 import edp.wormhole.common.InputDataRequirement
