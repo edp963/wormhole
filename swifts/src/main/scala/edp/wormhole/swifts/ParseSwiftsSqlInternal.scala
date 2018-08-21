@@ -369,7 +369,7 @@ object ParseSwiftsSqlInternal {
   }
 
 
-  def getFlinkSql(sqlStrEle: String, dataType: String, sourceNamespace: String): SwiftsSql = {
+  def getFlinkSql(sqlStrEle: String, dataType: String, sourceNamespace: String, sourceSchemaFieldSet: collection.Set[String]): SwiftsSql = {
     val tableName = sourceNamespace.split("\\.")(3)
     var sql = "select "
     val selectFields = sqlStrEle
@@ -382,10 +382,10 @@ object ParseSwiftsSqlInternal {
       if (dataType == "ums" && !selectFields.contains(UmsSysField.TS.toString)) {
         sql = sql + UmsSysField.TS.toString + ", "
       }
-      if (dataType == "ums" && !selectFields.contains(UmsSysField.ID.toString)) {
+      if (dataType == "ums" && (!selectFields.contains(UmsSysField.ID.toString)) && sourceSchemaFieldSet.contains(UmsSysField.ID.toString)) {
         sql = sql + UmsSysField.ID.toString + ", "
       }
-      if (dataType == "ums" && !selectFields.contains(UmsSysField.OP.toString)) {
+      if (dataType == "ums" && !selectFields.contains(UmsSysField.OP.toString) && sourceSchemaFieldSet.contains(UmsSysField.OP.toString)) {
         sql = sql + UmsSysField.OP.toString + ", "
       }
       sql = sql + SwiftsConstants.PROTOCOL_TYPE + ", "
