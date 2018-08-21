@@ -32,7 +32,7 @@ object ConnectionMemoryStorage {
     }
   }
 
-  def getDataStoreConnections(namespace: String): ConnectionConfig = {
+  def getDataStoreConnectionConfig(namespace: String): ConnectionConfig = {
     val connectionNs = namespace.split("\\.").slice(0, 3).mkString(".")
 
     if (dataStoreConnectionsMap.contains(connectionNs)) {

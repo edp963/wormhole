@@ -99,4 +99,9 @@ object UmsFlowStartUtils {
     consumptionDataMap.toMap
   }
 
+
+  def extractDataType(schemas: Seq[UmsField], payloads: UmsTuple): String = {
+    UmsFieldType.umsFieldValue(payloads.tuple, schemas, "data_type").toString.toLowerCase()
+  }
+
 }

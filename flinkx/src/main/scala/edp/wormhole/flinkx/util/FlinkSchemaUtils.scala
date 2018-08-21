@@ -23,7 +23,7 @@ package edp.wormhole.flinkx.util
 import java.sql.{Date, Timestamp}
 
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
-import edp.wormhole.flinkx.WormholeFlinkxConfig
+import edp.wormhole.flinkx.eventflow.WormholeFlinkxConfig
 import edp.wormhole.kafka.WormholeKafkaConsumer
 import edp.wormhole.swifts.SwiftsConstants
 import edp.wormhole.ums.UmsFieldType._
@@ -145,7 +145,9 @@ object FlinkSchemaUtils extends java.io.Serializable {
             println(r.offset() + " offset")
             val (key, value) = (r.key(), r.value())
             println("key is " + key)
-            correctData = isCorrectRecord(key, value, sourceNamespace)
+            val key2Verify = UmsCommonUtils.checkAndGetKey(key, value)
+            println("key2Verify " + key2Verify)
+            correctData = isCorrectRecord(key2Verify, value, sourceNamespace)
             if (correctData) {
               println(s"the true value $value")
               val ums = UmsCommonUtils.json2Ums(value)
@@ -233,7 +235,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
       case "long" => Types.LONG
       case "float" => Types.FLOAT
       case "double" => Types.DOUBLE
-      case "String" => Types.STRING
+      case "string" => Types.STRING
       case "binary" => BasicArrayTypeInfo.BYTE_ARRAY_TYPE_INFO
 
       case unknown =>
