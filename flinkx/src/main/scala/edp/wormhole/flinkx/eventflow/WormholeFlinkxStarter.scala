@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.wormhole.flinkx
+package edp.wormhole.flinkx.eventflow
 
 import edp.wormhole.ums.{Ums, UmsSchemaUtils}
 import edp.wormhole.util.JsonUtils

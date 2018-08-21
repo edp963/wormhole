@@ -31,7 +31,7 @@ import org.apache.log4j.Logger
 class ParseSwiftsSql(sqlStr: String, sourceNamespace: String, sinkNamespace: String) {
   val logger: Logger = Logger.getLogger(this.getClass)
 
-  def parse(dataType: String): Option[Array[SwiftsSql]] = {
+  def parse(dataType: String, sourceSchemaFieldSet: collection.Set[String]): Option[Array[SwiftsSql]] = {
     val pushDownSqlBeginIndex = 12
     if (null != sqlStr && sqlStr.trim.nonEmpty) {
       val sqlArray = sqlStr.trim.replaceAll("\r", " ").replaceAll("\n", " ").replaceAll("\t", " ").split(";").map(sql => {
@@ -39,14 +39,14 @@ class ParseSwiftsSql(sqlStr: String, sourceNamespace: String, sinkNamespace: Str
         if (trimSql.startsWith(SqlOptType.PUSHDOWN_SQL.toString)) trimSql.substring(pushDownSqlBeginIndex).trim
         else trimSql
       })
-      val swiftsSqlArr = getSwiftsSql(sqlArray, dataType) //sourcenamespace is rule
+      val swiftsSqlArr = getSwiftsSql(sqlArray, dataType, sourceSchemaFieldSet) //sourcenamespace is rule
       swiftsSqlArr
     } else {
       None
     }
   }
 
-  private def getSwiftsSql(sqlArray: Array[String], dataType: String): Option[Array[SwiftsSql]] = {
+  private def getSwiftsSql(sqlArray: Array[String], dataType: String, sourceSchemaFieldSet: collection.Set[String]): Option[Array[SwiftsSql]] = {
     val swiftsSqlList = Some(sqlArray.map(sqlStrEle => {
       val sqlStrEleTrim = sqlStrEle.trim + " " //to fix no where clause bug, e.g select a, b from table;
       logger.info("sqlStrEle:::" + sqlStrEleTrim)
@@ -59,7 +59,7 @@ class ParseSwiftsSql(sqlStr: String, sourceNamespace: String, sinkNamespace: Str
       } else if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.CEP.toString)) {
         ParseSwiftsSqlInternal.getCEP(SqlOptType.CEP, sqlStrEleTrim)
       } else if (sqlStrEleTrim.toLowerCase.startsWith(SqlOptType.FLINK_SQL.toString)) {
-        ParseSwiftsSqlInternal.getFlinkSql(sqlStrEleTrim, dataType, sourceNamespace)
+        ParseSwiftsSqlInternal.getFlinkSql(sqlStrEleTrim, dataType, sourceNamespace,sourceSchemaFieldSet)
       } else {
         logger.info("optType:" + sqlStrEleTrim + " is not supported")
         throw new Exception("wong operation data type:" + sqlStrEleTrim)
