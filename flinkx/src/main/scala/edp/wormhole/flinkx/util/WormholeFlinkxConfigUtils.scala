@@ -22,7 +22,7 @@ package edp.wormhole.flinkx.util
 
 import java.lang
 
-import edp.wormhole.flinkx.WormholeFlinkxConfig
+import edp.wormhole.flinkx.eventflow.WormholeFlinkxConfig
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition
 
 import scala.collection.mutable
@@ -62,13 +62,3 @@ class WormholeFlinkxConfigUtils(config: WormholeFlinkxConfig) {
     specificStartOffsets.toMap
   }
 }
-
-//object InputDataRequirement extends Enumeration {
-//  type InputDataRequirement = Value
-//  val INITIAL = Value("initial")
-//  val INCREMENT = Value("increment")
-//  val BATCH = Value("batch")
-//
-//  def inputDataRequirement(s: String) = InputDataRequirement.withName(s.toLowerCase)
-//
-//}
