@@ -23,7 +23,7 @@ package edp.wormhole.sparkx.swifts.transform
 
 import edp.wormhole.sparkx.common.WormholeUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.sparkx.swifts.SwiftsConstants
+import edp.wormhole.swifts.SwiftsConstants
 import org.apache.spark.sql._
 import org.apache.spark.sql.types.StructField
 

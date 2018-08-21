@@ -22,9 +22,9 @@ package edp.wormhole.flinkx.util
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
+import edp.wormhole.swifts.InputDataProtocolBaseType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
-import edp.wormhole.util.swifts.InputDataProtocolBaseType
 import org.apache.log4j.Logger
 
 import scala.collection.mutable
@@ -97,6 +97,11 @@ object UmsFlowStartUtils {
     consumptionDataMap(UmsProtocolType.DATA_INCREMENT_DATA) = increment
     consumptionDataMap(UmsProtocolType.DATA_BATCH_DATA) = batch
     consumptionDataMap.toMap
+  }
+
+
+  def extractDataType(schemas: Seq[UmsField], payloads: UmsTuple): String = {
+    UmsFieldType.umsFieldValue(payloads.tuple, schemas, "data_type").toString.toLowerCase()
   }
 
 }

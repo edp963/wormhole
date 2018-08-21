@@ -232,14 +232,14 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   }
 
 
-  def registerDataStoreConnectionsMap(lookupNamespace: String, connectionUrl: String, username: Option[String], password: Option[String], parameters: Option[Seq[KVConfig]]) {
-    logInfo("register datastore,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
-    val connectionNamespace = lookupNamespace.split("\\.").slice(0, 3).mkString(".")
-    if (!dataStoreConnectionsMap.contains(connectionNamespace)) {
-      dataStoreConnectionsMap(connectionNamespace) = ConnectionConfig(connectionUrl, username, password, parameters)
-      logInfo("register datastore success,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
-    }
-  }
+//  def registerDataStoreConnectionsMap(lookupNamespace: String, connectionUrl: String, username: Option[String], password: Option[String], parameters: Option[Seq[KVConfig]]) {
+//    logInfo("register datastore,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
+//    val connectionNamespace = lookupNamespace.split("\\.").slice(0, 3).mkString(".")
+//    if (!dataStoreConnectionsMap.contains(connectionNamespace)) {
+//      dataStoreConnectionsMap(connectionNamespace) = ConnectionConfig(connectionUrl, username, password, parameters)
+//      logInfo("register datastore success,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
+//    }
+//  }
 
   def registerStreamLookupNamespaceMap(sourceNamespace: String, sinkNamespace: String, swiftsProcessConfig: Option[SwiftsProcessConfig]) {
     if (swiftsProcessConfig.nonEmpty && swiftsProcessConfig.get.swiftsSql.nonEmpty) {
@@ -265,14 +265,14 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
       throw new Exception("Cannot find lookupnamespace: " + lookupNamespace + " in streamLookupNamespaceMap")
   }
 
-  def getDataStoreConnectionsMap(namespace: String): ConnectionConfig = {
-    val connectionNs = namespace.split("\\.").slice(0, 3).mkString(".")
-    if (dataStoreConnectionsMap.contains(connectionNs)) {
-      dataStoreConnectionsMap(connectionNs)
-    } else {
-      throw new Exception("cannot resolve lookupNamespace, you do not send related directive.")
-    }
-  }
+//  def getDataStoreConnectionsMap(namespace: String): ConnectionConfig = {
+//    val connectionNs = namespace.split("\\.").slice(0, 3).mkString(".")
+//    if (dataStoreConnectionsMap.contains(connectionNs)) {
+//      dataStoreConnectionsMap(connectionNs)
+//    } else {
+//      throw new Exception("cannot resolve lookupNamespace, you do not send related directive.")
+//    }
+//  }
 
   //  def existconnectionNamespace(connectionNamespace: String): Boolean = {
   //    dataStoreConnectionsMap.contains(connectionNamespace)
