@@ -150,7 +150,7 @@ object LookupHelper extends java.io.Serializable {
                       sourceTableFields: Array[String],
                       preSchemaMap: Map[String, (TypeInformation[_], Int)]): Array[Any] = {
     val fieldContent = sourceTableFields.map(fieldName => {
-      val value = FlinkSchemaUtils.object2TrueValue(preSchemaMap(fieldName)._1, row.getField(preSchemaMap(fieldName)._2))
+      val value = FlinkSchemaUtils.object2TrueValue(preSchemaMap(fieldName.trim)._1, row.getField(preSchemaMap(fieldName.trim)._2))
       if (value != null) value else "N/A"
     })
     if (!fieldContent.contains("N/A")) {
