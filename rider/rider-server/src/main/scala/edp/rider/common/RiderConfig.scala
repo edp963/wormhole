@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit
 import edp.rider.RiderStarter.modules.config
 import edp.rider.rest.persistence.entities.{FlinkDefaultConfig, FlinkResourceConfig}
 import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeserializer}
+import scala.collection.JavaConversions._
 
 import scala.concurrent.duration.{FiniteDuration, _}
 
@@ -143,6 +144,11 @@ case class RiderFlink(homePath: String,
                       clientLogPath: String,
                       kafkaSessionTimeOut: Int,
                       kafkaGroupMaxSessionTimeOut: Int)
+
+case class DBusConfig(loginUrl: String,
+                      user: String,
+                      password: String,
+                      namespaceUrl: String)
 
 
 object RiderConfig {
@@ -280,10 +286,17 @@ object RiderConfig {
   lazy val maintenance = Maintenance(config.getInt("maintenance.mysql.feedback.remain.maxDays"),
     config.getInt("maintenance.elasticSearch.feedback.remain.maxDays"))
 
-  lazy val dbusUrl =
-    if (config.hasPath("dbus.namespace.rest.api.url"))
-      config.getStringList("dbus.namespace.rest.api.url")
-    else null
+  lazy val dbusConfigList =
+    if (config.hasPath("dbus.api"))
+      config.getObjectList("dbus.api").toList.map(configObject => {
+        val dbusApiConfig = configObject.toConfig
+        DBusConfig(dbusApiConfig.getString("login.url"),
+          dbusApiConfig.getString("login.email"),
+          dbusApiConfig.getString("login.password"),
+          dbusApiConfig.getString("synchronization.namespace.url"))
+      })
+    else List()
+
 
   lazy val riderInfo = RiderInfo(zk, consumer.brokers, consumer.feedbackTopic, spark.wormholeHeartBeatTopic, spark.hdfsRoot,
     spark.user, spark.appTags, spark.rm1Url, spark.rm2Url)
@@ -304,7 +317,7 @@ object RiderConfig {
 
   lazy val defaultFlinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "")
 
-  lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"), 1,1,
+  lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"), 1, 1,
     getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-flinkx_1.5.1-0.5.1-beta-jar-with-dependencies.jar"),
     getStringConfig("flink.wormhole.client.log.path", s"$riderRootPath/logs/flows"),
     getIntConfig("spark.kafka.session.timeout", 30000),
