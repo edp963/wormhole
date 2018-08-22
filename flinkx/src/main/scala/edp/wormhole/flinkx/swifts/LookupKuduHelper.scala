@@ -112,17 +112,11 @@ object LookupKuduHelper extends java.io.Serializable {
       val dataJoinNameArray = swiftsSql.sourceTableFields.get
 
       //value
-      //select * from table where () in (@@@@)
       val sourceTableFields: Array[String] = if (swiftsSql.sourceTableFields.isDefined) swiftsSql.sourceTableFields.get else null
-      //select * from table where (@@@@) in ()
       val lookupTableFields = if (swiftsSql.lookupTableFields.isDefined) swiftsSql.lookupTableFields.get else null
-      //select * from table where () in (@@@@) 对应的value
       val joinFieldsValueArray: Array[Any] = joinFieldsInRow(row, lookupTableFields, sourceTableFields, preSchemaMap)
       val joinFieldsValueString: Array[String] = joinFieldsValueArray.map(value => value.toString)
-      //select @@@@ from table where () in ()
       val selectFieldNewNameArray: Seq[String] = getFieldsArray(swiftsSql.fields.get).map(_._1).toList
-      //tableSchemaInKudu为kudu中的Schema
-      //(keysStr, (filedname, (value, type))
       val queryResult: (String, Map[String, (Any, String)]) = KuduConnection.doQueryByKey(lookupTableFields, joinFieldsValueString.toList, tableSchemaInKudu, client, table, selectFieldNewNameArray)
       //keyStr
       val joinFieldsAsKey: String = queryResult._1
@@ -135,7 +129,8 @@ object LookupKuduHelper extends java.io.Serializable {
         ""
       }
       dbOutPutSchemaMap.foreach { case (rename, (dataType, index, name)) =>
-        val value = queryFieldsResultMap(name)._1
+        val value = if(queryFieldsResultMap.contains(name)) queryFieldsResultMap(name)._1 else null.asInstanceOf[String]
+        //val value = queryFieldsResultMap(name)._1
         arrayBuf(index) = if (value != null) {
           if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
           else FlinkSchemaUtils.object2TrueValue(FlinkSchemaUtils.s2FlinkType(dataType), value)
