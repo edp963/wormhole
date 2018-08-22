@@ -43,6 +43,7 @@
         <module>rider/rider-server</module>
         <!--<module>rider/mad-server</module>-->
         <module>rider/rider-assembly</module>
+        <module>swifts</module>
     </modules>
 
     <properties>

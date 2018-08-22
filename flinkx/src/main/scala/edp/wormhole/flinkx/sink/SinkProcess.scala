@@ -21,9 +21,9 @@
 package edp.wormhole.flinkx.sink
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.flinkx.swifts.SwiftsConfMemoryStorage
 import edp.wormhole.flinkx.util.{FlinkSchemaUtils, UmsFlowStartUtils}
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
+import edp.wormhole.swifts.ConnectionMemoryStorage
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums._
 import edp.wormhole.util.JsonUtils
@@ -44,7 +44,7 @@ object SinkProcess extends Serializable {
     val sinkNamespace = UmsFlowStartUtils.extractSinkNamespace(umsFlowStartSchemas, umsFlowStartPayload)
     registerConnection(sinks, sinkNamespace)
     val sinkProcessConfig:SinkProcessConfig=getSinkProcessConfig(sinks)
-    dataStream.map(new SinkMapper(schemaMapWithUmsType,sinkNamespace,sinkProcessConfig,umsFlowStart,SwiftsConfMemoryStorage.getDataStoreConnections(sinkNamespace)))
+    dataStream.map(new SinkMapper(schemaMapWithUmsType,sinkNamespace,sinkProcessConfig,umsFlowStart,ConnectionMemoryStorage.getDataStoreConnectionConfig(sinkNamespace)))
   }
 
   private def registerConnection(sinks: JSONObject, sinkNamespace: String): Unit = {
@@ -52,7 +52,7 @@ object SinkProcess extends Serializable {
     val sink_connection_username = if (sinks.containsKey("sink_connection_username")) Some(sinks.getString("sink_connection_username").trim) else None
     val sink_connection_password = if (sinks.containsKey("sink_connection_password")) Some(sinks.getString("sink_connection_password").trim) else None
     val parameters = if (sinks.containsKey("sink_connection_config") && sinks.getString("sink_connection_config").trim.nonEmpty) Some(JsonUtils.json2caseClass[Seq[KVConfig]](sinks.getString("sink_connection_config"))) else None
-    SwiftsConfMemoryStorage.registerDataStoreConnectionsMap(sinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
+    ConnectionMemoryStorage.registerDataStoreConnectionsMap(sinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
   }
 
   def getSinkProcessConfig(sinks: JSONObject): SinkProcessConfig = {

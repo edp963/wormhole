@@ -77,11 +77,11 @@ object HdfsMainProcess extends EdpLogging {
         val streamTransformedRdd: RDD[((String, String), String)] = streamRdd.map(message => {
 
           if (message.key == null || message.key.trim.isEmpty) {
-            val namespace = WormholeUtils.getFieldContentFromJson(message.value, "namespace")
-            val protocolType = WormholeUtils.getProtocolTypeFromUms(message.value)
+            val namespace = UmsCommonUtils.getFieldContentFromJson(message.value, "namespace")
+            val protocolType = UmsCommonUtils.getProtocolTypeFromUms(message.value)
             ((protocolType, namespace), message.value)
           } else {
-            val (protocol, namespace) = WormholeUtils.getTypeNamespaceFromKafkaKey(message.key)
+            val (protocol, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(message.key)
             ((protocol.toString, namespace), message.value)
           }
         })

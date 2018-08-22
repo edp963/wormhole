@@ -75,7 +75,7 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
             else {
               streamDal.refreshStreamStatus()
               riderLogger.info(s"user ${session.userId} refresh streams.")
-              onComplete(flowDal.adminGetById(id, flowId).mapTo[Option[FlowAdminAllInfo]]) {
+              onComplete(flowDal.adminGetById(flowId).mapTo[Option[FlowAdminAllInfo]]) {
                 case Success(flowOpt) =>
                   flowOpt match {
                     case Some(flow) =>
