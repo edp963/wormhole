@@ -1,4 +1,4 @@
-package edp.wormhole.sinks.common
+package edp.wormhole.common.feedback
 
 object FeedbackPriority {
 

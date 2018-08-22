@@ -3,7 +3,7 @@ package edp.wormhole.sinks.kafkasink
 import java.util.UUID
 
 import com.alibaba.fastjson.JSON
-import edp.wormhole.sinks.common.JsonParseHelper
+import edp.wormhole.common.json.JsonParseHelper
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType

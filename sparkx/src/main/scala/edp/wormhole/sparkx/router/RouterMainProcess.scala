@@ -23,9 +23,9 @@ package edp.wormhole.sparkx.router
 
 import java.util.UUID
 
+import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.sinks.common.{FeedbackPriority, WormholeConfig}
-import edp.wormhole.sparkx.common.{SparkUtils, WormholeUtils}
+import edp.wormhole.sparkx.common.{SparkUtils, WormholeConfig, WormholeUtils}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.{UmsCommonUtils, UmsFeedbackStatus, UmsProtocolType, UmsProtocolUtils}

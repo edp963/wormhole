@@ -21,7 +21,7 @@
 package edp.wormhole.sinks.elasticsearchsink
 
 import com.alibaba.fastjson.{JSON, JSONArray}
-import edp.wormhole.sinks.common.JsonParseHelper
+import edp.wormhole.common.json.JsonParseHelper
 import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.sinks.SourceMutationType.INSERT_ONLY
 import edp.wormhole.sinks.{SourceMutationType, _IDHelper}
