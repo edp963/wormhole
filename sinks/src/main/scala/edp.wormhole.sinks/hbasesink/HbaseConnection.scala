@@ -23,6 +23,7 @@ package edp.wormhole.sinks.hbasesink
 
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.UmsFieldType
+import edp.wormhole.util.DateUtils
 import edp.wormhole.util.config.ConnectionConfig
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.{HBaseConfiguration, TableName}
@@ -143,6 +144,7 @@ object HbaseConnection extends Serializable {
                 case UmsFieldType.BOOLEAN => tmp.toBoolean
                 case UmsFieldType.DECIMAL => BigDecimal(tmp)
                 case UmsFieldType.BINARY => tmp.toInt.toBinaryString
+                case _=>tmp
               }
             }
             else {
@@ -155,6 +157,8 @@ object HbaseConnection extends Serializable {
                 case UmsFieldType.BOOLEAN => Bytes.toBoolean(result.getValue(familyBytes, cn))
                 case UmsFieldType.DECIMAL => Bytes.toBigDecimal(result.getValue(familyBytes, cn))
                 case UmsFieldType.BINARY => result.getValue(familyBytes, cn)
+                case UmsFieldType.DATE => DateUtils.dt2sqlDate(Bytes.toString(result.getValue(familyBytes, cn)).trim)
+                case UmsFieldType.DATETIME => DateUtils.dt2timestamp(Bytes.toString(result.getValue(familyBytes, cn)).trim)
               }
             }
           dataMap(c._1) = data

@@ -40,26 +40,35 @@ object LookupHelper extends java.io.Serializable {
   private val logger = Logger.getLogger(this.getClass)
 
 
-  def getDbOutPutSchemaMap(swiftsSql: SwiftsSql): Map[String, (String, Int)] = {
+  def getDbOutPutSchemaMap(swiftsSql: SwiftsSql): Map[String, (String, String, Int)] = {
     var fieldIndex: Int = -1
-    swiftsSql.fields.get.split(",").map(str => {
-      val arr = str.split(":")
+    swiftsSql.fields.get.split(",").map(field => {
       fieldIndex += 1
-      (arr(0), (arr(1), fieldIndex))
+      val fields = field.split(":")
+      val fields1trim = fields(1).trim
+      val fieldTuple = if (fields1trim.toLowerCase.contains(" as ")) {
+        val asIndex = fields1trim.toLowerCase.indexOf(" as ")
+        val fieldType = fields1trim.substring(0, asIndex).trim
+        val newName = fields1trim.substring(asIndex + 4).trim
+        (fields(0).trim, (newName, fieldType, fieldIndex))
+      } else {
+        (fields(0).trim, (fields(0).trim, fields(1).trim, fieldIndex))
+      }
+      fieldTuple
     }).toMap
   } //order is not same as input order !!!
 
 
   def getLookupSchemaMap(preSchemaMap: Map[String, (TypeInformation[_], Int)], swiftsSql: SwiftsSql): Map[String, (TypeInformation[_], Int)] = {
     val lookupSchemaMap = mutable.HashMap.empty[String, (TypeInformation[_], Int)]
-    val dbOutPutSchemaMap: Map[String, (String, Int)] = getDbOutPutSchemaMap(swiftsSql)
+    val dbOutPutSchemaMap: Map[String, (String, String, Int)] = getDbOutPutSchemaMap(swiftsSql)
     preSchemaMap.foreach(entry => {
       lookupSchemaMap += entry._1 -> entry._2
     })
     dbOutPutSchemaMap.foreach(entry => {
-      val fieldName = entry._1
-      val fieldType = FlinkSchemaUtils.s2FlinkType(entry._2._1)
-      val fieldIndex = entry._2._2 + preSchemaMap.size
+      val fieldName = entry._2._1
+      val fieldType = FlinkSchemaUtils.s2FlinkType(entry._2._2)
+      val fieldIndex = entry._2._3 + preSchemaMap.size
       lookupSchemaMap += fieldName -> (fieldType, fieldIndex)
     })
     lookupSchemaMap.toMap
@@ -90,7 +99,7 @@ object LookupHelper extends java.io.Serializable {
         val arrayBuf: Array[Any] = Array.fill(dbOutPutSchemaMap.size) {
           ""
         }
-        dbOutPutSchemaMap.foreach { case (name, (dataType, index)) =>
+        dbOutPutSchemaMap.foreach { case (name, (dataType, _, index)) =>
           val value = rs.getObject(name)
           arrayBuf(index) = if (value != null) {
             if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
@@ -140,7 +149,7 @@ object LookupHelper extends java.io.Serializable {
                       sourceTableFields: Array[String],
                       preSchemaMap: Map[String, (TypeInformation[_], Int)]): Array[Any] = {
     val fieldContent = sourceTableFields.map(fieldName => {
-      val value = FlinkSchemaUtils.object2TrueValue(preSchemaMap(fieldName)._1, row.getField(preSchemaMap(fieldName)._2))
+      val value = FlinkSchemaUtils.object2TrueValue(preSchemaMap(fieldName.trim)._1, row.getField(preSchemaMap(fieldName.trim)._2))
       if (value != null) value else "N/A"
     })
     if (!fieldContent.contains("N/A")) {
