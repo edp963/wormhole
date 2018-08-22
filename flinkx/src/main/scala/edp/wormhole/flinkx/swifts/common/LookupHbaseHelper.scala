@@ -8,13 +8,12 @@ import org.apache.log4j.Logger
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import edp.wormhole.ums._
-import edp.wormhole.common.{RowkeyPatternContent, RowkeyTool}
 import edp.wormhole.sinks.hbasesink.HbaseConnection
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
-import edp.wormhole.swifts.ConnectionMemoryStorage
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
+import edp.wormhole.sinks.common.{RowkeyPatternContent, RowkeyTool}
 import edp.wormhole.swifts.ConnectionMemoryStorage
 
 object LookupHbaseHelper extends java.io.Serializable{
