@@ -20,9 +20,10 @@
 
 package edp.wormhole.sinks.hbasesink
 
-import edp.wormhole.common.{RowkeyPatternContent, RowkeyPatternType, RowkeyTool}
+import edp.wormhole.sinks.common.{RowkeyPatternType, RowkeyTool}
 import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.sinks.SourceMutationType
+import edp.wormhole.sinks.common.{RowkeyPatternContent, RowkeyPatternType, RowkeyTool}
 import edp.wormhole.sinks.hbasesink.HbaseConstants._
 import org.apache.hadoop.hbase.client._
 import org.apache.hadoop.hbase.util.Bytes

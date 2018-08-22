@@ -1,4 +1,4 @@
-package edp.wormhole.common;
+package edp.wormhole.sinks.common
 
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import edp.wormhole.util.config.WormholeDefault._
