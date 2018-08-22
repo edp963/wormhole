@@ -25,16 +25,17 @@ import java.util.UUID
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common._
+import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.externalclient.hadoop.HdfsUtils
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.sinks.SourceMutationType
-import edp.wormhole.sinks.common.{FeedbackPriority, InputDataRequirement, WormholeConfig}
+import edp.wormhole.common.InputDataProtocolBaseType
 import edp.wormhole.sinks.elasticsearchsink.EsConfig
 import edp.wormhole.sinks.mongosink.MongoConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils
-import edp.wormhole.sparkx.common.{SparkSchemaUtils, SparkUtils, WormholeUtils}
+import edp.wormhole.sparkx.common.{SparkSchemaUtils, SparkUtils, WormholeConfig, WormholeUtils}
 import edp.wormhole.sparkx.directive.UdfDirective
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
@@ -263,11 +264,11 @@ object BatchflowMainProcess extends EdpLogging {
         flowConfigMap.foreach(flow => {
           val isProcessed = protocolType match {
             case UmsProtocolType.DATA_INCREMENT_DATA =>
-              flow._2._6(InputDataRequirement.INCREMENT.toString)
+              flow._2._6(InputDataProtocolBaseType.INCREMENT.toString)
             case UmsProtocolType.DATA_INITIAL_DATA =>
-              flow._2._6(InputDataRequirement.INITIAL.toString)
+              flow._2._6(InputDataProtocolBaseType.INITIAL.toString)
             case UmsProtocolType.DATA_BATCH_DATA =>
-              flow._2._6(InputDataRequirement.BATCH.toString)
+              flow._2._6(InputDataProtocolBaseType.BATCH.toString)
           }
           if (isProcessed) {
             val sinkNamespace = flow._1
