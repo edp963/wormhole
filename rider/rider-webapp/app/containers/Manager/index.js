@@ -1095,7 +1095,7 @@ export class Manager extends React.Component {
           const deleteFormat = <FormattedMessage {...messages.streamDelete} />
           const sureDeleteFormat = <FormattedMessage {...messages.streamSureDelete} />
           const startFormat = <FormattedMessage {...messages.streamTableStart} />
-          const sureStartFormat = <FormattedMessage {...messages.streaSureStart} />
+          const sureStartFormat = <FormattedMessage {...messages.streamSureStart} />
           const renewFormat = <FormattedMessage {...messages.streamTableRenew} />
           const stopFormat = <FormattedMessage {...messages.streamTableStop} />
           const sureStopFormat = <FormattedMessage {...messages.streamSureStop} />
