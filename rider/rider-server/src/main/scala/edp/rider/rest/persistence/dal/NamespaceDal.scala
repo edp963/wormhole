@@ -22,6 +22,7 @@
 package edp.rider.rest.persistence.dal
 
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.headers.OAuth2BearerToken
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes}
 import akka.util.ByteString
 import edp.rider.RiderStarter.modules._
@@ -37,11 +38,9 @@ import edp.wormhole.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
-import scala.collection.JavaConversions._
 import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
@@ -51,25 +50,22 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
   def getDbusFromRest: Seq[SimpleDbus] = {
     try {
-      val dbusServices =
-        if (RiderConfig.dbusUrl != null) RiderConfig.dbusUrl.toList
-        else List()
       val simpleDbusSeq = new ArrayBuffer[SimpleDbus]
-      dbusServices.map {
+      RiderConfig.dbusConfigList.map {
         service => {
-          if (service != null && service != "") {
-            val response = Await.result(Http().singleRequest(HttpRequest(uri = service)), 5.seconds)
-            response match {
-              case HttpResponse(StatusCodes.OK, headers, entity, _) =>
-                Await.result(entity.dataBytes.runFold(ByteString(""))(_ ++ _).map {
-                  riderLogger.info(s"synchronize dbus namespaces $service success.")
-                  body => simpleDbusSeq ++= json2caseClass[Seq[SimpleDbus]](body.utf8String)
-                }, minTimeOut)
-              case resp@HttpResponse(code, _, _, _) =>
-                riderLogger.error(s"synchronize dbus namespaces $service failed, ${code.reason}.")
-                "parse failed"
-            }
-          } else riderLogger.debug(s"dbus namespace service is not config")
+          val token = NamespaceUtils.getDBusToken(service)
+          val response = Await.result(Http().singleRequest(HttpRequest(uri = service.namespaceUrl)
+            .addCredentials(OAuth2BearerToken(token))), minTimeOut)
+          response match {
+            case HttpResponse(StatusCodes.OK, headers, entity, _) =>
+              Await.result(entity.dataBytes.runFold(ByteString(""))(_ ++ _).map {
+                riderLogger.info(s"synchronize dbus namespaces ${service.namespaceUrl} success.")
+                body => simpleDbusSeq ++= json2caseClass[DBusNamespaceResponse](body.utf8String).payload
+              }, minTimeOut)
+            case resp@HttpResponse(code, _, _, _) =>
+              riderLogger.error(s"synchronize dbus namespaces ${service.namespaceUrl} failed, ${code.reason}.")
+              "parse failed"
+          }
         }
       }
       simpleDbusSeq
@@ -268,7 +264,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
   def delete(id: Long): (Boolean, String) = {
     try {
-//      val ns = NamespaceUtils.generateStandardNs(Await.result(super.findById(id), minTimeOut).get)
+      //      val ns = NamespaceUtils.generateStandardNs(Await.result(super.findById(id), minTimeOut).get)
       val relProject = Await.result(relProjectNsDal.findByFilter(_.nsId === id), minTimeOut)
       //      val flows = Await.result(flowDal.findByFilter
       //      (flow => flow.sourceNs === ns || flow.sinkNs === ns || flow.tranConfig.getOrElse("").like(s"%${ns.split("\\.").take(3).mkString(".")}%")), minTimeOut).map(_.id)

@@ -21,12 +21,19 @@
 
 package edp.rider.rest.util
 
-import edp.rider.RiderStarter.modules
-import edp.rider.common.RiderLogger
+
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes, _}
+import akka.util.ByteString
+import edp.rider.RiderStarter.{materializer, modules, system}
+import edp.rider.common.{DBusConfig, RiderLogger}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.wormhole.ums.UmsDataSystem
+import edp.wormhole.util.JsonUtils
+import edp.wormhole.util.JsonUtils.json2jValue
 import slick.jdbc.MySQLProfile.api._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -166,6 +173,40 @@ object NamespaceUtils extends RiderLogger {
           case None => throw new Exception(s"namespace $ns not valid")
         }
       case None => throw new Exception(s"namespace $ns not found")
+    }
+  }
+
+  def getDBusToken(dbusConfig: DBusConfig): String = {
+    try {
+      val postData = DBusUser(dbusConfig.user, dbusConfig.password)
+      val request = HttpRequest(uri = dbusConfig.loginUrl,
+        method = HttpMethods.POST,
+        headers = List(headers.Accept.apply(MediaTypes.`application/json`)),
+        entity = HttpEntity.apply(ContentTypes.`application/json`, ByteString(JsonUtils.caseClass2json(postData))))
+      val response = Await.result(Http().singleRequest(request), minTimeOut)
+      response match {
+        case HttpResponse(StatusCodes.OK, _, entity, _) =>
+          Await.result(entity.dataBytes.runFold(ByteString(""))(_ ++ _).map {
+            body =>
+              val data = json2jValue(body.utf8String)
+              val status = JsonUtils.getInt(data, "status")
+              if (status == 0) {
+                val payload = JsonUtils.getJValue(data, "payload")
+                JsonUtils.getString(payload, "token")
+              } else {
+                val msg = JsonUtils.getString(data, "message")
+                riderLogger.error(s"get DBus ${dbusConfig.loginUrl} ${dbusConfig.user} user token failed, ${msg}")
+                throw new Exception(s"get DBus ${dbusConfig.loginUrl} ${dbusConfig.user} user token failed, ${msg}")
+              }
+          }, minTimeOut)
+        case resp@HttpResponse(code, _, _, _) =>
+          riderLogger.error(s"get DBus ${dbusConfig.loginUrl} ${dbusConfig.user} user token failed, ${code.reason}.")
+          throw new Exception(s"get DBus ${dbusConfig.loginUrl} ${dbusConfig.user} user token failed, ${code.reason}")
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"request DBus ${dbusConfig.loginUrl} ${dbusConfig.user} user token failed", ex)
+        throw new Exception(ex)
     }
   }
 }
