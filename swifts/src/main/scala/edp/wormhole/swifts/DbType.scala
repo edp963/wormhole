@@ -40,6 +40,8 @@ object DbType {
     case "LONGBLOB" => "binary"
     case "BINARY" => "binary"
     case "CHAR" => "string"
+    //kudu
+    case "STRING" => "string"
 
     //oracle
     case "VARCHAR2" => "string"
