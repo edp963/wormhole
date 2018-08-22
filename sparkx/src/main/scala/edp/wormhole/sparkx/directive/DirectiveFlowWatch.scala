@@ -21,9 +21,10 @@
 
 package edp.wormhole.sparkx.directive
 
+import edp.wormhole.common.{StreamType, WormholeConstants}
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
-import edp.wormhole.sinks.common.{StreamType, WormholeConfig, WormholeConstants}
 import edp.wormhole.sparkx.batchflow.BatchflowDirective
+import edp.wormhole.sparkx.common.WormholeConfig
 import edp.wormhole.sparkx.hdfslog.{HdfsDirective, HdfsMainProcess}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.router.{RouterDirective, RouterMainProcess}

@@ -23,7 +23,6 @@ package edp.wormhole.sparkx.common
 
 import edp.wormhole.common._
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
-import edp.wormhole.sinks.common.{KafkaInputConfig, WormholeConstants}
 import edp.wormhole.sparkx.spark.kafka010.{WormholeKafkaUtils, WormholePerPartitionConfig}
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import org.apache.kafka.common.TopicPartition

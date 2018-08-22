@@ -22,9 +22,9 @@ package edp.wormhole.sparkx.common
 import java.sql.Timestamp
 
 import edp.wormhole.common._
+import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.sinks.common.{FeedbackPriority, PartitionOffsetConfig, WormholeConfig}
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
 import edp.wormhole.util.DateUtils
