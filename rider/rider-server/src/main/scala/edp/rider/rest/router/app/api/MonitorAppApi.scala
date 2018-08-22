@@ -60,7 +60,7 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                 riderLogger.error(s"user ${session.userId} request to get flow $flowId health information, but the stream $streamId doesn't exist")
                 complete(OK, getHeader(403, s"stream $streamId doesn't exist", null))
               }
-              onComplete(flowDal.getById(projectId, flowId).mapTo[Option[FlowStreamInfo]]) {
+              onComplete(flowDal.getById(flowId).mapTo[Option[FlowStreamInfo]]) {
                 case Success(flowStreamOpt) =>
                   riderLogger.info(s"user ${session.userId} select flow where project id is $projectId and flow id is $flowId success.")
                   flowStreamOpt match {

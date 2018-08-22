@@ -31,8 +31,9 @@ import io.swagger.annotations._
 @Path("/user/projects")
 class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives {
 
-  lazy val routes: Route = postFlowRoute ~ getFlowByFilterRoute ~ putFlowRoute ~ getFlowByIdRoute ~ lookupSqlPermVerifyRoute ~
-    postFlowTopicsOffset ~ postUserDefinedTopic ~ getTopics ~ getUdfs ~ startRoute ~ stopRoute ~ getLogRoute
+  lazy val routes: Route = postFlowRoute ~ getFlowByFilterRoute ~ putFlowRoute ~ getFlowByIdRoute ~
+    lookupSqlPermVerifyRoute ~ postFlowTopicsOffset ~ postUserDefinedTopic ~ getTopics ~ getUdfs ~ startRoute ~
+    stopRoute ~ getLogRoute ~ getDriftStreamsRoute ~ getDriftFlowTipRoute ~ driftFlowRoute
 
   lazy val basePath = "projects"
 
@@ -127,7 +128,7 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
   ))
   def lookupSqlPermVerifyRoute: Route = modules.flowUserService.lookupSqlVerifyRoute(basePath)
 
-   //post /user/projects/1/flows/1/topics
+  //post /user/projects/1/flows/1/topics
   @Path("/{projectId}/flows/{flowId}/topics")
   @ApiOperation(value = "get topic offsets by request topics", notes = "", nickname = "", httpMethod = "POST")
   @ApiImplicitParams(Array(
@@ -174,7 +175,7 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-    def getTopics: Route = modules.flowUserService.getFlowTopicsRoute(basePath)
+  def getTopics: Route = modules.flowUserService.getFlowTopicsRoute(basePath)
 
   @Path("/{projectId}/flows/{flowId}/udfs")
   @ApiOperation(value = "get flow udfs", notes = "", nickname = "", httpMethod = "GET")
@@ -239,5 +240,55 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
     new ApiResponse(code = 500, message = "internal server error")
   ))
   def getLogRoute: Route = modules.flowUserService.getLogByFlowId(basePath)
+
+  @Path("/{projectId}/flows/{flowId}/drift/streams")
+  @ApiOperation(value = "get drift streams by flow id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "flowId", value = "flow id", required = true, dataType = "integer", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "action is forbidden"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getDriftStreamsRoute: Route = modules.flowUserService.getDriftStreamsByFlowId(basePath)
+
+  @Path("/{projectId}/flows/{flowId}/drift/tip")
+  @ApiOperation(value = "get drift tip by flow id", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "flowId", value = "flow id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "streamId", value = "drift stream id", required = true, dataType = "integer", paramType = "query")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "action is forbidden"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getDriftFlowTipRoute: Route = modules.flowUserService.getDriftFlowTip(basePath)
+
+  @Path("/{projectId}/flows/{flowId}/drift")
+  @ApiOperation(value = "drift flow by flow id", notes = "", nickname = "", httpMethod = "PUT")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "flowId", value = "flow id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "driftRequest", value = "drift flow request", required = true, dataType = "edp.rider.rest.persistence.entities.DriftFlowRequest", paramType = "body")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 406, message = "action is forbidden"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def driftFlowRoute: Route = modules.flowUserService.driftFlow(basePath)
 }
 
