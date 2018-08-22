@@ -20,12 +20,11 @@
 
 package edp.wormhole.flinkx.swifts
 
-import java.sql.{Connection, ResultSet}
 
-import edp.wormhole.dbdriver.dbpool.DbConnection
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.sinks.kudu.KuduConnection
-import edp.wormhole.ums.{UmsDataSystem, UmsFieldType}
+import edp.wormhole.swifts.{ConnectionMemoryStorage, DbType}
+import edp.wormhole.ums.UmsFieldType
 import edp.wormhole.util.CommonUtils
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
@@ -65,9 +64,9 @@ object LookupKuduHelper extends java.io.Serializable {
         val renameField: String = trimF.substring(asPosition + 4).trim
         val nameField: String = trimF.substring(0, asPosition).trim
         val fieldType: String = tableSchema(nameField).toString.toUpperCase()
-        (renameField, (fieldType, fieldIndex, nameField))
+        (renameField, (DbType.convert(fieldType), fieldIndex, nameField))
       }
-      else (trimF, (tableSchema(trimF).toString.toUpperCase(), fieldIndex, trimF))
+      else (trimF, (DbType.convert(tableSchema(trimF).toString.toUpperCase()), fieldIndex, trimF))
     }).toMap
   } //order is not same as input order !!!
 
@@ -95,7 +94,7 @@ object LookupKuduHelper extends java.io.Serializable {
                           dataStoreConnectionsMap: Map[String, ConnectionConfig]): mutable.HashMap[String, ListBuffer[Array[Any]]] = {
 
     val lookupNamespace: String = if (swiftsSql.lookupNamespace.isDefined) swiftsSql.lookupNamespace.get else null
-    val connectionConfig: ConnectionConfig = SwiftsConfMemoryStorage.getDataStoreConnectionsWithMap(dataStoreConnectionsMap, lookupNamespace)
+    val connectionConfig: ConnectionConfig = ConnectionMemoryStorage.getDataStoreConnectionsWithMap(dataStoreConnectionsMap, lookupNamespace)
 
     val dataTupleMap = mutable.HashMap.empty[String, mutable.ListBuffer[Array[Any]]]
     try {
