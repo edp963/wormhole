@@ -15,6 +15,7 @@ import edp.wormhole.util.swifts.SwiftsSql
 import edp.wormhole.swifts.ConnectionMemoryStorage
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
+import edp.wormhole.swifts.ConnectionMemoryStorage
 
 object LookupHbaseHelper extends java.io.Serializable{
   private lazy val logger = Logger.getLogger(this.getClass)
