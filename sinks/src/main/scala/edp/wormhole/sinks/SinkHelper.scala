@@ -23,7 +23,6 @@ package edp.wormhole.sinks
 
 import java.util.UUID
 
-import edp.wormhole.sinks.elasticsearchsink.EsConfig
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import org.apache.log4j.Logger
 
