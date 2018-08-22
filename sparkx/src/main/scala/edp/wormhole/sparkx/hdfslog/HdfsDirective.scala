@@ -21,9 +21,9 @@
 
 package edp.wormhole.sparkx.hdfslog
 
-import edp.wormhole.common.FeedbackPriority
 import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.kafka.WormholeKafkaProducer
+import edp.wormhole.sinks.common.FeedbackPriority
 import edp.wormhole.sparkx.directive.Directive
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
 import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType}

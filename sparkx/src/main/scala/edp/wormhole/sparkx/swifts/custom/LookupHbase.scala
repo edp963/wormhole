@@ -21,7 +21,7 @@
 package edp.wormhole.sparkx.swifts.custom
 
 import edp.wormhole.sinks.hbasesink.HbaseConnection
-import edp.wormhole.common.{RowkeyPatternContent, RowkeyTool}
+import edp.wormhole.sinks.common.{RowkeyPatternContent, RowkeyTool}
 import edp.wormhole.sparkx.common.SparkSchemaUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType.umsFieldType

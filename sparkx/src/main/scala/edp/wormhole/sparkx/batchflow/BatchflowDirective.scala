@@ -28,6 +28,7 @@ import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.sparkx.directive._
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
+import edp.wormhole.sinks.common.{FeedbackPriority, InputDataRequirement}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.swifts.parse.ParseSwiftsSql
 import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, ValidityConfig}

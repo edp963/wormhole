@@ -30,6 +30,7 @@ import edp.wormhole.externalclient.hadoop.HdfsUtils
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.sinks.SourceMutationType
+import edp.wormhole.sinks.common.{FeedbackPriority, InputDataRequirement, WormholeConfig}
 import edp.wormhole.sinks.elasticsearchsink.EsConfig
 import edp.wormhole.sinks.mongosink.MongoConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils
