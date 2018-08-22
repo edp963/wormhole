@@ -21,16 +21,16 @@
 package edp.wormhole.flinkx.swifts
 
 import com.alibaba.fastjson.{JSON, JSONObject}
+import edp.wormhole.flinkx.common.ConfMemoryStorage
 import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
 import edp.wormhole.flinkx.pattern.Output.{FIELDLIST, TYPE}
 import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput}
-import edp.wormhole.flinkx.swifts.LookupKuduHelper.logger
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.sinks.kudu.KuduConnection
-import edp.wormhole.swifts.ConnectionMemoryStorage
+import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
 import edp.wormhole.ums.UmsDataSystem
 import edp.wormhole.util.config.ConnectionConfig
-import edp.wormhole.util.swifts.{ConnectionMemoryStorage, SqlOptType, SwiftsSql}
+import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.cep.scala.CEP
 import org.apache.flink.streaming.api.scala.{DataStream, _}
@@ -136,9 +136,9 @@ object SwiftsProcess extends Serializable {
 
   private def doLookupKudu(dataStream: DataStream[Row], element: SwiftsSql, index: Int) = {
     val lookupNamespace: String = if (element.lookupNamespace.isDefined) element.lookupNamespace.get else null
-    val dataStoreConnectionsMap = SwiftsConfMemoryStorage.getDataStoreConnectionsMap
+    val dataStoreConnectionsMap = ConnectionMemoryStorage.getDataStoreConnectionsMap
     //get Kudu tableSchema
-    val connectionConfig: ConnectionConfig = SwiftsConfMemoryStorage.getDataStoreConnectionsWithMap(dataStoreConnectionsMap, lookupNamespace)
+    val connectionConfig: ConnectionConfig = ConnectionMemoryStorage.getDataStoreConnectionsWithMap(dataStoreConnectionsMap, lookupNamespace)
     val database = element.lookupNamespace.get.split("\\.")(2)
     val fromIndex = element.sql.indexOf(" from ")
     val afterFromSql = element.sql.substring(fromIndex + 6).trim
