@@ -75,11 +75,11 @@ object HdfsMainProcess extends EdpLogging {
         streamRdd.asInstanceOf[HasOffsetRanges].offsetRanges.copyToBuffer(offsetInfo)
 
         val streamTransformedRdd: RDD[((String, String), String)] = streamRdd.map(message => {
-
           if (message.key == null || message.key.trim.isEmpty) {
             val namespace = UmsCommonUtils.getFieldContentFromJson(message.value, "namespace")
-            val protocolType = UmsCommonUtils.getProtocolTypeFromUms(message.value)
-            ((protocolType, namespace), message.value)
+            var protocolType = UmsCommonUtils.getProtocolTypeFromUms(message.value)
+            if(protocolType==null||protocolType.isEmpty)protocolType = UmsProtocolType.DATA_INCREMENT_DATA.toString
+              ((protocolType, namespace), message.value)
           } else {
             val (protocol, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(message.key)
             ((protocol.toString, namespace), message.value)
