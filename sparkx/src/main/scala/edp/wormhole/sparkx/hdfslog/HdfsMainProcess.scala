@@ -29,6 +29,7 @@ import edp.wormhole.common._
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.externalclient.hadoop.HdfsUtils
 import edp.wormhole.kafka.WormholeKafkaProducer
+import edp.wormhole.sinks.common.{FeedbackPriority, WormholeConfig}
 import edp.wormhole.sinks.utils.SinkCommonUtils._
 import edp.wormhole.sparkx.common.{SparkUtils, WormholeUtils}
 import edp.wormhole.sparkx.spark.log.EdpLogging

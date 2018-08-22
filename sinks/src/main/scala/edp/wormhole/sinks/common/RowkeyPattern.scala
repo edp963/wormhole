@@ -18,8 +18,7 @@
  * >>
  */
 
-package edp.wormhole.common
-
+package edp.wormhole.sinks.common
 
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.util.MD5Utils

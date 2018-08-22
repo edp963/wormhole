@@ -26,6 +26,8 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import edp.wormhole.common._
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
+import edp.wormhole.sinks.common
+import edp.wormhole.sinks.common._
 import edp.wormhole.sparkx.directive.DirectiveOffsetWatch
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsSchemaUtils.toUms
@@ -90,7 +92,7 @@ object OffsetPersistenceManager extends EdpLogging {
     if (topicConfigMap == null) throw new Exception("do not config kafka any topic,include heardbeat topic")
 
     DirectiveOffsetWatch.offsetWatch(config, appId)
-    KafkaInputConfig(kafkaBaseConfig, topicConfigMap.values.toList,inWatch)
+    common.KafkaInputConfig(kafkaBaseConfig, topicConfigMap.values.toList,inWatch)
   }
 
   private def deleteTopics(zookeeperAddress: String, offsetPath: String, topicList: Seq[String]): Unit = {
