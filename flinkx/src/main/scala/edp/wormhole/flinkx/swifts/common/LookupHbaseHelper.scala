@@ -12,7 +12,7 @@ import edp.wormhole.common.{RowkeyPatternContent, RowkeyTool}
 import edp.wormhole.sinks.hbasesink.HbaseConnection
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
-import edp.wormhole.flinkx.common.ConfMemoryStorage
+import edp.wormhole.swifts.ConnectionMemoryStorage
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
 import edp.wormhole.swifts.ConnectionMemoryStorage
