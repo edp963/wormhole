@@ -21,8 +21,8 @@
 
 package edp.wormhole.sparkx.directive
 
-import edp.wormhole.common.{WormholeConfig, WormholeConstants}
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
+import edp.wormhole.sinks.common.{WormholeConfig, WormholeConstants}
 import edp.wormhole.sparkx.memorystorage.OffsetPersistenceManager
 import edp.wormhole.sparkx.spark.log.EdpLogging
 
