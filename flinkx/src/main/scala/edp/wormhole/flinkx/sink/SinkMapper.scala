@@ -19,8 +19,8 @@ class SinkMapper(schemaMapWithUmsType:Map[String, (Int, UmsFieldType, Boolean)],
     val protocolIndex=schemaMapWithUmsType(SwiftsConstants.PROTOCOL_TYPE)._1
     for (index <- 0 until rowSize) {
        if(index != protocolIndex){
-         if(value.getField(index)!=null)listBuffer.append(value.getField(index).toString)
-         else listBuffer.append(null)
+         val fieldValue = if(value.getField(index)==null) null.asInstanceOf[String] else value.getField(index).toString
+         listBuffer.append(fieldValue)
        }
     }
     val umsTuple = UmsTuple(listBuffer)

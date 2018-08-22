@@ -21,11 +21,15 @@
 package edp.wormhole.flinkx.swifts
 
 import com.alibaba.fastjson.{JSON, JSONObject}
+import edp.wormhole.flinkx.common.ConfMemoryStorage
 import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
 import edp.wormhole.flinkx.pattern.Output.{FIELDLIST, TYPE}
 import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
+import edp.wormhole.sinks.kudu.KuduConnection
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
+import edp.wormhole.ums.UmsDataSystem
+import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.cep.scala.CEP
@@ -33,7 +37,10 @@ import org.apache.flink.streaming.api.scala.{DataStream, _}
 import org.apache.flink.table.api.Types
 import org.apache.flink.table.api.scala.StreamTableEnvironment
 import org.apache.flink.types.Row
+import org.apache.kudu.client.KuduTable
 import org.apache.log4j.Logger
+
+import scala.collection.mutable
 
 
 object SwiftsProcess extends Serializable {
@@ -50,7 +57,14 @@ object SwiftsProcess extends Serializable {
         SqlOptType.withName(element.optType) match {
           case SqlOptType.FLINK_SQL => transformedStream = doFlinkSql(transformedStream, sourceNamespace, tableEnv, element.sql, index)
           case SqlOptType.CEP => transformedStream = doCEP(transformedStream, element.sql, index)
-          case SqlOptType.JOIN | SqlOptType.LEFT_JOIN => transformedStream = doLookup(transformedStream, element, index)
+          case SqlOptType.JOIN | SqlOptType.LEFT_JOIN =>
+            val lookupNamespace = if (element.lookupNamespace.isDefined) element.lookupNamespace.get else null
+            val lookupNameSpaceArr: Array[String] = lookupNamespace.split("\\.")
+            assert(lookupNameSpaceArr.length == 3, "lookup namespace is invalid in pattern list sql")
+            UmsDataSystem.dataSystem(lookupNameSpaceArr(0).toLowerCase()) match {
+              case UmsDataSystem.KUDU => transformedStream = doLookupKudu(transformedStream, element, index)
+              case _ => transformedStream = doLookup(transformedStream, element, index)
+            }
         }
       }
     }
@@ -118,6 +132,38 @@ object SwiftsProcess extends Serializable {
       FlinkSchemaUtils.swiftsProcessSchemaMap += key -> newSchema
     }
     preSchemaMap = FlinkSchemaUtils.swiftsProcessSchemaMap(key)
+  }
+
+  private def doLookupKudu(dataStream: DataStream[Row], element: SwiftsSql, index: Int) = {
+    val lookupNamespace: String = if (element.lookupNamespace.isDefined) element.lookupNamespace.get else null
+    val dataStoreConnectionsMap = ConnectionMemoryStorage.getDataStoreConnectionsMap
+    //get Kudu tableSchema
+    val connectionConfig: ConnectionConfig = ConnectionMemoryStorage.getDataStoreConnectionsWithMap(dataStoreConnectionsMap, lookupNamespace)
+    val database = element.lookupNamespace.get.split("\\.")(2)
+    val fromIndex = element.sql.indexOf(" from ")
+    val afterFromSql = element.sql.substring(fromIndex + 6).trim
+    val tmpTableName = afterFromSql.substring(0, afterFromSql.indexOf(" ")).trim
+    val tableName = KuduConnection.getTableName(tmpTableName, database)
+    logger.info("tableName:" + tableName)
+    KuduConnection.initKuduConfig(connectionConfig)
+    val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
+    val table: KuduTable = client.openTable(tableName)
+    val tableSchemaInKudu = KuduConnection.getAllFieldsKuduTypeMap(table)
+    val tableSchema: mutable.Map[String, String] = KuduConnection.getAllFieldsUmsTypeMap(tableSchemaInKudu)
+    KuduConnection.closeClient(client)
+
+    //get lookupSchemaMap
+    val lookupSchemaMap = LookupKuduHelper.getLookupSchemaMap(preSchemaMap, element, tableSchema)
+    val fieldNames = FlinkSchemaUtils.getFieldNamesFromSchema(lookupSchemaMap)
+    val fieldTypes = FlinkSchemaUtils.getOutPutFieldTypes(fieldNames, lookupSchemaMap)
+    val resultDataStream = dataStream.map(new LookupKuduMapper(element, preSchemaMap, tableSchemaInKudu, dataStoreConnectionsMap)).flatMap(o => o)(Types.ROW(fieldNames, fieldTypes))
+    val key = s"swifts$index"
+    if (!FlinkSchemaUtils.swiftsProcessSchemaMap.contains(key))
+      FlinkSchemaUtils.swiftsProcessSchemaMap += key -> lookupSchemaMap
+    preSchemaMap = FlinkSchemaUtils.swiftsProcessSchemaMap(key)
+    resultDataStream.print()
+    logger.info(resultDataStream.dataType.toString + "in  doLookup")
+    resultDataStream
   }
 
   private def doLookup(dataStream: DataStream[Row], element: SwiftsSql, index: Int) = {

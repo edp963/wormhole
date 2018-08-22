@@ -243,7 +243,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     }
   }
 
-  def object2TrueValue(flinkType: TypeInformation[_], value: Object): Any = if (value == null) null
+  def object2TrueValue(flinkType: TypeInformation[_], value: Any): Any = if (value == null) null
   else flinkType match {
     case Types.STRING => value.asInstanceOf[String].trim
     case Types.INT => value.asInstanceOf[Int]
