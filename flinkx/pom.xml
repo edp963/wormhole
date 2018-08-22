@@ -142,7 +142,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>edp.wormhole.flinkx.WormholeFlinkxStarter</mainClass>
+                            <mainClass>edp.wormhole.flinkx.eventflow.WormholeFlinkxStarter</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
