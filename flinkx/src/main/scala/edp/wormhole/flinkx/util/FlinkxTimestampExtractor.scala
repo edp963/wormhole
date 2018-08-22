@@ -1,4 +1,4 @@
-package edp.wormhole.flinkx
+package edp.wormhole.flinkx.util
 
 import java.sql.Timestamp
 

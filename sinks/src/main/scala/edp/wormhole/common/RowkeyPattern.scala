@@ -20,9 +20,11 @@
 
 package edp.wormhole.common
 
+
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.util.MD5Utils
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.math.abs
 import scala.util.hashing.MurmurHash3
@@ -144,11 +146,11 @@ object RowkeyTool {
     keyFieldContentDesc
   }
 
-  def generateTupleKeyDatas(keyFieldsSchema: Seq[(Boolean, Int, String)], tuple: Seq[String]): Seq[String] = {
+  def generateTupleKeyDatas(keyFieldsSchema: Seq[(Boolean, Int, String)], tuple: Seq[Any]): Seq[String] = {
     keyFieldsSchema.map(fieldDesc => {
       if (fieldDesc._1) {
         val value = tuple(fieldDesc._2)
-        if (value != null) value else "N/A"
+        if (value != null) value.toString else "N/A"
       } else {
         fieldDesc._3
       }
@@ -179,5 +181,16 @@ object RowkeyTool {
       } else keys += keyDatas(i).toString
     }
     keys.mkString("")
+  }
+
+  def generateKeyFieldsSchema(originalData: Map[String,Integer], patternContentList: mutable.Seq[RowkeyPatternContent]): mutable.Seq[(Boolean, Int, String)] = {
+    val keyFieldContentDesc: mutable.Seq[(Boolean, Int, String)] = patternContentList.map(patternContent => {
+      if (patternContent.patternType == RowkeyPatternType.EXPERSSION.toString) {
+        (true, originalData(patternContent.fieldContent).intValue, "")
+      } else {
+        (false, 0, patternContent.fieldContent)
+      }
+    })
+    keyFieldContentDesc
   }
 }
