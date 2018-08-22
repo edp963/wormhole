@@ -22,8 +22,8 @@
 package edp.wormhole.sparkx.batchjob.source
 
 import com.alibaba.fastjson.JSON
-import edp.wormhole.common.InputDataRequirement
 import edp.wormhole.externalclient.hadoop.HdfsUtils
+import edp.wormhole.sinks.common.InputDataRequirement
 import edp.wormhole.sparkx.common.{SparkSchemaUtils, SparkUtils}
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.batchjob.source.ObtainSourceDataInterface

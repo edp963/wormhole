@@ -1,4 +1,4 @@
-package edp.wormhole.common;
+package edp.wormhole.sinks.common
 
 object WormholeConstants {
 
