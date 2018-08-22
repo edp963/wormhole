@@ -24,10 +24,13 @@ package edp.wormhole.sparkx.memorystorage
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import edp.wormhole.common._
+import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sinks.common
 import edp.wormhole.sinks.common._
+import edp.wormhole.sparkx
+import edp.wormhole.sparkx.common._
 import edp.wormhole.sparkx.directive.DirectiveOffsetWatch
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsSchemaUtils.toUms
@@ -92,7 +95,7 @@ object OffsetPersistenceManager extends EdpLogging {
     if (topicConfigMap == null) throw new Exception("do not config kafka any topic,include heardbeat topic")
 
     DirectiveOffsetWatch.offsetWatch(config, appId)
-    common.KafkaInputConfig(kafkaBaseConfig, topicConfigMap.values.toList,inWatch)
+    KafkaInputConfig(kafkaBaseConfig, topicConfigMap.values.toList,inWatch)
   }
 
   private def deleteTopics(zookeeperAddress: String, offsetPath: String, topicList: Seq[String]): Unit = {
@@ -117,7 +120,7 @@ object OffsetPersistenceManager extends EdpLogging {
         val tpo = tp.split(":")
         PartitionOffsetConfig(tpo(0).toInt, tpo(1).toLong)
       })
-      KafkaTopicConfig(topicName, topicRate.toInt, poc)
+      sparkx.common.KafkaTopicConfig(topicName, topicRate.toInt, poc)
     })
   }
 
@@ -144,7 +147,7 @@ object OffsetPersistenceManager extends EdpLogging {
           val partitionNum = new String(WormholeZkClient.getData(zookeeperAddress, offsetPath + "/" + topicName + "/" + partitionRelativePath)).toInt
           val pocSeq: Seq[PartitionOffsetConfig] = for(i<- 0 until partitionNum)yield PartitionOffsetConfig(i,0)
 
-          topicConfigList += KafkaTopicConfig(topicName, rateStr.toInt, pocSeq)
+          topicConfigList += sparkx.common.KafkaTopicConfig(topicName, rateStr.toInt, pocSeq)
         } catch {
           case e: Throwable => logWarning("readFromPersistence topic " + topicName, e)
         }
