@@ -24,7 +24,6 @@ import java.sql.{Connection, ResultSet}
 
 import edp.wormhole.dbdriver.dbpool.DbConnection
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
-import edp.wormhole.swifts.{ConnectionMemoryStorage, SwiftsConstants}
 import edp.wormhole.ums.{UmsDataSystem, UmsFieldType}
 import edp.wormhole.util.CommonUtils
 import edp.wormhole.util.config.ConnectionConfig
@@ -85,7 +84,7 @@ object LookupHelper extends java.io.Serializable {
     val lookupNamespace: String = if (swiftsSql.lookupNamespace.isDefined) swiftsSql.lookupNamespace.get else null
     var conn: Connection = null
     var rs: ResultSet = null
-    val connectionConfig: ConnectionConfig = ConnectionMemoryStorage.getDataStoreConnectionsWithMap(dataStoreConnectionsMap, lookupNamespace)
+    val connectionConfig: ConnectionConfig = SwiftsConfMemoryStorage.getDataStoreConnectionsWithMap(dataStoreConnectionsMap, lookupNamespace)
     val dataTupleMap = mutable.HashMap.empty[String, mutable.ListBuffer[Array[Any]]]
     try {
       conn = DbConnection.getConnection(connectionConfig)
@@ -100,7 +99,7 @@ object LookupHelper extends java.io.Serializable {
         val arrayBuf: Array[Any] = Array.fill(dbOutPutSchemaMap.size) {
           ""
         }
-        dbOutPutSchemaMap.foreach { case (_, (name, dataType, index)) =>
+        dbOutPutSchemaMap.foreach { case (name, (dataType, _, index)) =>
           val value = rs.getObject(name)
           arrayBuf(index) = if (value != null) {
             if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
@@ -150,7 +149,7 @@ object LookupHelper extends java.io.Serializable {
                       sourceTableFields: Array[String],
                       preSchemaMap: Map[String, (TypeInformation[_], Int)]): Array[Any] = {
     val fieldContent = sourceTableFields.map(fieldName => {
-      val value = FlinkSchemaUtils.object2TrueValue(preSchemaMap(fieldName)._1, row.getField(preSchemaMap(fieldName)._2))
+      val value = FlinkSchemaUtils.object2TrueValue(preSchemaMap(fieldName.trim)._1, row.getField(preSchemaMap(fieldName.trim)._2))
       if (value != null) value else "N/A"
     })
     if (!fieldContent.contains("N/A")) {
