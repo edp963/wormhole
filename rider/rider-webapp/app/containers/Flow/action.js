@@ -88,7 +88,10 @@ import {
   LOAD_ADMIN_LOGS_INFO,
   LOAD_ADMIN_LOGS_INFO_SUCCESS,
   LOAD_LOGS_INFO,
-  LOAD_LOGS_INFO_SUCCESS
+  LOAD_LOGS_INFO_SUCCESS,
+  LOAD_DRIFT_LIST,
+  POST_DRIFT,
+  VERIFY_DRIFT
 } from './constants'
 
 export function loadAdminAllFlows (resolve) {
@@ -785,6 +788,41 @@ export function adminLogsInfoLoaded (result) {
     type: LOAD_ADMIN_LOGS_INFO_SUCCESS,
     payload: {
       result
+    }
+  }
+}
+
+export function loadDriftList (projectId, flowId, resolve) {
+  return {
+    type: LOAD_DRIFT_LIST,
+    payload: {
+      projectId,
+      flowId,
+      resolve
+    }
+  }
+}
+
+export function verifyDrift (projectId, flowId, streamId, resolve) {
+  return {
+    type: VERIFY_DRIFT,
+    payload: {
+      projectId,
+      flowId,
+      streamId,
+      resolve
+    }
+  }
+}
+
+export function postDriftList (projectId, flowId, streamId, resolve) {
+  return {
+    type: POST_DRIFT,
+    payload: {
+      projectId,
+      flowId,
+      streamId,
+      resolve
     }
   }
 }
