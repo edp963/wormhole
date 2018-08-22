@@ -20,8 +20,9 @@
 
 package edp.wormhole.sparkx.udf
 
+import edp.wormhole.common.WormholeConstants
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
-import edp.wormhole.sinks.common.{WormholeConfig, WormholeConstants}
+import edp.wormhole.sparkx.common.WormholeConfig
 import edp.wormhole.sparkx.directive.UdfDirective
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.{UmsProtocolType, UmsSchemaUtils}

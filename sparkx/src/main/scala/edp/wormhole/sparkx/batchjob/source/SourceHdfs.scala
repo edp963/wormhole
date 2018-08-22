@@ -22,8 +22,8 @@
 package edp.wormhole.sparkx.batchjob.source
 
 import com.alibaba.fastjson.JSON
+import edp.wormhole.common.InputDataProtocolBaseType
 import edp.wormhole.externalclient.hadoop.HdfsUtils
-import edp.wormhole.sinks.common.InputDataRequirement
 import edp.wormhole.sparkx.common.{SparkSchemaUtils, SparkUtils}
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.batchjob.source.ObtainSourceDataInterface
@@ -43,8 +43,8 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
                        specialConfig: Option[String]): DataFrame = {
     val specialConfigStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(specialConfig.get.toString.split(" ").mkString("")))
     val specialConfigObject = JSON.parseObject(specialConfigStr)
-    val initial = specialConfigObject.getBoolean(InputDataRequirement.INITIAL.toString)
-    val increment = specialConfigObject.getBoolean(InputDataRequirement.INCREMENT.toString)
+    val initial = specialConfigObject.getBoolean(InputDataProtocolBaseType.INITIAL.toString)
+    val increment = specialConfigObject.getBoolean(InputDataProtocolBaseType.INCREMENT.toString)
 //    val (sourceNamenodeAddressSeq,sourceNamenodeIdSeq) = if(specialConfigObject.containsKey("sourceNamenodeHosts")){
 //      (specialConfigObject.getString("sourceNamenodeAddress"),specialConfigObject.getString("sourceNamenodeIds"))
 //    }else (null.asInstanceOf[String],null.asInstanceOf[String])

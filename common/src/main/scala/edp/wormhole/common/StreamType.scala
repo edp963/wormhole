@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.wormhole.swifts
+package edp.wormhole.common
 
 object StreamType extends Enumeration {
   type StreamType = Value
@@ -31,12 +31,4 @@ object StreamType extends Enumeration {
 }
 
 
-object InputDataProtocolBaseType extends Enumeration {
-  type InputDataProtocolBaseType = Value
-  val INITIAL = Value("initial")
-  val INCREMENT = Value("increment")
-  val BATCH = Value("batch")
 
-  def inputDataRequirement(s: String) = InputDataProtocolBaseType.withName(s.toLowerCase)
-
-}
