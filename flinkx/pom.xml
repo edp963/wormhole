@@ -39,6 +39,12 @@
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-hadoop</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>xml-apis</groupId>
+                    <artifactId>xml-apis</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>

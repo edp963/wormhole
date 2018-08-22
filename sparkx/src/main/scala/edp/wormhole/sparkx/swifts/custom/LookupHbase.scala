@@ -21,7 +21,8 @@
 package edp.wormhole.sparkx.swifts.custom
 
 import edp.wormhole.sinks.hbasesink.HbaseConnection
-import edp.wormhole.sparkx.common.{RowkeyPatternContent, RowkeyTool, SparkSchemaUtils}
+import edp.wormhole.common.{RowkeyPatternContent, RowkeyTool}
+import edp.wormhole.sparkx.common.SparkSchemaUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType.umsFieldType
 import edp.wormhole.util.config.ConnectionConfig
@@ -98,10 +99,10 @@ object LookupHbase extends EdpLogging {
 
       val originalData: ListBuffer[Row] = partition.to[ListBuffer]
       if (originalData.nonEmpty) {
-        val keyFieldsSchema = RowkeyTool.generateKeyFieldsSchema(originalData,patternContentList)
+        val keyFieldsSchema = RowkeyTool.generateKeyFieldsSchema(originalData.head.schema.map(col=>col.name->new Integer(originalData.head.fieldIndex(col.name))).toMap,patternContentList)
 
         val keys: mutable.Seq[String] = originalData.map(row => {
-          val keydatas = RowkeyTool.generateRowKeyDatas(keyFieldsSchema,row)
+          val keydatas = RowkeyTool.generateTupleKeyDatas(keyFieldsSchema,row.toSeq)
           RowkeyTool.generatePatternKey(keydatas,patternContentList)
         })
 
