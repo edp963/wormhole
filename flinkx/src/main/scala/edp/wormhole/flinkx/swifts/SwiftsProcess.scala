@@ -25,8 +25,7 @@ import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
 import edp.wormhole.flinkx.pattern.Output.{FIELDLIST, TYPE}
 import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
-import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
-import edp.wormhole.util.swifts.SwiftsSql
+import edp.wormhole.util.swifts.{SqlOptType, SwiftsSql}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.cep.scala.CEP
 import org.apache.flink.streaming.api.scala.{DataStream, _}
@@ -124,7 +123,7 @@ object SwiftsProcess extends Serializable {
     val lookupSchemaMap = LookupHelper.getLookupSchemaMap(preSchemaMap, element)
     val fieldNames = FlinkSchemaUtils.getFieldNamesFromSchema(lookupSchemaMap)
     val fieldTypes = FlinkSchemaUtils.getOutPutFieldTypes(fieldNames, lookupSchemaMap)
-    val resultDataStream = dataStream.map(new LookupMapper(element, preSchemaMap, ConnectionMemoryStorage.getDataStoreConnectionsMap)).flatMap(o => o)(Types.ROW(fieldNames, fieldTypes))
+    val resultDataStream = dataStream.map(new LookupMapper(element, preSchemaMap,LookupHelper.getDbOutPutSchemaMap(element),SwiftsConfMemoryStorage.getDataStoreConnectionsMap)).flatMap(o => o)(Types.ROW(fieldNames, fieldTypes))
     val key = s"swifts$index"
     if (!FlinkSchemaUtils.swiftsProcessSchemaMap.contains(key))
       FlinkSchemaUtils.swiftsProcessSchemaMap += key -> lookupSchemaMap
