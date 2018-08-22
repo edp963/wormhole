@@ -1272,7 +1272,7 @@ object FlowUtils extends RiderLogger {
         Await.result(flowDal.updateStreamId(preFlowStream.id, driftFlowRequest.streamId), minTimeOut)
         (true, s"success")
       case FlowStatus.STARTING | FlowStatus.UPDATING | FlowStatus.STOPPING =>
-        (false, s"staring/updating/stopping status flow is not allowed to drift.")
+        (false, s"staring/updating/stopping status flow is not allowed to drift. The final offset depends on the actual operation time!!!")
       case FlowStatus.SUSPENDING =>
         flowDal.genFlowStreamByAction(preFlowStream, Action.STOP.toString)
         Await.result(flowDal.updateStreamId(preFlowStream.id, driftFlowRequest.streamId), minTimeOut)
@@ -1307,7 +1307,7 @@ object FlowUtils extends RiderLogger {
         Await.result(flowDal.updateStreamId(preFlowStream.id, driftFlowRequest.streamId), minTimeOut)
         Await.result(flowDal.defaultGetAll(_.id === preFlowStream.id, Action.START.toString), minTimeOut)
         topicOffsetDrift(driftStream.id, nsDetail._2, offset, rate, userId)
-        s"success, ${nsDetail._2.nsDatabase} topic offset adjust to $offset."
+        s"success, ${nsDetail._2.nsDatabase} topic offset adjust to $offset. The final offset depends on the actual operation time!!!"
     }
   }
 
@@ -1319,10 +1319,11 @@ object FlowUtils extends RiderLogger {
       val driftStreamOffset = getConsumedOffset(driftStream.id, db.id, db.nsDatabase)
       val offset = if (preStreamOffset < driftStreamOffset) preStreamOffset
       else driftStreamOffset
-      (offset, s"it's available to drift, ${preFlowStream.streamName} stream consumed topic ${db.nsDatabase} offset is $preStreamOffset, ${driftStream.name} stream consumed offset is $driftStreamOffset, ${driftStream.name} stream ${db.nsDatabase} offset will be update to $offset!!!")
+      (offset,
+        s"it's available to drift, ${preFlowStream.streamName} stream consumed topic ${db.nsDatabase} offset is $preStreamOffset, ${driftStream.name} stream consumed offset is $driftStreamOffset, ${driftStream.name} stream ${db.nsDatabase} offset will be update to $offset. The final offset depends on the actual operation time!!!")
     } else {
       val offset = StreamUtils.getConsumedOffset(preFlowStream.streamId, db.id, db.nsDatabase)
-      (offset, s"it's available to drift, ${driftStream.name} stream will add new topic ${db.nsDatabase} with $offset offset.")
+      (offset, s"it's available to drift, ${driftStream.name} stream will add new topic ${db.nsDatabase} with $offset offset. The final offset depends on the actual operation time!!!")
     }
   }
 
