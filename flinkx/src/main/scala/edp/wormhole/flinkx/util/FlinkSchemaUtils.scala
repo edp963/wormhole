@@ -234,7 +234,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
       case "BIGINT" => Types.LONG
       case "FLOAT" => Types.FLOAT
       case "DOUBLE" => Types.DOUBLE
-      case "VARCHAR" | "TEXT" | "LONGTEXT" | "CHAR" | "VARCHAR2" | "CLOB" => Types.STRING
+      case "VARCHAR" | "TEXT" | "LONGTEXT" | "CHAR" | "VARCHAR2" | "CLOB" | "STRING"=> Types.STRING
       case "BLOB" | "LONGBLOB" | "BINARY" => BasicArrayTypeInfo.BYTE_ARRAY_TYPE_INFO
 
       //oracle
@@ -256,7 +256,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     }
   }
 
-  def object2TrueValue(flinkType: TypeInformation[_], value: Object): Any = if (value == null) null
+  def object2TrueValue(flinkType: TypeInformation[_], value: Any): Any = if (value == null) null
   else flinkType match {
     case Types.STRING => value.asInstanceOf[String].trim
     case Types.INT => value.asInstanceOf[Int]
