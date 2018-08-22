@@ -22,13 +22,12 @@
 package edp.wormhole.sparkx.batchflow
 
 import com.alibaba.fastjson.JSON
-import edp.wormhole.util.DateUtils
-import edp.wormhole.common._
+import edp.wormhole.common.InputDataProtocolBaseType
+import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.sparkx.directive._
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
-import edp.wormhole.sinks.common.{FeedbackPriority, InputDataRequirement}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.swifts.parse.ParseSwiftsSql
 import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, ValidityConfig}
@@ -47,12 +46,12 @@ object BatchflowDirective extends Directive {
                                          consumptionDataStr: String, dataType: String, dataParseStr: String): Unit = {
     val consumptionDataMap = mutable.HashMap.empty[String, Boolean]
     val consumption = JSON.parseObject(consumptionDataStr)
-    val initial = consumption.getString(InputDataRequirement.INITIAL.toString).trim.toLowerCase.toBoolean
-    val increment = consumption.getString(InputDataRequirement.INCREMENT.toString).trim.toLowerCase.toBoolean
-    val batch = consumption.getString(InputDataRequirement.BATCH.toString).trim.toLowerCase.toBoolean
-    consumptionDataMap(InputDataRequirement.INITIAL.toString) = initial
-    consumptionDataMap(InputDataRequirement.INCREMENT.toString) = increment
-    consumptionDataMap(InputDataRequirement.BATCH.toString) = batch
+    val initial = consumption.getString(InputDataProtocolBaseType.INITIAL.toString).trim.toLowerCase.toBoolean
+    val increment = consumption.getString(InputDataProtocolBaseType.INCREMENT.toString).trim.toLowerCase.toBoolean
+    val batch = consumption.getString(InputDataProtocolBaseType.BATCH.toString).trim.toLowerCase.toBoolean
+    consumptionDataMap(InputDataProtocolBaseType.INITIAL.toString) = initial
+    consumptionDataMap(InputDataProtocolBaseType.INCREMENT.toString) = increment
+    consumptionDataMap(InputDataProtocolBaseType.BATCH.toString) = batch
     val swiftsProcessConfig: Option[SwiftsProcessConfig] = if (swiftsStr != null) {
       val swifts = JSON.parseObject(swiftsStr)
       if (swifts.size() > 0) {
