@@ -154,11 +154,11 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
               complete(OK, setFailedResponse(session, s"$name already exists"))
             }
           case (None, Some(streamType), None) =>
-            val streams = streamDal.getSimpleStreamInfo(Some(projectId), streamType)
+            val streams = streamDal.getSimpleStreamInfo(projectId, streamType)
             riderLogger.info(s"user ${session.userId} select streams where streamType is $streamType success.")
             complete(OK, ResponseSeqJson[SimpleStreamInfo](getHeader(200, session), streams))
           case (None, None, Some(functionType)) =>
-            val streams = streamDal.getSimpleStreamInfo(Some(projectId), "spark", Some(functionType))
+            val streams = streamDal.getSimpleStreamInfo(projectId, "spark", Some(functionType))
             riderLogger.info(s"user ${session.userId} select streams where project id is $projectId success.")
             complete(OK, ResponseSeqJson[SimpleStreamInfo](getHeader(200, session), streams))
           case (None, Some(_), Some(_)) =>
