@@ -12,7 +12,7 @@ import edp.wormhole.common.{RowkeyPatternContent, RowkeyTool}
 import edp.wormhole.sinks.hbasesink.HbaseConnection
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
-import edp.wormhole.flinkx.common.ConfMemoryStorage
+import edp.wormhole.swifts.ConnectionMemoryStorage
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
 
@@ -53,7 +53,7 @@ object LookupHbaseHelper extends java.io.Serializable{
 
   def resolutionOfSwiftSql(row:Row,preSchemaMap: Map[String, (TypeInformation[_], Int)],dbOutPutSchemaMap: Map[String, (String, String, Int)],swiftsSql: SwiftsSql,dataStoreConnectionsMap: Map[String, ConnectionConfig]):(String,String,String,Array[(String, String,String)],ConnectionConfig)={
     val lookupNamespace: String = if (swiftsSql.lookupNamespace.isDefined) swiftsSql.lookupNamespace.get else null
-    val connectionConfig: ConnectionConfig = ConfMemoryStorage.getDataStoreConnectionsWithMap(dataStoreConnectionsMap, lookupNamespace)
+    val connectionConfig: ConnectionConfig = ConnectionMemoryStorage.getDataStoreConnectionsWithMap(dataStoreConnectionsMap, lookupNamespace)
     val patternContentList: mutable.Seq[RowkeyPatternContent] = RowkeyTool.parse(swiftsSql.sourceTableFields.get(0))
     val key=RowkeyTool.generatePatternKey(getRowDatas(row,preSchemaMap),patternContentList)
 
