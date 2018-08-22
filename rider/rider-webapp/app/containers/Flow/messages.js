@@ -33,6 +33,7 @@ export default defineMessages({
   flowTableStart: { id: 'rider.app.table.start.action' },
   flowSureStart: { id: 'rider.app.table.sure.start' },
   flowTableStop: { id: 'rider.app.table.stop.action' },
+  flowTableDrift: { id: 'rider.app.table.drift.action' },
   flowSureStop: { id: 'rider.app.table.sure.stop' },
   flowTableRenew: { id: 'rider.app.table.renew.action' },
   flowTableCopy: { id: 'rider.app.table.copy.action' },
@@ -42,5 +43,5 @@ export default defineMessages({
   streamModalRate: { id: 'rider.containers.Stream.modal.rate' },
   streamModalApply: { id: 'rider.containers.Stream.modal.apply' },
   streamModalApplyAll: { id: 'rider.containers.Stream.modal.apply.all' },
-  streaSureStart: { id: 'rider.app.table.sure.start' }
+  streamSureStart: { id: 'rider.app.table.sure.start' }
 })
