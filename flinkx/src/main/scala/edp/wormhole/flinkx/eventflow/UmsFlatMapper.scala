@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.wormhole.flinkx
+package edp.wormhole.flinkx.eventflow
 
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
@@ -29,7 +29,6 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
 import org.apache.log4j.Logger
-
 
 import scala.collection.mutable.ArrayBuffer
 

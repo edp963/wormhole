@@ -19,30 +19,28 @@
  */
 package edp.wormhole.sparkx.common
 
-import edp.wormhole.util.DateUtils.currentDateTime
-import edp.wormhole.util.CommonUtils
-import edp.wormhole.ums.UmsSchemaUtils.toUms
-import edp.wormhole.ums._
-import edp.wormhole.common._
-import org.apache.log4j.Logger
-import org.apache.spark.sql.{DataFrame, Row}
-import org.apache.spark.streaming.kafka010.OffsetRange
-import org.apache.spark.sql.expressions.Window
-
-import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import scala.util.control.NonFatal
-import org.apache.spark.sql.functions._
 import java.sql.Timestamp
 
+import edp.wormhole.common._
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
-import edp.wormhole.util.{CommonUtils, DateUtils}
+import edp.wormhole.ums._
+import edp.wormhole.util.DateUtils
+import edp.wormhole.util.DateUtils.currentDateTime
+import org.apache.log4j.Logger
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StructField
+import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.streaming.kafka010.OffsetRange
+
+import scala.collection.mutable
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 object WormholeUtils {
   private lazy val logger = Logger.getLogger(this.getClass)
+
   def getFieldContentByType(row: Row, schema: Array[StructField], i: Int): Any = {
     if (schema(i).dataType.toString.equals("StringType")) {
       //if (row.get(i) == null) "''"  // join fields cannot be null
@@ -51,35 +49,52 @@ object WormholeUtils {
     } else row.get(i)
   }
 
-  def keys2keyList(keys: String): List[String] = if (keys == null) Nil else keys.split(",").map(CommonUtils.trimBothBlank).toList
-
-
-  def getTypeNamespaceFromKafkaKey(key: String): (UmsProtocolType, String) = {
-    val keys = key.split("\\.")
-    if (keys.length > 7) (UmsProtocolType.umsProtocolType(keys(0).toLowerCase), keys.slice(1, 8).mkString(".").toLowerCase)
-    else (UmsProtocolType.umsProtocolType(keys(0).toLowerCase), "")
-  }
-
-  def json2Ums(json: String): Ums = {
-    try {
-      toUms(json)
-    } catch {
-      case NonFatal(e) => logger.error(s"message convert failed:\n$json", e)
-        Ums(UmsProtocol(UmsProtocolType.FEEDBACK_DIRECTIVE), UmsSchema("defaultNamespace"), None)
-    }
-  }
 
   def jsonGetValue(namespace: String, protocolType: UmsProtocolType, json: String, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])]): (Seq[UmsField], Seq[UmsTuple]) = {
     if (jsonSourceParseMap.contains((protocolType, namespace))) {
       val mapValue: (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)]) = jsonSourceParseMap((protocolType, namespace))
       (mapValue._1, JsonParseUtils.dataParse(json, mapValue._2, mapValue._3))
     } else {
-      val ums = json2Ums(json)
+      val ums = UmsCommonUtils.json2Ums(json)
       (ums.schema.fields_get, ums.payload_get)
     }
   }
 
+  def sendTopicPartitionOffset(offsetInfo: ArrayBuffer[OffsetRange], feedbackTopicName: String, config: WormholeConfig, batchId: String): Unit = {
+    val topicConfigMap = mutable.HashMap.empty[String, ListBuffer[PartitionOffsetConfig]]
 
+    offsetInfo.foreach { offsetRange =>
+      logger.info(s"----------- $offsetRange")
+      val topicName = offsetRange.topic
+      val partition = offsetRange.partition
+      val offset = offsetRange.untilOffset
+      logger.info("brokers:" + config.kafka_output.brokers + ",topic:" + feedbackTopicName)
+      if (!topicConfigMap.contains(topicName)) topicConfigMap(topicName) = new ListBuffer[PartitionOffsetConfig]
+      topicConfigMap(topicName) += PartitionOffsetConfig(partition, offset)
+    }
+
+    val tp: Map[String, String] = topicConfigMap.map { case (topicName, partitionOffsetList) => {
+      (topicName, partitionOffsetList.map(it => it.partition_num + ":" + it.offset).sorted.mkString(","))
+    }
+    }.toMap
+    WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority2, WormholeUms.feedbackStreamTopicOffset(currentDateTime, config.spark_config.stream_id, tp, batchId), None, config.kafka_output.brokers)
+  }
+
+
+  def getIncrementByTs(df: DataFrame, keys: List[String], from_yyyyMMddHHmmss: String, to_yyyyMMddHHmmss: String): DataFrame = {
+    val fromTs = DateUtils.dt2timestamp(from_yyyyMMddHHmmss)
+    val toTs = DateUtils.dt2timestamp(DateUtils.dt2dateTime(to_yyyyMMddHHmmss).plusSeconds(1).minusMillis(1))
+    getIncrementByTs(df, keys, fromTs, toTs)
+  }
+
+  private def getIncrementByTs(df: DataFrame, keys: List[String], fromTs: Timestamp, toTs: Timestamp): DataFrame = {
+    val w = Window
+      .partitionBy(keys.head, keys.tail: _*)
+      .orderBy(df(UmsSysField.ID.toString).desc)
+    //    val w = Window.partitionBy(keys.head, keys.tail: _*).orderBy(df(UmsSysField.TS.toString).desc)
+
+    df.where(df(UmsSysField.TS.toString) >= fromTs).where(df(UmsSysField.TS.toString) <= toTs).withColumn("rn", row_number.over(w)).where("rn = 1").drop("rn").filter("ums_op_ != 'd'")
+  }
 
   /*def dataParse(jsonStr: String, allFieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)]): Seq[UmsTuple] = {
 
@@ -271,76 +286,40 @@ object WormholeUtils {
   }*/
 
 
-  def sendTopicPartitionOffset(offsetInfo: ArrayBuffer[OffsetRange], feedbackTopicName: String, config: WormholeConfig,batchId:String): Unit = {
-    val topicConfigMap = mutable.HashMap.empty[String, ListBuffer[PartitionOffsetConfig]]
-
-    offsetInfo.foreach { offsetRange =>
-      logger.info(s"----------- $offsetRange")
-      val topicName = offsetRange.topic
-      val partition = offsetRange.partition
-      val offset = offsetRange.untilOffset
-      logger.info("brokers:" + config.kafka_output.brokers + ",topic:" + feedbackTopicName)
-      if (!topicConfigMap.contains(topicName)) topicConfigMap(topicName) = new ListBuffer[PartitionOffsetConfig]
-      topicConfigMap(topicName) += PartitionOffsetConfig(partition, offset)
-    }
-
-    val tp: Map[String, String] = topicConfigMap.map { case (topicName, partitionOffsetList) => {
-      (topicName, partitionOffsetList.map(it => it.partition_num + ":" + it.offset).sorted.mkString(","))
-    }
-    }.toMap
-    WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority2, WormholeUms.feedbackStreamTopicOffset(currentDateTime, config.spark_config.stream_id, tp,batchId), None, config.kafka_output.brokers)
-  }
-
-
-  def getIncrementByTs(df: DataFrame, keys: List[String], from_yyyyMMddHHmmss: String, to_yyyyMMddHHmmss: String): DataFrame = {
-    val fromTs = DateUtils.dt2timestamp(from_yyyyMMddHHmmss)
-    val toTs = DateUtils.dt2timestamp(DateUtils.dt2dateTime(to_yyyyMMddHHmmss).plusSeconds(1).minusMillis(1))
-    getIncrementByTs(df, keys, fromTs, toTs)
-  }
-
-  private def getIncrementByTs(df: DataFrame, keys: List[String], fromTs: Timestamp, toTs: Timestamp): DataFrame = {
-    val w = Window
-      .partitionBy(keys.head, keys.tail: _*)
-      .orderBy(df(UmsSysField.ID.toString).desc)
-    //    val w = Window.partitionBy(keys.head, keys.tail: _*).orderBy(df(UmsSysField.TS.toString).desc)
-
-    df.where(df(UmsSysField.TS.toString) >= fromTs).where(df(UmsSysField.TS.toString) <= toTs).withColumn("rn", row_number.over(w)).where("rn = 1").drop("rn").filter("ums_op_ != 'd'")
-  }
-
-  def getFieldContentFromJson(json:String, fieldName:String): String ={
-    var tmpValue = json
-    var realKey = null.asInstanceOf[String]
-    while(tmpValue!=null){
-      val namespacePosition = tmpValue.indexOf("\""+fieldName+"\"")
-      tmpValue = tmpValue.substring(namespacePosition+fieldName.length+2).trim
-      if(tmpValue.startsWith(":")){
-        val from = tmpValue.indexOf("\"")
-        val to = tmpValue.indexOf("\"",from+1)
-        realKey=tmpValue.substring(from+1,to)
-        tmpValue=null
-      }
-    }
-    realKey
-  }
-
-  def getProtocolTypeFromUms(ums:String): String ={
-    var tmpValue = ums
-    var realKey = null.asInstanceOf[String]
-    while(tmpValue!=null){
-      val strPosition = tmpValue.indexOf("\"protocol\"")
-      println(strPosition)
-      tmpValue = tmpValue.substring(strPosition+10).trim
-      if(tmpValue.startsWith(":")){
-        val from = tmpValue.indexOf("{")
-        val to = tmpValue.indexOf("}")
-        val subStr = tmpValue.substring(from,to+1)
-        if(subStr.contains("\"type\"")){
-          realKey = getFieldContentFromJson(subStr,"type")
-          tmpValue = null
-        }
-      }
-    }
-    realKey
-  }
+  //  def getFieldContentFromJson(json: String, fieldName: String): String = {
+  //    var tmpValue = json
+  //    var realKey = null.asInstanceOf[String]
+  //    while (tmpValue != null) {
+  //      val namespacePosition = tmpValue.indexOf("\"" + fieldName + "\"")
+  //      tmpValue = tmpValue.substring(namespacePosition + fieldName.length + 2).trim
+  //      if (tmpValue.startsWith(":")) {
+  //        val from = tmpValue.indexOf("\"")
+  //        val to = tmpValue.indexOf("\"", from + 1)
+  //        realKey = tmpValue.substring(from + 1, to)
+  //        tmpValue = null
+  //      }
+  //    }
+  //    realKey
+  //  }
+  //
+  //  def getProtocolTypeFromUms(ums: String): String = {
+  //    var tmpValue = ums
+  //    var realKey = null.asInstanceOf[String]
+  //    while (tmpValue != null) {
+  //      val strPosition = tmpValue.indexOf("\"protocol\"")
+  //      println(strPosition)
+  //      tmpValue = tmpValue.substring(strPosition + 10).trim
+  //      if (tmpValue.startsWith(":")) {
+  //        val from = tmpValue.indexOf("{")
+  //        val to = tmpValue.indexOf("}")
+  //        val subStr = tmpValue.substring(from, to + 1)
+  //        if (subStr.contains("\"type\"")) {
+  //          realKey = getFieldContentFromJson(subStr, "type")
+  //          tmpValue = null
+  //        }
+  //      }
+  //    }
+  //    realKey
+  //  }
 
 }

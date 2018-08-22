@@ -57,6 +57,8 @@ object Action extends Enumeration {
   val RENEW = Value("renew")
   val DELETE = Value("delete")
   val BATCHSELECT = Value("batchSelect")
+  val DRIFT = Value("drift")
+
 
   def action(s: String) = Action.withName(s.toLowerCase)
 }
@@ -155,9 +157,9 @@ object JobSinkProtocol extends Enumeration {
 
 object FunctionType extends Enumeration {
   type FunctionType = Value
-  val BATCHFLOW = Value("batchflow")
+  val DEFAULT = Value("default")
   val HDFSLOG = Value("hdfslog")
-  val ROUTER = Value("router")
+  val ROUTIING = Value("routing")
 
   def functionType(s: String) = FunctionType.withName(s.toLowerCase)
 
