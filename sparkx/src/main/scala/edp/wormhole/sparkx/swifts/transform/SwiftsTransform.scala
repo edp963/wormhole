@@ -23,7 +23,7 @@ package edp.wormhole.sparkx.swifts.transform
 
 import java.util.UUID
 
-import edp.wormhole.sinks.common.WormholeConfig
+import edp.wormhole.sparkx.common.WormholeConfig
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkx.swifts.custom.{LookupHbase, LookupKudu, LookupRedis}

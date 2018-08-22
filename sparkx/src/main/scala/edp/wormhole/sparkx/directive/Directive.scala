@@ -22,7 +22,7 @@
 package edp.wormhole.sparkx.directive
 
 import edp.wormhole.sinks.common
-import edp.wormhole.sinks.common.{KafkaTopicConfig, PartitionOffsetConfig, WormholeConfig}
+import edp.wormhole.sparkx.common.{KafkaTopicConfig, PartitionOffsetConfig, WormholeConfig}
 import edp.wormhole.sparkx.memorystorage.OffsetPersistenceManager
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.{Ums, UmsFieldType}
@@ -89,7 +89,7 @@ trait Directive extends EdpLogging{
         val partitionOffsetArray = partitionOffset.split(":")
         PartitionOffsetConfig(partitionOffsetArray(0).toInt, partitionOffsetArray(1).toLong)
       })
-      topicConfigList += ((common.KafkaTopicConfig(topicName, topicRate, partitionsOffsetSeq), directiveId))
+      topicConfigList += ((KafkaTopicConfig(topicName, topicRate, partitionsOffsetSeq), directiveId))
     })
 
     topicConfigList
