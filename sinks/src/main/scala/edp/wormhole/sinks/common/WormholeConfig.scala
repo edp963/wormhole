@@ -19,7 +19,7 @@
  */
 
 
-package edp.wormhole.common
+package edp.wormhole.sinks.common
 
 import edp.wormhole.util.config.KVConfig
 

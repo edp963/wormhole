@@ -21,8 +21,8 @@
 
 package edp.wormhole.sparkx.router
 
-import edp.wormhole.common.FeedbackPriority
 import edp.wormhole.kafka.WormholeKafkaProducer
+import edp.wormhole.sinks.common.FeedbackPriority
 import edp.wormhole.sparkx.directive.Directive
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage.routerMap
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
