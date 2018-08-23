@@ -27,8 +27,6 @@ import edp.wormhole.common._
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.sinks.common
-import edp.wormhole.sinks.common._
 import edp.wormhole.sparkx
 import edp.wormhole.sparkx.common._
 import edp.wormhole.sparkx.directive.DirectiveOffsetWatch
