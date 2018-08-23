@@ -1,12 +1,12 @@
 package edp.wormhole.flinkx.eventflow
 
 import com.alibaba.fastjson.JSON
+import edp.wormhole.common.InputDataProtocolBaseType
 import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.flinkx.common.ConfMemoryStorage
 import edp.wormhole.flinkx.util.FlinkSchemaUtils.findJsonSchema
 import edp.wormhole.flinkx.util.UmsFlowStartUtils.extractVersion
 import edp.wormhole.flinkx.util.{FlinkSchemaUtils, UmsFlowStartUtils}
-import edp.wormhole.sinks.common.InputDataRequirement
 import edp.wormhole.ums.{Ums, UmsFieldType, UmsProtocolType, UmsSchema}
 
 
@@ -22,9 +22,9 @@ object WormholeFlinkxFlowDirective {
     val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
     val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
     val consumption = JSON.parseObject(consumptionDataStr)
-    val initial = consumption.getString(InputDataRequirement.INITIAL.toString).trim.toLowerCase.toBoolean
-    val increment = consumption.getString(InputDataRequirement.INCREMENT.toString).trim.toLowerCase.toBoolean
-    val batch = consumption.getString(InputDataRequirement.BATCH.toString).trim.toLowerCase.toBoolean
+    val initial = consumption.getString(InputDataProtocolBaseType.INITIAL.toString).trim.toLowerCase.toBoolean
+    val increment = consumption.getString(InputDataProtocolBaseType.INCREMENT.toString).trim.toLowerCase.toBoolean
+    val batch = consumption.getString(InputDataProtocolBaseType.BATCH.toString).trim.toLowerCase.toBoolean
 
     if (dataType != "ums") {
       val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)

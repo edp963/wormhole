@@ -22,8 +22,8 @@ package edp.wormhole.sparkx.directive
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
+import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.sinks.common.FeedbackPriority
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkx.udf.UdfRegister
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
