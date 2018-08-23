@@ -20,11 +20,9 @@
 
 package edp.wormhole.sinks.hbasesink
 
-import edp.wormhole.sinks.common.{RowkeyPatternType, RowkeyTool}
+import edp.wormhole.hbaseconnection._
 import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.sinks.SourceMutationType
-import edp.wormhole.sinks.common.{RowkeyPatternContent, RowkeyPatternType, RowkeyTool}
-import edp.wormhole.sinks.hbasesink.HbaseConstants._
 import org.apache.hadoop.hbase.client._
 import org.apache.hadoop.hbase.util.Bytes
 import edp.wormhole.ums.UmsSysField._
@@ -49,7 +47,7 @@ class Data2HbaseSink extends SinkProcessor{
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
-    HbaseConnection.initHbaseConfig(sinkNamespace, sinkProcessConfig, connectionConfig)
+    HbaseConnection.initHbaseConfig(sinkNamespace,  connectionConfig)
 
     def rowkey(rowkeyConfig: Seq[RowkeyPatternContent], recordValue: Seq[String]): String = {
       val keydatas = rowkeyConfig.map(rowkey => {
@@ -87,8 +85,8 @@ class Data2HbaseSink extends SinkProcessor{
               else put.addColumn(Bytes.toBytes(hbaseConfig.`hbase.columnFamily.get`), Bytes.toBytes(column), s2hbaseValue(fieldType, valueString))
             } else {
               if (hbaseConfig.`hbase.valueType.get`)
-                put.addColumn(Bytes.toBytes(hbaseConfig.`hbase.columnFamily.get`), activeColBytes, if (DELETE.toString == umsOpValue.toLowerCase) inactiveString else activeString)
-              else put.addColumn(Bytes.toBytes(hbaseConfig.`hbase.columnFamily.get`), activeColBytes, if (DELETE.toString == umsOpValue.toLowerCase) inactiveBytes else activeBytes)
+                put.addColumn(Bytes.toBytes(hbaseConfig.`hbase.columnFamily.get`), HbaseConstants.activeColBytes, if (DELETE.toString == umsOpValue.toLowerCase) HbaseConstants.inactiveString else HbaseConstants.activeString)
+              else put.addColumn(Bytes.toBytes(hbaseConfig.`hbase.columnFamily.get`), HbaseConstants.activeColBytes, if (DELETE.toString == umsOpValue.toLowerCase) HbaseConstants.inactiveBytes else HbaseConstants.activeBytes)
             }
           }
           puts += put
