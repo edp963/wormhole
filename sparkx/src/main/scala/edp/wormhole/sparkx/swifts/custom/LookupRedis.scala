@@ -95,8 +95,7 @@ object LookupRedis extends EdpLogging {
           val schema: Array[StructField] = row.schema.fields
           val fieldContent = keyFieldContentDesc.map(fieldDesc => {
             if (fieldDesc._1) {
-              val value = WormholeUtils.getFieldContentByType(row, schema, fieldDesc._2)
-              if (value != null) value else "N/A"
+              if (row.get(i) == null) "N/A" else row.get(i)
             } else {
               fieldDesc._3
             }
