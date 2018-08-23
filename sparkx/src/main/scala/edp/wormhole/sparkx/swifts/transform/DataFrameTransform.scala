@@ -67,7 +67,7 @@ object DataFrameTransform extends EdpLogging {
         val lookupFieldsLength = lookupTableFields.length
         val fieldContent = sourceTableFields.map(fieldName => {
           val index = row.fieldIndex(fieldName)
-          val value = WormholeUtils.getFieldContentByType(row, schema, index)
+          val value = WormholeUtils.getFieldContentByTypeForSql(row, schema, index)
           if (value != null) value else "N/A"
         }).mkString(",")
         if (!fieldContent.contains("N/A")) {
