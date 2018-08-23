@@ -1,4 +1,4 @@
-package edp.wormhole.flinkx.swifts.common
+package edp.wormhole.flinkx.swifts.custom
 
 
 import com.alibaba.fastjson.JSON
