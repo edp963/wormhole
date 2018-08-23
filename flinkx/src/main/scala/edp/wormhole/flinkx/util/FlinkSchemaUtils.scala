@@ -23,7 +23,7 @@ package edp.wormhole.flinkx.util
 import java.sql.{Date, Timestamp}
 
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
-import edp.wormhole.flinkx.eventflow.WormholeFlinkxConfig
+import edp.wormhole.flinkx.common.WormholeFlinkxConfig
 import edp.wormhole.kafka.WormholeKafkaConsumer
 import edp.wormhole.swifts.SwiftsConstants
 import edp.wormhole.ums.UmsFieldType._
