@@ -95,7 +95,7 @@ object LookupRedis extends EdpLogging {
           val schema: Array[StructField] = row.schema.fields
           val fieldContent = keyFieldContentDesc.map(fieldDesc => {
             if (fieldDesc._1) {
-              if (row.get(i) == null) "N/A" else row.get(i)
+              if (row.get(fieldDesc._2) == null) "N/A" else row.get(fieldDesc._2)
             } else {
               fieldDesc._3
             }
