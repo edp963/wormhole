@@ -29,7 +29,7 @@ import scala.collection.mutable.ListBuffer
 
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
-import edp.wormhole.flinkx.swifts.common._
+import edp.wormhole.flinkx.swifts.custom._
 import edp.wormhole.ums.UmsDataSystem
 
 class LookupMapper(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (TypeInformation[_], Int)],dbOutPutSchemaMap: Map[String, (String, String, Int)], dataStoreConnectionsMap: Map[String, ConnectionConfig]) extends RichMapFunction[Row, Seq[Row]] with java.io.Serializable {
