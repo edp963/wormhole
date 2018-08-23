@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.wormhole.sinks.common
+package edp.wormhole.hbaseconnection
 
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.util.MD5Utils
