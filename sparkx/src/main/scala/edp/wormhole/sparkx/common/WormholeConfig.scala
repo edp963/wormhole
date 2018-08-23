@@ -19,7 +19,7 @@
  */
 
 
-package edp.wormhole.sinks.common
+package edp.wormhole.sparkx.common
 
 import edp.wormhole.util.config.KVConfig
 
@@ -76,26 +76,3 @@ case class KafkaTopicConfig(topic_name: String,
 
 case class PartitionOffsetConfig(partition_num: Int, offset: Long)
 
-//case class PartitionOffsetSeq(topic_partition: Seq[PartitionOffsetConfig])
-
-
-object StreamType extends Enumeration {
-  type StreamType = Value
-  val BATCHFLOW = Value("batchflow")
-  val HDFSLOG = Value("hdfslog")
-  val ROUTER = Value("router")
-
-  def streamType(s: String) = StreamType.withName(s.toLowerCase)
-
-}
-
-
-object InputDataRequirement extends Enumeration {
-  type InputDataRequirement = Value
-  val INITIAL = Value("initial")
-  val INCREMENT = Value("increment")
-  val BATCH = Value("batch")
-
-  def inputDataRequirement(s: String) = InputDataRequirement.withName(s.toLowerCase)
-
-}
