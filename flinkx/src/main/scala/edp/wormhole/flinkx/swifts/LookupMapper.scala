@@ -20,16 +20,17 @@
 
 package edp.wormhole.flinkx.swifts
 
-import edp.wormhole.flinkx.swifts.custom.LookupHbaseHelper
-import edp.wormhole.ums.UmsDataSystem
-import edp.wormhole.util.config.ConnectionConfig
-import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.functions.RichMapFunction
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.types.Row
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+
+import edp.wormhole.util.config.ConnectionConfig
+import edp.wormhole.util.swifts.SwiftsSql
+import edp.wormhole.flinkx.swifts.custom._
+import edp.wormhole.ums.UmsDataSystem
 
 class LookupMapper(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (TypeInformation[_], Int)],dbOutPutSchemaMap: Map[String, (String, String, Int)], dataStoreConnectionsMap: Map[String, ConnectionConfig]) extends RichMapFunction[Row, Seq[Row]] with java.io.Serializable {
 
@@ -42,12 +43,10 @@ class LookupMapper(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (TypeInformat
     val lookupNamespace: String = if (swiftsSql.lookupNamespace.isDefined) swiftsSql.lookupNamespace.get else null
     val lookupDataMap: mutable.HashMap[String, ListBuffer[Array[Any]]] = UmsDataSystem.dataSystem(lookupNamespace.split("\\.")(0).toLowerCase()) match {
       case UmsDataSystem.HBASE=>LookupHbaseHelper.covertResultSet2Map(swiftsSql, value, preSchemaMap,dbOutPutSchemaMap,sourceTableFields,dataStoreConnectionsMap)
-      case UmsDataSystem.REDIS=>LookupRedisHelper.covertResultSet2Map(swiftsSql, value, preSchemaMap,dataStoreConnectionsMap)
       case _=>LookupHelper.covertResultSet2Map(swiftsSql, value, preSchemaMap,dataStoreConnectionsMap)
     }
     val joinFields =UmsDataSystem.dataSystem(lookupNamespace.split("\\.")(0).toLowerCase()) match{
       case UmsDataSystem.HBASE=>LookupHbaseHelper.joinFieldsInRow(value, lookupTableFields, sourceTableFields, preSchemaMap).mkString("_")
-      case UmsDataSystem.REDIS=>LookupRedisHelper.joinFieldsInRow(value, swiftsSql, preSchemaMap)
       case _=>LookupHelper.joinFieldsInRow(value, lookupTableFields, sourceTableFields, preSchemaMap).mkString("_")
     }
 
