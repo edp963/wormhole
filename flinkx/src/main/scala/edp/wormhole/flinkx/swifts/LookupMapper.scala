@@ -21,6 +21,7 @@
 package edp.wormhole.flinkx.swifts
 
 import edp.wormhole.flinkx.swifts.custom.LookupHbaseHelper
+import edp.wormhole.flinkx.swifts.custom.LookupRedisHelper
 import edp.wormhole.ums.UmsDataSystem
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
