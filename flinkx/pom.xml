@@ -86,6 +86,11 @@
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-redispool</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-common</artifactId>
             <version>${project.version}</version>
         </dependency>
