@@ -1,4 +1,4 @@
-package edp.wormhole.flinkx.swifts.common
+package edp.wormhole.flinkx.swifts.custom
 
 
 import org.apache.flink.api.common.typeinfo.TypeInformation
