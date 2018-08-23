@@ -20,6 +20,7 @@
 
 package edp.wormhole.flinkx.eventflow
 
+import edp.wormhole.flinkx.common.WormholeFlinkxConfig
 import edp.wormhole.ums.{Ums, UmsSchemaUtils}
 import edp.wormhole.util.JsonUtils
 //import edp.wormhole.util.FlinkSchemaUtils.{findJsonSchema}
