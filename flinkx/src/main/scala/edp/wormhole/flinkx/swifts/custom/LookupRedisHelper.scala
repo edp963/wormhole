@@ -20,14 +20,6 @@ import scala.collection.mutable.ListBuffer
 object LookupRedisHelper {
   private val logger = Logger.getLogger(this.getClass)
 
-  def getFieldContentByType(row: Row, fieldDesc: (Boolean, Int, String)): Any = {
-    if (fieldDesc._3.equals("StringType")) {
-      //if (row.get(i) == null) "''"  // join fields cannot be null
-      if (row.getField(fieldDesc._2) == null) null
-      else "'" + row.getField(fieldDesc._2) + "'"
-    } else row.getField(fieldDesc._2)
-  }
-
   def covertResultSet2Map(swiftsSql: SwiftsSql,
                           row: Row,
                           preSchemaMap: Map[String, (TypeInformation[_], Int)],
@@ -51,7 +43,7 @@ object LookupRedisHelper {
         val value = parseModel(swiftsSql, lookupValue, name)
         arrayBuf(index) = if (value != null) {
           if (dataType == UmsFieldType.BINARY.toString) CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
-          else FlinkSchemaUtils.object2TrueValue(FlinkSchemaUtils.s2FlinkType(dataType), value)
+          else FlinkSchemaUtils.s2TrueValue(FlinkSchemaUtils.s2FlinkType(dataType), value)
         } else null
       }
 
@@ -92,8 +84,7 @@ object LookupRedisHelper {
 
     val key: String = keyFieldContentDesc.map(fieldDesc => {
       if (fieldDesc._1) {
-        val value = getFieldContentByType(row, fieldDesc)
-        if (value != null) value else "N/A"
+        if (row.getField(fieldDesc._2) == null) "N/A" else row.getField(fieldDesc._2)
       } else {
         fieldDesc._3
       }
