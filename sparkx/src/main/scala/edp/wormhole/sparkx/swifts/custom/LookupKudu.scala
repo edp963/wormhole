@@ -1,6 +1,6 @@
 package edp.wormhole.sparkx.swifts.custom
 
-import edp.wormhole.sinks.kudu.KuduConnection
+import edp.wormhole.kuduconnection.KuduConnection
 import edp.wormhole.sparkx.common.SparkSchemaUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType.{UmsFieldType, umsFieldType}

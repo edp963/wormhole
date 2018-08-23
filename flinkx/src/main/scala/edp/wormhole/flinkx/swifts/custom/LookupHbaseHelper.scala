@@ -8,12 +8,11 @@ import org.apache.log4j.Logger
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import edp.wormhole.ums._
-import edp.wormhole.sinks.hbasesink.HbaseConnection
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
-import edp.wormhole.sinks.common.{RowkeyPatternContent, RowkeyTool}
+import edp.wormhole.hbaseconnection.{HbaseConnection, RowkeyPatternContent, RowkeyTool}
 import edp.wormhole.swifts.ConnectionMemoryStorage
 
 object LookupHbaseHelper extends java.io.Serializable{
@@ -44,7 +43,7 @@ object LookupHbaseHelper extends java.io.Serializable{
   def getDataFromHbase(row:Row,preSchemaMap: Map[String, (TypeInformation[_], Int)],dbOutPutSchemaMap: Map[String, (String, String, Int)],swiftsSql: SwiftsSql,sourceTableFields: Array[String],dataStoreConnectionsMap: Map[String, ConnectionConfig]):(String,Array[Any]) ={
     val (tablename,cf,key,selectFields,connectionConfig)=resolutionOfSwiftSql(row,preSchemaMap,dbOutPutSchemaMap,swiftsSql,dataStoreConnectionsMap)
 
-    HbaseConnection.initHbaseConfig(null,null,connectionConfig)
+    HbaseConnection.initHbaseConfig(null,connectionConfig)
     val (ips, port, _) = HbaseConnection.getZookeeperInfo(connectionConfig.connectionUrl)
     val hbaseData=HbaseConnection.getDatasFromHbase(tablename,cf,true,Seq(key),selectFields.map(f=>(f._1,f._2)),ips,port)
 
