@@ -26,9 +26,9 @@ import java.security.MessageDigest
 import java.sql.ResultSetMetaData
 
 import edp.wormhole.dbdriver.dbpool.DbConnection
+import edp.wormhole.swifts.SqlOptType.SqlOptType
 import edp.wormhole.ums.{UmsDataSystem, UmsSysField}
 import edp.wormhole.util.config.ConnectionConfig
-import SqlOptType.SqlOptType
 import edp.wormhole.util.swifts.SwiftsSql
 import org.slf4j.LoggerFactory
 
@@ -69,7 +69,7 @@ object ParseSwiftsSqlInternal {
       case _ =>
     }
     val connectionConfig = ConnectionMemoryStorage.getDataStoreConnectionConfig(unionNamespace)
-    val selectSchema = getSchema(sqlSecondPart, connectionConfig)
+    val selectSchema = getRmdbSchema(sqlSecondPart, connectionConfig)
 
     val selectFieldsList = getIndependentFieldsFromSql(sqlSecondPart)
     val selectFieldsSet = selectFieldsList.map(fieldName => {
@@ -90,33 +90,7 @@ object ParseSwiftsSqlInternal {
     SwiftsSql(SqlOptType.UNION.toString, Some(selectSchema), sqlSecondPart, None, Some(unionNamespace), Some(valuesFields), Some(lookupFields), Some(lookupFieldsAlias))
   }
 
-  private def getSchema(sql: String, connectionConfig: ConnectionConfig): String = {
-    var testSql = sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, " 1=2 ")
-    if (connectionConfig.connectionUrl.toLowerCase.contains("cassandra")) {
-      val index = sql.toLowerCase.indexOf(" where ")
-      testSql = sql.substring(0, index) + " limit 1;"
-    }
-    logger.info(connectionConfig.connectionUrl+"in getSchema")
-    val conn = DbConnection.getConnection(connectionConfig)
-    val statement = conn.createStatement()
-    logger.info(testSql)
-    val rs = statement.executeQuery(testSql)
-    val schema: ResultSetMetaData = rs.getMetaData
-    val columnCount = schema.getColumnCount
-    val fieldSchema = StringBuilder.newBuilder
-    for (i <- 0 until columnCount) {
-      val columnName = schema.getColumnLabel(i + 1).toLowerCase
-      val columnType: String = schema.getColumnTypeName(i + 1)
-      fieldSchema ++= columnName
-      fieldSchema ++= ":"
-      fieldSchema ++= DbType.convert(columnType.toUpperCase)
-      if (i != columnCount - 1)
-        fieldSchema ++= ","
-    }
-    DbConnection.shutdownConnection(connectionConfig.connectionUrl, connectionConfig.username.orNull)
-    fieldSchema.toString()
 
-  }
 
   def getCassandraSql(sql: String, dbName: String): String = {
     val indexFrom = sql.trim.toLowerCase().indexOf(" from ")
@@ -245,15 +219,44 @@ object ParseSwiftsSqlInternal {
     val fieldsStr = if (joinNamespace.startsWith(UmsDataSystem.HBASE.toString) || joinNamespace.startsWith(UmsDataSystem.REDIS.toString) || joinNamespace.startsWith(UmsDataSystem.KUDU.toString)) {
       Some(getFieldsFromHbaseOrRedisOrKudu(sql))
     } else {
-      Some(getSchema(sql, connectionConfig))
+      Some(getRmdbSchema(sql, connectionConfig))
     }
     fieldsStr
   }
 
-  private def getFieldsFromHbaseOrRedisOrKudu(sqlStrEle: String): String = {
-    val selectFieldFrom = sqlStrEle.indexOf("select ") + 7
-    val selectFieldEnd = sqlStrEle.toLowerCase.indexOf(" from ")
-    sqlStrEle.substring(selectFieldFrom, selectFieldEnd)
+  private def getFieldsFromHbaseOrRedisOrKudu(sql: String): String = {
+    val selectFieldFrom = sql.indexOf("select ") + 7
+    val selectFieldEnd = sql.toLowerCase.indexOf(" from ")
+    sql.substring(selectFieldFrom, selectFieldEnd)
+  }
+
+
+  private def getRmdbSchema(sql: String, connectionConfig: ConnectionConfig): String = {
+    var testSql = sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, " 1=2 ")
+    if (connectionConfig.connectionUrl.toLowerCase.contains("cassandra")) {
+      val index = sql.toLowerCase.indexOf(" where ")
+      testSql = sql.substring(0, index) + " limit 1;"
+    }
+    logger.info(connectionConfig.connectionUrl+"in getSchema")
+    val conn = DbConnection.getConnection(connectionConfig)
+    val statement = conn.createStatement()
+    logger.info(testSql)
+    val rs = statement.executeQuery(testSql)
+    val schema: ResultSetMetaData = rs.getMetaData
+    val columnCount = schema.getColumnCount
+    val fieldSchema = StringBuilder.newBuilder
+    for (i <- 0 until columnCount) {
+      val columnName = schema.getColumnLabel(i + 1).toLowerCase
+      val columnType: String = schema.getColumnTypeName(i + 1)
+      fieldSchema ++= columnName
+      fieldSchema ++= ":"
+      fieldSchema ++= DbType.convert(columnType.toUpperCase)
+      if (i != columnCount - 1)
+        fieldSchema ++= ","
+    }
+    DbConnection.shutdownConnection(connectionConfig.connectionUrl, connectionConfig.username.orNull)
+    fieldSchema.toString()
+
   }
 
   private def syntaxCheck(sql: String, lookupFields: Array[String]): Unit = {
