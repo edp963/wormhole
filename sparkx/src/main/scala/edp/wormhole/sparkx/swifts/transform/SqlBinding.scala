@@ -105,7 +105,7 @@ object SqlBinding extends EdpLogging {
       val lookupFieldsLength = lookupTableFields.length
       val fieldContent = sourceTableFields.map(fieldName => {
         val index = row.fieldIndex(fieldName)
-        WormholeUtils.getFieldContentByType(row, schema, index)
+        WormholeUtils.getFieldContentByTypeForSql(row, schema, index)
       }).mkString(",")
       if (lookupFieldsLength == 1) fieldContent
       else "(" + fieldContent + ")"

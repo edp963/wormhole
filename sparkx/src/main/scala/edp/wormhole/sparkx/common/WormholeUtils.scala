@@ -42,7 +42,7 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 object WormholeUtils {
   private lazy val logger = Logger.getLogger(this.getClass)
 
-  def getFieldContentByType(row: Row, schema: Array[StructField], i: Int): Any = {
+  def getFieldContentByTypeForSql(row: Row, schema: Array[StructField], i: Int): Any = {
     if (schema(i).dataType.toString.equals("StringType")) {
       //if (row.get(i) == null) "''"  // join fields cannot be null
       if (row.get(i) == null) null
