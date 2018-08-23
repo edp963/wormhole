@@ -1,12 +1,13 @@
-package edp.wormhole.sinks.kudu
+package edp.wormhole.kuduconnection
 
-import edp.wormhole.ums.{UmsActiveType, UmsFieldType, UmsOpType, UmsSysField}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
+import edp.wormhole.ums.{UmsActiveType, UmsFieldType, UmsOpType, UmsSysField}
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.config.ConnectionConfig
 import org.apache.kudu.Type
 import org.apache.kudu.client._
 import org.apache.log4j.Logger
+import scala.collection.JavaConversions._
 
 import scala.collection.mutable
 
@@ -19,7 +20,6 @@ object KuduConnection extends Serializable{
   }
 
   def getKuduClient(kuduUrl: String): KuduClient= {
-    import scala.collection.JavaConversions._
     val connectionConfig = kuduConfigurationMap(kuduUrl)
     val kvConfig = connectionConfig.parameters
     var client = new KuduClient.KuduClientBuilder(kuduUrl.split(",").toList)
@@ -166,8 +166,6 @@ object KuduConnection extends Serializable{
       }
     })
 
-    import scala.collection.JavaConversions._
-
     val queryResultMap = mutable.HashMap.empty[String, Map[String, (Any, String)]]
 
     val kuduPredicate = KuduPredicate.newInListPredicate(table.getSchema.getColumn(keyName),dataList)
@@ -207,7 +205,6 @@ object KuduConnection extends Serializable{
 
   def doQueryByKey(keysName: Seq[String], keysContent: Seq[String], keysTypeMap: mutable.Map[String, Type],
                    client: KuduClient, table: KuduTable, queryFieldsName: Seq[String]): (String, Map[String, (Any, String)]) = {
-    import scala.collection.JavaConversions._
     val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
       .setProjectedColumnNames(queryFieldsName) //指定输出列
 

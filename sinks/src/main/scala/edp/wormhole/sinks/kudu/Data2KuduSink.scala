@@ -1,5 +1,6 @@
 package edp.wormhole.sinks.kudu
 
+import edp.wormhole.kuduconnection.KuduConnection
 import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.sinks.SourceMutationType
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
