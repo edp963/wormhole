@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.wormhole.flinkx.eventflow
+package edp.wormhole.flinkx.common
 
 import edp.wormhole.util.config.KVConfig
 

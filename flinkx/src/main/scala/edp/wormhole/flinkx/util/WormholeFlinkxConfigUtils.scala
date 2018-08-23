@@ -22,7 +22,7 @@ package edp.wormhole.flinkx.util
 
 import java.lang
 
-import edp.wormhole.flinkx.eventflow.WormholeFlinkxConfig
+import edp.wormhole.flinkx.common.WormholeFlinkxConfig
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition
 
 import scala.collection.mutable
