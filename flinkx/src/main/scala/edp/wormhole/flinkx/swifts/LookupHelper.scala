@@ -139,7 +139,7 @@ object LookupHelper extends java.io.Serializable {
     val joinFieldsValueArray: Array[Any] = joinFieldsInRow(row, lookupTableFields, sourceTableFields, preSchemaMap)
     UmsDataSystem.dataSystem(dataSystem) match {
       case UmsDataSystem.MYSQL => getMysqlSql(joinFieldsValueArray, sql, lookupTableFields)
-      case UmsDataSystem.CASSANDRA => getMysqlSql(joinFieldsValueArray, sql, lookupTableFields)
+      case UmsDataSystem.CASSANDRA => getCassandraSql(joinFieldsValueArray, sql, lookupTableFields)
       case UmsDataSystem.HBASE | UmsDataSystem.ORACLE | UmsDataSystem.REDIS | UmsDataSystem.KUDU => getMysqlSql(joinFieldsValueArray, sql, lookupTableFields)
     }
   }
@@ -174,5 +174,13 @@ object LookupHelper extends java.io.Serializable {
     } else sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, " 1=2 ")
   }
 
-
+  private def getCassandraSql(joinFieldsValueArray: Array[Any],
+                              sql: String,
+                              lookupTableFields:Array[String]
+                             ):String={
+    if(lookupTableFields.length==1)
+      sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + " in (" + joinFieldsValueArray.mkString(",") + ")")
+    else
+      sql
+  }
 }
