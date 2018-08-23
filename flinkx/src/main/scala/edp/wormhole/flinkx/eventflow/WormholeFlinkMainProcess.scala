@@ -25,7 +25,7 @@ import java.util.Properties
 import com.alibaba.fastjson
 import com.alibaba.fastjson.JSON
 import edp.wormhole.common.json.FieldInfo
-import edp.wormhole.flinkx.common.ConfMemoryStorage
+import edp.wormhole.flinkx.common.{ConfMemoryStorage, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
 import edp.wormhole.flinkx.sink.SinkProcess
 import edp.wormhole.flinkx.swifts.{ParseSwiftsSql, SwiftsProcess}
