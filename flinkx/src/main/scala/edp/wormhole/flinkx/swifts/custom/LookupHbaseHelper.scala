@@ -79,13 +79,13 @@ object LookupHbaseHelper extends java.io.Serializable{
   }
 
   def createJoinFieldAsKey(row:Row,preSchemaMap: Map[String, (TypeInformation[_], Int)],sourceTableFields:Array[String])={
-    sourceTableFields.map(fieldName => {
-      val patternContentList=RowkeyTool.parse(fieldName)
-      patternContentList.map(field=>{
+    sourceTableFields.flatMap(fieldName => {
+      val patternContentList = RowkeyTool.parse(fieldName)
+      patternContentList.map(field => {
         val value = FlinkSchemaUtils.object2TrueValue(preSchemaMap(field.fieldContent.trim)._1, row.getField(preSchemaMap(field.fieldContent.trim)._2))
         if (value != null) RowkeyTool.generatePatternKey(Seq(value.toString), patternContentList) else "N/A"
       })
-    }).flatten
+    })
   }
 
   def joinFieldsInRow(row: Row,
