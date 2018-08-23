@@ -18,7 +18,7 @@
  * >>
  */
 
-package edp.wormhole.flinkx.swifts
+package edp.wormhole.flinkx.swifts.custom
 
 import edp.wormhole.kuduconnection.KuduConnection
 import edp.wormhole.util.config.ConnectionConfig
