@@ -39,7 +39,6 @@ object LookupHelper extends java.io.Serializable {
 
   private val logger = Logger.getLogger(this.getClass)
 
-
   def getDbOutPutSchemaMap(swiftsSql: SwiftsSql): Map[String, (String, String, Int)] = {
     var fieldIndex: Int = -1
     swiftsSql.fields.get.split(",").map(field => {
@@ -58,7 +57,6 @@ object LookupHelper extends java.io.Serializable {
     }).toMap
   } //order is not same as input order !!!
 
-
   def getLookupSchemaMap(preSchemaMap: Map[String, (TypeInformation[_], Int)], swiftsSql: SwiftsSql): Map[String, (TypeInformation[_], Int)] = {
     val lookupSchemaMap = mutable.HashMap.empty[String, (TypeInformation[_], Int)]
     val dbOutPutSchemaMap: Map[String, (String, String, Int)] = getDbOutPutSchemaMap(swiftsSql)
@@ -73,7 +71,6 @@ object LookupHelper extends java.io.Serializable {
     })
     lookupSchemaMap.toMap
   }
-
 
   def covertResultSet2Map(swiftsSql: SwiftsSql,
                           row: Row,
@@ -111,11 +108,9 @@ object LookupHelper extends java.io.Serializable {
         val joinFieldsAsKey = lookupTableFieldsAlias.map(name => {
           if (tmpMap.contains(name)) tmpMap(name) else rs.getObject(name).toString
         }).mkString("_")
-
         if (!dataTupleMap.contains(joinFieldsAsKey)) {
           dataTupleMap(joinFieldsAsKey) = ListBuffer.empty[Array[Any]]
         }
-
         dataTupleMap(joinFieldsAsKey) += arrayBuf
       }
     } catch {
@@ -138,9 +133,8 @@ object LookupHelper extends java.io.Serializable {
     val sql = swiftsSql.sql
     val joinFieldsValueArray: Array[Any] = joinFieldsInRow(row, lookupTableFields, sourceTableFields, preSchemaMap)
     UmsDataSystem.dataSystem(dataSystem) match {
-      case UmsDataSystem.MYSQL => getMysqlSql(joinFieldsValueArray, sql, lookupTableFields)
+      case UmsDataSystem.MYSQL | UmsDataSystem.ORACLE => getRmdbSql(joinFieldsValueArray, sql, lookupTableFields)
       case UmsDataSystem.CASSANDRA => getCassandraSql(joinFieldsValueArray, sql, lookupTableFields)
-      case UmsDataSystem.HBASE | UmsDataSystem.ORACLE | UmsDataSystem.REDIS | UmsDataSystem.KUDU => getMysqlSql(joinFieldsValueArray, sql, lookupTableFields)
     }
   }
 
@@ -157,10 +151,9 @@ object LookupHelper extends java.io.Serializable {
     } else Array.empty[Any]
   }
 
-
-  private def getMysqlSql(joinFieldsValueArray: Array[Any],
-                          sql: String,
-                          lookupTableFields: Array[String]): String = {
+  private def getRmdbSql(joinFieldsValueArray: Array[Any],
+                         sql: String,
+                         lookupTableFields: Array[String]): String = {
     if (joinFieldsValueArray.nonEmpty) {
       if (lookupTableFields.length == 1) sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + s" = ${joinFieldsValueArray.mkString("")}")
       else {
@@ -176,9 +169,9 @@ object LookupHelper extends java.io.Serializable {
 
   private def getCassandraSql(joinFieldsValueArray: Array[Any],
                               sql: String,
-                              lookupTableFields:Array[String]
-                             ):String={
-    if(lookupTableFields.length==1)
+                              lookupTableFields: Array[String]
+                             ): String = {
+    if (lookupTableFields.length == 1)
       sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, lookupTableFields(0) + " in (" + joinFieldsValueArray.mkString(",") + ")")
     else
       sql
