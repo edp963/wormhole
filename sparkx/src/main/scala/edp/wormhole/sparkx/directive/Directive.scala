@@ -21,7 +21,6 @@
 
 package edp.wormhole.sparkx.directive
 
-import edp.wormhole.sinks.common
 import edp.wormhole.sparkx.common.{KafkaTopicConfig, PartitionOffsetConfig, WormholeConfig}
 import edp.wormhole.sparkx.memorystorage.OffsetPersistenceManager
 import edp.wormhole.sparkx.spark.log.EdpLogging

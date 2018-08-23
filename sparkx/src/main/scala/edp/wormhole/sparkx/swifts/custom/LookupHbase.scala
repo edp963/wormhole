@@ -20,8 +20,7 @@
 
 package edp.wormhole.sparkx.swifts.custom
 
-import edp.wormhole.sinks.hbasesink.HbaseConnection
-import edp.wormhole.sinks.common.{RowkeyPatternContent, RowkeyTool}
+import edp.wormhole.hbaseconnection.{HbaseConnection, RowkeyPatternContent, RowkeyTool}
 import edp.wormhole.sparkx.common.SparkSchemaUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType.umsFieldType
@@ -106,7 +105,7 @@ object LookupHbase extends EdpLogging {
           RowkeyTool.generatePatternKey(keydatas,patternContentList)
         })
 
-        HbaseConnection.initHbaseConfig(null, null, connectionConfig)
+        HbaseConnection.initHbaseConfig(null,  connectionConfig)
         val (ips, port, _) = HbaseConnection.getZookeeperInfo(connectionConfig.connectionUrl)
 
         //<rowkey,<fieldname,data>>

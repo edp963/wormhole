@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,20 +19,19 @@
  */
 
 
-package edp.wormhole.sinks.hbasesink
+package edp.wormhole.hbaseconnection
 
-import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.UmsFieldType
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.config.ConnectionConfig
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.hbase.{HBaseConfiguration, TableName}
 import org.apache.hadoop.hbase.client._
 import org.apache.hadoop.hbase.util.Bytes
+import org.apache.hadoop.hbase.{HBaseConfiguration, TableName}
 import org.apache.log4j.Logger
 
-import scala.collection.mutable
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 
@@ -49,7 +48,7 @@ object HbaseConnection extends Serializable {
     (zkList.mkString(","), zookeeperPort, zkParent)
   }
 
-  def initHbaseConfig(sinkNamespace: String, sinkConfig: SinkProcessConfig, connectionConfig: ConnectionConfig): Unit = {
+  def initHbaseConfig(sinkNamespace: String, connectionConfig: ConnectionConfig): Unit = {
     val kvConfig = connectionConfig.parameters
     //  if (sinkNamespace.toLowerCase.startsWith("hbase")) {
     //val hbaseConfig = json2caseClass[HbaseConfig](sinkConfig.specialConfig.get)
