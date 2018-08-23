@@ -24,6 +24,7 @@ import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
 import edp.wormhole.flinkx.pattern.Output.{FIELDLIST, TYPE}
 import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput}
+import edp.wormhole.flinkx.swifts.custom.{LookupKuduHelper, LookupKuduMapper}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.kuduconnection.KuduConnection
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
