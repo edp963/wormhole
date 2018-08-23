@@ -20,6 +20,8 @@
 
 package edp.wormhole.flinkx.swifts
 
+import edp.wormhole.flinkx.swifts.custom.LookupHbaseHelper
+import edp.wormhole.flinkx.swifts.custom.LookupRedisHelper
 import edp.wormhole.flinkx.swifts.custom.{LookupHbaseHelper, LookupKuduHelper}
 import edp.wormhole.ums.UmsDataSystem
 import edp.wormhole.util.config.ConnectionConfig
@@ -44,7 +46,14 @@ class LookupMapper(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (TypeInformat
       case UmsDataSystem.HBASE => LookupHbaseHelper.covertResultSet2Map(swiftsSql, value, preSchemaMap, dbOutPutSchemaMap, sourceTableFields, dataStoreConnectionsMap)
       case UmsDataSystem.KUDU => LookupKuduHelper.covertResultSet2Map(swiftsSql, value, preSchemaMap, dataStoreConnectionsMap)
       case _ => LookupHelper.covertResultSet2Map(swiftsSql, value, preSchemaMap, dataStoreConnectionsMap)
+      case UmsDataSystem.HBASE=>LookupHbaseHelper.covertResultSet2Map(swiftsSql, value, preSchemaMap,dbOutPutSchemaMap,sourceTableFields,dataStoreConnectionsMap)
+      case UmsDataSystem.REDIS=>LookupRedisHelper.covertResultSet2Map(swiftsSql, value, preSchemaMap,dataStoreConnectionsMap)
+      case _=>LookupHelper.covertResultSet2Map(swiftsSql, value, preSchemaMap,dataStoreConnectionsMap)
     }
+    val joinFields =UmsDataSystem.dataSystem(lookupNamespace.split("\\.")(0).toLowerCase()) match{
+      case UmsDataSystem.HBASE=>LookupHbaseHelper.joinFieldsInRow(value, lookupTableFields, sourceTableFields, preSchemaMap).mkString("_")
+      case UmsDataSystem.REDIS=>LookupRedisHelper.joinFieldsInRow(value, swiftsSql, preSchemaMap)
+      case _=>LookupHelper.joinFieldsInRow(value, lookupTableFields, sourceTableFields, preSchemaMap).mkString("_")
     val joinFields = UmsDataSystem.dataSystem(lookupNamespace.split("\\.")(0).toLowerCase()) match {
       case UmsDataSystem.HBASE => LookupHbaseHelper.joinFieldsInRow(value, lookupTableFields, sourceTableFields, preSchemaMap).mkString("_")
       case _ => LookupHelper.joinFieldsInRow(value, lookupTableFields, sourceTableFields, preSchemaMap).mkString("_")
