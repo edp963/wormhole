@@ -32,6 +32,11 @@
             <artifactId>wormhole-dbpool</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-kuduconnection</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

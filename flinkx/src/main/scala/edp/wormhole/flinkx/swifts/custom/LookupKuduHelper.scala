@@ -55,7 +55,8 @@ object LookupKuduHelper extends java.io.Serializable {
   def covertResultSet2Map(swiftsSql: SwiftsSql,
                           row: Row,
                           preSchemaMap: Map[String, (TypeInformation[_], Int)],
-                          dataStoreConnectionsMap: Map[String, ConnectionConfig]): mutable.HashMap[String, ListBuffer[Array[Any]]] = {
+                          dataStoreConnectionsMap: Map[String, ConnectionConfig],
+                          selectFields: List[String]): mutable.HashMap[String, ListBuffer[Array[Any]]] = {
 
     val lookupNamespace: String = if (swiftsSql.lookupNamespace.isDefined) swiftsSql.lookupNamespace.get else null
     val connectionConfig: ConnectionConfig = ConnectionMemoryStorage.getDataStoreConnectionsWithMap(dataStoreConnectionsMap, lookupNamespace)
@@ -79,9 +80,8 @@ object LookupKuduHelper extends java.io.Serializable {
       val lookupTableFields = if (swiftsSql.lookupTableFields.isDefined) swiftsSql.lookupTableFields.get else null
       val joinFieldsValueArray: Array[Any] = LookupHelper.joinFieldsInRow(row, lookupTableFields, sourceTableFields, preSchemaMap)
       val joinFieldsValueString: Array[String] = joinFieldsValueArray.map(value => value.toString)
-      val selectFieldNewNameArray: Seq[String] = getFieldsArray(swiftsSql.fields.get).map(_._1).toList
       val tableSchemaInKudu = KuduConnection.getAllFieldsKuduTypeMap(table)
-      val queryResult: (String, Map[String, (Any, String)]) = KuduConnection.doQueryByKey(lookupTableFields, joinFieldsValueString.toList, tableSchemaInKudu, client, table, selectFieldNewNameArray)
+      val queryResult: (String, Map[String, (Any, String)]) = KuduConnection.doQueryByKey(lookupTableFields, joinFieldsValueString.toList, tableSchemaInKudu, client, table, selectFields)
       //keyStr
       val joinFieldsAsKey: String = queryResult._1
       val queryFieldsResultMap: Map[String, (Any, String)] = queryResult._2
