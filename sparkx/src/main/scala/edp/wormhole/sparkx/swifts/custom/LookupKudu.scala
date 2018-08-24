@@ -54,7 +54,7 @@ object LookupKudu extends EdpLogging {
       val resultData = ListBuffer.empty[Row]
 
       val kuduJoinNameArray = sqlConfig.lookupTableFields.get
-      if (kuduJoinNameArray.length == 1) {  //sink table field names
+      if (kuduJoinNameArray.length == 1) { //sink table field names
         val dataJoinName = sqlConfig.sourceTableFields.get.head
         val keyType = UmsFieldType.umsFieldType(KuduConnection.getAllFieldsUmsTypeMap(tableSchemaInKudu)(kuduJoinNameArray.head))
         val keySchemaMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
@@ -62,7 +62,7 @@ object LookupKudu extends EdpLogging {
 
         originalData.sliding(1000, 1000).foreach((subList: mutable.Seq[Row]) => {
           val tupleList: mutable.Seq[List[String]] = subList.map(row => {
-            sqlConfig.sourceTableFields.get.toList.map(field=>{
+            sqlConfig.sourceTableFields.get.toList.map(field => {
               row.get(row.fieldIndex(field)).toString
             })
 
@@ -104,13 +104,19 @@ object LookupKudu extends EdpLogging {
     session.createDataFrame(joinedRDD, resultSchema)
   }
 
+
   def getFieldsArray(fields: String): Array[(String, String)] = {
     fields.split(",").map(f => {
-      val trimF = f.trim
-      val lowerF = trimF.toLowerCase
-      val asPosition = lowerF.indexOf(" as ")
-      if (asPosition > 0) (trimF.substring(0, asPosition).trim, trimF.substring(asPosition + 4).trim)
-      else (trimF, trimF)
+      val fields = f.split(":")
+      val sourceName = fields(0).trim
+      val fields1trim = fields(1).trim
+      if (fields1trim.toLowerCase.contains(" as ")) {
+        val asIndex = fields1trim.toLowerCase.indexOf(" as ")
+        val newName = fields1trim.substring(asIndex + 4).trim
+        (sourceName, newName)
+      } else {
+        (sourceName, sourceName)
+      }
     })
   }
 
