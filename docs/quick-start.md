@@ -36,12 +36,12 @@ description: Wormhole Quick Start page
    ```
 cd /usr/local/kafka/bin
 ./kafka-console-producer.sh --broker-list localhost:9092 --topic source --property "parse.key=true" --property "key.separator=@@@"
-data_increment_data.kafka.edp.source.ums_extension.*.*.*@@@{"id": 1，"name": "test"，"phone":"18074546423"，"city": "Beijing"，"time": "2017-12-22 10:00:00"}
+data_increment_data.kafka.edp.source.ums_extension.*.*.*@@@{"id": 1, "name": "test", "phone":"18074546423", "city": "Beijing", "time": "2017-12-22 10:00:00"}
    ```
 
 **4. Admin 配置 Source Namespace Schema**
 
-   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick_start-source-schema.png" alt="" width="600"/>
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-source-schema.png" alt="" width="600"/>
 
 **5. Admin 创建 Sink Namespace**
 
