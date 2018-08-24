@@ -26,10 +26,12 @@ import java.security.MessageDigest
 import java.sql.ResultSetMetaData
 
 import edp.wormhole.dbdriver.dbpool.DbConnection
+import edp.wormhole.kuduconnection.KuduConnection
 import edp.wormhole.swifts.SqlOptType.SqlOptType
 import edp.wormhole.ums.{UmsDataSystem, UmsSysField}
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
+import org.apache.kudu.client.KuduTable
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
@@ -89,7 +91,6 @@ object ParseSwiftsSqlInternal {
 
     SwiftsSql(SqlOptType.UNION.toString, Some(selectSchema), sqlSecondPart, None, Some(unionNamespace), Some(valuesFields), Some(lookupFields), Some(lookupFieldsAlias))
   }
-
 
 
   def getCassandraSql(sql: String, dbName: String): String = {
@@ -216,20 +217,19 @@ object ParseSwiftsSqlInternal {
   private def getFieldsWithType(joinNamespace: String, sql: String) = {
     val lookupNamespacesArr = joinNamespace.split(",").map(_.trim)
     val connectionConfig = ConnectionMemoryStorage.getDataStoreConnectionConfig(lookupNamespacesArr(0))
-    val fieldsStr = if (joinNamespace.startsWith(UmsDataSystem.HBASE.toString) || joinNamespace.startsWith(UmsDataSystem.REDIS.toString) || joinNamespace.startsWith(UmsDataSystem.KUDU.toString)) {
-      Some(getFieldsFromHbaseOrRedisOrKudu(sql))
-    } else {
-      Some(getRmdbSchema(sql, connectionConfig))
-    }
+    val fieldsStr = if (joinNamespace.startsWith(UmsDataSystem.HBASE.toString) || joinNamespace.startsWith(UmsDataSystem.REDIS.toString)) {
+      Some(getFieldsFromHbaseOrRedis(sql))
+    } else if (joinNamespace.startsWith(UmsDataSystem.KUDU.toString))
+      Some(getKuduSchema(sql, connectionConfig, joinNamespace))
+    else Some(getRmdbSchema(sql, connectionConfig))
     fieldsStr
   }
 
-  private def getFieldsFromHbaseOrRedisOrKudu(sql: String): String = {
+  private def getFieldsFromHbaseOrRedis(sql: String): String = {
     val selectFieldFrom = sql.indexOf("select ") + 7
     val selectFieldEnd = sql.toLowerCase.indexOf(" from ")
     sql.substring(selectFieldFrom, selectFieldEnd)
   }
-
 
   private def getRmdbSchema(sql: String, connectionConfig: ConnectionConfig): String = {
     var testSql = sql.replace(SwiftsConstants.REPLACE_STRING_INSQL, " 1=2 ")
@@ -237,7 +237,7 @@ object ParseSwiftsSqlInternal {
       val index = sql.toLowerCase.indexOf(" where ")
       testSql = sql.substring(0, index) + " limit 1;"
     }
-    logger.info(connectionConfig.connectionUrl+"in getSchema")
+    logger.info(connectionConfig.connectionUrl + "in getSchema")
     val conn = DbConnection.getConnection(connectionConfig)
     val statement = conn.createStatement()
     logger.info(testSql)
@@ -256,7 +256,37 @@ object ParseSwiftsSqlInternal {
     }
     DbConnection.shutdownConnection(connectionConfig.connectionUrl, connectionConfig.username.orNull)
     fieldSchema.toString()
+  }
 
+  private def getKuduSchema(sql: String, connectionConfig: ConnectionConfig, joinNamespace: String) = {
+    val database = joinNamespace.split("\\.")(2)
+    val fromIndex = sql.indexOf(" from ")
+    val afterFromSql = sql.substring(fromIndex + 6).trim
+    val tmpTableName = afterFromSql.substring(0, afterFromSql.indexOf(" ")).trim
+    val tableName = KuduConnection.getTableName(tmpTableName, database)
+    logger.info("tableName:" + tableName)
+    KuduConnection.initKuduConfig(connectionConfig)
+    val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
+    val table: KuduTable = client.openTable(tableName)
+    val tableSchemaInKudu = KuduConnection.getAllFieldsKuduTypeMap(table)
+    val tableSchema: mutable.Map[String, String] = KuduConnection.getAllFieldsUmsTypeMap(tableSchemaInKudu)
+    val selectLength = 6
+    val selectFieldsArray = getFieldsArray(sql.substring(selectLength, fromIndex))
+    val schemaInString = selectFieldsArray.map(fieldWithAs => {
+      fieldWithAs._1 + ":" + tableSchema(fieldWithAs._1) + " as " + fieldWithAs._2
+    }).mkString(",")
+    KuduConnection.closeClient(client)
+    schemaInString
+  }
+
+  def getFieldsArray(fields: String): Array[(String, String)] = {
+    fields.split(",").map(f => {
+      val trimField = f.trim
+      val lowerF = trimField.toLowerCase
+      val asPosition = lowerF.indexOf(" as ")
+      if (asPosition > 0) (trimField.substring(0, asPosition).trim, trimField.substring(asPosition + 4).trim)
+      else (trimField, trimField)
+    })
   }
 
   private def syntaxCheck(sql: String, lookupFields: Array[String]): Unit = {
