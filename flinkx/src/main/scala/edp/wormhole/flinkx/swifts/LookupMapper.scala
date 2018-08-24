@@ -42,7 +42,7 @@ class LookupMapper(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (TypeInformat
     val lookupNamespace: String = if (swiftsSql.lookupNamespace.isDefined) swiftsSql.lookupNamespace.get else null
     val lookupDataMap: mutable.HashMap[String, ListBuffer[Array[Any]]] = UmsDataSystem.dataSystem(lookupNamespace.split("\\.")(0).toLowerCase()) match {
       case UmsDataSystem.HBASE => LookupHbaseHelper.covertResultSet2Map(swiftsSql, value, preSchemaMap, dbOutPutSchemaMap, sourceTableFields, dataStoreConnectionsMap)
-      case UmsDataSystem.KUDU => LookupKuduHelper.covertResultSet2Map(swiftsSql, value, preSchemaMap, dataStoreConnectionsMap)
+      case UmsDataSystem.KUDU => LookupKuduHelper.covertResultSet2Map(swiftsSql, value, preSchemaMap, dataStoreConnectionsMap,dbOutPutSchemaMap.keys.toList )
       case UmsDataSystem.REDIS => LookupRedisHelper.covertResultSet2Map(swiftsSql, value, preSchemaMap,dataStoreConnectionsMap)
       case _ => LookupHelper.covertResultSet2Map(swiftsSql, value, preSchemaMap, dataStoreConnectionsMap)
     }
