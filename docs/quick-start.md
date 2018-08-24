@@ -36,7 +36,7 @@ description: Wormhole Quick Start page
    ```
 cd /usr/local/kafka/bin
 ./kafka-console-producer.sh --broker-list localhost:9092 --topic source --property "parse.key=true" --property "key.separator=@@@"
-data_increment_data.kafka.edp.source.ums_extension.*.*.*@@@{"id": 1，"name": "test"，"phone":"18074546423"，"address": "Beijing"，"time": "2017-12-22 10:00:00"}
+data_increment_data.kafka.edp.source.ums_extension.*.*.*@@@{"id": 1，"name": "test"，"phone":"18074546423"，"city": "Beijing"，"time": "2017-12-22 10:00:00"}
    ```
 
 **4. Admin 配置 Source Namespace Schema**
@@ -123,7 +123,7 @@ data_increment_data.kafka.edp.source.ums_extension.*.*.*@@@{"id": 1，"name": "t
 
 **3. 提前创建Lookup Table，Sink Table**
 
-**注：sink table 中应有`id,name,cardBank,age,city,ums_ts_`字段**
+**注：sink table 中应有`id,name,cardBank,age,city`字段**
 
 **4. User 启动 Stream**
 
