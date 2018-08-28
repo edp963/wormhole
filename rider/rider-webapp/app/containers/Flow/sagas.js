@@ -50,7 +50,10 @@ import {
   LOAD_UDFS,
   STOPFLINK_FLOWS,
   LOAD_ADMIN_LOGS_INFO,
-  LOAD_LOGS_INFO
+  LOAD_LOGS_INFO,
+  LOAD_DRIFT_LIST,
+  POST_DRIFT,
+  VERIFY_DRIFT
 } from './constants'
 
 import {
@@ -715,6 +718,52 @@ export function* getAdminLogs ({ payload }) {
 export function* getAdminLogsWatcher () {
   yield fork(takeLatest, LOAD_ADMIN_LOGS_INFO, getAdminLogs)
 }
+
+export function* getDriftList ({ payload }) {
+  try {
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/flows/${payload.flowId}/drift/streams`)
+    payload.resolve(result.payload)
+  } catch (err) {
+    notifySagasError(err, 'getDriftList')
+  }
+}
+
+export function* getDriftListWatcher () {
+  yield fork(takeLatest, LOAD_DRIFT_LIST, getDriftList)
+}
+
+export function* verifyDrift ({ payload }) {
+  try {
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/flows/${payload.flowId}/drift/tip?streamId=${payload.streamId}`)
+    payload.resolve(result)
+  } catch (err) {
+    notifySagasError(err, 'verifyDrift')
+  }
+}
+
+export function* verifyDriftWatcher () {
+  yield fork(takeLatest, VERIFY_DRIFT, verifyDrift)
+}
+
+export function* submitDrift ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'put',
+      url: `${api.projectUserList}/${payload.projectId}/flows/${payload.flowId}/drift`,
+      data: {streamId: payload.streamId}
+    })
+    if (result.header && result.header.code === 200) {
+      yield put(flinkFlowStartSucc(result.payload))
+    }
+    payload.resolve(result.payload)
+  } catch (err) {
+    notifySagasError(err, 'submitDrift')
+  }
+}
+
+export function* postDriftWatcher () {
+  yield fork(takeLatest, POST_DRIFT, submitDrift)
+}
 export default [
   getAdminAllFlowsWatcher,
   getUserAllFlowsWatcher,
@@ -746,5 +795,8 @@ export default [
   getUdfsWatcher,
   stopFlinkFlowWathcer,
   getLogsWatcher,
-  getAdminLogsWatcher
+  getAdminLogsWatcher,
+  getDriftListWatcher,
+  postDriftWatcher,
+  verifyDriftWatcher
 ]

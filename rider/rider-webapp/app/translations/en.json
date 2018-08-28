@@ -13,6 +13,7 @@
   "rider.app.table.renew.action": "Renew",
   "rider.app.table.copy.action": "Copy",
   "rider.app.table.stop.action": "Stop",
+  "rider.app.table.drift.action": "Drift",
   "rider.app.table.create.action": "Create",
   "rider.app.table.modify.action": "Modify",
   "rider.app.table.delete.action": "Delete",
