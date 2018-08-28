@@ -40,6 +40,5 @@ export default defineMessages({
   streamModalReset: { id: 'rider.containers.Stream.reset.btn' },
   streamModalRate: { id: 'rider.containers.Stream.modal.rate' },
   streamModalApply: { id: 'rider.containers.Stream.modal.apply' },
-  streamModalApplyAll: { id: 'rider.containers.Stream.modal.apply.all' },
-  streaSureStart: { id: 'rider.app.table.sure.start' }
+  streamModalApplyAll: { id: 'rider.containers.Stream.modal.apply.all' }
 })
