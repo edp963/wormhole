@@ -30,7 +30,8 @@ import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.StreamUtils._
-import edp.wormhole.common.util.JsonUtils._
+import edp.wormhole.util.DateUtils
+import edp.wormhole.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
@@ -47,6 +48,10 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   def getStreamProjectMap(streamSeq: Seq[Stream]): Map[Long, String] = {
     val projectSeq = Await.result(db.run(projectTable.filter(_.id inSet streamSeq.map(_.projectId)).result).mapTo[Seq[Project]], minTimeOut)
     projectSeq.map(project => (project.id, project.name)).toMap
+  }
+
+  def refreshStreamStatus(streamId: Long): Option[Stream] = {
+    refreshStreamStatus(streamIdsOpt = Option(Seq(streamId))).headOption
   }
 
   def refreshStreamStatus(projectIdOpt: Option[Long] = None, streamIdsOpt: Option[Seq[Long]] = None, action: String = REFRESH.toString): Seq[Stream] = {
@@ -85,38 +90,27 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     }
   }
 
-  def getSimpleStreamInfo(projectIdOpt: Option[Long] = None, streamType: String, functionTypeOpt: Option[String] = None, streamIdsOpt: Option[Seq[Long]] = None, action: String = REFRESH.toString): Seq[SimpleStreamInfo] = {
-    if(streamType.equals("flink")){
-      val streamSeq = refreshStreamStatus(projectIdOpt, streamIdsOpt, action).filter(_.streamType == "flink")
+  def getSimpleStreamInfo(projectId: Long, streamType: String, functionTypeOpt: Option[String] = None): Seq[SimpleStreamInfo] = {
+    if (streamType.equals("flink")) {
+      val streamSeq = Await.result(streamDal.findByFilter(stream => stream.streamType === "flink" && stream.projectId === projectId), minTimeOut)
       val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
       val startConfigMap = streamSeq.map(stream => (stream.id, stream.startConfig)).toMap[Long, String]
       val configMap = streamSeq.map(stream => (stream.id, json2caseClass[FlinkResourceConfig](startConfigMap(stream.id)))).toMap[Long, FlinkResourceConfig]
-      val maxParallelismMap = streamSeq.map(stream =>(stream.id, configMap(stream.id).taskManagersNumber*configMap(stream.id).perTaskManagerSlots)).toMap[Long, Int]
+      val maxParallelismMap = streamSeq.map(stream => (stream.id, configMap(stream.id).taskManagersNumber * configMap(stream.id).perTaskManagerSlots)).toMap[Long, Int]
       streamSeq.map(
         stream => {
           SimpleStreamInfo(stream.id, stream.name, maxParallelismMap(stream.id), streamKafkaMap(stream.id).instance, getStreamTopicsName(stream.id)._2)
         }
       )
     } else {
-      if (functionTypeOpt.isEmpty) {
-        val streamSeq = refreshStreamStatus(projectIdOpt, streamIdsOpt, action).filter(_.streamType == "spark")
-        val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
-        streamSeq.map(
-          stream => {
-            SimpleStreamInfo(stream.id, stream.name, 0, streamKafkaMap(stream.id).instance, getStreamTopicsName(stream.id)._2)
-          }
-        )
-      } else {
-        val streamSeq = refreshStreamStatus(projectIdOpt, streamIdsOpt, action).filter(_.streamType == "spark").filter(_.functionType == functionTypeOpt.get)
-        val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
-        streamSeq.map(
-          stream => {
-            SimpleStreamInfo(stream.id, stream.name, 0, streamKafkaMap(stream.id).instance, getStreamTopicsName(stream.id)._2)
-          }
-        )
-      }
+      val streamSeq = Await.result(streamDal.findByFilter(stream => stream.streamType === "spark" && stream.projectId === projectId && stream.functionType === functionTypeOpt.get), minTimeOut)
+      val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
+      streamSeq.map(
+        stream => {
+          SimpleStreamInfo(stream.id, stream.name, 0, streamKafkaMap(stream.id).instance, getStreamTopicsName(stream.id)._2)
+        }
+      )
     }
-
   }
 
   def getStreamDetail(projectIdOpt: Option[Long] = None, streamIdsOpt: Option[Seq[Long]] = None, action: String = REFRESH.toString): Seq[StreamDetail] = {
@@ -322,28 +316,23 @@ class StreamDal(streamTable: TableQuery[StreamTable],
 
   def getConsumedMaxOffset(streamId: Long, topics: Seq[StreamTopicTemp]): Map[String, String] = {
     try {
-      //      val seq = new ListBuffer[StreamTopicTemp]
-      //      streamTopics.map(_.streamId).distinct.foreach(
-      //        streamId => {
-      //          val topicSeq = streamTopics.filter(_.streamId == streamId)
-      //          val topicFeedbackSeq = Await.result(db.run(feedbackOffsetTable.filter(_.streamId === streamId).sortBy(_.feedbackTime.desc).take(topicSeq.size + 1).result).mapTo[Seq[FeedbackOffset]], minTimeOut)
+      val stream = Await.result(super.findById(streamId), minTimeOut).head
+
       val topicFeedbackSeq = feedbackOffsetDal.getStreamTopicsFeedbackOffset(streamId, topics.size)
+
       val topicOffsetMap = new mutable.HashMap[String, String]()
       topicFeedbackSeq.foreach(topic => {
-        if (!topicOffsetMap.contains(topic.topicName))
-          topicOffsetMap(topic.topicName) = formatOffset(topic.partitionOffsets)
+        if (!topicOffsetMap.contains(topic.topicName)) {
+          if (stream.startedTime.nonEmpty && stream.startedTime != null &&
+            DateUtils.yyyyMMddHHmmss(topic.umsTs) > DateUtils.yyyyMMddHHmmss(stream.startedTime.get))
+            topicOffsetMap(topic.topicName) = formatOffset(topic.partitionOffsets)
+        }
       })
       topics.foreach(
         topic => {
           if (!topicOffsetMap.contains(topic.name)) topicOffsetMap(topic.name) = formatOffset(topic.partitionOffsets)
-          //          if (map.contains(topic.name))
-          //            seq += StreamTopicTemp(topic.id, topic.streamId, topic.name, map(topic.name), topic.rate)
-          //          else seq += StreamTopicTemp(topic.id, topic.streamId, topic.name,
-          //            topic.partitionOffsets.split(",").sortBy(partOffset => partOffset.split(":")(0).toLong).mkString(","), topic.rate)
         }
       )
-      //        })
-      //      seq
       topicOffsetMap.toMap
     } catch {
       case ex: Exception =>

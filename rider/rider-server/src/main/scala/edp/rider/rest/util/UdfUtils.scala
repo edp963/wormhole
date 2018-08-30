@@ -7,12 +7,12 @@ import edp.rider.rest.util.CommonUtils.{currentMicroSec, currentSec, minTimeOut}
 import edp.rider.rest.util.StreamUtils.riderLogger
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.ums.UmsProtocolType.DIRECTIVE_UDF_ADD
+import edp.wormhole.util.JsonUtils
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Await
 import scala.sys.process._
 import scala.language.postfixOps
-import edp.wormhole.common.util.JsonUtils._
 
 object UdfUtils extends RiderLogger {
   def checkHdfsPathExist(jarName: String): Boolean = {
@@ -109,7 +109,7 @@ object UdfUtils extends RiderLogger {
                |
           """.stripMargin.replaceAll("\\n", "")
           riderLogger.info(s"user $userId send ${DIRECTIVE_UDF_ADD.toString} directive $msg")
-          PushDirective.sendUdfDirective(streamId, udfInfo(2), jsonCompact(msg))
+          PushDirective.sendUdfDirective(streamId, udfInfo(2), JsonUtils.jsonCompact(msg))
       })
       riderLogger.info(s"user $userId send ${DIRECTIVE_UDF_ADD.toString} directives success.")
     } catch {

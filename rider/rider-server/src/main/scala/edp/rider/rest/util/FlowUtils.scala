@@ -36,11 +36,11 @@ import edp.rider.yarn.YarnStatusQuery._
 import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.wormhole._
 import edp.rider.zookeeper.PushDirective
-import edp.wormhole.common.KVConfig
-import edp.wormhole.common.util.CommonUtils._
-import edp.wormhole.common.util.DateUtils.yyyyMMddHHmmss
-import edp.wormhole.common.util.JsonUtils._
 import edp.wormhole.ums.UmsProtocolType._
+import edp.wormhole.util.JsonUtils._
+import edp.wormhole.util.CommonUtils._
+import edp.wormhole.util.DateUtils._
+import edp.wormhole.util.config.KVConfig
 import slick.jdbc.MySQLProfile.api._
 
 import scala.collection.mutable
@@ -319,10 +319,15 @@ object FlowUtils extends RiderLogger {
     map
   }
 
-  def getHideActions(streamType: String): String = {
+  def getHideActions(streamType: String, functionType: String): String = {
     StreamType.withName(streamType) match {
-      case StreamType.FLINK => s"${Action.RENEW},${Action.BATCHSELECT}"
-      case _ => ""
+      case StreamType.FLINK => s"${Action.RENEW},${Action.BATCHSELECT},${Action.DRIFT}"
+      case StreamType.SPARK =>
+        FunctionType.withName(functionType) match {
+          case FunctionType.HDFSLOG | FunctionType.ROUTIING =>
+            s"${Action.DRIFT}"
+          case FunctionType.DEFAULT => ""
+        }
     }
   }
 
@@ -344,11 +349,11 @@ object FlowUtils extends RiderLogger {
     } else {
       flow.status match {
         case "new" => "renew,stop"
-        case "starting" => "start,delete"
+        case "starting" => "start,delete,drift"
         case "running" => "start"
-        case "updating" => "start"
+        case "updating" => "start,drift"
         case "suspending" => "start"
-        case "stopping" => "start,renew,delete"
+        case "stopping" => "start,renew,delete,drift"
         case "stopped" => "renew,stop"
         case "failed" => ""
       }
@@ -1205,7 +1210,7 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def getWhDefaultFlowConsumedOffsetByLatestOffset(offset: String): String = {
+  def formatConsumedOffsetByGroup(offset: String): String = {
     offset.split(",").map(partOffset => partOffset.split(":")(0) + ":").mkString(",")
   }
 
@@ -1220,7 +1225,7 @@ object FlowUtils extends RiderLogger {
     val udfTopics = flowUdfTopicDal.getUdfTopics(flowIds)
     val kafkaMap = flowDal.getFlowKafkaMap(flowIds)
     flowIds.map(id => {
-      val topics = autoRegisteredTopics.filter(_.flowId == id) ++: udfTopics.filter(_.flowId == id)
+      //      val topics = autoRegisteredTopics.filter(_.flowId == id) ++: udfTopics.filter(_.flowId == id)
       //val feedbackOffsetMap = getConsumedMaxOffset(id, topics)
 
       val autoTopicsResponse = genFlowAllOffsets(autoRegisteredTopics, kafkaMap)
@@ -1241,11 +1246,90 @@ object FlowUtils extends RiderLogger {
           getKafkaOffsetByGroupId(kafkaMap(topic.flowId), topic.topicName, flowName)
         } catch {
           case _: Exception =>
-            getWhDefaultFlowConsumedOffsetByLatestOffset(latest)
+            formatConsumedOffsetByGroup(latest)
         }
       TopicAllOffsets(topic.id, topic.topicName, topic.rate,
         KafkaUtils.formatConsumedOffsetByLatestOffset(consumedLatestOffset, latest), earliest, latest)
     })
+  }
+
+  def getDriftTip(preFlowStream: FlowStream, streamId: Long): (Boolean, String) = {
+    FlowStatus.withName(preFlowStream.status) match {
+      case FlowStatus.NEW | FlowStatus.STOPPED | FlowStatus.FAILED =>
+        (true, s"it's available to drift, flow status will be ${preFlowStream.status} after drift.")
+      case FlowStatus.STARTING | FlowStatus.UPDATING | FlowStatus.STOPPING =>
+        (false, s"staring/updating/stopping status flow is not allowed to drift.")
+      case FlowStatus.SUSPENDING =>
+        (true, s"it's available to drift, flow status will be stopped after drift, you need start it manually.")
+      case FlowStatus.RUNNING =>
+        (true, getRunningFlowDriftTip(preFlowStream, streamId))
+    }
+  }
+
+  def driftFlow(preFlowStream: FlowStream, driftFlowRequest: DriftFlowRequest, userId: Long): (Boolean, String) = {
+    FlowStatus.withName(preFlowStream.status) match {
+      case FlowStatus.NEW | FlowStatus.STOPPED | FlowStatus.FAILED =>
+        Await.result(flowDal.updateStreamId(preFlowStream.id, driftFlowRequest.streamId), minTimeOut)
+        (true, s"success")
+      case FlowStatus.STARTING | FlowStatus.UPDATING | FlowStatus.STOPPING =>
+        (false, s"staring/updating/stopping status flow is not allowed to drift. The final offset depends on the actual operation time!!!")
+      case FlowStatus.SUSPENDING =>
+        flowDal.genFlowStreamByAction(preFlowStream, Action.STOP.toString)
+        Await.result(flowDal.updateStreamId(preFlowStream.id, driftFlowRequest.streamId), minTimeOut)
+        (true, s"success, you need start it manually.")
+      case FlowStatus.RUNNING =>
+        (true, driftRunningFlow(preFlowStream, driftFlowRequest, userId))
+    }
+  }
+
+  def getRunningFlowDriftTip(preFlowStream: FlowStream, streamId: Long): String = {
+    val driftStream = streamDal.refreshStreamStatus(streamId).get
+    StreamStatus.withName(driftStream.status) match {
+      case StreamStatus.NEW | StreamStatus.STOPPING | StreamStatus.STOPPED | StreamStatus.FAILED =>
+        s"it's available to drift, flow status will be stopped after drift, you need start it manually."
+      case StreamStatus.STARTING | StreamStatus.WAITING | StreamStatus.RUNNING =>
+        getDriftFlowOffset(preFlowStream, driftStream)._2
+    }
+  }
+
+  def driftRunningFlow(preFlowStream: FlowStream, driftFlowRequest: DriftFlowRequest, userId: Long): String = {
+    val driftStream = streamDal.refreshStreamStatus(driftFlowRequest.streamId).get
+    val nsDetail = namespaceDal.getNsDetail(preFlowStream.sourceNs)
+    StreamStatus.withName(driftStream.status) match {
+      case StreamStatus.NEW | StreamStatus.STOPPING | StreamStatus.STOPPED | StreamStatus.FAILED =>
+        flowDal.genFlowStreamByAction(preFlowStream, Action.STOP.toString)
+        Await.result(flowDal.updateStreamId(preFlowStream.id, driftFlowRequest.streamId), minTimeOut)
+        s"success, you need start it manually."
+      case StreamStatus.STARTING | StreamStatus.WAITING | StreamStatus.RUNNING =>
+        val offset = getDriftFlowOffset(preFlowStream, driftStream)._1
+        val rate = Await.result(streamInTopicDal.findByFilter(rel => rel.streamId === preFlowStream.streamId && rel.nsDatabaseId === nsDetail._2.id), minTimeOut).head.rate
+        flowDal.genFlowStreamByAction(preFlowStream, Action.STOP.toString)
+        Await.result(flowDal.updateStreamId(preFlowStream.id, driftFlowRequest.streamId), minTimeOut)
+        Await.result(flowDal.defaultGetAll(_.id === preFlowStream.id, Action.START.toString), minTimeOut)
+        topicOffsetDrift(driftStream.id, nsDetail._2, offset, rate, userId)
+        s"success, ${nsDetail._2.nsDatabase} topic offset adjust to $offset. The final offset depends on the actual operation time!!!"
+    }
+  }
+
+  def getDriftFlowOffset(preFlowStream: FlowStream, driftStream: Stream): (String, String) = {
+    val nsDetail = namespaceDal.getNsDetail(preFlowStream.sourceNs)
+    val db = nsDetail._2
+    if (StreamUtils.containsTopic(driftStream.id, db.id)) {
+      val preStreamOffset = getConsumedOffset(preFlowStream.streamId, db.id, db.nsDatabase)
+      val driftStreamOffset = getConsumedOffset(driftStream.id, db.id, db.nsDatabase)
+      val offset = if (preStreamOffset < driftStreamOffset) preStreamOffset
+      else driftStreamOffset
+      (offset,
+        s"it's available to drift, ${preFlowStream.streamName} stream consumed topic ${db.nsDatabase} offset is $preStreamOffset, ${driftStream.name} stream consumed offset is $driftStreamOffset, ${driftStream.name} stream ${db.nsDatabase} offset will be update to $offset. The final offset depends on the actual operation time!!!")
+    } else {
+      val offset = StreamUtils.getConsumedOffset(preFlowStream.streamId, db.id, db.nsDatabase)
+      (offset, s"it's available to drift, ${driftStream.name} stream will add new topic ${db.nsDatabase} with $offset offset. The final offset depends on the actual operation time!!!")
+    }
+  }
+
+  def topicOffsetDrift(streamId: Long, db: NsDatabase, offset: String, rate: Int, userId: Long): Unit = {
+    Await.result(streamInTopicDal.updateOffsetAndRate(streamId, db.id, offset, rate, userId), minTimeOut)
+    sendTopicDirective(streamId, Seq(PutTopicDirective(db.nsDatabase, offset, rate, Option(1))), userId, false)
   }
 
 }

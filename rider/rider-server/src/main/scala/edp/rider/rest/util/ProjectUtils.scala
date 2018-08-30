@@ -22,12 +22,12 @@
 package edp.rider.rest.util
 
 import edp.rider.rest.persistence.entities.{Resource, StartConfig}
-import edp.wormhole.common.util.JsonUtils._
+import edp.wormhole.util.JsonUtils
 
 object ProjectUtils {
 
   def isResourceEnough(resourceConfig: String, resource: Resource): Boolean = {
-    val startConfig = json2caseClass[StartConfig](resourceConfig)
+    val startConfig = JsonUtils.json2caseClass[StartConfig](resourceConfig)
     val cores = startConfig.driverCores + startConfig.perExecutorCores * startConfig.executorNums
     val memory = startConfig.driverMemory + startConfig.perExecutorMemory & startConfig.executorNums
     if (resource.remainCores >= cores && resource.remainMemory >= memory) true
