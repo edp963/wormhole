@@ -30,19 +30,20 @@ import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.UdfUtils.sendUdfDirective
-import edp.rider.yarn.{YarnClientLog, SubmitYarnJob}
+import edp.rider.yarn.{SubmitYarnJob, YarnClientLog}
 import edp.rider.yarn.YarnStatusQuery.{getAllYarnAppStatus, getAppStatusByRest}
 import edp.rider.yarn.SubmitYarnJob.{generateSparkStreamStartSh, runShellCommand}
 import edp.rider.wormhole.{BatchFlowConfig, KafkaInputBaseConfig, KafkaOutputConfig, SparkConfig}
 import edp.rider.zookeeper.PushDirective
 import edp.rider.zookeeper.PushDirective._
-import edp.wormhole.common.util.JsonUtils.{caseClass2json, _}
 import edp.wormhole.kafka.WormholeTopicCommand
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.UmsSchemaUtils.toUms
 import slick.jdbc.MySQLProfile.api._
 import edp.rider.common.StreamType
 import edp.rider.common.StreamType._
+import edp.wormhole.util.DateUtils
+import edp.wormhole.util.JsonUtils._
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -293,7 +294,7 @@ object StreamUtils extends RiderLogger {
     }
   }
 
-  def sendTopicDirective(streamId: Long, topicSeq: Seq[PutTopicDirective], userId: Long, addDefaultTopic: Boolean) = {
+  def sendTopicDirective(streamId: Long, topicSeq: Seq[PutTopicDirective], userId: Long, addDefaultTopic: Boolean = true) = {
     try {
       val directiveSeq = new ArrayBuffer[Directive]
       val zkConURL: String = RiderConfig.zk
@@ -305,7 +306,7 @@ object StreamUtils extends RiderLogger {
           val tuple = Seq(streamId, currentMicroSec, topic.name, topic.rate, topic.partitionOffsets).mkString("#")
           directiveSeq += Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, tuple, zkConURL, currentSec, userId)
       })
-      if (addDefaultTopic && topicSeq.isEmpty) {
+      if (addDefaultTopic) {
         val broker = getKafkaByStreamId(streamId)
         val blankTopicOffset = KafkaUtils.getKafkaLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic)
         val blankTopic = Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, blankTopicOffset).mkString("#"), zkConURL, currentSec, userId)
@@ -603,5 +604,45 @@ object StreamUtils extends RiderLogger {
     offset.split(",").sortBy(partOffset => partOffset.split(":")(0).toLong).mkString(",")
   }
 
+  def getDriftStreamsByStreamId(streamId: Long): Seq[SimpleStreamInfo] = {
+    val preStream = Await.result(streamDal.findById(streamId), minTimeOut).head
+    val streamKafkaUrl = streamDal.getStreamKafkaMap(Seq(streamId))(streamId)
+    val sameInstanceIds = Await.result(instanceDal.findByFilter(_.connUrl === streamKafkaUrl), minTimeOut).map(_.id)
+    val driftStreams = Await.result(streamDal.findByFilter(stream =>
+      stream.streamType === preStream.streamType &&
+        stream.functionType === preStream.functionType &&
+        stream.projectId === preStream.projectId &&
+        stream.id =!= streamId), minTimeOut).filter(stream => sameInstanceIds.contains(stream.instanceId))
+    val driftStreamsKafkaMap = instanceDal.getStreamKafka(driftStreams.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
+    driftStreams.map(
+      stream => {
+        SimpleStreamInfo(stream.id, stream.name, 0, driftStreamsKafkaMap(stream.id).instance, streamDal.getStreamTopicsName(stream.id)._2)
+      }
+    )
+  }
+
+  def containsTopic(streamId: Long, dbId: Long): Boolean = {
+    val streamTopicRel = Await.result(streamInTopicDal.findByFilter(rel => rel.streamId === streamId && rel.nsDatabaseId === dbId), minTimeOut)
+    if (streamTopicRel.nonEmpty) true
+    else false
+  }
+
+  def getConsumedOffset(streamId: Long, dbId: Long, topic: String): String = {
+    val stream = Await.result(streamDal.findById(streamId), minTimeOut).head
+    val feedbackOffsetOpt = Await.result(feedbackOffsetDal.getLatestOffset(streamId, topic), minTimeOut)
+    val startOffsetOpt = Await.result(streamInTopicDal.findByFilter(rel => rel.streamId === streamId && rel.nsDatabaseId === dbId), minTimeOut)
+
+    val offset =
+      if (startOffsetOpt.nonEmpty) {
+        if (feedbackOffsetOpt.nonEmpty) {
+          if (stream.startedTime.nonEmpty && stream.startedTime != null &&
+            DateUtils.yyyyMMddHHmmss(feedbackOffsetOpt.get.umsTs) > DateUtils.yyyyMMddHHmmss(stream.startedTime.get))
+            feedbackOffsetOpt.get.partitionOffsets
+          else startOffsetOpt.head.partitionOffsets
+        } else startOffsetOpt.head.partitionOffsets
+      } else throw new Exception("get consumed offset failed.")
+
+    formatOffset(offset)
+  }
 
 }

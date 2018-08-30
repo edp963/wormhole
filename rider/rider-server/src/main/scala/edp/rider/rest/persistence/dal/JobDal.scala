@@ -26,7 +26,7 @@ import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.common.AppInfo
-import edp.wormhole.common.util.JsonUtils.json2caseClass
+import edp.wormhole.util.JsonUtils
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
@@ -79,7 +79,7 @@ class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTab
     var usedMemory = 0
     val jobResources: Seq[AppResource] = jobSeq.map(
       job => {
-        val config = json2caseClass[StartConfig](job.startConfig)
+        val config = JsonUtils.json2caseClass[StartConfig](job.startConfig)
         usedCores += config.driverCores + config.executorNums * config.perExecutorCores
         usedMemory += config.driverMemory + config.executorNums * config.perExecutorMemory
         AppResource(job.name, config.driverCores, config.driverMemory, config.executorNums, config.perExecutorMemory, config.perExecutorCores)

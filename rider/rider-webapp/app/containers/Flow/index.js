@@ -41,6 +41,10 @@ import Tag from 'antd/lib/tag'
 import Popconfirm from 'antd/lib/popconfirm'
 import Popover from 'antd/lib/popover'
 import DatePicker from 'antd/lib/date-picker'
+import Select from 'antd/lib/select'
+import Form from 'antd/lib/form'
+const FormItem = Form.Item
+const Option = Select.Option
 const { RangePicker } = DatePicker
 
 import { selectFlows, selectError, selectFlowStartModalLoading } from './selectors'
@@ -49,7 +53,8 @@ import { selectLocale } from '../LanguageProvider/selectors'
 import {
   loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm,
   saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail,
-  loadSourceInput, loadFlowDetail, chuckAwayFlow, loadLastestOffset, loadUdfs, startFlinkFlow, stopFlinkFlow, loadAdminLogsInfo, loadLogsInfo
+  loadSourceInput, loadFlowDetail, chuckAwayFlow, loadLastestOffset, loadUdfs, startFlinkFlow, stopFlinkFlow, loadAdminLogsInfo, loadLogsInfo,
+  loadDriftList, postDriftList, verifyDrift
 } from './action'
 import { loadSingleUdf } from '../Udf/action'
 import FlowStartForm from './FlowStartForm'
@@ -123,7 +128,14 @@ export class Flow extends React.Component {
       logsFlowId: 0,
       refreshLogLoading: false,
       refreshLogText: 'Refresh',
-      logsContent: ''
+      logsContent: '',
+      driftModalVisible: false,
+      driftList: [],
+      driftChosenStreamId: '',
+      driftDialogConfirmLoading: false,
+      driftVerifyTxt: '',
+      driftVerifyStatus: '',
+      driftSubmitStatusObj: {}
     }
   }
 
@@ -381,6 +393,90 @@ export class Flow extends React.Component {
     })
   }
 
+  onShowDrift = (record) => (e) => {
+    const { projectIdGeted } = this.props
+    const flowId = record.id
+    this.setState({
+      driftModalVisible: true
+    })
+    this.props.onLoadDriftList(projectIdGeted, flowId, (payload) => {
+      if (Array.isArray(payload)) {
+        this.setState({
+          driftList: payload,
+          streamIdGeted: flowId
+        })
+      } else if (typeof payload === 'string') {
+        message.warn(payload)
+      }
+    })
+  }
+  closeDriftDialog = (cb) => {
+    this.setState({
+      driftModalVisible: false,
+      driftList: [],
+      driftChosenStreamId: '',
+      driftDialogConfirmLoading: false,
+      driftVerifyTxt: '',
+      driftVerifyStatus: ''
+    }, () => {
+      if (cb) cb()
+    })
+  }
+  submitDrift = () => {
+    const { projectIdGeted, locale } = this.props
+    const { streamIdGeted: flowId, driftChosenStreamId: id } = this.state
+    if (Object.is(id, '')) {
+      message.warn(`${locale === 'en' ? 'Please select others:' : '请选择其他'}`, 3)
+      return
+    }
+    this.setState({driftDialogConfirmLoading: true})
+    this.props.onSubmitDrift(projectIdGeted, flowId, id, (payload) => {
+      if (typeof payload === 'string') {
+        this.closeDriftDialog(() => {
+          this.setState({driftSubmitStatusObj: {
+            status: 'error',
+            content: payload
+          }})
+        })
+      } else {
+        this.closeDriftDialog(() => {
+          this.setState({driftSubmitStatusObj: {
+            status: 'success',
+            content: payload.msg
+          }})
+        })
+      }
+      this.setState({driftDialogConfirmLoading: false})
+    })
+  }
+  onChangeDriftSel = (valName) => {
+    const { projectIdGeted } = this.props
+    const flowId = this.state.streamIdGeted
+    const selName = this.state.driftList.find(s => s.name === valName)
+    const { id } = selName
+    this.props.onVerifyDrift(projectIdGeted, flowId, id, (result) => {
+      if (result.header && result.header.code === 200) {
+        this.setState({driftChosenStreamId: id, driftVerifyTxt: result.payload, driftVerifyStatus: 'success'})
+      } else {
+        this.setState({driftVerifyTxt: result.payload, driftVerifyStatus: 'error'})
+      }
+    })
+  }
+  driftDialogClosed = () => {
+    const statusObj = this.state.driftSubmitStatusObj
+    if (statusObj.status === 'success') {
+      Modal.success({
+        title: 'Drift success',
+        content: statusObj.content
+      })
+    } else if (statusObj.status === 'error') {
+      Modal.error({
+        title: 'Drift error',
+        content: statusObj.content
+      })
+    }
+    this.setState({driftSubmitStatusObj: {}})
+  }
   stopFlinkFlowBtn = (record) => () => {
     const { locale } = this.props
     const successText = locale === 'en' ? 'Stop successfully!' : '停止成功！'
@@ -818,8 +914,8 @@ export class Flow extends React.Component {
   }
   render () {
     const { className, onShowAddFlow, onShowEditFlow, flowClassHide, roleType, flowStartModalLoading } = this.props
-    const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails, logsModalVisible, logsProjectId, logsFlowId, refreshLogLoading, refreshLogText, logsContent } = this.state
-    const { selectedRowKeys } = this.state
+    const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails, logsModalVisible,
+      logsProjectId, logsFlowId, refreshLogLoading, refreshLogText, logsContent, selectedRowKeys, driftModalVisible, driftList, driftDialogConfirmLoading, driftVerifyTxt, driftVerifyStatus } = this.state
     let { sortedInfo, filteredInfo, startModalVisible, flowStartFormData, autoRegisteredTopics, userDefinedTopics, startUdfVals, renewUdfVals, currentUdfVal, actionType } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
@@ -1195,6 +1291,7 @@ export class Flow extends React.Component {
           const deleteFormat = <FormattedMessage {...messages.flowTableDelete} />
           const sureDeleteFormat = <FormattedMessage {...messages.flowSureDelete} />
           const sureRenewFormat = <FormattedMessage {...messages.flowSureRenew} />
+          const driftFormat = <FormattedMessage {...messages.flowTableDrift} />
 
           let strLog = ''
           if (record.streamType === 'flink') {
@@ -1227,9 +1324,22 @@ export class Flow extends React.Component {
           } else if (record.streamType === 'flink') {
             strStart = record.disableActions.includes('start')
               ? <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
-              : <Button icon="caret-right" shape="circle" type="ghost" onClick={this.onShowEditStart(record, 'start')}></Button>
+              : <Tooltip title={startFormat}>
+                <Button icon="caret-right" shape="circle" type="ghost" onClick={this.onShowEditStart(record, 'start')}></Button>
+              </Tooltip>
           }
-
+          let strDrift = ''
+          if (record.streamType === 'spark' && record.functionType === 'default') {
+            strDrift = record.disableActions.includes('drift')
+              ? <Button shape="circle" type="ghost" disabled>
+                <i className="iconfont icon-sstransfer"></i>
+              </Button>
+              : <Tooltip title={driftFormat}>
+                <Button shape="circle" type="ghost" onClick={this.onShowDrift(record)}>
+                  <i className="iconfont icon-sstransfer"></i>
+                </Button>
+              </Tooltip>
+          }
           let strStop = record.disableActions.includes('stop')
             ? (
               <Tooltip title={stopFormat}>
@@ -1274,11 +1384,13 @@ export class Flow extends React.Component {
                 </Tooltip>
               </Popconfirm>
             )
+
           if (record.hideActions) {
             if (record.hideActions.includes('start')) strStart = ''
             if (record.hideActions.includes('stop')) strStop = ''
             if (record.hideActions.includes('renew')) strRenew = ''
             if (record.hideActions.includes('delete')) strDel = ''
+            if (record.hideActions.includes('drift')) strDrift = ''
           }
           FlowActionSelect = (
             <span>
@@ -1292,6 +1404,7 @@ export class Flow extends React.Component {
               {strStop}
               {strRenew}
               {strDel}
+              {strDrift}
               {strLog}
             </span>
           )
@@ -1451,6 +1564,19 @@ export class Flow extends React.Component {
         />
       )
       : ''
+
+    const flowDrift = driftModalVisible
+      ? (
+        <Select
+          dropdownClassName="ri-workbench-select-dropdown"
+          onChange={(e) => this.onChangeDriftSel(e)}
+          placeholder="Select a Drift Stream"
+        >
+          {
+            driftList.length === 0 ? null : driftList.map(s => (<Option key={s.id} value={`${s.name}`}>{s.name}</Option>))
+          }
+        </Select>
+      ) : ''
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>
         {helmetHide}
@@ -1541,6 +1667,28 @@ export class Flow extends React.Component {
           {flowStartForm}
         </Modal>
         <Modal
+          title={'Drift'}
+          visible={driftModalVisible}
+          wrapClassName="ant-modal-small stream-start-renew-modal"
+          onCancel={this.closeDriftDialog}
+          onOk={this.submitDrift}
+          confirmLoading={driftDialogConfirmLoading}
+          afterClose={this.driftDialogClosed}
+        >
+          <Form className="ri-workbench-form workbench-flow-form">
+            <FormItem
+              label="Stream"
+              labelCol={{span: 5}}
+              wrapperCol={{span: 19}}
+              help={driftVerifyTxt}
+              validateStatus={driftVerifyStatus}
+              hasFeedback
+            >
+              {flowDrift}
+            </FormItem>
+          </Form>
+        </Modal>
+        <Modal
           title="Logs"
           visible={logsModalVisible}
           onCancel={this.handleLogsCancel}
@@ -1597,7 +1745,10 @@ Flow.propTypes = {
   onStartFlinkFlow: PropTypes.func,
   onStopFlinkFlow: PropTypes.func,
   onLoadAdminLogsInfo: PropTypes.func,
-  onLoadLogsInfo: PropTypes.func
+  onLoadLogsInfo: PropTypes.func,
+  onLoadDriftList: PropTypes.func,
+  onSubmitDrift: PropTypes.func,
+  onVerifyDrift: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1622,7 +1773,10 @@ export function mapDispatchToProps (dispatch) {
     onStartFlinkFlow: (projectId, id, topicResult, action, resolve, reject) => dispatch(startFlinkFlow(projectId, id, topicResult, action, resolve, reject)),
     onStopFlinkFlow: (projectId, id, topicResult, action, resolve, reject) => dispatch(stopFlinkFlow(projectId, id, topicResult, action, resolve, reject)),
     onLoadAdminLogsInfo: (projectId, flowId, resolve) => dispatch(loadAdminLogsInfo(projectId, flowId, resolve)),
-    onLoadLogsInfo: (projectId, flowId, resolve) => dispatch(loadLogsInfo(projectId, flowId, resolve))
+    onLoadLogsInfo: (projectId, flowId, resolve) => dispatch(loadLogsInfo(projectId, flowId, resolve)),
+    onLoadDriftList: (projectId, flowId, resolve) => dispatch(loadDriftList(projectId, flowId, resolve)),
+    onSubmitDrift: (projectId, flowId, streamId, resolve) => dispatch(postDriftList(projectId, flowId, streamId, resolve)),
+    onVerifyDrift: (projectId, flowId, streamId, resolve) => dispatch(verifyDrift(projectId, flowId, streamId, resolve))
   }
 }
 

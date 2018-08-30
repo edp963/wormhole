@@ -33,9 +33,8 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.JobUtils._
 import edp.rider.rest.util.ResponseUtils._
 import edp.rider.service.util.FeedbackOffsetUtil
-import edp.wormhole.common.util.JsonUtils
-//import edp.rider.rest.router.JsonProtocol._
-import edp.wormhole.common.util.DateUtils._
+import edp.wormhole.util.DateUtils._
+import edp.wormhole.util.JsonUtils
 
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
@@ -61,7 +60,7 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                 riderLogger.error(s"user ${session.userId} request to get flow $flowId health information, but the stream $streamId doesn't exist")
                 complete(OK, getHeader(403, s"stream $streamId doesn't exist", null))
               }
-              onComplete(flowDal.getById(projectId, flowId).mapTo[Option[FlowStreamInfo]]) {
+              onComplete(flowDal.getById(flowId).mapTo[Option[FlowStreamInfo]]) {
                 case Success(flowStreamOpt) =>
                   riderLogger.info(s"user ${session.userId} select flow where project id is $projectId and flow id is $flowId success.")
                   flowStreamOpt match {

@@ -22,7 +22,7 @@
 package edp.wormhole.ums
 
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
-import edp.wormhole.common.util.JsonUtils._
+import edp.wormhole.util.JsonUtils
 import org.json4s.DefaultFormats
 import org.json4s.ext.EnumNameSerializer
 
@@ -31,7 +31,7 @@ import scala.collection.mutable.ArrayBuffer
 object UmsSchemaUtils extends UmsSchemaUtils
 
 trait UmsSchemaUtils {
-  json4sFormats = json4sFormats + new EnumNameSerializer(UmsProtocolType) + new EnumNameSerializer(UmsFieldType)
+  JsonUtils.json4sFormats = JsonUtils.json4sFormats + new EnumNameSerializer(UmsProtocolType) + new EnumNameSerializer(UmsFieldType)
 
   implicit val formats = DefaultFormats
 
@@ -101,13 +101,13 @@ trait UmsSchemaUtils {
   }
 
 
-  def toJsonCompact(ums: Ums): String = jsonCompact(caseClass2json[Ums](ums))
+  def toJsonCompact(ums: Ums): String = JsonUtils.jsonCompact(JsonUtils.caseClass2json[Ums](ums))
   def toFastJsonCompact(ums: Ums): String = {
     toJson(ums,false)
   }
 
 
-  def toJsonPretty(ums: Ums): String = jsonPretty(caseClass2json[Ums](ums))
+  def toJsonPretty(ums: Ums): String = JsonUtils.jsonPretty(JsonUtils.caseClass2json[Ums](ums))
   def toFastJsonPretty(ums: Ums): String = {
     toJson(ums,true)
   }
@@ -191,12 +191,12 @@ trait UmsSchemaUtils {
     UmsSchema(namespace, fields)
   }
 
-  def toJsonSchemaCompact(schema: UmsSchema): String = jsonCompact(caseClass2json[UmsSchema](schema))
+  def toJsonSchemaCompact(schema: UmsSchema): String = JsonUtils.jsonCompact(JsonUtils.caseClass2json[UmsSchema](schema))
   def toFastJsonSchemaCompact(schema: UmsSchema,isFull:Boolean): String = {
     toFastJsonSchema(schema,false,isFull)
   }
 
-  def toJsonSchemaPretty(schema: UmsSchema): String = jsonPretty(caseClass2json[UmsSchema](schema))
+  def toJsonSchemaPretty(schema: UmsSchema): String = JsonUtils.jsonPretty(JsonUtils.caseClass2json[UmsSchema](schema))
   def toFastJsonSchemaPretty(schema: UmsSchema,isFull:Boolean): String = {
     toFastJsonSchema(schema,true,isFull)
   }
