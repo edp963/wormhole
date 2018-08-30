@@ -78,7 +78,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
 
       try {
 
-        createFromOffset(RiderConfig.consumer.group_id)(context.system).foreach(
+        createFromOffset(RiderConfig.consumer.group_id).foreach(
           source => {
             val (control, future) = source.mapAsync(1)(processMessage)
               .toMat(Sink.ignore)(Keep.both)
