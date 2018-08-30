@@ -82,11 +82,11 @@ object ElasticSearch extends RiderLogger {
 
   def insertFlowStatToES(stats: MonitorInfo) = {
     val url = getESUrl
-//    riderLogger.info("es url: " + url)
+    //    riderLogger.info("es url: " + url)
     val postBody: String = JsonUtils.caseClass2json(stats)
-//    riderLogger.info("es insert: " + postBody)
-//    asyncToES(postBody, url, HttpMethods.POST)
-    syncToES(postBody, url, HttpMethods.POST)
+    //    riderLogger.info("es insert: " + postBody)
+    asyncToES(postBody, url, HttpMethods.POST)
+    //    syncToES(postBody, url, HttpMethods.POST)
 
   }
 
@@ -199,7 +199,7 @@ object ElasticSearch extends RiderLogger {
     }.")
     try {
       val response: Future[HttpResponse] = Http().singleRequest(httpRequest)
-//      riderLogger.info(s"es response: code: ${response.value.get.get.status}, ${response.value.get.get.entity}")
+      //      riderLogger.info(s"es response: code: ${response.value.get.get.status}, ${response.value.get.get.entity}")
       tc = true
 
     } catch {
@@ -239,9 +239,9 @@ object ElasticSearch extends RiderLogger {
       val response = Await.result(Http().singleRequest(httpRequest), timeOut)
       response.status match {
         case StatusCodes.OK if (response.entity.contentType == ContentTypes.`application/json`) =>
-                              riderLogger.debug(s"response.entity ${
-                                response.entity.toString
-                              }.")
+          riderLogger.debug(s"response.entity ${
+            response.entity.toString
+          }.")
           Await.result(
             Unmarshal(response.entity).to[String].map {
               jsonString =>
