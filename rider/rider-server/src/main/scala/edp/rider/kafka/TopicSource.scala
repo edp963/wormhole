@@ -36,7 +36,7 @@ import scala.collection.mutable
 
 object TopicSource extends RiderLogger {
 
-  def createPerPartition(groupId: String)(implicit system: ActorSystem) = {
+  def createPerPartition(groupId: String) = {
     //    val consumerSettings = ConsumerSettings(system, new ByteArrayDeserializer, new StringDeserializer)
     //      .withBootstrapServers(modules.config.getString("akka.kafka.consumer.kafka-clients.bootstrap.servers"))
     //      .withGroupId(modules.config.getString("akka.kafka.consumer.kafka-clients.group.id"))
@@ -59,7 +59,7 @@ object TopicSource extends RiderLogger {
   }
 
 
-  def createFromOffset(groupId: String)(implicit system: ActorSystem): Seq[Source[ConsumerRecord[Array[Byte], String], Control]] = {
+  def createFromOffset(groupId: String): Seq[Source[ConsumerRecord[Array[Byte], String], Control]] = {
     //    val consumerSettings = ConsumerSettings(system, new ByteArrayDeserializer, new StringDeserializer)
     //      .withBootstrapServers(RiderConfig.consumer.brokers)
     //      .withGroupId(RiderConfig.consumer.group_id)
