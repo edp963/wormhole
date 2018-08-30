@@ -21,11 +21,11 @@
 
 package edp.wormhole.ums
 
-import edp.wormhole.common.util.DateUtils._
+import edp.wormhole.util.DateUtils
 import org.joda.time.DateTime
 
 case class UmsWatermark(ts: DateTime)
 
 object UmsWatermark {
-  def apply(ts: String): UmsWatermark = UmsWatermark(dt2dateTime(ts))
+  def apply(ts: String): UmsWatermark = UmsWatermark(DateUtils.dt2dateTime(ts))
 }
