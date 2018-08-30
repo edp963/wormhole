@@ -1,6 +1,6 @@
 #!/bin/bash
 # sed wormholeServer host and port to index.html
-
+WORMHOLE_HOME=/usr/local/wormhole-0.5.2-beta
 # check if we have a valid WORMHOLE_HOME and if java is not available
 if [ -z "${WORMHOLE_HOME}" ]; then
     echo "ERROR!!: WORMHOLE_HOME is not defined correctly, please specify WORMHOLE_HOME first."
