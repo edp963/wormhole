@@ -52,8 +52,8 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
             }
             else {
               if (session.projectIdList.contains(projectId)) {
-                streamDal.refreshStreamStatus(Some(projectId), Some(Seq(streamId)))
-                riderLogger.info(s"user ${session.userId} refresh streams.")
+                //                streamDal.refreshStreamStatus(Some(projectId), Some(Seq(streamId)))
+                //                riderLogger.info(s"user ${session.userId} refresh streams.")
                 onComplete(flowDal.getById(flowId).mapTo[Option[FlowStream]]) {
                   case Success(flowStreamOpt) =>
                     riderLogger.info(s"user ${session.userId} select flow where project id is $projectId and flow id is $flowId success.")
@@ -105,8 +105,8 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                             complete(OK, setFailedResponse(session, ex.getMessage))
                         }
                       case (_, None, None) =>
-                        streamDal.refreshStreamStatus(Some(projectId))
-                        riderLogger.info(s"user ${session.userId} refresh project $projectId all streams.")
+                        //                        streamDal.refreshStreamStatus(Some(projectId))
+                        //                        riderLogger.info(s"user ${session.userId} refresh project $projectId all streams.")
                         val future = if (visible.getOrElse(true)) flowDal.defaultGetAll(flow => flow.active === true && flow.projectId === projectId)
                         else flowDal.defaultGetAll(_.projectId === projectId)
                         onComplete(future.mapTo[Seq[FlowStream]]) {
@@ -217,7 +217,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                 if (session.roleType != "user")
                   complete(OK, getHeader(403, session))
                 else {
-                  streamDal.refreshStreamStatus(Some(projectId), Some(Seq(streamId)))
+                  //                  streamDal.refreshStreamStatus(Some(projectId), Some(Seq(streamId)))
                   riderLogger.info(s"user ${session.userId} refresh streams.")
                   if (session.projectIdList.contains(projectId)) {
                     val checkFormat = FlowUtils.checkConfigFormat(flow.sinkConfig.getOrElse(""), flow.tranConfig.getOrElse(""))
@@ -227,14 +227,14 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                       val updateFlow = Flow(flow.id, flow.projectId, flow.streamId, flow.sourceNs.trim, flow.sinkNs.trim, flow.parallelism, flow.consumedProtocol.trim, flow.sinkConfig,
                         flow.tranConfig, flow.status, startedTime, stoppedTime, flow.logPath, flow.active, flow.createTime, flow.createBy, currentSec, session.userId)
 
-                      val stream = Await.result(streamDal.findById(streamId), minTimeOut).head
-                      val existFlow = Await.result(flowDal.findById(flow.id), minTimeOut).head
+                      //                      val stream = Await.result(streamDal.findById(streamId), minTimeOut).head
+                      //                      val existFlow = Await.result(flowDal.findById(flow.id), minTimeOut).head
 
                       onComplete(flowDal.update(updateFlow).mapTo[Int]) {
                         case Success(_) =>
-                          if (streamId != flow.streamId)
-                            FlowUtils.stopFlow(streamId, flow.id, session.userId, stream.functionType, existFlow.sourceNs, existFlow.sinkNs, flow.tranConfig.getOrElse(""))
-                          riderLogger.info(s"user ${session.userId} update flow ${updateFlow.id} where project id is $projectId success.")
+                          //                          if (streamId != flow.streamId)
+                          //                            FlowUtils.stopFlow(streamId, flow.id, session.userId, stream.functionType, existFlow.sourceNs, existFlow.sinkNs, flow.tranConfig.getOrElse(""))
+                          //                          riderLogger.info(s"user ${session.userId} update flow ${updateFlow.id} where project id is $projectId success.")
                           onComplete(flowDal.defaultGetAll(_.id === updateFlow.id, "modify").mapTo[Seq[FlowStream]]) {
                             case Success(flowStream) =>
                               riderLogger.info(s"user ${session.userId} refresh flow where project id is $projectId and flow id is ${updateFlow.id} success.")
