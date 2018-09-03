@@ -1,4 +1,4 @@
-package edp.wormhole.sinks.kudu
+package edp.wormhole.sinks.kudusink
 
 import edp.wormhole.sinks.SourceMutationType
 
