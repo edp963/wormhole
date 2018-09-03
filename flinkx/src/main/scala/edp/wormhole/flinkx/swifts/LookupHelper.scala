@@ -45,9 +45,9 @@ object LookupHelper extends java.io.Serializable {
     swiftsSql.fields.get.split(",").map(field => {
       fieldIndex += 1
       val fields = field.split(":")
-      val fields1trim = fields(1).trim
-      val fieldTuple = if (fields1trim.toLowerCase.contains(" as ")) {
-        val asIndex = fields1trim.toLowerCase.indexOf(" as ")
+      val fields1trim = fields(1).trim.toLowerCase()
+      val fieldTuple = if (fields1trim.contains(" as ")) {
+        val asIndex = fields1trim.indexOf(" as ")
         val fieldType = fields1trim.substring(0, asIndex).trim
         val newName = fields1trim.substring(asIndex + 4).trim
         (fields(0).trim, (newName, fieldType, fieldIndex))
