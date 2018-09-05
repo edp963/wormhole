@@ -48,7 +48,6 @@ class Data2HbaseSink extends SinkProcessor{
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
     HbaseConnection.initHbaseConfig(sinkNamespace,  connectionConfig)
-
     def rowkey(rowkeyConfig: Seq[RowkeyPatternContent], recordValue: Seq[String]): String = {
       val keydatas = rowkeyConfig.map(rowkey => {
 

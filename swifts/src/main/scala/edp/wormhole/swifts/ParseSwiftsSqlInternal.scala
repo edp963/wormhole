@@ -26,11 +26,11 @@ import java.security.MessageDigest
 import java.sql.ResultSetMetaData
 
 import edp.wormhole.dbdriver.dbpool.DbConnection
-import edp.wormhole.kuduconnection.KuduConnection
 import edp.wormhole.swifts.SqlOptType.SqlOptType
 import edp.wormhole.ums.{UmsDataSystem, UmsSysField}
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
+import edp.wormhole.kuduconnection.KuduConnection
 import org.apache.kudu.client.KuduTable
 import org.slf4j.LoggerFactory
 

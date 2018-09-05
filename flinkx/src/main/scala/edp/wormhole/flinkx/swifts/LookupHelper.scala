@@ -48,7 +48,7 @@ object LookupHelper extends java.io.Serializable {
       val fields1trim = fields(1).trim
       val fieldTuple = if (fields1trim.toLowerCase.contains(" as ")) {
         val asIndex = fields1trim.toLowerCase.indexOf(" as ")
-        val fieldType = fields1trim.substring(0, asIndex).trim
+        val fieldType = fields1trim.toLowerCase.substring(0, asIndex).trim
         val newName = fields1trim.substring(asIndex + 4).trim
         (fields(0).trim, (newName, fieldType, fieldIndex))
       } else {

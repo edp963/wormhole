@@ -12,7 +12,7 @@ import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
-import edp.wormhole.hbaseconnection.{HbaseConnection, RowkeyPatternContent, RowkeyTool}
+import edp.wormhole.hbaseconnection.{HbaseConnection, RowkeyPatternContent, RowkeyPatternType, RowkeyTool}
 import edp.wormhole.swifts.ConnectionMemoryStorage
 
 object LookupHbaseHelper extends java.io.Serializable{
@@ -41,7 +41,7 @@ object LookupHbaseHelper extends java.io.Serializable{
   }
 
   def getDataFromHbase(row:Row,preSchemaMap: Map[String, (TypeInformation[_], Int)],dbOutPutSchemaMap: Map[String, (String, String, Int)],swiftsSql: SwiftsSql,sourceTableFields: Array[String],dataStoreConnectionsMap: Map[String, ConnectionConfig]):(String,Array[Any]) ={
-    val (tablename,cf,key,selectFields,connectionConfig)=resolutionOfSwiftSql(row,preSchemaMap,dbOutPutSchemaMap,swiftsSql,dataStoreConnectionsMap)
+    val (tablename,cf,key,selectFields,connectionConfig)=resolutionOfSwiftSql(row,preSchemaMap,dbOutPutSchemaMap,swiftsSql,dataStoreConnectionsMap,sourceTableFields)
 
     HbaseConnection.initHbaseConfig(null,connectionConfig)
     val (ips, port, _) = HbaseConnection.getZookeeperInfo(connectionConfig.connectionUrl)
@@ -50,18 +50,18 @@ object LookupHbaseHelper extends java.io.Serializable{
     buildOutputTuple(row,preSchemaMap,hbaseData,key,sourceTableFields,selectFields)
   }
 
-  def resolutionOfSwiftSql(row:Row,preSchemaMap: Map[String, (TypeInformation[_], Int)],dbOutPutSchemaMap: Map[String, (String, String, Int)],swiftsSql: SwiftsSql,dataStoreConnectionsMap: Map[String, ConnectionConfig]):(String,String,String,Array[(String, String,String)],ConnectionConfig)={
+  def resolutionOfSwiftSql(row:Row,preSchemaMap: Map[String, (TypeInformation[_], Int)],dbOutPutSchemaMap: Map[String, (String, String, Int)],swiftsSql: SwiftsSql,dataStoreConnectionsMap: Map[String, ConnectionConfig],sourceTableFields:Array[String]):(String,String,String,Array[(String, String,String)],ConnectionConfig)={
     val lookupNamespace: String = if (swiftsSql.lookupNamespace.isDefined) swiftsSql.lookupNamespace.get else null
     val connectionConfig: ConnectionConfig = ConnectionMemoryStorage.getDataStoreConnectionsWithMap(dataStoreConnectionsMap, lookupNamespace)
-    val patternContentList: mutable.Seq[RowkeyPatternContent] = RowkeyTool.parse(swiftsSql.sourceTableFields.get(0))
-    val key=RowkeyTool.generatePatternKey(getRowDatas(row,preSchemaMap),patternContentList)
+  //  val patternContentList: mutable.Seq[RowkeyPatternContent] = RowkeyTool.parse(swiftsSql.sourceTableFields.get(0))
+    val key=createJoinFieldAsKey(row,preSchemaMap,sourceTableFields)
 
     val selectFields=dbOutPutSchemaMap.keys.map(key=>(key,UmsFieldType.umsFieldType(dbOutPutSchemaMap(key)._2).toString,key)).toArray
     val fromIndex = swiftsSql.sql.indexOf(" from ")
     val table2cfGrp = swiftsSql.sql.substring(fromIndex + 6, swiftsSql.sql.indexOf(")", fromIndex)).split("\\(")
     logger.info("table2cfGrp:" + table2cfGrp(0) + "," + table2cfGrp(1))
 
-    (table2cfGrp(0),table2cfGrp(1),key,selectFields,connectionConfig)
+    (table2cfGrp(0),table2cfGrp(1),key.head,selectFields,connectionConfig)
   }
 
   def buildOutputTuple(row:Row,preSchemaMap: Map[String, (TypeInformation[_], Int)],hbaseData:Map[String, Map[String, Any]],key:String,sourceTableFields:Array[String],selectFields: Array[(String, String,String)]):(String,Array[Any])={
@@ -81,10 +81,15 @@ object LookupHbaseHelper extends java.io.Serializable{
   def createJoinFieldAsKey(row:Row,preSchemaMap: Map[String, (TypeInformation[_], Int)],sourceTableFields:Array[String])={
     sourceTableFields.flatMap(fieldName => {
       val patternContentList = RowkeyTool.parse(fieldName)
-      patternContentList.map(field => {
-        val value = FlinkSchemaUtils.object2TrueValue(preSchemaMap(field.fieldContent.trim)._1, row.getField(preSchemaMap(field.fieldContent.trim)._2))
-        if (value != null) RowkeyTool.generatePatternKey(Seq(value.toString), patternContentList) else "N/A"
-      })
+      val fieldValueArray=patternContentList.map(field =>
+        field.patternType.toString match {
+          case "expression"=>{
+            val value = FlinkSchemaUtils.object2TrueValue(preSchemaMap(field.fieldContent.trim)._1, row.getField(preSchemaMap(field.fieldContent.trim)._2))
+            value.toString
+          }
+          case _=>field.fieldContent.trim
+        })
+      if (fieldValueArray != null) Seq(RowkeyTool.generatePatternKey(fieldValueArray, patternContentList)) else Seq("N/A")
     })
   }
 
