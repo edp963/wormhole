@@ -61,6 +61,10 @@ object UmsFlowStartUtils {
     UmsFieldType.umsFieldValue(payloads.tuple, schemas, "stream_id").toString
   }
 
+  def extractFlowId(schemas: Seq[UmsField], payloads: UmsTuple):Long={
+    UmsFieldType.umsFieldValue(payloads.tuple, schemas, "job_id").toString.toLong
+  }
+
   def extractSourceNamespace(umsFlowStart: Ums): String = {
     umsFlowStart.schema.namespace.toLowerCase
   }

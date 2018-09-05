@@ -291,4 +291,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     }
   }
 
+  def checkOtherData(protocolType: String): Boolean = {
+    protocolType.startsWith("directive_") || protocolType.endsWith("_heartbeat") || protocolType.endsWith("_termination")
+  }
 }
