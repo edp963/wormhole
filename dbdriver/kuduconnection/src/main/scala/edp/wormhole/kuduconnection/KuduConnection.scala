@@ -37,6 +37,7 @@ object KuduConnection extends Serializable{
     val kvConfig = config.parameters
 
     val session: KuduSession = client.newSession()
+    
     session.setFlushMode(SessionConfiguration.FlushMode.MANUAL_FLUSH)
     if (kvConfig.isDefined) kvConfig.get.foreach(kv => {
       if (kv.key == "TimeoutMillis") session.setTimeoutMillis(kv.value.toLong)
