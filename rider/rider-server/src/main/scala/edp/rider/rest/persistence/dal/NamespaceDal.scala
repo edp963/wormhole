@@ -172,12 +172,21 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
   }
 
 
-  def generateNamespaceSeqByDbus(dbusSeq: Seq[Dbus], session: SessionClass): Seq[Namespace] = {
+  def generateNamespaceSeqByDbus(dbusSeq: Seq[Dbus], session: SessionClass): (Seq[Namespace], Seq[Namespace]) = {
+    val namespace = Await.result(super.findAll, minTimeOut)
+    val insertSeq = new ArrayBuffer[Namespace]()
+    val updateSeq = new ArrayBuffer[Namespace]()
     dbusSeq.map(dbus => {
       val nsSplit: Array[String] = dbus.namespace.split("\\.")
-      Namespace(0, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
-        None, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
+      val nsSearch = namespace.filter(ns => ns.nsSys == nsSplit(0) && ns.nsInstance == nsSplit(1) && ns.nsDatabase == nsSplit(2) && ns.nsTable == nsSplit(3))
+      if (nsSearch.isEmpty)
+        insertSeq += Namespace(0, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
+          None, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
+      else
+        updateSeq += Namespace(nsSearch.head.id, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
+          None, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
     })
+    (insertSeq, updateSeq)
   }
 
   def getNamespaceByNs(ns: String): Option[Namespace] = {
@@ -309,4 +318,13 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         throw new Exception(s"delete namespace $id failed", ex)
     }
   }
+
+  def updateNs(nsSeq: Seq[Namespace]): Int = {
+    nsSeq.map(ns => updateNs(ns)).sum
+  }
+
+  def updateNs(ns: Namespace): Int = {
+    Await.result(super.update(ns), minTimeOut)
+  }
+
 }
