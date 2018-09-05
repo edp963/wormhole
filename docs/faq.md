@@ -42,9 +42,9 @@ description: Wormhole Concept page
  
   ```
   Exception in thread "streaming-start" java.lang.NoSuchMethodError: org.apache.kafka.clients.consumer.KafkaConsumer.subscribe(Ljava/util/Collection;)V
-	  at org.apache.spark.streaming.kafka010.Subscribe.onStart(ConsumerStrategy.scala:85)
-	  at org.apache.spark.streaming.kafka010.WormholeDirectKafkaInputDStream.consumer(WormholeDirectKafkaInputDStream.scala:55)
-	  at org.apache.spark.streaming.kafka010.DirectKafkaInputDStream.start(DirectKafkaInputDStream.scala:242)
+	at org.apache.spark.streaming.kafka010.Subscribe.onStart(ConsumerStrategy.scala:85)
+	at org.apache.spark.streaming.kafka010.WormholeDirectKafkaInputDStream.consumer(WormholeDirectKafkaInputDStream.scala:55)
+	at org.apache.spark.streaming.kafka010.DirectKafkaInputDStream.start(DirectKafkaInputDStream.scala:242)
   ```
 
   解决办法：
@@ -55,6 +55,7 @@ description: Wormhole Concept page
     <img src="https://github.com/edp963/wormhole/raw/master/docs/img/faq-cdh-spark-config.png" alt="" width="600"/>
 
   - 自己手动安装方式，须在Wormhole所在机器的环境变量中添加`export SPARK_KAFKA_VERSION=0.10`
+
 
 
 #### Flink Stream 一直处于 starting 状态
