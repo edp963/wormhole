@@ -73,12 +73,12 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
   private def postResponse(projectId: Long, simpleStream: SimpleStream, session: SessionClass): Route = {
     if (session.projectIdList.contains(projectId)) {
       try {
-        val formatCheck = checkConfigFormat(simpleStream.startConfig, simpleStream.launchConfig, simpleStream.streamConfig.getOrElse(""))
+        val formatCheck = checkConfigFormat(simpleStream.startConfig, simpleStream.launchConfig, simpleStream.jvmConfig.getOrElse(""), simpleStream.othersConfig.getOrElse(""))
         if (formatCheck._1) {
           val projectName = Await.result(projectDal.findById(projectId), minTimeOut).get.name
           val streamName = genStreamNameByProjectName(projectName, simpleStream.name)
           val insertStream = Stream(0, streamName, simpleStream.desc, projectId,
-            simpleStream.instanceId, simpleStream.streamType, simpleStream.functionType, simpleStream.streamConfig, simpleStream.startConfig, simpleStream.launchConfig,
+            simpleStream.instanceId, simpleStream.streamType, simpleStream.functionType, simpleStream.jvmConfig, simpleStream.othersConfig, simpleStream.startConfig, simpleStream.launchConfig,
             None, None, "new", None, None, active = true, currentSec, session.userId, currentSec, session.userId)
           if (StreamUtils.checkYarnAppNameUnique(simpleStream.name, projectId)) {
             onComplete(streamDal.insert(insertStream).mapTo[Stream]) {
@@ -229,7 +229,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
 
   private def putResponse(projectId: Long, putStream: PutStream, session: SessionClass): Route = {
     if (session.projectIdList.contains(projectId)) {
-      val formatCheck = checkConfigFormat(putStream.startConfig, putStream.launchConfig, putStream.streamConfig.getOrElse(""))
+      val formatCheck = checkConfigFormat(putStream.startConfig, putStream.launchConfig, putStream.jvmConfig.getOrElse(""), putStream.othersConfig.getOrElse(""))
       if (formatCheck._1) {
         onComplete(streamDal.updateByPutRequest(putStream, session.userId).mapTo[Int]) {
           case Success(_) =>
