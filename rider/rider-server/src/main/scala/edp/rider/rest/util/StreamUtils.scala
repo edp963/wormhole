@@ -217,7 +217,7 @@ object StreamUtils extends RiderLogger {
       case StreamType.SPARK =>
         val args = getStreamConfig(stream)
         val startConfig = json2caseClass[StartConfig](stream.startConfig)
-        val commandSh = generateSparkStreamStartSh(s"'''$args'''", stream.name, logPath, startConfig, stream.streamConfig.getOrElse(""), stream.functionType)
+        val commandSh = generateSparkStreamStartSh(s"'''$args'''", stream.name, logPath, startConfig, Array(stream.jvmConfig.getOrElse("")), stream.othersConfig.getOrElse(""), stream.functionType)
         riderLogger.info(s"start stream ${stream.id} command: $commandSh")
         runShellCommand(commandSh)
       case StreamType.FLINK =>
@@ -470,16 +470,25 @@ object StreamUtils extends RiderLogger {
     } else 10
   }
 
-  def checkConfigFormat(startConfig: String, launchConfig: String, streamConfig: String) = {
-    (isJson(startConfig), isJson(launchConfig), isStreamConfig(streamConfig)) match {
-      case (true, true, true) => (true, "success")
-      case (true, true, false) => (false, s"streamConfig $streamConfig doesn't meet key=value,key1=value1 format")
-      case (true, false, true) => (false, s"launchConfig $launchConfig is not json type")
-      case (true, false, false) => (false, s"launchConfig $launchConfig is not json type, streamConfig $streamConfig doesn't meet key=value,key1=value1 format")
-      case (false, true, true) => (false, s"startConfig $startConfig is not json type")
-      case (false, true, false) => (false, s"startConfig $startConfig is not json type, streamConfig $streamConfig doesn't meet key=value,key1=value1 format")
-      case (false, false, true) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type")
-      case (false, false, false) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type, streamConfig $streamConfig doesn't meet key=value,key1=value1 format")
+  def checkConfigFormat(startConfig: String, launchConfig: String, jvmConfig: String, othersConfig: String) = {
+    (isJson(startConfig), isJson(launchConfig), isStreamConfig(jvmConfig), isStreamConfig(othersConfig)) match {
+      case (true, true, true, true) => (true, "success")
+      case (true, true, true, false) => (false, s"othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+      case (true, true, false, true) => (false, s"jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format")
+      case (true, true, false, false) => (false, s"jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format, othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+      case (true, false, true, true) => (false, s"launchConfig $launchConfig is not json type")
+      case (true, false, true, false) => (false, s"launchConfig $launchConfig is not json type, othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+      case (true, false, false, true) => (false, s"launchConfig $launchConfig is not json type, jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format")
+      case (true, false, false, false) => (false, s"launchConfig $launchConfig is not json type, jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format, othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+      case (false, true, true, true) => (false, s"startConfig $startConfig is not json type")
+      case (false, true, true, false) => (false, s"startConfig $startConfig is not json type, othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+      case (false, true, false, true) => (false, s"startConfig $startConfig is not json type, jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format")
+      case (false, true, false, false) => (false, s"startConfig $startConfig is not json type, jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format, othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+      case (false, false, true, true) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type")
+      case (false, false, true, false) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type, othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+      case (false, false, false, true) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type, jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format")
+      case (false, false, false, false) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type, jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format, othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+
     }
   }
 

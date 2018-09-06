@@ -203,7 +203,12 @@ object JobUtils extends RiderLogger {
     val startConfig: StartConfig = if (job.startConfig.isEmpty) null else json2caseClass[StartConfig](job.startConfig)
     val command = generateSparkStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name, logPath,
       if (startConfig != null) startConfig else StartConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum, RiderConfig.spark.executorMemory, RiderConfig.spark.executorCores),
-      if (job.sparkConfig.isDefined && !job.sparkConfig.get.isEmpty) job.sparkConfig.get else Seq(RiderConfig.spark.driverExtraConf, RiderConfig.spark.executorExtraConf).mkString(",").concat(RiderConfig.spark.sparkConfig),
+      if (job.sparkConfig.isDefined && !job.sparkConfig.get.isEmpty) Array(job.sparkConfig.get)
+      else {
+        val jvmConfig = Array(RiderConfig.spark.driverExtraConf) :+ RiderConfig.spark.executorExtraConf.concat(RiderConfig.spark.sparkConfig)
+        jvmConfig
+      },
+      "",
       "job"
     )
     riderLogger.info(s"start job ${job.id} command: $command")
