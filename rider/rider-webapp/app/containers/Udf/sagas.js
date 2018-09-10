@@ -106,8 +106,9 @@ export function* addUdf ({payload}) {
       data: {
         functionName: payload.values.functionName,
         fullClassName: payload.values.fullName,
-        jarName: payload.values.jarName,
+        jarName: payload.values && payload.values.jarName || '',
         desc: payload.values.desc,
+        streamType: payload.values.streamType,
         public: publicFinal
       }
     })
