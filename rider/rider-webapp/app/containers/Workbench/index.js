@@ -1297,7 +1297,9 @@ export class Workbench extends React.Component {
 
       this.setState({
         streamConfigValues: {
-          streamConfig: `${values[0].jvm},${values[0].others}`,
+          jvmConfig: values[0].jvm,
+          othersConfig: values[0].others,
+          // streamConfig: `${values[0].jvm},${values[0].others}`,
           startConfig: `${JSON.stringify(startConfigJson)}`,
           launchConfig: `${JSON.stringify(launchConfigJson)}`
         }
@@ -1328,7 +1330,7 @@ export class Workbench extends React.Component {
         usingUdf: usingUdf
       })
 
-      const { name, streamType, functionType, desc, instance, streamConfig, startConfig, launchConfig, id, projectId } = resultVal
+      const { name, streamType, functionType, desc, instance, jvmConfig, othersConfig, startConfig, launchConfig, id, projectId } = resultVal
       this.workbenchStreamForm.setFieldsValue({
         streamType,
         streamName: name,
@@ -1339,7 +1341,8 @@ export class Workbench extends React.Component {
 
       this.setState({
         streamConfigValues: {
-          streamConfig,
+          jvmConfig,
+          othersConfig,
           startConfig,
           launchConfig
         },
@@ -1363,8 +1366,11 @@ export class Workbench extends React.Component {
       if (!streamConfigCheck) this.streamConfigForm.resetFields()
 
       // 点击 config 按钮时，回显数据。 有且只有2条 jvm 配置
-      const streamConArr = streamConfigValues.streamConfig.split(',')
-
+      // const streamConArr = streamConfigValues.streamConfig.split(',')
+      const streamConArr = [streamConfigValues.jvmConfig]
+      if (streamConfigValues.othersConfig) {
+        streamConArr.push(streamConfigValues.othersConfig)
+      }
       const tempJvmArr = []
       const tempOthersArr = []
       for (let i = 0; i < streamConArr.length; i++) {
@@ -1449,7 +1455,8 @@ export class Workbench extends React.Component {
       if (!err) {
         let startConfigJson = {}
         let launchConfigJson = {}
-        let streamConfigValue = ''
+        let jvmConfig = ''
+        let othersConfig = ''
 
         if (streamSubPanelKey === 'spark') {
           values.personalConf = values.personalConf.trim()
@@ -1461,7 +1468,7 @@ export class Workbench extends React.Component {
             jvmValTemp = values.jvm.replace(/\n/g, ',')
 
             if (!values.personalConf) {
-              streamConfigValue = jvmValTemp
+              jvmConfig = jvmValTemp
             } else {
               const nOthers = (values.jvm.split('=')).length - 1
 
@@ -1469,7 +1476,8 @@ export class Workbench extends React.Component {
                 ? values.personalConf
                 : values.personalConf.replace(/\n/g, ',')
 
-              streamConfigValue = `${jvmValTemp},${personalConfTemp}`
+              jvmConfig = jvmValTemp
+              othersConfig = personalConfTemp
             }
             const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores } = values
             startConfigJson = {
@@ -1503,7 +1511,9 @@ export class Workbench extends React.Component {
         this.setState({
           streamConfigCheck: true,
           streamConfigValues: {
-            streamConfig: streamConfigValue,
+            // streamConfig: streamConfigValue,
+            jvmConfig,
+            othersConfig,
             startConfig: JSON.stringify(startConfigJson),
             launchConfig: launchConfigJson && JSON.stringify(launchConfigJson)
           }
