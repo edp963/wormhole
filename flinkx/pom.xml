@@ -7,7 +7,7 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.5.0-beta</version>
+        <version>0.5.2-beta</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -39,6 +39,12 @@
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-hadoop</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>xml-apis</groupId>
+                    <artifactId>xml-apis</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
@@ -60,12 +66,27 @@
 
         <dependency>
             <groupId>edp.wormhole</groupId>
-            <artifactId>wormhole-interface</artifactId>
+            <artifactId>wormhole-publicinterface</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-flinkxinterface</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-swifts</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
             <artifactId>wormhole-dbpool</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edp.wormhole</groupId>
+            <artifactId>wormhole-redispool</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -110,6 +131,11 @@
             <artifactId>flink-cep-scala_${scala.binary.version}</artifactId>
             <version>${flink.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.oracle</groupId>
+            <artifactId>ojdbc6</artifactId>
+            <version>11.2.0.1.0</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -126,7 +152,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>edp.wormhole.WormholeFlinkxStarter</mainClass>
+                            <mainClass>edp.wormhole.flinkx.eventflow.WormholeFlinkxStarter</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

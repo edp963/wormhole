@@ -7,7 +7,6 @@ if [ -z "${WORMHOLE_HOME}" ]; then
     exit 1
 fi
 
-
 WORMHOLE_USER=`grep "wormholeServer.user" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
 echo "WormholeServer user config in application.conf: $WORMHOLE_USER"
 
@@ -33,8 +32,9 @@ then finalAddress=$HOST:$PORT
 else finalAddress=${DORMAIN:7}
 fi
 echo "wormholeServer final request address for UI: $finalAddress"
-sed -i "s#http://.*/api/v1#http://$finalAddress/api/v1#g" $WORMHOLE_HOME/webapp/index.html
-sed -i "s#http://.*/api-docs/swagger.json#http://$finalAddress/api-docs/swagger.json#g" $WORMHOLE_HOME/swagger-ui/index.html
+
+# sed -i "s#http://.*/api/v1#http://$finalAddress/api/v1#g" $WORMHOLE_HOME/webapp/index.html
+# sed -i "s#http://.*/api-docs/swagger.json#http://$finalAddress/api-docs/swagger.json#g" $WORMHOLE_HOME/swagger-ui/index.html
 
 echo "[WormholeServer] is starting..."
-java -DWORMHOLE_HOME=$WORMHOLE_HOME -cp $WORMHOLE_HOME/lib/wormhole-rider-server_1.3-0.5.0-beta.jar:$WORMHOLE_HOME/lib/* edp.rider.RiderStarter &
+java -DWORMHOLE_HOME=$WORMHOLE_HOME -cp $WORMHOLE_HOME/lib/wormhole-rider-server_1.3-0.5.2-beta.jar:$WORMHOLE_HOME/lib/* edp.rider.RiderStarter &

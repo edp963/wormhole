@@ -25,8 +25,8 @@ import java.time.ZonedDateTime
 
 import com.alibaba.fastjson.JSON
 import edp.rider.common.RiderLogger
-import edp.wormhole.common.util.DateUtils._
-import edp.wormhole.common.util.DtFormat
+import edp.wormhole.util.DateUtils._
+import edp.wormhole.util.DtFormat
 
 import scala.concurrent.duration._
 

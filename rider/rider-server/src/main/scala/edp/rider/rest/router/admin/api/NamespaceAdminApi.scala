@@ -381,23 +381,33 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
   private def synchronizeNs(session: SessionClass, visible: Boolean): Route
 
   = {
-    onComplete(namespaceDal.dbusInsert(session).mapTo[Seq[Dbus]]) {
-      case Success(dbusUpsert) =>
-        riderLogger.info(s"user ${session.userId} insertOrUpdate dbus table success.")
-        val namespaceDbus = namespaceDal.generateNamespaceSeqByDbus(dbusUpsert, session)
-        onComplete(namespaceDal.insertOrUpdate(namespaceDbus).mapTo[Int]) {
-          case Success(result) =>
-            riderLogger.info(s"user ${session.userId} insertOrUpdate $result dbus namespaces success.")
-            getNsRoute(session, visible)
-          case Failure(ex) =>
-            riderLogger.error(s"user ${session.userId} insertOrUpdate dbus namespaces failed", ex)
-            getNsRoute(session, visible)
-        }
-      case Failure(ex) =>
-        riderLogger.error(s"user ${session.userId} insertOrUpdate dbus table failed", ex)
+    try {
+      onComplete(namespaceDal.dbusInsert(session).mapTo[Seq[Dbus]]) {
+        case Success(dbusUpsert) =>
+          riderLogger.info(s"user ${session.userId} insertOrUpdate dbus table success.")
+          val (insertSeq, updateSeq) = namespaceDal.generateNamespaceSeqByDbus(dbusUpsert, session)
+          onComplete(namespaceDal.insert(insertSeq).mapTo[Seq[Namespace]]) {
+            case Success(result) =>
+              riderLogger.info(s"user ${session.userId} insert dbus namespaces success.")
+              namespaceDal.updateNs(updateSeq)
+              riderLogger.info(s"user ${session.userId} update dbus namespaces success.")
+              getNsRoute(session, visible)
+            case Failure(ex) =>
+              riderLogger.error(s"user ${session.userId} insertOrUpdate dbus namespaces failed", ex)
+              getNsRoute(session, visible)
+          }
+        case Failure(ex) =>
+          riderLogger.error(s"user ${session.userId} insertOrUpdate dbus table failed", ex)
+          getNsRoute(session, visible)
+      }
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"user ${session.userId} synchronize dbus tables failed", ex)
         getNsRoute(session, visible)
     }
+
   }
+
 
   override def deleteRoute(route: String): Route
 
@@ -407,20 +417,26 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
         authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
           session =>
             if (session.roleType != "admin") {
-              riderLogger.warn(s"${session.userId} has no permission to access it.")
+              riderLogger.warn(s"${
+                session.userId
+              } has no permission to access it.")
               complete(OK, getHeader(403, session))
             }
             else {
               try {
                 val result = namespaceDal.delete(id)
                 if (result._1) {
-                  riderLogger.error(s"user ${session.userId} delete namespace $id success.")
+                  riderLogger.error(s"user ${
+                    session.userId
+                  } delete namespace $id success.")
                   complete(OK, getHeader(200, session))
                 }
                 else complete(OK, getHeader(412, result._2, session))
               } catch {
                 case ex: Exception =>
-                  riderLogger.error(s"user ${session.userId} delete namespace $id failed", ex)
+                  riderLogger.error(s"user ${
+                    session.userId
+                  } delete namespace $id failed", ex)
                   complete(OK, getHeader(451, session))
               }
             }
@@ -433,22 +449,30 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
       authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
         session =>
           if (session.roleType != "app") {
-            riderLogger.warn(s"${session.userId} has no permission to access it.")
+            riderLogger.warn(s"${
+              session.userId
+            } has no permission to access it.")
             complete(OK, getHeader(403, session))
           }
           else {
             try {
               onComplete(relProjectNsDal.getSinkNamespaceByUserId(session.userId).mapTo[Seq[NamespaceInfo]]) {
                 case Success(nsSeq) =>
-                  riderLogger.info(s"user ${session.userId} get sink namespaces success.")
+                  riderLogger.info(s"user ${
+                    session.userId
+                  } get sink namespaces success.")
                   complete(OK, ResponseSeqJson[NamespaceInfo](getHeader(200, session), nsSeq))
                 case Failure(ex) =>
-                  riderLogger.info(s"user ${session.userId} get sink namespaces failed", ex)
+                  riderLogger.info(s"user ${
+                    session.userId
+                  } get sink namespaces failed", ex)
                   complete(OK, getHeader(451, session))
               }
             } catch {
               case ex: Exception =>
-                riderLogger.error(s"user ${session.userId} get sink namespaces failed", ex)
+                riderLogger.error(s"user ${
+                  session.userId
+                } get sink namespaces failed", ex)
                 complete(OK, getHeader(451, session))
             }
           }

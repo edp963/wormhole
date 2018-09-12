@@ -104,4 +104,10 @@ class StreamInTopicDal(streamInTopicTable: TableQuery[StreamInTopicTable],
     true
   }
 
+  def updateOffsetAndRate(streamId: Long, topicId: Long, offset: String, rate: Int, userId: Long): Future[Int] = {
+    db.run(streamInTopicTable.filter(topic => topic.streamId === streamId && topic.nsDatabaseId === topicId)
+      .map(topic => (topic.partitionOffsets, topic.rate, topic.updateTime, topic.updateBy))
+      .update(offset, rate, currentSec, userId)).mapTo[Int]
+  }
+
 }

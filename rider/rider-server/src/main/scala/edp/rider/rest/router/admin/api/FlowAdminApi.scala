@@ -46,7 +46,7 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
                 complete(OK, getHeader(403, session))
               }
               else {
-                streamDal.refreshStreamStatus()
+//                streamDal.refreshStreamStatus()
                 riderLogger.info(s"user ${session.userId} refresh streams.")
                 onComplete(flowDal.adminGetAllInfo(visible.getOrElse(true)).mapTo[Seq[FlowAdminAllInfo]]) {
                   case Success(flowStreams) =>
@@ -73,9 +73,9 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
               complete(OK, getHeader(403, session))
             }
             else {
-              streamDal.refreshStreamStatus()
+//              streamDal.refreshStreamStatus()
               riderLogger.info(s"user ${session.userId} refresh streams.")
-              onComplete(flowDal.adminGetById(id, flowId).mapTo[Option[FlowAdminAllInfo]]) {
+              onComplete(flowDal.adminGetById(flowId).mapTo[Option[FlowAdminAllInfo]]) {
                 case Success(flowOpt) =>
                   flowOpt match {
                     case Some(flow) =>
@@ -108,8 +108,8 @@ class FlowAdminApi(flowDal: FlowDal, streamDal: StreamDal) extends BaseAdminApiI
               complete(OK, getHeader(403, session))
             }
             else {
-              streamDal.refreshStreamStatus(Some(id))
-              riderLogger.info(s"user ${session.userId} refresh streams.")
+//              streamDal.refreshStreamStatus(Some(id))
+//              riderLogger.info(s"user ${session.userId} refresh streams.")
               onComplete(flowDal.defaultGetAll(flow => flow.active === true && flow.projectId === id).mapTo[Seq[FlowStream]]) {
                 case Success(flowStreams) =>
                   riderLogger.info(s"user ${session.userId} select all flows success where project id is $id.")

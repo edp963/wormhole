@@ -29,12 +29,11 @@ import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.service.util.{CacheMap, FeedbackOffsetUtil}
-import edp.wormhole.common.util.{DateUtils, DtFormat}
 import edp.wormhole.ums._
+import edp.wormhole.util.{DateUtils, DtFormat}
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
 class MessageService(modules: ConfigurationModule with PersistenceModule) extends RiderLogger {
@@ -53,8 +52,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
           val feedbackHeartbeat = FeedbackHeartbeat(1, protocolType.toString, streamIdValue.toString.toLong, srcNamespace, umsTsValue.toString, curTs)
           riderLogger.debug(s" FeedbackHeartbeat: $feedbackHeartbeat")
           val future = modules.feedbackHeartbeatDal.insert(feedbackHeartbeat)
-          val result = Await.ready(future, minTimeOut).value.get
-          result match {
+          future onComplete {
             case Failure(e) =>
               riderLogger.error(s"FeedbackHeartbeat inserted ${tuple.toString} failed", e)
             case Success(t) => riderLogger.debug("FeedbackHeartbeat inserted success.")
@@ -83,8 +81,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val resultDescValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc")
         if (umsTsValue != null && directiveIdValue != null && statusValue != null && streamIdValue != null && resultDescValue != null) {
           val future = modules.feedbackDirectiveDal.insert(FeedbackDirective(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, directiveIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs))
-          val result = Await.ready(future, minTimeOut).value.get
-          result match {
+          future onComplete {
             case Failure(e) =>
               riderLogger.error(s"FeedbackDirective inserted ${tuple.toString} failed", e)
             case Success(t) => riderLogger.debug("FeedbackDirective inserted success.")
@@ -136,8 +133,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val errorInfoValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info").toString
         if (umsTsValue != null && streamIdValue != null && sinkNamespaceValue != null && errMaxWaterMarkTsValue != null && errMinWaterMarkTsValue != null && errorCountValue != null && errorInfoValue != null) {
           val future = modules.feedbackFlowErrDal.insert(FeedbackFlowErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, srcNamespace, sinkNamespaceValue.toString, errorCountValue.toString.toInt, errMaxWaterMarkTsValue.toString, errMinWaterMarkTsValue.toString, errorInfoValue.toString, curTs))
-          val result = Await.ready(future, minTimeOut).value.get
-          result match {
+          future onComplete {
             case Failure(e) =>
               riderLogger.error(s"FeedbackFlowError inserted ${tuple.toString} failed", e)
             case Success(t) => riderLogger.debug("FeedbackFlowError inserted success.")
@@ -165,8 +161,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val resultDescValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc")
         if (umsTsValue != null && streamIdValue != null && statusValue != null && resultDescValue != null) {
           val future = modules.feedbackStreamErrDal.insert(FeedbackStreamErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs))
-          val result = Await.ready(future, minTimeOut).value.get
-          result match {
+          future onComplete {
             case Failure(e) =>
               riderLogger.error(s"FeedbackStreamBatchError inserted ${tuple.toString} failed", e)
             case Success(t) => riderLogger.debug("FeedbackStreamBatchError inserted success.")
@@ -209,8 +204,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
           val partitionNum: Int = FeedbackOffsetUtil.getPartitionNumber(partitionOffset)
           val future = modules.feedbackOffsetDal.insert(FeedbackOffset(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
             topicNameValue.toString, partitionNum, partitionOffset, currentMicroSec))
-          val result = Await.ready(future, Duration.Inf).value.get
-          result match {
+          future onComplete {
             case Failure(e) =>
               riderLogger.error(s"FeedbackStreamTopicOffset inserted ${tuple.toString} failed", e)
             case Success(t) => riderLogger.debug("FeedbackStreamTopicOffset inserted success.")

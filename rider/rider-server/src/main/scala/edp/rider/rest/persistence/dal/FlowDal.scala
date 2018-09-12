@@ -60,12 +60,12 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     Future(flowStreams.map(flowStream => {
       genFlowStreamByAction(FlowStream(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
         flowStream.sinkConfig, flowStream.tranConfig, flowStream.status, flowStream.startedTime, flowStream.stoppedTime, flowStream.logPath, flowStream.active, flowStream.createTime,
-        flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamAppId, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowDisableActions(flowStream.id), getHideActions(flowStream.streamType), flowStream.topicInfo, flowStream.currentUdf, flowStream.msg), action)
+        flowStream.createBy, flowStream.updateTime, flowStream.updateBy, flowStream.streamName, flowStream.streamAppId, flowStream.streamStatus, flowStream.streamType, flowStream.functionType, flowDisableActions(flowStream.id), getHideActions(flowStream.streamType, flowStream.functionType), flowStream.topicInfo, flowStream.currentUdf, flowStream.msg), action)
     }))
 
   }
 
-  def getById(projectId: Long, flowId: Long): Future[Option[FlowStream]] = {
+  def getById(flowId: Long): Future[Option[FlowStream]] = {
     try {
       val flowStreamOpt = Await.result(defaultGetAll(_.id === flowId), minTimeOut).headOption
       flowStreamOpt match {
@@ -87,7 +87,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
   }
 
 
-  def adminGetById(projectId: Long, flowId: Long): Future[Option[FlowAdminAllInfo]] = {
+  def adminGetById(flowId: Long): Future[Option[FlowAdminAllInfo]] = {
     try {
       val flowStreamOpt = Await.result(defaultGetAll(_.id === flowId), minTimeOut).headOption
       flowStreamOpt match {
@@ -160,7 +160,12 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
   }
 
   def updateStatusByAction(flowId: Long, flowNewStatus: String, startTime: Option[String], stopTime: Option[String]) = {
-    Await.result(db.run(flowTable.filter(_.id === flowId).map(c => (c.status, c.startedTime, c.stoppedTime)).update(flowNewStatus, startTime, stopTime)), minTimeOut)
+    if (flowNewStatus == "starting" || flowNewStatus == "updating")
+      Await.result(db.run(flowTable.filter(flow =>
+        flow.id === flowId && flow.status =!= "running" && flow.status =!= "failed")
+        .map(c => (c.status, c.startedTime, c.stoppedTime)).update(flowNewStatus, startTime, stopTime)), minTimeOut)
+    else
+      Await.result(db.run(flowTable.filter(_.id === flowId).map(c => (c.status, c.startedTime, c.stoppedTime)).update(flowNewStatus, startTime, stopTime)), minTimeOut)
   }
 
   def getByNs(projectId: Long, sourceNs: String, sinkNs: String): Flow = {
@@ -322,5 +327,8 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     Await.result(db.run(flowTable.filter(_.id === flowId).map(_.logPath).update(Option(logPath))), minTimeOut)
   }
 
+  def updateStreamId(flowId: Long, streamId: Long): Future[Int] = {
+    db.run(flowTable.filter(flow => flow.id === flowId).map(_.streamId).update(streamId))
+  }
 
 }
