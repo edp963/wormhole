@@ -13,7 +13,7 @@ import edp.rider.rest.util.StreamUtils.genStreamNameByProjectName
 import edp.rider.rest.util.{AuthorizationProvider, JobUtils, NamespaceUtils, StreamUtils}
 import edp.rider.yarn.SubmitYarnJob.runShellCommand
 import edp.rider.yarn.{YarnClientLog, YarnStatusQuery}
-import edp.wormhole.common.util.JsonUtils.json2caseClass
+import edp.wormhole.util.JsonUtils
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await
@@ -91,7 +91,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                         val (projectTotalCore, projectTotalMemory) = (project.resCores, project.resMemoryG)
                         val (jobUsedCore, jobUsedMemory, _) = jobDal.getProjectJobsUsedResource(projectId)
                         val (streamUsedCore, streamUsedMemory, _) = streamDal.getProjectStreamsUsedResource(projectId)
-                        val currentConfig = json2caseClass[StartConfig](job.startConfig)
+                        val currentConfig = JsonUtils.json2caseClass[StartConfig](job.startConfig)
                         val currentNeededCore = currentConfig.driverCores + currentConfig.executorNums * currentConfig.perExecutorCores
                         val currentNeededMemory = currentConfig.driverMemory + currentConfig.executorNums * currentConfig.perExecutorMemory
                         if ((projectTotalCore - jobUsedCore - streamUsedCore - currentNeededCore) < 0 || (projectTotalMemory - jobUsedMemory - streamUsedMemory - currentNeededMemory) < 0) {

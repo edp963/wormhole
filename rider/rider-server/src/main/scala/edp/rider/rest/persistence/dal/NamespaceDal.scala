@@ -22,6 +22,7 @@
 package edp.rider.rest.persistence.dal
 
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.headers.GenericHttpCredentials
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes}
 import akka.util.ByteString
 import edp.rider.RiderStarter.modules._
@@ -33,15 +34,14 @@ import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.SessionClass
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.NamespaceUtils
-import edp.wormhole.common.util.JsonUtils._
+import edp.wormhole.util.JsonUtils
+import edp.wormhole.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
 
-import scala.collection.JavaConversions._
 import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
@@ -51,25 +51,31 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
   def getDbusFromRest: Seq[SimpleDbus] = {
     try {
-      val dbusServices =
-        if (RiderConfig.dbusUrl != null) RiderConfig.dbusUrl.toList
-        else List()
       val simpleDbusSeq = new ArrayBuffer[SimpleDbus]
-      dbusServices.map {
+      RiderConfig.dbusConfigList.map {
         service => {
-          if (service != null && service != "") {
-            val response = Await.result(Http().singleRequest(HttpRequest(uri = service)), 5.seconds)
-            response match {
-              case HttpResponse(StatusCodes.OK, headers, entity, _) =>
-                Await.result(entity.dataBytes.runFold(ByteString(""))(_ ++ _).map {
-                  riderLogger.info(s"synchronize dbus namespaces $service success.")
-                  body => simpleDbusSeq ++= json2caseClass[Seq[SimpleDbus]](body.utf8String)
-                }, minTimeOut)
-              case resp@HttpResponse(code, _, _, _) =>
-                riderLogger.error(s"synchronize dbus namespaces $service failed, ${code.reason}.")
-                "parse failed"
-            }
-          } else riderLogger.debug(s"dbus namespace service is not config")
+          val token = NamespaceUtils.getDBusToken(service)
+          val response = Await.result(Http().singleRequest(HttpRequest(uri = service.namespaceUrl)
+            .addCredentials(GenericHttpCredentials("", token))), minTimeOut)
+          response match {
+            case HttpResponse(StatusCodes.OK, headers, entity, _) =>
+              Await.result(entity.dataBytes.runFold(ByteString(""))(_ ++ _).map {
+                riderLogger.info(s"synchronize DBus namespaces ${service.namespaceUrl} success.")
+                body =>
+                  val data = json2jValue(body.utf8String)
+                  val status = JsonUtils.getInt(data, "status")
+                  if (status == 0) {
+                    simpleDbusSeq ++= json2caseClass[DBusNamespaceResponse](body.utf8String).payload
+                  } else {
+                    val msg = JsonUtils.getString(data, "message")
+                    riderLogger.error(s"synchronize DBus namespace failed with token $token, ${msg}")
+                    throw new Exception(s"synchronize DBus namespace failed with token $token, ${msg}")
+                  }
+              }, minTimeOut)
+            case resp@HttpResponse(code, _, _, _) =>
+              riderLogger.error(s"synchronize dbus namespaces ${service.namespaceUrl} failed, ${code.reason}.")
+              "parse failed"
+          }
         }
       }
       simpleDbusSeq
@@ -141,9 +147,11 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
       val dbusSearch = Await.result(dbusDal.findAll, minTimeOut)
       simpleDbusSeq.foreach(simple => {
-        val dbusExist = dbusSearch.filter(_.dbusId == simple.id)
-        if (dbusExist.isEmpty)
+        val dbusExist = dbusSearch.filter(dbus => dbus.namespace.split("\\.").take(4).mkString(".") == simple.namespace.split("\\.").take(4).mkString("."))
+        if (dbusExist.isEmpty) {
+          riderLogger.info("simple: " + simple)
           dbusSeq += Dbus(0, simple.id, simple.namespace, simple.kafka, simple.topic, kafkaIdMap(simple.kafka), topicIdMap(simple.topic), simple.createTime, currentSec)
+        }
         else {
           val dbusUpdate = dbusExist.filter(dbus => dbus.kafka == simple.kafka && dbus.topic == simple.topic && dbus.namespace == simple.namespace)
           if (dbusUpdate.isEmpty)
@@ -151,7 +159,9 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         }
       })
 
+      riderLogger.info("dbus insert size: " + dbusSeq.size)
       val dbusInsertSeq = Await.result(dbusDal.insert(dbusSeq), maxTimeOut)
+      riderLogger.info("dbus update size: " + dbusUpdateSeq.size)
       Await.result(dbusDal.update(dbusUpdateSeq), minTimeOut)
       Future(dbusInsertSeq ++ dbusUpdateSeq)
     } catch {
@@ -162,12 +172,21 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
   }
 
 
-  def generateNamespaceSeqByDbus(dbusSeq: Seq[Dbus], session: SessionClass): Seq[Namespace] = {
+  def generateNamespaceSeqByDbus(dbusSeq: Seq[Dbus], session: SessionClass): (Seq[Namespace], Seq[Namespace]) = {
+    val namespace = Await.result(super.findAll, minTimeOut)
+    val insertSeq = new ArrayBuffer[Namespace]()
+    val updateSeq = new ArrayBuffer[Namespace]()
     dbusSeq.map(dbus => {
       val nsSplit: Array[String] = dbus.namespace.split("\\.")
-      Namespace(0, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
-        None, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
+      val nsSearch = namespace.filter(ns => ns.nsSys == nsSplit(0) && ns.nsInstance == nsSplit(1) && ns.nsDatabase == nsSplit(2) && ns.nsTable == nsSplit(3))
+      if (nsSearch.isEmpty)
+        insertSeq += Namespace(0, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
+          None, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
+      else
+        updateSeq += Namespace(nsSearch.head.id, nsSplit(0), nsSplit(1), nsSplit(2), nsSplit(3), "*", "*", "*",
+          None, None, None, dbus.databaseId, dbus.instanceId, active = true, dbus.synchronizedTime, session.userId, currentSec, session.userId)
     })
+    (insertSeq, updateSeq)
   }
 
   def getNamespaceByNs(ns: String): Option[Namespace] = {
@@ -268,7 +287,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
   def delete(id: Long): (Boolean, String) = {
     try {
-//      val ns = NamespaceUtils.generateStandardNs(Await.result(super.findById(id), minTimeOut).get)
+      //      val ns = NamespaceUtils.generateStandardNs(Await.result(super.findById(id), minTimeOut).get)
       val relProject = Await.result(relProjectNsDal.findByFilter(_.nsId === id), minTimeOut)
       //      val flows = Await.result(flowDal.findByFilter
       //      (flow => flow.sourceNs === ns || flow.sinkNs === ns || flow.tranConfig.getOrElse("").like(s"%${ns.split("\\.").take(3).mkString(".")}%")), minTimeOut).map(_.id)
@@ -299,4 +318,13 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
         throw new Exception(s"delete namespace $id failed", ex)
     }
   }
+
+  def updateNs(nsSeq: Seq[Namespace]): Int = {
+    nsSeq.map(ns => updateNs(ns)).sum
+  }
+
+  def updateNs(ns: Namespace): Int = {
+    Await.result(super.update(ns), minTimeOut)
+  }
+
 }

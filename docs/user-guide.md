@@ -162,7 +162,7 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-sparkxinterface</artifactId>
-     <version>0.5.0-beta</version>
+     <version>0.5.2-beta</version>
   </dependency>
   ```
 
@@ -175,9 +175,9 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
   wormhole/common/util目录下执行
 
   mvn clean install package
-  
+
   wormhole/ums目录下执行
-  
+
   mvn clean install package
 
   wormhole/common/sparkxinterface目录下执行
@@ -338,6 +338,30 @@ Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 - stopped 代表已经停止
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-guide-flow-list.png" alt="" width="600"/>
+
+### Flow 漂移
+
+#### Flow漂移规则
+
+- 只有spark default flow可以迁移，其他flow不能迁移
+- 只能迁移至与原flow对应stream消费同一kafka集群的stream，即对应kafka instance url相同
+- spark default flow漂移规则见下表
+
+| Flow状态                     | 新Stream状态                   | 新Flow状态     |
+| -------------------------- | --------------------------- | ----------- |
+| new/stopped/failed         | _                           | new/stopped |
+| starting/updating/stopping | 不可迁移                        | 不可迁移        |
+| suspending                 | _                           | stopped     |
+| running                    | new/stopping/stopped/failed | stopped     |
+| running                    | starting/waiting/running    | starting    |
+
+#### running flow topic offset 确定规则：
+
+- 若新stream未注册该topic，注册该topic，offset取老stream中反馈的最新offset (feedback_stream_offset表中对应stream/topic ums_ts最大行对应offset)
+- 若新stream已注册该topic，取两stream中小offset
+  - stream处于starting/waiting状态，取rel_stream_intopic表中stream/topic对应offset
+  - stream处于running状态，若feedback_stream_offset表中对应stream/topic最大ums_ts大于stream启动时间，取若feedback_stream_offset表中offset，否则取rel_stream_intopic表中offset
+  - 取两stream较小offset
 
 ## Job
 

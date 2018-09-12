@@ -233,11 +233,23 @@ case class StartFlinkFlowResponse(id: Long,
                                   disableActions: String,
                                   hiddenActions: String,
                                   startedTime: Option[String] = None,
-                                  stoppedTime: Option[String]= None)
+                                  stoppedTime: Option[String] = None)
 
 case class FlinkJobStatus(name: String, jobId: String, state: String, startTime: String, stopTime: String)
 
 case class FlinkFlowStatus(status: String, startTime: Option[String], stopTime: Option[String])
+
+case class DriftFlowRequest(streamId: Long)
+
+case class DriftFlowResponse(id: Long,
+                             status: String,
+                             streamId: Long,
+                             streamStatus: String,
+                             disableActions: String,
+                             hiddenActions: String,
+                             startedTime: Option[String] = None,
+                             stoppedTime: Option[String] = None,
+                             msg: String)
 
 class FlowTable(_tableTag: Tag) extends BaseTable[Flow](_tableTag, "flow") {
   def * = (id, projectId, streamId, sourceNs, sinkNs, parallelism, consumedProtocol, sinkConfig, tranConfig, status, startedTime, stoppedTime, logPath, active, createTime, createBy, updateTime, updateBy) <> (Flow.tupled, Flow.unapply)
