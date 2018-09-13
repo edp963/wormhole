@@ -265,7 +265,7 @@ export class Manager extends React.Component {
           }
 
           this.setState({ renewUdfVals: renewUdfValFinal })
-        })
+        }, 'spark')
 
         // 显示 Latest offset
         this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
@@ -329,7 +329,7 @@ export class Manager extends React.Component {
       }
       result.unshift(allOptionVal)
       this.setState({ startUdfVals: result })
-    })
+    }, 'spark')
 
     // 显示 Latest offset
     this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
@@ -1455,7 +1455,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadStreamDetail: (projectId, streamId, roleType, resolve) => dispatch(loadStreamDetail(projectId, streamId, roleType, resolve)),
     onLoadLogsInfo: (projectId, streamId, resolve) => dispatch(loadLogsInfo(projectId, streamId, resolve)),
     onLoadAdminLogsInfo: (projectId, streamId, resolve) => dispatch(loadAdminLogsInfo(projectId, streamId, resolve)),
-    onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
+    onLoadSingleUdf: (projectId, roleType, resolve, type) => dispatch(loadSingleUdf(projectId, roleType, resolve, type)),
     onLoadLastestOffset: (projectId, streamId, resolve, type, topics) => dispatch(loadLastestOffset(projectId, streamId, resolve, type, topics)),
     onLoadUdfs: (projectId, streamId, roleType, resolve) => dispatch(loadUdfs(projectId, streamId, roleType, resolve))
   }
