@@ -88,7 +88,8 @@ export class Udf extends React.PureComponent {
       paginationInfo: null,
 
       queryUdfVal: {},
-      showUdfDetail: {}
+      showUdfDetail: {},
+      streamType: ''
     }
   }
 
@@ -152,9 +153,11 @@ export class Udf extends React.PureComponent {
   }
 
   showAddUdf = () => {
-    this.setState({
-      formVisible: true,
-      formType: 'add'
+    this.setState({streamType: 'spark'}, () => {
+      this.setState({
+        formVisible: true,
+        formType: 'add'
+      })
     })
   }
 
@@ -178,29 +181,29 @@ export class Udf extends React.PureComponent {
   }
 
   onShowEditUdf = (record) => (e) => {
-    this.setState({
-      formVisible: true,
-      formType: 'edit'
-    }, () => {
-      this.props.onLoadUdfDetail(record.id, ({
-        createTime, createBy, updateTime, updateBy, id, functionName, fullClassName, jarName, desc, pubic
-                                             }) => {
-        this.setState({
-          queryUdfVal: {
-            createTime: createTime,
-            createBy: createBy,
-            updateTime: updateTime,
-            updateBy: updateBy
-          }
-        })
+    this.props.onLoadUdfDetail(record.id, ({ createTime, createBy, updateTime, updateBy, id, functionName, fullClassName, jarName, desc, pubic, streamType }) => {
+      this.setState({
+        queryUdfVal: {
+          createTime: createTime,
+          createBy: createBy,
+          updateTime: updateTime,
+          updateBy: updateBy
+        },
+        streamType,
+        formVisible: true,
+        formType: 'edit'
+      }, () => {
         this.udfForm.setFieldsValue({
           id: id,
           functionName: functionName,
           fullName: fullClassName,
-          jarName: jarName,
           desc: desc,
-          public: `${pubic}`
+          public: `${pubic}`,
+          streamType
         })
+        if (streamType === 'spark') {
+          this.udfForm.setFieldsValue({ jarName })
+        }
       })
     })
   }
@@ -209,7 +212,9 @@ export class Udf extends React.PureComponent {
   hideForm = () => this.setState({ formVisible: false })
 
   // Modal 完全关闭后的回调
-  resetModal = () => this.udfForm.resetFields()
+  resetModal = () => {
+    this.udfForm.resetFields()
+  }
 
   onModalOk = () => {
     const { formType, queryUdfVal } = this.state
@@ -240,6 +245,12 @@ export class Udf extends React.PureComponent {
     })
   }
 
+  changeUdfStreamType = e => {
+    let value = e.target.value
+    this.setState({
+      streamType: value
+    })
+  }
   deleteUdfBtn = (record) => (e) => {
     this.props.onDeleteUdf(record.id, () => {
       message.success(operateLanguageText('success', 'delete'), 3)
@@ -357,7 +368,7 @@ export class Udf extends React.PureComponent {
 
   render () {
     const { udfClassHide, modalLoading, roleType } = this.props
-    const { formType, formVisible, currentudfs, refreshUdfLoading, refreshUdfText, showUdfDetail } = this.state
+    const { formType, formVisible, currentudfs, refreshUdfLoading, refreshUdfText, showUdfDetail, streamType } = this.state
 
     let { sortedInfo, filteredInfo } = this.state
     sortedInfo = sortedInfo || {}
@@ -447,7 +458,36 @@ export class Udf extends React.PureComponent {
       onFilterDropdownVisibleChange: visible => this.setState({
         filterDropdownVisibleJarName: visible
       }, () => this.searchInput.focus())
-    }, {
+    },
+    {
+      title: 'Stream Type',
+      dataIndex: 'streamType',
+      key: 'streamType',
+      // className: 'text-align-center',
+      sorter: (a, b) => a.streamType < b.streamType ? -1 : 1,
+      sortOrder: sortedInfo.columnKey === 'streamType' && sortedInfo.order,
+      filterDropdown: (
+        <div className="custom-filter-dropdown">
+          <Input
+            ref={ele => { this.searchInput = ele }}
+            placeholder="Stream Type"
+            value={this.state.searchTextStreamType}
+            onChange={this.onInputChange('searchTextStreamType')}
+            onPressEnter={this.onSearch('streamType', 'searchTextStreamType', 'filterDropdownVisibleStreamType')}
+          />
+          <Button
+            type="primary"
+            onClick={this.onSearch('streamType', 'searchTextStreamType', 'filterDropdownVisibleStreamType')}
+          >Search
+          </Button>
+        </div>
+      ),
+      filterDropdownVisible: this.state.filterDropdownVisibleStreamType,
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleStreamType: visible
+      }, () => this.searchInput.focus())
+    },
+    {
       title: 'Description',
       dataIndex: 'desc',
       key: 'desc',
@@ -675,6 +715,8 @@ export class Udf extends React.PureComponent {
         >
           <UdfForm
             type={formType}
+            streamType={streamType}
+            changeUdfStreamType={this.changeUdfStreamType}
             ref={(f) => { this.udfForm = f }}
           />
         </Modal>

@@ -364,7 +364,7 @@ export class Flow extends React.Component {
       }
       result.unshift(allOptionVal)
       this.setState({ startUdfVals: result })
-    })
+    }, 'flink')
 
     // 显示 Latest offset
     this.props.onLoadLastestOffset(projectIdGeted, record.id, (result) => {
@@ -1767,7 +1767,7 @@ export function mapDispatchToProps (dispatch) {
     onLoadSourceInput: (flowId, taskType, resolve) => dispatch(loadSourceInput(flowId, taskType, resolve)),
     onLoadFlowDetail: (requestValue, resolve) => dispatch(loadFlowDetail(requestValue, resolve)),
     onChuckAwayFlow: () => dispatch(chuckAwayFlow()),
-    onLoadSingleUdf: (projectId, roleType, resolve) => dispatch(loadSingleUdf(projectId, roleType, resolve)),
+    onLoadSingleUdf: (projectId, roleType, resolve, type) => dispatch(loadSingleUdf(projectId, roleType, resolve, type)),
     onLoadLastestOffset: (projectId, streamId, resolve, type, topics, tabType) => dispatch(loadLastestOffset(projectId, streamId, resolve, type, topics, tabType)),
     onLoadUdfs: (projectId, streamId, roleType, tabType, resolve) => dispatch(loadUdfs(projectId, streamId, roleType, tabType, resolve)),
     onStartFlinkFlow: (projectId, id, topicResult, action, resolve, reject) => dispatch(startFlinkFlow(projectId, id, topicResult, action, resolve, reject)),
