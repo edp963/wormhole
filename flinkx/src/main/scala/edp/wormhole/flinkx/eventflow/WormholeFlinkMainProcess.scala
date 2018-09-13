@@ -28,6 +28,7 @@ import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.flinkx.common.{ConfMemoryStorage, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
+import edp.wormhole.flinkx.eventflow.WormholeFlinkxStarter.config
 import edp.wormhole.flinkx.sink.SinkProcess
 import edp.wormhole.flinkx.swifts.{ParseSwiftsSql, SwiftsProcess}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
@@ -51,7 +52,7 @@ import scala.collection.mutable.ArrayBuffer
 
 
 class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) extends Serializable {
-  private lazy val logger = Logger.getLogger(this.getClass)
+  @transient lazy val logger = Logger.getLogger(this.getClass)
   private val flowStartFields = umsFlowStart.schema.fields_get
   private val flowStartPayload = umsFlowStart.payload_get.head
   private val swiftsString: String = UmsFlowStartUtils.extractSwifts(flowStartFields, flowStartPayload)
@@ -60,7 +61,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   private val timeCharacteristic = UmsFlowStartUtils.extractTimeCharacteristic(swifts)
   private val sinkNamespace = UmsFlowStartUtils.extractSinkNamespace(flowStartFields, flowStartPayload)
   private val sourceNamespace: String = UmsFlowStartUtils.extractSourceNamespace(umsFlowStart)
-  private val flowId=UmsFlowStartUtils.extractFlowId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head)
+  private val streamId=UmsFlowStartUtils.extractStreamId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head).toLong
   def process(): JobExecutionResult = {
 
     val initialTs=System.currentTimeMillis
@@ -80,7 +81,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
       case e: Throwable =>
         logger.error("swifts and sink", e)
         val currentTs=System.currentTimeMillis
-      //  WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(sourceNamespace, flowId , DateUtils.currentDateTime, sinkNamespace, UmsWatermark(currentTs), UmsWatermark(currentTs), 1, "", ""), None, config.kafka_output.brokers)
+        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(sourceNamespace, streamId , DateUtils.currentDateTime, sinkNamespace, UmsWatermark(""+currentTs), UmsWatermark(""+currentTs), 1, "", ""), None, config.kafka_output.brokers)
 
     }
 
@@ -112,7 +113,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
       })
 
     val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
-    //doOtherData(initialStream,jsonSourceParseMap.keySet.map(row=>row._2))  //send heart or termination back to kafka
+    doOtherData(initialStream.map(row=>row._2))  //send heart or termination back to kafka
     processStream.flatMap(new UmsFlatMapper(sourceSchemaMap.toMap, sourceNamespace, jsonSourceParseMap))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
   }
 
@@ -139,41 +140,32 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     } else None
   }
 
-  private def doOtherData(dataStream: DataStream[Row],processedSourceNamespace: Set[String]):Unit={
-/*    dataStream.map(row=>{
+  private def doOtherData(dataStream: DataStream[String]):Unit={
+    dataStream.map(row=>{
+      WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
       val ums = UmsCommonUtils.json2Ums(row)
-      if(checkOtherData(ums.protocol.`type`)){
+      if(checkOtherData(ums.protocol.`type`.toString)){
         val umsTsIndex = ums.schema.fields.get.zipWithIndex.filter(_._1.name == UmsSysField.TS.toString).head._2
         val namespace = ums.schema.namespace
         val umsts = ums.payload_get.head.tuple(umsTsIndex)
         ums.protocol.`type` match {
           case UmsProtocolType.DATA_BATCH_TERMINATION =>
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority1,
-              WormholeUms.feedbackDataBatchTermination(namespace, umsts, flowId), None, config.kafka_output.brokers)
+              WormholeUms.feedbackDataBatchTermination(namespace, umsts, streamId), None, config.kafka_output.brokers)
           case UmsProtocolType.DATA_INCREMENT_TERMINATION =>
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority1,
-              WormholeUms.feedbackDataIncrementTermination(namespace, umsts, flowId), None, config.kafka_output.brokers)
+              WormholeUms.feedbackDataIncrementTermination(namespace, umsts, streamId), None, config.kafka_output.brokers)
           case UmsProtocolType.DATA_INCREMENT_HEARTBEAT =>
-
-            val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(namespace)
-            if (matchSourceNamespace != null) {
-              val sinkNamespaceMap = ConfMemoryStorage.getFlowConfigMap(matchSourceNamespace)
-              sinkNamespaceMap.foreach {
-                case (sinkNamespace, _) =>
-                  if (!processedSourceNamespace(namespace)) {
-                    val currentTs = System.currentTimeMillis()
-                    WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-                      UmsProtocolUtils.feedbackFlowStats(namespace, UmsProtocolType.DATA_INCREMENT_DATA.toString, DateUtils.currentDateTime, flowId, "", sinkNamespace,
-                        0, DateUtils.dt2date(umsts).getTime, currentTs, currentTs, currentTs, currentTs, currentTs, currentTs), None, config.kafka_output.brokers)
-                  }
-              }
-            }
+//            val currentTs = System.currentTimeMillis()
+//                WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
+//                  UmsProtocolUtils.feedbackFlowStats(sourceNamespace, UmsProtocolType.DATA_INCREMENT_DATA.toString, DateUtils.currentDateTime, streamId, "", sinkNamespace,
+//                    0, DateUtils.dt2date(umsts).getTime, currentTs, currentTs, currentTs, currentTs, currentTs, currentTs), None, config.kafka_output.brokers)
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority2,
-              WormholeUms.feedbackDataIncrementHeartbeat(namespace, umsts, flowId), None, config.kafka_output.brokers)
+              WormholeUms.feedbackDataIncrementHeartbeat(namespace, umsts, streamId), None, config.kafka_output.brokers)
           case _ => logger.warn(ums.protocol.`type`.toString + " is not supported")
         }
       }
-    })*/
+    })
   }
 
 }
