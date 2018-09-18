@@ -1297,7 +1297,10 @@ export class Workbench extends React.Component {
 
       this.setState({
         streamConfigValues: {
-          streamConfig: `${values[0].jvm},${values[0].others}`,
+          JVMDriverConfig: values[0].JVMDriverConfig,
+          JVMExecutorConfig: values[0].JVMExecutorConfig,
+          othersConfig: values[0].othersConfig,
+          // streamConfig: `${values[0].jvm},${values[0].others}`,
           startConfig: `${JSON.stringify(startConfigJson)}`,
           launchConfig: `${JSON.stringify(launchConfigJson)}`
         }
@@ -1328,7 +1331,7 @@ export class Workbench extends React.Component {
         usingUdf: usingUdf
       })
 
-      const { name, streamType, functionType, desc, instance, streamConfig, startConfig, launchConfig, id, projectId } = resultVal
+      const { name, streamType, functionType, desc, instance, JVMDriverConfig, JVMExecutorConfig, othersConfig, startConfig, launchConfig, id, projectId } = resultVal
       this.workbenchStreamForm.setFieldsValue({
         streamType,
         streamName: name,
@@ -1339,7 +1342,9 @@ export class Workbench extends React.Component {
 
       this.setState({
         streamConfigValues: {
-          streamConfig,
+          JVMDriverConfig,
+          JVMExecutorConfig,
+          othersConfig,
           startConfig,
           launchConfig
         },
@@ -1363,17 +1368,20 @@ export class Workbench extends React.Component {
       if (!streamConfigCheck) this.streamConfigForm.resetFields()
 
       // 点击 config 按钮时，回显数据。 有且只有2条 jvm 配置
-      const streamConArr = streamConfigValues.streamConfig.split(',')
+      // const streamConArr = streamConfigValues.streamConfig.split(',')
+      // const streamConArr = [streamConfigValues.jvmConfig]
+      // if (streamConfigValues.othersConfig) {
+      //   streamConArr.push(streamConfigValues.othersConfig)
+      // }
+      // const tempJvmArr = []
+      // const tempOthersArr = []
+      // for (let i = 0; i < streamConArr.length; i++) {
+      //   // 是否是 jvm
+      //   streamConArr[i].includes('extraJavaOptions') ? tempJvmArr.push(streamConArr[i]) : tempOthersArr.push(streamConArr[i])
+      // }
 
-      const tempJvmArr = []
-      const tempOthersArr = []
-      for (let i = 0; i < streamConArr.length; i++) {
-        // 是否是 jvm
-        streamConArr[i].includes('extraJavaOptions') ? tempJvmArr.push(streamConArr[i]) : tempOthersArr.push(streamConArr[i])
-      }
-
-      const jvmTempValue = tempJvmArr.join('\n')
-      const personalConfTempValue = tempOthersArr.join('\n')
+      const jvmTempValue = [streamConfigValues.JVMDriverConfig, streamConfigValues.JVMExecutorConfig]
+      const personalConfTempValue = streamConfigValues.othersConfig
 
       const startConfigTemp = JSON.parse(streamConfigValues.startConfig)
       const launchConfigTemp = streamConfigValues.launchConfig && JSON.parse(streamConfigValues.launchConfig)
@@ -1383,7 +1391,9 @@ export class Workbench extends React.Component {
         const { durations, partitions, maxRecords } = launchConfigTemp
 
         this.streamConfigForm.setFieldsValue({
-          jvm: jvmTempValue,
+          // jvm: jvmTempValue,
+          JVMDriverConfig: jvmTempValue[0],
+          JVMExecutorConfig: jvmTempValue[1],
           driverCores: driverCores,
           driverMemory: driverMemory,
           executorNums: executorNums,
@@ -1414,7 +1424,7 @@ export class Workbench extends React.Component {
     this.setState({
       sparkConfigModalVisible: true
     }, () => {
-      const sparkConArr = jobSparkConfigValues.sparkConfig.split(',')
+      const sparkConArr = [jobSparkConfigValues.sparkConfig.JVMDriverConfig || '', jobSparkConfigValues.sparkConfig.JVMExecutorConfig || '', jobSparkConfigValues.sparkConfig.othersConfig || '']
 
       const jobTempJvmArr = []
       const jobTempOthersArr = []
@@ -1422,19 +1432,23 @@ export class Workbench extends React.Component {
         sparkConArr[i].includes('extraJavaOptions') ? jobTempJvmArr.push(sparkConArr[i]) : jobTempOthersArr.push(sparkConArr[i])
       }
 
-      const jvmTempValue = jobTempJvmArr.join('\n')
+      const jvmTempValue = jobTempJvmArr
       const personalConfTempValue = jobTempOthersArr.join('\n')
       const startConfigTemp = JSON.parse(jobSparkConfigValues.startConfig)
 
-      const { driverCores, driverMemory, executorNums, perExecutorCores, perExecutorMemory } = startConfigTemp
+      const { driverCores, driverMemory, executorNums, perExecutorCores, perExecutorMemory, durations, partitions, maxRecords } = startConfigTemp
       this.streamConfigForm.setFieldsValue({
-        jvm: jvmTempValue,
+        JVMDriverConfig: jvmTempValue[0],
+        JVMExecutorConfig: jvmTempValue[1],
         driverCores: driverCores,
         driverMemory: driverMemory,
         executorNums: executorNums,
         perExecutorCores: perExecutorCores,
         perExecutorMemory: perExecutorMemory,
-        personalConf: personalConfTempValue
+        personalConf: personalConfTempValue,
+        durations: durations,
+        partitions: partitions,
+        maxRecords: maxRecords
       })
     })
   }
@@ -1449,27 +1463,33 @@ export class Workbench extends React.Component {
       if (!err) {
         let startConfigJson = {}
         let launchConfigJson = {}
-        let streamConfigValue = ''
+        let jvmConfig = {}
+        let othersConfig = ''
 
         if (streamSubPanelKey === 'spark') {
           values.personalConf = values.personalConf.trim()
-          values.jvm = values.jvm.trim()
+          values.JVMDriverConfig = values.JVMDriverConfig.trim()
+          values.JVMExecutorConfig = values.JVMExecutorConfig.trim()
 
-          const nJvm = (values.jvm.split('extraJavaOptions')).length - 1
-          let jvmValTemp = ''
+          let nJvm = (values.JVMDriverConfig.split('extraJavaOptions')).length + (values.JVMExecutorConfig.split('extraJavaOptions')).length - 2
+          let jvmValTemp = {}
           if (nJvm === 2) {
-            jvmValTemp = values.jvm.replace(/\n/g, ',')
+            jvmValTemp = {
+              JVMDriverConfig: values.JVMDriverConfig,
+              JVMExecutorConfig: values.JVMExecutorConfig
+            }
 
             if (!values.personalConf) {
-              streamConfigValue = jvmValTemp
+              jvmConfig = jvmValTemp
             } else {
-              const nOthers = (values.jvm.split('=')).length - 1
+              // const nOthers = (values.jvm.split('=')).length - 1
 
-              const personalConfTemp = nOthers === 1
-                ? values.personalConf
-                : values.personalConf.replace(/\n/g, ',')
+              // const personalConfTemp = nOthers === 1
+              //   ? values.personalConf
+              //   : values.personalConf.replace(/\n/g, ',')
 
-              streamConfigValue = `${jvmValTemp},${personalConfTemp}`
+              jvmConfig = jvmValTemp
+              othersConfig = values.personalConf
             }
             const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores } = values
             startConfigJson = {
@@ -1503,7 +1523,11 @@ export class Workbench extends React.Component {
         this.setState({
           streamConfigCheck: true,
           streamConfigValues: {
-            streamConfig: streamConfigValue,
+            // streamConfig: streamConfigValue,
+            // jvmConfig,
+            JVMDriverConfig: jvmConfig.JVMDriverConfig,
+            JVMExecutorConfig: jvmConfig.JVMExecutorConfig,
+            othersConfig,
             startConfig: JSON.stringify(startConfigJson),
             launchConfig: launchConfigJson && JSON.stringify(launchConfigJson)
           }
@@ -1518,27 +1542,28 @@ export class Workbench extends React.Component {
     this.streamConfigForm.validateFieldsAndScroll((err, values) => {
       if (!err) {
         values.personalConf = values.personalConf.trim()
-        values.jvm = values.jvm.trim()
-
-        const nJvm = (values.jvm.split('extraJavaOptions')).length - 1
-        let jvmValTemp = ''
+        values.JVMDriverConfig = values.JVMDriverConfig.trim()
+        values.JVMExecutorConfig = values.JVMExecutorConfig.trim()
+        let jvm = `${values.JVMDriverConfig},${values.JVMExecutorConfig}`
+        const nJvm = (jvm.split('extraJavaOptions')).length - 1
+        // let jvmValTemp = ''
         if (nJvm === 2) {
-          jvmValTemp = values.jvm.replace(/\n/g, ',')
+          // jvmValTemp = jvm.replace(/\n/g, ',')
 
-          let sparkConfigVal = ''
-          if (!values.personalConf) {
-            sparkConfigVal = jvmValTemp
-          } else {
-            const nOthers = (values.jvm.split('=')).length - 1
+          // let sparkConfigVal = ''
+          // if (!values.personalConf) {
+          //   sparkConfigVal = jvmValTemp
+          // } else {
+          //   const nOthers = (jvm.split('=')).length - 1
 
-            const personalConfTemp = nOthers === 1
-              ? values.personalConf
-              : values.personalConf.replace(/\n/g, ',')
+          //   const personalConfTemp = nOthers === 1
+          //     ? values.personalConf
+          //     : values.personalConf.replace(/\n/g, ',')
 
-            sparkConfigVal = `${jvmValTemp},${personalConfTemp}`
-          }
+          //   sparkConfigVal = `${jvmValTemp},${personalConfTemp}`
+          // }
 
-          const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores } = values
+          const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores, JVMDriverConfig, JVMExecutorConfig, personalConf } = values
           const startConfigJson = {
             driverCores: driverCores,
             driverMemory: driverMemory,
@@ -1550,7 +1575,11 @@ export class Workbench extends React.Component {
           this.setState({
             sparkConfigCheck: true,
             jobSparkConfigValues: {
-              sparkConfig: sparkConfigVal,
+              sparkConfig: {
+                JVMDriverConfig,
+                JVMExecutorConfig,
+                othersConfig: personalConf
+              },
               startConfig: JSON.stringify(startConfigJson)
             }
           })
@@ -3408,18 +3437,25 @@ export class Workbench extends React.Component {
     })
     Promise.all(this.loadConfig('spark')).then((values) => {
       // NOTE: job => sparkConfig? 结构 待修改
-      const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores } = values[0].spark
+      const { driverCores, driverMemory, executorNums, perExecutorMemory, perExecutorCores, durations, maxRecords, partitions } = values[0].spark
       const startConfigJson = {
         driverCores,
         driverMemory,
         executorNums,
         perExecutorMemory,
-        perExecutorCores
+        perExecutorCores,
+        durations,
+        maxRecords,
+        partitions
       }
 
       this.setState({
         jobSparkConfigValues: {
-          sparkConfig: `${values[0].jvm},${values[0].others}`,
+          sparkConfig: {
+            JVMDriverConfig: values[0].JVMDriverConfig,
+            JVMExecutorConfig: values[0].JVMExecutorConfig,
+            othersConfig: values[0].othersConfig
+          },
           startConfig: `${JSON.stringify(startConfigJson)}`
         }
       })

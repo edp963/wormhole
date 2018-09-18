@@ -162,7 +162,7 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-sparkxinterface</artifactId>
-     <version>0.5.2-beta</version>
+     <version>0.5.3-beta</version>
   </dependency>
   ```
 

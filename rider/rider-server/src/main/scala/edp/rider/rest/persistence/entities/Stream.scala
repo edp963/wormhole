@@ -33,7 +33,9 @@ case class Stream(id: Long,
                   instanceId: Long,
                   streamType: String,
                   functionType: String,
-                  streamConfig: Option[String] = None,
+                  JVMDriverConfig: Option[String] = None,
+                  JVMExecutorConfig: Option[String] = None,
+                  othersConfig: Option[String] = None,
                   startConfig: String,
                   launchConfig: String,
                   sparkAppid: Option[String] = None,
@@ -52,7 +54,7 @@ case class Stream(id: Long,
   }
 
   def updateFromSpark(appInfo: AppInfo) = {
-    Stream(this.id, this.name, this.desc, this.projectId, this.instanceId, this.streamType, this.functionType, this.streamConfig, this.startConfig,
+    Stream(this.id, this.name, this.desc, this.projectId, this.instanceId, this.streamType, this.functionType, this.JVMDriverConfig, this.JVMExecutorConfig, this.othersConfig, this.startConfig,
       this.launchConfig, Option(appInfo.appId), this.logPath, appInfo.appState, Option(appInfo.startedTime), Option(appInfo.finishedTime),
       this.active, this.createTime, this.createBy, this.updateTime, this.updateBy)
   }
@@ -134,13 +136,17 @@ case class SimpleStream(name: String,
                         instanceId: Long,
                         streamType: String,
                         functionType: String,
-                        streamConfig: Option[String] = None,
+                        JVMDriverConfig: Option[String] = None,
+                        JVMExecutorConfig: Option[String] = None,
+                        othersConfig: Option[String] = None,
                         startConfig: String,
                         launchConfig: String) extends SimpleBaseEntity
 
 case class PutStream(id: Long,
                      desc: Option[String] = None,
-                     streamConfig: Option[String] = None,
+                     JVMDriverConfig: Option[String] = None,
+                     JVMExecutorConfig: Option[String] = None,
+                     othersConfig: Option[String] = None,
                      startConfig: String,
                      launchConfig: String)
 
@@ -204,7 +210,7 @@ case class SparkResourceConfig(driverCores: Int,
                                partitions: Int,
                                maxRecords: Int)
 
-case class SparkDefaultConfig(jvm: String, spark: SparkResourceConfig, others: String)
+case class SparkDefaultConfig(JVMDriverConfig: String, JVMExecutorConfig: String, spark: SparkResourceConfig, othersConfig: String)
 
 case class FlinkResourceConfig(jobManagerMemoryGB: Int,
                                taskManagersNumber: Int,
@@ -213,9 +219,11 @@ case class FlinkResourceConfig(jobManagerMemoryGB: Int,
 
 case class FlinkDefaultConfig(jvm: String, flink: FlinkResourceConfig, others: String)
 
+case class RiderJVMConfig(JVMDriverConfig: String,
+                          JVMExecutorConfig: String)
 
 class StreamTable(_tableTag: Tag) extends BaseTable[Stream](_tableTag, "stream") {
-  def * = (id, name, desc, projectId, instanceId, streamType, functionType, streamConfig, startConfig, launchConfig, sparkAppid, logPath, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <> (Stream.tupled, Stream.unapply)
+  def * = (id, name, desc, projectId, instanceId, streamType, functionType, JVMDriverConfig, JVMExecutorConfig, othersConfig, startConfig, launchConfig, sparkAppid, logPath, status, startedTime, stoppedTime, active, createTime, createBy, updateTime, updateBy) <> (Stream.tupled, Stream.unapply)
 
 
   val name: Rep[String] = column[String]("name", O.Length(200, varying = true))
@@ -228,8 +236,12 @@ class StreamTable(_tableTag: Tag) extends BaseTable[Stream](_tableTag, "stream")
   val streamType: Rep[String] = column[String]("stream_type", O.Length(100, varying = true))
   /** Database column function_type SqlType(VARCHAR), Length(100,true) */
   val functionType: Rep[String] = column[String]("function_type", O.Length(100, varying = true))
-  /** Database column stream_config SqlType(VARCHAR), Length(1000,true), Default(None) */
-  val streamConfig: Rep[Option[String]] = column[Option[String]]("stream_config", O.Length(5000, varying = true), O.Default(None))
+  /** Database column jvm_driver_config SqlType(VARCHAR), Length(1000,true), Default(None) */
+  val JVMDriverConfig: Rep[Option[String]] = column[Option[String]]("jvm_driver_config", O.Length(5000, varying = true), O.Default(None))
+  /** Database column jvm_executor_config SqlType(VARCHAR), Length(1000,true), Default(None) */
+  val JVMExecutorConfig: Rep[Option[String]] = column[Option[String]]("jvm_executor_config", O.Length(5000, varying = true), O.Default(None))
+  /** Database column others_config SqlType(VARCHAR), Length(1000,true), Default(None) */
+  val othersConfig: Rep[Option[String]] = column[Option[String]]("others_config", O.Length(5000, varying = true), O.Default(None))
   /** Database column start_config SqlType(VARCHAR), Length(1000,true) */
   val startConfig: Rep[String] = column[String]("start_config", O.Length(1000, varying = true))
   /** Database column launch_config SqlType(VARCHAR), Length(1000,true) */

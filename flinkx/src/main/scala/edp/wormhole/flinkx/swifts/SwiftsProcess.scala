@@ -63,15 +63,21 @@ object SwiftsProcess extends Serializable {
     table.printSchema()
     val projectClause = sql.substring(0, sql.indexOf("from")).trim
     val namespaceTable = sourceNamespace.split("\\.").apply(3)
-    val whereClause = sql.substring(sql.indexOf(namespaceTable) + namespaceTable.length).trim
+    val fromClause = sql.substring(sql.indexOf("from")).trim
+    val whereClause = fromClause.substring(fromClause.indexOf(namespaceTable) + namespaceTable.length).trim
+    //println(projectClause + "-----projectClause" + namespaceTable + "-----namespaceTable" + whereClause + "-----whereClause")
     val newSql =s"""$projectClause FROM $table $whereClause"""
     println(newSql + " " + table)
-    table = tableEnv.sqlQuery(newSql)
-    table.printSchema()
-    val key = s"swifts$index"
-    val value = FlinkSchemaUtils.getSchemaMapFromTable(table.getSchema)
-    preSchemaMap = value
-    FlinkSchemaUtils.setSwiftsSchema(key, value)
+    try {
+      table = tableEnv.sqlQuery(newSql)
+      table.printSchema()
+      val key = s"swifts$index"
+      val value = FlinkSchemaUtils.getSchemaMapFromTable(table.getSchema)
+      preSchemaMap = value
+      FlinkSchemaUtils.setSwiftsSchema(key, value)
+    } catch {
+      case e: Throwable => logger.error("in doFlinkSql table query", e)
+    }
     val resultDataStream = tableEnv.toAppendStream[Row](table).map(o => o)(Types.ROW(FlinkSchemaUtils.tableFieldNameArray(table.getSchema), FlinkSchemaUtils.tableFieldTypeArray(table.getSchema)))
     resultDataStream.print()
     logger.info(resultDataStream.dataType.toString + "in  doFlinkSql")
