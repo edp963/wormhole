@@ -73,12 +73,12 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
   private def postResponse(projectId: Long, simpleStream: SimpleStream, session: SessionClass): Route = {
     if (session.projectIdList.contains(projectId)) {
       try {
-        val formatCheck = checkConfigFormat(simpleStream.startConfig, simpleStream.launchConfig, simpleStream.jvmConfig.getOrElse(""), simpleStream.othersConfig.getOrElse(""))
+        val formatCheck = checkConfigFormat(simpleStream.startConfig, simpleStream.launchConfig, simpleStream.JVMDriverConfig.getOrElse(""), simpleStream.JVMExecutorConfig.getOrElse(""), simpleStream.othersConfig.getOrElse(""))
         if (formatCheck._1) {
           val projectName = Await.result(projectDal.findById(projectId), minTimeOut).get.name
           val streamName = genStreamNameByProjectName(projectName, simpleStream.name)
           val insertStream = Stream(0, streamName, simpleStream.desc, projectId,
-            simpleStream.instanceId, simpleStream.streamType, simpleStream.functionType, simpleStream.jvmConfig, simpleStream.othersConfig, simpleStream.startConfig, simpleStream.launchConfig,
+            simpleStream.instanceId, simpleStream.streamType, simpleStream.functionType, simpleStream.JVMDriverConfig, simpleStream.JVMExecutorConfig, simpleStream.othersConfig, simpleStream.startConfig, simpleStream.launchConfig,
             None, None, "new", None, None, active = true, currentSec, session.userId, currentSec, session.userId)
           if (StreamUtils.checkYarnAppNameUnique(simpleStream.name, projectId)) {
             onComplete(streamDal.insert(insertStream).mapTo[Stream]) {
@@ -229,7 +229,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
 
   private def putResponse(projectId: Long, putStream: PutStream, session: SessionClass): Route = {
     if (session.projectIdList.contains(projectId)) {
-      val formatCheck = checkConfigFormat(putStream.startConfig, putStream.launchConfig, putStream.jvmConfig.getOrElse(""), putStream.othersConfig.getOrElse(""))
+      val formatCheck = checkConfigFormat(putStream.startConfig, putStream.launchConfig, putStream.JVMDriverConfig.getOrElse(""), putStream.JVMExecutorConfig.getOrElse(""), putStream.othersConfig.getOrElse(""))
       if (formatCheck._1) {
         onComplete(streamDal.updateByPutRequest(putStream, session.userId).mapTo[Int]) {
           case Success(_) =>
@@ -559,7 +559,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
         }
         else {
           val defaultConf = StreamUtils.getDefaultJvmConf
-          complete(OK, ResponseJson[String](getHeader(200, session), defaultConf))
+          complete(OK, ResponseJson[RiderJVMConfig](getHeader(200, session), defaultConf))
         }
     }
 
@@ -821,8 +821,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                     val jvm = StreamUtils.getDefaultJvmConf
                     val sparkResource = SparkResourceConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum,
                       RiderConfig.spark.executorCores, RiderConfig.spark.executorMemory, RiderConfig.spark.batchDurationSec, RiderConfig.spark.parallelismPartition, RiderConfig.spark.maxPartitionFetchMb)
-                    val others = RiderConfig.spark.sparkConfig
-                    val defaultConfig = SparkDefaultConfig(jvm, sparkResource, others)
+                    val othersConfig = RiderConfig.spark.sparkConfig
+                    val defaultConfig = SparkDefaultConfig(jvm.JVMDriverConfig,jvm.JVMExecutorConfig, sparkResource, othersConfig)
                     complete(OK, ResponseJson[SparkDefaultConfig](getHeader(200, session), defaultConfig))
                   case StreamType.FLINK =>
                     val defaultConfig = RiderConfig.defaultFlinkConfig

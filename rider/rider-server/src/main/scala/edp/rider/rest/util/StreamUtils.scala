@@ -25,7 +25,7 @@ import com.alibaba.fastjson.JSON
 import edp.rider.RiderStarter.modules._
 import edp.rider.common.Action._
 import edp.rider.common.StreamStatus._
-import edp.rider.common._
+import edp.rider.common.{ StreamType, _}
 import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
@@ -40,7 +40,6 @@ import edp.wormhole.kafka.WormholeTopicCommand
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.UmsSchemaUtils.toUms
 import slick.jdbc.MySQLProfile.api._
-import edp.rider.common.StreamType
 import edp.rider.common.StreamType._
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.JsonUtils._
@@ -217,7 +216,8 @@ object StreamUtils extends RiderLogger {
       case StreamType.SPARK =>
         val args = getStreamConfig(stream)
         val startConfig = json2caseClass[StartConfig](stream.startConfig)
-        val commandSh = generateSparkStreamStartSh(s"'''$args'''", stream.name, logPath, startConfig, Array(stream.jvmConfig.getOrElse("")), stream.othersConfig.getOrElse(""), stream.functionType)
+        //val jvmConfig = Array(stream.JVMDriverConfig.getOrElse("")) :+ stream.JVMExecutorConfig.getOrElse("")
+        val commandSh = generateSparkStreamStartSh(s"'''$args'''", stream.name, logPath, startConfig, stream.JVMDriverConfig.getOrElse(""), stream.JVMExecutorConfig.getOrElse(""), stream.othersConfig.getOrElse(""), stream.functionType)
         riderLogger.info(s"start stream ${stream.id} command: $commandSh")
         runShellCommand(commandSh)
       case StreamType.FLINK =>
@@ -470,7 +470,8 @@ object StreamUtils extends RiderLogger {
     } else 10
   }
 
-  def checkConfigFormat(startConfig: String, launchConfig: String, jvmConfig: String, othersConfig: String) = {
+  def checkConfigFormat(startConfig: String, launchConfig: String, JVMDriverConfig: String,JVMExecutorConfig: String, othersConfig: String) = {
+    val jvmConfig = JVMDriverConfig + JVMExecutorConfig
     (isJson(startConfig), isJson(launchConfig), isStreamConfig(jvmConfig), isStreamConfig(othersConfig)) match {
       case (true, true, true, true) => (true, "success")
       case (true, true, true, false) => (false, s"othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
@@ -588,10 +589,10 @@ object StreamUtils extends RiderLogger {
   def getStreamTime(time: Option[String]) =
     if (time.nonEmpty) time.get.split("\\.")(0) else null
 
-  def getDefaultJvmConf = {
+  def getDefaultJvmConf: RiderJVMConfig = {
     lazy val driverConf = RiderConfig.spark.driverExtraConf
     lazy val executorConf = RiderConfig.spark.executorExtraConf
-    driverConf + "," + executorConf
+    RiderJVMConfig(driverConf, executorConf)
   }
 
   def getDefaultSparkConf = {
