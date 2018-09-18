@@ -53,17 +53,34 @@ export class StreamConfigForm extends React.Component {
 
     return (
       <Form>
-        {streamSubPanelKey === 'spark' ? (
+        {streamSubPanelKey === 'spark' || tabPanelKey === 'job' ? (
           <Row>
             <Col span={24}>
-              <FormItem label="JVM：" {...itemStyle}>
-                {getFieldDecorator('jvm', {
+              <FormItem label="JVM Driver Config：" {...itemStyle}>
+                {getFieldDecorator('JVMDriverConfig', {
                   rules: [{
                     required: true,
                     message: textMessage
                   }]
                 })(
-                  <Input type="textarea" placeholder="JVM" autosize={{ minRows: 4, maxRows: 6 }} />
+                  <Input type="textarea" placeholder="JVM Driver Config" autosize={{ minRows: 4, maxRows: 6 }} />
+                )}
+              </FormItem>
+            </Col>
+          </Row>
+          ) : ''
+        }
+        {streamSubPanelKey === 'spark' || tabPanelKey === 'job' ? (
+          <Row>
+            <Col span={24}>
+              <FormItem label="JVM Executor Config：" {...itemStyle}>
+                {getFieldDecorator('JVMExecutorConfig', {
+                  rules: [{
+                    required: true,
+                    message: textMessage
+                  }]
+                })(
+                  <Input type="textarea" placeholder="JVM Executor Config" autosize={{ minRows: 4, maxRows: 6 }} />
                 )}
               </FormItem>
             </Col>
@@ -152,9 +169,9 @@ export class StreamConfigForm extends React.Component {
           </Row>
           ) : ''
         }
-        {streamSubPanelKey === 'spark' || tabPanelKey === 'job' ? (
+        {streamSubPanelKey === 'spark' ? (
           <Row>
-            <Col span={8} className={`${tabPanelKey === 'stream' ? '' : 'hide'}`}>
+            <Col span={8}>
               <FormItem label="Batch Duration (Sec)：" {...itemStyleOthers}>
                 {getFieldDecorator('durations', {
                   rules: [{
@@ -168,7 +185,7 @@ export class StreamConfigForm extends React.Component {
                 )}
               </FormItem>
             </Col>
-            <Col span={8} className={`${tabPanelKey === 'stream' ? '' : 'hide'}`}>
+            <Col span={8}>
               <FormItem label="Parallelism Partition：" {...itemStyleOthers}>
                 {getFieldDecorator('partitions', {
                   rules: [{
@@ -199,7 +216,7 @@ export class StreamConfigForm extends React.Component {
           </Row>
           ) : ''
         }
-        {streamSubPanelKey === 'spark' ? (
+        {streamSubPanelKey === 'spark' || tabPanelKey === 'job' ? (
           <Row>
             <Col span={24}>
               <FormItem label="Others：" {...itemStyle}>
