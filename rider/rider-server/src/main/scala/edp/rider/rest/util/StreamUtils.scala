@@ -25,7 +25,7 @@ import com.alibaba.fastjson.JSON
 import edp.rider.RiderStarter.modules._
 import edp.rider.common.Action._
 import edp.rider.common.StreamStatus._
-import edp.rider.common._
+import edp.rider.common.{ StreamType, _}
 import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
@@ -40,7 +40,6 @@ import edp.wormhole.kafka.WormholeTopicCommand
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.UmsSchemaUtils.toUms
 import slick.jdbc.MySQLProfile.api._
-import edp.rider.common.StreamType
 import edp.rider.common.StreamType._
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.JsonUtils._
@@ -217,7 +216,8 @@ object StreamUtils extends RiderLogger {
       case StreamType.SPARK =>
         val args = getStreamConfig(stream)
         val startConfig = json2caseClass[StartConfig](stream.startConfig)
-        val commandSh = generateSparkStreamStartSh(s"'''$args'''", stream.name, logPath, startConfig, stream.streamConfig.getOrElse(""), stream.functionType)
+        //val jvmConfig = Array(stream.JVMDriverConfig.getOrElse("")) :+ stream.JVMExecutorConfig.getOrElse("")
+        val commandSh = generateSparkStreamStartSh(s"'''$args'''", stream.name, logPath, startConfig, stream.JVMDriverConfig.getOrElse(""), stream.JVMExecutorConfig.getOrElse(""), stream.othersConfig.getOrElse(""), stream.functionType)
         riderLogger.info(s"start stream ${stream.id} command: $commandSh")
         runShellCommand(commandSh)
       case StreamType.FLINK =>
@@ -474,16 +474,26 @@ object StreamUtils extends RiderLogger {
     } else 10
   }
 
-  def checkConfigFormat(startConfig: String, launchConfig: String, streamConfig: String) = {
-    (isJson(startConfig), isJson(launchConfig), isStreamConfig(streamConfig)) match {
-      case (true, true, true) => (true, "success")
-      case (true, true, false) => (false, s"streamConfig $streamConfig doesn't meet key=value,key1=value1 format")
-      case (true, false, true) => (false, s"launchConfig $launchConfig is not json type")
-      case (true, false, false) => (false, s"launchConfig $launchConfig is not json type, streamConfig $streamConfig doesn't meet key=value,key1=value1 format")
-      case (false, true, true) => (false, s"startConfig $startConfig is not json type")
-      case (false, true, false) => (false, s"startConfig $startConfig is not json type, streamConfig $streamConfig doesn't meet key=value,key1=value1 format")
-      case (false, false, true) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type")
-      case (false, false, false) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type, streamConfig $streamConfig doesn't meet key=value,key1=value1 format")
+  def checkConfigFormat(startConfig: String, launchConfig: String, JVMDriverConfig: String,JVMExecutorConfig: String, othersConfig: String) = {
+    val jvmConfig = JVMDriverConfig + JVMExecutorConfig
+    (isJson(startConfig), isJson(launchConfig), isStreamConfig(jvmConfig), isStreamConfig(othersConfig)) match {
+      case (true, true, true, true) => (true, "success")
+      case (true, true, true, false) => (false, s"othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+      case (true, true, false, true) => (false, s"jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format")
+      case (true, true, false, false) => (false, s"jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format, othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+      case (true, false, true, true) => (false, s"launchConfig $launchConfig is not json type")
+      case (true, false, true, false) => (false, s"launchConfig $launchConfig is not json type, othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+      case (true, false, false, true) => (false, s"launchConfig $launchConfig is not json type, jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format")
+      case (true, false, false, false) => (false, s"launchConfig $launchConfig is not json type, jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format, othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+      case (false, true, true, true) => (false, s"startConfig $startConfig is not json type")
+      case (false, true, true, false) => (false, s"startConfig $startConfig is not json type, othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+      case (false, true, false, true) => (false, s"startConfig $startConfig is not json type, jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format")
+      case (false, true, false, false) => (false, s"startConfig $startConfig is not json type, jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format, othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+      case (false, false, true, true) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type")
+      case (false, false, true, false) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type, othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+      case (false, false, false, true) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type, jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format")
+      case (false, false, false, false) => (false, s"startConfig $startConfig is not json type, launchConfig $launchConfig is not json type, jvmConfig $jvmConfig doesn't meet key=value,key1=value1 format, othersConfig $othersConfig doesn't meet key=value,key1=value1 format")
+
     }
   }
 
@@ -583,10 +593,10 @@ object StreamUtils extends RiderLogger {
   def getStreamTime(time: Option[String]) =
     if (time.nonEmpty) time.get.split("\\.")(0) else null
 
-  def getDefaultJvmConf = {
+  def getDefaultJvmConf: RiderJVMConfig = {
     lazy val driverConf = RiderConfig.spark.driverExtraConf
     lazy val executorConf = RiderConfig.spark.executorExtraConf
-    driverConf + "," + executorConf
+    RiderJVMConfig(driverConf, executorConf)
   }
 
   def getDefaultSparkConf = {

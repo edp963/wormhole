@@ -43,7 +43,7 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
     new ApiResponse(code = 451, message = "request process failed"),
     new ApiResponse(code = 500, message = "internal server error")
   ))
-  def reviseRoute: Route = modules.jobUserService.reviseRoute(basePath)
+  def reviseRoute: Route = modules.jobUserService.putRoute(basePath)
 
 
   @Path("/{projectId}/jobs/{jobId}/start")

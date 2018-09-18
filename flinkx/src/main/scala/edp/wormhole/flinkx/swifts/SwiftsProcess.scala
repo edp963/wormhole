@@ -63,7 +63,9 @@ object SwiftsProcess extends Serializable {
     table.printSchema()
     val projectClause = sql.substring(0, sql.indexOf("from")).trim
     val namespaceTable = sourceNamespace.split("\\.").apply(3)
-    val whereClause = sql.substring(sql.indexOf(namespaceTable) + namespaceTable.length).trim
+    val fromClause = sql.substring(sql.indexOf("from")).trim
+    val whereClause = fromClause.substring(fromClause.indexOf(namespaceTable) + namespaceTable.length).trim
+    //println(projectClause + "-----projectClause" + namespaceTable + "-----namespaceTable" + whereClause + "-----whereClause")
     val newSql =s"""$projectClause FROM $table $whereClause"""
     println(newSql + " " + table)
     try {
