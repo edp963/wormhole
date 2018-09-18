@@ -35,6 +35,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                     val projectName = jobDal.adminGetRow(projectId)
                     val jobInsert = Job(0, genStreamNameByProjectName(projectName, simple.name), projectId, simple.sourceNs, JobUtils.getJobSinkNs(simple.sourceNs, simple.sinkNs, simple.jobType), simple.jobType, simple.sparkConfig, simple.startConfig, simple.eventTsStart, simple.eventTsEnd,
                       simple.sourceConfig, simple.sinkConfig, simple.tranConfig, "new", None, Some(""), None, None, currentSec, session.userId, currentSec, session.userId)
+                    riderLogger.info(s"user ${session.userId} inserted job where project id is $projectId . insertdata is $jobInsert")
                     try {
                       if (StreamUtils.checkYarnAppNameUnique(jobInsert.name, projectId)) {
                         onComplete(jobDal.insert(jobInsert)) {
@@ -361,7 +362,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
   }
 
 
-  def reviseRoute(route: String): Route = path(route / LongNumber / "jobs") {
+  def putRoute(route: String): Route = path(route / LongNumber / "jobs") {
     projectId =>
       put {
         entity(as[Job]) {

@@ -72,7 +72,7 @@ object SubmitYarnJob extends App with RiderLogger {
   //  }
 
 
-  def generateSparkStreamStartSh(args: String, streamName: String, logPath: String, startConfig: StartConfig, jvmConfig: Array[String], othersConfig: String, functionType: String, local: Boolean = false): String = {
+  def generateSparkStreamStartSh(args: String, streamName: String, logPath: String, startConfig: StartConfig, jvmDriverConfig: String, jvmExecutorConfig: String, othersConfig: String, functionType: String, local: Boolean = false): String = {
     val submitPre = s"ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host} " + RiderConfig.spark.sparkHome
     val executorsNum = startConfig.executorNums
     val driverMemory = startConfig.driverMemory
@@ -86,11 +86,13 @@ object SubmitYarnJob extends App with RiderLogger {
     val confList: Seq[String] = {
       val conf = new ListBuffer[String]
       //if (jvmConfig.toString != "") conf ++= jvmConfig
-      for(elem <- jvmConfig) {
+      /*for(elem <- jvmConfig) {
         if (elem != "") {
           conf ++= Array(elem)
         }
-      }
+      }*/
+      if (jvmDriverConfig != "") conf ++= Array(jvmDriverConfig)
+      if (jvmExecutorConfig != "") conf ++= Array(jvmExecutorConfig)
       if (othersConfig != "") conf ++= othersConfig.split(",")
       conf ++= Array(s"spark.yarn.tags=${RiderConfig.spark.appTags}")
       if (RiderConfig.spark.metricsConfPath != "") {
