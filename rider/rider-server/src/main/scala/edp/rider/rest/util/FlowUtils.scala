@@ -21,6 +21,7 @@
 
 package edp.rider.rest.util
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import com.alibaba.fastjson.{JSON, JSONArray}
 import edp.rider.RiderStarter.modules._
 import edp.rider.common._
@@ -46,6 +47,7 @@ import slick.jdbc.MySQLProfile.api._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
+import scala.util.{Failure, Success}
 import scalaj.http.{Http, HttpResponse}
 
 object FlowUtils extends RiderLogger {
@@ -162,7 +164,7 @@ object FlowUtils extends RiderLogger {
         else "edp.wormhole.sinks.mongosink.Data2MongoSink"
       case "phoenix" => "edp.wormhole.sinks.phoenixsink.Data2PhoenixSink"
       case "parquet" => ""
-      case "kudu" => "edp.wormhole.sinks.kudu.Data2KuduSink"
+      case "kudu" => "edp.wormhole.sinks.kudusink.Data2KuduSink"
     }
   }
 
@@ -388,95 +390,102 @@ object FlowUtils extends RiderLogger {
         //        val tuple = Seq(streamId, currentMicroSec, umsType, umsSchema, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
         val base64Tuple = Seq(streamId, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
           base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))
-        val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk, currentSec, userId)), minTimeOut)
-        //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_START.toString} success.")
-        val flow_start_ums =
-          s"""
-             |{
-             |"protocol": {
-             |"type": "${DIRECTIVE_FLOW_START.toString}"
-             |},
-             |"schema": {
-             |"namespace": "$sourceNs",
-             |"fields": [
-             |{
-             |"name": "directive_id",
-             |"type": "long",
-             |"nullable": false
-             |},
-             |{
-             |"name": "stream_id",
-             |"type": "long",
-             |"nullable": false
-             |},
-             |{
-             |"name": "ums_ts_",
-             |"type": "datetime",
-             |"nullable": false
-             |},
-             |{
-             |"name": "data_type",
-             |"type": "string",
-             |"nullable": false
-             |},
-             |{
-             |"name": "data_parse",
-             |"type": "string",
-             |"nullable": true
-             |},
-             |{
-             |"name": "sink_namespace",
-             |"type": "string",
-             |"nullable": false
-             |},
-             |{
-             |"name": "consumption_protocol",
-             |"type": "string",
-             |"nullable": false
-             |},
-             |{
-             |"name": "sinks",
-             |"type": "string",
-             |"nullable": false
-             |},
-             |{
-             |"name": "swifts",
-             |"type": "string",
-             |"nullable": true
-             |}
-             |]
-             |},
-             |"payload": [
-             |{
-             |"tuple": [${
-            directive.id
-          }, ${
-            base64Tuple.head
-          }, "${
-            base64Tuple(1)
-          }", "${
-            base64Tuple(2)
-          }", "${
-            base64Tuple(3)
-          }", "${
-            base64Tuple(4)
-          }", "${
-            base64Tuple(5)
-          }", "${
-            base64Tuple(6)
-          }", "${
-            base64Tuple(7)
-          }"]
-             |}
-             |]
-             |}
+        val directiveFuture = directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk, currentSec, userId))
+        directiveFuture onComplete {
+          case Success(directive) =>
+            //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_START.toString} success.")
+            val flow_start_ums =
+              s"""
+                 |{
+                 |"protocol": {
+                 |"type": "${DIRECTIVE_FLOW_START.toString}"
+                 |},
+                 |"schema": {
+                 |"namespace": "$sourceNs",
+                 |"fields": [
+                 |{
+                 |"name": "directive_id",
+                 |"type": "long",
+                 |"nullable": false
+                 |},
+                 |{
+                 |"name": "stream_id",
+                 |"type": "long",
+                 |"nullable": false
+                 |},
+                 |{
+                 |"name": "ums_ts_",
+                 |"type": "datetime",
+                 |"nullable": false
+                 |},
+                 |{
+                 |"name": "data_type",
+                 |"type": "string",
+                 |"nullable": false
+                 |},
+                 |{
+                 |"name": "data_parse",
+                 |"type": "string",
+                 |"nullable": true
+                 |},
+                 |{
+                 |"name": "sink_namespace",
+                 |"type": "string",
+                 |"nullable": false
+                 |},
+                 |{
+                 |"name": "consumption_protocol",
+                 |"type": "string",
+                 |"nullable": false
+                 |},
+                 |{
+                 |"name": "sinks",
+                 |"type": "string",
+                 |"nullable": false
+                 |},
+                 |{
+                 |"name": "swifts",
+                 |"type": "string",
+                 |"nullable": true
+                 |}
+                 |]
+                 |},
+                 |"payload": [
+                 |{
+                 |"tuple": [${
+                directive.id
+              }, ${
+                base64Tuple.head
+              }, "${
+                base64Tuple(1)
+              }", "${
+                base64Tuple(2)
+              }", "${
+                base64Tuple(3)
+              }", "${
+                base64Tuple(4)
+              }", "${
+                base64Tuple(5)
+              }", "${
+                base64Tuple(6)
+              }", "${
+                base64Tuple(7)
+              }"]
+                 |}
+                 |]
+                 |}
         """.stripMargin.replaceAll("\n", "")
-        riderLogger.info(s"user ${
-          directive.createBy
-        } send flow $flowId start directive: $flow_start_ums")
-        PushDirective.sendFlowStartDirective(streamId, sourceNs, sinkNs, jsonCompact(flow_start_ums))
-        //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
-      } else if (functionType == "hdfslog") {
+            riderLogger.info(s"user ${
+              directive.createBy
+            } send flow $flowId start directive: $flow_start_ums")
+            PushDirective.sendFlowStartDirective(streamId, sourceNs, sinkNs, jsonCompact(flow_start_ums))
+          //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
+          case Failure(ex) =>
+            riderLogger.error(s"send ${DIRECTIVE_FLOW_START.toString} directive to ${RiderConfig.zk} failed", ex)
+            false
+        }
+      }
+      else if (functionType == "hdfslog") {
         //        val tuple = Seq(streamId, currentMillSec, sourceNs, "24", umsType, umsSchema)
         val base64Tuple = Seq(streamId, currentMillSec, sourceNs, "24", umsType, base64byte2s(umsSchema.toString.trim.getBytes))
         val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_HDFSLOG_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk, currentSec, userId)), minTimeOut)
@@ -619,7 +628,8 @@ object FlowUtils extends RiderLogger {
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
       }
       true
-    } catch {
+    }
+    catch {
       case ex: Exception =>
         riderLogger.error(s"user $userId send flow $flowId start directive failed", ex)
         false
@@ -1109,7 +1119,9 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  private def getFlowByFlowStream(flowStream: FlowStream): Flow = {
+  private def getFlowByFlowStream(flowStream: FlowStream): Flow
+
+  = {
     Flow(flowStream.id, flowStream.projectId, flowStream.streamId, flowStream.sourceNs, flowStream.sinkNs, flowStream.parallelism, flowStream.consumedProtocol,
       flowStream.sinkConfig, flowStream.tranConfig, flowStream.status, flowStream.startedTime, flowStream.stoppedTime,
       flowStream.logPath, flowStream.active, flowStream.createTime, flowStream.createBy, flowStream.updateTime,
@@ -1148,7 +1160,9 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  private def getFlowStatusByYarnAndLog(dbInfo: FlinkFlowStatus, yarnInfo: FlinkJobStatus): FlinkFlowStatus = {
+  private def getFlowStatusByYarnAndLog(dbInfo: FlinkFlowStatus, yarnInfo: FlinkJobStatus): FlinkFlowStatus
+
+  = {
     YarnAppStatus.withName(yarnInfo.state) match {
       case YarnAppStatus.ACCEPTED =>
         FlinkFlowStatus(FlowStatus.STARTING.toString, dbInfo.startTime, dbInfo.stopTime)
