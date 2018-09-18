@@ -47,7 +47,7 @@ object JobUtils extends RiderLogger {
     BatchJobConfig(getSourceConfig(job.sourceNs, job.eventTsStart, job.eventTsEnd, job.sourceConfig),
       getTranConfig(job.tranConfig.getOrElse(""), job.sinkConfig.getOrElse(""), job.sinkNs, job.jobType),
       getSinkConfig(job.sinkNs, job.sinkConfig.getOrElse(""), job.jobType, job.eventTsEnd),
-      getJobConfig(job.name, job.sparkConfig))
+      getJobConfig(job.name, job.sparkConfig.othersConfig))
 
   def getSourceConfig(sourceNs: String, eventTsStart: String = null, eventTsEnd: String = null, sourceConfig: Option[String]) = {
     val eventTsStartFinal = if (eventTsStart != null && eventTsStart != "") eventTsStart else "19700101000000"
@@ -154,16 +154,16 @@ object JobUtils extends RiderLogger {
     } else None
   }
 
-  def getJobConfig(name: String, sparkConfig: Option[String]) = {
+  def getJobConfig(name: String, othersConfig: Option[String]) = {
     val sqlShufflePartition =
-      if (sparkConfig != null && sparkConfig.isDefined && sparkConfig.get != "") {
-        val index = sparkConfig.get.indexOf("spark.sql.shuffle.partitions=")
+      if (othersConfig != null && othersConfig.isDefined && othersConfig.get != "") {
+        val index = othersConfig.get.indexOf("spark.sql.shuffle.partitions=")
         if (index >= 0) {
           riderLogger.info("getJobConfig contains spark.sql.shuffle.partitions=")
           val length = "spark.sql.shuffle.partitions=".size
-          val lastPart = sparkConfig.get.indexOf(",", index + length)
-          val endIndex = if (lastPart < 0) sparkConfig.get.length else lastPart
-          Some(sparkConfig.get.substring(index + length, endIndex).toInt)
+          val lastPart = othersConfig.get.indexOf(",", index + length)
+          val endIndex = if (lastPart < 0) othersConfig.get.length else lastPart
+          Some(othersConfig.get.substring(index + length, endIndex).toInt)
         } else {
           riderLogger.info("getJobConfig DO NOT contains spark.sql.shuffle.partitions=")
           None
@@ -177,7 +177,7 @@ object JobUtils extends RiderLogger {
 
   def getSourceProcessClass(sourceType: String): String = {
     sourceType match {
-      case "hdfs_txt" => "edp.wormhole.batchjob.source.SourceHdfs"
+      case "hdfs_txt" => "edp.wormhole.sparkx.batchjob.source.SourceHdfs"
       case _ =>
         riderLogger.error(s"this sourceType $sourceType isn't supported now")
         throw new Exception(s"this sourceType $sourceType isn't supported now")
@@ -203,7 +203,9 @@ object JobUtils extends RiderLogger {
     val startConfig: StartConfig = if (job.startConfig.isEmpty) null else json2caseClass[StartConfig](job.startConfig)
     val command = generateSparkStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name, logPath,
       if (startConfig != null) startConfig else StartConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum, RiderConfig.spark.executorMemory, RiderConfig.spark.executorCores),
-      if (job.sparkConfig.isDefined && !job.sparkConfig.get.isEmpty) job.sparkConfig.get else Seq(RiderConfig.spark.driverExtraConf, RiderConfig.spark.executorExtraConf).mkString(",").concat(RiderConfig.spark.sparkConfig),
+      job.sparkConfig.JVMDriverConfig.getOrElse(RiderConfig.spark.driverExtraConf),
+      job.sparkConfig.JVMExecutorConfig.getOrElse(RiderConfig.spark.executorExtraConf),
+      job.sparkConfig.othersConfig.getOrElse(""),
       "job"
     )
     riderLogger.info(s"start job ${job.id} command: $command")

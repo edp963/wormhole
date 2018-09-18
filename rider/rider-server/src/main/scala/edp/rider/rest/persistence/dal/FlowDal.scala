@@ -160,7 +160,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
   }
 
   def updateStatusByAction(flowId: Long, flowNewStatus: String, startTime: Option[String], stopTime: Option[String]) = {
-    if (flowNewStatus == "starting")
+    if (flowNewStatus == "starting" || flowNewStatus == "updating")
       Await.result(db.run(flowTable.filter(flow =>
         flow.id === flowId && flow.status =!= "running" && flow.status =!= "failed")
         .map(c => (c.status, c.startedTime, c.stoppedTime)).update(flowNewStatus, startTime, stopTime)), minTimeOut)
