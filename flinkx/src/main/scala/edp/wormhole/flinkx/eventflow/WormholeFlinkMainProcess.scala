@@ -20,7 +20,7 @@
 
 package edp.wormhole.flinkx.eventflow
 
-import java.util.{Properties, UUID}
+import java.util.Properties
 
 import com.alibaba.fastjson
 import com.alibaba.fastjson.JSON
@@ -28,7 +28,6 @@ import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.flinkx.common.{ConfMemoryStorage, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
-import edp.wormhole.flinkx.eventflow.WormholeFlinkxStarter.config
 import edp.wormhole.flinkx.sink.SinkProcess
 import edp.wormhole.flinkx.swifts.{ParseSwiftsSql, SwiftsProcess}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
