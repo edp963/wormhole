@@ -24,22 +24,20 @@ package edp.wormhole.sinks.dbsink
 import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.sinks.utils.SinkCommonUtils
 import edp.wormhole.sinks.{DbHelper, SourceMutationType}
-import edp.wormhole.ums.UmsFieldType._
-import edp.wormhole.util.DateUtils._
-import edp.wormhole.util.config.ConnectionConfig
-import edp.wormhole.ums.UmsProtocolType._
-import org.joda.time.{DateTime, Seconds}
 import edp.wormhole.ums.UmsDataSystem.UmsDataSystem
+import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.{UmsNamespace, UmsOpType, UmsSysField}
+import edp.wormhole.util.DateUtils._
 import edp.wormhole.util.JsonUtils._
+import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
+import org.joda.time.{DateTime, Seconds}
 
 import scala.collection.mutable
 
 class Data2DbSink extends SinkProcessor{
   private lazy val logger = Logger.getLogger(this.getClass)
-  override def process(protocolType: UmsProtocolType,
-                       sourceNamespace: String,
+  override def process(sourceNamespace: String,
                        sinkNamespace: String,
                        sinkProcessConfig: SinkProcessConfig,
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],

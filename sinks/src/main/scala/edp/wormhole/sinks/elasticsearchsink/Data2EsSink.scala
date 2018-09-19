@@ -39,8 +39,7 @@ class Data2EsSink extends SinkProcessor {
   val optNameUpdate = "update"
   val optNameInsert = "create"
 
-  override def process(protocolType: UmsProtocolType,
-                       sourceNamespace: String,
+  override def process(sourceNamespace: String,
                        sinkNamespace: String,
                        sinkProcessConfig: SinkProcessConfig,
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
