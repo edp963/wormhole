@@ -71,7 +71,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
 
     assignTimeCharacteristic(env)
     val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase)
-    val watermarkStream = assignTimestamp(inputStream, sourceSchemaMap.toMap)
+    val watermarkStream = assignTimestamp(inputStream, immutableSourceSchemaMap)
     watermarkStream.print()
     try {
       val swiftsTs = System.currentTimeMillis
@@ -84,11 +84,10 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
         WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(sourceNamespace, streamId , DateUtils.currentDateTime, sinkNamespace, UmsWatermark(""+currentTs), UmsWatermark(""+currentTs), 1, "", ""), None, config.kafka_output.brokers)
 
     }
-
     env.execute(s"$sourceNamespace-$sinkNamespace")
   }
 
-  private def createKafkaStream(env: StreamExecutionEnvironment, flowNamespace: String) = {
+  private def createKafkaStream(env: StreamExecutionEnvironment, flowNamespace: String): DataStream[Row] = {
     val properties = new Properties()
     properties.setProperty("bootstrap.servers", config.kafka_input.kafka_base_config.brokers)
     properties.setProperty("zookeeper.connect", config.zookeeper_address)
@@ -106,7 +105,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val initialStream: DataStream[(String, String, String, Int, Long)] = env.addSource(myConsumer)
       .map(event => (UmsCommonUtils.checkAndGetKey(event._1, event._2), event._2, event._3, event._4, event._5))
 
-    val processStream=initialStream
+    val processStream: DataStream[(String, String, String, Int, Long)] = initialStream
       .filter(event => {
         val (umsProtocolType, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(event._1)
         consumeProtocolMap.contains(umsProtocolType) && consumeProtocolMap(umsProtocolType) && matchNamespace(namespace, flowNamespace)
@@ -120,14 +119,15 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   private def assignTimeCharacteristic(env: StreamExecutionEnvironment): Unit = {
     if (timeCharacteristic == SwiftsConstants.PROCESSING_TIME)
       env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime)
-    else env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
+    else
+      env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
   }
 
-
   private def assignTimestamp(inputStream: DataStream[Row], sourceSchemaMap: Map[String, (TypeInformation[_], Int)]) = {
-    if (timeCharacteristic != SwiftsConstants.PROCESSING_TIME)
+    if (timeCharacteristic == SwiftsConstants.PROCESSING_TIME)
+      inputStream
+    else
       inputStream.assignTimestampsAndWatermarks(new FlinkxTimestampExtractor(sourceSchemaMap))
-    else inputStream
   }
 
   private def getSwiftsSql(swiftsString: String, dataType: String): Option[Array[SwiftsSql]] = {
@@ -136,7 +136,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
       logger.info(s"action in getSwiftsSql $action")
       val parser = new ParseSwiftsSql(action, sourceNamespace, sinkNamespace)
       parser.registerConnections(swifts)
-      parser.parse(dataType, sourceSchemaMap.keySet)
+      parser.parse(dataType, immutableSourceSchemaMap.keySet)
     } else None
   }
 
