@@ -40,7 +40,7 @@ object SwiftsProcess extends Serializable {
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  private var preSchemaMap: Map[String, (TypeInformation[_], Int)] = FlinkSchemaUtils.sourceSchemaMap.toMap
+  private var preSchemaMap: Map[String, (TypeInformation[_], Int)] = FlinkSchemaUtils.immutableSourceSchemaMap
 
   def process(dataStream: DataStream[Row], sourceNamespace: String, tableEnv: StreamTableEnvironment, swiftsSql: Option[Array[SwiftsSql]]): (DataStream[Row], Map[String, (TypeInformation[_], Int)]) = {
     var transformedStream = dataStream
