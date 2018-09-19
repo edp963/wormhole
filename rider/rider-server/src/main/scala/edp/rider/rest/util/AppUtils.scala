@@ -24,7 +24,7 @@ package edp.rider.rest.util
 import com.alibaba.fastjson.JSON
 import edp.rider.RiderStarter.modules
 import edp.rider.common.DbPermission._
-import edp.rider.common.RiderLogger
+import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{ResponseHeader, SessionClass}
@@ -122,7 +122,7 @@ object AppUtils extends RiderLogger {
           jobUpdate
         } else {
           val jobInsert = Job(0, appJob.get.name.getOrElse(genJobName(projectId, sourceNs, sinkNs)), projectId, sourceNs, getJobSinkNs(sourceNs, sinkNs, appJob.get.jobType), appJob.get.jobType,
-            None, "", appJob.get.eventTsStart.getOrElse(""), appJob.get.eventTsEnd.getOrElse(""), None, appJob.get.sinkConfig,
+            SparkConfig(Some(RiderConfig.spark.driverExtraConf), Some(RiderConfig.spark.executorExtraConf), Some(RiderConfig.spark.sparkConfig)), "", appJob.get.eventTsStart.getOrElse(""), appJob.get.eventTsEnd.getOrElse(""), None, appJob.get.sinkConfig,
             Some(genJobTranConfigByColumns(appJob.get.tranConfig.getOrElse(""), appJob.get.sinkColumns.getOrElse(""))),
             "starting", None, Some(""), Some(currentSec), None, currentSec,
             session.userId, currentSec, session.userId)
