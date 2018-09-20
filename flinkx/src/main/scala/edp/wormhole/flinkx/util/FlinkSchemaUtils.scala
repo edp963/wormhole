@@ -61,6 +61,8 @@ object FlinkSchemaUtils extends java.io.Serializable {
     }
   }
 
+  val udfSchemaMap = mutable.HashMap.empty[String, TypeInformation[_]]
+
   def setSwiftsSchema(key: String, value: Map[String, (TypeInformation[_], Int)]): Unit = {
     if (!FlinkSchemaUtils.swiftsProcessSchemaMap.contains(key))
       FlinkSchemaUtils.swiftsProcessSchemaMap(key) = value
@@ -84,13 +86,20 @@ object FlinkSchemaUtils extends java.io.Serializable {
     tableFieldNameArray(tableSchema).map(fieldName => tableSchema.getType(fieldName).get)
   }
 
-  def getSchemaMapFromTable(tableSchema: TableSchema): Map[String, (TypeInformation[_], Int)] = {
+  def getSchemaMapFromTable(tableSchema: TableSchema, projectClause: String , udfSchemaMap: Map[String, TypeInformation[_]]): Map[String, (TypeInformation[_], Int)] = {
     println("in getSchemaMapFromTable *******************")
+    val fieldArray = projectClause.split(",")
     val resultSchemaMap = mutable.HashMap.empty[String, (TypeInformation[_], Int)]
     var index = 0
     tableSchema.getColumnNames.foreach(s => {
       logger.info(s"field $index in table $s")
-      resultSchemaMap += s -> (tableSchema.getType(s).get, index)
+      if(tableSchema.getType(s).get.toString.contains("java.lang.Object")) {
+        val field = fieldArray(index).split('(')
+        val udfField = field(0).trim()
+        resultSchemaMap += s -> (udfSchemaMap(udfField), index)
+      } else {
+        resultSchemaMap += s -> (tableSchema.getType(s).get, index)
+      }
       index += 1
     }
     )
@@ -222,6 +231,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
       case Types.SQL_DATE => DATE
       case Types.SQL_TIMESTAMP => DATETIME
       case Types.DECIMAL => DECIMAL
+      //case _ => INT
     }
 
   }

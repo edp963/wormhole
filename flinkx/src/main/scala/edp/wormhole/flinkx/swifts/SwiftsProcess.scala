@@ -35,11 +35,14 @@ import org.apache.flink.table.api.scala.StreamTableEnvironment
 import org.apache.flink.types.Row
 import org.apache.log4j.Logger
 
+import scala.collection.mutable
+
 
 object SwiftsProcess extends Serializable {
   val logger: Logger = Logger.getLogger(this.getClass)
 
   private var preSchemaMap: Map[String, (TypeInformation[_], Int)] = FlinkSchemaUtils.sourceSchemaMap.toMap
+  private var udfSchemaMap: Map[String, TypeInformation[_]] = FlinkSchemaUtils.udfSchemaMap.toMap
 
   def process(dataStream: DataStream[Row], sourceNamespace: String, tableEnv: StreamTableEnvironment, swiftsSql: Option[Array[SwiftsSql]]): (DataStream[Row], Map[String, (TypeInformation[_], Int)]) = {
     var transformedStream = dataStream
@@ -68,11 +71,12 @@ object SwiftsProcess extends Serializable {
     //println(projectClause + "-----projectClause" + namespaceTable + "-----namespaceTable" + whereClause + "-----whereClause")
     val newSql =s"""$projectClause FROM $table $whereClause"""
     println(newSql + " " + table)
+
     try {
       table = tableEnv.sqlQuery(newSql)
       table.printSchema()
       val key = s"swifts$index"
-      val value = FlinkSchemaUtils.getSchemaMapFromTable(table.getSchema)
+      val value = FlinkSchemaUtils.getSchemaMapFromTable(table.getSchema, projectClause, udfSchemaMap)
       preSchemaMap = value
       FlinkSchemaUtils.setSwiftsSchema(key, value)
     } catch {
