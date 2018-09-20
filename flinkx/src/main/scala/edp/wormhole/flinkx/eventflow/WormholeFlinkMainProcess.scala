@@ -31,6 +31,7 @@ import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
 import edp.wormhole.flinkx.eventflow.WormholeFlinkxStarter.config
 import edp.wormhole.flinkx.sink.SinkProcess
 import edp.wormhole.flinkx.swifts.{ParseSwiftsSql, SwiftsProcess}
+import edp.wormhole.flinkx.udf.UdfRegister
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
 import edp.wormhole.flinkx.util.{FlinkxTimestampExtractor, UmsFlowStartUtils, WormholeFlinkxConfigUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
@@ -54,6 +55,7 @@ import scala.collection.mutable.ArrayBuffer
 
 
 class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) extends Serializable {
+
   @transient lazy val logger = Logger.getLogger(this.getClass)
   private val flowStartFields = umsFlowStart.schema.fields_get
   private val flowStartPayload = umsFlowStart.payload_get.head
@@ -72,37 +74,20 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     env.setParallelism(config.parallelism)
 
     val tableEnv = TableEnvironment.getTableEnvironment(env)
-    //udf register todo
+    //udf register
     config.udf_config.foreach(udf => {
       val udfName = udf.functionName
       val udfClassFullname = udf.fullClassName
-      logger.info( udf.id + "，" + udf.fullClassName + "，" + udf.functionName + "，" + udf.jarName + "------udfinfo")
-      val parentPool = ClassPool.getDefault
-      val childPool = new ClassPool(parentPool)
-      //childPool.insertClassPath("D:\\work\\project\\jar\\udf.test.1.0.0-jar-with-dependencies.jar")
-      val ctClass = childPool.get(udfClassFullname)
-
-
-      val ctMethod = ctClass.getMethods.filter(m=>{
-        m.getName == udfName
-      }).head
-      ctMethod.setName("eval")
-      ctClass.setSuperclass(childPool.get("org.apache.flink.table.functions.ScalarFunction"))
-      logger.info( ctMethod.getName + "------ctMethod.getName")
-
-      ctClass.getMethods.foreach(one => {
-        logger.info(one.getName + "-functionName")
-      })
-      val obj = ctClass.toClass.newInstance()
-      logger.info( obj.getClass + "------obj.getClass")
-      tableEnv.registerFunction(udfName, obj.asInstanceOf[ScalarFunction])
-      logger.info( udfName + "------registerFunction END" + obj.asInstanceOf[ScalarFunction].getClass)
-
+      try {
+        UdfRegister.register(udfName, udfClassFullname, tableEnv)
+      } catch {
+        case e: Throwable =>
+          logger.error(udfName + " register fail", e)
+      }
       /*val clazz = Class.forName(udfClassFullname)
       val obj: Any = clazz.newInstance()
       tableEnv.registerFunction(udfName, obj.asInstanceOf[ScalarFunction])*/
     })
-
 
     assignTimeCharacteristic(env)
     val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase)
