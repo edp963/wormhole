@@ -82,21 +82,61 @@ object FlinkSchemaUtils extends java.io.Serializable {
     tableSchema.getColumnNames
   }
 
-  def tableFieldTypeArray(tableSchema: TableSchema): Array[TypeInformation[_]] = {
-    tableFieldNameArray(tableSchema).map(fieldName => tableSchema.getType(fieldName).get)
+  def tableFieldTypeArray(tableSchema: TableSchema, preSchemaMap: Map[String, (TypeInformation[_], Int)]): Array[TypeInformation[_]] = {
+    tableFieldNameArray(tableSchema).map(fieldName => preSchemaMap(fieldName)._1)
   }
 
   def getSchemaMapFromTable(tableSchema: TableSchema, projectClause: String , udfSchemaMap: Map[String, TypeInformation[_]]): Map[String, (TypeInformation[_], Int)] = {
     println("in getSchemaMapFromTable *******************")
-    val fieldArray = projectClause.split(",")
+
+    //position
+    /*val fieldArray = projectClause.substring(5).split("[,()]")
+    val udfTypeIndexMap = mutable.HashMap.empty[Int, TypeInformation[_]]
+    var udfIndex = 0
+    fieldArray.foreach(field => {
+      if(udfSchemaMap.contains(field.trim)) {
+          udfTypeIndexMap += udfIndex -> udfSchemaMap(field.trim)
+          udfIndex += 1
+        }
+    })*/
+
+    //name
+    val fieldString = projectClause.substring(5)
+    val nameMap = mutable.HashMap.empty[String, String]
+    var s = ""
+    var num = 0
+    for( sIndex <- 0 until fieldString.length) {
+      if(fieldString(sIndex) == ',' && num == 0) {
+        if(s.contains('(') && s.contains("as")) {
+          val udfName = s.trim.substring(0,s.trim.indexOf('('))
+          val newName = s.trim.substring(s.indexOf("as")+2).trim
+          nameMap += newName -> udfName
+        }
+        s = ""
+      } else {
+        if(fieldString(sIndex) == '(') num += 1
+        else if(fieldString(sIndex) == ')') num -= 1
+        s = s + fieldString(sIndex)
+      }
+    }
+    if(s.contains('(') && s.contains("as")) {
+      val udfName = s.trim.substring(0,s.trim.indexOf('('))
+      val newName = s.trim.substring(s.indexOf("as")+2).trim
+      nameMap += newName -> udfName
+    }
+    logger.info("nameMap:" + nameMap.toString())
+
     val resultSchemaMap = mutable.HashMap.empty[String, (TypeInformation[_], Int)]
     var index = 0
+    var udfIndexCur = 0
     tableSchema.getColumnNames.foreach(s => {
       logger.info(s"field $index in table $s")
       if(tableSchema.getType(s).get.toString.contains("java.lang.Object")) {
-        val field = fieldArray(index).split('(')
-        val udfField = field(0).trim()
-        resultSchemaMap += s -> (udfSchemaMap(udfField), index)
+        //position
+        //resultSchemaMap += s -> (udfTypeIndexMap(udfIndexCur), index)
+        //name
+        resultSchemaMap += s -> (udfSchemaMap(nameMap(s)), index)
+        udfIndexCur += 1
       } else {
         resultSchemaMap += s -> (tableSchema.getType(s).get, index)
       }
