@@ -40,14 +40,12 @@ import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.swifts.SwiftsSql
-import javassist.ClassPool
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010
 import org.apache.flink.table.api.{TableEnvironment, Types}
-import org.apache.flink.table.functions.ScalarFunction
 import org.apache.flink.types.Row
 import org.apache.log4j.Logger
 
@@ -55,7 +53,6 @@ import scala.collection.mutable.ArrayBuffer
 
 
 class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) extends Serializable {
-
   @transient lazy val logger = Logger.getLogger(this.getClass)
   private val flowStartFields = umsFlowStart.schema.fields_get
   private val flowStartPayload = umsFlowStart.payload_get.head
