@@ -33,13 +33,14 @@ import org.apache.flink.streaming.api.scala.{DataStream, _}
 import org.apache.flink.table.api.Types
 import org.apache.flink.table.api.scala.StreamTableEnvironment
 import org.apache.flink.types.Row
-import org.apache.log4j.Logger
+import org.slf4j.{Logger, LoggerFactory}
 
 
 object SwiftsProcess extends Serializable {
-  val logger: Logger = Logger.getLogger(this.getClass)
 
-  private var preSchemaMap: Map[String, (TypeInformation[_], Int)] = FlinkSchemaUtils.sourceSchemaMap.toMap
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
+
+  private var preSchemaMap: Map[String, (TypeInformation[_], Int)] = FlinkSchemaUtils.immutableSourceSchemaMap
 
   def process(dataStream: DataStream[Row], sourceNamespace: String, tableEnv: StreamTableEnvironment, swiftsSql: Option[Array[SwiftsSql]]): (DataStream[Row], Map[String, (TypeInformation[_], Int)]) = {
     var transformedStream = dataStream
@@ -61,13 +62,13 @@ object SwiftsProcess extends Serializable {
   private def doFlinkSql(dataStream: DataStream[Row], sourceNamespace: String, tableEnv: StreamTableEnvironment, sql: String, index: Int) = {
     var table = tableEnv.fromDataStream(dataStream)
     table.printSchema()
-    val projectClause = sql.substring(0, sql.indexOf("from")).trim
+    val projectClause = sql.substring(0, sql.lastIndexOf("from")).trim
     val namespaceTable = sourceNamespace.split("\\.").apply(3)
     val fromClause = sql.substring(sql.indexOf("from")).trim
     val whereClause = fromClause.substring(fromClause.indexOf(namespaceTable) + namespaceTable.length).trim
     //println(projectClause + "-----projectClause" + namespaceTable + "-----namespaceTable" + whereClause + "-----whereClause")
     val newSql =s"""$projectClause FROM $table $whereClause"""
-    println(newSql + " " + table)
+    println(newSql)
     try {
       table = tableEnv.sqlQuery(newSql)
       table.printSchema()
@@ -77,6 +78,7 @@ object SwiftsProcess extends Serializable {
       FlinkSchemaUtils.setSwiftsSchema(key, value)
     } catch {
       case e: Throwable => logger.error("in doFlinkSql table query", e)
+        println(e)
     }
     val resultDataStream = tableEnv.toAppendStream[Row](table).map(o => o)(Types.ROW(FlinkSchemaUtils.tableFieldNameArray(table.getSchema), FlinkSchemaUtils.tableFieldTypeArray(table.getSchema)))
     resultDataStream.print()
