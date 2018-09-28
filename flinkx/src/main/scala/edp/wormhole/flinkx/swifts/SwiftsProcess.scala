@@ -37,9 +37,10 @@ import org.slf4j.{Logger, LoggerFactory}
 
 
 object SwiftsProcess extends Serializable {
+
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  private var preSchemaMap: Map[String, (TypeInformation[_], Int)] = FlinkSchemaUtils.sourceSchemaMap.toMap
+  private var preSchemaMap: Map[String, (TypeInformation[_], Int)] = FlinkSchemaUtils.immutableSourceSchemaMap
   private var udfSchemaMap: Map[String, TypeInformation[_]] = FlinkSchemaUtils.udfSchemaMap.toMap
 
   def process(dataStream: DataStream[Row], sourceNamespace: String, tableEnv: StreamTableEnvironment, swiftsSql: Option[Array[SwiftsSql]]): (DataStream[Row], Map[String, (TypeInformation[_], Int)]) = {
@@ -80,8 +81,6 @@ object SwiftsProcess extends Serializable {
       case e: Throwable => logger.error("in doFlinkSql table query", e)
         println(e)
     }
-
-
    val resultDataStream = tableEnv.toAppendStream[Row](table).map(o => o)(Types.ROW(FlinkSchemaUtils.tableFieldNameArray(table.getSchema), FlinkSchemaUtils.tableFieldTypeArray(table.getSchema, preSchemaMap)))
     /*val resultDataStream: DataStream[Row] = tableEnv.toAppendStream[Row](table).map(o =>{
       var index = 0
