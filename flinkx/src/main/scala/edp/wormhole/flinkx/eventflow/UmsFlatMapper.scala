@@ -26,16 +26,18 @@ import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.{UmsCommonUtils, UmsField}
 import org.apache.flink.api.common.functions.RichFlatMapFunction
 import org.apache.flink.api.common.typeinfo.TypeInformation
+import org.apache.flink.streaming.api.functions.ProcessFunction
+import org.apache.flink.streaming.api.scala.OutputTag
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
 import org.apache.log4j.Logger
 
 import scala.collection.mutable.ArrayBuffer
 
-class UmsFlatMapper(sourceSchemaMap: Map[String, (TypeInformation[_], Int)], sourceNamespace: String, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])]) extends RichFlatMapFunction[(String, String, String, Int, Long), Row] with Serializable {
+class UmsFlatMapper(sourceSchemaMap: Map[String, (TypeInformation[_], Int)], sourceNamespace: String, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])],outputTag:OutputTag[String]) extends ProcessFunction[(String, String, String, Int, Long), Row] with Serializable {
   private lazy val logger = Logger.getLogger(this.getClass)
 
-  override def flatMap(value: (String, String, String, Int, Long), out: Collector[Row]): Unit = {
+  override def processElement(value: (String, String, String, Int, Long), ctx: ProcessFunction[(String, String, String, Int, Long), Row]#Context, out: Collector[Row]): Unit = {
     logger.info("in UmsFlatMapper source data from kafka " + value._2)
     val (protocolType, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(value._1)
     if (jsonSourceParseMap.contains((protocolType, namespace))) {
@@ -46,13 +48,14 @@ class UmsFlatMapper(sourceSchemaMap: Map[String, (TypeInformation[_], Int)], sou
       })
     }
     else {
-        val ums = UmsCommonUtils.json2Ums(value._2)
-        logger.info("in UmsFlatMapper " + sourceSchemaMap.size)
-        if (FlinkSchemaUtils.matchNamespace(ums.schema.namespace, sourceNamespace) && ums.payload.nonEmpty && ums.schema.fields.nonEmpty)
-          ums.payload_get.foreach(tuple => {
-            createRow(tuple.tuple, protocolType.toString, out)
-          })
+      val ums = UmsCommonUtils.json2Ums(value._2)
+      logger.info("in UmsFlatMapper " + sourceSchemaMap.size)
+      if (FlinkSchemaUtils.matchNamespace(ums.schema.namespace, sourceNamespace) && ums.payload.nonEmpty && ums.schema.fields.nonEmpty)
+        ums.payload_get.foreach(tuple => {
+          createRow(tuple.tuple, protocolType.toString, out)
+        })
     }
+    ctx.output(outputTag,value._2)
   }
   def createRow(tuple: Seq[String], protocolType:String, out: Collector[Row]): Unit = {
     val row = new Row(tuple.size + 1)

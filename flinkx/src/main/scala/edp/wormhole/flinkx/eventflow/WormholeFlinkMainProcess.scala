@@ -37,7 +37,7 @@ import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.swifts.SwiftsConstants
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
-import edp.wormhole.util.DateUtils
+import edp.wormhole.util.{DateUtils, JsonUtils}
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -70,7 +70,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     env.setParallelism(config.parallelism)
 
     assignTimeCharacteristic(env)
-    val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase)
+    val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase,initialTs)
     val watermarkStream = assignTimestamp(inputStream, sourceSchemaMap.toMap)
     watermarkStream.print()
     try {
@@ -88,7 +88,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     env.execute(s"$sourceNamespace-$sinkNamespace")
   }
 
-  private def createKafkaStream(env: StreamExecutionEnvironment, flowNamespace: String) = {
+  private def createKafkaStream(env: StreamExecutionEnvironment, flowNamespace: String, initialTs:Long) = {
     val properties = new Properties()
     properties.setProperty("bootstrap.servers", config.kafka_input.kafka_base_config.brokers)
     properties.setProperty("zookeeper.connect", config.zookeeper_address)
@@ -114,7 +114,10 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
 
     val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
     doOtherData(initialStream.map(row=>row._2))  //send heart or termination back to kafka
-    processStream.flatMap(new UmsFlatMapper(sourceSchemaMap.toMap, sourceNamespace, jsonSourceParseMap))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
+    val outputTag = OutputTag[String]("side-output")
+    val mainDataStream=processStream.process(new UmsFlatMapper(sourceSchemaMap.toMap, sourceNamespace, jsonSourceParseMap,outputTag))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
+    mainDataStream.getSideOutput(outputTag).map(data=>("same",data)).keyBy(_._1).map(new CountWithFeedbackFunction(sourceSchemaMap.toMap, sourceNamespace,sinkNamespace,jsonSourceParseMap,config,streamId,initialTs))
+    mainDataStream
   }
 
   private def assignTimeCharacteristic(env: StreamExecutionEnvironment): Unit = {

@@ -30,6 +30,7 @@ import edp.wormhole.util.JsonUtils
 import org.apache.log4j.Logger
 
 object WormholeFlinkxStarter extends App {
+
   val logger: Logger = Logger.getLogger(this.getClass)
   println(args(0) + " --------------wh config")
   println(args(1) + " --------------flow start")

@@ -238,6 +238,7 @@ trait UmsProtocolUtils {
                         streamId: Long,
                         batchId: String,
                         sinkNamespace: String,
+                        topics: String,
                         rddCount: Int,
                         cdcTs: Long,
                         rddTs: Long,
@@ -254,6 +255,7 @@ trait UmsProtocolUtils {
       UmsField("batch_id", UmsFieldType.STRING),
       UmsField("stats_id", UmsFieldType.STRING),//兼容现有的版本，以后rider都升级了可以干掉
       UmsField("sink_namespace", UmsFieldType.STRING),
+      UmsField("topics",UmsFieldType.STRING),
       UmsField("rdd_count", UmsFieldType.INT),
       UmsField("data_genereated_ts", UmsFieldType.LONG),
       UmsField("rdd_generated_ts", UmsFieldType.LONG),
@@ -270,6 +272,7 @@ trait UmsProtocolUtils {
       batchId,
       batchId,
       sinkNamespace,
+      topics,
       rddCount.toString,
       cdcTs.toString,
       rddTs.toString,
