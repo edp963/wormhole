@@ -31,7 +31,7 @@ import Col from 'antd/lib/col'
 import Card from 'antd/lib/card'
 import Tooltip from 'antd/lib/tooltip'
 import Button from 'antd/lib/button'
-// import Select from 'antd/lib/select'
+import Select from 'antd/lib/select'
 import InputNumber from 'antd/lib/input-number'
 import { Collapse, Input, Icon, message } from 'antd'
 const Panel = Collapse.Panel
@@ -151,7 +151,7 @@ export class FlowStartForm extends React.Component {
     }
   }
   render () {
-    // const {  streamActionType, startUdfValsOption, renewUdfValsOption, currentUdfVal } = this.props
+    const { streamActionType, startUdfValsOption, renewUdfValsOption, currentUdfVal } = this.props
     const { form, locale } = this.props
     const { getFieldDecorator } = form
     const { data, userDefinedTopics, unValidate } = this.state
@@ -423,21 +423,21 @@ export class FlowStartForm extends React.Component {
         </div>
       </Row>
     )
-    // const itemStyleUdf = {
-    //   wrapperCol: { span: 24 }
-    // }
-    // const udfChildren = streamActionType === 'start'
-    //   ? startUdfValsOption.map(i => (<Select.Option key={i.id} value={`${i.id}`}>{i.functionName}</Select.Option>))
-    //   : renewUdfValsOption.map(i => (<Select.Option key={i.id} value={`${i.id}`}>{i.functionName}</Select.Option>))
+    const itemStyleUdf = {
+      wrapperCol: { span: 24 }
+    }
+    const udfChildren = streamActionType === 'start'
+      ? startUdfValsOption.map(i => (<Select.Option key={i.id} value={`${i.id}`}>{i.functionName}</Select.Option>))
+      : renewUdfValsOption.map(i => (<Select.Option key={i.id} value={`${i.id}`}>{i.functionName}</Select.Option>))
 
-    // const currentUdfsShow = currentUdfVal.length === 0
-    //   ? ''
-    //   : currentUdfVal.map(i => i.functionName).join(', ')
+    const currentUdfsShow = currentUdfVal.length === 0
+      ? ''
+      : currentUdfVal.map(i => i.functionName).join(', ')
 
     return (
       <Form>
         <Row>
-          {/* <Card title="UDFs：" className={streamActionType === 'start' ? 'stream-start-form-udf-style' : 'stream-renew-form-udf-style'}>
+          <Card title="UDFs：" className={streamActionType === 'start' ? 'stream-start-form-udf-style' : 'stream-renew-form-udf-style'}>
             <div className="udf-info-wrapper">
               <div className={`${streamActionType === 'start' ? 'hide' : ''} selected-udf-class`}>Selected UDFs：{currentUdfsShow}</div>
               <Col span={24} className="stream-udf">
@@ -453,7 +453,7 @@ export class FlowStartForm extends React.Component {
                 </FormItem>
               </Col>
             </div>
-          </Card> */}
+          </Card>
           <Card title={topicCardTitle} className="stream-start-form-card-style">
             <Collapse defaultActiveKey={['auto', 'user']}>
               <Panel header={autoRegisteredTopicsCardTitle} key="auto">
@@ -479,10 +479,10 @@ export class FlowStartForm extends React.Component {
 
 FlowStartForm.propTypes = {
   form: PropTypes.any,
-  // streamActionType: PropTypes.string,
-  // startUdfValsOption: PropTypes.array,
-  // renewUdfValsOption: PropTypes.array,
-  // currentUdfVal: PropTypes.array,
+  streamActionType: PropTypes.string,
+  startUdfValsOption: PropTypes.array,
+  renewUdfValsOption: PropTypes.array,
+  currentUdfVal: PropTypes.array,
   locale: PropTypes.string,
   projectIdGeted: PropTypes.string,
   streamIdGeted: PropTypes.number,
