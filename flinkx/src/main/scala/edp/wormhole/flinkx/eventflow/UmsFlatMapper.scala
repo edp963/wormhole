@@ -46,19 +46,18 @@ class UmsFlatMapper(sourceSchemaMap: Map[String, (TypeInformation[_], Int)], sou
       })
     }
     else {
-        val ums = UmsCommonUtils.json2Ums(value._2)
-        logger.info("in UmsFlatMapper " + sourceSchemaMap.size)
-        if (FlinkSchemaUtils.matchNamespace(ums.schema.namespace, sourceNamespace) && ums.payload.nonEmpty && ums.schema.fields.nonEmpty)
-          ums.payload_get.foreach(tuple => {
-            createRow(tuple.tuple, protocolType.toString, out)
-          })
+      val ums = UmsCommonUtils.json2Ums(value._2)
+      logger.info("in UmsFlatMapper " + sourceSchemaMap.size)
+      if (FlinkSchemaUtils.matchNamespace(ums.schema.namespace, sourceNamespace) && ums.payload.nonEmpty && ums.schema.fields.nonEmpty)
+        ums.payload_get.foreach(tuple => {
+          createRow(tuple.tuple, protocolType.toString, out)
+        })
     }
   }
   def createRow(tuple: Seq[String], protocolType:String, out: Collector[Row]): Unit = {
-    val row = new Row(tuple.size + 1)
-    row.setField(0, protocolType)
-    for (i <- 1 to tuple.size)
-      row.setField(i, FlinkSchemaUtils.getRelValue(i, tuple(i - 1), sourceSchemaMap))
+    val row = new Row(tuple.size)
+    for (i <- tuple.indices)
+      row.setField(i, FlinkSchemaUtils.getRelValue(i, tuple(i), sourceSchemaMap))
     out.collect(row)
   }
 }

@@ -87,18 +87,17 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
     val outputFieldSize: Int = outputFieldList.length
     val keyByFieldsArray = if (keyByFields != null && keyByFields != "") keyByFields.split(";")
     else null
-    val systemFieldsSize = 4
+    val systemFieldsSize = 3
     val row = if (keyByFieldsArray != null) {
       new Row(outputFieldSize + keyByFieldsArray.length + systemFieldsSize)
     } else new Row(outputFieldSize + systemFieldsSize)
-    val protocolType = input.head.head.getField(schemaMap(SwiftsConstants.PROTOCOL_TYPE)._2).asInstanceOf[String]
-    row.setField(0, protocolType)
+
     val umsId = input.flatten.map(row => row.getField(schemaMap(UmsSysField.ID.toString)._2).asInstanceOf[Long]).min
-    row.setField(1, umsId)
+    row.setField(0, umsId)
     val umsTs = input.flatten.map(row => row.getField(schemaMap(UmsSysField.TS.toString)._2).asInstanceOf[Timestamp]).min(Ordering[Timestamp])
-    row.setField(2, umsTs)
+    row.setField(1, umsTs)
     val umsOp = input.flatten.map(row => row.getField(schemaMap(UmsSysField.OP.toString)._2).asInstanceOf[String]).min
-    row.setField(3, umsOp)
+    row.setField(2, umsOp)
     if (keyByFieldsArray != null)
       for (keyIndex <- keyByFieldsArray.indices) {
         val rowFieldType = schemaMap(keyByFieldsArray(keyIndex))._1
