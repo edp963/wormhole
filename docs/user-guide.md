@@ -288,7 +288,7 @@ Wormhole Flink版对传输的流数据除了提供Lookup SQL、Flink SQL两种Tr
 
 ####### Flink SQL
 
-Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Flink SQL UDF 功能会在后续版本支持。
+Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Flink SQL支持UDF，UDF名称大小写敏感。
 
 ### 修改 Flow
 
@@ -305,6 +305,7 @@ Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 #### 启动 Flink Flow
 
 - Stream running状态下才可以启动Flow
+- 启动 Flow 时可以选择需要加载的 UDF，也可以取消已选择的 UDF
 - 配置每个Topic Partition消费的起始Offset，可配置用户自定义Topic
 - 点击启动按钮，后台会向对应Flink Stream JobManager上提交创建TaskManager请求
 - 启动Flow后可点击查看日志按钮，若创建成功状态会转至running状态，若创建失败状态会转至failed状态，可根据日志错误提示重新配置
