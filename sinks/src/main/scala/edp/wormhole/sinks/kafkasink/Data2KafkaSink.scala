@@ -36,8 +36,7 @@ import org.apache.log4j.Logger
 
 class Data2KafkaSink extends SinkProcessor {
   private lazy val logger = Logger.getLogger(this.getClass)
-  override def process(protocolType: UmsProtocolType,
-                       sourceNamespace: String,
+  override def process(sourceNamespace: String,
                        sinkNamespace: String,
                        sinkProcessConfig: SinkProcessConfig,
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
@@ -48,7 +47,7 @@ class Data2KafkaSink extends SinkProcessor {
     val sinkSpecificConfig = if (sinkProcessConfig.specialConfig.isDefined) JsonUtils.json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get) else KafkaConfig(None, None, None,None)
 
     val schemaList: Seq[(String, (Int, UmsFieldType, Boolean))] = schemaMap.toSeq.sortBy(_._2._1)
-    val protocol: UmsProtocol = UmsProtocol(protocolType)
+    val protocol: UmsProtocol = UmsProtocol(UmsProtocolType.DATA_INCREMENT_DATA)
     //for job of feedback
     val kafkaTopic = if(sinkSpecificConfig.sinkKafkaTopic.nonEmpty&&sinkSpecificConfig.sinkKafkaTopic.get.nonEmpty) sinkSpecificConfig.sinkKafkaTopic.get else sinkNamespace.split("\\.")(2)
     val format = sinkSpecificConfig.messageFormat.trim
@@ -57,7 +56,7 @@ class Data2KafkaSink extends SinkProcessor {
         val seqUmsField: Seq[UmsField] = schemaList.map(kv => UmsField(kv._1, kv._2._2, Some(kv._2._3)))
         val schema = UmsSchema(sinkNamespace, Some(seqUmsField))
         val kafkaLimitNum = sinkSpecificConfig.limitNum
-        ums2Kafka(tupleList, kafkaLimitNum, protocol, schema, protocolType, sinkNamespace, kafkaTopic, connectionConfig)
+        ums2Kafka(tupleList, kafkaLimitNum, protocol, schema, UmsProtocolType.DATA_INCREMENT_DATA, sinkNamespace, kafkaTopic, connectionConfig)
       case "flattenJson" =>
         val hasSystemField = sinkSpecificConfig.hasSystemField
         if (hasSystemField) flattenJson2KafkaWithSystemValue(tupleList, schemaList, sinkNamespace, kafkaTopic, connectionConfig, protocol.`type`.toString)

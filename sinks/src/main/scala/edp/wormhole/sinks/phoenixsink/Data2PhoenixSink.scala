@@ -23,18 +23,16 @@ package edp.wormhole.sinks.phoenixsink
 
 import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.ums.UmsFieldType._
-import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.util.JsonUtils
 import edp.wormhole.util.config.ConnectionConfig
 
 class Data2PhoenixSink extends SinkProcessor {
-  override def process(protocolType: UmsProtocolType,
-                       sourceNamespace: String,
+  override def process(sourceNamespace: String,
                        sinkNamespace: String,
                        sinkProcessConfig: SinkProcessConfig,
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        tupleList: Seq[Seq[String]],
-                       connectionConfig:ConnectionConfig): Unit = {
+                       connectionConfig: ConnectionConfig): Unit = {
     val sinkSpecificConfig: PhoenixConfig = JsonUtils.json2caseClass[PhoenixConfig](sinkProcessConfig.specialConfig.get)
     val phoenixProcess = new PhoenixProcess(sinkNamespace, sinkProcessConfig, schemaMap, sinkSpecificConfig,connectionConfig)
     phoenixProcess.doInsert(tupleList)
