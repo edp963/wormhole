@@ -25,12 +25,14 @@ import java.util.Properties
 
 import edp.wormhole.util.config.KVConfig
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
+import org.apache.log4j.Logger
 
 import scala.collection.mutable
 
 object WormholeKafkaProducer extends Serializable {
 
   @volatile private var producerMap: mutable.HashMap[String, KafkaProducer[String, String]] = new mutable.HashMap[String, KafkaProducer[String, String]]
+  @transient lazy val logger = Logger.getLogger(this.getClass)
 
   private def getProducerProps: Properties = {
     val props = new Properties()
@@ -80,6 +82,9 @@ object WormholeKafkaProducer extends Serializable {
 
   private def send(topic: String, partition: Int, message: String, key: Option[String], brokers: String): Any = {
     try {
+      logger.info("==========================11111========================")
+      logger.info(s"topic:$topic,partition:$partition,message:$message,key:${key.get},brokers:$brokers")
+      logger.info("============================22222======================")
       sendInternal(topic, partition, message, key, brokers)
     } catch {
       case _: Throwable =>
@@ -128,6 +133,7 @@ object WormholeKafkaProducer extends Serializable {
   private def sendInternal(topic: String, partition: Int, message: String, key: Option[String], brokers: String) =
     if (message != null) {
       try {
+
         if (key.isDefined) {
           getProducer(brokers).send(new ProducerRecord[String, String](topic, partition, key.get, message))
         } else {

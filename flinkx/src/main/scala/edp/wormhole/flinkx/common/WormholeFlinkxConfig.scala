@@ -27,7 +27,8 @@ case class WormholeFlinkxConfig(kafka_input: KafkaInputConfig,
                                 flink_config: String,
                                 parallelism: Int,
                                 zookeeper_address: String,
-                                udf_config: Seq[UdfConfig])
+                                udf_config: Seq[UdfConfig],
+                                feedback_state_count:Int)
 
 case class UdfConfig(id: Long, functionName: String, fullClassName: String, jarName: String)
 case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,

@@ -949,7 +949,7 @@ object FlowUtils extends RiderLogger {
     val userDefinedTopics = flowUdfTopicDal.getUdfTopics(Seq(flow.id)).map(topic => KafkaFlinkTopic(topic.topicName, topic.partitionOffsets))
     val flinkTopic = autoRegisteredTopics ++ userDefinedTopics
     val udfConfig: Seq[FlowUdfResponse] = flowUdfDal.getFlowUdf(Seq(flow.id))
-    val config = WhFlinkConfig(KafkaInput(baseConfig, flinkTopic), outputConfig, flow.parallelism.getOrElse(RiderConfig.flink.defaultParallelism), RiderConfig.zk, udfConfig)
+    val config = WhFlinkConfig(KafkaInput(baseConfig, flinkTopic), outputConfig, flow.parallelism.getOrElse(RiderConfig.flink.defaultParallelism), RiderConfig.zk, udfConfig,RiderConfig.flink.feedbackStateCount)
     caseClass2json[WhFlinkConfig](config)
   }
 

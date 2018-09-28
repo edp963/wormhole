@@ -68,7 +68,6 @@ object BatchflowStarter extends App with EdpLogging {
   val kafkaInput: KafkaInputConfig = OffsetPersistenceManager.initOffset(config, appId)
   val kafkaStream = createKafkaStream(ssc, kafkaInput)
   BatchflowMainProcess.process(kafkaStream, config, session)
-
   SparkContextUtils.checkSparkRestart(config.zookeeper_path, config.spark_config.stream_id, appId)
   SparkContextUtils.deleteZookeeperOldAppidPath(appId, config.zookeeper_path, config.spark_config.stream_id)
   WormholeZkClient.createPath(config.zookeeper_path, WormholeConstants.CheckpointRootPath + config.spark_config.stream_id + "/" + appId)

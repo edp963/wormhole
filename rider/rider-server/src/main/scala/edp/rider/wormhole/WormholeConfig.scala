@@ -103,5 +103,6 @@ case class WhFlinkConfig(kafka_input: KafkaInput,
                          parallelism: Int,
                          zookeeper_address: String,
                          udf_config: Seq[FlowUdfResponse],
+                         feedback_state_count:Int,
                          flink_config: String = "")
 
