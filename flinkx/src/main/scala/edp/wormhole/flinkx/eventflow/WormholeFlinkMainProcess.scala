@@ -30,6 +30,7 @@ import edp.wormhole.flinkx.common.{ConfMemoryStorage, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
 import edp.wormhole.flinkx.sink.SinkProcess
 import edp.wormhole.flinkx.swifts.{ParseSwiftsSql, SwiftsProcess}
+import edp.wormhole.flinkx.udf.UdfRegister
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
 import edp.wormhole.flinkx.util.{FlinkxTimestampExtractor, UmsFlowStartUtils, WormholeFlinkxConfigUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
@@ -68,13 +69,29 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
     env.setParallelism(config.parallelism)
 
+    val tableEnv = TableEnvironment.getTableEnvironment(env)
+    //udf register
+    config.udf_config.foreach(udf => {
+      val udfName = udf.functionName
+      val udfClassFullname = udf.fullClassName
+      try {
+        UdfRegister.register(udfName, udfClassFullname, tableEnv)
+      } catch {
+        case e: Throwable =>
+          logger.error(udfName + " register fail", e)
+      }
+      /*val clazz = Class.forName(udfClassFullname)
+      val obj: Any = clazz.newInstance()
+      tableEnv.registerFunction(udfName, obj.asInstanceOf[ScalarFunction])*/
+    })
+
     assignTimeCharacteristic(env)
     val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase)
     val watermarkStream = assignTimestamp(inputStream, immutableSourceSchemaMap)
     watermarkStream.print()
     try {
       val swiftsTs = System.currentTimeMillis
-      val (stream, schemaMap) = SwiftsProcess.process(watermarkStream, sourceNamespace, TableEnvironment.getTableEnvironment(env), swiftsSql)
+      val (stream, schemaMap) = SwiftsProcess.process(watermarkStream, sourceNamespace, tableEnv, swiftsSql)
       SinkProcess.doProcess(stream, umsFlowStart, schemaMap,config,initialTs,swiftsTs)
     } catch {
       case e: Throwable =>
