@@ -422,7 +422,6 @@ object ParseSwiftsSqlInternal {
       if (dataType == "ums" && !selectFields.contains(UmsSysField.OP.toString) && sourceSchemaFieldSet.contains(UmsSysField.OP.toString)) {
         sql = sql + UmsSysField.OP.toString + ", "
       }
-      sql = sql + SwiftsConstants.PROTOCOL_TYPE + ", "
     }
     sql = sql + sqlStrEle.substring(sqlStrEle.toLowerCase.indexOf("select ") + 7)
     sql = sql.replaceAll("(?i)" + " " + tableName + " ", " " + tableName + " ")

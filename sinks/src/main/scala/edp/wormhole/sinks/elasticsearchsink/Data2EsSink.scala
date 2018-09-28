@@ -39,8 +39,7 @@ class Data2EsSink extends SinkProcessor {
   val optNameUpdate = "update"
   val optNameInsert = "create"
 
-  override def process(protocolType: UmsProtocolType,
-                       sourceNamespace: String,
+  override def process(sourceNamespace: String,
                        sinkNamespace: String,
                        sinkProcessConfig: SinkProcessConfig,
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
@@ -67,16 +66,16 @@ class Data2EsSink extends SinkProcessor {
                           sinkConfig: SinkProcessConfig,
                           sinkSpecificConfig: EsConfig): (String, Long, String) = {
     val json = new JSONObject
-    val umsid =
+    val umsId =
       if (sinkSpecificConfig.`mutation_type.get` == SourceMutationType.I_U_D.toString) row(schemaMap(UmsSysField.ID.toString)._1).toLong
       else 1L
     for ((name, (index, fieldType, _)) <- schemaMap) {
       val field = row(index)
-      val (cname, cvalue) = JsonParseHelper.parseData2CorrectType(fieldType, field: String, name)
-      json.put(cname, cvalue)
+      val (correctName, correctValue) = JsonParseHelper.parseData2CorrectType(fieldType, field: String, name)
+      json.put(correctName, correctValue)
     }
     val _ids = _IDHelper.get_Ids(row, sinkSpecificConfig.`_id.get`, schemaMap)
-    (_ids, umsid, json.toJSONString)
+    (_ids, umsId, json.toJSONString)
   }
 
   private def doSinkProcess(sinkConfig: SinkProcessConfig,
@@ -96,7 +95,7 @@ class Data2EsSink extends SinkProcessor {
 
     if (sinkSpecificConfig.`mutation_type.get` == SourceMutationType.I_U_D.toString) {
 
-      val (result, esid2UmsidInEsMap) = {
+      val (result, esId2UmsidInEsMap) = {
         val idList = dataList.map(_._1)
         EsTools.queryVersionByEsid(idList, sinkNamespace, cc, indexName)
       }
@@ -106,9 +105,9 @@ class Data2EsSink extends SinkProcessor {
         val insertId2JsonMap = mutable.HashMap.empty[String, String]
         val updateId2JsonMap = mutable.HashMap.empty[String, String]
         dataList.foreach { case (id, umsid, json) =>
-          val umsidInEs = esid2UmsidInEsMap(id)
-          if (umsidInEs == -1) insertId2JsonMap(id) = json
-          else if (umsidInEs < umsid) updateId2JsonMap(id) = json
+          val umsIdInEs = esId2UmsidInEsMap(id)
+          if (umsIdInEs == -1) insertId2JsonMap(id) = json
+          else if (umsIdInEs < umsid) updateId2JsonMap(id) = json
         }
         val insertFlag = doBatchInsert(insertId2JsonMap, sinkConfig, sinkNamespace, cc, indexName)
         val updateFlag = doBatchUpdate(updateId2JsonMap, sinkConfig, sinkNamespace, cc, indexName)

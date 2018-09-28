@@ -42,18 +42,19 @@ object FlinkSchemaUtils extends java.io.Serializable {
   private val logger = Logger.getLogger(this.getClass)
   val sourceSchemaMap = mutable.HashMap.empty[String, (TypeInformation[_], Int)]
 
+  lazy val immutableSourceSchemaMap: Map[String, (TypeInformation[_], Int)] = sourceSchemaMap.toMap
+
   val swiftsProcessSchemaMap = mutable.HashMap.empty[String, Map[String, (TypeInformation[_], Int)]]
 
-  def sourceFieldNameArray: Array[String] = getFieldNamesFromSchema(sourceSchemaMap.toMap)
+  def sourceFieldNameArray: Array[String] = getFieldNamesFromSchema(immutableSourceSchemaMap)
 
-  def sourceFlinkTypeArray: Array[TypeInformation[_]] = sourceFieldNameArray.map(field => sourceSchemaMap(field)._1)
+  def sourceFlinkTypeArray: Array[TypeInformation[_]] = sourceFieldNameArray.map(field => immutableSourceSchemaMap(field)._1)
 
-  def sourceFieldIndexArray: Array[Int] = sourceFieldNameArray.map(field => sourceSchemaMap(field)._2)
+  def sourceFieldIndexArray: Array[Int] = sourceFieldNameArray.map(field => immutableSourceSchemaMap(field)._2)
 
   def setSourceSchemaMap(umsSchema: UmsSchema): Unit = {
     val fields = umsSchema.fields_get
-    sourceSchemaMap += SwiftsConstants.PROTOCOL_TYPE -> (Types.STRING, 0)
-    var index = 1
+    var index = 0
     fields.foreach {
       field =>
         sourceSchemaMap += field.name -> (umsType2FlinkType(field.`type`), index)
@@ -160,10 +161,10 @@ object FlinkSchemaUtils extends java.io.Serializable {
     val outputFieldNames = for (i <- 0 until outputFieldSize)
       yield outputFieldList(i).split(":").head
     if (keyByFields != null && keyByFields.nonEmpty)
-      Array(SwiftsConstants.PROTOCOL_TYPE.toString, UmsSysField.ID.toString, UmsSysField.TS.toString, UmsSysField.OP.toString) ++
+      Array(UmsSysField.ID.toString, UmsSysField.TS.toString, UmsSysField.OP.toString) ++
         keyByFields.split(";") ++ outputFieldNames
     else
-      Array(SwiftsConstants.PROTOCOL_TYPE.toString, UmsSysField.ID.toString, UmsSysField.TS.toString, UmsSysField.OP.toString) ++
+      Array(UmsSysField.ID.toString, UmsSysField.TS.toString, UmsSysField.OP.toString) ++
         outputFieldNames
   }
 
@@ -301,7 +302,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     case Types.FLOAT => value.asInstanceOf[Float]
     case Types.DOUBLE => value.asInstanceOf[Double]
     case Types.BOOLEAN => value.asInstanceOf[Boolean]
-    case Types.SQL_DATE => if(value.isInstanceOf[Timestamp])DateUtils.dt2sqlDate(value.asInstanceOf[Timestamp]) else DateUtils.dt2sqlDate(value.asInstanceOf[Date])
+    case Types.SQL_DATE => if (value.isInstanceOf[Timestamp]) DateUtils.dt2sqlDate(value.asInstanceOf[Timestamp]) else DateUtils.dt2sqlDate(value.asInstanceOf[Date])
     case Types.SQL_TIMESTAMP => value.asInstanceOf[Timestamp]
     case Types.DECIMAL => new java.math.BigDecimal(value.asInstanceOf[java.math.BigDecimal].toPlainString.trim).stripTrailingZeros()
     case _ => throw new UnsupportedOperationException(s"Unknown Type: $flinkType")
