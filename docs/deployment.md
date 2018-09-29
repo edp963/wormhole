@@ -33,7 +33,7 @@ mysql-connector-java-{your-db-version}.jar
 
 ## 部署配置
 
-**下载 wormhole-0.5.4-beta.tar.gz 包 (链接：https://pan.baidu.com/s/1-mpCBC5EgJ0ptAARJiq6Jg 密码：kk4s)，或者自编译**
+**下载 wormhole-0.5.4-beta.tar.gz 包 (链接：https://pan.baidu.com/s/1ikjC4aNxfHFkMmxtPIdwVA 密码：nst4)，或者自编译**
 
 ```
 下载wormhole-0.5.4-beta.tar.gz安装包
