@@ -102,7 +102,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     })*/
 
     //name
-    val fieldString = projectClause.substring(5)
+    val fieldString = projectClause.substring(6)
     val nameMap = mutable.HashMap.empty[String, String]
     var s = ""
     var num = 0
@@ -111,7 +111,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
         if(s.contains('(') && s.contains("as")) {
           val udfName = s.trim.substring(0,s.trim.indexOf('('))
           val newName = s.trim.substring(s.indexOf("as")+2).trim
-          nameMap += newName -> udfName
+          nameMap += newName -> udfName.toLowerCase()
         }
         s = ""
       } else {
@@ -123,7 +123,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     if(s.contains('(') && s.contains("as")) {
       val udfName = s.trim.substring(0,s.trim.indexOf('('))
       val newName = s.trim.substring(s.indexOf("as")+2).trim
-      nameMap += newName -> udfName
+      nameMap += newName -> udfName.toLowerCase()
     }
     logger.info("nameMap:" + nameMap.toString())
 
@@ -132,7 +132,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     var udfIndexCur = 0
     tableSchema.getColumnNames.foreach(s => {
       logger.info(s"field $index in table $s")
-      if(tableSchema.getType(s).get.toString.contains("java.lang.Object")) {
+      if(tableSchema.getType(s).get.toString.contains("java.lang.Object") && udfSchemaMap.contains(nameMap(s))) {
         //position
         //resultSchemaMap += s -> (udfTypeIndexMap(udfIndexCur), index)
         //name
