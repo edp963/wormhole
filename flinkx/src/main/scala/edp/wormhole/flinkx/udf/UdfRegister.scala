@@ -25,7 +25,8 @@ object UdfRegister {
     }
     val returnDataType = UdfUtils.convertFlinkType(method.getReturnType.getName)
     //if (!FlinkSchemaUtils.udfSchemaMap.contains(udfName))
-    FlinkSchemaUtils.udfSchemaMap += udfName -> returnDataType
+    val udfNameLower = udfName.toLowerCase
+    FlinkSchemaUtils.udfSchemaMap += udfNameLower -> returnDataType
     val paramCount = method.getParameterCount
     paramCount match {
       case 0 => tableEnv.registerFunction(udfName, new UdfProxy0(udfName, udfClassFullname))
