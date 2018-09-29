@@ -27,11 +27,10 @@ import edp.wormhole.util.config.ConnectionConfig
 
 abstract class SinkProcessor {
 
-  def process(protocolType:UmsProtocolType,
-              sourceNamespace:String,
-              sinkNamespace:String,
-              sinkProcessConfig:SinkProcessConfig,
+  def process(sourceNamespace: String,
+              sinkNamespace: String,
+              sinkProcessConfig: SinkProcessConfig,
               schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
               tupleList: Seq[Seq[String]],
-              connectionConfig:ConnectionConfig)
+              connectionConfig: ConnectionConfig): Unit
 }

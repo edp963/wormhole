@@ -5,7 +5,6 @@ import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.sinks.SourceMutationType
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.{UmsNamespace, UmsSysField}
-import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.util.JsonUtils
 import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
@@ -15,8 +14,7 @@ import scala.collection.mutable.ListBuffer
 
 class Data2KuduSink extends SinkProcessor  {
   private lazy val logger = Logger.getLogger(this.getClass)
-  override def process(protocolType: UmsProtocolType,
-                       sourceNamespace: String,
+  override def process(sourceNamespace: String,
                        sinkNamespace: String,
                        sinkProcessConfig: SinkProcessConfig,
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
