@@ -288,7 +288,7 @@ Wormhole Flink版对传输的流数据除了提供Lookup SQL、Flink SQL两种Tr
 
 ####### Flink SQL
 
-Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Flink SQL支持UDF，UDF名称大小写敏感。
+Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Flink SQL支持UDF，UDF名称大小写敏感。UDF相应的字段需要使用as指定新字段的名称。
 
 ### 修改 Flow
 
