@@ -12,7 +12,7 @@ import edp.wormhole.util.config.ConnectionConfig
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-object  ConfMemoryStorage extends Serializable{
+object ConfMemoryStorage extends Serializable {
 
   private val sinkTransformReflectMap = mutable.HashMap.empty[String, (Any, Method)]
 
@@ -27,7 +27,6 @@ object  ConfMemoryStorage extends Serializable{
         val clazz = Class.forName(className)
         val obj = clazz.newInstance()
         val method = clazz.getMethod("process",
-          classOf[UmsProtocolType],
           classOf[String],
           classOf[String],
           classOf[SinkProcessConfig],
@@ -38,7 +37,6 @@ object  ConfMemoryStorage extends Serializable{
       }
     }
   }
-
 
 
   val JsonSourceParseMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])]
