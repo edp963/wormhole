@@ -20,8 +20,6 @@
 
 package edp.wormhole.sinks.mongosink
 
-import javax.net.SocketFactory
-
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import com.mongodb.casbah._
 import com.mongodb.casbah.commons.{Imports, MongoDBList, MongoDBObject}
@@ -31,10 +29,10 @@ import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
 import edp.wormhole.sinks.SourceMutationType.INSERT_ONLY
 import edp.wormhole.sinks.{SourceMutationType, _IDHelper}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
-import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.{UmsFieldType, UmsNamespace, UmsSysField}
 import edp.wormhole.util.JsonUtils
 import edp.wormhole.util.config.ConnectionConfig
+import javax.net.SocketFactory
 import org.apache.log4j.Logger
 import org.mongodb.scala.{MongoCredential, ServerAddress}
 
@@ -43,7 +41,9 @@ import scala.collection.mutable.ListBuffer
 
 class DataJson2MongoSink extends SinkProcessor{
   private lazy val logger = Logger.getLogger(this.getClass)
-  def getMongoClient(namespace: UmsNamespace, sinkProcessConfig: SinkProcessConfig, connectionConfig: ConnectionConfig): MongoClient = {
+  def getMongoClient(namespace: UmsNamespace,
+                     sinkProcessConfig: SinkProcessConfig,
+                     connectionConfig: ConnectionConfig): MongoClient = {
     val db: String = namespace.database
     val user = connectionConfig.username.getOrElse("")
     val password = connectionConfig.password.getOrElse("")
@@ -98,8 +98,7 @@ class DataJson2MongoSink extends SinkProcessor{
     }
   }
 
-  override def process(protocolType: UmsProtocolType,
-                       sourceNamespace: String,
+  override def process(sourceNamespace: String,
                        sinkNamespace: String,
                        sinkProcessConfig: SinkProcessConfig,
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],

@@ -21,6 +21,7 @@
 
 package edp.rider.wormhole
 
+import edp.rider.rest.persistence.entities.FlowUdfResponse
 import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
 
 
@@ -101,5 +102,6 @@ case class WhFlinkConfig(kafka_input: KafkaInput,
                          kafka_output: KafkaOutputConfig,
                          parallelism: Int,
                          zookeeper_address: String,
+                         udf_config: Seq[FlowUdfResponse],
                          flink_config: String = "")
 

@@ -35,8 +35,8 @@ import scala.util.{Failure, Success}
 
 class UdfUserApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends BaseUserApiImpl[UdfTable, Udf](udfDal) with RiderLogger with JsonSerializer {
 
-  def getUdfByProjectId(route: String): Route = path(route / LongNumber / "udfs") {
-    id =>
+  def getUdfByProjectId(route: String): Route = path(route / LongNumber / "udfs"/Segment) {
+    (id, streamType) =>
       get {
         authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
           session =>
@@ -46,7 +46,7 @@ class UdfUserApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Bas
             }
             else {
               if (session.projectIdList.contains(id)) {
-                onComplete(relProjectUdfDal.getUdfByProjectId(id).mapTo[Seq[Udf]]) {
+                onComplete(relProjectUdfDal.getUdfByPIdSType(id, streamType).mapTo[Seq[Udf]]) {
                   case Success(udfs) =>
                     riderLogger.info(s"user ${session.userId} select udfs where project id is $id success.")
                     complete(OK, ResponseSeqJson[Udf](getHeader(200, session), udfs.sortBy(_.functionName)))

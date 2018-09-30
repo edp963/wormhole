@@ -12,7 +12,7 @@ import edp.wormhole.util.config.ConnectionConfig
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-object  ConfMemoryStorage extends Serializable{
+object ConfMemoryStorage extends Serializable {
 
   private val sinkTransformReflectMap = mutable.HashMap.empty[String, (Any, Method)]
 
@@ -27,7 +27,6 @@ object  ConfMemoryStorage extends Serializable{
         val clazz = Class.forName(className)
         val obj = clazz.newInstance()
         val method = clazz.getMethod("process",
-          classOf[UmsProtocolType],
           classOf[String],
           classOf[String],
           classOf[SinkProcessConfig],
@@ -38,7 +37,6 @@ object  ConfMemoryStorage extends Serializable{
       }
     }
   }
-
 
 
   val JsonSourceParseMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])]
@@ -53,5 +51,14 @@ object  ConfMemoryStorage extends Serializable{
 
   def getAllSourceParseMap = {
     JsonSourceParseMap.toMap
+  }
+
+  def matchNameSpace(namespace1: String, namespace2: String): Boolean = {
+    //    if (flowConfigMap.contains(namespace2)) {
+    //      return true
+    //    }
+    val namespaceArray1 = namespace1.split("\\.")
+    val namespaceArray2 = namespace2.split("\\.")
+    namespaceArray1(0) == namespaceArray2(0) && namespaceArray1(1) == namespaceArray2(1) && namespaceArray1(2) == namespaceArray2(2) && namespaceArray1(3) == namespaceArray2(3)
   }
 }
