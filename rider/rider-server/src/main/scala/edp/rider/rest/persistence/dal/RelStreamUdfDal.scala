@@ -36,8 +36,8 @@ class RelStreamUdfDal(relStreamUdfTable: TableQuery[RelStreamUdfTable], udfTable
 
   def getStreamUdf(streamIds: Seq[Long], udfIdsOpt: Option[Seq[Long]] = None): Seq[StreamUdfResponse] = {
     val udfQuery = udfIdsOpt match {
-      case Some(udfIds) => udfTable.filter(_.id inSet (udfIds))
-      case None => udfTable
+      case Some(udfIds) => udfTable.filter(_.id inSet (udfIds)).filter(_.streamType === "spark")
+      case None => udfTable.filter(_.streamType === "spark")
     }
     try {
       Await.result(db.run((relStreamUdfTable.filter(_.streamId inSet streamIds) join udfQuery on (_.udfId === _.id))

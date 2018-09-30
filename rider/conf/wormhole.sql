@@ -96,6 +96,9 @@ CREATE TABLE IF NOT EXISTS `stream` (
   `stream_type` VARCHAR(100) NOT NULL,
   `function_type` VARCHAR(100) NOT NULL,
   `stream_config` VARCHAR(5000) NULL,
+  `jvm_driver_config` VARCHAR(1000) NULL,
+  `jvm_executor_config` VARCHAR(1000) NULL,
+  `others_config` VARCHAR(1000) NULL,
   `start_config` VARCHAR(1000) NOT NULL,
   `launch_config` VARCHAR(1000) NOT NULL,
   `spark_appid` VARCHAR(200) NULL,
@@ -114,7 +117,9 @@ ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `stream` add column `function_type` VARCHAR(100) NOT NULL after `stream_type`;
 alter table `stream` change column `spark_config` `stream_config` VARCHAR(5000) NULL;
-
+alter table `stream` add column `jvm_driver_config` VARCHAR(1000) NULL;
+alter table `stream` add column `jvm_executor_config` VARCHAR(1000) NULL;
+alter table `stream` add column `others_config` VARCHAR(1000) NULL;
 
 CREATE TABLE IF NOT EXISTS `project` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -321,12 +326,15 @@ CREATE TABLE IF NOT EXISTS `job` (
   `source_ns` VARCHAR(200) NOT NULL,
   `sink_ns` VARCHAR(200) NOT NULL,
   `job_type` VARCHAR(30) NOT NULL,
-  `spark_config` VARCHAR(4000) NULL,
+  `spark_config` VARCHAR(2000) NULL,
+  `jvm_driver_config` VARCHAR(1000) NULL,
+  `jvm_executor_config` VARCHAR(1000) NULL,
+  `others_config` VARCHAR(1000) NULL,
   `start_config` VARCHAR(1000) NOT NULL,
   `event_ts_start` VARCHAR(50) NOT NULL,
   `event_ts_end` VARCHAR(50) NOT NULL,
-  `source_config` VARCHAR(5000) NULL,
-  `sink_config` VARCHAR(5000) NULL,
+  `source_config` VARCHAR(4000) NULL,
+  `sink_config` VARCHAR(4000) NULL,
   `tran_config` VARCHAR(5000) NULL,
   `status` VARCHAR(200) NOT NULL,
   `spark_appid` VARCHAR(200) NULL,
@@ -348,12 +356,19 @@ alter table `job` add column `spark_config` VARCHAR(4000) NULL after `source_typ
 alter table `job` add column `start_config` VARCHAR(1000) NOT NULL after `spark_config`;
 alter table `job` change column `source_type` `job_type` VARCHAR(30);
 
+alter table `job` modify column `spark_config` varchar(2000);
+alter table `job` modify column `source_config` varchar(2000);
+alter table `job` modify column `sink_config` varchar(2000);
+alter table `job` add column `jvm_driver_config` VARCHAR(1000) NULL;
+alter table `job` add column `jvm_executor_config` VARCHAR(1000) NULL;
+alter table `job` add column `others_config` VARCHAR(1000) NULL;
 
 CREATE TABLE IF NOT EXISTS `udf` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `function_name` VARCHAR(200) NOT NULL,
   `full_class_name` VARCHAR(200) NOT NULL,
   `jar_name` VARCHAR(200) NOT NULL,
+  `stream_type` VARCHAR(100) NOT NULL,
   `desc` VARCHAR(200) NULL,
   `public` TINYINT(1) NOT NULL,
   `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
@@ -365,7 +380,7 @@ CREATE TABLE IF NOT EXISTS `udf` (
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 drop index `full_class_name_UNIQUE` on `udf`;
-
+alter table `udf` add `stream_type` VARCHAR(100);
 
 CREATE TABLE IF NOT EXISTS `feedback_heartbeat` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,

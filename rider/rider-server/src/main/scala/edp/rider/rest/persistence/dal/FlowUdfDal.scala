@@ -39,8 +39,8 @@ class FlowUdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdf
 
   def getFlowUdf(flowIds: Seq[Long], udfIdsOpt: Option[Seq[Long]] = None): Seq[FlowUdfResponse] = {
     val udfQuery = udfIdsOpt match {
-      case Some(udfIds) => udfTable.filter(_.id inSet (udfIds))
-      case None => udfTable
+      case Some(udfIds) => udfTable.filter(_.id inSet (udfIds)).filter(_.streamType === "flink")
+      case None => udfTable.filter(_.streamType === "flink")
     }
     try {
       Await.result(db.run((flowUdfTable.filter(_.flowId inSet flowIds) join udfQuery on (_.udfId === _.id))

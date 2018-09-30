@@ -42,24 +42,27 @@ object FlinkSchemaUtils extends java.io.Serializable {
   private val logger = Logger.getLogger(this.getClass)
   val sourceSchemaMap = mutable.HashMap.empty[String, (TypeInformation[_], Int)]
 
+  lazy val immutableSourceSchemaMap: Map[String, (TypeInformation[_], Int)] = sourceSchemaMap.toMap
+
   val swiftsProcessSchemaMap = mutable.HashMap.empty[String, Map[String, (TypeInformation[_], Int)]]
 
-  def sourceFieldNameArray: Array[String] = getFieldNamesFromSchema(sourceSchemaMap.toMap)
+  def sourceFieldNameArray: Array[String] = getFieldNamesFromSchema(immutableSourceSchemaMap)
 
-  def sourceFlinkTypeArray: Array[TypeInformation[_]] = sourceFieldNameArray.map(field => sourceSchemaMap(field)._1)
+  def sourceFlinkTypeArray: Array[TypeInformation[_]] = sourceFieldNameArray.map(field => immutableSourceSchemaMap(field)._1)
 
-  def sourceFieldIndexArray: Array[Int] = sourceFieldNameArray.map(field => sourceSchemaMap(field)._2)
+  def sourceFieldIndexArray: Array[Int] = sourceFieldNameArray.map(field => immutableSourceSchemaMap(field)._2)
 
   def setSourceSchemaMap(umsSchema: UmsSchema): Unit = {
     val fields = umsSchema.fields_get
-    sourceSchemaMap += SwiftsConstants.PROTOCOL_TYPE -> (Types.STRING, 0)
-    var index = 1
+    var index = 0
     fields.foreach {
       field =>
         sourceSchemaMap += field.name -> (umsType2FlinkType(field.`type`), index)
         index += 1
     }
   }
+
+  val udfSchemaMap = mutable.HashMap.empty[String, TypeInformation[_]]
 
   def setSwiftsSchema(key: String, value: Map[String, (TypeInformation[_], Int)]): Unit = {
     if (!FlinkSchemaUtils.swiftsProcessSchemaMap.contains(key))
@@ -80,17 +83,64 @@ object FlinkSchemaUtils extends java.io.Serializable {
     tableSchema.getColumnNames
   }
 
-  def tableFieldTypeArray(tableSchema: TableSchema): Array[TypeInformation[_]] = {
-    tableFieldNameArray(tableSchema).map(fieldName => tableSchema.getType(fieldName).get)
+  def tableFieldTypeArray(tableSchema: TableSchema, preSchemaMap: Map[String, (TypeInformation[_], Int)]): Array[TypeInformation[_]] = {
+    tableFieldNameArray(tableSchema).map(fieldName => preSchemaMap(fieldName)._1)
   }
 
-  def getSchemaMapFromTable(tableSchema: TableSchema): Map[String, (TypeInformation[_], Int)] = {
+  def getSchemaMapFromTable(tableSchema: TableSchema, projectClause: String , udfSchemaMap: Map[String, TypeInformation[_]]): Map[String, (TypeInformation[_], Int)] = {
     println("in getSchemaMapFromTable *******************")
+
+    //position
+    /*val fieldArray = projectClause.substring(5).split("[,()]")
+    val udfTypeIndexMap = mutable.HashMap.empty[Int, TypeInformation[_]]
+    var udfIndex = 0
+    fieldArray.foreach(field => {
+      if(udfSchemaMap.contains(field.trim)) {
+          udfTypeIndexMap += udfIndex -> udfSchemaMap(field.trim)
+          udfIndex += 1
+        }
+    })*/
+
+    //name
+    val fieldString = projectClause.substring(6)
+    val nameMap = mutable.HashMap.empty[String, String]
+    var s = ""
+    var num = 0
+    for( sIndex <- 0 until fieldString.length) {
+      if(fieldString(sIndex) == ',' && num == 0) {
+        if(s.contains('(') && s.contains("as")) {
+          val udfName = s.trim.substring(0,s.trim.indexOf('('))
+          val newName = s.trim.substring(s.indexOf("as")+2).trim
+          nameMap += newName -> udfName.toLowerCase()
+        }
+        s = ""
+      } else {
+        if(fieldString(sIndex) == '(') num += 1
+        else if(fieldString(sIndex) == ')') num -= 1
+        s = s + fieldString(sIndex)
+      }
+    }
+    if(s.contains('(') && s.contains("as")) {
+      val udfName = s.trim.substring(0,s.trim.indexOf('('))
+      val newName = s.trim.substring(s.indexOf("as")+2).trim
+      nameMap += newName -> udfName.toLowerCase()
+    }
+    logger.info("nameMap:" + nameMap.toString())
+
     val resultSchemaMap = mutable.HashMap.empty[String, (TypeInformation[_], Int)]
     var index = 0
+    var udfIndexCur = 0
     tableSchema.getColumnNames.foreach(s => {
       logger.info(s"field $index in table $s")
-      resultSchemaMap += s -> (tableSchema.getType(s).get, index)
+      if(tableSchema.getType(s).get.toString.contains("java.lang.Object") && udfSchemaMap.contains(nameMap(s))) {
+        //position
+        //resultSchemaMap += s -> (udfTypeIndexMap(udfIndexCur), index)
+        //name
+        resultSchemaMap += s -> (udfSchemaMap(nameMap(s)), index)
+        udfIndexCur += 1
+      } else {
+        resultSchemaMap += s -> (tableSchema.getType(s).get, index)
+      }
       index += 1
     }
     )
@@ -111,10 +161,10 @@ object FlinkSchemaUtils extends java.io.Serializable {
     val outputFieldNames = for (i <- 0 until outputFieldSize)
       yield outputFieldList(i).split(":").head
     if (keyByFields != null && keyByFields.nonEmpty)
-      Array(SwiftsConstants.PROTOCOL_TYPE.toString, UmsSysField.ID.toString, UmsSysField.TS.toString, UmsSysField.OP.toString) ++
+      Array(UmsSysField.ID.toString, UmsSysField.TS.toString, UmsSysField.OP.toString) ++
         keyByFields.split(";") ++ outputFieldNames
     else
-      Array(SwiftsConstants.PROTOCOL_TYPE.toString, UmsSysField.ID.toString, UmsSysField.TS.toString, UmsSysField.OP.toString) ++
+      Array(UmsSysField.ID.toString, UmsSysField.TS.toString, UmsSysField.OP.toString) ++
         outputFieldNames
   }
 
@@ -222,6 +272,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
       case Types.SQL_DATE => DATE
       case Types.SQL_TIMESTAMP => DATETIME
       case Types.DECIMAL => DECIMAL
+      //case _ => INT
     }
 
   }
@@ -251,7 +302,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     case Types.FLOAT => value.asInstanceOf[Float]
     case Types.DOUBLE => value.asInstanceOf[Double]
     case Types.BOOLEAN => value.asInstanceOf[Boolean]
-    case Types.SQL_DATE => if(value.isInstanceOf[Timestamp])DateUtils.dt2sqlDate(value.asInstanceOf[Timestamp]) else DateUtils.dt2sqlDate(value.asInstanceOf[Date])
+    case Types.SQL_DATE => if (value.isInstanceOf[Timestamp]) DateUtils.dt2sqlDate(value.asInstanceOf[Timestamp]) else DateUtils.dt2sqlDate(value.asInstanceOf[Date])
     case Types.SQL_TIMESTAMP => value.asInstanceOf[Timestamp]
     case Types.DECIMAL => new java.math.BigDecimal(value.asInstanceOf[java.math.BigDecimal].toPlainString.trim).stripTrailingZeros()
     case _ => throw new UnsupportedOperationException(s"Unknown Type: $flinkType")
