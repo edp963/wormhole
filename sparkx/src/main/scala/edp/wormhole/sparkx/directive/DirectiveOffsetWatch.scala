@@ -21,7 +21,6 @@
 
 package edp.wormhole.sparkx.directive
 
-import edp.wormhole.common.WormholeConstants
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.sparkx.common.WormholeConfig
 import edp.wormhole.sparkx.memorystorage.OffsetPersistenceManager
@@ -32,17 +31,16 @@ object DirectiveOffsetWatch extends EdpLogging {
   val TimeOut = 60
 
   val watchRelativePath = "watch"
-  val rootPath = WormholeConstants.CheckpointRootPath
   var flag = false
 
   def offsetWatch(config: WormholeConfig, appId: String): Unit = {
     logInfo("appId=" + appId)
 
-    val offsetPath = rootPath + config.spark_config.stream_id + OffsetPersistenceManager.offsetRelativePath
+    val offsetPath = config.zookeeper_path + "/" + config.spark_config.stream_id + OffsetPersistenceManager.offsetRelativePath
 
     val watchPath = offsetPath + "/" + watchRelativePath
     logInfo("offsetWatch:"+watchPath)
-    WormholeZkClient.setNodeCacheListener(config.zookeeper_path, watchPath, add(config.kafka_output.feedback_topic_name), remove, update(config.kafka_output.feedback_topic_name))
+    WormholeZkClient.setNodeCacheListener(config.zookeeper_address, watchPath, add(config.kafka_output.feedback_topic_name), remove, update(config.kafka_output.feedback_topic_name))
 
   }
 
