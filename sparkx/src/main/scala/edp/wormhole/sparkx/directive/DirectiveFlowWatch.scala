@@ -21,7 +21,7 @@
 
 package edp.wormhole.sparkx.directive
 
-import edp.wormhole.common.{StreamType, WormholeConstants}
+import edp.wormhole.common.StreamType
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.sparkx.batchflow.BatchflowDirective
 import edp.wormhole.sparkx.common.WormholeConfig
@@ -38,15 +38,15 @@ object DirectiveFlowWatch extends EdpLogging {
   def initFlow(config: WormholeConfig, appId: String): Unit = {
     logInfo("init flow,appId=" + appId)
 
-    val watchPath = WormholeConstants.CheckpointRootPath + config.spark_config.stream_id + flowRelativePath
-    if(!WormholeZkClient.checkExist(config.zookeeper_path, watchPath))WormholeZkClient.createPath(config.zookeeper_path, watchPath)
-    val flowList = WormholeZkClient.getChildren(config.zookeeper_path, watchPath)
+    val watchPath = config.zookeeper_path + "/" + config.spark_config.stream_id + flowRelativePath
+    if(!WormholeZkClient.checkExist(config.zookeeper_address, watchPath))WormholeZkClient.createPath(config.zookeeper_address, watchPath)
+    val flowList = WormholeZkClient.getChildren(config.zookeeper_address, watchPath)
     flowList.toArray.foreach(flow => {
-      val flowContent = WormholeZkClient.getData(config.zookeeper_path, watchPath + "/" + flow)
+      val flowContent = WormholeZkClient.getData(config.zookeeper_address, watchPath + "/" + flow)
       add(config.kafka_output.feedback_topic_name,config.kafka_output.brokers)(watchPath + "/" + flow, new String(flowContent))
     })
 
-    WormholeZkClient.setPathChildrenCacheListener(config.zookeeper_path, watchPath, add(config.kafka_output.feedback_topic_name,config.kafka_output.brokers), remove(config.kafka_output.brokers), update(config.kafka_output.feedback_topic_name,config.kafka_output.brokers))
+    WormholeZkClient.setPathChildrenCacheListener(config.zookeeper_address, watchPath, add(config.kafka_output.feedback_topic_name,config.kafka_output.brokers), remove(config.kafka_output.brokers), update(config.kafka_output.feedback_topic_name,config.kafka_output.brokers))
   }
 
   def add(feedbackTopicName: String,brokers:String)(path: String, data: String, time: Long = 1): Unit = {

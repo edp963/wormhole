@@ -29,7 +29,8 @@ import scala.collection.JavaConversions._
 
 import scala.concurrent.duration.{FiniteDuration, _}
 
-case class RiderServer(host: String,
+case class RiderServer(clusterId: String,
+                       host: String,
                        port: Int,
                        requestTimeOut: Duration,
                        defaultLanguage: String = "Chinese",
@@ -116,7 +117,7 @@ case class RiderMonitor(url: String,
 case class Maintenance(mysqlRemain: Int,
                        esRemain: Int)
 
-case class RiderInfo(zookeeper: String,
+case class RiderInfo(zookeeper_address: String,
                      kafka: String,
                      feedback_topic: String,
                      heartbeat_topic: String,
@@ -145,6 +146,8 @@ case class RiderFlink(homePath: String,
                       kafkaSessionTimeOut: Int,
                       kafkaGroupMaxSessionTimeOut: Int)
 
+case class RiderZookeeper(address: String, path: String)
+
 case class DBusConfig(loginUrl: String,
                       user: String,
                       password: String,
@@ -156,7 +159,9 @@ object RiderConfig {
   lazy val riderRootPath = s"${System.getenv("WORMHOLE_HOME")}"
 
   lazy val riderServer = RiderServer(
-    config.getString("wormholeServer.host"), config.getInt("wormholeServer.port"),
+    config.getString("wormholeServer.cluster.id"),
+    config.getString("wormholeServer.host"),
+    config.getInt("wormholeServer.port"),
     getDurationConfig("wormholeServer.request.timeout", 120.seconds),
     getStringConfig("wormholeServer.ui.default.language", "Chinese").toLowerCase(),
     getStringConfig("wormholeServer.host.token.secret.key", "iytr174395lclkb?lgj~8u;[=L:ljg"),
@@ -171,9 +176,11 @@ object RiderConfig {
 
   lazy val tokenTimeout = getIntConfig("wormholeServer.token.timeout", 1)
 
-  lazy val feedbackTopic = getStringConfig("kafka.consumer.feedback.topic", "wormhole_feedback")
+  lazy val feedbackTopic = getStringConfig("kafka.consumer.feedback.topic",
+    if (riderServer.clusterId == "") "wormhole_feedback" else "wormhole_feedback" + "_" + riderServer.clusterId)
 
-  lazy val heartbeatTopic = getStringConfig("kafka.consumer.heartbeat.topic", "wormhole_heartbeat")
+  lazy val heartbeatTopic = getStringConfig("kafka.consumer.heartbeat.topic",
+    if (riderServer.clusterId == "") "wormhole_heartbeat" else "wormhole_heartbeat" + "_" + riderServer.clusterId)
 
   lazy val pollInterval = getFiniteDurationConfig("kafka.consumer.poll-interval", FiniteDuration(20, MILLISECONDS))
 
@@ -210,7 +217,10 @@ object RiderConfig {
     "akka.kafka.default-dispatcher"
   )
 
-  lazy val zk = config.getString("zookeeper.connection.url")
+  lazy val zk = RiderZookeeper(getStringConfig("zookeeper.connection.url", ""),
+    if (riderServer.clusterId == "") config.getString("zookeeper.wormhole.root.path")
+    else s"${config.getString("zookeeper.wormhole.root.path")}/${riderServer.clusterId}")
+
 
   lazy val appTags = getStringConfig("spark.app.tags", "wormhole")
   lazy val wormholeClientLogPath = getStringConfig("spark.wormhole.client.log.path", s"${RiderConfig.riderRootPath}/logs/streams")
@@ -298,7 +308,7 @@ object RiderConfig {
     else List()
 
 
-  lazy val riderInfo = RiderInfo(zk, consumer.brokers, consumer.feedbackTopic, spark.wormholeHeartBeatTopic, spark.hdfsRoot,
+  lazy val riderInfo = RiderInfo(zk.address, consumer.brokers, consumer.feedbackTopic, spark.wormholeHeartBeatTopic, spark.hdfsRoot,
     spark.user, spark.appTags, spark.rm1Url, spark.rm2Url)
 
   lazy val ldapEnabled = getBooleanConfig("ldap.enabled", false)

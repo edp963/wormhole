@@ -57,6 +57,7 @@ case class BatchFlowConfig(kafka_input: KafkaInputBaseConfig,
                            kafka_output: KafkaOutputConfig,
                            spark_config: SparkConfig,
                            rdd_partition_number: Int, //-1 do not repartition
+                           zookeeper_address: String,
                            zookeeper_path: String,
                            kafka_persistence_config_isvalid: Boolean,
                            stream_hdfs_address: Option[String],

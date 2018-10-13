@@ -390,7 +390,7 @@ object FlowUtils extends RiderLogger {
         //        val tuple = Seq(streamId, currentMicroSec, umsType, umsSchema, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
         val base64Tuple = Seq(streamId, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
           base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))
-        val directiveFuture = directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk, currentSec, userId))
+        val directiveFuture = directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId))
         directiveFuture onComplete {
           case Success(directive) =>
             //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_START.toString} success.")
@@ -479,16 +479,16 @@ object FlowUtils extends RiderLogger {
               directive.createBy
             } send flow $flowId start directive: $flow_start_ums")
             PushDirective.sendFlowStartDirective(streamId, sourceNs, sinkNs, jsonCompact(flow_start_ums))
-          //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
+          //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_FLOW_START.toString} directive to ${RiderConfig.zk.address} success.")
           case Failure(ex) =>
-            riderLogger.error(s"send ${DIRECTIVE_FLOW_START.toString} directive to ${RiderConfig.zk} failed", ex)
+            riderLogger.error(s"send ${DIRECTIVE_FLOW_START.toString} directive to ${RiderConfig.zk.address} failed", ex)
             false
         }
       }
       else if (functionType == "hdfslog") {
         //        val tuple = Seq(streamId, currentMillSec, sourceNs, "24", umsType, umsSchema)
         val base64Tuple = Seq(streamId, currentMillSec, sourceNs, "24", umsType, base64byte2s(umsSchema.toString.trim.getBytes))
-        val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_HDFSLOG_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk, currentSec, userId)), minTimeOut)
+        val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_HDFSLOG_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
         val flow_start_ums =
           s"""
@@ -561,11 +561,11 @@ object FlowUtils extends RiderLogger {
           directive.createBy
         } send flow $flowId start directive: $flow_start_ums")
         PushDirective.sendHdfsLogFlowStartDirective(streamId, sourceNs, jsonCompact(flow_start_ums))
-        //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
+        //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk.address} success.")
       } else if (functionType == "routing") {
         val (instance, db, _) = namespaceDal.getNsDetail(sinkNs)
         val tuple = Seq(streamId, currentMillSec, umsType, sinkNs, instance.connUrl, db.nsDatabase)
-        val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_ROUTER_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk, currentSec, userId)), minTimeOut)
+        val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_ROUTER_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
         val flow_start_ums =
           s"""
@@ -625,7 +625,7 @@ object FlowUtils extends RiderLogger {
           directive.createBy
         } send flow $flowId start directive: $flow_start_ums")
         PushDirective.sendRouterFlowStartDirective(streamId, sourceNs, sinkNs, jsonCompact(flow_start_ums))
-        //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk} success.")
+        //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk.address} success.")
       }
       true
     }
@@ -642,7 +642,7 @@ object FlowUtils extends RiderLogger {
       autoDeleteTopic(userId, streamId, Some(flowId))
       if (functionType == "default") {
         val tuple = Seq(streamId, currentMicroSec, sourceNs).mkString(",")
-        val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_FLOW_STOP.toString, streamId, flowId, "", RiderConfig.zk, currentSec, userId)), minTimeOut)
+        val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_FLOW_STOP.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_STOP.toString} success.")
         riderLogger.info(s"user ${
           directive.createBy
@@ -650,14 +650,14 @@ object FlowUtils extends RiderLogger {
         PushDirective.sendFlowStopDirective(streamId, sourceNs, sinkNs)
       } else if (functionType == "hdfslog") {
         val tuple = Seq(streamId, currentMillSec, sourceNs).mkString(",")
-        val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_HDFSLOG_FLOW_STOP.toString, streamId, flowId, "", RiderConfig.zk, currentSec, userId)), minTimeOut)
+        val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_HDFSLOG_FLOW_STOP.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId)), minTimeOut)
         riderLogger.info(s"user ${
           directive.createBy
         } send flow $flowId stop directive")
         PushDirective.sendHdfsLogFlowStopDirective(streamId, sourceNs)
       } else if (functionType == "routing") {
         val tuple = Seq(streamId, currentMillSec, sourceNs).mkString(",")
-        val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_ROUTER_FLOW_STOP.toString, streamId, flowId, "", RiderConfig.zk, currentSec, userId)), minTimeOut)
+        val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_ROUTER_FLOW_STOP.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId)), minTimeOut)
         riderLogger.info(s"user ${
           directive.createBy
         } send flow $flowId stop directive")
@@ -949,7 +949,7 @@ object FlowUtils extends RiderLogger {
     val userDefinedTopics = flowUdfTopicDal.getUdfTopics(Seq(flow.id)).map(topic => KafkaFlinkTopic(topic.topicName, topic.partitionOffsets))
     val flinkTopic = autoRegisteredTopics ++ userDefinedTopics
     val udfConfig: Seq[FlowUdfResponse] = flowUdfDal.getFlowUdf(Seq(flow.id))
-    val config = WhFlinkConfig(KafkaInput(baseConfig, flinkTopic), outputConfig, flow.parallelism.getOrElse(RiderConfig.flink.defaultParallelism), RiderConfig.zk, udfConfig)
+    val config = WhFlinkConfig(KafkaInput(baseConfig, flinkTopic), outputConfig, flow.parallelism.getOrElse(RiderConfig.flink.defaultParallelism), RiderConfig.zk.address, udfConfig)
     caseClass2json[WhFlinkConfig](config)
   }
 
@@ -977,7 +977,7 @@ object FlowUtils extends RiderLogger {
 
     val base64Tuple = Seq(flow.streamId, flow.id, currentNodMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), flow.sinkNs, base64byte2s(consumedProtocol.trim.getBytes),
       base64byte2s(sinkConfig.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))
-    val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, flow.streamId, flow.id, "", RiderConfig.zk, currentSec, flow.updateBy)), minTimeOut)
+    val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, flow.streamId, flow.id, "", RiderConfig.zk.address, currentSec, flow.updateBy)), minTimeOut)
     //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_FLOW_START.toString} success.")
 
     val flow_start_ums =
