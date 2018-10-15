@@ -176,11 +176,13 @@ object RiderConfig {
 
   lazy val tokenTimeout = getIntConfig("wormholeServer.token.timeout", 1)
 
-  lazy val feedbackTopic = getStringConfig("kafka.consumer.feedback.topic",
-    if (riderServer.clusterId == "") "wormhole_feedback" else "wormhole_feedback" + "_" + riderServer.clusterId)
+  lazy val feedbackTopic = if (getBooleanConfig("kafka.consumer.using.cluster.suffix", default = true))
+      getStringConfig("kafka.consumer.feedback.topic","wormhole_feedback") + "_" + riderServer.clusterId
+    else getStringConfig("kafka.consumer.feedback.topic","wormhole_feedback")
 
-  lazy val heartbeatTopic = getStringConfig("kafka.consumer.heartbeat.topic",
-    if (riderServer.clusterId == "") "wormhole_heartbeat" else "wormhole_heartbeat" + "_" + riderServer.clusterId)
+  lazy val heartbeatTopic = if (getBooleanConfig("kafka.consumer.using.cluster.suffix", default = true))
+      getStringConfig("kafka.consumer.heartbeat.topic", "wormhole_heartbeat") + "_" + riderServer.clusterId
+    else getStringConfig("kafka.consumer.heartbeat.topic", "wormhole_heartbeat")
 
   lazy val pollInterval = getFiniteDurationConfig("kafka.consumer.poll-interval", FiniteDuration(20, MILLISECONDS))
 
@@ -247,7 +249,8 @@ object RiderConfig {
     config.getString("spark.spark.home"),
     config.getString("spark.yarn.queue.name"),
     appTags,
-    config.getString("spark.wormhole.hdfs.root.path"),
+    if (riderServer.clusterId != "") config.getString("spark.wormhole.hdfs.root.path") + "/" + riderServer.clusterId
+    else config.getString("spark.wormhole.hdfs.root.path"),
     getStringConfig("spark.wormhole.hdfslog.remote.root.path", None),
     getStringConfig("spark.wormhole.hdfslog.remote.hdfs.namenode.hosts", None),
     getStringConfig("spark.wormhole.hdfslog.remote.hdfs.activenamenode.host", None),
@@ -276,7 +279,9 @@ object RiderConfig {
   lazy val es =
     if (config.hasPath("elasticSearch") && config.getString("elasticSearch.http.url").nonEmpty) {
       RiderEs(config.getString("elasticSearch.http.url"),
-        getStringConfig("elasticSearch.wormhole.feedback.index", "wormhole_feedback"),
+        if (getBooleanConfig("elasticSearch.wormhole.using.cluster.suffix", default = false))
+          getStringConfig("elasticSearch.wormhole.feedback.index", "wormhole_feedback") + "_" + riderServer.clusterId
+        else getStringConfig("elasticSearch.wormhole.feedback.index", "wormhole_feedback"),
         "wormhole_stats_feedback",
         getStringConfig("elasticSearch.http.user", ""),
         getStringConfig("elasticSearch.http.password", ""))
