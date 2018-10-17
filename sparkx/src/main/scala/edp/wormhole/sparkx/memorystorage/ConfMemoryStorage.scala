@@ -134,7 +134,6 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
         val clazz = Class.forName(className)
         val obj = clazz.newInstance()
         val method = clazz.getMethod("process",
-      //    classOf[UmsProtocolType],
           classOf[String],
           classOf[String],
           classOf[SinkProcessConfig],
