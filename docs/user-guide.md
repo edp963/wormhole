@@ -162,7 +162,7 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-sparkxinterface</artifactId>
-     <version>0.5.3-beta</version>
+     <version>0.5.4-beta</version>
   </dependency>
   ```
 
@@ -172,7 +172,7 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 
   安装wormhole-sparkxinterface包至本地maven仓库
 
-  wormhole/common/util目录下执行
+  wormhole/util目录下执行
 
   mvn clean install package
 
@@ -180,16 +180,16 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 
   mvn clean install package
 
-  wormhole/common/sparkxinterface目录下执行
+  wormhole/interface/sparkxinterface目录下执行
 
   mvn clean install package
   ```
 
-- 继承 并实现 wormhole/common/sparkxinterface module 下的 edp.wormhole.sparkxinterface.swifts.SwiftsInterface 接口，可参考 wormhole/sparkx module 下的 edp.wormhole.swifts.custom.CustomTemplate 类
+- 继承 并实现 wormhole/interface/sparkxinterface module 下的 edp.wormhole.sparkxinterface.swifts.SwiftsInterface 接口，可参考 wormhole/sparkx module 下的 edp.wormhole.sparkx.swifts.custom.CustomTemplate 类
 
 - 编译打包，将带有 Dependencies 的 Jar 包放置在 $SPARK_HOME/jars 目录下
 
-- 页面配置时，选择 Custom Class，输入方法名全路径，如 edp.wormhole.swifts.custom.CustomTemplate
+- 页面配置时，选择 Custom Class，输入方法名全路径，如 edp.wormhole.sparkx.swifts.custom.CustomTemplate
 
 - Flow 启动或生效，重启 Stream
 
@@ -288,7 +288,7 @@ Wormhole Flink版对传输的流数据除了提供Lookup SQL、Flink SQL两种Tr
 
 ####### Flink SQL
 
-Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Flink SQL UDF 功能会在后续版本支持。
+Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Flink SQL支持UDF，UDF名称大小写敏感。UDF相应的字段需要使用as指定新字段的名称。
 
 ### 修改 Flow
 
@@ -305,6 +305,7 @@ Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 #### 启动 Flink Flow
 
 - Stream running状态下才可以启动Flow
+- 启动 Flow 时可以选择需要加载的 UDF，也可以取消已选择的 UDF
 - 配置每个Topic Partition消费的起始Offset，可配置用户自定义Topic
 - 点击启动按钮，后台会向对应Flink Stream JobManager上提交创建TaskManager请求
 - 启动Flow后可点击查看日志按钮，若创建成功状态会转至running状态，若创建失败状态会转至failed状态，可根据日志错误提示重新配置
