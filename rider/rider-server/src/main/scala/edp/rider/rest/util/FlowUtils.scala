@@ -1073,7 +1073,9 @@ object FlowUtils extends RiderLogger {
     jsonCompact(flow_start_ums)
   }
 
-  def getFlowName(sourceNs: String, sinkNs: String): String = s"$sourceNs-$sinkNs".toLowerCase
+  def getFlowName(sourceNs: String, sinkNs: String): String =
+    if (RiderConfig.riderServer.clusterId != "") s"${RiderConfig.riderServer.clusterId}-$sourceNs-$sinkNs".toLowerCase
+    else s"$sourceNs-$sinkNs".toLowerCase
 
   def updateUdfsByStart(flowId: Long, udfIds: Seq[Long], userId: Long): Unit = {
     if (udfIds.nonEmpty) {

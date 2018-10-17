@@ -178,7 +178,9 @@ object StreamUtils extends RiderLogger {
   }
 
 
-  def genStreamNameByProjectName(projectName: String, name: String): String = s"wormhole_${projectName}_$name"
+  def genStreamNameByProjectName(projectName: String, name: String): String =
+    if (RiderConfig.riderServer.clusterId != "" ) s"wormhole_${RiderConfig.riderServer.clusterId}_${projectName}_$name"
+    else s"wormhole_${projectName}_$name"
 
   //  def getStreamConfig(stream: Stream) = {
   //    val kafkaUrl = getKafkaByStreamId(stream.id)

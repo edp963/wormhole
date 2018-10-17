@@ -156,10 +156,10 @@ case class DBusConfig(loginUrl: String,
 
 object RiderConfig {
 
-  lazy val riderRootPath = s"${System.getenv("WORMHOLE_HOME")}"
+  lazy val riderRootPath = s"${System.getProperty("WORMHOLE_HOME")}"
 
   lazy val riderServer = RiderServer(
-    config.getString("wormholeServer.cluster.id"),
+    getStringConfig("wormholeServer.cluster.id", ""),
     config.getString("wormholeServer.host"),
     config.getInt("wormholeServer.port"),
     getDurationConfig("wormholeServer.request.timeout", 120.seconds),
@@ -176,11 +176,11 @@ object RiderConfig {
 
   lazy val tokenTimeout = getIntConfig("wormholeServer.token.timeout", 1)
 
-  lazy val feedbackTopic = if (getBooleanConfig("kafka.consumer.using.cluster.suffix", default = true))
+  lazy val feedbackTopic = if (getBooleanConfig("kafka.using.cluster.suffix", default = false) && riderServer.clusterId != "")
       getStringConfig("kafka.consumer.feedback.topic","wormhole_feedback") + "_" + riderServer.clusterId
     else getStringConfig("kafka.consumer.feedback.topic","wormhole_feedback")
 
-  lazy val heartbeatTopic = if (getBooleanConfig("kafka.consumer.using.cluster.suffix", default = true))
+  lazy val heartbeatTopic = if (getBooleanConfig("kafka.using.cluster.suffix", default = false) && riderServer.clusterId != "")
       getStringConfig("kafka.consumer.heartbeat.topic", "wormhole_heartbeat") + "_" + riderServer.clusterId
     else getStringConfig("kafka.consumer.heartbeat.topic", "wormhole_heartbeat")
 
@@ -219,7 +219,7 @@ object RiderConfig {
     "akka.kafka.default-dispatcher"
   )
 
-  lazy val zk = RiderZookeeper(getStringConfig("zookeeper.connection.url", ""),
+  lazy val zk = RiderZookeeper(config.getString("zookeeper.connection.url"),
     if (riderServer.clusterId == "") config.getString("zookeeper.wormhole.root.path")
     else s"${config.getString("zookeeper.wormhole.root.path")}/${riderServer.clusterId}")
 
