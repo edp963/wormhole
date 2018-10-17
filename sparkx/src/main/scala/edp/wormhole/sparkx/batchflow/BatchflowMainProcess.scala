@@ -533,7 +533,7 @@ object BatchflowMainProcess extends EdpLogging {
 
     send2saveData.foreachPartition(partition => {
       val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
-      sinkMethod.invoke(sinkObject, protocolType, sourceNamespace, sinkNamespace, sinkProcessConfig, resultSchemaMap, partition.flatMap(_._1).toList, connectionConfig)
+      sinkMethod.invoke(sinkObject, sourceNamespace, sinkNamespace, sinkProcessConfig, resultSchemaMap, partition.flatMap(_._1).toList, connectionConfig)
 
     })
 

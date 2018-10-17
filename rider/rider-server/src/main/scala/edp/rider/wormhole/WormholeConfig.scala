@@ -60,6 +60,7 @@ case class BatchFlowConfig(kafka_input: KafkaInputBaseConfig,
                            zookeeper_path: String,
                            kafka_persistence_config_isvalid: Boolean,
                            stream_hdfs_address: Option[String],
+                           kerberos: Boolean=false,
                            hdfs_namenode_hosts: Option[String] = None,
                            hdfs_namenode_ids: Option[String] = None)
 

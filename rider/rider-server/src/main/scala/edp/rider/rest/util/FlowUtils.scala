@@ -389,7 +389,7 @@ object FlowUtils extends RiderLogger {
         val tranConfigFinal = getTranConfig(tranConfig)
         //        val tuple = Seq(streamId, currentMicroSec, umsType, umsSchema, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
         val base64Tuple = Seq(streamId, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
-          base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))
+          base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes),RiderConfig.kerberos.enabled)
         val directiveFuture = directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk, currentSec, userId))
         directiveFuture onComplete {
           case Success(directive) =>
@@ -447,6 +447,11 @@ object FlowUtils extends RiderLogger {
                  |"name": "swifts",
                  |"type": "string",
                  |"nullable": true
+                 |},
+                 |{
+                 |"name": "kerberos",
+                 |"type": "boolean",
+                 |"nullable": true
                  |}
                  |]
                  |},
@@ -470,6 +475,8 @@ object FlowUtils extends RiderLogger {
                 base64Tuple(6)
               }", "${
                 base64Tuple(7)
+              }","${
+                base64Tuple(8)
               }"]
                  |}
                  |]

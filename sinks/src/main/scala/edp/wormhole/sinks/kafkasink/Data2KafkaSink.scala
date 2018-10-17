@@ -43,7 +43,7 @@ class Data2KafkaSink extends SinkProcessor {
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
     logger.info("In Data2KafkaSink"+tupleList)
-    WormholeKafkaProducer.init(connectionConfig.connectionUrl, connectionConfig.parameters)
+    WormholeKafkaProducer.init(connectionConfig.connectionUrl, connectionConfig.parameters,sinkProcessConfig.kerberos)
     val sinkSpecificConfig = if (sinkProcessConfig.specialConfig.isDefined) JsonUtils.json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get) else KafkaConfig(None, None, None,None)
 
     val schemaList: Seq[(String, (Int, UmsFieldType, Boolean))] = schemaMap.toSeq.sortBy(_._2._1)

@@ -115,11 +115,19 @@ object SubmitYarnJob extends App with RiderLogger {
         RiderConfig.spark.startShell.split("\\n")
 
     //    val startShell = Source.fromFile(s"${RiderConfig.riderConfPath}/bin/startStream.sh").getLines()
+    val startWithKerberos=RiderConfig.kerberos.enabled match {
+      case true=>s" --principal "+RiderConfig.kerberos.principal +" --keytab "+RiderConfig.kerberos.keyTab+" "
+      case false=>s" "
+    }
     val startCommand = startShell.map(l => {
       if (l.startsWith("--num-exe")) s" --num-executors " + executorsNum + " "
       else if (l.startsWith("--driver-mem")) s" --driver-memory " + driverMemory + s"g "
-      else if (l.startsWith("--files")) s" --files " + files + s" "
-      else if (l.startsWith("--queue")) s" --queue " + RiderConfig.spark.queueName + s" "
+      else if (l.startsWith("--files")) {
+        if(RiderConfig.kerberos.enabled)
+            s" --files "+files+","+RiderConfig.kerberos.serverConfig+","+RiderConfig.kerberos.jaasConfig+s" "
+        else
+            s" --files " + files + s" "
+      }else if (l.startsWith("--queue")) s" --queue " + RiderConfig.spark.queueName + s" "
       else if (l.startsWith("--executor-mem")) s"  --executor-memory " + executorMemory + s"g "
       else if (l.startsWith("--executor-cores")) s"  --executor-cores " + executorCores + s" "
       else if (l.startsWith("--name")) s"  --name " + streamName + " "
@@ -138,7 +146,7 @@ object SubmitYarnJob extends App with RiderLogger {
       else l
     }).mkString("").stripMargin.replace("\\", "  ") +
 //      realJarPath + " " + args + " 1> " + logPath + " 2>&1"
-      realJarPath + " " + args + " > " + logPath + " 2>&1 "
+      startWithKerberos+" "+realJarPath + " " + args + " > " + logPath + " 2>&1 "
 
     val finalCommand =
       if (RiderConfig.spark.alert)

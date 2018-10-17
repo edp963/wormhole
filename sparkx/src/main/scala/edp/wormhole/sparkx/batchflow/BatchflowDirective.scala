@@ -43,7 +43,7 @@ object BatchflowDirective extends Directive {
 
   private def registerFlowStartDirective(sourceNamespace: String, fullsinkNamespace: String, streamId: Long, directiveId: Long,
                                          swiftsStr: String, sinksStr: String, feedbackTopicName: String, brokers: String,
-                                         consumptionDataStr: String, dataType: String, dataParseStr: String): Unit = {
+                                         consumptionDataStr: String, dataType: String, dataParseStr: String,kerberos:Boolean): Unit = {
     val consumptionDataMap = mutable.HashMap.empty[String, Boolean]
     val consumption = JSON.parseObject(consumptionDataStr)
     val initial = consumption.getString(InputDataProtocolBaseType.INITIAL.toString).trim.toLowerCase.toBoolean
@@ -156,7 +156,7 @@ object BatchflowDirective extends Directive {
 
     }
 
-    val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_schema, sink_process_class_fullname, sink_retry_times, sink_retry_seconds)
+    val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_schema, sink_process_class_fullname, sink_retry_times, sink_retry_seconds,kerberos)
 
 
     val swiftsStrCache = if (swiftsStr == null) "" else swiftsStr
@@ -190,7 +190,8 @@ object BatchflowDirective extends Directive {
         val dataType = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_type").toString.toLowerCase
         val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
         val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
-        registerFlowStartDirective(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, feedbackTopicName, brokers, consumptionDataStr, dataType, dataParseStr)
+        val kerberos=UmsFieldType.umsFieldValue(tuple.tuple,schemas,"kerberos").toString.toBoolean
+        registerFlowStartDirective(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, feedbackTopicName, brokers, consumptionDataStr, dataType, dataParseStr, kerberos)
       } catch {
         case e: Throwable =>
           logAlert("registerFlowStartDirective,sourceNamespace:" + sourceNamespace, e)

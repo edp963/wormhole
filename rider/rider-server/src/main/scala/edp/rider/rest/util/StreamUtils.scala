@@ -200,12 +200,12 @@ object StreamUtils extends RiderLogger {
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
             SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
             launchConfig.partitions.toInt, RiderConfig.zk, false,
-            RiderConfig.spark.remoteHdfsRoot, RiderConfig.spark.remoteHdfsNamenodeHosts, RiderConfig.spark.remoteHdfsNamenodeIds)
+            RiderConfig.spark.remoteHdfsRoot,RiderConfig.kerberos.enabled, RiderConfig.spark.remoteHdfsNamenodeHosts, RiderConfig.spark.remoteHdfsNamenodeIds)
         case None =>
           BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
             SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
-            launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfsRoot))
+            launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfsRoot),RiderConfig.kerberos.enabled)
       }
     caseClass2json[BatchFlowConfig](config)
   }

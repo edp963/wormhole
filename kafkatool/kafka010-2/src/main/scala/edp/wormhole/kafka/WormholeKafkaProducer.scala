@@ -41,7 +41,7 @@ object WormholeKafkaProducer extends Serializable {
     props
   }
 
-  def init(brokers: String, kvConfig: Option[Seq[KVConfig]]): Unit = {
+  def init(brokers: String, kvConfig: Option[Seq[KVConfig]],kerberos:Boolean=false): Unit = {
 
     if (!producerMap.contains(brokers) || producerMap(brokers) == null) {
       synchronized {
@@ -53,6 +53,7 @@ object WormholeKafkaProducer extends Serializable {
             })
           }
 
+          if(kerberos)props.put("security.protocol","SASL_PLAINTEXT")
           props.put("bootstrap.servers", brokers)
           producerMap(brokers) = new KafkaProducer[String, String](props)
         }

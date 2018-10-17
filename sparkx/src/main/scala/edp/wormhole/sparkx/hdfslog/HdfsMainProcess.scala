@@ -155,10 +155,10 @@ object HdfsMainProcess extends EdpLogging {
             namespace2FileStore((eachResult.protocol, eachResult.namespace))("right") = (eachResult.correctFileName, eachResult.correctCount, eachResult.correctMetaContent)
           }
           val doneTs = System.currentTimeMillis
-//          if (eachResult.allCount > 0 && eachResult.maxTs != "")
-//            WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-//              UmsProtocolUtils.feedbackFlowStats(eachResult.namespace, eachResult.protocol, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, eachResult.namespace,topics,
-//                eachResult.allCount, DateUtils.dt2date(eachResult.maxTs).getTime, rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs), None, config.kafka_output.brokers)
+          if (eachResult.allCount > 0 && eachResult.maxTs != "")
+            WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
+              UmsProtocolUtils.feedbackFlowStats(eachResult.namespace, eachResult.protocol, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, eachResult.namespace,topics,
+                eachResult.allCount, DateUtils.dt2date(eachResult.maxTs).getTime, rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs), None, config.kafka_output.brokers)
         })
         partitionResultRdd.unpersist()
         WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
