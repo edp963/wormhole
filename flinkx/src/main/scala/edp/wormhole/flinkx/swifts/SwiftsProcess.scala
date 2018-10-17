@@ -41,6 +41,7 @@ object SwiftsProcess extends Serializable {
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   private var preSchemaMap: Map[String, (TypeInformation[_], Int)] = FlinkSchemaUtils.immutableSourceSchemaMap
+  private var udfSchemaMap: Map[String, TypeInformation[_]] = FlinkSchemaUtils.udfSchemaMap.toMap
 
   def process(dataStream: DataStream[Row], sourceNamespace: String, tableEnv: StreamTableEnvironment, swiftsSql: Option[Array[SwiftsSql]]): (DataStream[Row], Map[String, (TypeInformation[_], Int)]) = {
     var transformedStream = dataStream
@@ -64,7 +65,7 @@ object SwiftsProcess extends Serializable {
     table.printSchema()
     val projectClause = sql.substring(0, sql.lastIndexOf("from")).trim
     val namespaceTable = sourceNamespace.split("\\.").apply(3)
-    val fromClause = sql.substring(sql.indexOf("from")).trim
+    val fromClause = sql.substring(sql.lastIndexOf("from")).trim
     val whereClause = fromClause.substring(fromClause.indexOf(namespaceTable) + namespaceTable.length).trim
     //println(projectClause + "-----projectClause" + namespaceTable + "-----namespaceTable" + whereClause + "-----whereClause")
     val newSql =s"""$projectClause FROM $table $whereClause"""
@@ -73,14 +74,23 @@ object SwiftsProcess extends Serializable {
       table = tableEnv.sqlQuery(newSql)
       table.printSchema()
       val key = s"swifts$index"
-      val value = FlinkSchemaUtils.getSchemaMapFromTable(table.getSchema)
+      val value = FlinkSchemaUtils.getSchemaMapFromTable(table.getSchema, projectClause, udfSchemaMap)
       preSchemaMap = value
       FlinkSchemaUtils.setSwiftsSchema(key, value)
     } catch {
       case e: Throwable => logger.error("in doFlinkSql table query", e)
         println(e)
     }
-    val resultDataStream = tableEnv.toAppendStream[Row](table).map(o => o)(Types.ROW(FlinkSchemaUtils.tableFieldNameArray(table.getSchema), FlinkSchemaUtils.tableFieldTypeArray(table.getSchema)))
+   val resultDataStream = tableEnv.toAppendStream[Row](table).map(o => o)(Types.ROW(FlinkSchemaUtils.tableFieldNameArray(table.getSchema), FlinkSchemaUtils.tableFieldTypeArray(table.getSchema, preSchemaMap)))
+    /*val resultDataStream: DataStream[Row] = tableEnv.toAppendStream[Row](table).map(o =>{
+      var index = 0
+      table.getSchema.getColumnNames.foreach(x=>{
+        o.setField(index, FlinkSchemaUtils.object2TrueValue(preSchemaMap(x)._1, o.getField(index)))
+        print(index + ":" + o.getField(index))
+        index += 1
+      })
+      o
+    })(Types.ROW(FlinkSchemaUtils.tableFieldNameArray(table.getSchema), FlinkSchemaUtils.tableFieldTypeArray(table.getSchema)))*/
     resultDataStream.print()
     logger.info(resultDataStream.dataType.toString + "in  doFlinkSql")
     resultDataStream
