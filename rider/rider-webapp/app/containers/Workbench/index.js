@@ -1302,7 +1302,7 @@ export class Workbench extends React.Component {
           othersConfig: values[0].othersConfig,
           // streamConfig: `${values[0].jvm},${values[0].others}`,
           startConfig: `${JSON.stringify(startConfigJson)}`,
-          launchConfig: `${JSON.stringify(launchConfigJson)}`
+          launchConfig: launchConfigJson !== '' ? `${JSON.stringify(launchConfigJson)}` : ''
         }
       })
     })
