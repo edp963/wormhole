@@ -20,7 +20,7 @@
 
 package edp.wormhole.flinkx.eventflow
 
-import java.util.{Properties, UUID}
+import java.util.Properties
 
 import com.alibaba.fastjson
 import com.alibaba.fastjson.JSON
@@ -28,9 +28,9 @@ import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.flinkx.common.{ConfMemoryStorage, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
-import edp.wormhole.flinkx.eventflow.WormholeFlinkxStarter.config
 import edp.wormhole.flinkx.sink.SinkProcess
 import edp.wormhole.flinkx.swifts.{ParseSwiftsSql, SwiftsProcess}
+import edp.wormhole.flinkx.udf.UdfRegister
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
 import edp.wormhole.flinkx.util.{FlinkxTimestampExtractor, UmsFlowStartUtils, WormholeFlinkxConfigUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
@@ -69,13 +69,29 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
     env.setParallelism(config.parallelism)
 
+    val tableEnv = TableEnvironment.getTableEnvironment(env)
+    //udf register
+    config.udf_config.foreach(udf => {
+      val udfName = udf.functionName
+      val udfClassFullname = udf.fullClassName
+      try {
+        UdfRegister.register(udfName, udfClassFullname, tableEnv)
+      } catch {
+        case e: Throwable =>
+          logger.error(udfName + " register fail", e)
+      }
+      /*val clazz = Class.forName(udfClassFullname)
+      val obj: Any = clazz.newInstance()
+      tableEnv.registerFunction(udfName, obj.asInstanceOf[ScalarFunction])*/
+    })
+
     assignTimeCharacteristic(env)
     val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase,initialTs)
-    val watermarkStream = assignTimestamp(inputStream, sourceSchemaMap.toMap)
+    val watermarkStream = assignTimestamp(inputStream, immutableSourceSchemaMap)
     watermarkStream.print()
     try {
       val swiftsTs = System.currentTimeMillis
-      val (stream, schemaMap) = SwiftsProcess.process(watermarkStream, sourceNamespace, TableEnvironment.getTableEnvironment(env), swiftsSql)
+      val (stream, schemaMap) = SwiftsProcess.process(watermarkStream, sourceNamespace, tableEnv, swiftsSql)
       SinkProcess.doProcess(stream, umsFlowStart, schemaMap,config,initialTs,swiftsTs)
     } catch {
       case e: Throwable =>
@@ -84,11 +100,10 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
         WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(sourceNamespace, streamId , DateUtils.currentDateTime, sinkNamespace, UmsWatermark(""+currentTs), UmsWatermark(""+currentTs), 1, "", ""), None, config.kafka_output.brokers)
 
     }
-
     env.execute(s"$sourceNamespace-$sinkNamespace")
   }
 
-  private def createKafkaStream(env: StreamExecutionEnvironment, flowNamespace: String, initialTs:Long) = {
+  private def createKafkaStream(env: StreamExecutionEnvironment, flowNamespace: String, initialTs:Long): DataStream[Row] = {
     val properties = new Properties()
     properties.setProperty("bootstrap.servers", config.kafka_input.kafka_base_config.brokers)
     properties.setProperty("zookeeper.connect", config.zookeeper_address)
@@ -106,7 +121,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val initialStream: DataStream[(String, String, String, Int, Long)] = env.addSource(myConsumer)
       .map(event => (UmsCommonUtils.checkAndGetKey(event._1, event._2), event._2, event._3, event._4, event._5))
 
-    val processStream=initialStream
+    val processStream: DataStream[(String, String, String, Int, Long)] = initialStream
       .filter(event => {
         val (umsProtocolType, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(event._1)
         consumeProtocolMap.contains(umsProtocolType) && consumeProtocolMap(umsProtocolType) && matchNamespace(namespace, flowNamespace)
@@ -123,14 +138,15 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   private def assignTimeCharacteristic(env: StreamExecutionEnvironment): Unit = {
     if (timeCharacteristic == SwiftsConstants.PROCESSING_TIME)
       env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime)
-    else env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
+    else
+      env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
   }
 
-
   private def assignTimestamp(inputStream: DataStream[Row], sourceSchemaMap: Map[String, (TypeInformation[_], Int)]) = {
-    if (timeCharacteristic != SwiftsConstants.PROCESSING_TIME)
+    if (timeCharacteristic == SwiftsConstants.PROCESSING_TIME)
+      inputStream
+    else
       inputStream.assignTimestampsAndWatermarks(new FlinkxTimestampExtractor(sourceSchemaMap))
-    else inputStream
   }
 
   private def getSwiftsSql(swiftsString: String, dataType: String): Option[Array[SwiftsSql]] = {
@@ -139,7 +155,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
       logger.info(s"action in getSwiftsSql $action")
       val parser = new ParseSwiftsSql(action, sourceNamespace, sinkNamespace)
       parser.registerConnections(swifts)
-      parser.parse(dataType, sourceSchemaMap.keySet)
+      parser.parse(dataType, immutableSourceSchemaMap.keySet)
     } else None
   }
 

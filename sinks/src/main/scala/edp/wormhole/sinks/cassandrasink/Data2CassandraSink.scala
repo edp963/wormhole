@@ -21,35 +21,31 @@
 
 package edp.wormhole.sinks.cassandrasink
 
-import com.datastax.driver.core._
-import com.datastax.driver.core.exceptions.NoHostAvailableException
-import edp.wormhole.sinks.SourceMutationType
-import edp.wormhole.ums.UmsFieldType._
-import edp.wormhole.ums.UmsProtocolType._
-import edp.wormhole.ums.{UmsActiveType, UmsFieldType, UmsOpType}
-import edp.wormhole.ums.UmsSysField
 import java.lang.{Double, Float, Long}
 import java.util
 
+import com.datastax.driver.core._
+import com.datastax.driver.core.exceptions.NoHostAvailableException
 import edp.wormhole.publicinterface.sinks.{SinkProcessConfig, SinkProcessor}
+import edp.wormhole.sinks.SourceMutationType
+import edp.wormhole.ums.UmsFieldType._
+import edp.wormhole.ums.{UmsActiveType, UmsFieldType, UmsOpType, UmsSysField}
 import edp.wormhole.util.DateUtils._
 import edp.wormhole.util.JsonUtils._
-
-import scala.collection.mutable.ListBuffer
 import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 class Data2CassandraSink extends SinkProcessor {
   private lazy val logger = Logger.getLogger(this.getClass)
-  override def process(protocolType: UmsProtocolType,
-                       sourceNamespace: String,
+  override def process(sourceNamespace: String,
                        sinkNamespace: String,
                        sinkProcessConfig: SinkProcessConfig,
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        tupleList: Seq[Seq[String]],
-                       connectionConfig: ConnectionConfig) = {
+                       connectionConfig: ConnectionConfig): Unit = {
     val schemaStringAndColumnNumber = getSchemaStringAndColumnNumber(schemaMap)
     //return format : ("(_ums_id_,key,value1,value2)", number)  Tuple2[String, Int]
     val schemaString: String = schemaStringAndColumnNumber._1
@@ -124,7 +120,6 @@ class Data2CassandraSink extends SinkProcessor {
         }
 
         val dataMap = mutable.HashMap.empty[String, Long]
-        import collection.JavaConversions._
         filterRes.foreach(row => {
           val umsId = row.getLong(UmsSysField.ID.toString)
           val mapKey = tableKeys.map(key => row.getObject(key).toString).mkString("_")

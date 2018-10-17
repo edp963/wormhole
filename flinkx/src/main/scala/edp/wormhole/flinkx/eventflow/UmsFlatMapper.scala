@@ -58,10 +58,9 @@ class UmsFlatMapper(sourceSchemaMap: Map[String, (TypeInformation[_], Int)], sou
     ctx.output(outputTag,value._2)
   }
   def createRow(tuple: Seq[String], protocolType:String, out: Collector[Row]): Unit = {
-    val row = new Row(tuple.size + 1)
-    row.setField(0, protocolType)
-    for (i <- 1 to tuple.size)
-      row.setField(i, FlinkSchemaUtils.getRelValue(i, tuple(i - 1), sourceSchemaMap))
+    val row = new Row(tuple.size)
+    for (i <- tuple.indices)
+      row.setField(i, FlinkSchemaUtils.getRelValue(i, tuple(i), sourceSchemaMap))
     out.collect(row)
   }
 }
