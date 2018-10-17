@@ -79,7 +79,7 @@ object RouterMainProcess extends EdpLogging {
         dataRepartitionRdd.foreachPartition { partition =>
           routerMap.foreach { case (_, (map, _)) =>
             map.foreach { case (_, (kafkaBroker, _)) => {
-              WormholeKafkaProducer.init(kafkaBroker, None)
+              WormholeKafkaProducer.init(kafkaBroker, None,config.kerberos)
             }
             }
           }
@@ -119,9 +119,9 @@ object RouterMainProcess extends EdpLogging {
         dataRepartitionRdd.unpersist()
 
         val endTime = System.currentTimeMillis()
-//        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-//          UmsProtocolUtils.feedbackFlowStats("*.*.*.*.*.*.*", UmsProtocolType.DATA_INCREMENT_DATA.toString, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, "kafka.*.*.*.*.*.*",topics,
-//            allCount.toInt, startTime, startTime, startTime, startTime, startTime, startTime, endTime), None, config.kafka_output.brokers)
+        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
+          UmsProtocolUtils.feedbackFlowStats("*.*.*.*.*.*.*", UmsProtocolType.DATA_INCREMENT_DATA.toString, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, "kafka.*.*.*.*.*.*",topics,
+            allCount.toInt, startTime, startTime, startTime, startTime, startTime, startTime, endTime), None, config.kafka_output.brokers)
 
 
         WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)

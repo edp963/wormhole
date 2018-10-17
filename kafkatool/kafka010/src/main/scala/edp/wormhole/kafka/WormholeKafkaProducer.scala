@@ -43,7 +43,7 @@ object WormholeKafkaProducer extends Serializable {
     props
   }
 
-  def init(brokers: String, kvConfig: Option[Seq[KVConfig]]): Unit = {
+  def init(brokers: String, kvConfig: Option[Seq[KVConfig]],kerberos:Boolean=false): Unit = {
 
     if (!producerMap.contains(brokers) || producerMap(brokers) == null) {
       synchronized {
@@ -55,6 +55,7 @@ object WormholeKafkaProducer extends Serializable {
             })
           }
 
+          if(kerberos)props.put("security.protocol","SASL_PLAINTEXT")
           props.put("bootstrap.servers", brokers)
           producerMap(brokers) = new KafkaProducer[String, String](props)
         }
@@ -82,9 +83,6 @@ object WormholeKafkaProducer extends Serializable {
 
   private def send(topic: String, partition: Int, message: String, key: Option[String], brokers: String): Any = {
     try {
-      logger.info("==========================11111========================")
-      logger.info(s"topic:$topic,partition:$partition,message:$message,key:${key.get},brokers:$brokers")
-      logger.info("============================22222======================")
       sendInternal(topic, partition, message, key, brokers)
     } catch {
       case _: Throwable =>

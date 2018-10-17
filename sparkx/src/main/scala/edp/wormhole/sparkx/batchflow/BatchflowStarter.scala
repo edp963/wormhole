@@ -42,7 +42,7 @@ object BatchflowStarter extends App with EdpLogging {
   logInfo("swiftsConfig:" + args(0))
   val config: WormholeConfig = JsonUtils.json2caseClass[WormholeConfig](args(0))
   val appId = SparkUtils.getAppId
-  WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
+  WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config,config.kerberos)
 
   val sparkConf = new SparkConf()
     .setMaster(config.spark_config.master)

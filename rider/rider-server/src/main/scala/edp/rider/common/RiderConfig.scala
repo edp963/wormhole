@@ -152,6 +152,12 @@ case class DBusConfig(loginUrl: String,
                       namespaceUrl: String)
 
 
+case class RiderKerberos(principal:String,
+                         keyTab:String,
+                         serverConfig:String,
+                         jaasConfig:String,
+                         enabled:Boolean)
+
 object RiderConfig {
 
   lazy val riderRootPath = s"${System.getenv("WORMHOLE_HOME")}"
@@ -230,8 +236,14 @@ object RiderConfig {
   lazy val metricsConfPath = getStringConfig("spark.wormhole.metric.conf.path", "")
   lazy val alertEmails = getStringConfig("spark.wormhole.alert.emails", "")
   lazy val kafkaConsumerCache = getBooleanConfig("spark.streaming.kafka.consumer.cache.enabled", false)
-  lazy val streamDefaultDriverJvmConfig = getStringConfig("spark.driver.extraJavaOptions", "spark.driver.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc/")
-  lazy val streamDefaultExecutorJvmConfig = getStringConfig("spark.executor.extraJavaOptions", "spark.executor.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc")
+  lazy val streamDefaultDriverJvmConfig = kerberos.enabled match {
+    case true=>getStringConfig("spark.driver.extraJavaOptions", s"spark.driver.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc/ -Djava.security.krb5.conf=${kerberos.serverConfig} -Djava.security.auth.login.config=${kerberos.jaasConfig}")
+    case false=>getStringConfig("spark.driver.extraJavaOptions", "spark.driver.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc/")
+  }
+  lazy val streamDefaultExecutorJvmConfig = kerberos.enabled match {
+    case true=>getStringConfig("spark.executor.extraJavaOptions", s"spark.executor.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc -Djava.security.krb5.conf=${kerberos.serverConfig} -Djava.security.auth.login.config=${kerberos.jaasConfig}")
+    case false=>getStringConfig("spark.executor.extraJavaOptions", "spark.executor.extraJavaOptions=-XX:+UseConcMarkSweepGC -XX:+PrintGCDetails -XX:-UseGCOverheadLimit -Dlog4j.configuration=sparkx.log4j.properties -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/wormhole/gc")
+  }
   lazy val streamDefaultSparkConfig = getStringConfig("spark.wormhole.default.conf", s"spark.locality.wait=10ms,spark.shuffle.spill.compress=false,spark.io.compression.codec=org.apache.spark.io.SnappyCompressionCodec,spark.streaming.stopGracefullyOnShutdown=true,spark.scheduler.listenerbus.eventqueue.size=1000000,spark.sql.ui.retainedExecutions=3,spark.streaming.kafka.consumer.cache.enabled=$kafkaConsumerCache")
   lazy val spark = RiderSpark(wormholeUser,
     sshPort,
@@ -298,6 +310,11 @@ object RiderConfig {
       })
     else List()
 
+  lazy val kerberos=RiderKerberos(config.getString("kerberos.principal"),
+    config.getString("kerberos.keyTab"),
+    config.getString("kerberos.server.config"),
+    config.getString("kerberos.jaas.config"),
+    config.getBoolean("kerberos.enabled"))
 
   lazy val riderInfo = RiderInfo(zk, consumer.brokers, consumer.feedbackTopic, spark.wormholeHeartBeatTopic, spark.hdfsRoot,
     spark.user, spark.appTags, spark.rm1Url, spark.rm2Url)
