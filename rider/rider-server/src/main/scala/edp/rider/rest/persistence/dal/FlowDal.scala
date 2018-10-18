@@ -244,7 +244,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     val flowStream = Await.result(defaultGetAll(_.id inSet flowSeq.map(_.id)), minTimeOut)
     flowStream.foreach(flow => {
       if (flow.streamType == StreamType.SPARK.toString)
-        stopFlow(flow.streamId, flow.id, userId, flow.streamType, flow.sourceNs, flow.sinkNs, flow.tranConfig.getOrElse(""))
+        stopFlow(flow.streamId, flow.id, userId, flow.functionType, flow.sourceNs, flow.sinkNs, flow.tranConfig.getOrElse(""))
       else {
         if (flow.streamStatus == StreamStatus.RUNNING.toString && flow.status == FlowStatus.RUNNING.toString)
           stopFlinkFlow(flow.streamAppId.get, getFlowName(flow.sourceNs, flow.sinkNs))
