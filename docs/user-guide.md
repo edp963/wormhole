@@ -172,7 +172,7 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 
   安装wormhole-sparkxinterface包至本地maven仓库
 
-  wormhole/common/util目录下执行
+  wormhole/util目录下执行
 
   mvn clean install package
 
@@ -180,16 +180,16 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 
   mvn clean install package
 
-  wormhole/common/sparkxinterface目录下执行
+  wormhole/interface/sparkxinterface目录下执行
 
   mvn clean install package
   ```
 
-- 继承 并实现 wormhole/common/sparkxinterface module 下的 edp.wormhole.sparkxinterface.swifts.SwiftsInterface 接口，可参考 wormhole/sparkx module 下的 edp.wormhole.swifts.custom.CustomTemplate 类
+- 继承 并实现 wormhole/interface/sparkxinterface module 下的 edp.wormhole.sparkxinterface.swifts.SwiftsInterface 接口，可参考 wormhole/sparkx module 下的 edp.wormhole.sparkx.swifts.custom.CustomTemplate 类
 
 - 编译打包，将带有 Dependencies 的 Jar 包放置在 $SPARK_HOME/jars 目录下
 
-- 页面配置时，选择 Custom Class，输入方法名全路径，如 edp.wormhole.swifts.custom.CustomTemplate
+- 页面配置时，选择 Custom Class，输入方法名全路径，如 edp.wormhole.sparkx.swifts.custom.CustomTemplate
 
 - Flow 启动或生效，重启 Stream
 
