@@ -81,22 +81,29 @@ object LookupKudu extends EdpLogging {
         })
       } else {
         val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
-        val table: KuduTable = client.openTable(tableName)
-        val dataJoinNameArray = sqlConfig.sourceTableFields.get
-        originalData.map(row => {
-          val tuple: Array[String] = dataJoinNameArray.map(field => {
-            row.get(row.fieldIndex(field)).toString
+        try {
+          val table: KuduTable = client.openTable(tableName)
+          val dataJoinNameArray = sqlConfig.sourceTableFields.get
+          originalData.map(row => {
+            val tuple: Array[String] = dataJoinNameArray.map(field => {
+              row.get(row.fieldIndex(field)).toString
+            })
+
+            val originalArray: Array[Any] = row.schema.fieldNames.map(name => row.get(row.fieldIndex(name)))
+
+            val queryResult: (String, Map[String, (Any, String)]) = KuduConnection.doQueryByKey(kuduJoinNameArray, tuple.toList, tableSchemaInKudu, client, table, selectFieldNewNameArray)
+
+            val queryFieldsResultMap: Map[String, (Any, String)] = queryResult._2
+            val newRow: GenericRowWithSchema = getJoinRow(selectFieldNewNameArray, queryFieldsResultMap, originalArray, resultSchema)
+            resultData.append(newRow)
           })
-
-          val originalArray: Array[Any] = row.schema.fieldNames.map(name => row.get(row.fieldIndex(name)))
-
-          val queryResult: (String, Map[String, (Any, String)]) = KuduConnection.doQueryByKey(kuduJoinNameArray, tuple.toList, tableSchemaInKudu, client, table, selectFieldNewNameArray)
-
-          val queryFieldsResultMap: Map[String, (Any, String)] = queryResult._2
-          val newRow: GenericRowWithSchema = getJoinRow(selectFieldNewNameArray, queryFieldsResultMap, originalArray, resultSchema)
-          resultData.append(newRow)
-        })
-        KuduConnection.closeClient(client)
+        } catch {
+          case e:Throwable=>
+            logInfo("LookupKudu",e)
+            throw e
+        } finally {
+          KuduConnection.closeClient(client)
+        }
       }
 
       resultData.toIterator
