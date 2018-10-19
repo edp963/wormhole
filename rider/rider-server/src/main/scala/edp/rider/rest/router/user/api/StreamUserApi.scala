@@ -365,7 +365,9 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           if (checkAction(stream.streamType, RENEW.toString, stream.status)) {
             renewStreamDirective(streamId, streamDirective, session.userId)
             riderLogger.info(s"user ${session.userId} renew stream $streamId success")
-            complete(OK, ResponseJson[StartResponse](getHeader(200, session), StartResponse(streamId, stream.status, getDisableActions(stream.streamType, stream.status), getHideActions(stream.streamType))))
+            complete(OK, ResponseJson[StartResponse](getHeader(200, session),
+              StartResponse(streamId, stream.status, getDisableActions(stream.streamType, stream.status), getHideActions(stream.streamType),
+                stream.sparkAppid, stream.startedTime, stream.stoppedTime)))
           } else {
             riderLogger.info(s"user ${session.userId} can't stop stream $streamId now")
             complete(OK, setFailedResponse(session, "renew is forbidden"))
