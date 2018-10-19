@@ -288,8 +288,20 @@ Wormhole Flink版对传输的流数据除了提供Lookup SQL、Flink SQL两种Tr
 
 ####### Flink SQL
 
-Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Flink SQL支持UDF，UDF名称大小写敏感。UDF相应的字段需要使用as指定新字段的名称。
+Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。
 
+Flink SQL支持UDF，Wormhole Flink UDF支持普通的java程序，而不需要按照Flink官方文档的格式实现UDF。UDF名称大小写敏感。UDF相应的字段需要使用as指定新字段的名称。例如：
+
+Java程序：
+
+    public class addint {
+      public int fInt(int i) {
+          return i + 1;
+      }
+    }
+使用UDF的Flink SQL：
+
+    select intvalue, fInt(intvalue) as fint from mytable; 
 ### 修改 Flow
 
 修改 Flow 时，不能修改所选 Stream，SourceNamespace 和 SinkNamespace，可以修改 Protocol 类型，Result Fields，Sink Config 和 Transformation 转换逻辑
