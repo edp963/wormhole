@@ -22,7 +22,8 @@ package edp.wormhole.flinkx.common
 
 import edp.wormhole.util.config.KVConfig
 
-case class WormholeFlinkxConfig(kafka_input: KafkaInputConfig,
+case class WormholeFlinkxConfig(flow_name: String,
+                                kafka_input: KafkaInputConfig,
                                 kafka_output: KafkaOutputConfig,
                                 flink_config: String,
                                 parallelism: Int,
