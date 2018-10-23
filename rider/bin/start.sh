@@ -1,6 +1,8 @@
 #!/bin/bash
 # sed wormholeServer host and port to index.html
 
+WORMHOLE_HOME=$(cd $(dirname $0); dirname "$PWD")
+
 # check if we have a valid WORMHOLE_HOME and if java is not available
 if [ -z "${WORMHOLE_HOME}" ]; then
     echo "ERROR!!: WORMHOLE_HOME is not defined correctly, please specify WORMHOLE_HOME first."
@@ -37,4 +39,4 @@ echo "wormholeServer final request address for UI: $finalAddress"
 # sed -i "s#http://.*/api-docs/swagger.json#http://$finalAddress/api-docs/swagger.json#g" $WORMHOLE_HOME/swagger-ui/index.html
 
 echo "[WormholeServer] is starting..."
-java -DWORMHOLE_HOME=$WORMHOLE_HOME -cp $WORMHOLE_HOME/lib/wormhole-rider-server_1.3-0.5.4-beta.jar:$WORMHOLE_HOME/lib/* edp.rider.RiderStarter &
+java -DWORMHOLE_HOME=$WORMHOLE_HOME -cp $WORMHOLE_HOME/lib/wormhole-rider-server_1.3-0.5.5-beta.jar:$WORMHOLE_HOME/lib/* edp.rider.RiderStarter &

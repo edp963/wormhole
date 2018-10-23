@@ -406,8 +406,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
 
   private def startStreamDirective(streamId: Long, streamDirectiveOpt: Option[StreamDirective], userId: Long) = {
     // delete pre stream zk udf/topic node
-    PushDirective.removeTopicDirective(streamId, RiderConfig.zk)
-    PushDirective.removeUdfDirective(streamId, RiderConfig.zk)
+    PushDirective.removeTopicDirective(streamId)
+    PushDirective.removeUdfDirective(streamId)
     // set new stream directive
     if (streamDirectiveOpt.nonEmpty) {
       val streamDirective = streamDirectiveOpt.get
