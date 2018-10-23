@@ -28,6 +28,7 @@ case class WormholeConfig(kafka_input: KafkaInputBaseConfig,
                           //                          udf: Option[Seq[String]],
                           spark_config: SparkConfig,
                           rdd_partition_number: Int, //-1 do not repartition
+                          zookeeper_address: String,
                           zookeeper_path: String,
                           kafka_persistence_config_isvalid: Boolean,
                           stream_hdfs_address: Option[String],

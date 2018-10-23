@@ -101,7 +101,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
         WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(sourceNamespace, streamId, DateUtils.currentDateTime, sinkNamespace, UmsWatermark("" + currentTs), UmsWatermark("" + currentTs), 1, "", ""), None, config.kafka_output.brokers)
 
     }
-    env.execute(s"$sourceNamespace-$sinkNamespace")
+    env.execute(config.flow_name)
   }
 
   private def createKafkaStream(env: StreamExecutionEnvironment, flowNamespace: String): DataStream[Row] = {
