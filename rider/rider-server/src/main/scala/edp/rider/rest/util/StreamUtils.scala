@@ -178,7 +178,9 @@ object StreamUtils extends RiderLogger {
   }
 
 
-  def genStreamNameByProjectName(projectName: String, name: String): String = s"wormhole_${projectName}_$name"
+  def genStreamNameByProjectName(projectName: String, name: String): String =
+    if (RiderConfig.riderServer.clusterId != "" ) s"wormhole_${RiderConfig.riderServer.clusterId}_${projectName}_$name"
+    else s"wormhole_${projectName}_$name"
 
   //  def getStreamConfig(stream: Stream) = {
   //    val kafkaUrl = getKafkaByStreamId(stream.id)
@@ -199,13 +201,13 @@ object StreamUtils extends RiderLogger {
           BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
             SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
-            launchConfig.partitions.toInt, RiderConfig.zk, false,
+            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false,
             RiderConfig.spark.remoteHdfsRoot, RiderConfig.spark.remoteHdfsNamenodeHosts, RiderConfig.spark.remoteHdfsNamenodeIds)
         case None =>
           BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
             SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
-            launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfsRoot))
+            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, Some(RiderConfig.spark.hdfsRoot))
       }
     caseClass2json[BatchFlowConfig](config)
   }
@@ -297,7 +299,7 @@ object StreamUtils extends RiderLogger {
   def sendTopicDirective(streamId: Long, topicSeq: Seq[PutTopicDirective], userId: Long, addDefaultTopic: Boolean = true) = {
     try {
       val directiveSeq = new ArrayBuffer[Directive]
-      val zkConURL: String = RiderConfig.zk
+      val zkConURL: String = RiderConfig.zk.address
       topicSeq.filter(_.rate == 0).map(
         topic => sendUnsubscribeTopicDirective(streamId, topic.name, userId)
       )
@@ -387,7 +389,7 @@ object StreamUtils extends RiderLogger {
 
   def sendUnsubscribeTopicDirective(streamId: Long, topicName: String, userId: Long): Unit = {
     try {
-      val zkConURL: String = RiderConfig.zk
+      val zkConURL: String = RiderConfig.zk.address
       val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, "", zkConURL, currentSec, userId)
       ), minTimeOut)
       val topicUms =
