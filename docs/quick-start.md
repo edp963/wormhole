@@ -65,6 +65,8 @@ data_increment_data.kafka.edp.source.ums_extension.*.*.*@@@{"id": 1, "name": "te
 
    **创建Flink UDF需要将相关jar包放置到Flink安装目录中的lib下**
 
+​    **注：Wormhole Flink UDF支持普通的java程序，而不需要按照Flink官方文档的格式实现UDF。使用例程请参考 [User Guide](https://edp963.github.io/wormhole/user-guide.html) 章节**
+
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-udf-flink.png" alt="" width="600"/>
 
 **8. Admin 创建 Project 并授权 Namespaces 和 Users**
