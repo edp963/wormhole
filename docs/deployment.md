@@ -164,17 +164,15 @@ maintenance = {
 #dbus.namespace.rest.api.url = ["http://localhost:8080/webservice/tables/riderSearch"]
 ```
 
-**参数设置说明**
+**部署说明**
 
-- wormholeServer.cluster_id：可选全局uuid。单套Wormhole部署不设置wormholeServer.cluster.id或者wormholeServer.cluster.id=""；多套Wormhole部署，wormholeServer.cluster.id必须唯一，不可重复。
-- kafka.using.cluster.suffix：标记是否将wormholeServer.cluster_id作用于kafka.consumer.feedback.topic。如果cluster_id存在且kafka.using.cluster.suffix=true，则feedback topic为kafka.consumer.feedback.topic + "_" + cluster_id。如果cluster_id不存在或者不设置kafka.using.cluster.suffix或者kafka.using.cluster.suffix=false，则feedback topic为kafka.consumer.feedback.topic
-- elasticSearch.wormhole.using.cluster.suffix：与kafka.using.cluster.suffix类似，记是否将wormholeServer.cluster_id作用于elasticSearch.wormhole.feedback.index。如果cluster_id存在且elasticSearch.wormhole.using.cluster.suffix=true，则feedback index为elasticSearch.wormhole.feedback.index + "_" + cluster_id。如果cluster_id不存在或者不设置elasticSearch.wormhole.using.cluster.suffix或者elasticSearch.wormhole.using.cluster.suffix=false，则feedback index为elasticSearch.wormhole.feedback.index
+为支持同一hadoop集群环境中部署多套Wormhole，在配置文件conf/application.conf中增加了wormholeServer.cluster_id参数（要求唯一）。单套Wormhole部署不设置wormholeServer.cluster.id或者wormholeServer.cluster.id=""。为兼容之前版本，可不设置该变量。**注意：之前版本不要随意增加该参数，否则无法读取对应的zookeeper和hdfs信息，无法正常运行已配置的stream和flow，即之前版本可以保持不变，新部署的Wormhole增加该参数即可。**
 
 ##### 单套Wormhole部署
 
 - 单套Wormhole部署只需将wormholeServer.cluster_id设置为空或者不进行设置即可
 
-**说明**
+  **说明**
 
 - Kafka feedback topic：为kafka.consumer.feedback.topic
 - ES feedback index：为elasticSearch.wormhole.feedback.index
@@ -184,10 +182,10 @@ maintenance = {
 ##### 多套Wormhole隔离部署
 
 - wormholeServer.cluster_id（必须配置）：每套Wormhole唯一的uuid，不可重复
-- kafka.using.cluster.suffix（选择设置）：如果kafka.using.cluster.suffix=false，则feedback topic为kafka.consumer.feedback.topic；如果kafka.using.cluster.suffix=true，则feedback topic为kafka.consumer.feedback.topic + "_" + cluster_id
-- elasticSearch.wormhole.using.cluster.suffix（选择设置）：如果elasticSearch.wormhole.using.cluster.suffix=false，则feedback index为elasticSearch.wormhole.feedback.index ；如果elasticSearch.wormhole.using.cluster.suffix=true，则feedback index为elasticSearch.wormhole.feedback.index + "_" + cluster_id
+- kafka.using.cluster.suffix（选择设置）：该变量标记是否将wormholeServer.cluster_id作用于kafka.consumer.feedback.topic。如果kafka.using.cluster.suffix=false，则feedback topic为kafka.consumer.feedback.topic；如果kafka.using.cluster.suffix=true，则feedback topic为kafka.consumer.feedback.topic + "_" + cluster_id
+- elasticSearch.wormhole.using.cluster.suffix（选择设置）：该变量标记是否将wormholeServer.cluster_id作用于elasticSearch.wormhole.feedback.index。如果elasticSearch.wormhole.using.cluster.suffix=false，则feedback index为elasticSearch.wormhole.feedback.index ；如果elasticSearch.wormhole.using.cluster.suffix=true，则feedback index为elasticSearch.wormhole.feedback.index + "_" + cluster_id
 
-**说明**
+  **说明**
 
 - MySQL：与cluster_id是否存在无关，所以部署多集群时，只要用不同的库的url即可
 - Kafka feedback topic：参考上文kafka.using.cluster.suffix的设置
