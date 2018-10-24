@@ -1,8 +1,8 @@
 ---
 layout: global
-displayTitle: Quick Start
-title: Quick Start
-description: Wormhole Quick Start page
+displayTitle: Deployment
+title: Deployment
+description: Wormhole Deployment page
 ---
 
 {:toc}
@@ -48,7 +48,7 @@ mvn install package -Pwormhole
 
 #### 配置环境变量
 
-**配置 WORMHOLE_HOME/SPARK_HOME/HADOOP_HOME 环境变量**
+**配置 SPARK_HOME/HADOOP_HOME 环境变量**
 
 #### 修改配置文件
 
