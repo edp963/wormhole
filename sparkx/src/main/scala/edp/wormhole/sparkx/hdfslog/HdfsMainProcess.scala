@@ -88,7 +88,7 @@ object HdfsMainProcess extends EdpLogging {
         })
 
         val dataParRdd = if (config.rdd_partition_number != -1) {
-          streamTransformedRdd.partitionBy(new HashPartitioner(config.rdd_partition_number))
+          streamTransformedRdd.repartition(config.rdd_partition_number)//.partitionBy(new HashPartitioner(config.rdd_partition_number))
         } else streamTransformedRdd
 
         val namespace2FileMap: Map[(String, String), mutable.HashMap[String, (String, Int, String)]] = namespace2FileStore.toMap
