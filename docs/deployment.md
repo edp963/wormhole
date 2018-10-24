@@ -1,4 +1,11 @@
-[TOC]
+---
+layout: global
+displayTitle: Quick Start
+title: Quick Start
+description: Wormhole Quick Start page
+---
+
+{:toc}
 
 ## 前期准备
 
@@ -159,48 +166,34 @@ maintenance = {
 
 **参数设置说明**
 
-- **wormholeServer.cluster_id：可选全局uuid。单套Wormhole部署不设置wormholeServer.cluster.id或者wormholeServer.cluster.id=""；多套Wormhole部署，wormholeServer.cluster.id不许唯一，不可重复。**
-
-- **kafka.using.cluster.suffix：标记是否将wormholeServer.cluster_id作用于kafka.consumer.feedback.topic。如果cluster_id存在且kafka.using.cluster.suffix=true，则feedback topic为kafka.consumer.feedback.topic + "_" + cluster_id。如果cluster_id不存在或者不设置kafka.using.cluster.suffix或者kafka.using.cluster.suffix=false，则feedback topic为kafka.consumer.feedback.topic**
-
-- **elasticSearch.wormhole.using.cluster.suffix：与kafka.using.cluster.suffix类似，记是否将wormholeServer.cluster_id作用于elasticSearch.wormhole.feedback.index。如果cluster_id存在且elasticSearch.wormhole.using.cluster.suffix=true，则feedback index为elasticSearch.wormhole.feedback.index + "_" + cluster_id。如果cluster_id不存在或者不设置elasticSearch.wormhole.using.cluster.suffix或者elasticSearch.wormhole.using.cluster.suffix=false，则feedback index为elasticSearch.wormhole.feedback.index**
-
+- wormholeServer.cluster_id：可选全局uuid。单套Wormhole部署不设置wormholeServer.cluster.id或者wormholeServer.cluster.id=""；多套Wormhole部署，wormholeServer.cluster.id必须唯一，不可重复。
+- kafka.using.cluster.suffix：标记是否将wormholeServer.cluster_id作用于kafka.consumer.feedback.topic。如果cluster_id存在且kafka.using.cluster.suffix=true，则feedback topic为kafka.consumer.feedback.topic + "_" + cluster_id。如果cluster_id不存在或者不设置kafka.using.cluster.suffix或者kafka.using.cluster.suffix=false，则feedback topic为kafka.consumer.feedback.topic
+- elasticSearch.wormhole.using.cluster.suffix：与kafka.using.cluster.suffix类似，记是否将wormholeServer.cluster_id作用于elasticSearch.wormhole.feedback.index。如果cluster_id存在且elasticSearch.wormhole.using.cluster.suffix=true，则feedback index为elasticSearch.wormhole.feedback.index + "_" + cluster_id。如果cluster_id不存在或者不设置elasticSearch.wormhole.using.cluster.suffix或者elasticSearch.wormhole.using.cluster.suffix=false，则feedback index为elasticSearch.wormhole.feedback.index
 
 ##### 单套Wormhole部署
 
-- **单套Wormhole部署只需将wormholeServer.cluster_id设置为空或者不进行设置即可**
-
+- 单套Wormhole部署只需将wormholeServer.cluster_id设置为空或者不进行设置即可
 
 **说明**
 
-- **Kafka feedback topic：为kafka.consumer.feedback.topic**
-
-- **ES feedback index：为elasticSearch.wormhole.feedback.index**
-
-- **HDFS路径为：spark.wormhole.hdfs.root.path**
-
-- **Zookeeper路径为：zookeeper.wormhole.root.path/cluster_id**
-
+- Kafka feedback topic：为kafka.consumer.feedback.topic
+- ES feedback index：为elasticSearch.wormhole.feedback.index
+- HDFS路径为：spark.wormhole.hdfs.root.path
+- Zookeeper路径为：zookeeper.wormhole.root.path/cluster_id
 
 ##### 多套Wormhole隔离部署
 
-- **wormholeServer.cluster_id（必须配置）：每套Wormhole唯一的uuid，不可重复**
-
-- **kafka.using.cluster.suffix（选择设置）：如果kafka.using.cluster.suffix=false，则feedback topic为kafka.consumer.feedback.topic；如果kafka.using.cluster.suffix=true，则feedback topic为kafka.consumer.feedback.topic + "_" + cluster_id**
-- **elasticSearch.wormhole.using.cluster.suffix（选择设置）：如果elasticSearch.wormhole.using.cluster.suffix=false，则feedback index为elasticSearch.wormhole.feedback.index ；如果elasticSearch.wormhole.using.cluster.suffix=true，则feedback index为elasticSearch.wormhole.feedback.index + "_" + cluster_id**
+- wormholeServer.cluster_id（必须配置）：每套Wormhole唯一的uuid，不可重复
+- kafka.using.cluster.suffix（选择设置）：如果kafka.using.cluster.suffix=false，则feedback topic为kafka.consumer.feedback.topic；如果kafka.using.cluster.suffix=true，则feedback topic为kafka.consumer.feedback.topic + "_" + cluster_id
+- elasticSearch.wormhole.using.cluster.suffix（选择设置）：如果elasticSearch.wormhole.using.cluster.suffix=false，则feedback index为elasticSearch.wormhole.feedback.index ；如果elasticSearch.wormhole.using.cluster.suffix=true，则feedback index为elasticSearch.wormhole.feedback.index + "_" + cluster_id
 
 **说明**
 
-- **MySQL：与cluster_id是否存在无关，所以部署多集群时，只要用不同的库的url即可**
-
-- **Kafka feedback topic：参考上文kafka.using.cluster.suffix的设置**
-
-- **ES feedback index：参考上文elasticSearch.wormhole.using.cluster.suffix的设置**
-
-- **HDFS：spark.wormhole.hdfs.root.path为一级根目录名，HDFS路径为spark.wormhole.hdfs.root.path/cluster_id**
-
-- **Zookeeper：zookeeper.wormhole.root.path为一级根目录名，Zookeeper路径为zookeeper.wormhole.root.path/cluster_id**
-
+- MySQL：与cluster_id是否存在无关，所以部署多集群时，只要用不同的库的url即可
+- Kafka feedback topic：参考上文kafka.using.cluster.suffix的设置
+- ES feedback index：参考上文elasticSearch.wormhole.using.cluster.suffix的设置
+- HDFS：spark.wormhole.hdfs.root.path为一级根目录名，HDFS路径为spark.wormhole.hdfs.root.path/cluster_id
+- Zookeeper：zookeeper.wormhole.root.path为一级根目录名，Zookeeper路径为zookeeper.wormhole.root.path/cluster_id
 
 #### 授权远程访问
 
