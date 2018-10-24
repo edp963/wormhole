@@ -199,7 +199,7 @@ object HdfsMainProcess extends EdpLogging {
     val processTime = DateUtils.currentyyyyMMddHHmmssmls
     val indexStr = "000" + index
 
-    val incrementalId = DateUtils.currentyyyyMMddHHmmss + indexStr.substring(indexStr.length - 4, indexStr.length)
+    val incrementalId = processTime + indexStr.substring(indexStr.length - 4, indexStr.length)
     //WormholeZkClient.getNextAtomicIncrement(zookeeperPath, nodePath)
     val metaName = if (minTs == null) filePrefixShardingSlash + "wrong" + "/" + "metadata_" + incrementalId else filePrefixShardingSlash + "right" + "/" + "metadata_" + incrementalId
     val metaContent: String = if (minTs == null) incrementalId + "_" + "0_" + processTime + "_" + processTime else incrementalId + "_" + "0_" + processTime + "_" + minTs + "_" + maxTs
