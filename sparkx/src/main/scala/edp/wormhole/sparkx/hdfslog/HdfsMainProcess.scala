@@ -28,9 +28,10 @@ import java.util.UUID
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.externalclient.hadoop.HdfsUtils
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sinks.utils.SinkCommonUtils._
-import edp.wormhole.sparkx.common.{SparkUtils, WormholeConfig, WormholeUtils}
+import edp.wormhole.sparkx.common.{SparkContextUtils, SparkUtils, WormholeConfig, WormholeUtils}
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsSchemaUtils._
 import edp.wormhole.ums.UmsSysField._
@@ -60,8 +61,8 @@ object HdfsMainProcess extends EdpLogging {
   val metadata = "metadata_"
   val hdfsLog = "hdfslog/"
 
-  def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig): Unit = {
-    val zookeeperPath = config.zookeeper_path
+  def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig,appId:String): Unit = {
+    var zookeeperFlag = false
     stream.foreachRDD(foreachFunc = (streamRdd: RDD[ConsumerRecord[String, String]]) => {
       val offsetInfo: ArrayBuffer[OffsetRange] = new ArrayBuffer[OffsetRange]
       val batchId = UUID.randomUUID().toString
@@ -123,7 +124,7 @@ object HdfsMainProcess extends EdpLogging {
             try {
               if (namespaceDataList.nonEmpty) {
                 val tmpResult: PartitionResult =
-                  doMainData(protocol, namespace, namespaceDataList, config, hour, namespace2FileMap, zookeeperPath, jsonInfoMap, index)
+                  doMainData(protocol, namespace, namespaceDataList, config, hour, namespace2FileMap, config.zookeeper_path, jsonInfoMap, index)
                 tmpMinTs = tmpResult.minTs
                 tmpMaxTs = tmpResult.maxTs
                 tmpCount = tmpResult.allCount
@@ -186,6 +187,13 @@ object HdfsMainProcess extends EdpLogging {
           WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
       }
       stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
+      if(!zookeeperFlag){
+        logInfo("write appid to zookeeper,"+appId)
+        SparkContextUtils.checkSparkRestart(config.zookeeper_address, config.zookeeper_path, config.spark_config.stream_id, appId)
+        SparkContextUtils.deleteZookeeperOldAppidPath(appId, config.zookeeper_address, config.zookeeper_path, config.spark_config.stream_id)
+        WormholeZkClient.createPath(config.zookeeper_address, config.zookeeper_path + "/" + config.spark_config.stream_id + "/" + appId)
+        zookeeperFlag=true
+      }
     })
   }
 
