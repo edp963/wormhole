@@ -5,12 +5,12 @@ title: Deployment
 description: Wormhole Deployment page
 ---
 
-* This will become a table of contents (this text will be scraped).
 {:toc}
 
 ## 前期准备
 
 #### 环境准备
+
 - JDK1.8
 - Hadoop-client（HDFS，YARN）（支持版本 2.6+）
 - Spark-client （支持版本 2.2.0，2.2.1）(若使用Spark Streaming引擎，须部署Spark-client)
@@ -26,14 +26,16 @@ description: Wormhole Deployment page
 - MySQL
 
 #### Jar包准备
-mysql-connector-java-{your-db-version}.jar
 
+mysql-connector-java-{your-db-version}.jar
 
 **注意：升级至0.5.5-beta版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
 
 ## 部署配置
 
-**下载 wormhole-0.5.5-beta.tar.gz 包 (链接：https://pan.baidu.com/s/1ikjC4aNxfHFkMmxtPIdwVA 密码：nst4)，或者自编译**
+#### 下载安装包
+
+**下载 wormhole-0.5.5-beta.tar.gz 包 (链接：https://pan.baidu.com/s/1cWb4xo43WyehnrBWLsmThA 提取码：rhq8)，或者自编译**
 
 ```
 下载wormhole-0.5.5-beta.tar.gz安装包
@@ -44,20 +46,11 @@ cd wormhole
 mvn install package -Pwormhole
 ```
 
-**注意：0.4.2版本升级至0.5.5-beta版前须手动执行以下操作**
+#### 配置环境变量
 
-```
-1. stream表中增加function_type字段，原stream_type值赋值给function_type，stream_type值改为"spark"
-alter table `stream` add column `function_type` VARCHAR(100) NULL after `stream_type`;
-update `stream` a join `stream` b on a.id = b.id set a.`function_type` = b.`stream_type`;
-update `stream` set `stream_type` = "spark";
+**配置 SPARK_HOME/HADOOP_HOME 环境变量**
 
-2. flow表中consumed_protocol字段值修改，all改为"increment,initial"
-
-update `flow` set `consumed_protocol` = "increment,initial" where `consumed_protocol` = "all";
-```
-
-**配置 WORMHOLE_HOME/SPARK_HOME/HADOOP_HOME 环境变量**
+#### 修改配置文件
 
 **修改 application.conf 配置文件**
 
@@ -65,10 +58,12 @@ update `flow` set `consumed_protocol` = "increment,initial" where `consumed_prot
 conf/application.conf 配置项介绍
 
 wormholeServer {
-  host = "127.0.0.1"
+  cluster.id = "" #optional global uuid
+  host = "localhost"
   port = 8989
-  token.timeout = 7
-  request.timeout = 120s
+  ui.default.language = "Chinese"
+  token.timeout = 1
+  token.secret.key = "iytr174395lclkb?lgj~8u;[=L:ljg"
   admin.username = "admin"    #default admin user name
   admin.password = "admin"    #default admin user password
 }
@@ -81,6 +76,23 @@ mysql = {
     url = "jdbc:mysql://localhost:3306/wormhole"
     password = "*******"
     numThreads = 4
+    minConnections = 4
+    maxConnections = 10
+    connectionTimeout = 3000
+  }
+}
+
+ldap = {
+  enabled = false
+  user = ""
+  pwd = ""
+  url = ""
+  dc = ""
+  read.timeout = 3000
+  read.timeout = 5000
+  connect = {
+    timeout = 5000
+    pool = true
   }
 }
 
@@ -99,11 +111,16 @@ flink = {
   yarn.queue.name = "default"
 }
 
-zookeeper.connection.url = "localhost:2181"  #WormholeServer stream and flow interaction channel
+zookeeper = {
+  connection.url = "localhost:2181"  #WormholeServer stream and flow interaction channel
+  wormhole.root.path = "/wormhole"
+}
 
 kafka = {
   brokers.url = "locahost:9092"         #WormholeServer feedback data store
   zookeeper.url = "localhost:2181"
+  topic.refactor = 3
+  using.cluster.suffix = false #if true, _${cluster.id} will be concatenated to consumer.feedback.topic
   consumer = {
     feedback.topic = "wormhole_feedback"
     poll-interval = 20ms
@@ -129,6 +146,12 @@ kafka = {
 #  password = ""
 #}
 
+#delete feedback history data on time
+maintenance = {
+  mysql.feedback.remain.maxDays = 7
+  elasticSearch.feedback.remain.maxDays = 7
+}
+
 #display wormhole processing delay and throughput data, get admin user token from grafana
 #garfana should set to be anonymous login, so you can access the dashboard through wormhole directly
 #if not set, please comment it
@@ -140,6 +163,38 @@ kafka = {
 #Dbus integration, if not set, please comment it
 #dbus.namespace.rest.api.url = ["http://localhost:8080/webservice/tables/riderSearch"]
 ```
+
+**部署说明**
+
+为支持同一hadoop集群环境中部署多套Wormhole，在配置文件conf/application.conf中增加了wormholeServer.cluster_id参数（要求唯一）。单套Wormhole部署不设置wormholeServer.cluster.id或者wormholeServer.cluster.id=""。为兼容之前版本，可不设置该变量。**注意：之前版本不要随意增加该参数，否则无法读取对应的zookeeper和hdfs信息，无法正常运行已配置的stream和flow，即之前版本可以保持不变，新部署的Wormhole增加该参数即可。**
+
+##### 单套Wormhole部署
+
+- 单套Wormhole部署只需将wormholeServer.cluster_id设置为空或者不进行设置即可
+
+  **说明**
+
+- Kafka feedback topic：为kafka.consumer.feedback.topic
+- ES feedback index：为elasticSearch.wormhole.feedback.index
+- HDFS路径为：spark.wormhole.hdfs.root.path
+- Zookeeper路径为：zookeeper.wormhole.root.path/cluster_id
+
+##### 多套Wormhole隔离部署
+
+- wormholeServer.cluster_id（必须配置）：每套Wormhole唯一的uuid，不可重复
+- kafka.using.cluster.suffix（选择设置）：该变量标记是否将wormholeServer.cluster_id作用于kafka.consumer.feedback.topic。如果kafka.using.cluster.suffix=false，则feedback topic为kafka.consumer.feedback.topic；如果kafka.using.cluster.suffix=true，则feedback topic为kafka.consumer.feedback.topic + "_" + cluster_id
+- elasticSearch.wormhole.using.cluster.suffix（选择设置）：该变量标记是否将wormholeServer.cluster_id作用于elasticSearch.wormhole.feedback.index。如果elasticSearch.wormhole.using.cluster.suffix=false，则feedback index为elasticSearch.wormhole.feedback.index ；如果elasticSearch.wormhole.using.cluster.suffix=true，则feedback index为elasticSearch.wormhole.feedback.index + "_" + cluster_id
+
+  **说明**
+
+- MySQL：与cluster_id是否存在无关，所以部署多集群时，只要用不同的库的url即可
+- Kafka feedback topic：参考上文kafka.using.cluster.suffix的设置
+- ES feedback index：参考上文elasticSearch.wormhole.using.cluster.suffix的设置
+- HDFS：spark.wormhole.hdfs.root.path为一级根目录名，HDFS路径为spark.wormhole.hdfs.root.path/cluster_id
+- Zookeeper：zookeeper.wormhole.root.path为一级根目录名，Zookeeper路径为zookeeper.wormhole.root.path/cluster_id
+
+#### 授权远程访问
+
 **设置 wormhole server mysql 数据库编码为 uft8，并授权可远程访问**
 
 **上传 mysql-connector-java-{version}.jar 至 $WORMHOLE_HOME/lib 目录**
