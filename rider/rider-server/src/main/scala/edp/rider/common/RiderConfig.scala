@@ -220,8 +220,8 @@ object RiderConfig {
   )
 
   lazy val zk = RiderZookeeper(config.getString("zookeeper.connection.url"),
-    if (riderServer.clusterId == "") config.getString("zookeeper.wormhole.root.path")
-    else s"${config.getString("zookeeper.wormhole.root.path")}/${riderServer.clusterId}")
+    if (riderServer.clusterId == "") getStringConfig("zookeeper.wormhole.root.path", "/wormhole")
+    else s"${getStringConfig("zookeeper.wormhole.root.path", "/wormhole")}/${riderServer.clusterId}")
 
 
   lazy val appTags = getStringConfig("spark.app.tags", "wormhole")
