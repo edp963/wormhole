@@ -21,13 +21,21 @@
 package edp.wormhole.flinkx.swifts
 
 import com.alibaba.fastjson.{JSON, JSONObject}
+<<<<<<< HEAD
 import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
+=======
+import edp.wormhole.common.feedback.FeedbackPriority
+import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcessMethod, WormholeFlinkxConfig}
+>>>>>>> add exception process method
 import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
 import edp.wormhole.flinkx.pattern.Output.{FIELDLIST, TYPE}
 import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput}
+import edp.wormhole.flinkx.sink.SinkProcess.logger
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType, SwiftsConstants}
 import edp.wormhole.ums.UmsSysField
+import edp.wormhole.kafka.WormholeKafkaProducer
+import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.time.Time
 import org.apache.flink.api.common.typeinfo.{SqlTimeTypeInfo, TypeInformation}
@@ -198,6 +206,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
     //handle exception
     val exceptionStream: DataStream[String] = resultDataStream.getSideOutput(lookupTag)
 <<<<<<< HEAD
+<<<<<<< HEAD
     exceptionStream.map(stream => {
       logger.info("--------------------lookup exception stream:" + stream)
       ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, stream, config)
@@ -205,6 +214,19 @@ class SwiftsProcess(dataStream: DataStream[Row],
 =======
     logger.info("look up exception stream:")
     exceptionStream.print()
+=======
+    exceptionStream.map(stream => {
+      logger.info("--------------------lookup exception stream:" + stream)
+      exceptionConfig.exceptionProcess match {
+        case ExceptionProcessMethod.INTERRUPT =>
+          throw new Throwable("process error")
+        case ExceptionProcessMethod.FEEDBACK =>
+          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, stream, None, config.kafka_output.brokers)
+        case _ =>
+          logger.info("exception process method is" + exceptionConfig.exceptionProcess)
+      }})
+    //exceptionStream.print()
+>>>>>>> add exception process method
 
 >>>>>>> print exception to log
     //return

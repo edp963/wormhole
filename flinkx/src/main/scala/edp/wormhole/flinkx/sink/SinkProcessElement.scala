@@ -1,7 +1,11 @@
 package edp.wormhole.flinkx.sink
 
 import akka.protobuf.ByteString.Output
+<<<<<<< HEAD
 import edp.wormhole.flinkx.common.{ConfMemoryStorage, ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
+=======
+import edp.wormhole.flinkx.common.{ConfMemoryStorage, ExceptionConfig, WormholeFlinkxConfig}
+>>>>>>> add exception process method
 import edp.wormhole.flinkx.util.UmsFlowStartUtils
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.{Ums, UmsProtocolUtils, UmsTuple}
@@ -24,10 +28,14 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
     val listBuffer = ListBuffer.empty[String]
     val rowSize = schemaMapWithUmsType.size
 <<<<<<< HEAD
+<<<<<<< HEAD
     //val (streamId, flowId, sourceNamespace) = extractTupleFromUms(umsFlowStart)
 =======
     val (streamId, flowId, sourceNamespace) = extractTupleFromUms(umsFlowStart)
 >>>>>>> print exception to log
+=======
+    //val (streamId, flowId, sourceNamespace) = extractTupleFromUms(umsFlowStart)
+>>>>>>> add exception process method
 
     try {
       for (index <- 0 until rowSize) {
@@ -70,24 +78,36 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
         }}
         val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
 
+<<<<<<< HEAD
         ctx.output(sinkTag, UmsProtocolUtils.feedbackFlowFlinkxError(sourceNamespace, streamId.toLong, flowId, sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
 >>>>>>> print exception to log
+=======
+        ctx.output(sinkTag, UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
+>>>>>>> add exception process method
     }
     out.collect(Seq(value))
   }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   /*private def extractTupleFromUms(umsFlowStart: Ums) = {
 =======
   private def extractTupleFromUms(umsFlowStart: Ums) = {
 >>>>>>> print exception to log
+=======
+  /*private def extractTupleFromUms(umsFlowStart: Ums) = {
+>>>>>>> add exception process method
     val flowId = UmsFlowStartUtils.extractFlowId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head)
     val streamId = UmsFlowStartUtils.extractStreamId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head)
     val sourceNamespace: String = UmsFlowStartUtils.extractSourceNamespace(umsFlowStart)
     (streamId, flowId, sourceNamespace)
 <<<<<<< HEAD
+<<<<<<< HEAD
   }*/
 =======
   }
 >>>>>>> print exception to log
+=======
+  }*/
+>>>>>>> add exception process method
 }
