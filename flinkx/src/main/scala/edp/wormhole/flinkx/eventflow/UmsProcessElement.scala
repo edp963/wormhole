@@ -46,8 +46,12 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
 =======
         ex.printStackTrace()
         out.collect(new Row(0))
+<<<<<<< HEAD
         ctx.output(kafkaDataTag, UmsProtocolUtils.feedbackFlowFlinkxError(namespaceIdConfig.sourceNamespace, namespaceIdConfig.streamId, namespaceIdConfig.flowId, namespaceIdConfig.sinkNamespace, new DateTime(), value._2, ex.getMessage))
 >>>>>>> print exception to log
+=======
+        ctx.output(kafkaDataTag, UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), value._2, ex.getMessage))
+>>>>>>> add exception process method
     }
   }
 

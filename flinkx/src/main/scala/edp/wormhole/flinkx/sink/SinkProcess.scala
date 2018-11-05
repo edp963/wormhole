@@ -23,10 +23,14 @@ package edp.wormhole.flinkx.sink
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.feedback.FeedbackPriority
 <<<<<<< HEAD
+<<<<<<< HEAD
 import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, ExceptionProcessMethod, WormholeFlinkxConfig}
 =======
 import edp.wormhole.flinkx.common.WormholeFlinkxConfig
 >>>>>>> print exception to log
+=======
+import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcessMethod, WormholeFlinkxConfig}
+>>>>>>> add exception process method
 import edp.wormhole.flinkx.util.{FlinkSchemaUtils, UmsFlowStartUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
@@ -62,6 +66,7 @@ object SinkProcess extends Serializable {
     val exceptionStream = sinkDataStream.getSideOutput(sinkTag)
     exceptionStream.map(stream => {
 <<<<<<< HEAD
+<<<<<<< HEAD
       logger.info("--------------------sink exception stream:" + stream)
       ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, stream, config)
     })
@@ -71,6 +76,18 @@ object SinkProcess extends Serializable {
     logger.info("--------------------sink exception stream:")
     exceptionStream.print()
 >>>>>>> print exception to log
+=======
+      logger.info("--------------------sink exception stream:" + stream)
+      exceptionConfig.exceptionProcess match {
+        case ExceptionProcessMethod.INTERRUPT =>
+          throw new Throwable("process error")
+        case ExceptionProcessMethod.FEEDBACK =>
+          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, stream, None, config.kafka_output.brokers)
+        case _ =>
+          logger.info("exception process method is" + exceptionConfig.exceptionProcess)
+      }})
+    //exceptionStream.print()
+>>>>>>> add exception process method
     //return
     sinkDataStream
   }
