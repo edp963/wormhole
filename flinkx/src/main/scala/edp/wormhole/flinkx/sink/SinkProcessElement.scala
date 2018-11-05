@@ -23,7 +23,11 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
     val sinkTs = System.currentTimeMillis
     val listBuffer = ListBuffer.empty[String]
     val rowSize = schemaMapWithUmsType.size
+<<<<<<< HEAD
     //val (streamId, flowId, sourceNamespace) = extractTupleFromUms(umsFlowStart)
+=======
+    val (streamId, flowId, sourceNamespace) = extractTupleFromUms(umsFlowStart)
+>>>>>>> print exception to log
 
     try {
       for (index <- 0 until rowSize) {
@@ -42,6 +46,7 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
       //        count, DateUtils.dt2date(maxTs.split("\\+")(0).replace("T", " ")).getTime, initialTs, initialTs, initialTs, swiftsTs, sinkTs, doneTs), None, config.kafka_output.brokers)
     } catch {
       case ex: Throwable =>
+<<<<<<< HEAD
         logger.error("in doFlinkSql table query", ex)
 
         val dataInfoIt: Iterable[String] = schemaMapWithUmsType.map {
@@ -51,14 +56,38 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
         val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
 
         ctx.output(sinkTag, UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
+=======
+        ex.printStackTrace()
+
+        val dataInfoIt: Iterable[String] = schemaMapWithUmsType.map { case (schemaName, (pos, _, _)) => {
+          val curData =
+            if(value.getArity > pos) {
+              schemaName + ":" + value.getField(pos).toString
+            } else {
+               schemaName + ":" + "null"
+            }
+          curData
+        }}
+        val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
+
+        ctx.output(sinkTag, UmsProtocolUtils.feedbackFlowFlinkxError(sourceNamespace, streamId.toLong, flowId, sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
+>>>>>>> print exception to log
     }
     out.collect(Seq(value))
   }
 
+<<<<<<< HEAD
   /*private def extractTupleFromUms(umsFlowStart: Ums) = {
+=======
+  private def extractTupleFromUms(umsFlowStart: Ums) = {
+>>>>>>> print exception to log
     val flowId = UmsFlowStartUtils.extractFlowId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head)
     val streamId = UmsFlowStartUtils.extractStreamId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head)
     val sourceNamespace: String = UmsFlowStartUtils.extractSourceNamespace(umsFlowStart)
     (streamId, flowId, sourceNamespace)
+<<<<<<< HEAD
   }*/
+=======
+  }
+>>>>>>> print exception to log
 }

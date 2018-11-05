@@ -72,6 +72,7 @@ case class FlinkConfig(stream_id: Long,
                        stream_name: String)
 
 
+<<<<<<< HEAD
 case class ExceptionConfig(streamId: Long,
                            flowId: Long,
                            sourceNamespace: String,
@@ -93,3 +94,10 @@ object ExceptionProcessMethod extends Enumeration {
       ExceptionProcessMethod.withName(s.toLowerCase)
   }
 }
+=======
+case class NamespaceIdConfig(streamId: Long,
+                             flowId: Long,
+                             sourceNamespace: String,
+                             sinkNamespace: String
+                            )
+>>>>>>> print exception to log
