@@ -26,7 +26,8 @@ import com.alibaba.fastjson
 import com.alibaba.fastjson.JSON
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.FieldInfo
-import edp.wormhole.flinkx.common.{ConfMemoryStorage, NamespaceIdConfig, WormholeFlinkxConfig}
+import edp.wormhole.flinkx.common.ExceptionProcessMethod.ExceptionProcessMethod
+import edp.wormhole.flinkx.common.{ExceptionConfig, _}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
 import edp.wormhole.flinkx.sink.SinkProcess
 import edp.wormhole.flinkx.swifts.{ParseSwiftsSql, SwiftsProcess}
@@ -65,7 +66,8 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   private val streamId = UmsFlowStartUtils.extractStreamId(flowStartFields, flowStartPayload).toLong
   private val flowId = UmsFlowStartUtils.extractFlowId(flowStartFields, flowStartPayload)
 
-  private val namespaceIdConfig = NamespaceIdConfig(streamId, flowId, sourceNamespace, sinkNamespace)
+  private val exceptionProcess: ExceptionProcessMethod = ExceptionProcessMethod.exceptionProcessMethod(UmsFlowStartUtils.extractExceptionProcess(swifts))
+  private val exceptionConfig = ExceptionConfig(streamId, flowId, sourceNamespace, sinkNamespace, exceptionProcess)
 
   private val kafkaDataTag = OutputTag[String]("kafkaDataException")
 
@@ -98,8 +100,8 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     watermarkStream.print()
     try {
       val swiftsTs = System.currentTimeMillis
-      val (stream, schemaMap) = SwiftsProcess.process(watermarkStream, namespaceIdConfig, tableEnv, swiftsSql)
-      SinkProcess.doProcess(stream, umsFlowStart, schemaMap, config, initialTs, swiftsTs)
+      val (stream, schemaMap) = SwiftsProcess.process(watermarkStream, exceptionConfig, tableEnv, swiftsSql, config)
+      SinkProcess.doProcess(stream, umsFlowStart, schemaMap, config, initialTs, swiftsTs, exceptionConfig)
     } catch {
       case e: Throwable =>
         logger.error("swifts and sink", e)
@@ -136,11 +138,20 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
       })
     val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
     //processStream.flatMap(new UmsFlatMapper(sourceSchemaMap.toMap, sourceNamespace, jsonSourceParseMap))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
-    val inputStream = processStream.process(new UmsProcessElement(sourceSchemaMap.toMap, namespaceIdConfig, jsonSourceParseMap, kafkaDataTag))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
+    val inputStream = processStream.process(new UmsProcessElement(sourceSchemaMap.toMap, exceptionConfig, jsonSourceParseMap, kafkaDataTag))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
     //handle kafka data exception sideoutput
     val exceptionStream = inputStream.getSideOutput(kafkaDataTag)
-    logger.info("kafka data exception stream:")
-    exceptionStream.print()
+    exceptionStream.map(stream => {
+      logger.info("--------------------kafka data exception stream:" + stream)
+      exceptionProcess match {
+        case ExceptionProcessMethod.INTERRUPT =>
+          throw new Throwable("process error")
+        case ExceptionProcessMethod.FEEDBACK =>
+          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, stream, None, config.kafka_output.brokers)
+        case _ =>
+          logger.info("exception process method is" + exceptionProcess)
+      }})
+    //exceptionStream.print()
     //return
     inputStream
   }

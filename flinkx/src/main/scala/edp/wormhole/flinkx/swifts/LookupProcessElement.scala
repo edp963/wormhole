@@ -19,7 +19,7 @@
  */
 package edp.wormhole.flinkx.swifts
 
-import edp.wormhole.flinkx.common.NamespaceIdConfig
+import edp.wormhole.flinkx.common.ExceptionConfig
 import edp.wormhole.flinkx.swifts.custom.{LookupHbaseHelper, LookupKuduHelper, LookupRedisHelper}
 import edp.wormhole.ums.{UmsDataSystem, UmsProtocolUtils}
 import edp.wormhole.util.config.ConnectionConfig
@@ -34,7 +34,7 @@ import org.joda.time.DateTime
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-class LookupProcessElement(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (TypeInformation[_], Int)], dbOutPutSchemaMap: Map[String, (String, String, Int)], dataStoreConnectionsMap: Map[String, ConnectionConfig], namespaceIdConfig: NamespaceIdConfig, lookupTag: OutputTag[String]) extends ProcessFunction[Row, Seq[Row]] with java.io.Serializable{
+class LookupProcessElement(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (TypeInformation[_], Int)], dbOutPutSchemaMap: Map[String, (String, String, Int)], dataStoreConnectionsMap: Map[String, ConnectionConfig], exceptionConfig: ExceptionConfig, lookupTag: OutputTag[String]) extends ProcessFunction[Row, Seq[Row]] with java.io.Serializable{
   //private val outputTag = OutputTag[String]("lookupException")
   private val sourceTableFields: Array[String] = if (swiftsSql.sourceTableFields.isDefined) swiftsSql.sourceTableFields.get else null
   private val lookupTableFields = if (swiftsSql.lookupTableFields.isDefined) swiftsSql.lookupTableFields.get else null
@@ -93,7 +93,7 @@ class LookupProcessElement(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (Type
         }}
         val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
 
-        ctx.output(lookupTag, UmsProtocolUtils.feedbackFlowFlinkxError(namespaceIdConfig.sourceNamespace, namespaceIdConfig.streamId, namespaceIdConfig.flowId, namespaceIdConfig.sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
+        ctx.output(lookupTag, UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
     }
   }
 }

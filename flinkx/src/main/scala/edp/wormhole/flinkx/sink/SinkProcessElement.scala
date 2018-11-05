@@ -1,7 +1,7 @@
 package edp.wormhole.flinkx.sink
 
 import akka.protobuf.ByteString.Output
-import edp.wormhole.flinkx.common.{ConfMemoryStorage, WormholeFlinkxConfig}
+import edp.wormhole.flinkx.common.{ConfMemoryStorage, ExceptionConfig, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.util.UmsFlowStartUtils
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.{Ums, UmsProtocolUtils, UmsTuple}
@@ -15,13 +15,13 @@ import org.joda.time.DateTime
 
 import scala.collection.mutable.ListBuffer
 
-class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, Boolean)], sinkNamespace: String, sinkProcessConfig: SinkProcessConfig, umsFlowStart: Ums, connectionConfig: ConnectionConfig, config: WormholeFlinkxConfig, initialTs: Long, swiftsTs: Long, sinkTag: OutputTag[String]) extends ProcessFunction[Row, Seq[Row]] with java.io.Serializable{
+class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, Boolean)], exceptionConfig: ExceptionConfig, sinkProcessConfig: SinkProcessConfig, umsFlowStart: Ums, connectionConfig: ConnectionConfig, config: WormholeFlinkxConfig, initialTs: Long, swiftsTs: Long, sinkTag: OutputTag[String]) extends ProcessFunction[Row, Seq[Row]] with java.io.Serializable{
   //private val outputTag = OutputTag[String]("sinkException")
   override def processElement(value: Row, ctx: ProcessFunction[Row, Seq[Row]]#Context, out: Collector[Seq[Row]]): Unit = {
     val sinkTs = System.currentTimeMillis
     val listBuffer = ListBuffer.empty[String]
     val rowSize = schemaMapWithUmsType.size
-    val (streamId, flowId, sourceNamespace) = extractTupleFromUms(umsFlowStart)
+    //val (streamId, flowId, sourceNamespace) = extractTupleFromUms(umsFlowStart)
 
     try {
       for (index <- 0 until rowSize) {
@@ -31,7 +31,7 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
       val umsTuple = UmsTuple(listBuffer)
 
       val (sinkObject, sinkMethod) = ConfMemoryStorage.getSinkTransformReflect(sinkProcessConfig.classFullname)
-      sinkMethod.invoke(sinkObject, umsFlowStart.schema.namespace, sinkNamespace, sinkProcessConfig, schemaMapWithUmsType, Seq(umsTuple.tuple), connectionConfig)
+      sinkMethod.invoke(sinkObject, umsFlowStart.schema.namespace, exceptionConfig.sinkNamespace, sinkProcessConfig, schemaMapWithUmsType, Seq(umsTuple.tuple), connectionConfig)
       val doneTs = System.currentTimeMillis
 
       //ctx.output(sinkTag, "testtest")
@@ -53,15 +53,15 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
         }}
         val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
 
-        ctx.output(sinkTag, UmsProtocolUtils.feedbackFlowFlinkxError(sourceNamespace, streamId.toLong, flowId, sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
+        ctx.output(sinkTag, UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
     }
     out.collect(Seq(value))
   }
 
-  private def extractTupleFromUms(umsFlowStart: Ums) = {
+  /*private def extractTupleFromUms(umsFlowStart: Ums) = {
     val flowId = UmsFlowStartUtils.extractFlowId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head)
     val streamId = UmsFlowStartUtils.extractStreamId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head)
     val sourceNamespace: String = UmsFlowStartUtils.extractSourceNamespace(umsFlowStart)
     (streamId, flowId, sourceNamespace)
-  }
+  }*/
 }

@@ -108,4 +108,16 @@ object UmsFlowStartUtils {
     UmsFieldType.umsFieldValue(payloads.tuple, schemas, "data_type").toString.toLowerCase()
   }
 
+
+  def extractExceptionProcess(swifts: JSONObject): String  = {
+    if (swifts.containsKey("swifts_specific_config") && (swifts.getJSONObject("swifts_specific_config") != null)) {
+      val swiftsSpecificConfig = swifts.getJSONObject("swifts_specific_config")
+      if(swiftsSpecificConfig.containsKey("exception_process_method") && swiftsSpecificConfig.getString("exception_process_method").nonEmpty) {
+        swiftsSpecificConfig.getString("exception_process_method")
+      }
+      else null
+    }
+    else null
+  }
+
 }
