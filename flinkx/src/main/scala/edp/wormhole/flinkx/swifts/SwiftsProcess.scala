@@ -21,6 +21,7 @@
 package edp.wormhole.flinkx.swifts
 
 import com.alibaba.fastjson.{JSON, JSONObject}
+import edp.wormhole.flinkx.common.NamespaceIdConfig
 import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
 import edp.wormhole.flinkx.pattern.Output.{FIELDLIST, TYPE}
 import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput}
@@ -43,16 +44,18 @@ object SwiftsProcess extends Serializable {
   private var preSchemaMap: Map[String, (TypeInformation[_], Int)] = FlinkSchemaUtils.immutableSourceSchemaMap
   private var udfSchemaMap: Map[String, TypeInformation[_]] = FlinkSchemaUtils.udfSchemaMap.toMap
 
-  def process(dataStream: DataStream[Row], sourceNamespace: String, tableEnv: StreamTableEnvironment, swiftsSql: Option[Array[SwiftsSql]]): (DataStream[Row], Map[String, (TypeInformation[_], Int)]) = {
+  private val lookupTag = OutputTag[String]("lookupException")
+
+  def process(dataStream: DataStream[Row], namespaceIdConfig: NamespaceIdConfig, tableEnv: StreamTableEnvironment, swiftsSql: Option[Array[SwiftsSql]]): (DataStream[Row], Map[String, (TypeInformation[_], Int)]) = {
     var transformedStream = dataStream
     if (swiftsSql.nonEmpty) {
       val swiftsSqlGet = swiftsSql.get
       for (index <- swiftsSqlGet.indices) {
         val element = swiftsSqlGet(index)
         SqlOptType.withName(element.optType) match {
-          case SqlOptType.FLINK_SQL => transformedStream = doFlinkSql(transformedStream, sourceNamespace, tableEnv, element.sql, index)
+          case SqlOptType.FLINK_SQL => transformedStream = doFlinkSql(transformedStream, namespaceIdConfig.sourceNamespace, tableEnv, element.sql, index)
           case SqlOptType.CEP => transformedStream = doCEP(transformedStream, element.sql, index)
-          case SqlOptType.JOIN | SqlOptType.LEFT_JOIN => transformedStream = doLookup(transformedStream, element, index)
+          case SqlOptType.JOIN | SqlOptType.LEFT_JOIN => transformedStream = doLookup(transformedStream, element, index, namespaceIdConfig)
         }
       }
     }
@@ -139,17 +142,23 @@ object SwiftsProcess extends Serializable {
   }
 
 
-  private def doLookup(dataStream: DataStream[Row], element: SwiftsSql, index: Int) = {
+  private def doLookup(dataStream: DataStream[Row], element: SwiftsSql, index: Int, namespaceIdConfig: NamespaceIdConfig) = {
     val lookupSchemaMap = LookupHelper.getLookupSchemaMap(preSchemaMap, element)
     val fieldNames = FlinkSchemaUtils.getFieldNamesFromSchema(lookupSchemaMap)
     val fieldTypes = FlinkSchemaUtils.getOutPutFieldTypes(fieldNames, lookupSchemaMap)
-    val resultDataStream = dataStream.map(new LookupMapper(element, preSchemaMap, LookupHelper.getDbOutPutSchemaMap(element), ConnectionMemoryStorage.getDataStoreConnectionsMap)).flatMap(o => o)(Types.ROW(fieldNames, fieldTypes))
+    //val resultDataStream = dataStream.map(new LookupMapper(element, preSchemaMap, LookupHelper.getDbOutPutSchemaMap(element), ConnectionMemoryStorage.getDataStoreConnectionsMap)).flatMap(o => o)(Types.ROW(fieldNames, fieldTypes))
+    val resultDataStream = dataStream.process(new LookupProcessElement(element, preSchemaMap, LookupHelper.getDbOutPutSchemaMap(element), ConnectionMemoryStorage.getDataStoreConnectionsMap, namespaceIdConfig, lookupTag)).flatMap(o => o)(Types.ROW(fieldNames, fieldTypes))
     val key = s"swifts$index"
     if (!FlinkSchemaUtils.swiftsProcessSchemaMap.contains(key))
       FlinkSchemaUtils.swiftsProcessSchemaMap += key -> lookupSchemaMap
     preSchemaMap = FlinkSchemaUtils.swiftsProcessSchemaMap(key)
     resultDataStream.print()
     logger.info(resultDataStream.dataType.toString + "in  doLookup")
+    //handle exception
+    val exceptionStream: DataStream[String] = resultDataStream.getSideOutput(lookupTag)
+    logger.info("look up exception stream:")
+    exceptionStream.print()
+    //return
     resultDataStream
   }
 

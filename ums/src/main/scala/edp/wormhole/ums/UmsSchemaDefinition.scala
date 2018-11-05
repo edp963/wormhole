@@ -186,6 +186,8 @@ object UmsProtocolType extends Enumeration {
 
   val DIRECTIVE_UDF_ADD = Value("directive_udf_add")
 
+  val EXCEPTIONMESSAGE = Value("exception_message")
+
   def umsProtocolType(s: String) = UmsProtocolType.withName(s.toLowerCase)
 }
 

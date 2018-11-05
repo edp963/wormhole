@@ -310,7 +310,27 @@ trait UmsProtocolUtils {
       payload = Some(tp.map{case (topicName, partitionOffsets) => UmsTuple(Seq(DateUtils.dt2string(timeNow, dtFormat), streamID.toString, topicName, partitionOffsets,batchId))}.toSeq)))
   }
 
-
+  // exceptionData
+  def WormholeExceptionMessage(sourceNamespace: String,
+                               streamId: Long,
+                               timeNow: DateTime,
+                               sinkNamespace: String,
+                               lookupNamespace: String,
+                               errorInfo: String): String = toJsonCompact(Ums(
+    protocol = UmsProtocol(UmsProtocolType.EXCEPTIONMESSAGE),
+    schema = UmsSchema(
+      sourceNamespace, Some(Seq(
+      UmsField("stream_id", UmsFieldType.LONG),
+      UmsField(UmsSysField.TS.toString, UmsFieldType.DATETIME),
+      UmsField("sink_namespace", UmsFieldType.STRING),
+        UmsField("look_namespace", UmsFieldType.STRING),
+      UmsField("error_info", UmsFieldType.STRING)))),
+    payload = Some(Seq(UmsTuple(Seq(
+      streamId.toString,
+      DateUtils.dt2string(timeNow, dtFormat),
+      sinkNamespace,
+      lookupNamespace,
+      errorInfo))))))
 }
 
 

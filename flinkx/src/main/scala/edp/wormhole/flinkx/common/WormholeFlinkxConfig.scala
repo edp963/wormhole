@@ -69,3 +69,9 @@ case class PartitionOffsetConfig(partition_num: Int, offset: Long)
 
 case class FlinkConfig(stream_id: Long,
                        stream_name: String)
+
+
+case class NamespaceIdConfig(streamId: Long,
+                             sourceNamespace: String,
+                             sinkNamespace: String
+                            )
