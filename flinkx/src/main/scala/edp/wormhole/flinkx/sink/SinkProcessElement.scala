@@ -21,7 +21,8 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
     val sinkTs = System.currentTimeMillis
     val listBuffer = ListBuffer.empty[String]
     val rowSize = schemaMapWithUmsType.size
-    val (streamId, sourceNamespace) = extractTupleFromUms(umsFlowStart)
+    val (streamId, flowId, sourceNamespace) = extractTupleFromUms(umsFlowStart)
+
     try {
       for (index <- 0 until rowSize) {
         val fieldValue = if (value.getField(index) == null) null.asInstanceOf[String] else value.getField(index).toString
@@ -40,14 +41,27 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
     } catch {
       case ex: Throwable =>
         ex.printStackTrace()
-        ctx.output(sinkTag, UmsProtocolUtils.WormholeExceptionMessage(sourceNamespace, streamId.toLong, new DateTime(), sinkNamespace, "", "sink exception"))
+
+        val dataInfoIt: Iterable[String] = schemaMapWithUmsType.map { case (schemaName, (pos, _, _)) => {
+          val curData =
+            if(value.getArity > pos) {
+              schemaName + ":" + value.getField(pos).toString
+            } else {
+               schemaName + ":" + "null"
+            }
+          curData
+        }}
+        val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
+
+        ctx.output(sinkTag, UmsProtocolUtils.feedbackFlowFlinkxError(sourceNamespace, streamId.toLong, flowId, sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
     }
     out.collect(Seq(value))
   }
 
   private def extractTupleFromUms(umsFlowStart: Ums) = {
+    val flowId = UmsFlowStartUtils.extractFlowId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head)
     val streamId = UmsFlowStartUtils.extractStreamId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head)
     val sourceNamespace: String = UmsFlowStartUtils.extractSourceNamespace(umsFlowStart)
-    (streamId, sourceNamespace)
+    (streamId, flowId, sourceNamespace)
   }
 }

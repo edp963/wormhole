@@ -61,8 +61,11 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   private val timeCharacteristic = UmsFlowStartUtils.extractTimeCharacteristic(swifts)
   private val sinkNamespace = UmsFlowStartUtils.extractSinkNamespace(flowStartFields, flowStartPayload)
   private val sourceNamespace: String = UmsFlowStartUtils.extractSourceNamespace(umsFlowStart)
-  private val streamId = UmsFlowStartUtils.extractStreamId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head).toLong
-  private val namespaceIdConfig = NamespaceIdConfig(streamId, sourceNamespace, sinkNamespace)
+  //private val streamId = UmsFlowStartUtils.extractStreamId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head).toLong
+  private val streamId = UmsFlowStartUtils.extractStreamId(flowStartFields, flowStartPayload).toLong
+  private val flowId = UmsFlowStartUtils.extractFlowId(flowStartFields, flowStartPayload)
+
+  private val namespaceIdConfig = NamespaceIdConfig(streamId, flowId, sourceNamespace, sinkNamespace)
 
   private val kafkaDataTag = OutputTag[String]("kafkaDataException")
 

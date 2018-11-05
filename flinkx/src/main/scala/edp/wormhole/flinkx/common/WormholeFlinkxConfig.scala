@@ -72,6 +72,7 @@ case class FlinkConfig(stream_id: Long,
 
 
 case class NamespaceIdConfig(streamId: Long,
+                             flowId: Long,
                              sourceNamespace: String,
                              sinkNamespace: String
                             )

@@ -311,25 +311,28 @@ trait UmsProtocolUtils {
   }
 
   // exceptionData
-  def WormholeExceptionMessage(sourceNamespace: String,
-                               streamId: Long,
-                               timeNow: DateTime,
-                               sinkNamespace: String,
-                               lookupNamespace: String,
-                               errorInfo: String): String = toJsonCompact(Ums(
-    protocol = UmsProtocol(UmsProtocolType.EXCEPTIONMESSAGE),
+  def feedbackFlowFlinkxError(sourceNamespace: String,
+                              streamId: Long,
+                              flowId: Long,
+                              sinkNamespace: String,
+                              timeNow: DateTime,
+                              dataInfo: String,
+                              errorInfo: String): String = toJsonCompact(Ums(
+    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_FLINKX_ERROR),
     schema = UmsSchema(
       sourceNamespace, Some(Seq(
-      UmsField("stream_id", UmsFieldType.LONG),
-      UmsField(UmsSysField.TS.toString, UmsFieldType.DATETIME),
-      UmsField("sink_namespace", UmsFieldType.STRING),
-        UmsField("look_namespace", UmsFieldType.STRING),
-      UmsField("error_info", UmsFieldType.STRING)))),
+        UmsField("stream_id", UmsFieldType.LONG),
+        UmsField("flow_id", UmsFieldType.LONG),
+        UmsField("sink_namespace", UmsFieldType.STRING),
+        UmsField(UmsSysField.TS.toString, UmsFieldType.DATETIME),
+        UmsField("data_info", UmsFieldType.STRING),
+        UmsField("error_info", UmsFieldType.STRING)))),
     payload = Some(Seq(UmsTuple(Seq(
       streamId.toString,
-      DateUtils.dt2string(timeNow, dtFormat),
+      flowId.toString,
       sinkNamespace,
-      lookupNamespace,
+      DateUtils.dt2string(timeNow, dtFormat),
+      dataInfo,
       errorInfo))))))
 }
 

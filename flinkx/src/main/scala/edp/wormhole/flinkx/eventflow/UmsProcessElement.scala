@@ -41,7 +41,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
       case ex: Throwable =>
         ex.printStackTrace()
         out.collect(new Row(0))
-        ctx.output(kafkaDataTag, UmsProtocolUtils.WormholeExceptionMessage(namespaceIdConfig.sourceNamespace, namespaceIdConfig.streamId, new DateTime(), namespaceIdConfig.sinkNamespace, "", "process ums exception"))
+        ctx.output(kafkaDataTag, UmsProtocolUtils.feedbackFlowFlinkxError(namespaceIdConfig.sourceNamespace, namespaceIdConfig.streamId, namespaceIdConfig.flowId, namespaceIdConfig.sinkNamespace, new DateTime(), value._2, ex.getMessage))
     }
   }
 
