@@ -83,6 +83,7 @@ class LookupProcessElement(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (Type
         logger.error("in doFlinkSql table query", ex)
         out.collect(Seq(value))
 
+<<<<<<< HEAD
         val dataInfoIt: Iterable[String] = preSchemaMap.map {
           case (schemaName, (_, pos)) =>
             ExceptionProcess.feedbackDataInfo(schemaName, pos, value)
@@ -90,6 +91,20 @@ class LookupProcessElement(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (Type
         val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
 
         ctx.output(lookupTag, UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
+=======
+        val dataInfoIt: Iterable[String] = preSchemaMap.map{ case (schemaName, (_, pos)) => {
+          val curData =
+            if(value.getArity > pos) {
+              schemaName + ":" + value.getField(pos).toString
+            } else {
+              schemaName + ":" + "null"
+            }
+          curData
+        }}
+        val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
+
+        ctx.output(lookupTag, UmsProtocolUtils.feedbackFlowFlinkxError(namespaceIdConfig.sourceNamespace, namespaceIdConfig.streamId, namespaceIdConfig.flowId, namespaceIdConfig.sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
+>>>>>>> print exception to log
     }
   }
 }

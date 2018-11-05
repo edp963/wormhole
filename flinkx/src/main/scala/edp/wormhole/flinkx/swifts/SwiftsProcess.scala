@@ -197,10 +197,16 @@ class SwiftsProcess(dataStream: DataStream[Row],
 
     //handle exception
     val exceptionStream: DataStream[String] = resultDataStream.getSideOutput(lookupTag)
+<<<<<<< HEAD
     exceptionStream.map(stream => {
       logger.info("--------------------lookup exception stream:" + stream)
       ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, stream, config)
     })
+=======
+    logger.info("look up exception stream:")
+    exceptionStream.print()
+
+>>>>>>> print exception to log
     //return
     resultDataStream
   }
