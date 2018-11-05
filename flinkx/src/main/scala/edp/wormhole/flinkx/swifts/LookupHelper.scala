@@ -117,6 +117,7 @@ object LookupHelper extends java.io.Serializable {
     } catch {
       case ex: Throwable =>
         ex.printStackTrace()
+        throw ex
     } finally {
       if (null != conn)
         conn.close()
