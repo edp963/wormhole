@@ -153,11 +153,13 @@ object SwiftsProcess extends Serializable {
       FlinkSchemaUtils.swiftsProcessSchemaMap += key -> lookupSchemaMap
     preSchemaMap = FlinkSchemaUtils.swiftsProcessSchemaMap(key)
     resultDataStream.print()
-    logger.info(resultDataStream.dataType.toString + "in  doLookup")
+    logger.info(resultDataStream.dataType.toString + "in doLookup")
+
     //handle exception
     val exceptionStream: DataStream[String] = resultDataStream.getSideOutput(lookupTag)
     logger.info("look up exception stream:")
     exceptionStream.print()
+
     //return
     resultDataStream
   }

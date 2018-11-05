@@ -81,7 +81,19 @@ class LookupProcessElement(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (Type
       case ex: Throwable =>
         ex.printStackTrace()
         out.collect(Seq(value))
-        ctx.output(lookupTag, UmsProtocolUtils.WormholeExceptionMessage(namespaceIdConfig.sourceNamespace, namespaceIdConfig.streamId, new DateTime(), namespaceIdConfig.sinkNamespace, lookupNamespace, "lookup exception"))
+
+        val dataInfoIt: Iterable[String] = preSchemaMap.map{ case (schemaName, (_, pos)) => {
+          val curData =
+            if(value.getArity > pos) {
+              schemaName + ":" + value.getField(pos).toString
+            } else {
+              schemaName + ":" + "null"
+            }
+          curData
+        }}
+        val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
+
+        ctx.output(lookupTag, UmsProtocolUtils.feedbackFlowFlinkxError(namespaceIdConfig.sourceNamespace, namespaceIdConfig.streamId, namespaceIdConfig.flowId, namespaceIdConfig.sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
     }
   }
 }
