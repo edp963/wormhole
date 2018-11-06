@@ -104,9 +104,15 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
       SinkProcess.doProcess(stream, umsFlowStart, schemaMap, config, initialTs, swiftsTs, exceptionConfig)
     } catch {
       case e: Throwable =>
-        logger.error("swifts and sink", e)
-        val currentTs = System.currentTimeMillis
-        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowError(sourceNamespace, streamId, DateUtils.currentDateTime, sinkNamespace, UmsWatermark("" + currentTs), UmsWatermark("" + currentTs), 1, "", ""), None, config.kafka_output.brokers)
+        logger.error("swifts and sink:", e)
+        exceptionProcess match {
+          case ExceptionProcessMethod.INTERRUPT =>
+            throw e
+          case ExceptionProcessMethod.FEEDBACK =>
+            WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowFlinkxError(sourceNamespace, streamId, flowId, sinkNamespace, DateUtils.currentDateTime, "", e.getMessage), None, config.kafka_output.brokers)
+          case _ =>
+            logger.info("exception process method is: " + exceptionProcess)
+        }
     }
     env.execute(config.flow_name)
   }
@@ -150,7 +156,8 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
           WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, stream, None, config.kafka_output.brokers)
         case _ =>
           logger.info("exception process method is: " + exceptionProcess)
-      }})
+      }
+    })
     //exceptionStream.print()
     //return
     inputStream

@@ -88,7 +88,7 @@ object ExceptionProcessMethod extends Enumeration {
 
   def exceptionProcessMethod(s: String) = {
     if (s == null)
-      null
+      UNHANDLE
     else
       ExceptionProcessMethod.withName(s.toLowerCase)
   }
