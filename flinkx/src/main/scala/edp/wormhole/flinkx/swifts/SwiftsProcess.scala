@@ -168,7 +168,7 @@ object SwiftsProcess extends Serializable {
         case ExceptionProcessMethod.FEEDBACK =>
           WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, stream, None, config.kafka_output.brokers)
         case _ =>
-          logger.info("exception process method is" + exceptionConfig.exceptionProcess)
+          logger.info("exception process method is: " + exceptionConfig.exceptionProcess)
       }})
     //exceptionStream.print()
 
