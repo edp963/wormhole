@@ -72,19 +72,11 @@ case class FlinkConfig(stream_id: Long,
                        stream_name: String)
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> add exception process method
 case class ExceptionConfig(streamId: Long,
                            flowId: Long,
                            sourceNamespace: String,
                            sinkNamespace: String,
-<<<<<<< HEAD
-                           exceptionProcessMethod: ExceptionProcessMethod
-=======
                            exceptionProcess: ExceptionProcessMethod
->>>>>>> add exception process method
                           )
 
 object ExceptionProcessMethod extends Enumeration {
@@ -96,23 +88,8 @@ object ExceptionProcessMethod extends Enumeration {
 
   def exceptionProcessMethod(s: String) = {
     if (s == null)
-<<<<<<< HEAD
       UNHANDLE
     else
       ExceptionProcessMethod.withName(s.toLowerCase)
   }
 }
-=======
-case class NamespaceIdConfig(streamId: Long,
-                             flowId: Long,
-                             sourceNamespace: String,
-                             sinkNamespace: String
-                            )
->>>>>>> print exception to log
-=======
-      null
-    else
-      ExceptionProcessMethod.withName(s.toLowerCase)
-  }
-}
->>>>>>> add exception process method
