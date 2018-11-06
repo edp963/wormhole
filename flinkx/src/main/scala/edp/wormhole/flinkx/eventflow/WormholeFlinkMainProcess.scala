@@ -29,6 +29,7 @@ import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.flinkx.common.ExceptionProcessMethod.ExceptionProcessMethod
 import edp.wormhole.flinkx.common.{ExceptionConfig, _}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
+import edp.wormhole.flinkx.eventflow.WormholeFlinkxStarter.{config, logger}
 import edp.wormhole.flinkx.sink.SinkProcess
 import edp.wormhole.flinkx.swifts.{ParseSwiftsSql, SwiftsProcess}
 import edp.wormhole.flinkx.udf.UdfRegister

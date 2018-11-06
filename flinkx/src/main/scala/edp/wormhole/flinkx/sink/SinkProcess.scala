@@ -82,6 +82,7 @@ object SinkProcess extends Serializable {
         case ExceptionProcessMethod.INTERRUPT =>
           throw new Throwable("process error")
         case ExceptionProcessMethod.FEEDBACK =>
+          WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
           WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, stream, None, config.kafka_output.brokers)
         case _ =>
           logger.info("exception process method is" + exceptionConfig.exceptionProcess)
