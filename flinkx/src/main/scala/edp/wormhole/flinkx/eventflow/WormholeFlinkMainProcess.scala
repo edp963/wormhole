@@ -29,6 +29,7 @@ import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.flinkx.common.ExceptionProcessMethod.ExceptionProcessMethod
 import edp.wormhole.flinkx.common.{ExceptionConfig, _}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
+import edp.wormhole.flinkx.eventflow.WormholeFlinkxStarter.{config, logger}
 import edp.wormhole.flinkx.sink.SinkProcess
 import edp.wormhole.flinkx.swifts.{ParseSwiftsSql, SwiftsProcess}
 import edp.wormhole.flinkx.udf.UdfRegister
@@ -109,6 +110,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
           case ExceptionProcessMethod.INTERRUPT =>
             throw e
           case ExceptionProcessMethod.FEEDBACK =>
+            WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowFlinkxError(sourceNamespace, streamId, flowId, sinkNamespace, DateUtils.currentDateTime, "", e.getMessage), None, config.kafka_output.brokers)
           case _ =>
             logger.info("exception process method is: " + exceptionProcess)
@@ -153,6 +155,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
         case ExceptionProcessMethod.INTERRUPT =>
           throw new Throwable("process error")
         case ExceptionProcessMethod.FEEDBACK =>
+          WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
           WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, stream, None, config.kafka_output.brokers)
         case _ =>
           logger.info("exception process method is: " + exceptionProcess)

@@ -45,6 +45,7 @@ object WormholeFlinkxFlowDirective {
     } else {
       FlinkSchemaUtils.setSourceSchemaMap(getJsonSchema(config, ums))
     }
+    WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
     WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, config.kafka_output.brokers)
     dataType
   }
