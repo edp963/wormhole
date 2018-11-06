@@ -164,7 +164,6 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
           logger.info("exception process method is" + exceptionProcess)
       }})
     //exceptionStream.print()
->>>>>>> add exception process method
     //return
     inputStream
   }
