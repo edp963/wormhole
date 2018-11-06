@@ -134,8 +134,8 @@ object LookupHelper extends java.io.Serializable {
     val sql = swiftsSql.sql
     val joinFieldsValueArray: Array[Any] = joinFieldsInRow(row, lookupTableFields, sourceTableFields, preSchemaMap)
     UmsDataSystem.dataSystem(dataSystem) match {
-      case UmsDataSystem.MYSQL | UmsDataSystem.ORACLE => getRmdbSql(joinFieldsValueArray, sql, lookupTableFields)
       case UmsDataSystem.CASSANDRA => getCassandraSql(joinFieldsValueArray, sql, lookupTableFields)
+      case _ => getRmdbSql(joinFieldsValueArray, sql, lookupTableFields)
     }
   }
 
