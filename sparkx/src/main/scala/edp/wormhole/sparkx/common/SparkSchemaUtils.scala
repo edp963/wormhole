@@ -144,9 +144,15 @@ trait SparkSchemaUtils {
   else umsFieldType match {
     case UmsFieldType.STRING => value.asInstanceOf[String]
     case UmsFieldType.INT => value.asInstanceOf[Int]
-    case UmsFieldType.LONG => value.asInstanceOf[Long]
+    case UmsFieldType.LONG => value match {
+      case _:Int => value.asInstanceOf[Int].toLong
+      case _ => value.asInstanceOf[Long]
+    }
     case UmsFieldType.FLOAT => value.asInstanceOf[Float]
-    case UmsFieldType.DOUBLE => value.asInstanceOf[Double]
+    case UmsFieldType.DOUBLE => value match {
+      case _: Float => value.asInstanceOf[Float].toDouble
+      case _ => value.asInstanceOf[Double]
+    }
     case UmsFieldType.BOOLEAN => value.asInstanceOf[Boolean]
     case UmsFieldType.DATE => dt2dateTime(value.asInstanceOf[java.sql.Date])
     case UmsFieldType.DATETIME => dt2dateTime(value.asInstanceOf[java.sql.Timestamp])
