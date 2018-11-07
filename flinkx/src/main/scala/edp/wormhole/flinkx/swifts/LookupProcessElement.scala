@@ -30,6 +30,7 @@ import org.apache.flink.streaming.api.scala.OutputTag
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
 import org.joda.time.DateTime
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -40,7 +41,7 @@ class LookupProcessElement(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (Type
   private val lookupTableFields = if (swiftsSql.lookupTableFields.isDefined) swiftsSql.lookupTableFields.get else null
   private val preRowSize = preSchemaMap.size
   private val resultRowSize = LookupHelper.getDbOutPutSchemaMap(swiftsSql).size + preRowSize
-
+  private val logger: Logger = LoggerFactory.getLogger(this.getClass)
   override def processElement(value: Row, ctx: ProcessFunction[Row, Seq[Row]]#Context, out: Collector[Seq[Row]]): Unit = {
     val lookupNamespace: String = if (swiftsSql.lookupNamespace.isDefined) swiftsSql.lookupNamespace.get else null
     try {
@@ -79,7 +80,7 @@ class LookupProcessElement(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (Type
       }
     } catch {
       case ex: Throwable =>
-        ex.printStackTrace()
+        logger.error("in doFlinkSql table query", ex)
         out.collect(Seq(value))
 
         val dataInfoIt: Iterable[String] = preSchemaMap.map{ case (schemaName, (_, pos)) => {
