@@ -12,11 +12,13 @@ import org.apache.flink.streaming.api.scala.OutputTag
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
 import org.joda.time.DateTime
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
 
 class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, Boolean)], exceptionConfig: ExceptionConfig, sinkProcessConfig: SinkProcessConfig, umsFlowStart: Ums, connectionConfig: ConnectionConfig, config: WormholeFlinkxConfig, initialTs: Long, swiftsTs: Long, sinkTag: OutputTag[String]) extends ProcessFunction[Row, Seq[Row]] with java.io.Serializable{
   //private val outputTag = OutputTag[String]("sinkException")
+  private val logger: Logger = LoggerFactory.getLogger(this.getClass)
   override def processElement(value: Row, ctx: ProcessFunction[Row, Seq[Row]]#Context, out: Collector[Seq[Row]]): Unit = {
     val sinkTs = System.currentTimeMillis
     val listBuffer = ListBuffer.empty[String]
@@ -40,7 +42,7 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
       //        count, DateUtils.dt2date(maxTs.split("\\+")(0).replace("T", " ")).getTime, initialTs, initialTs, initialTs, swiftsTs, sinkTs, doneTs), None, config.kafka_output.brokers)
     } catch {
       case ex: Throwable =>
-        ex.printStackTrace()
+        logger.error("in doFlinkSql table query", ex)
 
         val dataInfoIt: Iterable[String] = schemaMapWithUmsType.map { case (schemaName, (pos, _, _)) => {
           val curData =
