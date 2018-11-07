@@ -31,12 +31,15 @@ import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
 import edp.wormhole.util.swifts.SwiftsSql
-import org.apache.flink.api.common.typeinfo.TypeInformation
+import org.apache.flink.api.common.typeinfo.{SqlTimeTypeInfo, TypeInformation}
 import org.apache.flink.cep.scala.CEP
 import org.apache.flink.streaming.api.scala.{DataStream, _}
 import org.apache.flink.table.api.Types
 import org.apache.flink.table.api.scala.StreamTableEnvironment
+import org.apache.flink.table.expressions.ExpressionParser
 import org.apache.flink.types.Row
+import org.apache.flink.table.api.scala._
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo
 import org.slf4j.{Logger, LoggerFactory}
 
 
@@ -67,15 +70,18 @@ object SwiftsProcess extends Serializable {
 
 
   private def doFlinkSql(dataStream: DataStream[Row], sourceNamespace: String, tableEnv: StreamTableEnvironment, sql: String, index: Int) = {
-    var table = tableEnv.fromDataStream(dataStream)
+    val originalSchema = preSchemaMap.toList.sortBy(_._2._2).map(_._1)
+    val expressions = ExpressionParser.parseExpressionList(originalSchema.mkString(",") + ", processingTime.proctime"+", rowTime.rowtime")
+    var table = dataStream.toTable(tableEnv, expressions: _*)
     table.printSchema()
-    val projectClause = sql.substring(0, sql.lastIndexOf("from")).trim
+
+    val projectClause = sql.substring(0, sql.toLowerCase.lastIndexOf("from")).trim
     val namespaceTable = sourceNamespace.split("\\.").apply(3)
-    val fromClause = sql.substring(sql.lastIndexOf("from")).trim
+    val fromClause = sql.substring(sql.toLowerCase.lastIndexOf("from")).trim
     val whereClause = fromClause.substring(fromClause.indexOf(namespaceTable) + namespaceTable.length).trim
-    //println(projectClause + "-----projectClause" + namespaceTable + "-----namespaceTable" + whereClause + "-----whereClause")
     val newSql =s"""$projectClause FROM $table $whereClause"""
     println(newSql)
+
     try {
       table = tableEnv.sqlQuery(newSql)
       table.printSchema()
@@ -87,19 +93,20 @@ object SwiftsProcess extends Serializable {
       case e: Throwable => logger.error("in doFlinkSql table query", e)
         println(e)
     }
-   val resultDataStream = tableEnv.toAppendStream[Row](table).map(o => o)(Types.ROW(FlinkSchemaUtils.tableFieldNameArray(table.getSchema), FlinkSchemaUtils.tableFieldTypeArray(table.getSchema, preSchemaMap)))
-    /*val resultDataStream: DataStream[Row] = tableEnv.toAppendStream[Row](table).map(o =>{
-      var index = 0
-      table.getSchema.getColumnNames.foreach(x=>{
-        o.setField(index, FlinkSchemaUtils.object2TrueValue(preSchemaMap(x)._1, o.getField(index)))
-        print(index + ":" + o.getField(index))
-        index += 1
-      })
-      o
-    })(Types.ROW(FlinkSchemaUtils.tableFieldNameArray(table.getSchema), FlinkSchemaUtils.tableFieldTypeArray(table.getSchema)))*/
+
+    val columnTypes = replaceTimeIndicatorType(table.getSchema.getTypes)
+    val resultDataStream = table.toAppendStream[Row](Types.ROW(table.getSchema.getColumnNames, columnTypes))
     resultDataStream.print()
     logger.info(resultDataStream.dataType.toString + "in  doFlinkSql")
     resultDataStream
+  }
+
+
+  private def replaceTimeIndicatorType(columnTypes: Array[TypeInformation[_]]) = {
+    columnTypes.map(fieldType =>
+      if (fieldType == TimeIndicatorTypeInfo.PROCTIME_INDICATOR || fieldType == TimeIndicatorTypeInfo.ROWTIME_INDICATOR)
+        SqlTimeTypeInfo.TIMESTAMP
+      else fieldType)
   }
 
 
