@@ -161,7 +161,18 @@ maintenance = {
 #}
 
 #Dbus integration, if not set, please comment it
-#dbus.namespace.rest.api.url = ["http://localhost:8080/webservice/tables/riderSearch"]
+#dbus = {
+#  api = [
+#    {
+#      login = {
+#        url = "http://localhost:8080/keeper/login"
+#        email = ""
+#        password = ""
+#      }
+#      synchronization.namespace.url = "http://localhost:8080/keeper/tables/riderSearch"
+#    }
+#  ]
+#}
 ```
 
 **部署说明**

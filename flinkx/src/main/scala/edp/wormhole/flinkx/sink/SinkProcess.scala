@@ -21,22 +21,28 @@
 package edp.wormhole.flinkx.sink
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.flinkx.common.WormholeFlinkxConfig
+import edp.wormhole.common.feedback.FeedbackPriority
+import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcessMethod, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.util.{FlinkSchemaUtils, UmsFlowStartUtils}
+import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.swifts.ConnectionMemoryStorage
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums._
-import edp.wormhole.util.JsonUtils
+import edp.wormhole.util.{DateUtils, JsonUtils}
 import edp.wormhole.util.config.KVConfig
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.scala.{DataStream, _}
 import org.apache.flink.types.Row
+import org.slf4j.{Logger, LoggerFactory}
 
 
 object SinkProcess extends Serializable {
 
-  def doProcess(dataStream: DataStream[Row], umsFlowStart: Ums, schemaMap: Map[String, (TypeInformation[_], Int)],config: WormholeFlinkxConfig,initialTs:Long,swiftsTs:Long): Unit= {
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
+  private val sinkTag = OutputTag[String]("sinkException")
+
+  def doProcess(dataStream: DataStream[Row], umsFlowStart: Ums, schemaMap: Map[String, (TypeInformation[_], Int)],config: WormholeFlinkxConfig,initialTs:Long,swiftsTs:Long, exceptionConfig: ExceptionConfig): DataStream[Seq[Row]]= {
     val umsFlowStartSchemas: Seq[UmsField] = umsFlowStart.schema.fields_get
     val umsFlowStartPayload: UmsTuple = umsFlowStart.payload_get.head
     val sinksStr = UmsFlowStartUtils.extractSinks(umsFlowStartSchemas, umsFlowStartPayload)
@@ -45,7 +51,26 @@ object SinkProcess extends Serializable {
     val sinkNamespace = UmsFlowStartUtils.extractSinkNamespace(umsFlowStartSchemas, umsFlowStartPayload)
     registerConnection(sinks, sinkNamespace)
     val sinkProcessConfig:SinkProcessConfig=getSinkProcessConfig(sinks)
-    dataStream.map(new SinkMapper(schemaMapWithUmsType,sinkNamespace,sinkProcessConfig,umsFlowStart,ConnectionMemoryStorage.getDataStoreConnectionConfig(sinkNamespace),config,initialTs,swiftsTs))
+    //dataStream.map(new SinkMapper(schemaMapWithUmsType,sinkNamespace,sinkProcessConfig,umsFlowStart,ConnectionMemoryStorage.getDataStoreConnectionConfig(sinkNamespace),config,initialTs,swiftsTs))
+    val sinkDataStream = dataStream.process(new SinkProcessElement(schemaMapWithUmsType,exceptionConfig,sinkProcessConfig,umsFlowStart,ConnectionMemoryStorage.getDataStoreConnectionConfig(sinkNamespace), config, initialTs, swiftsTs, sinkTag))
+
+    //logger.info("--------------------testtest")
+    //handle sink exception sideoutput
+    val exceptionStream = sinkDataStream.getSideOutput(sinkTag)
+    exceptionStream.map(stream => {
+      logger.info("--------------------sink exception stream:" + stream)
+      exceptionConfig.exceptionProcess match {
+        case ExceptionProcessMethod.INTERRUPT =>
+          throw new Throwable("process error")
+        case ExceptionProcessMethod.FEEDBACK =>
+          WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
+          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, stream, None, config.kafka_output.brokers)
+        case _ =>
+          logger.info("exception process method is: " + exceptionConfig.exceptionProcess)
+      }})
+    //exceptionStream.print()
+    //return
+    sinkDataStream
   }
 
   private def registerConnection(sinks: JSONObject, sinkNamespace: String): Unit = {

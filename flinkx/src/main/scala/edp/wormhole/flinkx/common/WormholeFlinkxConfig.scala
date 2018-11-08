@@ -20,6 +20,7 @@
 
 package edp.wormhole.flinkx.common
 
+import edp.wormhole.flinkx.common.ExceptionProcessMethod.ExceptionProcessMethod
 import edp.wormhole.util.config.KVConfig
 
 case class WormholeFlinkxConfig(flow_name: String,
@@ -69,3 +70,26 @@ case class PartitionOffsetConfig(partition_num: Int, offset: Long)
 
 case class FlinkConfig(stream_id: Long,
                        stream_name: String)
+
+
+case class ExceptionConfig(streamId: Long,
+                           flowId: Long,
+                           sourceNamespace: String,
+                           sinkNamespace: String,
+                           exceptionProcess: ExceptionProcessMethod
+                          )
+
+object ExceptionProcessMethod extends Enumeration {
+  type ExceptionProcessMethod = Value
+
+  val INTERRUPT = Value("interrupt")
+  val FEEDBACK = Value("feedback")
+  val UNHANDLE = Value("unhandle")
+
+  def exceptionProcessMethod(s: String) = {
+    if (s == null)
+      UNHANDLE
+    else
+      ExceptionProcessMethod.withName(s.toLowerCase)
+  }
+}

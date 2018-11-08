@@ -310,7 +310,30 @@ trait UmsProtocolUtils {
       payload = Some(tp.map{case (topicName, partitionOffsets) => UmsTuple(Seq(DateUtils.dt2string(timeNow, dtFormat), streamID.toString, topicName, partitionOffsets,batchId))}.toSeq)))
   }
 
-
+  // exceptionData
+  def feedbackFlowFlinkxError(sourceNamespace: String,
+                              streamId: Long,
+                              flowId: Long,
+                              sinkNamespace: String,
+                              timeNow: DateTime,
+                              dataInfo: String,
+                              errorInfo: String): String = toJsonCompact(Ums(
+    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_FLINKX_ERROR),
+    schema = UmsSchema(
+      sourceNamespace, Some(Seq(
+        UmsField("stream_id", UmsFieldType.LONG),
+        UmsField("flow_id", UmsFieldType.LONG),
+        UmsField("sink_namespace", UmsFieldType.STRING),
+        UmsField(UmsSysField.TS.toString, UmsFieldType.DATETIME),
+        UmsField("data_info", UmsFieldType.STRING),
+        UmsField("error_info", UmsFieldType.STRING)))),
+    payload = Some(Seq(UmsTuple(Seq(
+      streamId.toString,
+      flowId.toString,
+      sinkNamespace,
+      DateUtils.dt2string(timeNow, dtFormat),
+      dataInfo,
+      errorInfo))))))
 }
 
 

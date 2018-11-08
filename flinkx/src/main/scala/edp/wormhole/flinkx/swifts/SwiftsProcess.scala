@@ -21,10 +21,14 @@
 package edp.wormhole.flinkx.swifts
 
 import com.alibaba.fastjson.{JSON, JSONObject}
+import edp.wormhole.common.feedback.FeedbackPriority
+import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcessMethod, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
 import edp.wormhole.flinkx.pattern.Output.{FIELDLIST, TYPE}
 import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput}
+import edp.wormhole.flinkx.sink.SinkProcess.logger
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
+import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -43,16 +47,18 @@ object SwiftsProcess extends Serializable {
   private var preSchemaMap: Map[String, (TypeInformation[_], Int)] = FlinkSchemaUtils.immutableSourceSchemaMap
   private var udfSchemaMap: Map[String, TypeInformation[_]] = FlinkSchemaUtils.udfSchemaMap.toMap
 
-  def process(dataStream: DataStream[Row], sourceNamespace: String, tableEnv: StreamTableEnvironment, swiftsSql: Option[Array[SwiftsSql]]): (DataStream[Row], Map[String, (TypeInformation[_], Int)]) = {
+  private val lookupTag = OutputTag[String]("lookupException")
+
+  def process(dataStream: DataStream[Row], exceptionConfig: ExceptionConfig, tableEnv: StreamTableEnvironment, swiftsSql: Option[Array[SwiftsSql]], config: WormholeFlinkxConfig): (DataStream[Row], Map[String, (TypeInformation[_], Int)]) = {
     var transformedStream = dataStream
     if (swiftsSql.nonEmpty) {
       val swiftsSqlGet = swiftsSql.get
       for (index <- swiftsSqlGet.indices) {
         val element = swiftsSqlGet(index)
         SqlOptType.withName(element.optType) match {
-          case SqlOptType.FLINK_SQL => transformedStream = doFlinkSql(transformedStream, sourceNamespace, tableEnv, element.sql, index)
+          case SqlOptType.FLINK_SQL => transformedStream = doFlinkSql(transformedStream, exceptionConfig.sourceNamespace, tableEnv, element.sql, index)
           case SqlOptType.CEP => transformedStream = doCEP(transformedStream, element.sql, index)
-          case SqlOptType.JOIN | SqlOptType.LEFT_JOIN => transformedStream = doLookup(transformedStream, element, index)
+          case SqlOptType.JOIN | SqlOptType.LEFT_JOIN => transformedStream = doLookup(transformedStream, element, index, exceptionConfig, config)
         }
       }
     }
@@ -139,17 +145,35 @@ object SwiftsProcess extends Serializable {
   }
 
 
-  private def doLookup(dataStream: DataStream[Row], element: SwiftsSql, index: Int) = {
+  private def doLookup(dataStream: DataStream[Row], element: SwiftsSql, index: Int, exceptionConfig: ExceptionConfig, config: WormholeFlinkxConfig) = {
     val lookupSchemaMap = LookupHelper.getLookupSchemaMap(preSchemaMap, element)
     val fieldNames = FlinkSchemaUtils.getFieldNamesFromSchema(lookupSchemaMap)
     val fieldTypes = FlinkSchemaUtils.getOutPutFieldTypes(fieldNames, lookupSchemaMap)
-    val resultDataStream = dataStream.map(new LookupMapper(element, preSchemaMap, LookupHelper.getDbOutPutSchemaMap(element), ConnectionMemoryStorage.getDataStoreConnectionsMap)).flatMap(o => o)(Types.ROW(fieldNames, fieldTypes))
+    //val resultDataStream = dataStream.map(new LookupMapper(element, preSchemaMap, LookupHelper.getDbOutPutSchemaMap(element), ConnectionMemoryStorage.getDataStoreConnectionsMap)).flatMap(o => o)(Types.ROW(fieldNames, fieldTypes))
+    val resultDataStream = dataStream.process(new LookupProcessElement(element, preSchemaMap, LookupHelper.getDbOutPutSchemaMap(element), ConnectionMemoryStorage.getDataStoreConnectionsMap, exceptionConfig, lookupTag)).flatMap(o => o)(Types.ROW(fieldNames, fieldTypes))
     val key = s"swifts$index"
     if (!FlinkSchemaUtils.swiftsProcessSchemaMap.contains(key))
       FlinkSchemaUtils.swiftsProcessSchemaMap += key -> lookupSchemaMap
     preSchemaMap = FlinkSchemaUtils.swiftsProcessSchemaMap(key)
     resultDataStream.print()
-    logger.info(resultDataStream.dataType.toString + "in  doLookup")
+    logger.info(resultDataStream.dataType.toString + "in doLookup")
+
+    //handle exception
+    val exceptionStream: DataStream[String] = resultDataStream.getSideOutput(lookupTag)
+    exceptionStream.map(stream => {
+      logger.info("--------------------lookup exception stream:" + stream)
+      exceptionConfig.exceptionProcess match {
+        case ExceptionProcessMethod.INTERRUPT =>
+          throw new Throwable("process error")
+        case ExceptionProcessMethod.FEEDBACK =>
+          WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
+          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, stream, None, config.kafka_output.brokers)
+        case _ =>
+          logger.info("exception process method is: " + exceptionConfig.exceptionProcess)
+      }})
+    //exceptionStream.print()
+
+    //return
     resultDataStream
   }
 

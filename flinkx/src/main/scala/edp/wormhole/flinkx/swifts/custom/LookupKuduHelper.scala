@@ -108,6 +108,7 @@ object LookupKuduHelper extends java.io.Serializable {
     } catch {
       case ex: Throwable =>
         ex.printStackTrace()
+        throw ex
     } finally{
       KuduConnection.closeClient(client)
     }

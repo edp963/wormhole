@@ -129,7 +129,6 @@ Flink中支持的Stream类型只有default，理论上可以处理所有类型�
 - 若 Wormhole 未对接 DBus，源数据系统只支持 Kafka
 - 若 Wormhole 已对接 DBus，选择在 DBus 中配置的源数据系统类型
 - 可选的 Namespace 有一定的权限控制，其中 Source Namespace 是 Stream 对应 Kafka Instance 下的 Namespaces 与 Flow 所在 Project 下可访问 Namespaces 的交集；Sink Namespace 是 Flow 所在 Project 下可访问的Namespaces 且去除从 DBus 系统同步的 Namespace
-- 注：Flink Flow暂时只支持UMS类型数据源，用户自定义json类型数据源将在后续版本进行支持
 
 ### Sink Namespace
 
@@ -137,7 +136,6 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 
 - 源数据为 UMS 类型，则 Sink 表中需添加三个字段
 - 源数据为 UMS_Extension 类型，若源数据 Schema 中配置了 `ums_ts_` 字段，Sink 表中须增加 `ums_ts_` 字段；若源数据 Schema 中配置了 `ums_ts_, ums_id_` 字段，Sink 表中须增加 `ums_ts_, ums_id_` 字段；若源数据 Schema 中配置了 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_op_（string 类型）` 字段，Sink 表中须增加 `ums_id_, ums_ts_, ums_active_` 字段。（注意：如果只配置了 `ums_ts_` 字段，向 Sink 表中写数据时只能选择 insert only 类型）
-- 注：Flink Flow暂时只支持写入kafka系统，其他系统将在后续版本进行支持
 
 ### Result Fields
 
@@ -302,6 +300,18 @@ Java程序：
 使用UDF的Flink SQL：
 
     select intvalue, fInt(intvalue) as fint from mytable; 
+##### Transformation Config设置
+
+Flink中通过Transformation Config可选择对流处理中异常信息的处理方式。处理方式有三种：
+
+- 不设置或者设置为unhandle：对捕获的异常信息不进行处理，只显示在log中
+
+- 设置为interrupt：捕获到异常后，中断处理
+
+- 设置为feedback：将捕获到的异常回灌到kafka中
+
+  设置格式为：{"exception_process_method":"unhandle"}
+
 ### 修改 Flow
 
 修改 Flow 时，不能修改所选 Stream，SourceNamespace 和 SinkNamespace，可以修改 Protocol 类型，Result Fields，Sink Config 和 Transformation 转换逻辑
