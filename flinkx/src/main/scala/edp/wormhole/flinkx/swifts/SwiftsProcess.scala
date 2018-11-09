@@ -21,12 +21,8 @@
 package edp.wormhole.flinkx.swifts
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-<<<<<<< HEAD
-import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
-=======
 import edp.wormhole.common.feedback.FeedbackPriority
-import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcessMethod, WormholeFlinkxConfig}
->>>>>>> add exception process method
+import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, ExceptionProcessMethod, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
 import edp.wormhole.flinkx.pattern.Output.{FIELDLIST, TYPE}
 import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput}
@@ -205,31 +201,10 @@ class SwiftsProcess(dataStream: DataStream[Row],
 
     //handle exception
     val exceptionStream: DataStream[String] = resultDataStream.getSideOutput(lookupTag)
-<<<<<<< HEAD
-<<<<<<< HEAD
     exceptionStream.map(stream => {
       logger.info("--------------------lookup exception stream:" + stream)
       ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, stream, config)
     })
-=======
-    logger.info("look up exception stream:")
-    exceptionStream.print()
-=======
-    exceptionStream.map(stream => {
-      logger.info("--------------------lookup exception stream:" + stream)
-      exceptionConfig.exceptionProcess match {
-        case ExceptionProcessMethod.INTERRUPT =>
-          throw new Throwable("process error")
-        case ExceptionProcessMethod.FEEDBACK =>
-          WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
-          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, stream, None, config.kafka_output.brokers)
-        case _ =>
-          logger.info("exception process method is" + exceptionConfig.exceptionProcess)
-      }})
-    //exceptionStream.print()
->>>>>>> add exception process method
-
->>>>>>> print exception to log
     //return
     resultDataStream
   }
