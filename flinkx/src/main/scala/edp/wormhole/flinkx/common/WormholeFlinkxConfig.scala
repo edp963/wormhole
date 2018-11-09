@@ -76,7 +76,7 @@ case class ExceptionConfig(streamId: Long,
                            flowId: Long,
                            sourceNamespace: String,
                            sinkNamespace: String,
-                           exceptionProcess: ExceptionProcessMethod
+                           exceptionProcessMethod: ExceptionProcessMethod
                           )
 
 object ExceptionProcessMethod extends Enumeration {
