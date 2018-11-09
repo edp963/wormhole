@@ -230,6 +230,8 @@ data_increment_data.kafka.test.flinksource.source.*.*.*###{"protocol":{"type":"d
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-transform-result-flink.png" alt="" width="600"/>
 
+**Flink中通过中Transformation Config设置“exception_process_method”字段可选择对流处理中异常信息的处理方式。现在能捕获读取kafka后数据预处理、lookup操作、写sink操作时的异常。处理方式有unhandle、interrupt、feedback三种。**
+
  **（3）提交flow**
 
 **配置完flow的Transformation后，通过点击浮框下方的”下一步”按钮，来进入到Confirmation步骤，对flow进行提交前的最后确认。当确认所有填写内容都没有问题后，就可以点击浮框下方的”提交”按钮来提交刚刚配置好的这个flow。否则，可以通过点击浮框下方的”上一步”按钮来返回之前的步骤，对错误的配置信息进行修改。**

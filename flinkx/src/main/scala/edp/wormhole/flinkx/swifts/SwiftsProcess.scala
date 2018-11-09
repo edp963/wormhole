@@ -22,7 +22,7 @@ package edp.wormhole.flinkx.swifts
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.feedback.FeedbackPriority
-import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcessMethod, WormholeFlinkxConfig}
+import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, ExceptionProcessMethod, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
 import edp.wormhole.flinkx.pattern.Output.{FIELDLIST, TYPE}
 import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput}
@@ -162,17 +162,8 @@ object SwiftsProcess extends Serializable {
     val exceptionStream: DataStream[String] = resultDataStream.getSideOutput(lookupTag)
     exceptionStream.map(stream => {
       logger.info("--------------------lookup exception stream:" + stream)
-      exceptionConfig.exceptionProcess match {
-        case ExceptionProcessMethod.INTERRUPT =>
-          throw new Throwable("process error")
-        case ExceptionProcessMethod.FEEDBACK =>
-          WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
-          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, stream, None, config.kafka_output.brokers)
-        case _ =>
-          logger.info("exception process method is: " + exceptionConfig.exceptionProcess)
-      }})
-    //exceptionStream.print()
-
+      ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, stream, config)
+    })
     //return
     resultDataStream
   }
