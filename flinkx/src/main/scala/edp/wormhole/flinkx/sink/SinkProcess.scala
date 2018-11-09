@@ -22,7 +22,7 @@ package edp.wormhole.flinkx.sink
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.feedback.FeedbackPriority
-import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcessMethod, WormholeFlinkxConfig}
+import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, ExceptionProcessMethod, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.util.{FlinkSchemaUtils, UmsFlowStartUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
@@ -54,21 +54,12 @@ object SinkProcess extends Serializable {
     //dataStream.map(new SinkMapper(schemaMapWithUmsType,sinkNamespace,sinkProcessConfig,umsFlowStart,ConnectionMemoryStorage.getDataStoreConnectionConfig(sinkNamespace),config,initialTs,swiftsTs))
     val sinkDataStream = dataStream.process(new SinkProcessElement(schemaMapWithUmsType,exceptionConfig,sinkProcessConfig,umsFlowStart,ConnectionMemoryStorage.getDataStoreConnectionConfig(sinkNamespace), config, initialTs, swiftsTs, sinkTag))
 
-    //logger.info("--------------------testtest")
     //handle sink exception sideoutput
     val exceptionStream = sinkDataStream.getSideOutput(sinkTag)
     exceptionStream.map(stream => {
       logger.info("--------------------sink exception stream:" + stream)
-      exceptionConfig.exceptionProcess match {
-        case ExceptionProcessMethod.INTERRUPT =>
-          throw new Throwable("process error")
-        case ExceptionProcessMethod.FEEDBACK =>
-          WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
-          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, stream, None, config.kafka_output.brokers)
-        case _ =>
-          logger.info("exception process method is: " + exceptionConfig.exceptionProcess)
-      }})
-    //exceptionStream.print()
+      ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, stream, config)
+    })
     //return
     sinkDataStream
   }
