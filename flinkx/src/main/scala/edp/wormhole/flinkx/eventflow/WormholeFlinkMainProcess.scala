@@ -150,21 +150,9 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     //handle kafka data exception sideoutput
     val exceptionStream = inputStream.getSideOutput(kafkaDataTag)
     exceptionStream.map(stream => {
-<<<<<<< HEAD
       logger.info("--------------------ums parse exception stream:" + stream)
       ExceptionProcess.doExceptionProcess(exceptionProcessMethod, stream, config)
     })
-=======
-      logger.info("--------------------kafka data exception stream:" + stream)
-      exceptionProcess match {
-        case ExceptionProcessMethod.INTERRUPT =>
-          throw new Throwable("process error")
-        case ExceptionProcessMethod.FEEDBACK =>
-          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, stream, None, config.kafka_output.brokers)
-        case _ =>
-          logger.info("exception process method is" + exceptionProcess)
-      }})
-    //exceptionStream.print()
     //return
     inputStream
   }
