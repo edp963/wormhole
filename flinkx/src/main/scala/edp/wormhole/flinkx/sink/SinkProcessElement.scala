@@ -1,7 +1,7 @@
 package edp.wormhole.flinkx.sink
 
 import akka.protobuf.ByteString.Output
-import edp.wormhole.flinkx.common.{ConfMemoryStorage, ExceptionConfig, WormholeFlinkxConfig}
+import edp.wormhole.flinkx.common.{ConfMemoryStorage, ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.util.UmsFlowStartUtils
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.{Ums, UmsProtocolUtils, UmsTuple}
@@ -44,15 +44,10 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
       case ex: Throwable =>
         logger.error("in doFlinkSql table query", ex)
 
-        val dataInfoIt: Iterable[String] = schemaMapWithUmsType.map { case (schemaName, (pos, _, _)) => {
-          val curData =
-            if(value.getArity > pos) {
-              schemaName + ":" + value.getField(pos).toString
-            } else {
-               schemaName + ":" + "null"
-            }
-          curData
-        }}
+        val dataInfoIt: Iterable[String] = schemaMapWithUmsType.map {
+          case (schemaName, (pos, _, _)) =>
+            ExceptionProcess.feedbackDataInfo(schemaName, pos, value)
+        }
         val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
 
         ctx.output(sinkTag, UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), dataInfo, ex.getMessage))

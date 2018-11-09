@@ -300,9 +300,9 @@ Java程序：
 使用UDF的Flink SQL：
 
     select intvalue, fInt(intvalue) as fint from mytable; 
-##### Transformation Config设置
+##### 异常处理设置
 
-Flink中通过Transformation Config可选择对流处理中异常信息的处理方式。处理方式有三种：
+Flink中通过Transformation Config可选择对流处理中异常信息的处理方式。现在能捕获读取kafka后数据预处理、lookup操作、写sink操作时的异常。处理方式有三种：
 
 - 不设置或者设置为unhandle：对捕获的异常信息不进行处理，只显示在log中
 

@@ -67,8 +67,8 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   private val streamId = UmsFlowStartUtils.extractStreamId(flowStartFields, flowStartPayload).toLong
   private val flowId = UmsFlowStartUtils.extractFlowId(flowStartFields, flowStartPayload)
 
-  private val exceptionProcess: ExceptionProcessMethod = ExceptionProcessMethod.exceptionProcessMethod(UmsFlowStartUtils.extractExceptionProcess(swifts))
-  private val exceptionConfig = ExceptionConfig(streamId, flowId, sourceNamespace, sinkNamespace, exceptionProcess)
+  private val exceptionProcessMethod: ExceptionProcessMethod = ExceptionProcessMethod.exceptionProcessMethod(UmsFlowStartUtils.extractExceptionProcess(swifts))
+  private val exceptionConfig = ExceptionConfig(streamId, flowId, sourceNamespace, sinkNamespace, exceptionProcessMethod)
 
   private val kafkaDataTag = OutputTag[String]("kafkaDataException")
 
@@ -106,15 +106,8 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     } catch {
       case e: Throwable =>
         logger.error("swifts and sink:", e)
-        exceptionProcess match {
-          case ExceptionProcessMethod.INTERRUPT =>
-            throw e
-          case ExceptionProcessMethod.FEEDBACK =>
-            WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
-            WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackFlowFlinkxError(sourceNamespace, streamId, flowId, sinkNamespace, DateUtils.currentDateTime, "", e.getMessage), None, config.kafka_output.brokers)
-          case _ =>
-            logger.info("exception process method is: " + exceptionProcess)
-        }
+        val feedbackFlowFlinkxError = UmsProtocolUtils.feedbackFlowFlinkxError(sourceNamespace, streamId, flowId, sinkNamespace, DateUtils.currentDateTime, "", e.getMessage)
+        ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, feedbackFlowFlinkxError, config)
     }
     env.execute(config.flow_name)
   }
@@ -150,18 +143,9 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     //handle kafka data exception sideoutput
     val exceptionStream = inputStream.getSideOutput(kafkaDataTag)
     exceptionStream.map(stream => {
-      logger.info("--------------------kafka data exception stream:" + stream)
-      exceptionProcess match {
-        case ExceptionProcessMethod.INTERRUPT =>
-          throw new Throwable("process error")
-        case ExceptionProcessMethod.FEEDBACK =>
-          WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
-          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, stream, None, config.kafka_output.brokers)
-        case _ =>
-          logger.info("exception process method is: " + exceptionProcess)
-      }
+      logger.info("--------------------ums parse exception stream:" + stream)
+      ExceptionProcess.doExceptionProcess(exceptionProcessMethod, stream, config)
     })
-    //exceptionStream.print()
     //return
     inputStream
   }
