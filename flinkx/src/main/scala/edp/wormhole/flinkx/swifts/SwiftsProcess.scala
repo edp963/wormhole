@@ -28,13 +28,16 @@ import edp.wormhole.flinkx.pattern.Output.{FIELDLIST, TYPE}
 import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput}
 import edp.wormhole.flinkx.sink.SinkProcess.logger
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
+import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType, SwiftsConstants}
+import edp.wormhole.ums.UmsSysField
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
 import edp.wormhole.util.swifts.SwiftsSql
+import org.apache.flink.api.common.time.Time
 import org.apache.flink.api.common.typeinfo.{SqlTimeTypeInfo, TypeInformation}
 import org.apache.flink.cep.scala.CEP
 import org.apache.flink.streaming.api.scala.{DataStream, _}
-import org.apache.flink.table.api.Types
+import org.apache.flink.table.api.{StreamQueryConfig, Table, Types}
 import org.apache.flink.table.api.scala.StreamTableEnvironment
 import org.apache.flink.table.expressions.ExpressionParser
 import org.apache.flink.types.Row
@@ -43,25 +46,30 @@ import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo
 import org.slf4j.{Logger, LoggerFactory}
 
 
-object SwiftsProcess extends Serializable {
+class SwiftsProcess(sourceNamespace: String,
+                    dataStream: DataStream[Row],
+                    tableEnv: StreamTableEnvironment,
+                    swiftsSql: Option[Array[SwiftsSql]],
+                    swiftsSpecialConfig: String,
+                    timeCharacteristic: String) extends Serializable {
 
-  val logger: Logger = LoggerFactory.getLogger(this.getClass)
-
+  private val logger: Logger = LoggerFactory.getLogger(this.getClass)
+  private val specialConfigObj = JSON.parseObject(swiftsSpecialConfig)
   private var preSchemaMap: Map[String, (TypeInformation[_], Int)] = FlinkSchemaUtils.immutableSourceSchemaMap
-  private var udfSchemaMap: Map[String, TypeInformation[_]] = FlinkSchemaUtils.udfSchemaMap.toMap
 
   private val lookupTag = OutputTag[String]("lookupException")
 
   def process(dataStream: DataStream[Row], exceptionConfig: ExceptionConfig, tableEnv: StreamTableEnvironment, swiftsSql: Option[Array[SwiftsSql]], config: WormholeFlinkxConfig): (DataStream[Row], Map[String, (TypeInformation[_], Int)]) = {
+  def process(): (DataStream[Row], Map[String, (TypeInformation[_], Int)]) = {
     var transformedStream = dataStream
     if (swiftsSql.nonEmpty) {
       val swiftsSqlGet = swiftsSql.get
       for (index <- swiftsSqlGet.indices) {
         val element = swiftsSqlGet(index)
         SqlOptType.withName(element.optType) match {
-          case SqlOptType.FLINK_SQL => transformedStream = doFlinkSql(transformedStream, exceptionConfig.sourceNamespace, tableEnv, element.sql, index)
+          case SqlOptType.FLINK_SQL => transformedStream = doFlinkSql(transformedStream, element.sql, index)
           case SqlOptType.CEP => transformedStream = doCEP(transformedStream, element.sql, index)
-          case SqlOptType.JOIN | SqlOptType.LEFT_JOIN => transformedStream = doLookup(transformedStream, element, index, exceptionConfig, config)
+          case SqlOptType.JOIN | SqlOptType.LEFT_JOIN => transformedStream = doLookup(transformedStream, element, index)
         }
       }
     }
@@ -69,10 +77,8 @@ object SwiftsProcess extends Serializable {
   }
 
 
-  private def doFlinkSql(dataStream: DataStream[Row], sourceNamespace: String, tableEnv: StreamTableEnvironment, sql: String, index: Int) = {
-    val originalSchema = preSchemaMap.toList.sortBy(_._2._2).map(_._1)
-    val expressions = ExpressionParser.parseExpressionList(originalSchema.mkString(",") + ", processingTime.proctime"+", rowTime.rowtime")
-    var table = dataStream.toTable(tableEnv, expressions: _*)
+  private def doFlinkSql(transformedStream: DataStream[Row], sql: String, index: Int) = {
+    var table: Table = transformedStream.toTable(tableEnv, buildExpression(): _*)
     table.printSchema()
 
     val projectClause = sql.substring(0, sql.toLowerCase.lastIndexOf("from")).trim
@@ -86,21 +92,48 @@ object SwiftsProcess extends Serializable {
       table = tableEnv.sqlQuery(newSql)
       table.printSchema()
       val key = s"swifts$index"
-      val value = FlinkSchemaUtils.getSchemaMapFromTable(table.getSchema, projectClause, udfSchemaMap)
+      val value = FlinkSchemaUtils.getSchemaMapFromTable(table.getSchema, projectClause, FlinkSchemaUtils.udfSchemaMap.toMap)
       preSchemaMap = value
       FlinkSchemaUtils.setSwiftsSchema(key, value)
     } catch {
-      case e: Throwable => logger.error("in doFlinkSql table query", e)
-        println(e)
+      case e: Throwable =>
+        logger.error("in doFlinkSql table query", e)
+        e.printStackTrace()
+        throw e
     }
-
-    val columnTypes = replaceTimeIndicatorType(table.getSchema.getTypes)
-    val resultDataStream = table.toAppendStream[Row](Types.ROW(table.getSchema.getColumnNames, columnTypes))
-    resultDataStream.print()
-    logger.info(resultDataStream.dataType.toString + "in  doFlinkSql")
-    resultDataStream
+    covertTable2Stream(table)
   }
 
+  private def buildExpression() = {
+    val originalSchema = preSchemaMap.toList.sortBy(_._2._2).map(_._1)
+    if (timeCharacteristic == SwiftsConstants.PROCESSING_TIME)
+      ExpressionParser.parseExpressionList(originalSchema.mkString(",") + s", ${SwiftsConstants.PROCESSING_TIME}.proctime")
+    else {
+      val newSchema = originalSchema.updated(preSchemaMap(UmsSysField.TS.toString)._2, UmsSysField.TS.toString + ".rowtime")
+      ExpressionParser.parseExpressionList(newSchema.mkString(","))
+    }
+  }
+
+  private def covertTable2Stream(table: Table): DataStream[Row] = {
+    val columnNames = table.getSchema.getColumnNames
+    val columnTypes = replaceTimeIndicatorType(table.getSchema.getTypes)
+    if (null != specialConfigObj && specialConfigObj.containsKey(SwiftsConstants.RESERVE_MESSAGE_FLAG) && specialConfigObj.getBooleanValue(SwiftsConstants.RESERVE_MESSAGE_FLAG)) {
+      val columnNamesWithMessageFlag: Array[String] = columnNames ++ Array(SwiftsConstants.MESSAGE_FLAG)
+      val columnTypesWithMessageFlag: Array[TypeInformation[_]] = columnTypes ++ Array(Types.BOOLEAN)
+      val resultDataStream = table.toRetractStream[Row](getQueryConfig).map(tuple => {
+        val rowWithMessageFlag = new Row(columnNames.length + 1)
+        for (i <- 0 to columnNames.length)
+          rowWithMessageFlag.setField(i, tuple._2.getField(i))
+        rowWithMessageFlag.setField(columnNames.length, tuple._1)
+        rowWithMessageFlag
+      })(Types.ROW(columnNamesWithMessageFlag, columnTypesWithMessageFlag))
+      resultDataStream.print()
+      logger.info(resultDataStream.dataType.toString + "in  doFlinkSql")
+      resultDataStream
+    } else {
+      table.toRetractStream[Row](getQueryConfig).filter(_._1).map(_._2)(Types.ROW(columnNames, columnTypes))
+    }
+  }
 
   private def replaceTimeIndicatorType(columnTypes: Array[TypeInformation[_]]) = {
     columnTypes.map(fieldType =>
@@ -109,8 +142,14 @@ object SwiftsProcess extends Serializable {
       else fieldType)
   }
 
+  private def getQueryConfig: StreamQueryConfig = {
+    val minIdleStateRetentionTime = if (null != specialConfigObj && specialConfigObj.containsKey(SwiftsConstants.MIN_IDLE_STATE_RETENTION_TIME)) specialConfigObj.getLongValue(SwiftsConstants.MIN_IDLE_STATE_RETENTION_TIME) else 12L
+    val maxIdleStateRetentionTime = if (null != specialConfigObj && specialConfigObj.containsKey(SwiftsConstants.MAX_IDLE_STATE_RETENTION_TIME)) specialConfigObj.getLongValue(SwiftsConstants.MAX_IDLE_STATE_RETENTION_TIME) else 24L
+    val queryConfig = tableEnv.queryConfig
+    queryConfig.withIdleStateRetentionTime(Time.hours(minIdleStateRetentionTime), Time.hours(maxIdleStateRetentionTime))
+  }
 
-  private def doCEP(dataStream: DataStream[Row], sql: String, index: Int) = {
+  private def doCEP(transformedStream: DataStream[Row], sql: String, index: Int) = {
     val patternSeq = JSON.parseObject(sql)
     val patternGenerator = new PatternGenerator(patternSeq, preSchemaMap)
     val pattern = patternGenerator.getPattern
@@ -118,8 +157,8 @@ object SwiftsProcess extends Serializable {
     val keyByFields = patternSeq.getString(KEYBYFILEDS.toString).trim
     val patternStream = if (keyByFields != null && keyByFields.nonEmpty) {
       val keyArray = keyByFields.split(",").map(key => preSchemaMap(key)._2)
-      CEP.pattern(dataStream.keyBy(keyArray: _*), pattern)
-    } else CEP.pattern(dataStream, pattern)
+      CEP.pattern(transformedStream.keyBy(keyArray: _*), pattern)
+    } else CEP.pattern(transformedStream, pattern)
 
     val resultDataStream = new PatternOutput(patternSeq.getJSONObject(OUTPUT.toString), preSchemaMap).getOutput(patternStream, patternGenerator, keyByFields)
     resultDataStream.print()
@@ -128,7 +167,6 @@ object SwiftsProcess extends Serializable {
     setSwiftsSchemaWithCEP(patternSeq, index, keyByFields)
     resultDataStream
   }
-
 
   private def setSwiftsSchemaWithCEP(patternSeq: JSONObject, index: Int, keyByFields: String): Unit = {
     val key = s"swifts$index"
@@ -151,13 +189,11 @@ object SwiftsProcess extends Serializable {
     preSchemaMap = FlinkSchemaUtils.swiftsProcessSchemaMap(key)
   }
 
-
-  private def doLookup(dataStream: DataStream[Row], element: SwiftsSql, index: Int, exceptionConfig: ExceptionConfig, config: WormholeFlinkxConfig) = {
+  private def doLookup(transformedStream: DataStream[Row], element: SwiftsSql, index: Int) = {
     val lookupSchemaMap = LookupHelper.getLookupSchemaMap(preSchemaMap, element)
     val fieldNames = FlinkSchemaUtils.getFieldNamesFromSchema(lookupSchemaMap)
     val fieldTypes = FlinkSchemaUtils.getOutPutFieldTypes(fieldNames, lookupSchemaMap)
-    //val resultDataStream = dataStream.map(new LookupMapper(element, preSchemaMap, LookupHelper.getDbOutPutSchemaMap(element), ConnectionMemoryStorage.getDataStoreConnectionsMap)).flatMap(o => o)(Types.ROW(fieldNames, fieldTypes))
-    val resultDataStream = dataStream.process(new LookupProcessElement(element, preSchemaMap, LookupHelper.getDbOutPutSchemaMap(element), ConnectionMemoryStorage.getDataStoreConnectionsMap, exceptionConfig, lookupTag)).flatMap(o => o)(Types.ROW(fieldNames, fieldTypes))
+    val resultDataStream = transformedStream.map(new LookupMapper(element, preSchemaMap, LookupHelper.getDbOutPutSchemaMap(element), ConnectionMemoryStorage.getDataStoreConnectionsMap)).flatMap(o => o)(Types.ROW(fieldNames, fieldTypes))
     val key = s"swifts$index"
     if (!FlinkSchemaUtils.swiftsProcessSchemaMap.contains(key))
       FlinkSchemaUtils.swiftsProcessSchemaMap += key -> lookupSchemaMap
@@ -174,6 +210,4 @@ object SwiftsProcess extends Serializable {
     //return
     resultDataStream
   }
-
-
 }
