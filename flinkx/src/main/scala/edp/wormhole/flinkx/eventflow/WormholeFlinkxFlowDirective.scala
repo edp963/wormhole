@@ -2,16 +2,12 @@ package edp.wormhole.flinkx.eventflow
 
 import com.alibaba.fastjson.JSON
 import edp.wormhole.common.InputDataProtocolBaseType
-import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.flinkx.common.{ConfMemoryStorage, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils.findJsonSchema
 import edp.wormhole.flinkx.util.UmsFlowStartUtils.extractVersion
 import edp.wormhole.flinkx.util.{FlinkSchemaUtils, UmsFlowStartUtils}
-import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
 import edp.wormhole.ums._
-import edp.wormhole.util.DateUtils
 
 
 object WormholeFlinkxFlowDirective {
@@ -29,9 +25,6 @@ object WormholeFlinkxFlowDirective {
     val initial = consumption.getString(InputDataProtocolBaseType.INITIAL.toString).trim.toLowerCase.toBoolean
     val increment = consumption.getString(InputDataProtocolBaseType.INCREMENT.toString).trim.toLowerCase.toBoolean
     val batch = consumption.getString(InputDataProtocolBaseType.BATCH.toString).trim.toLowerCase.toBoolean
-
-    val streamId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "stream_id").toString.toLong
-    val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
 
     if (dataType != "ums") {
       val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
