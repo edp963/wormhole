@@ -26,8 +26,8 @@ import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
 import edp.wormhole.flinkx.pattern.Output.{FIELDLIST, TYPE}
 import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
-import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType, SwiftsConstants}
-import edp.wormhole.ums.UmsSysField
+import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
+import edp.wormhole.ums.{UmsProtocolUtils, UmsSysField}
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.time.Time
 import org.apache.flink.api.common.typeinfo.{SqlTimeTypeInfo, TypeInformation}
@@ -38,6 +38,7 @@ import org.apache.flink.table.api.{StreamQueryConfig, Table, Types}
 import org.apache.flink.table.expressions.{Expression, ExpressionParser}
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo
 import org.apache.flink.types.Row
+import org.joda.time.DateTime
 import org.slf4j.{Logger, LoggerFactory}
 
 
@@ -45,12 +46,11 @@ class SwiftsProcess(dataStream: DataStream[Row],
                     exceptionConfig: ExceptionConfig,
                     tableEnv: StreamTableEnvironment,
                     swiftsSql: Option[Array[SwiftsSql]],
-                    swiftsSpecialConfig: String,
+                    specialConfigObj: JSONObject,
                     timeCharacteristic: String,
                     config: WormholeFlinkxConfig) extends Serializable {
 
   private val logger: Logger = LoggerFactory.getLogger(this.getClass)
-  private val specialConfigObj = JSON.parseObject(swiftsSpecialConfig)
   private var preSchemaMap: Map[String, (TypeInformation[_], Int)] = FlinkSchemaUtils.immutableSourceSchemaMap
 
   private val lookupTag = OutputTag[String]("lookupException")
@@ -92,16 +92,16 @@ class SwiftsProcess(dataStream: DataStream[Row],
     } catch {
       case e: Throwable =>
         logger.error("in doFlinkSql table query", e)
-        e.printStackTrace()
-        throw e
+        val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
+        ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, feedbackInfo, config)
     }
     covertTable2Stream(table)
   }
 
   private def buildExpression(): List[Expression] = {
     val originalSchema = preSchemaMap.toList.sortBy(_._2._2).map(_._1)
-    if (timeCharacteristic == SwiftsConstants.PROCESSING_TIME)
-      ExpressionParser.parseExpressionList(originalSchema.mkString(",") + s", ${SwiftsConstants.PROCESSING_TIME}.proctime")
+    if (timeCharacteristic == FlinkxTimeCharacteristicConstants.PROCESSING_TIME)
+      ExpressionParser.parseExpressionList(originalSchema.mkString(",") + s", ${FlinkxTimeCharacteristicConstants.PROCESSING_TIME}.proctime")
     else {
       val newSchema = originalSchema.updated(preSchemaMap(UmsSysField.TS.toString)._2, UmsSysField.TS.toString + ".rowtime")
       ExpressionParser.parseExpressionList(newSchema.mkString(","))
@@ -111,8 +111,8 @@ class SwiftsProcess(dataStream: DataStream[Row],
   private def covertTable2Stream(table: Table): DataStream[Row] = {
     val columnNames = table.getSchema.getColumnNames
     val columnTypes = replaceTimeIndicatorType(table.getSchema.getTypes)
-    if (null != specialConfigObj && specialConfigObj.containsKey(SwiftsConstants.RESERVE_MESSAGE_FLAG) && specialConfigObj.getBooleanValue(SwiftsConstants.RESERVE_MESSAGE_FLAG)) {
-      val columnNamesWithMessageFlag: Array[String] = columnNames ++ Array(SwiftsConstants.MESSAGE_FLAG)
+    if (null != specialConfigObj && specialConfigObj.containsKey(FlinkxSwiftsConstants.PRESERVE_MESSAGE_FLAG) && specialConfigObj.getBooleanValue(FlinkxSwiftsConstants.PRESERVE_MESSAGE_FLAG)) {
+      val columnNamesWithMessageFlag: Array[String] = columnNames ++ Array(FlinkxSwiftsConstants.MESSAGE_FLAG)
       val columnTypesWithMessageFlag: Array[TypeInformation[_]] = columnTypes ++ Array(Types.BOOLEAN)
       val resultDataStream = table.toRetractStream[Row](getQueryConfig).map(tuple => {
         val rowWithMessageFlag = new Row(columnNames.length + 1)
@@ -137,28 +137,35 @@ class SwiftsProcess(dataStream: DataStream[Row],
   }
 
   private def getQueryConfig: StreamQueryConfig = {
-    val minIdleStateRetentionTime = if (null != specialConfigObj && specialConfigObj.containsKey(SwiftsConstants.MIN_IDLE_STATE_RETENTION_TIME)) specialConfigObj.getLongValue(SwiftsConstants.MIN_IDLE_STATE_RETENTION_TIME) else 12L
-    val maxIdleStateRetentionTime = if (null != specialConfigObj && specialConfigObj.containsKey(SwiftsConstants.MAX_IDLE_STATE_RETENTION_TIME)) specialConfigObj.getLongValue(SwiftsConstants.MAX_IDLE_STATE_RETENTION_TIME) else 24L
+    val minIdleStateRetentionTime = if (null != specialConfigObj && specialConfigObj.containsKey(FlinkxSwiftsConstants.MIN_IDLE_STATE_RETENTION_TIME)) specialConfigObj.getLongValue(FlinkxSwiftsConstants.MIN_IDLE_STATE_RETENTION_TIME) else 12L
+    val maxIdleStateRetentionTime = if (null != specialConfigObj && specialConfigObj.containsKey(FlinkxSwiftsConstants.MAX_IDLE_STATE_RETENTION_TIME)) specialConfigObj.getLongValue(FlinkxSwiftsConstants.MAX_IDLE_STATE_RETENTION_TIME) else 24L
     val queryConfig = tableEnv.queryConfig
     queryConfig.withIdleStateRetentionTime(Time.hours(minIdleStateRetentionTime), Time.hours(maxIdleStateRetentionTime))
   }
 
   private def doCEP(transformedStream: DataStream[Row], sql: String, index: Int): DataStream[Row] = {
-    val patternSeq = JSON.parseObject(sql)
-    val patternGenerator = new PatternGenerator(patternSeq, preSchemaMap)
-    val pattern = patternGenerator.getPattern
+    var resultDataStream: DataStream[Row] = null
+    try {
+      val patternSeq = JSON.parseObject(sql)
+      val patternGenerator = new PatternGenerator(patternSeq, preSchemaMap)
+      val pattern = patternGenerator.getPattern
 
-    val keyByFields = patternSeq.getString(KEYBYFILEDS.toString).trim
-    val patternStream = if (keyByFields != null && keyByFields.nonEmpty) {
-      val keyArray = keyByFields.split(",").map(key => preSchemaMap(key)._2)
-      CEP.pattern(transformedStream.keyBy(keyArray: _*), pattern)
-    } else CEP.pattern(transformedStream, pattern)
+      val keyByFields = patternSeq.getString(KEYBYFILEDS.toString).trim
+      val patternStream = if (keyByFields != null && keyByFields.nonEmpty) {
+        val keyArray = keyByFields.split(",").map(key => preSchemaMap(key)._2)
+        CEP.pattern(transformedStream.keyBy(keyArray: _*), pattern)
+      } else CEP.pattern(transformedStream, pattern)
 
-    val resultDataStream = new PatternOutput(patternSeq.getJSONObject(OUTPUT.toString), preSchemaMap).getOutput(patternStream, patternGenerator, keyByFields)
-    resultDataStream.print()
-    println(resultDataStream.dataType)
-    logger.info(resultDataStream.dataType.toString + "in  doCep")
-    setSwiftsSchemaWithCEP(patternSeq, index, keyByFields)
+      resultDataStream = new PatternOutput(patternSeq.getJSONObject(OUTPUT.toString), preSchemaMap,exceptionConfig,config).getOutput(patternStream, patternGenerator, keyByFields)
+      println(resultDataStream.dataType)
+      logger.info(resultDataStream.dataType.toString + "in  doCep")
+      setSwiftsSchemaWithCEP(patternSeq, index, keyByFields)
+    } catch {
+      case e: Throwable =>
+        logger.error("doCEP error in swifts process", e)
+        val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
+        ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, feedbackInfo, config)
+    }
     resultDataStream
   }
 
