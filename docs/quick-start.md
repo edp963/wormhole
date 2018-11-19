@@ -57,7 +57,17 @@ data_increment_data.kafka.edp.source.ums_extension.*.*.*@@@{"id": 1, "name": "te
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-lookup-ns.png" alt="" width="600"/>
 
-**7. Admin 创建 Project 并授权 Namespaces 和 Users**
+**7. Admin 创建 UDF**
+
+   **创建Spark UDF需要指定jar位置**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-udf-spark.png" alt="" width="600"/>
+
+   **创建Flink UDF需要将相关jar包放置到Flink安装目录中的lib下**
+
+   <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-udf-flink.png" alt="" width="600"/>
+
+**8. Admin 创建 Project 并授权 Namespaces 和 Users**
 
    **将 Source Namespace， Sink Namespace， Lookup Namespace 和 demo User 授权给 Project**
 

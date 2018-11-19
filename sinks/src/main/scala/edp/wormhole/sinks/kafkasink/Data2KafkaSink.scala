@@ -36,6 +36,7 @@ import org.apache.log4j.Logger
 
 class Data2KafkaSink extends SinkProcessor {
   private lazy val logger = Logger.getLogger(this.getClass)
+
   override def process(sourceNamespace: String,
                        sinkNamespace: String,
                        sinkProcessConfig: SinkProcessConfig,
@@ -73,12 +74,15 @@ class Data2KafkaSink extends SinkProcessor {
       val flattenJson = new JSONObject
       var index = 0
       tuple.foreach(t => {
-        flattenJson.put(schemaList(index)._1, UmsFieldType.umsFieldValue(t, schemaList(index)._2._2))
+        val umsFieldType = schemaList(index)._2._2
+        if (umsFieldType == DATETIME || umsFieldType == DATE)
+          flattenJson.put(schemaList(index)._1, t)
+        else flattenJson.put(schemaList(index)._1, UmsFieldType.umsFieldValue(t, schemaList(index)._2._2))
         index += 1
       })
       flattenJson.put("namespace", sinkNamespace)
       flattenJson.put("protocol", protocol)
-      WormholeKafkaProducer.sendMessage(kafkaTopic, flattenJson.toJSONString, Some(protocol + "." + sinkNamespace+"..."+UUID.randomUUID().toString), connectionConfig.connectionUrl)
+      WormholeKafkaProducer.sendMessage(kafkaTopic, flattenJson.toJSONString, Some(protocol + "." + sinkNamespace + "..." + UUID.randomUUID().toString), connectionConfig.connectionUrl)
     }
     )
   }
@@ -90,11 +94,14 @@ class Data2KafkaSink extends SinkProcessor {
       var index = 0
       tuple.foreach(t => {
         if (!schemaList(index)._1.startsWith("ums_")) {
-          flattenJson.put(schemaList(index)._1, UmsFieldType.umsFieldValue(t, schemaList(index)._2._2))
+          val umsFieldType = schemaList(index)._2._2
+          if (umsFieldType == DATETIME || umsFieldType == DATE)
+            flattenJson.put(schemaList(index)._1, t)
+          else flattenJson.put(schemaList(index)._1, UmsFieldType.umsFieldValue(t, schemaList(index)._2._2))
         }
         index += 1
       })
-      WormholeKafkaProducer.sendMessage(kafkaTopic, flattenJson.toJSONString, Some(protocol + "." + sinkNamespace+"..."+UUID.randomUUID().toString), connectionConfig.connectionUrl)
+      WormholeKafkaProducer.sendMessage(kafkaTopic, flattenJson.toJSONString, Some(protocol + "." + sinkNamespace + "..." + UUID.randomUUID().toString), connectionConfig.connectionUrl)
     }
     )
   }
@@ -107,7 +114,7 @@ class Data2KafkaSink extends SinkProcessor {
         protocol,
         schema,
         payload = Some(seqUmsTuple)))
-      WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + sinkNamespace+"..."+UUID.randomUUID().toString), connectionConfig.connectionUrl)
+      WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + sinkNamespace + "..." + UUID.randomUUID().toString), connectionConfig.connectionUrl)
     })
   }
 }

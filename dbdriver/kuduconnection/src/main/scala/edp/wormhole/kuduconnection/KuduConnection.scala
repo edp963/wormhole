@@ -281,7 +281,7 @@ object KuduConnection extends Serializable{
         case UmsFieldType.INT => if(fieldContent==null||fieldContent.trim.isEmpty)row.isNull(fieldName) else row.addInt(fieldName, fieldContent.toInt)
         case UmsFieldType.FLOAT => if(fieldContent==null||fieldContent.trim.isEmpty)row.isNull(fieldName) else row.addFloat(fieldName, fieldContent.toFloat)
         case UmsFieldType.LONG => if(fieldContent==null||fieldContent.trim.isEmpty)row.isNull(fieldName) else row.addLong(fieldName, fieldContent.toLong)
-        case UmsFieldType.DATETIME => row.addLong(fieldName, DateUtils.dt2long(fieldContent))
+        case UmsFieldType.DATETIME => if(fieldContent==null||fieldContent.trim.isEmpty)row.isNull(fieldName) else row.addLong(fieldName, DateUtils.dt2long(fieldContent))
         case _ => row.addString(fieldName, fieldContent)
       }
     })
