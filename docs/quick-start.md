@@ -59,7 +59,7 @@ data_increment_data.kafka.edp.source.ums_extension.*.*.*@@@{"id": 1, "name": "te
 
 **7. Admin 创建 UDF**
 
-   **创建Spark UDF需要指定jar位置**
+   **创建Spark UDF需要将jar包放置到配置文件中HDFS中的udfjars目录下，即spark.wormhole.hdfs.root.path/udfjars**
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-udf-spark.png" alt="" width="600"/>
 
