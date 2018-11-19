@@ -156,7 +156,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
         CEP.pattern(transformedStream.keyBy(keyArray: _*), pattern)
       } else CEP.pattern(transformedStream, pattern)
 
-      resultDataStream = new PatternOutput(patternSeq.getJSONObject(OUTPUT.toString), preSchemaMap,exceptionConfig,config).getOutput(patternStream, patternGenerator, keyByFields)
+      resultDataStream = new PatternOutput(patternSeq.getJSONObject(OUTPUT.toString), preSchemaMap).getOutput(patternStream, patternGenerator, keyByFields)
       println(resultDataStream.dataType)
       logger.info(resultDataStream.dataType.toString + "in  doCep")
       setSwiftsSchemaWithCEP(patternSeq, index, keyByFields)
