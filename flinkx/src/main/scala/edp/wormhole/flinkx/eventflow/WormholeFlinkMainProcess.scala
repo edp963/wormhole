@@ -23,21 +23,20 @@ package edp.wormhole.flinkx.eventflow
 import java.util.Properties
 
 import com.alibaba.fastjson
-import com.alibaba.fastjson.JSON
+import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.flinkx.common.ExceptionProcessMethod.ExceptionProcessMethod
 import edp.wormhole.flinkx.common.{ExceptionConfig, _}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
-import edp.wormhole.flinkx.eventflow.WormholeFlinkxStarter.{config, logger}
 import edp.wormhole.flinkx.sink.SinkProcess
-import edp.wormhole.flinkx.swifts.{ParseSwiftsSql, SwiftsProcess}
+import edp.wormhole.flinkx.swifts.{FlinkxTimeCharacteristicConstants, ParseSwiftsSql, SwiftsProcess}
 import edp.wormhole.flinkx.udf.UdfRegister
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
 import edp.wormhole.flinkx.util.{FlinkxTimestampExtractor, UmsFlowStartUtils, WormholeFlinkxConfigUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.swifts.SwiftsConstants
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
+import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
 import edp.wormhole.ums._
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.swifts.SwiftsSql
@@ -46,6 +45,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010
+import org.apache.flink.table.api.scala.StreamTableEnvironment
 import org.apache.flink.table.api.{TableEnvironment, Types}
 import org.apache.flink.types.Row
 import org.apache.log4j.Logger
@@ -54,20 +54,23 @@ import scala.collection.mutable.ArrayBuffer
 
 
 class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) extends Serializable {
-  @transient lazy val logger = Logger.getLogger(this.getClass)
+  @transient lazy val logger: Logger = Logger.getLogger(this.getClass)
   private val flowStartFields = umsFlowStart.schema.fields_get
   private val flowStartPayload = umsFlowStart.payload_get.head
   private val swiftsString: String = UmsFlowStartUtils.extractSwifts(flowStartFields, flowStartPayload)
   logger.info(swiftsString + "------swifts string")
   private val swifts: fastjson.JSONObject = JSON.parseObject(swiftsString)
-  private val timeCharacteristic = UmsFlowStartUtils.extractTimeCharacteristic(swifts)
+  private val timeCharacteristic: String = UmsFlowStartUtils.extractTimeCharacteristic(swifts)
   private val sinkNamespace = UmsFlowStartUtils.extractSinkNamespace(flowStartFields, flowStartPayload)
   private val sourceNamespace: String = UmsFlowStartUtils.extractSourceNamespace(umsFlowStart)
-  //private val streamId = UmsFlowStartUtils.extractStreamId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head).toLong
-  private val streamId = UmsFlowStartUtils.extractStreamId(flowStartFields, flowStartPayload).toLong
+  private val streamId = UmsFlowStartUtils.extractStreamId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head).toLong
+  private val directiveId = UmsFlowStartUtils.extractDirectiveId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head).toLong
   private val flowId = UmsFlowStartUtils.extractFlowId(flowStartFields, flowStartPayload)
 
-  private val exceptionProcessMethod: ExceptionProcessMethod = ExceptionProcessMethod.exceptionProcessMethod(UmsFlowStartUtils.extractExceptionProcess(swifts))
+  val swiftsSpecialConfig: JSONObject =UmsFlowStartUtils.extractSwiftsSpecialConfig(swifts)
+
+
+  private val exceptionProcessMethod: ExceptionProcessMethod = ExceptionProcessMethod.exceptionProcessMethod(UmsFlowStartUtils.extractExceptionProcess(swiftsSpecialConfig))
   private val exceptionConfig = ExceptionConfig(streamId, flowId, sourceNamespace, sinkNamespace, exceptionProcessMethod)
 
   private val kafkaDataTag = OutputTag[String]("kafkaDataException")
@@ -80,29 +83,18 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     env.setParallelism(config.parallelism)
 
     val tableEnv = TableEnvironment.getTableEnvironment(env)
-    //udf register
-    config.udf_config.foreach(udf => {
-      val udfName = udf.functionName
-      val udfClassFullname = udf.fullClassName
-      try {
-        UdfRegister.register(udfName, udfClassFullname, tableEnv)
-      } catch {
-        case e: Throwable =>
-          logger.error(udfName + " register fail", e)
-      }
-      /*val clazz = Class.forName(udfClassFullname)
-      val obj: Any = clazz.newInstance()
-      tableEnv.registerFunction(udfName, obj.asInstanceOf[ScalarFunction])*/
-    })
-
+    udfRegister(tableEnv)
     assignTimeCharacteristic(env)
+
     val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase)
     val watermarkStream = assignTimestamp(inputStream, immutableSourceSchemaMap)
     watermarkStream.print()
     try {
       val swiftsTs = System.currentTimeMillis
-      val (stream, schemaMap) = SwiftsProcess.process(watermarkStream, exceptionConfig, tableEnv, swiftsSql, config)
-      SinkProcess.doProcess(stream, umsFlowStart, schemaMap, config, initialTs, swiftsTs, exceptionConfig)
+
+      val (stream, schemaMap) = new SwiftsProcess(watermarkStream,exceptionConfig, tableEnv, swiftsSql, swiftsSpecialConfig, timeCharacteristic,config).process()
+      SinkProcess.doProcess(stream, umsFlowStart, schemaMap, config, initialTs, swiftsTs,exceptionConfig)
+      WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, config.kafka_output.brokers)
     } catch {
       case e: Throwable =>
         logger.error("swifts and sink:", e)
@@ -110,6 +102,20 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
         ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, feedbackFlowFlinkxError, config)
     }
     env.execute(config.flow_name)
+  }
+
+
+  private def udfRegister(tableEnv: StreamTableEnvironment): Unit = {
+    config.udf_config.foreach(udf => {
+      val udfName = udf.functionName
+      val udfClassFullName = udf.fullClassName
+      try {
+        UdfRegister.register(udfName, udfClassFullName, tableEnv)
+      } catch {
+        case e: Throwable =>
+          logger.error(udfName + " register fail", e)
+      }
+    })
   }
 
   private def createKafkaStream(env: StreamExecutionEnvironment, flowNamespace: String): DataStream[Row] = {
@@ -151,14 +157,14 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   }
 
   private def assignTimeCharacteristic(env: StreamExecutionEnvironment): Unit = {
-    if (timeCharacteristic == SwiftsConstants.PROCESSING_TIME)
+    if (timeCharacteristic == FlinkxTimeCharacteristicConstants.PROCESSING_TIME)
       env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime)
     else
       env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
   }
 
   private def assignTimestamp(inputStream: DataStream[Row], sourceSchemaMap: Map[String, (TypeInformation[_], Int)]) = {
-    if (timeCharacteristic == SwiftsConstants.PROCESSING_TIME)
+    if (timeCharacteristic == FlinkxTimeCharacteristicConstants.PROCESSING_TIME)
       inputStream
     else
       inputStream.assignTimestampsAndWatermarks(new FlinkxTimestampExtractor(sourceSchemaMap))

@@ -1,11 +1,9 @@
 package edp.wormhole.flinkx.sink
 
-import akka.protobuf.ByteString.Output
 import edp.wormhole.flinkx.common.{ConfMemoryStorage, ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
-import edp.wormhole.flinkx.util.UmsFlowStartUtils
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
-import edp.wormhole.ums.{Ums, UmsProtocolUtils, UmsTuple}
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
+import edp.wormhole.ums.{Ums, UmsProtocolUtils, UmsTuple}
 import edp.wormhole.util.config.ConnectionConfig
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.apache.flink.streaming.api.scala.OutputTag

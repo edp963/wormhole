@@ -93,3 +93,7 @@ class LookupProcessElement(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (Type
     }
   }
 }
+
+object LookupProcessElement {
+
+}

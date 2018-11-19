@@ -15,9 +15,10 @@ import org.joda.time.DateTime
 
 import scala.collection.mutable.ArrayBuffer
 
-class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)], exceptionConfig: ExceptionConfig, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])], kafkaDataTag: OutputTag[String]) extends ProcessFunction[(String, String, String, Int, Long), Row]{
+class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)], exceptionConfig: ExceptionConfig, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])], kafkaDataTag: OutputTag[String]) extends ProcessFunction[(String, String, String, Int, Long), Row] {
   //private val outputTag = OutputTag[String]("kafkaDataException")
   private lazy val logger = Logger.getLogger(this.getClass)
+
   override def processElement(value: (String, String, String, Int, Long), ctx: ProcessFunction[(String, String, String, Int, Long), Row]#Context, out: Collector[Row]): Unit = {
     logger.info("in UmsFlatMapper source data from kafka " + value._2)
     try {
@@ -45,7 +46,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
     }
   }
 
-  def createRow(tuple: Seq[String], protocolType:String, out: Collector[Row]): Unit = {
+  def createRow(tuple: Seq[String], protocolType: String, out: Collector[Row]): Unit = {
     val row = new Row(tuple.size)
     for (i <- tuple.indices)
       row.setField(i, FlinkSchemaUtils.getRelValue(i, tuple(i), sourceSchemaMap))
@@ -53,3 +54,4 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
   }
 
 }
+
