@@ -21,15 +21,13 @@
 package edp.wormhole.flinkx.sink
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.common.feedback.FeedbackPriority
-import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, ExceptionProcessMethod, WormholeFlinkxConfig}
+import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.util.{FlinkSchemaUtils, UmsFlowStartUtils}
-import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.swifts.ConnectionMemoryStorage
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums._
-import edp.wormhole.util.{DateUtils, JsonUtils}
+import edp.wormhole.util.JsonUtils
 import edp.wormhole.util.config.KVConfig
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.scala.{DataStream, _}
@@ -57,9 +55,11 @@ object SinkProcess extends Serializable {
     //handle sink exception sideoutput
     val exceptionStream = sinkDataStream.getSideOutput(sinkTag)
     exceptionStream.map(stream => {
+
       logger.info("--------------------sink exception stream:" + stream)
       ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, stream, config)
     })
+
     //return
     sinkDataStream
   }
