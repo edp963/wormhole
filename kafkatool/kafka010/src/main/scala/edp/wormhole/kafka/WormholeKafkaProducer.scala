@@ -137,7 +137,6 @@ object WormholeKafkaProducer extends Serializable {
   private def sendInternal(topic: String, partition: Int, message: String, key: Option[String], brokers: String) =
     if (message != null) {
       try {
-
         if (key.isDefined) {
           getProducer(brokers).send(new ProducerRecord[String, String](topic, partition, key.get, message))
         } else {
