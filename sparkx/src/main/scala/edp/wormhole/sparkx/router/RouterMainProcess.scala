@@ -24,6 +24,7 @@ package edp.wormhole.sparkx.router
 import java.util.UUID
 
 import edp.wormhole.common.feedback.FeedbackPriority
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.common._
 import edp.wormhole.sparkx.memorystorage.{ConfMemoryStorage, OffsetPersistenceManager}
@@ -40,11 +41,11 @@ import scala.collection.mutable.ArrayBuffer
 
 object RouterMainProcess extends EdpLogging {
 
-  def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession): Unit = {
-    val appId=SparkUtils.getAppId
+  def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession,appId:String): Unit = {
+    var zookeeperFlag = false
+
     val kafkaInput: KafkaInputConfig = OffsetPersistenceManager.initOffset(config, appId)
     val topics=kafkaInput.kafka_topics.map(config=>JsonUtils.jsonCompact(JsonUtils.caseClass2json[KafkaTopicConfig](config))).mkString("[",",","]")
-
     stream.foreachRDD((streamRdd: RDD[ConsumerRecord[String, String]]) => {
       val startTime = System.currentTimeMillis()
       val offsetInfo: ArrayBuffer[OffsetRange] = new ArrayBuffer[OffsetRange]
@@ -121,7 +122,7 @@ object RouterMainProcess extends EdpLogging {
         val endTime = System.currentTimeMillis()
         WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
           UmsProtocolUtils.feedbackFlowStats("*.*.*.*.*.*.*", UmsProtocolType.DATA_INCREMENT_DATA.toString, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, "kafka.*.*.*.*.*.*",topics,
-            allCount.toInt, startTime, startTime, startTime, startTime, startTime, startTime, endTime), None, config.kafka_output.brokers)
+            allCount.toInt, startTime, startTime, startTime, startTime, startTime, startTime, endTime.toString), None, config.kafka_output.brokers)
 
 
         WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
@@ -132,6 +133,13 @@ object RouterMainProcess extends EdpLogging {
           WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
       }
       stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
+      if(!zookeeperFlag){
+        logInfo("write appid to zookeeper,"+appId)
+        SparkContextUtils.checkSparkRestart(config.zookeeper_address, config.zookeeper_path, config.spark_config.stream_id, appId)
+        SparkContextUtils.deleteZookeeperOldAppidPath(appId, config.zookeeper_address, config.zookeeper_path, config.spark_config.stream_id)
+        WormholeZkClient.createPath(config.zookeeper_address, config.zookeeper_path + "/" + config.spark_config.stream_id + "/" + appId)
+        zookeeperFlag=true
+      }
     })
   }
 

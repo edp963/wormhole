@@ -55,7 +55,10 @@ object WormholeKafkaProducer extends Serializable {
             })
           }
 
-          if(kerberos)props.put("security.protocol","SASL_PLAINTEXT")
+          if(kerberos){
+            props.put("security.protocol","SASL_PLAINTEXT")
+            props.put("sasl.kerberos.service.name","kafka")
+          }
           props.put("bootstrap.servers", brokers)
           producerMap(brokers) = new KafkaProducer[String, String](props)
         }

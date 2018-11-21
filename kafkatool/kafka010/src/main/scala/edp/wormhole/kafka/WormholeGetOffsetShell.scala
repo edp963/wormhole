@@ -1,23 +1,50 @@
 package edp.wormhole.kafka
 
+import java.util.Properties
+
+import edp.wormhole.kafka.WormholeGetOffsetShell.logger
 import joptsimple.OptionParser
+import kafka.admin.AdminClient
 import kafka.api.{OffsetRequest, PartitionOffsetRequestInfo}
 import kafka.client.ClientUtils
 import kafka.common.TopicAndPartition
 import kafka.consumer.SimpleConsumer
+import kafka.producer.ProducerConfig
 import kafka.utils.ToolsUtils
+import org.apache.kafka.clients.CommonClientConfigs
+import org.apache.kafka.common.TopicPartition
+import org.apache.log4j.Logger
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 object WormholeGetOffsetShell {
-
+  private val logger = Logger.getLogger(this.getClass)
   def getTopicOffsets(brokerList: String, topic: String, time: Long = -1, maxWaitMs: Int = 30000) = {
     try {
       val parser = new OptionParser
       val clientId = "GetOffsetShell"
       ToolsUtils.validatePortOrDie(parser, brokerList)
       val metadataTargetBrokers = ClientUtils.parseBrokerList(brokerList)
-      val topicsMetadata = ClientUtils.fetchTopicMetadata(Set(topic), metadataTargetBrokers, clientId, maxWaitMs).topicsMetadata
+
+      val props = new Properties()
+      props.put("metadata.broker.list", metadataTargetBrokers.map(_.connectionString).mkString(","))
+      props.put("client.id", clientId)
+      props.put("request.timeout.ms", maxWaitMs.toString)
+      props.put("security.protocol","SASL_PLAINTEXT")
+
+      val propNames =props.propertyNames
+      logger.info("====================")
+      while(propNames.hasMoreElements)logger.info("key:"+propNames.nextElement().toString)
+      logger.info("====================")
+      val config=new ProducerConfig(props)
+      logger.info("====================")
+      val conNames=config.props.props.propertyNames
+      while(conNames.hasMoreElements)logger.info("key11111:"+conNames.nextElement().toString)
+      logger.info("====================")
+
+      val topicsMetadata =  ClientUtils.fetchTopicMetadata(Set(topic), metadataTargetBrokers, config, 0).topicsMetadata
+      // val topicsMetadata = ClientUtils.fetchTopicMetadata(Set(topic), metadataTargetBrokers, clientId, maxWaitMs).topicsMetadata
       if (topicsMetadata.size != 1 || !topicsMetadata(0).topic.equals(topic)) {
         throw new Exception(s"brokerList $brokerList topic $topic doesn't exist, please verify it.")
       } else {
@@ -60,7 +87,34 @@ object WormholeGetOffsetShell {
   }
 
   def getConsumerOffset(broker:String,groupid:String): Map[String, String] ={
-    throw new Exception("not support with kafka version 0.10.0.* or 0.10.1.*")
+    val props = new Properties()
+    props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, broker)
+    val adminClient = AdminClient.create(props)
+
+    val offsetMap: Map[TopicPartition, Long] = adminClient.listGroupOffsets(groupid)
+    val r = if(offsetMap==null||offsetMap.isEmpty) null.asInstanceOf[Map[String, String]]
+    else{
+      val map = mutable.HashMap.empty[String,ListBuffer[(Int,Long)]]
+      offsetMap.foreach{case(k,v)=>
+        if(map.contains(k.topic())){
+          map(k.topic) += ((k.partition(),v))
+        }else{
+          val list = ListBuffer.empty[(Int,Long)]
+          list += ((k.partition(),v))
+          map(k.topic) = list
+        }
+      }
+
+      val tpMap = mutable.HashMap.empty[String,String]
+      map.foreach{case (k,v)=>
+        tpMap(k)=v.sortBy(_._1).map(ele=>{
+          s"${ele._1}:${ele._2}"
+        }).mkString(",")
+      }
+      tpMap.toMap
+    }
+    adminClient.close()
+    r
   }
 }
 

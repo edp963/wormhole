@@ -165,10 +165,10 @@ object SparkUtils extends EdpLogging {
       case "FloatType" => UmsFieldType.FLOAT
       case "LongType" => UmsFieldType.LONG
       case "IntegerType" => UmsFieldType.INT
-      case "DecimalType" => UmsFieldType.DECIMAL
-      case "DecimalType(38,18)" => UmsFieldType.DECIMAL
+      case t if t.startsWith("DecimalType") => UmsFieldType.DECIMAL
       case "StringType" => UmsFieldType.STRING
-      case "DateType" => UmsFieldType.DATETIME
+      case "DateType" => UmsFieldType.DATE
+      case "DateTimeType" => UmsFieldType.DATETIME
       case "TimestampType" => UmsFieldType.DATETIME
       case "BooleanType" => UmsFieldType.BOOLEAN
       case "BinaryType" => UmsFieldType.BINARY

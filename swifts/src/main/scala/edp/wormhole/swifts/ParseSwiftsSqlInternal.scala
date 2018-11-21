@@ -410,19 +410,21 @@ object ParseSwiftsSqlInternal {
       .substring(sqlStrEle.toLowerCase.indexOf("select ") + 7, sqlStrEle.toLowerCase.indexOf(" from "))
       .toLowerCase.split(",")
       .map(field => {
-        (field.trim.split(" ").last, true)
-      }).toMap
-    if (!selectFields.contains("*")) {
-      if (dataType == "ums" && !selectFields.contains(UmsSysField.TS.toString)) {
-        sql = sql + UmsSysField.TS.toString + ", "
+        val fieldParts = field.trim.split(" ")
+        fieldParts.last
+      })
+    if (sqlStrEle.toLowerCase.indexOf("over") == -1 && sqlStrEle.toLowerCase.indexOf("group by") == -1)
+      if (!selectFields.contains("*")) {
+        if (dataType == "ums" && !selectFields.contains(UmsSysField.TS.toString)) {
+          sql = sql + UmsSysField.TS.toString + ", "
+        }
+        if (dataType == "ums" && (!selectFields.contains(UmsSysField.ID.toString)) && sourceSchemaFieldSet.contains(UmsSysField.ID.toString)) {
+          sql = sql + UmsSysField.ID.toString + ", "
+        }
+        if (dataType == "ums" && !selectFields.contains(UmsSysField.OP.toString) && sourceSchemaFieldSet.contains(UmsSysField.OP.toString)) {
+          sql = sql + UmsSysField.OP.toString + ", "
+        }
       }
-      if (dataType == "ums" && (!selectFields.contains(UmsSysField.ID.toString)) && sourceSchemaFieldSet.contains(UmsSysField.ID.toString)) {
-        sql = sql + UmsSysField.ID.toString + ", "
-      }
-      if (dataType == "ums" && !selectFields.contains(UmsSysField.OP.toString) && sourceSchemaFieldSet.contains(UmsSysField.OP.toString)) {
-        sql = sql + UmsSysField.OP.toString + ", "
-      }
-    }
     sql = sql + sqlStrEle.substring(sqlStrEle.toLowerCase.indexOf("select ") + 7)
     sql = sql.replaceAll("(?i)" + " " + tableName + " ", " " + tableName + " ")
 

@@ -13,7 +13,7 @@ import edp.wormhole.ums.{UmsProtocolUtils, _}
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.util.{DateUtils, JsonUtils}
 import org.apache.flink.api.common.functions.RichMapFunction
-import org.apache.flink.api.common.state.{MapState, MapStateDescriptor, ValueState, ValueStateDescriptor}
+import org.apache.flink.api.common.state._
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.log4j.Logger
 import org.joda.time.DateTime
@@ -24,6 +24,7 @@ class CountWithFeedbackFunction(sourceSchemaMap: Map[String, (TypeInformation[_]
 
 //  lazy val state:ValueState[ListBuffer[Ums]]=getRuntimeContext.getState(new ValueStateDescriptor[ListBuffer[Ums]]("feedbackState",classOf[ListBuffer[Ums]]))
   lazy val mapState:MapState[String,ListBuffer[Ums]]=getRuntimeContext.getMapState(new MapStateDescriptor[String,ListBuffer[Ums]]("feedbackState",classOf[String],classOf[ListBuffer[Ums]]))
+
   @transient lazy val logger = Logger.getLogger(this.getClass)
 
   override def map(value:(String,String))={
@@ -44,13 +45,12 @@ class CountWithFeedbackFunction(sourceSchemaMap: Map[String, (TypeInformation[_]
       val topics=config.kafka_input.kafka_topics.map(config=>JsonUtils.jsonCompact(JsonUtils.caseClass2json[KafkaTopicConfig](config))).mkString("[",",","]")
 
       val umsTs=UmsFieldType.umsFieldValue(mainData.head.payload.get.head.tuple,mainData.head.schema.fields.get,"ums_ts_").asInstanceOf[DateTime].getMillis
-
       val batchId = UUID.randomUUID().toString
 
       logger.info("topic:"+config.kafka_output.feedback_topic_name+",brokers:"+config.kafka_output.brokers)
 
       WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-        UmsProtocolUtils.feedbackFlowStats(sourceNamespace,ums.protocol.`type`.toString,DateUtils.currentDateTime,streamId,batchId,sinkNamespace,topics,payloadSize,umsTs,umsTs,initialTs,initialTs,initialTs,initialTs,initialTs), None, config.kafka_output.brokers)
+        UmsProtocolUtils.feedbackFlowStats(sourceNamespace,ums.protocol.`type`.toString,DateUtils.currentDateTime,streamId,batchId,sinkNamespace,topics,payloadSize,umsTs,umsTs,initialTs,initialTs,initialTs,initialTs,initialTs.toString), None, config.kafka_output.brokers)
 
       buffer.remove(0,config.feedback_state_count)
       logger.info("feedback message send successfully===========")

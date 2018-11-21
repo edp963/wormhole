@@ -18,7 +18,18 @@ Wormhole可直接消费DBus系统生成的UMS类型数据，具体配置步骤�
    vim application.conf
 
    #Dbus integration, if not set, please comment it
-   dbus.namespace.rest.api.url = ["http://localhost:8080/webservice/tables/riderSearch"]
+   dbus = {
+     api = [
+       {
+         login = {
+           url = "http://localhost:8080/keeper/login"
+           email = ""
+           password = ""
+         }
+         synchronization.namespace.url = "http://localhost:8080/keeper/tables/riderSearch"
+       }
+     ]
+   }
    ```
 
    **注：只需修改ip和端口地址，根据部署的DBus服务调整，配置前可访问该地址测试下是否正确**。

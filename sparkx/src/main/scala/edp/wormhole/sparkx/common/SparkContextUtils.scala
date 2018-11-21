@@ -21,7 +21,6 @@
 
 package edp.wormhole.sparkx.common
 
-import edp.wormhole.common._
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.sparkx.spark.kafka010.{WormholeKafkaUtils, WormholePerPartitionConfig}
 import edp.wormhole.sparkx.spark.log.EdpLogging
@@ -34,9 +33,9 @@ import scala.collection.mutable
 
 object SparkContextUtils extends EdpLogging{
 
-  def checkSparkRestart(zookeeperPath:String,streamId:Long,appId:String): Unit = {
-    val appIdPath = WormholeConstants.CheckpointRootPath + streamId + "/" + appId
-    if (WormholeZkClient.checkExist(zookeeperPath, appIdPath)) logAlert("WormholeStarter restart")
+  def checkSparkRestart(zookeeperAddress: String, zookeeperPath: String, streamId: Long, appId: String): Unit = {
+    val appIdPath = zookeeperPath + "/" + streamId + "/" + appId
+    if (WormholeZkClient.checkExist(zookeeperAddress, appIdPath)) logAlert("WormholeStarter restart")
   }
 
   def setLoggerLevel(): Unit = {
@@ -59,8 +58,8 @@ object SparkContextUtils extends EdpLogging{
     ssc.awaitTermination()
   }
 
-  def deleteZookeeperOldAppidPath(appid: String, address: String,streamId:Long): Unit = {
-    val appidParentPath = WormholeConstants.CheckpointRootPath + streamId
+  def deleteZookeeperOldAppidPath(appid: String, address: String, path: String, streamId:Long): Unit = {
+    val appidParentPath = path + "/" + streamId
     val appidPaths: Seq[String] = WormholeZkClient.getChildren(address, appidParentPath)
     for (i <- appidPaths.indices) {
       val appidName = appidPaths(i)
@@ -92,6 +91,7 @@ object SparkContextUtils extends EdpLogging{
 
     val perConfig: WormholePerPartitionConfig = new WormholePerPartitionConfig(partitionRateMap)
     val consumerStrategy: ConsumerStrategy[String, String] = if(kafkaInput.inWatch){
+      logInfo(s"inputBrokers is :${kafkaInput.inputBrokers}")
       ConsumerStrategies.Subscribe[String, String](topicList, kafkaInput.inputBrokers, partitionOffsetMap.toMap)
     }else{
       ConsumerStrategies.Subscribe[String, String](topicList, kafkaInput.inputBrokers)
