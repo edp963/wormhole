@@ -139,30 +139,30 @@ object SqlProcessor  {
         rsKeyUmsIdMap
       } catch {
         case e: SQLTransientConnectionException => DbConnection.resetConnection(connectionConfig)
-          logger.error("SQLTransientConnectionException"+ e)
+          logger.error("SQLTransientConnectionException", e)
           throw e
         case e: Throwable =>
-          logger.error("execute select failed"+ e)
+          logger.error("execute select failed", e)
           throw e
       } finally {
         if (rs != null)
           try {
             rs.close()
           } catch {
-            case e: Throwable => logger.error("resultSet.close"+ e)
+            case e: Throwable => logger.error("resultSet.close", e)
           }
         if (ps != null)
           try {
             ps.close()
           } catch {
-            case e: Throwable => logger.error("ps.close"+ e)
+            case e: Throwable => logger.error("ps.close", e)
           }
         if (null != conn)
           try {
             conn.close()
             conn == null
           } catch {
-            case e: Throwable => logger.error("conn.close"+ e)
+            case e: Throwable => logger.error("conn.close", e)
           }
       }
     } else {
