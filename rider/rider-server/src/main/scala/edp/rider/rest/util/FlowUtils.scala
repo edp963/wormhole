@@ -389,7 +389,7 @@ object FlowUtils extends RiderLogger {
         val tranConfigFinal = getTranConfig(tranConfig)
         //        val tuple = Seq(streamId, currentMicroSec, umsType, umsSchema, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
         val base64Tuple = Seq(streamId, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
-          base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes))
+          base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes),RiderConfig.kerberos.enabled)
         val directiveFuture = directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId))
         directiveFuture onComplete {
           case Success(directive) =>
@@ -447,6 +447,11 @@ object FlowUtils extends RiderLogger {
                  |"name": "swifts",
                  |"type": "string",
                  |"nullable": true
+                 |},
+                 |{
+                 |"name": "kerberos",
+                 |"type": "boolean",
+                 |"nullable": true
                  |}
                  |]
                  |},
@@ -470,6 +475,8 @@ object FlowUtils extends RiderLogger {
                 base64Tuple(6)
               }", "${
                 base64Tuple(7)
+              }","${
+                base64Tuple(8)
               }"]
                  |}
                  |]
@@ -683,7 +690,7 @@ object FlowUtils extends RiderLogger {
           val lastConsumedOffset = Await.result(feedbackOffsetDal.getLatestOffset(streamId, database.nsDatabase), minTimeOut)
           val offset =
             if (lastConsumedOffset.nonEmpty) lastConsumedOffset.get.partitionOffsets
-            else KafkaUtils.getKafkaLatestOffset(instance.connUrl, database.nsDatabase)
+            else KafkaUtils.getKafkaLatestOffset(instance.connUrl, database.nsDatabase, RiderConfig.kerberos.enabled)
           val inTopicInsert = StreamInTopic(0, streamId, ns.nsDatabaseId, offset, RiderConfig.spark.topicDefaultRate,
             active = true, currentSec, userId, currentSec, userId)
           val inTopic = Await.result(streamInTopicDal.insert(inTopicInsert), minTimeOut)
@@ -949,7 +956,7 @@ object FlowUtils extends RiderLogger {
     val userDefinedTopics = flowUdfTopicDal.getUdfTopics(Seq(flow.id)).map(topic => KafkaFlinkTopic(topic.topicName, topic.partitionOffsets))
     val flinkTopic = autoRegisteredTopics ++ userDefinedTopics
     val udfConfig: Seq[FlowUdfResponse] = flowUdfDal.getFlowUdf(Seq(flow.id))
-    val config = WhFlinkConfig(getFlowName(flow.sourceNs, flow.sinkNs), KafkaInput(baseConfig, flinkTopic), outputConfig, flow.parallelism.getOrElse(RiderConfig.flink.defaultParallelism), RiderConfig.zk.address, udfConfig)
+    val config = WhFlinkConfig(getFlowName(flow.sourceNs, flow.sinkNs), KafkaInput(baseConfig, flinkTopic), outputConfig, flow.parallelism.getOrElse(RiderConfig.flink.defaultParallelism), RiderConfig.zk.address, udfConfig,RiderConfig.flink.feedbackStateCount,"",RiderConfig.kerberos.enabled)
     caseClass2json[WhFlinkConfig](config)
   }
 
@@ -1254,8 +1261,8 @@ object FlowUtils extends RiderLogger {
 
   def genFlowAllOffsets(topics: Seq[FlowTopicTemp], kafkaMap: Map[Long, String]): Seq[TopicAllOffsets] = {
     topics.map(topic => {
-      val earliest = getKafkaEarliestOffset(kafkaMap(topic.flowId), topic.topicName)
-      val latest = getKafkaLatestOffset(kafkaMap(topic.flowId), topic.topicName)
+      val earliest = getKafkaEarliestOffset(kafkaMap(topic.flowId), topic.topicName,RiderConfig.kerberos.enabled)
+      val latest = getKafkaLatestOffset(kafkaMap(topic.flowId), topic.topicName,RiderConfig.kerberos.enabled)
       val consumedLatestOffset =
         try {
           val flow = Await.result(flowDal.findById(topic.flowId), minTimeOut).get

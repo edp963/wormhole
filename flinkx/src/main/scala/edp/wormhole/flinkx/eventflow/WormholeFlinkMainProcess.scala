@@ -38,10 +38,11 @@ import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
 import edp.wormhole.ums._
-import edp.wormhole.util.DateUtils
+import edp.wormhole.util.{DateUtils, JsonUtils}
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.api.common.typeinfo.TypeInformation
+import org.apache.flink.api.java.typeutils.runtime.kryo.JavaSerializer
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010
@@ -50,7 +51,7 @@ import org.apache.flink.table.api.{TableEnvironment, Types}
 import org.apache.flink.types.Row
 import org.apache.log4j.Logger
 
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 
 class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) extends Serializable {
@@ -82,11 +83,14 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
     env.setParallelism(config.parallelism)
 
+    env.getConfig.registerTypeWithKryoSerializer(ListBuffer(Ums).getClass,(new JavaSerializer()).getClass)
+
+    //env.getConfig.registerKryoType(ListBuffer(Ums).getClass)
     val tableEnv = TableEnvironment.getTableEnvironment(env)
     udfRegister(tableEnv)
     assignTimeCharacteristic(env)
 
-    val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase)
+    val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase,initialTs)
     val watermarkStream = assignTimestamp(inputStream, immutableSourceSchemaMap)
     watermarkStream.print()
     try {
@@ -118,14 +122,17 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     })
   }
 
-  private def createKafkaStream(env: StreamExecutionEnvironment, flowNamespace: String): DataStream[Row] = {
+  private def createKafkaStream(env: StreamExecutionEnvironment, flowNamespace: String, initialTs:Long): DataStream[Row] = {
     val properties = new Properties()
     properties.setProperty("bootstrap.servers", config.kafka_input.kafka_base_config.brokers)
     properties.setProperty("zookeeper.connect", config.zookeeper_address)
     properties.setProperty("group.id", config.kafka_input.groupId)
     properties.setProperty("session.timeout.ms", config.kafka_input.sessionTimeout)
     properties.setProperty("enable.auto.commit", config.kafka_input.autoCommit.toString)
-
+    if(config.kerberos){
+      properties.put("security.protocol","SASL_PLAINTEXT")
+      properties.put("sasl.kerberos.service.name","kafka")
+    }
     val flinkxConfigUtils = new WormholeFlinkxConfigUtils(config)
     val topics = flinkxConfigUtils.getKafkaTopicList
     val myConsumer = new FlinkKafkaConsumer010[(String, String, String, Int, Long)](topics, new WormholeDeserializationStringSchema, properties)
