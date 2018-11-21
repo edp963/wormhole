@@ -44,7 +44,6 @@ object OffsetPersistenceManager extends EdpLogging {
 
   val rateRelativePath = "rate"
   val partitionRelativePath = "partition"
-  val rootPath = WormholeConstants.CheckpointRootPath
   val offsetRelativePath = "/offset"
   val kafkaBaseConfigRelativePath = "kafkaconfig"
 
@@ -52,10 +51,10 @@ object OffsetPersistenceManager extends EdpLogging {
     val kafkaBaseConfig: KafkaInputBaseConfig = config.kafka_input
     val topicConfigMap = mutable.HashMap.empty[String, KafkaTopicConfig]
     logInfo("appId=" + appId)
-    val zookeeperAddress = config.zookeeper_path
+    val zookeeperAddress = config.zookeeper_address
 
-    val offsetPath = rootPath + config.spark_config.stream_id + OffsetPersistenceManager.offsetRelativePath
-    val appIdPath = rootPath + config.spark_config.stream_id + "/" + appId
+    val offsetPath = config.zookeeper_path + "/" + config.spark_config.stream_id + OffsetPersistenceManager.offsetRelativePath
+    val appIdPath = config.zookeeper_path + "/" + config.spark_config.stream_id + "/" + appId
     val persistenceTopicConfig = readFromPersistence(zookeeperAddress, offsetPath)
     var inWatch = true
     //appid exists means spark restart,user config is valid, both use persistence config
@@ -172,7 +171,7 @@ object OffsetPersistenceManager extends EdpLogging {
 
   def doTopicPersistence(config: WormholeConfig, addTopicList: ListBuffer[(KafkaTopicConfig, Long)], delTopicList: mutable.ListBuffer[(String, Long)]): Unit = {
     if (addTopicList.nonEmpty) {
-      val offsetPath = rootPath + config.spark_config.stream_id + OffsetPersistenceManager.offsetRelativePath
+      val offsetPath = config.zookeeper_path + "/" + config.spark_config.stream_id + OffsetPersistenceManager.offsetRelativePath
       OffsetPersistenceManager.persistTopic(addTopicList.map(_._1), offsetPath, config.zookeeper_path)
 
       addTopicList.foreach(tp => {
@@ -183,14 +182,14 @@ object OffsetPersistenceManager extends EdpLogging {
       delTopicList.foreach(tp => {
         WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority1, UmsProtocolUtils.feedbackDirective(DateUtils.currentDateTime, tp._2, UmsFeedbackStatus.SUCCESS,config.spark_config.stream_id,""), None, config.kafka_output.brokers)
       })
-      OffsetPersistenceManager.removeTopic(delTopicList.map(_._1), config.spark_config.stream_id, config.zookeeper_path)
+      OffsetPersistenceManager.removeTopic(delTopicList.map(_._1), config.spark_config.stream_id, config.zookeeper_address, config.zookeeper_path)
     }
 
   }
 
-  def removeTopic(topicNameList: Seq[String], streamId: Long, address: String): Unit = {
+  def removeTopic(topicNameList: Seq[String], streamId: Long, address: String, path: String): Unit = {
     topicNameList.foreach(topicName => {
-      val topicPath = rootPath + streamId + offsetRelativePath + "/" + topicName
+      val topicPath = path + "/" + streamId + offsetRelativePath + "/" + topicName
       logInfo("remove topic:" + topicPath)
       WormholeZkClient.delete(address, topicPath)
     })

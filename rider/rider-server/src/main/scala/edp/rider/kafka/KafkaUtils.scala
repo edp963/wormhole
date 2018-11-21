@@ -28,9 +28,9 @@ import scala.language.postfixOps
 
 object KafkaUtils extends RiderLogger {
 
-  def getKafkaLatestOffset(brokers: String, topic: String): String = {
+  def getKafkaLatestOffset(brokers: String, topic: String,kerberos:Boolean): String = {
     try {
-      val offset = WormholeGetOffsetShell.getTopicOffsets(brokers, topic)
+      val offset = WormholeGetOffsetShell.getTopicOffsets(brokers, topic,kerberos)
       if (offsetValid(offset)) offset
       else throw new Exception(s"query topic $topic offset result is '', please check it.")
     } catch {
@@ -40,9 +40,9 @@ object KafkaUtils extends RiderLogger {
     }
   }
 
-  def getKafkaLatestOffset(brokers: String, topic: String, partition: Int): String = {
+  def getKafkaLatestOffset(brokers: String, topic: String, partition: Int,kerberos:Boolean): String = {
     try {
-      val offsets = WormholeGetOffsetShell.getTopicOffsets(brokers, topic)
+      val offsets = WormholeGetOffsetShell.getTopicOffsets(brokers, topic,kerberos)
       val offset = offsets.split(",")(partition).split(":")(1)
       if (offsetValid(offset)) offset
       else throw new Exception(s"query topic $topic offset result is '', please check it.")
@@ -53,9 +53,9 @@ object KafkaUtils extends RiderLogger {
     }
   }
 
-  def getKafkaEarliestOffset(brokers: String, topic: String): String = {
+  def getKafkaEarliestOffset(brokers: String, topic: String ,kerberos: Boolean): String = {
     try {
-      val offset = WormholeGetOffsetShell.getTopicOffsets(brokers, topic, -2)
+      val offset = WormholeGetOffsetShell.getTopicOffsets(brokers, topic, kerberos, -2)
       if (offsetValid(offset)) offset
       else throw new Exception(s"query topic $topic offset result is '', please check it.")
     } catch {

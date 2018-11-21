@@ -64,9 +64,9 @@ object RiderStarter extends App with RiderLogger {
 
       ElasticSearch.initial(RiderConfig.es, RiderConfig.grafana)
 
-      new ConsumerManager(modules)
+     // new ConsumerManager(modules)
       riderLogger.info(s"WormholeServer Consumer started")
-      Scheduler.start
+      //Scheduler.start
       riderLogger.info(s"Wormhole Scheduler started")
 
     case Failure(e) =>

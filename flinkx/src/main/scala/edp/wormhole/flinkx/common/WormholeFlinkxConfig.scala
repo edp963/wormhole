@@ -20,15 +20,18 @@
 
 package edp.wormhole.flinkx.common
 
+import edp.wormhole.flinkx.common.ExceptionProcessMethod.ExceptionProcessMethod
 import edp.wormhole.util.config.KVConfig
 
-case class WormholeFlinkxConfig(kafka_input: KafkaInputConfig,
+case class WormholeFlinkxConfig(flow_name: String,
+                                kafka_input: KafkaInputConfig,
                                 kafka_output: KafkaOutputConfig,
                                 flink_config: String,
                                 parallelism: Int,
                                 zookeeper_address: String,
                                 udf_config: Seq[UdfConfig],
-                                feedback_state_count:Int)
+                                feedback_state_count:Int,
+                                kerberos: Boolean)
 
 case class UdfConfig(id: Long, functionName: String, fullClassName: String, jarName: String)
 case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,
@@ -69,3 +72,26 @@ case class PartitionOffsetConfig(partition_num: Int, offset: Long)
 
 case class FlinkConfig(stream_id: Long,
                        stream_name: String)
+
+
+case class ExceptionConfig(streamId: Long,
+                           flowId: Long,
+                           sourceNamespace: String,
+                           sinkNamespace: String,
+                           exceptionProcessMethod: ExceptionProcessMethod
+                          )
+
+object ExceptionProcessMethod extends Enumeration {
+  type ExceptionProcessMethod = Value
+
+  val INTERRUPT = Value("interrupt")
+  val FEEDBACK = Value("feedback")
+  val UNHANDLE = Value("unhandle")
+
+  def exceptionProcessMethod(s: String) = {
+    if (s == null)
+      UNHANDLE
+    else
+      ExceptionProcessMethod.withName(s.toLowerCase)
+  }
+}

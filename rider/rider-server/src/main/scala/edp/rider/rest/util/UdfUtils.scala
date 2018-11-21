@@ -132,7 +132,7 @@ object UdfUtils extends RiderLogger {
 
   def removeUdfDirective(streamId: Long, userId: Long): Unit = {
     try {
-      PushDirective.removeUdfDirective(streamId, RiderConfig.zk)
+      PushDirective.removeUdfDirective(streamId)
       riderLogger.info(s"user $userId remove udf directive success.")
     } catch {
       case ex: Exception =>

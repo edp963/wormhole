@@ -20,7 +20,6 @@
 
 package edp.wormhole.sparkx.udf
 
-import edp.wormhole.common.WormholeConstants
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.sparkx.common.WormholeConfig
 import edp.wormhole.sparkx.directive.UdfDirective
@@ -35,15 +34,15 @@ object UdfWatch extends EdpLogging {
   def initUdf(config: WormholeConfig, appId: String,session:SparkSession): Unit = {
     logInfo("init udf,appId=" + appId)
 
-    val udfPath = WormholeConstants.CheckpointRootPath + config.spark_config.stream_id + udfRelativePath
-    if(!WormholeZkClient.checkExist(config.zookeeper_path, udfPath)) WormholeZkClient.createPath(config.zookeeper_path, udfPath)
+    val udfPath = config.zookeeper_path + "/" + config.spark_config.stream_id + udfRelativePath
+    if(!WormholeZkClient.checkExist(config.zookeeper_address, udfPath)) WormholeZkClient.createPath(config.zookeeper_address, udfPath)
 //    val udfList = WormholeZkClient.getChildren(config.zookeeper_path, udfPath)
 //    udfList.toArray.foreach(udf => {
 //      val udfContent = WormholeZkClient.getData(config.zookeeper_path, udfPath + "/" + udf)
 //      add(config.kafka_output.feedback_topic_name,config.kafka_output.brokers,session)(udfPath + "/" + udf, new String(udfContent))
 //    })
 
-    WormholeZkClient.setPathChildrenCacheListener(config.zookeeper_path, udfPath, add, remove, update)
+    WormholeZkClient.setPathChildrenCacheListener(config.zookeeper_address, udfPath, add, remove, update)
   }
 
   def add(path: String, data: String, time: Long = 1): Unit = {

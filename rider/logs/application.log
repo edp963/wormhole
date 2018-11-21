@@ -184,3 +184,347 @@
 2018-10-17 11:42:40 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  edp.rider.rest.router.user.api.StreamUserApi[458] - user 5 start stream 36 success.
 2018-10-17 12:10:45 [riderActorSystem-akka.actor.default-dispatcher-18] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
 2018-10-17 12:10:45 [riderActorSystem-akka.actor.default-dispatcher-18] INFO  edp.rider.rest.router.user.api.ProjectUserApi[84] - user 5 select projects where user id is 5 success.
+2018-10-24 16:26:22 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2018-10-24 16:26:22 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2018-10-24 16:31:37 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2018-10-24 16:31:37 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2018-10-24 16:31:38 [main] INFO  edp.rider.module.DbModule[57] - Initial rider database success
+2018-10-24 16:31:40 [riderActorSystem-akka.actor.default-dispatcher-6] ERROR edp.rider.RiderStarter[73] - bind failed
+2018-10-24 16:32:05 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2018-10-24 16:32:05 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2018-10-24 16:32:08 [main] INFO  edp.rider.module.DbModule[57] - Initial rider database success
+2018-10-24 16:32:10 [riderActorSystem-akka.actor.default-dispatcher-2] INFO  edp.rider.RiderStarter[61] - WormholeServer http://localhost:8982/.
+2018-10-24 16:32:16 [riderActorSystem-akka.actor.default-dispatcher-2] ERROR edp.rider.monitor.ElasticSearch[267] - Failed to get the response from ES when syncToES
+akka.stream.StreamTcpException: Tcp command [Connect(10.143.131.113:9200,None,List(),Some(10 seconds),true)] failed
+2018-10-24 16:32:16 [riderActorSystem-akka.actor.default-dispatcher-2] INFO  edp.rider.monitor.ElasticSearch[183] - createEsIndex url http://10.143.131.113:9200/wormhole_feedback/ {  "settings": {    "index": {      "number_of_shards": 5,      "number_of_replicas": 1    }  },  "mappings": {    "wormhole_feedback": {      "properties": {        "statsId": {          "type": "string",          "index": "not_analyzed"        },        "batchId": {          "type": "string",          "index": "not_analyzed"        },        "projectId": {          "type": "long",          "index": "not_analyzed"        },        "streamId": {          "type": "long",          "index": "not_analyzed"        },        "streamName": {          "type": "string",          "index": "not_analyzed"        },        "flowId": {          "type": "long",          "index": "not_analyzed"        },        "flowNamespace": {          "type": "string",          "index": "not_analyzed"        },        "rddCount": {          "type": "long",          "index": "not_analyzed"        },        "throughput": {          "type": "long",          "index": "not_analyzed"        },        "umsTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "dataGeneratedTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "rddTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "directiveTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "DataProcessTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "swiftsTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "sinkTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "doneTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "intervalDataProcessToDataums": {          "type": "long",          "index": "not_analyzed"        },        "intervalDataProcessToDone": {          "type": "long",          "index": "not_analyzed"        },        "intervalDataProcessToSwifts": {          "type": "long",          "index": "not_analyzed"        },        "intervalDataProcessToSink": {          "type": "long",          "index": "not_analyzed"        },        "intervalDataProcessToRdd": {          "type": "long",          "index": "not_analyzed"        },        "intervalDataumsToDone": {          "type": "long",          "index": "not_analyzed"        },        "intervalRddToDone": {          "type": "long",          "index": "not_analyzed"        },        "intervalSwiftsToSink": {          "type": "long",          "index": "not_analyzed"        },        "intervalSinkToDone": {          "type": "long",          "index": "not_analyzed"        }      }    }  }}
+2018-10-24 16:32:23 [riderActorSystem-akka.actor.default-dispatcher-2] ERROR edp.rider.monitor.GrafanaApi[68] - search grafana wormhole es datasource wormhole_feedback failed
+akka.stream.StreamTcpException: Tcp command [Connect(10.143.131.113:3000,None,List(),Some(10 seconds),true)] failed
+2018-10-24 16:32:24 [riderActorSystem-akka.actor.default-dispatcher-2] ERROR edp.rider.monitor.GrafanaApi[102] - create grafana wormhole es datasource wormhole_feedback failed
+akka.stream.StreamTcpException: Tcp command [Connect(10.143.131.113:3000,None,List(),Some(10 seconds),true)] failed
+2018-10-24 16:32:24 [riderActorSystem-akka.actor.default-dispatcher-2] INFO  edp.rider.RiderStarter[68] - WormholeServer Consumer started
+2018-10-24 16:32:24 [riderActorSystem-akka.actor.default-dispatcher-2] INFO  edp.rider.RiderStarter[70] - Wormhole Scheduler started
+2018-10-24 16:32:37 [riderActorSystem-akka.actor.default-dispatcher-28] INFO  edp.rider.rest.router.LoginRoutes[66] - yinxingguo@creditease.cn login success.
+2018-10-24 16:32:38 [riderActorSystem-akka.actor.default-dispatcher-28] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:32:38 [riderActorSystem-akka.actor.default-dispatcher-28] INFO  edp.rider.rest.router.user.api.ProjectUserApi[84] - user 5 select projects where user id is 5 success.
+2018-10-24 16:32:38 [riderActorSystem-akka.actor.default-dispatcher-28] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:32:38 [riderActorSystem-akka.actor.default-dispatcher-28] INFO  edp.rider.rest.router.user.api.ProjectUserApi[84] - user 5 select projects where user id is 5 success.
+2018-10-24 16:32:40 [riderActorSystem-akka.actor.default-dispatcher-31] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:32:40 [riderActorSystem-akka.actor.default-dispatcher-28] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:32:40 [riderActorSystem-akka.actor.default-dispatcher-31] INFO  edp.rider.rest.router.user.api.ProjectUserApi[52] - user 5 select projects by 8 success.
+2018-10-24 16:32:40 [riderActorSystem-akka.actor.default-dispatcher-28] INFO  edp.rider.yarn.YarnStatusQuery[161] - Spark Application refresh yarn rest url: http://10.143.131.119:8088/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=1534149694
+2018-10-24 16:32:41 [riderActorSystem-akka.actor.default-dispatcher-28] WARN  edp.rider.yarn.YarnClientLog[51] - wormhole_project_guo_spark_lookup_hbase client log file /usr/local/wormhole-0.5.3-beta/logs/streams/wormhole_project_guo_spark_lookup_hbase-20181017103539.log doesn't exist.
+2018-10-24 16:32:41 [riderActorSystem-akka.actor.default-dispatcher-28] WARN  edp.rider.yarn.YarnClientLog[51] - wormhole_project_guo_spark_hdfslog_test client log file /usr/local/wormhole-0.5.3-beta/logs/streams/wormhole_project_guo_spark_hdfslog_test-20181017103929.log doesn't exist.
+2018-10-24 16:32:41 [riderActorSystem-akka.actor.default-dispatcher-28] INFO  edp.rider.rest.router.user.api.FlowUserApi[114] - user 5 refresh project 8 all flows success.
+2018-10-24 16:32:42 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:32:42 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.rider.yarn.YarnStatusQuery[161] - Spark Application refresh yarn rest url: http://10.143.131.119:8088/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=1534149694
+2018-10-24 16:32:42 [riderActorSystem-akka.actor.default-dispatcher-32] WARN  edp.rider.yarn.YarnClientLog[51] - wormhole_project_guo_spark_lookup_hbase client log file /usr/local/wormhole-0.5.3-beta/logs/streams/wormhole_project_guo_spark_lookup_hbase-20181017103539.log doesn't exist.
+2018-10-24 16:32:42 [riderActorSystem-akka.actor.default-dispatcher-32] WARN  edp.rider.yarn.YarnClientLog[51] - wormhole_project_guo_spark_hdfslog_test client log file /usr/local/wormhole-0.5.3-beta/logs/streams/wormhole_project_guo_spark_hdfslog_test-20181017103929.log doesn't exist.
+2018-10-24 16:32:42 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.rider.rest.router.user.api.StreamUserApi[169] - user 5 select streams where project id is 8 success.
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-28] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-41] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-28] INFO  edp.rider.rest.router.user.api.StreamUserApi[650] - user 5 get stream 36 topics success.
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-41] INFO  edp.rider.rest.router.user.api.UdfUserApi[51] - user 5 select udfs where project id is 8 success.
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[36] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:metadata.broker.list
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:request.timeout.ms
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:client.id
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:security.protocol
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[38] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Verifying properties
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Property client.id is overridden to GetOffsetShell
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Property metadata.broker.list is overridden to edptest1:9092
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Property request.timeout.ms is overridden to 30000
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] WARN  kafka.utils.VerifiableProperties[85] - Property security.protocol is not valid
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[40] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:metadata.broker.list
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:request.timeout.ms
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:client.id
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:security.protocol
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[43] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.client.ClientUtils$[70] - Fetching metadata from broker BrokerEndPoint(0,edptest1,9092) with correlation id 0 for 1 topic(s) Set(guo)
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.producer.SyncProducer[70] - Connected to edptest1:9092 for producing
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.producer.SyncProducer[70] - Disconnecting from edptest1:9092
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[36] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:metadata.broker.list
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:request.timeout.ms
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:client.id
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:security.protocol
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[38] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Verifying properties
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Property client.id is overridden to GetOffsetShell
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Property metadata.broker.list is overridden to edptest1:9092
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Property request.timeout.ms is overridden to 30000
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] WARN  kafka.utils.VerifiableProperties[85] - Property security.protocol is not valid
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[40] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:metadata.broker.list
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:request.timeout.ms
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:client.id
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:security.protocol
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[43] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.client.ClientUtils$[70] - Fetching metadata from broker BrokerEndPoint(0,edptest1,9092) with correlation id 0 for 1 topic(s) Set(guo)
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.producer.SyncProducer[70] - Connected to edptest1:9092 for producing
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.producer.SyncProducer[70] - Disconnecting from edptest1:9092
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[36] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:metadata.broker.list
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:request.timeout.ms
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:client.id
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:security.protocol
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[38] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Verifying properties
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Property client.id is overridden to GetOffsetShell
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Property metadata.broker.list is overridden to edptest1:9092
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Property request.timeout.ms is overridden to 30000
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] WARN  kafka.utils.VerifiableProperties[85] - Property security.protocol is not valid
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[40] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:metadata.broker.list
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:request.timeout.ms
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:client.id
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:security.protocol
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[43] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.client.ClientUtils$[70] - Fetching metadata from broker BrokerEndPoint(0,edptest1,9092) with correlation id 0 for 1 topic(s) Set(batch)
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.producer.SyncProducer[70] - Connected to edptest1:9092 for producing
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.producer.SyncProducer[70] - Disconnecting from edptest1:9092
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[36] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:metadata.broker.list
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:request.timeout.ms
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:client.id
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:security.protocol
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[38] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Verifying properties
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Property client.id is overridden to GetOffsetShell
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Property metadata.broker.list is overridden to edptest1:9092
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.utils.VerifiableProperties[70] - Property request.timeout.ms is overridden to 30000
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] WARN  kafka.utils.VerifiableProperties[85] - Property security.protocol is not valid
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[40] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:metadata.broker.list
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:request.timeout.ms
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:client.id
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:security.protocol
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[43] - ====================
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.client.ClientUtils$[70] - Fetching metadata from broker BrokerEndPoint(0,edptest1,9092) with correlation id 0 for 1 topic(s) Set(batch)
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.producer.SyncProducer[70] - Connected to edptest1:9092 for producing
+2018-10-24 16:32:57 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  kafka.producer.SyncProducer[70] - Disconnecting from edptest1:9092
+2018-10-24 16:32:58 [riderActorSystem-akka.actor.default-dispatcher-32] INFO  edp.rider.rest.router.user.api.StreamUserApi[617] - user 5 get stream 36 topics success.
+2018-10-24 16:33:44 [riderActorSystem-akka.actor.default-dispatcher-31] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:33:44 [riderActorSystem-akka.actor.default-dispatcher-31] ERROR edp.rider.rest.router.user.api.StreamUserApi[713] - user 5 insert user defined topic failed
+java.lang.Exception: stream topic relation already exists.
+	at edp.rider.rest.router.user.api.StreamUserApi.postUserDefinedTopicResponse(StreamUserApi.scala:732)
+	at edp.rider.rest.router.user.api.StreamUserApi$$anonfun$postUserDefinedTopicRoute$1$$anonfun$apply$100$$anonfun$apply$101$$anonfun$apply$103.apply(StreamUserApi.scala:706)
+	at edp.rider.rest.router.user.api.StreamUserApi$$anonfun$postUserDefinedTopicRoute$1$$anonfun$apply$100$$anonfun$apply$101$$anonfun$apply$103.apply(StreamUserApi.scala:697)
+	at akka.http.scaladsl.server.util.ApplyConverterInstances$$anon$1$$anonfun$apply$1.apply(ApplyConverterInstances.scala:14)
+	at akka.http.scaladsl.server.util.ApplyConverterInstances$$anon$1$$anonfun$apply$1.apply(ApplyConverterInstances.scala:13)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$tprovide$1.apply(BasicDirectives.scala:138)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$tprovide$1.apply(BasicDirectives.scala:138)
+	at akka.http.scaladsl.server.Directive$$anon$1.tapply(Directive.scala:115)
+	at akka.http.scaladsl.server.Directive$$anonfun$tflatMap$1$$anonfun$apply$5.apply(Directive.scala:69)
+	at akka.http.scaladsl.server.Directive$$anonfun$tflatMap$1$$anonfun$apply$5.apply(Directive.scala:69)
+	at akka.http.scaladsl.server.directives.OnSuccessMagnet$$anon$1$$anonfun$1$$anonfun$apply$4$$anonfun$apply$5.apply(FutureDirectives.scala:97)
+	at akka.http.scaladsl.server.directives.OnSuccessMagnet$$anon$1$$anonfun$1$$anonfun$apply$4$$anonfun$apply$5.apply(FutureDirectives.scala:97)
+	at akka.http.scaladsl.util.FastFuture$.akka$http$scaladsl$util$FastFuture$$strictTransform$1(FastFuture.scala:41)
+	at akka.http.scaladsl.util.FastFuture$.transformWith$extension1(FastFuture.scala:45)
+	at akka.http.scaladsl.util.FastFuture$.flatMap$extension(FastFuture.scala:26)
+	at akka.http.scaladsl.server.directives.OnSuccessMagnet$$anon$1$$anonfun$1$$anonfun$apply$4.apply(FutureDirectives.scala:97)
+	at akka.http.scaladsl.server.directives.OnSuccessMagnet$$anon$1$$anonfun$1$$anonfun$apply$4.apply(FutureDirectives.scala:95)
+	at akka.http.scaladsl.server.Directive$$anonfun$recover$1$$anonfun$apply$8$$anonfun$apply$9$$anonfun$apply$10.apply(Directive.scala:93)
+	at akka.http.scaladsl.server.Directive$$anonfun$recover$1$$anonfun$apply$8$$anonfun$apply$9$$anonfun$apply$10.apply(Directive.scala:93)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.Directive$$anonfun$recover$1$$anonfun$apply$8.apply(Directive.scala:93)
+	at akka.http.scaladsl.server.Directive$$anonfun$recover$1$$anonfun$apply$8.apply(Directive.scala:90)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$mapRouteResult$1$$anonfun$apply$3.apply(BasicDirectives.scala:61)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$mapRouteResult$1$$anonfun$apply$3.apply(BasicDirectives.scala:61)
+	at akka.http.scaladsl.server.directives.FutureDirectives$$anonfun$onComplete$1$$anonfun$apply$1$$anonfun$apply$2.apply(FutureDirectives.scala:37)
+	at akka.http.scaladsl.server.directives.FutureDirectives$$anonfun$onComplete$1$$anonfun$apply$1$$anonfun$apply$2.apply(FutureDirectives.scala:37)
+	at akka.http.scaladsl.util.FastFuture$$anonfun$transformWith$extension0$1.apply(FastFuture.scala:37)
+	at akka.http.scaladsl.util.FastFuture$$anonfun$transformWith$extension0$1.apply(FastFuture.scala:37)
+	at akka.http.scaladsl.util.FastFuture$.akka$http$scaladsl$util$FastFuture$$strictTransform$1(FastFuture.scala:41)
+	at akka.http.scaladsl.util.FastFuture$.transformWith$extension1(FastFuture.scala:45)
+	at akka.http.scaladsl.util.FastFuture$.transformWith$extension0(FastFuture.scala:37)
+	at akka.http.scaladsl.server.directives.FutureDirectives$$anonfun$onComplete$1$$anonfun$apply$1.apply(FutureDirectives.scala:37)
+	at akka.http.scaladsl.server.directives.FutureDirectives$$anonfun$onComplete$1$$anonfun$apply$1.apply(FutureDirectives.scala:35)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$mapRouteResult$1$$anonfun$apply$3.apply(BasicDirectives.scala:61)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$mapRouteResult$1$$anonfun$apply$3.apply(BasicDirectives.scala:61)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$mapRequestContext$1$$anonfun$apply$1.apply(BasicDirectives.scala:43)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$mapRequestContext$1$$anonfun$apply$1.apply(BasicDirectives.scala:43)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1$$anonfun$apply$1.apply(RouteConcatenation.scala:47)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1$$anonfun$apply$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.util.FastFuture$.akka$http$scaladsl$util$FastFuture$$strictTransform$1(FastFuture.scala:41)
+	at akka.http.scaladsl.util.FastFuture$.transformWith$extension1(FastFuture.scala:45)
+	at akka.http.scaladsl.util.FastFuture$.flatMap$extension(FastFuture.scala:26)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1$$anonfun$apply$1.apply(RouteConcatenation.scala:47)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1$$anonfun$apply$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.util.FastFuture$.akka$http$scaladsl$util$FastFuture$$strictTransform$1(FastFuture.scala:41)
+	at akka.http.scaladsl.util.FastFuture$.transformWith$extension1(FastFuture.scala:45)
+	at akka.http.scaladsl.util.FastFuture$.flatMap$extension(FastFuture.scala:26)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$mapRouteResult$1$$anonfun$apply$3.apply(BasicDirectives.scala:61)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$mapRouteResult$1$$anonfun$apply$3.apply(BasicDirectives.scala:61)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1$$anonfun$apply$1.apply(RouteConcatenation.scala:47)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1$$anonfun$apply$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.util.FastFuture$.akka$http$scaladsl$util$FastFuture$$strictTransform$1(FastFuture.scala:41)
+	at akka.http.scaladsl.util.FastFuture$.transformWith$extension1(FastFuture.scala:45)
+	at akka.http.scaladsl.util.FastFuture$.flatMap$extension(FastFuture.scala:26)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$mapRequestContext$1$$anonfun$apply$1.apply(BasicDirectives.scala:43)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$mapRequestContext$1$$anonfun$apply$1.apply(BasicDirectives.scala:43)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1$$anonfun$apply$1.apply(RouteConcatenation.scala:47)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1$$anonfun$apply$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.util.FastFuture$.akka$http$scaladsl$util$FastFuture$$strictTransform$1(FastFuture.scala:41)
+	at akka.http.scaladsl.util.FastFuture$.transformWith$extension1(FastFuture.scala:45)
+	at akka.http.scaladsl.util.FastFuture$.flatMap$extension(FastFuture.scala:26)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$mapRequestContext$1$$anonfun$apply$1.apply(BasicDirectives.scala:43)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$mapRequestContext$1$$anonfun$apply$1.apply(BasicDirectives.scala:43)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1$$anonfun$apply$1.apply(RouteConcatenation.scala:47)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1$$anonfun$apply$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.util.FastFuture$.akka$http$scaladsl$util$FastFuture$$strictTransform$1(FastFuture.scala:41)
+	at akka.http.scaladsl.util.FastFuture$.transformWith$extension1(FastFuture.scala:45)
+	at akka.http.scaladsl.util.FastFuture$.flatMap$extension(FastFuture.scala:26)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:44)
+	at akka.http.scaladsl.server.RouteConcatenation$RouteWithConcatenation$$anonfun$$tilde$1.apply(RouteConcatenation.scala:42)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$mapRouteResultWith$1$$anonfun$apply$4.apply(BasicDirectives.scala:67)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$mapRouteResultWith$1$$anonfun$apply$4.apply(BasicDirectives.scala:67)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.directives.BasicDirectives$$anonfun$textract$1$$anonfun$apply$6.apply(BasicDirectives.scala:154)
+	at akka.http.scaladsl.server.directives.ExecutionDirectives$$anonfun$handleExceptions$1$$anonfun$apply$1.apply(ExecutionDirectives.scala:32)
+	at akka.http.scaladsl.server.directives.ExecutionDirectives$$anonfun$handleExceptions$1$$anonfun$apply$1.apply(ExecutionDirectives.scala:28)
+	at akka.http.scaladsl.server.Route$$anonfun$asyncHandler$1.apply(Route.scala:81)
+	at akka.http.scaladsl.server.Route$$anonfun$asyncHandler$1.apply(Route.scala:80)
+	at akka.stream.impl.fusing.MapAsync$$anon$24.onPush(Ops.scala:1169)
+	at akka.stream.impl.fusing.GraphInterpreter.processPush(GraphInterpreter.scala:747)
+	at akka.stream.impl.fusing.GraphInterpreter.processEvent(GraphInterpreter.scala:710)
+	at akka.stream.impl.fusing.GraphInterpreter.execute(GraphInterpreter.scala:616)
+	at akka.stream.impl.fusing.GraphInterpreterShell.runBatch(ActorGraphInterpreter.scala:471)
+	at akka.stream.impl.fusing.GraphInterpreterShell.receive(ActorGraphInterpreter.scala:423)
+	at akka.stream.impl.fusing.ActorGraphInterpreter.akka$stream$impl$fusing$ActorGraphInterpreter$$processEvent(ActorGraphInterpreter.scala:603)
+	at akka.stream.impl.fusing.ActorGraphInterpreter$$anonfun$receive$1.applyOrElse(ActorGraphInterpreter.scala:618)
+	at akka.actor.Actor$class.aroundReceive(Actor.scala:497)
+	at akka.stream.impl.fusing.ActorGraphInterpreter.aroundReceive(ActorGraphInterpreter.scala:529)
+	at akka.actor.ActorCell.receiveMessage(ActorCell.scala:526)
+	at akka.actor.ActorCell.invoke(ActorCell.scala:495)
+	at akka.dispatch.Mailbox.processMailbox(Mailbox.scala:257)
+	at akka.dispatch.Mailbox.run(Mailbox.scala:224)
+	at akka.dispatch.Mailbox.exec(Mailbox.scala:234)
+	at scala.concurrent.forkjoin.ForkJoinTask.doExec(ForkJoinTask.java:260)
+	at scala.concurrent.forkjoin.ForkJoinPool$WorkQueue.runTask(ForkJoinPool.java:1339)
+	at scala.concurrent.forkjoin.ForkJoinPool.runWorker(ForkJoinPool.java:1979)
+	at scala.concurrent.forkjoin.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:107)
+2018-10-24 16:34:26 [main] WARN  slick.basic.DatabaseConfig[25] - Use `mysql.profile` instead of `mysql.driver`. The latter is deprecated since Slick 3.2 and will be removed.
+2018-10-24 16:34:26 [main] INFO  com.zaxxer.hikari.HikariDataSource[70] - mysql.db - Started.
+2018-10-24 16:34:27 [main] INFO  edp.rider.module.DbModule[57] - Initial rider database success
+2018-10-24 16:34:30 [riderActorSystem-akka.actor.default-dispatcher-3] INFO  edp.rider.RiderStarter[61] - WormholeServer http://localhost:8982/.
+2018-10-24 16:34:36 [riderActorSystem-akka.actor.default-dispatcher-3] ERROR edp.rider.monitor.ElasticSearch[267] - Failed to get the response from ES when syncToES
+akka.stream.StreamTcpException: Tcp command [Connect(10.143.131.113:9200,None,List(),Some(10 seconds),true)] failed
+2018-10-24 16:34:36 [riderActorSystem-akka.actor.default-dispatcher-3] INFO  edp.rider.monitor.ElasticSearch[183] - createEsIndex url http://10.143.131.113:9200/wormhole_feedback/ {  "settings": {    "index": {      "number_of_shards": 5,      "number_of_replicas": 1    }  },  "mappings": {    "wormhole_feedback": {      "properties": {        "statsId": {          "type": "string",          "index": "not_analyzed"        },        "batchId": {          "type": "string",          "index": "not_analyzed"        },        "projectId": {          "type": "long",          "index": "not_analyzed"        },        "streamId": {          "type": "long",          "index": "not_analyzed"        },        "streamName": {          "type": "string",          "index": "not_analyzed"        },        "flowId": {          "type": "long",          "index": "not_analyzed"        },        "flowNamespace": {          "type": "string",          "index": "not_analyzed"        },        "rddCount": {          "type": "long",          "index": "not_analyzed"        },        "throughput": {          "type": "long",          "index": "not_analyzed"        },        "umsTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "dataGeneratedTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "rddTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "directiveTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "DataProcessTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "swiftsTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "sinkTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "doneTs": {          "type": "date",          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",          "index": "not_analyzed"        },        "intervalDataProcessToDataums": {          "type": "long",          "index": "not_analyzed"        },        "intervalDataProcessToDone": {          "type": "long",          "index": "not_analyzed"        },        "intervalDataProcessToSwifts": {          "type": "long",          "index": "not_analyzed"        },        "intervalDataProcessToSink": {          "type": "long",          "index": "not_analyzed"        },        "intervalDataProcessToRdd": {          "type": "long",          "index": "not_analyzed"        },        "intervalDataumsToDone": {          "type": "long",          "index": "not_analyzed"        },        "intervalRddToDone": {          "type": "long",          "index": "not_analyzed"        },        "intervalSwiftsToSink": {          "type": "long",          "index": "not_analyzed"        },        "intervalSinkToDone": {          "type": "long",          "index": "not_analyzed"        }      }    }  }}
+2018-10-24 16:34:37 [riderActorSystem-akka.actor.default-dispatcher-10] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:34:37 [riderActorSystem-akka.actor.default-dispatcher-6] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:34:37 [riderActorSystem-akka.actor.default-dispatcher-6] INFO  edp.rider.rest.router.user.api.ProjectUserApi[52] - user 5 select projects by 8 success.
+2018-10-24 16:34:38 [riderActorSystem-akka.actor.default-dispatcher-11] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:34:38 [riderActorSystem-akka.actor.default-dispatcher-11] INFO  edp.rider.rest.router.user.api.ProjectUserApi[52] - user 5 select projects by 8 success.
+2018-10-24 16:34:38 [riderActorSystem-akka.actor.default-dispatcher-10] INFO  edp.rider.yarn.YarnStatusQuery[161] - Spark Application refresh yarn rest url: http://10.143.131.119:8088/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=1534149694
+2018-10-24 16:34:38 [riderActorSystem-akka.actor.default-dispatcher-10] WARN  edp.rider.yarn.YarnClientLog[51] - wormhole_project_guo_spark_lookup_hbase client log file /usr/local/wormhole-0.5.3-beta/logs/streams/wormhole_project_guo_spark_lookup_hbase-20181017103539.log doesn't exist.
+2018-10-24 16:34:38 [riderActorSystem-akka.actor.default-dispatcher-10] WARN  edp.rider.yarn.YarnClientLog[51] - wormhole_project_guo_spark_hdfslog_test client log file /usr/local/wormhole-0.5.3-beta/logs/streams/wormhole_project_guo_spark_hdfslog_test-20181017103929.log doesn't exist.
+2018-10-24 16:34:38 [riderActorSystem-akka.actor.default-dispatcher-8] INFO  edp.rider.rest.router.user.api.FlowUserApi[114] - user 5 refresh project 8 all flows success.
+2018-10-24 16:34:38 [riderActorSystem-akka.actor.default-dispatcher-11] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:34:39 [riderActorSystem-akka.actor.default-dispatcher-11] INFO  edp.rider.yarn.YarnStatusQuery[161] - Spark Application refresh yarn rest url: http://10.143.131.119:8088/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=1534149694
+2018-10-24 16:34:39 [riderActorSystem-akka.actor.default-dispatcher-11] WARN  edp.rider.yarn.YarnClientLog[51] - wormhole_project_guo_spark_lookup_hbase client log file /usr/local/wormhole-0.5.3-beta/logs/streams/wormhole_project_guo_spark_lookup_hbase-20181017103539.log doesn't exist.
+2018-10-24 16:34:39 [riderActorSystem-akka.actor.default-dispatcher-11] WARN  edp.rider.yarn.YarnClientLog[51] - wormhole_project_guo_spark_hdfslog_test client log file /usr/local/wormhole-0.5.3-beta/logs/streams/wormhole_project_guo_spark_hdfslog_test-20181017103929.log doesn't exist.
+2018-10-24 16:34:39 [riderActorSystem-akka.actor.default-dispatcher-11] INFO  edp.rider.rest.router.user.api.FlowUserApi[114] - user 5 refresh project 8 all flows success.
+2018-10-24 16:34:40 [riderActorSystem-akka.actor.default-dispatcher-6] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:34:40 [riderActorSystem-akka.actor.default-dispatcher-6] INFO  edp.rider.yarn.YarnStatusQuery[161] - Spark Application refresh yarn rest url: http://10.143.131.119:8088/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=1534149694
+2018-10-24 16:34:40 [riderActorSystem-akka.actor.default-dispatcher-6] WARN  edp.rider.yarn.YarnClientLog[51] - wormhole_project_guo_spark_lookup_hbase client log file /usr/local/wormhole-0.5.3-beta/logs/streams/wormhole_project_guo_spark_lookup_hbase-20181017103539.log doesn't exist.
+2018-10-24 16:34:40 [riderActorSystem-akka.actor.default-dispatcher-6] WARN  edp.rider.yarn.YarnClientLog[51] - wormhole_project_guo_spark_hdfslog_test client log file /usr/local/wormhole-0.5.3-beta/logs/streams/wormhole_project_guo_spark_hdfslog_test-20181017103929.log doesn't exist.
+2018-10-24 16:34:40 [riderActorSystem-akka.actor.default-dispatcher-6] INFO  edp.rider.rest.router.user.api.StreamUserApi[169] - user 5 select streams where project id is 8 success.
+2018-10-24 16:34:42 [riderActorSystem-akka.actor.default-dispatcher-10] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:34:42 [riderActorSystem-akka.actor.default-dispatcher-6] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:34:42 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  edp.rider.rest.util.AuthorizationProvider[120] - token validate success.
+2018-10-24 16:34:42 [riderActorSystem-akka.actor.default-dispatcher-6] INFO  edp.rider.rest.router.user.api.StreamUserApi[650] - user 5 get stream 36 topics success.
+2018-10-24 16:34:42 [riderActorSystem-akka.actor.default-dispatcher-8] INFO  edp.rider.rest.router.user.api.UdfUserApi[51] - user 5 select udfs where project id is 8 success.
+2018-10-24 16:34:57 [riderActorSystem-akka.actor.default-dispatcher-3] ERROR edp.rider.monitor.GrafanaApi[68] - search grafana wormhole es datasource wormhole_feedback failed
+java.util.concurrent.TimeoutException: Futures timed out after [10 seconds]
+	at scala.concurrent.impl.Promise$DefaultPromise.ready(Promise.scala:219)
+	at scala.concurrent.impl.Promise$DefaultPromise.result(Promise.scala:223)
+	at scala.concurrent.Await$$anonfun$result$1.apply(package.scala:190)
+	at akka.dispatch.MonitorableThreadFactory$AkkaForkJoinWorkerThread$$anon$3.block(ThreadPoolBuilder.scala:167)
+	at scala.concurrent.forkjoin.ForkJoinPool.managedBlock(ForkJoinPool.java:3640)
+	at akka.dispatch.MonitorableThreadFactory$AkkaForkJoinWorkerThread.blockOn(ThreadPoolBuilder.scala:165)
+	at akka.dispatch.BatchingExecutor$BlockableBatch.blockOn(BatchingExecutor.scala:106)
+	at scala.concurrent.Await$.result(package.scala:190)
+	at edp.rider.monitor.GrafanaApi$.getDataSource(GrafanaApi.scala:40)
+	at edp.rider.monitor.GrafanaApi$.createOrUpdateDataSource(GrafanaApi.scala:135)
+	at edp.rider.monitor.ElasticSearch$.initial(ElasticSearch.scala:50)
+	at edp.rider.RiderStarter$$anonfun$2.apply(RiderStarter.scala:65)
+	at edp.rider.RiderStarter$$anonfun$2.apply(RiderStarter.scala:59)
+	at scala.concurrent.impl.CallbackRunnable.run$$$capture(Promise.scala:32)
+	at scala.concurrent.impl.CallbackRunnable.run(Promise.scala)
+	at akka.dispatch.BatchingExecutor$AbstractBatch.processBatch(BatchingExecutor.scala:55)
+	at akka.dispatch.BatchingExecutor$BlockableBatch$$anonfun$run$1.apply$mcV$sp(BatchingExecutor.scala:91)
+	at akka.dispatch.BatchingExecutor$BlockableBatch$$anonfun$run$1.apply(BatchingExecutor.scala:91)
+	at akka.dispatch.BatchingExecutor$BlockableBatch$$anonfun$run$1.apply(BatchingExecutor.scala:91)
+	at scala.concurrent.BlockContext$.withBlockContext(BlockContext.scala:72)
+	at akka.dispatch.BatchingExecutor$BlockableBatch.run(BatchingExecutor.scala:90)
+	at akka.dispatch.TaskInvocation.run(AbstractDispatcher.scala:39)
+	at akka.dispatch.ForkJoinExecutorConfigurator$AkkaForkJoinTask.exec(AbstractDispatcher.scala:415)
+	at scala.concurrent.forkjoin.ForkJoinTask.doExec(ForkJoinTask.java:260)
+	at scala.concurrent.forkjoin.ForkJoinPool$WorkQueue.runTask(ForkJoinPool.java:1339)
+	at scala.concurrent.forkjoin.ForkJoinPool.runWorker(ForkJoinPool.java:1979)
+	at scala.concurrent.forkjoin.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:107)
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[36] - ====================
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:metadata.broker.list
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:request.timeout.ms
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:client.id
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[37] - key:security.protocol
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[38] - ====================
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  kafka.utils.VerifiableProperties[70] - Verifying properties
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  kafka.utils.VerifiableProperties[70] - Property client.id is overridden to GetOffsetShell
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  kafka.utils.VerifiableProperties[70] - Property metadata.broker.list is overridden to edptest1:9092
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  kafka.utils.VerifiableProperties[70] - Property request.timeout.ms is overridden to 30000
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] WARN  kafka.utils.VerifiableProperties[85] - Property security.protocol is not valid
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[40] - ====================
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:metadata.broker.list
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:request.timeout.ms
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:client.id
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[42] - key11111:security.protocol
+2018-10-24 16:35:20 [riderActorSystem-akka.actor.default-dispatcher-9] INFO  edp.wormhole.kafka.WormholeGetOffsetShell$[43] - ====================
