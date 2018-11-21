@@ -31,12 +31,13 @@ import edp.wormhole.externalclient.hadoop.HdfsUtils
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sinks.utils.SinkCommonUtils._
-import edp.wormhole.sparkx.common.{SparkContextUtils, SparkUtils, WormholeConfig, WormholeUtils}
+import edp.wormhole.sparkx.common._
+import edp.wormhole.sparkx.memorystorage.OffsetPersistenceManager
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsSchemaUtils._
 import edp.wormhole.ums.UmsSysField._
 import edp.wormhole.ums._
-import edp.wormhole.util.DateUtils
+import edp.wormhole.util.{DateUtils, FileUtils, JsonUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.rdd.RDD
@@ -45,6 +46,9 @@ import org.apache.spark.streaming.kafka010.{CanCommitOffsets, HasOffsetRanges, O
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.util.control.NonFatal
+import edp.wormhole.sparkx.common._
+import edp.wormhole.sparkx.memorystorage.OffsetPersistenceManager
+import edp.wormhole.util.{DateUtils, FileUtils, JsonUtils}
 
 //fileName:  ../oracle.oracle0.db.table/1/0/0/data_increment_data(data_initial_data)/right(wrong)/currentyyyyMMddHHmmss0740（文件编号4位，左补零）
 //metaFile   ../oracle.oracle0.db.table/1/0/0/data_increment_data(data_initial_data)/right(wrong)/metadata_currentyyyyMMddHHmmss0740
@@ -63,6 +67,10 @@ object HdfsMainProcess extends EdpLogging {
 
   def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig,appId:String): Unit = {
     var zookeeperFlag = false
+    val appId=SparkUtils.getAppId
+    val kafkaInput: KafkaInputConfig = OffsetPersistenceManager.initOffset(config, appId)
+    val topics=kafkaInput.kafka_topics.map(config=>JsonUtils.jsonCompact(JsonUtils.caseClass2json[KafkaTopicConfig](config))).mkString("[",",","]")
+
     stream.foreachRDD(foreachFunc = (streamRdd: RDD[ConsumerRecord[String, String]]) => {
       val offsetInfo: ArrayBuffer[OffsetRange] = new ArrayBuffer[OffsetRange]
       val batchId = UUID.randomUUID().toString
@@ -167,7 +175,7 @@ object HdfsMainProcess extends EdpLogging {
           writeResult.foreach(r=>{
             if(protocol==r.protocol&&namespace==r.namespace){
               count += r.allCount
-              val tmpMaxTs = DateUtils.dt2date(r.maxTs).getTime
+              val tmpMaxTs = if(!r.maxTs.trim.equals(""))DateUtils.dt2date(r.maxTs).getTime else 0L
               if(cdcTs<tmpMaxTs) cdcTs = tmpMaxTs
             }
           })

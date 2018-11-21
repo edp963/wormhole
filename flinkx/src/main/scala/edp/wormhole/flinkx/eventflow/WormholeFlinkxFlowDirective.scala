@@ -16,7 +16,6 @@ object WormholeFlinkxFlowDirective {
     val schemas = ums.schema.fields_get
     val sourceNamespace = ums.schema.namespace.toLowerCase
     val tuple = payloads.head
-
     val dataType: String = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_type").toString.toLowerCase
     val consumptionDataStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(UmsFieldType.umsFieldValue(tuple.tuple, schemas, "consumption_protocol").toString))
     val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")

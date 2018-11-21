@@ -26,11 +26,11 @@ import java.util.UUID
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.sparkx.common.{SparkContextUtils, SparkUtils, WormholeConfig, WormholeUtils}
-import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
+import edp.wormhole.sparkx.common._
+import edp.wormhole.sparkx.memorystorage.{ConfMemoryStorage, OffsetPersistenceManager}
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.{UmsCommonUtils, UmsFeedbackStatus, UmsProtocolType, UmsProtocolUtils}
-import edp.wormhole.util.DateUtils
+import edp.wormhole.util.{DateUtils, JsonUtils}
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
@@ -43,6 +43,9 @@ object RouterMainProcess extends EdpLogging {
 
   def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession,appId:String): Unit = {
     var zookeeperFlag = false
+
+    val kafkaInput: KafkaInputConfig = OffsetPersistenceManager.initOffset(config, appId)
+    val topics=kafkaInput.kafka_topics.map(config=>JsonUtils.jsonCompact(JsonUtils.caseClass2json[KafkaTopicConfig](config))).mkString("[",",","]")
     stream.foreachRDD((streamRdd: RDD[ConsumerRecord[String, String]]) => {
       val startTime = System.currentTimeMillis()
       val offsetInfo: ArrayBuffer[OffsetRange] = new ArrayBuffer[OffsetRange]
@@ -77,7 +80,7 @@ object RouterMainProcess extends EdpLogging {
         dataRepartitionRdd.foreachPartition { partition =>
           routerMap.foreach { case (_, (map, _)) =>
             map.foreach { case (_, (kafkaBroker, _)) => {
-              WormholeKafkaProducer.init(kafkaBroker, None)
+              WormholeKafkaProducer.init(kafkaBroker, None,config.kerberos)
             }
             }
           }

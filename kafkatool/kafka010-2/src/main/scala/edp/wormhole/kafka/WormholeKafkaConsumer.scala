@@ -12,7 +12,7 @@ import scala.collection.mutable.ListBuffer
 
 object WormholeKafkaConsumer {
 
-  def initConsumer(brokers: String, groupid: String, kvConfig: Option[Seq[KVConfig]]): KafkaConsumer[String, String] = {
+  def initConsumer(brokers: String, groupid: String, kvConfig: Option[Seq[KVConfig]],kerberos:Boolean=false): KafkaConsumer[String, String] = {
 
     val props = new Properties()
     props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
@@ -25,6 +25,11 @@ object WormholeKafkaConsumer {
       kvConfig.get.foreach(kv => {
         props.put(kv.key, kv.value)
       })
+    }
+
+    if(kerberos){
+      props.put("security.protocol","SASL_PLAINTEXT")
+      props.put("sasl.kerberos.service.name","kafka")
     }
 
     new KafkaConsumer[String, String](props)

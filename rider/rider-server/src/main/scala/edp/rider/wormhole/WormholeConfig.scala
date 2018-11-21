@@ -61,6 +61,7 @@ case class BatchFlowConfig(kafka_input: KafkaInputBaseConfig,
                            zookeeper_path: String,
                            kafka_persistence_config_isvalid: Boolean,
                            stream_hdfs_address: Option[String],
+                           kerberos: Boolean=false,
                            hdfs_namenode_hosts: Option[String] = None,
                            hdfs_namenode_ids: Option[String] = None)
 
@@ -105,5 +106,7 @@ case class WhFlinkConfig(flow_name: String,
                          parallelism: Int,
                          zookeeper_address: String,
                          udf_config: Seq[FlowUdfResponse],
-                         flink_config: String = "")
+                         feedback_state_count:Int,
+                         flink_config: String = "",
+                         kerberos: Boolean=false)
 

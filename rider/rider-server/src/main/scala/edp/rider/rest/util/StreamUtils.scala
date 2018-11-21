@@ -25,7 +25,7 @@ import com.alibaba.fastjson.JSON
 import edp.rider.RiderStarter.modules._
 import edp.rider.common.Action._
 import edp.rider.common.StreamStatus._
-import edp.rider.common.{ StreamType, _}
+import edp.rider.common.{StreamType, _}
 import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
@@ -41,6 +41,7 @@ import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.UmsSchemaUtils.toUms
 import slick.jdbc.MySQLProfile.api._
 import edp.rider.common.StreamType._
+import edp.rider.rest.util.FlowUtils.riderLogger
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.JsonUtils._
 
@@ -202,12 +203,12 @@ object StreamUtils extends RiderLogger {
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
             SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
             launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false,
-            RiderConfig.spark.remoteHdfsRoot, RiderConfig.spark.remoteHdfsNamenodeHosts, RiderConfig.spark.remoteHdfsNamenodeIds)
+            RiderConfig.spark.remoteHdfsRoot,RiderConfig.kerberos.enabled, RiderConfig.spark.remoteHdfsNamenodeHosts, RiderConfig.spark.remoteHdfsNamenodeIds)
         case None =>
           BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
             SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
-            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, Some(RiderConfig.spark.hdfsRoot))
+            launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false, Some(RiderConfig.spark.hdfsRoot),RiderConfig.kerberos.enabled)
       }
     caseClass2json[BatchFlowConfig](config)
   }
@@ -219,6 +220,7 @@ object StreamUtils extends RiderLogger {
         val args = getStreamConfig(stream)
         val startConfig = json2caseClass[StartConfig](stream.startConfig)
         //val jvmConfig = Array(stream.JVMDriverConfig.getOrElse("")) :+ stream.JVMExecutorConfig.getOrElse("")
+       // runShellCommand(s"kinit -kt ${RiderConfig.kerberos.keyTab} ${RiderConfig.kerberos.principal}")
         val commandSh = generateSparkStreamStartSh(s"'''$args'''", stream.name, logPath, startConfig, stream.JVMDriverConfig.getOrElse(""), stream.JVMExecutorConfig.getOrElse(""), stream.othersConfig.getOrElse(""), stream.functionType)
         riderLogger.info(s"start stream ${stream.id} command: $commandSh")
         runShellCommand(commandSh)
@@ -267,6 +269,9 @@ object StreamUtils extends RiderLogger {
         // insert or update user defined topics by start
         streamUdfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
         // send topics start directive
+        riderLogger.info("====================")
+        riderLogger.info("=========genTopicsStartDirective===========")
+        riderLogger.info("====================")
         sendTopicDirective(streamId, autoRegisteredTopics ++: userdefinedTopics, userId, true)
       case None =>
         // delete all user defined topics by stream id
@@ -288,6 +293,9 @@ object StreamUtils extends RiderLogger {
         // insert or update user defined topics by start
         streamUdfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
         // send topics renew directive which action is 1
+        riderLogger.info("====================")
+        riderLogger.info("=========genTopicsRenewDirective===========")
+        riderLogger.info("====================")
         sendTopicDirective(streamId, (autoRegisteredTopics ++: userdefinedTopics).filter(_.action.getOrElse(0) == 1), userId, false)
       case None =>
         val deleteTopics = streamUdfTopicDal.deleteByStartOrRenew(streamId, Seq())
@@ -310,7 +318,7 @@ object StreamUtils extends RiderLogger {
       })
       if (addDefaultTopic) {
         val broker = getKafkaByStreamId(streamId)
-        val blankTopicOffset = KafkaUtils.getKafkaLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic)
+        val blankTopicOffset = KafkaUtils.getKafkaLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.kerberos.enabled)
         val blankTopic = Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, blankTopicOffset).mkString("#"), zkConURL, currentSec, userId)
         directiveSeq += blankTopic
       }

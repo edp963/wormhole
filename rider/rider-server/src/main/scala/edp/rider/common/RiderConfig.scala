@@ -139,6 +139,7 @@ case class LdapInfo(enabled: Boolean,
 
 case class RiderFlink(homePath: String,
                       yarnQueueName: String,
+                      feedbackStateCount: Int,
                       defaultRate: Int,
                       defaultParallelism: Int,
                       jarPath: String,
@@ -153,6 +154,14 @@ case class DBusConfig(loginUrl: String,
                       password: String,
                       namespaceUrl: String)
 
+
+case class RiderKerberos(keyTab:String,
+                         serverConfig:String,
+                         jaasStartShellConfig:String,
+                         jaasYarnConfig:String,
+                         sparkPrincipal:String,
+                         sparkKeyTab:String,
+                         enabled:Boolean)
 
 object RiderConfig {
 
@@ -312,6 +321,13 @@ object RiderConfig {
       })
     else List()
 
+  lazy val kerberos=RiderKerberos(config.getString("kerberos.keyTab"),
+    config.getString("kerberos.server.config"),
+    config.getString("kerberos.jaas.startShell.config"),
+    config.getString("kerberos.jaas.yarn.config"),
+    config.getString("kerberos.spark.principal"),
+    config.getString("kerberos.spark.keyTab"),
+    config.getBoolean("kerberos.server.enabled"))
 
   lazy val riderInfo = RiderInfo(zk.address, consumer.brokers, consumer.feedbackTopic, spark.wormholeHeartBeatTopic, spark.hdfsRoot,
     spark.user, spark.appTags, spark.rm1Url, spark.rm2Url)
@@ -332,7 +348,7 @@ object RiderConfig {
 
   lazy val defaultFlinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "")
 
-  lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"), 1, 1,
+  lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"),config.getString("flink.feedback.state.count").toInt, 1, 1,
     getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-flinkx_1.5.1-0.5.5-beta-jar-with-dependencies.jar"),
     getStringConfig("flink.wormhole.client.log.path", s"$riderRootPath/logs/flows"),
     getIntConfig("spark.kafka.session.timeout", 30000),

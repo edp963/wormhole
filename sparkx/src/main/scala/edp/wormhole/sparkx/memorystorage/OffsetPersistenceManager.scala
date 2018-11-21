@@ -92,7 +92,7 @@ object OffsetPersistenceManager extends EdpLogging {
     if (topicConfigMap == null) throw new Exception("do not config kafka any topic,include heardbeat topic")
 
     DirectiveOffsetWatch.offsetWatch(config, appId)
-    KafkaInputConfig(kafkaBaseConfig, topicConfigMap.values.toList,inWatch)
+    KafkaInputConfig(kafkaBaseConfig, topicConfigMap.values.toList,inWatch,config.kerberos)
   }
 
   private def deleteTopics(zookeeperAddress: String, offsetPath: String, topicList: Seq[String]): Unit = {

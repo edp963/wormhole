@@ -21,6 +21,8 @@
 
 package edp.wormhole.sparkx.batchflow
 
+import edp.wormhole.common._
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.common.SparkContextUtils.createKafkaStream
 import edp.wormhole.sparkx.common.{KafkaInputConfig, SparkContextUtils, SparkUtils, WormholeConfig}
@@ -36,12 +38,10 @@ import org.apache.spark.{SparkConf, SparkContext}
 object BatchflowStarter extends App with EdpLogging {
   SparkContextUtils.setLoggerLevel()
 
-
   logInfo("swiftsConfig:" + args(0))
   val config: WormholeConfig = JsonUtils.json2caseClass[WormholeConfig](args(0))
   val appId = SparkUtils.getAppId
-  WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
-
+  WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config,config.kerberos)
   val sparkConf = new SparkConf()
     .setMaster(config.spark_config.master)
     .set("dfs.client.block.write.replace-datanode-on-failure.policy", "ALWAYS")
@@ -60,7 +60,7 @@ object BatchflowStarter extends App with EdpLogging {
 
   val kafkaInput: KafkaInputConfig = OffsetPersistenceManager.initOffset(config, appId)
   val kafkaStream = createKafkaStream(ssc, kafkaInput)
-  BatchflowMainProcess.process(kafkaStream, config, session, appId)
+  BatchflowMainProcess.process(kafkaStream, config,kafkaInput, session, appId)
 
   logInfo("all init finish,to start spark streaming")
   SparkContextUtils.startSparkStreaming(ssc)
