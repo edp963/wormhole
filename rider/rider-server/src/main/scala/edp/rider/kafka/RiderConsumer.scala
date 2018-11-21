@@ -49,23 +49,25 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
   implicit val materializer = ActorMaterializer()
 
   override def preStart(): Unit = {
-    try {
-      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions, RiderConfig.consumer.refactor)
-      riderLogger.info(s"initial create ${RiderConfig.consumer.feedbackTopic} topic success")
-    } catch {
-//      case _: kafka.common.TopicExistsException =>
-//        riderLogger.info(s"${RiderConfig.consumer.feedbackTopic} topic already exists")
-      case ex: Exception =>
-        riderLogger.error(s"initial create ${RiderConfig.consumer.feedbackTopic} topic failed", ex)
-    }
-    try {
-      WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic, 1, RiderConfig.consumer.refactor)
-      riderLogger.info(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic success")
-    } catch {
-//      case _: kafka.common.TopicExistsException =>
-//        riderLogger.info(s"${RiderConfig.spark.wormholeHeartBeatTopic} topic already exists")
-      case ex: Exception =>
-        riderLogger.error(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic failed", ex)
+    if(!RiderConfig.kerberos.enabled){
+      try {
+        WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions, RiderConfig.consumer.refactor)
+        riderLogger.info(s"initial create ${RiderConfig.consumer.feedbackTopic} topic success")
+      } catch {
+        //      case _: kafka.common.TopicExistsException =>
+        //        riderLogger.info(s"${RiderConfig.consumer.feedbackTopic} topic already exists")
+        case ex: Exception =>
+          riderLogger.error(s"initial create ${RiderConfig.consumer.feedbackTopic} topic failed", ex)
+      }
+      try {
+        WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic, 1, RiderConfig.consumer.refactor)
+        riderLogger.info(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic success")
+      } catch {
+        //      case _: kafka.common.TopicExistsException =>
+        //        riderLogger.info(s"${RiderConfig.spark.wormholeHeartBeatTopic} topic already exists")
+        case ex: Exception =>
+          riderLogger.error(s"initial create ${RiderConfig.spark.wormholeHeartBeatTopic} topic failed", ex)
+      }
     }
 
     super.preStart()

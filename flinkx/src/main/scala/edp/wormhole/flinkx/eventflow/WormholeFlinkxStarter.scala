@@ -35,7 +35,7 @@ object WormholeFlinkxStarter extends App {
   val umsFlowStart: Ums = UmsSchemaUtils.toUms(args(1))
   WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config,config.kerberos)
 
-  val dataType = WormholeFlinkxFlowDirective.initFlow(umsFlowStart,config)
+  WormholeFlinkxFlowDirective.initFlow(umsFlowStart,config)
 
   new WormholeFlinkMainProcess(config, umsFlowStart).process()
 

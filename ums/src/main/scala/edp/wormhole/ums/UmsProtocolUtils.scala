@@ -238,7 +238,6 @@ trait UmsProtocolUtils {
                         streamId: Long,
                         batchId: String,
                         sinkNamespace: String,
-                        topics: String,
                         rddCount: Int,
                         cdcTs: Long,
                         rddTs: Long,
@@ -246,16 +245,15 @@ trait UmsProtocolUtils {
                         mainDataTs: Long,
                         swiftsTs: Long,
                         sinkTs: Long,
-                        doneTs: String):String = toJsonCompact(Ums(
+                        doneTs: Long) = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_STATS),
     schema = UmsSchema(sourceNamespace, Some(Seq(
       UmsField("data_type", UmsFieldType.STRING),
       UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
       UmsField("stream_id", UmsFieldType.STRING),
       UmsField("batch_id", UmsFieldType.STRING),
-      UmsField("stats_id", UmsFieldType.STRING),
+      UmsField("stats_id", UmsFieldType.STRING),//兼容现有的版本，以后rider都升级了可以干掉
       UmsField("sink_namespace", UmsFieldType.STRING),
-      UmsField("topics", UmsFieldType.STRING),
       UmsField("rdd_count", UmsFieldType.INT),
       UmsField("data_genereated_ts", UmsFieldType.LONG),
       UmsField("rdd_generated_ts", UmsFieldType.LONG),
@@ -263,7 +261,8 @@ trait UmsProtocolUtils {
       UmsField("data_process_start_ts", UmsFieldType.LONG),
       UmsField("swifts_start_ts", UmsFieldType.LONG),
       UmsField("sink_start_ts", UmsFieldType.LONG),
-      UmsField("done_ts", UmsFieldType.LONG)))),
+      UmsField("done_ts", UmsFieldType.LONG)
+    ))),
     payload = Some(Seq(UmsTuple(Seq(
       dataType,
       DateUtils.dt2string(timestamp, dtFormat),
@@ -271,7 +270,6 @@ trait UmsProtocolUtils {
       batchId,
       batchId,
       sinkNamespace,
-      topics,
       rddCount.toString,
       cdcTs.toString,
       rddTs.toString,
@@ -279,7 +277,8 @@ trait UmsProtocolUtils {
       mainDataTs.toString,
       swiftsTs.toString,
       sinkTs.toString,
-      doneTs))))))
+      doneTs.toString
+    ))))))
 
   // feedback_stream_batch_error
   def feedbackStreamBatchError(streamID: Long, timeNow: DateTime, status: UmsFeedbackStatus, resultDesc: String, batchId:String) = toJsonCompact(Ums(
