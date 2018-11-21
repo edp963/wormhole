@@ -191,7 +191,7 @@ object RiderConfig {
 
   lazy val heartbeatTopic = if (getBooleanConfig("kafka.using.cluster.suffix", default = false) && riderServer.clusterId != "")
       getStringConfig("kafka.consumer.heartbeat.topic", "wormhole_heartbeat") + "_" + riderServer.clusterId
-    else getStringConfig("kafka.consumer.heartbeat.topic", "wormhole.heartbeat")  //测试需要将_暂时替换为.
+    else getStringConfig("kafka.consumer.heartbeat.topic", "wormhole_heartbeat")
 
   lazy val pollInterval = getFiniteDurationConfig("kafka.consumer.poll-interval", FiniteDuration(20, MILLISECONDS))
 

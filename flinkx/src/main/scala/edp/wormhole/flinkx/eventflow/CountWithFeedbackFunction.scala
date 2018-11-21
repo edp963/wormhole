@@ -50,7 +50,7 @@ class CountWithFeedbackFunction(sourceSchemaMap: Map[String, (TypeInformation[_]
       logger.info("topic:"+config.kafka_output.feedback_topic_name+",brokers:"+config.kafka_output.brokers)
 
       WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-        UmsProtocolUtils.feedbackFlowStats(sourceNamespace,ums.protocol.`type`.toString,DateUtils.currentDateTime,streamId,batchId,sinkNamespace,topics,payloadSize,umsTs,umsTs,initialTs,initialTs,initialTs,initialTs,initialTs.toString), None, config.kafka_output.brokers)
+        UmsProtocolUtils.feedbackFlowStats(sourceNamespace,ums.protocol.`type`.toString,DateUtils.currentDateTime,streamId,batchId,sinkNamespace,payloadSize,umsTs,umsTs,initialTs,initialTs,initialTs,initialTs,initialTs), None, config.kafka_output.brokers)
 
       buffer.remove(0,config.feedback_state_count)
       logger.info("feedback message send successfully===========")

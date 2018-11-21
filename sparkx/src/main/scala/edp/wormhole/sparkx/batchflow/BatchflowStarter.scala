@@ -53,13 +53,14 @@ object BatchflowStarter extends App with EdpLogging {
   val sparkContext = new SparkContext(sparkConf)
   val session: SparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
   val ssc: StreamingContext = new StreamingContext(sparkContext, Seconds(config.kafka_input.batch_duration_seconds))
+
   UdfWatch.initUdf(config, appId,session)
 
   DirectiveFlowWatch.initFlow(config, appId)
 
   val kafkaInput: KafkaInputConfig = OffsetPersistenceManager.initOffset(config, appId)
   val kafkaStream = createKafkaStream(ssc, kafkaInput)
-  BatchflowMainProcess.process(kafkaStream, config, session, appId)
+  BatchflowMainProcess.process(kafkaStream, config,kafkaInput, session, appId)
 
   logInfo("all init finish,to start spark streaming")
   SparkContextUtils.startSparkStreaming(ssc)
