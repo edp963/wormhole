@@ -91,7 +91,6 @@ object SparkContextUtils extends EdpLogging{
 
     val perConfig: WormholePerPartitionConfig = new WormholePerPartitionConfig(partitionRateMap)
     val consumerStrategy: ConsumerStrategy[String, String] = if(kafkaInput.inWatch){
-      logInfo(s"inputBrokers is :${kafkaInput.inputBrokers}")
       ConsumerStrategies.Subscribe[String, String](topicList, kafkaInput.inputBrokers, partitionOffsetMap.toMap)
     }else{
       ConsumerStrategies.Subscribe[String, String](topicList, kafkaInput.inputBrokers)
