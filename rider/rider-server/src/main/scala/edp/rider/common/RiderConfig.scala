@@ -321,7 +321,7 @@ object RiderConfig {
       })
     else List()
 
-  lazy val kerberos=RiderKerberos(config.getString("kerberos.keyTab"),
+  lazy val kerberos=RiderKerberos(getStringConfig("kerberos.keyTab",""),
     getStringConfig("kerberos.server.config",""),
     getStringConfig("kerberos.jaas.startShell.config",""),
     getStringConfig("kerberos.jaas.yarn.config",""),
