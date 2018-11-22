@@ -322,12 +322,12 @@ object RiderConfig {
     else List()
 
   lazy val kerberos=RiderKerberos(config.getString("kerberos.keyTab"),
-    config.getString("kerberos.server.config"),
-    config.getString("kerberos.jaas.startShell.config"),
-    config.getString("kerberos.jaas.yarn.config"),
-    config.getString("kerberos.spark.principal"),
-    config.getString("kerberos.spark.keyTab"),
-    config.getBoolean("kerberos.server.enabled"))
+    getStringConfig("kerberos.server.config",""),
+    getStringConfig("kerberos.jaas.startShell.config",""),
+    getStringConfig("kerberos.jaas.yarn.config",""),
+    getStringConfig("kerberos.spark.principal",""),
+    getStringConfig("kerberos.spark.keyTab",""),
+    getBooleanConfig("kerberos.server.enabled",false))
 
   lazy val riderInfo = RiderInfo(zk.address, consumer.brokers, consumer.feedbackTopic, spark.wormholeHeartBeatTopic, spark.hdfsRoot,
     spark.user, spark.appTags, spark.rm1Url, spark.rm2Url)
