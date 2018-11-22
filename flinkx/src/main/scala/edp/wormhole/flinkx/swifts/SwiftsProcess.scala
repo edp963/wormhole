@@ -202,13 +202,13 @@ class SwiftsProcess(dataStream: DataStream[Row],
     resultDataStream.print()
     logger.info(resultDataStream.dataType.toString + "in doLookup")
 
-    //handle exception
+
     val exceptionStream: DataStream[String] = resultDataStream.getSideOutput(lookupTag)
     exceptionStream.map(stream => {
       logger.info("--------------------lookup exception stream:" + stream)
       ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, stream, config)
     })
-    //return
+
     resultDataStream
   }
 }
