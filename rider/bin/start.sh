@@ -40,7 +40,7 @@ then finalAddress=$HOST:$PORT
 else finalAddress=${DORMAIN:7}
 fi
 
-if [ $WORMHOLE_KERBEROS_ENABLED=true ];then
+if [[ $WORMHOLE_KERBEROS_ENABLED = true ]];then
    echo "try to verify via kdc server"
    kinit -kt $WORMHOLE_KEYTAB $WORMHOLE_PRINCIPAL
    WORMHOLE_KERBEROS_PARAM="-Djava.security.krb5.conf=$WORMHOLE_KERBEROS_SERVER -Djava.security.auth.login.config=$WORMHOLE_KERBEROS_JAAS"
