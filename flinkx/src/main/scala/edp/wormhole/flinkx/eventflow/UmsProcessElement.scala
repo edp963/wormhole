@@ -52,6 +52,5 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
       row.setField(i, FlinkSchemaUtils.getRelValue(i, tuple(i), sourceSchemaMap))
     out.collect(row)
   }
-
 }
 

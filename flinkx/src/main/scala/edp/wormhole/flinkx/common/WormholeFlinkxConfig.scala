@@ -81,7 +81,7 @@ case class ExceptionConfig(streamId: Long,
                            exceptionProcessMethod: ExceptionProcessMethod
                           )
 
-object ExceptionProcessMethod extends Enumeration {
+object ExceptionProcessMethod extends Enumeration with Serializable {
   type ExceptionProcessMethod = Value
 
   val INTERRUPT = Value("interrupt")
