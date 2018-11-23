@@ -23,26 +23,26 @@ package edp.wormhole.flinkx.pattern
 import java.sql.{Date, Timestamp}
 
 import com.alibaba.fastjson.JSONObject
-import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.flinkx.ordering.OrderingImplicit._
 import edp.wormhole.flinkx.pattern.Functions.{HEAD, LAST, MAX, MIN}
 import edp.wormhole.flinkx.pattern.Output._
 import edp.wormhole.flinkx.pattern.OutputType._
-import edp.wormhole.ums.UmsSysField
+import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.flinkx.util.FlinkSchemaUtils.object2TrueValue
-import edp.wormhole.swifts.SwiftsConstants
+import edp.wormhole.ums.UmsSysField
+import edp.wormhole.util.DateUtils
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.cep.scala.PatternStream
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.table.api.Types
 import org.apache.flink.types.Row
-import edp.wormhole.util.DateUtils
+import org.slf4j.LoggerFactory
 
 import scala.language.existentials
 import scala.math.Ordering
 
 class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[_], Int)]) extends java.io.Serializable {
-
+  private lazy val logger = LoggerFactory.getLogger(this.getClass)
   private val outputType = output.getString(TYPE.toString)
   private val outputFieldList: Array[String] =
     if (output.containsKey(FIELDLIST.toString)) {
@@ -51,29 +51,46 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
       Array.empty[String]
     }
 
-  def getOutput(patternStream: PatternStream[Row], patternGenerator: PatternGenerator, keyByFields: String): DataStream[Row] = {
+  def getOutput(patternStream: PatternStream[Row], patternGenerator: PatternGenerator, keyByFields: String): DataStream[(Boolean, Row)] = {
     val patternNameList: Seq[String] = patternGenerator.outputPatternNameList
+    var flag = true
     val out = patternStream.select(patternSelectFun => {
-      val eventSeq = for (name <- patternNameList)
-        yield patternSelectFun(name)
-      OutputType.outputType(outputType) match {
-        case AGG => buildRow(eventSeq, keyByFields)
-        case FILTERED_ROW => filteredRow(eventSeq)
-        case DETAIL => eventSeq.flatten
+      try {
+        val eventSeq = for (name <- patternNameList)
+          yield patternSelectFun(name)
+        OutputType.outputType(outputType) match {
+          case AGG => buildRow(eventSeq, keyByFields)
+          case FILTERED_ROW => filteredRow(eventSeq)
+          case DETAIL => eventSeq.flatten
+        }
+      } catch {
+        case e: Throwable =>
+          flag = false
+          logger.error("exception in getOutput ", e)
+          null.asInstanceOf[Row]
       }
     })
 
+    OutputType.outputType(outputType) match {
+      case AGG =>
+        out.asInstanceOf[DataStream[Row]].map(r => (flag, r))
+      case FILTERED_ROW =>
+        out.asInstanceOf[DataStream[Row]].map(r => (flag, r))
+      case DETAIL =>
+        out.asInstanceOf[DataStream[Seq[Row]]].flatMap(o => o).map(r => (flag, r))
+    }
+  }
+
+
+  def getPatternOutputStreamRowType(keyByFields: String): (Array[String], Array[TypeInformation[_]]) = {
     val originalFieldNames = FlinkSchemaUtils.getFieldNamesFromSchema(schemaMap)
     val originalFieldTypes = FlinkSchemaUtils.getOutPutFieldTypes(originalFieldNames, schemaMap)
     OutputType.outputType(outputType) match {
       case AGG =>
         val outputFieldNames = FlinkSchemaUtils.getOutputFieldNames(outputFieldList, keyByFields)
         val outputFieldTypes = FlinkSchemaUtils.getOutPutFieldTypes(outputFieldNames, schemaMap)
-        out.asInstanceOf[DataStream[Row]].map(o => o)(Types.ROW(outputFieldNames, outputFieldTypes))
-      case FILTERED_ROW =>
-        out.asInstanceOf[DataStream[Row]].map(o => o)(Types.ROW(originalFieldNames, originalFieldTypes))
-      case DETAIL =>
-        out.asInstanceOf[DataStream[Seq[Row]]].flatMap(o => o)(Types.ROW(originalFieldNames, originalFieldTypes))
+        (outputFieldNames, outputFieldTypes)
+      case FILTERED_ROW | DETAIL => (originalFieldNames, originalFieldTypes)
     }
   }
 
