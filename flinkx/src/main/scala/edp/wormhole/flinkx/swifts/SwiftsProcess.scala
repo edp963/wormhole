@@ -24,7 +24,7 @@ import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
 import edp.wormhole.flinkx.pattern.Output.{FIELDLIST, TYPE}
-import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput}
+import edp.wormhole.flinkx.pattern._
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
 import edp.wormhole.ums.{UmsProtocolUtils, UmsSysField}
@@ -50,7 +50,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
                     timeCharacteristic: String,
                     config: WormholeFlinkxConfig) extends Serializable {
 
-  private val logger: Logger = LoggerFactory.getLogger(this.getClass)
+  private lazy val logger: Logger = LoggerFactory.getLogger(this.getClass)
   private var preSchemaMap: Map[String, (TypeInformation[_], Int)] = FlinkSchemaUtils.immutableSourceSchemaMap
 
   private val lookupTag = OutputTag[String]("lookupException")
@@ -125,7 +125,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
       logger.info(resultDataStream.dataType.toString + "in  doFlinkSql")
       resultDataStream
     } else {
-      table.toRetractStream[Row](getQueryConfig).filter(_._1).map(_._2)(Types.ROW(columnNames, columnTypes))
+     table.toRetractStream[Row](getQueryConfig).filter(_._1).map(_._2)(Types.ROW(columnNames, columnTypes))
     }
   }
 
@@ -143,11 +143,12 @@ class SwiftsProcess(dataStream: DataStream[Row],
     queryConfig.withIdleStateRetentionTime(Time.hours(minIdleStateRetentionTime), Time.hours(maxIdleStateRetentionTime))
   }
 
+
   private def doCEP(transformedStream: DataStream[Row], sql: String, index: Int): DataStream[Row] = {
     var resultDataStream: DataStream[Row] = null
     try {
       val patternSeq = JSON.parseObject(sql)
-      val patternGenerator = new PatternGenerator(patternSeq, preSchemaMap)
+      val patternGenerator = new PatternGenerator(patternSeq, preSchemaMap, exceptionConfig, config)
       val pattern = patternGenerator.getPattern
 
       val keyByFields = patternSeq.getString(KEYBYFILEDS.toString).trim
@@ -156,10 +157,14 @@ class SwiftsProcess(dataStream: DataStream[Row],
         CEP.pattern(transformedStream.keyBy(keyArray: _*), pattern)
       } else CEP.pattern(transformedStream, pattern)
 
-      resultDataStream = new PatternOutput(patternSeq.getJSONObject(OUTPUT.toString), preSchemaMap).getOutput(patternStream, patternGenerator, keyByFields)
+      val patternOutput = new PatternOutput(patternSeq.getJSONObject(OUTPUT.toString), preSchemaMap)
+      val patternOutputStreamType: (Array[String], Array[TypeInformation[_]]) = patternOutput.getPatternOutputStreamRowType(keyByFields)
+      setSwiftsSchemaWithCEP(patternSeq, index, keyByFields)
+      val patternOutputStream: DataStream[(Boolean, Row)] = patternOutput.getOutput(patternStream, patternGenerator, keyByFields)
+      resultDataStream = filterException(patternOutputStream, patternOutputStreamType)
+
       println(resultDataStream.dataType)
       logger.info(resultDataStream.dataType.toString + "in  doCep")
-      setSwiftsSchemaWithCEP(patternSeq, index, keyByFields)
     } catch {
       case e: Throwable =>
         logger.error("doCEP error in swifts process", e)
@@ -190,6 +195,14 @@ class SwiftsProcess(dataStream: DataStream[Row],
     preSchemaMap = FlinkSchemaUtils.swiftsProcessSchemaMap(key)
   }
 
+
+  def filterException(patternOutputStream: DataStream[(Boolean, Row)], patternOutputStreamType: (Array[String], Array[TypeInformation[_]])): DataStream[Row] = {
+   //Todo 移动类型定义到PatternOutput class中
+    val filteredDataStream = patternOutputStream.filter(new PatternOutputFilter(exceptionConfig, config, preSchemaMap))
+    filteredDataStream.map(_._2)(Types.ROW(patternOutputStreamType._1, patternOutputStreamType._2))
+  }
+
+
   private def doLookup(transformedStream: DataStream[Row], element: SwiftsSql, index: Int): DataStream[Row] = {
     val lookupSchemaMap = LookupHelper.getLookupSchemaMap(preSchemaMap, element)
     val fieldNames = FlinkSchemaUtils.getFieldNamesFromSchema(lookupSchemaMap)
@@ -202,13 +215,12 @@ class SwiftsProcess(dataStream: DataStream[Row],
     resultDataStream.print()
     logger.info(resultDataStream.dataType.toString + "in doLookup")
 
-    //handle exception
     val exceptionStream: DataStream[String] = resultDataStream.getSideOutput(lookupTag)
     exceptionStream.map(stream => {
       logger.info("--------------------lookup exception stream:" + stream)
       ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, stream, config)
     })
-    //return
+
     resultDataStream
   }
 }
