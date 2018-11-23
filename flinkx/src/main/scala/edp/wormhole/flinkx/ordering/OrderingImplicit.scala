@@ -25,7 +25,11 @@ import java.sql.{Date, Timestamp}
 import scala.math.Ordering
 
 object OrderingImplicit {
-  implicit val timestampOrdered: Ordering[Timestamp] = (x: Timestamp, y: Timestamp) => x.compareTo(y)
+  implicit val timestampOrdered: Ordering[Timestamp] = new Ordering[Timestamp] {
+    override def compare(x: Timestamp, y: Timestamp): Int = x.compareTo(y)
+  }
 
-  implicit val sqlDateOrdering: Ordering[Date] = (x: Date, y: Date) => x compareTo y
+  implicit val sqlDateOrdering: Ordering[Date] = new Ordering[Date] {
+    def compare(x: Date, y: Date): Int = x compareTo y
+  }
 }
