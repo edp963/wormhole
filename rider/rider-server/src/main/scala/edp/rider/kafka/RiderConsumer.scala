@@ -21,34 +21,49 @@
 
 package edp.rider.kafka
 
+import java.util
+import java.util.Properties
+
 import akka.actor.Actor
+import akka.kafka.{ConsumerSettings, Subscriptions}
+import akka.kafka.scaladsl.Consumer
 import akka.kafka.scaladsl.Consumer.Control
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Keep, Sink}
+import akka.stream.scaladsl.{Keep, Sink, Source}
 import edp.rider.common.{RiderConfig, RiderLogger}
+import edp.rider.kafka.KafkaUtils.{offsetValid, riderLogger}
 import edp.rider.kafka.TopicSource._
 import edp.rider.module._
 import edp.rider.rest.persistence.entities.FeedbackOffset
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.service.MessageService
-import edp.rider.service.util.CacheMap
-import edp.wormhole.kafka.WormholeTopicCommand
+import edp.rider.service.util.{CacheMap, FeedbackOffsetUtil}
+import edp.wormhole.kafka.WormholeGetOffsetShell.logger
+import edp.wormhole.kafka.{WormholeGetOffsetShell, WormholeTopicCommand}
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums._
-import org.apache.kafka.clients.consumer.ConsumerRecord
+import joptsimple.OptionParser
+import kafka.client.ClientUtils
+import kafka.utils.ToolsUtils
+import org.apache.kafka.clients.CommonClientConfigs
+import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
+import org.apache.kafka.common.TopicPartition
 
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
 
-class RiderConsumer(modules: ConfigurationModule with PersistenceModule with ActorModuleImpl)
-  extends Actor with RiderLogger {
+class RiderConsumer(modules: ConfigurationModule with PersistenceModule with ActorModuleImpl,consumer:KafkaConsumer[String, String])
+  extends Actor with RiderLogger{
 
   import RiderConsumer._
 
   implicit val materializer = ActorMaterializer()
 
   override def preStart(): Unit = {
+
     if(!RiderConfig.kerberos.enabled){
       try {
         WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions, RiderConfig.consumer.refactor)
@@ -104,6 +119,56 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
       }
   }
 
+  def createFromOffset(groupId: String): Seq[Source[ConsumerRecord[Array[Byte], String], Control]] = {
+    //    val consumerSettings = ConsumerSettings(system, new ByteArrayDeserializer, new StringDeserializer)
+    //      .withBootstrapServers(RiderConfig.consumer.brokers)
+    //      .withGroupId(RiderConfig.consumer.group_id)
+    val propertyMap = new mutable.HashMap[String, String]()
+    propertyMap("session.timeout.ms") = RiderConfig.getIntConfig("kafka.consumer.session.timeout.ms", 60000).toString
+    propertyMap("heartbeat.interval.ms") = RiderConfig.getIntConfig("kafka.consumer.heartbeat.interval.ms", 50000).toString
+    propertyMap("max.poll.records") = RiderConfig.getIntConfig("kafka.consumer.max.poll.records", 500).toString
+    propertyMap("request.timeout.ms") = RiderConfig.getIntConfig("kafka.consumer.request.timeout.ms", 80000).toString
+    propertyMap("max.partition.fetch.bytes") = RiderConfig.getIntConfig("kafka.consumer.max.partition.fetch.bytes", 10485760).toString
+    propertyMap("fetch.min.bytes") = 0.toString
+    propertyMap("enable.auto.commit") = "false"
+
+    val consumerSettings = new ConsumerSettings(propertyMap.toMap, Some(RiderConfig.consumer.keyDeserializer),
+      Some(RiderConfig.consumer.valueDeserializer),
+      RiderConfig.consumer.pollInterval,
+      RiderConfig.consumer.pollTimeout,
+      RiderConfig.consumer.stopTimeout,
+      RiderConfig.consumer.closeTimeout,
+      RiderConfig.consumer.commitTimeout,
+      RiderConfig.consumer.wakeupTimeout,
+      RiderConfig.consumer.maxWakeups,
+      RiderConfig.consumer.dispatcher)
+      .withBootstrapServers(RiderConfig.consumer.brokers)
+      .withGroupId(RiderConfig.consumer.group_id)
+    val topicMap: mutable.Map[TopicPartition, Long] = FeedbackOffsetUtil.getTopicMapForDB(0, RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.partitions)
+    val earliestMap = {
+      try {
+        KafkaUtils.getKafkaEarliestOffsetOnActor(RiderConfig.consumer.brokers, RiderConfig.consumer.feedbackTopic,consumer)
+          .split(",").map(partition => {
+          val partitionOffset = partition.split(":")
+          (new TopicPartition(RiderConfig.consumer.feedbackTopic, partitionOffset(0).toInt), partitionOffset(1).toLong)
+        }).toMap[TopicPartition, Long]
+      } catch {
+        case ex: Exception =>
+          "0:0,1:0,2:0,3:0".split(",").map(partition => {
+            val partitionOffset = partition.split(":")
+            (new TopicPartition(RiderConfig.consumer.feedbackTopic, partitionOffset(0).toInt), partitionOffset(1).toLong)
+          }).toMap[TopicPartition, Long]
+      }
+    }
+    topicMap.foreach(partition => {
+      if (partition._2 < earliestMap(partition._1))
+        topicMap(partition._1) = earliestMap(partition._1)
+    })
+
+    topicMap.toMap.map(
+      topic => Consumer.plainSource(consumerSettings, Subscriptions.assignmentWithOffset(topic))
+    ).toSeq
+  }
 
   def running(control: Control): Receive = {
     case Stop =>
