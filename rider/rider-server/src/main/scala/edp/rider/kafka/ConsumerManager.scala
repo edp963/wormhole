@@ -24,13 +24,13 @@ package edp.rider.kafka
 import akka.actor.{ActorRef, Props}
 import edp.rider.common.RiderLogger
 import edp.rider.module.{ActorModuleImpl, ConfigurationModule, PersistenceModule}
+import org.apache.kafka.clients.consumer.KafkaConsumer
 
-import scala.concurrent.duration.DurationInt
 
-class ConsumerManager(modules: ConfigurationModule with PersistenceModule with ActorModuleImpl) extends RiderLogger {
+class ConsumerManager(modules: ConfigurationModule with PersistenceModule with ActorModuleImpl,consumer:KafkaConsumer[String, String]) extends RiderLogger {
   implicit val system = modules.system
 
-  val RiderConsumer: ActorRef = system.actorOf(Props(new RiderConsumer(modules)))
+  val RiderConsumer: ActorRef = system.actorOf(Props(new RiderConsumer(modules,consumer)))
   //  val ConsumerManagerProxy = system.actorOf(AkkaRetry.props(retryTimes = 5, retryTimeOut = 3000.millis, retryInterval = 5000.millis, RiderConsumer))
 
   def stopManager = {
