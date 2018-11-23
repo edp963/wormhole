@@ -1,6 +1,7 @@
 package edp.wormhole.flinkx.sink
 
 import edp.wormhole.flinkx.common.{ConfMemoryStorage, ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
+import edp.wormhole.flinkx.util.FeedbackUtils
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.{Ums, UmsProtocolUtils, UmsTuple}
@@ -44,7 +45,7 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
 
         val dataInfoIt: Iterable[String] = schemaMapWithUmsType.map {
           case (schemaName, (pos, _, _)) =>
-            ExceptionProcess.feedbackDataInfo(schemaName, pos, value)
+            FeedbackUtils.feedbackDataInfo(schemaName, pos, value)
         }
         val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
 
