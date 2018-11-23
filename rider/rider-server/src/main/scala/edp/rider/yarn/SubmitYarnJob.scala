@@ -125,6 +125,11 @@ object SubmitYarnJob extends App with RiderLogger {
       conf
     }
 
+    var confMap = confList.map(conf => {
+      val confKV = conf.split("=", 2)
+      (confKV(0).trim, confKV(1).trim)
+    }).toMap
+
     val files =
       if (RiderConfig.spark.metricsConfPath != "")
         s"${RiderConfig.spark.sparkLog4jPath},${RiderConfig.spark.metricsConfPath}"
@@ -152,7 +157,12 @@ object SubmitYarnJob extends App with RiderLogger {
       else if (l.startsWith("--name")) s"  --name " + streamName + " "
 //      else if (l.startsWith("--jars")) s"  --jars " + RiderConfig.spark.sparkxInterfaceJarPath + " "
       else if (l.startsWith("--conf")) {
-        confList.toList.map(conf => " --conf \"" + conf + "\" ").mkString("")
+        val lconf = l.replace("\"","").substring("--conf".length + 1)
+        val lconfKV = lconf.split("=", 2)
+        val lconfKey = lconfKV(0).trim
+        val lconfValue = lconfKV(1).trim
+        confMap += (lconfKey -> lconfValue)
+        ""
       }
       else if (l.startsWith("--class")) {
         functionType match {
@@ -163,7 +173,7 @@ object SubmitYarnJob extends App with RiderLogger {
         }
       }
       else l
-    }).mkString("").stripMargin.replace("\\", "  ") +
+    }).mkString("") + confMap.toList.map(confKV => " --conf \"" + confKV._1+"="+confKV._2+ "\" ").mkString("").stripMargin.replace("\\", "  ") +
     realJarPath + " " + args  + " > " + logPath + " 2>&1 "
 
     val finalCommand =
