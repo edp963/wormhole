@@ -398,7 +398,7 @@ object StreamUtils extends RiderLogger {
   def sendUnsubscribeTopicDirective(streamId: Long, topicName: String, userId: Long): Unit = {
     try {
       val zkConURL: String = RiderConfig.zk.address
-      val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, "", zkConURL, currentSec, userId)
+      val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_TOPIC_UNSUBSCRIBE.toString, streamId, 0, "", zkConURL, currentSec, userId)
       ), minTimeOut)
       val topicUms =
         s"""
