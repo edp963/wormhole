@@ -20,9 +20,18 @@
 
 package edp.rider.kafka
 
+import java.util
+
 import edp.rider.common.RiderLogger
 import edp.wormhole.kafka.WormholeGetOffsetShell
+import edp.wormhole.kafka.WormholeGetOffsetShell.logger
+import joptsimple.OptionParser
+import kafka.client.ClientUtils
+import kafka.utils.ToolsUtils
+import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.common.TopicPartition
 
+import scala.collection.mutable.ListBuffer
 import scala.language.postfixOps
 
 
@@ -61,6 +70,60 @@ object KafkaUtils extends RiderLogger {
     } catch {
       case ex: Exception =>
         riderLogger.error(s"get kafka earliest offset failed", ex)
+        throw ex
+    }
+  }
+
+  def getKafkaEarliestOffsetOnActor(brokers: String, topic: String ,consumer:KafkaConsumer[String,String]): String = {
+    try {
+      val offset =getTopicOffsetsOnActor(brokers, topic, consumer, -2)
+      if (offsetValid(offset)) offset
+      else throw new Exception(s"query topic $topic offset result is '', please check it.")
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"get kafka earliest offset failed", ex)
+        throw ex
+    }
+  }
+
+  def getTopicOffsetsOnActor(brokerList: String, topic: String, consumer:KafkaConsumer[String,String], time: Long = -1, maxWaitMs: Int = 60000)={
+    try {
+      val parser = new OptionParser
+      ToolsUtils.validatePortOrDie(parser, brokerList)
+
+        val topicMap=consumer.listTopics()
+        val offsetSeq = new ListBuffer[String]()
+
+        if(!topicMap.isEmpty&&topicMap.containsKey(topic)&&topicMap.get(topic)!=null&&topicMap.get(topic).size()>0){
+          val it=topicMap.get(topic).iterator()
+
+          while(it.hasNext){
+            val partition=it.next
+
+            for(partitionId <- 0 to partition.partition){
+              try {
+                val topicAndPartition=new TopicPartition(topic,partitionId)
+                val map=time match {
+                  case -1 =>consumer.endOffsets(util.Arrays.asList(topicAndPartition))
+                  case _ =>consumer.beginningOffsets(util.Arrays.asList(topicAndPartition))
+                }
+
+                offsetSeq += partitionId + ":" + map.get(topicAndPartition)
+              } catch {
+                case e: Exception =>
+                  throw new Exception(s"brokerList $brokerList topic $topic partition $partitionId doesn't have a leader, please verify it.")
+              } finally {
+                consumer.close()
+              }
+            }
+          }
+        }
+        val offset = offsetSeq.sortBy(offset => offset.split(":")(0).toLong).mkString(",")
+        if (offset == "")
+          throw new Exception(s"query topic $topic offset result is '', please check it.")
+        offset
+    }catch {
+      case ex: Exception =>
         throw ex
     }
   }
