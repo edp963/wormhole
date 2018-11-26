@@ -290,7 +290,7 @@ object SqlProcessor  {
           conn.commit()
         } catch {
           case e: Throwable =>
-            logger.error("executeBatch error " + e)
+            logger.error("executeBatch error " , e)
             errorTupleList ++= tuples
             if (batchSize == 1)
               logger.info("violate tuple -----------" + tuples)
@@ -300,12 +300,12 @@ object SqlProcessor  {
       })
     } catch {
       case e: SQLTransientConnectionException => DbConnection.resetConnection(connectionConfig)
-        logger.error("SQLTransientConnectionException" + e)
+        logger.error("SQLTransientConnectionException" , e)
         logger.info("out batch ")
         if (index <= 0) errorTupleList ++= tupleList
         else errorTupleList ++= tupleList.takeRight(tupleList.size - index)
       case e: Throwable =>
-        logger.error("get connection failed" + e)
+        logger.error("get connection failed" , e)
         if (index <= 0) errorTupleList ++= tupleList
         else errorTupleList ++= tupleList.takeRight(tupleList.size - index)
     }

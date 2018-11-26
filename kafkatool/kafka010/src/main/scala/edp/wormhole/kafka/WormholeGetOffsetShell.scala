@@ -11,7 +11,7 @@ import scala.collection.mutable.ListBuffer
 
 object WormholeGetOffsetShell {
 
-  def getTopicOffsets(brokerList: String, topic: String, time: Long = -1, maxWaitMs: Int = 30000) = {
+  def getTopicOffsets(brokerList: String, topic: String,kerberos:Boolean=false, time: Long = -1, maxWaitMs: Int = 30000) = {
     try {
       val parser = new OptionParser
       val clientId = "GetOffsetShell"

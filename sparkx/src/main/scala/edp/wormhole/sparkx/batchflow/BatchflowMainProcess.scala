@@ -24,7 +24,6 @@ package edp.wormhole.sparkx.batchflow
 import java.util.UUID
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.common._
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.externalclient.hadoop.HdfsUtils
@@ -32,15 +31,17 @@ import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.sinks.SourceMutationType
 import edp.wormhole.common.InputDataProtocolBaseType
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.sinks.elasticsearchsink.EsConfig
 import edp.wormhole.sinks.mongosink.MongoConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils
-import edp.wormhole.sparkx.common.{SparkSchemaUtils, SparkUtils, WormholeConfig, WormholeUtils}
+import edp.wormhole.sparkx.batchflow.BatchflowStarter.config
+import edp.wormhole.sparkx.common._
 import edp.wormhole.sparkx.directive.UdfDirective
-import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
+import edp.wormhole.sparkx.memorystorage.{ConfMemoryStorage, OffsetPersistenceManager}
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkx.swifts.transform.SwiftsTransform
-import edp.wormhole.sparkx.swifts.validity.{ValidityAgainstAction, ValidityCheckRule}
+import edp.wormhole.sparkx.swifts.validity.ValidityAgainstAction
 import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, ValidityConfig}
 import edp.wormhole.sparkx.swifts.validity.ValidityCheckRule
 import edp.wormhole.swifts.ConnectionMemoryStorage
@@ -60,14 +61,16 @@ import org.apache.spark.streaming.kafka010.{CanCommitOffsets, HasOffsetRanges, O
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.language.postfixOps
-//import scala.util.control.NonFatal
-//import scala.concurrent.ExecutionContext.Implicits.global
-//import scala.concurrent.Future
 
 object BatchflowMainProcess extends EdpLogging {
 
-  def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession): Unit = {
+  def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, kafkaInput: KafkaInputConfig,session: SparkSession,
+              appId:String): Unit = {
+    var zookeeperFlag = false
     stream.foreachRDD((streamRdd: RDD[ConsumerRecord[String, String]]) => {
+      WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config,config.kerberos)
+
+      val topics=kafkaInput.kafka_topics.map(config=>JsonUtils.jsonCompact(JsonUtils.caseClass2json[KafkaTopicConfig](config))).mkString("[",",","]")
       val offsetInfo: ArrayBuffer[OffsetRange] = getOffsets(streamRdd)
       val batchId = UUID.randomUUID().toString
       try {
@@ -113,13 +116,13 @@ object BatchflowMainProcess extends EdpLogging {
         logInfo("start doMainData")
 
         //   val dt5: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
-        val processedSourceNamespace = doMainData(session, classifyRdd, config, batchId, rddTs, directiveTs, mainDataTs, distinctSchema)
+        val processedSourceNamespace = doMainData(session, classifyRdd, config, batchId, rddTs, directiveTs, mainDataTs, distinctSchema,topics)
         //        val dt6: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
         //        println("get doMainData duration:   " + dt6 + " - "+ dt5 +" = " + (Seconds.secondsBetween(dt5, dt6).getSeconds() % 60 + "seconds"))
         //
         logInfo("start doOtherData")
         val nonDataArray = classifyRdd.flatMap(_._3).collect()
-        doOtherData(nonDataArray, config, processedSourceNamespace, batchId)
+        doOtherData(nonDataArray, config, processedSourceNamespace, batchId,topics)
 
         logInfo("start storeTopicPartition")
         WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
@@ -132,6 +135,13 @@ object BatchflowMainProcess extends EdpLogging {
           WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
       }
       stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
+      if(!zookeeperFlag){
+        logInfo("write appid to zookeeper,"+appId)
+        SparkContextUtils.checkSparkRestart(config.zookeeper_address, config.zookeeper_path, config.spark_config.stream_id, appId)
+        SparkContextUtils.deleteZookeeperOldAppidPath(appId, config.zookeeper_address, config.zookeeper_path, config.spark_config.stream_id)
+        WormholeZkClient.createPath(config.zookeeper_address, config.zookeeper_path + "/" + config.spark_config.stream_id + "/" + appId)
+        zookeeperFlag=true
+      }
     }
     )
   }
@@ -241,7 +251,8 @@ object BatchflowMainProcess extends EdpLogging {
                          rddTs: Long,
                          directiveTs: Long,
                          mainDataTs: Long,
-                         distinctSchema: mutable.Map[(UmsProtocolType, String), (Seq[UmsField], Long)]): Set[String] = {
+                         distinctSchema: mutable.Map[(UmsProtocolType, String), (Seq[UmsField], Long)],
+                         topics:String): Set[String] = {
     val processedSourceNamespace = mutable.HashSet.empty[String]
     // val dt1: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
     val umsRdd: RDD[(UmsProtocolType, String, ArrayBuffer[Seq[String]])] = formatRdd(mainDataRdd, "main").cache
@@ -670,7 +681,7 @@ object BatchflowMainProcess extends EdpLogging {
     } else HdfsUtils.deletePath(configuration, parquetAddr)
   }
 
-  def doOtherData(otherDataArray: Array[String], config: WormholeConfig, processedSourceNamespace: Set[String], batchId: String): Unit = {
+  def doOtherData(otherDataArray: Array[String], config: WormholeConfig, processedSourceNamespace: Set[String], batchId: String, topics:String): Unit = {
     if (otherDataArray.nonEmpty) {
       otherDataArray.foreach(
         row => {

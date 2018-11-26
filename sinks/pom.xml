@@ -7,7 +7,7 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.5.4-beta</version>
+        <version>0.5.6-beta</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -44,7 +44,7 @@
         </dependency>
         <dependency>
             <groupId>edp.wormhole</groupId>
-            <artifactId>wormhole-kafka-010</artifactId>
+            <artifactId>wormhole-kafka-010-2</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

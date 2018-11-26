@@ -123,83 +123,94 @@ object KuduConnection extends Serializable{
   def doQueryByKeyList(tableName: String,database:String, url: String, keysName: Seq[String], tupleList: Seq[Seq[String]], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        queryFieldsName: Seq[String]): mutable.HashMap[String, Map[String, (Any, String)]] = {
     logger.info("doQueryByKeyList:" + kuduConfigurationMap(url) + ":::" + tableName)
-    val client: KuduClient = getKuduClient(url)
-    val newTableName = getTableName(tableName,database)
-    val table: KuduTable = client.openTable(newTableName)
-    val fieldTypeMap: mutable.Map[String, Type] = getAllFieldsKuduTypeMap(table)
-
     val queryResultMap = mutable.HashMap.empty[String, Map[String, (Any, String)]]
+    val client: KuduClient = getKuduClient(url)
+    try{
+      val newTableName = getTableName(tableName,database)
+      val table: KuduTable = client.openTable(newTableName)
+      val fieldTypeMap: mutable.Map[String, Type] = getAllFieldsKuduTypeMap(table)
 
-    tupleList.foreach((row: Seq[String]) => {
-      val keysContent = keysName.map(keyName => {
-        row(schemaMap(keyName)._1)
+      tupleList.foreach((row: Seq[String]) => {
+        val keysContent = keysName.map(keyName => {
+          row(schemaMap(keyName)._1)
+        })
+        val (keysStr, valueMap) = doQueryByKey(keysName, keysContent, fieldTypeMap, client, table, queryFieldsName)
+        if (valueMap.nonEmpty) queryResultMap(keysStr) = valueMap
+
       })
-      val (keysStr, valueMap) = doQueryByKey(keysName, keysContent, fieldTypeMap, client, table, queryFieldsName)
-      if (valueMap.nonEmpty) queryResultMap(keysStr) = valueMap
-
-    })
-
-    closeClient(client)
-
+    } catch {
+      case e:Throwable=>
+        logger.error("doQueryByKeyList",e)
+        throw e
+    } finally {
+      closeClient(client)
+    }
     queryResultMap
   }
 
   def doQueryByKeyListInBatch(tableName: String,database:String, url: String, keyName: String, tupleList: Seq[Seq[String]], schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        queryFieldsName: Seq[String]): mutable.HashMap[String, Map[String, (Any, String)]] = {
     logger.info("doQueryByKeyListInBatch:" + kuduConfigurationMap(url) + ":::" + tableName)
-    val client: KuduClient = getKuduClient(url)
-    val newTableName = getTableName(tableName,database)
-    val table: KuduTable = client.openTable(newTableName)
-    val fieldTypeMap: mutable.Map[String, Type] = getAllFieldsKuduTypeMap(table)
-    val keyType: Type = fieldTypeMap(keyName)
-
-    val dataList: Seq[Any] = tupleList.map(row=>{
-      val keyData = row(schemaMap(keyName)._1)
-      keyType match{
-        case Type.STRING =>
-          keyData
-        case Type.INT64 =>
-          keyData.toLong
-        case Type.INT8 | Type.INT16 | Type.INT32 =>
-          keyData.toInt
-        case _ =>
-          keyData
-      }
-    })
-
     val queryResultMap = mutable.HashMap.empty[String, Map[String, (Any, String)]]
+    val client: KuduClient = getKuduClient(url)
+    try{
+      val newTableName = getTableName(tableName,database)
+      val table: KuduTable = client.openTable(newTableName)
+      val fieldTypeMap: mutable.Map[String, Type] = getAllFieldsKuduTypeMap(table)
+      val keyType: Type = fieldTypeMap(keyName)
 
-    val kuduPredicate = KuduPredicate.newInListPredicate(table.getSchema.getColumn(keyName),dataList)
-    val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
-      .setProjectedColumnNames(queryFieldsName) //指定输出列
-    scannerBuilder.addPredicate(kuduPredicate)
-    val scanner = scannerBuilder.build()
+      val dataList: Seq[Any] = tupleList.map(row=>{
+        val keyData = row(schemaMap(keyName)._1)
+        keyType match{
+          case Type.STRING =>
+            keyData
+          case Type.INT64 =>
+            keyData.toLong
+          case Type.INT8 | Type.INT16 | Type.INT32 =>
+            keyData.toInt
+          case _ =>
+            keyData
+        }
+      })
 
-    while (scanner.hasMoreRows) {
-      val results = scanner.nextRows
-      while (results.hasNext) {
-        val result = results.next()
-        val schema = result.getSchema
-        val queryResult: Map[String, (Any, String)] = queryFieldsName.map(f => {
-          val value: (Any, String) = schema.getColumn(f).getType match {
-            case Type.STRING => ( if(result.isNull(f)) null else result.getString(f), UmsFieldType.STRING.toString)
-            case Type.BOOL => (if(result.isNull(f)) null else result.getBoolean(f), UmsFieldType.BOOLEAN.toString)
-            case Type.BINARY => (if(result.isNull(f)) null else result.getBinary(f), UmsFieldType.BINARY.toString)
-            case Type.DECIMAL => (if(result.isNull(f))null.asInstanceOf[String] else result.getDecimal(f), UmsFieldType.DECIMAL.toString)
-            case Type.DOUBLE => (if(result.isNull(f)) null else result.getDouble(f), UmsFieldType.DOUBLE.toString)
-            case Type.INT8 | Type.INT16 | Type.INT32 => (if(result.isNull(f)) null else result.getInt(f), UmsFieldType.INT.toString)
-            case Type.FLOAT => (if(result.isNull(f)) null else result.getFloat(f), UmsFieldType.FLOAT.toString)
-            case Type.INT64 => (if(result.isNull(f)) null else result.getLong(f), UmsFieldType.LONG.toString)
-            case Type.UNIXTIME_MICROS => (if(result.isNull(f)) null else DateUtils.dt2dateTime(result.getLong(f)), UmsFieldType.DATETIME.toString)
-            case _ => ( if(result.isNull(f)) null else result.getString(f), UmsFieldType.STRING.toString)
-          }
-          (f, value)
-        }).toMap
-        queryResultMap(queryResult(keyName)._1.toString) =queryResult
+
+
+      val kuduPredicate = KuduPredicate.newInListPredicate(table.getSchema.getColumn(keyName),dataList)
+      val scannerBuilder: KuduScanner.KuduScannerBuilder = client.newScannerBuilder(table)
+        .setProjectedColumnNames(queryFieldsName) //指定输出列
+      scannerBuilder.addPredicate(kuduPredicate)
+      val scanner = scannerBuilder.build()
+
+      while (scanner.hasMoreRows) {
+        val results = scanner.nextRows
+        while (results.hasNext) {
+          val result = results.next()
+          val schema = result.getSchema
+          val queryResult: Map[String, (Any, String)] = queryFieldsName.map(f => {
+            val value: (Any, String) = schema.getColumn(f).getType match {
+              case Type.STRING => ( if(result.isNull(f)) null else result.getString(f), UmsFieldType.STRING.toString)
+              case Type.BOOL => (if(result.isNull(f)) null else result.getBoolean(f), UmsFieldType.BOOLEAN.toString)
+              case Type.BINARY => (if(result.isNull(f)) null else result.getBinary(f), UmsFieldType.BINARY.toString)
+              case Type.DECIMAL => (if(result.isNull(f))null.asInstanceOf[String] else result.getDecimal(f), UmsFieldType.DECIMAL.toString)
+              case Type.DOUBLE => (if(result.isNull(f)) null else result.getDouble(f), UmsFieldType.DOUBLE.toString)
+              case Type.INT8 | Type.INT16 | Type.INT32 => (if(result.isNull(f)) null else result.getInt(f), UmsFieldType.INT.toString)
+              case Type.FLOAT => (if(result.isNull(f)) null else result.getFloat(f), UmsFieldType.FLOAT.toString)
+              case Type.INT64 => (if(result.isNull(f)) null else result.getLong(f), UmsFieldType.LONG.toString)
+              case Type.UNIXTIME_MICROS => (if(result.isNull(f)) null else DateUtils.dt2dateTime(result.getLong(f)), UmsFieldType.DATETIME.toString)
+              case _ => ( if(result.isNull(f)) null else result.getString(f), UmsFieldType.STRING.toString)
+            }
+            (f, value)
+          }).toMap
+          queryResultMap(queryResult(keyName)._1.toString) =queryResult
+        }
       }
+    } catch {
+      case e:Throwable=>
+        logger.error("doQueryByKeyListInBatch",e)
+        throw e
+    } finally {
+      closeClient(client)
     }
-
-    closeClient(client)
 
     queryResultMap
   }
@@ -298,8 +309,9 @@ object KuduConnection extends Serializable{
 
   def doWrite(tableName: String,database:String, url: String, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], fieldsContent: Seq[Seq[String]], optType: String): Int = {
     logger.info("doWrite:" + kuduConfigurationMap + ":::" + tableName)
-
+    var errorsCount = 0
     val client: KuduClient = getKuduClient(url)
+    try{
     val newTableName = getTableName(tableName,database)
     val table: KuduTable = client.openTable(newTableName)
     val session = getSession(url,client)
@@ -316,13 +328,19 @@ object KuduConnection extends Serializable{
 
     closeSession(session)
 
-    val errorsCount = session.countPendingErrors()
+    errorsCount = session.countPendingErrors()
 
     if (errorsCount != 0) {
       logger.error("do " + optType + " has error,error count=" + errorsCount)
     }
 
-    closeClient(client)
+    }catch{
+      case e:Throwable=>
+        logger.error("doQueryByKeyListInBatch",e)
+        throw e
+    }finally {
+      closeClient(client)
+    }
     errorsCount
   }
 

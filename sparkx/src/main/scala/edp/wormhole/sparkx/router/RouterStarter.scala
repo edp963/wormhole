@@ -21,9 +21,7 @@
 
 package edp.wormhole.sparkx.router
 
-import edp.wormhole.common._
 import edp.wormhole.sparkx.common.SparkContextUtils.createKafkaStream
-import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.common.{KafkaInputConfig, SparkContextUtils, SparkUtils, WormholeConfig}
 import edp.wormhole.sparkx.directive.DirectiveFlowWatch
@@ -41,7 +39,7 @@ object RouterStarter extends App with EdpLogging {
   logInfo("RouterConfig:" + args(0))
   val config: WormholeConfig = JsonUtils.json2caseClass[WormholeConfig](args(0))
   val appId = SparkUtils.getAppId
-  WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
+  WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config,config.kerberos)
 
   val sparkConf = new SparkConf()
     .setMaster(config.spark_config.master)
@@ -59,11 +57,7 @@ object RouterStarter extends App with EdpLogging {
 
   val kafkaInput: KafkaInputConfig = OffsetPersistenceManager.initOffset(config, appId)
   val kafkaStream = createKafkaStream(ssc, kafkaInput)
-  RouterMainProcess.process(kafkaStream, config, session)
-
-  SparkContextUtils.checkSparkRestart(config.zookeeper_path, config.spark_config.stream_id, appId)
-  SparkContextUtils.deleteZookeeperOldAppidPath(appId, config.zookeeper_path, config.spark_config.stream_id)
-  WormholeZkClient.createPath(config.zookeeper_path, WormholeConstants.CheckpointRootPath + config.spark_config.stream_id + "/" + appId)
+  RouterMainProcess.process(kafkaStream, config, session, appId)
 
   logInfo("all init finish,to start spark streaming")
   SparkContextUtils.startSparkStreaming(ssc)
