@@ -55,6 +55,7 @@ object LookupRedisHelper {
     catch {
       case ex: Throwable =>
         ex.printStackTrace()
+        throw ex
     }
     dataTupleMap
   }

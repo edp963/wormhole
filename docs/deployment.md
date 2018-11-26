@@ -5,12 +5,12 @@ title: Deployment
 description: Wormhole Deployment page
 ---
 
-* This will become a table of contents (this text will be scraped).
 {:toc}
 
 ## 前期准备
 
 #### 环境准备
+
 - JDK1.8
 - Hadoop-client（HDFS，YARN）（支持版本 2.6+）
 - Spark-client （支持版本 2.2.0，2.2.1）(若使用Spark Streaming引擎，须部署Spark-client)
@@ -26,38 +26,31 @@ description: Wormhole Deployment page
 - MySQL
 
 #### Jar包准备
+
 mysql-connector-java-{your-db-version}.jar
 
-
-**注意：升级至0.5.4-beta版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
+**注意：升级至0.5.6-beta版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
 
 ## 部署配置
 
-**下载 wormhole-0.5.4-beta.tar.gz 包 (链接：https://pan.baidu.com/s/1ikjC4aNxfHFkMmxtPIdwVA 密码：nst4)，或者自编译**
+#### 下载安装包
+
+**下载 wormhole-0.5.6-beta.tar.gz 包 (链接：https://pan.baidu.com/s/1cWb4xo43WyehnrBWLsmThA 提取码：rhq8)，或者自编译**
 
 ```
-下载wormhole-0.5.4-beta.tar.gz安装包
-tar -xvf wormhole-0.5.4-beta.tar.gz
+下载wormhole-0.5.6-beta.tar.gz安装包
+tar -xvf wormhole-0.5.6-beta.tar.gz
 或者自编译，生成的tar包在 wormhole/target
 git clone -b 0.5 https://github.com/edp963/wormhole.git
 cd wormhole
 mvn install package -Pwormhole
 ```
 
-**注意：0.4.2版本升级至0.5.4-beta版前须手动执行以下操作**
+#### 配置环境变量
 
-```
-1. stream表中增加function_type字段，原stream_type值赋值给function_type，stream_type值改为"spark"
-alter table `stream` add column `function_type` VARCHAR(100) NULL after `stream_type`;
-update `stream` a join `stream` b on a.id = b.id set a.`function_type` = b.`stream_type`;
-update `stream` set `stream_type` = "spark";
+**配置 SPARK_HOME/HADOOP_HOME 环境变量**
 
-2. flow表中consumed_protocol字段值修改，all改为"increment,initial"
-
-update `flow` set `consumed_protocol` = "increment,initial" where `consumed_protocol` = "all";
-```
-
-**配置 WORMHOLE_HOME/SPARK_HOME/HADOOP_HOME 环境变量**
+#### 修改配置文件
 
 **修改 application.conf 配置文件**
 
@@ -65,10 +58,12 @@ update `flow` set `consumed_protocol` = "increment,initial" where `consumed_prot
 conf/application.conf 配置项介绍
 
 wormholeServer {
-  host = "127.0.0.1"
+  cluster.id = "" #optional global uuid
+  host = "localhost"
   port = 8989
-  token.timeout = 7
-  request.timeout = 120s
+  ui.default.language = "Chinese"
+  token.timeout = 1
+  token.secret.key = "iytr174395lclkb?lgj~8u;[=L:ljg"
   admin.username = "admin"    #default admin user name
   admin.password = "admin"    #default admin user password
 }
@@ -81,6 +76,23 @@ mysql = {
     url = "jdbc:mysql://localhost:3306/wormhole"
     password = "*******"
     numThreads = 4
+    minConnections = 4
+    maxConnections = 10
+    connectionTimeout = 3000
+  }
+}
+
+ldap = {
+  enabled = false
+  user = ""
+  pwd = ""
+  url = ""
+  dc = ""
+  read.timeout = 3000
+  read.timeout = 5000
+  connect = {
+    timeout = 5000
+    pool = true
   }
 }
 
@@ -99,11 +111,16 @@ flink = {
   yarn.queue.name = "default"
 }
 
-zookeeper.connection.url = "localhost:2181"  #WormholeServer stream and flow interaction channel
+zookeeper = {
+  connection.url = "localhost:2181"  #WormholeServer stream and flow interaction channel
+  wormhole.root.path = "/wormhole"
+}
 
 kafka = {
   brokers.url = "locahost:9092"         #WormholeServer feedback data store
   zookeeper.url = "localhost:2181"
+  topic.refactor = 3
+  using.cluster.suffix = false #if true, _${cluster.id} will be concatenated to consumer.feedback.topic
   consumer = {
     feedback.topic = "wormhole_feedback"
     poll-interval = 20ms
@@ -121,6 +138,16 @@ kafka = {
   }
 }
 
+#kerberos = {
+#  keyTab=""      #the keyTab will be used on yarn
+#  spark.principal=""   #the principal of spark
+#  spark.keyTab=""      #the keyTab of spark
+#  server.config=""     #the path of krb5.conf
+#  jaas.startShell.config="" #the path of jaas config file which should be used by start.sh
+#  jaas.yarn.config=""     #the path of jaas config file which will be uploaded to yarn
+#  server.enabled=false   #enable wormhole connect to Kerberized cluster
+#}
+
 #Wormhole feedback data store, if doesn't want to config, you will not see wormhole processing delay and throughput
 #if not set, please comment it
 #elasticSearch.http = {
@@ -128,6 +155,12 @@ kafka = {
 #  user = ""
 #  password = ""
 #}
+
+#delete feedback history data on time
+maintenance = {
+  mysql.feedback.remain.maxDays = 7
+  elasticSearch.feedback.remain.maxDays = 7
+}
 
 #display wormhole processing delay and throughput data, get admin user token from grafana
 #garfana should set to be anonymous login, so you can access the dashboard through wormhole directly
@@ -138,17 +171,116 @@ kafka = {
 #}
 
 #Dbus integration, if not set, please comment it
-#dbus.namespace.rest.api.url = ["http://localhost:8080/webservice/tables/riderSearch"]
+#dbus = {
+#  api = [
+#    {
+#      login = {
+#        url = "http://localhost:8080/keeper/login"
+#        email = ""
+#        password = ""
+#      }
+#      synchronization.namespace.url = "http://localhost:8080/keeper/tables/riderSearch"
+#    }
+#  ]
+#}
 ```
-**设置 wormhole server mysql 数据库编码为 uft8，并授权可远程访问**
 
-**上传 mysql-connector-java-{version}.jar 至 $WORMHOLE_HOME/lib 目录**
+#### Wormhole集群部署
 
-**须使用 application.conf 中 spark.wormholeServer.user 项对应的 Linux 用户启动服务，且须配置该 Linux 用户可通过 ssh 远程免密登录到自己**
+**部署说明**
 
-**若配置 Grafana，Grafana 须配置可使用 viewer 类型用户匿名登陆，并生成 admin 类型的 token，配置在 $WORMHOLE_HOME/conf/application.conf 中grafana.admin.token 项中**
+若只部署一套Wormhole可跳过此步骤
 
-**切换到 root 用户，为 WormholeServer 启动用户授权读写 HDFS 目录，若失败，请根据提示手动授权**
+为支持同一hadoop集群环境中部署多套Wormhole，在配置文件conf/application.conf中增加了wormholeServer.cluster_id参数（要求唯一）。单套Wormhole部署不设置wormholeServer.cluster.id或者wormholeServer.cluster.id=""。为兼容之前版本，可不设置该变量。**注意：之前版本不要随意增加该参数，否则无法读取对应的zookeeper和hdfs信息，无法正常运行已配置的stream和flow，即之前版本可以保持不变，新部署的Wormhole增加该参数即可。**
+
+##### 单套Wormhole部署
+
+- 单套Wormhole部署只需将wormholeServer.cluster_id设置为空或者不进行设置即可
+
+  **说明**
+
+- Kafka feedback topic：为kafka.consumer.feedback.topic
+- ES feedback index：为elasticSearch.wormhole.feedback.index
+- HDFS路径为：spark.wormhole.hdfs.root.path
+- Zookeeper路径为：zookeeper.wormhole.root.path/cluster_id
+
+##### 多套Wormhole隔离部署
+
+- wormholeServer.cluster_id（必须配置）：每套Wormhole唯一的uuid，不可重复
+- kafka.using.cluster.suffix（选择设置）：该变量标记是否将wormholeServer.cluster_id作用于kafka.consumer.feedback.topic。如果kafka.using.cluster.suffix=false，则feedback topic为kafka.consumer.feedback.topic；如果kafka.using.cluster.suffix=true，则feedback topic为kafka.consumer.feedback.topic + "_" + cluster_id
+- elasticSearch.wormhole.using.cluster.suffix（选择设置）：该变量标记是否将wormholeServer.cluster_id作用于elasticSearch.wormhole.feedback.index。如果elasticSearch.wormhole.using.cluster.suffix=false，则feedback index为elasticSearch.wormhole.feedback.index ；如果elasticSearch.wormhole.using.cluster.suffix=true，则feedback index为elasticSearch.wormhole.feedback.index + "_" + cluster_id
+
+  **说明**
+
+- MySQL：与cluster_id是否存在无关，所以部署多集群时，只要用不同的库的url即可
+- Kafka feedback topic：参考上文kafka.using.cluster.suffix的设置
+- ES feedback index：参考上文elasticSearch.wormhole.using.cluster.suffix的设置
+- HDFS：spark.wormhole.hdfs.root.path为一级根目录名，HDFS路径为spark.wormhole.hdfs.root.path/cluster_id
+- Zookeeper：zookeeper.wormhole.root.path为一级根目录名，Zookeeper路径为zookeeper.wormhole.root.path/cluster_id
+
+#### Wormhole接入Kerberos支持
+
+若无需接入KerBeros支持，可跳过此步骤
+
+##### Spark中kerberos认证
+
+Spark只有在集群模式(即--master yarn或者--master yarn-cluster)下，才会支持kerberos认证。Spark通过向yarn集群提交任务时设定相应的参数支持kerberos认证，需要指定的参数包括—principal、--keytab、--files、--conf。这些配置都可以通过配置wormhole的application.conf中的对应项来完成
+
+##### Flink中kerberos认证
+
+与spark不同，flink在配置文件中实现对kerberos认证支持，仅需修改flink/conf/flink-conf.yaml文件，即可开启flink应用与kerberos集群的对接。flink-conf.yaml具体配置为：
+
+```
+security.kerberos.login.keytab: keytab_path
+security.kerberos.login.principal: principal_path
+security.kerberos.login.contexts: client,kafkaClient
+```
+
+其中，security.kerberos.login.keytab与security.kerberos.login.principal分别对应的是kdc服务器生成的keytab和principal文件的路径。security.kerberos.login.contexts对应的是用户要对接的开启了kerberos认证的kafka集群与zookeeper集群
+
+##### Wormhole中kerberos认证
+
+目前版本的wormhole支持全部启用kerberos认证的安全hadoop集群环境和不启用kerberos认证的hadoop集群环境，不支持部分组件启用，部分组件不启用的场景
+
+启用kerberos认证，需要在配置文件application.conf中对下列参数进行设置。参数及设置说明如下：
+
+```
+kerberos = {
+  keyTab=""      #the keyTab will be used on yarn
+  spark.principal=""   #the principal of spark
+  spark.keyTab=""      #the keyTab of spark
+  server.config=""     #the path of krb5.conf
+  jaas.startShell.config="" #the path of jaas config file which should be used by start.sh
+  jaas.yarn.config=""     #the path of jaas config file which will be uploaded to yarn
+  server.enabled=false   #enable wormhole connect to Kerberized cluster
+}
+```
+
+**特别说明：**
+
+   keyTab对应的keyTab文件与jaas.yarn.config对应的jaas.conf文件中指定的keyTab文件为同一个keyTab文件；
+
+   Spark.keyTab对应的keyTab文件与jaas.startShell.config对应的jaas.conf文件中指定的keyTab文件为同一个keyTab文件
+
+上述提到的两个keyTab文件必须不同名，内容可以是相同的。否则，启动spark stream时，将会报错。导致这种情况发生的原因是，为了在yarn上读取安全的kafka集群，我们需要在spark-submit的files参数中上传yarn上使用的keytab，但是，spark-submit的keytab文件也会被上传，两者会发生冲突，进而导致程序无法正常启动
+
+##### 注意事项
+
+在kerberosized cluster集群模式下，所有kafka topic都被严格控制创建、访问、写入权限，因此，一旦开启kerberos认证，wormhole将不再支持在kafka集群中没有wormhole_feedback与wormhole_heartbeat这两个topic的情况下，自动创建这两个topic的操作。所以，需要用户联系kafka集群的管理人员，由他创建这两个topic。
+
+目前，Wormhole仅支持kafka-0.10.2.2集群kerberos认证功能，其他版本kafka暂不支持kerberos认证。
+
+#### 授权远程访问
+
+设置 wormhole server mysql 数据库编码为 uft8，并授权可远程访问
+
+上传 mysql-connector-java-{version}.jar 至 $WORMHOLE_HOME/lib 目录
+
+须使用 application.conf 中 spark.wormholeServer.user 项对应的 Linux 用户启动服务，且须配置该 Linux 用户可通过 ssh 远程免密登录到自己
+
+若配置 Grafana，Grafana 须配置可使用 viewer 类型用户匿名登陆，并生成 admin 类型的 token，配置在 $WORMHOLE_HOME/conf/application.conf 中grafana.admin.token 项中
+
+切换到 root 用户，为 WormholeServer 启动用户授权读写 HDFS 目录，若失败，请根据提示手动授权
 
 ```
 #将 hadoop 改为 Hadoop 集群对应的 super-usergroup

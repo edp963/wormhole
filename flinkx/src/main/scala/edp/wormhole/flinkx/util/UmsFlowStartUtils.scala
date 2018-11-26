@@ -23,6 +23,7 @@ package edp.wormhole.flinkx.util
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.InputDataProtocolBaseType
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
+import edp.wormhole.flinkx.swifts.{FlinkxSwiftsConstants, FlinkxTimeCharacteristicConstants}
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
 import org.apache.log4j.Logger
@@ -61,7 +62,11 @@ object UmsFlowStartUtils {
     UmsFieldType.umsFieldValue(payloads.tuple, schemas, "stream_id").toString
   }
 
-  def extractFlowId(schemas: Seq[UmsField], payloads: UmsTuple):Long={
+  def extractDirectiveId(schemas: Seq[UmsField], payloads: UmsTuple): String = {
+    UmsFieldType.umsFieldValue(payloads.tuple, schemas, "directive_id").toString
+  }
+
+  def extractFlowId(schemas: Seq[UmsField], payloads: UmsTuple): Long = {
     UmsFieldType.umsFieldValue(payloads.tuple, schemas, "job_id").toString.toLong
   }
 
@@ -85,8 +90,8 @@ object UmsFlowStartUtils {
   }
 
   def extractTimeCharacteristic(swifts: JSONObject): String = {
-    if (swifts.containsKey("time_characteristic") && swifts.getString("time_characteristic").nonEmpty)
-      swifts.getString("time_characteristic")
+    if (swifts.containsKey(FlinkxTimeCharacteristicConstants.TIME_CHARACTERISTIC) && swifts.getString(FlinkxTimeCharacteristicConstants.TIME_CHARACTERISTIC).nonEmpty)
+      swifts.getString(FlinkxTimeCharacteristicConstants.TIME_CHARACTERISTIC)
     else null
   }
 
@@ -106,6 +111,21 @@ object UmsFlowStartUtils {
 
   def extractDataType(schemas: Seq[UmsField], payloads: UmsTuple): String = {
     UmsFieldType.umsFieldValue(payloads.tuple, schemas, "data_type").toString.toLowerCase()
+  }
+
+
+  def extractExceptionProcess(swiftsSpecificConfig: JSONObject): String = {
+    if (swiftsSpecificConfig!=null&&swiftsSpecificConfig.containsKey(FlinkxSwiftsConstants.EXCEPTION_PROCESS_METHOD) && swiftsSpecificConfig.getString(FlinkxSwiftsConstants.EXCEPTION_PROCESS_METHOD).nonEmpty) {
+      swiftsSpecificConfig.getString(FlinkxSwiftsConstants.EXCEPTION_PROCESS_METHOD)
+    }
+    else null
+  }
+
+
+  def extractSwiftsSpecialConfig(swifts: JSONObject): JSONObject = {
+    if (swifts.containsKey(FlinkxSwiftsConstants.SWIFTS_SPECIFIC_CONFIG) && (swifts.getJSONObject(FlinkxSwiftsConstants.SWIFTS_SPECIFIC_CONFIG) != null))
+      swifts.getJSONObject(FlinkxSwiftsConstants.SWIFTS_SPECIFIC_CONFIG)
+    else null
   }
 
 }

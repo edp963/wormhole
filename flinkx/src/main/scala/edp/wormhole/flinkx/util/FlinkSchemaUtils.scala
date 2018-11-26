@@ -181,7 +181,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
   }
 
   def findJsonSchema(config: WormholeFlinkxConfig, zkAddress: String, zkPath: String, sourceNamespace: String): UmsSchema = {
-    val consumer = WormholeKafkaConsumer.initConsumer(config.kafka_input.kafka_base_config.brokers, config.kafka_input.kafka_base_config.group_id, None)
+    val consumer = WormholeKafkaConsumer.initConsumer(config.kafka_input.kafka_base_config.brokers, config.kafka_input.kafka_base_config.group_id, None,config.kerberos)
     WormholeKafkaConsumer.subscribeTopicFromOffset(consumer, new WormholeFlinkxConfigUtils(config).getTopicOffsetMap)
     var correctData = false
     var record: UmsSchema = null
@@ -298,9 +298,15 @@ object FlinkSchemaUtils extends java.io.Serializable {
   else flinkType match {
     case Types.STRING => value.asInstanceOf[String].trim
     case Types.INT => value.asInstanceOf[Int]
-    case Types.LONG => value.asInstanceOf[Long]
+    case Types.LONG => value match {
+      case _:Int => value.asInstanceOf[Int].toLong
+      case _ => value.asInstanceOf[Long]
+    }
     case Types.FLOAT => value.asInstanceOf[Float]
-    case Types.DOUBLE => value.asInstanceOf[Double]
+    case Types.DOUBLE => value match {
+      case _: Float => value.asInstanceOf[Float].toDouble
+      case _ => value.asInstanceOf[Double]
+    }
     case Types.BOOLEAN => value.asInstanceOf[Boolean]
     case Types.SQL_DATE => if (value.isInstanceOf[Timestamp]) DateUtils.dt2sqlDate(value.asInstanceOf[Timestamp]) else DateUtils.dt2sqlDate(value.asInstanceOf[Date])
     case Types.SQL_TIMESTAMP => value.asInstanceOf[Timestamp]

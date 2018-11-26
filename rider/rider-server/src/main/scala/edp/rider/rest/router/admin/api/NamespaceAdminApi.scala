@@ -281,7 +281,8 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                   complete(OK, getHeader(403, session))
                 }
                 else {
-                  onComplete(namespaceDal.updateUmsInfo(id, ums, session.userId).mapTo[Int]) {
+                  val umsFinal = if (ums.jsonSample.isEmpty) null else ums
+                  onComplete(namespaceDal.updateUmsInfo(id, umsFinal, session.userId).mapTo[Int]) {
                     case Success(_) =>
                       riderLogger.info(s"user ${session.userId} update namespace source schema success.")
                       complete(OK, ResponseJson[SourceSchema](getHeader(200, session), ums))
@@ -308,7 +309,8 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                   complete(OK, getHeader(403, session))
                 }
                 else {
-                  onComplete(namespaceDal.updateSinkInfo(id, schema, session.userId).mapTo[Int]) {
+                  val schemaFinal = if(schema.jsonSample.isEmpty) null else schema
+                  onComplete(namespaceDal.updateSinkInfo(id, schemaFinal, session.userId).mapTo[Int]) {
                     case Success(_) =>
                       riderLogger.info(s"user ${session.userId} update namespace sink schema success.")
                       complete(OK, ResponseJson[SinkSchema](getHeader(200, session), schema))

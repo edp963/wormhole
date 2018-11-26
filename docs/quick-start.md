@@ -59,11 +59,13 @@ data_increment_data.kafka.edp.source.ums_extension.*.*.*@@@{"id": 1, "name": "te
 
 **7. Admin 创建 UDF**
 
-   **创建Spark UDF需要指定jar位置**
+   **创建Spark UDF需要将jar包放置到配置文件中HDFS中的udfjars目录下，即spark.wormhole.hdfs.root.path/udfjars**
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-udf-spark.png" alt="" width="600"/>
 
    **创建Flink UDF需要将相关jar包放置到Flink安装目录中的lib下**
+
+​    **注：Wormhole Flink UDF支持普通的java程序，而不需要按照Flink官方文档的格式实现UDF。使用例程请参考 [User Guide](https://edp963.github.io/wormhole/user-guide.html) 章节**
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-udf-flink.png" alt="" width="600"/>
 
@@ -227,6 +229,8 @@ data_increment_data.kafka.test.flinksource.source.*.*.*###{"protocol":{"type":"d
  	**点击”保存”按钮后，弹框关闭，之前的所有编辑都被保存成一条CEP Transformation记录，在原来的Transformation处显示出来。支持Processing time和Event time两种模式。（说明：由于wormhole支持一个flow内有多个CEP及Lookup SQL、Flink SQL的混合编排，因此，这里将显示一张表，记录了所有配置完毕的Transformation记录）**
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-transform-result-flink.png" alt="" width="600"/>
+
+**Flink中通过中Transformation Config设置“exception_process_method”字段可选择对流处理中异常信息的处理方式。现在能捕获读取kafka后数据预处理、lookup操作、写sink操作时的异常。处理方式有unhandle、interrupt、feedback三种。**
 
  **（3）提交flow**
 

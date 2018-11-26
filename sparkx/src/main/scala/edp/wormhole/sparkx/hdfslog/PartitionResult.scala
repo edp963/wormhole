@@ -1,6 +1,7 @@
 package edp.wormhole.sparkx.hdfslog
 
-case class PartitionResult(result: Boolean,
+case class PartitionResult(index:Int,
+                           result: Boolean,
                            errorFileName: String,
                            errorCount: Int,
                            errorMetaContent: String,

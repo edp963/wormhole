@@ -32,6 +32,7 @@ import edp.rider.rest.util.{CommonUtils, FlowUtils}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.FlowUtils._
 import edp.rider.service.util.CacheMap
+import edp.wormhole.util.DateUtils.dt2long
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.{CanBeQueryCondition, TableQuery}
 
@@ -160,11 +161,15 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
   }
 
   def updateStatusByAction(flowId: Long, flowNewStatus: String, startTime: Option[String], stopTime: Option[String]) = {
-    if (flowNewStatus == "starting" || flowNewStatus == "updating")
-      Await.result(db.run(flowTable.filter(flow =>
-        flow.id === flowId && flow.status =!= "running" && flow.status =!= "failed")
-        .map(c => (c.status, c.startedTime, c.stoppedTime)).update(flowNewStatus, startTime, stopTime)), minTimeOut)
-    else
+    var flag = true
+    if (flowNewStatus == "starting" || flowNewStatus == "updating") {
+      val flow = Await.result(super.findById(flowId), minTimeOut).get
+      if (flow.startedTime.nonEmpty && startTime.nonEmpty && dt2long(startTime.get) < dt2long(flow.startedTime.get))
+        flag = false
+      if (flow.stoppedTime.nonEmpty && stopTime.nonEmpty && dt2long(stopTime.get) < dt2long(flow.stoppedTime.get))
+        flag = false
+    }
+    if (flag)
       Await.result(db.run(flowTable.filter(_.id === flowId).map(c => (c.status, c.startedTime, c.stoppedTime)).update(flowNewStatus, startTime, stopTime)), minTimeOut)
   }
 
@@ -244,7 +249,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     val flowStream = Await.result(defaultGetAll(_.id inSet flowSeq.map(_.id)), minTimeOut)
     flowStream.foreach(flow => {
       if (flow.streamType == StreamType.SPARK.toString)
-        stopFlow(flow.streamId, flow.id, userId, flow.streamType, flow.sourceNs, flow.sinkNs, flow.tranConfig.getOrElse(""))
+        stopFlow(flow.streamId, flow.id, userId, flow.functionType, flow.sourceNs, flow.sinkNs, flow.tranConfig.getOrElse(""))
       else {
         if (flow.streamStatus == StreamStatus.RUNNING.toString && flow.status == FlowStatus.RUNNING.toString)
           stopFlinkFlow(flow.streamAppId.get, getFlowName(flow.sourceNs, flow.sinkNs))

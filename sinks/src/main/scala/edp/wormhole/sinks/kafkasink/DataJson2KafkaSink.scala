@@ -20,7 +20,7 @@ class DataJson2KafkaSink extends SinkProcessor {
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
     logger.info("In DataJson2KafkaSink")
-    WormholeKafkaProducer.init(connectionConfig.connectionUrl, connectionConfig.parameters)
+    WormholeKafkaProducer.init(connectionConfig.connectionUrl, connectionConfig.parameters,sinkProcessConfig.kerberos)
     val kafkaTopic = sinkNamespace.split("\\.")(2)
     //val protocol: UmsProtocol = UmsProtocol(protocolType)
     val targetSchemaStr = sinkProcessConfig.jsonSchema.get

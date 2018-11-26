@@ -169,7 +169,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                                   val ns = namespaceDal.getNsDetail(flow.sourceNs)
                                   val latestOffset =
                                     try {
-                                      KafkaUtils.getKafkaLatestOffset(ns._1.connUrl, ns._2.nsDatabase)
+                                      KafkaUtils.getKafkaLatestOffset(ns._1.connUrl, ns._2.nsDatabase, RiderConfig.kerberos.enabled)
                                     } catch {
                                       case _: Exception =>
                                         ""
@@ -351,8 +351,8 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
     val newTopics = topics.userDefinedTopics.filter(!userDefinedTopicsName.contains(_))
     val newTopicsOffset = newTopics.map(topic => {
       val kafkaInfo = flowDal.getFlowKafkaInfo(flowId)
-      val latestOffset = getKafkaLatestOffset(kafkaInfo._2, topic)
-      val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, topic)
+      val latestOffset = getKafkaLatestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.enabled)
+      val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.enabled)
       val consumedOffset = earliestOffset
       SimpleFlowTopicAllOffsets(topic, RiderConfig.flink.defaultRate, consumedOffset, earliestOffset, latestOffset)
     })
@@ -411,8 +411,8 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
     }
     val kafkaInfo = flowDal.getFlowKafkaInfo(flowId)
     // get kafka earliest/latest offset
-    val latestOffset = getKafkaLatestOffset(kafkaInfo._2, postTopic.name)
-    val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, postTopic.name)
+    val latestOffset = getKafkaLatestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.enabled)
+    val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.enabled)
 
     // response
     val topicResponse = SimpleFlowTopicAllOffsets(postTopic.name, RiderConfig.flink.defaultRate, earliestOffset, earliestOffset, latestOffset)

@@ -128,6 +128,7 @@ object EsTools {
             esid2VersionMap(id) = getLong(source, UmsSysField.ID.toString)
           } else esid2VersionMap(id) = -1
         } else {
+          esid2VersionMap(id) = -1
           logger.error("response doc:" + doc)
         }
       }

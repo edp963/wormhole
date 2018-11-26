@@ -91,8 +91,31 @@ object SubmitYarnJob extends App with RiderLogger {
           conf ++= Array(elem)
         }
       }*/
-      if (jvmDriverConfig != "") conf ++= Array(jvmDriverConfig)
-      if (jvmExecutorConfig != "") conf ++= Array(jvmExecutorConfig)
+
+      val relativePath=RiderConfig.kerberos.jaasYarnConfig.contains("/") match {
+        case true=>RiderConfig.kerberos.jaasYarnConfig.substring(RiderConfig.kerberos.jaasYarnConfig.lastIndexOf('/')+1)
+        case _=>RiderConfig.kerberos.jaasYarnConfig
+      }
+
+      val krb5Param=s" -Djava.security.auth.login.config=./${relativePath}"
+
+      if(RiderConfig.kerberos.enabled){
+        if(jvmDriverConfig!="")
+          conf++=Array(jvmDriverConfig.concat(krb5Param))
+        else
+          conf ++=Array(s"spark.driver.extraJavaOptions=$krb5Param")
+
+        if(jvmExecutorConfig!="")
+          conf++=Array(jvmExecutorConfig+krb5Param)
+        else
+          conf ++=Array(s"spark.executor.extraJavaOptions=$krb5Param")
+
+        conf++=Array("spark.hadoop.fs.hdfs.impl.disable.cache=true")
+      }else{
+        if(jvmDriverConfig!="")conf ++= Array(jvmDriverConfig)
+        if (jvmExecutorConfig != "")conf ++= Array(jvmExecutorConfig)
+      }
+
       if (othersConfig != "") conf ++= othersConfig.split(",")
       conf ++= Array(s"spark.yarn.tags=${RiderConfig.spark.appTags}")
       if (RiderConfig.spark.metricsConfPath != "") {
@@ -118,8 +141,12 @@ object SubmitYarnJob extends App with RiderLogger {
     val startCommand = startShell.map(l => {
       if (l.startsWith("--num-exe")) s" --num-executors " + executorsNum + " "
       else if (l.startsWith("--driver-mem")) s" --driver-memory " + driverMemory + s"g "
-      else if (l.startsWith("--files")) s" --files " + files + s" "
-      else if (l.startsWith("--queue")) s" --queue " + RiderConfig.spark.queueName + s" "
+      else if (l.startsWith("--files")) {
+        if(RiderConfig.kerberos.enabled)
+          s" --files " + files +","+ RiderConfig.kerberos.jaasYarnConfig+","+RiderConfig.kerberos.keyTab+s" "
+        else
+            s" --files " + files + s" "
+      }else if (l.startsWith("--queue")) s" --queue " + RiderConfig.spark.queueName + s" "
       else if (l.startsWith("--executor-mem")) s"  --executor-memory " + executorMemory + s"g "
       else if (l.startsWith("--executor-cores")) s"  --executor-cores " + executorCores + s" "
       else if (l.startsWith("--name")) s"  --name " + streamName + " "
@@ -137,8 +164,7 @@ object SubmitYarnJob extends App with RiderLogger {
       }
       else l
     }).mkString("").stripMargin.replace("\\", "  ") +
-//      realJarPath + " " + args + " 1> " + logPath + " 2>&1"
-      realJarPath + " " + args + " > " + logPath + " 2>&1 "
+    realJarPath + " " + args  + " > " + logPath + " 2>&1 "
 
     val finalCommand =
       if (RiderConfig.spark.alert)
@@ -147,7 +173,10 @@ object SubmitYarnJob extends App with RiderLogger {
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     //    println("final:" + submitPre + "/bin/spark-submit " + startCommand + realJarPath + " " + args + " 1> " + logPath + " 2>&1")
     //    println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    submitPre + "/bin/spark-submit " + finalCommand
+    if(RiderConfig.kerberos.enabled)
+      submitPre + s"/bin/spark-submit --principal ${RiderConfig.kerberos.sparkPrincipal} --keytab  ${RiderConfig.kerberos.sparkKeyTab} " + finalCommand
+    else
+      submitPre + "/bin/spark-submit " + finalCommand
   }
 
   // ./bin/yarn-session.sh -n 2 -tm 1024 -s 4 -jm 1024 -nm flinktest

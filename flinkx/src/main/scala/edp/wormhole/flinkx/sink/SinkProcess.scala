@@ -21,7 +21,7 @@
 package edp.wormhole.flinkx.sink
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.flinkx.common.WormholeFlinkxConfig
+import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.util.{FlinkSchemaUtils, UmsFlowStartUtils}
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.swifts.ConnectionMemoryStorage
@@ -32,11 +32,15 @@ import edp.wormhole.util.config.KVConfig
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.scala.{DataStream, _}
 import org.apache.flink.types.Row
+import org.slf4j.{Logger, LoggerFactory}
 
 
 object SinkProcess extends Serializable {
 
-  def doProcess(dataStream: DataStream[Row], umsFlowStart: Ums, schemaMap: Map[String, (TypeInformation[_], Int)],config: WormholeFlinkxConfig,initialTs:Long,swiftsTs:Long): Unit= {
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
+  private val sinkTag = OutputTag[String]("sinkException")
+
+  def doProcess(dataStream: DataStream[Row], umsFlowStart: Ums, schemaMap: Map[String, (TypeInformation[_], Int)],config: WormholeFlinkxConfig,initialTs:Long,swiftsTs:Long, exceptionConfig: ExceptionConfig): DataStream[Seq[Row]]= {
     val umsFlowStartSchemas: Seq[UmsField] = umsFlowStart.schema.fields_get
     val umsFlowStartPayload: UmsTuple = umsFlowStart.payload_get.head
     val sinksStr = UmsFlowStartUtils.extractSinks(umsFlowStartSchemas, umsFlowStartPayload)
@@ -45,7 +49,13 @@ object SinkProcess extends Serializable {
     val sinkNamespace = UmsFlowStartUtils.extractSinkNamespace(umsFlowStartSchemas, umsFlowStartPayload)
     registerConnection(sinks, sinkNamespace)
     val sinkProcessConfig:SinkProcessConfig=getSinkProcessConfig(sinks)
-    dataStream.map(new SinkMapper(schemaMapWithUmsType,sinkNamespace,sinkProcessConfig,umsFlowStart,ConnectionMemoryStorage.getDataStoreConnectionConfig(sinkNamespace),config,initialTs,swiftsTs))
+
+    val sinkDataStream = dataStream.process(new SinkProcessElement(schemaMapWithUmsType,exceptionConfig,sinkProcessConfig,umsFlowStart,ConnectionMemoryStorage.getDataStoreConnectionConfig(sinkNamespace), config, initialTs, swiftsTs, sinkTag))
+
+    val exceptionStream = sinkDataStream.getSideOutput(sinkTag)
+    exceptionStream.map(new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config))
+
+    sinkDataStream
   }
 
   private def registerConnection(sinks: JSONObject, sinkNamespace: String): Unit = {

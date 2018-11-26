@@ -365,7 +365,9 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           if (checkAction(stream.streamType, RENEW.toString, stream.status)) {
             renewStreamDirective(streamId, streamDirective, session.userId)
             riderLogger.info(s"user ${session.userId} renew stream $streamId success")
-            complete(OK, ResponseJson[StartResponse](getHeader(200, session), StartResponse(streamId, stream.status, getDisableActions(stream.streamType, stream.status), getHideActions(stream.streamType))))
+            complete(OK, ResponseJson[StartResponse](getHeader(200, session),
+              StartResponse(streamId, stream.status, getDisableActions(stream.streamType, stream.status), getHideActions(stream.streamType),
+                stream.sparkAppid, stream.startedTime, stream.stoppedTime)))
           } else {
             riderLogger.info(s"user ${session.userId} can't stop stream $streamId now")
             complete(OK, setFailedResponse(session, "renew is forbidden"))
@@ -404,8 +406,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
 
   private def startStreamDirective(streamId: Long, streamDirectiveOpt: Option[StreamDirective], userId: Long) = {
     // delete pre stream zk udf/topic node
-    PushDirective.removeTopicDirective(streamId, RiderConfig.zk)
-    PushDirective.removeUdfDirective(streamId, RiderConfig.zk)
+    PushDirective.removeTopicDirective(streamId)
+    PushDirective.removeUdfDirective(streamId)
     // set new stream directive
     if (streamDirectiveOpt.nonEmpty) {
       val streamDirective = streamDirectiveOpt.get
@@ -733,8 +735,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     }
     val kafkaInfo = streamDal.getKafkaInfo(streamId)
     // get kafka earliest/latest offset
-    val latestOffset = getKafkaLatestOffset(kafkaInfo._2, postTopic.name)
-    val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, postTopic.name)
+    val latestOffset = getKafkaLatestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.enabled)
+    val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.enabled)
 
     val topicResponse = SimpleTopicAllOffsets(postTopic.name, RiderConfig.spark.topicDefaultRate, earliestOffset, earliestOffset, latestOffset)
 
@@ -789,8 +791,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     val newTopics = topics.userDefinedTopics.filter(!userDefinedTopicsName.contains(_))
     val newTopicsOffset = newTopics.map(topic => {
       val kafkaInfo = streamDal.getKafkaInfo(streamId)
-      val latestOffset = getKafkaLatestOffset(kafkaInfo._2, topic)
-      val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, topic)
+      val latestOffset = getKafkaLatestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.enabled)
+      val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.enabled)
       val consumedOffset = earliestOffset
       SimpleTopicAllOffsets(topic, RiderConfig.spark.topicDefaultRate, consumedOffset, earliestOffset, latestOffset)
     })

@@ -27,7 +27,8 @@ case class SinkProcessConfig(sinkOutput:String,
                              jsonSchema:Option[String],
                              classFullname: String,
                              retryTimes: Int,
-                             retrySeconds: Int){
+                             retrySeconds: Int,
+                             kerberos:Boolean=false){
   lazy val tableKeyList = if (tableKeys.isEmpty || tableKeys.get == null) Nil else tableKeys.get.split(",").map(_.trim.toLowerCase).toList
 }
 

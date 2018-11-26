@@ -62,6 +62,8 @@ object LookupKuduHelper extends java.io.Serializable {
     val connectionConfig: ConnectionConfig = ConnectionMemoryStorage.getDataStoreConnectionsWithMap(dataStoreConnectionsMap, lookupNamespace)
 
     val dataTupleMap = mutable.HashMap.empty[String, mutable.ListBuffer[Array[Any]]]
+    KuduConnection.initKuduConfig(connectionConfig)
+    val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
     try {
       //connect
       val database = swiftsSql.lookupNamespace.get.split("\\.")(2)
@@ -70,9 +72,7 @@ object LookupKuduHelper extends java.io.Serializable {
       val tmpTableName = afterFromSql.substring(0, afterFromSql.indexOf(" ")).trim
       val tableName = KuduConnection.getTableName(tmpTableName, database)
       logger.info("tableName:" + tableName)
-      KuduConnection.initKuduConfig(connectionConfig)
 
-      val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
       val table: KuduTable = client.openTable(tableName)
 
       //value
@@ -104,10 +104,13 @@ object LookupKuduHelper extends java.io.Serializable {
         dataTupleMap(joinFieldsAsKey) = ListBuffer.empty[Array[Any]]
       }
       dataTupleMap(joinFieldsAsKey) += arrayBuf
-      KuduConnection.closeClient(client)
+
     } catch {
       case ex: Throwable =>
         ex.printStackTrace()
+        throw ex
+    } finally{
+      KuduConnection.closeClient(client)
     }
     dataTupleMap
   }
