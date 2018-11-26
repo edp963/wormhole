@@ -11,7 +11,7 @@ import scala.collection.mutable
 object UdfRegister {
   def register(udfName: String, udfClassFullname: String, tableEnv: StreamTableEnvironment) {
     //loadJar("file:D:/work/project/udftest/target/udf.test.1.0.0-jar-with-dependencies.jar")
-    val clazz = Class.forName(udfClassFullname)
+    /*val clazz = Class.forName(udfClassFullname)
     val method = {
       val methods = clazz.getMethods
       var callMethod: Method = null
@@ -22,7 +22,8 @@ object UdfRegister {
         }
       }
       callMethod
-    }
+    }*/
+    val (obj, method) = UdfUtils.getObjectAndMethod(udfName, udfClassFullname)
     val returnDataType = UdfUtils.convertFlinkType(method.getReturnType.getName)
     //if (!FlinkSchemaUtils.udfSchemaMap.contains(udfName))
     val udfNameLower = udfName.toLowerCase
