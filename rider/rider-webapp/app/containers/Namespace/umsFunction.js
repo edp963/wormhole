@@ -50,7 +50,8 @@ const TUPLE = 'tuple'
 // 获取非嵌套类型
 export function getBaseType () {
   return [INT, LONG, FLOAT, DOUBLE, DECIMAL, STRING, BOOLEAN, DATETIME, BINARY,
-    INTARRAY, LONGARRAY, FLOATARRAY, DOUBLEARRAY, DECIMALARRAY, STRINGARRAY, BOOLEANARRAY, DATETIMEARRAY, BINARYARRAY]
+    INTARRAY, LONGARRAY, FLOATARRAY, DOUBLEARRAY, DECIMALARRAY, STRINGARRAY, BOOLEANARRAY, DATETIMEARRAY, BINARYARRAY
+  ]
 }
 
 // 获取嵌套类型
@@ -251,36 +252,8 @@ export function renameAlter (array, index, rename) {
   return newArray
 }
 
-function genUmsField (array, type) {
-  let newArray = copyArray(array)
-
-  const umsArray = []
-  for (let i = 0; i < newArray.length; i++) {
-    if (newArray[i].ums_id_ || newArray[i].ums_ts_ || newArray[i].ums_op_ !== '') {
-      if (newArray[i].ums_id_) {
-        const object = genBaseField(newArray[i], type)
-        object.rename = 'ums_id_'
-        object.type = LONG
-        umsArray.push(object)
-      }
-      if (newArray[i].ums_ts_) {
-        const object = genBaseField(newArray[i], type)
-        object.rename = 'ums_ts_'
-        object.type = DATETIME
-        umsArray.push(object)
-      }
-      if (newArray[i].ums_op_ !== '') {
-        const object = genBaseField(newArray[i], type)
-        object.rename = 'ums_op_'
-        object.ums_sys_mapping = newArray[i].ums_op_
-        umsArray.push(object)
-      }
-    }
-  }
-  return umsArray
-}
-
 function genBaseField (fieldInfo, type) {
+  const fieldArray = []
   const fieldObject = {}
   fieldObject['name'] = fieldInfo.fieldName.split('#').pop()
   fieldObject['type'] = fieldInfo.fieldType
@@ -289,15 +262,37 @@ function genBaseField (fieldInfo, type) {
     if (fieldInfo.rename !== '' && fieldInfo.fieldName.split('#').pop() !== fieldInfo.rename) {
       fieldObject['rename'] = fieldInfo.rename
     }
-    if (fieldInfo.fieldType.startsWith(TUPLE)) {
+    if (fieldInfo.fieldType && fieldInfo.fieldType.startsWith(TUPLE)) {
       fieldObject['type'] = TUPLE
       fieldObject['tuple_sep'] = fieldInfo.fieldType.split('##')[1]
     }
+    fieldArray.push(fieldObject)
   }
-  return fieldObject
+  if (type === 'source' && fieldInfo.ums_id_ || fieldInfo.ums_ts_ || (fieldInfo.ums_op_ && fieldInfo.ums_op_ !== '')) {
+    const umsField = {}
+    if (fieldInfo.ums_id_) {
+      umsField['name'] = fieldObject.name
+      umsField['type'] = fieldObject.type
+      umsField['nullable'] = fieldObject.nullable
+      umsField['rename'] = 'ums_id_'
+    } else if (fieldInfo.ums_ts_) {
+      umsField['name'] = fieldObject.name
+      umsField['type'] = fieldObject.type
+      umsField['nullable'] = fieldObject.nullable
+      umsField['rename'] = 'ums_ts_'
+    } else if (fieldInfo.ums_op_) {
+      umsField['name'] = fieldObject.name
+      umsField['type'] = fieldObject.type
+      umsField['nullable'] = fieldObject.nullable
+      umsField['rename'] = 'ums_op_'
+      umsField['ums_sys_mapping'] = fieldInfo.ums_op_
+    }
+    fieldArray.push(umsField)
+  }
+  return fieldArray
 }
 
-// 用户点保存后，最终table数组为array2，调用genSchema方法，生成Json
+  // 用户点保存后，最终table数组为array2，调用genSchema方法，生成Json
 export function genSchema (array, type) {
   const fieldsObject = {}
   const fieldsArray = []
@@ -305,17 +300,13 @@ export function genSchema (array, type) {
   const selectedArray = selectedFields(array)
   for (let i = 0; i < selectedArray.length; i++) {
     if (selectedArray[i].hasOwnProperty('fieldName') && !selectedArray[i].fieldName.includes('#')) {
-      let fieldObject = genBaseField(selectedArray[i], type)
-      if (fieldObject.type === JSONARRAY || fieldObject.type === JSONOBJECT || fieldObject.type.startsWith('tuple')) {
-        fieldObject = genSubField(array.slice(i + 1, selectedArray.length), fieldObject, '', type)
-      }
-      fieldsArray.push(fieldObject)
-    }
-  }
-  if (type === 'source') {
-    const umsArray = genUmsField(array, type)
-    for (let i = 0; i < umsArray.length; i++) {
-      fieldsArray.push(umsArray[i])
+      let fieldArray = genBaseField(selectedArray[i], type)
+      fieldArray.forEach((fieldObject) => {
+        if (fieldObject.type === JSONARRAY || fieldObject.type === JSONOBJECT || fieldObject.type.startsWith('tuple')) {
+          fieldObject = genSubField(array.slice(i + 1, selectedArray.length), fieldObject, '', type)
+        }
+        fieldsArray.push(fieldObject)
+      })
     }
   }
   return fieldsObject
@@ -352,8 +343,8 @@ function getRenameIndex (renameArray, rename) {
   return -1
 }
 
-// 用户点保存时，调用getRepeatFieldIndex方法，返回重复rename数组，检查rename字段是否有重复，
-// 若数组的length为0，表示无重复，否则提示rename重复的位置，数组中的值为rename重复的index
+  // 用户点保存时，调用getRepeatFieldIndex方法，返回重复rename数组，检查rename字段是否有重复，
+  // 若数组的length为0，表示无重复，否则提示rename重复的位置，数组中的值为rename重复的index
 export function getRepeatFieldIndex (array) {
   let newArray = copyArray(array)
   const temp = newArray.filter(s => s.selected)
@@ -392,7 +383,7 @@ function lastPositionOfKeyPrefix (array, key) {
   return p
 }
 
-// 点击保存时，去除 selected === false的行
+  // 点击保存时，去除 selected === false的行
 function selectedFields (array) {
   for (let i = 0; i < array.length; i++) {
     if (array[i].selected === false) {
@@ -403,7 +394,7 @@ function selectedFields (array) {
   return array
 }
 
-// 生成基本字段数组array1，"jsonParseArray":array1）
+  // 生成基本字段数组array1，"jsonParseArray":array1）
 export function jsonParse (jsonSample, prefix, array) {
   for (let key in jsonSample) {
     let data = {}
@@ -466,7 +457,7 @@ function genFinalNameAndType (array) {
   return array
 }
 
-// 生成带有默认字段的完整数组，展示在表格中
+  // 生成带有默认字段的完整数组，展示在表格中
 export function genDefaultSchemaTable (array, type) {
   if (type === 'source') {
     let arrayFinal = array.map(i => {
@@ -501,10 +492,11 @@ function genSubField (array, fieldObject, prefix, type) {
   for (let i = 0; i < array.length; i++) {
     if (array[i].hasOwnProperty('fieldName') && array[i].fieldName.startsWith(prefix)) {
       if (array[i].fieldType !== JSONARRAY && array[i].fieldType !== JSONOBJECT && !array[i].fieldType.startsWith('tuple')) {
-        subFieldsArray.push(genBaseField(array[i], type))
+        const fieldArray = genBaseField(array[i], type)
+        fieldArray.forEach((fieldObject) => { subFieldsArray.push(fieldObject) })
       } else {
         let object = genBaseField(array[i], type)
-        object = genSubField(array.slice(i + 1, array.length), object, prefix, type)
+        object = genSubField(array.slice(i + 1, array.length), object[0], prefix, type)
         subFieldsArray.push(object)
         const step = object.hasOwnProperty('sub_fields') ? object.sub_fields.length : 0
         i = i + step
