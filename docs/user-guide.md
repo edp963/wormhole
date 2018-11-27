@@ -288,7 +288,13 @@ Wormhole Flink版对传输的流数据除了提供Lookup SQL、Flink SQL两种Tr
 
 Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可
 
-**聚合操作：**支持流上聚合操作。相关配置包括：
+**聚合操作：**支持流上聚合操作。
+
+process time处理方式中窗口中相应的字段名称为processing_time。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(processing_time, INTERVAL '1' HOUR), name;
+
+event time处理方式中窗口中相应的字段名称为ums_ts_。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(ums_ts, INTERVAL '1' HOUR), name;
+
+相关配置包括：
 
 - min_idle_state_retention_time：聚合相关key值状态被保留的最短时间，默认12hours
 
