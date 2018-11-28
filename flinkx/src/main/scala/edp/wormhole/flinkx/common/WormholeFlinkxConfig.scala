@@ -33,7 +33,7 @@ case class WormholeFlinkxConfig(flow_name: String,
                                 feedback_state_count:Int,
                                 kerberos: Boolean)
 
-case class UdfConfig(id: Long, functionName: String, fullClassName: String, jarName: String)
+case class UdfConfig(id: Long, functionName: String, fullClassName: String, jarName: String, mapOrAgg: String)
 case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,
                             kafka_topics: Seq[KafkaTopicConfig]
                            ) {
