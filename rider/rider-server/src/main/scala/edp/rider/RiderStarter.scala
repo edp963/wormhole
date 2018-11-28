@@ -66,7 +66,9 @@ object RiderStarter extends App with RiderLogger {
 
       CacheMap.cacheMapInit
 
-      ElasticSearch.initial(RiderConfig.es, RiderConfig.grafana)
+      if(RiderConfig.monitor.databaseType.equalsIgnoreCase("es"))
+         ElasticSearch.initial(RiderConfig.es)
+
 
       val props=new Properties()
 

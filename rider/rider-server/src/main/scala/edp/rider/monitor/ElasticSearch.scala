@@ -41,21 +41,21 @@ import scala.concurrent.{Await, Future}
 
 object ElasticSearch extends RiderLogger {
 
-  def initial(es: RiderEs, grafana: RiderMonitor): Unit = {
+  def initial(es: RiderEs): Unit = {
     if (es != null)
       createEsIndex()
     else
       riderLogger.warn(s"application.conf didn't config elasticsearch, so won't initial elasticsearch index, store wormhole stream and flow feedback_stats data")
-    if (grafana != null)
-      GrafanaApi.createOrUpdateDataSource(RiderConfig.grafana.url,
-        RiderConfig.grafana.adminToken,
-        RiderConfig.grafana.esDataSourceName,
-        RiderConfig.es.url,
-        RiderConfig.es.wormholeIndex,
-        RiderConfig.es.user,
-        RiderConfig.es.pwd)
-    else
-      riderLogger.warn(s"application.conf didn't config grafana, so won't initial grafana datasource, wormhole project performance will display nothing")
+//    if (grafana != null)
+//      GrafanaApi.createOrUpdateDataSource(RiderConfig.grafana.url,
+//        RiderConfig.grafana.adminToken,
+//        RiderConfig.grafana.esDataSourceName,
+//        RiderConfig.es.url,
+//        RiderConfig.es.wormholeIndex,
+//        RiderConfig.es.user,
+//        RiderConfig.es.pwd)
+//    else
+//      riderLogger.warn(s"application.conf didn't config grafana, so won't initial grafana datasource, wormhole project performance will display nothing")
 
   }
 

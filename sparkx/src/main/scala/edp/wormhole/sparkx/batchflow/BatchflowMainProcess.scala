@@ -317,8 +317,8 @@ object BatchflowMainProcess extends EdpLogging {
             val doneTs = System.currentTimeMillis
             processedSourceNamespace.add(sourceNamespace)
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-              UmsProtocolUtils.feedbackFlowStats(sourceNamespace, protocolType.toString, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, sinkNamespace,
-                count, DateUtils.dt2date(maxTs.split("\\+")(0).replace("T", " ")).getTime, rddTs, directiveTs, mainDataTs, swiftsTs, sinkTs, doneTs), None, config.kafka_output.brokers)
+              UmsProtocolUtils.feedbackFlowStats(sourceNamespace, protocolType.toString, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, sinkNamespace,topics,
+                count, DateUtils.dt2date(maxTs.split("\\+")(0).replace("T", " ")).getTime, rddTs, directiveTs, mainDataTs, swiftsTs, sinkTs, doneTs.toString), None, config.kafka_output.brokers)
           }
         }
         )
@@ -709,8 +709,8 @@ object BatchflowMainProcess extends EdpLogging {
                     if (!processedSourceNamespace(namespace)) {
                       val currentTs = System.currentTimeMillis()
                       WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-                        UmsProtocolUtils.feedbackFlowStats(namespace, UmsProtocolType.DATA_INCREMENT_DATA.toString, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, sinkNamespace,
-                          0, DateUtils.dt2date(umsts).getTime, currentTs, currentTs, currentTs, currentTs, currentTs, currentTs), None, config.kafka_output.brokers)
+                        UmsProtocolUtils.feedbackFlowStats(namespace, UmsProtocolType.DATA_INCREMENT_DATA.toString, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, sinkNamespace,topics,
+                          0, DateUtils.dt2date(umsts).getTime, currentTs, currentTs, currentTs, currentTs, currentTs, currentTs.toString), None, config.kafka_output.brokers)
                     }
                 }
               }

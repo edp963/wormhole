@@ -43,6 +43,9 @@ import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.runtime.kryo.JavaSerializer
+import org.apache.flink.configuration.Configuration
+import org.apache.flink.runtime.metrics.{MetricRegistryConfiguration, MetricRegistryImpl}
+import org.apache.flink.runtime.metrics.groups.TaskManagerMetricGroup
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010
@@ -151,16 +154,32 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
         consumeProtocolMap.contains(umsProtocolType) && consumeProtocolMap(umsProtocolType) && matchNamespace(namespace, flowNamespace)
       })
     val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
-    //processStream.flatMap(new UmsFlatMapper(sourceSchemaMap.toMap, sourceNamespace, jsonSourceParseMap))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
-    val inputStream = processStream.process(new UmsProcessElement(sourceSchemaMap.toMap, exceptionConfig, jsonSourceParseMap, kafkaDataTag))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
+
+    val inputStream = processStream.process(new UmsProcessElement(sourceSchemaMap.toMap, config, exceptionConfig, jsonSourceParseMap, kafkaDataTag, assignMetricConfig))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
     //handle kafka data exception sideoutput
     val exceptionStream = inputStream.getSideOutput(kafkaDataTag)
-    exceptionStream.map(stream => {
+   exceptionStream.map(stream => {
       logger.info("--------------------ums parse exception stream:" + stream)
       ExceptionProcess.doExceptionProcess(exceptionProcessMethod, stream, config)
     })
     //return
     inputStream
+  }
+
+  private def assignMetricConfig():Configuration={
+    val mConfig=new Configuration()
+    mConfig.setString("metrics.reporters","feedbackState")
+    mConfig.setString("metrics.reporter.feedbackState.class","edp.wormhole.flinkx.util.FeedbackMetricsReporter")
+    mConfig.setString("metrics.reporter.feedbackState.interval",config.feedback_interval+" SECONDS")
+    mConfig.setString("metrics.reporter.feedbackState.scope.delimiter",".")
+    mConfig.setString("metrics.reporter.feedbackState.sourceNamespace",sourceNamespace)
+    mConfig.setString("metrics.reporter.feedbackState.sinkNamespace",sinkNamespace)
+    mConfig.setString("metrics.reporter.feedbackState.streamId",streamId.toString)
+    mConfig.setString("metrics.reporter.feedbackState.topic",config.kafka_output.feedback_topic_name)
+    mConfig.setString("metrics.reporter.feedbackState.kerberos",config.kerberos.toString)
+    mConfig.setString("metrics.reporter.feedbackState.brokers",config.kafka_output.brokers)
+    mConfig.setInteger("metrics.reporter.feedbackState.feedbackCount",config.feedback_state_count)
+    mConfig
   }
 
   private def assignTimeCharacteristic(env: StreamExecutionEnvironment): Unit = {
