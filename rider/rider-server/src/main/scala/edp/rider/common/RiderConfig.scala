@@ -321,6 +321,11 @@ object RiderConfig {
       })
     else List()
 
+  lazy val dbusUrl =
+    if (config.hasPath("dbus.namespace.rest.api.url"))
+      config.getStringList("dbus.namespace.rest.api.url")
+    else null
+
   lazy val kerberos=RiderKerberos(getStringConfig("kerberos.keyTab",""),
     getStringConfig("kerberos.server.config",""),
     getStringConfig("kerberos.jaas.startShell.config",""),
