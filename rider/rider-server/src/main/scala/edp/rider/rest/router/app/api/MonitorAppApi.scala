@@ -23,7 +23,7 @@ package edp.rider.rest.router.app.api
 
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
-import edp.rider.common.RiderLogger
+import edp.rider.common.{RiderConfig,RiderLogger}
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.dal._
 import edp.rider.rest.persistence.entities._
@@ -39,7 +39,7 @@ import edp.wormhole.util.JsonUtils
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
-class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamDal, jobDal: JobDal, feedbackFlowErrDal: FeedbackFlowErrDal, feedbackOffsetDal: FeedbackOffsetDal) extends BaseAppApiImpl(flowDal) with RiderLogger with JsonSerializer {
+class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamDal, jobDal: JobDal, feedbackFlowErrDal: FeedbackFlowErrDal, feedbackOffsetDal: FeedbackOffsetDal, monitorInfoDal:MonitorInfoDal) extends BaseAppApiImpl(flowDal) with RiderLogger with JsonSerializer {
 
   def getFlowHealthByIdRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows" / LongNumber / "health") {
     (projectId, streamId, flowId) =>
@@ -71,7 +71,8 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                           Await.result(feedbackFlowErrDal.getSinkErrorMaxWatermark(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse("")
                         val minWatermark = Await.result(feedbackFlowErrDal.getSinkErrorMinWatermark(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse("")
                         val errorCount = Await.result(feedbackFlowErrDal.getSinkErrorCount(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse(0L)
-                        val fLatestWatermark = ElasticSearch.queryESFlowMax(projectId, streamId, flowId, "dataGeneratedTs")._2
+                        val fLatestWatermark = if(RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es")) ElasticSearch.queryESFlowMax(projectId, streamId, flowId, "dataGeneratedTs")._2
+                            else Await.result(monitorInfoDal.queryESFlowLastestTs(projectId, streamId, flowId),maxTimeOut).getOrElse("")
                         val hdfsFlow = flowDal.getByNsOnly(flowStream.sourceNs, flowStream.sourceNs)
                         val hdfsLatestWatermark =
                           if (hdfsFlow.isEmpty) ""
@@ -80,7 +81,8 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                             val streamDuration =
                               if (hdfsStream.nonEmpty) StreamUtils.getDuration(hdfsStream.head.launchConfig)
                               else 10
-                            val esFlowTs = ElasticSearch.queryESFlowMax(projectId, hdfsFlow.head.streamId, hdfsFlow.head.id, "dataGeneratedTs")._2
+                            val esFlowTs = if(RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es")) ElasticSearch.queryESFlowMax(projectId, hdfsFlow.head.streamId, hdfsFlow.head.id, "dataGeneratedTs")._2
+                                else Await.result(monitorInfoDal.queryESFlowLastestTs(projectId, hdfsFlow.head.streamId, hdfsFlow.head.id),maxTimeOut).getOrElse("")
                             yyyyMMddHHmmss(dt2long(esFlowTs) - streamDuration * 1000 * 1000)
                           }
                         riderLogger.error(s"user ${session.userId} request for flow $flowId health where project id is $projectId success")
@@ -126,7 +128,8 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                               try {
                                 val streamInfo = Await.result(streamDal.findById(streamId), minTimeOut).head
                                 val sparkApplicationId = streamInfo.sparkAppid.get
-                                val sLatestWatermark = ElasticSearch.queryESStreamMax(projectId, streamId, "dataGeneratedTs")._2
+                                val sLatestWatermark = if(RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es")) ElasticSearch.queryESStreamMax(projectId, streamId, "dataGeneratedTs")._2
+                                    else Await.result(monitorInfoDal.queryESStreamLastestTs(projectId, streamId),minTimeOut).getOrElse("")
                                 val launchConfig = JsonUtils.json2caseClass[LaunchConfig](stream.launchConfig)
                                 val batchThreshold = launchConfig.maxRecords.toInt
                                 val batchDuration = launchConfig.durations.toInt
