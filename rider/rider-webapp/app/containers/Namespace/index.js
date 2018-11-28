@@ -154,7 +154,10 @@ export class Namespace extends React.PureComponent {
       sinkSchemaModalVisible: false,
       sinkTableDataSource: [],
       sinkJsonSampleValue: [],
-      sinkSelectAllState: 'all'
+      sinkSelectAllState: 'all',
+
+      umsopable: false,
+      umsopKey: -1
     }
   }
 
@@ -889,7 +892,9 @@ export class Namespace extends React.PureComponent {
         umsTableDataSource: [],
         umsTypeSeleted: 'ums',
         umsopRecordValue: -1,
-        repeatRenameArr: []
+        repeatRenameArr: [],
+        umsopable: false,
+        umsopKey: -1
       })
       this.schemaTypeConfig.resetFields()
     })
@@ -1110,6 +1115,9 @@ export class Namespace extends React.PureComponent {
     this.setState({ sinkTableDataSource: [] })
   }
 
+  getUmSopable = (umsopable, umsopKey) => {
+    this.setState({umsopable, umsopKey})
+  }
   onChangeUmsJsonToTable = () => {
     const cmVal = this.cmSample.doc.getValue()
     const { locale } = this.props
@@ -1131,7 +1139,9 @@ export class Namespace extends React.PureComponent {
         umsTableDataSource: tableArray.map((s, index) => {
           s.key = index
           return s
-        })
+        }),
+        umsopable: false,
+        umsopKey: -1
       })
     }
   }
@@ -1879,6 +1889,7 @@ export class Namespace extends React.PureComponent {
             initChangeSelected={this.initChangeSelected}
             initChangeUmsType={this.initChangeUmsType}
             onChangeJsonToTable={this.onChangeUmsJsonToTable}
+            emitUmSopable={this.getUmSopable}
             initEditRename={this.initEditRename}
             initSelectUmsIdTs={this.initSelectUmsIdTs}
             initUmsopOther2Tuple={this.initUmsopOther2Tuple}
@@ -1893,6 +1904,8 @@ export class Namespace extends React.PureComponent {
             repeatRenameArr={this.state.repeatRenameArr}
             repeatArrayArr={this.state.repeatArrayArr}
             selectAllState={this.state.selectAllState}
+            umsopable={this.state.umsopable}
+            umsopKey={this.state.umsopKey}
             namespaceClassHide={namespaceClassHide}
             ref={(f) => { this.schemaTypeConfig = f }}
           />
