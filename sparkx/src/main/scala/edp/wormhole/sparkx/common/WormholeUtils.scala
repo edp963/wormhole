@@ -43,7 +43,7 @@ object WormholeUtils {
   private lazy val logger = Logger.getLogger(this.getClass)
 
   def getFieldContentByTypeForSql(row: Row, schema: Array[StructField], i: Int): Any = {
-    if (schema(i).dataType.toString.equals("StringType")) {
+    if (schema(i).dataType.toString.equals("StringType") || schema(i).dataType.toString.equals("DateType") || schema(i).dataType.toString.equals("TimestampType")) {
       //if (row.get(i) == null) "''"  // join fields cannot be null
       if (row.get(i) == null) null
       else "'" + row.get(i) + "'"
