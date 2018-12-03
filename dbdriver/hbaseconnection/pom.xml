@@ -59,6 +59,10 @@
                     <groupId>com.github.stephenc.findbugs</groupId>
                     <artifactId>findbugs-annotations</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-core</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
