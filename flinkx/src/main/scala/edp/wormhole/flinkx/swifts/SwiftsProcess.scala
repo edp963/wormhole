@@ -86,7 +86,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
       table = tableEnv.sqlQuery(newSql)
       table.printSchema()
       val key = s"swifts$index"
-      val value = FlinkSchemaUtils.getSchemaMapFromTable(table.getSchema, projectClause, FlinkSchemaUtils.udfSchemaMap.toMap)
+      val value = FlinkSchemaUtils.getSchemaMapFromTable(table.getSchema, projectClause, FlinkSchemaUtils.udfSchemaMap.toMap, specialConfigObj)
       preSchemaMap = value
       FlinkSchemaUtils.setSwiftsSchema(key, value)
     } catch {
@@ -110,14 +110,16 @@ class SwiftsProcess(dataStream: DataStream[Row],
 
   private def covertTable2Stream(table: Table): DataStream[Row] = {
     val columnNames = table.getSchema.getColumnNames
-    val columnTypes = replaceTimeIndicatorType(table.getSchema.getTypes)
+    //val columnTypes = replaceTimeIndicatorType(table.getSchema.getTypes)
+    val columnTypes = FlinkSchemaUtils.tableFieldTypeArray(table.getSchema, preSchemaMap)
     if (null != specialConfigObj && specialConfigObj.containsKey(FlinkxSwiftsConstants.PRESERVE_MESSAGE_FLAG) && specialConfigObj.getBooleanValue(FlinkxSwiftsConstants.PRESERVE_MESSAGE_FLAG)) {
       val columnNamesWithMessageFlag: Array[String] = columnNames ++ Array(FlinkxSwiftsConstants.MESSAGE_FLAG)
       val columnTypesWithMessageFlag: Array[TypeInformation[_]] = columnTypes ++ Array(Types.BOOLEAN)
       val resultDataStream = table.toRetractStream[Row](getQueryConfig).map(tuple => {
         val rowWithMessageFlag = new Row(columnNames.length + 1)
-        for (i <- 0 to columnNames.length)
+        for (i <- 0 until columnNames.length) {
           rowWithMessageFlag.setField(i, tuple._2.getField(i))
+        }
         rowWithMessageFlag.setField(columnNames.length, tuple._1)
         rowWithMessageFlag
       })(Types.ROW(columnNamesWithMessageFlag, columnTypesWithMessageFlag))
