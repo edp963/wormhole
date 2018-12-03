@@ -56,7 +56,7 @@ trait RoutesModuleImpl {
   lazy val jobAppService = new JobAppApi(jobDal, projectDal)
   lazy val flowAppService = new FlowAppApi(flowDal, streamDal, projectDal)
   lazy val monitorAppService = new MonitorAppApi(flowDal, projectDal, streamDal, jobDal, feedbackFlowErrDal, feedbackOffsetDal, monitorInfoDal)
-
+  lazy val monitorService=new MonitorApi(flowDal,streamDal,monitorInfoDal)
 
 }
 

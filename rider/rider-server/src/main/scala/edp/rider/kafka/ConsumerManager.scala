@@ -27,10 +27,10 @@ import edp.rider.module.{ActorModuleImpl, ConfigurationModule, PersistenceModule
 import org.apache.kafka.clients.consumer.KafkaConsumer
 
 
-class ConsumerManager(modules: ConfigurationModule with PersistenceModule with ActorModuleImpl,consumer:KafkaConsumer[String, String]) extends RiderLogger {
+class ConsumerManager(modules: ConfigurationModule with PersistenceModule with ActorModuleImpl) extends RiderLogger {
   implicit val system = modules.system
 
-  val RiderConsumer: ActorRef = system.actorOf(Props(new RiderConsumer(modules,consumer)))
+  val RiderConsumer: ActorRef = system.actorOf(Props(new RiderConsumer(modules)))
   //  val ConsumerManagerProxy = system.actorOf(AkkaRetry.props(retryTimes = 5, retryTimeOut = 3000.millis, retryInterval = 5000.millis, RiderConsumer))
 
   def stopManager = {

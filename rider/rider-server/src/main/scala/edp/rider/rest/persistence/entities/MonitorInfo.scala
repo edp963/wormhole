@@ -26,6 +26,8 @@ import edp.rider.rest.persistence.base.{BaseEntity, BaseTable}
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.{Rep, Tag}
 
+import scala.collection.mutable.ListBuffer
+
 
 
 case class MonitorInfo(
@@ -37,6 +39,7 @@ case class MonitorInfo(
                         flowId: Long,
                         flowNamespace: String,
                         rddCount: Int,
+                        topics: String,
                         throughput: Long,
                         dataGeneratedTs: String,
                         rddTs: String,
@@ -70,6 +73,38 @@ case class MonitorInfo(
 
 case class StreamMonitorInfo(streamId: Long, flowNs: String)
 
+case class MonitorTimeSpan(startTime:Long, endTime:Long)
+
+case class MonitorNumberWidget(count:Long,umsTs:Long)
+
+case class MonitorIntervalWidget(time:Long,umsTs:Long)
+
+case class MonitorFlowInfo(flowName:String,
+                           rddCountMetrics:ListBuffer[MonitorNumberWidget]=new ListBuffer[MonitorNumberWidget](),
+                           dataIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
+                           rddIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
+                           swiftIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
+                           sinkIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
+                           doneIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
+                           dataDoneIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
+                           rddDoneIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
+                           swiftSinkIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
+                           sinkDoneIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget]())
+
+case class MonitorMetric(flowName:String="",
+                          rddCountMetric:MonitorNumberWidget=MonitorNumberWidget(0L,0L),
+                         dataIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
+                         rddIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
+                         swiftIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
+                         sinkIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
+                         doneIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
+                         dataDoneIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
+                         rddDoneIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
+                         swiftSinkIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
+                         sinkDoneIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L))
+
+case class MonitorDashBoard(flowMetrics:Seq[MonitorFlowInfo])
+
 case class Interval(intervalDataProcessToDataums:Long,
                     intervalDataProcessToRdd:Long,
                     intervalDataProcessToSwifts:Long,
@@ -82,7 +117,7 @@ case class Interval(intervalDataProcessToDataums:Long,
 
 class MonitorInfoTable(_tableTag: Tag) extends BaseTable[MonitorInfo](_tableTag, "feedback_flow_stats"){
   def * =(id,umsTs,projectId,streamId,streamName,flowId,flowNamespace,rddCount,
-      throughput,dataGeneratedTs,rddTs,directiveTs,DataProcessTs,swiftsTs,sinkTs,doneTs,
+      topics,throughput,dataGeneratedTs,rddTs,directiveTs,DataProcessTs,swiftsTs,sinkTs,doneTs,
       interval) <> ((MonitorInfo.apply _).tupled,MonitorInfo.unapply)
   def interval=(intervalDataProcessToDataums,intervalDataProcessToRdd,intervalDataProcessToSwifts,
     intervalDataProcessToSink,intervalDataProcessToDone,intervalDataumsToDone,intervalRddToDone,intervalSwiftsToSink,intervalSinkToDone) <> ((Interval.apply _).tupled,Interval.unapply)
@@ -93,6 +128,7 @@ class MonitorInfoTable(_tableTag: Tag) extends BaseTable[MonitorInfo](_tableTag,
   val flowId:Rep[Long]=column[Long]("flow_id")
   val flowNamespace:Rep[String]=column[String]("flow_namespace")
   val rddCount:Rep[Int]=column[Int]("rdd_count")
+  val topics:Rep[String]=column[String]("topics")
   val throughput:Rep[Long]=column[Long]("throughput")
   val dataGeneratedTs:Rep[String]=column[String]("data_generated_ts")
   val rddTs:Rep[String]=column[String]("rdd_ts")

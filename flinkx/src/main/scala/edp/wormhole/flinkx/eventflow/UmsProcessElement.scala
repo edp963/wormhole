@@ -81,7 +81,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
     if(firstUmsTs==0L||umsTs<firstUmsTs)firstUmsTs=umsTs
     if(lastUmsTs==0L||umsTs>lastUmsTs)lastUmsTs=umsTs
   }
-  lastTopicInfo
+
   def startMetricsMoinitoring(protocolType:String):Unit={
     metricsGroup.counter("summary",summary)
     metricsGroup.gauge[String,ScalaGauge[String]]("lastTopicOffset",ScalaGauge(()=>protocolType+"~"+lastTopicInfo+"~"+firstUmsTs+"~"+lastUmsTs))
