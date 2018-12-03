@@ -36,26 +36,27 @@ import edp.wormhole.util.JsonUtils
 import org.json4s.JsonAST.JNull
 import org.json4s.{DefaultFormats, Formats, JValue}
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 object ElasticSearch extends RiderLogger {
 
-  def initial(es: RiderEs, grafana: RiderMonitor): Unit = {
+  def initial(es: RiderEs): Unit = {
     if (es != null)
       createEsIndex()
     else
       riderLogger.warn(s"application.conf didn't config elasticsearch, so won't initial elasticsearch index, store wormhole stream and flow feedback_stats data")
-    if (grafana != null)
-      GrafanaApi.createOrUpdateDataSource(RiderConfig.grafana.url,
-        RiderConfig.grafana.adminToken,
-        RiderConfig.grafana.esDataSourceName,
-        RiderConfig.es.url,
-        RiderConfig.es.wormholeIndex,
-        RiderConfig.es.user,
-        RiderConfig.es.pwd)
-    else
-      riderLogger.warn(s"application.conf didn't config grafana, so won't initial grafana datasource, wormhole project performance will display nothing")
+//    if (grafana != null)
+//      GrafanaApi.createOrUpdateDataSource(RiderConfig.grafana.url,
+//        RiderConfig.grafana.adminToken,
+//        RiderConfig.grafana.esDataSourceName,
+//        RiderConfig.es.url,
+//        RiderConfig.es.wormholeIndex,
+//        RiderConfig.es.user,
+//        RiderConfig.es.pwd)
+//    else
+//      riderLogger.warn(s"application.conf didn't config grafana, so won't initial grafana datasource, wormhole project performance will display nothing")
 
   }
 
@@ -148,6 +149,54 @@ object ElasticSearch extends RiderLogger {
       }
       (response._1, maxValue)
     } else (false, "")
+  }
+
+  def queryESFlowMonitor(projectId: Long,flowId: Long, startTime: Long, endTime: Long)={
+    val list=ListBuffer[MonitorInfo]()
+    if (RiderConfig.es != null) {
+      val postBody = ReadJsonFile.getMessageFromJson(JsonFileType.ESFLOW)
+        .replace("#PROJECT_ID#", projectId.toString)
+        .replace("#FLOW_ID#", flowId.toString)
+        .replace("#START_TIME", startTime.toString)
+        .replace("#END_TIME#", endTime.toString)
+      val url = getESUrl + "_search"
+      riderLogger.debug(s"queryESFlowMonitor url $url $postBody")
+      val response = syncToES(postBody, url, HttpMethods.POST, CommonUtils.minTimeOut)
+      if (response._1) {
+        val result = JsonUtils.getList(JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits"), s"_source")
+        implicit val json4sFormats: Formats = DefaultFormats
+        if(!result.isEmpty){
+          result.foreach(json=>list+=JsonUtils.json2caseClass[MonitorInfo](json.toString))
+        }
+      }else{
+        riderLogger.error(s"Failed to get flow info from ES response")
+      }
+      (response._1,list)
+    }else (false, list)
+  }
+
+  def queryESStreamMonitor(projectId: Long, streamId: Long, startTime: Long, endTime: Long)={
+    val list=ListBuffer[MonitorInfo]()
+    if (RiderConfig.es != null) {
+      val postBody = ReadJsonFile.getMessageFromJson(JsonFileType.ESSTREAM)
+        .replace("#PROJECT_ID#", projectId.toString)
+        .replace("#STREAM_ID#", streamId.toString)
+        .replace("#START_TIME", startTime.toString)
+        .replace("#END_TIME#", endTime.toString)
+      val url = getESUrl + "_search"
+      riderLogger.debug(s"queryESStreamMonitor url $url $postBody")
+      val response = syncToES(postBody, url, HttpMethods.POST, CommonUtils.minTimeOut)
+      if (response._1) {
+        val result = JsonUtils.getList(JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits"), s"_source")
+        implicit val json4sFormats: Formats = DefaultFormats
+        if(!result.isEmpty){
+          result.foreach(json=>list+=JsonUtils.json2caseClass[MonitorInfo](json.toString))
+        }
+      }else{
+        riderLogger.error(s"Failed to get stream info from ES response")
+      }
+      (response._1,list)
+    }else (false, list)
   }
 
   def deleteEsHistory(fromDate: String, endDate: String): Int = {

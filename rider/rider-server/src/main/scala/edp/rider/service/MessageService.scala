@@ -22,7 +22,7 @@
 package edp.rider.service
 
 import edp.rider.common.FlowStatus._
-import edp.rider.common.{RiderLogger, TopicPartitionOffset}
+import edp.rider.common.{RiderConfig,RiderLogger, TopicPartitionOffset}
 import edp.rider.module.{ConfigurationModule, PersistenceModule}
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.entities._
@@ -210,6 +210,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val umsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
         val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
         val statsIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stats_id")
+        val topics=UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics")
         val sinkNamespaceValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace").toString
         val rddCountValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_count").toString.toInt
         val cdcTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_genereated_ts").toString.toLong
@@ -238,9 +239,9 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
             throughput = rddCountValue.toString.toInt
           } else throughput = rddCountValue.toString.toInt / interval_rdd_done
 
-          val monitorInfo = MonitorInfo(statsIdValue.toString,
+          val monitorInfo = MonitorInfo(statsIdValue.toString.toLong,
             string2EsDateString(umsTsValue.toString),
-            CacheMap.getProjectId(streamIdValue.toString.toLong), streamIdValue.toString.toLong, CacheMap.getStreamName(streamIdValue.toString.toLong), CacheMap.getFlowId(flowName), flowName, rddCountValue.toString.toInt, throughput,
+            CacheMap.getProjectId(streamIdValue.toString.toLong), streamIdValue.toString.toLong, CacheMap.getStreamName(streamIdValue.toString.toLong), CacheMap.getFlowId(flowName), flowName, rddCountValue.toString.toInt, topics.toString, throughput,
             string2EsDateString(DateUtils.dt2string(cdcTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(rddTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(directiveTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
@@ -248,9 +249,13 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
             string2EsDateString(DateUtils.dt2string(swiftsTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(sinkTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(doneTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
-            interval_data_process_dataums, interval_data_process_rdd, interval_data_process_swifts, interval_data_process_sink, interval_data_process_done,
-            interval_data_ums_done, interval_rdd_done, interval_data_swifts_sink, interval_data_sink_done)
-          ElasticSearch.insertFlowStatToES(monitorInfo)
+            Interval(interval_data_process_dataums, interval_data_process_rdd, interval_data_process_swifts, interval_data_process_sink, interval_data_process_done,
+            interval_data_ums_done, interval_rdd_done, interval_data_swifts_sink, interval_data_sink_done))
+            if(RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es")){
+              ElasticSearch.insertFlowStatToES(monitorInfo)
+            }else{
+              modules.monitorInfoDal.insert(monitorInfo)
+            }
         } else {
           riderLogger.error(s"Failed to get value from FeedbackFlowStats", tuple)
         }
