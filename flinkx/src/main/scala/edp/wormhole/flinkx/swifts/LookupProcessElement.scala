@@ -21,6 +21,7 @@ package edp.wormhole.flinkx.swifts
 
 import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess}
 import edp.wormhole.flinkx.swifts.custom.{LookupHbaseHelper, LookupKuduHelper, LookupRedisHelper}
+import edp.wormhole.flinkx.util.FeedbackUtils
 import edp.wormhole.ums.{UmsDataSystem, UmsProtocolUtils}
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
@@ -81,19 +82,15 @@ class LookupProcessElement(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (Type
     } catch {
       case ex: Throwable =>
         logger.error("in doFlinkSql table query", ex)
-        out.collect(Seq(value))
+        //out.collect(Seq(value))
 
         val dataInfoIt: Iterable[String] = preSchemaMap.map {
           case (schemaName, (_, pos)) =>
-            ExceptionProcess.feedbackDataInfo(schemaName, pos, value)
+            FeedbackUtils.feedbackDataInfo(schemaName, pos, value)
         }
         val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
 
         ctx.output(lookupTag, UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
     }
   }
-}
-
-object LookupProcessElement {
-
 }

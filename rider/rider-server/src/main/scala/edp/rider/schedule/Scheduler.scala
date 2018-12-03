@@ -35,8 +35,7 @@ object Scheduler extends ConfigurationModuleImpl with RiderLogger {
   def start: Unit = {
     val system = modules.system
     val schedulerActor: ActorRef = system.actorOf(Props[SchedulerActor])
-    system.scheduler.schedule(30.seconds, 1.days, schedulerActor, "databaseMaintenance")
-
+    system.scheduler.schedule(20.minute, 1.days, schedulerActor, "databaseMaintenance")
   }
 
   class SchedulerActor extends Actor {

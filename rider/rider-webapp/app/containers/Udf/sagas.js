@@ -109,7 +109,8 @@ export function* addUdf ({payload}) {
         jarName: payload.values && payload.values.jarName || '',
         desc: payload.values.desc,
         streamType: payload.values.streamType,
-        public: publicFinal
+        public: publicFinal,
+        mapOrAgg: payload.values.mapOrAgg
       }
     })
     if (result.code && (result.code === 409 || result.code === 412)) {
@@ -159,7 +160,8 @@ export function* editUdf ({payload}) {
         createBy: payload.values.createBy,
         updateTime: payload.values.updateTime,
         updateBy: payload.values.updateBy,
-        streamType: payload.values.streamType
+        streamType: payload.values.streamType,
+        mapOrAgg: payload.values.mapOrAgg
       }
     })
     if (result.code && result.code === 412) {

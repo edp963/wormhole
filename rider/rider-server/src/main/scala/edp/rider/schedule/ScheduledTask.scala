@@ -45,8 +45,7 @@ object ScheduledTask extends RiderLogger {
       modules.feedbackHeartbeatDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
       modules.feedbackStreamErrDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
 
-
-      FeedbackOffsetUtil.deleteFeedbackOffsetHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
+      modules.feedbackOffsetDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
       riderLogger.info(s"delete the feedback history past ${RiderConfig.maintenance.mysqlRemain} days")
       if(RiderConfig.monitor.databaseType.equalsIgnoreCase("es") && RiderConfig.es != null){
           cal.setTime(new java.util.Date())
@@ -58,9 +57,6 @@ object ScheduledTask extends RiderLogger {
       }else if(!RiderConfig.monitor.databaseType.equalsIgnoreCase("es")){
         modules.monitorInfoDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
       }
-
-
-
     } catch {
       case e: Exception =>
         riderLogger.error(s"failed to delete feedback history data", e)

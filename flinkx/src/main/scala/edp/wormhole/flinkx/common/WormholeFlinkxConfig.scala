@@ -34,7 +34,7 @@ case class WormholeFlinkxConfig(flow_name: String,
                                 feedback_interval:Int,
                                 kerberos: Boolean)
 
-case class UdfConfig(id: Long, functionName: String, fullClassName: String, jarName: String)
+case class UdfConfig(id: Long, functionName: String, fullClassName: String, jarName: String, mapOrAgg: String)
 case class KafkaInputConfig(kafka_base_config: KafkaInputBaseConfig,
                             kafka_topics: Seq[KafkaTopicConfig]
                            ) {
@@ -82,7 +82,7 @@ case class ExceptionConfig(streamId: Long,
                            exceptionProcessMethod: ExceptionProcessMethod
                           )
 
-object ExceptionProcessMethod extends Enumeration {
+object ExceptionProcessMethod extends Enumeration with Serializable {
   type ExceptionProcessMethod = Value
 
   val INTERRUPT = Value("interrupt")
