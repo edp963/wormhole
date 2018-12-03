@@ -31,7 +31,7 @@ import edp.wormhole.flinkx.common.{ExceptionConfig, _}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
 import edp.wormhole.flinkx.sink.SinkProcess
 import edp.wormhole.flinkx.swifts.{FlinkxTimeCharacteristicConstants, ParseSwiftsSql, SwiftsProcess}
-import edp.wormhole.flinkx.udf.UdfRegister
+import edp.wormhole.flinkx.udf.{UdafRegister, UdfRegister}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
 import edp.wormhole.flinkx.util.{FlinkxTimestampExtractor, UmsFlowStartUtils, WormholeFlinkxConfigUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
@@ -106,7 +106,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
       case e: Throwable =>
         logger.error("swifts and sink:", e)
         val feedbackFlowFlinkxError = UmsProtocolUtils.feedbackFlowFlinkxError(sourceNamespace, streamId, flowId, sinkNamespace, DateUtils.currentDateTime, "", e.getMessage)
-        ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, feedbackFlowFlinkxError, config)
+        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config).doExceptionProcess(feedbackFlowFlinkxError)
     }
     env.execute(config.flow_name)
   }
@@ -116,11 +116,20 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     config.udf_config.foreach(udf => {
       val udfName = udf.functionName
       val udfClassFullName = udf.fullClassName
+      val mapOrAgg= udf.mapOrAgg
       try {
-        UdfRegister.register(udfName, udfClassFullName, tableEnv)
+        mapOrAgg match {
+          case "udaf" =>
+            UdafRegister.register(udfName, udfClassFullName, tableEnv)
+          case "udf" =>
+            UdfRegister.register(udfName, udfClassFullName, tableEnv)
+          case _ =>
+            UdfRegister.register(udfName, udfClassFullName, tableEnv)
+        }
+
       } catch {
         case e: Throwable =>
-          logger.error(udfName + " register fail", e)
+          logger.error(mapOrAgg + ":" + udfName + " register fail", e)
       }
     })
   }
@@ -156,13 +165,8 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
 
     val inputStream = processStream.process(new UmsProcessElement(sourceSchemaMap.toMap, config, exceptionConfig, jsonSourceParseMap, kafkaDataTag, assignMetricConfig))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
-    //handle kafka data exception sideoutput
     val exceptionStream = inputStream.getSideOutput(kafkaDataTag)
-   exceptionStream.map(stream => {
-      logger.info("--------------------ums parse exception stream:" + stream)
-      ExceptionProcess.doExceptionProcess(exceptionProcessMethod, stream, config)
-    })
-    //return
+   exceptionStream.map(new ExceptionProcess(exceptionProcessMethod, config))
     inputStream
   }
 

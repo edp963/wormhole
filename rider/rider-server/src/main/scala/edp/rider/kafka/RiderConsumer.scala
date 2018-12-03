@@ -61,6 +61,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
   import RiderConsumer._
 
   implicit val materializer = ActorMaterializer()
+  lazy val messageService = new MessageService(modules)
 
   override def preStart(): Unit = {
 
@@ -199,7 +200,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
   private def processMessage(msg: Message): Future[Message] = {
     riderLogger.debug(s"Consumed: [topic,partition,offset](${msg.topic()}, ${msg.partition()}), ${msg.offset()}]")
     if (msg.key() != null)
-      riderLogger.info(s"Consumed key: ${msg.value().toString}")
+      riderLogger.debug(s"Consumed key: ${msg.value().toString}")
     val curTs = currentMillSec
     val defaultStreamIdForRider = 0
     CacheMap.setOffsetMap(defaultStreamIdForRider, msg.topic(), msg.partition(), msg.offset())
@@ -209,7 +210,6 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
     if (msg.value() == null || msg.value() == "") {
       riderLogger.error(s"feedback message value is null: ${msg.toString}")
     } else {
-      val messageService = new MessageService(modules)
       try {
         val ums: Ums = json2Ums(msg.value())
         riderLogger.debug(s"Consumed protocol: ${ums.protocol.`type`.toString}")

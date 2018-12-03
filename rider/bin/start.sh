@@ -15,9 +15,11 @@ WORMHOLE_KERBEROS_PARAM=` `
 WORMHOLE_KERBEROS_SERVER=`grep "server.config" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
 WORMHOLE_KERBEROS_JAAS=`grep "jaas.startShell.config" $WORMHOLE_HOME/conf/application.conf | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
 if [ -n "$WORMHOLE_KERBEROS_JAAS" ];then
-   WORMHOLE_PRINCIPAL=`grep  "principal" $WORMHOLE_KERBEROS_JAAS | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
-   WORMHOLE_KEYTAB=`grep  "keyTab" $WORMHOLE_KERBEROS_JAAS | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
+  WORMHOLE_PRINCIPAL=`grep  "principal" $WORMHOLE_KERBEROS_JAAS | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
+  WORMHOLE_KEYTAB=`grep  "keyTab" $WORMHOLE_KERBEROS_JAAS | head -1 | cut -d = -f2 | cut -d \" -f2 | sed -e 's/[ \t\r]*//'`
 fi
+
+
 echo "WormholeServer user config in application.conf: $WORMHOLE_USER"
 
 CURRENT_USER=`whoami`
@@ -54,4 +56,4 @@ echo "wormholeServer final request address for UI: $finalAddress"
 # sed -i "s#http://.*/api-docs/swagger.json#http://$finalAddress/api-docs/swagger.json#g" $WORMHOLE_HOME/swagger-ui/index.html
 
 echo "[WormholeServer] is starting..."
-java -DWORMHOLE_HOME=$WORMHOLE_HOME $WORMHOLE_KERBEROS_PARAM -cp $WORMHOLE_HOME/lib/wormhole-rider-server_1.3-0.5.5-beta.jar:$WORMHOLE_HOME/lib/* edp.rider.RiderStarter &
+java -DWORMHOLE_HOME=$WORMHOLE_HOME $WORMHOLE_KERBEROS_PARAM -cp $WORMHOLE_HOME/lib/wormhole-rider-server_1.3-0.5.6-beta.jar:$WORMHOLE_HOME/lib/* edp.rider.RiderStarter &

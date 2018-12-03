@@ -38,7 +38,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
   @transient private var lastUmsTs:Long=0L
 
   override def processElement(value: (String, String, String, Int, Long), ctx: ProcessFunction[(String, String, String, Int, Long), Row]#Context, out: Collector[Row]): Unit = {
-    logger.info("in UmsFlatMapper source data from kafka " + value._2)
+    logger.info("in UmsProcessElement source data from kafka " + value._2)
     try {
       val (protocolType, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(value._1)
       startMetricsMoinitoring(protocolType.toString)
@@ -51,7 +51,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
       }
       else {
         val ums = UmsCommonUtils.json2Ums(value._2)
-        logger.info("in UmsFlatMapper " + sourceSchemaMap.size)
+        logger.info("in UmsProcessElement " + sourceSchemaMap.size)
         if (FlinkSchemaUtils.matchNamespace(ums.schema.namespace, exceptionConfig.sourceNamespace) && ums.payload.nonEmpty && ums.schema.fields.nonEmpty)
           ums.payload_get.foreach(tuple => {
             createRow(tuple.tuple, protocolType.toString, out,ums.schema.fields.get)

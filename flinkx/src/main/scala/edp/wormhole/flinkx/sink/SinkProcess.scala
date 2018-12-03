@@ -49,18 +49,12 @@ object SinkProcess extends Serializable {
     val sinkNamespace = UmsFlowStartUtils.extractSinkNamespace(umsFlowStartSchemas, umsFlowStartPayload)
     registerConnection(sinks, sinkNamespace)
     val sinkProcessConfig:SinkProcessConfig=getSinkProcessConfig(sinks)
-    //dataStream.map(new SinkMapper(schemaMapWithUmsType,sinkNamespace,sinkProcessConfig,umsFlowStart,ConnectionMemoryStorage.getDataStoreConnectionConfig(sinkNamespace),config,initialTs,swiftsTs))
+
     val sinkDataStream = dataStream.process(new SinkProcessElement(schemaMapWithUmsType,exceptionConfig,sinkProcessConfig,umsFlowStart,ConnectionMemoryStorage.getDataStoreConnectionConfig(sinkNamespace), config, initialTs, swiftsTs, sinkTag))
 
-    //handle sink exception sideoutput
     val exceptionStream = sinkDataStream.getSideOutput(sinkTag)
-    exceptionStream.map(stream => {
+    exceptionStream.map(new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config))
 
-      logger.info("--------------------sink exception stream:" + stream)
-      ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, stream, config)
-    })
-
-    //return
     sinkDataStream
   }
 

@@ -45,7 +45,7 @@ class FlowUdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdf
     try {
       Await.result(db.run((flowUdfTable.filter(_.flowId inSet flowIds) join udfQuery on (_.udfId === _.id))
         .map {
-          case (flowUdf, udf) => (flowUdf.udfId, udf.functionName, udf.fullClassName, udf.jarName) <> (FlowUdfResponse.tupled, FlowUdfResponse.unapply)
+          case (flowUdf, udf) => (flowUdf.udfId, udf.functionName, udf.fullClassName, udf.jarName, udf.mapOrAgg) <> (FlowUdfResponse.tupled, FlowUdfResponse.unapply)
         }.result).mapTo[Seq[FlowUdfResponse]], minTimeOut)
     } catch {
       case ex: Exception =>

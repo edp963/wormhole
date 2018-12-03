@@ -157,18 +157,18 @@ object ElasticSearch extends RiderLogger {
       .replace("#TODATE#", s""""$endDate"""")
     val url = getESUrl + "_delete_by_query"
     riderLogger.info(s"deleteEsHistory url $url $postBody")
-    val response = syncToES(postBody, url, HttpMethods.POST, CommonUtils.maxTimeOut)
+    val response = asyncToES(postBody, url, HttpMethods.POST)
     riderLogger.info(s"deleteEsHistory response $response")
-    if (response._1) {
-      try {
-        deleted = JsonUtils.jValue2json(JsonUtils.getJValue(response._2, "deleted")).toInt
-      } catch {
-        case e: Exception =>
-          riderLogger.error(s"Failed to parse the response from ES when delete history data", e)
-      }
-    } else {
-      riderLogger.error(s"Failed to delete history data from ES")
-    }
+    //    if (response._1) {
+    //      try {
+    //        deleted = JsonUtils.jValue2json(JsonUtils.getJValue(response._2, "deleted")).toInt
+    //      } catch {
+    //        case e: Exception =>
+    //          riderLogger.error(s"Failed to parse the response from ES when delete history data", e)
+    //      }
+    //    } else {
+    //      riderLogger.error(s"Failed to delete history data from ES")
+    //    }
     deleted
   }
 

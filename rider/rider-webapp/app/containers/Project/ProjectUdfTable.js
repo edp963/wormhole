@@ -227,6 +227,31 @@ export class ProjectUdfTable extends React.Component {
       onFilterDropdownVisibleChange: visible => this.setState({
         filterDropdownVisibleStreamType: visible
       }, () => this.searchInput.focus())
+    },
+    {
+      title: 'Map Or Agg',
+      dataIndex: 'mapOrAgg',
+      key: 'mapOrAgg',
+      filterDropdown: (
+        <div className="custom-filter-dropdown">
+          <Input
+            ref={ele => { this.searchInput = ele }}
+            placeholder="map or agg"
+            value={this.state.searchTextMapOrAgg}
+            onChange={this.onInputChange('searchTextMapOrAgg')}
+            onPressEnter={this.onSearch('mapOrAgg', 'searchTextMapOrAgg', 'filterDropdownVisibleMapOrAgg')}
+          />
+          <Button
+            type="primary"
+            onClick={this.onSearch('mapOrAgg', 'searchTextMapOrAgg', 'filterDropdownVisibleMapOrAgg')}
+          >Search
+          </Button>
+        </div>
+      ),
+      filterDropdownVisible: this.state.filterDropdownVisibleMapOrAgg,
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleMapOrAgg: visible
+      }, () => this.searchInput.focus())
     }]
 
     return (
