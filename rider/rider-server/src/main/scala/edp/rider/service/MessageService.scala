@@ -75,7 +75,6 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val statusValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "status")
         val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
         val resultDescValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc")
-        riderLogger.info(s"=============================${umsTsValue},${directiveIdValue},${statusValue},${streamIdValue},${resultDescValue}")
         if (umsTsValue != null && directiveIdValue != null && statusValue != null && streamIdValue != null && resultDescValue != null) {
           Await.result(modules.feedbackDirectiveDal.insert(FeedbackDirective(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, directiveIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs)), minTimeOut)
           modules.directiveDal.getDetail(directiveIdValue.toString.toLong) match {
