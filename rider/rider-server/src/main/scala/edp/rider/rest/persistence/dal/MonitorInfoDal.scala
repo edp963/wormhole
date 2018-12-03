@@ -46,6 +46,7 @@ class MonitorInfoDal (monitorInfoTable: TableQuery[MonitorInfoTable],
             .sortBy(_.doneTs).take(1).result), minTimeOut)
         if (maxMonitorInfo.nonEmpty) ignoreIds += maxMonitorInfo.head.id
       })
-    Await.result(super.deleteByFilter(monitorInfo => monitorInfo.doneTs <= pastNdays && !monitorInfo.id.inSet(ignoreIds)), maxTimeOut)
+    val deleteSeq =Await.result(db.run(monitorInfoTable.withFilter(_.doneTs<=pastNdays).map(_.id).result).mapTo[Seq[Long]],maxTimeOut)
+    Await.result(super.deleteByFilter(monitorInfo => monitorInfo.id <= deleteSeq.max && !monitorInfo.id.inSet(ignoreIds)), maxTimeOut)
   }
 }

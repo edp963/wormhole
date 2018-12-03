@@ -35,6 +35,8 @@ object JsonFileType extends Enumeration {
   val ESDELETED = Value("/conf/EsDeleteByQueryHistory.json")
   val GRAFANACREATE = Value("/conf/GrafanaDashboard.json")
   val ESCREATEINDEX = Value("/conf/EsCreateIndex.json")
+  val ESSTREAM=Value("/conf/EsSearchStream.json")
+  val ESFLOW=Value("/conf/EsSearchFlow.json")
   def getValue(JFType: JsonFileType) = JFType.toString
 }
 

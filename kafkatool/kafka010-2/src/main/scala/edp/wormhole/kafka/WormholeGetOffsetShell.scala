@@ -38,7 +38,6 @@ object WormholeGetOffsetShell {
       }
 
       val consumer = new KafkaConsumer[String, String](props)
-      val topicMap=consumer.listTopics()
       val offsetSeq = new ListBuffer[String]()
 
       if(!topicMap.isEmpty&&topicMap.containsKey(topic)&&topicMap.get(topic)!=null&&topicMap.get(topic).size()>0){
