@@ -96,6 +96,6 @@ object DirectiveFlowWatch extends EdpLogging {
 
   private def getNamespaces(path: String): (String, String,String) = {
     val result = path.substring(path.lastIndexOf("/")+1).split("->")
-    (result(0).toLowerCase, result(1).toLowerCase,result(2))
+    (result(0).toLowerCase, result(2).toLowerCase,result(3))
   }
 }
