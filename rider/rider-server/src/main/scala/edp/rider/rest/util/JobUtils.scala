@@ -64,7 +64,7 @@ object JobUtils extends RiderLogger {
       getSourceProcessClass(sourceTypeFinal), specialConfig)
   }
 
-  def getSinkConfig(sinkNs: String, sinkConfig: String, jobType: String, eventTsEnd: String, sinkKeys: Option[String]) = {
+  def getSinkConfig(sinkNs: String, sinkConfig: String, jobType: String, eventTsEnd: String, tableKeys: Option[String]) = {
     val (instance, db, ns) = modules.namespaceDal.getNsDetail(sinkNs)
 
     val maxRecord =
@@ -84,6 +84,7 @@ object JobUtils extends RiderLogger {
       }
 
     //val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else ns.keys
+    val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else tableKeys
 
     val projection = if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_output")) {
       Some(JSON.parseObject(sinkConfig).getString("sink_output").trim)

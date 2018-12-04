@@ -65,7 +65,7 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def getSinkConfig(sinkNs: String, sinkConfig: String, sinkKeys: String): String = {
+  def getSinkConfig(sinkNs: String, sinkConfig: String, tableKeys: String): String = {
     try {
       val (instance, db, ns) = namespaceDal.getNsDetail(sinkNs)
       val specialConfig =
@@ -83,6 +83,7 @@ object FlowUtils extends RiderLogger {
         else "\"\""
 
       //val sinkKeys = if (ns.nsSys == "hbase") getRowKey(specialConfig) else ns.keys.getOrElse("")
+      val sinkKeys = if (ns.nsSys == "hbase") getRowKey(specialConfig) else tableKeys
 
       if (ns.sinkSchema.nonEmpty && ns.sinkSchema.get != "") {
         val schema = caseClass2json[Object](json2caseClass[SinkSchema](ns.sinkSchema.get).schema)
