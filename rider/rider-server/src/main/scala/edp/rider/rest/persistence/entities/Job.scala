@@ -99,12 +99,12 @@ class JobTable(_tableTag: Tag) extends BaseTable[Job](_tableTag, "job") {
         UserTimeInfo.tupled.apply(userTimeInfo)
       )
   }, { j: Job =>
-    def f(s: SparkConfig) = SparkConfig.unapply(s).get
-    def f(c: UserTimeInfo) = UserTimeInfo.unapply(c).get
-    Some((j.id, j.name, j.projectId, j.sourceNs, j.sinkNs, j.jobType, f(j.sparkConfig),
+    def f1(s: SparkConfig) = SparkConfig.unapply(s).get
+    def f2(c: UserTimeInfo) = UserTimeInfo.unapply(c).get
+    Some((j.id, j.name, j.projectId, j.sourceNs, j.sinkNs, j.jobType, f1(j.sparkConfig),
       j.startConfig, j.eventTsStart, j.eventTsEnd, j.sourceConfig, j.sinkConfig,
       j.tranConfig, j.tableKeys, j.desc, j.status, j.sparkAppid, j.logPath, j.startedTime, j.stoppedTime,
-      f(j.userTimeInfo)))
+      f2(j.userTimeInfo)))
   })
 
   /** Database column name SqlType(VARCHAR), Length(200,true) */
