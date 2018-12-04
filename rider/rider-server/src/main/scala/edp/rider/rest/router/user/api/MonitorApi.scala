@@ -50,9 +50,7 @@ class MonitorApi(flowDal: FlowDal, streamDal: StreamDal,monitorInfoDal: MonitorI
 
   def fillFlowMetricsByMonitor(monitorSeq:Seq[MonitorInfo])={
     val flowSeq=monitorSeq.map(monitor=>
-      MonitorMetric(monitor.flowNamespace,MonitorNumberWidget(monitor.rddCount,monitor.umsTs.toLong),MonitorIntervalWidget(monitor.interval.intervalDataProcessToDataums,monitor.umsTs.toLong),
-        MonitorIntervalWidget(monitor.interval.intervalDataProcessToRdd,monitor.umsTs.toLong),MonitorIntervalWidget(monitor.interval.intervalDataProcessToSwifts,monitor.umsTs.toLong),
-        MonitorIntervalWidget(monitor.interval.intervalDataProcessToSink,monitor.umsTs.toLong),MonitorIntervalWidget(monitor.interval.intervalDataProcessToDone,monitor.umsTs.toLong),
+      MonitorMetric(monitor.flowNamespace,MonitorNumberWidget(monitor.rddCount,monitor.umsTs.toLong),MonitorIntervalWidget(monitor.interval.intervalDataProcessToDone,monitor.umsTs.toLong),
         MonitorIntervalWidget(monitor.interval.intervalDataumsToDone,monitor.umsTs.toLong),MonitorIntervalWidget(monitor.interval.intervalRddToDone,monitor.umsTs.toLong),MonitorIntervalWidget(monitor.interval.intervalSwiftsToSink,monitor.umsTs.toLong),
         MonitorIntervalWidget(monitor.interval.intervalSinkToDone,monitor.umsTs.toLong)))
     val flowName=flowSeq.headOption.getOrElse(MonitorMetric).asInstanceOf[MonitorMetric].flowName
@@ -61,14 +59,10 @@ class MonitorApi(flowDal: FlowDal, streamDal: StreamDal,monitorInfoDal: MonitorI
       Option(flowOpt) match {
         case Some(flow)=>
           flowInfoMetric.dataDoneIntervalMetrics += flow.dataDoneIntervalMetric
-          flowInfoMetric.dataIntervalMetrics += flow.dataIntervalMetric
           flowInfoMetric.doneIntervalMetrics += flow.doneIntervalMetric
           flowInfoMetric.rddCountMetrics += flow.rddCountMetric
           flowInfoMetric.rddDoneIntervalMetrics += flow.rddDoneIntervalMetric
-          flowInfoMetric.rddIntervalMetrics += flow.rddIntervalMetric
           flowInfoMetric.sinkDoneIntervalMetrics += flow.sinkDoneIntervalMetric
-          flowInfoMetric.sinkIntervalMetrics += flow.sinkIntervalMetric
-          flowInfoMetric.swiftIntervalMetrics += flow.swiftIntervalMetric
           flowInfoMetric.swiftSinkIntervalMetrics += flow.swiftSinkIntervalMetric
         case None=>
       }
