@@ -55,12 +55,27 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
 
-class RiderConsumer(modules: ConfigurationModule with PersistenceModule with ActorModuleImpl,consumer:KafkaConsumer[String, String])
+class RiderConsumer(modules: ConfigurationModule with PersistenceModule with ActorModuleImpl)
   extends Actor with RiderLogger{
 
   import RiderConsumer._
 
   implicit val materializer = ActorMaterializer()
+  lazy val messageService = new MessageService(modules)
+
+  val props=new Properties()
+
+  props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer") // key反序列化方式
+  props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer") // value反系列化方式
+  props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, RiderConfig.consumer.brokers) // 指定broker地址，来找到group的coordinator
+  props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG,"60000")
+  props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,"false")
+  props.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG,"80000")
+  if(RiderConfig.kerberos.enabled){
+    props.put("security.protocol","SASL_PLAINTEXT")
+    props.put("sasl.kerberos.service.name", "kafka")
+  }
+  lazy val consumer:KafkaConsumer[String, String]=new KafkaConsumer[String, String](props)
 
   override def preStart(): Unit = {
 
@@ -131,6 +146,10 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
     propertyMap("max.partition.fetch.bytes") = RiderConfig.getIntConfig("kafka.consumer.max.partition.fetch.bytes", 10485760).toString
     propertyMap("fetch.min.bytes") = 0.toString
     propertyMap("enable.auto.commit") = "false"
+    if(RiderConfig.kerberos.enabled){
+      propertyMap("security.protocol")="SASL_PLAINTEXT"
+      propertyMap("sasl.kerberos.service.name")="kafka"
+    }
 
     val consumerSettings = new ConsumerSettings(propertyMap.toMap, Some(RiderConfig.consumer.keyDeserializer),
       Some(RiderConfig.consumer.valueDeserializer),
@@ -199,7 +218,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
   private def processMessage(msg: Message): Future[Message] = {
     riderLogger.debug(s"Consumed: [topic,partition,offset](${msg.topic()}, ${msg.partition()}), ${msg.offset()}]")
     if (msg.key() != null)
-      riderLogger.info(s"Consumed key: ${msg.value().toString}")
+      riderLogger.debug(s"Consumed key: ${msg.value().toString}")
     val curTs = currentMillSec
     val defaultStreamIdForRider = 0
     CacheMap.setOffsetMap(defaultStreamIdForRider, msg.topic(), msg.partition(), msg.offset())
@@ -209,7 +228,6 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
     if (msg.value() == null || msg.value() == "") {
       riderLogger.error(s"feedback message value is null: ${msg.toString}")
     } else {
-      val messageService = new MessageService(modules)
       try {
         val ums: Ums = json2Ums(msg.value())
         riderLogger.debug(s"Consumed protocol: ${ums.protocol.`type`.toString}")

@@ -45,15 +45,17 @@ object ScheduledTask extends RiderLogger {
       modules.feedbackHeartbeatDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
       modules.feedbackStreamErrDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
 
-      FeedbackOffsetUtil.deleteFeedbackOffsetHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
+      modules.feedbackOffsetDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
       riderLogger.info(s"delete the feedback history past ${RiderConfig.maintenance.mysqlRemain} days")
-      if (RiderConfig.es != null) {
-        cal.setTime(new java.util.Date())
-        cal.add(Calendar.DAY_OF_MONTH, (-1) * RiderConfig.maintenance.esRemain)
-        pastNdays = cal.getTime()
-        val fromDate = "2017-01-01 00:00:00.000000" + CommonUtils.getTimeZoneId
-        ElasticSearch.deleteEsHistory(fromDate, DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_MICROSEC) + CommonUtils.getTimeZoneId)
-        riderLogger.info(s"delete ES feedback history data from $fromDate to ${DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_MICROSEC)}")
+      if(RiderConfig.monitor.databaseType.equalsIgnoreCase("es") && RiderConfig.es != null){
+          cal.setTime(new java.util.Date())
+          cal.add(Calendar.DAY_OF_MONTH, (-1) * RiderConfig.maintenance.esRemain)
+          pastNdays = cal.getTime()
+          val fromDate = "2017-01-01 00:00:00.000000" + CommonUtils.getTimeZoneId
+          ElasticSearch.deleteEsHistory(fromDate, DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_MICROSEC) + CommonUtils.getTimeZoneId)
+          riderLogger.info(s"delete ES feedback history data from $fromDate to ${DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_MICROSEC)}")
+      }else if(!RiderConfig.monitor.databaseType.equalsIgnoreCase("es")){
+        modules.monitorInfoDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
       }
     } catch {
       case e: Exception =>

@@ -49,15 +49,11 @@ class FeedbackOffsetDal(feedbackOffsetTable: TableQuery[FeedbackOffsetTable]) ex
   }
 
 
-  def deleteHistory(pastNdays: String, reservedIds: Seq[Long]) = {
-    super.deleteByFilter(str => str.feedbackTime <= pastNdays && !str.id.inSet(reservedIds))
+  def deleteHistory(pastNdays: String) = {
+    val deleteSeq = Await.result(db.run(feedbackOffsetTable.withFilter(_.feedbackTime <= pastNdays)
+      .map(_.id).result).mapTo[Seq[Long]], minTimeOut)
+    if(!deleteSeq.isEmpty)Await.result(super.deleteByFilter(_.id <= deleteSeq.max), minTimeOut)
   }
-
-  //  def getFeedbackTopicOffset(topicName: String): String = {
-  //    val offsetSeq = Await.result(db.run(feedbackOffsetQuery.withFilter(_.topicName === topicName).sortBy(_.feedbackTime.desc).take(1).result).mapTo[Seq[FeedbackOffset]], Duration.Inf)
-  //    if (offsetSeq.isEmpty) KafkaUtils.getKafkaLatestOffset(RiderConfig.consumer.brokers, topicName)
-  //    else offsetSeq.head.partitionOffsets
-  //  }
 
   def getStreamTopicsFeedbackOffset(streamId: Long, topicsNum: Long) = {
     Await.result(db.run(feedbackOffsetTable.filter(_.streamId === streamId).sortBy(_.feedbackTime.desc).take(topicsNum + 1).result).mapTo[Seq[FeedbackOffset]], minTimeOut)

@@ -182,8 +182,8 @@ object HdfsMainProcess extends EdpLogging {
           val doneTs = System.currentTimeMillis
           if (count > 0 && cdcTs>0)
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-              UmsProtocolUtils.feedbackFlowStats(namespace, protocol, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, namespace,
-                count, cdcTs, rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs), None, config.kafka_output.brokers)
+              UmsProtocolUtils.feedbackFlowStats(namespace, protocol, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, namespace, topics,
+                count, cdcTs, rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs.toString), None, config.kafka_output.brokers)
 
         }
         partitionResultRdd.unpersist()
