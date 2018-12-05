@@ -30,6 +30,12 @@ case class SparkConfig(
                         JVMExecutorConfig: Option[String] = None,
                         othersConfig: Option[String] = None
                       )
+case class UserTimeInfo(
+                       createTime: String,
+                       createBy: Long,
+                       updateTime: String,
+                       updateBy: Long
+                     )
 
 case class Job(id: Long,
                name: String, // 1
@@ -44,15 +50,14 @@ case class Job(id: Long,
                sourceConfig: Option[String],
                sinkConfig: Option[String],
                tranConfig: Option[String],
+               tableKeys: Option[String],
+               desc: Option[String] = None,
                status: String,
                sparkAppid: Option[String] = None,
                logPath: Option[String] = None,
                startedTime: Option[String] = None,
                stoppedTime: Option[String] = None,
-               createTime: String,
-               createBy: Long,
-               updateTime: String,
-               updateBy: Long) extends BaseEntity {
+               userTimeInfo: UserTimeInfo) extends BaseEntity {
   override def copyWithId(id: Long): this.type = {
     copy(id = id).asInstanceOf[this.type]
   }
@@ -71,7 +76,9 @@ case class SimpleJob(name: String,
                      eventTsEnd: String,
                      sourceConfig: Option[String],
                      sinkConfig: Option[String],
-                     tranConfig: Option[String]) extends SimpleBaseEntity
+                     tranConfig: Option[String],
+                     tableKeys: Option[String],
+                     desc: Option[String] = None) extends SimpleBaseEntity
 
 case class FullJobInfo(job: Job, projectName: String, disableActions: String)
 
@@ -80,23 +87,24 @@ case class JobTopicInfo(job: Job, projectName: String, topic: String, disableAct
 class JobTable(_tableTag: Tag) extends BaseTable[Job](_tableTag, "job") {
   def * = (id, name, projectId, sourceNs, sinkNs, jobType, (JVMDriverConfig, JVMExecutorConfig, othersConfig),
     startConfig, eventTsStart, eventTsEnd, sourceConfig, sinkConfig,
-    tranConfig, status, sparkAppid, logPath, startedTime, stoppedTime,
-    createTime, createBy, updateTime, updateBy).shaped <> ({
+    tranConfig, tableKeys, desc, status, sparkAppid, logPath, startedTime, stoppedTime,
+    (createTime, createBy, updateTime, updateBy)).shaped <> ({
     case (id, name, projectId, sourceNs, sinkNs, jobType, sparkConfig,
     startConfig, eventTsStart, eventTsEnd, sourceConfig, sinkConfig,
-    tranConfig, status, sparkAppid, logPath, startedTime, stoppedTime,
-    createTime, createBy, updateTime, updateBy) =>
+    tranConfig, tableKeys, desc, status, sparkAppid, logPath, startedTime, stoppedTime,
+    userTimeInfo) =>
       Job(id, name, projectId, sourceNs, sinkNs, jobType, SparkConfig.tupled.apply(sparkConfig),
         startConfig, eventTsStart, eventTsEnd, sourceConfig, sinkConfig,
-        tranConfig, status, sparkAppid, logPath, startedTime, stoppedTime,
-        createTime, createBy, updateTime, updateBy
+        tranConfig, tableKeys, desc, status, sparkAppid, logPath, startedTime, stoppedTime,
+        UserTimeInfo.tupled.apply(userTimeInfo)
       )
   }, { j: Job =>
-    def f(s: SparkConfig) = SparkConfig.unapply(s).get
-    Some((j.id, j.name, j.projectId, j.sourceNs, j.sinkNs, j.jobType, f(j.sparkConfig),
+    def f1(s: SparkConfig) = SparkConfig.unapply(s).get
+    def f2(c: UserTimeInfo) = UserTimeInfo.unapply(c).get
+    Some((j.id, j.name, j.projectId, j.sourceNs, j.sinkNs, j.jobType, f1(j.sparkConfig),
       j.startConfig, j.eventTsStart, j.eventTsEnd, j.sourceConfig, j.sinkConfig,
-      j.tranConfig, j.status, j.sparkAppid, j.logPath, j.startedTime, j.stoppedTime,
-      j.createTime, j.createBy, j.updateTime, j.updateBy))
+      j.tranConfig, j.tableKeys, j.desc, j.status, j.sparkAppid, j.logPath, j.startedTime, j.stoppedTime,
+      f2(j.userTimeInfo)))
   })
 
   /** Database column name SqlType(VARCHAR), Length(200,true) */
@@ -129,6 +137,10 @@ class JobTable(_tableTag: Tag) extends BaseTable[Job](_tableTag, "job") {
   val sinkConfig: Rep[Option[String]] = column[Option[String]]("sink_config", O.Length(5000, varying = true), O.Default(None))
   /** Database column tran_config SqlType(VARCHAR), Length(5000,true) */
   val tranConfig: Rep[Option[String]] = column[Option[String]]("tran_config", O.Length(5000, varying = true), O.Default(None))
+  /** Database column table_keys SqlType(VARCHAR), Length(1000,true), Default(None) */
+  val tableKeys: Rep[Option[String]] = column[Option[String]]("table_keys", O.Length(1000, varying = true), O.Default(None))
+  /** Database column desc SqlType(VARCHAR), Length(1000,true), Default(None) */
+  val desc: Rep[Option[String]] = column[Option[String]]("desc", O.Length(1000, varying = true), O.Default(None))
   /** Database column status SqlType(VARCHAR), Length(200,true) */
   val status: Rep[String] = column[String]("status", O.Length(200, varying = true))
   /** Database column spark_appid SqlType(VARCHAR), Length(200,true) */
