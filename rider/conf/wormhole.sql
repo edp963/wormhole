@@ -204,7 +204,7 @@ ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `flow` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `flow_name` VARCHAR(200) NULL
+  `flow_name` VARCHAR(200) NOT NULL
   `project_id` BIGINT NOT NULL,
   `stream_id` BIGINT NOT NULL,
   `source_ns` VARCHAR(200) NOT NULL,
@@ -232,7 +232,7 @@ alter table `flow`  modify column `tran_config` LONGTEXT;
 alter table `flow` modify column `consumed_protocol` VARCHAR(100);
 alter table `flow` add column `parallelism` INT NULL after `sink_ns`;
 alter table `flow` add column `log_path` VARCHAR(2000) NULL after `stopped_time`;
-alter table `flow` add column `flow_name` VARCHAR(200) NULL;
+alter table `flow` add column `flow_name` VARCHAR(200) NOT NULL;
 alter table `flow` add column `table_keys` VARCHAR(1000) NULL;
 alter table `flow` add column `desc` VARCHAR(1000) NULL;
 
