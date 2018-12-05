@@ -24,9 +24,10 @@ import java.util.concurrent.TimeUnit
 
 import edp.rider.RiderStarter.modules.config
 import edp.rider.rest.persistence.entities.{FlinkDefaultConfig, FlinkResourceConfig}
+import edp.rider.wormhole.FlinkCheckpoint
 import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeserializer}
-import scala.collection.JavaConversions._
 
+import scala.collection.JavaConversions._
 import scala.concurrent.duration.{FiniteDuration, _}
 
 case class RiderServer(clusterId: String,
@@ -354,6 +355,10 @@ object RiderConfig {
     getIntConfig("spark.kafka.session.timeout", 30000),
     getIntConfig("spark.kafka.group.max.session.timeout.ms", 60000)
   )
+
+  lazy val flinkCheckpoint = FlinkCheckpoint(getBooleanConfig("flink.checkpoint.enable",false), getIntConfig("flink.checkpoint.interval",60000), getStringConfig("flink.stateBackend",""))
+
+
 
   def getStringConfig(path: String, default: String): String = {
     if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")
