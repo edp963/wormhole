@@ -24,19 +24,18 @@ import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
 import edp.wormhole.flinkx.pattern.Output.{FIELDLIST, TYPE}
-import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput}
+import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput, PatternOutputFilter}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
 import edp.wormhole.ums.{UmsProtocolUtils, UmsSysField}
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.time.Time
-import org.apache.flink.api.common.typeinfo.{SqlTimeTypeInfo, TypeInformation}
+import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.cep.scala.CEP
 import org.apache.flink.streaming.api.scala.{DataStream, _}
 import org.apache.flink.table.api.scala.{StreamTableEnvironment, _}
 import org.apache.flink.table.api.{StreamQueryConfig, Table, Types}
 import org.apache.flink.table.expressions.{Expression, ExpressionParser}
-import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo
 import org.apache.flink.types.Row
 import org.joda.time.DateTime
 import org.slf4j.{Logger, LoggerFactory}
@@ -117,7 +116,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
       val columnTypesWithMessageFlag: Array[TypeInformation[_]] = columnTypes ++ Array(Types.BOOLEAN)
       val resultDataStream = table.toRetractStream[Row](getQueryConfig).map(tuple => {
         val rowWithMessageFlag = new Row(columnNames.length + 1)
-        for (i <- 0 until columnNames.length) {
+        for (i <- columnNames.indices) {
           rowWithMessageFlag.setField(i, tuple._2.getField(i))
         }
         rowWithMessageFlag.setField(columnNames.length, tuple._1)
@@ -131,12 +130,12 @@ class SwiftsProcess(dataStream: DataStream[Row],
     }
   }
 
-  private def replaceTimeIndicatorType(columnTypes: Array[TypeInformation[_]]): Array[TypeInformation[_]] = {
-    columnTypes.map(fieldType =>
-      if (fieldType == TimeIndicatorTypeInfo.PROCTIME_INDICATOR || fieldType == TimeIndicatorTypeInfo.ROWTIME_INDICATOR)
-        SqlTimeTypeInfo.TIMESTAMP
-      else fieldType)
-  }
+//  private def replaceTimeIndicatorType(columnTypes: Array[TypeInformation[_]]): Array[TypeInformation[_]] = {
+//    columnTypes.map(fieldType =>
+//      if (fieldType == TimeIndicatorTypeInfo.PROCTIME_INDICATOR || fieldType == TimeIndicatorTypeInfo.ROWTIME_INDICATOR)
+//        SqlTimeTypeInfo.TIMESTAMP
+//      else fieldType)
+//  }
 
   private def getQueryConfig: StreamQueryConfig = {
     val minIdleStateRetentionTime = if (null != specialConfigObj && specialConfigObj.containsKey(FlinkxSwiftsConstants.MIN_IDLE_STATE_RETENTION_TIME)) specialConfigObj.getLongValue(FlinkxSwiftsConstants.MIN_IDLE_STATE_RETENTION_TIME) else 12L
@@ -170,7 +169,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
       case e: Throwable =>
         logger.error("doCEP error in swifts process", e)
         val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
-        ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, feedbackInfo, config)
+        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config).doExceptionProcess(feedbackInfo)
     }
     resultDataStream
   }

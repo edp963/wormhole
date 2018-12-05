@@ -13,13 +13,21 @@ class PatternOutputFilter(exceptionConfig: ExceptionConfig, config: WormholeFlin
     if (!value._1) {
       val dataInfoIt: Iterable[String] = outputSchemaMap.map {
         case (schemaName, (_, pos)) =>
-          ExceptionProcess.feedbackDataInfo(schemaName, pos, value._2)
+          feedbackDataInfo(schemaName, pos, value._2)
       }
       val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
       val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), dataInfo, "")
-      ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, feedbackInfo, config)
+      new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config).doExceptionProcess(feedbackInfo)
     }
     value._1
+  }
+
+  def feedbackDataInfo(schemaName: String, pos: Int, value: Row): String = {
+    if(value.getArity > pos) {
+      schemaName + ":" + value.getField(pos).toString
+    } else {
+      schemaName + ":" + "null"
+    }
   }
 
 }

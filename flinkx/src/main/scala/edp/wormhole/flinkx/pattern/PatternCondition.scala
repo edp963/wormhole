@@ -58,7 +58,7 @@ class PatternCondition(schemaMap: Map[String, (TypeInformation[_], Int)],excepti
       case e:Throwable =>
         e.printStackTrace()
         val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
-        ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, feedbackInfo, config)
+        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config).doExceptionProcess(feedbackInfo)
         false
     }
   }
