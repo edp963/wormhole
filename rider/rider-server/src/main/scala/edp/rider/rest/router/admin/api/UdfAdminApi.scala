@@ -183,7 +183,7 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
         riderLogger.warn(msg)
         complete(OK, getHeader(409, msg, session))
       } else {
-        val udfInsert = Udf(0, simpleUdf.functionName.trim, simpleUdf.fullClassName.trim, simpleUdf.jarName.trim, simpleUdf.desc, simpleUdf.public, simpleUdf.streamType, currentSec, session.userId, currentSec, session.userId)
+        val udfInsert = Udf(0, simpleUdf.functionName.trim, simpleUdf.fullClassName.trim, simpleUdf.jarName.trim, simpleUdf.desc, simpleUdf.public, simpleUdf.streamType, simpleUdf.mapOrAgg, currentSec, session.userId, currentSec, session.userId)
         onComplete(udfDal.insert(udfInsert).mapTo[Udf]) {
           case Success(udf) =>
             riderLogger.info(s"user ${
@@ -218,7 +218,7 @@ class UdfAdminApi(udfDal: UdfDal, relProjectUdfDal: RelProjectUdfDal) extends Ba
       } doesn't exist in hdfs", session))
     } else {
       val udfSearch = Await.result(udfDal.findById(udf.id), minTimeOut)
-      val updateUdf = Udf(udf.id, udf.functionName.trim, udf.fullClassName.trim, udf.jarName.trim, udf.desc, udf.pubic, udf.streamType, udf.createTime, udf.createBy, currentSec, session.userId)
+      val updateUdf = Udf(udf.id, udf.functionName.trim, udf.fullClassName.trim, udf.jarName.trim, udf.desc, udf.pubic, udf.streamType, udf.mapOrAgg, udf.createTime, udf.createBy, currentSec, session.userId)
       onComplete(udfDal.update(updateUdf).mapTo[Int]) {
         case Success(_) =>
           riderLogger.info(s"user ${

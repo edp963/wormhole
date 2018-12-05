@@ -22,16 +22,19 @@ package edp.wormhole.flinkx.util
 
 import java.sql.{Date, Timestamp}
 
+import com.alibaba.fastjson.JSONObject
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.flinkx.common.WormholeFlinkxConfig
+import edp.wormhole.flinkx.swifts.FlinkxSwiftsConstants
 import edp.wormhole.kafka.WormholeKafkaConsumer
 import edp.wormhole.swifts.SwiftsConstants
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType.{DATA_BATCH_DATA, DATA_INCREMENT_DATA, DATA_INITIAL_DATA}
 import edp.wormhole.ums.{UmsCommonUtils, UmsSchema, UmsSysField}
 import edp.wormhole.util.DateUtils
-import org.apache.flink.api.common.typeinfo.{BasicArrayTypeInfo, TypeInformation}
+import org.apache.flink.api.common.typeinfo.{BasicArrayTypeInfo, SqlTimeTypeInfo, TypeInformation}
 import org.apache.flink.table.api.{TableSchema, Types}
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo
 import org.apache.kafka.clients.consumer.{ConsumerRecord, ConsumerRecords}
 import org.apache.log4j.Logger
 
@@ -84,10 +87,15 @@ object FlinkSchemaUtils extends java.io.Serializable {
   }
 
   def tableFieldTypeArray(tableSchema: TableSchema, preSchemaMap: Map[String, (TypeInformation[_], Int)]): Array[TypeInformation[_]] = {
-    tableFieldNameArray(tableSchema).map(fieldName => preSchemaMap(fieldName)._1)
+    tableFieldNameArray(tableSchema).map(fieldName => {
+      val fieldType = preSchemaMap(fieldName)._1
+      if (fieldType == TimeIndicatorTypeInfo.PROCTIME_INDICATOR || fieldType == TimeIndicatorTypeInfo.ROWTIME_INDICATOR)
+        SqlTimeTypeInfo.TIMESTAMP
+      else fieldType
+    })
   }
 
-  def getSchemaMapFromTable(tableSchema: TableSchema, projectClause: String , udfSchemaMap: Map[String, TypeInformation[_]]): Map[String, (TypeInformation[_], Int)] = {
+  def getSchemaMapFromTable(tableSchema: TableSchema, projectClause: String , udfSchemaMap: Map[String, TypeInformation[_]], specialConfigObj: JSONObject): Map[String, (TypeInformation[_], Int)] = {
     println("in getSchemaMapFromTable *******************")
 
     //position
@@ -111,7 +119,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
         if(s.contains('(') && s.contains("as")) {
           val udfName = s.trim.substring(0,s.trim.indexOf('('))
           val newName = s.trim.substring(s.indexOf("as")+2).trim
-          nameMap += newName -> udfName.toLowerCase()
+          nameMap += newName -> udfName
         }
         s = ""
       } else {
@@ -123,7 +131,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     if(s.contains('(') && s.contains("as")) {
       val udfName = s.trim.substring(0,s.trim.indexOf('('))
       val newName = s.trim.substring(s.indexOf("as")+2).trim
-      nameMap += newName -> udfName.toLowerCase()
+      nameMap += newName -> udfName
     }
     logger.info("nameMap:" + nameMap.toString())
 
@@ -144,7 +152,10 @@ object FlinkSchemaUtils extends java.io.Serializable {
       index += 1
     }
     )
-    resultSchemaMap.toMap
+    if (null != specialConfigObj && specialConfigObj.containsKey(FlinkxSwiftsConstants.PRESERVE_MESSAGE_FLAG) && specialConfigObj.getBooleanValue(FlinkxSwiftsConstants.PRESERVE_MESSAGE_FLAG)) {
+      resultSchemaMap += FlinkxSwiftsConstants.MESSAGE_FLAG -> (Types.BOOLEAN, index)
+    }
+      resultSchemaMap.toMap
   }
 
   def getSchemaMapFromArray(fieldNames: Array[String], fieldTypes: Array[TypeInformation[_]]): Map[String, (TypeInformation[_], Int)] = {

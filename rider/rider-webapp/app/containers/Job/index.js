@@ -742,11 +742,12 @@ export class Job extends React.Component {
                 <p><strong>   Log Path：</strong>{showJob.logPath}</p>
                 <p><strong>   Source Config：</strong>{showJob.sourceConfig}</p>
                 <p><strong>   Sink Config：</strong>{showJob.sinkConfig}</p>
+                <p><strong>   Table Keys：</strong>{showJob.tableKeys}</p>
                 <p><strong>   Transformation Config：</strong>{showJob.tranConfig}</p>
-                <p><strong>   Create Time：</strong>{showJob.createTime}</p>
-                <p><strong>   Update Time：</strong>{showJob.updateTime}</p>
-                <p><strong>   Create By：</strong>{showJob.createBy}</p>
-                <p><strong>   Update By：</strong>{showJob.updateBy}</p>
+                <p><strong>   Create Time：</strong>{showJob.createTime || showJob.userTimeInfo.createTime}</p>
+                <p><strong>   Update Time：</strong>{showJob.updateTime || showJob.userTimeInfo.updateTime}</p>
+                <p><strong>   Create By：</strong>{showJob.createBy || showJob.userTimeInfo.createBy}</p>
+                <p><strong>   Update By：</strong>{showJob.updateBy || showJob.userTimeInfo.updateBy}</p>
                 <p><strong>   Disable Actions：</strong>{showJobDetail.disableActions}</p>
               </div>
             )

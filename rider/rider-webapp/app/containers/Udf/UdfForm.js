@@ -64,6 +64,24 @@ export class UdfForm extends React.Component {
             </FormItem>
           </Col>
           <Col span={24}>
+            <FormItem label="map or agg" {...itemStyle}>
+              {getFieldDecorator('mapOrAgg', {
+                rules: [{
+                  required: true,
+                  message: locale === 'en' ? 'Map or agg cannot be empty' : 'map or agg 不能为空'
+                }],
+                initialValue: 'udf'
+              })(
+                <RadioGroup className="radio-group-style" disabled={udfDisabledOrNot} size="default" onChange={this.props.changeUdfMapOrAgg}>
+                  <RadioButton value="udf" className="radio-btn-style radio-btn-extra">udf</RadioButton>
+                  {
+                    streamType === 'flink' ? (<RadioButton value="udaf" className="radio-btn-style radio-btn-extra">udaf</RadioButton>) : ''
+                  }
+                </RadioGroup>
+              )}
+            </FormItem>
+          </Col>
+          <Col span={24}>
             <FormItem className="hide">
               {getFieldDecorator('id', {
                 hidden: type === 'add' || type === 'copy'
@@ -146,7 +164,8 @@ UdfForm.propTypes = {
   type: PropTypes.string,
   locale: PropTypes.string,
   streamType: PropTypes.string,
-  changeUdfStreamType: PropTypes.func
+  changeUdfStreamType: PropTypes.func,
+  changeUdfMapOrAgg: PropTypes.func
 }
 
 const mapStateToProps = createStructuredSelector({

@@ -31,19 +31,24 @@ import edp.wormhole.flinkx.common.{ExceptionConfig, _}
 import edp.wormhole.flinkx.deserialization.WormholeDeserializationStringSchema
 import edp.wormhole.flinkx.sink.SinkProcess
 import edp.wormhole.flinkx.swifts.{FlinkxTimeCharacteristicConstants, ParseSwiftsSql, SwiftsProcess}
-import edp.wormhole.flinkx.udf.UdfRegister
+import edp.wormhole.flinkx.udf.{UdafRegister, UdfRegister}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils._
 import edp.wormhole.flinkx.util.{FlinkxTimestampExtractor, UmsFlowStartUtils, WormholeFlinkxConfigUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
 import edp.wormhole.ums._
-import edp.wormhole.util.DateUtils
+import edp.wormhole.util.{DateUtils, JsonUtils}
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.runtime.state.filesystem.FsStateBackend
 import org.apache.flink.streaming.api.environment.CheckpointConfig.ExternalizedCheckpointCleanup
+import org.apache.flink.api.java.typeutils.runtime.kryo.JavaSerializer
+import org.apache.flink.configuration.Configuration
+import org.apache.flink.runtime.metrics.{MetricRegistryConfiguration, MetricRegistryImpl}
+import org.apache.flink.runtime.metrics.groups.TaskManagerMetricGroup
+import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.streaming.api.{CheckpointingMode, TimeCharacteristic}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010
@@ -52,7 +57,7 @@ import org.apache.flink.table.api.{TableEnvironment, Types}
 import org.apache.flink.types.Row
 import org.apache.log4j.Logger
 
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 
 class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) extends Serializable {
@@ -69,7 +74,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   private val directiveId = UmsFlowStartUtils.extractDirectiveId(umsFlowStart.schema.fields_get, umsFlowStart.payload_get.head).toLong
   private val flowId = UmsFlowStartUtils.extractFlowId(flowStartFields, flowStartPayload)
 
-  val swiftsSpecialConfig: JSONObject = UmsFlowStartUtils.extractSwiftsSpecialConfig(swifts)
+  val swiftsSpecialConfig: JSONObject =UmsFlowStartUtils.extractSwiftsSpecialConfig(swifts)
 
 
   private val exceptionProcessMethod: ExceptionProcessMethod = ExceptionProcessMethod.exceptionProcessMethod(UmsFlowStartUtils.extractExceptionProcess(swiftsSpecialConfig))
@@ -88,21 +93,20 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     udfRegister(tableEnv)
     assignTimeCharacteristic(env)
 
-    val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase, initialTs)
+    val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase,initialTs)
     val watermarkStream = assignTimestamp(inputStream, immutableSourceSchemaMap)
     watermarkStream.print()
     try {
       val swiftsTs = System.currentTimeMillis
 
-      val (stream, schemaMap) = new SwiftsProcess(watermarkStream, exceptionConfig, tableEnv, swiftsSql, swiftsSpecialConfig, timeCharacteristic, config).process()
-      SinkProcess.doProcess(stream, umsFlowStart, schemaMap, config, initialTs, swiftsTs, exceptionConfig)
+      val (stream, schemaMap) = new SwiftsProcess(watermarkStream,exceptionConfig, tableEnv, swiftsSql, swiftsSpecialConfig, timeCharacteristic,config).process()
+      SinkProcess.doProcess(stream, umsFlowStart, schemaMap, config, initialTs, swiftsTs,exceptionConfig)
       WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, config.kafka_output.brokers)
     } catch {
       case e: Throwable =>
         logger.error("swifts and sink:", e)
         val feedbackFlowFlinkxError = UmsProtocolUtils.feedbackFlowFlinkxError(sourceNamespace, streamId, flowId, sinkNamespace, DateUtils.currentDateTime, "", e.getMessage)
-        ExceptionProcess.doExceptionProcess(exceptionConfig.exceptionProcessMethod, feedbackFlowFlinkxError, config)
-        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, ""), None, config.kafka_output.brokers)
+        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config).doExceptionProcess(feedbackFlowFlinkxError)
     }
     env.execute(config.flow_name)
   }
@@ -112,25 +116,34 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     config.udf_config.foreach(udf => {
       val udfName = udf.functionName
       val udfClassFullName = udf.fullClassName
+      val mapOrAgg= udf.mapOrAgg
       try {
-        UdfRegister.register(udfName, udfClassFullName, tableEnv)
+        mapOrAgg match {
+          case "udaf" =>
+            UdafRegister.register(udfName, udfClassFullName, tableEnv)
+          case "udf" =>
+            UdfRegister.register(udfName, udfClassFullName, tableEnv)
+          case _ =>
+            UdfRegister.register(udfName, udfClassFullName, tableEnv)
+        }
+
       } catch {
         case e: Throwable =>
-          logger.error(udfName + " register fail", e)
+          logger.error(mapOrAgg + ":" + udfName + " register fail", e)
       }
     })
   }
 
-  private def createKafkaStream(env: StreamExecutionEnvironment, flowNamespace: String, initialTs: Long): DataStream[Row] = {
+  private def createKafkaStream(env: StreamExecutionEnvironment, flowNamespace: String, initialTs:Long): DataStream[Row] = {
     val properties = new Properties()
     properties.setProperty("bootstrap.servers", config.kafka_input.kafka_base_config.brokers)
     properties.setProperty("zookeeper.connect", config.zookeeper_address)
     properties.setProperty("group.id", config.kafka_input.groupId)
     properties.setProperty("session.timeout.ms", config.kafka_input.sessionTimeout)
     properties.setProperty("enable.auto.commit", config.kafka_input.autoCommit.toString)
-    if (config.kerberos) {
-      properties.put("security.protocol", "SASL_PLAINTEXT")
-      properties.put("sasl.kerberos.service.name", "kafka")
+    if(config.kerberos){
+      properties.put("security.protocol","SASL_PLAINTEXT")
+      properties.put("sasl.kerberos.service.name","kafka")
     }
     val flinkxConfigUtils = new WormholeFlinkxConfigUtils(config)
     val topics = flinkxConfigUtils.getKafkaTopicList
@@ -150,12 +163,11 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
         consumeProtocolMap.contains(umsProtocolType) && consumeProtocolMap(umsProtocolType) && matchNamespace(namespace, flowNamespace)
       })
     val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
-  val inputStream = processStream.process(new UmsProcessElement(sourceSchemaMap.toMap, exceptionConfig, jsonSourceParseMap, kafkaDataTag))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
+
+    val inputStream = processStream.process(new UmsProcessElement(sourceSchemaMap.toMap, config,exceptionConfig, jsonSourceParseMap, kafkaDataTag, assignMetricConfig))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
+
     val exceptionStream = inputStream.getSideOutput(kafkaDataTag)
-    exceptionStream.map(stream => {
-      logger.info("--------------------ums parse exception stream:" + stream)
-      ExceptionProcess.doExceptionProcess(exceptionProcessMethod, stream, config)
-    })
+   exceptionStream.map(new ExceptionProcess(exceptionProcessMethod, config))
     inputStream
   }
 
@@ -167,6 +179,22 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
       checkpointConfig.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
       checkpointConfig.setCheckpointInterval(config.flink_config.checkpoint.`checkpointInterval.ms`)
     }
+  }
+
+  private def assignMetricConfig():Configuration={
+    val mConfig=new Configuration()
+    mConfig.setString("metrics.reporters","feedbackState")
+    mConfig.setString("metrics.reporter.feedbackState.class","edp.wormhole.flinkx.util.FeedbackMetricsReporter")
+    mConfig.setString("metrics.reporter.feedbackState.interval",config.feedback_interval+" SECONDS")
+    mConfig.setString("metrics.reporter.feedbackState.scope.delimiter",".")
+    mConfig.setString("metrics.reporter.feedbackState.sourceNamespace",sourceNamespace)
+    mConfig.setString("metrics.reporter.feedbackState.sinkNamespace",sinkNamespace)
+    mConfig.setString("metrics.reporter.feedbackState.streamId",streamId.toString)
+    mConfig.setString("metrics.reporter.feedbackState.topic",config.kafka_output.feedback_topic_name)
+    mConfig.setString("metrics.reporter.feedbackState.kerberos",config.kerberos.toString)
+    mConfig.setString("metrics.reporter.feedbackState.brokers",config.kafka_output.brokers)
+    mConfig.setInteger("metrics.reporter.feedbackState.feedbackCount",config.feedback_state_count)
+    mConfig
   }
 
   private def assignTimeCharacteristic(env: StreamExecutionEnvironment): Unit = {
