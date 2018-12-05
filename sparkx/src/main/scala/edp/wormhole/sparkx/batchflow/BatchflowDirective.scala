@@ -196,9 +196,7 @@ object BatchflowDirective extends Directive {
         case e: Throwable =>
           logAlert("registerFlowStartDirective,sourceNamespace:" + sourceNamespace, e)
           WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, e.getMessage), None, brokers)
-
       }
-
     })
   }
 }

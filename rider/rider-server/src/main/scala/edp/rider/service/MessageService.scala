@@ -239,9 +239,9 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
             throughput = rddCountValue.toString.toInt
           } else throughput = rddCountValue.toString.toInt / interval_rdd_done
 
-          val monitorInfo = MonitorInfo(statsIdValue.toString.toLong,
+          val monitorInfo = MonitorInfo(0L,statsIdValue.toString,
             string2EsDateString(umsTsValue.toString),
-            CacheMap.getProjectId(streamIdValue.toString.toLong), streamIdValue.toString.toLong, CacheMap.getStreamName(streamIdValue.toString.toLong), CacheMap.getFlowId(flowName), flowName, rddCountValue.toString.toInt, topics.toString, throughput,
+            CacheMap.getProjectId(streamIdValue.toString.toLong), streamIdValue.toString.toLong, CacheMap.getStreamName(streamIdValue.toString.toLong), CacheMap.getFlowId(flowName), flowName, rddCountValue.toString.toInt,if(topics==null)"" else topics.toString, throughput,
             string2EsDateString(DateUtils.dt2string(cdcTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(rddTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(directiveTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),

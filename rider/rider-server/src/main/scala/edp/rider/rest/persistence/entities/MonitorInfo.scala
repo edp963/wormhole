@@ -22,7 +22,7 @@
 package edp.rider.rest.persistence.entities
 
 
-import edp.rider.rest.persistence.base.{BaseEntity, BaseTable}
+import edp.rider.rest.persistence.base.{BaseEntity, BaseTable, SimpleBaseEntity}
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.{Rep, Tag}
 
@@ -31,7 +31,8 @@ import scala.collection.mutable.ListBuffer
 
 
 case class MonitorInfo(
-                        id: Long,
+                        id:Long,
+                        statsId: String,
                         umsTs: String,
                         projectId: Long,
                         streamId: Long,
@@ -48,7 +49,7 @@ case class MonitorInfo(
                         swiftsTs: String,
                         sinkTs: String,
                         doneTs: String,
-                        interval:Interval)extends BaseEntity {
+                        interval:Interval)extends BaseEntity{
   override def copyWithId(id: Long): this.type = {
     copy(id = id).asInstanceOf[this.type]
   }
@@ -73,11 +74,13 @@ case class MonitorInfo(
 
 case class StreamMonitorInfo(streamId: Long, flowNs: String)
 
-case class MonitorTimeSpan(startTime:Long, endTime:Long)
+case class MonitorTimeSpan(startTime:Long, endTime:Long) extends SimpleBaseEntity
 
 case class MonitorNumberWidget(count:Long,umsTs:Long)
 
 case class MonitorIntervalWidget(time:Long,umsTs:Long)
+
+case class MonitorOpsWidget(ops:Double,umsTs:Long)
 
 case class MonitorFlowInfo(flowName:String,
                            rddCountMetrics:ListBuffer[MonitorNumberWidget]=new ListBuffer[MonitorNumberWidget](),
@@ -85,7 +88,8 @@ case class MonitorFlowInfo(flowName:String,
                            dataDoneIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
                            rddDoneIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
                            swiftSinkIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
-                           sinkDoneIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget]())
+                           sinkDoneIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
+                           throughPutMetrics:ListBuffer[MonitorOpsWidget]=new ListBuffer[MonitorOpsWidget]())
 
 case class MonitorMetric(flowName:String="",
                           rddCountMetric:MonitorNumberWidget=MonitorNumberWidget(0L,0L),
@@ -93,7 +97,8 @@ case class MonitorMetric(flowName:String="",
                          dataDoneIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
                          rddDoneIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
                          swiftSinkIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
-                         sinkDoneIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L))
+                         sinkDoneIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
+                         throughPutMetric:MonitorOpsWidget=MonitorOpsWidget(0.0,0L))
 
 case class MonitorDashBoard(flowMetrics:Seq[MonitorFlowInfo])
 
@@ -108,11 +113,12 @@ case class Interval(intervalDataProcessToDataums:Long,
                     intervalSinkToDone:Long)
 
 class MonitorInfoTable(_tableTag: Tag) extends BaseTable[MonitorInfo](_tableTag, "feedback_flow_stats"){
-  def * =(id,umsTs,projectId,streamId,streamName,flowId,flowNamespace,rddCount,
+  def * =(id,statsId,umsTs,projectId,streamId,streamName,flowId,flowNamespace,rddCount,
       topics,throughput,dataGeneratedTs,rddTs,directiveTs,DataProcessTs,swiftsTs,sinkTs,doneTs,
       interval) <> ((MonitorInfo.apply _).tupled,MonitorInfo.unapply)
   def interval=(intervalDataProcessToDataums,intervalDataProcessToRdd,intervalDataProcessToSwifts,
     intervalDataProcessToSink,intervalDataProcessToDone,intervalDataumsToDone,intervalRddToDone,intervalSwiftsToSink,intervalSinkToDone) <> ((Interval.apply _).tupled,Interval.unapply)
+  val statsId:Rep[String]=column[String]("stats_id")
   val umsTs:Rep[String]=column[String]("ums_ts")
   val projectId:Rep[Long]=column[Long]("project_id")
   val streamId:Rep[Long]=column[Long]("stream_id")
