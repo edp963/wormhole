@@ -14,6 +14,7 @@
   "rider.app.table.copy.action": "复制",
   "rider.app.table.stop.action": "停止",
   "rider.app.table.drift.action": "漂移",
+  "rider.app.table.chart.action": "性能",
   "rider.app.table.create.action": "新建",
   "rider.app.table.modify.action": "修改",
   "rider.app.table.delete.action": "删除",
