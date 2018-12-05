@@ -36,6 +36,6 @@ class FeedbackHeartbeatDal(heartbeatTable: TableQuery[FeedbackHeartbeatTable], s
   def deleteHistory(pastNdays: String) = {
     val deleteSeq = Await.result(db.run(heartbeatTable.withFilter(_.feedbackTime <= pastNdays)
       .map(_.id).result).mapTo[Seq[Long]], minTimeOut)
-    Await.result(super.deleteByFilter(_.id <= deleteSeq.max), minTimeOut)
+    if(!deleteSeq.isEmpty)Await.result(super.deleteByFilter(_.id <= deleteSeq.max), minTimeOut)
   }
 }

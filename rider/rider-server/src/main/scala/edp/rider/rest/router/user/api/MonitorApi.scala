@@ -1,10 +1,10 @@
 package edp.rider.rest.router.user.api
 
 import akka.http.scaladsl.model.StatusCodes.OK
+import akka.http.scaladsl.server.Route
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.dal.{FlowDal, MonitorInfoDal, StreamDal}
-import edp.rider.rest.persistence.entities
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, SessionClass}
 import edp.rider.rest.util.AuthorizationProvider
@@ -16,7 +16,7 @@ import scala.concurrent.Await
 
 class MonitorApi(flowDal: FlowDal, streamDal: StreamDal,monitorInfoDal: MonitorInfoDal) extends BaseUserApiImpl[MonitorInfoTable, MonitorInfo](monitorInfoDal) with RiderLogger with JsonSerializer{
 
-  def getMonitorInfoByFlowId(route: String)=path(route / LongNumber / "flow" / LongNumber){
+  def getMonitorInfoByFlowId(route: String):Route=path(route / "monitor" / LongNumber / "flow" / LongNumber){
     (projectId,flowId) =>
       post{
         entity(as[MonitorTimeSpan]){
@@ -52,8 +52,8 @@ class MonitorApi(flowDal: FlowDal, streamDal: StreamDal,monitorInfoDal: MonitorI
     val flowSeq=monitorSeq.map(monitor=>
       MonitorMetric(monitor.flowNamespace,MonitorNumberWidget(monitor.rddCount,monitor.umsTs.toLong),MonitorIntervalWidget(monitor.interval.intervalDataProcessToDone,monitor.umsTs.toLong),
         MonitorIntervalWidget(monitor.interval.intervalDataumsToDone,monitor.umsTs.toLong),MonitorIntervalWidget(monitor.interval.intervalRddToDone,monitor.umsTs.toLong),MonitorIntervalWidget(monitor.interval.intervalSwiftsToSink,monitor.umsTs.toLong),
-        MonitorIntervalWidget(monitor.interval.intervalSinkToDone,monitor.umsTs.toLong)))
-    val flowName=flowSeq.headOption.getOrElse(MonitorMetric).asInstanceOf[MonitorMetric].flowName
+        MonitorIntervalWidget(monitor.interval.intervalSinkToDone,monitor.umsTs.toLong),MonitorOpsWidget(monitor.throughput,monitor.umsTs.toLong)))
+    val flowName=flowSeq.headOption.getOrElse[MonitorMetric](MonitorMetric()).flowName
     val flowInfoMetric=MonitorFlowInfo(flowName)
     flowSeq.foreach(flowOpt=>{
       Option(flowOpt) match {
@@ -64,13 +64,14 @@ class MonitorApi(flowDal: FlowDal, streamDal: StreamDal,monitorInfoDal: MonitorI
           flowInfoMetric.rddDoneIntervalMetrics += flow.rddDoneIntervalMetric
           flowInfoMetric.sinkDoneIntervalMetrics += flow.sinkDoneIntervalMetric
           flowInfoMetric.swiftSinkIntervalMetrics += flow.swiftSinkIntervalMetric
+          flowInfoMetric.throughPutMetrics += flow.throughPutMetric
         case None=>
       }
     })
     flowInfoMetric
   }
 
-  def getMonitorInfoByStreamId(route: String)=path(route / LongNumber / "stream" / LongNumber){
+  def getMonitorInfoByStreamId(route: String):Route=path(route  / "monitor"/ LongNumber / "stream" / LongNumber){
     (projectId,streamId) =>
       post{
         entity(as[MonitorTimeSpan]) {
