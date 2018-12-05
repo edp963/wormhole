@@ -91,7 +91,8 @@ import {
   LOAD_LOGS_INFO_SUCCESS,
   LOAD_DRIFT_LIST,
   POST_DRIFT,
-  VERIFY_DRIFT
+  VERIFY_DRIFT,
+  LOAD_FLOW_PERFORMANCE
 } from './constants'
 
 export function loadAdminAllFlows (resolve) {
@@ -822,6 +823,18 @@ export function postDriftList (projectId, flowId, streamId, resolve) {
       projectId,
       flowId,
       streamId,
+      resolve
+    }
+  }
+}
+export function postFlowPerformance (projectId, flowId, startTime, endTime, resolve) {
+  return {
+    type: LOAD_FLOW_PERFORMANCE,
+    payload: {
+      projectId,
+      flowId,
+      startTime,
+      endTime,
       resolve
     }
   }
