@@ -160,7 +160,7 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-sparkxinterface</artifactId>
-     <version>0.5.5-beta</version>
+     <version>0.5.6-beta</version>
   </dependency>
   ```
 
@@ -221,7 +221,7 @@ Spark SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 
 - 选择要关联的其他 Source Namespace，可关联多个 Source Namespace
 - Stream Join SQL 处理过程中会将没有关联上的数据保存到 HDFS 上，data retention time 代表数据的有效期
-- select 语句规则同 Spark SQL
+- select 语句规则同 Lookup SQL，如select joinTable_file1 as  newfile1, joinTable_file2 as  newfile2from joinTable where (joinTable_file1, joinTable_file2) in (sourceNamespace.file1, sourceNamespace.file2);
 
 #### Flink Flow Transformation
 
@@ -286,9 +286,25 @@ Wormhole Flink版对传输的流数据除了提供Lookup SQL、Flink SQL两种Tr
 
 ####### Flink SQL
 
-Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。
+Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可
 
-Flink SQL支持UDF，Wormhole Flink UDF支持普通的java程序，而不需要按照Flink官方文档的格式实现UDF。UDF名称大小写敏感。UDF相应的字段需要使用as指定新字段的名称。例如：
+**聚合操作：**支持流上聚合操作。
+
+process time处理方式中窗口中相应的字段名称为processing_time。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(processing_time, INTERVAL '1' HOUR), name;
+
+event time处理方式中窗口中相应的字段名称为ums_ts_。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(ums_ts, INTERVAL '1' HOUR), name;
+
+相关配置包括：
+
+- min_idle_state_retention_time：聚合相关key值状态被保留的最短时间，默认12hours
+
+- max_idle_state_retention_time：聚合相关key值状态被保留的最长时间，默认24hours
+
+- preserve_message_flag：table to stream的转换采用的是retractStream，用户可以选择是否保留数据流中的message_flag字段。如果不保留，该参数配置为false，Wormhole会去掉message_flag字段；若保留，改参数配置为true，Wormhole会在Row中增加一个field，用来保存message_flag字段。默认为false
+
+  在Transformation Config中可对这三个参数进行配置，配置格式为json。例如：{"min_idle_state_retention_time":"10","max_idle_state_retention_time":"20","preserve_message_flag":"true"}
+
+**UDF：**支持UDF，Wormhole Flink UDF支持普通的java程序，而不需要按照Flink官方文档的格式实现UDF。UDF名称大小写敏感。UDF相应的字段需要使用as指定新字段的名称。例如：
 
 Java程序：
 
@@ -310,7 +326,7 @@ Flink中通过Transformation Config可选择对流处理中异常信息的处理
 
 - 设置为feedback：将捕获到的异常回灌到kafka中
 
-  设置格式为：{"exception_process_method":"unhandle"}
+  设置格式为json，例如：{"exception_process_method":"unhandle"}
 
 ### 修改 Flow
 

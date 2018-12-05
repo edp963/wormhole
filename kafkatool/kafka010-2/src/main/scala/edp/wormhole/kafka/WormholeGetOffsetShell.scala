@@ -38,8 +38,8 @@ object WormholeGetOffsetShell {
       }
 
       val consumer = new KafkaConsumer[String, String](props)
-      val topicMap=consumer.listTopics()
       val offsetSeq = new ListBuffer[String]()
+      val topicMap=consumer.listTopics()
 
       if(!topicMap.isEmpty&&topicMap.containsKey(topic)&&topicMap.get(topic)!=null&&topicMap.get(topic).size()>0){
         val it=topicMap.get(topic).iterator()
@@ -59,12 +59,12 @@ object WormholeGetOffsetShell {
             } catch {
               case e: Exception =>
                 logger.info(e.printStackTrace())
+                consumer.close()
                 throw new Exception(s"brokerList $brokerList topic $topic partition $partitionId doesn't have a leader, please verify it.")
-            } finally {
-              consumer.close()
             }
           }
         }
+        consumer.close()
       }
       val offset = offsetSeq.sortBy(offset => offset.split(":")(0).toLong).mkString(",")
       if (offset == "")

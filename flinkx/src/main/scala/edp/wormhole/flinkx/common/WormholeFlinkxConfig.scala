@@ -31,14 +31,14 @@ case class WormholeFlinkxConfig(flow_name: String,
                                 zookeeper_address: String,
                                 udf_config: Seq[UdfConfig],
                                 feedback_state_count:Int,
+                                feedback_interval:Int,
                                 kerberos: Boolean)
 
-case class UdfConfig(id: Long, functionName: String, fullClassName: String, jarName: String)
+case class UdfConfig(id: Long, functionName: String, fullClassName: String, jarName: String, mapOrAgg: String)
 
 case class FlinkConfig(checkpoint: FlinkCheckpoint)
 
 case class FlinkCheckpoint(enable: Boolean=false, `checkpointInterval.ms`: Int=60000, stateBackend:String)
-
 
 
 
@@ -86,7 +86,7 @@ case class ExceptionConfig(streamId: Long,
                            exceptionProcessMethod: ExceptionProcessMethod
                           )
 
-object ExceptionProcessMethod extends Enumeration {
+object ExceptionProcessMethod extends Enumeration with Serializable {
   type ExceptionProcessMethod = Value
 
   val INTERRUPT = Value("interrupt")

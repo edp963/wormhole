@@ -45,7 +45,7 @@ class UdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdfDal,
           if (map.contains(udf.id))
             map(udf.id).sorted.mkString(",")
           else ""
-        Some(UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic, udf.streamType,
+        Some(UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic, udf.streamType, udf.mapOrAgg,
           udf.createTime, udf.createBy, udf.updateTime, udf.updateBy, projectNames))
       case None => None
 
@@ -62,10 +62,10 @@ class UdfDal(udfTable: TableQuery[UdfTable], relProjectUdfDal: RelProjectUdfDal,
           udfs.foreach(
             udf =>
               if (udfProjectMap.contains(udf.id))
-                udfProjectSeq += UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic, udf.streamType,
+                udfProjectSeq += UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic, udf.streamType, udf.mapOrAgg,
                   udf.createTime, udf.createBy, udf.updateTime, udf.updateBy, udfProjectMap(udf.id).sorted.mkString(","))
               else
-                udfProjectSeq += UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic, udf.streamType,
+                udfProjectSeq += UdfProject(udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.pubic, udf.streamType, udf.mapOrAgg,
                   udf.createTime, udf.createBy, udf.updateTime, udf.updateBy, "")
           )
           udfProjectSeq

@@ -89,7 +89,8 @@ export class Udf extends React.PureComponent {
 
       queryUdfVal: {},
       showUdfDetail: {},
-      streamType: ''
+      streamType: '',
+      mapOrAgg: ''
     }
   }
 
@@ -249,6 +250,12 @@ export class Udf extends React.PureComponent {
     let value = e.target.value
     this.setState({
       streamType: value
+    })
+  }
+  changeUdfMapOrAgg = e => {
+    let value = e.target.value
+    this.setState({
+      mapOrAgg: value
     })
   }
   deleteUdfBtn = (record) => (e) => {
@@ -488,6 +495,31 @@ export class Udf extends React.PureComponent {
       }, () => this.searchInput.focus())
     },
     {
+      title: 'Map Or Agg',
+      dataIndex: 'mapOrAgg',
+      key: 'mapOrAgg',
+      filterDropdown: (
+        <div className="custom-filter-dropdown">
+          <Input
+            ref={ele => { this.searchInput = ele }}
+            placeholder="map or agg"
+            value={this.state.searchTextMapOrAgg}
+            onChange={this.onInputChange('searchTextMapOrAgg')}
+            onPressEnter={this.onSearch('mapOrAgg', 'searchTextMapOrAgg', 'filterDropdownVisibleMapOrAgg')}
+          />
+          <Button
+            type="primary"
+            onClick={this.onSearch('mapOrAgg', 'searchTextMapOrAgg', 'filterDropdownVisibleMapOrAgg')}
+          >Search
+          </Button>
+        </div>
+      ),
+      filterDropdownVisible: this.state.filterDropdownVisibleMapOrAgg,
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleMapOrAgg: visible
+      }, () => this.searchInput.focus())
+    },
+    {
       title: 'Description',
       dataIndex: 'desc',
       key: 'desc',
@@ -717,6 +749,7 @@ export class Udf extends React.PureComponent {
             type={formType}
             streamType={streamType}
             changeUdfStreamType={this.changeUdfStreamType}
+            changeUdfMapOrAgg={this.changeUdfMapOrAgg}
             ref={(f) => { this.udfForm = f }}
           />
         </Modal>

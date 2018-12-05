@@ -108,14 +108,15 @@ object KafkaUtils extends RiderLogger {
                   case _ =>consumer.beginningOffsets(util.Arrays.asList(topicAndPartition))
                 }
 
-                offsetSeq += partitionId + ":" + map.get(topicAndPartition)
+                if(!offsetSeq.contains(partitionId + ":" + map.get(topicAndPartition)))
+                   offsetSeq += partitionId + ":" + map.get(topicAndPartition)
               } catch {
                 case e: Exception =>
+                  consumer.close()
                   throw new Exception(s"brokerList $brokerList topic $topic partition $partitionId doesn't have a leader, please verify it.")
-              } finally {
-                consumer.close()
               }
             }
+
           }
         }
         val offset = offsetSeq.sortBy(offset => offset.split(":")(0).toLong).mkString(",")
