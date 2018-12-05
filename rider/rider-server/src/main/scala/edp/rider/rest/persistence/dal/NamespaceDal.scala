@@ -38,7 +38,7 @@ import edp.wormhole.util.JsonUtils
 import edp.wormhole.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
-
+import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -48,6 +48,37 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
                    databaseDal: NsDatabaseDal,
                    instanceDal: BaseDal[InstanceTable, Instance],
                    dbusDal: BaseDal[DbusTable, Dbus]) extends BaseDalImpl[NamespaceTable, Namespace](namespaceTable) with RiderLogger {
+  def getDbus4FromRest: Seq[SimpleDbus] = {
+    try {
+      val dbusServices =
+        if (RiderConfig.dbusUrl != null) RiderConfig.dbusUrl.toList
+        else List()
+      val simpleDbusSeq = new ArrayBuffer[SimpleDbus]
+      dbusServices.map {
+        service => {
+          if (service != null && service != "") {
+            val response = Await.result(Http().singleRequest(HttpRequest(uri = service)), minTimeOut)
+            response match {
+              case HttpResponse(StatusCodes.OK, headers, entity, _) =>
+                Await.result(entity.dataBytes.runFold(ByteString(""))(_ ++ _).map {
+                  riderLogger.info(s"synchronize dbus namespaces $service success.")
+                  body => simpleDbusSeq ++= json2caseClass[Seq[SimpleDbus]](body.utf8String)
+                }, minTimeOut)
+              case resp@HttpResponse(code, _, _, _) =>
+                riderLogger.error(s"synchronize dbus namespaces $service failed, ${code.reason}.")
+                "parse failed"
+            }
+          } else riderLogger.debug(s"dbus namespace service is not config")
+        }
+      }
+      simpleDbusSeq
+    } catch {
+      case ex: Exception =>
+        riderLogger.error(s"synchronize dbus namespace failed", ex)
+        Seq()
+    }
+
+  }
 
   def getDbusFromRest: Seq[SimpleDbus] = {
     try {
@@ -99,7 +130,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
 
   def dbusInsert(session: SessionClass): Future[Seq[Dbus]] = {
     try {
-      val simpleDbusSeq = getDbusFromRest
+      val simpleDbusSeq = getDbusFromRest ++: getDbus4FromRest
       val kafkaSeq = new ArrayBuffer[String]
       val kafkaTopicMap = mutable.HashMap.empty[String, ArrayBuffer[String]]
       val kafkaIdMap = mutable.HashMap.empty[String, Long]

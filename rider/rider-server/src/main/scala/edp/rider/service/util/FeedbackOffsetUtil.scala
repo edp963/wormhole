@@ -82,16 +82,4 @@ object FeedbackOffsetUtil extends RiderLogger with ConfigurationModuleImpl with 
     }
     topicMap
   }
-
-  def deleteFeedbackOffsetHistory(pastNdays: String) = {
-    val topics = Await.result(feedbackOffsetDal.getDistinctList, Duration.Inf)
-    val topicList: ListBuffer[Long] = new ListBuffer()
-    val streamIds = Await.result(streamDal.findAll, maxTimeOut).map(_.id)
-    topics.filter(topic => topic.streamId == 0 || streamIds.contains(topic.streamId))
-      .foreach { topic =>
-        val record = Await.result(feedbackOffsetDal.getLatestOffset(topic.streamId, topic.topicName), Duration.Inf)
-        if (record.nonEmpty && record.get.id > 0) topicList.append(record.get.id)
-      }
-    feedbackOffsetDal.deleteHistory(pastNdays, topicList.toList)
-  }
 }

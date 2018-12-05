@@ -64,6 +64,7 @@ class SwaggerRoutes extends SwaggerHttpService with HasActorSystem {
     typeOf[UserRoutes],
     typeOf[InstanceAppRoutes],
     typeOf[NsDatabaseAppRoutes],
+    typeOf[MonitorRoutes],
     typeOf[NamespaceAppRoutes]
   )
 

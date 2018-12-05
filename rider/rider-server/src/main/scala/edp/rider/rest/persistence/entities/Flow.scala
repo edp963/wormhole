@@ -226,7 +226,7 @@ case class GetFlowTopicsOffsetResponse(autoRegisteredTopics: Seq[SimpleFlowTopic
 
 case class FlowIdKafkaUrl(flowId: Long, kafkaUrl: String)
 
-case class FlowUdfResponse(id: Long, functionName: String, fullClassName: String, jarName: String)
+case class FlowUdfResponse(id: Long, functionName: String, fullClassName: String, jarName: String, mapOrAgg: String)
 
 case class StartFlinkFlowResponse(id: Long,
                                   status: String,

@@ -62,7 +62,7 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
   lazy val instanceApp = new InstanceAppRoutes(modules)
   lazy val nsDatabaseApp = new NsDatabaseAppRoutes(modules)
   lazy val nsApp = new NamespaceAppRoutes(modules)
-
+  lazy val monitor=new MonitorRoutes(modules)
 
   lazy val routes: Route =
     crossDomainHandler(swagger.indexRoute) ~
@@ -94,7 +94,8 @@ class RoutesApi(modules: ConfigurationModule with PersistenceModule with Busines
               crossDomainHandler(instanceUser.routes) ~
               crossDomainHandler(udfUser.routes) ~
               crossDomainHandler(jobUser.routes) ~
-              crossDomainHandler(user.routes)
+              crossDomainHandler(user.routes) ~
+              crossDomainHandler(monitor.routes)
           } ~
           pathPrefix("app") {
             crossDomainHandler(flowApp.routes) ~
