@@ -37,6 +37,6 @@ class FeedbackStreamErrorDal(streamErrorTable: TableQuery[FeedbackStreamErrTable
   def deleteHistory(pastNdays: String) = {
     val deleteSeq = Await.result(db.run(streamErrorTable.withFilter(_.feedbackTime <= pastNdays)
       .map(_.id).result).mapTo[Seq[Long]], minTimeOut)
-    Await.result(super.deleteByFilter(_.id <= deleteSeq.max), minTimeOut)
+    if(!deleteSeq.isEmpty)Await.result(super.deleteByFilter(_.id <= deleteSeq.max), minTimeOut)
   }
 }

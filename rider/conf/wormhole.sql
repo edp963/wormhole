@@ -463,5 +463,35 @@ CREATE TABLE IF NOT EXISTS `feedback_directive` (
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `feedback_flow_stats` (
+  `stats_id` varchar(30) NOT NULL DEFAULT '',
+  `ums_ts` varchar(30) NOT NULL,
+  `project_id` bigint(20) NOT NULL,
+  `stream_id` bigint(20) NOT NULL,
+  `stream_name` varchar(100) DEFAULT NULL,
+  `flow_id` bigint(20) NOT NULL,
+  `flow_namespace` varchar(200) NOT NULL,
+  `rdd_count` int(11) NOT NULL,
+  `topics` varchar(200) DEFAULT NULL,
+  `throughput` bigint(20) NOT NULL,
+  `data_generated_ts` varchar(30) NOT NULL,
+  `rdd_ts` varchar(30) NOT NULL,
+  `directive_ts` varchar(30) NOT NULL,
+  `data_process_ts` varchar(30) NOT NULL,
+  `swifts_ts` varchar(30) NOT NULL,
+  `sink_ts` varchar(30) NOT NULL,
+  `done_ts` varchar(30) NOT NULL,
+  `interval_data_process_to_data_ums` bigint(20) NOT NULL,
+  `interval_data_process_to_rdd` bigint(20) NOT NULL,
+  `interval_data_process_to_swifts` bigint(20) NOT NULL,
+  `interval_data_process_to_sink` bigint(20) NOT NULL,
+  `interval_data_process_to_done` bigint(20) NOT NULL,
+  `interval_data_ums_done` bigint(20) NOT NULL,
+  `interval_rdd_done` bigint(20) NOT NULL,
+  `interval_swifts_sink` bigint(20) NOT NULL,
+  `interval_sink_done` bigint(20) NOT NULL,
+  PRIMARY KEY (`stats_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 alter table `feedback_directive` modify column `result_desc` varchar(5000);
 

@@ -66,23 +66,10 @@ object RiderStarter extends App with RiderLogger {
 
       CacheMap.cacheMapInit
 
-      ElasticSearch.initial(RiderConfig.es, RiderConfig.grafana)
+      if(RiderConfig.monitor.databaseType.equalsIgnoreCase("es"))
+         ElasticSearch.initial(RiderConfig.es)
 
-      val props=new Properties()
-
-      props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer") // key反序列化方式
-      props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer") // value反系列化方式
-      props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, RiderConfig.consumer.brokers) // 指定broker地址，来找到group的coordinator
-      props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG,"60000")
-      props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,"false")
-      props.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG,"80000")
-      if(RiderConfig.kerberos.enabled){
-        props.put("security.protocol","SASL_PLAINTEXT")
-        props.put("sasl.kerberos.service.name", "kafka")
-      }
-      val consumer:KafkaConsumer[String, String]=new KafkaConsumer[String, String](props)
-
-      new ConsumerManager(modules,consumer)
+      new ConsumerManager(modules)
       riderLogger.info(s"WormholeServer Consumer started")
       Scheduler.start
       riderLogger.info(s"Wormhole Scheduler started")

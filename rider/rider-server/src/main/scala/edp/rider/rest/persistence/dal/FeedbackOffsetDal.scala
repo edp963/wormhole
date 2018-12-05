@@ -52,7 +52,7 @@ class FeedbackOffsetDal(feedbackOffsetTable: TableQuery[FeedbackOffsetTable]) ex
   def deleteHistory(pastNdays: String) = {
     val deleteSeq = Await.result(db.run(feedbackOffsetTable.withFilter(_.feedbackTime <= pastNdays)
       .map(_.id).result).mapTo[Seq[Long]], minTimeOut)
-    Await.result(super.deleteByFilter(_.id <= deleteSeq.max), minTimeOut)
+    if(!deleteSeq.isEmpty)Await.result(super.deleteByFilter(_.id <= deleteSeq.max), minTimeOut)
   }
 
   def getStreamTopicsFeedbackOffset(streamId: Long, topicsNum: Long) = {
