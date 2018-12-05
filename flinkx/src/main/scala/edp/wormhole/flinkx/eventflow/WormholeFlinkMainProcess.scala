@@ -42,12 +42,15 @@ import edp.wormhole.util.{DateUtils, JsonUtils}
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.api.common.typeinfo.TypeInformation
+import org.apache.flink.runtime.state.filesystem.FsStateBackend
+import org.apache.flink.streaming.api.environment.CheckpointConfig.ExternalizedCheckpointCleanup
 import org.apache.flink.api.java.typeutils.runtime.kryo.JavaSerializer
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.runtime.metrics.{MetricRegistryConfiguration, MetricRegistryImpl}
 import org.apache.flink.runtime.metrics.groups.TaskManagerMetricGroup
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
+import org.apache.flink.streaming.api.{CheckpointingMode, TimeCharacteristic}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010
 import org.apache.flink.table.api.scala.StreamTableEnvironment
 import org.apache.flink.table.api.{TableEnvironment, Types}
@@ -85,10 +88,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     val swiftsSql = getSwiftsSql(swiftsString, UmsFlowStartUtils.extractDataType(flowStartFields, flowStartPayload))
     val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
     env.setParallelism(config.parallelism)
-
-    env.getConfig.registerTypeWithKryoSerializer(ListBuffer(Ums).getClass,(new JavaSerializer()).getClass)
-
-    //env.getConfig.registerKryoType(ListBuffer(Ums).getClass)
+    manageCheckpoint(env)
     val tableEnv = TableEnvironment.getTableEnvironment(env)
     udfRegister(tableEnv)
     assignTimeCharacteristic(env)
@@ -166,10 +166,21 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
       })
     val jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])] = ConfMemoryStorage.getAllSourceParseMap
 
-    val inputStream = processStream.process(new UmsProcessElement(sourceSchemaMap.toMap, config, exceptionConfig, jsonSourceParseMap, kafkaDataTag, assignMetricConfig))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
+    val inputStream = processStream.process(new UmsProcessElement(sourceSchemaMap.toMap, config,exceptionConfig, jsonSourceParseMap, kafkaDataTag, assignMetricConfig))(Types.ROW(sourceFieldNameArray, sourceFlinkTypeArray))
+
     val exceptionStream = inputStream.getSideOutput(kafkaDataTag)
    exceptionStream.map(new ExceptionProcess(exceptionProcessMethod, config))
     inputStream
+  }
+
+  private def manageCheckpoint(env: StreamExecutionEnvironment): Unit = {
+    if (config.flink_config.checkpoint.enable) {
+      env.setStateBackend(new FsStateBackend(config.flink_config.checkpoint.stateBackend))
+      val checkpointConfig = env.getCheckpointConfig
+      checkpointConfig.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
+      checkpointConfig.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
+      checkpointConfig.setCheckpointInterval(config.flink_config.checkpoint.`checkpointInterval.ms`)
+    }
   }
 
   private def assignMetricConfig():Configuration={
