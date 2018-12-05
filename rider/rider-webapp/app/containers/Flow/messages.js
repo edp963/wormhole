@@ -34,6 +34,7 @@ export default defineMessages({
   flowSureStart: { id: 'rider.app.table.sure.start' },
   flowTableStop: { id: 'rider.app.table.stop.action' },
   flowTableDrift: { id: 'rider.app.table.drift.action' },
+  flowTableChart: { id: 'rider.app.table.chart.action' },
   flowSureStop: { id: 'rider.app.table.sure.stop' },
   flowTableRenew: { id: 'rider.app.table.renew.action' },
   flowTableCopy: { id: 'rider.app.table.copy.action' },

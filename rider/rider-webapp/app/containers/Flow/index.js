@@ -54,13 +54,12 @@ import {
   loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm,
   saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail,
   loadSourceInput, loadFlowDetail, chuckAwayFlow, loadLastestOffset, loadUdfs, startFlinkFlow, stopFlinkFlow, loadAdminLogsInfo, loadLogsInfo,
-  loadDriftList, postDriftList, verifyDrift
+  loadDriftList, postDriftList, verifyDrift, postFlowPerformance
 } from './action'
 import { loadSingleUdf } from '../Udf/action'
 import FlowStartForm from './FlowStartForm'
 import FlowLogs from './FlowLogs'
 import { transformStringWithDot } from '../../utils/util'
-
 export class Flow extends React.Component {
   constructor (props) {
     super(props)
@@ -105,6 +104,8 @@ export class Flow extends React.Component {
       stoppedStartTimeText: '',
       stoppedEndTimeText: '',
       filterDropdownVisibleStoppedTime: false,
+      searchTextFlowName: '',
+      filterDropdownVisibleFlowName: false,
 
       columnNameText: '',
       valueText: '',
@@ -393,6 +394,45 @@ export class Flow extends React.Component {
     })
   }
 
+  onShowPerformance = (record) => (e) => {
+    const { projectIdGeted, onSearchFlowPerformance } = this.props
+    const flowId = record.id
+    const now = new Date().getTime()
+    const startTime = now
+    const endTime = now - this.state.performanceMenuChosen.value
+    onSearchFlowPerformance(projectIdGeted, flowId, startTime, endTime, (data) => {
+      console.log('onSearchFlowPerformance::', data)
+    })
+    this.setState({
+      performanceModalVisible: true
+    })
+    // this.props.onLoadDriftList(projectIdGeted, flowId, (payload) => {
+    //   if (Array.isArray(payload)) {
+    //     this.setState({
+    //       driftList: payload,
+    //       streamIdGeted: flowId
+    //     })
+    //   } else if (typeof payload === 'string') {
+    //     message.warn(payload)
+    //   }
+    // })
+  }
+  closePerformanceDialog = (cb) => {
+    this.setState({
+      performanceModalVisible: false
+    }, () => {
+      if (cb) cb()
+    })
+  }
+  choosePerformanceRange = ({item, key}) => {
+    let performanceMenuChosen = {
+      label: item.props.children,
+      value: key
+    }
+    this.setState({
+      performanceMenuChosen
+    })
+  }
   onShowDrift = (record) => (e) => {
     const { projectIdGeted } = this.props
     const flowId = record.id
@@ -915,7 +955,8 @@ export class Flow extends React.Component {
   render () {
     const { className, onShowAddFlow, onShowEditFlow, flowClassHide, roleType, flowStartModalLoading } = this.props
     const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails, logsModalVisible,
-      logsProjectId, logsFlowId, refreshLogLoading, refreshLogText, logsContent, selectedRowKeys, driftModalVisible, driftList, driftDialogConfirmLoading, driftVerifyTxt, driftVerifyStatus } = this.state
+      logsProjectId, logsFlowId, refreshLogLoading, refreshLogText, logsContent, selectedRowKeys,
+      driftModalVisible, driftList, driftDialogConfirmLoading, driftVerifyTxt, driftVerifyStatus} = this.state
     let { sortedInfo, filteredInfo, startModalVisible, flowStartFormData, autoRegisteredTopics, userDefinedTopics, startUdfVals, renewUdfVals, currentUdfVal, actionType } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
@@ -926,6 +967,33 @@ export class Flow extends React.Component {
       key: 'id',
       sorter: (a, b) => a.id - b.id,
       sortOrder: sortedInfo.columnKey === 'id' && sortedInfo.order
+    }, {
+      title: 'Flow Name',
+      dataIndex: 'flowName',
+      key: 'flowName',
+      // className: 'text-align-center',
+      sorter: (a, b) => a.flowName < b.flowName ? -1 : 1,
+      sortOrder: sortedInfo.columnKey === 'flowName' && sortedInfo.order,
+      filterDropdown: (
+        <div className="custom-filter-dropdown">
+          <Input
+            ref={ele => { this.searchInput = ele }}
+            placeholder="Flow Name"
+            value={this.state.searchTextFlowName}
+            onChange={this.onInputChange('searchTextFlowName')}
+            onPressEnter={this.onSearch('flowName', 'searchTextFlowName', 'filterDropdownVisibleFlowName')}
+          />
+          <Button
+            type="primary"
+            onClick={this.onSearch('flowName', 'searchTextFlowName', 'filterDropdownVisibleFlowName')}
+          >Search
+          </Button>
+        </div>
+      ),
+      filterDropdownVisible: this.state.filterDropdownVisibleFlowName,
+      onFilterDropdownVisibleChange: visible => this.setState({
+        filterDropdownVisibleFlowName: visible
+      }, () => this.searchInput.focus())
     }, {
       title: 'Project',
       dataIndex: 'projectName',
@@ -1192,11 +1260,11 @@ export class Flow extends React.Component {
             placeholder="Function Type"
             value={this.state.searchTextFunctionType}
             onChange={this.onInputChange('searchTextFunctionType')}
-            onPressEnter={this.onSearch('streamType', 'searchTextFunctionType', 'filterDropdownVisibleFunctionType')}
+            onPressEnter={this.onSearch('functionType', 'searchTextFunctionType', 'filterDropdownVisibleFunctionType')}
           />
           <Button
             type="primary"
-            onClick={this.onSearch('streamType', 'searchTextFunctionType', 'filterDropdownVisibleFunctionType')}
+            onClick={this.onSearch('functionType', 'searchTextFunctionType', 'filterDropdownVisibleFunctionType')}
           >Search
           </Button>
         </div>
@@ -1307,7 +1375,7 @@ export class Flow extends React.Component {
             ? <Button icon="edit" shape="circle" type="ghost" disabled></Button>
             : <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
           let strStart = ''
-          if (record.streamType === 'spark') {
+          if (record.streamType === 'spark' || record.streamTypeOrigin === 'spark') {
             strStart = record.disableActions.includes('start')
               ? (
                 <Tooltip title={startFormat}>
@@ -1321,7 +1389,7 @@ export class Flow extends React.Component {
                   </Tooltip>
                 </Popconfirm>
               )
-          } else if (record.streamType === 'flink') {
+          } else if (record.streamType === 'flink' || record.streamTypeOrigin === 'flink') {
             strStart = record.disableActions.includes('start')
               ? <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
               : <Tooltip title={startFormat}>
@@ -1329,7 +1397,7 @@ export class Flow extends React.Component {
               </Tooltip>
           }
           let strDrift = ''
-          if (record.streamType === 'spark' && record.functionType === 'default') {
+          if ((record.streamType === 'spark' || record.streamTypeOrigin === 'spark') && (record.functionType === 'default' || record.functionTypeOrigin === 'default')) {
             strDrift = record.disableActions.includes('drift')
               ? <Button shape="circle" type="ghost" disabled>
                 <i className="iconfont icon-sstransfer"></i>
@@ -1453,6 +1521,7 @@ export class Flow extends React.Component {
               <p><strong>   Protocol：</strong>{showFlowDetails.consumedProtocol}</p>
               <p><strong>   Stream Name：</strong>{showFlowDetails.streamName}</p>
               <p><strong>   Sink Config：</strong>{sinkConfigFinal}</p>
+              <p><strong>   Table Keys：</strong>{showFlowDetails.tableKeys}</p>
               <p><strong>   Transformation Config：</strong>{showFlowDetails.tranConfig}</p>
               <p><strong>   Create Time：</strong>{showFlowDetails.createTime}</p>
               <p><strong>   Update Time：</strong>{showFlowDetails.updateTime}</p>
@@ -1580,6 +1649,7 @@ export class Flow extends React.Component {
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>
         {helmetHide}
+
         <h3 className="ri-common-block-title">
           <Icon type="bars" /> Flow <FormattedMessage {...messages.flowTableList} />
         </h3>
@@ -1748,7 +1818,8 @@ Flow.propTypes = {
   onLoadLogsInfo: PropTypes.func,
   onLoadDriftList: PropTypes.func,
   onSubmitDrift: PropTypes.func,
-  onVerifyDrift: PropTypes.func
+  onVerifyDrift: PropTypes.func,
+  onSearchFlowPerformance: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1776,7 +1847,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadLogsInfo: (projectId, flowId, resolve) => dispatch(loadLogsInfo(projectId, flowId, resolve)),
     onLoadDriftList: (projectId, flowId, resolve) => dispatch(loadDriftList(projectId, flowId, resolve)),
     onSubmitDrift: (projectId, flowId, streamId, resolve) => dispatch(postDriftList(projectId, flowId, streamId, resolve)),
-    onVerifyDrift: (projectId, flowId, streamId, resolve) => dispatch(verifyDrift(projectId, flowId, streamId, resolve))
+    onVerifyDrift: (projectId, flowId, streamId, resolve) => dispatch(verifyDrift(projectId, flowId, streamId, resolve)),
+    onSearchFlowPerformance: (projectId, flowId, startTime, endTime, resolve) => dispatch(postFlowPerformance(projectId, flowId, startTime, endTime, resolve))
   }
 }
 

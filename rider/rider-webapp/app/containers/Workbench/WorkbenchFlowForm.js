@@ -66,7 +66,8 @@ export class WorkbenchFlowForm extends React.Component {
       defaultSinkNsData: [],
       hdfslogSourceNsData: [],
       hdfslogSinkDSValue: '',
-      routingNsData: []
+      routingNsData: [],
+      sinkNamespaceResult: []
     }
   }
 
@@ -133,7 +134,15 @@ export class WorkbenchFlowForm extends React.Component {
       }
     }
   }
-
+  namespaceChange = (value, selectedOptions) => {
+    let id = selectedOptions[2].id
+    let sinkNamespaceResult = this.state.sinkNamespaceResult
+    sinkNamespaceResult.forEach(v => {
+      if (v.id === id) {
+        this.props.form.setFieldsValue({tableKeys: v.keys})
+      }
+    })
+  }
   // 通过不同的 Sink Data System 显示不同的 Sink Namespace 的内容
   onSinkDataSystemItemSelect = (val) => {
     if (val) {
@@ -143,6 +152,7 @@ export class WorkbenchFlowForm extends React.Component {
       if (streamId !== 0) {
         this.props.onLoadSinkTypeNamespace(projectIdGeted, streamId, val, 'sinkType', (result) => {
           this.setState({
+            sinkNamespaceResult: result,
             defaultSinkNsData: generateSourceSinkNamespaceHierarchy(val, result)
           })
           if (flowMode === 'add' || flowMode === 'copy') {
@@ -435,6 +445,18 @@ export class WorkbenchFlowForm extends React.Component {
         <Row gutter={8} className={stepClassNames[0]}>
           <Card title="Stream" className="ri-workbench-form-card-style stream-card">
             <Col span={24}>
+              <FormItem label="Flow name" {...itemStyle}>
+                {getFieldDecorator('flowName', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageFillIn('flow name', 'Flow name')
+                  }]
+                })(
+                  <Input />
+                )}
+              </FormItem>
+            </Col>
+            <Col span={24}>
               <FormItem label="Stream type" {...itemStyle}>
                 {getFieldDecorator('streamType', {
                   rules: [{
@@ -677,6 +699,7 @@ export class WorkbenchFlowForm extends React.Component {
                     options={defaultSinkNsData}
                     expandTrigger="hover"
                     displayRender={(labels) => labels.join('.')}
+                    onChange={this.namespaceChange}
                   />
                 )}
               </FormItem>
@@ -702,7 +725,13 @@ export class WorkbenchFlowForm extends React.Component {
                 )}
               </FormItem>
             </Col>
-
+            <Col span={24}>
+              <FormItem label="Table keys" {...itemStyle}>
+                {getFieldDecorator('tableKeys')(
+                  <Input />
+                )}
+              </FormItem>
+            </Col>
             <Col span={24} className={`result-field-class ${streamDiffType === 'default' ? '' : 'hide'}`}>
               <FormItem label="Result Fields" {...itemStyle}>
                 {getFieldDecorator('resultFields', {
@@ -747,7 +776,6 @@ export class WorkbenchFlowForm extends React.Component {
                 })(<Input />)}
               </FormItem>
             </Col>
-
             <Col span={24} className={`ri-input-text ${streamTypeClass[1]}`}>
               <FormItem label="Data System" {...itemStyle}>
                 {getFieldDecorator('hdfslogDataSys', {

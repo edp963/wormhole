@@ -578,10 +578,11 @@ export class Workbench extends React.Component {
           type: mapJobType[resultFinal.jobType],
           eventStartTs: resultFinal.eventTsStart === '' ? null : Moment(formatString(resultFinal.eventTsStart)),
           eventEndTs: resultFinal.eventTsEnd === '' ? null : Moment(formatString(resultFinal.eventTsEnd)),
-          sinkProtocol: resultFinal.sinkConfig.indexOf('snapshot') > -1
+          sinkProtocol: resultFinal.sinkConfig.indexOf('snapshot') > -1,
+          tableKeys: resultFinal.tableKeys
         })
         const { sparkConfig, startConfig, id, name, projectId, sourceNs, sinkNs, jobType,
-          sparkAppid, logPath, startedTime, stoppedTime, status, createTime, createBy, updateTime, updateBy } = resultFinal
+          sparkAppid, logPath, startedTime, stoppedTime, status, userTimeInfo } = resultFinal
 
         const jobResultSinkNsArr = resultFinal.sinkNs.split('.')
         const jobResultSinkNsFinal = [jobResultSinkNsArr[1], jobResultSinkNsArr[2], jobResultSinkNsArr[3]].join('.')
@@ -605,10 +606,7 @@ export class Workbench extends React.Component {
             startedTime: startedTime,
             stoppedTime: stoppedTime,
             status: status,
-            createTime: createTime,
-            createBy: createBy,
-            updateTime: updateTime,
-            updateBy: updateBy
+            userTimeInfo
           }
         })
       })
@@ -790,12 +788,14 @@ export class Workbench extends React.Component {
       this.props.onQueryFlow(requestData, (result) => {
         resolve(result)
 
-        const { streamId, streamName, streamType, consumedProtocol } = result
+        const { streamId, streamName, streamType, consumedProtocol, flowName, tableKeys } = result
         this.workbenchFlowForm.setFieldsValue({
           flowStreamId: streamId,
           streamName: streamName,
           streamType: streamType,
-          protocol: consumedProtocol.split(',')
+          protocol: consumedProtocol.split(','),
+          flowName,
+          tableKeys
         })
 
         const { id, projectId, sourceNs, sinkNs, status, active,
@@ -1099,7 +1099,9 @@ export class Workbench extends React.Component {
         this.workbenchFlowForm.setFieldsValue({
           flowStreamId: result.streamId,
           streamName: result.streamName,
-          streamType: result.streamType
+          streamType: result.streamType,
+          flowName: result.flowName,
+          tableKeys: result.tableKeys
         })
 
         const resultSinkNsArr = result.sinkNs.split('.')
@@ -1158,7 +1160,9 @@ export class Workbench extends React.Component {
         this.workbenchFlowForm.setFieldsValue({
           flowStreamId: result.streamId,
           streamName: result.streamName,
-          streamType: result.streamType
+          streamType: result.streamType,
+          flowName: result.flowName,
+          tableKeys: result.tableKeys
         })
         const sourceNsArr = result.sourceNs.split('.')
         const showSourceNs = [sourceNsArr[0], sourceNsArr[1], sourceNsArr[2]].join('.')
@@ -1994,7 +1998,9 @@ export class Workbench extends React.Component {
       eventTsStart: values.eventStartTs ? startTsVal : '',
       eventTsEnd: values.eventEndTs ? endTsVal : '',
       sinkConfig: sinkConfigRequest,
-      tranConfig: tranConfigRequest
+      tranConfig: tranConfigRequest,
+      tableKeys: values.tableKeys,
+      desc: ''
     }
 
     if (jobMode === 'add') {
@@ -2093,7 +2099,10 @@ export class Workbench extends React.Component {
         consumedProtocol: values.protocol.join(','),
         sinkConfig: `${sinkConfigRequest}`,
         tranConfig: tranConfigRequest,
-        parallelism
+        parallelism,
+        flowName: values.flowName,
+        tableKeys: values.tableKeys,
+        desc: null
       }
 
       this.props.onAddFlow(submitFlowData, () => {
@@ -2110,7 +2119,10 @@ export class Workbench extends React.Component {
       const editData = {
         sinkConfig: `${sinkConfigRequest}`,
         tranConfig: tranConfigRequest,
-        consumedProtocol: values.protocol.join(',')
+        consumedProtocol: values.protocol.join(','),
+        flowName: values.flowName,
+        tableKeys: values.tableKeys,
+        desc: null
       }
       if (values.parallelism != null) {
         editData.parallelism = values.parallelism
@@ -2153,7 +2165,10 @@ export class Workbench extends React.Component {
             sinkNs: sourceDataInfo,
             consumedProtocol: 'all',
             sinkConfig: '',
-            tranConfig: ''
+            tranConfig: '',
+            flowName: values.flowName,
+            tableKeys: values.tableKeys,
+            desc: null
             // parallelism
           }
 
@@ -2202,7 +2217,10 @@ export class Workbench extends React.Component {
             sinkNs: sinkDataInfo,
             consumedProtocol: 'all',
             sinkConfig: '',
-            tranConfig: ''
+            tranConfig: '',
+            flowName: values.flowName,
+            tableKeys: values.tableKeys,
+            desc: null
             // parallelism
           }
 
