@@ -30,7 +30,7 @@ class MonitorInfoDal (monitorInfoTable: TableQuery[MonitorInfoTable],
   }
 
   def deleteHistory(pastNdays: String)={
-    val ignoreIds = new ListBuffer[Long]
+    val ignoreIds = new ListBuffer[String]
     val existSeq = Await.result(super.findAll, maxTimeOut).map(
       monitorInfo => StreamMonitorInfo(monitorInfo.streamId, monitorInfo.flowNamespace)
     ).distinct
@@ -44,9 +44,9 @@ class MonitorInfoDal (monitorInfoTable: TableQuery[MonitorInfoTable],
             .filter(table => table.streamId === monitorInfo.streamId &&
               table.flowNamespace === monitorInfo.flowNs)
             .sortBy(_.doneTs).take(1).result), minTimeOut)
-        if (maxMonitorInfo.nonEmpty) ignoreIds += maxMonitorInfo.head.id
+        if (maxMonitorInfo.nonEmpty) ignoreIds += maxMonitorInfo.head.statsId
       })
-    val deleteSeq =Await.result(db.run(monitorInfoTable.withFilter(_.doneTs<=pastNdays).map(_.id).result).mapTo[Seq[Long]],maxTimeOut)
-    Await.result(super.deleteByFilter(monitorInfo => monitorInfo.id <= deleteSeq.max && !monitorInfo.id.inSet(ignoreIds)), maxTimeOut)
+    val deleteSeq =Await.result(db.run(monitorInfoTable.withFilter(_.doneTs<=pastNdays).map(_.statsId).result).mapTo[Seq[String]],maxTimeOut)
+    if(!deleteSeq.isEmpty)Await.result(super.deleteByFilter(monitorInfo => monitorInfo.statsId <= deleteSeq.max && !monitorInfo.statsId.inSet(ignoreIds)), maxTimeOut)
   }
 }
