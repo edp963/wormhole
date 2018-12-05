@@ -102,7 +102,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     } catch {
       case e: Throwable =>
         logger.error("swifts and sink:", e)
-        val currentTs=System.currentTimeMillis
+        val currentTs=System.currentTimeMillis*1000
         val feedbackFlowError = UmsProtocolUtils.feedbackFlowError(sourceNamespace, streamId , DateUtils.currentDateTime, sinkNamespace, UmsWatermark(""+currentTs), UmsWatermark(""+currentTs), 1, e.getMessage, "")
         //val feedbackFlowFlinkxError = UmsProtocolUtils.feedbackFlowFlinkxError(sourceNamespace, streamId, flowId, sinkNamespace, DateUtils.currentDateTime, "", e.getMessage)
         new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config).doExceptionProcess(feedbackFlowError)
