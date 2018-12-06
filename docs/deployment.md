@@ -208,6 +208,16 @@ maintenance = {
 
 如果使用checkpoint则需要配置flink.checkpoint.enable=true，另外还可以设置checkpoint的间隔时间和存储系统。通过flink.checkpoint.interval可设置checkpoint的间隔时间，默认为60000ms。通过flink.stateBackend可设置checkpoint的存储位置。
 
+#### Feedback State存储位置配置
+
+wormhole在0.6版本之前的feedback state默认存储在ES中，在0.6版本之后，将支持用户根据需求在ES与MySQL中间选择合适的存储库进行数据存储。如果需要将存储位置由ES迁往MySQL，可以参照下面的步骤进行配置。通过配置monitor.database.type选择存储位置
+
+`monitor.database.type="MYSQL" #存储到mysql中`
+
+`monitor.database.type="ES" #存储到ES中`
+
+当选择存储到mysql时，需要在wormhole/rider/conf/wormhole.sql新建feedback_flow_stats表，并在wormhole配置的数据库中执行该文件，从而在数据库中建立feedback_flow_stats表
+
 #### Wormhole集群部署
 
 **部署说明**
@@ -370,9 +380,7 @@ update udf set map_or_agg='udf';
 
 （2）停止所有flow
 
-在0.6.0-beta版本启动之前，停止以前版本所有的flow（包括flink和spark）。
-
-启动0.6.0-beta版本之后，重启这些flow即可。
+在0.6.0-beta版本启动之前，需停止以前版本所有sparkx的flow（包括starting、running、suspending、updating状态的flow）, 并记录当前stream消费到的topic offset，重启stream时，手动设定从之前记录的offset消费
 
 #### 0.5.0-0.5.2版本升级到0.6.0版本
 
