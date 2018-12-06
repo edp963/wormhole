@@ -92,3 +92,5 @@ export const LOAD_LOGS_INFO_SUCCESS = 'rider/Flow/LOAD_LOGS_INFO_SUCCESS'
 export const LOAD_DRIFT_LIST = 'rider/Flow/LOAD_DRIFT_LIST'
 export const POST_DRIFT = 'rider/Flow/POST_DRIFT'
 export const VERIFY_DRIFT = 'rider/Flow/VERIFY_DRIFT'
+export const LOAD_FLOW_PERFORMANCE = 'rider/Flow/LOAD_FLOW_PERFORMANCE'
+
