@@ -63,9 +63,9 @@ data_increment_data.kafka.edp.source.ums_extension.*.*.*@@@{"id": 1, "name": "te
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-udf-spark.png" alt="" width="600"/>
 
-   **创建Flink UDF需要将相关jar包放置到Flink安装目录中的lib下**
+   **Flink支持UDF和UDAF操作，创建Flink UDF/UDAF需要将相关jar包放置到Flink安装目录中的lib下**
 
-​    **注：Wormhole Flink UDF支持普通的java程序，而不需要按照Flink官方文档的格式实现UDF。使用例程请参考 [User Guide](https://edp963.github.io/wormhole/user-guide.html) 章节**
+​    **注：Wormhole Flink UDF支持普通的java程序，而不需要按照Flink官方文档的格式实现UDF。UDF/UDAF使用例程请参考 [User Guide](https://edp963.github.io/wormhole/user-guide.html) 章节**
 
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-create-udf-flink.png" alt="" width="600"/>
 
@@ -77,7 +77,7 @@ data_increment_data.kafka.edp.source.ums_extension.*.*.*@@@{"id": 1, "name": "te
 
 ## User 用户
 
-​**Wormhole支持Spark和Flink两种流式处理引擎，下面分别介绍Spark和Flink Stream/Flow的使用流程。**
+**Wormhole支持Spark和Flink两种流式处理引擎，下面分别介绍Spark和Flink Stream/Flow的使用流程。**
 
 ### Spark Stream/Flow 使用流程
 
@@ -231,6 +231,8 @@ data_increment_data.kafka.test.flinksource.source.*.*.*###{"protocol":{"type":"d
    <img src="https://github.com/edp963/wormhole/raw/master/docs/img/quick-start-flow-transform-result-flink.png" alt="" width="600"/>
 
 **Flink中通过中Transformation Config设置“exception_process_method”字段可选择对流处理中异常信息的处理方式。现在能捕获读取kafka后数据预处理、lookup操作、写sink操作时的异常。处理方式有unhandle、interrupt、feedback三种。**
+
+**注意：当在配置文件中设置checkpoint为true，则异常处理不能设置为interrupt，否则flow会一直重启。**
 
  **（3）提交flow**
 
