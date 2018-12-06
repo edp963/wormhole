@@ -53,7 +53,8 @@ import {
   LOAD_LOGS_INFO,
   LOAD_DRIFT_LIST,
   POST_DRIFT,
-  VERIFY_DRIFT
+  VERIFY_DRIFT,
+  LOAD_FLOW_PERFORMANCE
 } from './constants'
 
 import {
@@ -764,6 +765,26 @@ export function* submitDrift ({ payload }) {
 export function* postDriftWatcher () {
   yield fork(takeLatest, POST_DRIFT, submitDrift)
 }
+
+export function* searchPerformance ({ payload }) {
+  let { startTime, endTime } = payload
+  try {
+    const result = yield call(request, {
+      method: 'post',
+      url: `${api.projectUserList}/monitor/${payload.projectId}/flow/${payload.flowId}`,
+      data: {startTime, endTime}
+    })
+    if (result.header && result.header.code === 200) {
+      payload.resolve(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'searchPerformance')
+  }
+}
+
+export function* postPerformanceWatcher () {
+  yield fork(takeLatest, LOAD_FLOW_PERFORMANCE, searchPerformance)
+}
 export default [
   getAdminAllFlowsWatcher,
   getUserAllFlowsWatcher,
@@ -798,5 +819,6 @@ export default [
   getAdminLogsWatcher,
   getDriftListWatcher,
   postDriftWatcher,
-  verifyDriftWatcher
+  verifyDriftWatcher,
+  postPerformanceWatcher
 ]
