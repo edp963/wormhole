@@ -391,8 +391,8 @@ CREATE TABLE IF NOT EXISTS `udf` (
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 drop index `full_class_name_UNIQUE` on `udf`;
-alter table `udf` add `stream_type` VARCHAR(100);
-alter table `udf` add `map_or_agg` VARCHAR(100);
+alter table `udf` add `stream_type` VARCHAR(100) NOT NULL;
+alter table `udf` add `map_or_agg` VARCHAR(100) NOT NULL;
 
 CREATE TABLE IF NOT EXISTS `feedback_heartbeat` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
