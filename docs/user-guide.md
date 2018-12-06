@@ -294,7 +294,9 @@ Lookup SQL具体可参考Spark Flow Transformation的Lookup SQL章节
 
 Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Flink支持window，UDF和UDAF操作
 
-####### Window
+
+
+###### Window
 
 process time处理方式中window中相应的字段名称为processing_time。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(processing_time, INTERVAL '1' HOUR), name;
 
@@ -310,7 +312,9 @@ event time处理方式中window中相应的字段名称为ums_ts_。例：SELECT
 
   在Transformation Config中可对这三个参数进行配置，配置格式为json。例如：{"min_idle_state_retention_time":"10","max_idle_state_retention_time":"20","preserve_message_flag":"true"}
 
-###### #UDF
+
+
+###### UDF
 
 Wormhole Flink UDF支持普通的java程序，而不需要按照Flink官方文档的格式实现UDF。UDF名称大小写敏感。UDF相应的字段需要使用as指定新字段的名称。例如：
 
@@ -324,7 +328,9 @@ Java程序：
 使用UDF的Flink SQL：
 
     select intvalue, fInt(intvalue) as fint from mytable; 
-###### #UDAF
+
+
+###### UDAF
 
 （1）使用UDAF需要进行以下操作
 
