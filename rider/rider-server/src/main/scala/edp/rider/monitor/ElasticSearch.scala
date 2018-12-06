@@ -22,6 +22,7 @@
 package edp.rider.monitor
 
 import java.io.IOException
+import java.text.SimpleDateFormat
 
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.headers.BasicHttpCredentials
@@ -30,10 +31,10 @@ import akka.http.scaladsl.unmarshalling._
 import akka.util.ByteString
 import edp.rider.RiderStarter._
 import edp.rider.common.{RiderConfig, RiderEs, RiderLogger, RiderMonitor}
-import edp.rider.rest.persistence.entities.MonitorInfo
+import edp.rider.rest.persistence.entities.{Interval, MonitorInfo, MonitorInfoES}
 import edp.rider.rest.util.CommonUtils
 import edp.wormhole.util.JsonUtils
-import org.json4s.JsonAST.JNull
+import org.json4s.JsonAST.{JNothing, JNull}
 import org.json4s.{DefaultFormats, Formats, JValue}
 
 import scala.collection.mutable.ListBuffer
@@ -151,23 +152,29 @@ object ElasticSearch extends RiderLogger {
     } else (false, "")
   }
 
-  def queryESFlowMonitor(projectId: Long,flowId: Long, startTime: Long, endTime: Long)={
+  def queryESFlowMonitor(projectId: Long,flowId: Long, startTime: String,endTime: String)={
     val list=ListBuffer[MonitorInfo]()
     if (RiderConfig.es != null) {
       val postBody = ReadJsonFile.getMessageFromJson(JsonFileType.ESFLOW)
         .replace("#PROJECT_ID#", projectId.toString)
         .replace("#FLOW_ID#", flowId.toString)
-        .replace("#START_TIME", startTime.toString)
-        .replace("#END_TIME#", endTime.toString)
+        .replace("#START_TIME#", startTime)
+        .replace("#END_TIME#", endTime)
+
       val url = getESUrl + "_search"
-      riderLogger.debug(s"queryESFlowMonitor url $url $postBody")
-      val response = syncToES(postBody, url, HttpMethods.POST, CommonUtils.minTimeOut)
+      riderLogger.debug(s"queryESStreamMonitor url $url $postBody")
+      val response = syncToES(postBody, url, HttpMethods.GET, CommonUtils.minTimeOut)
       if (response._1) {
-        val result = JsonUtils.getList(JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits"), s"_source")
+        val tuple = JsonUtils.getList(JsonUtils.getJValue(response._2, "hits"), "hits")
         implicit val json4sFormats: Formats = DefaultFormats
-        if(!result.isEmpty){
-          result.foreach(json=>list+=JsonUtils.json2caseClass[MonitorInfo](json.toString))
-        }
+        tuple.foreach(jvalue=>{
+          val value=JsonUtils.getJValue(jvalue,s"_source")
+          val interval=JsonUtils.getJValue(value,s"interval")
+
+          val result=if(interval!=JNothing)JsonUtils.json2caseClass[MonitorInfo](JsonUtils.jValue2json(value))
+          else changeMonitorInfoEsToMonitorInfo(JsonUtils.json2caseClass[MonitorInfoES](JsonUtils.jValue2json(value)))
+          list+=result
+        })
       }else{
         riderLogger.error(s"Failed to get flow info from ES response")
       }
@@ -175,28 +182,41 @@ object ElasticSearch extends RiderLogger {
     }else (false, list)
   }
 
-  def queryESStreamMonitor(projectId: Long, streamId: Long, startTime: Long, endTime: Long)={
+  def queryESStreamMonitor(projectId: Long, streamId: Long, startTime: String, endTime: String)={
     val list=ListBuffer[MonitorInfo]()
     if (RiderConfig.es != null) {
+      val dateFormat=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSSZ")
       val postBody = ReadJsonFile.getMessageFromJson(JsonFileType.ESSTREAM)
         .replace("#PROJECT_ID#", projectId.toString)
         .replace("#STREAM_ID#", streamId.toString)
-        .replace("#START_TIME", startTime.toString)
-        .replace("#END_TIME#", endTime.toString)
+        .replace("#START_TIME#", startTime)
+        .replace("#END_TIME#", endTime)
+
       val url = getESUrl + "_search"
       riderLogger.debug(s"queryESStreamMonitor url $url $postBody")
-      val response = syncToES(postBody, url, HttpMethods.POST, CommonUtils.minTimeOut)
+      val response = syncToES(postBody, url, HttpMethods.GET, CommonUtils.minTimeOut)
       if (response._1) {
-        val result = JsonUtils.getList(JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits"), s"_source")
+        val tuple = JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits").children
         implicit val json4sFormats: Formats = DefaultFormats
-        if(!result.isEmpty){
-          result.foreach(json=>list+=JsonUtils.json2caseClass[MonitorInfo](json.toString))
-        }
+        tuple.foreach(jvalue=>{
+          val value=JsonUtils.getJValue(jvalue,s"_source")
+          val interval=JsonUtils.getJValue(value,s"interval")
+
+          val result=if(interval!=JNothing)JsonUtils.json2caseClass[MonitorInfo](JsonUtils.jValue2json(value))
+          else changeMonitorInfoEsToMonitorInfo(JsonUtils.json2caseClass[MonitorInfoES](JsonUtils.jValue2json(value)))
+          list+=result
+        })
       }else{
         riderLogger.error(s"Failed to get stream info from ES response")
       }
       (response._1,list)
     }else (false, list)
+  }
+
+  def changeMonitorInfoEsToMonitorInfo(monitor:MonitorInfoES)={
+    MonitorInfo(0,monitor.statsId,monitor.umsTs,monitor.projectId,monitor.streamId,monitor.streamName,monitor.flowId,monitor.flowNamespace,
+      monitor.rddCount,monitor.topics,monitor.throughput,monitor.dataGeneratedTs,monitor.rddTs,monitor.directiveTs,monitor.DataProcessTs,monitor.swiftsTs,monitor.sinkTs,monitor.doneTs,
+      Interval(monitor.intervalDataProcessToDataums,monitor.intervalDataProcessToRdd,monitor.intervalDataProcessToSwifts,monitor.intervalDataProcessToSink,monitor.intervalDataProcessToDone,monitor.intervalDataumsToDone,monitor.intervalRddToDone,monitor.intervalSwiftsToSink,monitor.intervalSinkToDone))
   }
 
   def deleteEsHistory(fromDate: String, endDate: String): Int = {
@@ -298,6 +318,7 @@ object ElasticSearch extends RiderLogger {
                 //                  jsonString
                 //                }.")
                 tc = true
+                println(s"jsonString:${jsonString}")
                 responseJson = JsonUtils.json2jValue(jsonString)
             }, Duration.Inf)
         case StatusCodes.BadRequest => {

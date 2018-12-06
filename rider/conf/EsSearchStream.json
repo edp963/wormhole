@@ -1,6 +1,5 @@
 {
   "from": 0,
-  "size": 1,
   "query": {
     "bool": {
       "must": {
@@ -21,16 +20,14 @@
                   "type": "phrase"
                 }
               }
-            },
-            {
+            },{
               "range":{
                 "umsTs":{
-                  "ge": #START_TIME#,
-                  "le": #END_TIME#
+                  "gte": "#START_TIME#",
+                  "lte": "#END_TIME#"
                 }
               }
-            }
-          ]
+            }]
         }
       }
     }
