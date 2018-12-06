@@ -1,6 +1,5 @@
 {
   "from": 0,
-  "size": 1,
   "query": {
     "bool": {
       "must": {

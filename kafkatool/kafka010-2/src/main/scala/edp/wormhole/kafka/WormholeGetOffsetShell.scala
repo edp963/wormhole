@@ -37,6 +37,7 @@ object WormholeGetOffsetShell {
         props.put("sasl.kerberos.service.name", "kafka")
       }
 
+      logger.info(s"brokerList:$brokerList")
       val consumer = new KafkaConsumer[String, String](props)
       val offsetSeq = new ListBuffer[String]()
       val topicMap=consumer.listTopics()
