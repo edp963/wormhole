@@ -204,6 +204,8 @@ maintenance = {
 
 #### Flink CheckPoint配置
 
+wormhole 0.6及之后版本支持flink checkpoint配置。
+
 如果flink.checkpoint.enable=false则不使用checkpoint，默认为不适用。
 
 如果使用checkpoint则需要配置flink.checkpoint.enable=true，另外还可以设置checkpoint的间隔时间和存储系统。通过flink.checkpoint.interval可设置checkpoint的间隔时间，默认为60000ms。通过flink.stateBackend可设置checkpoint的存储位置。
@@ -221,6 +223,8 @@ wormhole在0.6版本之前的feedback state默认存储在ES中，在0.6版本�
 #### Wormhole集群部署
 
 **部署说明**
+
+wormhole 0.5.5-beta及之后版本支持多套wormhole隔离部署
 
 若只部署一套Wormhole可跳过此步骤
 
@@ -253,7 +257,7 @@ wormhole在0.6版本之前的feedback state默认存储在ES中，在0.6版本�
 
 #### Wormhole接入Kerberos支持
 
-若无需接入KerBeros支持，可跳过此步骤
+wormhole 0.6及之后版本支持接入kerberos支持。若无需接入KerBeros支持，可跳过此步骤
 
 ##### Spark中kerberos认证
 

@@ -86,7 +86,7 @@ Stream 状态转换图如下，其中 refresh 代表 Refresh 按钮，start 代�
 
 #### 类型
 
-Flink中支持的Stream类型只有default，理论上可以处理所有类型的数据，将数据写入Kafka/RDBS/Elasticsearch/Hbase/Phoenix/Cassandra/MongoDB系统中，但目前只支持处理UMS数据类型，目标系统只支持Kafka，UMS_Extension类型及其他目标系统会在后续版本支持
+Flink中支持的Stream类型只有default，支持异构sink，包括Kafka/RDBS/Elasticsearch/Hbase/Phoenix/Cassandra/MongoDB系统中，数据类型支持处理UMS数据类型和用户自定义UMS_Extension类型
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-stream-type-flink.png" alt="" width="600"/>
 
@@ -292,9 +292,7 @@ Wormhole Flink版对传输的流数据除了提供Lookup SQL、Flink SQL两种Tr
 
 Lookup SQL具体可参考Spark Flow Transformation的Lookup SQL章节
 
-Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Flink支持window，UDF和UDAF操作
-
-
+Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Wormhole 0.6及之后版本的Flinkx支持window，UDF和UDAF操作
 
 ###### Window
 
