@@ -22,6 +22,9 @@
 package edp.rider.rest.persistence.entities
 
 
+
+import java.util.Date
+
 import edp.rider.rest.persistence.base.{BaseEntity, BaseTable, SimpleBaseEntity}
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.{Rep, Tag}
@@ -40,7 +43,7 @@ case class MonitorInfo(
                         flowId: Long,
                         flowNamespace: String,
                         rddCount: Int,
-                        topics: String,
+                        topics: String="",
                         throughput: Long,
                         dataGeneratedTs: String,
                         rddTs: String,
@@ -54,6 +57,34 @@ case class MonitorInfo(
     copy(id = id).asInstanceOf[this.type]
   }
 }
+
+case class MonitorInfoES(
+                        statsId: String,
+                        umsTs: String,
+                        projectId: Long,
+                        streamId: Long,
+                        streamName: String,
+                        flowId: Long,
+                        flowNamespace: String,
+                        rddCount: Int,
+                        topics: String="",
+                        throughput: Long,
+                        dataGeneratedTs: String,
+                        rddTs: String,
+                        directiveTs: String,
+                        DataProcessTs: String,
+                        swiftsTs: String,
+                        sinkTs: String,
+                        doneTs: String,
+                        intervalDataProcessToDataums:Long,
+                        intervalDataProcessToRdd:Long,
+                        intervalDataProcessToSwifts:Long,
+                        intervalDataProcessToSink:Long,
+                        intervalDataProcessToDone:Long,
+                        intervalDataumsToDone:Long,
+                        intervalRddToDone:Long,
+                        intervalSwiftsToSink:Long,
+                        intervalSinkToDone:Long)
 
 /*case class FeedbackFlowStats(
                               protocolType: String,
@@ -76,29 +107,30 @@ case class StreamMonitorInfo(streamId: Long, flowNs: String)
 
 case class MonitorTimeSpan(startTime:Long, endTime:Long) extends SimpleBaseEntity
 
-case class MonitorNumberWidget(count:Long,umsTs:Long)
+case class MonitorNumberWidget(count:Long,umsTs:String)
 
-case class MonitorIntervalWidget(time:Long,umsTs:Long)
+case class MonitorIntervalWidget(time:Long,umsTs:String)
 
-case class MonitorOpsWidget(ops:Double,umsTs:Long)
+case class MonitorOpsWidget(ops:Double,umsTs:String)
 
 case class MonitorFlowInfo(flowName:String,
+                           cols:String="rddCountMetrics,throughPutMetrics,receivedDelays@preProcessDelays@swiftsDelays@sinkDelays@wormholeDelays",
                            rddCountMetrics:ListBuffer[MonitorNumberWidget]=new ListBuffer[MonitorNumberWidget](),
-                           doneIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
-                           dataDoneIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
-                           rddDoneIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
-                           swiftSinkIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
-                           sinkDoneIntervalMetrics:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
+                           receivedDelays:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
+                           preProcessDelays:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
+                           swiftsDelays:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
+                           sinkDelays:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
+                           wormholeDelays:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
                            throughPutMetrics:ListBuffer[MonitorOpsWidget]=new ListBuffer[MonitorOpsWidget]())
 
 case class MonitorMetric(flowName:String="",
-                          rddCountMetric:MonitorNumberWidget=MonitorNumberWidget(0L,0L),
-                         doneIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
-                         dataDoneIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
-                         rddDoneIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
-                         swiftSinkIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
-                         sinkDoneIntervalMetric:MonitorIntervalWidget=MonitorIntervalWidget(0L,0L),
-                         throughPutMetric:MonitorOpsWidget=MonitorOpsWidget(0.0,0L))
+                          rddCountMetric:MonitorNumberWidget=MonitorNumberWidget(0L,""),
+                          receivedDelay:MonitorIntervalWidget=MonitorIntervalWidget(0L,""),
+                          preProcessDelay:MonitorIntervalWidget=MonitorIntervalWidget(0L,""),
+                          swiftsDelay:MonitorIntervalWidget=MonitorIntervalWidget(0L,""),
+                          sinkDelay:MonitorIntervalWidget=MonitorIntervalWidget(0L,""),
+                          wormholeDelay:MonitorIntervalWidget=MonitorIntervalWidget(0L,""),
+                          throughPutMetric:MonitorOpsWidget=MonitorOpsWidget(0.0,""))
 
 case class MonitorDashBoard(flowMetrics:Seq[MonitorFlowInfo])
 
