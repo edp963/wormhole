@@ -298,7 +298,6 @@ object ElasticSearch extends RiderLogger {
                 //                  jsonString
                 //                }.")
                 tc = true
-                println(s"jsonString:${jsonString}")
                 responseJson = JsonUtils.json2jValue(jsonString)
             }, Duration.Inf)
         case StatusCodes.BadRequest => {
