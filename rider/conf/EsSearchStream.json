@@ -1,5 +1,6 @@
 {
   "from": 0,
+  "size":1000,
   "query": {
     "bool": {
       "must": {
@@ -35,7 +36,7 @@
   "sort": [
     {
       "umsTs": {
-        "order": "desc"
+        "order": "asc"
       }
     }
   ]

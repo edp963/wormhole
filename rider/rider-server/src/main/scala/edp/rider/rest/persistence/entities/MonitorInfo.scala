@@ -105,7 +105,7 @@ case class MonitorInfoES(
 
 case class StreamMonitorInfo(streamId: Long, flowNs: String)
 
-case class MonitorTimeSpan(startTime:String, endTime:String) extends SimpleBaseEntity
+case class MonitorTimeSpan(startTime:Long, endTime:Long) extends SimpleBaseEntity
 
 case class MonitorNumberWidget(count:Long,umsTs:String)
 
@@ -114,6 +114,7 @@ case class MonitorIntervalWidget(time:Long,umsTs:String)
 case class MonitorOpsWidget(ops:Double,umsTs:String)
 
 case class MonitorFlowInfo(flowName:String,
+                           cols:String="rddCountMetrics,throughPutMetrics,receivedDelays@preProcessDelays@swiftsDelays@sinkDelays@wormholeDelays",
                            rddCountMetrics:ListBuffer[MonitorNumberWidget]=new ListBuffer[MonitorNumberWidget](),
                            receivedDelays:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),
                            preProcessDelays:ListBuffer[MonitorIntervalWidget]=new ListBuffer[MonitorIntervalWidget](),

@@ -1,5 +1,6 @@
 {
   "from": 0,
+  "size":1000,
   "query": {
     "bool": {
       "must": {
@@ -15,7 +16,7 @@
             },
             {
               "match": {
-                "streamId": {
+                "flowId": {
                   "query": #FLOW_ID#,
                   "type": "phrase"
                 }
@@ -24,8 +25,8 @@
             {
               "range":{
                 "umsTs":{
-                  "ge": #START_TIME#,
-                  "le": #END_TIME#
+                  "ge": "#START_TIME#",
+                  "le": "#END_TIME#"
                 }
               }
             }
@@ -37,7 +38,7 @@
   "sort": [
     {
       "umsTs": {
-        "order": "desc"
+        "order": "asc"
       }
     }
   ]
