@@ -53,7 +53,7 @@ class RelProjectUdfDal(udfTable: TableQuery[UdfTable],
   def getNonPublicUdfByProjectId(id: Long): Future[Seq[Udf]] = {
     db.run((udfTable.filter(_.public === false) join relProjectUdfTable.filter(_.projectId === id) on (_.id === _.udfId))
       .map {
-        case (udf, _) => (udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.public, udf.streamType, udf.createTime, udf.createBy, udf.updateTime, udf.updateBy) <> (Udf.tupled, Udf.unapply)
+        case (udf, _) => (udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.public, udf.streamType, udf.mapOrAgg, udf.createTime, udf.createBy, udf.updateTime, udf.updateBy) <> (Udf.tupled, Udf.unapply)
       }.result).mapTo[Seq[Udf]]
   }
 
@@ -71,7 +71,7 @@ class RelProjectUdfDal(udfTable: TableQuery[UdfTable],
   def getNonPublicUdfByPIdSType(id: Long, streamType: String): Future[Seq[Udf]] = {
     db.run((udfTable.filter(_.public === false).filter(_.streamType === streamType) join relProjectUdfTable.filter(_.projectId === id) on (_.id === _.udfId))
       .map {
-        case (udf, _) => (udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.public, udf.streamType, udf.createTime, udf.createBy, udf.updateTime, udf.updateBy) <> (Udf.tupled, Udf.unapply)
+        case (udf, _) => (udf.id, udf.functionName, udf.fullClassName, udf.jarName, udf.desc, udf.public, udf.streamType, udf.mapOrAgg, udf.createTime, udf.createBy, udf.updateTime, udf.updateBy) <> (Udf.tupled, Udf.unapply)
       }.result).mapTo[Seq[Udf]]
   }
 

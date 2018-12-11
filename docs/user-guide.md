@@ -86,7 +86,7 @@ Stream 状态转换图如下，其中 refresh 代表 Refresh 按钮，start 代�
 
 #### 类型
 
-Flink中支持的Stream类型只有default，理论上可以处理所有类型的数据，将数据写入Kafka/RDBS/Elasticsearch/Hbase/Phoenix/Cassandra/MongoDB系统中，但目前只支持处理UMS数据类型，目标系统只支持Kafka，UMS_Extension类型及其他目标系统会在后续版本支持
+Flink中支持的Stream类型只有default，支持异构sink，包括Kafka/RDBS/Elasticsearch/Hbase/Phoenix/Cassandra/MongoDB系统中，数据类型支持处理UMS数据类型和用户自定义UMS_Extension类型
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-stream-type-flink.png" alt="" width="600"/>
 
@@ -137,6 +137,10 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 - 源数据为 UMS 类型，则 Sink 表中需添加三个字段
 - 源数据为 UMS_Extension 类型，若源数据 Schema 中配置了 `ums_ts_` 字段，Sink 表中须增加 `ums_ts_` 字段；若源数据 Schema 中配置了 `ums_ts_, ums_id_` 字段，Sink 表中须增加 `ums_ts_, ums_id_` 字段；若源数据 Schema 中配置了 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_op_（string 类型）` 字段，Sink 表中须增加 `ums_id_, ums_ts_, ums_active_` 字段。（注意：如果只配置了 `ums_ts_` 字段，向 Sink 表中写数据时只能选择 insert only 类型）
 
+### Table Keys
+
+设置sink表的table keys，用于幂等的实现。如果有多个，用逗号隔开。
+
 ### Result Fields
 
  配置最后输出的字段名称，All 代表输出全部字段，点击 Selected 可配置需要输出的字段名称，多个用逗号隔开
@@ -145,6 +149,12 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 
 - Sink Config 项配置与所选系统类型相关，点击配置按钮后页面上方有对应系统的配置项例子
 - 其中 "mutation_type" 的值有 "i" 和 "iud"，代表向 Sink 表中插数据时使用只增原则或增删改原则。如果为 "iud"，源数据中须有 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_op_（string 类型）` 字段，Sink 表中都须有 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_active_（int 类型）` 字段。若不配置此项，默认为 "iud"
+
+#### 分表幂等
+
+针对关系型数据库，为了减小ums_id、ums_op与ums_ts字段对业务系统的侵入性，可单独将这三个字段和table keys单独建立一个表，原业务表保持不变。假设ums_id、ums_op、ums_ts和table key组成的表名为umsdb，那么分表幂等的配置为：
+
+`{"mutation_type":"split_table_idu","db.function_table":"umsdb"}`
 
 ### Transformation
 
@@ -160,7 +170,7 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-sparkxinterface</artifactId>
-     <version>0.5.6-beta</version>
+     <version>0.6.0-beta</version>
   </dependency>
   ```
 
@@ -280,15 +290,17 @@ Wormhole Flink版对传输的流数据除了提供Lookup SQL、Flink SQL两种Tr
 
 ##### SQL
 
-####### Lookup SQL
+Lookup SQL具体可参考Spark Flow Transformation的Lookup SQL章节
 
-具体可参考Spark Flow Transformation的Lookup SQL章节
+Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Wormhole 0.6及之后版本的Flinkx支持window，UDF和UDAF操作
 
-####### Flink SQL
+###### Window
 
-Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可
+process time处理方式中window中相应的字段名称为processing_time。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(processing_time, INTERVAL '1' HOUR), name;
 
-**聚合操作：**支持流上聚合操作。相关配置包括：
+event time处理方式中window中相应的字段名称为ums_ts_。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(ums_ts, INTERVAL '1' HOUR), name;
+
+相关配置包括：
 
 - min_idle_state_retention_time：聚合相关key值状态被保留的最短时间，默认12hours
 
@@ -298,7 +310,11 @@ Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 
   在Transformation Config中可对这三个参数进行配置，配置格式为json。例如：{"min_idle_state_retention_time":"10","max_idle_state_retention_time":"20","preserve_message_flag":"true"}
 
-**UDF：**支持UDF，Wormhole Flink UDF支持普通的java程序，而不需要按照Flink官方文档的格式实现UDF。UDF名称大小写敏感。UDF相应的字段需要使用as指定新字段的名称。例如：
+
+
+###### UDF
+
+Wormhole Flink UDF支持普通的java程序，而不需要按照Flink官方文档的格式实现UDF。UDF名称大小写敏感。UDF相应的字段需要使用as指定新字段的名称。例如：
 
 Java程序：
 
@@ -310,9 +326,96 @@ Java程序：
 使用UDF的Flink SQL：
 
     select intvalue, fInt(intvalue) as fint from mytable; 
+
+
+###### UDAF
+
+（1）使用UDAF需要进行以下操作
+
+- pom中添加 wormhole/flinkxinterface 依赖
+
+  ```
+  <dependency>
+     <groupId>edp.wormhole</groupId>
+     <artifactId>wormhole-flinkxinterface</artifactId>
+     <version>0.6.0-beta</version>
+  </dependency>
+  ```
+
+- clone wormhole github 项目，本地安装 wormhole-flinkxinterface jar 包
+
+  ```
+  安装wormhole-flinkxinterface包至本地maven仓库
+
+  wormhole/interface/flinkxinterface目录下执行
+
+  mvn clean install package
+  ```
+
+- 继承 并实现 wormhole/interface/flinkxinterface module 下的 edp.wormhole.flinkxinterface.UdafInterface 接口。
+
+- 编译打包，将带有 Dependencies 的 Jar 包放置在 $FLINK_HOME/bin 目录下
+
+- 页面配置时，在admin用户下进行注册。
+
+- 重启 Stream，flow启动时，选择该UDAF。
+
+（2）UDAF例程：计算带权重的值的平均值
+
+- 首先需要定义一个累加器，该累加器是用来保存聚合的中间结果的数据结构
+
+  ```
+  public class WeightedAvgAccum {
+      public long sum = 0;
+      public int count = 0;
+      public WeightedAvgAccum(long sum, int count) {
+          this.sum = sum;
+          this.count = count;
+      }
+  }
+  ```
+
+- 创建聚合函数
+
+  - 覆盖createAccumulator()方法，通过该方法创建空的累加器
+  - 实现accumulate()方法（不需要进行覆盖），每个输入通过该方法更新累加器
+  - 覆盖getValue()方法，在处理完所有行之后，调用该方法计算并返回最终结果
+  - 对于over window需要实现retract()方法（不需要进行覆盖），否则可不实现该方法
+  - 对于session window需要覆盖merge()方法，否则可不实现该方法
+
+  ```
+  public class udafAvg extends UdafInterface <Long, WeightedAvgAccum> {
+      //创建空累加器
+      @Override
+      public WeightedAvgAccum createAccumulator() {
+          return new WeightedAvgAccum(0, 0);
+      }
+      //更新累加器
+      public void accumulate(WeightedAvgAccum acc, long value, int weight) {
+          acc.sum += Long.valueOf(String.valueOf(value)) * Integer.valueOf(String.valueOf(weight));
+          acc.count += Integer.valueOf(String.valueOf(weight));
+      }
+      //计算结果
+      @Override
+      public Long getValue(WeightedAvgAccum acc) {
+          if (acc.count == 0) {
+              return null;
+          } else {
+              return acc.sum / acc.count;
+          }
+      }
+  }
+  ```
+
+（3）使用UDAF的Flink SQL：
+
+```
+SELECT name, udafAvg(score,weight) as udafAvg from ums GROUP BY name;
+```
+
 ##### 异常处理设置
 
-Flink中通过Transformation Config可选择对流处理中异常信息的处理方式。现在能捕获读取kafka后数据预处理、lookup操作、写sink操作时的异常。处理方式有三种：
+Flink中通过Transformation Config可选择对流处理中异常信息的处理方式。现在能捕获读取kafka后数据预处理、lookup操作、写sink时的异常。处理方式有三种：
 
 - 不设置或者设置为unhandle：对捕获的异常信息不进行处理，只显示在log中
 
@@ -320,7 +423,9 @@ Flink中通过Transformation Config可选择对流处理中异常信息的处理
 
 - 设置为feedback：将捕获到的异常回灌到kafka中
 
-  设置格式为json，例如：{"exception_process_method":"unhandle"}
+  设置格式为json，例如：{"exception_process_method":"interrupt"}
+
+**注意：当在配置文件中设置checkpoint为true，则异常处理不能设置为interrupt，否则flow会一直重启。**
 
 ### 修改 Flow
 
@@ -401,6 +506,10 @@ Flink中通过Transformation Config可选择对流处理中异常信息的处理
 借助 Job 可轻松实现 Lambda 架构和 Kappa 架构。
 
 首先使用 hdfslog Stream 将源数据备份到 Hdfs，Flow 出错或需要重算时，可配置 Job 重算。具体配置可参考Stream 和 Flow。
+
+Job中Spark SQL表名为“increment”。例如：
+
+`select key, value from increment;`
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-guide-job-source.png" alt="" width="600"/>
 

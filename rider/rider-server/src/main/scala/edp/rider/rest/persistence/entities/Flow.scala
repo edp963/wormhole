@@ -27,6 +27,7 @@ import slick.jdbc.MySQLProfile.api._
 
 
 case class Flow(id: Long,
+                flowName: String,
                 projectId: Long,
                 streamId: Long,
                 sourceNs: String,
@@ -35,6 +36,8 @@ case class Flow(id: Long,
                 consumedProtocol: String,
                 sinkConfig: Option[String],
                 tranConfig: Option[String],
+                tableKeys: Option[String],
+                desc: Option[String] = None,
                 status: String,
                 startedTime: Option[String],
                 stoppedTime: Option[String],
@@ -50,6 +53,7 @@ case class Flow(id: Long,
 }
 
 case class FlowStream(id: Long,
+                      flowName: String,
                       projectId: Long,
                       streamId: Long,
                       sourceNs: String,
@@ -58,6 +62,8 @@ case class FlowStream(id: Long,
                       consumedProtocol: String,
                       sinkConfig: Option[String] = None,
                       tranConfig: Option[String] = None,
+                      tableKeys: Option[String],
+                      desc: Option[String] = None,
                       status: String,
                       startedTime: Option[String],
                       stoppedTime: Option[String],
@@ -79,6 +85,7 @@ case class FlowStream(id: Long,
                       msg: String)
 
 case class FlowStreamInfo(id: Long,
+                          flowName: String,
                           projectId: Long,
                           streamId: Long,
                           sourceNs: String,
@@ -87,6 +94,8 @@ case class FlowStreamInfo(id: Long,
                           consumedProtocol: String,
                           sinkConfig: Option[String] = None,
                           tranConfig: Option[String] = None,
+                          tableKeys: Option[String],
+                          desc: Option[String] = None,
                           status: String,
                           startedTime: Option[String],
                           stoppedTime: Option[String],
@@ -104,6 +113,7 @@ case class FlowStreamInfo(id: Long,
                           topics: String)
 
 case class FlowStreamAdmin(id: Long,
+                           flowName: String,
                            projectId: Long,
                            projectName: String,
                            streamId: Long,
@@ -113,6 +123,8 @@ case class FlowStreamAdmin(id: Long,
                            consumedProtocol: String,
                            sinkConfig: Option[String] = None,
                            tranConfig: Option[String] = None,
+                           tableKeys: Option[String],
+                           desc: Option[String] = None,
                            startedTime: Option[String],
                            stoppedTime: Option[String],
                            status: String,
@@ -129,6 +141,7 @@ case class FlowStreamAdmin(id: Long,
                            msg: String)
 
 case class FlowStreamAdminInfo(id: Long,
+                               flowName: String,
                                projectId: Long,
                                projectName: String,
                                streamId: Long,
@@ -138,6 +151,8 @@ case class FlowStreamAdminInfo(id: Long,
                                consumedProtocol: String,
                                sinkConfig: Option[String] = None,
                                tranConfig: Option[String] = None,
+                               tableKeys: Option[String],
+                               desc: Option[String] = None,
                                startedTime: Option[String],
                                stoppedTime: Option[String],
                                status: String,
@@ -155,6 +170,7 @@ case class FlowStreamAdminInfo(id: Long,
                                msg: String)
 
 case class FlowAdminAllInfo(id: Long,
+                            flowName: String,
                             projectId: Long,
                             projectName: String,
                             streamId: Long,
@@ -164,6 +180,8 @@ case class FlowAdminAllInfo(id: Long,
                             consumedProtocol: String,
                             sinkConfig: Option[String] = None,
                             tranConfig: Option[String] = None,
+                            tableKeys: Option[String],
+                            desc: Option[String] = None,
                             status: String,
                             startedTime: Option[String],
                             stoppedTime: Option[String],
@@ -180,14 +198,18 @@ case class FlowAdminAllInfo(id: Long,
                             hideActions: String,
                             topicInfo: GetTopicsResponse, currentUdf: Seq[FlowUdfResponse], msg: String)
 
-case class SimpleFlow(projectId: Long,
+case class SimpleFlow(flowName: String,
+                      projectId: Long,
                       streamId: Long,
                       sourceNs: String,
                       sinkNs: String,
                       parallelism: Option[Int],
                       consumedProtocol: String,
                       sinkConfig: Option[String],
-                      tranConfig: Option[String]) extends SimpleBaseEntity
+                      tranConfig: Option[String],
+                      tableKeys: Option[String],
+                      desc: Option[String] = None) extends SimpleBaseEntity
+
 
 case class FlowInfo(id: Long,
                     flowStatus: String,
@@ -226,7 +248,7 @@ case class GetFlowTopicsOffsetResponse(autoRegisteredTopics: Seq[SimpleFlowTopic
 
 case class FlowIdKafkaUrl(flowId: Long, kafkaUrl: String)
 
-case class FlowUdfResponse(id: Long, functionName: String, fullClassName: String, jarName: String)
+case class FlowUdfResponse(id: Long, functionName: String, fullClassName: String, jarName: String, mapOrAgg: String)
 
 case class StartFlinkFlowResponse(id: Long,
                                   status: String,
@@ -252,8 +274,9 @@ case class DriftFlowResponse(id: Long,
                              msg: String)
 
 class FlowTable(_tableTag: Tag) extends BaseTable[Flow](_tableTag, "flow") {
-  def * = (id, projectId, streamId, sourceNs, sinkNs, parallelism, consumedProtocol, sinkConfig, tranConfig, status, startedTime, stoppedTime, logPath, active, createTime, createBy, updateTime, updateBy) <> (Flow.tupled, Flow.unapply)
+  def * = (id, flowName, projectId, streamId, sourceNs, sinkNs, parallelism, consumedProtocol, sinkConfig, tranConfig, tableKeys, desc, status, startedTime, stoppedTime, logPath, active, createTime, createBy, updateTime, updateBy) <> (Flow.tupled, Flow.unapply)
 
+  val flowName: Rep[String] = column[String]("flow_name", O.Length(200, varying = true))
   /** Database column project_id SqlType(BIGINT) */
   val projectId: Rep[Long] = column[Long]("project_id")
   /** Database column stream_id SqlType(BIGINT) */
@@ -268,8 +291,12 @@ class FlowTable(_tableTag: Tag) extends BaseTable[Flow](_tableTag, "flow") {
   val consumedProtocol: Rep[String] = column[String]("consumed_protocol", O.Length(20, varying = true))
   /** Database column tran_config SqlType(VARCHAR), Length(5000,true) */
   val tranConfig: Rep[Option[String]] = column[Option[String]]("tran_config", O.Length(5000, varying = true), O.Default(None))
+  /** Database column table_keys SqlType(VARCHAR), Length(1000,true), Default(None) */
+  val tableKeys: Rep[Option[String]] = column[Option[String]]("table_keys", O.Length(1000, varying = true), O.Default(None))
   /** Database column sink_config SqlType(VARCHAR), Length(5000,true) */
   val sinkConfig: Rep[Option[String]] = column[Option[String]]("sink_config", O.Length(5000, varying = true), O.Default(None))
+  /** Database column desc SqlType(VARCHAR), Length(1000,true), Default(None) */
+  val desc: Rep[Option[String]] = column[Option[String]]("desc", O.Length(1000, varying = true), O.Default(None))
   /** Database column status SqlType(VARCHAR), Length(200,true) */
   val status: Rep[String] = column[String]("status", O.Length(200, varying = true))
   /** Database column update_time SqlType(TIMESTAMP) */

@@ -106,7 +106,12 @@ case class WhFlinkConfig(flow_name: String,
                          parallelism: Int,
                          zookeeper_address: String,
                          udf_config: Seq[FlowUdfResponse],
-                         feedback_state_count:Int,
-                         flink_config: String = "",
-                         kerberos: Boolean=false)
+                         feedback_state_count: Int,
+                         feedback_interval:Int,
+                         flink_config: FlinkConfig ,
+                         kerberos: Boolean = false)
+
+case class FlinkConfig(checkpoint: FlinkCheckpoint)
+
+case class FlinkCheckpoint(enable: Boolean=false, `checkpointInterval.ms`: Int=60000, stateBackend:String)
 

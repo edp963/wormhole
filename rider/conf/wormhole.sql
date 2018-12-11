@@ -204,6 +204,7 @@ ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `flow` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `flow_name` VARCHAR(200) NOT NULL
   `project_id` BIGINT NOT NULL,
   `stream_id` BIGINT NOT NULL,
   `source_ns` VARCHAR(200) NOT NULL,
@@ -212,6 +213,8 @@ CREATE TABLE IF NOT EXISTS `flow` (
   `consumed_protocol` VARCHAR(100) NOT NULL,
   `sink_config` VARCHAR(5000) NOT NULL,
   `tran_config` LONGTEXT NULL,
+  `table_keys` VARCHAR(100) NULL,
+  `desc` VARCHAR(1000) NULL,
   `status` VARCHAR(200) NOT NULL,
   `started_time` TIMESTAMP NULL,
   `stopped_time` TIMESTAMP NULL,
@@ -229,7 +232,9 @@ alter table `flow`  modify column `tran_config` LONGTEXT;
 alter table `flow` modify column `consumed_protocol` VARCHAR(100);
 alter table `flow` add column `parallelism` INT NULL after `sink_ns`;
 alter table `flow` add column `log_path` VARCHAR(2000) NULL after `stopped_time`;
-
+alter table `flow` add column `flow_name` VARCHAR(200) NOT NULL;
+alter table `flow` add column `table_keys` VARCHAR(100) NULL;
+alter table `flow` add column `desc` VARCHAR(1000) NULL;
 
 CREATE TABLE IF NOT EXISTS `directive` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -333,9 +338,11 @@ CREATE TABLE IF NOT EXISTS `job` (
   `start_config` VARCHAR(1000) NOT NULL,
   `event_ts_start` VARCHAR(50) NOT NULL,
   `event_ts_end` VARCHAR(50) NOT NULL,
-  `source_config` VARCHAR(4000) NULL,
-  `sink_config` VARCHAR(4000) NULL,
+  `source_config` VARCHAR(2000) NULL,
+  `sink_config` VARCHAR(2000) NULL,
   `tran_config` VARCHAR(5000) NULL,
+  `table_keys` VARCHAR(100) NULL,
+  `desc` VARCHAR(1000) NULL,
   `status` VARCHAR(200) NOT NULL,
   `spark_appid` VARCHAR(200) NULL,
   `log_path` VARCHAR(200) NULL,
@@ -362,6 +369,9 @@ alter table `job` modify column `sink_config` varchar(2000);
 alter table `job` add column `jvm_driver_config` VARCHAR(1000) NULL;
 alter table `job` add column `jvm_executor_config` VARCHAR(1000) NULL;
 alter table `job` add column `others_config` VARCHAR(1000) NULL;
+alter table `job` add column `table_keys` VARCHAR(100) NULL;
+alter table `job` add column `desc` VARCHAR(1000) NULL;
+
 
 CREATE TABLE IF NOT EXISTS `udf` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -369,6 +379,7 @@ CREATE TABLE IF NOT EXISTS `udf` (
   `full_class_name` VARCHAR(200) NOT NULL,
   `jar_name` VARCHAR(200) NOT NULL,
   `stream_type` VARCHAR(100) NOT NULL,
+  `map_or_agg` VARCHAR(10) NOT NULL,
   `desc` VARCHAR(200) NULL,
   `public` TINYINT(1) NOT NULL,
   `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
@@ -380,7 +391,8 @@ CREATE TABLE IF NOT EXISTS `udf` (
 ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 drop index `full_class_name_UNIQUE` on `udf`;
-alter table `udf` add `stream_type` VARCHAR(100);
+alter table `udf` add `stream_type` VARCHAR(100) NOT NULL;
+alter table `udf` add `map_or_agg` VARCHAR(10) NOT NULL;
 
 CREATE TABLE IF NOT EXISTS `feedback_heartbeat` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -450,6 +462,36 @@ CREATE TABLE IF NOT EXISTS `feedback_directive` (
   `feedback_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `feedback_flow_stats` (
+  `stats_id` varchar(30) NOT NULL DEFAULT '',
+  `ums_ts` varchar(30) NOT NULL,
+  `project_id` bigint(20) NOT NULL,
+  `stream_id` bigint(20) NOT NULL,
+  `stream_name` varchar(100) DEFAULT NULL,
+  `flow_id` bigint(20) NOT NULL,
+  `flow_namespace` varchar(200) NOT NULL,
+  `rdd_count` int(11) NOT NULL,
+  `topics` varchar(200) DEFAULT NULL,
+  `throughput` bigint(20) NOT NULL,
+  `data_generated_ts` varchar(30) NOT NULL,
+  `rdd_ts` varchar(30) NOT NULL,
+  `directive_ts` varchar(30) NOT NULL,
+  `data_process_ts` varchar(30) NOT NULL,
+  `swifts_ts` varchar(30) NOT NULL,
+  `sink_ts` varchar(30) NOT NULL,
+  `done_ts` varchar(30) NOT NULL,
+  `interval_data_process_to_data_ums` bigint(20) NOT NULL,
+  `interval_data_process_to_rdd` bigint(20) NOT NULL,
+  `interval_data_process_to_swifts` bigint(20) NOT NULL,
+  `interval_data_process_to_sink` bigint(20) NOT NULL,
+  `interval_data_process_to_done` bigint(20) NOT NULL,
+  `interval_data_ums_done` bigint(20) NOT NULL,
+  `interval_rdd_done` bigint(20) NOT NULL,
+  `interval_swifts_sink` bigint(20) NOT NULL,
+  `interval_sink_done` bigint(20) NOT NULL,
+  PRIMARY KEY (`stats_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 alter table `feedback_directive` modify column `result_desc` varchar(5000);
 

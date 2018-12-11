@@ -115,7 +115,7 @@ object UmsFlowStartUtils {
 
 
   def extractExceptionProcess(swiftsSpecificConfig: JSONObject): String = {
-    if (swiftsSpecificConfig!=null&&swiftsSpecificConfig.containsKey(FlinkxSwiftsConstants.EXCEPTION_PROCESS_METHOD) && swiftsSpecificConfig.getString(FlinkxSwiftsConstants.EXCEPTION_PROCESS_METHOD).nonEmpty) {
+    if (null != swiftsSpecificConfig && swiftsSpecificConfig.containsKey(FlinkxSwiftsConstants.EXCEPTION_PROCESS_METHOD) && swiftsSpecificConfig.getString(FlinkxSwiftsConstants.EXCEPTION_PROCESS_METHOD).nonEmpty) {
       swiftsSpecificConfig.getString(FlinkxSwiftsConstants.EXCEPTION_PROCESS_METHOD)
     }
     else null

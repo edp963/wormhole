@@ -34,7 +34,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                   if (session.projectIdList.contains(projectId)) {
                     val projectName = jobDal.adminGetRow(projectId)
                     val jobInsert = Job(0, genStreamNameByProjectName(projectName, simple.name), projectId, simple.sourceNs, JobUtils.getJobSinkNs(simple.sourceNs, simple.sinkNs, simple.jobType), simple.jobType, simple.sparkConfig, simple.startConfig, simple.eventTsStart, simple.eventTsEnd,
-                      simple.sourceConfig, simple.sinkConfig, simple.tranConfig, "new", None, Some(""), None, None, currentSec, session.userId, currentSec, session.userId)
+                      simple.sourceConfig, simple.sinkConfig, simple.tranConfig, simple.tableKeys, simple.desc, "new", None, Some(""), None, None, UserTimeInfo(currentSec, session.userId, currentSec, session.userId))
                     riderLogger.info(s"user ${session.userId} inserted job where project id is $projectId . insertdata is $jobInsert")
                     try {
                       if (StreamUtils.checkYarnAppNameUnique(jobInsert.name, projectId)) {
@@ -101,7 +101,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                         } else {
                           val logPath = StreamUtils.getLogPath(job.name)
                           val updateJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd,
-                            job.sourceConfig, job.sinkConfig, job.tranConfig, JobStatus.STARTING.toString, None, Option(logPath), Some(currentSec), None, job.createTime, job.createBy, currentSec, session.userId)
+                            job.sourceConfig, job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, JobStatus.STARTING.toString, None, Option(logPath), Some(currentSec), None, job.userTimeInfo)
                           JobUtils.startJob(job, logPath)
                           Await.result(jobDal.update(updateJob), minTimeOut)
                           val projectName = jobDal.adminGetRow(job.projectId)
@@ -196,11 +196,11 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                         if (jobs != null && jobs.nonEmpty) {
                           riderLogger.info(s"user ${session.userId} refresh project $projectId, and job in it is not null and not empty.")
                           val projectName = jobDal.adminGetRow(projectId)
-                          val jobsNameSet = jobs.map(_.name).toSet
+                          val jobsNameSet = jobs.map(_.name)
                           val jobList = jobs.filter(_.startedTime.isDefined)
                           val minStartTime = if (jobList.isEmpty) "" else jobList.map(_.startedTime.get).sorted.head
                           //check null to option None todo
-                          val allAppStatus = YarnStatusQuery.getAllAppStatus(minStartTime).filter(t => jobsNameSet.contains(t.appName))
+                          val allAppStatus = YarnStatusQuery.getAllAppStatus(minStartTime, jobsNameSet)
                           val rst: Seq[FullJobInfo] = YarnStatusQuery.getSparkAllJobStatus(jobs, allAppStatus, projectName)
                           complete(OK, ResponseJson[Seq[FullJobInfo]](getHeader(200, session), rst.sortBy(_.job.id)))
                         } else {
@@ -262,7 +262,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                   val projectName = jobDal.adminGetRow(projectId)
                   val jobGet = job.get
                   val updateJob = Job(jobGet.id, jobGet.name, jobGet.projectId, jobGet.sourceNs, jobGet.sinkNs, jobGet.jobType, jobGet.sparkConfig, jobGet.startConfig, jobGet.eventTsStart, jobGet.eventTsEnd,
-                    jobGet.sourceConfig, jobGet.sinkConfig, jobGet.tranConfig, status, jobGet.sparkAppid, jobGet.logPath, jobGet.startedTime, jobGet.stoppedTime, jobGet.createTime, jobGet.createBy, jobGet.updateTime, jobGet.updateBy)
+                    jobGet.sourceConfig, jobGet.sinkConfig, jobGet.tranConfig, jobGet.tableKeys, jobGet.desc, status, jobGet.sparkAppid, jobGet.logPath, jobGet.startedTime, jobGet.stoppedTime, jobGet.userTimeInfo)
                   complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(updateJob))))
                 }
               } catch {
@@ -375,7 +375,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                 } else {
                   if (session.projectIdList.contains(projectId)) {
                     val newJob = Job(updatedJob.id, updatedJob.name, updatedJob.projectId, updatedJob.sourceNs, updatedJob.sinkNs, updatedJob.jobType, updatedJob.sparkConfig, updatedJob.startConfig, updatedJob.eventTsStart, updatedJob.eventTsEnd,
-                      updatedJob.sourceConfig, updatedJob.sinkConfig, updatedJob.tranConfig, updatedJob.status, updatedJob.sparkAppid, updatedJob.logPath, if (updatedJob.startedTime.isEmpty || updatedJob.startedTime.get == null || updatedJob.startedTime.get.trim.isEmpty) null else updatedJob.startedTime, if (updatedJob.stoppedTime.isEmpty || updatedJob.stoppedTime.get.trim.isEmpty) null else updatedJob.stoppedTime, updatedJob.createTime, updatedJob.createBy, currentSec, session.userId)
+                      updatedJob.sourceConfig, updatedJob.sinkConfig, updatedJob.tranConfig, updatedJob.tableKeys, updatedJob.desc, updatedJob.status, updatedJob.sparkAppid, updatedJob.logPath, if (updatedJob.startedTime.isEmpty || updatedJob.startedTime.get == null || updatedJob.startedTime.get.trim.isEmpty) null else updatedJob.startedTime, if (updatedJob.stoppedTime.isEmpty || updatedJob.stoppedTime.get.trim.isEmpty) null else updatedJob.stoppedTime, UserTimeInfo(updatedJob.userTimeInfo.createTime, updatedJob.userTimeInfo.createBy, currentSec, session.userId))
                     onComplete(jobDal.update(newJob)) {
                       case Success(_) =>
                         riderLogger.info(s"user ${session.userId} update job where project id is $projectId success.")

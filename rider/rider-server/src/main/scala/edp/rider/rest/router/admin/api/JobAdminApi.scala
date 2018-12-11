@@ -29,11 +29,11 @@ class JobAdminApi(jobDal: JobDal) extends BaseAdminApiImpl(jobDal) with RiderLog
             val uniqueProjectIds = jobs.map(_.projectId).distinct
             val projectIdAndName: Map[Long, String] = jobDal.getAllUniqueProjectIdAndName(uniqueProjectIds)
             if (jobs != null && jobs.nonEmpty) {
-              val jobsNameSet = jobs.map(_.name).toSet
+              val jobsNameSet = jobs.map(_.name)
               val jobList = jobs.filter(_.startedTime.isDefined)
               val minStartTime = if (jobList.isEmpty) "" else jobList.map(_.startedTime.get).sorted.head
               //check null to option None todo
-              val allAppStatus: List[AppResult] = YarnStatusQuery.getAllAppStatus(minStartTime).filter(t => jobsNameSet.contains(t.appName))
+              val allAppStatus = YarnStatusQuery.getAllAppStatus(minStartTime, jobsNameSet)
               val jobsGroupByProjectId: Map[Long, Seq[Job]] = jobs.groupBy(_.projectId)
               val rst = jobsGroupByProjectId.flatMap { case (projectId, jobSeq) =>
                 YarnStatusQuery.getSparkAllJobStatus(jobSeq, allAppStatus, projectIdAndName(projectId))
@@ -65,11 +65,11 @@ class JobAdminApi(jobDal: JobDal) extends BaseAdminApiImpl(jobDal) with RiderLog
               if (jobs != null && jobs.nonEmpty) {
                 riderLogger.info(s"user ${session.userId} refresh project $projectId, and job in it is not null and not empty.")
                 val projectName = jobDal.adminGetRow(projectId)
-                val jobsNameSet = jobs.map(_.name).toSet
+                val jobsNameSet = jobs.map(_.name)
                 val jobList = jobs.filter(_.startedTime.isDefined)
                 val minStartTime = if (jobList.isEmpty) "" else jobList.map(_.startedTime.get).sorted.head
                 //check null to option None todo
-                val allAppStatus = YarnStatusQuery.getAllAppStatus(minStartTime).filter(t => jobsNameSet.contains(t.appName))
+                val allAppStatus = YarnStatusQuery.getAllAppStatus(minStartTime, jobsNameSet)
                 val rst: Seq[FullJobInfo] = YarnStatusQuery.getSparkAllJobStatus(jobs, allAppStatus, projectName)
                 complete(OK, ResponseJson[Seq[FullJobInfo]](getHeader(200, session), rst.sortBy(_.job.id)))
               } else {

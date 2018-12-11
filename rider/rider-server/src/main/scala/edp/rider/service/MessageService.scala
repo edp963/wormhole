@@ -22,7 +22,7 @@
 package edp.rider.service
 
 import edp.rider.common.FlowStatus._
-import edp.rider.common.{RiderLogger, TopicPartitionOffset}
+import edp.rider.common.{RiderConfig,RiderLogger, TopicPartitionOffset}
 import edp.rider.module.{ConfigurationModule, PersistenceModule}
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.entities._
@@ -33,6 +33,7 @@ import edp.wormhole.ums._
 import edp.wormhole.util.{DateUtils, DtFormat}
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
@@ -51,12 +52,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         if (umsTsValue != null && streamIdValue != null) {
           val feedbackHeartbeat = FeedbackHeartbeat(1, protocolType.toString, streamIdValue.toString.toLong, srcNamespace, umsTsValue.toString, curTs)
           riderLogger.debug(s" FeedbackHeartbeat: $feedbackHeartbeat")
-          val future = modules.feedbackHeartbeatDal.insert(feedbackHeartbeat)
-          future onComplete {
-            case Failure(e) =>
-              riderLogger.error(s"FeedbackHeartbeat inserted ${tuple.toString} failed", e)
-            case Success(t) => riderLogger.debug("FeedbackHeartbeat inserted success.")
-          }
+          Await.result(modules.feedbackHeartbeatDal.insert(feedbackHeartbeat), minTimeOut)
         } else {
           riderLogger.error(s"FeedbackHeartbeat can't found the value", tuple)
         }
@@ -80,13 +76,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
         val resultDescValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc")
         if (umsTsValue != null && directiveIdValue != null && statusValue != null && streamIdValue != null && resultDescValue != null) {
-          val future = modules.feedbackDirectiveDal.insert(FeedbackDirective(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, directiveIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs))
-          future onComplete {
-            case Failure(e) =>
-              riderLogger.error(s"FeedbackDirective inserted ${tuple.toString} failed", e)
-            case Success(t) => riderLogger.debug("FeedbackDirective inserted success.")
-          }
-
+          Await.result(modules.feedbackDirectiveDal.insert(FeedbackDirective(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, directiveIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs)), minTimeOut)
           modules.directiveDal.getDetail(directiveIdValue.toString.toLong) match {
             case Some(records) =>
               val pType: UmsProtocolType.Value = UmsProtocolType.umsProtocolType(records.protocolType.toString)
@@ -132,12 +122,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val errorCountValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_count")
         val errorInfoValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info").toString
         if (umsTsValue != null && streamIdValue != null && sinkNamespaceValue != null && errMaxWaterMarkTsValue != null && errMinWaterMarkTsValue != null && errorCountValue != null && errorInfoValue != null) {
-          val future = modules.feedbackFlowErrDal.insert(FeedbackFlowErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, srcNamespace, sinkNamespaceValue.toString, errorCountValue.toString.toInt, errMaxWaterMarkTsValue.toString, errMinWaterMarkTsValue.toString, errorInfoValue.toString, curTs))
-          future onComplete {
-            case Failure(e) =>
-              riderLogger.error(s"FeedbackFlowError inserted ${tuple.toString} failed", e)
-            case Success(t) => riderLogger.debug("FeedbackFlowError inserted success.")
-          }
+          Await.result(modules.feedbackFlowErrDal.insert(FeedbackFlowErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, srcNamespace, sinkNamespaceValue.toString, errorCountValue.toString.toInt, errMaxWaterMarkTsValue.toString, errMinWaterMarkTsValue.toString, errorInfoValue.toString, curTs)), minTimeOut)
         } else {
           riderLogger.error(s"FeedbackFlowError can't found the value", tuple)
         }
@@ -160,12 +145,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val statusValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "status")
         val resultDescValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc")
         if (umsTsValue != null && streamIdValue != null && statusValue != null && resultDescValue != null) {
-          val future = modules.feedbackStreamErrDal.insert(FeedbackStreamErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs))
-          future onComplete {
-            case Failure(e) =>
-              riderLogger.error(s"FeedbackStreamBatchError inserted ${tuple.toString} failed", e)
-            case Success(t) => riderLogger.debug("FeedbackStreamBatchError inserted success.")
-          }
+          Await.result(modules.feedbackStreamErrDal.insert(FeedbackStreamErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs)), minTimeOut)
         } else {
           riderLogger.error(s"FeedbackStreamBatchError can't found the value", tuple)
         }
@@ -202,13 +182,8 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         if (umsTsValue != null && streamIdValue != null && topicNameValue != null && partitionOffsetValue != null) {
           val partitionOffset = partitionOffsetValue.toString
           val partitionNum: Int = FeedbackOffsetUtil.getPartitionNumber(partitionOffset)
-          val future = modules.feedbackOffsetDal.insert(FeedbackOffset(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
-            topicNameValue.toString, partitionNum, partitionOffset, currentMicroSec))
-          future onComplete {
-            case Failure(e) =>
-              riderLogger.error(s"FeedbackStreamTopicOffset inserted ${tuple.toString} failed", e)
-            case Success(t) => riderLogger.debug("FeedbackStreamTopicOffset inserted success.")
-          }
+          Await.result(modules.feedbackOffsetDal.insert(FeedbackOffset(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
+            topicNameValue.toString, partitionNum, partitionOffset, currentMicroSec)), minTimeOut)
         } else {
           riderLogger.error(s"FeedbackStreamTopicOffset can't found the value", tuple)
         }
@@ -235,6 +210,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val umsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
         val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
         val statsIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stats_id")
+        val topics=UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics")
         val sinkNamespaceValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace").toString
         val rddCountValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_count").toString.toInt
         val cdcTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_genereated_ts").toString.toLong
@@ -263,9 +239,9 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
             throughput = rddCountValue.toString.toInt
           } else throughput = rddCountValue.toString.toInt / interval_rdd_done
 
-          val monitorInfo = MonitorInfo(statsIdValue.toString,
+          val monitorInfo = MonitorInfo(0L,statsIdValue.toString,
             string2EsDateString(umsTsValue.toString),
-            CacheMap.getProjectId(streamIdValue.toString.toLong), streamIdValue.toString.toLong, CacheMap.getStreamName(streamIdValue.toString.toLong), CacheMap.getFlowId(flowName), flowName, rddCountValue.toString.toInt, throughput,
+            CacheMap.getProjectId(streamIdValue.toString.toLong), streamIdValue.toString.toLong, CacheMap.getStreamName(streamIdValue.toString.toLong), CacheMap.getFlowId(flowName), flowName, rddCountValue.toString.toInt,if(topics==null)"" else topics.toString, throughput,
             string2EsDateString(DateUtils.dt2string(cdcTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(rddTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(directiveTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
@@ -273,9 +249,13 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
             string2EsDateString(DateUtils.dt2string(swiftsTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(sinkTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(doneTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
-            interval_data_process_dataums, interval_data_process_rdd, interval_data_process_swifts, interval_data_process_sink, interval_data_process_done,
-            interval_data_ums_done, interval_rdd_done, interval_data_swifts_sink, interval_data_sink_done)
-          ElasticSearch.insertFlowStatToES(monitorInfo)
+            Interval(interval_data_process_dataums, interval_data_process_rdd, interval_data_process_swifts, interval_data_process_sink, interval_data_process_done,
+            interval_data_ums_done, interval_rdd_done, interval_data_swifts_sink, interval_data_sink_done))
+            if(RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es")){
+              ElasticSearch.insertFlowStatToES(monitorInfo)
+            }else{
+              modules.monitorInfoDal.insert(monitorInfo)
+            }
         } else {
           riderLogger.error(s"Failed to get value from FeedbackFlowStats", tuple)
         }

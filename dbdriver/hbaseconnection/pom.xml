@@ -7,7 +7,7 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.5.6-beta</version>
+        <version>0.6.0-beta</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -58,6 +58,10 @@
                 <exclusion>
                     <groupId>com.github.stephenc.findbugs</groupId>
                     <artifactId>findbugs-annotations</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-core</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

@@ -29,17 +29,17 @@ description: Wormhole Deployment page
 
 mysql-connector-java-{your-db-version}.jar
 
-**注意：升级至0.5.6-beta版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
+**注意：升级至0.6.0-beta版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
 
 ## 部署配置
 
 #### 下载安装包
 
-**下载 wormhole-0.5.6-beta.tar.gz 包 (链接：https://pan.baidu.com/s/1cWb4xo43WyehnrBWLsmThA 提取码：rhq8)，或者自编译**
+**下载 wormhole-0.6.0-beta.tar.gz 包 (链接：https://pan.baidu.com/s/1DO_L6mRIcRalW6eW1K45Tg 提取码：3x2v)，或者自编译**
 
 ```
-下载wormhole-0.5.6-beta.tar.gz安装包
-tar -xvf wormhole-0.5.6-beta.tar.gz
+下载wormhole-0.6.0-beta.tar.gz安装包
+tar -xvf wormhole-0.6.0-beta.tar.gz
 或者自编译，生成的tar包在 wormhole/target
 git clone -b 0.5 https://github.com/edp963/wormhole.git
 cd wormhole
@@ -57,6 +57,9 @@ mvn install package -Pwormhole
 ```
 conf/application.conf 配置项介绍
 
+
+akka.http.server.request-timeout = 120s
+
 wormholeServer {
   cluster.id = "" #optional global uuid
   host = "localhost"
@@ -73,8 +76,8 @@ mysql = {
   db = {
     driver = "com.mysql.jdbc.Driver"
     user = "root"
-    url = "jdbc:mysql://localhost:3306/wormhole"
-    password = "*******"
+    password = "root"
+    url = "jdbc:mysql://localhost:3306/wormhole?useUnicode=true&characterEncoding=UTF-8&useSSL=false"
     numThreads = 4
     minConnections = 4
     maxConnections = 10
@@ -103,21 +106,26 @@ spark = {
   yarn.queue.name = "default"        #WormholeServer submit spark streaming/job queue
   wormhole.hdfs.root.path = "hdfs://nn1/wormhole"   #WormholeServer hdfslog data default hdfs root path
   yarn.rm1.http.url = "localhost:8088"    #Yarn ActiveResourceManager address
-  yarn.rm2.http.url = "localhost2:8088"   #Yarn StandbyResourceManager address
+  yarn.rm2.http.url = "localhost:8088"   #Yarn StandbyResourceManager address
 }
 
 flink = {
   home = "/usr/local/flink"
   yarn.queue.name = "default"
+  feedback.state.count=100
+  checkpoint.enable=false
+  checkpoint.interval=60000
+  stateBackend="hdfs://nn1/flink-checkpoints"
+  feedback.interval=30
 }
 
 zookeeper = {
   connection.url = "localhost:2181"  #WormholeServer stream and flow interaction channel
-  wormhole.root.path = "/wormhole"
+  wormhole.root.path = "/wormhole"   #zookeeper
 }
 
 kafka = {
-  brokers.url = "locahost:9092"         #WormholeServer feedback data store
+  brokers.url = "localhost:6667"         #WormholeServer feedback data store
   zookeeper.url = "localhost:2181"
   topic.refactor = 3
   using.cluster.suffix = false #if true, _${cluster.id} will be concatenated to consumer.feedback.topic
@@ -132,7 +140,7 @@ kafka = {
     max-wakeups = 10
     session.timeout.ms = 60000
     heartbeat.interval.ms = 50000
-    max.poll.records = 500
+    max.poll.records = 1000
     request.timeout.ms = 80000
     max.partition.fetch.bytes = 10485760
   }
@@ -148,12 +156,27 @@ kafka = {
 #  server.enabled=false   #enable wormhole connect to Kerberized cluster
 #}
 
+# choose monitor method among ES、MYSQL
+monitor ={
+   database.type="ES"
+}
+
 #Wormhole feedback data store, if doesn't want to config, you will not see wormhole processing delay and throughput
 #if not set, please comment it
+
 #elasticSearch.http = {
 #  url = "http://localhost:9200"
 #  user = ""
 #  password = ""
+#}
+
+#display wormhole processing delay and throughput data, get admin user token from grafana
+#garfana should set to be anonymous login, so you can access the dashboard through wormhole directly
+#if not set, please comment it
+
+#grafana = {
+#  url = "http://localhost:3000"
+#  admin.token = "jihefouglokoj"
 #}
 
 #delete feedback history data on time
@@ -162,15 +185,9 @@ maintenance = {
   elasticSearch.feedback.remain.maxDays = 7
 }
 
-#display wormhole processing delay and throughput data, get admin user token from grafana
-#garfana should set to be anonymous login, so you can access the dashboard through wormhole directly
-#if not set, please comment it
-#grafana = {
-#  url = "http://localhost:3000"
-#  admin.token = "jihefouglokoj"
-#}
 
-#Dbus integration, if not set, please comment it
+#Dbus integration, support serveral DBus services, if not set, please comment it
+
 #dbus = {
 #  api = [
 #    {
@@ -185,42 +202,62 @@ maintenance = {
 #}
 ```
 
+#### Flink CheckPoint配置
+
+wormhole 0.6及之后版本支持flink checkpoint配置。
+
+如果flink.checkpoint.enable=false则不使用checkpoint，默认为不适用。
+
+如果使用checkpoint则需要配置flink.checkpoint.enable=true，另外还可以设置checkpoint的间隔时间和存储系统。通过flink.checkpoint.interval可设置checkpoint的间隔时间，默认为60000ms。通过flink.stateBackend可设置checkpoint的存储位置。
+
+#### Feedback State存储位置配置
+
+wormhole在0.6版本之前的feedback state默认存储在ES中，在0.6版本之后，将支持用户根据需求在ES与MySQL中间选择合适的存储库进行数据存储。如果需要将存储位置由ES迁往MySQL，可以参照下面的步骤进行配置。通过配置monitor.database.type选择存储位置
+
+`monitor.database.type="MYSQL" #存储到mysql中`
+
+`monitor.database.type="ES" #存储到ES中`
+
+当选择存储到mysql时，需要在wormhole/rider/conf/wormhole.sql新建feedback_flow_stats表，并在wormhole配置的数据库中执行该文件，从而在数据库中建立feedback_flow_stats表
+
 #### Wormhole集群部署
 
 **部署说明**
 
+wormhole 0.5.5-beta及之后版本支持多套wormhole隔离部署
+
 若只部署一套Wormhole可跳过此步骤
 
-为支持同一hadoop集群环境中部署多套Wormhole，在配置文件conf/application.conf中增加了wormholeServer.cluster_id参数（要求唯一）。单套Wormhole部署不设置wormholeServer.cluster.id或者wormholeServer.cluster.id=""。为兼容之前版本，可不设置该变量。**注意：之前版本不要随意增加该参数，否则无法读取对应的zookeeper和hdfs信息，无法正常运行已配置的stream和flow，即之前版本可以保持不变，新部署的Wormhole增加该参数即可。**
+为支持同一hadoop集群环境中部署多套Wormhole，在配置文件conf/application.conf中增加了wormholeServer.cluster.id参数（要求唯一）。单套Wormhole部署不设置wormholeServer.cluster.id或者wormholeServer.cluster.id=""。为兼容之前版本，可不设置该变量。**注意：之前版本不要随意增加该参数，否则无法读取对应的zookeeper和hdfs信息，无法正常运行已配置的stream和flow，即之前版本可以保持不变，新部署的Wormhole增加该参数即可。**
 
 ##### 单套Wormhole部署
 
-- 单套Wormhole部署只需将wormholeServer.cluster_id设置为空或者不进行设置即可
+- 单套Wormhole部署只需将wormholeServer.cluster.id设置为空或者不进行设置即可
 
   **说明**
 
 - Kafka feedback topic：为kafka.consumer.feedback.topic
 - ES feedback index：为elasticSearch.wormhole.feedback.index
 - HDFS路径为：spark.wormhole.hdfs.root.path
-- Zookeeper路径为：zookeeper.wormhole.root.path/cluster_id
+- Zookeeper路径为：zookeeper.wormhole.root.path/cluster.id
 
 ##### 多套Wormhole隔离部署
 
-- wormholeServer.cluster_id（必须配置）：每套Wormhole唯一的uuid，不可重复
-- kafka.using.cluster.suffix（选择设置）：该变量标记是否将wormholeServer.cluster_id作用于kafka.consumer.feedback.topic。如果kafka.using.cluster.suffix=false，则feedback topic为kafka.consumer.feedback.topic；如果kafka.using.cluster.suffix=true，则feedback topic为kafka.consumer.feedback.topic + "_" + cluster_id
-- elasticSearch.wormhole.using.cluster.suffix（选择设置）：该变量标记是否将wormholeServer.cluster_id作用于elasticSearch.wormhole.feedback.index。如果elasticSearch.wormhole.using.cluster.suffix=false，则feedback index为elasticSearch.wormhole.feedback.index ；如果elasticSearch.wormhole.using.cluster.suffix=true，则feedback index为elasticSearch.wormhole.feedback.index + "_" + cluster_id
+- wormholeServer.cluster.id（必须配置）：每套Wormhole唯一的uuid，不可重复
+- kafka.using.cluster.suffix（选择设置）：该变量标记是否将wormholeServer.cluster.id作用于kafka.consumer.feedback.topic。如果kafka.using.cluster.suffix=false，则feedback topic为kafka.consumer.feedback.topic；如果kafka.using.cluster.suffix=true，则feedback topic为kafka.consumer.feedback.topic + "_" + cluster.id
+- elasticSearch.wormhole.using.cluster.suffix（选择设置）：该变量标记是否将wormholeServer.cluster.id作用于elasticSearch.wormhole.feedback.index。如果elasticSearch.wormhole.using.cluster.suffix=false，则feedback index为elasticSearch.wormhole.feedback.index ；如果elasticSearch.wormhole.using.cluster.suffix=true，则feedback index为elasticSearch.wormhole.feedback.index + "_" + cluster.id
 
   **说明**
 
-- MySQL：与cluster_id是否存在无关，所以部署多集群时，只要用不同的库的url即可
+- MySQL：与cluster.id是否存在无关，所以部署多集群时，只要用不同的库的url即可
 - Kafka feedback topic：参考上文kafka.using.cluster.suffix的设置
 - ES feedback index：参考上文elasticSearch.wormhole.using.cluster.suffix的设置
-- HDFS：spark.wormhole.hdfs.root.path为一级根目录名，HDFS路径为spark.wormhole.hdfs.root.path/cluster_id
-- Zookeeper：zookeeper.wormhole.root.path为一级根目录名，Zookeeper路径为zookeeper.wormhole.root.path/cluster_id
+- HDFS：spark.wormhole.hdfs.root.path为一级根目录名，HDFS路径为spark.wormhole.hdfs.root.path/cluster.id
+- Zookeeper：zookeeper.wormhole.root.path为一级根目录名，Zookeeper路径为zookeeper.wormhole.root.path/cluster.id
 
 #### Wormhole接入Kerberos支持
 
-若无需接入KerBeros支持，可跳过此步骤
+wormhole 0.6及之后版本支持接入kerberos支持。若无需接入KerBeros支持，可跳过此步骤
 
 ##### Spark中kerberos认证
 
@@ -320,3 +357,63 @@ topic name：wormhole_heartbeat partitions: 1
 ```
 
 **访问 http://ip:port 即可试用 Wormhole，可使用 admin 类型用户登录，默认用户名，密码见 application.conf 中配置**
+
+## 升级
+
+#### 0.5.3-0.5.5版本升级到0.6.0版本
+
+（1）数据库操作
+
+```
+#job表更新
+alter table `job` add column `table_keys` VARCHAR(1000) NULL;
+alter table `job` add column `desc` VARCHAR(1000) NULL;
+update job,namespace set job.table_keys=namespace.keys where job.sink_ns like concat(namespace.ns_sys,".",namespace.ns_instance,".",namespace.ns_database,".",namespace.ns_table,'%');
+
+#flow表更新
+alter table `flow` add column `flow_name` VARCHAR(200) NOT NULL;
+alter table `flow` add column `table_keys` VARCHAR(1000) NULL;
+alter table `flow` add column `desc` VARCHAR(1000) NULL;
+update flow,namespace set flow.table_keys=namespace.keys where flow.sink_ns like concat(namespace.ns_sys,".",namespace.ns_instance,".",namespace.ns_database,".",namespace.ns_table,'%');
+update flow set flow_name=id;
+
+#udf表更新
+alter table `udf` add `map_or_agg` VARCHAR(100) NOT NULL;
+update udf set map_or_agg='udf';
+```
+
+（2）停止所有flow
+
+在0.6.0-beta版本启动之前，需停止以前版本所有sparkx的flow（包括starting、running、suspending、updating状态的flow）, 并记录当前stream消费到的topic offset，重启stream时，手动设定从之前记录的offset消费
+
+#### 0.5.0-0.5.2版本升级到0.6.0版本
+
+（1）数据库操作
+
+```
+#stream表更新
+ALTER TABLE stream ADD COLUMN jvm_driver_config VARCHAR(1000) NULL;
+ALTER TABLE stream ADD COLUMN jvm_executor_config VARCHAR(1000) NULL;
+ALTER TABLE stream ADD COLUMN others_config VARCHAR(1000) NULL;
+UPDATE stream SET jvm_driver_config=substring_index(stream_config,",",1);
+UPDATE stream SET jvm_executor_config=substring_index(substring_index(stream_config,",",2),",",-1);
+UPDATE stream SET others_config=substring(substring_index(stream_config,substring_index(stream_config,",",2),-1),2);
+
+#job表更新
+ALTER TABLE job MODIFY COLUMN spark_config VARCHAR(2000);
+ALTER TABLE job MODIFY COLUMN source_config VARCHAR(4000);
+ALTER TABLE job MODIFY COLUMN sink_config VARCHAR(4000);
+ALTER TABLE job ADD COLUMN jvm_driver_config VARCHAR(1000) NULL;
+ALTER TABLE job ADD COLUMN jvm_executor_config VARCHAR(1000) NULL;
+ALTER TABLE job ADD COLUMN others_config VARCHAR(1000) NULL;
+UPDATE job SET jvm_driver_config=substring_index(spark_config,",",1);
+UPDATE job SET jvm_executor_config=substring_index(substring_index(spark_config,",",2),",",-1);
+UPDATE job SET others_config=substring(substring_index(spark_config,substring_index(spark_config,",",2),-1),2);
+
+#udf表更新
+ALTER TABLE udf ADD COLUMN stream_type VARCHAR(100) NULL;
+UPDATE udf SET stream_type='spark';
+```
+
+（2）执行【0.5.3-0.5.5版本升级到0.6.0版本】更新要求
+

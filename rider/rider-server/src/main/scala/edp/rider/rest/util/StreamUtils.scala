@@ -88,14 +88,10 @@ object StreamUtils extends RiderLogger {
       if (streams.nonEmpty && streams.exists(_.startedTime.getOrElse("") != ""))
         streams.filter(_.startedTime.getOrElse("") != "").map(_.startedTime).min.getOrElse("")
       else ""
-    //    riderLogger.info(s"fromTime: $fromTime")
-    val appInfoList: List[AppResult] =
-      if (fromTime == "") List() else getAllYarnAppStatus(fromTime).sortWith(_.appId < _.appId)
-    //    riderLogger.info(s"app info size: ${appInfoList.size}")
+    val appInfoMap = if (fromTime == "") Map.empty[String, AppResult] else getAllYarnAppStatus(fromTime, streams.map(_.name))
     streams.map(
       stream => {
         val dbStatus = stream.status
-        val dbUpdateTime = stream.updateTime
         val startedTime = if (stream.startedTime.getOrElse("") == "") null else stream.startedTime.get
         val stoppedTime = if (stream.stoppedTime.getOrElse("") == "") null else stream.stoppedTime.get
         val appInfo = {
@@ -108,16 +104,16 @@ object StreamUtils extends RiderLogger {
 
             val sparkStatus: AppInfo = endAction match {
               case "refresh_spark" =>
-                getAppStatusByRest(appInfoList, stream.sparkAppid.getOrElse(""), stream.name, stream.status, startedTime, stoppedTime)
+                getAppStatusByRest(appInfoMap, stream.sparkAppid.getOrElse(""), stream.name, stream.status, startedTime, stoppedTime)
               case "refresh_log" =>
                 val logInfo = YarnClientLog.getAppStatusByLog(stream.name, dbStatus, stream.logPath.getOrElse(""))
                 logInfo._2 match {
                   case "running" =>
-                    getAppStatusByRest(appInfoList, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
+                    getAppStatusByRest(appInfoMap, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
                   case "waiting" =>
-                    val curInfo = getAppStatusByRest(appInfoList, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
+                    val curInfo = getAppStatusByRest(appInfoMap, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
                     AppInfo(curInfo.appId, curInfo.appState, startedTime, curInfo.finishedTime)
-                  case "starting" => getAppStatusByRest(appInfoList, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
+                  case "starting" => getAppStatusByRest(appInfoMap, logInfo._1, stream.name, logInfo._2, startedTime, stoppedTime)
                   case "failed" => AppInfo(logInfo._1, "failed", startedTime, currentSec)
                 }
               case _ => AppInfo("", stream.status, startedTime, null)
@@ -171,10 +167,7 @@ object StreamUtils extends RiderLogger {
             }
           }
         }
-        //        val preAppInfo = AppInfo(stream.sparkAppid.getOrElse(""), dbStatus, startedTime, stoppedTime)
-        //        if (!preAppInfo.equals(appInfo))
         stream.updateFromSpark(appInfo)
-        //        else stream
       })
   }
 
@@ -182,16 +175,6 @@ object StreamUtils extends RiderLogger {
   def genStreamNameByProjectName(projectName: String, name: String): String =
     if (RiderConfig.riderServer.clusterId != "" ) s"wormhole_${RiderConfig.riderServer.clusterId}_${projectName}_$name"
     else s"wormhole_${projectName}_$name"
-
-  //  def getStreamConfig(stream: Stream) = {
-  //    val kafkaUrl = getKafkaByStreamId(stream.id)
-  //    val launchConfig = json2caseClass[LaunchConfig](stream.launchConfig)
-  //    val config = BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
-  //      KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
-  //      SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
-  //      launchConfig.partitions.toInt, RiderConfig.zk, false, Some(RiderConfig.spark.hdfs_root))
-  //    caseClass2json[BatchFlowConfig](config)
-  //  }
 
   def getStreamConfig(stream: Stream) = {
     val launchConfig = json2caseClass[LaunchConfig](stream.launchConfig)
