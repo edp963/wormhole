@@ -13,7 +13,16 @@ import 'echarts/lib/component/grid'
 import 'echarts/lib/component/axis'
 
 export class Line extends React.Component {
-
+  constructor (props) {
+    super(props)
+    this.state = {
+      echart: null
+    }
+  }
+  componentWillReceiveProps (newProps) {
+    // if (Object.getOwnPropertyNames(newProps.options).length === 0) return
+    this.updateChart(newProps)
+  }
   componentDidMount () {
     this.initChart()
   }
@@ -22,9 +31,14 @@ export class Line extends React.Component {
     const { id, options } = this.props
     let chart = document.getElementById(id)
     let echart = echarts.init(chart)
+    window.echart = echart
     echart.setOption(options)
+    this.setState({echart})
   }
-
+  updateChart (props) {
+    const { options } = props
+    this.state.echart.setOption(options)
+  }
   render () {
     const { id, style } = this.props
     const _style = Object.assign({}, {width: '100%', height: '300px'}, style)
