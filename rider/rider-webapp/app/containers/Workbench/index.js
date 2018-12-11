@@ -760,7 +760,7 @@ export class Workbench extends React.Component {
       timeCharacteristic: ''
     }, () => {
       const { streamDiffType } = this.state
-      if (flow.streamType === 'spark') {
+      if (flow.streamType === 'spark' || flow.streamTypeOrigin === 'spark') {
         switch (streamDiffType) {
           case 'default':
             this.queryFlowDefault(flow)
@@ -772,7 +772,7 @@ export class Workbench extends React.Component {
             this.queryFlowRouting(flow)
             break
         }
-      } else if (flow.streamType === 'flink') {
+      } else if (flow.streamType === 'flink' || flow.streamTypeOrigin === 'flink') {
         this.queryFlowDefault(flow)
       }
     })
