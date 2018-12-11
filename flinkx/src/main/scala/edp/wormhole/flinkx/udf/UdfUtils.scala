@@ -2,6 +2,7 @@ package edp.wormhole.flinkx.udf
 
 import java.lang.reflect.Method
 
+import edp.wormhole.flinkx.udf.UdafRegister.logger
 import org.apache.flink.api.common.typeinfo.{BasicArrayTypeInfo, TypeInformation}
 import org.apache.flink.table.api.Types
 
@@ -18,11 +19,16 @@ object UdfUtils {
       var callMethod: Method = null
       for (i <- methods.indices) {
         val m: Method = methods(i)
-        if (m.getName.equals(udfName)) {
+        if (m.getName.equals(udfName) && !m.getReturnType.getName.equals("java.lang.Object")) {
           callMethod = m
         }
       }
-      jarPathMap(udfName) = (o, callMethod)
+      if(callMethod != null) {
+        jarPathMap(udfName) = (o, callMethod)
+      } else {
+        logger.info(className + "not contain the function of" + udfName)
+        throw new Exception(className + "not contain the function of" + udfName)
+      }
     }
     jarPathMap(udfName)
   }
@@ -47,6 +53,7 @@ object UdfUtils {
       case "java.security.Timestamp" => Types.SQL_TIMESTAMP
       case "com.sun.jmx.snmp.Timestamp" => Types.SQL_TIMESTAMP
       case "binary" => BasicArrayTypeInfo.BYTE_ARRAY_TYPE_INFO
+      //case "java.lang.Object" => Types.LONG
       case unknown =>
         throw new Exception("unknown type:" + unknown)
     }

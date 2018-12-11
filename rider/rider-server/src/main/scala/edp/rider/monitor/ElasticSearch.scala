@@ -22,6 +22,7 @@
 package edp.rider.monitor
 
 import java.io.IOException
+import java.text.SimpleDateFormat
 
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.headers.BasicHttpCredentials
@@ -30,32 +31,33 @@ import akka.http.scaladsl.unmarshalling._
 import akka.util.ByteString
 import edp.rider.RiderStarter._
 import edp.rider.common.{RiderConfig, RiderEs, RiderLogger, RiderMonitor}
-import edp.rider.rest.persistence.entities.MonitorInfo
+import edp.rider.rest.persistence.entities.{Interval, MonitorInfo, MonitorInfoES}
 import edp.rider.rest.util.CommonUtils
 import edp.wormhole.util.JsonUtils
-import org.json4s.JsonAST.JNull
+import org.json4s.JsonAST.{JNothing, JNull}
 import org.json4s.{DefaultFormats, Formats, JValue}
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 object ElasticSearch extends RiderLogger {
 
-  def initial(es: RiderEs, grafana: RiderMonitor): Unit = {
+  def initial(es: RiderEs): Unit = {
     if (es != null)
       createEsIndex()
     else
       riderLogger.warn(s"application.conf didn't config elasticsearch, so won't initial elasticsearch index, store wormhole stream and flow feedback_stats data")
-    if (grafana != null)
-      GrafanaApi.createOrUpdateDataSource(RiderConfig.grafana.url,
-        RiderConfig.grafana.adminToken,
-        RiderConfig.grafana.esDataSourceName,
-        RiderConfig.es.url,
-        RiderConfig.es.wormholeIndex,
-        RiderConfig.es.user,
-        RiderConfig.es.pwd)
-    else
-      riderLogger.warn(s"application.conf didn't config grafana, so won't initial grafana datasource, wormhole project performance will display nothing")
+//    if (grafana != null)
+//      GrafanaApi.createOrUpdateDataSource(RiderConfig.grafana.url,
+//        RiderConfig.grafana.adminToken,
+//        RiderConfig.grafana.esDataSourceName,
+//        RiderConfig.es.url,
+//        RiderConfig.es.wormholeIndex,
+//        RiderConfig.es.user,
+//        RiderConfig.es.pwd)
+//    else
+//      riderLogger.warn(s"application.conf didn't config grafana, so won't initial grafana datasource, wormhole project performance will display nothing")
 
   }
 
@@ -150,6 +152,53 @@ object ElasticSearch extends RiderLogger {
     } else (false, "")
   }
 
+  def compactPostBody(projectId: Long, modelType:Long,content:Long,startTime: String, endTime: String):String =
+    modelType match {
+      case 0 =>ReadJsonFile.getMessageFromJson(JsonFileType.ESFLOW)
+        .replace("#PROJECT_ID#", projectId.toString)
+        .replace("#FLOW_ID#", content.toString)
+        .replace("#START_TIME#", startTime)
+        .replace("#END_TIME#", endTime)
+      case 1 =>ReadJsonFile.getMessageFromJson(JsonFileType.ESSTREAM)
+        .replace("#PROJECT_ID#", projectId.toString)
+        .replace("#STREAM_ID#", content.toString)
+        .replace("#START_TIME#", startTime)
+        .replace("#END_TIME#", endTime)
+    }
+
+
+  def queryESMonitor(postBody:String)={
+    val list=ListBuffer[MonitorInfo]()
+    if (RiderConfig.es != null) {
+
+      val url = getESUrl + "_search"
+      riderLogger.debug(s"queryESStreamMonitor url $url $postBody")
+      val response = syncToES(postBody, url, HttpMethods.POST, CommonUtils.minTimeOut)
+      if (response._1) {
+        val tuple = JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits").children
+        implicit val json4sFormats: Formats = DefaultFormats
+        tuple.distinct.foreach(jvalue=>{
+          val value=JsonUtils.getJValue(jvalue,s"_source")
+          val interval=JsonUtils.getJValue(value,s"interval")
+
+          val result=if(interval!=JNothing)JsonUtils.json2caseClass[MonitorInfo](JsonUtils.jValue2json(value))
+          else changeMonitorInfoEsToMonitorInfo(JsonUtils.json2caseClass[MonitorInfoES](JsonUtils.jValue2json(value)))
+
+          list+=result
+        })
+      }else{
+        riderLogger.error(s"Failed to get stream info from ES response")
+      }
+      (response._1,list)
+    }else (false, list)
+  }
+
+  def changeMonitorInfoEsToMonitorInfo(monitor:MonitorInfoES)={
+    MonitorInfo(0,monitor.statsId,monitor.umsTs,monitor.projectId,monitor.streamId,monitor.streamName,monitor.flowId,monitor.flowNamespace,
+      monitor.rddCount,monitor.topics,monitor.throughput,monitor.dataGeneratedTs,monitor.rddTs,monitor.directiveTs,monitor.DataProcessTs,monitor.swiftsTs,monitor.sinkTs,monitor.doneTs,
+      Interval(monitor.intervalDataProcessToDataums,monitor.intervalDataProcessToRdd,monitor.intervalDataProcessToSwifts,monitor.intervalDataProcessToSink,monitor.intervalDataProcessToDone,monitor.intervalDataumsToDone,monitor.intervalRddToDone,monitor.intervalSwiftsToSink,monitor.intervalSinkToDone))
+  }
+
   def deleteEsHistory(fromDate: String, endDate: String): Int = {
     var deleted = 0
     val postBody = ReadJsonFile.getMessageFromJson(JsonFileType.ESDELETED)
@@ -157,18 +206,18 @@ object ElasticSearch extends RiderLogger {
       .replace("#TODATE#", s""""$endDate"""")
     val url = getESUrl + "_delete_by_query"
     riderLogger.info(s"deleteEsHistory url $url $postBody")
-    val response = syncToES(postBody, url, HttpMethods.POST, CommonUtils.maxTimeOut)
+    val response = asyncToES(postBody, url, HttpMethods.POST)
     riderLogger.info(s"deleteEsHistory response $response")
-    if (response._1) {
-      try {
-        deleted = JsonUtils.jValue2json(JsonUtils.getJValue(response._2, "deleted")).toInt
-      } catch {
-        case e: Exception =>
-          riderLogger.error(s"Failed to parse the response from ES when delete history data", e)
-      }
-    } else {
-      riderLogger.error(s"Failed to delete history data from ES")
-    }
+    //    if (response._1) {
+    //      try {
+    //        deleted = JsonUtils.jValue2json(JsonUtils.getJValue(response._2, "deleted")).toInt
+    //      } catch {
+    //        case e: Exception =>
+    //          riderLogger.error(s"Failed to parse the response from ES when delete history data", e)
+    //      }
+    //    } else {
+    //      riderLogger.error(s"Failed to delete history data from ES")
+    //    }
     deleted
   }
 

@@ -21,19 +21,23 @@
 package edp.wormhole.flinkx.pattern
 
 import com.alibaba.fastjson.JSONObject
+import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.pattern.Condition._
 import edp.wormhole.flinkx.util.FlinkSchemaUtils.{object2TrueValue, s2TrueValue}
+import edp.wormhole.ums.UmsProtocolUtils
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.table.api.Types
 import org.apache.flink.types.Row
 import edp.wormhole.util.DateUtils.{dt2sqlDate, dt2timestamp}
+import org.joda.time.DateTime
 
-class PatternCondition(schemaMap: Map[String, (TypeInformation[_], Int)]) extends java.io.Serializable {
+class PatternCondition(schemaMap: Map[String, (TypeInformation[_], Int)],exceptionConfig: ExceptionConfig,config: WormholeFlinkxConfig) extends java.io.Serializable {
 
   lazy val leftConditionIndex = 0
   lazy val rightConditionIndex = 1
 
   def doFilter(conditions: JSONObject, event: Row): Boolean = {
+    try{
     val op = conditions.getString(OPERATOR.toString)
     LogicOperator.logicOperator(op) match {
       case LogicOperator.SINGLE =>
@@ -50,6 +54,12 @@ class PatternCondition(schemaMap: Map[String, (TypeInformation[_], Int)]) extend
         val logicArray = conditions.getJSONArray(LOGIC.toString)
         println("find or operator{:{:{:")
         doFilter(logicArray.getJSONObject(leftConditionIndex), event) || doFilter(logicArray.getJSONObject(rightConditionIndex), event)
+    }}catch{
+      case e:Throwable =>
+        e.printStackTrace()
+        val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
+        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config).doExceptionProcess(feedbackInfo)
+        false
     }
   }
 
@@ -109,6 +119,5 @@ class PatternCondition(schemaMap: Map[String, (TypeInformation[_], Int)]) extend
       case CompareType.STARTWITH => rowFieldValue.asInstanceOf[String].startsWith(compareValue.asInstanceOf[String])
       case CompareType.ENDWITH => rowFieldValue.asInstanceOf[String].endsWith(compareValue.asInstanceOf[String])
     }
-
   }
 }

@@ -46,7 +46,7 @@ object JobUtils extends RiderLogger {
   def getBatchJobConfigConfig(job: Job) =
     BatchJobConfig(getSourceConfig(job.sourceNs, job.eventTsStart, job.eventTsEnd, job.sourceConfig),
       getTranConfig(job.tranConfig.getOrElse(""), job.sinkConfig.getOrElse(""), job.sinkNs, job.jobType),
-      getSinkConfig(job.sinkNs, job.sinkConfig.getOrElse(""), job.jobType, job.eventTsEnd),
+      getSinkConfig(job.sinkNs, job.sinkConfig.getOrElse(""), job.jobType, job.eventTsEnd, job.tableKeys),
       getJobConfig(job.name, job.sparkConfig.othersConfig))
 
   def getSourceConfig(sourceNs: String, eventTsStart: String = null, eventTsEnd: String = null, sourceConfig: Option[String]) = {
@@ -64,7 +64,7 @@ object JobUtils extends RiderLogger {
       getSourceProcessClass(sourceTypeFinal), specialConfig)
   }
 
-  def getSinkConfig(sinkNs: String, sinkConfig: String, jobType: String, eventTsEnd: String) = {
+  def getSinkConfig(sinkNs: String, sinkConfig: String, jobType: String, eventTsEnd: String, tableKeys: Option[String]) = {
     val (instance, db, ns) = modules.namespaceDal.getNsDetail(sinkNs)
 
     val maxRecord =
@@ -83,7 +83,8 @@ object JobUtils extends RiderLogger {
         Some(base64byte2s(sinkSpecConfig.toString.trim.getBytes))
       }
 
-    val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else ns.keys
+    //val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else ns.keys
+    val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else tableKeys
 
     val projection = if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_output")) {
       Some(JSON.parseObject(sinkConfig).getString("sink_output").trim)
@@ -113,18 +114,18 @@ object JobUtils extends RiderLogger {
       if (tranConfig != "" && tranConfig != null) {
         val tranClass = JSON.parseObject(tranConfig)
         if (tranClass.containsKey("action") && tranClass.getString("action").nonEmpty) {
-          if (tranClass.getString("action").contains("edp.wormhole.batchjob.transform.Snapshot"))
+          if (tranClass.getString("action").contains("edp.wormhole.sparkx.batchjob.transform.Snapshot"))
             tranClass.getString("action")
           else {
             if (sinkProtocol.nonEmpty && sinkProtocol.get == JobSinkProtocol.SNAPSHOT.toString)
-              "custom_class = edp.wormhole.batchjob.transform.Snapshot;".concat(tranClass.getString("action"))
+              "custom_class = edp.wormhole.sparkx.batchjob.transform.Snapshot;".concat(tranClass.getString("action"))
             else tranClass.getString("action")
           }
         } else if (sinkProtocol.nonEmpty && sinkProtocol.get == JobSinkProtocol.SNAPSHOT.toString)
-          "custom_class = edp.wormhole.batchjob.transform.Snapshot;"
+          "custom_class = edp.wormhole.sparkx.batchjob.transform.Snapshot;"
         else ""
       } else if (sinkProtocol.nonEmpty && sinkProtocol.get == JobSinkProtocol.SNAPSHOT.toString)
-        "custom_class = edp.wormhole.batchjob.transform.Snapshot;"
+        "custom_class = edp.wormhole.sparkx.batchjob.transform.Snapshot;"
       else ""
     val specialConfig = setSwiftsConfig2Snapshot(sinkNs, action, tranConfig)
     if (action != "")
@@ -133,7 +134,7 @@ object JobUtils extends RiderLogger {
   }
 
   def setSwiftsConfig2Snapshot(sinkNs: String, action: String, tranConfig: String): Option[String] = {
-    if (action.contains("edp.wormhole.batchjob.transform.Snapshot")) {
+    if (action.contains("edp.wormhole.sparkx.batchjob.transform.Snapshot")) {
       val ns = modules.namespaceDal.getNamespaceByNs(sinkNs).get
       if (tranConfig != null && tranConfig != "") {
         val tranClass = JSON.parseObject(tranConfig)
@@ -224,7 +225,7 @@ object JobUtils extends RiderLogger {
     val startedTime = if (appInfo.startedTime != null) Some(appInfo.startedTime) else Some("")
     val stoppedTime = if (appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
     Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
-      job.sinkConfig, job.tranConfig, appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.createTime, job.createBy, job.updateTime, job.updateBy)
+      job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.userTimeInfo)
   }
 
   def killJob(id: Long): String = {

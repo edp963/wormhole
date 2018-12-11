@@ -21,6 +21,7 @@
 package edp.wormhole.flinkx.pattern
 
 import com.alibaba.fastjson.JSONObject
+import edp.wormhole.flinkx.common.{ExceptionConfig, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.pattern.JsonFieldName._
 import edp.wormhole.flinkx.pattern.Quantifier.{OFTIMES, TYPE}
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -31,7 +32,7 @@ import org.apache.flink.types.Row
 
 import scala.collection.mutable.ListBuffer
 
-class PatternGenerator(patternSeq: JSONObject, schemaMap: Map[String, (TypeInformation[_], Int)]) extends java.io.Serializable {
+class PatternGenerator(patternSeq: JSONObject, schemaMap: Map[String, (TypeInformation[_], Int)],exceptionConfig: ExceptionConfig,config: WormholeFlinkxConfig) extends java.io.Serializable {
   var pattern: Pattern[Row, Row] = _
   private var patternSeqSize = 0
   private lazy val patterns = patternSeq.getJSONArray(PATTERNS.toString)
@@ -88,7 +89,7 @@ class PatternGenerator(patternSeq: JSONObject, schemaMap: Map[String, (TypeInfor
   }
 
   private def packageConditions(conditions: JSONObject): Unit = {
-    val filter = new PatternCondition(schemaMap)
+    val filter = new PatternCondition(schemaMap,exceptionConfig,config)
     pattern = pattern.where(event => {
       filter.doFilter(conditions, event)
     })
