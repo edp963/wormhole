@@ -305,7 +305,7 @@ Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 
 process time处理方式中window中相应的字段名称为processing_time。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(processing_time, INTERVAL '1' HOUR), name;
 
-event time处理方式中window中相应的字段名称为ums_ts_。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(ums_ts, INTERVAL '1' HOUR), name;
+event time处理方式中window中相应的字段名称为ums_ts_。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(ums_ts_, INTERVAL '1' HOUR), name;
 
 相关配置包括：
 
