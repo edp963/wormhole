@@ -1,4 +1,4 @@
-package edp.wormhole;
+package edp.wormhole.reporter
 
 import java.util.UUID
 
