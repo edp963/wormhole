@@ -515,12 +515,12 @@ export class Flow extends React.Component {
     const obj = {
       grid: {
         top: '15%',
-        left: '10%',
-        right: '10%'
+        left: '5%',
+        right: '1%'
       },
       title: {
         text: 'throughput',
-        left: '5%',
+        left: '1%',
         top: 0
       },
       tooltip: {
@@ -585,12 +585,12 @@ export class Flow extends React.Component {
     const obj = {
       grid: {
         top: '15%',
-        left: '10%',
-        right: '10%'
+        left: '5%',
+        right: '1%'
       },
       title: {
         text: 'records',
-        left: '5%',
+        left: '1%',
         top: 0
       },
       tooltip: {
@@ -656,12 +656,12 @@ export class Flow extends React.Component {
     const obj = {
       grid: {
         top: '15%',
-        left: '10%',
-        right: '10%'
+        left: '5%',
+        right: '1%'
       },
       title: {
         text: 'latency',
-        left: '5%',
+        left: '1%',
         top: 0
       },
       tooltip: {
@@ -2062,8 +2062,8 @@ export class Flow extends React.Component {
               </Button>
             </Dropdown>
           </div>
-          <Line style={{marginBottom: '20px'}} id="throughput" options={this.state.throughputChartOpt} />
-          <Line style={{marginBottom: '20px'}} id="records" options={this.state.recordsChartOpt} />
+          <Line style={{marginBottom: '5px'}} id="throughput" options={this.state.throughputChartOpt} />
+          <Line style={{marginBottom: '5px'}} id="records" options={this.state.recordsChartOpt} />
           <Line style={{height: '250px'}} id="latency" options={this.state.latencyChartOpt} />
         </div>
       ) : ''
