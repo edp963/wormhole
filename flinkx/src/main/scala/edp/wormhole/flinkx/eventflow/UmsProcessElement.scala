@@ -3,11 +3,10 @@ package edp.wormhole.flinkx.eventflow
 import java.io.Serializable
 
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
-import edp.wormhole.flinkx.common.{ExceptionConfig, KafkaTopicConfig, WormholeFlinkxConfig}
+import edp.wormhole.flinkx.common.{ExceptionConfig, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.ums.{UmsCommonUtils, UmsField, UmsFieldType, UmsProtocolUtils}
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
-import edp.wormhole.util.JsonUtils
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.scala.metrics.ScalaGauge
 import org.apache.flink.configuration.Configuration
@@ -26,6 +25,7 @@ import scala.collection.mutable.ArrayBuffer
 class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)], config:WormholeFlinkxConfig, exceptionConfig: ExceptionConfig, jsonSourceParseMap: Map[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])], kafkaDataTag: OutputTag[String], mConfig:Configuration) extends ProcessFunction[(String, String, String, Int, Long), Row] {
   //private val outputTag = OutputTag[String]("kafkaDataException")
   private lazy val logger = Logger.getLogger(this.getClass)
+
   private lazy val registry=new MetricRegistryImpl(MetricRegistryConfiguration.fromConfiguration(mConfig)) with Serializable
 
   private lazy val metricsGroup=new TaskManagerMetricGroup(registry,"localhost","tmId") with Serializable
@@ -41,7 +41,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
     logger.info("in UmsProcessElement source data from kafka " + value._2)
     try {
       val (protocolType, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(value._1)
-      startMetricsMoinitoring(protocolType.toString)
+      if(config.feedback_enabled)startMetricsMoinitoring(protocolType.toString)
       if (jsonSourceParseMap.contains((protocolType, namespace))) {
         val mapValue: (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)]) = jsonSourceParseMap((protocolType, namespace))
         val umsTuple = JsonParseUtils.dataParse(value._2, mapValue._2, mapValue._3)
@@ -70,7 +70,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
     for (i <- tuple.indices)
       row.setField(i, FlinkSchemaUtils.getRelValue(i, tuple(i), sourceSchemaMap))
     out.collect(row)
-    moinitorRow(tuple,protocolType,schema)
+    if(config.feedback_enabled)moinitorRow(tuple,protocolType,schema)
   }
 
   def moinitorRow(tuple: Seq[String], protocolType:String, schema:Seq[UmsField]):Unit={

@@ -91,6 +91,12 @@
             </source>
             <outputDirectory>lib</outputDirectory>
         </file>
+        <file>
+            <source>
+                ${project.parent.basedir}/reporter/target/wormhole-flink-reporter-${reporter.version}-jar-with-dependencies.jar
+            </source>
+            <outputDirectory>lib</outputDirectory>
+        </file>
     </files>
 
     <dependencySets>
