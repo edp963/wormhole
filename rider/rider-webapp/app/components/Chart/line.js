@@ -24,6 +24,9 @@ export class Line extends React.Component {
   }
   componentDidMount () {
     this.initChart()
+    window.addEventListener('resize', () => {
+      this.state.echart.resize()
+    })
   }
 
   initChart () {
