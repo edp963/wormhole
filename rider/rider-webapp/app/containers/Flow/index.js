@@ -229,12 +229,13 @@ export class Flow extends React.Component {
       driftSubmitStatusObj: {},
       performanceModalVisible: false,
       performanceMenuChosen: performanceRanges[3],
-      performanceMenuRefreshChosen: performanceRefreshTime[0],
+      performanceMenuRefreshChosen: performanceRefreshTime[1],
       chosenFlowId: null,
       throughputChartOpt: {},
       recordsChartOpt: {},
       latencyChartOpt: {},
-      refreshTimer: null
+      refreshTimer: null,
+      performanceModelTitle: 'performance'
     }
   }
 
@@ -504,18 +505,28 @@ export class Flow extends React.Component {
     series.push({
       name: 'throughPutMetrics',
       type: 'line',
-      areaStyle: {},
+      areaStyle: {
+        opacity: 0.1
+      },
+      showSymbol: false,
       data: seriesData
     })
 
     const obj = {
+      grid: {
+        top: '15%',
+        left: '10%',
+        right: '10%'
+      },
       title: {
         text: 'throughput',
-        left: 0,
-        top: 30
+        left: '5%',
+        top: 0
       },
       tooltip: {
         trigger: 'axis',
+        // alwaysShowContent: true,
+        // hideDelay: 9999,
         axisPointer: {
           type: 'cross',
           label: {
@@ -523,6 +534,7 @@ export class Flow extends React.Component {
           }
         }
       },
+      color: ['#fbc02d', '#c23531', '#2f4554', '#61a0a8', '#d48265', '#91c7ae', '#749f83', '#ca8622', '#bda29a', '#6e7074', '#546570', '#c4ccd3'],
       dataZoom: [{
         type: 'inside',
         start: 0,
@@ -563,15 +575,23 @@ export class Flow extends React.Component {
     series.push({
       name: 'rddCountMetrics',
       type: 'line',
-      areaStyle: {},
+      areaStyle: {
+        opacity: 0.1
+      },
+      showSymbol: false,
       data: seriesData
     })
 
     const obj = {
+      grid: {
+        top: '15%',
+        left: '10%',
+        right: '10%'
+      },
       title: {
         text: 'records',
-        left: 0,
-        top: 30
+        left: '5%',
+        top: 0
       },
       tooltip: {
         trigger: 'axis',
@@ -582,6 +602,7 @@ export class Flow extends React.Component {
           }
         }
       },
+      color: ['#fbc02d', '#c23531', '#2f4554', '#61a0a8', '#d48265', '#91c7ae', '#749f83', '#ca8622', '#bda29a', '#6e7074', '#546570', '#c4ccd3'],
       dataZoom: [{
         type: 'inside',
         start: 0,
@@ -610,25 +631,38 @@ export class Flow extends React.Component {
     let series = []
     let xAxisData = []
     let zoomDisabled = true
-
-    if (flowData[quota[0]].length > 0) {
-      quota.forEach(v => {
-        let obj = {
-          name: v,
-          type: 'line',
-          areaStyle: {},
-          data: flowData[v].map(p => p.time)
-        }
-        series.push(obj)
+    let arr = []
+    quota.forEach(v => {
+      flowData[v].forEach(p => {
+        arr.push(Math.abs(p.time))
       })
+    })
+    let max = Math.max(...arr)
+    let unitFlag = max > 3600 ? 'h' : max > 60 ? 'm' : 's'
+    quota.forEach(v => {
+      let obj = {
+        name: v,
+        type: 'line',
+        areaStyle: {
+          opacity: 0.1
+        },
+        showSymbol: false,
+        data: flowData[v].map(p => p.time)
+      }
+      series.push(obj)
       xAxisData = flowData[quota[0]].map(v => v.umsTs)
       zoomDisabled = false
-    }
+    })
     const obj = {
+      grid: {
+        top: '15%',
+        left: '10%',
+        right: '10%'
+      },
       title: {
         text: 'latency',
-        left: 0,
-        top: 30
+        left: '5%',
+        top: 0
       },
       tooltip: {
         trigger: 'axis',
@@ -639,13 +673,14 @@ export class Flow extends React.Component {
           }
         }
       },
+      color: ['#fbc02d', '#c23531', '#2f4554', '#61a0a8', '#d48265', '#91c7ae', '#749f83', '#ca8622', '#bda29a', '#6e7074', '#546570', '#c4ccd3'],
       legend: {
-        data: quota
+        data: quota,
+        top: '5%'
       },
       dataZoom: [{
         type: 'inside',
         start: 0,
-        // startValue,
         disabled: zoomDisabled
       }, {
         type: 'slider',
@@ -662,7 +697,17 @@ export class Flow extends React.Component {
         {
           type: 'value',
           axisLabel: {
-            formatter: '{value} s'
+            formatter: val => {
+              let value
+              if (unitFlag === 'h') {
+                value = (val / 3600).toFixed(2)
+              } else if (unitFlag === 'm') {
+                value = (val / 60).toFixed(2)
+              } else if (unitFlag === 's') {
+                value = val
+              }
+              return `${Number(value)} ${unitFlag}`
+            }
           }
         }
       ],
@@ -685,7 +730,7 @@ export class Flow extends React.Component {
       const throughputChartOpt = this.throughputResolve(flowData)
       const recordsChartOpt = this.recordsResolve(flowData)
       const latencyChartOpt = this.latencyResolve(flowData, quota)
-      this.setState({throughputChartOpt, recordsChartOpt, latencyChartOpt})
+      this.setState({throughputChartOpt, recordsChartOpt, latencyChartOpt, performanceModelTitle: flowData.flowName || 'performance'})
     })
   }
   onShowPerformance = (record) => (e) => {
@@ -698,6 +743,8 @@ export class Flow extends React.Component {
     this.setState({
       performanceModalVisible: true,
       chosenFlowId: flowId
+    }, () => {
+      this.refreshPerformance()
     })
   }
   closePerformanceDialog = () => {
@@ -707,7 +754,9 @@ export class Flow extends React.Component {
     }
     this.setState({
       performanceModalVisible: false,
-      chosenFlowId: null
+      chosenFlowId: null,
+      performanceModelTitle: 'performance',
+      performanceMenuChosen: performanceRanges[3]
     })
   }
   choosePerformanceRange = ({item, key}) => {
@@ -724,11 +773,31 @@ export class Flow extends React.Component {
       const endTime = now
       const startTime = now - this.state.performanceMenuChosen.value
       this.performanceResolve(projectIdGeted, chosenFlowId, startTime, endTime)
+      this.refreshPerformance()
     })
   }
-  choosePerformanceRefreshTime = ({item, key}) => {
+  refreshPerformance = (performanceMenuRefreshChosen = this.state.performanceMenuRefreshChosen) => {
     const { projectIdGeted } = this.props
     const { chosenFlowId } = this.state
+    const now = new Date().getTime()
+    const endTime = now
+    const startTime = now - this.state.performanceMenuChosen.value
+    if (performanceMenuRefreshChosen.value === 'off') {
+      if (this.state.refreshTimer) {
+        clearInterval(this.state.refreshTimer)
+        this.setState({refreshTimer: null})
+      }
+    } else {
+      if (this.state.refreshTimer) {
+        clearInterval(this.state.refreshTimer)
+      }
+      let timer = setInterval(() => {
+        this.performanceResolve(projectIdGeted, chosenFlowId, startTime, endTime)
+      }, performanceMenuRefreshChosen.value)
+      this.setState({refreshTimer: timer})
+    }
+  }
+  choosePerformanceRefreshTime = ({item, key}) => {
     let performanceMenuRefreshChosen = {
       label: item.props.children,
       value: key
@@ -736,20 +805,7 @@ export class Flow extends React.Component {
     this.setState({
       performanceMenuRefreshChosen
     }, () => {
-      const now = new Date().getTime()
-      const endTime = now
-      const startTime = now - this.state.performanceMenuChosen.value
-      if (performanceMenuRefreshChosen.value === 'off') {
-        if (this.state.refreshTimer) {
-          clearInterval(this.state.refreshTimer)
-          this.setState({refreshTimer: null})
-        }
-      } else {
-        let timer = setInterval(() => {
-          this.performanceResolve(projectIdGeted, chosenFlowId, startTime, endTime)
-        }, performanceMenuRefreshChosen.value)
-        this.setState({refreshTimer: timer})
-      }
+      this.refreshPerformance(performanceMenuRefreshChosen)
     })
   }
   onShowDrift = (record) => (e) => {
@@ -1992,7 +2048,7 @@ export class Flow extends React.Component {
     const performanceChart = performanceModalVisible
       ? (
         <div>
-          <div style={{marginBottom: '20px'}}>
+          <div style={{display: 'flex', justifyContent: 'flex-end', alignItems: 'center'}}>
             <span>Ranges</span>
             <Dropdown overlay={menuRange}>
               <Button style={{ marginLeft: 8 }}>
@@ -2008,7 +2064,7 @@ export class Flow extends React.Component {
           </div>
           <Line style={{marginBottom: '20px'}} id="throughput" options={this.state.throughputChartOpt} />
           <Line style={{marginBottom: '20px'}} id="records" options={this.state.recordsChartOpt} />
-          <Line style={{marginBottom: '20px'}} id="latency" options={this.state.latencyChartOpt} />
+          <Line style={{height: '250px'}} id="latency" options={this.state.latencyChartOpt} />
         </div>
       ) : ''
     return (
@@ -2125,7 +2181,7 @@ export class Flow extends React.Component {
         </Modal>
         {/* NOTE: performance */}
         <Modal
-          title={'Performance'}
+          title={this.state.performanceModelTitle}
           visible={performanceModalVisible}
           onCancel={this.closePerformanceDialog}
           footer={null}
