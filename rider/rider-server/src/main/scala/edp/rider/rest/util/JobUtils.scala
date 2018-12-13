@@ -114,18 +114,18 @@ object JobUtils extends RiderLogger {
       if (tranConfig != "" && tranConfig != null) {
         val tranClass = JSON.parseObject(tranConfig)
         if (tranClass.containsKey("action") && tranClass.getString("action").nonEmpty) {
-          if (tranClass.getString("action").contains("edp.wormhole.batchjob.transform.Snapshot"))
+          if (tranClass.getString("action").contains("edp.wormhole.sparkx.batchjob.transform.Snapshot"))
             tranClass.getString("action")
           else {
             if (sinkProtocol.nonEmpty && sinkProtocol.get == JobSinkProtocol.SNAPSHOT.toString)
-              "custom_class = edp.wormhole.batchjob.transform.Snapshot;".concat(tranClass.getString("action"))
+              "custom_class = edp.wormhole.sparkx.batchjob.transform.Snapshot;".concat(tranClass.getString("action"))
             else tranClass.getString("action")
           }
         } else if (sinkProtocol.nonEmpty && sinkProtocol.get == JobSinkProtocol.SNAPSHOT.toString)
-          "custom_class = edp.wormhole.batchjob.transform.Snapshot;"
+          "custom_class = edp.wormhole.sparkx.batchjob.transform.Snapshot;"
         else ""
       } else if (sinkProtocol.nonEmpty && sinkProtocol.get == JobSinkProtocol.SNAPSHOT.toString)
-        "custom_class = edp.wormhole.batchjob.transform.Snapshot;"
+        "custom_class = edp.wormhole.sparkx.batchjob.transform.Snapshot;"
       else ""
     val specialConfig = setSwiftsConfig2Snapshot(sinkNs, action, tranConfig)
     if (action != "")
@@ -134,7 +134,7 @@ object JobUtils extends RiderLogger {
   }
 
   def setSwiftsConfig2Snapshot(sinkNs: String, action: String, tranConfig: String): Option[String] = {
-    if (action.contains("edp.wormhole.batchjob.transform.Snapshot")) {
+    if (action.contains("edp.wormhole.sparkx.batchjob.transform.Snapshot")) {
       val ns = modules.namespaceDal.getNamespaceByNs(sinkNs).get
       if (tranConfig != null && tranConfig != "") {
         val tranClass = JSON.parseObject(tranConfig)
