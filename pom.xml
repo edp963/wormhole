@@ -45,7 +45,7 @@
         <!--<module>rider/mad-server</module>-->
         <module>rider/rider-assembly</module>
         <module>swifts</module>
-        <module>feedbackMetricReporter</module>
+        <module>reporter</module>
     </modules>
 
     <properties>
