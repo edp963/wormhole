@@ -140,6 +140,7 @@ case class LdapInfo(enabled: Boolean,
 
 case class RiderFlink(homePath: String,
                       yarnQueueName: String,
+                      feedbackEnabled:Boolean,
                       feedbackStateCount: Int,
                       feedbackInterval: Int,
                       defaultRate: Int,
@@ -357,7 +358,7 @@ object RiderConfig {
 
   lazy val defaultFlinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "")
 
-  lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"),getIntConfig("flink.feedback.state.count",100),getIntConfig("flink.feedback.interval",30), 1, 1,
+  lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"),getBooleanConfig("flink.feedback.enabled",false),getIntConfig("flink.feedback.state.count",100),getIntConfig("flink.feedback.interval",30), 1, 1,
     getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/lib/wormhole-ums_1.3-flinkx_1.5.1-0.6.0-beta-jar-with-dependencies.jar"),
     getStringConfig("flink.wormhole.client.log.path", s"$riderRootPath/logs/flows"),
     getIntConfig("spark.kafka.session.timeout", 30000),

@@ -25,7 +25,7 @@ import java.util.Properties
 
 import edp.wormhole.util.config.KVConfig
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
-
+import org.apache.kafka.common.serialization.StringSerializer
 import scala.collection.mutable
 
 object WormholeKafkaProducer extends Serializable {

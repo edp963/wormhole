@@ -30,6 +30,7 @@ case class WormholeFlinkxConfig(flow_name: String,
                                 parallelism: Int,
                                 zookeeper_address: String,
                                 udf_config: Seq[UdfConfig],
+                                feedback_enabled:Boolean,
                                 feedback_state_count:Int,
                                 feedback_interval:Int,
                                 kerberos: Boolean)
