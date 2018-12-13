@@ -11,7 +11,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>feedbackMetricReporter</artifactId>
+    <artifactId>wormhole-flink-reporter</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
 
