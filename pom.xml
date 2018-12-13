@@ -40,12 +40,12 @@
         <module>common</module>
         <module>flinkx</module>
         <module>sparkx</module>
-
         <!--<module>rider/common/haservice</module>-->
         <module>rider/rider-server</module>
         <!--<module>rider/mad-server</module>-->
         <module>rider/rider-assembly</module>
         <module>swifts</module>
+        <module>feedbackMetricReporter</module>
     </modules>
 
     <properties>

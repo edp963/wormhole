@@ -41,7 +41,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
     logger.info("in UmsProcessElement source data from kafka " + value._2)
     try {
       val (protocolType, namespace) = UmsCommonUtils.getTypeNamespaceFromKafkaKey(value._1)
-      startMetricsMoinitoring(protocolType.toString)
+      if(config.feedback_enabled)startMetricsMoinitoring(protocolType.toString)
       if (jsonSourceParseMap.contains((protocolType, namespace))) {
         val mapValue: (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)]) = jsonSourceParseMap((protocolType, namespace))
         val umsTuple = JsonParseUtils.dataParse(value._2, mapValue._2, mapValue._3)
@@ -70,7 +70,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
     for (i <- tuple.indices)
       row.setField(i, FlinkSchemaUtils.getRelValue(i, tuple(i), sourceSchemaMap))
     out.collect(row)
-    moinitorRow(tuple,protocolType,schema)
+    if(config.feedback_enabled)moinitorRow(tuple,protocolType,schema)
   }
 
   def moinitorRow(tuple: Seq[String], protocolType:String, schema:Seq[UmsField]):Unit={
