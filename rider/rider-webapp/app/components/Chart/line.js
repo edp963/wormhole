@@ -20,7 +20,6 @@ export class Line extends React.Component {
     }
   }
   componentWillReceiveProps (newProps) {
-    // if (Object.getOwnPropertyNames(newProps.options).length === 0) return
     this.updateChart(newProps)
   }
   componentDidMount () {
@@ -31,7 +30,6 @@ export class Line extends React.Component {
     const { id, options } = this.props
     let chart = document.getElementById(id)
     let echart = echarts.init(chart)
-    window.echart = echart
     echart.setOption(options)
     this.setState({echart})
   }
@@ -41,7 +39,7 @@ export class Line extends React.Component {
   }
   render () {
     const { id, style } = this.props
-    const _style = Object.assign({}, {width: '100%', height: '300px'}, style)
+    const _style = Object.assign({}, {width: '100%', height: '230px'}, style)
     return (
       <div id={id} style={_style}></div>
     )
