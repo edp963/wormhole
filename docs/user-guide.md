@@ -147,14 +147,21 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 
 ### Sink Config
 
-- Sink Config 项配置与所选系统类型相关，点击配置按钮后页面上方有对应系统的配置项例子
-- 其中 "mutation_type" 的值有 "i" 和 "iud"，代表向 Sink 表中插数据时使用只增原则或增删改原则。如果为 "iud"，源数据中须有 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_op_（string 类型）` 字段，Sink 表中都须有 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_active_（int 类型）` 字段。若不配置此项，默认为 "iud"
+Sink Config 项配置与所选系统类型相关，点击配置按钮后页面上方有对应系统的配置项例子
+
+#### 配置数据插入方式（只增加or增删改）
+
+其中 "mutation_type" 的值有 "i" 和 "iud"，代表向 Sink 表中插数据时使用只增原则或增删改原则。如果为 "iud"，源数据中须有 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_op_（string 类型）` 字段，Sink 表中都须有 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_active_（int 类型）` 字段。若不配置此项，默认为 "iud"
 
 #### 分表幂等
 
 针对关系型数据库，为了减小ums_id、ums_op与ums_ts字段对业务系统的侵入性，可单独将这三个字段和table keys单独建立一个表，原业务表保持不变。假设ums_id、ums_op、ums_ts和table key组成的表名为umsdb，那么分表幂等的配置为：
 
 `{"mutation_type":"split_table_idu","db.function_table":"umsdb"}`
+
+#### 配置安全认证的sink kafka
+
+在用户需要向启用了kerberos安全认证的kafka集群Sink数据时，需要在sink config里面做如下配置：{"kerberos":true}，默认情况下，是向未启用kerberos认证的kafka集群Sink数据（0.6.1及之后版本）
 
 ### Transformation
 
@@ -298,7 +305,7 @@ Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 
 process time处理方式中window中相应的字段名称为processing_time。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(processing_time, INTERVAL '1' HOUR), name;
 
-event time处理方式中window中相应的字段名称为ums_ts_。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(ums_ts, INTERVAL '1' HOUR), name;
+event time处理方式中window中相应的字段名称为ums_ts_。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(ums_ts_, INTERVAL '1' HOUR), name;
 
 相关配置包括：
 
