@@ -91,6 +91,12 @@
             </source>
             <outputDirectory>lib</outputDirectory>
         </file>
+        <file>
+            <source>
+                ${project.parent.basedir}/flinkx/target/
+            </source>
+            <outputDirectory>lib</outputDirectory>
+        </file>
     </files>
 
     <dependencySets>
