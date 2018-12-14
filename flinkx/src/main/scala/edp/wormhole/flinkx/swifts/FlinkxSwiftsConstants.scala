@@ -8,6 +8,7 @@ object FlinkxSwiftsConstants {
   val MAX_IDLE_STATE_RETENTION_TIME = "max_idle_state_retention_time"
   val PRESERVE_MESSAGE_FLAG = "preserve_message_flag"
   val MESSAGE_FLAG = "message_flag"
+  val KEY_BY_FIELDS="key_by_fields"
 }
 
 
