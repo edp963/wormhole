@@ -64,7 +64,7 @@ object InstanceUtils {
   def checkFormat(nsSys: String, url: String): Boolean = {
 
     nsSys.toLowerCase match {
-      case "mysql" | "oracle" | "postgresql" | "vertica" | "phoenix" => one_tcp_url_host_port_pattern.matcher(url).matches() || one_tcp_url_ip_port_pattern.matcher(url).matches()
+      case "mysql" | "oracle" | "postgresql" | "vertica" | "phoenix" | "greenplum" => one_tcp_url_host_port_pattern.matcher(url).matches() || one_tcp_url_ip_port_pattern.matcher(url).matches()
       case "kafka" | "redis" | "cassandra" | "kudu" => tcp_url_ip_port_pattern.matcher(url).matches() || tcp_url_host_port_pattern.matcher(url).matches()
       case "es" => http_url_ip_port_pattern.matcher(url).matches() || http_host_ip_port_pattern.matcher(url).matches() || one_tcp_url_host_port_pattern.matcher(url).matches() || one_tcp_url_ip_port_pattern.matcher(url).matches()
       case "hbase" => zk_node_ip_pattern.matcher(url).matches() || zk_node_host_pattern.matcher(url).matches()
@@ -76,7 +76,7 @@ object InstanceUtils {
 
   def getTip(nsSys: String, url: String): String = {
     nsSys.toLowerCase match {
-      case "mysql" | "oracle" | "postgresql" | "vertica" | "phoenix" => s"ip:port"
+      case "mysql" | "oracle" | "postgresql" | "vertica" | "phoenix" | "greenplum" => s"ip:port"
       case "kafka" | "redis" | "cassandra" | "kudu" => s"ip:port list"
       case "hbase" => s"zk node list"
       case "es" => s"sink: http url list, lookup: tcp url, ip:port"
