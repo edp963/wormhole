@@ -85,6 +85,9 @@ object DbConnection extends Serializable {
     } else if (tmpJdbcUrl.indexOf("vertica") > -1) {
       println("vertical")
       config.setDriverClassName("com.vertica.jdbc.Driver")
+    } else if (tmpJdbcUrl.indexOf("Greenplum") > -1) {
+      println("Greenplum")
+      config.setDriverClassName("com.pivotal.jdbc.GreenplumDriver")
     }
 
 
