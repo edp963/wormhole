@@ -87,11 +87,11 @@
             <artifactId>sql4es5</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>net.sf.squirrel-sql.plugins</groupId>
-            <artifactId>greenplum</artifactId>
-            <version>3.5.0</version>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>net.sf.squirrel-sql.plugins</groupId>-->
+            <!--<artifactId>greenplum</artifactId>-->
+            <!--<version>3.5.0</version>-->
+        <!--</dependency>-->
 
         <dependency>
             <groupId>org.postgresql</groupId>

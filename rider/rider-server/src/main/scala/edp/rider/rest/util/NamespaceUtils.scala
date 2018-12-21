@@ -122,9 +122,14 @@ object NamespaceUtils extends RiderLogger {
           if (db.config.nonEmpty && db.config.get != "") {
             val confStr: String = (keyEqualValuePattern.toString.r findAllIn db.config.get.split(",").mkString("&")).toList.mkString("&")
             if (confStr.nonEmpty)
-              s"jdbc:pivotal:greenplum://${instance.connUrl}/;DatabaseName=${db.nsDatabase}?${confStr}"
-            else s"jdbc:pivotal:greenplum://${instance.connUrl}/;DatabaseName=${db.nsDatabase}"
-          } else s"jdbc:pivotal:greenplum://${instance.connUrl}/;DatabaseName=${db.nsDatabase}"
+              s"jdbc:postgresql://${instance.connUrl}/${db.nsDatabase}?$confStr"
+//              s"jdbc:pivotal:greenplum://${instance.connUrl}/;DatabaseName=${db.nsDatabase}?${confStr}"
+            else
+              s"jdbc:postgresql://${instance.connUrl}/${db.nsDatabase}"
+//              s"jdbc:pivotal:greenplum://${instance.connUrl}/;DatabaseName=${db.nsDatabase}"
+          } else
+                s"jdbc:postgresql://${instance.connUrl}/${db.nsDatabase}"
+//                s"jdbc:pivotal:greenplum://${instance.connUrl}/;DatabaseName=${db.nsDatabase}"
         //} else instance.connUrl
       case _ => instance.connUrl
     }
