@@ -60,6 +60,10 @@ object DbType {
     case "JAVA.LANG.DOUBLE" => "double"
     case "JAVA.LANG.INTEGER" => "int"
     case "JAVA.LANG.STRING" => "string"
+
+    //postgresql
+    case "INT4" => "int"
+
     case unknown =>
       throw new Exception("unknown type:"+unknown)
   }
