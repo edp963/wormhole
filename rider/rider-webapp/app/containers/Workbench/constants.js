@@ -21,3 +21,4 @@
 export const LOAD_SOURCE_NAMESPACES = 'rider/Workbench/LOAD_SOURCE_NAMESPACES'
 export const LOAD_SOURCE_NAMESPACES_SUCCESS = 'rider/Workbench/LOAD_SOURCE_NAMESPACES_SUCCESS'
 export const GET_ERROR = 'rider/Workbench/GET_ERROR'
+export const CHANGE_TABS = 'rider/Workbench/CHANGE_TABS'
