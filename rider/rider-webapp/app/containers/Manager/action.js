@@ -58,7 +58,8 @@ import {
   DELETE_USER_TOPIC,
   DELETE_USER_TOPIC_SUCCESS,
   LOAD_UDFS,
-  LOAD_STREAM_CONFIGS
+  LOAD_STREAM_CONFIGS,
+  JUMP_STREAM_TO_FLOW_FILTER
 } from './constants'
 
 export function loadUserStreams (projectId, resolve) {
@@ -462,6 +463,14 @@ export function loadUdfs (projectId, streamId, roleType, resolve) {
       streamId,
       roleType,
       resolve
+    }
+  }
+}
+export function jumpStreamToFlowFilter (streamFilterId) {
+  return {
+    type: JUMP_STREAM_TO_FLOW_FILTER,
+    payload: {
+      streamFilterId
     }
   }
 }
