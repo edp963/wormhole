@@ -52,7 +52,8 @@ import {
   STARTORRENEW_STREAMS_SUCCESS,
   OPERATE_STREAMS_ERROR,
   LOAD_LASTEST_OFFSET,
-  LOAD_LASTEST_OFFSET_SUCCESS
+  LOAD_LASTEST_OFFSET_SUCCESS,
+  JUMP_STREAM_TO_FLOW_FILTER
 } from './constants'
 import { fromJS } from 'immutable'
 
@@ -60,7 +61,8 @@ const initialState = fromJS({
   streams: false,
   streamSubmitLoading: false,
   streamNameExited: false,
-  streamStartModalLoading: false
+  streamStartModalLoading: false,
+  streamFilterId: ''
 })
 
 function streamReducer (state = initialState, { type, payload }) {
@@ -154,6 +156,8 @@ function streamReducer (state = initialState, { type, payload }) {
       return state
     case LOAD_LASTEST_OFFSET_SUCCESS:
       return state
+    case JUMP_STREAM_TO_FLOW_FILTER:
+      return state.set('streamFilterId', payload.streamFilterId)
     default:
       return state
   }

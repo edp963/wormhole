@@ -58,4 +58,4 @@ export const DELETE_USER_TOPIC = 'rider/Manager/DELETE_USER_TOPIC'
 export const DELETE_USER_TOPIC_SUCCESS = 'rider/Manager/DELETE_USER_TOPIC_SUCCESS'
 export const LOAD_UDFS = 'rider/Manager/LOAD_UDFS'
 export const LOAD_STREAM_CONFIGS = 'rider/Manager/LOAD_STREAM_CONFIGS'
-
+export const JUMP_STREAM_TO_FLOW_FILTER = 'rider/Manager/JUMP_STREAM_TO_FLOW_FILTER'

@@ -26,8 +26,13 @@ const selectSourceNamespaces = () => createSelector(
   selectWorkbench(),
   (workbenchState) => workbenchState.get('sourceNamespaces')
 )
+const selectActiveKey = () => createSelector(
+  selectWorkbench(),
+  (workbenchState) => workbenchState.get('activeKey')
+)
 
 export {
   selectWorkbench,
-  selectSourceNamespaces
+  selectSourceNamespaces,
+  selectActiveKey
 }
