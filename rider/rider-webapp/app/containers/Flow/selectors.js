@@ -21,6 +21,7 @@
 import { createSelector } from 'reselect'
 
 const selectFlow = () => (state) => state.get('flow')
+const selectStream = () => (state) => state.get('stream')
 
 const selectFlows = () => createSelector(
   selectFlow(),
@@ -41,11 +42,15 @@ const selectFlowStartModalLoading = () => createSelector(
   selectFlow(),
   (flowState) => flowState.get('flowStartModalLoading')
 )
-
+const selectStreamFilterId = () => createSelector(
+  selectStream(),
+  (streamState) => streamState.get('streamFilterId')
+)
 export {
   selectFlow,
   selectFlows,
   selectError,
   selectFlowSubmitLoading,
-  selectFlowStartModalLoading
+  selectFlowStartModalLoading,
+  selectStreamFilterId
 }

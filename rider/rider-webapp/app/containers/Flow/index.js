@@ -48,7 +48,7 @@ const FormItem = Form.Item
 const Option = Select.Option
 const { RangePicker } = DatePicker
 
-import { selectFlows, selectError, selectFlowStartModalLoading } from './selectors'
+import { selectFlows, selectError, selectFlowStartModalLoading, selectStreamFilterId } from './selectors'
 import { selectRoleType } from '../App/selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
 import {
@@ -244,6 +244,7 @@ export class Flow extends React.Component {
   }
 
   componentWillReceiveProps (props) {
+    this.filterStreamId(props.streamFilterId)()
     if (props.flows) {
       const originFlows = props.flows.map(s => {
         s.key = s.id
@@ -1327,6 +1328,13 @@ export class Flow extends React.Component {
   handleLogsCancel = (e) => {
     this.setState({ logsModalVisible: false })
   }
+  filterStreamId = (streamId) => () => {
+    const { searchTextStreamId } = this.state
+    let value = searchTextStreamId === '' ? streamId : ''
+    this.setState({searchTextStreamId: value}, () => {
+      this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')()
+    })
+  }
   render () {
     const { className, onShowAddFlow, onShowEditFlow, flowClassHide, roleType, flowStartModalLoading } = this.props
     const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails, logsModalVisible,
@@ -1593,7 +1601,13 @@ export class Flow extends React.Component {
       filterDropdownVisible: this.state.filterDropdownVisibleStreamId,
       onFilterDropdownVisibleChange: visible => this.setState({
         filterDropdownVisibleStreamId: visible
-      }, () => this.searchInput.focus())
+      }, () => this.searchInput.focus()),
+      render: (text, record) => {
+        const streamId = record.streamIdOrigin || record.streamId
+        return (
+          <span className="hover-pointer" onClick={this.filterStreamId(streamId)}>{record.streamId}</span>
+        )
+      }
     }, {
       title: 'Stream Type',
       dataIndex: 'streamType',
@@ -2288,7 +2302,8 @@ const mapStateToProps = createStructuredSelector({
   error: selectError(),
   roleType: selectRoleType(),
   locale: selectLocale(),
-  flowStartModalLoading: selectFlowStartModalLoading()
+  flowStartModalLoading: selectFlowStartModalLoading(),
+  streamFilterId: selectStreamFilterId()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Flow)
