@@ -41,7 +41,7 @@ object WormholeKafkaProducer extends Serializable {
     props
   }
 
-  def init(brokers: String, kvConfig: Option[Seq[KVConfig]]): Unit = {
+  def init(brokers: String, kvConfig: Option[Seq[KVConfig]], kerberos: Boolean = false): Unit = {
     if (!producerMap.contains(brokers) || producerMap(brokers) == null) {
       synchronized {
         if (!producerMap.contains(brokers) || producerMap(brokers) == null) {
@@ -65,7 +65,7 @@ object WormholeKafkaProducer extends Serializable {
 
   private def send(topic: String, message: String, key: Option[String], brokers: String): Any = {
     try {
-     // println("producerMap"+producerMap.toString()+",brokers:"+brokers)
+      // println("producerMap"+producerMap.toString()+",brokers:"+brokers)
       sendInternal(topic, message, key, brokers)
     } catch {
       case _: Throwable =>
