@@ -140,12 +140,12 @@
             <groupId>com.typesafe.slick</groupId>
             <artifactId>slick-hikaricp_${scala.binary.version}</artifactId>
             <version>${slick.version}</version>
-            <exclusions>
+<!--            <exclusions>
                 <exclusion>
                     <groupId>com.zaxxer</groupId>
                     <artifactId>HikariCP</artifactId>
                 </exclusion>
-            </exclusions>
+            </exclusions>-->
         </dependency>
 
         <dependency>
