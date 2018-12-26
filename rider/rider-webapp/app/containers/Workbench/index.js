@@ -241,7 +241,9 @@ export class Workbench extends React.Component {
       this.loadData(projectId)
     }
   }
-
+  componentWillUnmount () {
+    this.props.onChangeTabs('flow')
+  }
   loadData (projectId) {
     this.setState({ projectId: projectId })
   }

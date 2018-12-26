@@ -36,7 +36,7 @@ import 'babel-polyfill'
 /* eslint-disable import/no-unresolved, import/extensions */
 // Load the favicon, the manifest.json file and the .htaccess file
 import 'file-loader?name=[name].[ext]!./favicon.ico'
-import '!file-loader?name=[name].[ext]!./manifest.json'
+// import '!file-loader?name=[name].[ext]!./manifest.json'
 import 'file-loader?name=[name].[ext]!./.htaccess'
 /* eslint-enable import/no-unresolved, import/extensions */
 
@@ -132,6 +132,6 @@ if (!window.Intl) {
 // Install ServiceWorker and AppCache in the end since
 // it's not most important operation and if main code fails,
 // we do not want it installed
-if (process.env.NODE_ENV === 'production') {
-  require('offline-plugin/runtime').install() // eslint-disable-line global-require
-}
+// if (process.env.NODE_ENV === 'production') {
+//   require('offline-plugin/runtime').install() // eslint-disable-line global-require
+// }
