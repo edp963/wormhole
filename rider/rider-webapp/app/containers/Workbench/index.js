@@ -72,7 +72,7 @@ import {
 
 import {
   loadUserStreams, loadAdminSingleStream, loadStreamNameValue, loadKafka,
-  loadStreamConfigJvm, loadStreamConfigSpark, loadStreamConfigs, addStream, loadStreamDetail, editStream
+  loadStreamConfigJvm, loadStreamConfigSpark, loadStreamConfigs, addStream, loadStreamDetail, editStream, jumpStreamToFlowFilter
 } from '../Manager/action'
 import { loadSelectNamespaces, loadUserNamespaces } from '../Namespace/action'
 import { loadUserUsers, loadSelectUsers } from '../User/action'
@@ -87,6 +87,8 @@ import { selectUsers } from '../User/selectors'
 import { selectResources } from '../Resource/selectors'
 import { selectRoleType } from '../App/selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
+import { selectActiveKey } from './selectors'
+import { changeTabs } from './action'
 
 export class Workbench extends React.Component {
   constructor (props) {
@@ -239,7 +241,9 @@ export class Workbench extends React.Component {
       this.loadData(projectId)
     }
   }
-
+  componentWillUnmount () {
+    this.props.onChangeTabs('flow')
+  }
   loadData (projectId) {
     this.setState({ projectId: projectId })
   }
@@ -248,7 +252,8 @@ export class Workbench extends React.Component {
     const { projectId } = this.state
     const { onLoadAdminSingleFlow, onLoadUserAllFlows, onLoadAdminSingleStream, onLoadUserStreams, roleType } = this.props
     const { onLoadSelectNamespaces, onLoadUserNamespaces, onLoadSelectUsers, onLoadUserUsers, onLoadResources, onLoadSingleUdf } = this.props
-
+    this.props.onChangeTabs(key)
+    this.props.jumpStreamToFlowFilter('')
     switch (key) {
       case 'flow':
         if (roleType === 'admin') {
@@ -3532,8 +3537,9 @@ export class Workbench extends React.Component {
         <Helmet title="Workbench" />
         <Tabs
           defaultActiveKey="flow"
-          className="ri-tabs"
           animated={false}
+          activeKey={this.props.activeKey}
+          className="ri-tabs"
           onChange={this.changeTag}
         >
           {/* Flow Panel */}
@@ -4014,7 +4020,10 @@ Workbench.propTypes = {
   roleType: PropTypes.string,
   locale: PropTypes.string,
   onLoadJobBackfillTopic: PropTypes.func,
-  onLoadStreamConfigs: PropTypes.func
+  onLoadStreamConfigs: PropTypes.func,
+  activeKey: PropTypes.string,
+  onChangeTabs: PropTypes.func,
+  jumpStreamToFlowFilter: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -4051,7 +4060,9 @@ export function mapDispatchToProps (dispatch) {
     onQueryJob: (values, resolve, final) => dispatch(queryJob(values, resolve, final)),
     onEditJob: (values, resolve, final) => dispatch(editJob(values, resolve, final)),
     onLoadLookupSql: (values, resolve, reject) => dispatch(loadLookupSql(values, resolve, reject)),
-    onLoadJobBackfillTopic: (projectId, namespaceId, value, resolve) => dispatch(loadJobBackfillTopic(projectId, namespaceId, value, resolve))
+    onLoadJobBackfillTopic: (projectId, namespaceId, value, resolve) => dispatch(loadJobBackfillTopic(projectId, namespaceId, value, resolve)),
+    onChangeTabs: (key) => dispatch(changeTabs(key)),
+    jumpStreamToFlowFilter: (streamFilterId) => dispatch(jumpStreamToFlowFilter(streamFilterId))
   }
 }
 
@@ -4065,7 +4076,8 @@ const mapStateToProps = createStructuredSelector({
   resources: selectResources(),
   projectNamespaces: selectProjectNamespaces(),
   roleType: selectRoleType(),
-  locale: selectLocale()
+  locale: selectLocale(),
+  activeKey: selectActiveKey()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Workbench)
