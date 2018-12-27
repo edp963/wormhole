@@ -204,7 +204,7 @@ ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `flow` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `flow_name` VARCHAR(200) NOT NULL
+  `flow_name` VARCHAR(200) NOT NULL,
   `project_id` BIGINT NOT NULL,
   `stream_id` BIGINT NOT NULL,
   `source_ns` VARCHAR(200) NOT NULL,
