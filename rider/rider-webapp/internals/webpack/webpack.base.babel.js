@@ -73,6 +73,9 @@ module.exports = (options) => ({
   ]),
   resolve: {
     modules: ['app', 'node_modules'],
+    alias: {
+      fonts: path.resolve(process.cwd(), 'app/assets/fonts')
+    },
     extensions: [
       '.js',
       '.jsx',
