@@ -47,7 +47,7 @@ import scala.concurrent.{Await, Future}
 class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
                    databaseDal: NsDatabaseDal,
                    instanceDal: BaseDal[InstanceTable, Instance],
-                   dbusDal: BaseDal[DbusTable, Dbus]) extends BaseDalImpl[NamespaceTable, Namespace](namespaceTable) with RiderLogger {
+                   dbusDal: DbusDal) extends BaseDalImpl[NamespaceTable, Namespace](namespaceTable) with RiderLogger {
   def getDbus4FromRest: Seq[SimpleDbus] = {
     try {
       val dbusServices =
@@ -131,7 +131,15 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
   def dbusInsert(session: SessionClass): Future[Seq[Dbus]] = {
     try {
       val simpleDbusSeq = getDbusFromRest ++: getDbus4FromRest
-      val kafkaSeq = new ArrayBuffer[String]
+      riderLogger.info(s"sync dbus namespace size: ${simpleDbusSeq.size}")
+      val maxDbusId = Await.result(dbusDal.getMaxDbusId, minTimeOut)
+      val syncDbusSeq =
+        if (maxDbusId.nonEmpty) {
+          simpleDbusSeq.filter(_.id > maxDbusId.get)
+        } else simpleDbusSeq
+      riderLogger.info(s"actual need sync dbus namespace size: ${syncDbusSeq.size}")
+
+      val kafkaSeq = new mutable.HashSet[String]
       val kafkaTopicMap = mutable.HashMap.empty[String, ArrayBuffer[String]]
       val kafkaIdMap = mutable.HashMap.empty[String, Long]
       val topicIdMap = mutable.HashMap.empty[String, Long]
@@ -140,8 +148,8 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
       val dbusSeq = new ArrayBuffer[Dbus]
       val dbusUpdateSeq = new ArrayBuffer[Dbus]
 
-      simpleDbusSeq.foreach(simple => {
-        kafkaSeq += simple.kafka
+      syncDbusSeq.foreach(simple => {
+        kafkaSeq.add(simple.kafka)
         if (kafkaTopicMap.contains(simple.kafka) && !kafkaTopicMap(simple.kafka).contains(simple.topic))
           kafkaTopicMap.update(simple.kafka, kafkaTopicMap(simple.kafka) += simple.topic)
         else if (!kafkaTopicMap.contains(simple.kafka))
@@ -149,7 +157,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
       })
       val dbusKafka = Await.result(instanceDal.findByFilter(_.nsInstance.startsWith("dbusKafka")), minTimeOut).size
       var i = dbusKafka + 1
-      kafkaSeq.distinct.foreach {
+      kafkaSeq.foreach {
         kafka => {
           val instanceSearch = Await.result(instanceDal.findByFilter(_.connUrl === kafka), minTimeOut)
           if (instanceSearch.isEmpty) {
@@ -177,7 +185,7 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
       dbSeq.foreach(db => topicIdMap.put(db.nsDatabase, db.id))
 
       val dbusSearch = Await.result(dbusDal.findAll, minTimeOut)
-      simpleDbusSeq.foreach(simple => {
+      syncDbusSeq.foreach(simple => {
         val dbusExist = dbusSearch.filter(dbus => dbus.namespace.split("\\.").take(4).mkString(".") == simple.namespace.split("\\.").take(4).mkString("."))
         if (dbusExist.isEmpty) {
           riderLogger.info("simple: " + simple)
