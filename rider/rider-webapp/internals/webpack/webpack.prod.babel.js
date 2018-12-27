@@ -4,7 +4,7 @@ const webpack = require('webpack')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 // const OfflinePlugin = require('offline-plugin')
 const ExtractTextPlugin = require('extract-text-webpack-plugin')
-
+const overrideAntd = require('../../app/assets/less/override/override-antd')
 module.exports = require('./webpack.base.babel')({
   // In production, we skip all hot-reloading stuff
   entry: [
@@ -30,7 +30,7 @@ module.exports = require('./webpack.base.babel')({
       test: /\.less$/,
       loader: ExtractTextPlugin.extract({
         fallbackLoader: 'style-loader',
-        loader: ['css-loader', 'postcss-loader', 'less-loader']
+        loader: ['css-loader', 'postcss-loader', `less-loader?{"sourceMap": true, "modifyVars": ${JSON.stringify(overrideAntd)}}`]
       })
     }
   ],
