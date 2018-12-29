@@ -100,6 +100,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
   private def getKeyByStream(transformedStream: DataStream[Row]): DataStream[Row] = {
     if (null != specialConfigObj && specialConfigObj.containsKey(FlinkxSwiftsConstants.KEY_BY_FIELDS)) {
       val streamKeyByFieldsIndex = specialConfigObj.getString(FlinkxSwiftsConstants.KEY_BY_FIELDS).split(",").map(preSchemaMap(_)._2)
+     println("in key by stream")
       transformedStream.keyBy(streamKeyByFieldsIndex: _*)
     }
     else transformedStream
