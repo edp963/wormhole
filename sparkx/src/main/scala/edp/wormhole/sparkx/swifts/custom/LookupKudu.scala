@@ -63,9 +63,13 @@ object LookupKudu extends EdpLogging {
         originalData.sliding(1000, 1000).foreach((subList: mutable.Seq[Row]) => {
           val tupleList: mutable.Seq[List[String]] = subList.map(row => {
             sqlConfig.sourceTableFields.get.toList.map(field => {
-              row.get(row.fieldIndex(field)).toString
+              val tmpKey = row.get(row.fieldIndex(field))
+              if (tmpKey == null) null.asInstanceOf[String]
+              else tmpKey.toString
             })
 
+          }).filter((keys: Seq[String]) => {
+            !keys.contains(null)
           })
           val queryDateMap: mutable.Map[String, Map[String, (Any, String)]] =
             KuduConnection.doQueryByKeyListInBatch(tmpTableName, database, connectionConfig.connectionUrl, kuduJoinNameArray.head, tupleList, keySchemaMap.toMap, selectFieldNewNameArray)
@@ -98,8 +102,8 @@ object LookupKudu extends EdpLogging {
             resultData.append(newRow)
           })
         } catch {
-          case e:Throwable=>
-            logInfo("LookupKudu",e)
+          case e: Throwable =>
+            logInfo("LookupKudu", e)
             throw e
         } finally {
           KuduConnection.closeClient(client)
