@@ -148,7 +148,7 @@ object StreamUtils extends RiderLogger {
                     AppInfo(sparkStatus.appId, "stopped", sparkStatus.startedTime, sparkStatus.finishedTime)
                   }
                   else {
-                    AppInfo(sparkStatus.appId, sparkStatus.appState, startedTime, stoppedTime)
+                    AppInfo(sparkStatus.appId, "stopping", startedTime, stoppedTime)
                   }
                 case "new" =>
                   AppInfo("", "new", startedTime, stoppedTime)
