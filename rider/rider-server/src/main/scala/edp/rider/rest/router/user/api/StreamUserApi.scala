@@ -306,7 +306,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                   riderLogger.info(s"user ${
                     session.userId
                   } stop stream $streamId success.")
-                  onComplete(streamDal.updateByStatus(streamId, status, session.userId, stream.logPath.getOrElse("")).mapTo[Int]) {
+                  onComplete(streamDal.updateByStatus(streamId, status, session.userId, stream.logPath.get).mapTo[Int]) {
                     case Success(_) =>
                       val streamDetail = streamDal.getBriefDetail(Some(id), Some(Seq(streamId))).head
                       complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail))
