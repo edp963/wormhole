@@ -45,7 +45,7 @@ object JobUtils extends RiderLogger {
 
   def getBatchJobConfigConfig(job: Job) =
     BatchJobConfig(getSourceConfig(job.sourceNs, job.eventTsStart, job.eventTsEnd, job.sourceConfig),
-      getTranConfig(job.tranConfig.getOrElse(""), job.sinkConfig.getOrElse(""), job.sinkNs, job.jobType),
+      getTranConfig(job.tranConfig.getOrElse(""), job.sinkConfig.getOrElse(""), job.sinkNs, job.jobType, job.tableKeys),
       getSinkConfig(job.sinkNs, job.sinkConfig.getOrElse(""), job.jobType, job.eventTsEnd, job.tableKeys),
       getJobConfig(job.name, job.sparkConfig.othersConfig))
 
@@ -108,7 +108,7 @@ object JobUtils extends RiderLogger {
     SinkConfig(sinkNs, sinkConnection, maxRecord, Some(getSinkProcessClass(sinkSys, ns.sinkSchema)), specialConfig, sinkKeys, projection)
   }
 
-  def getTranConfig(tranConfig: String, sinkConfig: String, sinkNs: String, jobType: String) = {
+  def getTranConfig(tranConfig: String, sinkConfig: String, sinkNs: String, jobType: String, tableKeys: Option[String]) = {
     val sinkProtocol = getSinkProtocol(sinkConfig, jobType)
     val action =
       if (tranConfig != "" && tranConfig != null) {
@@ -127,13 +127,13 @@ object JobUtils extends RiderLogger {
       } else if (sinkProtocol.nonEmpty && sinkProtocol.get == JobSinkProtocol.SNAPSHOT.toString)
         "custom_class = edp.wormhole.sparkx.batchjob.transform.Snapshot;"
       else ""
-    val specialConfig = setSwiftsConfig2Snapshot(sinkNs, action, tranConfig)
+    val specialConfig = setSwiftsConfig2Snapshot(sinkNs, action, tranConfig, tableKeys)
     if (action != "")
       Some(TransformationConfig(Some(base64byte2s(action.trim.getBytes)), specialConfig))
     else None
   }
 
-  def setSwiftsConfig2Snapshot(sinkNs: String, action: String, tranConfig: String): Option[String] = {
+  def setSwiftsConfig2Snapshot(sinkNs: String, action: String, tranConfig: String, tableKeys: Option[String]): Option[String] = {
     if (action.contains("edp.wormhole.sparkx.batchjob.transform.Snapshot")) {
       val ns = modules.namespaceDal.getNamespaceByNs(sinkNs).get
       if (tranConfig != null && tranConfig != "") {
@@ -143,13 +143,13 @@ object JobUtils extends RiderLogger {
             tranClass.getJSONObject("swifts_specific_config")
           else new JSONObject()
         if (!swiftsSpec.containsKey("table_keys")) {
-          swiftsSpec.fluentPut("table_keys", ns.keys.getOrElse(""))
+          swiftsSpec.fluentPut("table_keys", tableKeys.getOrElse(""))
           tranClass.fluentPut("swifts_specific_config", swiftsSpec.toString)
         }
         Some(tranClass.getString("swifts_specific_config"))
       } else {
         val swiftsSpec = new JSONObject()
-        swiftsSpec.fluentPut("table_keys", ns.keys.getOrElse(""))
+        swiftsSpec.fluentPut("table_keys", tableKeys.getOrElse(""))
         Some(swiftsSpec.toString)
       }
     } else None
@@ -291,8 +291,9 @@ object JobUtils extends RiderLogger {
     if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_protocol"))
       Some(JSON.parseObject(sinkConfig).getString("sink_protocol"))
     else {
-      if (jobType == JobType.BACKFILL.toString) Some(JobSinkProtocol.SNAPSHOT.toString)
-      else None
+      //      if (jobType == JobType.BACKFILL.toString) Some(JobSinkProtocol.SNAPSHOT.toString)
+      //      else
+      None
     }
   }
 }
