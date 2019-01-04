@@ -922,9 +922,7 @@ export class Workbench extends React.Component {
                   password: tmpObj.password
                 }
                 pushdownConTepm = pushdownConTepmJson
-              }
-
-              if (i.includes('parquet_sql')) {
+              } else if (/^parquet_sql/.test(i)) {
                 let imp = ''
                 if (i.includes('left join')) {
                   imp = i.replace('left join', 'leftJoin')
@@ -947,9 +945,7 @@ export class Workbench extends React.Component {
                 tranConfigInfoSqlTemp = `${streamJoinAfterPartTepm};`
                 tranTypeTepm = 'streamJoinSql'
                 pushdownConTepm = {}
-              }
-
-              if (i.includes('spark_sql')) {
+              } else if (/^spark_sql/.test(i)) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepmTemp = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
                 const sparkAfterPartTepm = preProcessSql(sparkAfterPartTepmTemp)
@@ -958,8 +954,7 @@ export class Workbench extends React.Component {
                 tranConfigInfoSqlTemp = `${sparkAfterPartTepm};`
                 tranTypeTepm = 'sparkSql'
                 pushdownConTepm = {}
-              }
-              if (i.includes('flink_sql')) {
+              } else if (/^flink_sql/.test(i)) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepmTemp = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
                 const sparkAfterPartTepm = preProcessSql(sparkAfterPartTepmTemp)
@@ -968,8 +963,7 @@ export class Workbench extends React.Component {
                 tranConfigInfoSqlTemp = `${sparkAfterPartTepm};`
                 tranTypeTepm = 'flinkSql'
                 pushdownConTepm = {}
-              }
-              if (i.includes('custom_class')) {
+              } else if (/^custom_class/.test(i)) {
                 const classAfterPart = i.substring(i.indexOf('=') + 1)
                 const classAfterPartTepmTemp = classAfterPart.replace(/(^\s*)|(\s*$)/g, '')
                 const classAfterPartTepm = preProcessSql(classAfterPartTepmTemp)
@@ -978,9 +972,7 @@ export class Workbench extends React.Component {
                 tranConfigInfoSqlTemp = classAfterPartTepm
                 tranTypeTepm = 'transformClassName'
                 pushdownConTepm = {}
-              }
-
-              if (i.includes('cep')) {
+              } else if (/^cep/.test(i)) {
                 const classAfterPartTepm = i.split('=')[1]
 
                 tranConfigInfoTemp = classAfterPartTepm
