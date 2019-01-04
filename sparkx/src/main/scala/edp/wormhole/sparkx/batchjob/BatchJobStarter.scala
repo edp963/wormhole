@@ -92,7 +92,10 @@ object BatchJobStarter extends App with EdpLogging {
   var outPutTransformDf = transformDf.select(projectionFields.head, projectionFields.tail: _*)
   println("after!!!!!!!!!!! outPutTransformDf")
 
-  val specialConfig: Option[String] = if (sinkConfig.specialConfig.isDefined) Some(new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkConfig.specialConfig.get.toString.split(" ").mkString("")))) else None
+  val specialConfig: Option[String] = if (sinkConfig.specialConfig.isDefined) {
+    val config = new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkConfig.specialConfig.get.toString.split(" ").mkString("")))
+    Some(JSON.parseObject(config).getString("sink_specific_config"))
+  } else None
   if (sinkConfig.sinkNamespace.split("\\.")(0) == UmsDataSystem.PARQUET.toString) {
     //*   - `overwrite`: overwrite the existing data.
     //*   - `append`: append the data.
