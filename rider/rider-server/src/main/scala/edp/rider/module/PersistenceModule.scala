@@ -71,7 +71,7 @@ trait PersistenceModule {
   val flowDal: FlowDal
   val relProjectNsDal: RelProjectNsDal
   val projectDal: ProjectDal
-  val dbusDal: BaseDal[DbusTable, Dbus]
+  val dbusDal: DbusDal
   val directiveDal: DirectiveDal
   val streamInTopicDal: StreamInTopicDal
   val flowInTopicDal: FlowInTopicDal
@@ -89,7 +89,7 @@ trait PersistenceModule {
   val feedbackStreamErrDal: FeedbackStreamErrorDal
   val feedbackFlowErrDal: FeedbackFlowErrDal
   val feedbackDirectiveDal: BaseDal[FeedbackDirectiveTable, FeedbackDirective]
-  val monitorInfoDal:MonitorInfoDal
+  val monitorInfoDal: MonitorInfoDal
 
   val instanceQuery: TableQuery[InstanceTable] = TableQuery[InstanceTable]
   val databaseQuery: TableQuery[NsDatabaseTable] = TableQuery[NsDatabaseTable]
@@ -117,7 +117,7 @@ trait PersistenceModule {
   val feedbackStreamErrQuery = TableQuery[FeedbackStreamErrTable]
   val feedbackFlowErrQuery = TableQuery[FeedbackFlowErrTable]
   val feedbackDirectiveQuery = TableQuery[FeedbackDirectiveTable]
-  val monitorInfoQuery=TableQuery[MonitorInfoTable]
+  val monitorInfoQuery = TableQuery[MonitorInfoTable]
 
 }
 
@@ -134,7 +134,7 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val flowDal = new FlowDal(flowQuery, streamQuery, projectQuery, streamDal, streamInTopicDal, flowInTopicDal, flowUdfTopicDal)
   override lazy val relProjectNsDal = new RelProjectNsDal(namespaceQuery, databaseQuery, instanceQuery, projectQuery, relProjectNsQuery, streamQuery)
   override lazy val projectDal = new ProjectDal(projectQuery, relProjectNsDal, relProjectUserDal, relProjectUdfDal, streamDal)
-  override lazy val dbusDal = new BaseDalImpl[DbusTable, Dbus](dbusQuery)
+  override lazy val dbusDal = new DbusDal(dbusQuery)
   override lazy val directiveDal = new DirectiveDal(directiveQuery)
   override lazy val streamInTopicDal = new StreamInTopicDal(streamInTopicQuery, databaseQuery, feedbackOffsetQuery)
   override lazy val flowInTopicDal = new FlowInTopicDal(flowInTopicQuery, databaseQuery, feedbackOffsetQuery)
@@ -150,5 +150,5 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val feedbackStreamErrDal = new FeedbackStreamErrorDal(feedbackStreamErrQuery, streamDal)
   override lazy val feedbackFlowErrDal = new FeedbackFlowErrDal(feedbackFlowErrQuery, streamDal, flowDal)
   override lazy val feedbackDirectiveDal = new BaseDalImpl[FeedbackDirectiveTable, FeedbackDirective](feedbackDirectiveQuery)
-  override lazy val monitorInfoDal=new MonitorInfoDal(monitorInfoQuery,streamDal,flowDal)
+  override lazy val monitorInfoDal = new MonitorInfoDal(monitorInfoQuery, streamDal, flowDal)
 }
