@@ -74,9 +74,9 @@ object BatchJobStarter extends App with EdpLogging {
 
   val sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
 
-  if(batchJobConfig.udfConfig.nonEmpty&&batchJobConfig.udfConfig.get.nonEmpty){
-    batchJobConfig.udfConfig.get.foreach(udf=>{
-      UdfRegister.register(udf.udfName, udf.udfClassFullname, null, sparkSession,false)
+  if (batchJobConfig.udfConfig.nonEmpty && batchJobConfig.udfConfig.get.nonEmpty) {
+    batchJobConfig.udfConfig.get.foreach(udf => {
+      UdfRegister.register(udf.udfName, udf.udfClassFullname, null, sparkSession, false)
     })
   }
 
@@ -92,17 +92,20 @@ object BatchJobStarter extends App with EdpLogging {
   var outPutTransformDf = transformDf.select(projectionFields.head, projectionFields.tail: _*)
   println("after!!!!!!!!!!! outPutTransformDf")
 
-  val specialConfig: Option[String] = if (sinkConfig.specialConfig.isDefined) Some(new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkConfig.specialConfig.get.toString.split(" ").mkString("")))) else None
-  if (UmsNamespace(sinkConfig.sinkNamespace).dataSys == UmsDataSystem.PARQUET) {
+  val specialConfig: Option[String] = if (sinkConfig.specialConfig.isDefined) {
+    val config = new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkConfig.specialConfig.get.toString.split(" ").mkString("")))
+    Some(JSON.parseObject(config).getString("sink_specific_config"))
+  } else None
+  if (sinkConfig.sinkNamespace.split("\\.")(0) == UmsDataSystem.PARQUET.toString) {
     //*   - `overwrite`: overwrite the existing data.
     //*   - `append`: append the data.
     //*   - `ignore`: ignore the operation (i.e. no-op).
     //*   - `error`: default option, throw an exception at runtime.
 
     var saveMode = "overwrite"
-    if(specialConfig.nonEmpty && specialConfig.get.nonEmpty) {
+    if (specialConfig.nonEmpty && specialConfig.get.nonEmpty) {
       val specialJson = JSON.parseObject(specialConfig.get)
-      if(specialJson.containsKey("savemode")) saveMode = specialJson.getString("savemode")
+      if (specialJson.containsKey("savemode")) saveMode = specialJson.getString("savemode")
     }
     outPutTransformDf.write.mode(saveMode).parquet(sinkConfig.connectionConfig.connectionUrl)
   } else {

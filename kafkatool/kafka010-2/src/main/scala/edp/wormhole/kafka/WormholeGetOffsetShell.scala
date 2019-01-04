@@ -43,19 +43,14 @@ object WormholeGetOffsetShell {
 
       if (!topicMap.isEmpty && topicMap.containsKey(topic) && topicMap.get(topic) != null && topicMap.get(topic).size() > 0) {
         val it = topicMap.get(topic).iterator()
-
         while (it.hasNext) {
           val partition = it.next
-          println("partition: " + partition.partition())
-          //          for(partitionId <- 0 to partition.partition){
           try {
             val topicAndPartition = new TopicPartition(topic, partition.partition())
             val map = time match {
               case -1 => consumer.endOffsets(util.Arrays.asList(topicAndPartition))
               case _ => consumer.beginningOffsets(util.Arrays.asList(topicAndPartition))
             }
-
-            println("partition offset: " + partition.partition() + ":" + map.get(topicAndPartition))
             offsetSeq += partition.partition() + ":" + map.get(topicAndPartition)
           } catch {
             case e: Exception =>
@@ -63,7 +58,6 @@ object WormholeGetOffsetShell {
               consumer.close()
               throw new Exception(s"brokerList $brokerList topic $topic partition ${partition.partition()} doesn't have a leader, please verify it.")
           }
-          //          }
         }
         consumer.close()
       }
