@@ -980,9 +980,8 @@ export class Manager extends React.Component {
       sorter: (a, b) => a.streamType < b.streamType ? -1 : 1,
       sortOrder: sortedInfo.columnKey === 'streamType' && sortedInfo.order,
       filters: [
-        {text: 'default', value: 'default'},
-        {text: 'hdfslog', value: 'hdfslog'},
-        {text: 'routing', value: 'routing'}
+        {text: 'spark', value: 'spark'},
+        {text: 'flink', value: 'flink'}
       ],
       filteredValue: filteredInfo.streamType,
       onFilter: (value, record) => record.streamType.includes(value)
@@ -991,13 +990,14 @@ export class Manager extends React.Component {
       dataIndex: 'functionType',
       key: 'functionType',
       sorter: (a, b) => a.functionType < b.functionType ? -1 : 1,
-      sortOrder: sortedInfo.columnKey === 'streamType' && sortedInfo.order,
+      sortOrder: sortedInfo.columnKey === 'functionType' && sortedInfo.order,
       filters: [
-        {text: 'spark', value: 'spark'},
-        {text: 'flink', value: 'flink'}
+        {text: 'default', value: 'default'},
+        {text: 'hdfslog', value: 'hdfslog'},
+        {text: 'routing', value: 'routing'}
       ],
       filteredValue: filteredInfo.functionType,
-      onFilter: (value, record) => record.streamType.includes(value)
+      onFilter: (value, record) => record.functionType.includes(value)
     }, {
       title: 'Kafka',
       dataIndex: 'instance',
