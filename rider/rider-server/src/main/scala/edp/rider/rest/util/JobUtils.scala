@@ -83,8 +83,13 @@ object JobUtils extends RiderLogger {
         Some(base64byte2s(sinkSpecConfig.toString.trim.getBytes))
       }
 
+    val hbaseRowKey =
+      if(specialConfig.get != "" && JSON.parseObject(specialConfig.get).containsKey("hbase.rowKey")) {
+        JSON.parseObject(specialConfig.get).getString("hbase.rowKey");
+      } else ""
+
     //val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else ns.keys
-    val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else tableKeys
+    val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(hbaseRowKey)) else tableKeys
 
     val projection = if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_output")) {
       Some(JSON.parseObject(sinkConfig).getString("sink_output").trim)
