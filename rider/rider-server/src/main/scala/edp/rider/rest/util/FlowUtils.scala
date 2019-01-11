@@ -72,12 +72,6 @@ object FlowUtils extends RiderLogger {
         if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
           JSON.parseObject(sinkConfig).getString("sink_specific_config")
         else "{}"
-
-      val hbaseRowKey =
-        if(specialConfig != "" && JSON.parseObject(specialConfig).containsKey("hbase.rowKey")) {
-          JSON.parseObject(specialConfig).getString("hbase.rowKey");
-        } else ""
-
       val sink_output =
         if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_output"))
           JSON.parseObject(sinkConfig).getString("sink_output")
@@ -89,7 +83,7 @@ object FlowUtils extends RiderLogger {
         else "\"\""
 
       //val sinkKeys = if (ns.nsSys == "hbase") getRowKey(specialConfig) else ns.keys.getOrElse("")
-      val sinkKeys = if (ns.nsSys == "hbase") getRowKey(hbaseRowKey) else tableKeys
+      val sinkKeys = if (ns.nsSys == "hbase") getRowKey(specialConfig) else tableKeys
 
       if (ns.sinkSchema.nonEmpty && ns.sinkSchema.get != "") {
         val schema = caseClass2json[Object](json2caseClass[SinkSchema](ns.sinkSchema.get).schema)
