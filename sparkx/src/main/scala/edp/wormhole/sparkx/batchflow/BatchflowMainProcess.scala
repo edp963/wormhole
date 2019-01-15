@@ -377,7 +377,7 @@ object BatchflowMainProcess extends EdpLogging {
     }
 
     val afterUnionDf = unionParquetNonTimeoutDf(swiftsProcessConfig, uuid, session, sourceDf, config, sourceNamespace, sinkNamespace).cache
-    println("sourceNamespace=" + sourceNamespace + ",afterUnionDf.count" + afterUnionDf.count)
+    //println("sourceNamespace=" + sourceNamespace + ",afterUnionDf.count" + afterUnionDf.count)
 
     try {
       val swiftsDf: DataFrame = SwiftsTransform.transform(session, sourceNamespace, sinkNamespace, afterUnionDf, matchSourceNamespace, config)
