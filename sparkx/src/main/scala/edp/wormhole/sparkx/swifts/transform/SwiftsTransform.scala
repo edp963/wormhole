@@ -125,7 +125,7 @@ object SwiftsTransform extends EdpLogging {
           case _ => logWarning(uuid + ",operate.optType:" + operate.optType + " is not supported")
         }
         currentDf.cache()
-        logInfo(uuid + ",atfer operation count and then show:" + currentDf.count()) //ui:stage line
+        //logInfo(uuid + ",atfer operation count and then show:" + currentDf.count()) //ui:stage line
         if (dataSetShow.get) currentDf.show(dataSetShowNum)
         if (firstInLoop) firstInLoop = false else cacheDf.unpersist()
         cacheDf = currentDf
