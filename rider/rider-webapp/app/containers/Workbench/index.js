@@ -1598,8 +1598,9 @@ export class Workbench extends React.Component {
 
   forwardStep = () => {
     const { tabPanelKey, streamDiffType, jobDiffType } = this.state
-
     switch (tabPanelKey) {
+      // FIXED: 修复 从stream点id跳转过来后，‘下一步’点击无效的bug，由于stream暂无‘下一步’，所以暂时在此处fix一下。
+      case 'stream':
       case 'flow':
         if (streamDiffType === 'default') {
           this.handleForwardDefault()
