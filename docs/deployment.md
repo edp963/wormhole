@@ -35,7 +35,7 @@ mysql-connector-java-{your-db-version}.jar
 
 #### 下载安装包
 
-**下载 wormhole-0.6.0-beta.tar.gz 包 (链接：https://pan.baidu.com/s/1j5TZqiXJaL4mm8WYC-hSsQ  提取码：928x)，或者自编译**
+**下载 wormhole-0.6.0-beta.tar.gz 包 (链接：https://pan.baidu.com/s/1JYRJoaPy6E3u8VqGas0neg 提取码：yzgc)，或者自编译**
 
 ```
 下载wormhole-0.6.0-beta.tar.gz安装包
