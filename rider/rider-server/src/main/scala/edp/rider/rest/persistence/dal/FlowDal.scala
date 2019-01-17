@@ -257,6 +257,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
         Await.result(flowInTopicDal.deleteByFilter(_.flowId === flow.id), minTimeOut)
         Await.result(flowUdfTopicDal.deleteByFilter(_.flowId === flow.id), minTimeOut)
       }
+      riderLogger.info(s"delete flow ${flow.id}: $flow")
       Await.result(super.deleteById(flow.id), minTimeOut)
       CacheMap.flowCacheMapRefresh
     })
