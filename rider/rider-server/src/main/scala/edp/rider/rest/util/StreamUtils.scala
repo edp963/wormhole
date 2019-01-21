@@ -84,18 +84,12 @@ object StreamUtils extends RiderLogger {
   }
 
   def getStatus(action: String, streams: Seq[Stream]): Seq[Stream] = {
-//    val temp = streams.filter(_.id == 97).headOption
-//    if (temp.nonEmpty) {
-//      riderLogger.info("====stream 97 status: " + temp.head.status)
-//    }
     val fromTime =
       if (streams.nonEmpty && streams.exists(_.startedTime.getOrElse("") != ""))
         streams.filter(_.startedTime.getOrElse("") != "").map(_.startedTime).min.getOrElse("")
       else ""
     val appInfoMap = if (fromTime == "") Map.empty[String, AppResult] else getAllYarnAppStatus(fromTime, streams.map(_.name))
-//    if (appInfoMap.contains("wormhole_wormhole_RSC-PHASE_test")) {
-//      riderLogger.info("====yarn status: " + appInfoMap("wormhole_wormhole_RSC-PHASE_test"))
-//    }
+
     streams.map(
       stream => {
         val dbStatus = stream.status
@@ -159,7 +153,6 @@ object StreamUtils extends RiderLogger {
                 case "new" =>
                   AppInfo("", "new", startedTime, stoppedTime)
                 case "stopped" =>
-//                  riderLogger.info(s"=====stream name: ${stream.name}, db status: ${dbStatus}, yarnStatus: ${sparkStatus}")
                   sparkStatus.appState.toUpperCase match {
                     case "RUNNING" => AppInfo(sparkStatus.appId, "running", sparkStatus.startedTime, sparkStatus.finishedTime)
                     case "ACCEPTED" => AppInfo(sparkStatus.appId, "waiting", sparkStatus.startedTime, sparkStatus.finishedTime)
