@@ -27,7 +27,6 @@ import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.flinkx.common.WormholeFlinkxConfig
 import edp.wormhole.flinkx.swifts.FlinkxSwiftsConstants
 import edp.wormhole.kafka.WormholeKafkaConsumer
-import edp.wormhole.swifts.SwiftsConstants
 import edp.wormhole.ums.UmsFieldType._
 import edp.wormhole.ums.UmsProtocolType.{DATA_BATCH_DATA, DATA_INCREMENT_DATA, DATA_INITIAL_DATA}
 import edp.wormhole.ums.{UmsCommonUtils, UmsSchema, UmsSysField}
@@ -39,6 +38,7 @@ import org.apache.kafka.clients.consumer.{ConsumerRecord, ConsumerRecords}
 import org.apache.log4j.Logger
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 object FlinkSchemaUtils extends java.io.Serializable {
 
@@ -95,7 +95,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     })
   }
 
-  def getSchemaMapFromTable(tableSchema: TableSchema, projectClause: String , udfSchemaMap: Map[String, TypeInformation[_]], specialConfigObj: JSONObject): Map[String, (TypeInformation[_], Int)] = {
+  def getSchemaMapFromTable(tableSchema: TableSchema, projectClause: String, udfSchemaMap: Map[String, TypeInformation[_]], specialConfigObj: JSONObject): Map[String, (TypeInformation[_], Int)] = {
     println("in getSchemaMapFromTable *******************")
 
     //position
@@ -114,23 +114,23 @@ object FlinkSchemaUtils extends java.io.Serializable {
     val nameMap = mutable.HashMap.empty[String, String]
     var s = ""
     var num = 0
-    for( sIndex <- 0 until fieldString.length) {
-      if(fieldString(sIndex) == ',' && num == 0) {
-        if(s.contains('(') && s.contains("as")) {
-          val udfName = s.trim.substring(0,s.trim.indexOf('('))
-          val newName = s.trim.substring(s.indexOf("as")+2).trim
+    for (sIndex <- 0 until fieldString.length) {
+      if (fieldString(sIndex) == ',' && num == 0) {
+        if (s.contains('(') && s.contains("as")) {
+          val udfName = s.trim.substring(0, s.trim.indexOf('('))
+          val newName = s.trim.substring(s.indexOf("as") + 2).trim
           nameMap += newName -> udfName
         }
         s = ""
       } else {
-        if(fieldString(sIndex) == '(') num += 1
-        else if(fieldString(sIndex) == ')') num -= 1
+        if (fieldString(sIndex) == '(') num += 1
+        else if (fieldString(sIndex) == ')') num -= 1
         s = s + fieldString(sIndex)
       }
     }
-    if(s.contains('(') && s.contains("as")) {
-      val udfName = s.trim.substring(0,s.trim.indexOf('('))
-      val newName = s.trim.substring(s.indexOf("as")+2).trim
+    if (s.contains('(') && s.contains("as")) {
+      val udfName = s.trim.substring(0, s.trim.indexOf('('))
+      val newName = s.trim.substring(s.indexOf("as") + 2).trim
       nameMap += newName -> udfName
     }
     logger.info("nameMap:" + nameMap.toString())
@@ -140,7 +140,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     var udfIndexCur = 0
     tableSchema.getColumnNames.foreach(s => {
       logger.info(s"field $index in table $s")
-      if(tableSchema.getType(s).get.toString.contains("java.lang.Object") && udfSchemaMap.contains(nameMap(s))) {
+      if (tableSchema.getType(s).get.toString.contains("java.lang.Object") && udfSchemaMap.contains(nameMap(s))) {
         //position
         //resultSchemaMap += s -> (udfTypeIndexMap(udfIndexCur), index)
         //name
@@ -155,7 +155,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     if (null != specialConfigObj && specialConfigObj.containsKey(FlinkxSwiftsConstants.PRESERVE_MESSAGE_FLAG) && specialConfigObj.getBooleanValue(FlinkxSwiftsConstants.PRESERVE_MESSAGE_FLAG)) {
       resultSchemaMap += FlinkxSwiftsConstants.MESSAGE_FLAG -> (Types.BOOLEAN, index)
     }
-      resultSchemaMap.toMap
+    resultSchemaMap.toMap
   }
 
   def getSchemaMapFromArray(fieldNames: Array[String], fieldTypes: Array[TypeInformation[_]]): Map[String, (TypeInformation[_], Int)] = {
@@ -167,16 +167,22 @@ object FlinkSchemaUtils extends java.io.Serializable {
     resultSchemaMap.toMap
   }
 
-  def getOutputFieldNames(outputFieldList: Array[String], keyByFields: String): Array[String] = {
+  def getOutputFieldNames(outputFieldList: Array[String], keyByFields: String, systemFieldArray: Array[String]): Array[String] = {
     val outputFieldSize: Int = outputFieldList.length
     val outputFieldNames = for (i <- 0 until outputFieldSize)
       yield outputFieldList(i).split(":").head
     if (keyByFields != null && keyByFields.nonEmpty)
-      Array(UmsSysField.ID.toString, UmsSysField.TS.toString, UmsSysField.OP.toString) ++
-        keyByFields.split(";") ++ outputFieldNames
+      systemFieldArray ++ keyByFields.split(";") ++ outputFieldNames
     else
-      Array(UmsSysField.ID.toString, UmsSysField.TS.toString, UmsSysField.OP.toString) ++
-        outputFieldNames
+      systemFieldArray ++ outputFieldNames
+  }
+
+  def getSystemFields(schemaMap: Map[String, (TypeInformation[_], Int)]): Array[String] = {
+    val systemFieldsListBuffer: ListBuffer[String] = mutable.ListBuffer.empty[String]
+    if (schemaMap.contains(UmsSysField.ID.toString)) systemFieldsListBuffer.append(UmsSysField.ID.toString)
+    if (schemaMap.contains(UmsSysField.TS.toString)) systemFieldsListBuffer.append(UmsSysField.TS.toString)
+    if (schemaMap.contains(UmsSysField.OP.toString)) systemFieldsListBuffer.append(UmsSysField.OP.toString)
+    systemFieldsListBuffer.toArray
   }
 
   def getOutPutFieldTypes(fieldNames: Array[String], schemaMap: Map[String, (TypeInformation[_], Int)]): Array[TypeInformation[_]] = {
@@ -192,7 +198,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
   }
 
   def findJsonSchema(config: WormholeFlinkxConfig, zkAddress: String, zkPath: String, sourceNamespace: String): UmsSchema = {
-    val consumer = WormholeKafkaConsumer.initConsumer(config.kafka_input.kafka_base_config.brokers, config.kafka_input.kafka_base_config.group_id, None,config.kerberos)
+    val consumer = WormholeKafkaConsumer.initConsumer(config.kafka_input.kafka_base_config.brokers, config.kafka_input.kafka_base_config.group_id, None, config.kerberos)
     WormholeKafkaConsumer.subscribeTopicFromOffset(consumer, new WormholeFlinkxConfigUtils(config).getTopicOffsetMap)
     var correctData = false
     var record: UmsSchema = null
@@ -310,7 +316,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     case Types.STRING => value.asInstanceOf[String].trim
     case Types.INT => value.asInstanceOf[Int]
     case Types.LONG => value match {
-      case _:Int => value.asInstanceOf[Int].toLong
+      case _: Int => value.asInstanceOf[Int].toLong
       case _ => value.asInstanceOf[Long]
     }
     case Types.FLOAT => value.asInstanceOf[Float]
