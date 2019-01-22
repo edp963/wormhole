@@ -42,14 +42,25 @@ import scala.language.existentials
 import scala.math.Ordering
 
 class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[_], Int)]) extends java.io.Serializable {
+
+  private var aggRowchemaMap: Map[String, (TypeInformation[_], Int)] = _
   private lazy val logger = LoggerFactory.getLogger(this.getClass)
-  private val outputType = output.getString(TYPE.toString)
-  private val outputFieldList: Array[String] =
+  private lazy val outputType = output.getString(TYPE.toString)
+  private lazy val outputFieldList: Array[String] =
     if (output.containsKey(FIELDLIST.toString)) {
       output.getString(FIELDLIST.toString).split(",")
     } else {
       Array.empty[String]
     }
+
+  def getOutputType: String = {
+    outputType
+  }
+
+  def getOutputFiledList: Array[String] = {
+    outputFieldList
+  }
+
 
   def getOutput(patternStream: PatternStream[Row], patternGenerator: PatternGenerator, keyByFields: String): DataStream[(Boolean, Row)] = {
     val patternNameList: Seq[String] = patternGenerator.outputPatternNameList
@@ -82,21 +93,32 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
   }
 
 
-  def getPatternOutputStreamRowType(keyByFields: String): (Array[String], Array[TypeInformation[_]]) = {
+  def getPatternOutputRowType(keyByFields: String): (Array[String], Array[TypeInformation[_]]) = {
     val originalFieldNames = FlinkSchemaUtils.getFieldNamesFromSchema(schemaMap)
     val originalFieldTypes = FlinkSchemaUtils.getOutPutFieldTypes(originalFieldNames, schemaMap)
     OutputType.outputType(outputType) match {
       case AGG =>
-        val outputFieldNames = FlinkSchemaUtils.getOutputFieldNames(outputFieldList, keyByFields)
-        val outputFieldTypes = FlinkSchemaUtils.getOutPutFieldTypes(outputFieldNames, schemaMap)
+        val systemFieldArray = FlinkSchemaUtils.getSystemFields(schemaMap)
+        val outputFieldNames = FlinkSchemaUtils.getOutputFieldNames(outputFieldList, keyByFields, systemFieldArray)
+        val outputFieldTypes = getOutPutFieldTypes(outputFieldNames)
         (outputFieldNames, outputFieldTypes)
       case FILTERED_ROW | DETAIL => (originalFieldNames, originalFieldTypes)
     }
   }
 
+  private def getOutPutFieldTypes(fieldNames: Array[String]): Array[TypeInformation[_]] = {
+    fieldNames.map(fieldWithAggValue => {
+      if (schemaMap.contains(fieldWithAggValue))
+        schemaMap(fieldWithAggValue)._1
+      else Types.INT
+    })
+  }
+
+
   /**
     *
-    * agg build row with key_by fields , protocol_type ,ums_ts,ums_id,ums_op (for kafka output)
+    * agg build row with key_by fields
+    * and ums_ts,ums_id,ums_op (if contains)
     *
     **/
 
@@ -104,17 +126,20 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
     val outputFieldSize: Int = outputFieldList.length
     val keyByFieldsArray = if (keyByFields != null && keyByFields != "") keyByFields.split(";")
     else null
-    val systemFieldsSize = 3
+    val systemFieldArray = FlinkSchemaUtils.getSystemFields(schemaMap)
+    val systemFieldsSize = systemFieldArray.length
     val row = if (keyByFieldsArray != null) {
       new Row(outputFieldSize + keyByFieldsArray.length + systemFieldsSize)
     } else new Row(outputFieldSize + systemFieldsSize)
 
-    val umsId = input.flatten.map(row => row.getField(schemaMap(UmsSysField.ID.toString)._2).asInstanceOf[Long]).min
-    row.setField(0, umsId)
-    val umsTs = input.flatten.map(row => row.getField(schemaMap(UmsSysField.TS.toString)._2).asInstanceOf[Timestamp]).min(Ordering[Timestamp])
-    row.setField(1, umsTs)
-    val umsOp = input.flatten.map(row => row.getField(schemaMap(UmsSysField.OP.toString)._2).asInstanceOf[String]).min
-    row.setField(2, umsOp)
+    for (pos <- 0 until systemFieldsSize) {
+      val systemFieldValue = UmsSysField.umsSysField(systemFieldArray(pos)) match {
+        case UmsSysField.ID => input.flatten.map(row => row.getField(schemaMap(UmsSysField.ID.toString)._2).asInstanceOf[Long]).min
+        case UmsSysField.TS => input.flatten.map(row => row.getField(schemaMap(UmsSysField.TS.toString)._2).asInstanceOf[Timestamp]).min(Ordering[Timestamp])
+        case UmsSysField.OP => input.flatten.map(row => row.getField(schemaMap(UmsSysField.OP.toString)._2).asInstanceOf[String]).min
+      }
+      row.setField(pos, systemFieldValue)
+    }
     if (keyByFieldsArray != null)
       for (keyIndex <- keyByFieldsArray.indices) {
         val rowFieldType = schemaMap(keyByFieldsArray(keyIndex))._1
@@ -134,6 +159,11 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
       else row.setField(i + systemFieldsSize, aggValue)
     }
     row
+  }
+
+
+  private def getNewSchemaMap = {
+    schemaMap.zipWithIndex
   }
 
   private def filteredRow(input: Seq[Iterable[Row]]) = {
