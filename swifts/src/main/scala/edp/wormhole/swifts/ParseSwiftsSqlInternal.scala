@@ -363,7 +363,6 @@ object ParseSwiftsSqlInternal {
   }
 
   def getJoinSql(sqlStr: String): String = {
-    logger.info(s"getJoinSql sqlStr:$sqlStr")
     val suffix = sqlStr.substring(sqlStr.toLowerCase.indexOf(" from "))
     val fieldsList = getIndependentFieldsFromSql(sqlStr)
     val result = fieldsList.map(field => {
