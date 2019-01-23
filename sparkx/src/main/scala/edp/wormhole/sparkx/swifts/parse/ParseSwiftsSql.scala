@@ -34,7 +34,7 @@ object ParseSwiftsSql extends EdpLogging {
             validity: Boolean,
             dataType: String): Option[Array[SwiftsSql]] = {
     if (sqlStr.trim.nonEmpty) {
-      val sqlStrArray = sqlStr.trim.replaceAll("\r", " ").replaceAll("\n", " ").replaceAll("\t", " ").replaceAll("\\s{1,}", " ").split(";").map(str => {
+      val sqlStrArray = sqlStr.trim.replaceAll("\r", " ").replaceAll("\n", " ").replaceAll("\t", " ").split(";").map(str => {
         val trimStr = str.trim
         if (trimStr.startsWith(SqlOptType.PUSHDOWN_SQL.toString)) trimStr.substring(12).trim
         else if (trimStr.startsWith(SqlOptType.PARQUET_SQL.toString)) trimStr.substring(11).trim
