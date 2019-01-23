@@ -58,14 +58,10 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     val streamSeq = getStreamSeq(projectIdOpt, streamIdsOpt)
     val streamMap = streamSeq.map(stream => (stream.id, (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime)))).toMap
     val refreshStreamSeq = getStatus(action, streamSeq)
-    riderLogger.info("=======stream final status========")
     val updateStreamSeq = refreshStreamSeq.filter(stream => {
       if (streamMap(stream.id) == (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime))) false else true
     })
     updateByRefresh(updateStreamSeq)
-    refreshStreamSeq.foreach(stream => {
-      riderLogger.info(s"stream name: ${stream.name}, stream status: ${stream.status}")
-    })
     refreshStreamSeq
   }
 
