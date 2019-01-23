@@ -89,6 +89,7 @@ object StreamUtils extends RiderLogger {
         streams.filter(_.startedTime.getOrElse("") != "").map(_.startedTime).min.getOrElse("")
       else ""
     val appInfoMap = if (fromTime == "") Map.empty[String, AppResult] else getAllYarnAppStatus(fromTime, streams.map(_.name))
+    riderLogger.info("yarn query status: " + appInfoMap)
     streams.map(
       stream => {
         val dbStatus = stream.status

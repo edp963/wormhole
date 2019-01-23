@@ -9,7 +9,7 @@
             {
               "match": {
                 "projectId": {
-                  "query": #PROJECT_ID#,
+                  "query": "#PROJECT_ID#",
                   "type": "phrase"
                 }
               }
@@ -17,7 +17,7 @@
             {
               "match": {
                 "flowId": {
-                  "query": #FLOW_ID#,
+                  "query": "#FLOW_ID#",
                   "type": "phrase"
                 }
               }

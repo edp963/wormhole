@@ -363,6 +363,7 @@ object ParseSwiftsSqlInternal {
   }
 
   def getJoinSql(sqlStr: String): String = {
+    logger.info(s"getJoinSql sqlStr:$sqlStr")
     val suffix = sqlStr.substring(sqlStr.toLowerCase.indexOf(" from "))
     val fieldsList = getIndependentFieldsFromSql(sqlStr)
     val result = fieldsList.map(field => {
@@ -444,7 +445,7 @@ object ParseSwiftsSqlInternal {
     val sqlStr: String = getJoinSql(userSqlStr)
     val namespaceArray = sourceNamespace.split("\\.")
     val fourDigitNamespace = (for (i <- 0 until 4) yield namespaceArray(i)).mkString(".")
-    val joinPosition = sqlStr.toLowerCase.indexOf(fourDigitNamespace)
+    val joinPosition = if(sqlStr.toLowerCase.indexOf(fourDigitNamespace) > -1) sqlStr.toLowerCase.indexOf(fourDigitNamespace) else sqlStr.toLowerCase.indexOf("${")
     val temp_inPosition = sqlStr.toLowerCase.lastIndexOf(" in ", joinPosition)
     val inPosition = if (temp_inPosition < 0) sqlStr.toLowerCase.lastIndexOf(" in(", joinPosition) else temp_inPosition
     val valueLeftPosition = sqlStr.indexOf("(", inPosition)
@@ -452,7 +453,9 @@ object ParseSwiftsSqlInternal {
     val valueFieldsStr = sqlStr.substring(valueLeftPosition + 1, valueRightPosition).toLowerCase
     val valuesFields = if (valueFieldsStr.indexOf(sourceNamespace) > -1) {
       valueFieldsStr.trim.replace(sourceNamespace + ".", "").split(",").map(_.trim)
-    } else {
+    } else if(valueFieldsStr.indexOf("${")> -1){
+       valueFieldsStr.split(",").map(field  => field.replaceAll("\\$\\{","").replaceAll("\\}","")).map(_.trim)
+    }else {
       valueFieldsStr.trim.replaceAll(fourDigitNamespace + "\\.", "").split(",").map(_.trim)
     }
     var joinLeftPosition: Int = 0
