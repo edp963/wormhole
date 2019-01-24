@@ -79,7 +79,6 @@ object NamespaceUtils extends RiderLogger {
                 riderLogger.info("NO ORACLE SERVICE NAME:")
                 ""
               }
-              //              }
             } else ""
           case None => ""
         }
@@ -118,19 +117,14 @@ object NamespaceUtils extends RiderLogger {
           else s"mongodb://${instance.connUrl}/${db.nsDatabase}"
         } else instance.connUrl
       case "greenplum" =>
-        //if (connType == "lookup") {
-          if (db.config.nonEmpty && db.config.get != "") {
-            val confStr: String = (keyEqualValuePattern.toString.r findAllIn db.config.get.split(",").mkString("&")).toList.mkString("&")
-            if (confStr.nonEmpty)
-              s"jdbc:postgresql://${instance.connUrl}/${db.nsDatabase}?$confStr"
-//              s"jdbc:pivotal:greenplum://${instance.connUrl}/;DatabaseName=${db.nsDatabase}?${confStr}"
-            else
-              s"jdbc:postgresql://${instance.connUrl}/${db.nsDatabase}"
-//              s"jdbc:pivotal:greenplum://${instance.connUrl}/;DatabaseName=${db.nsDatabase}"
-          } else
-                s"jdbc:postgresql://${instance.connUrl}/${db.nsDatabase}"
-//                s"jdbc:pivotal:greenplum://${instance.connUrl}/;DatabaseName=${db.nsDatabase}"
-        //} else instance.connUrl
+        if (db.config.nonEmpty && db.config.get != "") {
+          val confStr: String = (keyEqualValuePattern.toString.r findAllIn db.config.get.split(",").mkString("&")).toList.mkString("&")
+          if (confStr.nonEmpty)
+            s"jdbc:postgresql://${instance.connUrl}/${db.nsDatabase}?$confStr"
+          else
+            s"jdbc:postgresql://${instance.connUrl}/${db.nsDatabase}"
+        } else
+          s"jdbc:postgresql://${instance.connUrl}/${db.nsDatabase}"
       case _ => instance.connUrl
     }
 

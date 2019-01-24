@@ -42,6 +42,7 @@ class PatternAggregation(input: Seq[Iterable[Row]], fieldName: String, schemaMap
       case SUM => sum()
       case MAX => max()
       case MIN => min()
+      case COUNT=>count()
       case _ => throw new UnsupportedOperationException(s"Unsupported output type : $functionType")
     }
   }
@@ -95,6 +96,11 @@ class PatternAggregation(input: Seq[Iterable[Row]], fieldName: String, schemaMap
       case Types.DECIMAL => input.flatten.map(row => BigDecimal(row.getField(fieldIndex).asInstanceOf[String])).min(Ordering[BigDecimal])
       case _ => throw new UnsupportedOperationException(s"Unknown Type: $fieldType")
     }
+  }
+
+
+  private def count(): Int ={
+    input.flatten.size
   }
 
   private def sumInt() = {
