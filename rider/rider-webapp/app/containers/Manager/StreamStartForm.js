@@ -205,7 +205,7 @@ export class StreamStartForm extends React.Component {
                               message: locale === 'en' ? 'Please fill in offset' : '请填写 Offset'
                             }, {
                               validator: (rule, value, callback) => {
-                                const singledata = this.state.data.find(v => v.name === myName)
+                                const singledata = data.find(v => v.name === myName)
                                 let earliestKafkaOffsetArr = singledata.kafkaEarliestOffset.split(',')
                                 let earliestKafkaOffset = earliestKafkaOffsetArr[index].split(':')[1]
                                 if (value < earliestKafkaOffset) {
