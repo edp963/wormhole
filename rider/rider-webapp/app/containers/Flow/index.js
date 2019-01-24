@@ -57,6 +57,7 @@ import {
   loadSourceInput, loadFlowDetail, chuckAwayFlow, loadLastestOffset, loadUdfs, startFlinkFlow, stopFlinkFlow, loadAdminLogsInfo, loadLogsInfo,
   loadDriftList, postDriftList, verifyDrift, postFlowPerformance
 } from './action'
+import { jumpStreamToFlowFilter } from '../Manager/action'
 import { loadSingleUdf } from '../Udf/action'
 import FlowStartForm from './FlowStartForm'
 import FlowLogs from './FlowLogs'
@@ -244,7 +245,9 @@ export class Flow extends React.Component {
   }
 
   componentWillReceiveProps (props) {
-    this.filterStreamId(props.streamFilterId)()
+    if (props.streamFilterId) {
+      this.filterStreamId(props.streamFilterId)()
+    }
     if (props.flows) {
       const originFlows = props.flows.map(s => {
         s.key = s.id
@@ -252,9 +255,13 @@ export class Flow extends React.Component {
         return s
       })
       this.setState({ originFlows: originFlows.slice() })
+
       this.state.columnNameText === ''
         ? this.setState({ currentFlows: originFlows.slice() })
         : this.searchOperater()
+      setTimeout(() => {
+        this.props.jumpStreamToFlowFilter('')
+      }, 20)
     }
   }
 
@@ -1330,7 +1337,7 @@ export class Flow extends React.Component {
   }
   filterStreamId = (streamId) => () => {
     const { searchTextStreamId } = this.state
-    let value = searchTextStreamId === '' ? streamId : ''
+    let value = searchTextStreamId === '' ? streamId : searchTextStreamId
     this.setState({searchTextStreamId: value}, () => {
       this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')()
     })
@@ -2264,7 +2271,8 @@ Flow.propTypes = {
   onLoadDriftList: PropTypes.func,
   onSubmitDrift: PropTypes.func,
   onVerifyDrift: PropTypes.func,
-  onSearchFlowPerformance: PropTypes.func
+  onSearchFlowPerformance: PropTypes.func,
+  jumpStreamToFlowFilter: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -2293,7 +2301,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadDriftList: (projectId, flowId, resolve) => dispatch(loadDriftList(projectId, flowId, resolve)),
     onSubmitDrift: (projectId, flowId, streamId, resolve) => dispatch(postDriftList(projectId, flowId, streamId, resolve)),
     onVerifyDrift: (projectId, flowId, streamId, resolve) => dispatch(verifyDrift(projectId, flowId, streamId, resolve)),
-    onSearchFlowPerformance: (projectId, flowId, startTime, endTime, resolve) => dispatch(postFlowPerformance(projectId, flowId, startTime, endTime, resolve))
+    onSearchFlowPerformance: (projectId, flowId, startTime, endTime, resolve) => dispatch(postFlowPerformance(projectId, flowId, startTime, endTime, resolve)),
+    jumpStreamToFlowFilter: (streamFilterId) => dispatch(jumpStreamToFlowFilter(streamFilterId))
   }
 }
 

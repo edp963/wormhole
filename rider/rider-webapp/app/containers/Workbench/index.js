@@ -240,6 +240,9 @@ export class Workbench extends React.Component {
     if (projectId !== this.state.projectId) {
       this.loadData(projectId)
     }
+    setTimeout(() => {
+      this.setState({tabPanelKey: this.props.activeKey})
+    }, 20)
   }
   componentWillUnmount () {
     this.props.onChangeTabs('flow')
@@ -3536,7 +3539,7 @@ export class Workbench extends React.Component {
           onChange={this.changeTag}
         >
           {/* Flow Panel */}
-          <TabPane tab="Flow" key="flow" style={{height: `${paneHeight}px`}}>
+          <TabPane tab="Flow" key="flow" forceRender style={{height: `${paneHeight}px`}}>
             <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
               <Flow
                 className={flowMode ? 'op-mode' : ''}
