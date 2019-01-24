@@ -15,8 +15,8 @@ object ConnectionMemoryStorage {
 
   def registerDataStoreConnectionsMap(lookupNamespace: String, connectionUrl: String, username: Option[String], password: Option[String], parameters: Option[Seq[KVConfig]]) {
     logger.info("register datastore,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)
-    val connectionNamespace = lookupNamespace.split("\\.").slice(0, 3).mkString(".")
-    println("connectionNamespace:" + connectionNamespace)
+    val connectionNamespace: String = lookupNamespace.split("\\.").slice(0, 3).mkString(".")
+    logger.info("connectionNamespace:" + connectionNamespace)
     if (!dataStoreConnectionsMap.contains(connectionNamespace)) {
       dataStoreConnectionsMap(connectionNamespace) = ConnectionConfig(connectionUrl, username, password, parameters)
       logger.info("register datastore success,lookupNamespace:" + lookupNamespace + ",connectionUrl;" + connectionUrl + ",username:" + username + ",password:" + password + ",parameters:" + parameters)

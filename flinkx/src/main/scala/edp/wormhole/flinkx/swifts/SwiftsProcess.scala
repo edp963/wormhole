@@ -23,7 +23,6 @@ package edp.wormhole.flinkx.swifts
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
-import edp.wormhole.flinkx.pattern.Output.{FIELDLIST, TYPE}
 import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput, PatternOutputFilter}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
@@ -71,7 +70,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
   }
 
   private def doFlinkSql(transformedStream: DataStream[Row], sql: String, index: Int): DataStream[Row] = {
-    var table: Table = transformedStream.toTable(tableEnv, buildExpression(): _*)
+    var table: Table = getKeyByStream(transformedStream).toTable(tableEnv, buildExpression(): _*)
     table.printSchema()
 
     val projectClause = sql.substring(0, sql.toLowerCase.lastIndexOf("from")).trim
@@ -98,6 +97,15 @@ class SwiftsProcess(dataStream: DataStream[Row],
     covertTable2Stream(table)
   }
 
+  private def getKeyByStream(transformedStream: DataStream[Row]): DataStream[Row] = {
+    if (null != specialConfigObj && specialConfigObj.containsKey(FlinkxSwiftsConstants.KEY_BY_FIELDS)) {
+      val streamKeyByFieldsIndex = specialConfigObj.getString(FlinkxSwiftsConstants.KEY_BY_FIELDS).split(",").map(preSchemaMap(_)._2)
+     println("in key by stream")
+      transformedStream.keyBy(streamKeyByFieldsIndex: _*)
+    }
+    else transformedStream
+  }
+
   private def buildExpression(): List[Expression] = {
     val originalSchema = preSchemaMap.toList.sortBy(_._2._2).map(_._1)
     if (timeCharacteristic == FlinkxTimeCharacteristicConstants.PROCESSING_TIME)
@@ -110,7 +118,6 @@ class SwiftsProcess(dataStream: DataStream[Row],
 
   private def covertTable2Stream(table: Table): DataStream[Row] = {
     val columnNames = table.getSchema.getColumnNames
-    //val columnTypes = replaceTimeIndicatorType(table.getSchema.getTypes)
     val columnTypes = FlinkSchemaUtils.tableFieldTypeArray(table.getSchema, preSchemaMap)
     if (null != specialConfigObj && specialConfigObj.containsKey(FlinkxSwiftsConstants.PRESERVE_MESSAGE_FLAG) && specialConfigObj.getBooleanValue(FlinkxSwiftsConstants.PRESERVE_MESSAGE_FLAG)) {
       val columnNamesWithMessageFlag: Array[String] = columnNames ++ Array(FlinkxSwiftsConstants.MESSAGE_FLAG)
@@ -130,13 +137,6 @@ class SwiftsProcess(dataStream: DataStream[Row],
       table.toRetractStream[Row](getQueryConfig).filter(_._1).map(_._2)(Types.ROW(columnNames, columnTypes))
     }
   }
-
-//  private def replaceTimeIndicatorType(columnTypes: Array[TypeInformation[_]]): Array[TypeInformation[_]] = {
-//    columnTypes.map(fieldType =>
-//      if (fieldType == TimeIndicatorTypeInfo.PROCTIME_INDICATOR || fieldType == TimeIndicatorTypeInfo.ROWTIME_INDICATOR)
-//        SqlTimeTypeInfo.TIMESTAMP
-//      else fieldType)
-//  }
 
   private def getQueryConfig: StreamQueryConfig = {
     val minIdleStateRetentionTime = if (null != specialConfigObj && specialConfigObj.containsKey(FlinkxSwiftsConstants.MIN_IDLE_STATE_RETENTION_TIME)) specialConfigObj.getLongValue(FlinkxSwiftsConstants.MIN_IDLE_STATE_RETENTION_TIME) else 12L
@@ -159,8 +159,8 @@ class SwiftsProcess(dataStream: DataStream[Row],
       } else CEP.pattern(transformedStream, pattern)
 
       val patternOutput = new PatternOutput(patternSeq.getJSONObject(OUTPUT.toString), preSchemaMap)
-      val patternOutputStreamType: (Array[String], Array[TypeInformation[_]]) = patternOutput.getPatternOutputStreamRowType(keyByFields)
-      setSwiftsSchemaWithCEP(patternSeq, index, keyByFields)
+      val patternOutputStreamType: (Array[String], Array[TypeInformation[_]]) = patternOutput.getPatternOutputRowType(keyByFields)
+      setSwiftsSchemaWithCEP(patternOutput, index, keyByFields)
       val patternOutputStream: DataStream[(Boolean, Row)] = patternOutput.getOutput(patternStream, patternGenerator, keyByFields)
       resultDataStream = filterException(patternOutputStream, patternOutputStreamType)
 
@@ -175,20 +175,12 @@ class SwiftsProcess(dataStream: DataStream[Row],
     resultDataStream
   }
 
-  private def setSwiftsSchemaWithCEP(patternSeq: JSONObject, index: Int, keyByFields: String): Unit = {
+
+  private def setSwiftsSchemaWithCEP(patternOutput: PatternOutput, index: Int, keyByFields: String): Unit = {
     val key = s"swifts$index"
     if (!FlinkSchemaUtils.swiftsProcessSchemaMap.contains(key)) {
-      val output = patternSeq.getJSONObject(OUTPUT.toString)
-      val outputFieldList: Array[String] =
-        if (output.containsKey(FIELDLIST.toString)) {
-          output.getString(FIELDLIST.toString).split(",")
-        } else {
-          Array.empty[String]
-        }
-      val outputType: String = output.getString(TYPE.toString)
-      val newSchema = if (OutputType.outputType(outputType) == OutputType.AGG) {
-        val fieldNames = FlinkSchemaUtils.getOutputFieldNames(outputFieldList, keyByFields)
-        val fieldTypes = FlinkSchemaUtils.getOutPutFieldTypes(fieldNames, preSchemaMap)
+      val newSchema = if (OutputType.outputType(patternOutput.getOutputType) == OutputType.AGG) {
+        val (fieldNames, fieldTypes) = patternOutput.getPatternOutputRowType(keyByFields)
         FlinkSchemaUtils.getSchemaMapFromArray(fieldNames, fieldTypes)
       } else preSchemaMap
       FlinkSchemaUtils.swiftsProcessSchemaMap += key -> newSchema
@@ -198,7 +190,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
 
 
   def filterException(patternOutputStream: DataStream[(Boolean, Row)], patternOutputStreamType: (Array[String], Array[TypeInformation[_]])): DataStream[Row] = {
-   //Todo 移动类型定义到PatternOutput class中
+    //Todo 移动类型定义到PatternOutput class中
     val filteredDataStream = patternOutputStream.filter(new PatternOutputFilter(exceptionConfig, config, preSchemaMap))
     filteredDataStream.map(_._2)(Types.ROW(patternOutputStreamType._1, patternOutputStreamType._2))
   }
