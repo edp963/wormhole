@@ -208,7 +208,7 @@ export class StreamStartForm extends React.Component {
                                 const singledata = data.find(v => v.name === myName)
                                 let earliestKafkaOffsetArr = singledata.kafkaEarliestOffset.split(',')
                                 let earliestKafkaOffset = earliestKafkaOffsetArr[index].split(':')[1]
-                                if (value < earliestKafkaOffset) {
+                                if (Number(value) < Number(earliestKafkaOffset)) {
                                   callback(`offset必须大于等于Earliest Kafka Offset`)
                                 } else {
                                   forceCheckNum(rule, value, callback)
