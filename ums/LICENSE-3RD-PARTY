@@ -7,7 +7,7 @@ List of third-party dependencies grouped by their license type.
         * Jackson-annotations (com.fasterxml.jackson.core:jackson-annotations:2.3.0 - http://wiki.fasterxml.com/JacksonHome)
         * Jackson-core (com.fasterxml.jackson.core:jackson-core:2.3.1 - http://wiki.fasterxml.com/JacksonHome)
         * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.3.1 - http://wiki.fasterxml.com/JacksonHome)
-        * wormhole-util (edp.wormhole:wormhole-util:0.6.0-beta - no url defined)
+        * wormhole-util (edp.wormhole:wormhole-util:0.6.0 - no url defined)
         * Joda-Time (joda-time:joda-time:2.9.8 - http://www.joda.org/joda-time/)
         * Apache Log4j (log4j:log4j:1.2.17 - http://logging.apache.org/log4j/1.2/)
         * Joda-Convert (org.joda:joda-convert:1.7 - http://www.joda.org/joda-convert/)
