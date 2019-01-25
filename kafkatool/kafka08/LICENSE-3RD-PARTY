@@ -9,7 +9,7 @@ List of third-party dependencies grouped by their license type.
         * Jackson-core (com.fasterxml.jackson.core:jackson-core:2.3.1 - http://wiki.fasterxml.com/JacksonHome)
         * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.3.1 - http://wiki.fasterxml.com/JacksonHome)
         * Metrics Core Library (com.yammer.metrics:metrics-core:2.2.0 - http://metrics.codahale.com/metrics-core/)
-        * wormhole-util (edp.wormhole:wormhole-util:0.6.0-beta - no url defined)
+        * wormhole-util (edp.wormhole:wormhole-util:0.6.0 - no url defined)
         * The Netty Project (io.netty:netty:3.7.0.Final - http://netty.io/)
         * Joda-Time (joda-time:joda-time:2.9.8 - http://www.joda.org/joda-time/)
         * Apache Log4j (log4j:log4j:1.2.17 - http://logging.apache.org/log4j/1.2/)
