@@ -36,8 +36,9 @@ import org.apache.log4j.Logger
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-object SqlProcessor  {
+object SqlProcessor {
   private lazy val logger = Logger.getLogger(this.getClass)
+
   def selectMysqlSql(tupleCount: Int, tableKeyNames: Seq[String], tableName: String, sysIdName: String): String = {
     val keysString = tableKeyNames.map(tk =>s"""`$tk`""").mkString(",")
     val keyQuestionMarks = (1 to tableKeyNames.size).map(_ => "?").mkString("(", ",", ")")
@@ -290,22 +291,27 @@ object SqlProcessor  {
           conn.commit()
         } catch {
           case e: Throwable =>
-            logger.error("executeBatch error " , e)
+            logger.error("executeBatch error ", e)
             errorTupleList ++= tuples
             if (batchSize == 1)
               logger.info("violate tuple -----------" + tuples)
+            try {
+              conn.rollback()
+            } catch {
+              case e: Throwable => logger.warn("rollback error", e)
+            }
         } finally {
           ps.clearBatch()
         }
       })
     } catch {
       case e: SQLTransientConnectionException => DbConnection.resetConnection(connectionConfig)
-        logger.error("SQLTransientConnectionException" , e)
+        logger.error("SQLTransientConnectionException", e)
         logger.info("out batch ")
         if (index <= 0) errorTupleList ++= tupleList
         else errorTupleList ++= tupleList.takeRight(tupleList.size - index)
       case e: Throwable =>
-        logger.error("get connection failed" , e)
+        logger.error("get connection failed", e)
         if (index <= 0) errorTupleList ++= tupleList
         else errorTupleList ++= tupleList.takeRight(tupleList.size - index)
     }
