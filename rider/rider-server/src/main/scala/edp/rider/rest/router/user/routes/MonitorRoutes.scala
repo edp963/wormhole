@@ -1,13 +1,15 @@
 package edp.rider.rest.router.user.routes
 
 import akka.http.scaladsl.server.{Directives, Route}
+import edp.rider.common.RiderLogger
 import edp.rider.module.{BusinessModule, ConfigurationModule, PersistenceModule, RoutesModuleImpl}
+import edp.rider.rest.router.JsonSerializer
 import io.swagger.annotations._
 import javax.ws.rs.Path
 
 @Api(value = "/monitor", consumes = "application/json", produces = "application/json")
 @Path("/user/projects")
-class MonitorRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives  {
+class MonitorRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives  with RiderLogger with JsonSerializer{
 
   lazy val routes: Route = getMonitorInfoByFlowIdRoute ~ getMonitorInfoByStreamIdRoute
   lazy val basePath = "projects"

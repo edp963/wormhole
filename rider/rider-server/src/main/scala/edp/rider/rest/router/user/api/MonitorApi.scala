@@ -1,5 +1,8 @@
 package edp.rider.rest.router.user.api
 
+import java.text.SimpleDateFormat
+import java.util.Date
+
 import akka.http.scaladsl.model.StatusCodes.OK
 import akka.http.scaladsl.server.Route
 import edp.rider.common.{RiderConfig, RiderLogger}
@@ -11,10 +14,14 @@ import edp.rider.rest.util.AuthorizationProvider
 import edp.rider.rest.util.ResponseUtils.{getHeader, setFailedResponse}
 import edp.rider.rest.util.CommonUtils._
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 
 class MonitorApi(flowDal: FlowDal, streamDal: StreamDal,monitorInfoDal: MonitorInfoDal) extends BaseUserApiImpl[MonitorInfoTable, MonitorInfo](monitorInfoDal) with RiderLogger with JsonSerializer{
+
+  lazy val dateFormat=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSSZ")
+  lazy val frontFormat= new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
 
   def getMonitorInfoByFlowId(route: String):Route=path(route / "monitor" / LongNumber / "flow" / LongNumber){
     (projectId,flowId) =>
@@ -28,11 +35,11 @@ class MonitorApi(flowDal: FlowDal, streamDal: StreamDal,monitorInfoDal: MonitorI
                 complete(OK, setFailedResponse(session, "Insufficient permission"))
               }else{
                 if (session.projectIdList.contains(projectId)) {
-                  val monitorInfoOpt=if(RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es"))ElasticSearch.queryESFlowMonitor(projectId, flowId, timeSpan.startTime, timeSpan.endTime)._2.toSeq
-                  else Await.result(monitorInfoDal.findByFilter(monitor=>monitor.projectId==projectId && monitor.flowId==flowId && monitor.umsTs.toString.toLong>=timeSpan.startTime && monitor.umsTs.toString.toLong<=timeSpan.endTime),minTimeOut)
+                  val monitorInfoOpt=if(RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es"))ElasticSearch.queryESMonitor(ElasticSearch.compactPostBody(projectId, 0,flowId, dateFormat.format(new Date(timeSpan.startTime)), dateFormat.format(new Date(timeSpan.endTime))))._2.toSeq
+                  else Await.result(monitorInfoDal.findByFilter(monitor=>monitor.projectId==projectId && monitor.flowId==flowId && dateFormat.parse(monitor.umsTs.toString).getTime>=(new Date(timeSpan.startTime)).getTime && dateFormat.parse(monitor.umsTs.toString).getTime<=(new Date(timeSpan.endTime)).getTime),minTimeOut)
                   Option(monitorInfoOpt) match {
                     case Some(monitorSeq)=>
-                      val flowMonitorInfo=fillFlowMetricsByMonitor(monitorSeq.asInstanceOf[Seq[MonitorInfo]])
+                      val flowMonitorInfo=fillSparkFlowMetricsByMonitor(monitorSeq.asInstanceOf[Seq[MonitorInfo]])
                       complete(OK, ResponseJson[MonitorDashBoard](getHeader(200, session),MonitorDashBoard(Seq(flowMonitorInfo))))
                     case None=>
                       complete(OK, ResponseJson[String](getHeader(200, session), ""))
@@ -48,26 +55,32 @@ class MonitorApi(flowDal: FlowDal, streamDal: StreamDal,monitorInfoDal: MonitorI
     }
   }
 
-  def fillFlowMetricsByMonitor(monitorSeq:Seq[MonitorInfo])={
-    val flowSeq=monitorSeq.map(monitor=>
-      MonitorMetric(monitor.flowNamespace,MonitorNumberWidget(monitor.rddCount,monitor.umsTs.toLong),MonitorIntervalWidget(monitor.interval.intervalDataProcessToDone,monitor.umsTs.toLong),
-        MonitorIntervalWidget(monitor.interval.intervalDataumsToDone,monitor.umsTs.toLong),MonitorIntervalWidget(monitor.interval.intervalRddToDone,monitor.umsTs.toLong),MonitorIntervalWidget(monitor.interval.intervalSwiftsToSink,monitor.umsTs.toLong),
-        MonitorIntervalWidget(monitor.interval.intervalSinkToDone,monitor.umsTs.toLong),MonitorOpsWidget(monitor.throughput,monitor.umsTs.toLong)))
+
+
+  def fillSparkFlowMetricsByMonitor(monitorSeq:Seq[MonitorInfo])={
+    val flowSeq=monitorSeq.map(monitor=>{
+      val umsTs=if(monitor.umsTs.contains("."))monitor.umsTs.split("\\.")(0) else monitor.umsTs
+      MonitorMetric(monitor.flowNamespace,MonitorNumberWidget(monitor.rddCount,umsTs),MonitorIntervalWidget(monitor.interval.intervalDataProcessToDataums,umsTs),
+        MonitorIntervalWidget(monitor.interval.intervalDataProcessToRdd,umsTs),MonitorIntervalWidget(monitor.interval.intervalSwiftsToSink,umsTs),MonitorIntervalWidget(monitor.interval.intervalSinkToDone,umsTs),
+        MonitorIntervalWidget(monitor.interval.intervalDataProcessToDone,umsTs),MonitorOpsWidget(monitor.throughput,umsTs))
+    })
     val flowName=flowSeq.headOption.getOrElse[MonitorMetric](MonitorMetric()).flowName
     val flowInfoMetric=MonitorFlowInfo(flowName)
+
     flowSeq.foreach(flowOpt=>{
       Option(flowOpt) match {
         case Some(flow)=>
-          flowInfoMetric.dataDoneIntervalMetrics += flow.dataDoneIntervalMetric
-          flowInfoMetric.doneIntervalMetrics += flow.doneIntervalMetric
+          flowInfoMetric.receivedDelays += flow.receivedDelay
+          flowInfoMetric.preProcessDelays += flow.preProcessDelay
           flowInfoMetric.rddCountMetrics += flow.rddCountMetric
-          flowInfoMetric.rddDoneIntervalMetrics += flow.rddDoneIntervalMetric
-          flowInfoMetric.sinkDoneIntervalMetrics += flow.sinkDoneIntervalMetric
-          flowInfoMetric.swiftSinkIntervalMetrics += flow.swiftSinkIntervalMetric
+          flowInfoMetric.swiftsDelays += flow.swiftsDelay
+          flowInfoMetric.sinkDelays += flow.sinkDelay
+          flowInfoMetric.wormholeDelays += flow.wormholeDelay
           flowInfoMetric.throughPutMetrics += flow.throughPutMetric
         case None=>
       }
     })
+
     flowInfoMetric
   }
 
@@ -83,16 +96,20 @@ class MonitorApi(flowDal: FlowDal, streamDal: StreamDal,monitorInfoDal: MonitorI
                   complete(OK, setFailedResponse(session, "Insufficient permission"))
                 } else {
                   if (session.projectIdList.contains(projectId)) {
-                    val monitorInfoOpt = if(RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es")) ElasticSearch.queryESStreamMonitor(projectId,streamId,timeSpan.startTime,timeSpan.endTime)._2.toSeq
-                    else Await.result(monitorInfoDal.findByFilter(monitor => monitor.projectId==projectId && monitor.streamId == streamId && monitor.umsTs.toString.toLong >= timeSpan.startTime && monitor.umsTs.toString.toLong <= timeSpan.endTime), minTimeOut)
+                    val monitorInfoOpt = if(RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es")) ElasticSearch.queryESMonitor(ElasticSearch.compactPostBody(projectId,1,streamId,dateFormat.format(new Date(timeSpan.startTime)),dateFormat.format(new Date(timeSpan.endTime))))._2.toSeq
+                    else Await.result(monitorInfoDal.findByFilter(monitor => monitor.projectId==projectId && monitor.streamId == streamId && dateFormat.parse(monitor.umsTs.toString).getTime>=(new Date(timeSpan.startTime)).getTime && dateFormat.parse(monitor.umsTs.toString).getTime<=(new Date(timeSpan.endTime)).getTime), minTimeOut)
                     Option(monitorInfoOpt) match {
                       case Some(monitorSeq) =>
-                        val monitorMap = Map[Long, ListBuffer[MonitorInfo]]()
+                        val monitorMap =new mutable.HashMap[String, ListBuffer[MonitorInfo]]()
                         val flowMonitorSeq=ListBuffer[MonitorFlowInfo]()
-                        monitorSeq.asInstanceOf[Seq[MonitorInfo]].foreach(info => monitorMap(info.flowId) += info)
-                        while(monitorMap.keysIterator.hasNext){
-                          val key=monitorMap.keysIterator.next()
-                          flowMonitorSeq += fillFlowMetricsByMonitor(monitorMap(key).toSeq)
+                        monitorSeq.asInstanceOf[Seq[MonitorInfo]].foreach(info =>
+                          if(monitorMap.contains(info.flowNamespace))monitorMap(info.flowNamespace).append(info)
+                          else monitorMap+=(info.flowNamespace->ListBuffer[MonitorInfo](info)))
+
+                        val iterator=monitorMap.keysIterator
+                        while(iterator.hasNext){
+                          val key=iterator.next()
+                          flowMonitorSeq += fillSparkFlowMetricsByMonitor(monitorMap(key).toSeq)
                         }
                         complete(OK, ResponseJson[MonitorDashBoard](getHeader(200, session), MonitorDashBoard(flowMonitorSeq)))
                       case None =>

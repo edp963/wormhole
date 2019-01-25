@@ -186,7 +186,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
   private def assignMetricConfig():Configuration={
     val mConfig=new Configuration()
     mConfig.setString("metrics.reporters","feedbackState")
-    mConfig.setString("metrics.reporter.feedbackState.class","edp.wormhole.flinkx.util.FeedbackMetricsReporter")
+    mConfig.setString("metrics.reporter.feedbackState.class","edp.wormhole.reporter.FeedbackMetricsReporter")
     mConfig.setString("metrics.reporter.feedbackState.interval",config.feedback_interval+" SECONDS")
     mConfig.setString("metrics.reporter.feedbackState.scope.delimiter",".")
     mConfig.setString("metrics.reporter.feedbackState.sourceNamespace",sourceNamespace)

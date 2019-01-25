@@ -43,8 +43,9 @@ const { RangePicker } = DatePicker
 
 import {
   loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
-  deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset, loadUdfs
+  deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset, loadUdfs, jumpStreamToFlowFilter
 } from './action'
+import { changeTabs } from '../Workbench/action'
 import { loadSingleUdf } from '../Udf/action'
 import { selectStreams, selectStreamStartModalLoading } from './selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
@@ -809,6 +810,10 @@ export class Manager extends React.Component {
   getStartFormDataFromSub = (userDefinedTopics) => {
     this.setState({ userDefinedTopics })
   }
+  jumpToFlowFilter = (streamId) => () => {
+    this.props.jumpStreamToFlowFilter(streamId)
+    this.props.onChangeTabs('flow')
+  }
   render () {
     const {
       refreshStreamLoading, refreshStreamText, showStreamdetails, logsModalVisible,
@@ -831,7 +836,10 @@ export class Manager extends React.Component {
       dataIndex: 'id',
       key: 'id',
       sorter: (a, b) => a.id - b.id,
-      sortOrder: sortedInfo.columnKey === 'id' && sortedInfo.order
+      sortOrder: sortedInfo.columnKey === 'id' && sortedInfo.order,
+      render: (text, record) => (
+        <span className="hover-pointer" onClick={this.jumpToFlowFilter(text)}>{text}</span>
+      )
     }, {
       title: 'Project',
       dataIndex: 'projectName',
@@ -972,9 +980,8 @@ export class Manager extends React.Component {
       sorter: (a, b) => a.streamType < b.streamType ? -1 : 1,
       sortOrder: sortedInfo.columnKey === 'streamType' && sortedInfo.order,
       filters: [
-        {text: 'default', value: 'default'},
-        {text: 'hdfslog', value: 'hdfslog'},
-        {text: 'routing', value: 'routing'}
+        {text: 'spark', value: 'spark'},
+        {text: 'flink', value: 'flink'}
       ],
       filteredValue: filteredInfo.streamType,
       onFilter: (value, record) => record.streamType.includes(value)
@@ -983,13 +990,14 @@ export class Manager extends React.Component {
       dataIndex: 'functionType',
       key: 'functionType',
       sorter: (a, b) => a.functionType < b.functionType ? -1 : 1,
-      sortOrder: sortedInfo.columnKey === 'streamType' && sortedInfo.order,
+      sortOrder: sortedInfo.columnKey === 'functionType' && sortedInfo.order,
       filters: [
-        {text: 'spark', value: 'spark'},
-        {text: 'flink', value: 'flink'}
+        {text: 'default', value: 'default'},
+        {text: 'hdfslog', value: 'hdfslog'},
+        {text: 'routing', value: 'routing'}
       ],
       filteredValue: filteredInfo.functionType,
-      onFilter: (value, record) => record.streamType.includes(value)
+      onFilter: (value, record) => record.functionType.includes(value)
     }, {
       title: 'Kafka',
       dataIndex: 'instance',
@@ -1441,7 +1449,9 @@ Manager.propTypes = {
   streamStartModalLoading: PropTypes.bool,
   roleType: PropTypes.string,
   locale: PropTypes.string,
-  onLoadUdfs: PropTypes.func
+  onLoadUdfs: PropTypes.func,
+  jumpStreamToFlowFilter: PropTypes.func,
+  onChangeTabs: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1457,7 +1467,9 @@ export function mapDispatchToProps (dispatch) {
     onLoadAdminLogsInfo: (projectId, streamId, resolve) => dispatch(loadAdminLogsInfo(projectId, streamId, resolve)),
     onLoadSingleUdf: (projectId, roleType, resolve, type) => dispatch(loadSingleUdf(projectId, roleType, resolve, type)),
     onLoadLastestOffset: (projectId, streamId, resolve, type, topics) => dispatch(loadLastestOffset(projectId, streamId, resolve, type, topics)),
-    onLoadUdfs: (projectId, streamId, roleType, resolve) => dispatch(loadUdfs(projectId, streamId, roleType, resolve))
+    onLoadUdfs: (projectId, streamId, roleType, resolve) => dispatch(loadUdfs(projectId, streamId, roleType, resolve)),
+    jumpStreamToFlowFilter: (streamFilterId) => dispatch(jumpStreamToFlowFilter(streamFilterId)),
+    onChangeTabs: (key) => dispatch(changeTabs(key))
   }
 }
 

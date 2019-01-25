@@ -1,4 +1,4 @@
-/*
+/*-
  * <<
  * wormhole
  * ==
@@ -18,36 +18,20 @@
  * >>
  */
 
-{
-  "name": "React Boilerplate",
-  "icons": [
-    {
-      "src": "favicon.png",
-      "sizes": "48x48",
-      "type": "image/png",
-      "density": 1.0
-    },
-    {
-      "src": "favicon.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "density": 2.0
-    },
-    {
-      "src": "favicon.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "density": 3.0
-    },
-    {
-      "src": "favicon.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "density": 4.0
-    }
-  ],
-  "start_url": "index.html",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#FFFFFF"
+
+package edp.rider.rest.persistence.dal
+
+import edp.rider.module.DbModule._
+import edp.rider.rest.persistence.base.BaseDalImpl
+import edp.rider.rest.persistence.entities._
+import slick.jdbc.MySQLProfile.api._
+import slick.lifted.TableQuery
+
+import scala.concurrent.Future
+
+class DbusDal(dbusTable: TableQuery[DbusTable]) extends BaseDalImpl[DbusTable, Dbus](dbusTable) {
+
+  def getMaxDbusId: Future[Option[Long]] = {
+    db.run(dbusTable.map(_.dbusId).max.result)
+  }
 }

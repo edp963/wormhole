@@ -35,7 +35,7 @@ List of third-party dependencies grouped by their license type.
         * Lang (commons-lang:commons-lang:2.3 - http://jakarta.apache.org/commons/lang/)
         * Apache Commons Logging (commons-logging:commons-logging:1.2 - http://commons.apache.org/proper/commons-logging/)
         * Commons Net (commons-net:commons-net:3.1 - http://commons.apache.org/net/)
-        * wormhole-util (edp.wormhole:wormhole-util:0.6.0-beta - no url defined)
+        * wormhole-util (edp.wormhole:wormhole-util:0.6.0 - no url defined)
         * Metrics Core (io.dropwizard.metrics:metrics-core:3.1.2 - http://metrics.codahale.com/metrics-core/)
         * The Netty Project (io.netty:netty:3.6.2.Final - http://netty.io/)
         * Netty/All-in-One (io.netty:netty-all:4.0.23.Final - http://netty.io/netty-all/)

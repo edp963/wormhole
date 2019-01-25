@@ -54,28 +54,42 @@ object LookupKudu extends EdpLogging {
       val resultData = ListBuffer.empty[Row]
 
       val kuduJoinNameArray = sqlConfig.lookupTableFields.get
-      if (kuduJoinNameArray.length == 1) { //sink table field names
+      if (kuduJoinNameArray.length == 1) {
+        //sink table field names
         val dataJoinName = sqlConfig.sourceTableFields.get.head
         val keyType = UmsFieldType.umsFieldType(KuduConnection.getAllFieldsUmsTypeMap(tableSchemaInKudu)(kuduJoinNameArray.head))
         val keySchemaMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
         keySchemaMap(kuduJoinNameArray.head) = (0, keyType, true)
 
-        originalData.sliding(1000, 1000).foreach((subList: mutable.Seq[Row]) => {
+        val batchSize =
+          if (connectionConfig.parameters.nonEmpty) {
+            val opt = connectionConfig.parameters.get.find(_.key.toLowerCase() == "batch_size")
+            if (opt.nonEmpty) opt.head.value.toInt
+            else 50000
+          } else {
+            50000
+          }
+
+        originalData.sliding(batchSize, batchSize).foreach((subList: mutable.Seq[Row]) => {
           val tupleList: mutable.Seq[List[String]] = subList.map(row => {
             sqlConfig.sourceTableFields.get.toList.map(field => {
-              row.get(row.fieldIndex(field)).toString
+              val tmpKey = row.get(row.fieldIndex(field))
+              if (tmpKey == null) null.asInstanceOf[String]
+              else tmpKey.toString
             })
 
+          }).filter((keys: Seq[String]) => {
+            !keys.contains(null)
           })
           val queryDateMap: mutable.Map[String, Map[String, (Any, String)]] =
             KuduConnection.doQueryByKeyListInBatch(tmpTableName, database, connectionConfig.connectionUrl, kuduJoinNameArray.head, tupleList, keySchemaMap.toMap, selectFieldNewNameArray)
 
           subList.foreach((row: Row) => {
             val originalArray: Array[Any] = row.schema.fieldNames.map(name => row.get(row.fieldIndex(name)))
-            val joinData = row.get(row.fieldIndex(dataJoinName)).toString
-            val queryFieldsResultMap: Map[String, (Any, String)] = if (queryDateMap == null || queryDateMap.isEmpty || !queryDateMap.contains(joinData))
+            val joinData = row.get(row.fieldIndex(dataJoinName))
+            val queryFieldsResultMap: Map[String, (Any, String)] = if (joinData == null || queryDateMap == null || queryDateMap.isEmpty || !queryDateMap.contains(joinData.toString))
               null.asInstanceOf[Map[String, (Any, String)]]
-            else queryDateMap(joinData)
+            else queryDateMap(joinData.toString)
             resultData.append(getJoinRow(selectFieldNewNameArray, queryFieldsResultMap, originalArray, resultSchema))
           })
         })
@@ -86,7 +100,11 @@ object LookupKudu extends EdpLogging {
           val dataJoinNameArray = sqlConfig.sourceTableFields.get
           originalData.map(row => {
             val tuple: Array[String] = dataJoinNameArray.map(field => {
-              row.get(row.fieldIndex(field)).toString
+              val tmpKey = row.get(row.fieldIndex(field))
+              if (tmpKey == null) null.asInstanceOf[String]
+              else tmpKey.toString
+            }).filter(key => {
+              key != null
             })
 
             val originalArray: Array[Any] = row.schema.fieldNames.map(name => row.get(row.fieldIndex(name)))
@@ -98,8 +116,8 @@ object LookupKudu extends EdpLogging {
             resultData.append(newRow)
           })
         } catch {
-          case e:Throwable=>
-            logInfo("LookupKudu",e)
+          case e: Throwable =>
+            logInfo("LookupKudu", e)
             throw e
         } finally {
           KuduConnection.closeClient(client)

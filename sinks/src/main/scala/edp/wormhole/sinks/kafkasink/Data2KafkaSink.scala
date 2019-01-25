@@ -43,21 +43,32 @@ class Data2KafkaSink extends SinkProcessor {
                        schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
                        tupleList: Seq[Seq[String]],
                        connectionConfig: ConnectionConfig): Unit = {
-    logger.info("In Data2KafkaSink"+tupleList)
-    WormholeKafkaProducer.init(connectionConfig.connectionUrl, connectionConfig.parameters,sinkProcessConfig.kerberos)
-    val sinkSpecificConfig = if (sinkProcessConfig.specialConfig.isDefined) JsonUtils.json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get) else KafkaConfig(None, None, None,None)
+    if(tupleList.nonEmpty) {
+      logger.info("In Data2KafkaSink" + tupleList.head)
+    }
+    logger.info("sink config: " + sinkProcessConfig)
+    val sinkSpecificConfig = if (sinkProcessConfig.specialConfig.isDefined) JsonUtils.json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get) else KafkaConfig(None, None, None, None, None)
+    WormholeKafkaProducer.init(connectionConfig.connectionUrl, connectionConfig.parameters, sinkSpecificConfig.kerberos.getOrElse(false))
 
     val schemaList: Seq[(String, (Int, UmsFieldType, Boolean))] = schemaMap.toSeq.sortBy(_._2._1)
-    val protocol: UmsProtocol = UmsProtocol(UmsProtocolType.DATA_INCREMENT_DATA)
+    val protocol: UmsProtocol =
+      if (sinkSpecificConfig.topic.nonEmpty && sinkSpecificConfig.topic.get.nonEmpty)
+        UmsProtocol(UmsProtocolType.DATA_BATCH_DATA)
+      else
+        UmsProtocol(UmsProtocolType.DATA_INCREMENT_DATA)
+
     //for job of feedback
-    val kafkaTopic = if(sinkSpecificConfig.sinkKafkaTopic.nonEmpty&&sinkSpecificConfig.sinkKafkaTopic.get.nonEmpty) sinkSpecificConfig.sinkKafkaTopic.get else sinkNamespace.split("\\.")(2)
+    val kafkaTopic = if (sinkSpecificConfig.topic.nonEmpty && sinkSpecificConfig.topic.get.nonEmpty) sinkSpecificConfig.topic.get else sinkNamespace.split("\\.")(2)
+    logger.info("sink topic: " + kafkaTopic)
+    logger.info("sink protocol: " + protocol.`type`.toString)
+
     val format = sinkSpecificConfig.messageFormat.trim
     format match {
       case "ums" =>
         val seqUmsField: Seq[UmsField] = schemaList.map(kv => UmsField(kv._1, kv._2._2, Some(kv._2._3)))
         val schema = UmsSchema(sinkNamespace, Some(seqUmsField))
         val kafkaLimitNum = sinkSpecificConfig.limitNum
-        ums2Kafka(tupleList, kafkaLimitNum, protocol, schema, UmsProtocolType.DATA_INCREMENT_DATA, sinkNamespace, kafkaTopic, connectionConfig)
+        ums2Kafka(tupleList, kafkaLimitNum, protocol, schema, protocol.`type`, sinkNamespace, kafkaTopic, connectionConfig)
       case "flattenJson" =>
         val hasSystemField = sinkSpecificConfig.hasSystemField
         if (hasSystemField) flattenJson2KafkaWithSystemValue(tupleList, schemaList, sinkNamespace, kafkaTopic, connectionConfig, protocol.`type`.toString)
@@ -108,6 +119,7 @@ class Data2KafkaSink extends SinkProcessor {
 
 
   private def ums2Kafka(tupleList: Seq[Seq[String]], kafkaLimitNum: Int, protocol: UmsProtocol, schema: UmsSchema, protocolType: UmsProtocolType, sinkNamespace: String, kafkaTopic: String, connectionConfig: ConnectionConfig): Unit = {
+    logger.info("start write to kafka")
     tupleList.sliding(kafkaLimitNum, kafkaLimitNum).foreach(tuple => {
       val seqUmsTuple: Seq[UmsTuple] = tuple.map(payload => UmsTuple(payload))
       val kafkaMessage: String = toJsonCompact(Ums(

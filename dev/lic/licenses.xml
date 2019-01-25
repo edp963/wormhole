@@ -923,7 +923,7 @@
     <dependency>
       <groupId>edp.wormhole</groupId>
       <artifactId>wormhole-es-hadoop</artifactId>
-      <version>0.6.0-beta</version>
+      <version>0.6.0</version>
       <licenses>
         <license>
           <name>Apache License, Version 2.0</name>
@@ -1032,7 +1032,7 @@
     <dependency>
       <groupId>edp.wormhole</groupId>
       <artifactId>wormhole-util</artifactId>
-      <version>0.6.0-beta</version>
+      <version>0.6.0</version>
       <licenses>
         <license>
           <name>Apache License, Version 2.0</name>
@@ -1080,7 +1080,7 @@
     <dependency>
       <groupId>edp.wormhole</groupId>
       <artifactId>wormhole-kafka-010</artifactId>
-      <version>0.6.0-beta</version>
+      <version>0.6.0</version>
       <licenses>
         <license>
           <name>Apache License, Version 2.0</name>
@@ -2487,7 +2487,7 @@
     <dependency>
       <groupId>edp.wormhole</groupId>
       <artifactId>wormhole-zookeeper</artifactId>
-      <version>0.6.0-beta</version>
+      <version>0.6.0</version>
       <licenses>
         <license>
           <name>Apache License, Version 2.0</name>
@@ -2815,7 +2815,7 @@
     <dependency>
       <groupId>edp.wormhole</groupId>
       <artifactId>wormhole-dbpool</artifactId>
-      <version>0.6.0-beta</version>
+      <version>0.6.0</version>
       <licenses>
         <license>
           <name>Apache License, Version 2.0</name>
@@ -2855,7 +2855,7 @@
     <dependency>
       <groupId>edp.wormhole</groupId>
       <artifactId>wormhole-rider-server_1.2</artifactId>
-      <version>0.6.0-beta</version>
+      <version>0.6.0</version>
       <licenses>
         <license>
           <name>Apache License, Version 2.0</name>
@@ -3706,7 +3706,7 @@
     <dependency>
       <groupId>edp.wormhole</groupId>
       <artifactId>wormhole-hadoop</artifactId>
-      <version>0.6.0-beta</version>
+      <version>0.6.0</version>
       <licenses>
         <license>
           <name>Apache License, Version 2.0</name>
@@ -4418,7 +4418,7 @@
     <dependency>
       <groupId>edp.wormhole</groupId>
       <artifactId>wormhole-ums_1.3</artifactId>
-      <version>0.6.0-beta</version>
+      <version>0.6.0</version>
       <licenses>
         <license>
           <name>Apache License, Version 2.0</name>

@@ -7,7 +7,7 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.6.0-beta</version>
+        <version>0.6.0</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -140,12 +140,6 @@
             <groupId>com.typesafe.slick</groupId>
             <artifactId>slick-hikaricp_${scala.binary.version}</artifactId>
             <version>${slick.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.zaxxer</groupId>
-                    <artifactId>HikariCP</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>

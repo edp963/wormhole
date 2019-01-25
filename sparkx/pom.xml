@@ -7,7 +7,7 @@
     <parent>
         <groupId>edp.wormhole</groupId>
         <artifactId>wormhole-parent</artifactId>
-        <version>0.6.0-beta</version>
+        <version>0.6.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -271,6 +271,7 @@
                 <!-- The Assembly Plugin for Maven is primarily intended to allow users to aggregate the project output along with its dependencies, modules, site documentation, and other files into a single distributable archive -->
                 <version>2.4</version>
                 <configuration>
+
                     <finalName>${project.name}-${project.version}</finalName>
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
@@ -288,6 +289,7 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
+
                     </execution>
                 </executions>
             </plugin>

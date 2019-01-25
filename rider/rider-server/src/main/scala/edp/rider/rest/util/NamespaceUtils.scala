@@ -79,7 +79,6 @@ object NamespaceUtils extends RiderLogger {
                 riderLogger.info("NO ORACLE SERVICE NAME:")
                 ""
               }
-              //              }
             } else ""
           case None => ""
         }
@@ -117,6 +116,15 @@ object NamespaceUtils extends RiderLogger {
             s"mongodb://${instance.connUrl}/${db.nsDatabase}?${db.config.get.split(",").mkString("&")}"
           else s"mongodb://${instance.connUrl}/${db.nsDatabase}"
         } else instance.connUrl
+      case "greenplum" =>
+        if (db.config.nonEmpty && db.config.get != "") {
+          val confStr: String = (keyEqualValuePattern.toString.r findAllIn db.config.get.split(",").mkString("&")).toList.mkString("&")
+          if (confStr.nonEmpty)
+            s"jdbc:postgresql://${instance.connUrl}/${db.nsDatabase}?$confStr"
+          else
+            s"jdbc:postgresql://${instance.connUrl}/${db.nsDatabase}"
+        } else
+          s"jdbc:postgresql://${instance.connUrl}/${db.nsDatabase}"
       case _ => instance.connUrl
     }
 

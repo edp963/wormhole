@@ -191,11 +191,12 @@ export class StreamStartForm extends React.Component {
                   const kafOffFilter = kafEarOffArr.filter(s => s.substring(0, s.indexOf(':')) === gKey)
                   kafEarOffFinal = kafOffFilter[0].substring(kafOffFilter[0].indexOf(':') + 1)
                 }
+                const lag = kafOffFinal - conOffFinal
                 const applyFormat = <FormattedMessage {...messages.streamModalApply} />
                 return (
                   <Row key={`${myName}_${index}_${type}`}>
                     <Col span={2} className="partition-content">{g.substring(0, g.indexOf(':'))}</Col>
-                    <Col span={6} className="offset-content">
+                    <Col span={5} className="offset-content">
                       <FormItem>
                         <ol key={index}>
                           {getFieldDecorator(`${myName}_${index}_${type}`, {
@@ -203,7 +204,16 @@ export class StreamStartForm extends React.Component {
                               required: true,
                               message: locale === 'en' ? 'Please fill in offset' : '请填写 Offset'
                             }, {
-                              validator: forceCheckNum
+                              validator: (rule, value, callback) => {
+                                const singledata = data.find(v => v.name === myName)
+                                let earliestKafkaOffsetArr = singledata.kafkaEarliestOffset.split(',')
+                                let earliestKafkaOffset = earliestKafkaOffsetArr[index].split(':')[1]
+                                if (Number(value) < Number(earliestKafkaOffset)) {
+                                  callback(`offset必须大于等于Earliest Kafka Offset`)
+                                } else {
+                                  forceCheckNum(rule, value, callback)
+                                }
+                              }
                             }],
                             initialValue: conOffFinal
                           })(
@@ -228,7 +238,18 @@ export class StreamStartForm extends React.Component {
                         </ol>
                       </FormItem>
                     </Col>
-                    <Col span={6} offset={2} className="stream-start-offset-class">
+                    <Col span={2} offset={1} className="stream-start-offset-class">
+                      <FormItem>
+                        <ol key={index}>
+                          {getFieldDecorator(`kafkaEarliest_${myName}_${index}_${type}`, {})(
+                            <div className="stream-start-lastest-kafka-offset">
+                              <span style={{ marginRight: '-15px' }}>{lag}</span>
+                            </div>
+                          )}
+                        </ol>
+                      </FormItem>
+                    </Col>
+                    <Col span={4} offset={2} className="stream-start-offset-class">
                       <FormItem>
                         <ol key={index}>
                           {getFieldDecorator(`kafkaEarliest_${myName}_${index}_${type}`, {})(
@@ -281,13 +302,15 @@ export class StreamStartForm extends React.Component {
               <Row key={myName} className="apply-all-btn">
                 <div className="rate-topic-info-wrapper">
                   <Col span={2} className="card-content ">Partition</Col>
-                  <Col span={4} offset={1} className="card-content required-offset ">Offset</Col>
-                  <Col span={7} className="card-content">Latest Consumed Offset
+                  <Col span={3} offset={1} className="card-content required-offset ">Offset</Col>
+                  <Col span={6} className="card-content">Latest Consumed Offset
                     <Tooltip title={applyAllText}>
                       <Button shape="circle" type="ghost" onClick={this.onApplyAll(i, 'consumer', type)}>
                         <i className="iconfont icon-apply_icon_-copy-copy"></i>
                       </Button>
                     </Tooltip>
+                  </Col>
+                  <Col span={2} className="card-content">Lag
                   </Col>
                   <Col span={6} className="card-content">Earliest Kafka Offset
                     <Tooltip title={applyAllText}>
@@ -296,7 +319,7 @@ export class StreamStartForm extends React.Component {
                       </Button>
                     </Tooltip>
                   </Col>
-                  <Col span={6} className="card-content">Latest Kafka Offset
+                  <Col span={5} className="card-content">Latest Kafka Offset
                     <Tooltip title={applyAllText}>
                       <Button shape="circle" type="ghost" onClick={this.onApplyAll(i, 'kafka', type)}>
                         <i className="iconfont icon-apply_icon_-copy-copy"></i>

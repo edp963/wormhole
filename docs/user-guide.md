@@ -86,7 +86,7 @@ Stream 状态转换图如下，其中 refresh 代表 Refresh 按钮，start 代�
 
 #### 类型
 
-Flink中支持的Stream类型只有default，理论上可以处理所有类型的数据，将数据写入Kafka/RDBS/Elasticsearch/Hbase/Phoenix/Cassandra/MongoDB系统中，但目前只支持处理UMS数据类型，目标系统只支持Kafka，UMS_Extension类型及其他目标系统会在后续版本支持
+Flink中支持的Stream类型只有default，支持异构sink，包括Kafka/RDBS/Elasticsearch/Hbase/Phoenix/Cassandra/MongoDB系统中，数据类型支持处理UMS数据类型和用户自定义UMS_Extension类型
 
 <img src="https://github.com/edp963/wormhole/raw/master/docs/img/user-stream-type-flink.png" alt="" width="600"/>
 
@@ -147,14 +147,21 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 
 ### Sink Config
 
-- Sink Config 项配置与所选系统类型相关，点击配置按钮后页面上方有对应系统的配置项例子
-- 其中 "mutation_type" 的值有 "i" 和 "iud"，代表向 Sink 表中插数据时使用只增原则或增删改原则。如果为 "iud"，源数据中须有 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_op_（string 类型）` 字段，Sink 表中都须有 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_active_（int 类型）` 字段。若不配置此项，默认为 "iud"
+Sink Config 项配置与所选系统类型相关，点击配置按钮后页面上方有对应系统的配置项例子
+
+#### 配置数据插入方式（只增加or增删改）
+
+其中 "mutation_type" 的值有 "i" 和 "iud"，代表向 Sink 表中插数据时使用只增原则或增删改原则。如果为 "iud"，源数据中须有 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_op_（string 类型）` 字段，Sink 表中都须有 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_active_（int 类型）` 字段。若不配置此项，默认为 "iud"
 
 #### 分表幂等
 
 针对关系型数据库，为了减小ums_id、ums_op与ums_ts字段对业务系统的侵入性，可单独将这三个字段和table keys单独建立一个表，原业务表保持不变。假设ums_id、ums_op、ums_ts和table key组成的表名为umsdb，那么分表幂等的配置为：
 
 `{"mutation_type":"split_table_idu","db.function_table":"umsdb"}`
+
+#### 配置安全认证的sink kafka
+
+在用户需要向启用了kerberos安全认证的kafka集群Sink数据时，需要在sink config里面做如下配置：{"kerberos":true}，默认情况下，是向未启用kerberos认证的kafka集群Sink数据（0.6.1及之后版本）
 
 ### Transformation
 
@@ -170,7 +177,7 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-sparkxinterface</artifactId>
-     <version>0.6.0-beta</version>
+     <version>0.6.0</version>
   </dependency>
   ```
 
@@ -207,7 +214,15 @@ Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需
 
 Lookup SQL 可以关联流下其他系统数据，如 RDBS/Hbase/Redis/Elasticsearch 等，规则如下。
 
-若 Source Namespace 为 kafka.edp_kafka.udftest.udftable，Lookup Table 为 RDBMS 系统，如 mysql.er_mysql.eurus_test 数据库下的 eurususer 表，Left Join 关联字段是 id，name，且从 Lookup 表中选择的字段 id，name 与主流上kafka.edp_kafka.udftest.udftable 中的字段重名，SQL语句如下：
+若 Source Namespace 为 kafka.edp_kafka.udftest.udftable，Lookup Table 为 RDBMS 系统，如 mysql.er_mysql.eurus_test 数据库下的 eurus_user 表，Left Join 关联字段是 id，name，且从 Lookup 表中选择的字段 id，name 与主流上kafka.edp_kafka.udftest.udftable 中的字段重名，0.6.0及以上版本支持两种类型的Lookup SQL语句如下：
+
+（1）主流上的字段名用${}标注（0.6.0及以上版本支持），推荐使用该种方式，例如
+
+```
+select id as id1,name as name1,address,age from eurus_user where (id,name) in (${id},${name});
+```
+
+（2）主流上的字段名用namespace.fileName进行标注，例如
 
 ```
 select id as id1, name as name1, address, age from eurus_user where (id, name) in (kafka.edp_kafka.udftest.udftable.id, kafka.edp_kafka.udftest.udftable.name);
@@ -271,7 +286,7 @@ Wormhole Flink版对传输的流数据除了提供Lookup SQL、Flink SQL两种Tr
 
 4）Output：输出结果的形式，大致分为三类：Agg、Detail、FilteredRow
 
-- Agg：将匹配的多条数据做聚合，生成一条数据输出,例：field1:avg,field2:max（目前支持max/min/avg/sum）
+- Agg：将匹配的多条数据做聚合，生成一条数据输出,例：field1:avg,field2:max（目前支持max/min/avg/sum/count，count为0.6.0版本新增功能）
 - Detail：将匹配的多条数据逐一输出
 - FilteredRow：按条件选择指定的一条数据输出，例：head/last/ field1:min/max
 
@@ -292,15 +307,13 @@ Wormhole Flink版对传输的流数据除了提供Lookup SQL、Flink SQL两种Tr
 
 Lookup SQL具体可参考Spark Flow Transformation的Lookup SQL章节
 
-Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Flink支持window，UDF和UDAF操作
-
-
+Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Wormhole 0.6.0-beata及之后版本的Flinkx支持window，UDF和UDAF操作。0.6.0版本Flink SQL支持key by操作，key by字段在Transformation Config中进行配置，设置格式为json，其中json中key为key_by_fields，value为key by的字段，如果有多个字段，则用逗号分隔，例如：{"key_by_fields":"name,city"}
 
 ###### Window
 
 process time处理方式中window中相应的字段名称为processing_time。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(processing_time, INTERVAL '1' HOUR), name;
 
-event time处理方式中window中相应的字段名称为ums_ts_。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(ums_ts, INTERVAL '1' HOUR), name;
+event time处理方式中window中相应的字段名称为ums_ts_。例：SELECT name, SUM(key) as keysum from ums GROUP BY TUMBLE(ums_ts_, INTERVAL '1' HOUR), name;
 
 相关配置包括：
 
@@ -340,7 +353,7 @@ Java程序：
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-flinkxinterface</artifactId>
-     <version>0.6.0-beta</version>
+     <version>0.6.0</version>
   </dependency>
   ```
 

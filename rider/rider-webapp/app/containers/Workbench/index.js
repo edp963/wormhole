@@ -72,7 +72,7 @@ import {
 
 import {
   loadUserStreams, loadAdminSingleStream, loadStreamNameValue, loadKafka,
-  loadStreamConfigJvm, loadStreamConfigSpark, loadStreamConfigs, addStream, loadStreamDetail, editStream
+  loadStreamConfigJvm, loadStreamConfigSpark, loadStreamConfigs, addStream, loadStreamDetail, editStream, jumpStreamToFlowFilter
 } from '../Manager/action'
 import { loadSelectNamespaces, loadUserNamespaces } from '../Namespace/action'
 import { loadUserUsers, loadSelectUsers } from '../User/action'
@@ -87,6 +87,8 @@ import { selectUsers } from '../User/selectors'
 import { selectResources } from '../Resource/selectors'
 import { selectRoleType } from '../App/selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
+import { selectActiveKey } from './selectors'
+import { changeTabs } from './action'
 
 export class Workbench extends React.Component {
   constructor (props) {
@@ -238,8 +240,13 @@ export class Workbench extends React.Component {
     if (projectId !== this.state.projectId) {
       this.loadData(projectId)
     }
+    setTimeout(() => {
+      this.setState({tabPanelKey: this.props.activeKey})
+    }, 20)
   }
-
+  componentWillUnmount () {
+    this.props.onChangeTabs('flow')
+  }
   loadData (projectId) {
     this.setState({ projectId: projectId })
   }
@@ -248,7 +255,8 @@ export class Workbench extends React.Component {
     const { projectId } = this.state
     const { onLoadAdminSingleFlow, onLoadUserAllFlows, onLoadAdminSingleStream, onLoadUserStreams, roleType } = this.props
     const { onLoadSelectNamespaces, onLoadUserNamespaces, onLoadSelectUsers, onLoadUserUsers, onLoadResources, onLoadSingleUdf } = this.props
-
+    this.props.onChangeTabs(key)
+    this.props.jumpStreamToFlowFilter('')
     switch (key) {
       case 'flow':
         if (roleType === 'admin') {
@@ -760,7 +768,7 @@ export class Workbench extends React.Component {
       timeCharacteristic: ''
     }, () => {
       const { streamDiffType } = this.state
-      if (flow.streamType === 'spark') {
+      if (flow.streamType === 'spark' || flow.streamTypeOrigin === 'spark') {
         switch (streamDiffType) {
           case 'default':
             this.queryFlowDefault(flow)
@@ -772,7 +780,7 @@ export class Workbench extends React.Component {
             this.queryFlowRouting(flow)
             break
         }
-      } else if (flow.streamType === 'flink') {
+      } else if (flow.streamType === 'flink' || flow.streamTypeOrigin === 'flink') {
         this.queryFlowDefault(flow)
       }
     })
@@ -917,9 +925,7 @@ export class Workbench extends React.Component {
                   password: tmpObj.password
                 }
                 pushdownConTepm = pushdownConTepmJson
-              }
-
-              if (i.includes('parquet_sql')) {
+              } else if (/^parquet_sql/.test(i)) {
                 let imp = ''
                 if (i.includes('left join')) {
                   imp = i.replace('left join', 'leftJoin')
@@ -942,9 +948,7 @@ export class Workbench extends React.Component {
                 tranConfigInfoSqlTemp = `${streamJoinAfterPartTepm};`
                 tranTypeTepm = 'streamJoinSql'
                 pushdownConTepm = {}
-              }
-
-              if (i.includes('spark_sql')) {
+              } else if (/^spark_sql/.test(i)) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepmTemp = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
                 const sparkAfterPartTepm = preProcessSql(sparkAfterPartTepmTemp)
@@ -953,8 +957,7 @@ export class Workbench extends React.Component {
                 tranConfigInfoSqlTemp = `${sparkAfterPartTepm};`
                 tranTypeTepm = 'sparkSql'
                 pushdownConTepm = {}
-              }
-              if (i.includes('flink_sql')) {
+              } else if (/^flink_sql/.test(i)) {
                 const sparkAfterPart = i.substring(i.indexOf('=') + 1)
                 const sparkAfterPartTepmTemp = sparkAfterPart.replace(/(^\s*)|(\s*$)/g, '')
                 const sparkAfterPartTepm = preProcessSql(sparkAfterPartTepmTemp)
@@ -963,8 +966,7 @@ export class Workbench extends React.Component {
                 tranConfigInfoSqlTemp = `${sparkAfterPartTepm};`
                 tranTypeTepm = 'flinkSql'
                 pushdownConTepm = {}
-              }
-              if (i.includes('custom_class')) {
+              } else if (/^custom_class/.test(i)) {
                 const classAfterPart = i.substring(i.indexOf('=') + 1)
                 const classAfterPartTepmTemp = classAfterPart.replace(/(^\s*)|(\s*$)/g, '')
                 const classAfterPartTepm = preProcessSql(classAfterPartTepmTemp)
@@ -973,9 +975,7 @@ export class Workbench extends React.Component {
                 tranConfigInfoSqlTemp = classAfterPartTepm
                 tranTypeTepm = 'transformClassName'
                 pushdownConTepm = {}
-              }
-
-              if (i.includes('cep')) {
+              } else if (/^cep/.test(i)) {
                 const classAfterPartTepm = i.split('=')[1]
 
                 tranConfigInfoTemp = classAfterPartTepm
@@ -1601,8 +1601,9 @@ export class Workbench extends React.Component {
 
   forwardStep = () => {
     const { tabPanelKey, streamDiffType, jobDiffType } = this.state
-
     switch (tabPanelKey) {
+      // FIXED: 修复 从stream点id跳转过来后，‘下一步’点击无效的bug，由于stream暂无‘下一步’，所以暂时在此处fix一下。
+      case 'stream':
       case 'flow':
         if (streamDiffType === 'default') {
           this.handleForwardDefault()
@@ -3532,12 +3533,13 @@ export class Workbench extends React.Component {
         <Helmet title="Workbench" />
         <Tabs
           defaultActiveKey="flow"
-          className="ri-tabs"
           animated={false}
+          activeKey={this.props.activeKey}
+          className="ri-tabs"
           onChange={this.changeTag}
         >
           {/* Flow Panel */}
-          <TabPane tab="Flow" key="flow" style={{height: `${paneHeight}px`}}>
+          <TabPane tab="Flow" key="flow" forceRender style={{height: `${paneHeight}px`}}>
             <div className="ri-workbench" style={{height: `${paneHeight}px`}}>
               <Flow
                 className={flowMode ? 'op-mode' : ''}
@@ -4014,7 +4016,10 @@ Workbench.propTypes = {
   roleType: PropTypes.string,
   locale: PropTypes.string,
   onLoadJobBackfillTopic: PropTypes.func,
-  onLoadStreamConfigs: PropTypes.func
+  onLoadStreamConfigs: PropTypes.func,
+  activeKey: PropTypes.string,
+  onChangeTabs: PropTypes.func,
+  jumpStreamToFlowFilter: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -4051,7 +4056,9 @@ export function mapDispatchToProps (dispatch) {
     onQueryJob: (values, resolve, final) => dispatch(queryJob(values, resolve, final)),
     onEditJob: (values, resolve, final) => dispatch(editJob(values, resolve, final)),
     onLoadLookupSql: (values, resolve, reject) => dispatch(loadLookupSql(values, resolve, reject)),
-    onLoadJobBackfillTopic: (projectId, namespaceId, value, resolve) => dispatch(loadJobBackfillTopic(projectId, namespaceId, value, resolve))
+    onLoadJobBackfillTopic: (projectId, namespaceId, value, resolve) => dispatch(loadJobBackfillTopic(projectId, namespaceId, value, resolve)),
+    onChangeTabs: (key) => dispatch(changeTabs(key)),
+    jumpStreamToFlowFilter: (streamFilterId) => dispatch(jumpStreamToFlowFilter(streamFilterId))
   }
 }
 
@@ -4065,7 +4072,8 @@ const mapStateToProps = createStructuredSelector({
   resources: selectResources(),
   projectNamespaces: selectProjectNamespaces(),
   roleType: selectRoleType(),
-  locale: selectLocale()
+  locale: selectLocale(),
+  activeKey: selectActiveKey()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Workbench)

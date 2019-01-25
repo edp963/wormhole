@@ -1,6 +1,6 @@
 {
   "from": 0,
-  "size": 1,
+  "size":1000,
   "query": {
     "bool": {
       "must": {
@@ -9,15 +9,15 @@
             {
               "match": {
                 "projectId": {
-                  "query": #PROJECT_ID#,
+                  "query": "#PROJECT_ID#",
                   "type": "phrase"
                 }
               }
             },
             {
               "match": {
-                "streamId": {
-                  "query": #FLOW_ID#,
+                "flowId": {
+                  "query": "#FLOW_ID#",
                   "type": "phrase"
                 }
               }
@@ -25,8 +25,8 @@
             {
               "range":{
                 "umsTs":{
-                  "ge": #START_TIME#,
-                  "le": #END_TIME#
+                  "ge": "#START_TIME#",
+                  "le": "#END_TIME#"
                 }
               }
             }
@@ -38,7 +38,7 @@
   "sort": [
     {
       "umsTs": {
-        "order": "desc"
+        "order": "asc"
       }
     }
   ]

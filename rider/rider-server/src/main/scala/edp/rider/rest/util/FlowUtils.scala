@@ -152,7 +152,7 @@ object FlowUtils extends RiderLogger {
   def getSinkProcessClass(nsSys: String, sinkSchema: Option[String]) = {
     nsSys match {
       case "cassandra" => "edp.wormhole.sinks.cassandrasink.Data2CassandraSink"
-      case "mysql" | "oracle" | "postgresql" | "vertica" => "edp.wormhole.sinks.dbsink.Data2DbSink"
+      case "mysql" | "oracle" | "postgresql" | "vertica" | "greenplum" => "edp.wormhole.sinks.dbsink.Data2DbSink"
       case "es" =>
         if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.elasticsearchsink.DataJson2EsSink"
         else "edp.wormhole.sinks.elasticsearchsink.Data2EsSink"
@@ -390,7 +390,7 @@ object FlowUtils extends RiderLogger {
         val tranConfigFinal = getTranConfig(tranConfig)
         //        val tuple = Seq(streamId, currentMicroSec, umsType, umsSchema, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
         val base64Tuple = Seq(streamId, flowId, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
-          base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes),RiderConfig.kerberos.enabled)
+          base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes), RiderConfig.kerberos.enabled)
         val directiveFuture = directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId))
         directiveFuture onComplete {
           case Success(directive) =>
@@ -976,7 +976,7 @@ object FlowUtils extends RiderLogger {
     val userDefinedTopics = flowUdfTopicDal.getUdfTopics(Seq(flow.id)).map(topic => KafkaFlinkTopic(topic.topicName, topic.partitionOffsets))
     val flinkTopic = autoRegisteredTopics ++ userDefinedTopics
     val udfConfig: Seq[FlowUdfResponse] = flowUdfDal.getFlowUdf(Seq(flow.id))
-    val config = WhFlinkConfig(getFlowName(flow.id, flow.sourceNs, flow.sinkNs), KafkaInput(baseConfig, flinkTopic), outputConfig, flow.parallelism.getOrElse(RiderConfig.flink.defaultParallelism), RiderConfig.zk.address, udfConfig,RiderConfig.flink.feedbackStateCount,RiderConfig.flink.feedbackInterval,FlinkConfig(RiderConfig.flinkCheckpoint),RiderConfig.kerberos.enabled)
+    val config = WhFlinkConfig(getFlowName(flow.id, flow.sourceNs, flow.sinkNs), KafkaInput(baseConfig, flinkTopic), outputConfig, flow.parallelism.getOrElse(RiderConfig.flink.defaultParallelism), RiderConfig.zk.address, udfConfig, RiderConfig.flink.feedbackEnabled, RiderConfig.flink.feedbackStateCount, RiderConfig.flink.feedbackInterval, FlinkConfig(RiderConfig.flinkCheckpoint), RiderConfig.kerberos.enabled)
     caseClass2json[WhFlinkConfig](config)
   }
 
@@ -1281,8 +1281,8 @@ object FlowUtils extends RiderLogger {
 
   def genFlowAllOffsets(topics: Seq[FlowTopicTemp], kafkaMap: Map[Long, String]): Seq[TopicAllOffsets] = {
     topics.map(topic => {
-      val earliest = getKafkaEarliestOffset(kafkaMap(topic.flowId), topic.topicName,RiderConfig.kerberos.enabled)
-      val latest = getKafkaLatestOffset(kafkaMap(topic.flowId), topic.topicName,RiderConfig.kerberos.enabled)
+      val earliest = getKafkaEarliestOffset(kafkaMap(topic.flowId), topic.topicName, RiderConfig.kerberos.enabled)
+      val latest = getKafkaLatestOffset(kafkaMap(topic.flowId), topic.topicName, RiderConfig.kerberos.enabled)
       val consumedLatestOffset =
         try {
           val flow = Await.result(flowDal.findById(topic.flowId), minTimeOut).get
@@ -1312,12 +1312,12 @@ object FlowUtils extends RiderLogger {
 
   def driftFlow(preFlowStream: FlowStream, driftFlowRequest: DriftFlowRequest, userId: Long): (Boolean, String) = {
     FlowStatus.withName(preFlowStream.status) match {
-      case FlowStatus.NEW | FlowStatus.STOPPED | FlowStatus.FAILED =>
+      case FlowStatus.NEW | FlowStatus.STOPPED =>
         Await.result(flowDal.updateStreamId(preFlowStream.id, driftFlowRequest.streamId), minTimeOut)
         (true, s"success")
       case FlowStatus.STARTING | FlowStatus.UPDATING | FlowStatus.STOPPING =>
         (false, s"staring/updating/stopping status flow is not allowed to drift. The final offset depends on the actual operation time!!!")
-      case FlowStatus.SUSPENDING =>
+      case FlowStatus.SUSPENDING | FlowStatus.FAILED =>
         flowDal.genFlowStreamByAction(preFlowStream, Action.STOP.toString)
         Await.result(flowDal.updateStreamId(preFlowStream.id, driftFlowRequest.streamId), minTimeOut)
         (true, s"success, you need start it manually.")

@@ -1,6 +1,6 @@
 {
   "from": 0,
-  "size": 1,
+  "size":1000,
   "query": {
     "bool": {
       "must": {
@@ -21,16 +21,14 @@
                   "type": "phrase"
                 }
               }
-            },
-            {
+            },{
               "range":{
                 "umsTs":{
-                  "ge": #START_TIME#,
-                  "le": #END_TIME#
+                  "gte": "#START_TIME#",
+                  "lte": "#END_TIME#"
                 }
               }
-            }
-          ]
+            }]
         }
       }
     }
@@ -38,7 +36,7 @@
   "sort": [
     {
       "umsTs": {
-        "order": "desc"
+        "order": "asc"
       }
     }
   ]

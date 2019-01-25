@@ -334,20 +334,20 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
       logger.info(s"@write list.size:${tupleList.length} masterSql $masterSql")
       logger.info(s"@write list.size:${tupleList.length} subSql $subSql")
       tupleList.sliding(batchSize, batchSize).foreach(tuples => {
-        psMaster = conn.prepareStatement(masterSql)
-        tuples.foreach(tuple => {
-          setPlaceholder(tuple, psMaster, DataTable, masterSql, masterBaseFieldNames, masterUpdateFieldNames)
-          psMaster.addBatch()
-        })
-        psMaster.executeBatch()
-
-        psSub = conn.prepareStatement(subSql)
-        tuples.foreach(tuple => {
-          setPlaceholder(tuple, psSub, IdempotencyTable, subSql, subBaseFieldNames, subUpdateFieldNames)
-          psSub.addBatch()
-        })
-        psSub.executeBatch()
         try {
+          psMaster = conn.prepareStatement(masterSql)
+          tuples.foreach(tuple => {
+            setPlaceholder(tuple, psMaster, DataTable, masterSql, masterBaseFieldNames, masterUpdateFieldNames)
+            psMaster.addBatch()
+          })
+          psMaster.executeBatch()
+
+          psSub = conn.prepareStatement(subSql)
+          tuples.foreach(tuple => {
+            setPlaceholder(tuple, psSub, IdempotencyTable, subSql, subBaseFieldNames, subUpdateFieldNames)
+            psSub.addBatch()
+          })
+          psSub.executeBatch()
           conn.commit()
         } catch {
           case e: Throwable =>
@@ -355,6 +355,11 @@ class SplitTableSqlProcessor(sinkProcessConfig: SinkProcessConfig, schemaMap: co
             errorTupleList ++= tuples
             if (batchSize == 1)
               logger.info("violate tuple -----------" + tuples)
+            try{
+              conn.rollback()
+            }catch {
+              case e:Throwable=>logger.warn("rollback error",e)
+            }
         } finally {
           psMaster.clearBatch()
           psSub.clearBatch()
