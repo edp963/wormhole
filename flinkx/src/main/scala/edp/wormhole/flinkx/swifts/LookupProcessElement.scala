@@ -19,7 +19,7 @@
  */
 package edp.wormhole.flinkx.swifts
 
-import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess}
+import edp.wormhole.flinkx.common.ExceptionConfig
 import edp.wormhole.flinkx.swifts.custom.{LookupHbaseHelper, LookupKuduHelper, LookupRedisHelper}
 import edp.wormhole.flinkx.util.FeedbackUtils
 import edp.wormhole.ums.{UmsDataSystem, UmsProtocolUtils}
