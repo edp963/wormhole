@@ -26,7 +26,7 @@ import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.directive.Directive
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage.routerMap
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
-import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType}
+import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType, UmsProtocolType}
 import edp.wormhole.util.DateUtils
 
 import scala.collection.mutable
@@ -51,7 +51,7 @@ object RouterDirective extends Directive {
       } else {
         routerMap(sourceNamespace) = (mutable.HashMap(sinkNamespace -> (target_kafka_broker, kafka_topic)), data_type)
       }
-      WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
+      WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), Some(UmsProtocolType.FEEDBACK_DIRECTIVE+"."+streamId), brokers)
     }
   }
 

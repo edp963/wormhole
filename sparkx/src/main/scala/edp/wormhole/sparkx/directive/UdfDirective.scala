@@ -27,7 +27,7 @@ import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkx.udf.UdfRegister
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
-import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType}
+import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType, UmsProtocolType}
 import edp.wormhole.util.DateUtils
 import org.apache.spark.sql.SparkSession
 
@@ -59,11 +59,11 @@ object UdfDirective extends EdpLogging {
         //        })
         try {
           UdfRegister.register(udfName, udfClassFullname, udfJarPath, session,true)
-          WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
+          WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), Some(UmsProtocolType.FEEDBACK_DIRECTIVE+"."+streamId), brokers)
         } catch {
           case e: Throwable =>
             logError(udfName + " register fail", e)
-            WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, ""), None, brokers)
+            WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, ""), Some(UmsProtocolType.FEEDBACK_DIRECTIVE+"."+streamId), brokers)
         }
       })
     }
