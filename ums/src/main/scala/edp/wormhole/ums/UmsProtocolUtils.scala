@@ -210,8 +210,9 @@ trait UmsProtocolUtils {
                         minWatermark: UmsWatermark,
                         errorCount: Int,
                         errorInfo: String,
-                        batchId:String) = toJsonCompact(Ums(
-    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_ERROR),
+                        batchId:String,
+                        topicPartitionOffset:String) = toJsonCompact(Ums(
+    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_SPARKX_ERROR),
     schema = UmsSchema(sourceNamespace, Some(Seq(
       UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
       UmsField("sink_namespace", UmsFieldType.STRING),
@@ -220,7 +221,8 @@ trait UmsProtocolUtils {
       UmsField("error_min_watermark_ts", UmsFieldType.STRING),
       UmsField("error_count", UmsFieldType.INT),
       UmsField("error_info", UmsFieldType.STRING),
-      UmsField("batch_id", UmsFieldType.STRING)))),
+      UmsField("batch_id", UmsFieldType.STRING),
+      UmsField("topics", UmsFieldType.STRING)))),
     payload = Some(Seq(UmsTuple(Seq(
       DateUtils.dt2string(timeNow, dtFormat),
       sinkNamespace,
@@ -229,7 +231,8 @@ trait UmsProtocolUtils {
       DateUtils.dt2string(minWatermark.ts, dtFormat),
       errorCount.toString,
       errorInfo,
-      batchId))))))
+      batchId,
+      topicPartitionOffset))))))
 
   // feedback_flow_stats
   def feedbackFlowStats(sourceNamespace: String,
@@ -284,20 +287,22 @@ trait UmsProtocolUtils {
     ))))))
 
   // feedback_stream_batch_error
-  def feedbackStreamBatchError(streamID: Long, timeNow: DateTime, status: UmsFeedbackStatus, resultDesc: String, batchId:String) = toJsonCompact(Ums(
+  def feedbackStreamBatchError(streamID: Long, timeNow: DateTime, status: UmsFeedbackStatus, resultDesc: String, batchId:String,topicPartitionOffset:String) = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.FEEDBACK_STREAM_BATCH_ERROR),
     schema = UmsSchema("", Some(Seq(
       UmsField("stream_id", UmsFieldType.LONG),
       UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
       UmsField("status", UmsFieldType.STRING),
       UmsField("result_desc", UmsFieldType.STRING),
-      UmsField("batch_id", UmsFieldType.STRING)))),
+      UmsField("batch_id", UmsFieldType.STRING),
+      UmsField("topics", UmsFieldType.STRING)))),
     payload = Some(Seq(UmsTuple(Seq(
       streamID.toString,
       DateUtils.dt2string(timeNow, dtFormat),
       status.toString,
       resultDesc.toString,
-      batchId))))))
+      batchId,
+      topicPartitionOffset))))))
 
   // feedback_stream_topic_offset
   def feedbackStreamTopicOffset(timeNow: DateTime, streamID: Long,tp:Map[String, String],batchId:String) = {

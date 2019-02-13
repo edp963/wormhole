@@ -29,12 +29,17 @@
         "name": "batch_id",
         "type": "string",
         "nullable": true
+      },
+      {
+        "name": "topics",
+        "type": "string",
+        "nullable": true
       }
     ]
   },
   "payload": [
     {
-      "tuple": [ 123,"2016-06-01 01:00:11.345123", "success","failed reason"]
+      "tuple": [ 123,"2016-06-01 01:00:11.345123", "success","failed reason","[{\"topic_name\":\"batch\",\"partition_offset\":[{\"partition_num\":10,\"startOffset\":10,\"endOffset\":11}]}]"]
     }
   ]
 }

@@ -26,7 +26,7 @@ import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.directive.Directive
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
-import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType}
+import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType, UmsProtocolType}
 import edp.wormhole.util.DateUtils
 
 object HdfsDirective extends Directive {
@@ -46,12 +46,12 @@ object HdfsDirective extends Directive {
         }
         val hour_duration = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "hour_duration").toString.toLowerCase.toInt
         HdfsMainProcess.directiveNamespaceRule(namespace_rule) = hour_duration
-        WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), None, brokers)
+        WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), Some(UmsProtocolType.FEEDBACK_DIRECTIVE+"."+streamId), brokers)
 
       } catch {
         case e: Throwable =>
           logAlert("registerFlowStartDirective,sourceNamespace:" + namespace_rule, e)
-          WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, e.getMessage), None, brokers)
+          WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, e.getMessage), Some(UmsProtocolType.FEEDBACK_DIRECTIVE+"."+streamId), brokers)
 
       }
     })
