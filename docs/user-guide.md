@@ -177,7 +177,7 @@ Sink Config 项配置与所选系统类型相关，点击配置按钮后页面�
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-sparkxinterface</artifactId>
-     <version>0.6.0-beta</version>
+     <version>0.6.0</version>
   </dependency>
   ```
 
@@ -214,7 +214,15 @@ Sink Config 项配置与所选系统类型相关，点击配置按钮后页面�
 
 Lookup SQL 可以关联流下其他系统数据，如 RDBS/Hbase/Redis/Elasticsearch 等，规则如下。
 
-若 Source Namespace 为 kafka.edp_kafka.udftest.udftable，Lookup Table 为 RDBMS 系统，如 mysql.er_mysql.eurus_test 数据库下的 eurususer 表，Left Join 关联字段是 id，name，且从 Lookup 表中选择的字段 id，name 与主流上kafka.edp_kafka.udftest.udftable 中的字段重名，SQL语句如下：
+若 Source Namespace 为 kafka.edp_kafka.udftest.udftable，Lookup Table 为 RDBMS 系统，如 mysql.er_mysql.eurus_test 数据库下的 eurus_user 表，Left Join 关联字段是 id，name，且从 Lookup 表中选择的字段 id，name 与主流上kafka.edp_kafka.udftest.udftable 中的字段重名，0.6.0及以上版本支持两种类型的Lookup SQL语句如下：
+
+（1）主流上的字段名用${}标注（0.6.0及以上版本支持），推荐使用该种方式，例如
+
+```
+select id as id1,name as name1,address,age from eurus_user where (id,name) in (${id},${name});
+```
+
+（2）主流上的字段名用namespace.fileName进行标注，例如
 
 ```
 select id as id1, name as name1, address, age from eurus_user where (id, name) in (kafka.edp_kafka.udftest.udftable.id, kafka.edp_kafka.udftest.udftable.name);
@@ -278,7 +286,7 @@ Wormhole Flink版对传输的流数据除了提供Lookup SQL、Flink SQL两种Tr
 
 4）Output：输出结果的形式，大致分为三类：Agg、Detail、FilteredRow
 
-- Agg：将匹配的多条数据做聚合，生成一条数据输出,例：field1:avg,field2:max（目前支持max/min/avg/sum）
+- Agg：将匹配的多条数据做聚合，生成一条数据输出,例：field1:avg,field2:max（目前支持max/min/avg/sum/count，count为0.6.0版本新增功能）
 - Detail：将匹配的多条数据逐一输出
 - FilteredRow：按条件选择指定的一条数据输出，例：head/last/ field1:min/max
 
@@ -299,7 +307,7 @@ Wormhole Flink版对传输的流数据除了提供Lookup SQL、Flink SQL两种Tr
 
 Lookup SQL具体可参考Spark Flow Transformation的Lookup SQL章节
 
-Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Wormhole 0.6及之后版本的Flinkx支持window，UDF和UDAF操作
+Flink SQL 用于处理 Source Namespace 数据，from 后面直接接表名即可。Wormhole 0.6.0-beata及之后版本的Flinkx支持window，UDF和UDAF操作。0.6.0版本Flink SQL支持key by操作，key by字段在Transformation Config中进行配置，设置格式为json，其中json中key为key_by_fields，value为key by的字段，如果有多个字段，则用逗号分隔，例如：{"key_by_fields":"name,city"}
 
 ###### Window
 
@@ -345,7 +353,7 @@ Java程序：
   <dependency>
      <groupId>edp.wormhole</groupId>
      <artifactId>wormhole-flinkxinterface</artifactId>
-     <version>0.6.0-beta</version>
+     <version>0.6.0</version>
   </dependency>
   ```
 
