@@ -294,6 +294,11 @@ object SqlProcessor  {
             errorTupleList ++= tuples
             if (batchSize == 1)
               logger.info("violate tuple -----------" + tuples)
+            try{
+              conn.rollback()
+            }catch {
+              case e:Throwable=>logger.warn("rollback error",e)
+            }
         } finally {
           ps.clearBatch()
         }
