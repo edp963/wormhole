@@ -1,6 +1,6 @@
 package edp.wormhole.flinkx.sink
 
-import edp.wormhole.flinkx.common.{ConfMemoryStorage, ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
+import edp.wormhole.flinkx.common.{ConfMemoryStorage, ExceptionConfig,  WormholeFlinkxConfig}
 import edp.wormhole.flinkx.util.FeedbackUtils
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
