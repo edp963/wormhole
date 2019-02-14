@@ -50,7 +50,5 @@ object KafkaUtils extends RiderLogger {
             s"if doesn't, please create it manually with 1 partition")
       }
     }
-
   }
-
 }

@@ -95,7 +95,7 @@ object WormholeGetOffsetUtils {
       channel.disconnect()
       val result = fetchResponse.requestInfo
       val errorInfo = result.values.toList
-      val offset = if (errorInfo.exists(_.error != 0)) {
+      val offset = if (result.isEmpty || errorInfo.exists(_.error != 0)) {
         Range(0, partitions).mkString(":,").concat(":")
       } else {
         result.keySet.map(topicAndPartition =>

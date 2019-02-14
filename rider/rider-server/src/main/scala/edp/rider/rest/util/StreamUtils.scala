@@ -27,7 +27,6 @@ import edp.rider.common.Action._
 import edp.rider.common.StreamStatus._
 import edp.rider.common.StreamType._
 import edp.rider.common.{StreamType, _}
-import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.UdfUtils.sendUdfDirective
@@ -37,11 +36,11 @@ import edp.rider.yarn.YarnStatusQuery.{getAllYarnAppStatus, getAppStatusByRest}
 import edp.rider.yarn.{SubmitYarnJob, YarnClientLog}
 import edp.rider.zookeeper.PushDirective
 import edp.rider.zookeeper.PushDirective._
+import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.UmsSchemaUtils.toUms
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.JsonUtils._
-import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import slick.jdbc.MySQLProfile.api._
 
 import scala.collection.mutable
