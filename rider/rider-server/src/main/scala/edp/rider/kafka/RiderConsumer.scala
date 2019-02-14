@@ -130,7 +130,7 @@ class RiderConsumer(modules: ConfigurationModule with PersistenceModule with Act
           //            messageService.doFeedbackHeartbeat(ums)
           case FEEDBACK_DIRECTIVE =>
             messageService.doFeedbackDirective(ums)
-          case FEEDBACK_FLOW_ERROR =>
+          case FEEDBACK_FLOW_SPARKX_ERROR =>
             messageService.doFeedbackFlowError(ums)
           case FEEDBACK_FLOW_STATS =>
             if (RiderConfig.es != null)

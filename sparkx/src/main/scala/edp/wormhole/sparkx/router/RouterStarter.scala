@@ -57,7 +57,7 @@ object RouterStarter extends App with EdpLogging {
 
   val kafkaInput: KafkaInputConfig = OffsetPersistenceManager.initOffset(config, appId)
   val kafkaStream = createKafkaStream(ssc, kafkaInput)
-  RouterMainProcess.process(kafkaStream, config, session, appId)
+  RouterMainProcess.process(kafkaStream, config, session, appId,kafkaInput)
 
   logInfo("all init finish,to start spark streaming")
   SparkContextUtils.startSparkStreaming(ssc)
