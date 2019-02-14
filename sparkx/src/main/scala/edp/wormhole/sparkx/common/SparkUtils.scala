@@ -30,6 +30,7 @@ import edp.wormhole.util.CommonUtils
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types._
+import org.apache.spark.streaming.kafka010.OffsetRange
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -69,21 +70,21 @@ object SparkUtils extends EdpLogging {
         schemaMap(field.name.toLowerCase) = (index, SparkSchemaUtils.spark2umsType(field.dataType), field.nullable)
       }
     })
-//    logInfo("schemaMap:"+schemaMap)
+    //    logInfo("schemaMap:"+schemaMap)
 
-//    val r = schemaMap.toMap.filter(_._1 != UmsSysField.UID.toString)
-//    schemaMap.remove(UmsSysField.UID.toString)
-    logInfo("schemaMap:"+schemaMap)
-        if (schemaMap.contains(UmsSysField.UID.toString)) {
-          val swapFieldName = schemaMap.filter(_._2._1 == schemaMap.size - 1).head._1 // to delete ums_uid_, move ums_uid to the last one
-          schemaMap(swapFieldName) = (schemaMap(UmsSysField.UID.toString)._1, schemaMap(swapFieldName)._2, schemaMap(swapFieldName)._3)
-          schemaMap(UmsSysField.UID.toString) = (schemaMap.size - 1, schemaMap(UmsSysField.UID.toString)._2, schemaMap(UmsSysField.UID.toString)._3)
-        }
-    logInfo("swap schemaMap:"+schemaMap)
+    //    val r = schemaMap.toMap.filter(_._1 != UmsSysField.UID.toString)
+    //    schemaMap.remove(UmsSysField.UID.toString)
+    logInfo("schemaMap:" + schemaMap)
+    if (schemaMap.contains(UmsSysField.UID.toString)) {
+      val swapFieldName = schemaMap.filter(_._2._1 == schemaMap.size - 1).head._1 // to delete ums_uid_, move ums_uid to the last one
+      schemaMap(swapFieldName) = (schemaMap(UmsSysField.UID.toString)._1, schemaMap(swapFieldName)._2, schemaMap(swapFieldName)._3)
+      schemaMap(UmsSysField.UID.toString) = (schemaMap.size - 1, schemaMap(UmsSysField.UID.toString)._2, schemaMap(UmsSysField.UID.toString)._3)
+    }
+    logInfo("swap schemaMap:" + schemaMap)
     schemaMap.remove(UmsSysField.UID.toString)
-    logInfo("remove schemaMap:"+schemaMap)
+    logInfo("remove schemaMap:" + schemaMap)
     schemaMap.toMap
-//    r
+    //    r
 
   }
 
@@ -92,7 +93,7 @@ object SparkUtils extends EdpLogging {
     val tmpSchema: Map[String, (Int, UmsFieldType, Boolean)] = schemaArr.toMap
     if (outputField.nonEmpty) {
       val resultMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
-      val renameMap  = mutable.HashMap.empty[String,String]
+      val renameMap = mutable.HashMap.empty[String, String]
       outputField.split(",").foreach { case nameField =>
         if (!nameField.contains(":")) {
           if (!tmpSchema.contains(nameField.toLowerCase)) {
@@ -115,13 +116,13 @@ object SparkUtils extends EdpLogging {
       (resultMap.map(t => {
         index += 1
         (t._1, (index, t._2._2, t._2._3))
-      }).toMap, tmpSchema, if(renameMap.isEmpty) None else Some(renameMap.toMap))
+      }).toMap, tmpSchema, if (renameMap.isEmpty) None else Some(renameMap.toMap))
     } else {
       var index = -1
       (schemaArr.filter(_._1 != UmsSysField.UID.toString).map(t => {
         index += 1
         (t._1, (index, t._2._2, t._2._3))
-      }).toMap, tmpSchema,None)
+      }).toMap, tmpSchema, None)
     }
   }
 
@@ -144,16 +145,18 @@ object SparkUtils extends EdpLogging {
     dataArray
   }
 
-  def getRowData(row: Seq[String], resultSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], originalSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],renameMap:Option[Map[String, String]]): ArrayBuffer[String] = {
-    val dataArray = ArrayBuffer.fill(resultSchemaMap.size) {""}
+  def getRowData(row: Seq[String], resultSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], originalSchemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], renameMap: Option[Map[String, String]]): ArrayBuffer[String] = {
+    val dataArray = ArrayBuffer.fill(resultSchemaMap.size) {
+      ""
+    }
     resultSchemaMap.foreach { case (columnName, (index, fieldType, _)) => {
       val data = if (renameMap.isDefined && renameMap.get.contains(columnName)) row(originalSchemaMap(renameMap.get(columnName).toLowerCase)._1) else row(originalSchemaMap(columnName.toLowerCase)._1)
-//      if (fieldType == UmsFieldType.BINARY) {
-//        dataArray(index) = if (null != data) {
-//          if (data != null) new String(data.asInstanceOf[Array[Byte]]) else null.asInstanceOf[String]
-//        } else null.asInstanceOf[String]
-//      } else
-        dataArray(index) = if (data != null) data.toString else null.asInstanceOf[String]
+      //      if (fieldType == UmsFieldType.BINARY) {
+      //        dataArray(index) = if (null != data) {
+      //          if (data != null) new String(data.asInstanceOf[Array[Byte]]) else null.asInstanceOf[String]
+      //        } else null.asInstanceOf[String]
+      //      } else
+      dataArray(index) = if (data != null) data.toString else null.asInstanceOf[String]
     }
     }
     dataArray
@@ -172,12 +175,12 @@ object SparkUtils extends EdpLogging {
       case "TimestampType" => UmsFieldType.DATETIME
       case "BooleanType" => UmsFieldType.BOOLEAN
       case "BinaryType" => UmsFieldType.BINARY
-      case t if t.startsWith("StructType")  => UmsFieldType.JSONOBJECT
+      case t if t.startsWith("StructType") => UmsFieldType.JSONOBJECT
       case t if t.startsWith("ArrayType") => UmsFieldType.JSONARRAY
     }
   }
 
-  def sparkValue2Object(value : Any, dataType : DataType): Any = {
+  def sparkValue2Object(value: Any, dataType: DataType): Any = {
     if (value == null) null else dataType match {
       case BinaryType => CommonUtils.base64byte2s(value.asInstanceOf[Array[Byte]])
       case FloatType => java.lang.Float.parseFloat(value.toString)
@@ -197,5 +200,35 @@ object SparkUtils extends EdpLogging {
           .foldLeft(new JSONArray)((jsonArray, value) => jsonArray.fluentAdd(value))
       case _ => value
     }
+  }
+
+  def getTopicPartitionOffset(offsetInfo: ArrayBuffer[OffsetRange]): String = {
+    val startTopicPartitionOffsetJson = new JSONObject() //{topic,partition_offset(array)}
+    offsetInfo.foreach(offsetRange => {
+      val tmpJson = if (startTopicPartitionOffsetJson.containsKey(offsetRange.topic)) {
+        startTopicPartitionOffsetJson.getJSONObject(offsetRange.topic)
+      } else {
+        val tmpTopicsJson = new JSONObject()
+        tmpTopicsJson.put("topic_name", offsetRange.topic)
+        tmpTopicsJson.put("partition_offset", new JSONArray())
+        tmpTopicsJson
+      }
+
+      val tmpArray = tmpJson.getJSONArray("partition_offset")
+      val tmpPartitionJson = new JSONObject()
+      tmpPartitionJson.put("partition_num", offsetRange.partition)
+      tmpPartitionJson.put("from_offset", offsetRange.fromOffset)
+      tmpPartitionJson.put("until_offset", offsetRange.untilOffset)
+      tmpArray.add(tmpPartitionJson)
+      tmpJson.put("partition_offset", tmpArray)
+
+      startTopicPartitionOffsetJson.put(offsetRange.topic,tmpJson)
+    })
+
+    val resultJsonArray = new JSONArray()
+    startTopicPartitionOffsetJson.keySet().toArray().foreach(tpo=>{
+      resultJsonArray.add(startTopicPartitionOffsetJson.getJSONObject(tpo.toString))
+    })
+    resultJsonArray.toJSONString
   }
 }
