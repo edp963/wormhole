@@ -21,32 +21,32 @@
 
 package edp.rider.rest.util
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import com.alibaba.fastjson.{JSON, JSONArray}
 import edp.rider.RiderStarter.modules._
 import edp.rider.common._
 import edp.rider.kafka.KafkaUtils
-import edp.rider.kafka.KafkaUtils.{getKafkaEarliestOffset, getKafkaLatestOffset, getKafkaOffsetByGroupId}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
 import edp.rider.rest.util.StreamUtils._
+import edp.rider.wormhole._
+import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.yarn.YarnClientLog
 import edp.rider.yarn.YarnStatusQuery._
-import edp.rider.yarn.SubmitYarnJob._
-import edp.rider.wormhole._
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.ums.UmsProtocolType._
-import edp.wormhole.util.JsonUtils._
 import edp.wormhole.util.CommonUtils._
 import edp.wormhole.util.DateUtils._
+import edp.wormhole.util.JsonUtils._
+import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.util.config.KVConfig
 import slick.jdbc.MySQLProfile.api._
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 import scalaj.http.{Http, HttpResponse}
 
@@ -211,13 +211,13 @@ object FlowUtils extends RiderLogger {
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "stop failed")
 
         case ("new" | "starting" | "waiting" | "failed" | "stopped" | "stopping", "suspending", "renew") =>
-          if (startFlow(flowStream.streamId, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
+          if (startFlow(flowStream.streamId, flowStream.streamName, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
             FlowInfo(flowStream.id, "updating", "start", Option(currentSec), None, s"$action success")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "renew failed")
 
         case ("new" | "starting" | "waiting" | "failed" | "stopped" | "stopping", "new" | "stopped" | "failed", "start") =>
-          if (startFlow(flowStream.streamId, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
+          if (startFlow(flowStream.streamId, flowStream.streamName, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
             FlowInfo(flowStream.id, "starting", "start,delete", Option(currentSec), None, s"$action success")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "start failed")
@@ -229,13 +229,13 @@ object FlowUtils extends RiderLogger {
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "stop failed")
 
         case ("running", "starting" | "updating" | "running" | "suspending", "renew") =>
-          if (startFlow(flowStream.streamId, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
+          if (startFlow(flowStream.streamId, flowStream.streamName, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
             FlowInfo(flowStream.id, "updating", "start", Option(currentSec), None, s"$action success")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "renew failed")
 
         case ("running", "new" | "stopped" | "failed", "start") =>
-          if (startFlow(flowStream.streamId, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
+          if (startFlow(flowStream.streamId, flowStream.streamName, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
             FlowInfo(flowStream.id, "starting", "start,delete", Option(currentSec), None, s"$action success")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "start failed")
@@ -364,10 +364,10 @@ object FlowUtils extends RiderLogger {
   }
 
 
-  def startFlow(streamId: Long, functionType: String, flowId: Long, sourceNs: String, sinkNs: String, consumedProtocol: String, sinkConfig: String, tranConfig: String, tableKeys: String, userId: Long): Boolean = {
+  def startFlow(streamId: Long, streamName: String, functionType: String, flowId: Long, sourceNs: String, sinkNs: String, consumedProtocol: String, sinkConfig: String, tranConfig: String, tableKeys: String, userId: Long): Boolean = {
     try {
       autoDeleteTopic(userId, streamId)
-      autoRegisterTopic(streamId, sourceNs, tranConfig, userId)
+      autoRegisterTopic(streamId, streamName, sourceNs, tranConfig, userId)
       val sourceNsObj = namespaceDal.getNamespaceByNs(sourceNs).get
       val umsInfoOpt =
         if (sourceNsObj.sourceSchema.nonEmpty)
@@ -698,7 +698,7 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def autoRegisterTopic(streamId: Long, sourceNs: String, tranConfig: String, userId: Long) = {
+  def autoRegisterTopic(streamId: Long, streamName: String, sourceNs: String, tranConfig: String, userId: Long) = {
     try {
       val streamJoinNs = getStreamJoinNamespaces(tranConfig)
       val nsSeq = (streamJoinNs += sourceNs).map(ns => namespaceDal.getNamespaceByNs(ns).get)
@@ -707,10 +707,11 @@ object FlowUtils extends RiderLogger {
         if (topicSearch.isEmpty) {
           val instance = Await.result(instanceDal.findByFilter(_.id === ns.nsInstanceId), minTimeOut).head
           val database = Await.result(databaseDal.findByFilter(_.id === ns.nsDatabaseId), minTimeOut).head
-          val lastConsumedOffset = Await.result(feedbackOffsetDal.getLatestOffset(streamId, database.nsDatabase), minTimeOut)
+          val latestKafkaOffset = getLatestOffset(instance.connUrl, database.nsDatabase, RiderConfig.kerberos.enabled)
+          val lastConsumedOffset = getConsumerOffset(instance.connUrl, streamName, database.nsDatabase, latestKafkaOffset.split(",").length, RiderConfig.kerberos.enabled)
           val offset =
-            if (lastConsumedOffset.nonEmpty) lastConsumedOffset.get.partitionOffsets
-            else KafkaUtils.getKafkaLatestOffset(instance.connUrl, database.nsDatabase, RiderConfig.kerberos.enabled)
+            if (lastConsumedOffset.split(",").filter(_.split(":").length == 1).nonEmpty) latestKafkaOffset
+            else lastConsumedOffset
           val inTopicInsert = StreamInTopic(0, streamId, ns.nsDatabaseId, offset, RiderConfig.spark.topicDefaultRate,
             active = true, currentSec, userId, currentSec, userId)
           val inTopic = Await.result(streamInTopicDal.insert(inTopicInsert), minTimeOut)
@@ -1281,19 +1282,12 @@ object FlowUtils extends RiderLogger {
 
   def genFlowAllOffsets(topics: Seq[FlowTopicTemp], kafkaMap: Map[Long, String]): Seq[TopicAllOffsets] = {
     topics.map(topic => {
-      val earliest = getKafkaEarliestOffset(kafkaMap(topic.flowId), topic.topicName, RiderConfig.kerberos.enabled)
-      val latest = getKafkaLatestOffset(kafkaMap(topic.flowId), topic.topicName, RiderConfig.kerberos.enabled)
-      val consumedLatestOffset =
-        try {
-          val flow = Await.result(flowDal.findById(topic.flowId), minTimeOut).get
-          val flowName = FlowUtils.getFlowName(flow.id, flow.sourceNs, flow.sinkNs)
-          getKafkaOffsetByGroupId(kafkaMap(topic.flowId), topic.topicName, flowName)
-        } catch {
-          case _: Exception =>
-            formatConsumedOffsetByGroup(latest)
-        }
-      TopicAllOffsets(topic.id, topic.topicName, topic.rate,
-        KafkaUtils.formatConsumedOffsetByLatestOffset(consumedLatestOffset, latest), earliest, latest)
+      val earliest = getEarliestOffset(kafkaMap(topic.flowId), topic.topicName, RiderConfig.kerberos.enabled)
+      val latest = getLatestOffset(kafkaMap(topic.flowId), topic.topicName, RiderConfig.kerberos.enabled)
+      val flow = Await.result(flowDal.findById(topic.flowId), minTimeOut).get
+      val flowName = FlowUtils.getFlowName(flow.id, flow.sourceNs, flow.sinkNs)
+      val consumedLatestOffset = getConsumerOffset(kafkaMap(topic.flowId), flowName, topic.topicName, latest.split(",").length, RiderConfig.kerberos.enabled)
+      TopicAllOffsets(topic.id, topic.topicName, topic.rate, consumedLatestOffset, earliest, latest)
     })
   }
 
