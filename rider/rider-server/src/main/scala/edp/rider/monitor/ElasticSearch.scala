@@ -48,16 +48,16 @@ object ElasticSearch extends RiderLogger {
       createEsIndex()
     else
       riderLogger.warn(s"application.conf didn't config elasticsearch, so won't initial elasticsearch index, store wormhole stream and flow feedback_stats data")
-//    if (grafana != null)
-//      GrafanaApi.createOrUpdateDataSource(RiderConfig.grafana.url,
-//        RiderConfig.grafana.adminToken,
-//        RiderConfig.grafana.esDataSourceName,
-//        RiderConfig.es.url,
-//        RiderConfig.es.wormholeIndex,
-//        RiderConfig.es.user,
-//        RiderConfig.es.pwd)
-//    else
-//      riderLogger.warn(s"application.conf didn't config grafana, so won't initial grafana datasource, wormhole project performance will display nothing")
+    //    if (grafana != null)
+    //      GrafanaApi.createOrUpdateDataSource(RiderConfig.grafana.url,
+    //        RiderConfig.grafana.adminToken,
+    //        RiderConfig.grafana.esDataSourceName,
+    //        RiderConfig.es.url,
+    //        RiderConfig.es.wormholeIndex,
+    //        RiderConfig.es.user,
+    //        RiderConfig.es.pwd)
+    //    else
+    //      riderLogger.warn(s"application.conf didn't config grafana, so won't initial grafana datasource, wormhole project performance will display nothing")
 
   }
 
@@ -104,7 +104,7 @@ object ElasticSearch extends RiderLogger {
       riderLogger.debug(s"queryESFlowMax url $url $postBody")
       val response = syncToES(postBody, url, HttpMethods.POST, CommonUtils.minTimeOut)
       //    riderLogger.info(s"queryESFlowMax $response")
-      if (response._1 == true) {
+      if (response._1) {
         try {
           val maxColumn = JsonUtils.getJValue(JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits"), s"_source")
           //val maxColumn = JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), s"_source")
@@ -152,14 +152,14 @@ object ElasticSearch extends RiderLogger {
     } else (false, "")
   }
 
-  def compactPostBody(projectId: Long, modelType:Long,content:Long,startTime: String, endTime: String):String =
+  def compactPostBody(projectId: Long, modelType: Long, content: Long, startTime: String, endTime: String): String =
     modelType match {
-      case 0 =>ReadJsonFile.getMessageFromJson(JsonFileType.ESFLOW)
+      case 0 => ReadJsonFile.getMessageFromJson(JsonFileType.ESFLOW)
         .replace("#PROJECT_ID#", projectId.toString)
         .replace("#FLOW_ID#", content.toString)
         .replace("#START_TIME#", startTime)
         .replace("#END_TIME#", endTime)
-      case 1 =>ReadJsonFile.getMessageFromJson(JsonFileType.ESSTREAM)
+      case 1 => ReadJsonFile.getMessageFromJson(JsonFileType.ESSTREAM)
         .replace("#PROJECT_ID#", projectId.toString)
         .replace("#STREAM_ID#", content.toString)
         .replace("#START_TIME#", startTime)
@@ -167,8 +167,8 @@ object ElasticSearch extends RiderLogger {
     }
 
 
-  def queryESMonitor(postBody:String)={
-    val list=ListBuffer[MonitorInfo]()
+  def queryESMonitor(postBody: String) = {
+    val list = ListBuffer[MonitorInfo]()
     if (RiderConfig.es != null) {
 
       val url = getESUrl + "_search"
@@ -177,30 +177,35 @@ object ElasticSearch extends RiderLogger {
       if (response._1) {
         val tuple = JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits").children
         implicit val json4sFormats: Formats = DefaultFormats
-        tuple.distinct.foreach(jvalue=>{
-          val value=JsonUtils.getJValue(jvalue,s"_source")
-          val interval=JsonUtils.getJValue(value,s"interval")
+        tuple.distinct.foreach(jvalue => {
+          val value = JsonUtils.getJValue(jvalue, s"_source")
+          val interval = JsonUtils.getJValue(value, s"interval")
 
-          val result=if(interval!=JNothing)JsonUtils.json2caseClass[MonitorInfo](JsonUtils.jValue2json(value))
+          val result = if (interval != JNothing) JsonUtils.json2caseClass[MonitorInfo](JsonUtils.jValue2json(value))
           else changeMonitorInfoEsToMonitorInfo(JsonUtils.json2caseClass[MonitorInfoES](JsonUtils.jValue2json(value)))
 
-          list+=result
+          list += result
         })
-      }else{
+      } else {
         riderLogger.error(s"Failed to get stream info from ES response")
       }
-      (response._1,list)
-    }else (false, list)
+      (response._1, list)
+    } else (false, list)
   }
 
-  def changeMonitorInfoEsToMonitorInfo(monitor:MonitorInfoES)={
-    MonitorInfo(0,monitor.statsId,monitor.umsTs,monitor.projectId,monitor.streamId,monitor.streamName,monitor.flowId,monitor.flowNamespace,
-      monitor.rddCount,monitor.topics,monitor.throughput,monitor.dataGeneratedTs,monitor.rddTs,monitor.directiveTs,monitor.DataProcessTs,monitor.swiftsTs,monitor.sinkTs,monitor.doneTs,
-      Interval(monitor.intervalDataProcessToDataums,monitor.intervalDataProcessToRdd,monitor.intervalDataProcessToSwifts,monitor.intervalDataProcessToSink,monitor.intervalDataProcessToDone,monitor.intervalDataumsToDone,monitor.intervalRddToDone,monitor.intervalSwiftsToSink,monitor.intervalSinkToDone))
+  def changeMonitorInfoEsToMonitorInfo(monitor: MonitorInfoES) = {
+    MonitorInfo(0, monitor.statsId, monitor.umsTs, monitor.projectId, monitor.streamId, monitor.streamName,
+      monitor.flowId, monitor.flowNamespace, monitor.rddCount, monitor.topics, monitor.throughput,
+      monitor.dataGeneratedTs, monitor.rddTs, monitor.directiveTs, monitor.DataProcessTs, monitor.swiftsTs,
+      monitor.sinkTs, monitor.doneTs,
+      Interval(monitor.intervalDataProcessToDataums, monitor.intervalDataProcessToRdd,
+        monitor.intervalDataProcessToSwifts, monitor.intervalDataProcessToSink,
+        monitor.intervalDataProcessToDone, monitor.intervalDataumsToDone, monitor.intervalRddToDone,
+        monitor.intervalSwiftsToSink, monitor.intervalSinkToDone))
   }
 
   def deleteEsHistory(fromDate: String, endDate: String): Int = {
-    var deleted = 0
+    val deleted = 0
     val postBody = ReadJsonFile.getMessageFromJson(JsonFileType.ESDELETED)
       .replace("#FROMDATE#", s""""$fromDate"""")
       .replace("#TODATE#", s""""$endDate"""")
