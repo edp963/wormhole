@@ -710,7 +710,7 @@ object FlowUtils extends RiderLogger {
           val latestKafkaOffset = getLatestOffset(instance.connUrl, database.nsDatabase, RiderConfig.kerberos.enabled)
           val lastConsumedOffset = getConsumerOffset(instance.connUrl, streamName, database.nsDatabase, latestKafkaOffset.split(",").length, RiderConfig.kerberos.enabled)
           val offset =
-            if (lastConsumedOffset.split(",").filter(_.split(":").length == 1).nonEmpty) latestKafkaOffset
+            if (lastConsumedOffset.split(",").exists(_.split(":").length == 1)) latestKafkaOffset
             else lastConsumedOffset
           val inTopicInsert = StreamInTopic(0, streamId, ns.nsDatabaseId, offset, RiderConfig.spark.topicDefaultRate,
             active = true, currentSec, userId, currentSec, userId)

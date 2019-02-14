@@ -282,7 +282,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     val udfTopics = streamUdfTopicDal.getUdfTopics(streamIds)
     val kafkaMap = getStreamKafkaMap(streamIds)
     streamIds.map(id => {
-      val topics = autoRegisteredTopics.filter(_.streamId == id) ++: udfTopics.filter(_.streamId == id)
+//      val topics = autoRegisteredTopics.filter(_.streamId == id) ++: udfTopics.filter(_.streamId == id)
       //      val feedbackOffsetMap = getConsumedMaxOffset(id, topics)
 
       val autoTopicsResponse = genAllOffsets(autoRegisteredTopics, kafkaMap, streamGroupIdMap)
