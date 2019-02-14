@@ -31,6 +31,11 @@
         "nullable": false
       },
       {
+        "name": "topics",
+        "type": "string",
+        "nullable": false
+      },
+      {
         "name": "rdd_count",
         "type": "int",
         "nullable": false
@@ -85,6 +90,7 @@
         1,
         "abc",
         "oracle.oracle01.db.table1.v3.dbpar01.tablepar01",
+        "[{\"topic_name\":\"batch\",\"partition_offset\":[{\"partition_num\":10,\"startOffset\":10,\"endOffset\":11}]}]",
         1234,
         1467001590267,
         1467001590367,

@@ -175,12 +175,12 @@ object OffsetPersistenceManager extends EdpLogging {
       OffsetPersistenceManager.persistTopic(addTopicList.map(_._1), offsetPath, config.zookeeper_path)
 
       addTopicList.foreach(tp => {
-        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority1, UmsProtocolUtils.feedbackDirective(DateUtils.currentDateTime, tp._2, UmsFeedbackStatus.SUCCESS,config.spark_config.stream_id,""), None, config.kafka_output.brokers)
+        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority1, UmsProtocolUtils.feedbackDirective(DateUtils.currentDateTime, tp._2, UmsFeedbackStatus.SUCCESS,config.spark_config.stream_id,""), Some(UmsProtocolType.FEEDBACK_DIRECTIVE+"."+config.spark_config.stream_id), config.kafka_output.brokers)
       })
     }
     if (delTopicList.nonEmpty) {
       delTopicList.foreach(tp => {
-        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority1, UmsProtocolUtils.feedbackDirective(DateUtils.currentDateTime, tp._2, UmsFeedbackStatus.SUCCESS,config.spark_config.stream_id,""), None, config.kafka_output.brokers)
+        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority1, UmsProtocolUtils.feedbackDirective(DateUtils.currentDateTime, tp._2, UmsFeedbackStatus.SUCCESS,config.spark_config.stream_id,""), Some(UmsProtocolType.FEEDBACK_DIRECTIVE+"."+config.spark_config.stream_id), config.kafka_output.brokers)
       })
       OffsetPersistenceManager.removeTopic(delTopicList.map(_._1), config.spark_config.stream_id, config.zookeeper_address, config.zookeeper_path)
     }
