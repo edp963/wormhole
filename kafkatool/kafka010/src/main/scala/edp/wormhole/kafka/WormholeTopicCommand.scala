@@ -3,7 +3,6 @@ package edp.wormhole.kafka
 import kafka.admin.AdminUtils.getBrokerMetadatas
 import kafka.admin.TopicCommand._
 import kafka.admin.{AdminUtils, RackAwareMode}
-import kafka.common.TopicExistsException
 import kafka.utils.{CommandLineUtils, ZkUtils}
 
 object WormholeTopicCommand {
@@ -41,7 +40,7 @@ object WormholeTopicCommand {
       }
     } catch {
       case _: kafka.admin.AdminOperationException =>
-      case e: TopicExistsException => if (!ifNotExists) throw e
+      case e: Exception => if (!ifNotExists) throw e
     }
   }
 

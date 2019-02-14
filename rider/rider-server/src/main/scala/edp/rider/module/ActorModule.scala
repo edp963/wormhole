@@ -30,4 +30,5 @@ trait ActorModule {
 trait ActorModuleImpl extends ActorModule {
   this: ConfigurationModule =>
   val system = ActorSystem("riderActorSystem", config)
+  val kafkaConsumerSystem = ActorSystem("riderConsumerActorSystem", config)
 }

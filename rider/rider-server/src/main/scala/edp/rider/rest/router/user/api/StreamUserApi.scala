@@ -26,23 +26,21 @@ import akka.http.scaladsl.server.Route
 import edp.rider.RiderStarter.modules._
 import edp.rider.common.Action._
 import edp.rider.common.{RiderConfig, RiderLogger, StreamStatus, StreamType}
-import edp.rider.kafka.KafkaUtils._
 import edp.rider.rest.persistence.dal._
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.CommonUtils.{currentSec, minTimeOut}
 import edp.rider.rest.util.ResponseUtils.{getHeader, _}
 import edp.rider.rest.util.StreamUtils._
-import edp.rider.rest.util.UdfUtils._
 import edp.rider.rest.util.{AuthorizationProvider, StreamUtils}
 import edp.rider.service.util.CacheMap
-import edp.rider.yarn.YarnClientLog
+import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.rider.yarn.SubmitYarnJob.runShellCommand
+import edp.rider.yarn.YarnClientLog
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.util.JsonUtils
 import slick.jdbc.MySQLProfile.api._
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
@@ -735,8 +733,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     }
     val kafkaInfo = streamDal.getKafkaInfo(streamId)
     // get kafka earliest/latest offset
-    val latestOffset = getKafkaLatestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.enabled)
-    val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.enabled)
+    val latestOffset = getLatestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.enabled)
+    val earliestOffset = getEarliestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.enabled)
 
     val topicResponse = SimpleTopicAllOffsets(postTopic.name, RiderConfig.spark.topicDefaultRate, earliestOffset, earliestOffset, latestOffset)
 
@@ -791,8 +789,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     val newTopics = topics.userDefinedTopics.filter(!userDefinedTopicsName.contains(_))
     val newTopicsOffset = newTopics.map(topic => {
       val kafkaInfo = streamDal.getKafkaInfo(streamId)
-      val latestOffset = getKafkaLatestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.enabled)
-      val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.enabled)
+      val latestOffset = getLatestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.enabled)
+      val earliestOffset = getEarliestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.enabled)
       val consumedOffset = earliestOffset
       SimpleTopicAllOffsets(topic, RiderConfig.spark.topicDefaultRate, consumedOffset, earliestOffset, latestOffset)
     })

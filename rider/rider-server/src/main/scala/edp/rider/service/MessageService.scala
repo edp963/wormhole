@@ -22,7 +22,7 @@
 package edp.rider.service
 
 import edp.rider.common.FlowStatus._
-import edp.rider.common.{RiderConfig,RiderLogger, TopicPartitionOffset}
+import edp.rider.common.{RiderConfig, RiderLogger, TopicPartitionOffset}
 import edp.rider.module.{ConfigurationModule, PersistenceModule}
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.entities._
@@ -76,7 +76,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
         val resultDescValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc")
         if (umsTsValue != null && directiveIdValue != null && statusValue != null && streamIdValue != null && resultDescValue != null) {
-          Await.result(modules.feedbackDirectiveDal.insert(FeedbackDirective(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, directiveIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs)), minTimeOut)
+          //          Await.result(modules.feedbackDirectiveDal.insert(FeedbackDirective(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, directiveIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs)), minTimeOut)
           modules.directiveDal.getDetail(directiveIdValue.toString.toLong) match {
             case Some(records) =>
               val pType: UmsProtocolType.Value = UmsProtocolType.umsProtocolType(records.protocolType.toString)
@@ -99,7 +99,8 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
           riderLogger.error(s"FeedbackDirective can't found the value", tuple)
         }
       })
-    } catch {
+    }
+    catch {
       case e: Exception =>
         riderLogger.error(s"Failed to process FeedbackDirective feedback message: $message")
         riderLogger.error(s"Failed to process FeedbackDirective feedback message", e)
@@ -156,7 +157,9 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
     }
   }
 
-  private def getTopicPartitionList(topicPartition: String): List[TopicPartitionOffset] = {
+  private def getTopicPartitionList(topicPartition: String): List[TopicPartitionOffset]
+
+  = {
     val l: ListBuffer[TopicPartitionOffset] = new ListBuffer()
     topicPartition.split("\\)\\(").foreach {
       arr =>
@@ -210,7 +213,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val umsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
         val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
         val statsIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stats_id")
-        val topics=UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics")
+        val topics = UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics")
         val sinkNamespaceValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace").toString
         val rddCountValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_count").toString.toInt
         val cdcTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_genereated_ts").toString.toLong
@@ -239,9 +242,9 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
             throughput = rddCountValue.toString.toInt
           } else throughput = rddCountValue.toString.toInt / interval_rdd_done
 
-          val monitorInfo = MonitorInfo(0L,statsIdValue.toString,
+          val monitorInfo = MonitorInfo(0L, statsIdValue.toString,
             string2EsDateString(umsTsValue.toString),
-            CacheMap.getProjectId(streamIdValue.toString.toLong), streamIdValue.toString.toLong, CacheMap.getStreamName(streamIdValue.toString.toLong), CacheMap.getFlowId(flowName), flowName, rddCountValue.toString.toInt,if(topics==null)"" else topics.toString, throughput,
+            CacheMap.getProjectId(streamIdValue.toString.toLong), streamIdValue.toString.toLong, CacheMap.getStreamName(streamIdValue.toString.toLong), CacheMap.getFlowId(flowName), flowName, rddCountValue.toString.toInt, if (topics == null) "" else topics.toString, throughput,
             string2EsDateString(DateUtils.dt2string(cdcTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(rddTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(directiveTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
@@ -250,12 +253,12 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
             string2EsDateString(DateUtils.dt2string(sinkTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(doneTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             Interval(interval_data_process_dataums, interval_data_process_rdd, interval_data_process_swifts, interval_data_process_sink, interval_data_process_done,
-            interval_data_ums_done, interval_rdd_done, interval_data_swifts_sink, interval_data_sink_done))
-            if(RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es")){
-              ElasticSearch.insertFlowStatToES(monitorInfo)
-            }else{
-              modules.monitorInfoDal.insert(monitorInfo)
-            }
+              interval_data_ums_done, interval_rdd_done, interval_data_swifts_sink, interval_data_sink_done))
+          if (RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es")) {
+            ElasticSearch.insertFlowStatToES(monitorInfo)
+          } else {
+            modules.monitorInfoDal.insert(monitorInfo)
+          }
         } else {
           riderLogger.error(s"Failed to get value from FeedbackFlowStats", tuple)
         }
@@ -266,7 +269,9 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
     }
   }
 
-  private def string2EsDateString(string: String): String = {
+  private def string2EsDateString(string: String): String
+
+  = {
     string.concat(CommonUtils.getTimeZoneId)
   }
 }

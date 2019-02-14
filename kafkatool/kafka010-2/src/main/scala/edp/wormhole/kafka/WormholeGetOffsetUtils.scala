@@ -5,21 +5,27 @@ import java.util.Properties
 
 import joptsimple.OptionParser
 import kafka.admin.AdminClient
-import kafka.client.ClientUtils
-import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
 import kafka.utils.ToolsUtils
 import org.apache.kafka.clients.CommonClientConfigs
+import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
 import org.apache.kafka.common.TopicPartition
 import org.apache.log4j.Logger
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-object WormholeGetOffsetShell {
+object WormholeGetOffsetUtils {
 
   private val logger = Logger.getLogger(this.getClass)
 
-  def getTopicOffsets(brokerList: String, topic: String, kerberos: Boolean = false, time: Long = -1, maxWaitMs: Int = 60000) = {
+  def getLatestOffset(brokerList: String, topic: String, kerberos: Boolean = false): String = {
+    getTopicOffset(brokerList, topic, kerberos, -1)
+  }
+
+  def getEarliestOffset(brokerList: String, topic: String, kerberos: Boolean = false): String = {
+    getTopicOffset(brokerList, topic, kerberos, -2)
+  }
+
+  def getTopicOffset(brokerList: String, topic: String, kerberos: Boolean = false, time: Long = -1, maxWaitMs: Int = 60000) = {
     try {
       val parser = new OptionParser
       ToolsUtils.validatePortOrDie(parser, brokerList)
@@ -63,8 +69,7 @@ object WormholeGetOffsetShell {
       }
       val offset = offsetSeq.sortBy(offset => offset.split(":")(0).toLong).mkString(",")
       if (offset == "")
-        throw new Exception(s"query topic $topic offset result is '', please check it.")
-      logger.info(s"offset is:$offset")
+        throw new Exception(s"topic $topic maybe not exists, query latest/earliest offset result is '', please check it.")
       offset
     } catch {
       case ex: Exception =>
@@ -72,35 +77,36 @@ object WormholeGetOffsetShell {
     }
   }
 
-  def getConsumerOffset(broker: String, groupid: String): Map[String, String] = {
-    val props = new Properties()
-    props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, broker)
-    val adminClient = AdminClient.create(props)
+  def getConsumerOffset(brokers: String, groupId: String, topic: String, kerberos: Boolean): String = {
+    val latestOffset = getTopicOffset(brokers, topic, kerberos, -1)
+    getConsumerOffset(brokers, groupId, topic, latestOffset.split(",").length, kerberos)
+  }
 
-    val offsetMap: Map[TopicPartition, Long] = adminClient.listGroupOffsets(groupid)
-    val r = if (offsetMap == null || offsetMap.isEmpty) null.asInstanceOf[Map[String, String]]
-    else {
-      val map = mutable.HashMap.empty[String, ListBuffer[(Int, Long)]]
-      offsetMap.foreach { case (k, v) =>
-        if (map.contains(k.topic())) {
-          map(k.topic) += ((k.partition(), v))
-        } else {
-          val list = ListBuffer.empty[(Int, Long)]
-          list += ((k.partition(), v))
-          map(k.topic) = list
-        }
+  def getConsumerOffset(brokers: String, groupId: String, topic: String, partitions: Int, kerberos: Boolean): String = {
+    try {
+      val props = new Properties()
+      props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, brokers)
+      if (kerberos) {
+        props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT")
+        props.put("sasl.kerberos.service.name", "kafka")
       }
+      val adminClient = AdminClient.create(props)
 
-      val tpMap = mutable.HashMap.empty[String, String]
-      map.foreach { case (k, v) =>
-        tpMap(k) = v.sortBy(_._1).map(ele => {
-          s"${ele._1}:${ele._2}"
-        }).mkString(",")
-      }
-      tpMap.toMap
+      val offsetMap: Map[TopicPartition, Long] = adminClient.listGroupOffsets(groupId)
+      adminClient.close()
+
+      Range(0, partitions).map(partition => {
+        val topicPartition = new TopicPartition(topic, partition)
+        if (offsetMap.contains(topicPartition))
+          partition + ":" + offsetMap(topicPartition)
+        else
+          partition + ":"
+      }).mkString(",")
+    } catch {
+      case ex: Exception =>
+        logger.error(s"get consumer groupId $groupId for topic $topic offset failed", ex)
+        Range(0, partitions).mkString(":,").concat(":")
     }
-    adminClient.close()
-    r
   }
 }
 
