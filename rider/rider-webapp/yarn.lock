@@ -1012,7 +1012,7 @@ babel-register@^6.18.0:
     home-or-tmp "^2.0.0"
     lodash "^4.2.0"
     mkdirp "^0.5.1"
-    source-map-support "^0.6.0-beta"
+    source-map-support "^0.6.0"
 
 babel-runtime@^6.0.0, babel-runtime@^6.11.6, babel-runtime@^6.2.0, babel-runtime@^6.9.0, babel-runtime@^6.9.1:
   version "6.11.6"
@@ -1093,9 +1093,9 @@ balanced-match@^0.2.0:
   version "0.2.1"
   resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-0.2.1.tgz#7bc658b4bed61eee424ad74f75f5c3e2c4df3cc7"
 
-balanced-match@^0.4.0, balanced-match@^0.6.0-beta, balanced-match@^0.6.0-beta:
-  version "0.6.0-beta"
-  resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-0.6.0-beta.tgz#cb3f3e3c732dc0f01ee70b403f302e61d7709838"
+balanced-match@^0.4.0, balanced-match@^0.6.0, balanced-match@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-0.6.0.tgz#cb3f3e3c732dc0f01ee70b403f302e61d7709838"
 
 balanced-match@~0.1.0, balanced-match@0.1.0:
   version "0.1.0"
@@ -1254,7 +1254,7 @@ body-parser@^1.12.4:
     debug "~2.2.0"
     depd "~1.1.0"
     http-errors "~1.5.0"
-    iconv-lite "0.6.0-beta3"
+    iconv-lite "0.6.03"
     on-finished "~2.3.0"
     qs "6.2.0"
     raw-body "~2.1.7"
@@ -1285,7 +1285,7 @@ brace-expansion@^1.0.0:
   version "1.1.6"
   resolved "https://registry.yarnpkg.com/brace-expansion/-/brace-expansion-1.1.6.tgz#7197d7eaa9b87e648390ea61fc66c84427420df9"
   dependencies:
-    balanced-match "^0.6.0-beta"
+    balanced-match "^0.6.0"
     concat-map "0.0.1"
 
 braces@^0.1.2:
@@ -2248,9 +2248,9 @@ ctype@0.5.3:
   version "0.5.3"
   resolved "https://registry.yarnpkg.com/ctype/-/ctype-0.5.3.tgz#82c18c2461f74114ef16c135224ad0b9144ca12f"
 
-currently-unhandled@^0.6.0-beta:
-  version "0.6.0-beta"
-  resolved "https://registry.yarnpkg.com/currently-unhandled/-/currently-unhandled-0.6.0-beta.tgz#988df33feab191ef799a61369dd76c17adf957ea"
+currently-unhandled@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/currently-unhandled/-/currently-unhandled-0.6.0.tgz#988df33feab191ef799a61369dd76c17adf957ea"
   dependencies:
     array-find-index "^1.0.1"
 
@@ -2390,8 +2390,8 @@ deep-equal@^1.0.0, deep-equal@1.0.1:
   resolved "https://registry.yarnpkg.com/deep-equal/-/deep-equal-1.0.1.tgz#f5d260292b660e084eff4cdbc9f08ad3247448b5"
 
 deep-extend@^0.4.0, deep-extend@~0.4.0:
-  version "0.6.0-beta"
-  resolved "https://registry.yarnpkg.com/deep-extend/-/deep-extend-0.6.0-beta.tgz#efe4113d08085f4e6f9687759810f807469e2253"
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/deep-extend/-/deep-extend-0.6.0.tgz#efe4113d08085f4e6f9687759810f807469e2253"
 
 deep-is@~0.1.3:
   version "0.1.3"
@@ -2502,7 +2502,7 @@ doiuse@^2.4.1:
     lodash "^4.0.0"
     multimatch "^2.0.0"
     postcss "^5.0.8"
-    source-map "^0.6.0-beta"
+    source-map "^0.6.0"
     through2 "^0.6.3"
     yargs "^3.5.4"
 
@@ -2698,7 +2698,7 @@ encoding@^0.1.11:
   version "0.1.12"
   resolved "https://registry.yarnpkg.com/encoding/-/encoding-0.1.12.tgz#538b66f3ee62cd1ab51ec323829d1f9480c74beb"
   dependencies:
-    iconv-lite "~0.6.0-beta3"
+    iconv-lite "~0.6.03"
 
 end-of-stream@^1.0.0:
   version "1.1.0"
@@ -3401,9 +3401,9 @@ find-versions@^1.0.0:
     meow "^3.5.0"
     semver-regex "^1.0.0"
 
-findup-sync@^0.6.0-beta:
-  version "0.6.0-beta"
-  resolved "https://registry.yarnpkg.com/findup-sync/-/findup-sync-0.6.0-beta.tgz#a8117d0f73124f5a4546839579fe52d7129fb5e5"
+findup-sync@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/findup-sync/-/findup-sync-0.6.0.tgz#a8117d0f73124f5a4546839579fe52d7129fb5e5"
   dependencies:
     detect-file "^0.1.0"
     is-glob "^2.0.1"
@@ -4133,9 +4133,9 @@ humanize-url@^1.0.1:
     normalize-url "^1.0.0"
     strip-url-auth "^1.0.0"
 
-iconv-lite@~0.6.0-beta3, iconv-lite@0.6.0-beta3:
-  version "0.6.0-beta3"
-  resolved "https://registry.yarnpkg.com/iconv-lite/-/iconv-lite-0.6.0-beta3.tgz#1f88aba4ab0b1508e8312acc39345f36e992e2f2"
+iconv-lite@~0.6.03, iconv-lite@0.6.03:
+  version "0.6.03"
+  resolved "https://registry.yarnpkg.com/iconv-lite/-/iconv-lite-0.6.03.tgz#1f88aba4ab0b1508e8312acc39345f36e992e2f2"
 
 icss-replace-symbols@^1.0.2:
   version "1.0.2"
@@ -5064,7 +5064,7 @@ liftoff@^2.2.0:
   resolved "https://registry.yarnpkg.com/liftoff/-/liftoff-2.3.0.tgz#a98f2ff67183d8ba7cfaca10548bd7ff0550b385"
   dependencies:
     extend "^3.0.0"
-    findup-sync "^0.6.0-beta"
+    findup-sync "^0.6.0"
     fined "^1.0.1"
     flagged-respawn "^0.3.2"
     lodash.isplainobject "^4.0.4"
@@ -5476,7 +5476,7 @@ loud-rejection@^1.0.0:
   version "1.6.0"
   resolved "https://registry.yarnpkg.com/loud-rejection/-/loud-rejection-1.6.0.tgz#5b46f80147edee578870f086d04821cf998e551f"
   dependencies:
-    currently-unhandled "^0.6.0-beta"
+    currently-unhandled "^0.6.0"
     signal-exit "^3.0.0"
 
 lower-case-first@^1.0.0:
@@ -5604,7 +5604,7 @@ micromatch@^2.1.5, micromatch@^2.3.11, micromatch@^2.3.7:
     normalize-path "^2.0.1"
     object.omit "^2.0.0"
     parse-glob "^3.0.4"
-    regex-cache "^0.6.0-beta"
+    regex-cache "^0.6.0"
 
 miller-rabin@^4.0.0:
   version "4.0.0"
@@ -6372,7 +6372,7 @@ postcss-apply@^0.3.0:
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/postcss-apply/-/postcss-apply-0.3.0.tgz#a2f37c5bdfa881e4c15f4f245ec0cd96dd2e70d5"
   dependencies:
-    balanced-match "^0.6.0-beta"
+    balanced-match "^0.6.0"
     postcss "^5.0.21"
 
 postcss-attribute-case-insensitive@^1.0.1:
@@ -6788,7 +6788,7 @@ postcss-selector-matches@^2.0.0:
   version "2.0.5"
   resolved "https://registry.yarnpkg.com/postcss-selector-matches/-/postcss-selector-matches-2.0.5.tgz#fa0f43be57b68e77aa4cd11807023492a131027f"
   dependencies:
-    balanced-match "^0.6.0-beta"
+    balanced-match "^0.6.0"
     postcss "^5.0.0"
 
 postcss-selector-not@^2.0.0:
@@ -7043,7 +7043,7 @@ raw-body@~2.1.7:
   resolved "https://registry.yarnpkg.com/raw-body/-/raw-body-2.1.7.tgz#adfeace2e4fb3098058014d08c072dcc59758774"
   dependencies:
     bytes "2.4.0"
-    iconv-lite "0.6.0-beta3"
+    iconv-lite "0.6.03"
     unpipe "1.0.0"
 
 rc@^1.0.1, rc@^1.1.2, rc@^1.1.6, rc@~1.1.0:
@@ -7281,7 +7281,7 @@ reduce-css-calc@^1.2.6, reduce-css-calc@^1.2.7:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/reduce-css-calc/-/reduce-css-calc-1.3.0.tgz#747c914e049614a4c9cfbba629871ad1d2927716"
   dependencies:
-    balanced-match "^0.6.0-beta"
+    balanced-match "^0.6.0"
     math-expression-evaluator "^1.2.14"
     reduce-function-call "^1.0.1"
 
@@ -7318,7 +7318,7 @@ regenerator-runtime@^0.9.5:
   version "0.9.5"
   resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.9.5.tgz#403d6d40a4bdff9c330dd9392dcbb2d9a8bba1fc"
 
-regex-cache@^0.6.0-beta:
+regex-cache@^0.6.0:
   version "0.4.3"
   resolved "https://registry.yarnpkg.com/regex-cache/-/regex-cache-0.4.3.tgz#9b1a6c35d4d0dfcef5711ae651e8e9d3d7114145"
   dependencies:
@@ -7433,7 +7433,7 @@ request@^2.54.0, request@^2.55.0, request@^2.72.0, request@2.75.0, request@2.x:
     qs "~6.2.0"
     stringstream "~0.0.4"
     tough-cookie "~2.3.0"
-    tunnel-agent "~0.6.0-beta"
+    tunnel-agent "~0.6.0"
 
 request@~2.60.0:
   version "2.60.0"
@@ -7483,7 +7483,7 @@ request@~2.72.0:
     qs "~6.1.0"
     stringstream "~0.0.4"
     tough-cookie "~2.2.0"
-    tunnel-agent "~0.6.0-beta"
+    tunnel-agent "~0.6.0"
 
 require-directory@^2.1.1:
   version "2.1.1"
@@ -7845,7 +7845,7 @@ source-map-resolve@^0.3.0:
     source-map-url "~0.3.0"
     urix "~0.1.0"
 
-source-map-support@^0.6.0-beta:
+source-map-support@^0.6.0:
   version "0.4.3"
   resolved "https://registry.yarnpkg.com/source-map-support/-/source-map-support-0.4.3.tgz#693c8383d4389a4569486987c219744dfc601685"
   dependencies:
@@ -7861,7 +7861,7 @@ source-map@^0.1.38, source-map@^0.1.41, source-map@~0.1.7, source-map@0.1.x:
   dependencies:
     amdefine ">=0.0.4"
 
-source-map@^0.6.0-beta, source-map@^0.4.4, source-map@0.4.x:
+source-map@^0.6.0, source-map@^0.4.4, source-map@0.4.x:
   version "0.4.4"
   resolved "https://registry.yarnpkg.com/source-map/-/source-map-0.4.4.tgz#eba4f5da9c0dc999de68032d8b4f76173652036b"
   dependencies:
@@ -8403,7 +8403,7 @@ tty-browserify@0.0.0:
   version "0.0.0"
   resolved "https://registry.yarnpkg.com/tty-browserify/-/tty-browserify-0.0.0.tgz#a157ba402da24e9bf957f9aa69d524eed42901a6"
 
-tunnel-agent@^0.4.0, tunnel-agent@~0.4.0, tunnel-agent@~0.6.0-beta:
+tunnel-agent@^0.4.0, tunnel-agent@~0.4.0, tunnel-agent@~0.6.0:
   version "0.4.3"
   resolved "https://registry.yarnpkg.com/tunnel-agent/-/tunnel-agent-0.4.3.tgz#6373db76909fe570e08d73583365ed828a74eeeb"
 

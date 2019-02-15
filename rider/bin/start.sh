@@ -56,4 +56,4 @@ echo "wormholeServer final request address for UI: $finalAddress"
 # sed -i "s#http://.*/api-docs/swagger.json#http://$finalAddress/api-docs/swagger.json#g" $WORMHOLE_HOME/swagger-ui/index.html
 
 echo "[WormholeServer] is starting..."
-java -DWORMHOLE_HOME=$WORMHOLE_HOME $WORMHOLE_KERBEROS_PARAM -cp $WORMHOLE_HOME/lib/wormhole-rider-server_1.3-0.6.0-beta.jar:$WORMHOLE_HOME/lib/* edp.rider.RiderStarter &
+java -DWORMHOLE_HOME=$WORMHOLE_HOME $WORMHOLE_KERBEROS_PARAM -cp $WORMHOLE_HOME/lib/wormhole-rider-server_1.3-0.6.0.jar:$WORMHOLE_HOME/lib/* edp.rider.RiderStarter &

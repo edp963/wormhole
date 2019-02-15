@@ -21,27 +21,26 @@ description: Wormhole Deployment page
 - Hadoop 集群（HDFS，YARN）（支持版本 2.6+）
 - Zookeeper
 - Kafka （支持版本 0.10.2.2）
-- Elasticsearch（支持版本 5.x）（非必须，若无则无法查看 wormhole 处理数据的吞吐和延时）
-- Grafana （支持版本 4.x）（非必须，若无则无法查看 wormhole 处理数据的吞吐和延时的图形化展示）
+- Elasticsearch（支持版本 5.x）（非必须，若无可通过在配置文件中配置mysql查看wormhole 处理数据的吞吐和延时）
 - MySQL
 
 #### Jar包准备
 
 mysql-connector-java-{your-db-version}.jar
 
-**注意：升级至0.6.0-beta版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
+**注意：升级至0.6.0版本，须将Kafka版本由0.10.0.0升级至0.10.2.2，0.10.2.2以上版本须自行测试**
 
 ## 部署配置
 
 #### 下载安装包
 
-**下载 wormhole-0.6.0-beta.tar.gz 包 (链接：https://pan.baidu.com/s/1JYRJoaPy6E3u8VqGas0neg 提取码：yzgc)，或者自编译**
+**下载 wormhole-0.6.0.tar.gz 包 (链接：https://pan.baidu.com/s/1CYu39S-3TcWTJsRDXqFuHw  提取码：oo2o )，或者自编译**
 
 ```
-下载wormhole-0.6.0-beta.tar.gz安装包
-tar -xvf wormhole-0.6.0-beta.tar.gz
+下载wormhole-0.6.0.tar.gz安装包
+tar -xvf wormhole-0.6.0.tar.gz
 或者自编译，生成的tar包在 wormhole/target
-git clone -b 0.5 https://github.com/edp963/wormhole.git
+git clone -b 0.6 https://github.com/edp963/wormhole.git
 cd wormhole
 mvn install package -Pwormhole
 ```
@@ -384,7 +383,7 @@ update udf set map_or_agg='udf';
 
 （2）停止所有flow
 
-在0.6.0-beta版本启动之前，需停止以前版本所有sparkx的flow（包括starting、running、suspending、updating状态的flow）, 并记录当前stream消费到的topic offset，重启stream时，手动设定从之前记录的offset消费
+在0.6.0版本启动之前，需停止以前版本所有sparkx的flow（包括starting、running、suspending、updating状态的flow）, 并记录当前stream消费到的topic offset，重启stream时，手动设定从之前记录的offset消费
 
 #### 0.5.0-0.5.2版本升级到0.6.0版本
 

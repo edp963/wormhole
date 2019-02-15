@@ -4,7 +4,7 @@ import java.util.UUID
 
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.ums.UmsProtocolUtils
+import edp.wormhole.ums.{UmsProtocolType, UmsProtocolUtils}
 import edp.wormhole.util.DateUtils
 import org.apache.flink.metrics.MetricConfig
 import org.apache.flink.metrics.reporter.{AbstractReporter, Scheduled}
@@ -51,7 +51,7 @@ class FeedbackMetricsReporter extends AbstractReporter with Scheduled{
         Thread.currentThread.setContextClassLoader(null)  //当kafkaProducer在单独线程里时，会存在由于classLoader加载问题，导致的StringSerilizer加载异常问题，故这里做此操作
         WormholeKafkaProducer.init(brokers.toString, None,kerberos.toString.toBoolean)
         WormholeKafkaProducer.sendMessage(topic.toString, FeedbackPriority.FeedbackPriority4,
-          UmsProtocolUtils.feedbackFlowStats(sourceNamespace.toString,protocolType,DateUtils.currentDateTime,streamId.toString.toLong,batchId,sinkNamespace.toString,topics,payloadSize.toInt,txt2Long(firstUmsTs),txt2Long(firstUmsTs),txt2Long(firstUmsTs),txt2Long(firstUmsTs),txt2Long(lastUmsTs),txt2Long(lastUmsTs),lastUmsTs), None, brokers.toString)
+          UmsProtocolUtils.feedbackFlowStats(sourceNamespace.toString,protocolType,DateUtils.currentDateTime,streamId.toString.toLong,batchId,sinkNamespace.toString,topics,payloadSize.toInt,txt2Long(firstUmsTs),txt2Long(firstUmsTs),txt2Long(firstUmsTs),txt2Long(firstUmsTs),txt2Long(lastUmsTs),txt2Long(lastUmsTs),lastUmsTs), Some(UmsProtocolType.FEEDBACK_FLOW_STATS+"."+streamId), brokers.toString)
         this.counters.keySet.iterator.next.dec(payloadSize)
       }
     }

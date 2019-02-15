@@ -24,12 +24,12 @@ package edp.rider.rest.persistence.dal
 import edp.rider.RiderStarter.modules._
 import edp.rider.common.Action._
 import edp.rider.common._
-import edp.rider.kafka.KafkaUtils._
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.StreamUtils._
+import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
@@ -118,7 +118,8 @@ class StreamDal(streamTable: TableQuery[StreamTable],
       val streamSeq = refreshStreamStatus(projectIdOpt, streamIdsOpt, action)
       val streamKafkaMap = instanceDal.getStreamKafka(streamSeq.map(stream => (stream.id, stream.instanceId)).toMap[Long, Long])
       val streamIds = streamSeq.map(_.id)
-      val streamTopicMap = getStreamTopicsMap(streamIds)
+      val streamGroupIdMap = streamSeq.map(stream => (stream.id, stream.name)).toMap[Long, String]
+      val streamTopicMap = getStreamTopicsMap(streamIds, streamGroupIdMap)
       val streamUdfSeq = streamUdfDal.getStreamUdf(streamIds)
       //      val streamZkUdfSeq = getZkStreamUdf(streamIds)
       val projectMap = getStreamProjectMap(streamSeq)
@@ -270,19 +271,22 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   }
 
   def getTopicsAllOffsets(streamId: Long): GetTopicsResponse = {
-    getStreamTopicsMap(Seq(streamId))(streamId)
+    val stream = Await.result(super.findById(streamId), minTimeOut).head
+    val map = mutable.HashMap.empty[Long, String]
+    map(streamId) = stream.name
+    getStreamTopicsMap(Seq(streamId), map.toMap)(streamId)
   }
 
-  def getStreamTopicsMap(streamIds: Seq[Long]): Map[Long, GetTopicsResponse] = {
+  def getStreamTopicsMap(streamIds: Seq[Long], streamGroupIdMap: Map[Long, String]): Map[Long, GetTopicsResponse] = {
     val autoRegisteredTopics = streamInTopicDal.getAutoRegisteredTopics(streamIds)
     val udfTopics = streamUdfTopicDal.getUdfTopics(streamIds)
     val kafkaMap = getStreamKafkaMap(streamIds)
     streamIds.map(id => {
-      val topics = autoRegisteredTopics.filter(_.streamId == id) ++: udfTopics.filter(_.streamId == id)
-      val feedbackOffsetMap = getConsumedMaxOffset(id, topics)
+//      val topics = autoRegisteredTopics.filter(_.streamId == id) ++: udfTopics.filter(_.streamId == id)
+      //      val feedbackOffsetMap = getConsumedMaxOffset(id, topics)
 
-      val autoTopicsResponse = genAllOffsets(autoRegisteredTopics, kafkaMap, feedbackOffsetMap)
-      val udfTopicsResponse = genAllOffsets(udfTopics, kafkaMap, feedbackOffsetMap)
+      val autoTopicsResponse = genAllOffsets(autoRegisteredTopics, kafkaMap, streamGroupIdMap)
+      val udfTopicsResponse = genAllOffsets(udfTopics, kafkaMap, streamGroupIdMap)
 
       //update offset in table
       val autoRegisteredUpdateTopics = autoTopicsResponse.map(topic => UpdateTopicOffset(topic.id, topic.consumedLatestOffset))
@@ -294,7 +298,8 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     }).toMap
     //    GetTopicsResponse(autoRegisteredTopicsResponse, udfTopicsResponse)
   }
-    //getStreamTopicsName for getSimpleStreamInfo
+
+  //getStreamTopicsName for getSimpleStreamInfo
   def getStreamTopicsName(streamIds: Long): (Long, Seq[String]) = {
     val autoRegisteredTopics = streamInTopicDal.getAutoRegisteredTopics(streamIds)
     val udfTopics = streamUdfTopicDal.getUdfTopics(streamIds)
@@ -305,11 +310,11 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   }
 
 
-  def genAllOffsets(topics: Seq[StreamTopicTemp], kafkaMap: Map[Long, String], feedbackOffsetMap: Map[String, String]): Seq[TopicAllOffsets] = {
+  def genAllOffsets(topics: Seq[StreamTopicTemp], kafkaMap: Map[Long, String], streamGroupIdMap: Map[Long, String]): Seq[TopicAllOffsets] = {
     topics.map(topic => {
-      val earliest = getKafkaEarliestOffset(kafkaMap(topic.streamId), topic.name, RiderConfig.kerberos.enabled)
-      val latest = getKafkaLatestOffset(kafkaMap(topic.streamId), topic.name, RiderConfig.kerberos.enabled)
-      val consumed = formatConsumedOffsetByLatestOffset(feedbackOffsetMap(topic.name), latest)
+      val earliest = getEarliestOffset(kafkaMap(topic.streamId), topic.name, RiderConfig.kerberos.enabled)
+      val latest = getLatestOffset(kafkaMap(topic.streamId), topic.name, RiderConfig.kerberos.enabled)
+      val consumed = getConsumerOffset(kafkaMap(topic.streamId), streamGroupIdMap(topic.streamId), topic.name, latest.split(",").length, RiderConfig.kerberos.enabled)
       TopicAllOffsets(topic.id, topic.name, topic.rate, consumed, earliest, latest)
     })
   }

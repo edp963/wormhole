@@ -50,7 +50,7 @@ case class RiderKafka(brokers: String,
                       client_id: String,
                       group_id: String,
                       autoCommit: Boolean,
-                      keyDeserializer: ByteArrayDeserializer,
+                      keyDeserializer: StringDeserializer,
                       valueDeserializer: StringDeserializer,
                       pollInterval: FiniteDuration,
                       pollTimeout: FiniteDuration,
@@ -222,7 +222,7 @@ object RiderConfig {
     "wormhole_rider_group",
     "wormhole_rider_group_consumer",
     false,
-    new ByteArrayDeserializer, new StringDeserializer,
+    new StringDeserializer, new StringDeserializer,
     pollInterval,
     pollTimeout,
     stopTimeout,
@@ -240,10 +240,10 @@ object RiderConfig {
 
   lazy val appTags = getStringConfig("spark.app.tags", "wormhole")
   lazy val wormholeClientLogPath = getStringConfig("spark.wormhole.client.log.path", s"${RiderConfig.riderRootPath}/logs/streams")
-  lazy val wormholeJarPath = getStringConfig("spark.wormhole.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-sparkx_2.2.0-0.6.0-beta-jar-with-dependencies.jar")
-  lazy val wormholeKafka08JarPath = getStringConfig("spark.wormhole.kafka08.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-sparkx_2.2.0-0.6.0-beta-jar-with-dependencies-kafka08.jar")
+  lazy val wormholeJarPath = getStringConfig("spark.wormhole.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-sparkx_2.2.0-0.6.0-jar-with-dependencies.jar")
+  lazy val wormholeKafka08JarPath = getStringConfig("spark.wormhole.kafka08.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-sparkx_2.2.0-0.6.0-jar-with-dependencies-kafka08.jar")
   lazy val kafka08StreamNames = getStringConfig("spark.wormhole.kafka08.streams", "")
-  lazy val sparkxInterfaceJarPath = getStringConfig("spark.wormhole.sparkxinterface.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-sparkxinterface-0.6.0-beta.jar")
+  lazy val sparkxInterfaceJarPath = getStringConfig("spark.wormhole.sparkxinterface.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-sparkxinterface-0.6.0.jar")
   lazy val wormholeUser = config.getString("spark.wormholeServer.user")
   lazy val sshPort = config.getInt("spark.wormholeServer.ssh.port")
   lazy val rm1Url = config.getString("spark.yarn.rm1.http.url")
@@ -358,7 +358,7 @@ object RiderConfig {
   lazy val defaultFlinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "")
 
   lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"),getBooleanConfig("flink.feedback.enabled",false),getIntConfig("flink.feedback.state.count",100),getIntConfig("flink.feedback.interval",30), 1, 1,
-    getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-flinkx_1.5.1-0.6.0-beta-jar-with-dependencies.jar"),
+    getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-flinkx_1.5.1-0.6.0-jar-with-dependencies.jar"),
     getStringConfig("flink.wormhole.client.log.path", s"$riderRootPath/logs/flows"),
     getIntConfig("spark.kafka.session.timeout", 30000),
     getIntConfig("spark.kafka.group.max.session.timeout.ms", 60000)

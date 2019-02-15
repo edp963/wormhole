@@ -12,6 +12,6 @@ include:
   - _static
   - _modules
 
-WH_VERSION_SHORT: 0.6.0-beta
+WH_VERSION_SHORT: 0.6.0
 SCALA_BINARY_VERSION: "${scala.binary.version}"
 SCALA_VERSION: "${scala.binary.version}.8"

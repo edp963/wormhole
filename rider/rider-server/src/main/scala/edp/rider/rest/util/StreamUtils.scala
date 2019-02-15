@@ -25,25 +25,23 @@ import com.alibaba.fastjson.JSON
 import edp.rider.RiderStarter.modules._
 import edp.rider.common.Action._
 import edp.rider.common.StreamStatus._
+import edp.rider.common.StreamType._
 import edp.rider.common.{StreamType, _}
-import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.UdfUtils.sendUdfDirective
-import edp.rider.yarn.{SubmitYarnJob, YarnClientLog}
-import edp.rider.yarn.YarnStatusQuery.{getAllYarnAppStatus, getAppStatusByRest}
-import edp.rider.yarn.SubmitYarnJob.{generateSparkStreamStartSh, runShellCommand}
 import edp.rider.wormhole.{BatchFlowConfig, KafkaInputBaseConfig, KafkaOutputConfig, SparkConfig}
+import edp.rider.yarn.SubmitYarnJob.{generateSparkStreamStartSh, runShellCommand}
+import edp.rider.yarn.YarnStatusQuery.{getAllYarnAppStatus, getAppStatusByRest}
+import edp.rider.yarn.{SubmitYarnJob, YarnClientLog}
 import edp.rider.zookeeper.PushDirective
 import edp.rider.zookeeper.PushDirective._
-import edp.wormhole.kafka.WormholeTopicCommand
+import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.UmsSchemaUtils.toUms
-import slick.jdbc.MySQLProfile.api._
-import edp.rider.common.StreamType._
-import edp.rider.rest.util.FlowUtils.riderLogger
 import edp.wormhole.util.DateUtils
 import edp.wormhole.util.JsonUtils._
+import slick.jdbc.MySQLProfile.api._
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -257,10 +255,9 @@ object StreamUtils extends RiderLogger {
         // insert or update user defined topics by start
         streamUdfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
         // send topics start directive
-        riderLogger.info("====================")
-        riderLogger.info("=========genTopicsStartDirective===========")
-        riderLogger.info("====================")
-        sendTopicDirective(streamId, autoRegisteredTopics ++: userdefinedTopics, userId, true)
+        val topics = autoRegisteredTopics ++: userdefinedTopics
+        val addHeartbeatTopic = if (topics.isEmpty) true else false
+        sendTopicDirective(streamId, autoRegisteredTopics ++: userdefinedTopics, userId, addHeartbeatTopic)
       case None =>
         // delete all user defined topics by stream id
         Await.result(streamUdfTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
@@ -281,9 +278,6 @@ object StreamUtils extends RiderLogger {
         // insert or update user defined topics by start
         streamUdfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
         // send topics renew directive which action is 1
-        riderLogger.info("====================")
-        riderLogger.info("=========genTopicsRenewDirective===========")
-        riderLogger.info("====================")
         sendTopicDirective(streamId, (autoRegisteredTopics ++: userdefinedTopics).filter(_.action.getOrElse(0) == 1), userId, false)
       case None =>
         val deleteTopics = streamUdfTopicDal.deleteByStartOrRenew(streamId, Seq())
@@ -306,7 +300,7 @@ object StreamUtils extends RiderLogger {
       })
       if (addDefaultTopic) {
         val broker = getKafkaByStreamId(streamId)
-        val blankTopicOffset = KafkaUtils.getKafkaLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.kerberos.enabled)
+        val blankTopicOffset = getLatestOffset(broker, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.kerberos.enabled)
         val blankTopic = Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, Seq(streamId, currentMicroSec, RiderConfig.spark.wormholeHeartBeatTopic, RiderConfig.spark.topicDefaultRate, blankTopicOffset).mkString("#"), zkConURL, currentSec, userId)
         directiveSeq += blankTopic
       }
