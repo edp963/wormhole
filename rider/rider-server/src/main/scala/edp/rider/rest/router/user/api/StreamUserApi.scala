@@ -833,4 +833,38 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
       }
     }
   }
+
+    def getYarnUi(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "yarnUi"){
+      (id, streamId) =>
+        get {
+          authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+            session =>
+              if (session.roleType != "user") {
+                riderLogger.warn(s"${session.userId} has no permission to access it.")
+                complete(OK, getHeader(403, session))
+              } else {
+                if (session.projectIdList.contains(id)) {
+                  Await.result(streamDal.findById(streamId), minTimeOut) match {
+                    case Some(stream) =>
+                      StreamUtils.getAppInfo(stream.startedTime.getOrElse(""), stream.name) match {
+                        case Some(appInfo) =>
+                            complete(OK, ResponseJson[String](getHeader(200, session), getYarnUri(appInfo.appStatus, appInfo.appId)))
+                        case _ =>
+                          riderLogger.info(s"user ${session.userId} get stream $streamId on yarnUi failed caused by stream dose not exist on yarn.")
+                          complete(OK, setFailedResponse(session, "stream dose not exist on yarn."))
+                      }
+                    case None =>
+                      riderLogger.info(s"user ${session.userId} get stream $streamId on yarnUi failed caused by stream not found.")
+                      complete(OK, setFailedResponse(session, "stream not found."))
+                  }
+                } else {
+                  riderLogger.error(s"user ${
+                    session.userId
+                  } doesn't have permission to access the project $id.")
+                  complete(OK, setFailedResponse(session, "Insufficient Permission"))
+                }
+              }
+          }
+        }
+    }
 }
