@@ -40,7 +40,8 @@ import {
   POST_USER_TOPIC,
   DELETE_USER_TOPIC,
   LOAD_UDFS,
-  LOAD_STREAM_CONFIGS
+  LOAD_STREAM_CONFIGS,
+  LOAD_YARN_UI
 } from './constants'
 
 import {
@@ -69,6 +70,7 @@ import {
 import request from '../../utils/request'
 import api from '../../utils/api'
 import { notifySagasError } from '../../utils/util'
+import { message } from 'antd'
 
 export function* getUserStreams ({ payload }) {
   try {
@@ -425,6 +427,26 @@ export function* getUdfs ({payload}) {
 export function* getUdfsWatcher () {
   yield fork(takeEvery, LOAD_UDFS, getUdfs)
 }
+
+export function* getYarnUi ({payload}) {
+  const apiFinal = payload.roleType === 'admin'
+  ? `${api.projectAdminStream}`
+  : `${api.projectStream}`
+  try {
+    const result = yield call(request, `${apiFinal}/${payload.projectId}/streams/${payload.streamId}/yarnUi`)
+    if (result.header.code === 200) {
+      payload.resolve(result.payload)
+    } else {
+      message.warning(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'getYarnUi')
+  }
+}
+
+export function* getYarnUiWatcher () {
+  yield fork(takeEvery, LOAD_YARN_UI, getYarnUi)
+}
 export default [
   getUserStreamsWatcher,
   getAdminAllFlowsWatcher,
@@ -445,5 +467,6 @@ export default [
   addUserTopicWatcher,
   removeUserTopicWatcher,
   getUdfsWatcher,
-  getStreamDefaultconfigsWatcher
+  getStreamDefaultconfigsWatcher,
+  getYarnUiWatcher
 ]

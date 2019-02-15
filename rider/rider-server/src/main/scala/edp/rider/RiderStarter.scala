@@ -21,12 +21,10 @@
 
 package edp.rider
 
-import java.util.Properties
-
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.kafka.ConsumerManager
+import edp.rider.kafka.{KafkaUtils, RiderConsumer}
 import edp.rider.module._
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.entities.User
@@ -34,8 +32,6 @@ import edp.rider.rest.router.RoutesApi
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.schedule.Scheduler
 import edp.rider.service.util.CacheMap
-import org.apache.kafka.clients.CommonClientConfigs
-import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await
@@ -66,10 +62,11 @@ object RiderStarter extends App with RiderLogger {
 
       CacheMap.cacheMapInit
 
-      if(RiderConfig.monitor.databaseType.equalsIgnoreCase("es"))
-         ElasticSearch.initial(RiderConfig.es)
+      if (RiderConfig.monitor.databaseType.equalsIgnoreCase("es"))
+        ElasticSearch.initial(RiderConfig.es)
 
-      new ConsumerManager(modules)
+      KafkaUtils.createRiderKafkaTopic()
+      new RiderConsumer(modules).feedbackConsume()
       riderLogger.info(s"WormholeServer Consumer started")
       Scheduler.start
       riderLogger.info(s"Wormhole Scheduler started")
