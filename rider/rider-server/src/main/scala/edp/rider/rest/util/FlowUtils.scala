@@ -85,6 +85,12 @@ object FlowUtils extends RiderLogger {
       //val sinkKeys = if (ns.nsSys == "hbase") getRowKey(specialConfig) else ns.keys.getOrElse("")
       val sinkKeys = if (ns.nsSys == "hbase") getRowKey(specialConfig) else tableKeys
 
+      val customerSinkClassName =
+        if (JSON.parseObject(specialConfig).containsKey("customer_sink_class_name"))
+          Some(JSON.parseObject(sinkConfig).getString("customer_sink_class_name") )
+        else
+          None
+
       if (ns.sinkSchema.nonEmpty && ns.sinkSchema.get != "") {
         val schema = caseClass2json[Object](json2caseClass[SinkSchema](ns.sinkSchema.get).schema)
         val base64 = base64byte2s(schema.trim.getBytes)
@@ -97,7 +103,7 @@ object FlowUtils extends RiderLogger {
            |"sink_table_keys": "$sinkKeys",
            |"sink_output": "$sink_output",
            |"sink_connection_config": $sinkConnectionConfig,
-           |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys, ns.sinkSchema)}",
+           |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys, ns.sinkSchema, customerSinkClassName)}",
            |"sink_specific_config": $specialConfig,
            |"sink_retry_times": "3",
            |"sink_retry_seconds": "300",
@@ -113,7 +119,7 @@ object FlowUtils extends RiderLogger {
            |"sink_table_keys": "$sinkKeys",
            |"sink_output": "$sink_output",
            |"sink_connection_config": $sinkConnectionConfig,
-           |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys, ns.sinkSchema)}",
+           |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys, ns.sinkSchema, customerSinkClassName)}",
            |"sink_specific_config": $specialConfig,
            |"sink_retry_times": "3",
            |"sink_retry_seconds": "300"
@@ -149,23 +155,27 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def getSinkProcessClass(nsSys: String, sinkSchema: Option[String]) = {
-    nsSys match {
-      case "cassandra" => "edp.wormhole.sinks.cassandrasink.Data2CassandraSink"
-      case "mysql" | "oracle" | "postgresql" | "vertica" | "greenplum" => "edp.wormhole.sinks.dbsink.Data2DbSink"
-      case "es" =>
-        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.elasticsearchsink.DataJson2EsSink"
-        else "edp.wormhole.sinks.elasticsearchsink.Data2EsSink"
-      case "hbase" => "edp.wormhole.sinks.hbasesink.Data2HbaseSink"
-      case "kafka" =>
-        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.kafkasink.DataJson2KafkaSink"
-        else "edp.wormhole.sinks.kafkasink.Data2KafkaSink"
-      case "mongodb" =>
-        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.mongosink.DataJson2MongoSink"
-        else "edp.wormhole.sinks.mongosink.Data2MongoSink"
-      case "phoenix" => "edp.wormhole.sinks.phoenixsink.Data2PhoenixSink"
-      case "parquet" => ""
-      case "kudu" => "edp.wormhole.sinks.kudusink.Data2KuduSink"
+  def getSinkProcessClass(nsSys: String, sinkSchema: Option[String], customerSinkClassName: Option[String]): String = {
+    customerSinkClassName match {
+      case Some(sinkClassName) => sinkClassName
+      case None =>
+        nsSys match {
+          case "cassandra" => "edp.wormhole.sinks.cassandrasink.Data2CassandraSink"
+          case "mysql" | "oracle" | "postgresql" | "vertica" | "greenplum" => "edp.wormhole.sinks.dbsink.Data2DbSink"
+          case "es" =>
+            if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.elasticsearchsink.DataJson2EsSink"
+            else "edp.wormhole.sinks.elasticsearchsink.Data2EsSink"
+          case "hbase" => "edp.wormhole.sinks.hbasesink.Data2HbaseSink"
+          case "kafka" =>
+            if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.kafkasink.DataJson2KafkaSink"
+            else "edp.wormhole.sinks.kafkasink.Data2KafkaSink"
+          case "mongodb" =>
+            if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.mongosink.DataJson2MongoSink"
+            else "edp.wormhole.sinks.mongosink.Data2MongoSink"
+          case "phoenix" => "edp.wormhole.sinks.phoenixsink.Data2PhoenixSink"
+          case "parquet" => ""
+          case "kudu" => "edp.wormhole.sinks.kudusink.Data2KuduSink"
+        }
     }
   }
 
