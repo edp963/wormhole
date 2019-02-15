@@ -32,7 +32,7 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.UdfUtils.sendUdfDirective
 import edp.rider.wormhole.{BatchFlowConfig, KafkaInputBaseConfig, KafkaOutputConfig, SparkConfig}
 import edp.rider.yarn.SubmitYarnJob.{generateSparkStreamStartSh, runShellCommand}
-import edp.rider.yarn.YarnStatusQuery.{getAllYarnAppStatus, getAppStatusByRest}
+import edp.rider.yarn.YarnStatusQuery.{getActiveResourceManager, getAllYarnAppStatus, getAppStatusByRest}
 import edp.rider.yarn.{SubmitYarnJob, YarnClientLog}
 import edp.rider.zookeeper.PushDirective
 import edp.rider.zookeeper.PushDirective._
@@ -79,6 +79,20 @@ object StreamUtils extends RiderLogger {
       case FLINK => s"$RENEW"
       case _ => ""
     }
+  }
+
+  def getAppInfo(fromTime: String, streamName: String): Option[AppResult] = {
+    val appInfoMap: Map[String, AppResult] = if (fromTime == "") Map.empty[String, AppResult] else getAllYarnAppStatus(fromTime, Seq(streamName))
+    if(appInfoMap.contains(streamName)) Some(appInfoMap(streamName))
+    else None
+  }
+
+  def getYarnUri(status: String, appId: String): String = {
+    val rmUrl = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
+    if(status.toLowerCase == "running")
+      s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/proxy/$appId/"
+    else
+      s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/cluster/app/$appId/"
   }
 
   def getStatus(action: String, streams: Seq[Stream]): Seq[Stream] = {
