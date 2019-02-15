@@ -65,9 +65,9 @@ object LookupKudu extends EdpLogging {
           if (connectionConfig.parameters.nonEmpty) {
             val opt = connectionConfig.parameters.get.find(_.key.toLowerCase() == "batch_size")
             if (opt.nonEmpty) opt.head.value.toInt
-            else 50000
+            else 10000
           } else {
-            50000
+            10000
           }
 
         originalData.sliding(batchSize, batchSize).foreach((subList: mutable.Seq[Row]) => {

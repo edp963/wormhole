@@ -92,7 +92,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
         logger.error("in doFlinkSql table query", e)
         println("in doFlinkSql table query" + e)
         val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
-        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config).doExceptionProcess(feedbackInfo)
+        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig).doExceptionProcess(feedbackInfo)
     }
     covertTable2Stream(table)
   }
@@ -170,7 +170,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
       case e: Throwable =>
         logger.error("doCEP error in swifts process", e)
         val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
-        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config).doExceptionProcess(feedbackInfo)
+        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig).doExceptionProcess(feedbackInfo)
     }
     resultDataStream
   }
@@ -209,7 +209,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
     //resultDataStream.print()
     //logger.info(resultDataStream.dataType.toString + "in doLookup")
     val exceptionStream: DataStream[String] = resultDataStreamSeq.getSideOutput(lookupTag)
-    exceptionStream.map(new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config))
+    exceptionStream.map(new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig))
 
     resultDataStream
   }
