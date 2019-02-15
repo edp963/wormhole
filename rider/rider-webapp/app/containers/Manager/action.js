@@ -59,7 +59,8 @@ import {
   DELETE_USER_TOPIC_SUCCESS,
   LOAD_UDFS,
   LOAD_STREAM_CONFIGS,
-  JUMP_STREAM_TO_FLOW_FILTER
+  JUMP_STREAM_TO_FLOW_FILTER,
+  LOAD_YARN_UI
 } from './constants'
 
 export function loadUserStreams (projectId, resolve) {
@@ -471,6 +472,16 @@ export function jumpStreamToFlowFilter (streamFilterId) {
     type: JUMP_STREAM_TO_FLOW_FILTER,
     payload: {
       streamFilterId
+    }
+  }
+}
+export function loadYarnUi (projectId, streamId, resolve) {
+  return {
+    type: LOAD_YARN_UI,
+    payload: {
+      projectId,
+      streamId,
+      resolve
     }
   }
 }
