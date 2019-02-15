@@ -35,6 +35,7 @@ case class FeedbackFlowErr(id: Long,
                            errorMaxWaterMarkTs: String,
                            errorMinWaterMarkTs: String,
                            errorInfo: String,
+                           topics: String,
                            feedbackTime: String) extends BaseEntity {
   override def copyWithId(id: Long): this.type = {
     copy(id = id).asInstanceOf[this.type]
@@ -49,7 +50,7 @@ case class StreamSourceSink(streamId: Long, sourceNs: String, sinkNs: String)
 
 class FeedbackFlowErrTable(_tableTag: Tag) extends BaseTable[FeedbackFlowErr](_tableTag, "feedback_flow_error") {
   def * = (id, projectType, umsTs, streamId, sourceNamespace, sinkNamespace, errorCount,
-    errorMaxWaterMarkTs, errorMinWaterMarkTs, errorInfo, feedbackTime) <> (FeedbackFlowErr.tupled, FeedbackFlowErr.unapply)
+    errorMaxWaterMarkTs, errorMinWaterMarkTs, errorInfo, topics, feedbackTime) <> (FeedbackFlowErr.tupled, FeedbackFlowErr.unapply)
 
   val projectType: Rep[String] = column[String]("protocol_type", O.Length(200, varying = true))
   val umsTs: Rep[String] = column[String]("ums_ts")
@@ -60,6 +61,7 @@ class FeedbackFlowErrTable(_tableTag: Tag) extends BaseTable[FeedbackFlowErr](_t
   val errorMaxWaterMarkTs: Rep[String] = column[String]("error_max_watermark_ts")
   val errorMinWaterMarkTs: Rep[String] = column[String]("error_min_watermark_ts")
   val errorInfo: Rep[String] = column[String]("error_info")
+  val topics: Rep[String] = column[String]("topics")
   val feedbackTime: Rep[String] = column[String]("feedback_time")
 
 }
