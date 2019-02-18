@@ -25,6 +25,9 @@ import java.util.Properties
 
 import joptsimple.OptionParser
 import kafka.admin.AdminClient
+import kafka.api.{OffsetFetchRequest, OffsetFetchResponse}
+import kafka.common.TopicAndPartition
+import kafka.network.BlockingChannel
 import kafka.utils.ToolsUtils
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
@@ -102,29 +105,67 @@ object WormholeGetOffsetUtils {
     getConsumerOffset(brokers, groupId, topic, latestOffset.split(",").length, kerberos)
   }
 
+//  def getConsumerOffset(brokers: String, groupId: String, topic: String, partitions: Int, kerberos: Boolean): String = {
+//    try {
+//      val props = new Properties()
+//      props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, brokers)
+//      if (kerberos) {
+//        props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT")
+//        props.put("sasl.kerberos.service.name", "kafka")
+//      }
+//      val adminClient = AdminClient.create(props)
+//
+//      val offsetMap: Map[TopicPartition, Long] = adminClient.listGroupOffsets(groupId)
+//      adminClient.close()
+//
+//      Range(0, partitions).map(partition => {
+//        val topicPartition = new TopicPartition(topic, partition)
+//        if (offsetMap.contains(topicPartition))
+//          partition + ":" + offsetMap(topicPartition)
+//        else
+//          partition + ":"
+//      }).mkString(",")
+//    } catch {
+//      case ex: Exception =>
+//        logger.error(s"get consumer groupId $groupId for topic $topic offset failed", ex)
+//        Range(0, partitions).mkString(":,").concat(":")
+//    }
+//  }
+
   def getConsumerOffset(brokers: String, groupId: String, topic: String, partitions: Int, kerberos: Boolean): String = {
+    val topicPartitions = ListBuffer.empty[TopicAndPartition]
+    Range(0, partitions).foreach(part => topicPartitions.append(TopicAndPartition(topic, part)))
+    val fetchRequest = OffsetFetchRequest(groupId, topicPartitions)
+    val brokerSplit = brokers.split(",")(0).split(":")
+    val brokerHost = brokerSplit(0).trim
+    val brokerPort = brokerSplit(1).trim.toInt
+    val channel = new BlockingChannel(brokerHost,
+      brokerPort,
+      BlockingChannel.UseDefaultBufferSize,
+      BlockingChannel.UseDefaultBufferSize,
+      60000)
     try {
-      val props = new Properties()
-      props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, brokers)
-      if (kerberos) {
-        props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT")
-        props.put("sasl.kerberos.service.name", "kafka")
+      channel.connect()
+      channel.send(fetchRequest)
+      val fetchResponse = OffsetFetchResponse.readFrom(channel.receive().payload())
+      channel.disconnect()
+      val result = fetchResponse.requestInfo
+      val errorInfo = result.values.toList
+      val offset = if (result.isEmpty || errorInfo.exists(_.error != 0)) {
+        Range(0, partitions).mkString(":,").concat(":")
+      } else {
+        result.keySet.map(topicAndPartition =>
+          if (result(topicAndPartition).offset != -1)
+            topicAndPartition.partition + ":" + result(topicAndPartition).offset
+          else
+            topicAndPartition.partition + ":"
+        ).mkString(",")
       }
-      val adminClient = AdminClient.create(props)
-
-      val offsetMap: Map[TopicPartition, Long] = adminClient.listGroupOffsets(groupId)
-      adminClient.close()
-
-      Range(0, partitions).map(partition => {
-        val topicPartition = new TopicPartition(topic, partition)
-        if (offsetMap.contains(topicPartition))
-          partition + ":" + offsetMap(topicPartition)
-        else
-          partition + ":"
-      }).mkString(",")
+      offset
     } catch {
       case ex: Exception =>
         logger.error(s"get consumer groupId $groupId for topic $topic offset failed", ex)
+        channel.disconnect()
         Range(0, partitions).mkString(":,").concat(":")
     }
   }
