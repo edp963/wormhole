@@ -22,7 +22,7 @@
 package edp.rider.rest.persistence.entities
 
 import edp.rider.rest.persistence.base.{BaseEntity, BaseTable, SimpleBaseEntity}
-import edp.wormhole.util.config.KVConfig
+import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.{Rep, Tag}
 
@@ -172,6 +172,15 @@ case class PushDownConnection(name_space: String,
                               password: Option[String],
                               connection_config: Option[Seq[KVConfig]])
 
+case class OtherNsConnection(name_space: String,
+                             table_keys: Option[String],
+                             jdbc_url: String,
+                             username: Option[String],
+                             password: Option[String],
+                             connection_config: Option[Seq[KVConfig]])
+
+case class OtherSinkNs(namespace: Option[String],
+                        table_keys: Option[String])
 
 class NamespaceTable(_tableTag: Tag) extends BaseTable[Namespace](_tableTag, "namespace") {
   def * = (id, nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar, keys,
