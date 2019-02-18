@@ -172,15 +172,10 @@ case class PushDownConnection(name_space: String,
                               password: Option[String],
                               connection_config: Option[Seq[KVConfig]])
 
-case class OtherNsConnection(name_space: String,
-                             table_keys: Option[String],
-                             jdbc_url: String,
+case class OtherSinksConnection(jdbc_url: String,
                              username: Option[String],
                              password: Option[String],
                              connection_config: Option[Seq[KVConfig]])
-
-case class OtherSinkNs(namespace: Option[String],
-                        table_keys: Option[String])
 
 class NamespaceTable(_tableTag: Tag) extends BaseTable[Namespace](_tableTag, "namespace") {
   def * = (id, nsSys, nsInstance, nsDatabase, nsTable, nsVersion, nsDbpar, nsTablepar, keys,
