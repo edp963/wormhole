@@ -25,13 +25,13 @@ object WormholeTopicCommand {
     try {
       if (opts.options.has(opts.replicaAssignmentOpt)) {
         val assignment = parseReplicaAssignment(opts.options.valueOf(opts.replicaAssignmentOpt))
-        warnOnMaxMessagesChange(configs, assignment.valuesIterator.next().length)
+//        warnOnMaxMessagesChange(configs, assignment.valuesIterator.next().length)
         AdminUtils.createOrUpdateTopicPartitionAssignmentPathInZK(zkUtils, topic, assignment, configs, update = true)
       } else {
         CommandLineUtils.checkRequiredArgs(opts.parser, opts.options, opts.partitionsOpt, opts.replicationFactorOpt)
         val partitions = opts.options.valueOf(opts.partitionsOpt).intValue
         val replicas = opts.options.valueOf(opts.replicationFactorOpt).intValue
-        warnOnMaxMessagesChange(configs, replicas)
+//        warnOnMaxMessagesChange(configs, replicas)
         val rackAwareMode = if (opts.options.has(opts.disableRackAware)) RackAwareMode.Disabled
         else RackAwareMode.Enforced
         val brokerMetadatas = getBrokerMetadatas(zkUtils, rackAwareMode)

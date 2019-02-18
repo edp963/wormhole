@@ -48,7 +48,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
         if (umsTsValue != null && streamIdValue != null) {
           val feedbackHeartbeat = FeedbackHeartbeat(1, protocolType.toString, streamIdValue.toString.toLong, srcNamespace, umsTsValue.toString, curTs)
-          riderLogger.debug(s" FeedbackHeartbeat: $feedbackHeartbeat")
+          riderLogger.debug(s"FeedbackHeartbeat: $feedbackHeartbeat")
           Await.result(modules.feedbackHeartbeatDal.insert(feedbackHeartbeat), minTimeOut)
         } else {
           riderLogger.error(s"FeedbackHeartbeat can't found the value", tuple)
