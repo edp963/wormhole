@@ -180,6 +180,8 @@ object UmsProtocolType extends Enumeration {
   val FEEDBACK_DATA_INCREMENT_TERMINATION = Value("feedback_data_increment_termination")
   val FEEDBACK_DIRECTIVE = Value("feedback_directive")
   val FEEDBACK_FLOW_SPARKX_ERROR = Value("feedback_flow_sparkx_error")
+  //todo 兼容0.6.0及之前版本stream feedback protocol
+  val FEEDBACK_FLOW_ERROR = Value("feedback_flow_error")
   val FEEDBACK_FLOW_STATS = Value("feedback_flow_stats")
   val FEEDBACK_STREAM_BATCH_ERROR = Value("feedback_stream_batch_error")
   val FEEDBACK_STREAM_TOPIC_OFFSET = Value("feedback_stream_topic_offset")
