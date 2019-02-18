@@ -21,11 +21,11 @@
 
 package edp.rider.rest.util
 
-import com.alibaba.fastjson.{JSON, JSONArray}
+import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import edp.rider.RiderStarter.modules._
 import edp.rider.common._
 import edp.rider.kafka.KafkaUtils
-import edp.rider.rest.persistence.entities._
+import edp.rider.rest.persistence.entities.{OtherNsConnection, _}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
@@ -40,7 +40,7 @@ import edp.wormhole.util.CommonUtils._
 import edp.wormhole.util.DateUtils._
 import edp.wormhole.util.JsonUtils._
 import edp.wormhole.kafka.WormholeGetOffsetUtils._
-import edp.wormhole.util.config.KVConfig
+import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
 import slick.jdbc.MySQLProfile.api._
 
 import scala.collection.mutable
@@ -65,13 +65,48 @@ object FlowUtils extends RiderLogger {
     }
   }
 
+  def getOtherSinksConn(otherSinkNss: Seq[OtherSinkNs]): Seq[OtherNsConnection] = {
+    otherSinkNss.map(sinkNs => {
+      sinkNs.namespace match {
+        case Some(namespace) => {
+          val (instance, db, ns) = namespaceDal.getNsDetail(sinkNs.namespace.getOrElse(""))
+          val dbConfig = getDbConfig(ns.nsSys, db.config.getOrElse(""))
+          val sinkKeys = sinkNs.table_keys match {
+            case Some(tableKeys) => Some(if (ns.nsSys == "hbase") getRowKey(tableKeys) else tableKeys)
+            case None => None
+          }
+          OtherNsConnection(namespace, sinkKeys, getConnUrl(instance, db), db.user, db.pwd, dbConfig)
+        }
+        case None => null
+    }})
+  }
+
+  def getSpecialConfig(sinkConfig: String): String = {
+    val specialConfigJsonObject =
+      if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
+        Some(JSON.parseObject(sinkConfig).getJSONObject("sink_specific_config"))
+      else None
+    specialConfigJsonObject match {
+      case Some(specialConfigJson) => {
+        if (specialConfigJson.containsKey("other_sink_namespaces")) {
+          val otherNsConnection = getOtherSinksConn(json2caseClass[Seq[OtherSinkNs]](specialConfigJson.getString("other_sink_namespaces")))
+          specialConfigJson.fluentRemove("other_sink_namespaces")
+          if(otherNsConnection.nonEmpty) {
+            specialConfigJson.fluentPut("other_sink_namespaces", caseClass2json[Seq[OtherNsConnection]](otherNsConnection))
+          }
+        }
+        specialConfigJson.toString
+      }
+      case None => "{}"
+    }
+  }
+
   def getSinkConfig(sinkNs: String, sinkConfig: String, tableKeys: String): String = {
     try {
       val (instance, db, ns) = namespaceDal.getNsDetail(sinkNs)
-      val specialConfig =
-        if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
-          JSON.parseObject(sinkConfig).getString("sink_specific_config")
-        else "{}"
+
+      val specialConfig = getSpecialConfig(sinkConfig)
+
       val sink_output =
         if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_output"))
           JSON.parseObject(sinkConfig).getString("sink_output")
