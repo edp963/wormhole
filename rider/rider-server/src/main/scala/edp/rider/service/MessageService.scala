@@ -23,12 +23,12 @@ package edp.rider.service
 
 import edp.rider.common.FlowStatus._
 import edp.rider.common.{RiderConfig, RiderLogger}
+import edp.rider.kafka.KafkaUtils
 import edp.rider.module.{ConfigurationModule, PersistenceModule}
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils
 import edp.rider.rest.util.CommonUtils._
-import edp.rider.service.util.{CacheMap, FeedbackOffsetUtil}
 import edp.wormhole.ums._
 import edp.wormhole.util.{DateUtils, DtFormat}
 
@@ -71,7 +71,6 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
         val resultDescValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc")
         if (umsTsValue != null && directiveIdValue != null && statusValue != null && streamIdValue != null && resultDescValue != null) {
-          //          Await.result(modules.feedbackDirectiveDal.insert(FeedbackDirective(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, directiveIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs)), minTimeOut)
           modules.directiveDal.getDetail(directiveIdValue.toString.toLong) match {
             case Some(records) =>
               val pType: UmsProtocolType.Value = UmsProtocolType.umsProtocolType(records.protocolType.toString)
@@ -179,7 +178,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val partitionOffsetValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "partition_offsets")
         if (umsTsValue != null && streamIdValue != null && topicNameValue != null && partitionOffsetValue != null) {
           val partitionOffset = partitionOffsetValue.toString
-          val partitionNum: Int = FeedbackOffsetUtil.getPartitionNumber(partitionOffset)
+          val partitionNum: Int = KafkaUtils.getPartNumByOffset(partitionOffset)
           Await.result(modules.feedbackOffsetDal.insert(FeedbackOffset(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
             topicNameValue.toString, partitionNum, partitionOffset, currentMicroSec)), minTimeOut)
         } else {

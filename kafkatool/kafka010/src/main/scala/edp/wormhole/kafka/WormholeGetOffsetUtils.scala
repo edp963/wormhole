@@ -123,7 +123,6 @@ object WormholeGetOffsetUtils {
         val fetchResponse = OffsetFetchResponse.readFrom(channel.receive().payload())
         channel.disconnect()
         val result = fetchResponse.requestInfo
-//        logger.info(s"=======consumer offset: $result=========")
         val errorInfo = result.values.toList
         val offset = if (result.isEmpty || errorInfo.exists(_.error != 0)) {
           logger.error(s"get consumer groupId $groupId for topic $topic offset failed, $errorInfo")
