@@ -51,4 +51,6 @@ object KafkaUtils extends RiderLogger {
       }
     }
   }
+
+  def getPartNumByOffset(offset: String): Int = offset.split(",").length
 }

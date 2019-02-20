@@ -163,7 +163,10 @@ case class LaunchConfig(maxRecords: String,
 
 case class StreamCacheMap(streamId: Long, streamName: String, projectId: Long)
 
-case class TopicOffset(topicName: String, partitionOffsets: String)
+case class TopicOffset(topicName: String,
+                       consumedLatestOffset: String,
+                       kafkaEarliestOffset: String,
+                       kafkaLatestOffset: String)
 
 case class StreamTopicOffset(streamId: Long, topicName: String, partitionOffsets: String)
 

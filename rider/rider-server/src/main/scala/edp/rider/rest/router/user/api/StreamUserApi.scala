@@ -33,7 +33,7 @@ import edp.rider.rest.util.CommonUtils.{currentSec, minTimeOut}
 import edp.rider.rest.util.ResponseUtils.{getHeader, _}
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.rest.util.{AuthorizationProvider, StreamUtils}
-import edp.rider.service.util.CacheMap
+import edp.rider.service.CacheMap
 import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.rider.yarn.SubmitYarnJob.runShellCommand
 import edp.rider.yarn.YarnClientLog

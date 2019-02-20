@@ -219,11 +219,11 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     db.run(streamTable.filter(_.id === stream.id).update(stream))
   }
 
-  def updateStreamsTable(streams: Seq[Stream]) = {
+  def updateStreamsTable(streams: Seq[Stream]): Future[Unit] = {
     db.run(DBIO.seq(streams.map(stream => streamTable.filter(_.id === stream.id).update(stream)): _*))
   }
 
-  def getProjectStreamsUsedResource(projectId: Long) = {
+  def getProjectStreamsUsedResource(projectId: Long): (Int, Int, Seq[AppResource]) = {
     val streamSeq: Seq[Stream] = Await.result(super.findByFilter(job => job.projectId === projectId && (job.status === "running" || job.status === "waiting" || job.status === "starting" || job.status === "stopping")), minTimeOut)
     var usedCores = 0
     var usedMemory = 0
@@ -277,26 +277,21 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     getStreamTopicsMap(Seq(streamId), map.toMap)(streamId)
   }
 
+  def getStreamTopicsMap(streamId: Long, streamName: String): GetTopicsResponse = {
+    val map = mutable.HashMap.empty[Long, String]
+    map(streamId) = streamName
+    getStreamTopicsMap(Seq(streamId), map.toMap)(streamId)
+  }
+
   def getStreamTopicsMap(streamIds: Seq[Long], streamGroupIdMap: Map[Long, String]): Map[Long, GetTopicsResponse] = {
     val autoRegisteredTopics = streamInTopicDal.getAutoRegisteredTopics(streamIds)
     val udfTopics = streamUdfTopicDal.getUdfTopics(streamIds)
     val kafkaMap = getStreamKafkaMap(streamIds)
     streamIds.map(id => {
-//      val topics = autoRegisteredTopics.filter(_.streamId == id) ++: udfTopics.filter(_.streamId == id)
-      //      val feedbackOffsetMap = getConsumedMaxOffset(id, topics)
-
       val autoTopicsResponse = genAllOffsets(autoRegisteredTopics, kafkaMap, streamGroupIdMap)
       val udfTopicsResponse = genAllOffsets(udfTopics, kafkaMap, streamGroupIdMap)
-
-      //update offset in table
-      val autoRegisteredUpdateTopics = autoTopicsResponse.map(topic => UpdateTopicOffset(topic.id, topic.consumedLatestOffset))
-      val udfUpdateTopics = udfTopicsResponse.map(topic => UpdateTopicOffset(topic.id, topic.consumedLatestOffset))
-
-      streamInTopicDal.updateOffset(autoRegisteredUpdateTopics)
-      streamUdfTopicDal.updateOffset(udfUpdateTopics)
       (id, GetTopicsResponse(autoTopicsResponse, udfTopicsResponse))
     }).toMap
-    //    GetTopicsResponse(autoRegisteredTopicsResponse, udfTopicsResponse)
   }
 
   //getStreamTopicsName for getSimpleStreamInfo
