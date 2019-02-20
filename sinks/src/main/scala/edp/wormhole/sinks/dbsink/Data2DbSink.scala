@@ -48,8 +48,10 @@ class Data2DbSink extends SinkProcessor{
     val dt1: DateTime = dt2dateTime(currentyyyyMMddHHmmss)
 
     val sinkSpecificConfig =
-      if (sinkProcessConfig.specialConfig.isDefined)
+      if (sinkProcessConfig.specialConfig.isDefined) {
+        logger.info("sink special config: " + sinkProcessConfig.specialConfig.get)
         json2caseClass[DbConfig](sinkProcessConfig.specialConfig.get)
+      }
       else DbConfig()
 
     val systemFieldsRename: String = sinkSpecificConfig.system_fields_rename

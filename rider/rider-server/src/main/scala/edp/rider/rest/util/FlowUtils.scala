@@ -72,14 +72,22 @@ object FlowUtils extends RiderLogger {
       if (otherSinkConfig.containsKey("namespace")) {
         val (instance, db, ns) = namespaceDal.getNsDetail(otherSinkConfig.getString("namespace"))
         val dbConfig = getDbConfig(ns.nsSys, db.config.getOrElse(""))
-        val otherSinkConnection = OtherSinksConnection(getConnUrl(instance, db), db.user, db.pwd, dbConfig)
-        otherSinkConfig.put("other_sink_connection_config", otherSinkConnection)
-        //otherSinkConfig.put("other_sinks_topic", db.nsDatabase)
-        otherSinkConfig.put("other_sink_class_fullname", getSinkProcessClass(ns.nsSys, ns.sinkSchema, None))
-        if (otherSinkConfig.containsKey("table_keys") && ns.nsSys == "hbase") {
-          val tableKeys = otherSinkConfig.getString("table_keys")
-          otherSinkConfig.remove("table_keys")
-          otherSinkConfig.put("table_keys", getRowKey(tableKeys))
+        val otherSinkConnection = ConnectionConfig(getConnUrl(instance, db), db.user, db.pwd, dbConfig)
+        otherSinkConfig.put("sink_connection", JSON.parseObject(caseClass2json[ConnectionConfig](otherSinkConnection)))
+        otherSinkConfig.put("sink_process_class_fullname", getSinkProcessClass(ns.nsSys, ns.sinkSchema, None))
+        if (otherSinkConfig.containsKey("sink_table_keys") && ns.nsSys == "hbase") {
+          val tableKeys = otherSinkConfig.getString("sink_table_keys")
+          otherSinkConfig.remove("sink_table_keys")
+          otherSinkConfig.put("sink_table_keys", getRowKey(tableKeys))
+        }
+        if (ns.nsSys == "kafka") {
+          otherSinkConfig.put("topic", db.nsDatabase)
+        }
+
+        if (ns.sinkSchema.nonEmpty && ns.sinkSchema.get != "") {
+          val schema = caseClass2json[Object](json2caseClass[SinkSchema](ns.sinkSchema.get).schema)
+          val base64 = base64byte2s(schema.trim.getBytes)
+          otherSinkConfig.put("sink_schema", base64)
         }
         otherSinksConnection.add(otherSinkConfig)
       }
@@ -137,6 +145,8 @@ object FlowUtils extends RiderLogger {
         } else None
 
       val specialConfig = specialConfigJson.toString
+
+      riderLogger.info(s"sink ${sinkNs} specialConfig: ${specialConfig}")
 
       if (ns.sinkSchema.nonEmpty && ns.sinkSchema.get != "") {
         val schema = caseClass2json[Object](json2caseClass[SinkSchema](ns.sinkSchema.get).schema)
@@ -444,6 +454,8 @@ object FlowUtils extends RiderLogger {
       if (functionType == "default") {
         val consumedProtocolSet = getConsumptionType(consumedProtocol)
         val sinkConfigSet = getSinkConfig(sinkNs, sinkConfig, tableKeys)
+
+        riderLogger.info(s"sink ${sinkNs} sinkConfig: ${sinkConfigSet}")
         val tranConfigFinal = getTranConfig(tranConfig)
         //        val tuple = Seq(streamId, currentMicroSec, umsType, umsSchema, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
         val base64Tuple = Seq(streamId, flowId, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
@@ -1041,6 +1053,8 @@ object FlowUtils extends RiderLogger {
   def getFlinkFlowConfig(flow: Flow): String = {
     val consumedProtocol = getConsumptionType(flow.consumedProtocol)
     val sinkConfig = getSinkConfig(flow.sinkNs, flow.sinkConfig.get, flow.tableKeys.getOrElse(""))
+
+    riderLogger.info(s"sink ${flow.sinkNs} sinkConfig: ${sinkConfig}")
     val tranConfigFinal = getTranConfig(flow.tranConfig.getOrElse(""))
 
     val sourceNsObj = namespaceDal.getNamespaceByNs(flow.sourceNs).get
