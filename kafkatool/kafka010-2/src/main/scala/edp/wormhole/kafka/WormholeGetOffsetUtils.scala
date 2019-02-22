@@ -1,3 +1,23 @@
+/*-
+ * <<
+ * wormhole
+ * ==
+ * Copyright (C) 2016 - 2017 EDP
+ * ==
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * >>
+ */
+
 package edp.wormhole.kafka
 
 import java.util
@@ -5,6 +25,9 @@ import java.util.Properties
 
 import joptsimple.OptionParser
 import kafka.admin.AdminClient
+import kafka.api.{OffsetFetchRequest, OffsetFetchResponse}
+import kafka.common.TopicAndPartition
+import kafka.network.BlockingChannel
 import kafka.utils.ToolsUtils
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
@@ -67,7 +90,7 @@ object WormholeGetOffsetUtils {
         }
         consumer.close()
       }
-      val offset = offsetSeq.sortBy(offset => offset.split(":")(0).toLong).mkString(",")
+      val offset = offsetPartitionSort(offsetSeq.toList)
       if (offset == "")
         throw new Exception(s"topic $topic maybe not exists, query latest/earliest offset result is '', please check it.")
       offset
@@ -107,6 +130,14 @@ object WormholeGetOffsetUtils {
         logger.error(s"get consumer groupId $groupId for topic $topic offset failed", ex)
         Range(0, partitions).mkString(":,").concat(":")
     }
+  }
+
+  private def offsetPartitionSort(offset: String): String = {
+    offsetPartitionSort(offset.split(",").toList)
+  }
+
+  private def offsetPartitionSort(partOffsetSeq: List[String]): String = {
+    partOffsetSeq.sortBy(partOffset => partOffset.split(":")(0).toLong).mkString(",")
   }
 }
 

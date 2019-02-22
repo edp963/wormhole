@@ -23,15 +23,15 @@ package edp.wormhole.sparkx.batchflow
 
 import java.util.UUID
 
-import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
+import com.alibaba.fastjson.{JSON, JSONObject}
+import edp.wormhole.common.InputDataProtocolBaseType
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.externalclient.hadoop.HdfsUtils
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.sinks.SourceMutationType
-import edp.wormhole.common.InputDataProtocolBaseType
-import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.sinks.elasticsearchsink.EsConfig
 import edp.wormhole.sinks.mongosink.MongoConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils
@@ -40,9 +40,8 @@ import edp.wormhole.sparkx.directive.UdfDirective
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkx.swifts.transform.SwiftsTransform
-import edp.wormhole.sparkx.swifts.validity.ValidityAgainstAction
+import edp.wormhole.sparkx.swifts.validity.{ValidityAgainstAction, ValidityCheckRule}
 import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, ValidityConfig}
-import edp.wormhole.sparkx.swifts.validity.ValidityCheckRule
 import edp.wormhole.swifts.ConnectionMemoryStorage
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
@@ -53,8 +52,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.HashPartitioner
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
-import org.apache.spark.streaming.kafka010.{CanCommitOffsets, HasOffsetRanges, OffsetRange, WormholeDirectKafkaInputDStream}
 import org.apache.spark.sql.{DataFrame, _}
+import org.apache.spark.streaming.kafka010.{CanCommitOffsets, HasOffsetRanges, OffsetRange, WormholeDirectKafkaInputDStream}
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
