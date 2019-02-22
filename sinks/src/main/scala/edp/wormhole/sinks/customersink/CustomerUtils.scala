@@ -22,64 +22,64 @@ object CustomerUtils {
     (obj, method)
   }
 
-  def getOtherSinkConfig(otherSinkConfigOrigin: JSONObject, sinkProcessConfig: SinkProcessConfig): CustomerConfig = {
-    if (otherSinkConfigOrigin.containsKey("namespace")) {
-      val otherSinkNamespace = otherSinkConfigOrigin.getString("namespace")
+  def getOtherSinkConfig(otherSinkOrigin: JSONObject, sinkProcessConfig: SinkProcessConfig): CustomerConfig = {
+    if (otherSinkOrigin.containsKey("namespace")) {
+      val otherSinkNamespace = otherSinkOrigin.getString("namespace")
       //val otherSinkOutput = sinkProcessConfig.sinkOutput
       val otherTableKeys =
-        if (otherSinkConfigOrigin.containsKey("sink_table_keys")) {
-          val otherTableKeysRe = Some(otherSinkConfigOrigin.getString("sink_table_keys"))
-          otherSinkConfigOrigin.remove("sink_table_keys")
+        if (otherSinkOrigin.containsKey("sink_table_keys")) {
+          val otherTableKeysRe = Some(otherSinkOrigin.getString("sink_table_keys"))
+          otherSinkOrigin.remove("sink_table_keys")
           otherTableKeysRe
         }
-        else None
+        else sinkProcessConfig.tableKeys
 
       val otherJsonSchema =
-        if (otherSinkConfigOrigin.containsKey("sink_schema")) {
-          val otherJsonSchemaRe = Some(otherSinkConfigOrigin.getString("sink_schema"))
-          otherSinkConfigOrigin.remove("sink_schema")
+        if (otherSinkOrigin.containsKey("sink_schema")) {
+          val otherJsonSchemaRe = Some(otherSinkOrigin.getString("sink_schema"))
+          otherSinkOrigin.remove("sink_schema")
           otherJsonSchemaRe
         } else None
 
       val otherClassFullClass =
-        if (otherSinkConfigOrigin.containsKey("sink_process_class_fullname")) {
-          val otherClassFullClassRe = otherSinkConfigOrigin.getString("sink_process_class_fullname")
-          otherSinkConfigOrigin.remove("sink_process_class_fullname")
+        if (otherSinkOrigin.containsKey("sink_process_class_fullname")) {
+          val otherClassFullClassRe = otherSinkOrigin.getString("sink_process_class_fullname")
+          otherSinkOrigin.remove("sink_process_class_fullname")
           otherClassFullClassRe
         }
         else ""
 
       val otherRetryTimes =
-        if (otherSinkConfigOrigin.containsKey("sink_retry_times")) {
-          val otherRetryTimesRe = otherSinkConfigOrigin.getString("sink_retry_times").trim.toLowerCase.toInt
-          otherSinkConfigOrigin.remove("sink_retry_times")
+        if (otherSinkOrigin.containsKey("sink_retry_times")) {
+          val otherRetryTimesRe = otherSinkOrigin.getString("sink_retry_times").trim.toLowerCase.toInt
+          otherSinkOrigin.remove("sink_retry_times")
           otherRetryTimesRe
         }
         else sinkProcessConfig.retryTimes
       val otherRetrySeconds =
-        if (otherSinkConfigOrigin.containsKey("sink_retry_seconds")) {
-          val otherRetrySecondsRe = otherSinkConfigOrigin.getString("sink_retry_seconds").trim.toLowerCase.toInt
-          otherSinkConfigOrigin.remove("sink_retry_seconds")
+        if (otherSinkOrigin.containsKey("sink_retry_seconds")) {
+          val otherRetrySecondsRe = otherSinkOrigin.getString("sink_retry_seconds").trim.toLowerCase.toInt
+          otherSinkOrigin.remove("sink_retry_seconds")
           otherRetrySecondsRe
         }
         else sinkProcessConfig.retrySeconds
       val otherKerberos =
-        if (otherSinkConfigOrigin.containsKey("kerberos")) {
-          val otherKerberosRe = otherSinkConfigOrigin.getString("kerberos").toBoolean
-          otherSinkConfigOrigin.remove("kerberos")
+        if (otherSinkOrigin.containsKey("kerberos")) {
+          val otherKerberosRe = otherSinkOrigin.getString("kerberos").toBoolean
+          otherSinkOrigin.remove("kerberos")
           otherKerberosRe
         }
         else sinkProcessConfig.kerberos
 
       val otherSinkConnection =
-        if (otherSinkConfigOrigin.containsKey("sink_connection")) {
-          val otherSinkConnectionRe = JsonUtils.json2caseClass[ConnectionConfig](otherSinkConfigOrigin.getString("sink_connection"))
-          otherSinkConfigOrigin.remove("sink_connection")
+        if (otherSinkOrigin.containsKey("sink_connection")) {
+          val otherSinkConnectionRe = JsonUtils.json2caseClass[ConnectionConfig](otherSinkOrigin.getString("sink_connection"))
+          otherSinkOrigin.remove("sink_connection")
           otherSinkConnectionRe
         }
         else null
 
-      val otherSpecialConfig = if (otherSinkConfigOrigin.isEmpty) None else Some(otherSinkConfigOrigin.toString)
+      val otherSpecialConfig = if (otherSinkOrigin.isEmpty) None else Some(otherSinkOrigin.toString)
 
       val otherSinkProcessConfig = SinkProcessConfig(sinkProcessConfig.sinkOutput, otherTableKeys, otherSpecialConfig,
         otherJsonSchema, otherClassFullClass, otherRetryTimes, otherRetrySeconds, otherKerberos)

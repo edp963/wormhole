@@ -19,41 +19,45 @@ class Data2CustomerSink extends SinkProcessor{
 
     sinkProcessConfig.specialConfig match {
       case Some(specialConfig) =>
-        var sinksConfig = Seq[ActorCase]()
         val specialConfigJson = JSON.parseObject(specialConfig)
-        val parallel = if(specialConfigJson.containsKey("sink_parallel")) specialConfigJson.getString("sink_parallel").toBoolean else true
-      //first
-        val firstClassFullClass =
-          if (specialConfigJson.containsKey("current_sink_class_fullname")) specialConfigJson.getString("current_sink_class_fullname")
-          else ""
-        val firstSinkProcessConfig = SinkProcessConfig(sinkProcessConfig.sinkOutput, sinkProcessConfig.tableKeys, sinkProcessConfig.specialConfig,
-          sinkProcessConfig.jsonSchema, firstClassFullClass, sinkProcessConfig.retryTimes, sinkProcessConfig.retrySeconds, sinkProcessConfig.kerberos)
-        sinksConfig = sinksConfig :+ ActorCase(firstClassFullClass, sourceNamespace, sinkNamespace, firstSinkProcessConfig, schemaMap, tupleList, connectionConfig)
+        if(specialConfigJson.containsKey("other_sinks_config")) {
+          val otherSinksConfig = specialConfigJson.getJSONObject("other_sinks_config")
+          var sinksConfig = Seq[ActorCase]()
 
-        //others
-        if (specialConfigJson.containsKey("other_sinks_config")) {
-          val otherSinksConfig = specialConfigJson.getJSONArray("other_sinks_config")
-          for (i <- 0 until otherSinksConfig.size) {
-            val otherSinkConfigOrigin = otherSinksConfig.getJSONObject(i)
-            val otherSinkConfig = CustomerUtils.getOtherSinkConfig(otherSinkConfigOrigin, sinkProcessConfig)
-            if (otherSinkConfig != null) {
-              sinksConfig = sinksConfig :+ ActorCase(otherSinkConfig.sinkProcessConfig.classFullname, sourceNamespace, otherSinkConfig.sinkNamespace, otherSinkConfig.sinkProcessConfig, schemaMap, tupleList, otherSinkConfig.connectionConfig)
+          val sinkParallel = if (otherSinksConfig.containsKey("sink_parallel")) otherSinksConfig.getString("sink_parallel").toBoolean else false
+          //first
+          val firstClassFullClass =
+            if (otherSinksConfig.containsKey("current_sink_class_fullname")) otherSinksConfig.getString("current_sink_class_fullname")
+            else ""
+          val firstSinkProcessConfig = SinkProcessConfig(sinkProcessConfig.sinkOutput, sinkProcessConfig.tableKeys, sinkProcessConfig.specialConfig,
+            sinkProcessConfig.jsonSchema, firstClassFullClass, sinkProcessConfig.retryTimes, sinkProcessConfig.retrySeconds, sinkProcessConfig.kerberos)
+          sinksConfig = sinksConfig :+ ActorCase(firstClassFullClass, sourceNamespace, sinkNamespace, firstSinkProcessConfig, schemaMap, tupleList, connectionConfig)
+
+          //others
+          if (otherSinksConfig.containsKey("other_sinks")) {
+            val otherSinks = otherSinksConfig.getJSONArray("other_sinks")
+            for (i <- 0 until otherSinks.size) {
+              val otherSinkOrigin = otherSinks.getJSONObject(i)
+              val otherSink = CustomerUtils.getOtherSinkConfig(otherSinkOrigin, sinkProcessConfig)
+              if (otherSink != null) {
+                sinksConfig = sinksConfig :+ ActorCase(otherSink.sinkProcessConfig.classFullname, sourceNamespace, otherSink.sinkNamespace, otherSink.sinkProcessConfig, schemaMap, tupleList, otherSink.connectionConfig)
+              }
             }
           }
-        }
 
-        if(parallel) {
-          sinksConfig.par.foreach(sinkConfig => {
-            //logger.info(s"sink ${sinkConfig.sinkClassFullClass} foreach test: ${DateUtils.currentyyyyMMddHHmmss}")
-            val (sinkObject, sinkMethod) = CustomerUtils.getObjectAndMethod(sinkConfig.sinkClassFullClass)
-            sinkMethod.invoke(sinkObject, sinkConfig.sourceNamespace, sinkConfig.sinkNamespace, sinkConfig.sinkProcessConfig, sinkConfig.schemaMap, sinkConfig.tupleList, sinkConfig.connectionConfig)
-          })
-        } else {
-          sinksConfig.foreach(sinkConfig => {
-            //logger.info(s"sink ${sinkConfig.sinkClassFullClass} foreach test: ${DateUtils.currentyyyyMMddHHmmss}")
-            val (sinkObject, sinkMethod) = CustomerUtils.getObjectAndMethod(sinkConfig.sinkClassFullClass)
-            sinkMethod.invoke(sinkObject, sinkConfig.sourceNamespace, sinkConfig.sinkNamespace, sinkConfig.sinkProcessConfig, sinkConfig.schemaMap, sinkConfig.tupleList, sinkConfig.connectionConfig)
-          })
+          if (sinkParallel) {
+            sinksConfig.par.foreach(sinkConfig => {
+              logger.info(s"sink ${sinkConfig.sinkClassFullClass} foreach test: ${DateUtils.currentyyyyMMddHHmmss}")
+              val (sinkObject, sinkMethod) = CustomerUtils.getObjectAndMethod(sinkConfig.sinkClassFullClass)
+              sinkMethod.invoke(sinkObject, sinkConfig.sourceNamespace, sinkConfig.sinkNamespace, sinkConfig.sinkProcessConfig, sinkConfig.schemaMap, sinkConfig.tupleList, sinkConfig.connectionConfig)
+            })
+          } else {
+            sinksConfig.foreach(sinkConfig => {
+              logger.info(s"sink ${sinkConfig.sinkClassFullClass} foreach test: ${DateUtils.currentyyyyMMddHHmmss}")
+              val (sinkObject, sinkMethod) = CustomerUtils.getObjectAndMethod(sinkConfig.sinkClassFullClass)
+              sinkMethod.invoke(sinkObject, sinkConfig.sourceNamespace, sinkConfig.sinkNamespace, sinkConfig.sinkProcessConfig, sinkConfig.schemaMap, sinkConfig.tupleList, sinkConfig.connectionConfig)
+            })
+          }
         }
       case None => None
     }
