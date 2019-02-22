@@ -65,37 +65,23 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def getOtherSinksConn(otherSinksConfig: JSONArray): JSONArray= {
+  def getOtherSinksConn(otherSinks: JSONArray): JSONArray= {
     val otherSinksConnection = new JSONArray()
-    for(i <- 0 until otherSinksConfig.size) {
-      val otherSinkConfig = otherSinksConfig.getJSONObject(i)
+    for(i <- 0 until otherSinks.size) {
+      val otherSinkConfig = otherSinks.getJSONObject(i)
       if (otherSinkConfig.containsKey("namespace")) {
         val (instance, db, ns) = namespaceDal.getNsDetail(otherSinkConfig.getString("namespace"))
         val dbConfig = getDbConfig(ns.nsSys, db.config.getOrElse(""))
         val otherSinkConnection = ConnectionConfig(getConnUrl(instance, db), db.user, db.pwd, dbConfig)
         otherSinkConfig.put("sink_connection", JSON.parseObject(caseClass2json[ConnectionConfig](otherSinkConnection)))
         otherSinkConfig.put("sink_process_class_fullname", getSinkProcessClass(ns.nsSys, ns.sinkSchema, None))
-        if (otherSinkConfig.containsKey("sink_table_keys") && ns.nsSys == "hbase") {
-          val tableKeys = otherSinkConfig.getString("sink_table_keys")
-          otherSinkConfig.remove("sink_table_keys")
-          otherSinkConfig.put("sink_table_keys", getRowKey(tableKeys))
-        }
-        if (ns.nsSys == "kafka") {
-          otherSinkConfig.put("topic", db.nsDatabase)
-        }
-
-        if (ns.sinkSchema.nonEmpty && ns.sinkSchema.get != "") {
-          val schema = caseClass2json[Object](json2caseClass[SinkSchema](ns.sinkSchema.get).schema)
-          val base64 = base64byte2s(schema.trim.getBytes)
-          otherSinkConfig.put("sink_schema", base64)
-        }
         otherSinksConnection.add(otherSinkConfig)
       }
     }
     otherSinksConnection
   }
 
-  def getSpecialConfig(sinkConfig: String): JSONObject = {
+  def getSpecialConfig(sinkConfig: String, ns: Namespace): JSONObject = {
     val specialConfigJsonObject =
       if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
         Some(JSON.parseObject(sinkConfig).getJSONObject("sink_specific_config"))
@@ -103,12 +89,20 @@ object FlowUtils extends RiderLogger {
     specialConfigJsonObject match {
       case Some(specialConfigJson) => {
         if (specialConfigJson.containsKey("other_sinks_config")) {
-          val otherSinksConfig = specialConfigJson.getJSONArray("other_sinks_config")
-          val otherSinksConnection = getOtherSinksConn(otherSinksConfig)
-          specialConfigJson.remove("other_sinks_config")
-          if(otherSinksConnection.size > 0) {
-            specialConfigJson.put("other_sinks_config", otherSinksConnection)
+          val otherSinksConfig = specialConfigJson.getJSONObject("other_sinks_config")
+
+          if(otherSinksConfig.containsKey("other_sinks")) {
+            val otherSinks = otherSinksConfig.getJSONArray("other_sinks")
+            val otherSinksConnection = getOtherSinksConn(otherSinks)
+            if (otherSinksConnection.size > 0) {
+              otherSinksConfig.put("other_sinks", otherSinksConnection)
+            }
           }
+          if (otherSinksConfig.containsKey("customer_sink_class_fullname")) {
+            otherSinksConfig.remove("customer_sink_class_fullname")
+            otherSinksConfig.put("current_sink_class_fullname", getSinkProcessClass(ns.nsSys, ns.sinkSchema, None))
+          } else None
+          specialConfigJson.put("other_sinks_config", otherSinksConfig)
         }
         specialConfigJson
       }
@@ -116,17 +110,29 @@ object FlowUtils extends RiderLogger {
     }
   }
 
+  def getCustomerSinkClassName(sinkConfig: String) = {
+    if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_specific_config")) {
+      val specialConfigJson = JSON.parseObject(sinkConfig).getJSONObject("sink_specific_config")
+      if(specialConfigJson.containsKey("other_sinks_config")) {
+        val otherSinksConfig = specialConfigJson.getJSONObject("other_sinks_config")
+        if (otherSinksConfig.containsKey("customer_sink_class_fullname")) {
+          Some(otherSinksConfig.getString("customer_sink_class_fullname"))
+        } else None
+      } else None
+    } else None
+  }
+
   def getSinkConfig(sinkNs: String, sinkConfig: String, tableKeys: String): String = {
     try {
       val (instance, db, ns) = namespaceDal.getNsDetail(sinkNs)
-
-      val specialConfigJson = getSpecialConfig(sinkConfig)
+      val customerSinkClassName = getCustomerSinkClassName(sinkConfig)
+      val specialConfigJson = getSpecialConfig(sinkConfig, ns)
+      val specialConfig = if(specialConfigJson == null) "{}" else specialConfigJson.toString
 
       val sink_output =
         if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_output"))
           JSON.parseObject(sinkConfig).getString("sink_output")
         else ""
-
       val dbConfig = getDbConfig(ns.nsSys, db.config.getOrElse(""))
       val sinkConnectionConfig =
         if (dbConfig.nonEmpty && dbConfig.get.nonEmpty)
@@ -134,17 +140,7 @@ object FlowUtils extends RiderLogger {
         else "\"\""
 
       //val sinkKeys = if (ns.nsSys == "hbase") getRowKey(specialConfig) else ns.keys.getOrElse("")
-      val sinkKeys = if (ns.nsSys == "hbase") getRowKey(specialConfigJson.toString) else tableKeys
-
-      val customerSinkClassName =
-        if (specialConfigJson.containsKey("customer_sink_class_fullname")) {
-          val customerSinkClassFullname = specialConfigJson.getString("customer_sink_class_fullname")
-          specialConfigJson.remove("customer_sink_class_fullname")
-          specialConfigJson.put("current_sink_class_fullname", getSinkProcessClass(ns.nsSys, ns.sinkSchema, None))
-          Some(customerSinkClassFullname)
-        } else None
-
-      val specialConfig = specialConfigJson.toString
+      val sinkKeys = if (ns.nsSys == "hbase") getRowKey(specialConfig) else tableKeys
 
       riderLogger.info(s"sink ${sinkNs} specialConfig: ${specialConfig}")
 
