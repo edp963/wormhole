@@ -33,7 +33,7 @@ import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, Ses
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
 import edp.rider.rest.util.{AuthorizationProvider, FlowUtils, StreamUtils}
-import edp.rider.service.util.CacheMap
+import edp.rider.service.CacheMap
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await

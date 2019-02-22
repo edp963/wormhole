@@ -31,7 +31,7 @@ import edp.rider.rest.persistence.entities.User
 import edp.rider.rest.router.RoutesApi
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.schedule.Scheduler
-import edp.rider.service.util.CacheMap
+import edp.rider.service.CacheMap
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await
@@ -51,14 +51,15 @@ object RiderStarter extends App with RiderLogger {
 
   DbModule.createSchema
 
-  if (Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.adminUser), minTimeOut).isEmpty)
-    Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.adminUser, RiderConfig.riderServer.adminPwd, RiderConfig.riderServer.adminUser, "admin", RiderConfig.riderServer.defaultLanguage, active = true, currentSec, 1, currentSec, 1)), minTimeOut)
-
   val future = Http().bindAndHandle(new RoutesApi(modules).routes, RiderConfig.riderServer.host, RiderConfig.riderServer.port)
+
 
   future.onComplete {
     case Success(_) =>
       riderLogger.info(s"WormholeServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
+
+      if (Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.adminUser), minTimeOut).isEmpty)
+        Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.adminUser, RiderConfig.riderServer.adminPwd, RiderConfig.riderServer.adminUser, "admin", RiderConfig.riderServer.defaultLanguage, active = true, currentSec, 1, currentSec, 1)), minTimeOut)
 
       CacheMap.cacheMapInit
 

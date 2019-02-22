@@ -23,12 +23,12 @@ package edp.rider.service
 
 import edp.rider.common.FlowStatus._
 import edp.rider.common.{RiderConfig, RiderLogger}
+import edp.rider.kafka.KafkaUtils
 import edp.rider.module.{ConfigurationModule, PersistenceModule}
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils
 import edp.rider.rest.util.CommonUtils._
-import edp.rider.service.util.{CacheMap, FeedbackOffsetUtil}
 import edp.wormhole.ums._
 import edp.wormhole.util.{DateUtils, DtFormat}
 
@@ -48,7 +48,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
         if (umsTsValue != null && streamIdValue != null) {
           val feedbackHeartbeat = FeedbackHeartbeat(1, protocolType.toString, streamIdValue.toString.toLong, srcNamespace, umsTsValue.toString, curTs)
-          riderLogger.debug(s" FeedbackHeartbeat: $feedbackHeartbeat")
+          riderLogger.debug(s"FeedbackHeartbeat: $feedbackHeartbeat")
           Await.result(modules.feedbackHeartbeatDal.insert(feedbackHeartbeat), minTimeOut)
         } else {
           riderLogger.error(s"FeedbackHeartbeat can't found the value", tuple)
@@ -71,7 +71,6 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
         val resultDescValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc")
         if (umsTsValue != null && directiveIdValue != null && statusValue != null && streamIdValue != null && resultDescValue != null) {
-          //          Await.result(modules.feedbackDirectiveDal.insert(FeedbackDirective(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong, directiveIdValue.toString.toLong, statusValue.toString, resultDescValue.toString, curTs)), minTimeOut)
           modules.directiveDal.getDetail(directiveIdValue.toString.toLong) match {
             case Some(records) =>
               val pType: UmsProtocolType.Value = UmsProtocolType.umsProtocolType(records.protocolType.toString)
@@ -117,13 +116,16 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val errMinWaterMarkTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_min_watermark_ts")
         val errorCountValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_count")
         val errorInfoValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info").toString
-        val topics = UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics")
+        val topics =
+          if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics") != null)
+            UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics").toString
+          else null
         if (umsTsValue != null && streamIdValue != null && sinkNamespaceValue != null && errMaxWaterMarkTsValue != null && errMinWaterMarkTsValue != null && errorCountValue != null && errorInfoValue != null) {
           Await.result(modules.feedbackFlowErrDal.insert(
             FeedbackFlowErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
               srcNamespace, sinkNamespaceValue.toString, errorCountValue.toString.toInt,
               errMaxWaterMarkTsValue.toString, errMinWaterMarkTsValue.toString,
-              errorInfoValue.toString, topics.toString, curTs)), minTimeOut)
+              errorInfoValue.toString, topics, curTs)), minTimeOut)
         } else {
           riderLogger.error(s"FeedbackFlowError can't found the value", tuple)
         }
@@ -145,11 +147,14 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
         val statusValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "status")
         val resultDescValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "result_desc")
-        val topics = UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics")
+        val topics =
+          if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics") != null)
+            UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics").toString
+          else null
         if (umsTsValue != null && streamIdValue != null && statusValue != null && resultDescValue != null) {
           Await.result(modules.feedbackStreamErrDal.insert(
             FeedbackStreamErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
-              statusValue.toString, resultDescValue.toString, topics.toString, curTs)), minTimeOut)
+              statusValue.toString, resultDescValue.toString, topics, curTs)), minTimeOut)
         } else {
           riderLogger.error(s"FeedbackStreamBatchError can't found the value", tuple)
         }
@@ -173,7 +178,7 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val partitionOffsetValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "partition_offsets")
         if (umsTsValue != null && streamIdValue != null && topicNameValue != null && partitionOffsetValue != null) {
           val partitionOffset = partitionOffsetValue.toString
-          val partitionNum: Int = FeedbackOffsetUtil.getPartitionNumber(partitionOffset)
+          val partitionNum: Int = KafkaUtils.getPartNumByOffset(partitionOffset)
           Await.result(modules.feedbackOffsetDal.insert(FeedbackOffset(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
             topicNameValue.toString, partitionNum, partitionOffset, currentMicroSec)), minTimeOut)
         } else {
@@ -205,7 +210,11 @@ class MessageService(modules: ConfigurationModule with PersistenceModule) extend
         val topics = UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics")
         val sinkNamespaceValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace").toString
         val rddCountValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_count").toString.toInt
-        val cdcTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_generated_ts").toString.toLong
+        //todo 兼容0.6.0及之前版本stream feedback数据
+        val cdcTsValue =
+          if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_generated_ts") != null)
+            UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_generated_ts").toString.toLong
+          else UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_genereated_ts").toString.toLong
         val rddTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_generated_ts").toString.toLong
         val directiveTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "directive_process_start_ts").toString.toLong
         val mainDataTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_process_start_ts").toString.toLong

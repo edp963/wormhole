@@ -1,3 +1,23 @@
+/*-
+ * <<
+ * wormhole
+ * ==
+ * Copyright (C) 2016 - 2017 EDP
+ * ==
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * >>
+ */
+
 package edp.wormhole.kafka
 
 import kafka.admin.AdminUtils.getBrokerMetadatas
@@ -25,13 +45,13 @@ object WormholeTopicCommand {
     try {
       if (opts.options.has(opts.replicaAssignmentOpt)) {
         val assignment = parseReplicaAssignment(opts.options.valueOf(opts.replicaAssignmentOpt))
-        warnOnMaxMessagesChange(configs, assignment.valuesIterator.next().length)
+//        warnOnMaxMessagesChange(configs, assignment.valuesIterator.next().length)
         AdminUtils.createOrUpdateTopicPartitionAssignmentPathInZK(zkUtils, topic, assignment, configs, update = true)
       } else {
         CommandLineUtils.checkRequiredArgs(opts.parser, opts.options, opts.partitionsOpt, opts.replicationFactorOpt)
         val partitions = opts.options.valueOf(opts.partitionsOpt).intValue
         val replicas = opts.options.valueOf(opts.replicationFactorOpt).intValue
-        warnOnMaxMessagesChange(configs, replicas)
+//        warnOnMaxMessagesChange(configs, replicas)
         val rackAwareMode = if (opts.options.has(opts.disableRackAware)) RackAwareMode.Disabled
         else RackAwareMode.Enforced
         val brokerMetadatas = getBrokerMetadatas(zkUtils, rackAwareMode)
