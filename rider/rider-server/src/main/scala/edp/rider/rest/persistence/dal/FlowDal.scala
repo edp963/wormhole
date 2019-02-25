@@ -31,7 +31,7 @@ import edp.rider.rest.router.ActionClass
 import edp.rider.rest.util.{CommonUtils, FlowUtils}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.FlowUtils._
-import edp.rider.service.util.CacheMap
+import edp.rider.service.CacheMap
 import edp.wormhole.util.DateUtils.dt2long
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.{CanBeQueryCondition, TableQuery}

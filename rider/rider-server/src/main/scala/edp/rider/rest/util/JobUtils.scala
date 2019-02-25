@@ -105,7 +105,7 @@ object JobUtils extends RiderLogger {
       }
 
     val sinkSys = if (jobType != JobType.BACKFILL.toString) ns.nsSys else UmsDataSystem.KAFKA.toString
-    SinkConfig(sinkNs, sinkConnection, maxRecord, Some(getSinkProcessClass(sinkSys, ns.sinkSchema)), specialConfig, sinkKeys, projection)
+    SinkConfig(sinkNs, sinkConnection, maxRecord, Some(getSinkProcessClass(sinkSys, ns.sinkSchema, None)), specialConfig, sinkKeys, projection)
   }
 
   def getTranConfig(tranConfig: String, sinkConfig: String, sinkNs: String, jobType: String, tableKeys: Option[String]) = {

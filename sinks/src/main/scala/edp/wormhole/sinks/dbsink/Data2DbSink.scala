@@ -46,6 +46,7 @@ class Data2DbSink extends SinkProcessor{
                        connectionConfig: ConnectionConfig): Unit = {
 
     logger.info("process KafkaLog2DbSnapshot")
+    logger.info("KafkaLog2DbSnapshot sink config: " + sinkProcessConfig)
     val dt1: DateTime = dt2dateTime(currentyyyyMMddHHmmss)
 
     val sinkSpecificConfig =
