@@ -46,7 +46,7 @@ class Data2KafkaSink extends SinkProcessor {
     if(tupleList.nonEmpty) {
       logger.info("In Data2KafkaSink" + tupleList.head)
     }
-    logger.info("sink config: " + sinkProcessConfig)
+    logger.info("Data2KafkaSink sink config: " + sinkProcessConfig)
     val sinkSpecificConfig = if (sinkProcessConfig.specialConfig.isDefined) JsonUtils.json2caseClass[KafkaConfig](sinkProcessConfig.specialConfig.get) else KafkaConfig(None, None, None, None, None)
     WormholeKafkaProducer.init(connectionConfig.connectionUrl, connectionConfig.parameters, sinkSpecificConfig.kerberos.getOrElse(false))
 

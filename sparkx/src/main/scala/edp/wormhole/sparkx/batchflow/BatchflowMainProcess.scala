@@ -192,6 +192,7 @@ object BatchflowMainProcess extends EdpLogging {
 
   private def getMinMaxTsAndCount(protocolType: UmsProtocolType, sourceNamespace: String, umsRdd: RDD[Seq[String]], fields: Seq[UmsField]): (String, String, Int) = {
     val umsTsIndex = fields.map(_.name).indexOf(UmsSysField.TS.toString)
+    logInfo(s"fields:$fields,index:$umsTsIndex")
     val minMaxCountArray: Array[(String, String, Int)] = umsRdd.mapPartitions(partition => {
       var minTs = ""
       var maxTs = ""
@@ -255,6 +256,7 @@ object BatchflowMainProcess extends EdpLogging {
     // val dt1: DateTime =  dt2dateTime(currentyyyyMMddHHmmss)
     val umsRdd: RDD[(UmsProtocolType, String, ArrayBuffer[Seq[String]])] = formatRdd(mainDataRdd, "main").cache
     distinctSchema.foreach(schema => {
+      logInfo(s"schema:$schema")
       val uuid = UUID.randomUUID().toString
       val protocolType: UmsProtocolType = schema._1._1
       val sourceNamespace: String = schema._1._2
@@ -427,6 +429,7 @@ object BatchflowMainProcess extends EdpLogging {
           val directiveId = ConfMemoryStorage.getFlowConfigMap(matchSourceNs).head._2._3
           schemaMap((protocol, ns)) = (schema, directiveId)
         }
+        logInfo(s"begin schema:$schema")
     })
     mutable.LinkedHashMap(schemaMap.toSeq.sortBy(_._2._2): _*)
   }
