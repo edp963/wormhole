@@ -21,21 +21,17 @@
 
 package edp.rider
 
-import java.util.Properties
-
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.kafka.ConsumerManager
+import edp.rider.kafka.{KafkaUtils, RiderConsumer}
 import edp.rider.module._
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.entities.User
 import edp.rider.rest.router.RoutesApi
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.schedule.Scheduler
-import edp.rider.service.util.CacheMap
-import org.apache.kafka.clients.CommonClientConfigs
-import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
+import edp.rider.service.CacheMap
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await
@@ -55,21 +51,23 @@ object RiderStarter extends App with RiderLogger {
 
   DbModule.createSchema
 
-  if (Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.adminUser), minTimeOut).isEmpty)
-    Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.adminUser, RiderConfig.riderServer.adminPwd, RiderConfig.riderServer.adminUser, "admin", RiderConfig.riderServer.defaultLanguage, active = true, currentSec, 1, currentSec, 1)), minTimeOut)
-
   val future = Http().bindAndHandle(new RoutesApi(modules).routes, RiderConfig.riderServer.host, RiderConfig.riderServer.port)
+
 
   future.onComplete {
     case Success(_) =>
       riderLogger.info(s"WormholeServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
 
+      if (Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.adminUser), minTimeOut).isEmpty)
+        Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.adminUser, RiderConfig.riderServer.adminPwd, RiderConfig.riderServer.adminUser, "admin", RiderConfig.riderServer.defaultLanguage, active = true, currentSec, 1, currentSec, 1)), minTimeOut)
+
       CacheMap.cacheMapInit
 
-      if(RiderConfig.monitor.databaseType.equalsIgnoreCase("es"))
-         ElasticSearch.initial(RiderConfig.es)
+      if (RiderConfig.monitor.databaseType.equalsIgnoreCase("es"))
+        ElasticSearch.initial(RiderConfig.es)
 
-      new ConsumerManager(modules)
+      KafkaUtils.createRiderKafkaTopic()
+      new RiderConsumer(modules).feedbackConsume()
       riderLogger.info(s"WormholeServer Consumer started")
       Scheduler.start
       riderLogger.info(s"Wormhole Scheduler started")

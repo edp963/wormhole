@@ -21,32 +21,32 @@
 
 package edp.rider.rest.util
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import com.alibaba.fastjson.{JSON, JSONArray}
+import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import edp.rider.RiderStarter.modules._
 import edp.rider.common._
 import edp.rider.kafka.KafkaUtils
-import edp.rider.kafka.KafkaUtils.{getKafkaEarliestOffset, getKafkaLatestOffset, getKafkaOffsetByGroupId}
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
 import edp.rider.rest.util.StreamUtils._
+import edp.rider.wormhole._
+import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.yarn.YarnClientLog
 import edp.rider.yarn.YarnStatusQuery._
-import edp.rider.yarn.SubmitYarnJob._
-import edp.rider.wormhole._
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.ums.UmsProtocolType._
-import edp.wormhole.util.JsonUtils._
 import edp.wormhole.util.CommonUtils._
 import edp.wormhole.util.DateUtils._
-import edp.wormhole.util.config.KVConfig
+import edp.wormhole.util.JsonUtils._
+import edp.wormhole.kafka.WormholeGetOffsetUtils._
+import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
 import slick.jdbc.MySQLProfile.api._
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 import scalaj.http.{Http, HttpResponse}
 
@@ -65,13 +65,70 @@ object FlowUtils extends RiderLogger {
     }
   }
 
+  def getOtherSinksConn(otherSinks: JSONArray): JSONArray= {
+    val otherSinksConnection = new JSONArray()
+    for(i <- 0 until otherSinks.size) {
+      val otherSinkConfig = otherSinks.getJSONObject(i)
+      if (otherSinkConfig.containsKey("namespace")) {
+        val (instance, db, ns) = namespaceDal.getNsDetail(otherSinkConfig.getString("namespace"))
+        val dbConfig = getDbConfig(ns.nsSys, db.config.getOrElse(""))
+        val otherSinkConnection = ConnectionConfig(getConnUrl(instance, db), db.user, db.pwd, dbConfig)
+        otherSinkConfig.put("sink_connection", JSON.parseObject(caseClass2json[ConnectionConfig](otherSinkConnection)))
+        otherSinkConfig.put("sink_process_class_fullname", getSinkProcessClass(ns.nsSys, ns.sinkSchema, None))
+        otherSinksConnection.add(otherSinkConfig)
+      }
+    }
+    otherSinksConnection
+  }
+
+  def getSpecialConfig(sinkConfig: String, ns: Namespace): JSONObject = {
+    val specialConfigJsonObject =
+      if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
+        Some(JSON.parseObject(sinkConfig).getJSONObject("sink_specific_config"))
+      else None
+    specialConfigJsonObject match {
+      case Some(specialConfigJson) => {
+        if (specialConfigJson.containsKey("other_sinks_config")) {
+          val otherSinksConfig = specialConfigJson.getJSONObject("other_sinks_config")
+
+          if(otherSinksConfig.containsKey("other_sinks")) {
+            val otherSinks = otherSinksConfig.getJSONArray("other_sinks")
+            val otherSinksConnection = getOtherSinksConn(otherSinks)
+            if (otherSinksConnection.size > 0) {
+              otherSinksConfig.put("other_sinks", otherSinksConnection)
+            }
+          }
+          if (otherSinksConfig.containsKey("customer_sink_class_fullname")) {
+            otherSinksConfig.remove("customer_sink_class_fullname")
+            otherSinksConfig.put("current_sink_class_fullname", getSinkProcessClass(ns.nsSys, ns.sinkSchema, None))
+          } else None
+          specialConfigJson.put("other_sinks_config", otherSinksConfig)
+        }
+        specialConfigJson
+      }
+      case None => null
+    }
+  }
+
+  def getCustomerSinkClassName(sinkConfig: String) = {
+    if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_specific_config")) {
+      val specialConfigJson = JSON.parseObject(sinkConfig).getJSONObject("sink_specific_config")
+      if(specialConfigJson.containsKey("other_sinks_config")) {
+        val otherSinksConfig = specialConfigJson.getJSONObject("other_sinks_config")
+        if (otherSinksConfig.containsKey("customer_sink_class_fullname")) {
+          Some(otherSinksConfig.getString("customer_sink_class_fullname"))
+        } else None
+      } else None
+    } else None
+  }
+
   def getSinkConfig(sinkNs: String, sinkConfig: String, tableKeys: String): String = {
     try {
       val (instance, db, ns) = namespaceDal.getNsDetail(sinkNs)
-      val specialConfig =
-        if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_specific_config"))
-          JSON.parseObject(sinkConfig).getString("sink_specific_config")
-        else "{}"
+      val customerSinkClassName = getCustomerSinkClassName(sinkConfig)
+      val specialConfigJson = getSpecialConfig(sinkConfig, ns)
+      val specialConfig = if(specialConfigJson == null) "{}" else specialConfigJson.toString
+
       val sink_output =
         if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_output"))
           JSON.parseObject(sinkConfig).getString("sink_output")
@@ -85,6 +142,8 @@ object FlowUtils extends RiderLogger {
       //val sinkKeys = if (ns.nsSys == "hbase") getRowKey(specialConfig) else ns.keys.getOrElse("")
       val sinkKeys = if (ns.nsSys == "hbase") getRowKey(specialConfig) else tableKeys
 
+      riderLogger.info(s"sink ${sinkNs} specialConfig: ${specialConfig}")
+
       if (ns.sinkSchema.nonEmpty && ns.sinkSchema.get != "") {
         val schema = caseClass2json[Object](json2caseClass[SinkSchema](ns.sinkSchema.get).schema)
         val base64 = base64byte2s(schema.trim.getBytes)
@@ -97,7 +156,7 @@ object FlowUtils extends RiderLogger {
            |"sink_table_keys": "$sinkKeys",
            |"sink_output": "$sink_output",
            |"sink_connection_config": $sinkConnectionConfig,
-           |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys, ns.sinkSchema)}",
+           |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys, ns.sinkSchema, customerSinkClassName)}",
            |"sink_specific_config": $specialConfig,
            |"sink_retry_times": "3",
            |"sink_retry_seconds": "300",
@@ -113,7 +172,7 @@ object FlowUtils extends RiderLogger {
            |"sink_table_keys": "$sinkKeys",
            |"sink_output": "$sink_output",
            |"sink_connection_config": $sinkConnectionConfig,
-           |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys, ns.sinkSchema)}",
+           |"sink_process_class_fullname": "${getSinkProcessClass(ns.nsSys, ns.sinkSchema, customerSinkClassName)}",
            |"sink_specific_config": $specialConfig,
            |"sink_retry_times": "3",
            |"sink_retry_seconds": "300"
@@ -149,23 +208,27 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def getSinkProcessClass(nsSys: String, sinkSchema: Option[String]) = {
-    nsSys match {
-      case "cassandra" => "edp.wormhole.sinks.cassandrasink.Data2CassandraSink"
-      case "mysql" | "oracle" | "postgresql" | "vertica" | "greenplum" => "edp.wormhole.sinks.dbsink.Data2DbSink"
-      case "es" =>
-        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.elasticsearchsink.DataJson2EsSink"
-        else "edp.wormhole.sinks.elasticsearchsink.Data2EsSink"
-      case "hbase" => "edp.wormhole.sinks.hbasesink.Data2HbaseSink"
-      case "kafka" =>
-        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.kafkasink.DataJson2KafkaSink"
-        else "edp.wormhole.sinks.kafkasink.Data2KafkaSink"
-      case "mongodb" =>
-        if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.mongosink.DataJson2MongoSink"
-        else "edp.wormhole.sinks.mongosink.Data2MongoSink"
-      case "phoenix" => "edp.wormhole.sinks.phoenixsink.Data2PhoenixSink"
-      case "parquet" => ""
-      case "kudu" => "edp.wormhole.sinks.kudusink.Data2KuduSink"
+  def getSinkProcessClass(nsSys: String, sinkSchema: Option[String], customerSinkClassName: Option[String]): String = {
+    customerSinkClassName match {
+      case Some(sinkClassName) => sinkClassName
+      case None =>
+        nsSys match {
+          case "cassandra" => "edp.wormhole.sinks.cassandrasink.Data2CassandraSink"
+          case "mysql" | "oracle" | "postgresql" | "vertica" | "greenplum" => "edp.wormhole.sinks.dbsink.Data2DbSink"
+          case "es" =>
+            if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.elasticsearchsink.DataJson2EsSink"
+            else "edp.wormhole.sinks.elasticsearchsink.Data2EsSink"
+          case "hbase" => "edp.wormhole.sinks.hbasesink.Data2HbaseSink"
+          case "kafka" =>
+            if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.kafkasink.DataJson2KafkaSink"
+            else "edp.wormhole.sinks.kafkasink.Data2KafkaSink"
+          case "mongodb" =>
+            if (sinkSchema.nonEmpty && sinkSchema.get != "") "edp.wormhole.sinks.mongosink.DataJson2MongoSink"
+            else "edp.wormhole.sinks.mongosink.Data2MongoSink"
+          case "phoenix" => "edp.wormhole.sinks.phoenixsink.Data2PhoenixSink"
+          case "parquet" => ""
+          case "kudu" => "edp.wormhole.sinks.kudusink.Data2KuduSink"
+        }
     }
   }
 
@@ -211,13 +274,13 @@ object FlowUtils extends RiderLogger {
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "stop failed")
 
         case ("new" | "starting" | "waiting" | "failed" | "stopped" | "stopping", "suspending", "renew") =>
-          if (startFlow(flowStream.streamId, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
+          if (startFlow(flowStream.streamId, flowStream.streamName, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
             FlowInfo(flowStream.id, "updating", "start", Option(currentSec), None, s"$action success")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "renew failed")
 
         case ("new" | "starting" | "waiting" | "failed" | "stopped" | "stopping", "new" | "stopped" | "failed", "start") =>
-          if (startFlow(flowStream.streamId, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
+          if (startFlow(flowStream.streamId, flowStream.streamName, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
             FlowInfo(flowStream.id, "starting", "start,delete", Option(currentSec), None, s"$action success")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "start failed")
@@ -229,13 +292,13 @@ object FlowUtils extends RiderLogger {
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "stop failed")
 
         case ("running", "starting" | "updating" | "running" | "suspending", "renew") =>
-          if (startFlow(flowStream.streamId, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
+          if (startFlow(flowStream.streamId, flowStream.streamName, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
             FlowInfo(flowStream.id, "updating", "start", Option(currentSec), None, s"$action success")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "renew failed")
 
         case ("running", "new" | "stopped" | "failed", "start") =>
-          if (startFlow(flowStream.streamId, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
+          if (startFlow(flowStream.streamId, flowStream.streamName, flowStream.functionType, flowStream.id, flowStream.sourceNs, flowStream.sinkNs, flowStream.consumedProtocol, flowStream.sinkConfig.getOrElse(""), flowStream.tranConfig.getOrElse(""), flowStream.tableKeys.getOrElse(""), flowStream.updateBy))
             FlowInfo(flowStream.id, "starting", "start,delete", Option(currentSec), None, s"$action success")
           else
             FlowInfo(flowStream.id, flowStream.status, flowStream.disableActions, flowStream.startedTime, flowStream.stoppedTime, "start failed")
@@ -364,10 +427,10 @@ object FlowUtils extends RiderLogger {
   }
 
 
-  def startFlow(streamId: Long, functionType: String, flowId: Long, sourceNs: String, sinkNs: String, consumedProtocol: String, sinkConfig: String, tranConfig: String, tableKeys: String, userId: Long): Boolean = {
+  def startFlow(streamId: Long, streamName: String, functionType: String, flowId: Long, sourceNs: String, sinkNs: String, consumedProtocol: String, sinkConfig: String, tranConfig: String, tableKeys: String, userId: Long): Boolean = {
     try {
       autoDeleteTopic(userId, streamId)
-      autoRegisterTopic(streamId, sourceNs, tranConfig, userId)
+      autoRegisterTopic(streamId, streamName, sourceNs, tranConfig, userId)
       val sourceNsObj = namespaceDal.getNamespaceByNs(sourceNs).get
       val umsInfoOpt =
         if (sourceNsObj.sourceSchema.nonEmpty)
@@ -387,6 +450,8 @@ object FlowUtils extends RiderLogger {
       if (functionType == "default") {
         val consumedProtocolSet = getConsumptionType(consumedProtocol)
         val sinkConfigSet = getSinkConfig(sinkNs, sinkConfig, tableKeys)
+
+        riderLogger.info(s"sink ${sinkNs} sinkConfig: ${sinkConfigSet}")
         val tranConfigFinal = getTranConfig(tranConfig)
         //        val tuple = Seq(streamId, currentMicroSec, umsType, umsSchema, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
         val base64Tuple = Seq(streamId, flowId, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
@@ -698,7 +763,7 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def autoRegisterTopic(streamId: Long, sourceNs: String, tranConfig: String, userId: Long) = {
+  def autoRegisterTopic(streamId: Long, streamName: String, sourceNs: String, tranConfig: String, userId: Long) = {
     try {
       val streamJoinNs = getStreamJoinNamespaces(tranConfig)
       val nsSeq = (streamJoinNs += sourceNs).map(ns => namespaceDal.getNamespaceByNs(ns).get)
@@ -707,10 +772,11 @@ object FlowUtils extends RiderLogger {
         if (topicSearch.isEmpty) {
           val instance = Await.result(instanceDal.findByFilter(_.id === ns.nsInstanceId), minTimeOut).head
           val database = Await.result(databaseDal.findByFilter(_.id === ns.nsDatabaseId), minTimeOut).head
-          val lastConsumedOffset = Await.result(feedbackOffsetDal.getLatestOffset(streamId, database.nsDatabase), minTimeOut)
+          val latestKafkaOffset = getLatestOffset(instance.connUrl, database.nsDatabase, RiderConfig.kerberos.enabled)
+          val lastConsumedOffset = getConsumerOffset(instance.connUrl, streamName, database.nsDatabase, latestKafkaOffset.split(",").length, RiderConfig.kerberos.enabled)
           val offset =
-            if (lastConsumedOffset.nonEmpty) lastConsumedOffset.get.partitionOffsets
-            else KafkaUtils.getKafkaLatestOffset(instance.connUrl, database.nsDatabase, RiderConfig.kerberos.enabled)
+            if (lastConsumedOffset.split(",").exists(_.split(":").length == 1)) latestKafkaOffset
+            else lastConsumedOffset
           val inTopicInsert = StreamInTopic(0, streamId, ns.nsDatabaseId, offset, RiderConfig.spark.topicDefaultRate,
             active = true, currentSec, userId, currentSec, userId)
           val inTopic = Await.result(streamInTopicDal.insert(inTopicInsert), minTimeOut)
@@ -983,6 +1049,8 @@ object FlowUtils extends RiderLogger {
   def getFlinkFlowConfig(flow: Flow): String = {
     val consumedProtocol = getConsumptionType(flow.consumedProtocol)
     val sinkConfig = getSinkConfig(flow.sinkNs, flow.sinkConfig.get, flow.tableKeys.getOrElse(""))
+
+    riderLogger.info(s"sink ${flow.sinkNs} sinkConfig: ${sinkConfig}")
     val tranConfigFinal = getTranConfig(flow.tranConfig.getOrElse(""))
 
     val sourceNsObj = namespaceDal.getNamespaceByNs(flow.sourceNs).get
@@ -1281,19 +1349,12 @@ object FlowUtils extends RiderLogger {
 
   def genFlowAllOffsets(topics: Seq[FlowTopicTemp], kafkaMap: Map[Long, String]): Seq[TopicAllOffsets] = {
     topics.map(topic => {
-      val earliest = getKafkaEarliestOffset(kafkaMap(topic.flowId), topic.topicName, RiderConfig.kerberos.enabled)
-      val latest = getKafkaLatestOffset(kafkaMap(topic.flowId), topic.topicName, RiderConfig.kerberos.enabled)
-      val consumedLatestOffset =
-        try {
-          val flow = Await.result(flowDal.findById(topic.flowId), minTimeOut).get
-          val flowName = FlowUtils.getFlowName(flow.id, flow.sourceNs, flow.sinkNs)
-          getKafkaOffsetByGroupId(kafkaMap(topic.flowId), topic.topicName, flowName)
-        } catch {
-          case _: Exception =>
-            formatConsumedOffsetByGroup(latest)
-        }
-      TopicAllOffsets(topic.id, topic.topicName, topic.rate,
-        KafkaUtils.formatConsumedOffsetByLatestOffset(consumedLatestOffset, latest), earliest, latest)
+      val earliest = getEarliestOffset(kafkaMap(topic.flowId), topic.topicName, RiderConfig.kerberos.enabled)
+      val latest = getLatestOffset(kafkaMap(topic.flowId), topic.topicName, RiderConfig.kerberos.enabled)
+      val flow = Await.result(flowDal.findById(topic.flowId), minTimeOut).get
+      val flowName = FlowUtils.getFlowName(flow.id, flow.sourceNs, flow.sinkNs)
+      val consumedLatestOffset = getConsumerOffset(kafkaMap(topic.flowId), flowName, topic.topicName, latest.split(",").length, RiderConfig.kerberos.enabled)
+      TopicAllOffsets(topic.id, topic.topicName, topic.rate, consumedLatestOffset, earliest, latest)
     })
   }
 

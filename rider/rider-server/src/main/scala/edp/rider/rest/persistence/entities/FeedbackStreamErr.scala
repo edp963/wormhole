@@ -31,6 +31,7 @@ case class FeedbackStreamErr(id: Long,
                              streamId: Long,
                              status: String,
                              resultDesc: String,
+                             topics: String,
                              feedbackTime: String) extends BaseEntity {
   override def copyWithId(id: Long): this.type = {
     copy(id = id).asInstanceOf[this.type]
@@ -38,12 +39,13 @@ case class FeedbackStreamErr(id: Long,
 }
 
 class FeedbackStreamErrTable(_tableTag: Tag) extends BaseTable[FeedbackStreamErr](_tableTag, "feedback_stream_error") {
-  def * = (id, projectType, umsTs, streamId, status, resultDesc, feedbackTime) <> (FeedbackStreamErr.tupled, FeedbackStreamErr.unapply)
+  def * = (id, projectType, umsTs, streamId, status, resultDesc, topics, feedbackTime) <> (FeedbackStreamErr.tupled, FeedbackStreamErr.unapply)
 
   val projectType: Rep[String] = column[String]("protocol_type", O.Length(200, varying = true))
   val umsTs: Rep[String] = column[String]("ums_ts")
   val streamId: Rep[Long] = column[Long]("stream_id")
   val status: Rep[String] = column[String]("status", O.Length(32, varying = true))
   val resultDesc: Rep[String] = column[String]("result_desc", O.Length(2000, varying = true))
+  val topics: Rep[String] = column[String]("topics", O.Length(2000, varying = true))
   val feedbackTime: Rep[String] = column[String]("feedback_time")
 }

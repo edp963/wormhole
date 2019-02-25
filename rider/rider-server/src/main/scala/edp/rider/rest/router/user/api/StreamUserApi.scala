@@ -26,23 +26,21 @@ import akka.http.scaladsl.server.Route
 import edp.rider.RiderStarter.modules._
 import edp.rider.common.Action._
 import edp.rider.common.{RiderConfig, RiderLogger, StreamStatus, StreamType}
-import edp.rider.kafka.KafkaUtils._
 import edp.rider.rest.persistence.dal._
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.CommonUtils.{currentSec, minTimeOut}
 import edp.rider.rest.util.ResponseUtils.{getHeader, _}
 import edp.rider.rest.util.StreamUtils._
-import edp.rider.rest.util.UdfUtils._
 import edp.rider.rest.util.{AuthorizationProvider, StreamUtils}
-import edp.rider.service.util.CacheMap
-import edp.rider.yarn.YarnClientLog
+import edp.rider.service.CacheMap
+import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.rider.yarn.SubmitYarnJob.runShellCommand
+import edp.rider.yarn.YarnClientLog
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.util.JsonUtils
 import slick.jdbc.MySQLProfile.api._
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
@@ -735,8 +733,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     }
     val kafkaInfo = streamDal.getKafkaInfo(streamId)
     // get kafka earliest/latest offset
-    val latestOffset = getKafkaLatestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.enabled)
-    val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.enabled)
+    val latestOffset = getLatestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.enabled)
+    val earliestOffset = getEarliestOffset(kafkaInfo._2, postTopic.name, RiderConfig.kerberos.enabled)
 
     val topicResponse = SimpleTopicAllOffsets(postTopic.name, RiderConfig.spark.topicDefaultRate, earliestOffset, earliestOffset, latestOffset)
 
@@ -791,8 +789,8 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
     val newTopics = topics.userDefinedTopics.filter(!userDefinedTopicsName.contains(_))
     val newTopicsOffset = newTopics.map(topic => {
       val kafkaInfo = streamDal.getKafkaInfo(streamId)
-      val latestOffset = getKafkaLatestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.enabled)
-      val earliestOffset = getKafkaEarliestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.enabled)
+      val latestOffset = getLatestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.enabled)
+      val earliestOffset = getEarliestOffset(kafkaInfo._2, topic, RiderConfig.kerberos.enabled)
       val consumedOffset = earliestOffset
       SimpleTopicAllOffsets(topic, RiderConfig.spark.topicDefaultRate, consumedOffset, earliestOffset, latestOffset)
     })
@@ -835,4 +833,38 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
       }
     }
   }
+
+    def getYarnUi(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "yarnUi"){
+      (id, streamId) =>
+        get {
+          authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+            session =>
+              if (session.roleType != "user") {
+                riderLogger.warn(s"${session.userId} has no permission to access it.")
+                complete(OK, getHeader(403, session))
+              } else {
+                if (session.projectIdList.contains(id)) {
+                  Await.result(streamDal.findById(streamId), minTimeOut) match {
+                    case Some(stream) =>
+                      StreamUtils.getAppInfo(stream.startedTime.getOrElse(""), stream.name) match {
+                        case Some(appInfo) =>
+                            complete(OK, ResponseJson[String](getHeader(200, session), getYarnUri(appInfo.appStatus, appInfo.appId)))
+                        case _ =>
+                          riderLogger.info(s"user ${session.userId} get stream $streamId on yarnUi failed caused by stream dose not exist on yarn.")
+                          complete(OK, setFailedResponse(session, "stream dose not exist on yarn."))
+                      }
+                    case None =>
+                      riderLogger.info(s"user ${session.userId} get stream $streamId on yarnUi failed caused by stream not found.")
+                      complete(OK, setFailedResponse(session, "stream not found."))
+                  }
+                } else {
+                  riderLogger.error(s"user ${
+                    session.userId
+                  } doesn't have permission to access the project $id.")
+                  complete(OK, setFailedResponse(session, "Insufficient Permission"))
+                }
+              }
+          }
+        }
+    }
 }

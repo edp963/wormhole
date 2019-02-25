@@ -43,7 +43,8 @@ const { RangePicker } = DatePicker
 
 import {
   loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
-  deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset, loadUdfs, jumpStreamToFlowFilter
+  deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset, loadUdfs, jumpStreamToFlowFilter,
+  loadYarnUi
 } from './action'
 import { changeTabs } from '../Workbench/action'
 import { loadSingleUdf } from '../Udf/action'
@@ -424,7 +425,13 @@ export class Manager extends React.Component {
       }
     }
   }
-
+  getYarnUi = (record) => () => {
+    const { projectIdGeted } = this.props
+    const streamId = record.id
+    this.props.onLoadYarnUi(projectIdGeted, streamId, (linkUrl) => {
+      window.open(linkUrl)
+    })
+  }
   /**
    *  start/renew ok
    */
@@ -1108,6 +1115,7 @@ export class Manager extends React.Component {
           const stopFormat = <FormattedMessage {...messages.streamTableStop} />
           const sureStopFormat = <FormattedMessage {...messages.streamSureStop} />
           const modifyFormat = <FormattedMessage {...messages.streamModify} />
+          const streamYarnLink = <FormattedMessage {...messages.streamYarnLink} />
 
           const { disableActions, hideActions } = record
           let strDelete = disableActions.includes('delete')
@@ -1184,12 +1192,18 @@ export class Manager extends React.Component {
                 {strRenew}
               </Tooltip>
               {strDelete}
+              <Tooltip title={streamYarnLink}>
+                <Button shape="circle" type="ghost" onClick={this.getYarnUi(record)}>
+                  <i className="iconfont icon-file_type_yarn"></i>
+                </Button>
+              </Tooltip>
+
             </span>
           )
         }
 
         let streamDetailContent = ''
-        if (showStreamdetails) {
+        if (showStreamdetails && typeof showStreamdetails === 'object') {
           const detailTemp = showStreamdetails.stream
 
           const topicTemp = showStreamdetails.topicInfo && showStreamdetails.topicInfo.autoRegisteredTopics
@@ -1218,6 +1232,7 @@ export class Manager extends React.Component {
               </li>
             ))
           }
+
           const currentudfTemp = showStreamdetails.currentUdf
           const currentUdfFinal = currentudfTemp.length !== 0
             ? currentudfTemp.map(s => (
@@ -1451,7 +1466,8 @@ Manager.propTypes = {
   locale: PropTypes.string,
   onLoadUdfs: PropTypes.func,
   jumpStreamToFlowFilter: PropTypes.func,
-  onChangeTabs: PropTypes.func
+  onChangeTabs: PropTypes.func,
+  onLoadYarnUi: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -1469,7 +1485,8 @@ export function mapDispatchToProps (dispatch) {
     onLoadLastestOffset: (projectId, streamId, resolve, type, topics) => dispatch(loadLastestOffset(projectId, streamId, resolve, type, topics)),
     onLoadUdfs: (projectId, streamId, roleType, resolve) => dispatch(loadUdfs(projectId, streamId, roleType, resolve)),
     jumpStreamToFlowFilter: (streamFilterId) => dispatch(jumpStreamToFlowFilter(streamFilterId)),
-    onChangeTabs: (key) => dispatch(changeTabs(key))
+    onChangeTabs: (key) => dispatch(changeTabs(key)),
+    onLoadYarnUi: (projectId, streamId, resolve) => dispatch(loadYarnUi(projectId, streamId, resolve))
   }
 }
 

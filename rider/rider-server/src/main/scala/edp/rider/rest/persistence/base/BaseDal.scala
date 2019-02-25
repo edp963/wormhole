@@ -22,12 +22,11 @@
 package edp.rider.rest.persistence.base
 
 import edp.rider.module.DbModule._
-import edp.rider.rest.util.CommonUtils
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.CanBeQueryCondition
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 trait BaseDal[T, A] {
 
