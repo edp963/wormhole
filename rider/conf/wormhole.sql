@@ -404,7 +404,7 @@ CREATE TABLE IF NOT EXISTS `feedback_heartbeat` (
   PRIMARY KEY (`id`)
 )ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `feedback_stream_offset` (
+CREATE TABLE IF NOT EXISTS `feedback_stream_offset_bak` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `protocol_type` VARCHAR(200) NOT NULL,
   `ums_ts` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
