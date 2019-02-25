@@ -1,6 +1,6 @@
 {
   "protocol": {
-    "type": "feedback_flow_stats"
+    "type": "feedback_sparkx_flow_stats"
   },
   "schema": {
     "namespace": "oracle.oracle01.db.table.v2.dbpar01.tablepar01",
