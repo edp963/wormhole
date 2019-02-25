@@ -172,7 +172,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     val outputFieldNames = for (i <- 0 until outputFieldSize)
       yield outputFieldList(i).split(":").head
     if (keyByFields != null && keyByFields.nonEmpty)
-      systemFieldArray ++ keyByFields.split(";") ++ outputFieldNames
+      systemFieldArray ++ keyByFields.split(",") ++ outputFieldNames
     else
       systemFieldArray ++ outputFieldNames
   }
