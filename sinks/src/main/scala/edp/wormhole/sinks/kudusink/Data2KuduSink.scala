@@ -33,6 +33,7 @@ class Data2KuduSink extends SinkProcessor  {
 
     val tableKeys: Seq[String] = sinkProcessConfig.tableKeyList
     tupleList.sliding(sinkSpecificConfig.`batch_size.get`, sinkSpecificConfig.`batch_size.get`).foreach(payload => {
+      logger.info(s"size:${sinkSpecificConfig.`batch_size.get`},tuple size:${payload.length}")
       val tupleList: Seq[Seq[String]] = payload.toList
       try {
         if (sinkSpecificConfig.`mutation_type.get` == SourceMutationType.I_U_D.toString) {
