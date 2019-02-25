@@ -28,8 +28,7 @@ case class SwiftsProcessConfig(//projection:String,
                                validityConfig: Option[ValidityConfig] = None,
                                datasetShow:Option[Boolean] = None,
                                datasetShowNum:Option[Int] = None,
-                               specialConfig:Option[String] = None){
-}
+                               specialConfig:Option[String] = None)
 
 case class SwiftsSpecialProcessConfig(`lookup_batch_size`:Option[Int] = None){
   lazy val batchSize=`lookup_batch_size`.getOrElse(1000)
