@@ -272,38 +272,20 @@ object SqlProcessor {
     var ps: PreparedStatement = null
     val errorTupleList: mutable.ListBuffer[Seq[String]] = mutable.ListBuffer.empty[Seq[String]]
     var conn: Connection = null
-    var index = 0 - batchSize
+    val index = 0 - batchSize
     try {
       conn = DbConnection.getConnection(connectionConfig)
       conn.setAutoCommit(false)
       logger.info("create connection successfully,batchsize:" + batchSize + ",tupleList:" + tupleList.size)
       ps = conn.prepareStatement(sql)
-      tupleList.sliding(batchSize, batchSize).foreach(tuples => {
-        index += batchSize
-        for (i <- tuples.indices) {
-          setPlaceholder(opType, tuples(i), ps, fieldNames, renameSchema, systemRenameMap, tableKeyNames, sysIdName)
-          ps.addBatch()
-        }
-        try {
-          logger.info("execute batch start***")
-          ps.executeBatch()
-          logger.info("execute batch end***")
-          conn.commit()
-        } catch {
-          case e: Throwable =>
-            logger.error("executeBatch error ", e)
-            errorTupleList ++= tuples
-            if (batchSize == 1)
-              logger.info("violate tuple -----------" + tuples)
-            try {
-              conn.rollback()
-            } catch {
-              case e: Throwable => logger.warn("rollback error", e)
-            }
-        } finally {
-          ps.clearBatch()
-        }
-      })
+      for (i <- tupleList.indices) {
+        setPlaceholder(opType, tupleList(i), ps, fieldNames, renameSchema, systemRenameMap, tableKeyNames, sysIdName)
+        ps.addBatch()
+      }
+      logger.info("execute batch start***")
+      ps.executeBatch()
+      logger.info("execute batch end***")
+      conn.commit()
     } catch {
       case e: SQLTransientConnectionException => DbConnection.resetConnection(connectionConfig)
         logger.error("SQLTransientConnectionException", e)
@@ -311,11 +293,18 @@ object SqlProcessor {
         if (index <= 0) errorTupleList ++= tupleList
         else errorTupleList ++= tupleList.takeRight(tupleList.size - index)
       case e: Throwable =>
+        logger.error("executeBatch error ", e)
+        errorTupleList ++= tupleList
+        if (batchSize == 1)
+          logger.info("violate tuple -----------" + tupleList)
+        try {
+          conn.rollback()
+        } catch {
+          case e: Throwable => logger.warn("rollback error", e)
+        }
         logger.error("get connection failed", e)
-        if (index <= 0) errorTupleList ++= tupleList
-        else errorTupleList ++= tupleList.takeRight(tupleList.size - index)
-    }
-    finally {
+    } finally {
+      ps.clearBatch()
       if (ps != null)
         try {
           ps.close()
@@ -330,6 +319,7 @@ object SqlProcessor {
           case e: Throwable => logger.error("conn.close", e)
         }
     }
+
     errorTupleList.toList
   }
 }

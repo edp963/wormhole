@@ -23,12 +23,16 @@ package edp.wormhole.sparkx.swifts.transform
 
 import java.util.UUID
 
+import com.alibaba.fastjson.JSON
 import edp.wormhole.sparkx.common.WormholeConfig
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkx.swifts.custom.{LookupHbase, LookupKudu, LookupRedis}
+import edp.wormhole.sparkxinterface.swifts.SwiftsSpecialProcessConfig
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
 import edp.wormhole.ums.UmsDataSystem
+import edp.wormhole.util.JsonUtils
+import edp.wormhole.util.JsonUtils.caseClass2json
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.spark.sql._
 
@@ -41,6 +45,7 @@ object SwiftsTransform extends EdpLogging {
     val swiftsLogic = ConfMemoryStorage.getSwiftsLogic(matchSourceNamespace, sinkNamespace)
     val swiftsSqlArr = swiftsLogic.swiftsSql
     val dataSetShow = swiftsLogic.datasetShow
+    val batchSize = (if(swiftsLogic.specialConfig.isDefined && !swiftsLogic.specialConfig.get.isEmpty) JsonUtils.json2caseClass[SwiftsSpecialProcessConfig](swiftsLogic.specialConfig.get) else new SwiftsSpecialProcessConfig()).batchSize
     val dataSetShowNum = if (dataSetShow.get) swiftsLogic.datasetShowNum.get else -1
     var currentDf = df
     var cacheDf = df
@@ -97,9 +102,9 @@ object SwiftsTransform extends EdpLogging {
                 case UmsDataSystem.REDIS =>
                   currentDf = LookupRedis.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig)
                 case UmsDataSystem.KUDU =>
-                  currentDf = LookupKudu.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig)
+                  currentDf = LookupKudu.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig,Some(batchSize))
                 case _ =>
-                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.MYSQL)
+                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.MYSQL,Some(batchSize))
               }
             }
           case SqlOptType.SPARK_SQL =>
