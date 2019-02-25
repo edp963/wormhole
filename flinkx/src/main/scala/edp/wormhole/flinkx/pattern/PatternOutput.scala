@@ -124,8 +124,9 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
 
   private def buildRow(input: Seq[Iterable[Row]], keyByFields: String) = {
     val outputFieldSize: Int = outputFieldList.length
-    val keyByFieldsArray = if (keyByFields != null && keyByFields != "") keyByFields.split(";")
+    val keyByFieldsArray = if (keyByFields != null && keyByFields != "") keyByFields.split(",")
     else null
+
     val systemFieldArray = FlinkSchemaUtils.getSystemFields(schemaMap)
     val systemFieldsSize = systemFieldArray.length
     val row = if (keyByFieldsArray != null) {
