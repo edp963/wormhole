@@ -17,7 +17,7 @@ import scala.collection.mutable.ListBuffer
 
 object LookupKudu extends EdpLogging {
 
-  def transform(session: SparkSession, df: DataFrame, sqlConfig: SwiftsSql, sourceNamespace: String, sinkNamespace: String, connectionConfig: ConnectionConfig): DataFrame = {
+  def transform(session: SparkSession, df: DataFrame, sqlConfig: SwiftsSql, sourceNamespace: String, sinkNamespace: String, connectionConfig: ConnectionConfig, batchSize: Option[Int] = None): DataFrame = {
     val database = sqlConfig.lookupNamespace.get.split("\\.")(2)
     val fromIndex = sqlConfig.sql.indexOf(" from ")
     val afterFromSql = sqlConfig.sql.substring(fromIndex + 6).trim
@@ -61,16 +61,16 @@ object LookupKudu extends EdpLogging {
         val keySchemaMap = mutable.HashMap.empty[String, (Int, UmsFieldType, Boolean)]
         keySchemaMap(kuduJoinNameArray.head) = (0, keyType, true)
 
-        val batchSize =
-          if (connectionConfig.parameters.nonEmpty) {
-            val opt = connectionConfig.parameters.get.find(_.key.toLowerCase() == "batch_size")
-            if (opt.nonEmpty) opt.head.value.toInt
-            else 10000
-          } else {
-            10000
-          }
+//        val batchSize =
+//          if (connectionConfig.parameters.nonEmpty) {
+//            val opt = connectionConfig.parameters.get.find(_.key.toLowerCase() == "batch_size")
+//            if (opt.nonEmpty) opt.head.value.toInt
+//            else 10000
+//          } else {
+//            10000
+//          }
 
-        originalData.sliding(batchSize, batchSize).foreach((subList: mutable.Seq[Row]) => {
+        originalData.grouped(batchSize.get).foreach((subList: mutable.Seq[Row]) => {
           val tupleList: mutable.Seq[List[String]] = subList.map(row => {
             sqlConfig.sourceTableFields.get.toList.map(field => {
               val tmpKey = row.get(row.fieldIndex(field))
