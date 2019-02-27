@@ -1420,14 +1420,17 @@ object FlowUtils extends RiderLogger {
     val nsDetail = namespaceDal.getNsDetail(preFlowStream.sourceNs)
     val db = nsDetail._2
     if (StreamUtils.containsTopic(driftStream.id, db.id)) {
-      val preStreamOffset = getConsumedOffset(preFlowStream.streamId, db.id, db.nsDatabase)
-      val driftStreamOffset = getConsumedOffset(driftStream.id, db.id, db.nsDatabase)
+      val preStreamOffset = streamDal.getStreamTopicsMap(preFlowStream.streamId, preFlowStream.streamName).autoRegisteredTopics
+        .filter(_.name == db.nsDatabase).head.consumedLatestOffset
+      val driftStreamOffset = streamDal.getStreamTopicsMap(driftStream.id, driftStream.name).autoRegisteredTopics
+        .filter(_.name == db.nsDatabase).head.consumedLatestOffset
       val offset = if (preStreamOffset < driftStreamOffset) preStreamOffset
       else driftStreamOffset
       (offset,
         s"it's available to drift, ${preFlowStream.streamName} stream consumed topic ${db.nsDatabase} offset is $preStreamOffset, ${driftStream.name} stream consumed offset is $driftStreamOffset, ${driftStream.name} stream ${db.nsDatabase} offset will be update to $offset. The final offset depends on the actual operation time!!!")
     } else {
-      val offset = StreamUtils.getConsumedOffset(preFlowStream.streamId, db.id, db.nsDatabase)
+      val offset = streamDal.getStreamTopicsMap(preFlowStream.streamId, preFlowStream.streamName).autoRegisteredTopics
+        .filter(_.name == db.nsDatabase).head.consumedLatestOffset
       (offset, s"it's available to drift, ${driftStream.name} stream will add new topic ${db.nsDatabase} with $offset offset. The final offset depends on the actual operation time!!!")
     }
   }
