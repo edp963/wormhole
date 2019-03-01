@@ -21,6 +21,8 @@
 
 package edp.rider.rest.util
 
+import java.net.URI
+
 import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.rider.RiderStarter.modules
 import edp.rider.common._
@@ -35,8 +37,11 @@ import edp.rider.wormhole._
 import edp.wormhole.ums.UmsDataSystem
 import edp.wormhole.util.JsonUtils._
 import edp.wormhole.util.CommonUtils._
-import edp.wormhole.util.DateUtils
-import edp.wormhole.util.config.ConnectionConfig
+import edp.wormhole.externalclient.hadoop.HdfsUtils._
+import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
+import edp.wormhole.util.{DateUtils, FileUtils}
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, Path}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -295,5 +300,59 @@ object JobUtils extends RiderLogger {
       //      else
       None
     }
+  }
+
+  def getHdfsDataVersions(namespace: String): Seq[Int] = {
+    val hdfsRoot = RiderConfig.spark.remoteHdfsRoot match {
+      case Some(_) => RiderConfig.spark.remoteHdfsActiveNamenodeHost.get
+      case None => RiderConfig.spark.hdfsRoot
+    }
+    val configuration = setConfiguration(hdfsRoot, None)
+    val names = namespace.split("\\.")
+    val hdfsPath = hdfsRoot + "/hdfslog/" + names(0) + "." + names(1) + "." + names(2) + "/" + names(3)
+    getHdfsFileList(configuration, hdfsPath).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _)
+  }
+
+  def getHdfsFileList(config:Configuration, hdfsPath: String): Seq[String] = {
+    val fileSystem = FileSystem.newInstance(config)
+    val fullPath = FileUtils.pfRight(hdfsPath)
+    riderLogger.info(s"hdfs data path: $fullPath")
+    assert(isPathExist(config, fullPath), s"The $fullPath does not exist")
+    fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString).toList
+  }
+
+  def setConfiguration(hdfsPath: String, connectionConfig: Option[Seq[KVConfig]]): Configuration = {
+    var sourceNamenodeHosts = null.asInstanceOf[String]
+    var sourceNamenodeIds = null.asInstanceOf[String]
+    if(connectionConfig.nonEmpty) connectionConfig.get.foreach(param=>{
+      if(param.key=="hdfs_namenode_hosts") sourceNamenodeHosts = param.value
+      if(param.key=="hdfs_namenode_ids") sourceNamenodeIds = param.value
+    })
+
+    val hadoopHome = System.getenv("HADOOP_HOME")
+    val configuration = new Configuration(false)
+    configuration.addResource(new Path(s"$hadoopHome/conf/core-site.xml"))
+    configuration.addResource(new Path(s"$hadoopHome/conf/hdfs-site.xml"))
+
+    val defaultFS =  configuration.get("fs.defaultFS")
+    riderLogger.info(s"hadoopHome is $hadoopHome, defaultFS is $defaultFS")
+
+    val hdfsPathGrp = hdfsPath.split("//")
+    val hdfsRoot = if (hdfsPathGrp(1).contains("/")) hdfsPathGrp(0) + "//" + hdfsPathGrp(1).substring(0, hdfsPathGrp(1).indexOf("/")) else hdfsPathGrp(0) + "//" + hdfsPathGrp(1)
+    configuration.set("fs.defaultFS", hdfsRoot)
+    configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
+    //configuration.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem")
+    if(sourceNamenodeHosts != null) {
+      val clusterName = hdfsRoot.split("//")(1)
+      configuration.set("dfs.nameservices", clusterName)
+      configuration.set(s"dfs.ha.namenodes.$clusterName", sourceNamenodeIds)
+      val namenodeAddressSeq = sourceNamenodeHosts.split(",")
+      val namenodeIdSeq = sourceNamenodeIds.split(",")
+      for (i <- 0 until namenodeAddressSeq.length){
+        configuration.set(s"dfs.namenode.rpc-address.$clusterName." + namenodeIdSeq(i), namenodeAddressSeq(i))
+      }
+      configuration.set(s"dfs.client.failover.proxy.provider.$clusterName","org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
+    }
+    configuration
   }
 }
