@@ -10,7 +10,7 @@ import io.swagger.annotations._
 @Api(value = "/jobs", consumes = "application/json", produces = "application/json")
 @Path("/user/projects")
 class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives{
-  lazy val routes: Route = postRoute ~ startJob ~ getJobByIdRoute ~ getJobByFilterRoute ~ stopJob ~ deleteJob ~ getLogByJobId ~ reviseRoute
+  lazy val routes: Route = postRoute ~ startJob ~ getJobByIdRoute ~ getJobByFilterRoute ~ stopJob ~ deleteJob ~ getLogByJobId ~ reviseRoute ~ getDataVersions
   lazy val basePath = "projects"
 
   @Path("/{projectId}/jobs")
@@ -163,4 +163,18 @@ class JobUserRoutes(modules: ConfigurationModule with PersistenceModule with Bus
   def getLatestHeartbeatById: Route = modules.jobUserService.getLogByJobId(basePath)
 
 
+  @Path("/{projectId}/jobs/dataversions")
+  @ApiOperation(value = "get hdfs data versions by namespace", notes = "", nickname = "", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
+    new ApiImplicitParam(name = "namespace", value = "source namespace", required = true, dataType = "string", paramType = "query")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "OK"),
+    new ApiResponse(code = 401, message = "authorization error"),
+    new ApiResponse(code = 403, message = "user is not normal"),
+    new ApiResponse(code = 451, message = "request process failed"),
+    new ApiResponse(code = 500, message = "internal server error")
+  ))
+  def getDataVersions: Route = modules.jobUserService.getDataVersions(basePath)
 }
