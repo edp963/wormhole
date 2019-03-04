@@ -46,6 +46,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
         val mapValue: (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)]) = jsonSourceParseMap((protocolType, namespace))
         val umsTuple = JsonParseUtils.dataParse(value._2, mapValue._2, mapValue._3)
         umsTuple.foreach(tuple => {
+          logger.info("source tuple:"+tuple.tuple)
           createRow(tuple.tuple, protocolType.toString, out,mapValue._1)
         })
       }
