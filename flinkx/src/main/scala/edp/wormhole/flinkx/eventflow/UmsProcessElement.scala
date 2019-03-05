@@ -60,7 +60,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
       }
     } catch {
       case ex: Throwable =>
-        logger.error("in doFlinkSql table query", ex)
+        logger.error("in UmsProcessElement ", ex)
         //out.collect(new Row(0))
         ctx.output(kafkaDataTag, UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), value._2, ex.getMessage))
     }
