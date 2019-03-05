@@ -25,7 +25,7 @@ import edp.wormhole.flinkx.common.{ExceptionConfig, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.pattern.JsonFieldName._
 import edp.wormhole.flinkx.pattern.Quantifier.{OFTIMES, TYPE}
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.cep.nfa.AfterMatchSkipStrategy
+import org.apache.flink.cep.nfa.aftermatch.AfterMatchSkipStrategy
 import org.apache.flink.cep.scala.pattern.Pattern
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.types.Row
