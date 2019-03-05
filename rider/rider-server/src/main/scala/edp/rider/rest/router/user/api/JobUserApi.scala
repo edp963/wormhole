@@ -395,6 +395,39 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
       }
   }
 
+
+  def getDataVersions(route: String): Route = path(route / LongNumber / "jobs" / "dataversions") {
+    projectId =>
+      get {
+        parameter('namespace.as[String].?) {
+          namespace =>
+            authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+              session =>
+                if (session.roleType != "user") {
+                  riderLogger.warn(s"${session.userId} has no permission to access it.")
+                  complete(OK, getHeader(403, session))
+                }
+                else {
+                  if (session.projectIdList.contains(projectId)) {
+                    namespace match {
+                      case Some(sourceNamespace) =>
+                        val dataVersions = JobUtils.getHdfsDataVersions(sourceNamespace).mkString(",")
+                        complete(OK, ResponseJson[String](getHeader(200, session), dataVersions))
+                      case None =>
+                        riderLogger.error(s"user ${session.userId} request url is not supported.")
+                        complete(OK, getHeader(404, session))
+                    }
+                  } else {
+                    riderLogger.error(s"user ${session.userId} doesn't have permission to access the project $projectId.")
+                    complete(OK, getHeader(403, session))
+                  }
+                }
+            }
+        }
+      }
+  }
+
+
   //  def getLatestHeartbeatById(route: String): Route = path(route / LongNumber / "jobs" / LongNumber / "heartbeat" / "latest") {
   //    (projectId, jobId) =>
   //      get {
