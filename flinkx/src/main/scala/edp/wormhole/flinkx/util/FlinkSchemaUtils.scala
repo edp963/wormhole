@@ -293,7 +293,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
 
   def object2TrueValue(flinkType: TypeInformation[_], value: Any): Any = if (value == null) null
   else flinkType match {
-    case Types.STRING => value.asInstanceOf[String].trim
+    case Types.STRING => "'" + value.asInstanceOf[String].trim + "'"
     case Types.INT => value.asInstanceOf[Int]
     case Types.LONG => value match {
       case _: Int => value.asInstanceOf[Int].toLong
@@ -305,8 +305,8 @@ object FlinkSchemaUtils extends java.io.Serializable {
       case _ => value.asInstanceOf[Double]
     }
     case Types.BOOLEAN => value.asInstanceOf[Boolean]
-    case Types.SQL_DATE => if (value.isInstanceOf[Timestamp]) DateUtils.dt2sqlDate(value.asInstanceOf[Timestamp]) else DateUtils.dt2sqlDate(value.asInstanceOf[Date])
-    case Types.SQL_TIMESTAMP => value.asInstanceOf[Timestamp]
+    case Types.SQL_DATE => if (value.isInstanceOf[Timestamp])  "'" + DateUtils.dt2sqlDate(value.asInstanceOf[Timestamp]) + "'" else "'" + DateUtils.dt2sqlDate(value.asInstanceOf[Date]) + "'"
+    case Types.SQL_TIMESTAMP => "'" + value.asInstanceOf[Timestamp] + "'"
     case Types.DECIMAL => new java.math.BigDecimal(value.asInstanceOf[java.math.BigDecimal].toPlainString.trim).stripTrailingZeros()
     case _ => throw new UnsupportedOperationException(s"Unknown Type: $flinkType")
   }
