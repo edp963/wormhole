@@ -135,9 +135,9 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
 
     for (pos <- 0 until systemFieldsSize) {
       val systemFieldValue = UmsSysField.umsSysField(systemFieldArray(pos)) match {
-        case UmsSysField.ID => input.flatten.map(row => row.getField(schemaMap(UmsSysField.ID.toString)._2).asInstanceOf[Long]).min
-        case UmsSysField.TS => input.flatten.map(row => row.getField(schemaMap(UmsSysField.TS.toString)._2).asInstanceOf[Timestamp]).min(Ordering[Timestamp])
-        case UmsSysField.OP => input.flatten.map(row => row.getField(schemaMap(UmsSysField.OP.toString)._2).asInstanceOf[String]).min
+        case UmsSysField.ID => input.flatten.map(row => row.getField(schemaMap(UmsSysField.ID.toString)._2).asInstanceOf[Long]).max
+        case UmsSysField.TS => input.flatten.map(row => row.getField(schemaMap(UmsSysField.TS.toString)._2).asInstanceOf[Timestamp]).max(Ordering[Timestamp])
+        case UmsSysField.OP => input.flatten.map(row => row.getField(schemaMap(UmsSysField.OP.toString)._2).asInstanceOf[String]).max
       }
       row.setField(pos, systemFieldValue)
     }

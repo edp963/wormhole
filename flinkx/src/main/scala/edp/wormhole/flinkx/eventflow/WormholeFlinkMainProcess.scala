@@ -20,7 +20,7 @@
 
 package edp.wormhole.flinkx.eventflow
 
-import java.util.Properties
+import java.util.{Properties, TimeZone}
 
 import com.alibaba.fastjson
 import com.alibaba.fastjson.{JSON, JSONObject}
@@ -38,17 +38,14 @@ import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
 import edp.wormhole.ums._
-import edp.wormhole.util.{DateUtils, JsonUtils}
+import edp.wormhole.util.DateUtils
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.api.common.typeinfo.TypeInformation
+import org.apache.flink.configuration.Configuration
+import org.apache.flink.runtime.state.StateBackend
 import org.apache.flink.runtime.state.filesystem.FsStateBackend
 import org.apache.flink.streaming.api.environment.CheckpointConfig.ExternalizedCheckpointCleanup
-import org.apache.flink.api.java.typeutils.runtime.kryo.JavaSerializer
-import org.apache.flink.configuration.Configuration
-import org.apache.flink.runtime.metrics.{MetricRegistryConfiguration, MetricRegistryImpl}
-import org.apache.flink.runtime.metrics.groups.TaskManagerMetricGroup
-import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.streaming.api.{CheckpointingMode, TimeCharacteristic}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010
@@ -57,7 +54,7 @@ import org.apache.flink.table.api.{TableEnvironment, Types}
 import org.apache.flink.types.Row
 import org.apache.log4j.Logger
 
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.ArrayBuffer
 
 
 class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) extends Serializable {
@@ -90,6 +87,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     env.setParallelism(config.parallelism)
     manageCheckpoint(env)
     val tableEnv = TableEnvironment.getTableEnvironment(env)
+    tableEnv.config.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"))
     udfRegister(tableEnv)
     assignTimeCharacteristic(env)
 
@@ -176,11 +174,12 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
 
   private def manageCheckpoint(env: StreamExecutionEnvironment): Unit = {
     if (config.flink_config.checkpoint.enable) {
-      env.setStateBackend(new FsStateBackend(config.flink_config.checkpoint.stateBackend))
+      env.setStateBackend(new FsStateBackend(config.flink_config.checkpoint.stateBackend).asInstanceOf[StateBackend])
+      env.enableCheckpointing(config.flink_config.checkpoint.`checkpointInterval.ms`)
       val checkpointConfig = env.getCheckpointConfig
+      checkpointConfig.setMinPauseBetweenCheckpoints(500)
       checkpointConfig.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
       checkpointConfig.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
-      checkpointConfig.setCheckpointInterval(config.flink_config.checkpoint.`checkpointInterval.ms`)
     }
   }
 
