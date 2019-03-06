@@ -21,11 +21,10 @@
 
 package edp.wormhole.ums
 
-import edp.wormhole.util.config.WormholeDefault._
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
+import edp.wormhole.util.config.WormholeDefault._
 import edp.wormhole.util.{CommonUtils, DateUtils}
-import edp.wormhole.util.config.WormholeDefault
 import org.joda.time.DateTime
 
 case class Ums(protocol: UmsProtocol,
@@ -55,10 +54,7 @@ case class UmsField(name: String,
   lazy val nullable_get = nullable.getOrElse(false)
 }
 
-case class UmsTuple(tuple: Seq[String])// {
-//  def umsTupleValues(fields: Seq[UmsField]): Seq[Any] =
-//    for (i <- fields.indices) yield UmsFieldType.umsFieldValue(tuple(i), fields(i).`type`)
-//}
+case class UmsTuple(tuple: Seq[String])
 
 object UmsFieldType extends Enumeration {
   type UmsFieldType = Value
@@ -178,17 +174,24 @@ object UmsProtocolType extends Enumeration {
   val FEEDBACK_DATA_BATCH_TERMINATION = Value("feedback_data_batch_termination")
   val FEEDBACK_DATA_INCREMENT_HEARTBEAT = Value("feedback_data_increment_heartbeat")
   val FEEDBACK_DATA_INCREMENT_TERMINATION = Value("feedback_data_increment_termination")
+  val FEEDBACK_FLOW_START_DIRECTIVE = Value("feedback_flow_start_directive")
+
+  @Deprecated
   val FEEDBACK_DIRECTIVE = Value("feedback_directive")
-  val FEEDBACK_FLOW_SPARKX_ERROR = Value("feedback_flow_sparkx_error")
-  //todo 兼容0.6.0及之前版本stream feedback protocol
+  val FEEDBACK_SPARKX_FLOW_ERROR = Value("feedback_sparkx_flow_error")
+  val FEEDBACK_SPARKX_FLOW_STATS = Value("feedback_sparkx_flow_stats")
+
+  @Deprecated
   val FEEDBACK_FLOW_ERROR = Value("feedback_flow_error")
+
+  @Deprecated
   val FEEDBACK_FLOW_STATS = Value("feedback_flow_stats")
   val FEEDBACK_STREAM_BATCH_ERROR = Value("feedback_stream_batch_error")
   val FEEDBACK_STREAM_TOPIC_OFFSET = Value("feedback_stream_topic_offset")
 
   val DIRECTIVE_UDF_ADD = Value("directive_udf_add")
 
-  val FEEDBACK_FLOW_FLINKX_ERROR = Value("feedback_flow_flinkx_error")
+  val FEEDBACK_FLINKX_FLOW_ERROR = Value("feedback_flinkx_flow_error")
 
   def umsProtocolType(s: String) = UmsProtocolType.withName(s.toLowerCase)
 }

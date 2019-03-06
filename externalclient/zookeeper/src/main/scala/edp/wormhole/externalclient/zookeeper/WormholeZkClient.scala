@@ -23,6 +23,7 @@ package edp.wormhole.externalclient.zookeeper
 
 import org.apache.curator.framework.recipes.atomic.DistributedAtomicLong
 import org.apache.curator.framework.recipes.cache._
+import org.apache.curator.framework.recipes.locks.InterProcessMutex
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
 import org.apache.zookeeper.data.Stat
@@ -45,13 +46,13 @@ object WormholeZkClient {
     zkClient
   }
 
-  def closeZkClient(): Unit ={
-    try{
+  def closeZkClient(): Unit = {
+    try {
       if (zkClient != null) {
         zkClient.close()
       }
-    }catch{
-      case e:Throwable=>println("zkClient.close error")
+    } catch {
+      case e: Throwable => println("zkClient.close error")
     }
   }
 
@@ -84,9 +85,10 @@ object WormholeZkClient {
               println("CHILD_UPDATED : " + data.getPath + "  content:" + new String(data.getData) + " time:" + data.getStat.getMtime)
             case _ => println("event.getType=" + event.getType + " is not support")
           }
-        } else {
-          println("data is null : " + event.getType)
         }
+//        else {
+//          println("data is null : " + event.getType)
+//        }
       }
     })
     pathChildrenCache.start()
@@ -110,7 +112,7 @@ object WormholeZkClient {
   }
 
   //NOT USE YET
-  def setTreeCacheListener(zkAddress: String, path: String, add: (String, String, Long) => Unit, remove: String => Unit, update: (String, Array[String], Long) => Unit): Unit = {
+  def setTreeCacheListener(zkAddress: String, path: String, add: (String, String, Long) => Unit, remove: String => Unit, update: (String, String, Long) => Unit): Unit = {
     val treeCache = new TreeCache(getZkClient(zkAddress), getPath(zkAddress, path))
     treeCache.getListenable.addListener(new TreeCacheListener() {
       @Override
@@ -120,18 +122,20 @@ object WormholeZkClient {
           event.getType match {
             case TreeCacheEvent.Type.NODE_ADDED =>
               add(data.getPath, new String(data.getData), data.getStat.getMtime)
-              println("NODE_ADDED : " + data.getPath + "  content:" + new String(data.getData) + " time:" + data.getStat.getMtime)
+//              println("NODE_ADDED : " + data.getPath + "  content:" + new String(data.getData) + " time:" + data.getStat.getMtime)
             case TreeCacheEvent.Type.NODE_REMOVED =>
               remove(data.getPath)
-              println("NODE_REMOVED : " + data.getPath)
+//              println("NODE_REMOVED : " + data.getPath)
             case TreeCacheEvent.Type.NODE_UPDATED =>
-              update(data.getPath, Array(new String(data.getData)), data.getStat.getMtime)
-              println("NODE_UPDATED : " + data.getPath + "  content:" + new String(data.getData) + " time:" + data.getStat.getMtime)
-            case _ => println("event.getType=" + event.getType + " is not support")
+              update(data.getPath, new String(data.getData), data.getStat.getMtime)
+//              println("NODE_UPDATED : " + data.getPath + "  content:" + new String(data.getData) + " time:" + data.getStat.getMtime)
+            case _ =>
+//              println("event.getType=" + event.getType + " is not support")
           }
-        } else {
-          println("data is null : " + event.getType)
         }
+//        else {
+//          println("data is null : " + event.getType)
+//        }
       }
     })
     treeCache.start()
@@ -139,12 +143,16 @@ object WormholeZkClient {
   }
 
 
-  def createAndSetData(zkAddress: String, path: String, byte: Array[Byte]): Unit = {
+  def createAndSetData(zkAddress: String, path: String, payload: Array[Byte]): Unit = {
     if (!checkExist(zkAddress, path)) {
-      getZkClient(zkAddress).create().creatingParentsIfNeeded().forPath(getPath(zkAddress, path), byte)
+      getZkClient(zkAddress).create().creatingParentsIfNeeded().forPath(getPath(zkAddress, path), payload)
     } else {
-      getZkClient(zkAddress).setData().forPath(getPath(zkAddress, path), byte)
+      getZkClient(zkAddress).setData().forPath(getPath(zkAddress, path), payload)
     }
+  }
+
+  def createAndSetData(zkAddress: String, path: String, payload: String): Unit = {
+    createAndSetData(zkAddress, path, payload.getBytes)
   }
 
   def createPath(zkAddress: String, path: String): Unit = {
@@ -157,6 +165,10 @@ object WormholeZkClient {
     val list = getZkClient(zkAddress).getChildren.forPath(getPath(zkAddress, path))
     import scala.collection.JavaConverters._
     list.asScala
+  }
+
+  def setData(zkAddress: String, path: String, payload: String): Stat = {
+    setData(zkAddress, path, payload.getBytes)
   }
 
   def setData(zkAddress: String, path: String, payload: Array[Byte]): Stat = {
@@ -185,4 +197,7 @@ object WormholeZkClient {
     if (temp.startsWith("/")) temp else "/" + temp
   }
 
+  def getInterProcessMutexLock(zkAddress: String, lockPath: String): InterProcessMutex = {
+    new InterProcessMutex(getZkClient(zkAddress), lockPath)
+  }
 }

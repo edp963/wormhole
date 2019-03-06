@@ -59,7 +59,7 @@ object UmsCommonUtils extends Serializable {
       case e: Throwable =>
         e.printStackTrace()
         println("no data in json2ums") //todo add logging here
-        Ums(UmsProtocol(UmsProtocolType.FEEDBACK_DIRECTIVE), UmsSchema("defaultNamespace"), None)
+        Ums(UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_START_DIRECTIVE), UmsSchema("defaultNamespace"), None)
     }
   }
 

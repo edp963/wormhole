@@ -91,7 +91,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
       case e: Throwable =>
         logger.error("in doFlinkSql table query", e)
         println("in doFlinkSql table query" + e)
-        val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
+        val feedbackInfo = UmsProtocolUtils.feedbackFlinkxFlowError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
         new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig).doExceptionProcess(feedbackInfo)
     }
     covertTable2Stream(table)
@@ -169,7 +169,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
     } catch {
       case e: Throwable =>
         logger.error("doCEP error in swifts process", e)
-        val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
+        val feedbackInfo = UmsProtocolUtils.feedbackFlinkxFlowError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
         new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig).doExceptionProcess(feedbackInfo)
     }
     resultDataStream
