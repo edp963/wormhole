@@ -430,7 +430,7 @@ object FlowUtils extends RiderLogger {
   def startFlow(streamId: Long, streamName: String, functionType: String, flowId: Long, sourceNs: String, sinkNs: String, consumedProtocol: String, sinkConfig: String, tranConfig: String, tableKeys: String, userId: Long): Boolean = {
     try {
       autoDeleteTopic(userId, streamId)
-      autoRegisterTopic(streamId, streamName, sourceNs, tranConfig, userId)
+      val sourceNsDatabase=autoRegisterTopic(streamId, streamName, sourceNs, tranConfig, userId)
       val sourceNsObj = namespaceDal.getNamespaceByNs(sourceNs).get
       val umsInfoOpt =
         if (sourceNsObj.sourceSchema.nonEmpty)
@@ -454,7 +454,7 @@ object FlowUtils extends RiderLogger {
         riderLogger.info(s"sink ${sinkNs} sinkConfig: ${sinkConfigSet}")
         val tranConfigFinal = getTranConfig(tranConfig)
         //        val tuple = Seq(streamId, currentMicroSec, umsType, umsSchema, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
-        val base64Tuple = Seq(streamId, flowId, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
+        val base64Tuple = Seq(streamId, flowId, sourceNsDatabase, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
           base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes), RiderConfig.kerberos.enabled)
         val directiveFuture = directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId))
         directiveFuture onComplete {
@@ -482,6 +482,11 @@ object FlowUtils extends RiderLogger {
                  |{
                  |"name": "flow_id",
                  |"type": "long",
+                 |"nullable": false
+                 |},
+                 |{
+                 |"name": "topic",
+                 |"type": "string",
                  |"nullable": false
                  |},
                  |{
@@ -550,6 +555,8 @@ object FlowUtils extends RiderLogger {
                 base64Tuple(8)
               }","${
                 base64Tuple(9)
+              }","${
+                base64Tuple(10)
               }"]
                  |}
                  |]
@@ -767,6 +774,7 @@ object FlowUtils extends RiderLogger {
     try {
       val streamJoinNs = getStreamJoinNamespaces(tranConfig)
       val nsSeq = (streamJoinNs += sourceNs).map(ns => namespaceDal.getNamespaceByNs(ns).get)
+      val nsTopics= new StringBuffer()
       nsSeq.distinct.foreach(ns => {
         val topicSearch = Await.result(streamInTopicDal.findByFilter(rel => rel.streamId === streamId && rel.nsDatabaseId === ns.nsDatabaseId), minTimeOut)
         if (topicSearch.isEmpty) {
@@ -780,9 +788,11 @@ object FlowUtils extends RiderLogger {
           val inTopicInsert = StreamInTopic(0, streamId, ns.nsDatabaseId, offset, RiderConfig.spark.topicDefaultRate,
             active = true, currentSec, userId, currentSec, userId)
           val inTopic = Await.result(streamInTopicDal.insert(inTopicInsert), minTimeOut)
+          nsTopics.append(database)
           sendTopicDirective(streamId, Seq(PutTopicDirective(database.nsDatabase, inTopic.partitionOffsets, inTopic.rate, None)), userId, false)
         }
       })
+      nsTopics
     }
     catch {
       case ex: Exception =>

@@ -8,6 +8,10 @@ import edp.wormhole.ums.UmsField
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.util.config.ConnectionConfig
+import edp.wormhole.util.swifts.SwiftsSql
+import org.apache.flink.streaming.api.scala.DataStream
+import org.apache.flink.table.api.scala.StreamTableEnvironment
+import org.apache.flink.types.Row
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -15,6 +19,8 @@ import scala.collection.mutable.ArrayBuffer
 object ConfMemoryStorage extends Serializable {
 
   private val sinkTransformReflectMap = mutable.HashMap.empty[String, (Any, Method)]
+
+  private val swiftsTransformReflectMap = mutable.HashMap.empty[String, (Any, Method)]
 
   def getSinkTransformReflect(className: String): (Any, Method) = {
     if (!sinkTransformReflectMap.contains(className)) setSinkTransformReflectMap(className)
@@ -38,6 +44,19 @@ object ConfMemoryStorage extends Serializable {
     }
   }
 
+  def getSwiftsTransformReflect(className: String): (Any, Method) = {
+    if (!swiftsTransformReflectMap.contains(className)) registerSwiftsTransformReflectMap(className)
+    swiftsTransformReflectMap(className)
+  }
+
+  def registerSwiftsTransformReflectMap(className: String): Any = {
+    if (!swiftsTransformReflectMap.contains(className)) {
+      val clazz = Class.forName(className)
+      val reflectObject: Any = clazz.newInstance()
+      val transformMethod = clazz.getMethod("transform", classOf[StreamTableEnvironment], classOf[DataStream[Row]], classOf[SwiftsSql])
+      swiftsTransformReflectMap += (className -> (reflectObject, transformMethod))
+    }
+  }
 
   val JsonSourceParseMap = mutable.HashMap.empty[(UmsProtocolType, String), (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)])]
 
