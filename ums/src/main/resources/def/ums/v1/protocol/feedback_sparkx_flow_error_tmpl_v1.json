@@ -6,6 +6,10 @@
     "namespace": "oracle.oracle01.db.table.v2.dbpar01.tablepar01",
     "fields": [
       {
+        "name": "data_type",//data_batch_data/data_increment_data/data_initial_data
+        "type": "string",
+        "nullable": false
+      },{
         "name": "ums_ts_",
         "type": "datetime",
         "nullable": false
@@ -65,6 +69,7 @@
   "payload": [
     {
       "tuple": [
+        "data_increment_data",
         "2016-06-01 01:00:11.345123",
         "eiwugerhhh",
         1,
