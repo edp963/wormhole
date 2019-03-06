@@ -40,7 +40,7 @@ trait UmsProtocolUtils {
     payload = Some(Seq(UmsTuple(Seq(DateUtils.dt2string(heartbeatTimestamp, dtFormat)))))))
 
   // data_increment_data
-    def dataInitialData(sourceNamespace: String, fields: Seq[UmsField], payload: Seq[UmsTuple]) = dataToJson(
+  def dataInitialData(sourceNamespace: String, fields: Seq[UmsField], payload: Seq[UmsTuple]) = dataToJson(
     UmsProtocolType.DATA_INITIAL_DATA, sourceNamespace, fields, payload)
 
   // data_increment_data
@@ -188,9 +188,9 @@ trait UmsProtocolUtils {
   def feedbackDirective(timeNow: DateTime,
                         directiveId: Long,
                         status: UmsFeedbackStatus,
-                        streamId:Long,
-                        resultDesc:String): String = toJsonCompact(Ums(
-    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_DIRECTIVE),
+                        streamId: Long,
+                        resultDesc: String): String = toJsonCompact(Ums(
+    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_START_DIRECTIVE),
     schema = UmsSchema("", Some(Seq(
       UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
       UmsField("directive_id", UmsFieldType.LONG),
@@ -199,20 +199,20 @@ trait UmsProtocolUtils {
       UmsField("result_desc", UmsFieldType.STRING)))),
     payload = Some(Seq(UmsTuple(Seq(
       DateUtils.dt2string(timeNow, dtFormat),
-      directiveId.toString, status.toString,streamId.toString,resultDesc))))))
+      directiveId.toString, status.toString, streamId.toString, resultDesc))))))
 
-  // feedback_flow_error
+  // feedback_sparkx_flow_error
   def feedbackFlowError(sourceNamespace: String,
-                        streamId:Long,
+                        streamId: Long,
                         timeNow: DateTime,
                         sinkNamespace: String,
                         maxWatermark: UmsWatermark,
                         minWatermark: UmsWatermark,
                         errorCount: Int,
                         errorInfo: String,
-                        batchId:String,
-                        topicPartitionOffset:String) = toJsonCompact(Ums(
-    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_SPARKX_ERROR),
+                        batchId: String,
+                        topicPartitionOffset: String) = toJsonCompact(Ums(
+    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_SPARKX_FLOW_ERROR),
     schema = UmsSchema(sourceNamespace, Some(Seq(
       UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
       UmsField("sink_namespace", UmsFieldType.STRING),
@@ -234,14 +234,14 @@ trait UmsProtocolUtils {
       batchId,
       topicPartitionOffset))))))
 
-  // feedback_flow_stats
+  // feedback_sparkx_flow_stats
   def feedbackFlowStats(sourceNamespace: String,
                         dataType: String,
                         timestamp: DateTime,
                         streamId: Long,
                         batchId: String,
                         sinkNamespace: String,
-                        topics:String,
+                        topics: String,
                         rddCount: Int,
                         cdcTs: Long,
                         rddTs: Long,
@@ -250,14 +250,14 @@ trait UmsProtocolUtils {
                         swiftsTs: Long,
                         sinkTs: Long,
                         doneTs: String) = toJsonCompact(Ums(
-    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_STATS),
+    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_SPARKX_FLOW_STATS),
     schema = UmsSchema(sourceNamespace, Some(Seq(
       UmsField("data_type", UmsFieldType.STRING),
       UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
       UmsField("stream_id", UmsFieldType.STRING),
       UmsField("batch_id", UmsFieldType.STRING),
       UmsField("sink_namespace", UmsFieldType.STRING),
-      UmsField("topics",UmsFieldType.STRING),
+      UmsField("topics", UmsFieldType.STRING),
       UmsField("rdd_count", UmsFieldType.INT),
       UmsField("data_generated_ts", UmsFieldType.LONG),
       UmsField("rdd_generated_ts", UmsFieldType.LONG),
@@ -285,7 +285,7 @@ trait UmsProtocolUtils {
     ))))))
 
   // feedback_stream_batch_error
-  def feedbackStreamBatchError(streamID: Long, timeNow: DateTime, status: UmsFeedbackStatus, resultDesc: String, batchId:String,topicPartitionOffset:String) = toJsonCompact(Ums(
+  def feedbackStreamBatchError(streamID: Long, timeNow: DateTime, status: UmsFeedbackStatus, resultDesc: String, batchId: String, topicPartitionOffset: String) = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.FEEDBACK_STREAM_BATCH_ERROR),
     schema = UmsSchema("", Some(Seq(
       UmsField("stream_id", UmsFieldType.LONG),
@@ -303,7 +303,7 @@ trait UmsProtocolUtils {
       topicPartitionOffset))))))
 
   // feedback_stream_topic_offset
-  def feedbackStreamTopicOffset(timeNow: DateTime, streamID: Long,tp:Map[String, String],batchId:String) = {
+  def feedbackStreamTopicOffset(timeNow: DateTime, streamID: Long, tp: Map[String, String], batchId: String) = {
     toJsonCompact(Ums(
       protocol = UmsProtocol(UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET),
       schema = UmsSchema(WormholeDefault.empty, Some(Seq(
@@ -313,18 +313,18 @@ trait UmsProtocolUtils {
         UmsField("partition_offsets", UmsFieldType.STRING),
         UmsField("batch_id", UmsFieldType.STRING)
       ))),
-      payload = Some(tp.map{case (topicName, partitionOffsets) => UmsTuple(Seq(DateUtils.dt2string(timeNow, dtFormat), streamID.toString, topicName, partitionOffsets,batchId))}.toSeq)))
+      payload = Some(tp.map { case (topicName, partitionOffsets) => UmsTuple(Seq(DateUtils.dt2string(timeNow, dtFormat), streamID.toString, topicName, partitionOffsets, batchId)) }.toSeq)))
   }
 
   // exceptionData
-  def feedbackFlowFlinkxError(sourceNamespace: String,
+  def feedbackFlinkxFlowError(sourceNamespace: String,
                               streamId: Long,
                               flowId: Long,
                               sinkNamespace: String,
                               timeNow: DateTime,
                               dataInfo: String,
                               errorInfo: String): String = toJsonCompact(Ums(
-    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_FLINKX_ERROR),
+    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLINKX_FLOW_ERROR),
     schema = UmsSchema(
       sourceNamespace, Some(Seq(
         UmsField("stream_id", UmsFieldType.LONG),
