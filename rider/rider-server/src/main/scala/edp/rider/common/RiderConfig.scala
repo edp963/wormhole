@@ -188,6 +188,8 @@ object RiderConfig {
     getStringConfig("wormholeServer.normal.username", "normal"),
     getStringConfig("wormholeServer.normal.password", "normal"))
 
+  lazy val refreshInterval = getIntConfig("wormholeServer.refreshInterval", 5)
+
   lazy val udfRootPath = s"${spark.hdfsRoot.stripSuffix("/")}/udfjars"
 
   lazy val riderDomain = getStringConfig("wormholeServer.domain.url", "")

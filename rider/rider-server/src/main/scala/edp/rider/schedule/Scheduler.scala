@@ -22,7 +22,7 @@
 package edp.rider.schedule
 
 import akka.actor.Actor
-import edp.rider.common.{HistoryDelete, RiderLogger, Stop}
+import edp.rider.common.{HistoryDelete, RiderLogger, Stop, RefreshYarn}
 
 class SchedulerActor extends Actor with RiderLogger {
 
@@ -31,6 +31,10 @@ class SchedulerActor extends Actor with RiderLogger {
     case HistoryDelete =>
       ScheduledTask.deleteHistory
       riderLogger.info(s"Rider delete feedback data timer scheduler ${new java.util.Date().toString} start")
+
+    case RefreshYarn =>
+      ScheduledTask.updateStreamStatusByYarn
+      //riderLogger.info(s"Rider update stream status by yarn app status ${new java.util.Date().toString} start")
 
     case Stop =>
       super.postStop()
