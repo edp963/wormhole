@@ -3,11 +3,8 @@ package edp.wormhole.flinkx.udf
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import org.apache.flink.table.api.scala.StreamTableEnvironment
 import org.apache.flink.table.functions.AggregateFunction
-import org.apache.flink.streaming.api.scala._
-import java.net.{URL, URLClassLoader}
-
 import org.apache.log4j.Logger
-
+import org.apache.flink.streaming.api.scala._
 
 object UdafRegister {
   val logger: Logger = Logger.getLogger(this.getClass)
