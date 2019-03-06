@@ -358,6 +358,11 @@ object StreamUtils extends RiderLogger {
                |"nullable": false
                |},
                |{
+               |"name": "topic_type",
+               |"type": "string",
+               |"nullable": false
+               |},
+               |{
                |"name": "partitions_offset",
                |"type": "string",
                |"nullable": false
@@ -366,7 +371,7 @@ object StreamUtils extends RiderLogger {
                |},
                |"payload": [
                |{
-               |"tuple": [${directive.id}, ${topicInfo(0)}, "${topicInfo(1)}", "${topicInfo(2)}", ${topicInfo(3)}, "${topicInfo(4)}"]
+               |"tuple": [${directive.id}, ${topicInfo(0)}, "${topicInfo(1)}", "${topicInfo(2)}", ${topicInfo(3)}, "increment","${topicInfo(4)}"]
                |}
                |]
                |}
