@@ -61,24 +61,24 @@ object WormholeUtils {
     }
   }
 
-  def sendTopicPartitionOffset(offsetInfo: ArrayBuffer[OffsetRange], feedbackTopicName: String, config: WormholeConfig, batchId: String): Unit = {
-    val topicConfigMap = mutable.HashMap.empty[String, ListBuffer[PartitionOffsetConfig]]
+  def printTopicPartitionOffset(offsetInfo: ArrayBuffer[OffsetRange], feedbackTopicName: String, config: WormholeConfig, batchId: String): Unit = {
+    //    val topicConfigMap = mutable.HashMap.empty[String, ListBuffer[PartitionOffsetConfig]]
 
     offsetInfo.foreach { offsetRange =>
       logger.info(s"----------- $offsetRange")
-      val topicName = offsetRange.topic
-      val partition = offsetRange.partition
-      val offset = offsetRange.untilOffset
-      logger.info("brokers:" + config.kafka_output.brokers + ",topic:" + feedbackTopicName)
-      if (!topicConfigMap.contains(topicName)) topicConfigMap(topicName) = new ListBuffer[PartitionOffsetConfig]
-      topicConfigMap(topicName) += PartitionOffsetConfig(partition, offset)
+      //      val topicName = offsetRange.topic
+      //      val partition = offsetRange.partition
+      //      val offset = offsetRange.untilOffset
+      //      logger.info("brokers:" + config.kafka_output.brokers + ",topic:" + feedbackTopicName)
+      //      if (!topicConfigMap.contains(topicName)) topicConfigMap(topicName) = new ListBuffer[PartitionOffsetConfig]
+      //      topicConfigMap(topicName) += PartitionOffsetConfig(partition, offset)
     }
 
-    val tp: Map[String, String] = topicConfigMap.map { case (topicName, partitionOffsetList) => {
-      (topicName, partitionOffsetList.map(it => it.partition_num + ":" + it.offset).sorted.mkString(","))
-    }
-    }.toMap
-    WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority2, WormholeUms.feedbackStreamTopicOffset(currentDateTime, config.spark_config.stream_id, tp, batchId), Some(UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET+"."+config.spark_config.stream_id), config.kafka_output.brokers)
+    //    val tp: Map[String, String] = topicConfigMap.map { case (topicName, partitionOffsetList) => {
+    //      (topicName, partitionOffsetList.map(it => it.partition_num + ":" + it.offset).sorted.mkString(","))
+    //    }
+    //    }.toMap
+    //    WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.feedbackPriority, WormholeUms.feedbackStreamTopicOffset(currentDateTime, config.spark_config.stream_id, tp, batchId), Some(UmsProtocolType.FEEDBACK_STREAM_TOPIC_OFFSET+"."+config.spark_config.stream_id), config.kafka_output.brokers)
   }
 
 

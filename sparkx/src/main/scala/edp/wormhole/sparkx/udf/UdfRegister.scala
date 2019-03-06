@@ -31,13 +31,13 @@ import org.apache.spark.sql.types._
 
 object UdfRegister extends EdpLogging {
 
-  def register(udfName: String, udfClassFullname: String, udfJarPath: String, session: SparkSession,ifLoadJar:Boolean) {
+  def register(udfName: String, udfClassFullname: String, udfJarPath: String, session: SparkSession, ifLoadJar: Boolean) {
     //    if (!jarPathSet.contains(udfJarPath)) {
     synchronized {
       if (ifLoadJar) {
-      session.sparkContext.addJar(udfJarPath)
-      loadJar(udfJarPath)
-    }
+        session.sparkContext.addJar(udfJarPath)
+        loadJar(udfJarPath)
+      }
       //      jarPathSet += udfJarPath
       //    }
       val clazz = Class.forName(udfClassFullname)
@@ -61,16 +61,16 @@ object UdfRegister extends EdpLogging {
   }
 
   private def loadJar(path: String): Unit = {
-    try{
+    try {
       URL.setURLStreamHandlerFactory(new FsUrlStreamHandlerFactory())
-    }catch{
-      case e:Throwable=>logWarning(e.getMessage)
+    } catch {
+      case e: Throwable => logWarning(e.getMessage)
     }
-      val url = new URL(path)
-      val classLoader = getClass.getClassLoader.asInstanceOf[URLClassLoader]
-      val loaderMethod = classOf[URLClassLoader].getDeclaredMethod("addURL", classOf[URL])
-      loaderMethod.setAccessible(true)
-      loaderMethod.invoke(classLoader, url)
+    val url = new URL(path)
+    val classLoader = getClass.getClassLoader.asInstanceOf[URLClassLoader]
+    val loaderMethod = classOf[URLClassLoader].getDeclaredMethod("addURL", classOf[URL])
+    loaderMethod.setAccessible(true)
+    loaderMethod.invoke(classLoader, url)
 
   }
 

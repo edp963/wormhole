@@ -31,7 +31,7 @@ import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
 import edp.wormhole.ums.UmsField
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType._
-import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
+import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.spark.sql.{DataFrame, SparkSession}
 

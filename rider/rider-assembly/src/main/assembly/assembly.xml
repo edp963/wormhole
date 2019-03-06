@@ -81,19 +81,19 @@
     <files>
         <file>
             <source>
-                ${project.parent.basedir}/sparkx/target/wormhole-ums_${ums.version}-sparkx_${spark.version}-0.6.0-jar-with-dependencies.jar
+                ${project.parent.basedir}/sparkx/target/wormhole-ums_${ums.version}-sparkx_${spark.version}-${project.version}-jar-with-dependencies.jar
             </source>
             <outputDirectory>app</outputDirectory>
         </file>
         <file>
             <source>
-                ${project.parent.basedir}/flinkx/target/wormhole-ums_${ums.version}-flinkx_${flink.version}-0.6.0-jar-with-dependencies.jar
+                ${project.parent.basedir}/flinkx/target/wormhole-ums_${ums.version}-flinkx_${flink.version}-${project.version}-jar-with-dependencies.jar
             </source>
             <outputDirectory>app</outputDirectory>
         </file>
         <file>
             <source>
-                ${project.parent.basedir}/reporter/target/wormhole-flink-reporter-${reporter.version}-jar-with-dependencies.jar
+                ${project.parent.basedir}/reporter/target/wormhole-flink-reporter-${project.version}-jar-with-dependencies.jar
             </source>
             <outputDirectory>app</outputDirectory>
         </file>

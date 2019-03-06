@@ -23,11 +23,9 @@ package edp.wormhole.sparkx.batchflow
 
 import com.alibaba.fastjson.JSON
 import edp.wormhole.common.InputDataProtocolBaseType
-import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
-import edp.wormhole.sparkx.directive._
-import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
+import edp.wormhole.sparkx.directive._
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.swifts.parse.ParseSwiftsSql
 import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, ValidityConfig}
@@ -41,9 +39,9 @@ import scala.collection.mutable
 
 object BatchflowDirective extends Directive {
 
-  private def registerFlowStartDirective(sourceNamespace: String, fullsinkNamespace: String, streamId: Long, directiveId: Long,
-                                         swiftsStr: String, sinksStr: String, feedbackTopicName: String, brokers: String,
-                                         consumptionDataStr: String, dataType: String, dataParseStr: String,kerberos:Boolean): Unit = {
+  private def registerFlowStartDirective(sourceNamespace: String, fullSinkNamespace: String, streamId: Long, directiveId: Long,
+                                         swiftsStr: String, sinksStr: String, consumptionDataStr: String, dataType: String,
+                                         dataParseStr: String, kerberos: Boolean): String = {
     val consumptionDataMap = mutable.HashMap.empty[String, Boolean]
     val consumption = JSON.parseObject(consumptionDataStr)
     val initial = consumption.getString(InputDataProtocolBaseType.INITIAL.toString).trim.toLowerCase.toBoolean
@@ -105,7 +103,7 @@ object BatchflowDirective extends Directive {
 
         val SwiftsSqlArr = if (action != null) {
           val sqlStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(action))
-          ParseSwiftsSql.parse(sqlStr, sourceNamespace, fullsinkNamespace, if (validity == null) false else true, dataType)
+          ParseSwiftsSql.parse(sqlStr, sourceNamespace, fullSinkNamespace, if (validity == null) false else true, dataType)
         } else None
         Some(SwiftsProcessConfig(SwiftsSqlArr, validityConfig, dataframe_show, dataframe_show_num, Some(swiftsSpecialConfig)))
       } else {
@@ -142,7 +140,6 @@ object BatchflowDirective extends Directive {
     val sink_schema = if (sinks.containsKey("sink_schema") && sinks.getString("sink_schema").trim.nonEmpty) {
       val sinkSchemaEncoded = sinks.getString("sink_schema").trim
       Some(new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkSchemaEncoded.toString)))
-      //ConfMemoryStorage.registerJsonSourceSinkSchema(sourceNamespace, fullsinkNamespace, sink_schema)
     } else None
 
     if (dataType != "ums") {
@@ -156,47 +153,47 @@ object BatchflowDirective extends Directive {
 
     }
 
-    val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_schema, sink_process_class_fullname, sink_retry_times, sink_retry_seconds,kerberos)
+    val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_schema, sink_process_class_fullname, sink_retry_times, sink_retry_seconds, kerberos)
 
 
     val swiftsStrCache = if (swiftsStr == null) "" else swiftsStr
 
 
-    ConfMemoryStorage.registerStreamLookupNamespaceMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig)
-    ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullsinkNamespace, swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap)
+    ConfMemoryStorage.registerStreamLookupNamespaceMap(sourceNamespace, fullSinkNamespace, swiftsProcessConfig)
+    ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullSinkNamespace, swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap)
 
 
-    ConnectionMemoryStorage.registerDataStoreConnectionsMap(fullsinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
-    WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), Some(UmsProtocolType.FEEDBACK_DIRECTIVE+"."+streamId), brokers)
+    ConnectionMemoryStorage.registerDataStoreConnectionsMap(fullSinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
 
+    feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, "")
   }
 
-  override def flowStartProcess(ums: Ums, feedbackTopicName: String, brokers: String): Unit = {
+  override def flowStartProcess(ums: Ums): String = {
     val payloads = ums.payload_get
     val schemas = ums.schema.fields_get
     val sourceNamespace = ums.schema.namespace.toLowerCase
-    payloads.foreach(tuple => {
-      val streamId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "stream_id").toString.toLong
-      val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
-      try {
-        val swiftsEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "swifts")
+    val tuple = payloads.head
 
-        val swiftsStr = if (swiftsEncoded != null && !swiftsEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(swiftsEncoded.toString)) else null
-        logInfo("swiftsStr:" + swiftsStr)
-        val sinksStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(UmsFieldType.umsFieldValue(tuple.tuple, schemas, "sinks").toString))
-        logInfo("sinksStr:" + sinksStr)
-        val fullSinkNamespace = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "sink_namespace").toString.toLowerCase
-        val consumptionDataStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(UmsFieldType.umsFieldValue(tuple.tuple, schemas, "consumption_protocol").toString))
-        val dataType = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_type").toString.toLowerCase
-        val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
-        val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
-        val kerberos=UmsFieldType.umsFieldValue(tuple.tuple,schemas,"kerberos").toString.toBoolean
-        registerFlowStartDirective(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, feedbackTopicName, brokers, consumptionDataStr, dataType, dataParseStr, kerberos)
-      } catch {
-        case e: Throwable =>
-          logAlert("registerFlowStartDirective,sourceNamespace:" + sourceNamespace, e)
-          WormholeKafkaProducer.sendMessage(feedbackTopicName, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, e.getMessage), Some(UmsProtocolType.FEEDBACK_DIRECTIVE+"."+streamId), brokers)
-      }
-    })
+    val streamId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "stream_id").toString.toLong
+    val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
+    try {
+      val swiftsEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "swifts")
+
+      val swiftsStr = if (swiftsEncoded != null && !swiftsEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(swiftsEncoded.toString)) else null
+      logInfo("swiftsStr:" + swiftsStr)
+      val sinksStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(UmsFieldType.umsFieldValue(tuple.tuple, schemas, "sinks").toString))
+      logInfo("sinksStr:" + sinksStr)
+      val fullSinkNamespace = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "sink_namespace").toString.toLowerCase
+      val consumptionDataStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(UmsFieldType.umsFieldValue(tuple.tuple, schemas, "consumption_protocol").toString))
+      val dataType = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_type").toString.toLowerCase
+      val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
+      val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
+      val kerberos = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "kerberos").toString.toBoolean
+      registerFlowStartDirective(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos)
+    } catch {
+      case e: Throwable =>
+        logAlert("registerFlowStartDirective,sourceNamespace:" + sourceNamespace, e)
+        feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, e.getMessage)
+    }
   }
 }

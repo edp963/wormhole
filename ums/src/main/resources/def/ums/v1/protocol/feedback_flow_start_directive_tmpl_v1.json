@@ -1,6 +1,6 @@
 {
   "protocol": {
-    "type": "feedback_directive"
+    "type": "feedback_flow_start_directive"
   },
   "schema": {
     "namespace": "",

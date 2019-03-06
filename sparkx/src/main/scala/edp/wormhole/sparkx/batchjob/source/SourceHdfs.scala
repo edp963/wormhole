@@ -45,15 +45,12 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
     val specialConfigObject = JSON.parseObject(specialConfigStr)
     val initial = specialConfigObject.getBoolean(InputDataProtocolBaseType.INITIAL.toString)
     val increment = specialConfigObject.getBoolean(InputDataProtocolBaseType.INCREMENT.toString)
-//    val (sourceNamenodeAddressSeq,sourceNamenodeIdSeq) = if(specialConfigObject.containsKey("sourceNamenodeHosts")){
-//      (specialConfigObject.getString("sourceNamenodeAddress"),specialConfigObject.getString("sourceNamenodeIds"))
-//    }else (null.asInstanceOf[String],null.asInstanceOf[String])
 
     var sourceNamenodeHosts = null.asInstanceOf[String]
     var sourceNamenodeIds = null.asInstanceOf[String]
-    if(connectionConfig.parameters.nonEmpty) connectionConfig.parameters.get.foreach(param=>{
-      if(param.key=="hdfs_namenode_hosts")sourceNamenodeHosts=param.value
-      if(param.key=="hdfs_namenode_ids")sourceNamenodeIds=param.value
+    if (connectionConfig.parameters.nonEmpty) connectionConfig.parameters.get.foreach(param => {
+      if (param.key == "hdfs_namenode_hosts") sourceNamenodeHosts = param.value
+      if (param.key == "hdfs_namenode_ids") sourceNamenodeIds = param.value
     })
 
     val configuration = new Configuration()
@@ -62,19 +59,19 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
     val hdfsRoot = if (hdfsPathGrp(1).contains("/")) hdfsPathGrp(0) + "//" + hdfsPathGrp(1).substring(0, hdfsPathGrp(1).indexOf("/")) else hdfsPathGrp(0) + "//" + hdfsPathGrp(1)
     configuration.set("fs.defaultFS", hdfsRoot)
     configuration.setBoolean("fs.hdfs.impl.disable.cache", true)
-    if(sourceNamenodeHosts != null) {
+    if (sourceNamenodeHosts != null) {
       val clusterName = hdfsRoot.split("//")(1)
       configuration.set("dfs.nameservices", clusterName)
       configuration.set(s"dfs.ha.namenodes.$clusterName", sourceNamenodeIds)
       val namenodeAddressSeq = sourceNamenodeHosts.split(",")
       val namenodeIdSeq = sourceNamenodeIds.split(",")
-      for (i <- 0 until namenodeAddressSeq.length){
+      for (i <- 0 until namenodeAddressSeq.length) {
         configuration.set(s"dfs.namenode.rpc-address.$clusterName." + namenodeIdSeq(i), namenodeAddressSeq(i))
       }
-      configuration.set(s"dfs.client.failover.proxy.provider.$clusterName","org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
+      configuration.set(s"dfs.client.failover.proxy.provider.$clusterName", "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
     }
 
-    assert((!initial && !increment) != true, "initial and increment should not be false at the same time.")
+    assert(initial || increment, "initial and increment should not be false at the same time.")
     val protocolTypeSet = mutable.HashSet.empty[String]
     if (initial) protocolTypeSet += UmsProtocolType.DATA_INITIAL_DATA.toString
     if (increment) protocolTypeSet += UmsProtocolType.DATA_INCREMENT_DATA.toString
@@ -82,11 +79,10 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
 
     val startTime = if (fromTime == "19700101000000") null else fromTime
     val endTime = if (toTime == "30000101000000") null else toTime
-    val hdfsPathList = HdfsLogReadUtil.getHdfsPathList(configuration,connectionConfig.connectionUrl, sourceNamespace.toLowerCase, protocolTypeSet.toSet)
-    val dataPathList: Seq[String] = HdfsLogReadUtil.getHdfsFileList(configuration,hdfsPathList)
+    val hdfsPathList = HdfsLogReadUtil.getHdfsPathList(configuration, connectionConfig.connectionUrl, sourceNamespace.toLowerCase, protocolTypeSet.toSet)
+    val dataPathList: Seq[String] = HdfsLogReadUtil.getHdfsFileList(configuration, hdfsPathList)
     logInfo("dataPathList.length=" + dataPathList.length + ",namespace=" + sourceNamespace)
-    val filteredPathList = HdfsLogReadUtil.getHdfsLogPathListBetween(configuration,dataPathList, startTime, endTime)
-    //    filteredPathList.foreach(t => println("@@@@@@@@@@@" + t))
+    val filteredPathList = HdfsLogReadUtil.getHdfsLogPathListBetween(configuration, dataPathList, startTime, endTime)
     var ums: Ums = null
     var i = 1
     assert(filteredPathList.nonEmpty, "path list size is 0, there is no matched data")
@@ -114,19 +110,14 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
     logInfo("filteredPathList.length=" + filteredPathList.length + ",namespace=" + sourceNamespace)
     if (filteredPathList.nonEmpty) {
       val fileArray = new Array[RDD[Ums]](filteredPathList.length)
-      //      val finalUnionRdd = if (filteredPathList.length <= 100) {
       filteredPathList.zipWithIndex.foreach {
         case (eachFile, index) =>
           val strRdd: RDD[String] = session.sparkContext.textFile(eachFile, 1) //.persist(StorageLevel.MEMORY_AND_DISK_SER)
           logInfo("one file has partition num=" + strRdd.getNumPartitions + ",namespace=" + sourceNamespace)
-          fileArray(index) = strRdd.mapPartitionsWithIndex((indexparitition, lineIt) => {
-            println("arrayIndex:" + index + "   " + "partition index:" + indexparitition + "    " + "start:")
+          fileArray(index) = strRdd.mapPartitionsWithIndex((indexPartition, lineIt) => {
+            println("arrayIndex:" + index + "   " + "partition index:" + indexPartition + "    " + "start:")
             val successList = ListBuffer.empty[Ums]
-            //            val contentList = ListBuffer.empty[String]
             var rowContent = ""
-            //            var kafkaKey = ""
-            //            var firstCondition = true
-            //            var secondCondition = false
             lineIt.foreach(line => {
               try {
                 rowContent = rowContent + line
@@ -134,41 +125,10 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
                   successList += UmsSchemaUtils.toUms(rowContent)
                   rowContent = ""
                 }
-
-
-                //                secondCondition = line.endsWith("}")
-                //                var condition = false
-                //                conditionArr.foreach(bool => condition = condition || bool)
-                //                if (condition) {
-                //                  if (contentList.nonEmpty) {
-                //                contentList += line
-                //                    try {
-                //                      successList += UmsSchemaUtils.toUms(line)
-                //                    } catch {
-                //                      case e: Throwable => logAlert("json2caseClass content=" + line, e)
-                //                    }
-                //                  }
-                //                  kafkaKey = ""
-                //                  contentList.clear()
-                //                  val splitIndex = line.indexOf("{")
-                //                  kafkaKey = line.substring(0, splitIndex)
-                //                  contentList += line.substring(splitIndex)
-                //                } else {
-                //                  contentList += line
-                //                }
               } catch {
                 case _: Throwable => logAlert("json2caseClass content=" + rowContent.mkString("\n"))
               }
             })
-            //            if (contentList.nonEmpty) {
-            //              try {
-            //                if (contentList.length == 1) successList += UmsSchemaUtils.toUms(contentList.head)
-            //                else successList += UmsSchemaUtils.toUms(contentList.mkString(" "))
-            //              } catch {
-            //                case e: Throwable => logAlert("contentList=" + contentList, e)
-            //              }
-            //            }
-
             logInfo("successList.length=" + successList.length)
             successList.toIterator
           })
