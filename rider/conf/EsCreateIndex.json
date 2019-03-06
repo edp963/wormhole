@@ -2,42 +2,38 @@
   "settings": {
     "index": {
       "number_of_shards": 5,
-      "number_of_replicas": 1
+      "number_of_replicas": 3
     }
   },
   "mappings": {
     "#ESINDEX#": {
       "properties": {
-        "statsId": {
-          "type": "keyword"
-        },
         "batchId": {
           "type": "keyword"
-        },
-        "projectId": {
-          "type": "long"
         },
         "streamId": {
           "type": "long"
         },
-        "streamName": {
-          "type": "keyword"
-        },
         "flowId": {
           "type": "long"
         },
-        "flowNamespace": {
+        "source_ns": {
           "type": "keyword"
+        },
+        "sink_ns": {
+          "type": "keyword"
+        },
+        "data_type": {
+          "type": "keyword"
+        },
+        "topics": {
+          "type": "nested"
         },
         "rddCount": {
           "type": "long"
         },
         "throughput": {
           "type": "long"
-        },
-        "umsTs": {
-          "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
         "dataGeneratedTs": {
           "type": "date",
@@ -47,11 +43,7 @@
           "type": "date",
           "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
-        "directiveTs": {
-          "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
-        },
-        "DataProcessTs": {
+        "dataProcessTs": {
           "type": "date",
           "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
@@ -69,6 +61,14 @@
         },
         "interval": {
           "type": "object"
+        },
+        "feedbackTime": {
+          "type": "date",
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
+        },
+        "createTime": {
+          "type": "date",
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         }
       }
     }
