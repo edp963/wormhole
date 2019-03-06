@@ -11,7 +11,17 @@
         "nullable": false
       },
       {
+        "name": "batch_id",
+        "type": "string",
+        "nullable": false
+      },
+      {
         "name": "stream_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "flow_id",
         "type": "long",
         "nullable": false
       },
@@ -41,11 +51,6 @@
         "nullable": false
       },
       {
-        "name": "batch_id",
-        "type": "string",
-        "nullable": false
-      },
-      {
         "name": "topics",
         "type": "string",
         "nullable": true
@@ -56,17 +61,19 @@
     {
       "tuple": [
         "2016-06-01 01:00:11.345123",
+        "eiwugerhhh",
+        1,
         1,
         "oracle.oracle02.db.table.v2.dbpar01.tablepar01",
-        "10001",
         "2016-06-01 01:00:11.345123",
-        "2001",
         "2016-06-01 01:00:11.345123",
-        "10000",
+        100,
         "error",
         "abc",
-        "[{\"topic_name\":\"batch\",\"partition_offset\":[{\"partition_num\":10,\"from_offset\":10,\"until_offset\":11}]}]"
+        "[{\"topic_name\":\"source1\",\"topic_type\": \"increment\", \"partition_offset\":[{\"partition_num\":10,\"from_offset\":10,\"until_offset\":11}]}]"
       ]
     }
   ]
 }
+
+// topic_type (incremnet/initial)

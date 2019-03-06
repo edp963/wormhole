@@ -3,32 +3,52 @@
     "type": "feedback_stream_batch_error"
   },
   "schema": {
-    "namespace": "",
+    "namespace": "oracle.oracle01.db.table.v2.dbpar01.tablepar01",
     "fields": [
-      {
-        "name": "stream_id",
-        "type": "long",
-        "nullable": false
-      },
       {
         "name": "ums_ts_",
         "type": "datetime",
         "nullable": false
       },
       {
-        "name": "status",
+        "name": "batch_id",
         "type": "string",
         "nullable": false
       },
       {
-        "name": "result_desc",
-        "type": "string",
-        "nullable": true
+        "name": "stream_id",
+        "type": "long",
+        "nullable": false
       },
       {
-        "name": "batch_id",
+        "name": "flow_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "sink_namespace",
         "type": "string",
-        "nullable": true
+        "nullable": false
+      },
+      {
+        "name": "error_max_watermark_ts",  // null or ""
+        "type": "datetime",
+        "nullable": false
+      },
+      {
+        "name": "error_min_watermark_ts", // // null or ""
+        "type": "datetime",
+        "nullable": false
+      },
+      {
+        "name": "error_count",  // null or 0
+        "type": "int",
+        "nullable": false
+      },
+      {
+        "name": "error_info",
+        "type": "string",
+        "nullable": false
       },
       {
         "name": "topics",
@@ -39,7 +59,19 @@
   },
   "payload": [
     {
-      "tuple": [ 123,"2016-06-01 01:00:11.345123", "success","failed reason","[{\"topic_name\":\"batch\",\"partition_offset\":[{\"partition_num\":10,\"startOffset\":10,\"endOffset\":11}]}]"]
+      "tuple": [
+        "2016-06-01 01:00:11.345123",
+        "eiwugerhhh",
+        1,
+        1,
+        "oracle.oracle02.db.table.v2.dbpar01.tablepar01",
+        "2016-06-01 01:00:11.345123",
+        "2016-06-01 01:00:11.345123",
+        100,
+        "error",
+        "abc",
+        "[{\"topic_name\":\"source1\",\"topic_type\": \"increment\", \"partition_offset\":[{\"partition_num\":10,\"from_offset\":10,\"until_offset\":11}]}]"
+      ]
     }
   ]
 }
