@@ -19,7 +19,7 @@
  */
 
 
-package edp.rider.service
+package edp.rider.kafka
 
 import edp.rider.RiderStarter.modules
 import edp.rider.common.RiderLogger

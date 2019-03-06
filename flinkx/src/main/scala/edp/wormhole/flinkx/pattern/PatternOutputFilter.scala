@@ -16,7 +16,7 @@ class PatternOutputFilter(exceptionConfig: ExceptionConfig, config: WormholeFlin
           feedbackDataInfo(schemaName, pos, value._2)
       }
       val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
-      val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), dataInfo, "")
+      val feedbackInfo = UmsProtocolUtils.feedbackFlinkxFlowError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), dataInfo, "")
       new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig).doExceptionProcess(feedbackInfo)
     }
     value._1

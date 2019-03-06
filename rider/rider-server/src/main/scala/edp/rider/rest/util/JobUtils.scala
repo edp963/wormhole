@@ -54,7 +54,6 @@ object JobUtils extends RiderLogger {
     val eventTsEndFinal = if (eventTsEnd != null && eventTsEnd != "") eventTsEnd else "30000101000000"
     val sourceTypeFinal = "hdfs_txt"
     val specialConfig = if (sourceConfig.isDefined && sourceConfig.get != "" && sourceConfig.get.contains("protocol")) Some(base64byte2s(getConsumptionProtocol(sourceConfig.get).trim.getBytes())) else None
-    val (instance, db, _) = modules.namespaceDal.getNsDetail(sourceNs)
     val hdfsRoot = RiderConfig.spark.remoteHdfsRoot match {
       case Some(_) => RiderConfig.spark.remoteHdfsActiveNamenodeHost.get
       case None => RiderConfig.spark.hdfsRoot
@@ -83,7 +82,6 @@ object JobUtils extends RiderLogger {
         Some(base64byte2s(sinkSpecConfig.toString.trim.getBytes))
       }
 
-    //val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else ns.keys
     val sinkKeys = if (ns.nsSys == "hbase") Some(FlowUtils.getRowKey(specialConfig.get)) else tableKeys
 
     val projection = if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_output")) {
@@ -200,7 +198,6 @@ object JobUtils extends RiderLogger {
   }
 
   def startJob(job: Job, logPath: String) = {
-    //    runShellCommand(s"rm -rf ${SubmitSparkJob.getLogPath(job.name)}")
     val startConfig: StartConfig = if (job.startConfig.isEmpty) null else json2caseClass[StartConfig](job.startConfig)
     val command = generateSparkStreamStartSh(s"'''${base64byte2s(caseClass2json(getBatchJobConfigConfig(job)).trim.getBytes)}'''", job.name, logPath,
       if (startConfig != null) startConfig else StartConfig(RiderConfig.spark.driverCores, RiderConfig.spark.driverMemory, RiderConfig.spark.executorNum, RiderConfig.spark.executorMemory, RiderConfig.spark.executorCores),
@@ -291,8 +288,6 @@ object JobUtils extends RiderLogger {
     if (sinkConfig != "" && sinkConfig != null && JSON.parseObject(sinkConfig).containsKey("sink_protocol"))
       Some(JSON.parseObject(sinkConfig).getString("sink_protocol"))
     else {
-      //      if (jobType == JobType.BACKFILL.toString) Some(JobSinkProtocol.SNAPSHOT.toString)
-      //      else
       None
     }
   }

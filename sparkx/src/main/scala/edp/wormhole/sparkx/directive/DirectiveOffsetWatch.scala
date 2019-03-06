@@ -28,7 +28,7 @@ import edp.wormhole.sparkx.spark.log.EdpLogging
 
 object DirectiveOffsetWatch extends EdpLogging {
 
-  val TimeOut = 60
+  val timeOut = 60
 
   val watchRelativePath = "watch"
   var flag = false
