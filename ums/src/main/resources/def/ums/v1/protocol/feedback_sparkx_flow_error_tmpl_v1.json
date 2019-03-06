@@ -54,6 +54,11 @@
         "name": "topics",
         "type": "string",
         "nullable": true
+      },
+      {
+        "name": "error_pattern",
+        "type": "string",
+        "nullable": true
       }
     ]
   },
@@ -70,10 +75,11 @@
         100,
         "error",
         "abc",
-        "[{\"topic_name\":\"source1\",\"topic_type\": \"increment\", \"partition_offset\":[{\"partition_num\":10,\"from_offset\":10,\"until_offset\":11}]}]"
+        "[{\"topic_name\":\"source1\",\"topic_type\": \"increment\", \"partition_offset\":[{\"partition_num\":10,\"from_offset\":10,\"until_offset\":11}]}]",
+        "flow/stream"
       ]
     }
   ]
 }
 
-// topic_type (incremnet/initial)
+// topic_type (increment/initial)
