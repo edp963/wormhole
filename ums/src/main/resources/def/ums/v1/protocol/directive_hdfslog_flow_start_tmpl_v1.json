@@ -46,7 +46,7 @@
         "nullable":true
       },
       {
-        "name": "increment_topic",   //add
+        "name": "source_increment_topic",
         "type": "string",
         "nullable": false
       }
