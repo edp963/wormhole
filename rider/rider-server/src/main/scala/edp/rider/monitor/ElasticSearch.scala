@@ -310,7 +310,6 @@ object ElasticSearch extends RiderLogger {
       entity = HttpEntity.apply(ContentTypes.`application/json`, ByteString(postBody))
     ).addCredentials(BasicHttpCredentials(RiderConfig.es.user, RiderConfig.es.pwd))
     val response = Await.result(Http().singleRequest(httpRequest), timeOut)
-    println(response)
     try {
       response.status match {
         case StatusCodes.OK if (response.entity.contentType == ContentTypes.`application/json`) =>
