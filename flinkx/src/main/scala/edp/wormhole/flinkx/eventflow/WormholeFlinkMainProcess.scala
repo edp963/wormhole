@@ -20,7 +20,7 @@
 
 package edp.wormhole.flinkx.eventflow
 
-import java.util.Properties
+import java.util.{Properties, TimeZone}
 
 import com.alibaba.fastjson
 import com.alibaba.fastjson.{JSON, JSONObject}
@@ -42,6 +42,8 @@ import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
+import org.apache.flink.configuration.Configuration
+import org.apache.flink.runtime.state.StateBackend
 import org.apache.flink.runtime.state.filesystem.FsStateBackend
 import org.apache.flink.streaming.api.environment.CheckpointConfig.ExternalizedCheckpointCleanup
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
@@ -85,6 +87,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     env.setParallelism(config.parallelism)
     manageCheckpoint(env)
     val tableEnv = TableEnvironment.getTableEnvironment(env)
+    tableEnv.config.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"))
     udfRegister(tableEnv)
     assignTimeCharacteristic(env)
 
@@ -169,11 +172,12 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
 
   private def manageCheckpoint(env: StreamExecutionEnvironment): Unit = {
     if (config.flink_config.checkpoint.enable) {
-      env.setStateBackend(new FsStateBackend(config.flink_config.checkpoint.stateBackend))
+      env.setStateBackend(new FsStateBackend(config.flink_config.checkpoint.stateBackend).asInstanceOf[StateBackend])
+      env.enableCheckpointing(config.flink_config.checkpoint.`checkpointInterval.ms`)
       val checkpointConfig = env.getCheckpointConfig
+      checkpointConfig.setMinPauseBetweenCheckpoints(500)
       checkpointConfig.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
       checkpointConfig.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
-      checkpointConfig.setCheckpointInterval(config.flink_config.checkpoint.`checkpointInterval.ms`)
     }
   }
 

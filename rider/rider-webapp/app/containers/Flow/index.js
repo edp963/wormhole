@@ -533,8 +533,6 @@ export class Flow extends React.Component {
       },
       tooltip: {
         trigger: 'axis',
-        // alwaysShowContent: true,
-        // hideDelay: 9999,
         axisPointer: {
           type: 'cross',
           label: {
@@ -1773,7 +1771,11 @@ export class Flow extends React.Component {
             ? <Button icon="edit" shape="circle" type="ghost" disabled></Button>
             : <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditFlow(record)}></Button>
           let strStart = ''
-          let strChart = ''
+          let strChart = (
+            <Tooltip title={chartFormat}>
+              <Button icon="bar-chart" shape="circle" type="ghost" onClick={this.onShowPerformance(record)}></Button>
+            </Tooltip>
+          )
           if (record.streamType === 'spark' || record.streamTypeOrigin === 'spark') {
             strStart = record.disableActions.includes('start')
               ? (
@@ -1788,12 +1790,6 @@ export class Flow extends React.Component {
                   </Tooltip>
                 </Popconfirm>
               )
-
-            strChart = (
-              <Tooltip title={chartFormat}>
-                <Button icon="bar-chart" shape="circle" type="ghost" onClick={this.onShowPerformance(record)}></Button>
-              </Tooltip>
-            )
           } else if (record.streamType === 'flink' || record.streamTypeOrigin === 'flink') {
             strStart = record.disableActions.includes('start')
               ? <Button icon="caret-right" shape="circle" type="ghost" disabled></Button>
