@@ -25,15 +25,14 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import edp.rider.RiderStarter.modules._
 import edp.rider.common._
-import edp.rider.kafka.KafkaUtils
-import edp.wormhole.kafka.WormholeGetOffsetUtils._
+import edp.rider.kafka.CacheMap
 import edp.rider.rest.persistence.dal.{FlowDal, FlowUdfDal, StreamDal}
 import edp.rider.rest.persistence.entities.{FlowTable, _}
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.ResponseUtils._
 import edp.rider.rest.util.{AuthorizationProvider, FlowUtils, StreamUtils}
-import edp.rider.service.CacheMap
+import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.Await

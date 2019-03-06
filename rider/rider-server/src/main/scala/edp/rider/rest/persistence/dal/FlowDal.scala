@@ -23,15 +23,14 @@ package edp.rider.rest.persistence.dal
 
 import edp.rider.RiderStarter.modules._
 import edp.rider.common.{FlowStatus, RiderLogger, StreamStatus, StreamType}
-import edp.rider.kafka.KafkaUtils._
+import edp.rider.kafka.CacheMap
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.ActionClass
-import edp.rider.rest.util.{CommonUtils, FlowUtils}
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.FlowUtils._
-import edp.rider.service.CacheMap
+import edp.rider.rest.util.{CommonUtils, FlowUtils}
 import edp.wormhole.util.DateUtils.dt2long
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.{CanBeQueryCondition, TableQuery}

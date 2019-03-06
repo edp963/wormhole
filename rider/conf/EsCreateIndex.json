@@ -9,116 +9,66 @@
     "#ESINDEX#": {
       "properties": {
         "statsId": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "batchId": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "projectId": {
-          "type": "long",
-          "index": "not_analyzed"
+          "type": "long"
         },
         "streamId": {
-          "type": "long",
-          "index": "not_analyzed"
+          "type": "long"
         },
         "streamName": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "flowId": {
-          "type": "long",
-          "index": "not_analyzed"
+          "type": "long"
         },
         "flowNamespace": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "rddCount": {
-          "type": "long",
-          "index": "not_analyzed"
+          "type": "long"
         },
         "throughput": {
-          "type": "long",
-          "index": "not_analyzed"
+          "type": "long"
         },
         "umsTs": {
           "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
         "dataGeneratedTs": {
           "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
         "rddTs": {
           "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
         "directiveTs": {
           "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
         "DataProcessTs": {
           "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
         "swiftsTs": {
           "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
         "sinkTs": {
           "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
         "doneTs": {
           "type": "date",
-          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ",
-          "index": "not_analyzed"
+          "format": "yyyy-MM-dd HH:mm:ss.SSSSSSZ"
         },
-        "intervalDataProcessToDataums": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "intervalDataProcessToDone": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "intervalDataProcessToSwifts": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "intervalDataProcessToSink": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "intervalDataProcessToRdd": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "intervalDataumsToDone": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "intervalRddToDone": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "intervalSwiftsToSink": {
-          "type": "long",
-          "index": "not_analyzed"
-        },
-        "intervalSinkToDone": {
-          "type": "long",
-          "index": "not_analyzed"
+        "interval": {
+          "type": "object"
         }
       }
     }

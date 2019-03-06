@@ -7,8 +7,9 @@ import edp.wormhole.ums.UmsProtocolType
 import org.apache.flink.api.common.functions.RichMapFunction
 import org.apache.log4j.Logger
 
-class ExceptionProcess(exceptionProcessMethod: ExceptionProcessMethod, config: WormholeFlinkxConfig, exceptionConfig:ExceptionConfig) extends RichMapFunction[String, String] with java.io.Serializable{
+class ExceptionProcess(exceptionProcessMethod: ExceptionProcessMethod, config: WormholeFlinkxConfig, exceptionConfig: ExceptionConfig) extends RichMapFunction[String, String] with java.io.Serializable {
   private lazy val logger = Logger.getLogger(this.getClass)
+
   override def map(feedbackFlowFlinkxError: String): String = doExceptionProcess(feedbackFlowFlinkxError)
 
   def doExceptionProcess(feedbackFlowFlinkxError: String): String = {
@@ -18,7 +19,7 @@ class ExceptionProcess(exceptionProcessMethod: ExceptionProcessMethod, config: W
         throw new Throwable("process error")
       case ExceptionProcessMethod.FEEDBACK =>
         WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
-        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, feedbackFlowFlinkxError, Some(UmsProtocolType.FEEDBACK_STREAM_BATCH_ERROR+"."+exceptionConfig.streamId), config.kafka_output.brokers)
+        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority, feedbackFlowFlinkxError, Some(UmsProtocolType.FEEDBACK_FLINKX_FLOW_ERROR + "." + exceptionConfig.streamId), config.kafka_output.brokers)
       case _ =>
         logger.info("exception process method is: " + exceptionProcessMethod)
     }

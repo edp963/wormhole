@@ -24,7 +24,6 @@ package edp.rider.rest.util
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import edp.rider.RiderStarter.modules._
 import edp.rider.common._
-import edp.rider.kafka.KafkaUtils
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.NamespaceUtils._
@@ -35,11 +34,11 @@ import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.yarn.YarnClientLog
 import edp.rider.yarn.YarnStatusQuery._
 import edp.rider.zookeeper.PushDirective
+import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.util.CommonUtils._
 import edp.wormhole.util.DateUtils._
 import edp.wormhole.util.JsonUtils._
-import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
 import slick.jdbc.MySQLProfile.api._
 
@@ -65,9 +64,9 @@ object FlowUtils extends RiderLogger {
     }
   }
 
-  def getOtherSinksConn(otherSinks: JSONArray): JSONArray= {
+  def getOtherSinksConn(otherSinks: JSONArray): JSONArray = {
     val otherSinksConnection = new JSONArray()
-    for(i <- 0 until otherSinks.size) {
+    for (i <- 0 until otherSinks.size) {
       val otherSinkConfig = otherSinks.getJSONObject(i)
       if (otherSinkConfig.containsKey("namespace")) {
         val (instance, db, ns) = namespaceDal.getNsDetail(otherSinkConfig.getString("namespace"))
@@ -91,7 +90,7 @@ object FlowUtils extends RiderLogger {
         if (specialConfigJson.containsKey("other_sinks_config")) {
           val otherSinksConfig = specialConfigJson.getJSONObject("other_sinks_config")
 
-          if(otherSinksConfig.containsKey("other_sinks")) {
+          if (otherSinksConfig.containsKey("other_sinks")) {
             val otherSinks = otherSinksConfig.getJSONArray("other_sinks")
             val otherSinksConnection = getOtherSinksConn(otherSinks)
             if (otherSinksConnection.size > 0) {
@@ -113,7 +112,7 @@ object FlowUtils extends RiderLogger {
   def getCustomerSinkClassName(sinkConfig: String) = {
     if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_specific_config")) {
       val specialConfigJson = JSON.parseObject(sinkConfig).getJSONObject("sink_specific_config")
-      if(specialConfigJson.containsKey("other_sinks_config")) {
+      if (specialConfigJson.containsKey("other_sinks_config")) {
         val otherSinksConfig = specialConfigJson.getJSONObject("other_sinks_config")
         if (otherSinksConfig.containsKey("customer_sink_class_fullname")) {
           Some(otherSinksConfig.getString("customer_sink_class_fullname"))
@@ -127,7 +126,7 @@ object FlowUtils extends RiderLogger {
       val (instance, db, ns) = namespaceDal.getNsDetail(sinkNs)
       val customerSinkClassName = getCustomerSinkClassName(sinkConfig)
       val specialConfigJson = getSpecialConfig(sinkConfig, ns)
-      val specialConfig = if(specialConfigJson == null) "{}" else specialConfigJson.toString
+      val specialConfig = if (specialConfigJson == null) "{}" else specialConfigJson.toString
 
       val sink_output =
         if (sinkConfig != "" && JSON.parseObject(sinkConfig).containsKey("sink_output"))
@@ -1347,9 +1346,6 @@ object FlowUtils extends RiderLogger {
     val udfTopics = flowUdfTopicDal.getUdfTopics(flowIds)
     val kafkaMap = flowDal.getFlowKafkaMap(flowIds)
     flowIds.map(id => {
-      //      val topics = autoRegisteredTopics.filter(_.flowId == id) ++: udfTopics.filter(_.flowId == id)
-      //val feedbackOffsetMap = getConsumedMaxOffset(id, topics)
-
       val autoTopicsResponse = genFlowAllOffsets(autoRegisteredTopics, kafkaMap)
       val udfTopicsResponse = genFlowAllOffsets(udfTopics, kafkaMap)
 

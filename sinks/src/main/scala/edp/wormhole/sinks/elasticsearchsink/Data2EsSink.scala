@@ -121,7 +121,7 @@ class Data2EsSink extends SinkProcessor {
       dataList.foreach { case (id, _, json) =>
         insertId2JsonMap(id) = json
       }
-      val insertFlag = doBatchInsert(insertId2JsonMap, sinkConfig, sinkNamespace, cc,indexName)
+      val insertFlag = doBatchInsert(insertId2JsonMap, sinkConfig, sinkNamespace, cc, indexName)
       insertFlag
     }
   }

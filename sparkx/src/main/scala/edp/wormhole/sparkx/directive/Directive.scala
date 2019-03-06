@@ -30,13 +30,13 @@ import org.apache.spark.streaming.kafka010.WormholeDirectKafkaInputDStream
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-trait Directive extends EdpLogging{
+trait Directive extends EdpLogging {
 
-  def flowStartProcess(ums: Ums, feedbackTopicName: String, brokers: String): Unit = {
-
+  def flowStartProcess(ums: Ums): String = {
+    null
   }
 
-  def doDirectiveTopic(config: WormholeConfig, stream: WormholeDirectKafkaInputDStream[String, String]):Unit = {
+  def doDirectiveTopic(config: WormholeConfig, stream: WormholeDirectKafkaInputDStream[String, String]): Unit = {
     val addTopicList = ListBuffer.empty[(KafkaTopicConfig, Long)]
     val delTopicList = mutable.ListBuffer.empty[(String, Long)]
     if (OffsetPersistenceManager.directiveList.size() > 0) {
@@ -71,8 +71,6 @@ trait Directive extends EdpLogging{
       OffsetPersistenceManager.doTopicPersistence(config, addTopicList, delTopicList)
     }
   }
-
-
 
 
   def topicSubscribeParse(ums: Ums, config: WormholeConfig, stream: WormholeDirectKafkaInputDStream[String, String]): ListBuffer[(KafkaTopicConfig, Long)] = {

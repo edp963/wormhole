@@ -26,6 +26,7 @@ import akka.http.scaladsl.server.Route
 import edp.rider.RiderStarter.modules._
 import edp.rider.common.Action._
 import edp.rider.common.{RiderConfig, RiderLogger, StreamStatus, StreamType}
+import edp.rider.kafka.CacheMap
 import edp.rider.rest.persistence.dal._
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
@@ -33,7 +34,6 @@ import edp.rider.rest.util.CommonUtils.{currentSec, minTimeOut}
 import edp.rider.rest.util.ResponseUtils.{getHeader, _}
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.rest.util.{AuthorizationProvider, StreamUtils}
-import edp.rider.service.CacheMap
 import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.rider.yarn.SubmitYarnJob.runShellCommand
 import edp.rider.yarn.YarnClientLog
