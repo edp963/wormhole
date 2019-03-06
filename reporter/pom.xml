@@ -12,7 +12,6 @@
     </parent>
 
     <artifactId>wormhole-flink-reporter</artifactId>
-    <version>${reporter.version}</version>
     <packaging>jar</packaging>
 
     <properties>
