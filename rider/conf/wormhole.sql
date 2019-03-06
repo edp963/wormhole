@@ -492,7 +492,7 @@ CREATE TABLE IF NOT EXISTS `feedback_flow_stats` (
   `done_ts` varchar(30) NOT NULL,
   `interval_data_process_to_data_ums` bigint(20) NOT NULL,
   `interval_data_process_to_rdd` bigint(20) NOT NULL,
-  `interval_data_process_to_swifts` bigint(20) NOT NULL,
+  `interval_rdd_to_swifts` bigint(20) NOT NULL,
   `interval_swifts_sink` bigint(20) NOT NULL,
   `interval_sink_done` bigint(20) NOT NULL,
   `interval_data_process_to_done` bigint(20) NOT NULL,
