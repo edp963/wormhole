@@ -39,7 +39,6 @@ import edp.rider.zookeeper.PushDirective._
 import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums.UmsSchemaUtils.toUms
-import edp.wormhole.util.DateUtils
 import edp.wormhole.util.JsonUtils._
 import slick.jdbc.MySQLProfile.api._
 
@@ -647,22 +646,22 @@ object StreamUtils extends RiderLogger {
     else false
   }
 
-  def getConsumedOffset(streamId: Long, dbId: Long, topic: String): String = {
-    val stream = Await.result(streamDal.findById(streamId), minTimeOut).head
-    val feedbackOffsetOpt = Await.result(feedbackOffsetDal.getLatestOffset(streamId, topic), minTimeOut)
-    val startOffsetOpt = Await.result(streamInTopicDal.findByFilter(rel => rel.streamId === streamId && rel.nsDatabaseId === dbId), minTimeOut)
-
-    val offset =
-      if (startOffsetOpt.nonEmpty) {
-        if (feedbackOffsetOpt.nonEmpty) {
-          if (stream.startedTime.nonEmpty && stream.startedTime != null &&
-            DateUtils.yyyyMMddHHmmss(feedbackOffsetOpt.get.umsTs) > DateUtils.yyyyMMddHHmmss(stream.startedTime.get))
-            feedbackOffsetOpt.get.partitionOffsets
-          else startOffsetOpt.head.partitionOffsets
-        } else startOffsetOpt.head.partitionOffsets
-      } else throw new Exception("get consumed offset failed.")
-
-    formatOffset(offset)
-  }
+//  def getConsumedOffset(streamId: Long, dbId: Long, topic: String): String = {
+//    val stream = Await.result(streamDal.findById(streamId), minTimeOut).head
+//    val feedbackOffsetOpt = Await.result(feedbackOffsetDal.getLatestOffset(streamId, topic), minTimeOut)
+//    val startOffsetOpt = Await.result(streamInTopicDal.findByFilter(rel => rel.streamId === streamId && rel.nsDatabaseId === dbId), minTimeOut)
+//
+//    val offset =
+//      if (startOffsetOpt.nonEmpty) {
+//        if (feedbackOffsetOpt.nonEmpty) {
+//          if (stream.startedTime.nonEmpty && stream.startedTime != null &&
+//            DateUtils.yyyyMMddHHmmss(feedbackOffsetOpt.get.umsTs) > DateUtils.yyyyMMddHHmmss(stream.startedTime.get))
+//            feedbackOffsetOpt.get.partitionOffsets
+//          else startOffsetOpt.head.partitionOffsets
+//        } else startOffsetOpt.head.partitionOffsets
+//      } else throw new Exception("get consumed offset failed.")
+//
+//    formatOffset(offset)
+//  }
 
 }

@@ -29,41 +29,52 @@ import edp.wormhole.sparkx.hdfslog.{HdfsDirective, HdfsMainProcess}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.router.{RouterDirective, RouterMainProcess}
 import edp.wormhole.sparkx.spark.log.EdpLogging
+import edp.wormhole.externalclient.zookeeper.WormholeZkClient._
 import edp.wormhole.ums.{UmsProtocolType, UmsSchemaUtils}
 
 object DirectiveFlowWatch extends EdpLogging {
 
   val flowRelativePath = "/flow"
 
+  val flowFeedbackRelativePath = "/feedback/directive/flow"
+
   def initFlow(config: WormholeConfig, appId: String): Unit = {
     logInfo("init flow,appId=" + appId)
-
     val watchPath = config.zookeeper_path + "/" + config.spark_config.stream_id + flowRelativePath
-    if(!WormholeZkClient.checkExist(config.zookeeper_address, watchPath))WormholeZkClient.createPath(config.zookeeper_address, watchPath)
+    if (!WormholeZkClient.checkExist(config.zookeeper_address, watchPath)) WormholeZkClient.createPath(config.zookeeper_address, watchPath)
     val flowList = WormholeZkClient.getChildren(config.zookeeper_address, watchPath)
     flowList.toArray.foreach(flow => {
       val flowContent = WormholeZkClient.getData(config.zookeeper_address, watchPath + "/" + flow)
-      add(config.kafka_output.feedback_topic_name,config.kafka_output.brokers)(watchPath + "/" + flow, new String(flowContent))
+      add(config.zookeeper_address, config.zookeeper_path)(watchPath + "/" + flow, new String(flowContent))
     })
 
-    WormholeZkClient.setPathChildrenCacheListener(config.zookeeper_address, watchPath, add(config.kafka_output.feedback_topic_name,config.kafka_output.brokers), remove(config.kafka_output.brokers), update(config.kafka_output.feedback_topic_name,config.kafka_output.brokers))
+    WormholeZkClient.setPathChildrenCacheListener(config.zookeeper_address, watchPath, add(config.zookeeper_address, config.zookeeper_path), remove(config.zookeeper_address), update(config.zookeeper_address, config.zookeeper_path))
   }
 
-  def add(feedbackTopicName: String,brokers:String)(path: String, data: String, time: Long = 1): Unit = {
+  def add(zkUrl: String, zkRootPath: String)(path: String, data: String, time: Long = 1): Unit = {
     try {
-      logInfo("add"+data)
-      if (!data.startsWith("{")) {
-        logWarning("data is " + data + ", not in ums")
-      } else {
-        val ums = UmsSchemaUtils.toUms(data)
-        ums.protocol.`type` match {
-          case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_FLOW_STOP =>
-            BatchflowDirective.flowStartProcess(ums, feedbackTopicName, brokers)
-          case UmsProtocolType.DIRECTIVE_ROUTER_FLOW_START | UmsProtocolType.DIRECTIVE_ROUTER_FLOW_STOP =>
-            RouterDirective.flowStartProcess(ums, feedbackTopicName, brokers)
-          case UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_STOP =>
-            HdfsDirective.flowStartProcess(ums, feedbackTopicName, brokers) //TOdo change name uniform, take directiveflowwatch and directiveoffsetwatch out of core, because hdfs also use them
-          case _ => logWarning("ums type: " + ums.protocol.`type` + " is not supported")
+      logInfo("add" + data)
+      if (path.contains("flow")) {
+        val dataSplit = path.split("/")
+        val streamId = dataSplit(dataSplit.length - 3)
+        val flowInfo = dataSplit.last
+        val flowDirectivePath = s"$zkRootPath$flowFeedbackRelativePath/$streamId/$flowInfo"
+        if (!data.startsWith("{")) {
+          logWarning("data is " + data + ", not in ums")
+        } else {
+          val ums = UmsSchemaUtils.toUms(data)
+          ums.protocol.`type` match {
+            case UmsProtocolType.DIRECTIVE_FLOW_START | UmsProtocolType.DIRECTIVE_FLOW_STOP =>
+              val feedbackMes = BatchflowDirective.flowStartProcess(ums)
+              createAndSetData(zkUrl, flowDirectivePath, feedbackMes)
+            case UmsProtocolType.DIRECTIVE_ROUTER_FLOW_START | UmsProtocolType.DIRECTIVE_ROUTER_FLOW_STOP =>
+              val feedbackMes = RouterDirective.flowStartProcess(ums)
+              createAndSetData(zkUrl, flowDirectivePath, feedbackMes)
+            case UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_START | UmsProtocolType.DIRECTIVE_HDFSLOG_FLOW_STOP =>
+              val feedbackMes = HdfsDirective.flowStartProcess(ums) //todo change name uniform, take directiveflowwatch and directiveoffsetwatch out of core, because hdfs also use them
+              createAndSetData(zkUrl, flowDirectivePath, feedbackMes)
+            case _ => logWarning("ums type: " + ums.protocol.`type` + " is not supported")
+          }
         }
       }
     } catch {
@@ -71,31 +82,30 @@ object DirectiveFlowWatch extends EdpLogging {
     }
   }
 
-  def remove(brokers:String)(path: String): Unit = {
+  def remove(zkUrl: String)(path: String): Unit = {
     try {
-      val (streamType,sourceNamespace, sinkNamespace) = getNamespaces(path)
+      val (streamType, sourceNamespace, sinkNamespace) = getNamespaces(path)
       StreamType.streamType(streamType) match {
         case StreamType.BATCHFLOW => ConfMemoryStorage.cleanDataStorage(sourceNamespace, sinkNamespace)
         case StreamType.HDFSLOG => HdfsMainProcess.directiveNamespaceRule.remove(sourceNamespace)
-        case StreamType.ROUTER => RouterMainProcess.removeFromRouterMap(sourceNamespace,sinkNamespace)
-        //case _=> logAlert("unsolve stream type:" + StreamType.ROUTER.toString)
+        case StreamType.ROUTER => RouterMainProcess.removeFromRouterMap(sourceNamespace, sinkNamespace)
       }
     } catch {
       case e: Throwable => logAlert("flow remove error:", e)
     }
   }
 
-  def update(feedbackTopicName: String,brokers:String)(path: String, data: String, time: Long): Unit = {
+  def update(zkUrl: String, zkRootPath: String)(path: String, data: String, time: Long): Unit = {
     try {
-      logInfo("update"+data)
-      add(feedbackTopicName,brokers)(path, data, time)
+      logInfo("update" + data)
+      add(zkUrl, zkRootPath)(path, data, time)
     } catch {
       case e: Throwable => logAlert("flow update error:" + data, e)
     }
   }
 
-  private def getNamespaces(path: String): (String, String,String) = {
-    val result = path.substring(path.lastIndexOf("/")+1).split("->")
-    (result(0).toLowerCase, result(2).toLowerCase,result(3))
+  private def getNamespaces(path: String): (String, String, String) = {
+    val result = path.substring(path.lastIndexOf("/") + 1).split("->")
+    (result(0).toLowerCase, result(2).toLowerCase, result(3))
   }
 }

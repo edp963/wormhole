@@ -38,7 +38,7 @@ object KafkaUtils extends RiderLogger {
         case _: Exception =>
           riderLogger.warn(s"initial create ${RiderConfig.consumer.feedbackTopic} topic failed, " +
             s"please check the ${RiderConfig.consumer.feedbackTopic} topic does exist, " +
-            s"if doesn't, please create it manually with 4 partition")
+            s"if doesn't, please create it manually with 1 partition")
       }
       try {
         WormholeTopicCommand.createOrAlterTopic(RiderConfig.consumer.zkUrl, RiderConfig.spark.wormholeHeartBeatTopic, 1, RiderConfig.consumer.refactor)
