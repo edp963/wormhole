@@ -46,6 +46,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
         val mapValue: (Seq[UmsField], Seq[FieldInfo], ArrayBuffer[(String, String)]) = jsonSourceParseMap((protocolType, namespace))
         val umsTuple = JsonParseUtils.dataParse(value._2, mapValue._2, mapValue._3)
         umsTuple.foreach(tuple => {
+          logger.debug("source tuple:"+tuple.tuple)
           createRow(tuple.tuple, protocolType.toString, out,mapValue._1)
         })
       }
@@ -59,7 +60,7 @@ class UmsProcessElement(sourceSchemaMap: Map[String, (TypeInformation[_], Int)],
       }
     } catch {
       case ex: Throwable =>
-        logger.error("in doFlinkSql table query", ex)
+        logger.error("in UmsProcessElement ", ex)
         //out.collect(new Row(0))
         ctx.output(kafkaDataTag, UmsProtocolUtils.feedbackFlinkxFlowError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), value._2, ex.getMessage))
     }
