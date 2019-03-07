@@ -433,12 +433,12 @@ export class WorkbenchFlowForm extends React.Component {
       ? undefined
       : selectStreamKafkaTopicValue.map(s => (<Option key={s.id} value={`${s.name}`}>{s.name}</Option>))
 
-    const { etpStrategyConfirmValue, transConfigConfirmValue, resultFieldsValue, flowKafkaInstanceValue, flowSubPanelKey, streamId, timeCharacteristic } = this.props
+    const { etpStrategyConfirmValue, transConfigConfirmValue, resultFieldsValue, flowKafkaInstanceValue, flowSubPanelKey, timeCharacteristic } = this.props
 
-    let maxParallelism = 0
-    for (let v of selectStreamKafkaTopicValue) {
-      if (v.id === streamId) maxParallelism = v.maxParallelism
-    }
+    // let maxParallelism = 0
+    // for (let v of selectStreamKafkaTopicValue) {
+    //   if (v.id === streamId) maxParallelism = v.maxParallelism
+    // }
     return (
       <Form className="ri-workbench-form workbench-flow-form">
         {/* Step 1 */}
@@ -541,9 +541,9 @@ export class WorkbenchFlowForm extends React.Component {
                       required: true,
                       message: operateLanguageFillIn('parallelism', 'Parallelism')
                     }],
-                    initialValue: 1
+                    initialValue: 6
                   })(
-                    <InputNumber min={1} max={maxParallelism} />
+                    <InputNumber min={1} />
                   )}
                 </FormItem>
               </Col>

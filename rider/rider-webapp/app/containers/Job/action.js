@@ -54,7 +54,8 @@ import {
   LOAD_JOB_DETAIL_SUCCESS,
   LOAD_BACKFILL_TOPIC,
   LOAD_BACKFILL_TOPIC_SUCCUSS,
-  LOAD_BACKFILL_TOPIC_ERROR
+  LOAD_BACKFILL_TOPIC_ERROR,
+  GET_SOURCE_NS_VERSION
 } from './constants'
 
 export function loadAdminAllJobs (resolve) {
@@ -407,6 +408,17 @@ export function jobBackfillTopicError (result) {
     type: LOAD_BACKFILL_TOPIC_ERROR,
     payload: {
       result
+    }
+  }
+}
+
+export function getSourceNsVersion (projectId, namespace, resolve) {
+  return {
+    type: GET_SOURCE_NS_VERSION,
+    payload: {
+      projectId,
+      namespace,
+      resolve
     }
   }
 }
