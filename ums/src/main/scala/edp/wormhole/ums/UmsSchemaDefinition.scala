@@ -181,6 +181,7 @@ object UmsProtocolType extends Enumeration {
   @Deprecated
   val FEEDBACK_DIRECTIVE = Value("feedback_directive")
   val FEEDBACK_SPARKX_FLOW_ERROR = Value("feedback_sparkx_flow_error")
+  val FEEDBACK_FLOW_SPARKX_ERROR = Value("feedback_flow_sparkx_error")
   val FEEDBACK_SPARKX_FLOW_STATS = Value("feedback_sparkx_flow_stats")
   val FEEDBACK_FLOW_ERROR = Value("feedback_flow_error")
   val FEEDBACK_FLOW_STATS = Value("feedback_flow_stats")

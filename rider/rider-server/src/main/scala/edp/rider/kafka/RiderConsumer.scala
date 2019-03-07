@@ -94,11 +94,6 @@ class RiderConsumer extends Actor with RiderLogger {
   }
 
 
-  def getProtocolFromKey(key: String): UmsProtocolType = {
-    val protocolTypeStr: String = key.substring(0, key.indexOf(".") - 1)
-    UmsProtocolType.umsProtocolType(protocolTypeStr)
-  }
-
   private def processMessage(records: Seq[ConsumerRecord[String, String]]): Unit = {
     try {
       val sparkxFlowErrorBuffer = new ListBuffer[Ums]
@@ -108,18 +103,23 @@ class RiderConsumer extends Actor with RiderLogger {
       val feedbackFlowStartBuffer = new ListBuffer[Ums]
 
       records.foreach(record => {
-        val ums = json2Ums(record.value())
-        if (record.key().startsWith(FEEDBACK_SPARKX_FLOW_ERROR.toString)
-          || record.key().startsWith(FEEDBACK_FLOW_ERROR.toString)) {
-          if (ums != null) sparkxFlowErrorBuffer.append(ums)
-        } else if (record.key().startsWith(FEEDBACK_STREAM_BATCH_ERROR.toString)) {
-          if (ums != null) sparkxStreamErrorBuffer.append(ums)
-        } else if (record.key().startsWith(FEEDBACK_SPARKX_FLOW_STATS.toString)) {
-          if (ums != null) sparkxFlowStatsBuffer.append(ums)
-        } else if (record.key().startsWith(FEEDBACK_FLINKX_FLOW_ERROR.toString)) {
-          if (ums != null) flinkxFlowErrorBuffer.append(ums)
-        } else if(record.key().startsWith(FEEDBACK_DIRECTIVE.toString)) {
-          if(ums != null) feedbackFlowStartBuffer.append(ums)
+        if (record != null) {
+          val ums = json2Ums(record.value())
+          if (ums != null) {
+            val key = ums.protocol.`type`.toString
+            if (key.startsWith(FEEDBACK_SPARKX_FLOW_ERROR.toString)
+              || key.startsWith(FEEDBACK_FLOW_ERROR.toString) || key.startsWith(FEEDBACK_FLOW_SPARKX_ERROR.toString)) {
+              sparkxFlowErrorBuffer.append(ums)
+            } else if (key.startsWith(FEEDBACK_STREAM_BATCH_ERROR.toString)) {
+              sparkxStreamErrorBuffer.append(ums)
+            } else if (key.startsWith(FEEDBACK_SPARKX_FLOW_STATS.toString)) {
+              sparkxFlowStatsBuffer.append(ums)
+            } else if (key.startsWith(FEEDBACK_FLINKX_FLOW_ERROR.toString)) {
+              flinkxFlowErrorBuffer.append(ums)
+            } else if (key.startsWith(FEEDBACK_DIRECTIVE.toString)) {
+              feedbackFlowStartBuffer.append(ums)
+            }
+          }
         }
       })
 
@@ -130,7 +130,7 @@ class RiderConsumer extends Actor with RiderLogger {
 
     } catch {
       case e: Exception =>
-        riderLogger.error(s"process feedback batch message", e)
+        riderLogger.error(s"process feedback batch message, $records", e)
     }
   }
 
