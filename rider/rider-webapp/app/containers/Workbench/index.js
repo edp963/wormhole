@@ -340,19 +340,34 @@ export class Workbench extends React.Component {
         // }, 20)
       // }
     }
-    this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys: selectedOptions[selectedOptions.length - 1].nsSys }, () => {
-      const namespace = `${this.state.jobSourceNsSys}.${this.state.backfillSinkNsValue}`
-      this.initialSourceNsVersion(namespace)
-    })
+    const jobSourceNsSys = selectedOptions[selectedOptions.length - 1].nsSys
+    if (this.state.jobDiffType === 'backfill') {
+      this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys })
+    } else if (this.state.jobDiffType === 'default') {
+      this.setState({singleJobResult: {
+        sourceNs: `${jobSourceNsSys}.${value.join('.')}`
+      }})
+    }
   }
-  initialSourceNsVersion = (namespace) => {
+  initialSourceNsVersion = () => {
+    const { singleJobResult, sourceNsVersionList } = this.state
+    if (sourceNsVersionList.length > 0) return
+    if (!singleJobResult.sourceNs) {
+      message.warn('请先选择namespace')
+      return
+    }
+    const namespace = singleJobResult.sourceNs
     const { projectId } = this.state
     this.setState({globalLoading: true})
     this.props.onLoadSourceNsVersion(projectId, namespace, result => {
       this.setState({globalLoading: false})
+      if (!result) {
+        message.warn('hdfs没有该namespace的数据')
+        return
+      }
       const arr = result.split(',')
       arr.sort((a, b) => a - b)
-      this.workbenchJobForm.setFieldsValue({sourceNamespaceVersion: arr[arr.length - 1]})
+      // this.workbenchJobForm.setFieldsValue({sourceNamespaceVersion: arr[arr.length - 1]})
       this.setState({sourceNsVersionList: arr})
     })
   }
@@ -584,6 +599,8 @@ export class Workbench extends React.Component {
   }
 
   showEditJobWorkbench = (job) => () => {
+    this.workbenchJobForm.resetFields()
+    this.setState({sourceNsVersionList: []})
     const { mapJobType } = this.state
     this.setState({ jobMode: 'edit', jobDiffType: job.jobType })
 
@@ -596,7 +613,6 @@ export class Workbench extends React.Component {
         const resultFinal = result.job
         resolve(resultFinal)
         const sourceConfigTemp = resultFinal.sourceConfig
-
         this.workbenchJobForm.setFieldsValue({
           protocol: JSON.parse(sourceConfigTemp).protocol,
           jobName: resultFinal.name,
@@ -3473,7 +3489,8 @@ export class Workbench extends React.Component {
       resultFieldsValue: 'all',
       backfillSinkNsValue: '',
       jobDiffType: 'default',
-      backfillTopicValueProp: ''
+      backfillTopicValueProp: '',
+      sourceNsVersionList: []
     }, () => {
       this.workbenchJobForm.setFieldsValue({
         // type: 'default',
@@ -3884,6 +3901,7 @@ export class Workbench extends React.Component {
                       clearSinkData={this.clearSinkData}
                       jobSourceNsSys={this.state.jobSourceNsSys}
                       sourceNsVersionList={this.state.sourceNsVersionList}
+                      initialSourceNsVersion={this.initialSourceNsVersion}
                       ref={(f) => { this.workbenchJobForm = f }}
                     />
                     <Modal
