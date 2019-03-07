@@ -238,7 +238,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
           case StreamType.FLINK =>
             val config = json2caseClass[FlinkResourceConfig](stream.startConfig)
             usedCores += config.taskManagersNumber * config.perTaskManagerSlots
-            usedMemory += config.jobManagerMemoryGB + config.taskManagersNumber * config.perTaskManagerSlots
+            usedMemory += config.jobManagerMemoryGB + config.taskManagersNumber * config.perTaskManagerMemoryGB
             AppResource(stream.name, 0, config.jobManagerMemoryGB, config.taskManagersNumber, config.perTaskManagerMemoryGB, config.perTaskManagerSlots)
         }
       }
@@ -314,32 +314,32 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     })
   }
 
-  def getConsumedMaxOffset(streamId: Long, topics: Seq[StreamTopicTemp]): Map[String, String] = {
-    try {
-      val stream = Await.result(super.findById(streamId), minTimeOut).head
-
-      val topicFeedbackSeq = feedbackOffsetDal.getStreamTopicsFeedbackOffset(streamId, topics.size)
-
-      val topicOffsetMap = new mutable.HashMap[String, String]()
-      topicFeedbackSeq.foreach(topic => {
-        if (!topicOffsetMap.contains(topic.topicName)) {
-          if (stream.startedTime.nonEmpty && stream.startedTime != null &&
-            DateUtils.yyyyMMddHHmmss(topic.umsTs) > DateUtils.yyyyMMddHHmmss(stream.startedTime.get))
-            topicOffsetMap(topic.topicName) = formatOffset(topic.partitionOffsets)
-        }
-      })
-      topics.foreach(
-        topic => {
-          if (!topicOffsetMap.contains(topic.name)) topicOffsetMap(topic.name) = formatOffset(topic.partitionOffsets)
-        }
-      )
-      topicOffsetMap.toMap
-    } catch {
-      case ex: Exception =>
-        riderLogger.error(s"get stream consumed latest offset from feedback failed", ex)
-        throw ex
-    }
-  }
+//  def getConsumedMaxOffset(streamId: Long, topics: Seq[StreamTopicTemp]): Map[String, String] = {
+//    try {
+//      val stream = Await.result(super.findById(streamId), minTimeOut).head
+//
+//      val topicFeedbackSeq = feedbackOffsetDal.getStreamTopicsFeedbackOffset(streamId, topics.size)
+//
+//      val topicOffsetMap = new mutable.HashMap[String, String]()
+//      topicFeedbackSeq.foreach(topic => {
+//        if (!topicOffsetMap.contains(topic.topicName)) {
+//          if (stream.startedTime.nonEmpty && stream.startedTime != null &&
+//            DateUtils.yyyyMMddHHmmss(topic.umsTs) > DateUtils.yyyyMMddHHmmss(stream.startedTime.get))
+//            topicOffsetMap(topic.topicName) = formatOffset(topic.partitionOffsets)
+//        }
+//      })
+//      topics.foreach(
+//        topic => {
+//          if (!topicOffsetMap.contains(topic.name)) topicOffsetMap(topic.name) = formatOffset(topic.partitionOffsets)
+//        }
+//      )
+//      topicOffsetMap.toMap
+//    } catch {
+//      case ex: Exception =>
+//        riderLogger.error(s"get stream consumed latest offset from feedback failed", ex)
+//        throw ex
+//    }
+//  }
 
 
 }

@@ -82,12 +82,8 @@ object FlinkSchemaUtils extends java.io.Serializable {
     newArray
   }
 
-  def tableFieldNameArray(tableSchema: TableSchema): Array[String] = {
-    tableSchema.getColumnNames
-  }
-
   def tableFieldTypeArray(tableSchema: TableSchema, preSchemaMap: Map[String, (TypeInformation[_], Int)]): Array[TypeInformation[_]] = {
-    tableFieldNameArray(tableSchema).map(fieldName => {
+    tableSchema.getFieldNames.map(fieldName => {
       val fieldType = preSchemaMap(fieldName)._1
       if (fieldType == TimeIndicatorTypeInfo.PROCTIME_INDICATOR || fieldType == TimeIndicatorTypeInfo.ROWTIME_INDICATOR)
         SqlTimeTypeInfo.TIMESTAMP
@@ -97,19 +93,6 @@ object FlinkSchemaUtils extends java.io.Serializable {
 
   def getSchemaMapFromTable(tableSchema: TableSchema, projectClause: String, udfSchemaMap: Map[String, TypeInformation[_]], specialConfigObj: JSONObject): Map[String, (TypeInformation[_], Int)] = {
     println("in getSchemaMapFromTable *******************")
-
-    //position
-    /*val fieldArray = projectClause.substring(5).split("[,()]")
-    val udfTypeIndexMap = mutable.HashMap.empty[Int, TypeInformation[_]]
-    var udfIndex = 0
-    fieldArray.foreach(field => {
-      if(udfSchemaMap.contains(field.trim)) {
-          udfTypeIndexMap += udfIndex -> udfSchemaMap(field.trim)
-          udfIndex += 1
-        }
-    })*/
-
-    //name
     val fieldString = projectClause.substring(6)
     val nameMap = mutable.HashMap.empty[String, String]
     var s = ""
@@ -138,16 +121,13 @@ object FlinkSchemaUtils extends java.io.Serializable {
     val resultSchemaMap = mutable.HashMap.empty[String, (TypeInformation[_], Int)]
     var index = 0
     var udfIndexCur = 0
-    tableSchema.getColumnNames.foreach(s => {
+    tableSchema.getFieldNames.foreach(s => {
       logger.info(s"field $index in table $s")
-      if (tableSchema.getType(s).get.toString.contains("java.lang.Object") && udfSchemaMap.contains(nameMap(s))) {
-        //position
-        //resultSchemaMap += s -> (udfTypeIndexMap(udfIndexCur), index)
-        //name
+      if (tableSchema.getFieldType(s).get.toString.contains("java.lang.Object") && udfSchemaMap.contains(nameMap(s))) {
         resultSchemaMap += s -> (udfSchemaMap(nameMap(s)), index)
         udfIndexCur += 1
       } else {
-        resultSchemaMap += s -> (tableSchema.getType(s).get, index)
+        resultSchemaMap += s -> (tableSchema.getFieldType(s).get, index)
       }
       index += 1
     }
@@ -313,7 +293,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
 
   def object2TrueValue(flinkType: TypeInformation[_], value: Any): Any = if (value == null) null
   else flinkType match {
-    case Types.STRING => value.asInstanceOf[String].trim
+    case Types.STRING => "'" + value.asInstanceOf[String].trim + "'"
     case Types.INT => value.asInstanceOf[Int]
     case Types.LONG => value match {
       case _: Int => value.asInstanceOf[Int].toLong
@@ -325,8 +305,8 @@ object FlinkSchemaUtils extends java.io.Serializable {
       case _ => value.asInstanceOf[Double]
     }
     case Types.BOOLEAN => value.asInstanceOf[Boolean]
-    case Types.SQL_DATE => if (value.isInstanceOf[Timestamp]) DateUtils.dt2sqlDate(value.asInstanceOf[Timestamp]) else DateUtils.dt2sqlDate(value.asInstanceOf[Date])
-    case Types.SQL_TIMESTAMP => value.asInstanceOf[Timestamp]
+    case Types.SQL_DATE => if (value.isInstanceOf[Timestamp])  "'" + DateUtils.dt2sqlDate(value.asInstanceOf[Timestamp]) + "'" else "'" + DateUtils.dt2sqlDate(value.asInstanceOf[Date]) + "'"
+    case Types.SQL_TIMESTAMP => "'" + value.asInstanceOf[Timestamp] + "'"
     case Types.DECIMAL => new java.math.BigDecimal(value.asInstanceOf[java.math.BigDecimal].toPlainString.trim).stripTrailingZeros()
     case _ => throw new UnsupportedOperationException(s"Unknown Type: $flinkType")
   }

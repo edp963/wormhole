@@ -16,6 +16,11 @@
         "nullable":false
       },
       {
+        "name": "flow_id",  //add
+        "type": "long",
+        "nullable": false
+      },
+      {
         "name":"ums_ts_",
         "type":"datetime",
         "nullable":false
@@ -39,6 +44,11 @@
         "name":"data_parse",//data_type==ums_extension有效，为json schema
         "type":"string",
         "nullable":true
+      },
+      {
+        "name": "source_increment_topic",
+        "type": "string",
+        "nullable": false
       }
     ]
   },
@@ -47,11 +57,13 @@
       "tuple":[
         1994,
         10000113,
+        1,
         "2017-12-20 17:09:21.000",
         "kafka.edp_kafka.wh3test2.selftable.*.*.*",
         "24",
         "ums_extension",
-        "eyJmaWVsZHMiOlt7Im5hbWUiOiJ0cyIsInR5cGUiOiJsb25nIiwibnVsbGFibGUiOnRydWV9LHsibmFtZSI6ImlkIiwidHlwZSI6ImxvbmciLCJudWxsYWJsZSI6dHJ1ZX0seyJuYW1lIjoib3AiLCJ0eXBlIjoic3RyaW5nIiwibnVsbGFibGUiOnRydWV9LHsibmFtZSI6ImJlYXQiLCJ0eXBlIjoianNvbm9iamVjdCIsIm51bGxhYmxlIjp0cnVlLCJzdWJfZmllbGRzIjpbeyJuYW1lIjoicWlhbnRhbyIsInR5cGUiOiJqc29ub2JqZWN0IiwibnVsbGFibGUiOnRydWUsInN1Yl9maWVsZHMiOlt7Im5hbWUiOiJob3N0bmFtZSIsInR5cGUiOiJzdHJpbmciLCJudWxsYWJsZSI6dHJ1ZX1dfSx7Im5hbWUiOiJ2ZXJzaW9uIiwidHlwZSI6InN0cmluZyIsIm51bGxhYmxlIjp0cnVlLCJyZW5hbWUiOiJuZXdGaWxlTmFtZTUyIn1dfSx7Im5hbWUiOiJpbnB1dF90eXBlIiwidHlwZSI6InN0cmluZ2FycmF5IiwibnVsbGFibGUiOnRydWUsInJlbmFtZSI6Im5ld0ZpbGVOYW1lMiJ9LHsibnVsbGFibGUiOnRydWUsIm5hbWUiOiJtZXNzYWdlIiwic3ViX2ZpZWxkcyI6W3sibmFtZSI6IjAiLCJ0eXBlIjoic3RyaW5nIiwibnVsbGFibGUiOnRydWUsInJlbmFtZSI6ImZpZWxkTmFtZTMxIn0seyJuYW1lIjoiMSIsInR5cGUiOiJzdHJpbmciLCJudWxsYWJsZSI6dHJ1ZSwicmVuYW1lIjoiZmllbGROYW1lMzIifV0sInR5cGUiOiJ0dXBsZSIsInR1cGxlX3NlcCI6InwifSx7Im5hbWUiOiJ0cyIsInR5cGUiOiJkYXRldGltZSIsIm51bGxhYmxlIjp0cnVlLCJyZW5hbWUiOiJ1bXNfdHNfIn0seyJuYW1lIjoiaWQiLCJ0eXBlIjoibG9uZyIsIm51bGxhYmxlIjp0cnVlLCJyZW5hbWUiOiJ1bXNfaWRfIn0seyJudWxsYWJsZSI6dHJ1ZSwibmFtZSI6Im9wIiwicmVuYW1lIjoidW1zX29wXyIsInVtc19zeXNfbWFwcGluZyI6Imk6YSx1OmIsZDpjIiwidHlwZSI6InN0cmluZyJ9XX0="
+        "eyJmaWVsZHMiOlt7Im5hbWUiOiJ0cyIsInR5cGUiOiJsb25nIiwibnVsbGFibGUiOnRydWV9LHsibmFtZSI6ImlkIiwidHlwZSI6ImxvbmciLCJudWxsYWJsZSI6dHJ1ZX0seyJuYW1lIjoib3AiLCJ0eXBlIjoic3RyaW5nIiwibnVsbGFibGUiOnRydWV9LHsibmFtZSI6ImJlYXQiLCJ0eXBlIjoianNvbm9iamVjdCIsIm51bGxhYmxlIjp0cnVlLCJzdWJfZmllbGRzIjpbeyJuYW1lIjoicWlhbnRhbyIsInR5cGUiOiJqc29ub2JqZWN0IiwibnVsbGFibGUiOnRydWUsInN1Yl9maWVsZHMiOlt7Im5hbWUiOiJob3N0bmFtZSIsInR5cGUiOiJzdHJpbmciLCJudWxsYWJsZSI6dHJ1ZX1dfSx7Im5hbWUiOiJ2ZXJzaW9uIiwidHlwZSI6InN0cmluZyIsIm51bGxhYmxlIjp0cnVlLCJyZW5hbWUiOiJuZXdGaWxlTmFtZTUyIn1dfSx7Im5hbWUiOiJpbnB1dF90eXBlIiwidHlwZSI6InN0cmluZ2FycmF5IiwibnVsbGFibGUiOnRydWUsInJlbmFtZSI6Im5ld0ZpbGVOYW1lMiJ9LHsibnVsbGFibGUiOnRydWUsIm5hbWUiOiJtZXNzYWdlIiwic3ViX2ZpZWxkcyI6W3sibmFtZSI6IjAiLCJ0eXBlIjoic3RyaW5nIiwibnVsbGFibGUiOnRydWUsInJlbmFtZSI6ImZpZWxkTmFtZTMxIn0seyJuYW1lIjoiMSIsInR5cGUiOiJzdHJpbmciLCJudWxsYWJsZSI6dHJ1ZSwicmVuYW1lIjoiZmllbGROYW1lMzIifV0sInR5cGUiOiJ0dXBsZSIsInR1cGxlX3NlcCI6InwifSx7Im5hbWUiOiJ0cyIsInR5cGUiOiJkYXRldGltZSIsIm51bGxhYmxlIjp0cnVlLCJyZW5hbWUiOiJ1bXNfdHNfIn0seyJuYW1lIjoiaWQiLCJ0eXBlIjoibG9uZyIsIm51bGxhYmxlIjp0cnVlLCJyZW5hbWUiOiJ1bXNfaWRfIn0seyJudWxsYWJsZSI6dHJ1ZSwibmFtZSI6Im9wIiwicmVuYW1lIjoidW1zX29wXyIsInVtc19zeXNfbWFwcGluZyI6Imk6YSx1OmIsZDpjIiwidHlwZSI6InN0cmluZyJ9XX0=",
+        "source1"
       ]
     }
   ]

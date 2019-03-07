@@ -21,16 +21,13 @@
 
 package edp.rider.monitor
 
-import java.io.IOException
-import java.text.SimpleDateFormat
-
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.headers.BasicHttpCredentials
-import akka.http.scaladsl.model.{HttpMethods, HttpRequest, Uri, _}
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling._
 import akka.util.ByteString
 import edp.rider.RiderStarter._
-import edp.rider.common.{RiderConfig, RiderEs, RiderLogger, RiderMonitor}
+import edp.rider.common.{RiderConfig, RiderEs, RiderLogger}
 import edp.rider.rest.persistence.entities.{Interval, MonitorInfo, MonitorInfoES}
 import edp.rider.rest.util.CommonUtils
 import edp.wormhole.util.JsonUtils
@@ -71,6 +68,16 @@ object ElasticSearch extends RiderLogger {
     }
   }
 
+  private def getESBulkUrl: String = {
+    try {
+      s"${RiderConfig.es.url}/${RiderConfig.es.wormholeIndex}/${RiderConfig.es.wormholeType}/_bulk"
+    } catch {
+      case e: Exception =>
+        riderLogger.error(s"ES url config get from application.conf failed", e)
+        ""
+    }
+  }
+
   private def getESIndexUrl: String = {
     try {
       s"${RiderConfig.es.url}/${RiderConfig.es.wormholeIndex}/"
@@ -81,15 +88,32 @@ object ElasticSearch extends RiderLogger {
     }
   }
 
+  private def getESTypeUrl: String = {
+    try {
+      s"${getESIndexUrl}${RiderConfig.es.wormholeType}"
+    } catch {
+      case e: Exception =>
+        riderLogger.error(s"ES index config get failed ", e)
+        ""
+    }
+  }
 
-  def insertFlowStatToES(stats: MonitorInfo) = {
-    val url = getESUrl
-    //    riderLogger.info("es url: " + url)
-    val postBody: String = JsonUtils.caseClass2json(stats)
-    //    riderLogger.info("es insert: " + postBody)
-    asyncToES(postBody, url, HttpMethods.POST)
-    //    syncToES(postBody, url, HttpMethods.POST)
 
+  def insertFlowStatToES(records: List[MonitorInfo]) = {
+    if (records.nonEmpty) {
+      val url = getESBulkUrl
+      val jsonSeq = new ListBuffer[String]
+      records.foreach(record => {
+        val meta = s"""{ "index" : { "_index" : "${RiderConfig.es.wormholeIndex}", "_type" : "${RiderConfig.es.wormholeType}"} }"""
+        val mes = JsonUtils.caseClass2json(record)
+        jsonSeq.append(meta)
+        jsonSeq.append(mes)
+      })
+      val postBody = jsonSeq.mkString("\n") + "\n"
+      //      riderLogger.info(s"es url: $url")
+      //      riderLogger.info("es insert: " + postBody)
+      syncToES(postBody, url, HttpMethods.POST)
+    }
   }
 
   def queryESFlowMax(projectId: Long, streamId: Long, flowId: Long, columnName: String): (Boolean, String) = {
@@ -228,14 +252,14 @@ object ElasticSearch extends RiderLogger {
 
   def createEsIndex() = {
     val body = ReadJsonFile.getMessageFromJson(JsonFileType.ESCREATEINDEX).replace("#ESINDEX#", s"${RiderConfig.es.wormholeIndex}")
-    val url = getESIndexUrl
+    val url = getESTypeUrl
     val existsResponse = syncToES("", url, HttpMethods.GET)
     //    riderLogger.info(s" query index exists response $existsResponse")
     if (existsResponse._1) {
       riderLogger.info(s"ES index $url already exists")
     } else {
       riderLogger.info(s"createEsIndex url $url $body")
-      asyncToES(body, url, HttpMethods.PUT)
+      syncToES(body, url, HttpMethods.PUT)
     }
   }
 
@@ -277,7 +301,6 @@ object ElasticSearch extends RiderLogger {
     var tc = false
     var responseJson: JValue = JNull
     val uri = Uri.apply(url)
-    // val a = headers.`Content-Type`.apply(ContentTypes.`application/json`)
     val b = headers.Accept.apply(MediaTypes.`application/json`)
     val httpRequest: HttpRequest = HttpRequest(
       method,
@@ -286,41 +309,30 @@ object ElasticSearch extends RiderLogger {
       protocol = HttpProtocols.`HTTP/1.1`,
       entity = HttpEntity.apply(ContentTypes.`application/json`, ByteString(postBody))
     ).addCredentials(BasicHttpCredentials(RiderConfig.es.user, RiderConfig.es.pwd))
-    //    riderLogger.info(s"httpRequest ${
-    //      httpRequest.toString
-    //    }.")
+    val response = Await.result(Http().singleRequest(httpRequest), timeOut)
     try {
-      val response = Await.result(Http().singleRequest(httpRequest), timeOut)
       response.status match {
         case StatusCodes.OK if (response.entity.contentType == ContentTypes.`application/json`) =>
-          riderLogger.debug(s"response.entity ${
-            response.entity.toString
-          }.")
           Await.result(
             Unmarshal(response.entity).to[String].map {
               jsonString =>
-                //                riderLogger.info(s"== jsonString ${
-                //                  jsonString
-                //                }.")
-                tc = true
                 responseJson = JsonUtils.json2jValue(jsonString)
+                if (JsonUtils.containsName(responseJson, "errors")) {
+                  if (JsonUtils.getBoolean(responseJson, "errors")) {
+                    riderLogger.error(s"ES request $postBody failed, $jsonString")
+                  } else {
+                    tc = true
+                  }
+                }
             }, Duration.Inf)
-        case StatusCodes.BadRequest => {
-          riderLogger.error(s"syncToES failed caused by incorrect latitude and longitude format")
-        }
-        case _ => Unmarshal(response.entity).to[String].flatMap {
-          entity =>
-            val error = s"Google GeoCoding request failed with status code ${
-              response.status
-            } and entity $entity"
-            Future.failed(new IOException(error))
+        case _ => {
+          riderLogger.error(s"ES request $postBody failed, ${Unmarshal(response.entity).to[String]}")
         }
       }
     } catch {
-      case e: Exception =>
-        riderLogger.error(s"Failed to get the response from ES when syncToES", e)
+      case ex: Exception =>
+        riderLogger.error(s"ES request $postBody failed", ex)
     }
-    //    riderLogger.info(s"====> syncToES return  $tc  $responseJson.")
     (tc, responseJson)
   }
 }

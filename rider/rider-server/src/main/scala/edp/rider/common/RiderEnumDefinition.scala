@@ -173,3 +173,13 @@ object StreamType extends Enumeration {
   def streamType(s: String) = StreamType.withName(s.toLowerCase)
 
 }
+
+
+object FeedbackDirectiveType extends Enumeration {
+  type FeedbackDirectiveType = Value
+  val FLOW = Value("flow")
+  val UDF = Value("udf")
+  val TOPIC = Value("topic")
+
+  def feedbackDirectiveType(s: String) = FeedbackDirectiveType.withName(s.toLowerCase)
+}

@@ -27,10 +27,10 @@ import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.common._
-import edp.wormhole.sparkx.memorystorage.{ConfMemoryStorage, OffsetPersistenceManager}
+import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.{UmsCommonUtils, UmsFeedbackStatus, UmsProtocolType, UmsProtocolUtils}
-import edp.wormhole.util.{DateUtils, JsonUtils}
+import edp.wormhole.util.DateUtils
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
@@ -41,7 +41,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object RouterMainProcess extends EdpLogging {
 
-  def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession,appId:String,kafkaInput: KafkaInputConfig): Unit = {
+  def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession, appId: String, kafkaInput: KafkaInputConfig): Unit = {
     var zookeeperFlag = false
     stream.foreachRDD((streamRdd: RDD[ConsumerRecord[String, String]]) => {
       val startTime = System.currentTimeMillis()
@@ -78,13 +78,13 @@ object RouterMainProcess extends EdpLogging {
         dataRepartitionRdd.foreachPartition { partition =>
           routerMap.foreach { case (_, (map, _)) =>
             map.foreach { case (_, (kafkaBroker, _)) => {
-              WormholeKafkaProducer.init(kafkaBroker, None,config.kerberos)
+              WormholeKafkaProducer.init(kafkaBroker, None, config.kerberos)
             }
             }
           }
           partition.foreach { case (key, value) => {
 
-            val sinkNamespaceMap = mutable.HashMap.empty[String,String]
+            val sinkNamespaceMap = mutable.HashMap.empty[String, String]
 
             val keys: Array[String] = key.split("\\.")
             val (protocolType, namespace) = if (keys.length > 7) (keys(0).toLowerCase, keys.slice(1, 8).mkString(".")) else (keys(0).toLowerCase, "")
@@ -96,7 +96,7 @@ object RouterMainProcess extends EdpLogging {
                 val prefix = value.substring(0, messageIndex)
                 val suffix = value.substring(messageIndex + namespace.length)
                 routerMap(matchNamespace)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
-                  if(!sinkNamespaceMap.contains(sinkNamespace)) sinkNamespaceMap(sinkNamespace) = getNewSinkNamespace(keys,sinkNamespace)
+                  if (!sinkNamespaceMap.contains(sinkNamespace)) sinkNamespaceMap(sinkNamespace) = getNewSinkNamespace(keys, sinkNamespace)
 
                   val newSinkNamespace = sinkNamespaceMap(sinkNamespace)
 
@@ -117,26 +117,25 @@ object RouterMainProcess extends EdpLogging {
 
         dataRepartitionRdd.unpersist()
 
-        val endTime = System.currentTimeMillis()
-        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority4,
-          UmsProtocolUtils.feedbackFlowStats("*.*.*.*.*.*.*", UmsProtocolType.DATA_INCREMENT_DATA.toString, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, "kafka.*.*.*.*.*.*",topicPartitionOffset,
-            allCount.toInt, startTime, startTime, startTime, startTime, startTime, startTime, endTime.toString), Some(UmsProtocolType.FEEDBACK_FLOW_STATS+"."+config.spark_config.stream_id), config.kafka_output.brokers)
+//        val endTime = System.currentTimeMillis()
+//        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
+//          UmsProtocolUtils.feedbackFlowStats("*.*.*.*.*.*.*", UmsProtocolType.DATA_INCREMENT_DATA.toString, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, "kafka.*.*.*.*.*.*", topicPartitionOffset,
+//            allCount.toInt, startTime, startTime, startTime, startTime, startTime, startTime, endTime.toString), Some(UmsProtocolType.FEEDBACK_SPARKX_FLOW_STATS + "." + config.spark_config.stream_id), config.kafka_output.brokers)
 
-
-        WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
+        //        WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
       } catch {
         case e: Throwable =>
           logAlert("batch error", e)
-          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority3, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, DateUtils.currentDateTime, UmsFeedbackStatus.FAIL, e.getMessage, batchId,topicPartitionOffset), Some(UmsProtocolType.FEEDBACK_STREAM_BATCH_ERROR+"."+config.spark_config.stream_id), config.kafka_output.brokers)
-          WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
+          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, DateUtils.currentDateTime, UmsFeedbackStatus.FAIL, e.getMessage, batchId, topicPartitionOffset), Some(UmsProtocolType.FEEDBACK_STREAM_BATCH_ERROR + "." + config.spark_config.stream_id), config.kafka_output.brokers)
+        //          WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
       }
       stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
-      if(!zookeeperFlag){
-        logInfo("write appid to zookeeper,"+appId)
+      if (!zookeeperFlag) {
+        logInfo("write appid to zookeeper," + appId)
         SparkContextUtils.checkSparkRestart(config.zookeeper_address, config.zookeeper_path, config.spark_config.stream_id, appId)
         SparkContextUtils.deleteZookeeperOldAppidPath(appId, config.zookeeper_address, config.zookeeper_path, config.spark_config.stream_id)
         WormholeZkClient.createPath(config.zookeeper_address, config.zookeeper_path + "/" + config.spark_config.stream_id + "/" + appId)
-        zookeeperFlag=true
+        zookeeperFlag = true
       }
     })
   }
@@ -154,15 +153,15 @@ object RouterMainProcess extends EdpLogging {
     }
   }
 
-  def getNewSinkNamespace(keys:Array[String],sinkNamespace:String): String ={
-    val sinkNsGrp =sinkNamespace.split("\\.")
-    val tableName = if(sinkNsGrp(3)=="*") keys(4) else sinkNsGrp(3)
-    val sinkVersion = if(sinkNsGrp(4)=="*") keys(5) else sinkNsGrp(4)
-    val sinkDbPar = if(sinkNsGrp(5)=="*") keys(6) else sinkNsGrp(5)
-    val sinkTablePar = if(sinkNsGrp(6)=="*") keys(7) else sinkNsGrp(6)
+  def getNewSinkNamespace(keys: Array[String], sinkNamespace: String): String = {
+    val sinkNsGrp = sinkNamespace.split("\\.")
+    val tableName = if (sinkNsGrp(3) == "*") keys(4) else sinkNsGrp(3)
+    val sinkVersion = if (sinkNsGrp(4) == "*") keys(5) else sinkNsGrp(4)
+    val sinkDbPar = if (sinkNsGrp(5) == "*") keys(6) else sinkNsGrp(5)
+    val sinkTablePar = if (sinkNsGrp(6) == "*") keys(7) else sinkNsGrp(6)
 
     val messageBuf = new StringBuilder
-    messageBuf ++= sinkNsGrp(0) ++= "." ++= sinkNsGrp(1) ++= "." ++= sinkNsGrp(2) ++= "."++= tableName ++= "." ++= sinkVersion ++= "." ++= sinkDbPar ++= "." ++= sinkTablePar
+    messageBuf ++= sinkNsGrp(0) ++= "." ++= sinkNsGrp(1) ++= "." ++= sinkNsGrp(2) ++= "." ++= tableName ++= "." ++= sinkVersion ++= "." ++= sinkDbPar ++= "." ++= sinkTablePar
 
     messageBuf.toString()
   }

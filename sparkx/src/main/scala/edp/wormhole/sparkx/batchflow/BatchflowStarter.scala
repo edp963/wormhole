@@ -26,10 +26,9 @@ import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.common.SparkContextUtils.createKafkaStream
 import edp.wormhole.sparkx.common.{KafkaInputConfig, SparkContextUtils, SparkUtils, WormholeConfig}
-import edp.wormhole.sparkx.directive.DirectiveFlowWatch
+import edp.wormhole.sparkx.directive.{DirectiveFlowWatch, UdfWatch}
 import edp.wormhole.sparkx.memorystorage.OffsetPersistenceManager
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.sparkx.udf.UdfWatch
 import edp.wormhole.util.JsonUtils
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.{Seconds, StreamingContext}

@@ -73,9 +73,9 @@ class SwiftsProcess(dataStream: DataStream[Row],
     var table: Table = getKeyByStream(transformedStream).toTable(tableEnv, buildExpression(): _*)
     table.printSchema()
 
-    val projectClause = sql.substring(0, sql.toLowerCase.lastIndexOf("from")).trim
+    val projectClause = sql.substring(0, sql.toLowerCase.lastIndexOf(" from ")).trim
     val namespaceTable = exceptionConfig.sourceNamespace.split("\\.").apply(3)
-    val fromClause = sql.substring(sql.toLowerCase.lastIndexOf("from")).trim
+    val fromClause = sql.substring(sql.toLowerCase.lastIndexOf(" from ")).trim
     val whereClause = fromClause.substring(fromClause.indexOf(namespaceTable) + namespaceTable.length).trim
     val newSql =s"""$projectClause FROM $table $whereClause"""
     println(newSql)
@@ -91,7 +91,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
       case e: Throwable =>
         logger.error("in doFlinkSql table query", e)
         println("in doFlinkSql table query" + e)
-        val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
+        val feedbackInfo = UmsProtocolUtils.feedbackFlinkxFlowError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
         new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig).doExceptionProcess(feedbackInfo)
     }
     covertTable2Stream(table)
@@ -117,7 +117,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
   }
 
   private def covertTable2Stream(table: Table): DataStream[Row] = {
-    val columnNames = table.getSchema.getColumnNames
+    val columnNames = table.getSchema.getFieldNames
     val columnTypes = FlinkSchemaUtils.tableFieldTypeArray(table.getSchema, preSchemaMap)
     if (null != specialConfigObj && specialConfigObj.containsKey(FlinkxSwiftsConstants.PRESERVE_MESSAGE_FLAG) && specialConfigObj.getBooleanValue(FlinkxSwiftsConstants.PRESERVE_MESSAGE_FLAG)) {
       val columnNamesWithMessageFlag: Array[String] = columnNames ++ Array(FlinkxSwiftsConstants.MESSAGE_FLAG)
@@ -169,7 +169,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
     } catch {
       case e: Throwable =>
         logger.error("doCEP error in swifts process", e)
-        val feedbackInfo = UmsProtocolUtils.feedbackFlowFlinkxError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
+        val feedbackInfo = UmsProtocolUtils.feedbackFlinkxFlowError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
         new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig).doExceptionProcess(feedbackInfo)
     }
     resultDataStream
