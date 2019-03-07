@@ -6,7 +6,9 @@ import edp.rider.rest.persistence.entities.{FeedbackErr, FeedbackErrTable}
 import edp.rider.rest.util.CommonUtils.{maxTimeOut, minTimeOut}
 import slick.lifted.TableQuery
 
+import slick.jdbc.MySQLProfile.api._
 import scala.concurrent.{Await, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class FeedbackErrDal(feedbackErrTable: TableQuery[FeedbackErrTable])
   extends BaseDalImpl[FeedbackErrTable, FeedbackErr](feedbackErrTable){
@@ -34,6 +36,6 @@ class FeedbackErrDal(feedbackErrTable: TableQuery[FeedbackErrTable])
   def deleteHistory(pastNdays: String) = {
     val deleteSeq = Await.result(db.run(feedbackErrTable.withFilter(_.feedbackTime <= pastNdays)
       .map(_.id).result).mapTo[Seq[Long]], minTimeOut)
-    if (deleteSeq.nonEmpty) Await.result(super.deleteByFilter(_.id <= deleteSeq.max), maxTimeOut)
+    if (deleteSeq.nonEmpty) Await.result(super.deleteByFilter(_.id.toString <= deleteSeq.max.toString), maxTimeOut)
   }
 }

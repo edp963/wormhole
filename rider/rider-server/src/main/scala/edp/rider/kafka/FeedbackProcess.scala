@@ -106,17 +106,18 @@ object FeedbackProcess extends RiderLogger {
     })
   }
 
-  def doSparkxFlowError(records: List[Ums]): Unit = {
+  def doFeedbackError(records: List[Ums]): Unit = {
     try {
       val insertSeq = records.flatMap(record => {
-        val protocolType = record.protocol.`type`.toString
+//        val protocolType = record.protocol.`type`.toString
         val srcNamespace: String = record.schema.namespace.toLowerCase
         val fields = record.schema.fields_get
-        val curTs = currentMillSec
+//        val curTs = currentMillSec
         record.payload_get.map(tuple => {
-          val umsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
+          val feedbackTimeValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "feedbak_time")
           val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
           val flowIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "flow_id")
+          val dataTypeValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_type")
           val sinkNamespaceValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace")
           val errMaxWaterMarkTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_max_watermark_ts")
           val errMinWaterMarkTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_min_watermark_ts")
@@ -124,6 +125,10 @@ object FeedbackProcess extends RiderLogger {
           val errorInfoValue =
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info") != null)
               UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info").toString
+            else ""
+          val dataInfoValue =
+            if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_info") != null)
+              UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_info").toString
             else ""
           val topics =
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics") != null)
@@ -133,8 +138,8 @@ object FeedbackProcess extends RiderLogger {
             srcNamespace, sinkNamespaceValue.toString, errorCountValue.toString.toInt,
             errMaxWaterMarkTsValue.toString, errMinWaterMarkTsValue.toString,
             errorInfoValue, topics, curTs)*/
-//          FeedbackErr(1,1,streamIdValue.toString.toLong,flowIdValue.toString.toLong,srcNamespace,sinkNamespaceValue,,"sparkx",topics,errorCountValue.toString.toInt,
-//            errMaxWaterMarkTsValue.toString,  errMinWaterMarkTsValue.toString,errorInfoValue,umsTsValue.toString,(new Date()).toString)
+          FeedbackErr(1,"1",streamIdValue.toString.toLong,flowIdValue.toString.toLong,srcNamespace,sinkNamespaceValue.toString,dataTypeValue.toString,"sparkx",topics,errorCountValue.toString.toInt,
+            errMaxWaterMarkTsValue.toString,  errMinWaterMarkTsValue.toString,errorInfoValue,dataInfoValue,feedbackTimeValue.toString)
         })
       })
       Await.result(modules.feedbackErrDal.insert(insertSeq), minTimeOut)
@@ -240,7 +245,7 @@ object FeedbackProcess extends RiderLogger {
 
           val monitorInfo = MonitorInfo(0L, batchIdValue.toString,
             streamIdValue.toString.toLong,flowIdValue.toString.toLong,
-            riderNamespace,riderSinkNamespace,dataTypeValue,
+            riderNamespace,riderSinkNamespace,dataTypeValue.toString,
             rddCountValue.toString.toInt, if (topics == null) "" else topics.toString, throughput,
             string2EsDateString(DateUtils.dt2string(cdcTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(rddTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
@@ -249,7 +254,7 @@ object FeedbackProcess extends RiderLogger {
             string2EsDateString(DateUtils.dt2string(sinkTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(doneTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             Interval(interval_data_process_dataums, interval_data_process_rdd, interval_rdd_swifts,  interval_data_process_done,
-                interval_data_swifts_sink, interval_data_sink_done),feedbackTime,new Date())
+                interval_data_swifts_sink, interval_data_sink_done),feedbackTime.toString)
           monitorInfo
         })
       })

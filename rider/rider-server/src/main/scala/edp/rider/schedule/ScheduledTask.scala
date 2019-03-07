@@ -42,7 +42,7 @@ object ScheduledTask extends RiderLogger {
 
       modules.feedbackErrDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
       modules.feedbackHeartbeatDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
-      modules.feedbackStreamErrDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
+//      modules.feedbackStreamErrDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
 //
 //      modules.feedbackOffsetDal.deleteHistory(DateUtils.dt2string(pastNdays, DtFormat.TS_DASH_SEC))
 //      riderLogger.info(s"delete the feedback history past ${RiderConfig.maintenance.mysqlRemain} days")
