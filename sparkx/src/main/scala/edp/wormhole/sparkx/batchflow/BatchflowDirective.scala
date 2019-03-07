@@ -39,19 +39,17 @@ import scala.collection.mutable
 
 object BatchflowDirective extends Directive {
 
-  private def registerFlowStartDirective(sourceNamespace: String, fullSinkNamespace: String, streamId: Long, directiveId: Long,
-                                         swiftsStr: String, sinksStr: String, consumptionDataStr: String, dataType: String,
-                                         dataParseStr: String, kerberos: Boolean, priorityId: Long): String = {
+  private def registerFlowStartDirective(flowDirectiveConfig: FlowDirectiveConfig): String = {
     val consumptionDataMap = mutable.HashMap.empty[String, Boolean]
-    val consumption = JSON.parseObject(consumptionDataStr)
+    val consumption = JSON.parseObject(flowDirectiveConfig.consumptionDataStr)
     val initial = consumption.getString(InputDataProtocolBaseType.INITIAL.toString).trim.toLowerCase.toBoolean
     val increment = consumption.getString(InputDataProtocolBaseType.INCREMENT.toString).trim.toLowerCase.toBoolean
     val batch = consumption.getString(InputDataProtocolBaseType.BATCH.toString).trim.toLowerCase.toBoolean
     consumptionDataMap(InputDataProtocolBaseType.INITIAL.toString) = initial
     consumptionDataMap(InputDataProtocolBaseType.INCREMENT.toString) = increment
     consumptionDataMap(InputDataProtocolBaseType.BATCH.toString) = batch
-    val swiftsProcessConfig: Option[SwiftsProcessConfig] = if (swiftsStr != null) {
-      val swifts = JSON.parseObject(swiftsStr)
+    val swiftsProcessConfig: Option[SwiftsProcessConfig] = if (flowDirectiveConfig.swiftsStr != null) {
+      val swifts = JSON.parseObject(flowDirectiveConfig.swiftsStr)
       if (swifts.size() > 0) {
         val validity = if (swifts.containsKey("validity") && swifts.getString("validity").trim.nonEmpty && swifts.getJSONObject("validity").size > 0) swifts.getJSONObject("validity") else null
         var validityConfig: Option[ValidityConfig] = None
@@ -103,7 +101,7 @@ object BatchflowDirective extends Directive {
 
         val SwiftsSqlArr = if (action != null) {
           val sqlStr = new String(new sun.misc.BASE64Decoder().decodeBuffer(action))
-          ParseSwiftsSql.parse(sqlStr, sourceNamespace, fullSinkNamespace, if (validity == null) false else true, dataType)
+          ParseSwiftsSql.parse(sqlStr, flowDirectiveConfig.sourceNamespace, flowDirectiveConfig.fullSinkNamespace, if (validity == null) false else true, flowDirectiveConfig.dataType)
         } else None
         Some(SwiftsProcessConfig(SwiftsSqlArr, validityConfig, dataframe_show, dataframe_show_num, Some(swiftsSpecialConfig)))
       } else {
@@ -111,7 +109,7 @@ object BatchflowDirective extends Directive {
       }
     } else None
 
-    val sinks = JSON.parseObject(sinksStr)
+    val sinks = JSON.parseObject(flowDirectiveConfig.sinksStr)
     val sink_connection_url = sinks.getString("sink_connection_url").trim.toLowerCase
     val sink_connection_username = if (sinks.containsKey("sink_connection_username")) Some(sinks.getString("sink_connection_username").trim) else None
     val sink_connection_password = if (sinks.containsKey("sink_connection_password")) Some(sinks.getString("sink_connection_password").trim) else None
@@ -123,7 +121,7 @@ object BatchflowDirective extends Directive {
     val sink_retry_seconds = sinks.getString("sink_retry_seconds").trim.toLowerCase.toInt
     val sink_output = if (sinks.containsKey("sink_output") && sinks.getString("sink_output").trim.nonEmpty) {
       var tmpOutput = sinks.getString("sink_output").trim.toLowerCase.split(",").map(_.trim).mkString(",")
-      if (dataType == "ums" && tmpOutput.nonEmpty) {
+      if (flowDirectiveConfig.dataType == "ums" && tmpOutput.nonEmpty) {
         if (tmpOutput.indexOf(UmsSysField.TS.toString) < 0) {
           tmpOutput = tmpOutput + "," + UmsSysField.TS.toString
         }
@@ -142,30 +140,30 @@ object BatchflowDirective extends Directive {
       Some(new String(new sun.misc.BASE64Decoder().decodeBuffer(sinkSchemaEncoded.toString)))
     } else None
 
-    if (dataType != "ums") {
-      val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
+    if (flowDirectiveConfig.dataType != "ums") {
+      val parseResult: RegularJsonSchema = JsonSourceConf.parse(flowDirectiveConfig.dataParseStr)
       if (initial)
-        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INITIAL_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
+        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INITIAL_DATA, flowDirectiveConfig.sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
       if (increment)
-        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
+        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_INCREMENT_DATA, flowDirectiveConfig.sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
       if (batch)
-        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_BATCH_DATA, sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
+        ConfMemoryStorage.registerJsonSourceParseMap(UmsProtocolType.DATA_BATCH_DATA, flowDirectiveConfig.sourceNamespace, parseResult.schemaField, parseResult.fieldsInfo, parseResult.twoFieldsArr)
 
     }
 
-    val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_schema, sink_process_class_fullname, sink_retry_times, sink_retry_seconds, kerberos)
+    val sinkProcessConfig = SinkProcessConfig(sink_output, sink_table_keys, sink_specific_config, sink_schema, sink_process_class_fullname, sink_retry_times, sink_retry_seconds, flowDirectiveConfig.kerberos)
 
 
-    val swiftsStrCache = if (swiftsStr == null) "" else swiftsStr
+    val swiftsStrCache = if (flowDirectiveConfig.swiftsStr == null) "" else flowDirectiveConfig.swiftsStr
 
 
-    ConfMemoryStorage.registerStreamLookupNamespaceMap(sourceNamespace, fullSinkNamespace, swiftsProcessConfig)
-    ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullSinkNamespace, FlowConfig(swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap, 0, null, priorityId))
+    ConfMemoryStorage.registerStreamLookupNamespaceMap(flowDirectiveConfig.sourceNamespace, flowDirectiveConfig.fullSinkNamespace, swiftsProcessConfig)
+    ConfMemoryStorage.registerFlowConfigMap(flowDirectiveConfig.sourceNamespace, flowDirectiveConfig.fullSinkNamespace, FlowConfig(swiftsProcessConfig, sinkProcessConfig, flowDirectiveConfig.directiveId, swiftsStrCache, flowDirectiveConfig.sinksStr, consumptionDataMap.toMap, 0, null, flowDirectiveConfig.priorityId))
 
 
-    ConnectionMemoryStorage.registerDataStoreConnectionsMap(fullSinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
+    ConnectionMemoryStorage.registerDataStoreConnectionsMap(flowDirectiveConfig.fullSinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
 
-    feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, "")
+    feedbackDirective(DateUtils.currentDateTime, flowDirectiveConfig.directiveId, UmsFeedbackStatus.SUCCESS, flowDirectiveConfig.streamId, "")
   }
 
   override def flowStartProcess(ums: Ums): String = {
@@ -192,7 +190,9 @@ object BatchflowDirective extends Directive {
       val tmpPriorityIdStr = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "priority_id")
       val priorityId = if (tmpPriorityIdStr == null) directiveId else tmpPriorityIdStr.toString.toLong
 
-      registerFlowStartDirective(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos, priorityId)
+      val flowDirectiveConfig = FlowDirectiveConfig(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos, priorityId)
+
+      registerFlowStartDirective(flowDirectiveConfig)
     } catch {
       case e: Throwable =>
         logAlert("registerFlowStartDirective,sourceNamespace:" + sourceNamespace, e)
