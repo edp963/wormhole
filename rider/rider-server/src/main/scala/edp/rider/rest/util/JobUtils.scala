@@ -306,7 +306,7 @@ object JobUtils extends RiderLogger {
     val names = namespace.split("\\.")
     val hdfsPath = hdfsRoot + "/hdfslog/" + names(0) + "." + names(1) + "." + names(2) + "/" + names(3)
     val hdfsFileList = getHdfsFileList(configuration, hdfsPath)
-    if (hdfsFileList != null) getHdfsFileList(configuration, hdfsPath).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).mkString(",")
+    if (hdfsFileList != null) hdfsFileList.map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).mkString(",")
     else ""
   }
 
