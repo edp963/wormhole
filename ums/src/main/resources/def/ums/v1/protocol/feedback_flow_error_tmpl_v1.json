@@ -1,12 +1,12 @@
 {
   "protocol": {
-    "type": "feedback_sparkx_flow_error"
+    "type": "feedback_flow_error"
   },
   "schema": {
     "namespace": "oracle.oracle01.db.table.v2.dbpar01.tablepar01",
     "fields": [
       {
-        "name": "data_type",//data_batch_data/data_increment_data/data_initial_data
+        "name": "data_type",//data_batch_data/data_increment_data/data_initial_data/all(包含前三种)
         "type": "string",
         "nullable": false
       },{
@@ -63,6 +63,11 @@
         "name": "error_pattern",
         "type": "string",
         "nullable": true
+      },
+      {
+        "name": "data_info",//flink有效
+        "type": "string",
+        "nullable": false
       }
     ]
   },
@@ -81,7 +86,8 @@
         "error",
         "abc",
         "[{\"topic_name\":\"source1\",\"topic_type\": \"increment\", \"partition_offset\":[{\"partition_num\":10,\"from_offset\":10,\"until_offset\":11}]}]",
-        "flow/stream"
+        "flow/stream",
+        "数据"
       ]
     }
   ]
