@@ -484,7 +484,7 @@ object FlowUtils extends RiderLogger {
                  |"nullable": false
                  |},
                  |{
-                 |"name": "topic",
+                 |"name": "source_increment_topic",
                  |"type": "string",
                  |"nullable": false
                  |},
@@ -573,7 +573,7 @@ object FlowUtils extends RiderLogger {
       }
       else if (functionType == "hdfslog") {
         //        val tuple = Seq(streamId, currentMillSec, sourceNs, "24", umsType, umsSchema)
-        val base64Tuple = Seq(streamId, flowId, currentMillSec, sourceNs, "24", umsType, base64byte2s(umsSchema.toString.trim.getBytes))
+        val base64Tuple = Seq(streamId, flowId, currentMillSec, sourceNs, "24", umsType, base64byte2s(umsSchema.toString.trim.getBytes), sourceNsDatabase)
         val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_HDFSLOG_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
         val flow_start_ums =
@@ -624,6 +624,11 @@ object FlowUtils extends RiderLogger {
              |"name": "data_parse",
              |"type": "string",
              |"nullable": true
+             |},
+             |{
+             |"name": "source_increment_topic",
+             |"type": "string",
+             |"nullable": true
              |}
              |]
              |},
@@ -645,6 +650,8 @@ object FlowUtils extends RiderLogger {
             base64Tuple(5)
           }", "${
             base64Tuple(6)
+          }", "${
+            base64Tuple(7)
           }"]
              |}
              |]
@@ -657,7 +664,7 @@ object FlowUtils extends RiderLogger {
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk.address} success.")
       } else if (functionType == "routing") {
         val (instance, db, _) = namespaceDal.getNsDetail(sinkNs)
-        val tuple = Seq(streamId, flowId, currentMillSec, umsType, sinkNs, instance.connUrl, db.nsDatabase)
+        val tuple = Seq(streamId, flowId, currentMillSec, umsType, sinkNs, instance.connUrl, db.nsDatabase, sourceNsDatabase)
         val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_ROUTER_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
         val flow_start_ums =
@@ -708,12 +715,17 @@ object FlowUtils extends RiderLogger {
              |        "name": "kafka_topic",
              |        "type": "string",
              |        "nullable": false
+             |      },
+             |      {
+             |        "name": "source_increment_topic",
+             |        "type": "string",
+             |        "nullable": false
              |      }
              |    ]
              |  },
              |  "payload": [
              |    {
-             |      "tuple": [${directive.id}, ${tuple.head}, "${tuple(1)}", "${tuple(2)}", "${tuple(3)}","${tuple(4)}", "${tuple(5)}", "${tuple(6)}"]
+             |      "tuple": [${directive.id}, ${tuple.head}, "${tuple(1)}", "${tuple(2)}", "${tuple(3)}","${tuple(4)}", "${tuple(5)}", "${tuple(6)}","${tuple(7)}"]
              |    }
              |  ]
              |}
@@ -788,7 +800,7 @@ object FlowUtils extends RiderLogger {
             active = true, currentSec, userId, currentSec, userId)
           val inTopic = Await.result(streamInTopicDal.insert(inTopicInsert), minTimeOut)
           nsTopics.append(database)
-          sendTopicDirective(streamId, Seq(PutTopicDirective(database.nsDatabase, inTopic.partitionOffsets, inTopic.rate, None)), userId, false)
+          sendTopicDirective(streamId, Seq(PutTopicDirective(database.nsDatabase, inTopic.partitionOffsets, inTopic.rate, None)),None, userId, false)
         }
       })
       nsTopics
@@ -1443,7 +1455,7 @@ object FlowUtils extends RiderLogger {
 
   def topicOffsetDrift(streamId: Long, db: NsDatabase, offset: String, rate: Int, userId: Long): Unit = {
     Await.result(streamInTopicDal.updateOffsetAndRate(streamId, db.id, offset, rate, userId), minTimeOut)
-    sendTopicDirective(streamId, Seq(PutTopicDirective(db.nsDatabase, offset, rate, Option(1))), userId, false)
+    sendTopicDirective(streamId, Seq(PutTopicDirective(db.nsDatabase, offset, rate, Option(1))), None, userId, false)
   }
 
 }

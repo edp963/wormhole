@@ -270,7 +270,7 @@ object StreamUtils extends RiderLogger {
         // send topics start directive
         val topics = autoRegisteredTopics ++: userdefinedTopics
         val addHeartbeatTopic = if (topics.isEmpty) true else false
-        sendTopicDirective(streamId, autoRegisteredTopics ++: userdefinedTopics, userId, addHeartbeatTopic)
+        sendTopicDirective(streamId, autoRegisteredTopics , Some(userdefinedTopics), userId, addHeartbeatTopic)
       case None =>
         // delete all user defined topics by stream id
         Await.result(streamUdfTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
@@ -291,7 +291,7 @@ object StreamUtils extends RiderLogger {
         // insert or update user defined topics by start
         streamUdfTopicDal.insertUpdateByStartOrRenew(streamId, userdefinedTopics, userId)
         // send topics renew directive which action is 1
-        sendTopicDirective(streamId, (autoRegisteredTopics ++: userdefinedTopics).filter(_.action.getOrElse(0) == 1), userId, false)
+        sendTopicDirective(streamId, autoRegisteredTopics.filter(_.action.getOrElse(0) == 1),Some(userdefinedTopics.filter(_.action.getOrElse(0) == 1)), userId, false)
       case None =>
         val deleteTopics = streamUdfTopicDal.deleteByStartOrRenew(streamId, Seq())
         // delete topics directive in zookeeper
@@ -299,16 +299,21 @@ object StreamUtils extends RiderLogger {
     }
   }
 
-  def sendTopicDirective(streamId: Long, topicSeq: Seq[PutTopicDirective], userId: Long, addDefaultTopic: Boolean = true) = {
+  def sendTopicDirective(streamId: Long, incrementTopicSeq: Seq[PutTopicDirective],initialTopicSeq: Option[Seq[PutTopicDirective]], userId: Long, addDefaultTopic: Boolean = true) = {
     try {
       val directiveSeq = new ArrayBuffer[Directive]
       val zkConURL: String = RiderConfig.zk.address
-      topicSeq.filter(_.rate == 0).map(
+      (incrementTopicSeq ++:initialTopicSeq.get).filter(_.rate == 0).map(
         topic => sendUnsubscribeTopicDirective(streamId, topic.name, userId)
       )
-      topicSeq.filter(_.rate != 0).foreach({
+      if(initialTopicSeq.nonEmpty)initialTopicSeq.get.filter(_.rate != 0).foreach({
         topic =>
-          val tuple = Seq(streamId, currentMicroSec, topic.name, topic.rate, topic.partitionOffsets).mkString("#")
+          val tuple = Seq(streamId, currentMicroSec, topic.name, topic.rate, topic.partitionOffsets, "initial").mkString("#")
+          directiveSeq += Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, tuple, zkConURL, currentSec, userId)
+      })
+      incrementTopicSeq.filter(_.rate != 0).foreach({
+        topic =>
+          val tuple = Seq(streamId, currentMicroSec, topic.name, topic.rate, topic.partitionOffsets, "increment").mkString("#")
           directiveSeq += Directive(0, DIRECTIVE_TOPIC_SUBSCRIBE.toString, streamId, 0, tuple, zkConURL, currentSec, userId)
       })
       if (addDefaultTopic) {
@@ -371,7 +376,7 @@ object StreamUtils extends RiderLogger {
                |},
                |"payload": [
                |{
-               |"tuple": [${directive.id}, ${topicInfo(0)}, "${topicInfo(1)}", "${topicInfo(2)}", ${topicInfo(3)}, "increment","${topicInfo(4)}"]
+               |"tuple": [${directive.id}, ${topicInfo(0)}, "${topicInfo(1)}", "${topicInfo(2)}", ${topicInfo(3)}, "${topicInfo(5)}","${topicInfo(4)}"]
                |}
                |]
                |}
