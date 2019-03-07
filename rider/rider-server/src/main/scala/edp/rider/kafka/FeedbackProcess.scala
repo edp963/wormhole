@@ -121,7 +121,10 @@ object FeedbackProcess extends RiderLogger {
           val errMaxWaterMarkTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_max_watermark_ts")
           val errMinWaterMarkTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_min_watermark_ts")
           val errorCountValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_count")
-          val errorInfoValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info").toString
+          val errorInfoValue =
+            if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info") != null)
+              UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info").toString
+            else ""
           val topics =
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics") != null)
               UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics").toString
@@ -129,7 +132,7 @@ object FeedbackProcess extends RiderLogger {
 /*          FeedbackFlowErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
             srcNamespace, sinkNamespaceValue.toString, errorCountValue.toString.toInt,
             errMaxWaterMarkTsValue.toString, errMinWaterMarkTsValue.toString,
-            errorInfoValue.toString, topics, curTs)*/
+            errorInfoValue, topics, curTs)*/
 //          FeedbackErr(1,1,streamIdValue.toString.toLong,flowIdValue.toString.toLong,srcNamespace,sinkNamespaceValue,,"sparkx",topics,errorCountValue.toString.toInt,
 //            errMaxWaterMarkTsValue.toString,  errMinWaterMarkTsValue.toString,errorInfoValue,umsTsValue.toString,(new Date()).toString)
         })
@@ -137,8 +140,7 @@ object FeedbackProcess extends RiderLogger {
       Await.result(modules.feedbackErrDal.insert(insertSeq), minTimeOut)
     } catch {
       case ex: Exception =>
-        records.foreach(record => riderLogger.error(s"-----$record------"))
-        riderLogger.error(s"process $FEEDBACK_SPARKX_FLOW_ERROR message failed", ex)
+        riderLogger.error(s"process $FEEDBACK_SPARKX_FLOW_ERROR message $records failed", ex)
     }
   }
 
@@ -163,7 +165,7 @@ object FeedbackProcess extends RiderLogger {
       })
       Await.result(modules.feedbackErrDal.insert(insertSeq), minTimeOut)
     } catch {
-      case ex: Exception => riderLogger.error(s"process $FEEDBACK_STREAM_BATCH_ERROR message failed", ex)
+      case ex: Exception => riderLogger.error(s"process $FEEDBACK_STREAM_BATCH_ERROR message $records failed", ex)
     }
   }*/
 
@@ -255,7 +257,7 @@ object FeedbackProcess extends RiderLogger {
         ElasticSearch.insertFlowStatToES(insertSeq)
       else Await.result(modules.monitorInfoDal.insert(insertSeq), minTimeOut)
     } catch {
-      case ex: Exception => riderLogger.error(s"process $FEEDBACK_SPARKX_FLOW_STATS message failed", ex)
+      case ex: Exception => riderLogger.error(s"process $FEEDBACK_SPARKX_FLOW_STATS message $records failed", ex)
     }
   }
 
