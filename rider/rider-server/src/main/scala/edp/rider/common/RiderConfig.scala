@@ -25,9 +25,9 @@ import java.util.concurrent.TimeUnit
 import edp.rider.RiderStarter.modules.config
 import edp.rider.rest.persistence.entities.{FlinkDefaultConfig, FlinkResourceConfig}
 import edp.rider.wormhole.FlinkCheckpoint
-import org.apache.kafka.common.serialization.{ByteArrayDeserializer, StringDeserializer}
-import scala.collection.JavaConversions._
+import org.apache.kafka.common.serialization.StringDeserializer
 
+import scala.collection.JavaConversions._
 import scala.concurrent.duration.{FiniteDuration, _}
 
 case class RiderServer(clusterId: String,
@@ -49,7 +49,9 @@ case class RiderKafka(brokers: String,
                       partitions: Int,
                       client_id: String,
                       group_id: String,
-                      autoCommit: Boolean,
+                      autoCommitIntervalMs: Int,
+                      batchRecords: Int,
+                      batchDuration: FiniteDuration,
                       keyDeserializer: StringDeserializer,
                       valueDeserializer: StringDeserializer,
                       pollInterval: FiniteDuration,
@@ -140,7 +142,7 @@ case class LdapInfo(enabled: Boolean,
 
 case class RiderFlink(homePath: String,
                       yarnQueueName: String,
-                      feedbackEnabled:Boolean,
+                      feedbackEnabled: Boolean,
                       feedbackStateCount: Int,
                       feedbackInterval: Int,
                       defaultRate: Int,
@@ -158,15 +160,17 @@ case class DBusConfig(loginUrl: String,
                       namespaceUrl: String)
 
 
-case class RiderKerberos(keyTab:String,
-                         serverConfig:String,
-                         jaasStartShellConfig:String,
-                         jaasYarnConfig:String,
-                         sparkPrincipal:String,
-                         sparkKeyTab:String,
-                         enabled:Boolean)
+case class RiderKerberos(keyTab: String,
+                         serverConfig: String,
+                         jaasStartShellConfig: String,
+                         jaasYarnConfig: String,
+                         sparkPrincipal: String,
+                         sparkKeyTab: String,
+                         enabled: Boolean)
 
-case class Monitor(databaseType:String)   //it will be combined with case class RiderMonitor during a follow-up operation
+case class Monitor(databaseType: String)
+
+//it will be combined with case class RiderMonitor during a follow-up operation
 
 object RiderConfig {
 
@@ -191,12 +195,12 @@ object RiderConfig {
   lazy val tokenTimeout = getIntConfig("wormholeServer.token.timeout", 1)
 
   lazy val feedbackTopic = if (getBooleanConfig("kafka.using.cluster.suffix", default = false) && riderServer.clusterId != "")
-      getStringConfig("kafka.consumer.feedback.topic","wormhole_feedback") + "_" + riderServer.clusterId
-    else getStringConfig("kafka.consumer.feedback.topic","wormhole_feedback")
+    getStringConfig("kafka.consumer.feedback.topic", "wormhole_feedback") + "_" + riderServer.clusterId
+  else getStringConfig("kafka.consumer.feedback.topic", "wormhole_feedback")
 
   lazy val heartbeatTopic = if (getBooleanConfig("kafka.using.cluster.suffix", default = false) && riderServer.clusterId != "")
-      getStringConfig("kafka.consumer.heartbeat.topic", "wormhole_heartbeat") + "_" + riderServer.clusterId
-    else getStringConfig("kafka.consumer.heartbeat.topic", "wormhole_heartbeat")
+    getStringConfig("kafka.consumer.heartbeat.topic", "wormhole_heartbeat") + "_" + riderServer.clusterId
+  else getStringConfig("kafka.consumer.heartbeat.topic", "wormhole_heartbeat")
 
   lazy val pollInterval = getFiniteDurationConfig("kafka.consumer.poll-interval", FiniteDuration(20, MILLISECONDS))
 
@@ -208,9 +212,9 @@ object RiderConfig {
 
   lazy val commitTimeout = getFiniteDurationConfig("kafka.consumer.commit-timeout", FiniteDuration(70, SECONDS))
 
-  lazy val wakeupTimeout = getFiniteDurationConfig("kafka.consumer.wakeup-timeout", FiniteDuration(60, SECONDS))
+  lazy val wakeupTimeout = getFiniteDurationConfig("kafka.consumer.wakeup-timeout", FiniteDuration(1, HOURS))
 
-  lazy val maxWakeups = getIntConfig("kafka.consumer.max-wakeups", 10)
+  lazy val maxWakeups = getIntConfig("kafka.consumer.max-wakeups", 1000000)
 
   lazy val refactor = getIntConfig("kafka.topic.refactor", 3)
 
@@ -218,10 +222,12 @@ object RiderConfig {
     feedbackTopic,
     heartbeatTopic,
     refactor,
-    4,
+    1,
     "wormhole_rider_group",
-    "wormhole_rider_group_consumer",
-    false,
+    getStringConfig("kafka.consumer.group", "wormhole_rider_group_consumer"),
+    getIntConfig("kafka.consumer.auto.commit.interval.ms", 120000),
+    getIntConfig("kafka.consumer.batch.records", 1000),
+    getFiniteDurationConfig("kafka.consumer.batch.duration", 30.seconds),
     new StringDeserializer, new StringDeserializer,
     pollInterval,
     pollTimeout,
@@ -330,13 +336,13 @@ object RiderConfig {
       config.getStringList("dbus.namespace.rest.api.url")
     else null
 
-  lazy val kerberos=RiderKerberos(getStringConfig("kerberos.keyTab",""),
-    getStringConfig("kerberos.server.config",""),
-    getStringConfig("kerberos.jaas.startShell.config",""),
-    getStringConfig("kerberos.jaas.yarn.config",""),
-    getStringConfig("kerberos.spark.principal",""),
-    getStringConfig("kerberos.spark.keyTab",""),
-    getBooleanConfig("kerberos.server.enabled",false))
+  lazy val kerberos = RiderKerberos(getStringConfig("kerberos.keyTab", ""),
+    getStringConfig("kerberos.server.config", ""),
+    getStringConfig("kerberos.jaas.startShell.config", ""),
+    getStringConfig("kerberos.jaas.yarn.config", ""),
+    getStringConfig("kerberos.spark.principal", ""),
+    getStringConfig("kerberos.spark.keyTab", ""),
+    getBooleanConfig("kerberos.server.enabled", false))
 
   lazy val riderInfo = RiderInfo(zk.address, consumer.brokers, consumer.feedbackTopic, spark.wormholeHeartBeatTopic, spark.hdfsRoot,
     spark.user, spark.appTags, spark.rm1Url, spark.rm2Url)
@@ -357,18 +363,17 @@ object RiderConfig {
 
   lazy val defaultFlinkConfig = FlinkDefaultConfig("", FlinkResourceConfig(2, 6, 1, 2), "")
 
-  lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"),getBooleanConfig("flink.feedback.enabled",false),getIntConfig("flink.feedback.state.count",100),getIntConfig("flink.feedback.interval",30), 1, 1,
+  lazy val flink = RiderFlink(config.getString("flink.home"), config.getString("flink.yarn.queue.name"), getBooleanConfig("flink.feedback.enabled", false), getIntConfig("flink.feedback.state.count", 100), getIntConfig("flink.feedback.interval", 30), 1, 1,
     getStringConfig("flink.wormhole.jar.path", s"${RiderConfig.riderRootPath}/app/wormhole-ums_1.3-flinkx_1.5.1-0.6.0-jar-with-dependencies.jar"),
     getStringConfig("flink.wormhole.client.log.path", s"$riderRootPath/logs/flows"),
     getIntConfig("spark.kafka.session.timeout", 30000),
     getIntConfig("spark.kafka.group.max.session.timeout.ms", 60000)
   )
 
-  lazy val flinkCheckpoint = FlinkCheckpoint(getBooleanConfig("flink.checkpoint.enable",false), getIntConfig("flink.checkpoint.interval",60000), getStringConfig("flink.stateBackend",""))
+  lazy val flinkCheckpoint = FlinkCheckpoint(getBooleanConfig("flink.checkpoint.enable", false), getIntConfig("flink.checkpoint.interval", 60000), getStringConfig("flink.stateBackend", ""))
 
 
-
-  lazy val monitor=Monitor(getStringConfig("monitor.database.type","ES"))
+  lazy val monitor = Monitor(getStringConfig("monitor.database.type", "ES"))
 
   def getStringConfig(path: String, default: String): String = {
     if (config.hasPath(path) && config.getString(path) != null && config.getString(path) != "" && config.getString(path) != " ")

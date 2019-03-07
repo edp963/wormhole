@@ -31,7 +31,7 @@ import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
 import edp.wormhole.ums.UmsField
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.ums.UmsProtocolType._
-import edp.wormhole.util.config.{ConnectionConfig, KVConfig}
+import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
@@ -51,8 +51,10 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   //[lookupNamespace,Seq[sourceNamespace,sinkNamespace]
   val lookup2SourceSinkNamespaceMap = mutable.HashMap.empty[String, mutable.HashSet[(String, String)]]
 
-  //[sourceNamespace, [sinkNamespace, (SwiftsProcessConfig, SinkProcessConfig, directiveId, swiftsConfigStr,sinkConfigStr,consumption_data_type,ums/json)]]
-  val flowConfigMap = mutable.LinkedHashMap.empty[String, mutable.LinkedHashMap[String, (Option[SwiftsProcessConfig], SinkProcessConfig, Long, String, String, Map[String, Boolean])]]
+
+  // (SwiftsProcessConfig, SinkProcessConfig, directiveId, swiftsConfigStr,sinkConfigStr,consumption_data_type,ums/json)]]???
+  //[sourceNamespace, [sinkNamespace, FlowConfig]]
+  val flowConfigMap = mutable.LinkedHashMap.empty[String, mutable.LinkedHashMap[String, FlowConfig]]
 
   //sourceNamespace,sinkNamespace,minTs
   val eventTsMap = mutable.HashMap.empty[(String, String), String]
@@ -148,7 +150,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   def getStreamLookupNamespaceAndTimeout(matchSourceNamespace: String, sinkNamespace: String): Seq[(String, Int)] = {
     val lookupNamespace2TimeoutList = ListBuffer.empty[(String, Int)]
     if (flowConfigMap.contains(matchSourceNamespace) && flowConfigMap(matchSourceNamespace).contains(sinkNamespace)) {
-      val flowConfig = flowConfigMap(matchSourceNamespace)(sinkNamespace)._1
+      val flowConfig = flowConfigMap(matchSourceNamespace)(sinkNamespace).swiftsProcessConfig
       if (flowConfig.nonEmpty && flowConfig.get.swiftsSql.nonEmpty) {
         val swiftsSql: Array[SwiftsSql] = flowConfig.get.swiftsSql.get
         swiftsSql.foreach(sqlConfig => {
@@ -187,18 +189,19 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
 
   def registerFlowConfigMap(sourceNamespace: String,
                             sinkNamespace: String,
-                            swiftsProcessConfig: Option[SwiftsProcessConfig],
-                            sinkProcessConfig: SinkProcessConfig,
-                            directiveId: Long,
-                            swiftsConfigStr: String,
-                            sinkConfigStr: String,
-                            consumptionDataTypeMap: Map[String, Boolean]
+                            flowConfig:FlowConfig
+//                            swiftsProcessConfig: Option[SwiftsProcessConfig],
+//                            sinkProcessConfig: SinkProcessConfig,
+//                            directiveId: Long,
+//                            swiftsConfigStr: String,
+//                            sinkConfigStr: String,
+//                            consumptionDataTypeMap: Map[String, Boolean]
                            ): Unit = {
     synchronized {
-      if (flowConfigMap.contains(sourceNamespace)) flowConfigMap(sourceNamespace) += (sinkNamespace -> (swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsConfigStr, sinkConfigStr, consumptionDataTypeMap))
-      else flowConfigMap(sourceNamespace) = mutable.LinkedHashMap(sinkNamespace -> (swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsConfigStr, sinkConfigStr, consumptionDataTypeMap))
+      if (flowConfigMap.contains(sourceNamespace)) flowConfigMap(sourceNamespace) += (sinkNamespace -> flowConfig)
+      else flowConfigMap(sourceNamespace) = mutable.LinkedHashMap(sinkNamespace -> flowConfig)
 
-      val tmpLinkedHashMap = mutable.LinkedHashMap(flowConfigMap(sourceNamespace).toSeq.sortBy(_._2._3): _*)
+      val tmpLinkedHashMap = mutable.LinkedHashMap(flowConfigMap(sourceNamespace).toSeq.sortBy(_._2.directiveId): _*)
       flowConfigMap(sourceNamespace) = tmpLinkedHashMap
       //flowConfigMap  = mutable.LinkedHashMap(flowConfigMap.toSeq.sortBy(_._2.last._2._3): _*)
     }
@@ -220,7 +223,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   def getSwiftsLogic(sourceNamespace: String, sinkNamespace: String): SwiftsProcessConfig = {
     if (flowConfigMap.contains(sourceNamespace)) {
       if (flowConfigMap(sourceNamespace).contains(sinkNamespace)) {
-        flowConfigMap(sourceNamespace)(sinkNamespace)._1.get
+        flowConfigMap(sourceNamespace)(sinkNamespace).swiftsProcessConfig.get
       } else {
         throw new Exception("Cannot resolve sinkNamespace, you may send other directive and replace original one.")
       }
@@ -277,7 +280,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   //    dataStoreConnectionsMap.contains(connectionNamespace)
   //  }
 
-  def getFlowConfigMap(sourceNamespace: String): mutable.Map[String, (Option[SwiftsProcessConfig], SinkProcessConfig, Long, String, String, Map[String, Boolean])] = {
+  def getFlowConfigMap(sourceNamespace: String): mutable.Map[String, FlowConfig] = {
     flowConfigMap(sourceNamespace)
   }
 

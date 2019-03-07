@@ -18,11 +18,10 @@
  * >>
  */
 
-package edp.wormhole.sparkx.udf
+package edp.wormhole.sparkx.directive
 
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.sparkx.common.WormholeConfig
-import edp.wormhole.sparkx.directive.UdfDirective
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.{UmsProtocolType, UmsSchemaUtils}
 import org.apache.spark.sql.SparkSession
@@ -31,28 +30,23 @@ object UdfWatch extends EdpLogging {
 
   val udfRelativePath = "/udf"
 
-  def initUdf(config: WormholeConfig, appId: String,session:SparkSession): Unit = {
+  def initUdf(config: WormholeConfig, appId: String, session: SparkSession): Unit = {
     logInfo("init udf,appId=" + appId)
 
     val udfPath = config.zookeeper_path + "/" + config.spark_config.stream_id + udfRelativePath
-    if(!WormholeZkClient.checkExist(config.zookeeper_address, udfPath)) WormholeZkClient.createPath(config.zookeeper_address, udfPath)
-//    val udfList = WormholeZkClient.getChildren(config.zookeeper_path, udfPath)
-//    udfList.toArray.foreach(udf => {
-//      val udfContent = WormholeZkClient.getData(config.zookeeper_path, udfPath + "/" + udf)
-//      add(config.kafka_output.feedback_topic_name,config.kafka_output.brokers,session)(udfPath + "/" + udf, new String(udfContent))
-//    })
+    if (!WormholeZkClient.checkExist(config.zookeeper_address, udfPath)) WormholeZkClient.createPath(config.zookeeper_address, udfPath)
 
     WormholeZkClient.setPathChildrenCacheListener(config.zookeeper_address, udfPath, add, remove, update)
   }
 
   def add(path: String, data: String, time: Long = 1): Unit = {
     try {
-      logInfo("add"+data)
+      logInfo("add" + data)
       val ums = UmsSchemaUtils.toUms(data)
       ums.protocol.`type` match {
-        case UmsProtocolType.DIRECTIVE_UDF_ADD  =>
+        case UmsProtocolType.DIRECTIVE_UDF_ADD =>
           UdfDirective.addUdfProcess(ums)
-       case _ => logWarning("ums type: " + ums.protocol.`type` + " is not supported")
+        case _ => logWarning("ums type: " + ums.protocol.`type` + " is not supported")
       }
     } catch {
       case e: Throwable => logAlert("udf add error:" + data, e)
@@ -64,7 +58,7 @@ object UdfWatch extends EdpLogging {
   }
 
   def update(path: String, data: String, time: Long): Unit = {
-    logInfo("update"+data)
+    logInfo("update" + data)
     add(path, data)
   }
 

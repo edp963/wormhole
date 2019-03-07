@@ -125,8 +125,9 @@ object YarnStatusQuery extends RiderLogger {
       else if (fromTime.length > 19) dt2long(fromTime) / 1000
       else if (fromTime.length < 19) dt2long(fromTime)
     val rmUrl = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
+    //val queueName = RiderConfig.flink.yarnQueueName
     if (rmUrl != "") {
-      val url = s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&&startedTimeBegin=$fromTimeLong&&applicationTypes=spark,apache%20flink"
+      val url = s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&startedTimeBegin=$fromTimeLong&applicationTypes=spark,apache%20flink"
       riderLogger.info(s"Spark Application refresh yarn rest url: $url")
       queryAppListOnYarn(url, appNames)
     } else Map.empty[String, AppResult]
