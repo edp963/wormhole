@@ -69,7 +69,7 @@ class MonitorApi(flowDal: FlowDal, streamDal: StreamDal, monitorInfoDal: Monitor
     val flowSeq = monitorSeq.map(monitor => {
       val umsTs = if (monitor.feedbackTime.contains(".")) monitor.feedbackTime.split("\\.")(0) else monitor.feedbackTime
       MonitorMetric(monitor.flowNamespace, MonitorNumberWidget(monitor.rddCount, umsTs), MonitorIntervalWidget(monitor.interval.intervalDataProcessToDataums, umsTs),
-        MonitorIntervalWidget(monitor.interval.intervalDataProcessToRdd, umsTs), MonitorIntervalWidget(monitor.interval.intervalSwiftsToSink, umsTs), MonitorIntervalWidget(monitor.interval.intervalSinkToDone, umsTs),
+        MonitorIntervalWidget(monitor.interval.intervalDataProcessToRdd, umsTs),MonitorIntervalWidget(monitor.interval.intervalRddToSwifts, umsTs), MonitorIntervalWidget(monitor.interval.intervalSwiftsToSink, umsTs), MonitorIntervalWidget(monitor.interval.intervalSinkToDone, umsTs),
         MonitorIntervalWidget(monitor.interval.intervalDataProcessToDone, umsTs), MonitorOpsWidget(monitor.throughput, umsTs))
     })
     val flowName = flowSeq.headOption.getOrElse[MonitorMetric](MonitorMetric()).flowName
@@ -81,6 +81,7 @@ class MonitorApi(flowDal: FlowDal, streamDal: StreamDal, monitorInfoDal: Monitor
           flowInfoMetric.receivedDelays += flow.receivedDelay
           flowInfoMetric.preProcessDelays += flow.preProcessDelay
           flowInfoMetric.rddCountMetrics += flow.rddCountMetric
+          flowInfoMetric.rddToSwiftsDelays += flow.rddToSwiftsDelay
           flowInfoMetric.swiftsDelays += flow.swiftsDelay
           flowInfoMetric.sinkDelays += flow.sinkDelay
           flowInfoMetric.wormholeDelays += flow.wormholeDelay
