@@ -26,7 +26,7 @@ import edp.wormhole.common.InputDataProtocolBaseType
 import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.sparkx.directive._
-import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
+import edp.wormhole.sparkx.memorystorage.{ConfMemoryStorage, FlowConfig}
 import edp.wormhole.sparkx.swifts.parse.ParseSwiftsSql
 import edp.wormhole.sparkxinterface.swifts.{SwiftsProcessConfig, ValidityConfig}
 import edp.wormhole.swifts.ConnectionMemoryStorage
@@ -160,7 +160,7 @@ object BatchflowDirective extends Directive {
 
 
     ConfMemoryStorage.registerStreamLookupNamespaceMap(sourceNamespace, fullSinkNamespace, swiftsProcessConfig)
-    ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullSinkNamespace, swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap)
+    ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullSinkNamespace, FlowConfig(swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap))
 
 
     ConnectionMemoryStorage.registerDataStoreConnectionsMap(fullSinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
