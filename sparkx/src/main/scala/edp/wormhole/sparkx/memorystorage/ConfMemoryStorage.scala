@@ -51,6 +51,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   //[lookupNamespace,Seq[sourceNamespace,sinkNamespace]
   val lookup2SourceSinkNamespaceMap = mutable.HashMap.empty[String, mutable.HashSet[(String, String)]]
 
+  val initialTopicSet = mutable.HashSet.empty[String]
 
   // (SwiftsProcessConfig, SinkProcessConfig, directiveId, swiftsConfigStr,sinkConfigStr,consumption_data_type,ums/json)]]???
   //[sourceNamespace, [sinkNamespace, FlowConfig]]
