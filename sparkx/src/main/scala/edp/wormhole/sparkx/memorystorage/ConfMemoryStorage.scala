@@ -201,7 +201,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
       if (flowConfigMap.contains(sourceNamespace)) flowConfigMap(sourceNamespace) += (sinkNamespace -> flowConfig)
       else flowConfigMap(sourceNamespace) = mutable.LinkedHashMap(sinkNamespace -> flowConfig)
 
-      val tmpLinkedHashMap = mutable.LinkedHashMap(flowConfigMap(sourceNamespace).toSeq.sortBy(_._2.directiveId): _*)
+      val tmpLinkedHashMap = mutable.LinkedHashMap(flowConfigMap(sourceNamespace).toSeq.sortBy(_._2.priorityId): _*)
       flowConfigMap(sourceNamespace) = tmpLinkedHashMap
       //flowConfigMap  = mutable.LinkedHashMap(flowConfigMap.toSeq.sortBy(_._2.last._2._3): _*)
     }

@@ -41,7 +41,7 @@ object BatchflowDirective extends Directive {
 
   private def registerFlowStartDirective(sourceNamespace: String, fullSinkNamespace: String, streamId: Long, directiveId: Long,
                                          swiftsStr: String, sinksStr: String, consumptionDataStr: String, dataType: String,
-                                         dataParseStr: String, kerberos: Boolean): String = {
+                                         dataParseStr: String, kerberos: Boolean, priorityId: Long): String = {
     val consumptionDataMap = mutable.HashMap.empty[String, Boolean]
     val consumption = JSON.parseObject(consumptionDataStr)
     val initial = consumption.getString(InputDataProtocolBaseType.INITIAL.toString).trim.toLowerCase.toBoolean
@@ -160,7 +160,7 @@ object BatchflowDirective extends Directive {
 
 
     ConfMemoryStorage.registerStreamLookupNamespaceMap(sourceNamespace, fullSinkNamespace, swiftsProcessConfig)
-    ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullSinkNamespace, FlowConfig(swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap))
+    ConfMemoryStorage.registerFlowConfigMap(sourceNamespace, fullSinkNamespace, FlowConfig(swiftsProcessConfig, sinkProcessConfig, directiveId, swiftsStrCache, sinksStr, consumptionDataMap.toMap, 0, null, priorityId))
 
 
     ConnectionMemoryStorage.registerDataStoreConnectionsMap(fullSinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
@@ -189,7 +189,10 @@ object BatchflowDirective extends Directive {
       val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
       val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
       val kerberos = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "kerberos").toString.toBoolean
-      registerFlowStartDirective(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos)
+      val tmpPriorityIdStr = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "priority_id")
+      val priorityId = if (tmpPriorityIdStr == null) directiveId else tmpPriorityIdStr.toString.toLong
+
+      registerFlowStartDirective(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos, priorityId)
     } catch {
       case e: Throwable =>
         logAlert("registerFlowStartDirective,sourceNamespace:" + sourceNamespace, e)
