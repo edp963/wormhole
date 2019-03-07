@@ -921,7 +921,6 @@ export class Namespace extends React.PureComponent {
     const arrayTypeText = locale === 'en' ? 'Only one array type contained!' : '只能包含一个array 类型！'
     const umsTsText = locale === 'en' ? 'Please select ums_ts!' : '请选择 ums_ts！'
     const umsOpText = locale === 'en' ? 'ums_op_ configuration has error!' : 'ums_op_ 配置错误！'
-
     if (document.getElementById('sep')) {
       message.error(typeFailText, 3)
       return
