@@ -411,7 +411,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                   if (session.projectIdList.contains(projectId)) {
                     namespace match {
                       case Some(sourceNamespace) =>
-                        val dataVersions = JobUtils.getHdfsDataVersions(sourceNamespace).mkString(",")
+                        val dataVersions = JobUtils.getHdfsDataVersions(sourceNamespace)
                         complete(OK, ResponseJson[String](getHeader(200, session), dataVersions))
                       case None =>
                         riderLogger.error(s"user ${session.userId} request url is not supported.")
