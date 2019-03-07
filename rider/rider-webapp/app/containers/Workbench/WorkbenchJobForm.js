@@ -43,6 +43,7 @@ import Table from 'antd/lib/table'
 import Card from 'antd/lib/card'
 import Checkbox from 'antd/lib/checkbox'
 import Radio from 'antd/lib/radio'
+import Select from 'antd/lib/select'
 const RadioGroup = Radio.Group
 const RadioButton = Radio.Button
 import DatePicker from 'antd/lib/date-picker'
@@ -505,6 +506,20 @@ export class WorkbenchJobForm extends React.Component {
               </FormItem>
             </Col>
             <Col span={24}>
+              <FormItem label="Version" {...itemStyle}>
+                {getFieldDecorator('sourceNamespaceVersion', {
+                  rules: [{
+                    required: true,
+                    message: operateLanguageSelect('version', 'Version')
+                  }]
+                })(
+                  <Select style={{ width: 120 }} allowClear >
+                    {this.props.sourceNsVersionList.map((v, i) => (<Select.Option value={v} key={i}>{v}</Select.Option>))}
+                  </Select>
+                )}
+              </FormItem>
+            </Col>
+            <Col span={24}>
               <FormItem label="Protocol" {...itemStyle}>
                 {getFieldDecorator('protocol', {
                   rules: [{
@@ -846,6 +861,7 @@ WorkbenchJobForm.propTypes = {
   backfillSinkNsValue: PropTypes.string,
   clearSinkData: PropTypes.func,
   jobSourceNsSys: PropTypes.string,
+  sourceNsVersionList: PropTypes.array,
 
   onLoadJobName: PropTypes.func,
   locale: PropTypes.string

@@ -36,7 +36,8 @@ import {
   QUERY_JOB,
   EDIT_JOB,
   LOAD_JOB_DETAIL,
-  LOAD_BACKFILL_TOPIC
+  LOAD_BACKFILL_TOPIC,
+  GET_SOURCE_NS_VERSION
 } from './constants'
 
 import {
@@ -334,6 +335,19 @@ export function* queryJobDetailWatcher () {
   yield fork(takeEvery, LOAD_JOB_DETAIL, queryJobDetail)
 }
 
+export function* getSourceNsVersion ({ payload }) {
+  try {
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/jobs/dataversions?namespace=${payload.namespace}`)
+    payload.resolve(result.payload)
+  } catch (err) {
+    payload.resolve('')
+    notifySagasError(err, 'getSourceNsVersion')
+  }
+}
+export function* getSourceNsVersionWatcher () {
+  yield fork(takeLatest, GET_SOURCE_NS_VERSION, getSourceNsVersion)
+}
+
 export default [
   getAdminAllJobsWatcher,
   getUserAllJobsWatcher,
@@ -349,5 +363,6 @@ export default [
   queryJobWatcher,
   editJobWatcher,
   queryJobDetailWatcher,
-  loadJobBackfillTopicValueWatcher
+  loadJobBackfillTopicValueWatcher,
+  getSourceNsVersionWatcher
 ]
