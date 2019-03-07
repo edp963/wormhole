@@ -81,7 +81,6 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
           if (StreamUtils.checkYarnAppNameUnique(simpleStream.name, projectId)) {
             onComplete(streamDal.insert(insertStream).mapTo[Stream]) {
               case Success(stream) =>
-                CacheMap.streamCacheMapRefresh
                 val streamDetail = streamDal.getBriefDetail(Some(projectId), Some(Seq(stream.id)))
                 complete(OK, ResponseJson[StreamDetail](getHeader(200, session), streamDetail.head))
               case Failure(ex) =>
@@ -524,7 +523,6 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                         Await.result(streamUdfTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)
                         Await.result(streamUdfDal.deleteByFilter(_.streamId === streamId), minTimeOut)
 
-                        CacheMap.streamCacheMapRefresh
                         riderLogger.info(s"user ${session.userId} delete stream $streamId success")
                         complete(OK, getHeader(200, session))
                       }

@@ -89,6 +89,7 @@ trait PersistenceModule {
   val feedbackStreamErrDal: FeedbackStreamErrorDal
   val feedbackFlowErrDal: FeedbackFlowErrDal
   val feedbackDirectiveDal: BaseDal[FeedbackDirectiveTable, FeedbackDirective]
+  val feedbackErrDal: FeedbackErrDal
   val monitorInfoDal: MonitorInfoDal
 
   val instanceQuery: TableQuery[InstanceTable] = TableQuery[InstanceTable]
@@ -117,6 +118,7 @@ trait PersistenceModule {
   val feedbackStreamErrQuery = TableQuery[FeedbackStreamErrTable]
   val feedbackFlowErrQuery = TableQuery[FeedbackFlowErrTable]
   val feedbackDirectiveQuery = TableQuery[FeedbackDirectiveTable]
+  val feedbackErrQuery = TableQuery[FeedbackErrTable]
   val monitorInfoQuery = TableQuery[MonitorInfoTable]
 
 }
@@ -150,5 +152,6 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val feedbackStreamErrDal = new FeedbackStreamErrorDal(feedbackStreamErrQuery, streamDal)
   override lazy val feedbackFlowErrDal = new FeedbackFlowErrDal(feedbackFlowErrQuery, streamDal, flowDal)
   override lazy val feedbackDirectiveDal = new BaseDalImpl[FeedbackDirectiveTable, FeedbackDirective](feedbackDirectiveQuery)
+  override lazy val feedbackErrDal= new FeedbackErrDal(feedbackErrQuery)
   override lazy val monitorInfoDal = new MonitorInfoDal(monitorInfoQuery, streamDal, flowDal)
 }

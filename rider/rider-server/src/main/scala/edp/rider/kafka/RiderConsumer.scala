@@ -102,7 +102,7 @@ class RiderConsumer extends Actor with RiderLogger {
   private def processMessage(records: Seq[ConsumerRecord[String, String]]): Unit = {
     try {
       val sparkxFlowErrorBuffer = new ListBuffer[Ums]
-      val sparkxStreamErrorBuffer = new ListBuffer[Ums]
+     // val sparkxStreamErrorBuffer = new ListBuffer[Ums]
       val sparkxFlowStatsBuffer = new ListBuffer[Ums]
       val flinkxFlowErrorBuffer = new ListBuffer[Ums]
       val feedbackFlowStartBuffer = new ListBuffer[Ums]
@@ -112,8 +112,6 @@ class RiderConsumer extends Actor with RiderLogger {
         if (record.key().startsWith(FEEDBACK_SPARKX_FLOW_ERROR.toString)
           || record.key().startsWith(FEEDBACK_FLOW_ERROR.toString)) {
           if (ums != null) sparkxFlowErrorBuffer.append(ums)
-        } else if (record.key().startsWith(FEEDBACK_STREAM_BATCH_ERROR.toString)) {
-          if (ums != null) sparkxStreamErrorBuffer.append(ums)
         } else if (record.key().startsWith(FEEDBACK_SPARKX_FLOW_STATS.toString)) {
           if (ums != null) sparkxFlowStatsBuffer.append(ums)
         } else if (record.key().startsWith(FEEDBACK_FLINKX_FLOW_ERROR.toString)) {
@@ -121,10 +119,14 @@ class RiderConsumer extends Actor with RiderLogger {
         } else if(record.key().startsWith(FEEDBACK_DIRECTIVE.toString)) {
           if(ums != null) feedbackFlowStartBuffer.append(ums)
         }
+
+        //else if (record.key().startsWith(FEEDBACK_STREAM_BATCH_ERROR.toString)) {
+        //          if (ums != null) sparkxStreamErrorBuffer.append(ums)
+        //        }
       })
 
       doSparkxFlowError(sparkxFlowErrorBuffer.toList)
-      doStreamBatchError(sparkxStreamErrorBuffer.toList)
+      //doStreamBatchError(sparkxStreamErrorBuffer.toList)
       doSparkxFlowStats(sparkxFlowStatsBuffer.toList)
       doFeedbackDirective(feedbackFlowStartBuffer.toList)
 

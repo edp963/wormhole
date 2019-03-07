@@ -33,30 +33,30 @@ import scala.collection.mutable.ListBuffer
 
 case class MonitorInfo(
                         id: Long,
-                        statsId: String,
-                        umsTs: String,
-                        projectId: Long,
+                        batchId: String,
                         streamId: Long,
-                        streamName: String,
                         flowId: Long,
-                        flowNamespace: String,
+                        sourceNamespace: String,
+                        sinkNamespace: String,
+                        dataType: String,
                         rddCount: Int,
                         topics: String = "",
                         throughput: Long,
                         dataGeneratedTs: String,
                         rddTs: String,
-                        directiveTs: String,
                         DataProcessTs: String,
                         swiftsTs: String,
                         sinkTs: String,
                         doneTs: String,
-                        interval: Interval) extends BaseEntity {
+                        interval: Interval,
+                        feedbackTime: String,
+                        createTime: String) extends BaseEntity {
   override def copyWithId(id: Long): this.type = {
     copy(id = id).asInstanceOf[this.type]
   }
 }
 
-case class MonitorInfoES(
+/*case class MonitorInfoES(
                           statsId: String,
                           umsTs: String,
                           projectId: Long,
@@ -82,24 +82,7 @@ case class MonitorInfoES(
                           intervalDataumsToDone: Long,
                           intervalRddToDone: Long,
                           intervalSwiftsToSink: Long,
-                          intervalSinkToDone: Long)
-
-/*case class FeedbackFlowStats(
-                              protocolType: String,
-                              dataType: String,
-                              umsTs: String,
-                              streamId: Long,
-                              stats_id: String,
-                              sourceNamespace: String,
-                              sinkNamespace: String,
-                              rddCount: Int,
-                              dataUmsTs: Long,
-                              rddTs: Long,
-                              directiveTs: Long,
-                              DataProcessTs: Long,
-                              swiftsTs: Long,
-                              sinkTs: Long,
-                              doneTs: Long)*/
+                          intervalSinkToDone: Long)*/
 
 case class StreamMonitorInfo(streamId: Long, flowNs: String)
 
@@ -134,11 +117,8 @@ case class MonitorDashBoard(flowMetrics: Seq[MonitorFlowInfo])
 
 case class Interval(intervalDataProcessToDataums: Long,
                     intervalDataProcessToRdd: Long,
-                    intervalDataProcessToSwifts: Long,
-                    intervalDataProcessToSink: Long,
+                    intervalRddToSwifts: Long,
                     intervalDataProcessToDone: Long,
-                    intervalDataumsToDone: Long,
-                    intervalRddToDone: Long,
                     intervalSwiftsToSink: Long,
                     intervalSinkToDone: Long)
 
@@ -147,8 +127,8 @@ class MonitorInfoTable(_tableTag: Tag) extends BaseTable[MonitorInfo](_tableTag,
     topics, throughput, dataGeneratedTs, rddTs, directiveTs, DataProcessTs, swiftsTs, sinkTs, doneTs,
     interval) <> ((MonitorInfo.apply _).tupled, MonitorInfo.unapply)
 
-  def interval = (intervalDataProcessToDataums, intervalDataProcessToRdd, intervalDataProcessToSwifts,
-    intervalDataProcessToSink, intervalDataProcessToDone, intervalDataumsToDone, intervalRddToDone, intervalSwiftsToSink, intervalSinkToDone) <> ((Interval.apply _).tupled, Interval.unapply)
+  def interval = (intervalDataProcessToDataums, intervalDataProcessToRdd, intervalRddToSwifts,
+    intervalDataProcessToDone, intervalSwiftsToSink, intervalSinkToDone) <> ((Interval.apply _).tupled, Interval.unapply)
 
   val statsId: Rep[String] = column[String]("stats_id")
   val umsTs: Rep[String] = column[String]("ums_ts")
@@ -170,11 +150,8 @@ class MonitorInfoTable(_tableTag: Tag) extends BaseTable[MonitorInfo](_tableTag,
 
   val intervalDataProcessToDataums: Rep[Long] = column[Long]("interval_data_process_to_data_ums")
   val intervalDataProcessToRdd: Rep[Long] = column[Long]("interval_data_process_to_rdd")
-  val intervalDataProcessToSwifts: Rep[Long] = column[Long]("interval_data_process_to_swifts")
-  val intervalDataProcessToSink: Rep[Long] = column[Long]("interval_data_process_to_sink")
+  val intervalRddToSwifts: Rep[Long]=  column[Long]("interval_rdd_to_swifts")
   val intervalDataProcessToDone: Rep[Long] = column[Long]("interval_data_process_to_done")
-  val intervalDataumsToDone: Rep[Long] = column[Long]("interval_data_ums_done")
-  val intervalRddToDone: Rep[Long] = column[Long]("interval_rdd_done")
   val intervalSwiftsToSink: Rep[Long] = column[Long]("interval_swifts_sink")
   val intervalSinkToDone: Rep[Long] = column[Long]("interval_sink_done")
 }
