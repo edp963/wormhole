@@ -105,7 +105,6 @@ object UmsCommonUtils extends Serializable {
     var realKey = null.asInstanceOf[String]
     while (tmpValue != null) {
       val strPosition = tmpValue.indexOf("\"protocol\"")
-      println(strPosition)
       if (strPosition > 0) {
         tmpValue = tmpValue.substring(strPosition + 10).trim
         if (tmpValue.startsWith(":")) {
