@@ -174,7 +174,8 @@ export class WorkbenchJobForm extends React.Component {
     const { jobDiffType, step, form, jobMode, fieldSelected, jobTranTableConfirmValue, onShowJobTransModal,
       onShowJobSinkConfigModal, jobTransTableSource, onDeleteSingleTransform, onJobAddTransform,
       onEditTransform, onUpTransform, onDownTransform, jobStepSourceNs, jobStepSinkNs, jobSourceNsSys,
-      jobTranTagClassName, jobTranTableClassName, jobTranConfigConfirmValue, locale, initialBackfillCascader, backfillSinkNsValue
+      jobTranTagClassName, jobTranTableClassName, jobTranConfigConfirmValue, locale, initialBackfillCascader, backfillSinkNsValue,
+      initialSourceNsVersion
     } = this.props
     const { getFieldDecorator } = form
     const { sinkConfigClass, sourceNsData, sinkNsData, backfillSinkDSValue, backfillTopicValue } = this.state
@@ -513,7 +514,7 @@ export class WorkbenchJobForm extends React.Component {
                     message: operateLanguageSelect('version', 'Version')
                   }]
                 })(
-                  <Select style={{ width: 120 }} allowClear >
+                  <Select style={{ width: 120 }} allowClear onFocus={initialSourceNsVersion}>
                     {this.props.sourceNsVersionList.map((v, i) => (<Select.Option value={v} key={i}>{v}</Select.Option>))}
                   </Select>
                 )}
@@ -862,7 +863,7 @@ WorkbenchJobForm.propTypes = {
   clearSinkData: PropTypes.func,
   jobSourceNsSys: PropTypes.string,
   sourceNsVersionList: PropTypes.array,
-
+  initialSourceNsVersion: PropTypes.func,
   onLoadJobName: PropTypes.func,
   locale: PropTypes.string
 }
