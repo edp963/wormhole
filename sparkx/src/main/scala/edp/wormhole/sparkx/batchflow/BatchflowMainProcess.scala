@@ -261,18 +261,20 @@ object BatchflowMainProcess extends EdpLogging {
         flowConfigMap.foreach(flow => {
           val isProcessed = protocolType match {
             case UmsProtocolType.DATA_INCREMENT_DATA =>
-              flow._2._6(InputDataProtocolBaseType.INCREMENT.toString)
+              flow._2.consumptionDataType(InputDataProtocolBaseType.INCREMENT.toString)
             case UmsProtocolType.DATA_INITIAL_DATA =>
-              flow._2._6(InputDataProtocolBaseType.INITIAL.toString)
+              flow._2.consumptionDataType(InputDataProtocolBaseType.INITIAL.toString)
             case UmsProtocolType.DATA_BATCH_DATA =>
-              flow._2._6(InputDataProtocolBaseType.BATCH.toString)
+              flow._2.consumptionDataType(InputDataProtocolBaseType.BATCH.toString)
           }
           if (isProcessed) {
             val sinkNamespace = flow._1
             logInfo(uuid + ",do flow,matchSourceNamespace:" + matchSourceNamespace + ",sinkNamespace:" + sinkNamespace)
             val swiftsTs = System.currentTimeMillis
             ConfMemoryStorage.setEventTs(matchSourceNamespace, sinkNamespace, minTs)
-            val (swiftsProcessConfig: Option[SwiftsProcessConfig], sinkProcessConfig, _, _, _, _) = flow._2
+//            val (swiftsProcessConfig: Option[SwiftsProcessConfig], sinkProcessConfig, _, _, _, _) = flow._2
+            val swiftsProcessConfig: Option[SwiftsProcessConfig] = flow._2.swiftsProcessConfig
+            val sinkProcessConfig:SinkProcessConfig = flow._2.sinkProcessConfig
             logInfo(uuid + ",start swiftsProcess")
 
             var sinkFields: Seq[UmsField] = schema._2._1
@@ -413,7 +415,7 @@ object BatchflowMainProcess extends EdpLogging {
       case ((protocol, ns), schema) =>
         if (!schemaMap.contains((protocol, ns))) {
           val matchSourceNs = ConfMemoryStorage.getMatchSourceNamespaceRule(ns)
-          val directiveId = ConfMemoryStorage.getFlowConfigMap(matchSourceNs).head._2._3
+          val directiveId = ConfMemoryStorage.getFlowConfigMap(matchSourceNs).head._2.directiveId
           schemaMap((protocol, ns)) = (schema, directiveId)
         }
         logInfo(s"begin schema:$schema")
