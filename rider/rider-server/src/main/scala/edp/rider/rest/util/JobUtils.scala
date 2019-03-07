@@ -297,7 +297,7 @@ object JobUtils extends RiderLogger {
     }
   }
 
-  def getHdfsDataVersions(namespace: String): Seq[Int] = {
+  def getHdfsDataVersions(namespace: String): String = {
     val hdfsRoot = RiderConfig.spark.remoteHdfsRoot match {
       case Some(_) => RiderConfig.spark.remoteHdfsActiveNamenodeHost.get
       case None => RiderConfig.spark.hdfsRoot
@@ -305,15 +305,17 @@ object JobUtils extends RiderLogger {
     val configuration = setConfiguration(hdfsRoot, None)
     val names = namespace.split("\\.")
     val hdfsPath = hdfsRoot + "/hdfslog/" + names(0) + "." + names(1) + "." + names(2) + "/" + names(3)
-    getHdfsFileList(configuration, hdfsPath).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _)
+    val hdfsFileList = getHdfsFileList(configuration, hdfsPath)
+    if (hdfsFileList != null) getHdfsFileList(configuration, hdfsPath).map(t => t.substring(t.lastIndexOf("/") + 1).toInt).sortWith(_ > _).mkString(",")
+    else ""
   }
 
   def getHdfsFileList(config:Configuration, hdfsPath: String): Seq[String] = {
     val fileSystem = FileSystem.newInstance(config)
     val fullPath = FileUtils.pfRight(hdfsPath)
     riderLogger.info(s"hdfs data path: $fullPath")
-    assert(isPathExist(config, fullPath), s"The $fullPath does not exist")
-    fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString).toList
+    if(isPathExist(config, fullPath)) fileSystem.listStatus(new Path(fullPath)).map(_.getPath.toString).toList
+    else null
   }
 
   def setConfiguration(hdfsPath: String, connectionConfig: Option[Seq[KVConfig]]): Configuration = {
