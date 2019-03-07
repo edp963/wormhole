@@ -43,9 +43,9 @@ class MonitorApi(flowDal: FlowDal, streamDal: StreamDal, monitorInfoDal: Monitor
                             dateFormat.format(new Date(timeSpan.startTime)),
                             dateFormat.format(new Date(timeSpan.endTime))))._2
                     else Await.result(monitorInfoDal.findByFilter(monitor =>
-                      monitor.projectId === projectId && monitor.flowId === flowId
-                        && dateFormat.parse(monitor.umsTs.toString).getTime >= new Date(timeSpan.startTime).getTime
-                        && dateFormat.parse(monitor.umsTs.toString).getTime <= new Date(timeSpan.endTime).getTime), minTimeOut)
+                       monitor.flowId === flowId
+                        && dateFormat.parse(monitor.feedbackTime.toString).getTime >= new Date(timeSpan.startTime).getTime
+                        && dateFormat.parse(monitor.feedbackTime.toString).getTime <= new Date(timeSpan.endTime).getTime), minTimeOut)
                     Option(monitorInfoOpt) match {
                       case Some(monitorSeq) =>
                         val flowMonitorInfo = fillSparkFlowMetricsByMonitor(monitorSeq.asInstanceOf[Seq[MonitorInfo]])
@@ -67,7 +67,7 @@ class MonitorApi(flowDal: FlowDal, streamDal: StreamDal, monitorInfoDal: Monitor
 
   def fillSparkFlowMetricsByMonitor(monitorSeq: Seq[MonitorInfo]): MonitorFlowInfo = {
     val flowSeq = monitorSeq.map(monitor => {
-      val umsTs = if (monitor.umsTs.contains(".")) monitor.umsTs.split("\\.")(0) else monitor.umsTs
+      val umsTs = if (monitor.feedbackTime.contains(".")) monitor.feedbackTime.split("\\.")(0) else monitor.feedbackTime
       MonitorMetric(monitor.flowNamespace, MonitorNumberWidget(monitor.rddCount, umsTs), MonitorIntervalWidget(monitor.interval.intervalDataProcessToDataums, umsTs),
         MonitorIntervalWidget(monitor.interval.intervalDataProcessToRdd, umsTs), MonitorIntervalWidget(monitor.interval.intervalSwiftsToSink, umsTs), MonitorIntervalWidget(monitor.interval.intervalSinkToDone, umsTs),
         MonitorIntervalWidget(monitor.interval.intervalDataProcessToDone, umsTs), MonitorOpsWidget(monitor.throughput, umsTs))
@@ -109,10 +109,9 @@ class MonitorApi(flowDal: FlowDal, streamDal: StreamDal, monitorInfoDal: Monitor
                         ElasticSearch.queryESMonitor(ElasticSearch.compactPostBody(projectId, 1, streamId,
                           dateFormat.format(new Date(timeSpan.startTime)),
                           dateFormat.format(new Date(timeSpan.endTime))))._2
-                    else Await.result(monitorInfoDal.findByFilter(monitor => monitor.projectId === projectId
-                      && monitor.streamId === streamId
-                      && dateFormat.parse(monitor.umsTs.toString).getTime >= new Date(timeSpan.startTime).getTime
-                      && dateFormat.parse(monitor.umsTs.toString).getTime <= new Date(timeSpan.endTime).getTime),
+                    else Await.result(monitorInfoDal.findByFilter(monitor => monitor.streamId === streamId
+                      && dateFormat.parse(monitor.feedbackTime.toString).getTime >= new Date(timeSpan.startTime).getTime
+                      && dateFormat.parse(monitor.feedbackTime.toString).getTime <= new Date(timeSpan.endTime).getTime),
                       minTimeOut)
                     Option(monitorInfoOpt) match {
                       case Some(monitorSeq) =>

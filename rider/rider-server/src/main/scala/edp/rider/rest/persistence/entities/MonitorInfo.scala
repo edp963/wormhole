@@ -21,9 +21,6 @@
 
 package edp.rider.rest.persistence.entities
 
-
-import java.util.Date
-
 import edp.rider.rest.persistence.base.{BaseEntity, BaseTable, SimpleBaseEntity}
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.{Rep, Tag}
@@ -49,40 +46,12 @@ case class MonitorInfo(
                         sinkTs: String,
                         doneTs: String,
                         interval: Interval,
-                        feedbackTime: String,
-                        createTime: String) extends BaseEntity {
+                        feedbackTime: String) extends BaseEntity {
   override def copyWithId(id: Long): this.type = {
     copy(id = id).asInstanceOf[this.type]
   }
+  lazy val flowNamespace=sourceNamespace+"_"+sinkNamespace
 }
-
-/*case class MonitorInfoES(
-                          statsId: String,
-                          umsTs: String,
-                          projectId: Long,
-                          streamId: Long,
-                          streamName: String,
-                          flowId: Long,
-                          flowNamespace: String,
-                          rddCount: Int,
-                          topics: String = "",
-                          throughput: Long,
-                          dataGeneratedTs: String,
-                          rddTs: String,
-                          directiveTs: String,
-                          DataProcessTs: String,
-                          swiftsTs: String,
-                          sinkTs: String,
-                          doneTs: String,
-                          intervalDataProcessToDataums: Long,
-                          intervalDataProcessToRdd: Long,
-                          intervalDataProcessToSwifts: Long,
-                          intervalDataProcessToSink: Long,
-                          intervalDataProcessToDone: Long,
-                          intervalDataumsToDone: Long,
-                          intervalRddToDone: Long,
-                          intervalSwiftsToSink: Long,
-                          intervalSinkToDone: Long)*/
 
 case class StreamMonitorInfo(streamId: Long, flowNs: String)
 
@@ -123,30 +92,29 @@ case class Interval(intervalDataProcessToDataums: Long,
                     intervalSinkToDone: Long)
 
 class MonitorInfoTable(_tableTag: Tag) extends BaseTable[MonitorInfo](_tableTag, "feedback_flow_stats") {
-  def * = (id, statsId, umsTs, projectId, streamId, streamName, flowId, flowNamespace, rddCount,
-    topics, throughput, dataGeneratedTs, rddTs, directiveTs, DataProcessTs, swiftsTs, sinkTs, doneTs,
-    interval) <> ((MonitorInfo.apply _).tupled, MonitorInfo.unapply)
+  def * = (id, batchId,streamId, flowId,sourceNamespace,sinkNamespace,dataType,rddCount,
+    topics, throughput, dataGeneratedTs, rddTs, DataProcessTs, swiftsTs, sinkTs, doneTs,
+    interval,feedbackTime) <> ((MonitorInfo.apply _).tupled, MonitorInfo.unapply)
 
   def interval = (intervalDataProcessToDataums, intervalDataProcessToRdd, intervalRddToSwifts,
     intervalDataProcessToDone, intervalSwiftsToSink, intervalSinkToDone) <> ((Interval.apply _).tupled, Interval.unapply)
 
-  val statsId: Rep[String] = column[String]("stats_id")
-  val umsTs: Rep[String] = column[String]("ums_ts")
-  val projectId: Rep[Long] = column[Long]("project_id")
   val streamId: Rep[Long] = column[Long]("stream_id")
-  val streamName: Rep[String] = column[String]("stream_name")
+  val batchId: Rep[String] = column[String]("batch_id")
   val flowId: Rep[Long] = column[Long]("flow_id")
-  val flowNamespace: Rep[String] = column[String]("flow_namespace")
+  val sourceNamespace: Rep[String] = column[String]("source_ns")
+  val sinkNamespace: Rep[String] = column[String]("sink_ns")
+  val dataType: Rep[String] = column[String]("data_type")
   val rddCount: Rep[Int] = column[Int]("rdd_count")
   val topics: Rep[String] = column[String]("topics")
   val throughput: Rep[Long] = column[Long]("throughput")
   val dataGeneratedTs: Rep[String] = column[String]("data_generated_ts")
   val rddTs: Rep[String] = column[String]("rdd_ts")
-  val directiveTs: Rep[String] = column[String]("directive_ts")
   val DataProcessTs: Rep[String] = column[String]("data_process_ts")
   val swiftsTs: Rep[String] = column[String]("swifts_ts")
   val sinkTs: Rep[String] = column[String]("sink_ts")
   val doneTs: Rep[String] = column[String]("done_ts")
+  val feedbackTime: Rep[String] = column[String]("feedback_time")
 
   val intervalDataProcessToDataums: Rep[Long] = column[Long]("interval_data_process_to_data_ums")
   val intervalDataProcessToRdd: Rep[Long] = column[Long]("interval_data_process_to_rdd")
@@ -154,4 +122,6 @@ class MonitorInfoTable(_tableTag: Tag) extends BaseTable[MonitorInfo](_tableTag,
   val intervalDataProcessToDone: Rep[Long] = column[Long]("interval_data_process_to_done")
   val intervalSwiftsToSink: Rep[Long] = column[Long]("interval_swifts_sink")
   val intervalSinkToDone: Rep[Long] = column[Long]("interval_sink_done")
+
+  lazy val flowNamespace=sourceNamespace+"_"+sinkNamespace
 }

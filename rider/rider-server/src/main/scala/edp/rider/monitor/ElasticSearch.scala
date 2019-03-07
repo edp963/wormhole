@@ -217,17 +217,6 @@ object ElasticSearch extends RiderLogger {
     } else (false, list)
   }
 
-/*  def changeMonitorInfoEsToMonitorInfo(monitor: MonitorInfoES) = {
-    MonitorInfo(0, monitor.statsId, monitor.umsTs, monitor.projectId, monitor.streamId, monitor.streamName,
-      monitor.flowId, monitor.flowNamespace, monitor.rddCount, monitor.topics, monitor.throughput,
-      monitor.dataGeneratedTs, monitor.rddTs, monitor.directiveTs, monitor.DataProcessTs, monitor.swiftsTs,
-      monitor.sinkTs, monitor.doneTs,
-      Interval(monitor.intervalDataProcessToDataums, monitor.intervalDataProcessToRdd,
-        monitor.intervalDataProcessToSwifts, monitor.intervalDataProcessToSink,
-        monitor.intervalDataProcessToDone, monitor.intervalDataumsToDone, monitor.intervalRddToDone,
-        monitor.intervalSwiftsToSink, monitor.intervalSinkToDone))
-  }*/
-
   def deleteEsHistory(fromDate: String, endDate: String): Int = {
     val deleted = 0
     val postBody = ReadJsonFile.getMessageFromJson(JsonFileType.ESDELETED)
