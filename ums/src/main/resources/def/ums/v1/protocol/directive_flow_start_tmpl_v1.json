@@ -59,13 +59,23 @@
         "name": "source_increment_topic",
         "type": "string",
         "nullable": false
+      },
+      {
+        "name": "priority_id",
+        "type": "long",
+        "nullable": false
+      },
+      {
+        "name": "kerberos",
+        "type": "boolean",
+        "nullable": false
       }
     ]
   },
   "payload": [
     {
       "tuple": [ 3,1,1,"2016-04-11 12:23:34.345123", "oracle.oracle02.db.table.v2.dbpar01.tablepar01","base64的json字符串",
-        "ums/ums_extension","base64的schema","base64的json字符串","base64的json字符串", "source3"]
+        "ums/ums_extension","base64的schema","base64的json字符串","base64的json字符串", "source3",3,false]
     }
   ]
 }
