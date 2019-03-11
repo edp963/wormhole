@@ -141,7 +141,11 @@ object OffsetPersistenceManager extends EdpLogging {
       val topicName = topicNameRef
       if (topicName != OffsetPersistenceManager.kafkaBaseConfigRelativePath && topicName != DirectiveOffsetWatch.watchRelativePath) {
         try {
-          val topicType = new String(WormholeZkClient.getData(zookeeperAddress, offsetPath + "/" + topicName + "/" + topicTypePath))
+          val topicTypePath = offsetPath + "/" + topicName + "/" + topicTypePath
+          val topicType = if(WormholeZkClient.checkExist(zookeeperAddress,topicTypePath))
+            new String(WormholeZkClient.getData(zookeeperAddress, topicTypePath))
+          else TopicType.INITIAL.toString
+
           val rateStr = new String(WormholeZkClient.getData(zookeeperAddress, offsetPath + "/" + topicName + "/" + rateRelativePath))
           val partitionNum = new String(WormholeZkClient.getData(zookeeperAddress, offsetPath + "/" + topicName + "/" + partitionRelativePath)).toInt
           val pocSeq: Seq[PartitionOffsetConfig] = for (i <- 0 until partitionNum) yield PartitionOffsetConfig(i, 0)
