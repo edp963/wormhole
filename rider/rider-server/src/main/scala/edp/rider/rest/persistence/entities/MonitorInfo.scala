@@ -64,7 +64,7 @@ case class MonitorIntervalWidget(time: Long, umsTs: String)
 case class MonitorOpsWidget(ops: Double, umsTs: String)
 
 case class MonitorFlowInfo(flowName: String,
-                           cols: String = "rddCountMetrics,throughPutMetrics,receivedDelays@preProcessDelays@swiftsDelays@sinkDelays@wormholeDelays",
+                           cols: String = "rddCountMetrics,throughPutMetrics,receivedDelays@preProcessDelays@swiftsDelays@sinkDelays@wormholeDelays@rddToSwiftsDelays",
                            rddCountMetrics: ListBuffer[MonitorNumberWidget] = new ListBuffer[MonitorNumberWidget](),
                            receivedDelays: ListBuffer[MonitorIntervalWidget] = new ListBuffer[MonitorIntervalWidget](),
                            preProcessDelays: ListBuffer[MonitorIntervalWidget] = new ListBuffer[MonitorIntervalWidget](),
