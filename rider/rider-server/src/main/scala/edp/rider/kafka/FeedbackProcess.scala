@@ -138,10 +138,11 @@ object FeedbackProcess extends RiderLogger {
             srcNamespace, sinkNamespaceValue.toString, errorCountValue.toString.toInt,
             errMaxWaterMarkTsValue.toString, errMinWaterMarkTsValue.toString,
             errorInfoValue, topics, curTs)*/
-          FeedbackFlowErr(1,"1",streamIdValue.toString.toLong,flowIdValue.toString.toLong,srcNamespace,sinkNamespaceValue.toString,dataTypeValue.toString,"sparkx",topics,errorCountValue.toString.toInt,
+          FeedbackFlowErr(1,CacheMap.getProjectIdByStreamId(streamIdValue.toString.toLong).getOrElse(0L),"1",streamIdValue.toString.toLong,flowIdValue.toString.toLong,srcNamespace,sinkNamespaceValue.toString,dataTypeValue.toString,"sparkx",topics,errorCountValue.toString.toInt,
             errMaxWaterMarkTsValue.toString,  errMinWaterMarkTsValue.toString,errorInfoValue,dataInfoValue,feedbackTimeValue.toString)
         })
       })
+      riderLogger.info(s"insert error list:$insertSeq")
       Await.result(modules.feedbackFlowErrDal.insert(insertSeq), minTimeOut)
     } catch {
       case ex: Exception =>

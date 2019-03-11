@@ -25,7 +25,7 @@ import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import edp.rider.common._
-import edp.rider.kafka.{ KafkaUtils, RiderConsumer}
+import edp.rider.kafka.{CacheMap, KafkaUtils, RiderConsumer}
 import edp.rider.module._
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.persistence.entities.User
@@ -58,6 +58,8 @@ object RiderStarter extends App with RiderLogger {
   future.onComplete {
     case Success(_) =>
       riderLogger.info(s"WormholeServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
+
+      CacheMap.init
 
       if (Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.adminUser), minTimeOut).isEmpty)
         Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.adminUser, RiderConfig.riderServer.adminPwd, RiderConfig.riderServer.adminUser, "admin", RiderConfig.riderServer.defaultLanguage, active = true, currentSec, 1, currentSec, 1)), minTimeOut)

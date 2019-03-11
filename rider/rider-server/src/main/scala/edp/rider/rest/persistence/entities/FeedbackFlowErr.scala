@@ -5,6 +5,7 @@ import slick.jdbc.MySQLProfile.api._
 import slick.lifted.Tag
 
 case class FeedbackFlowErr(id: Long,
+                       projectId:Long,
                        batchId: String,
                        streamId: Long,
                        flowId: Long,
@@ -25,8 +26,9 @@ case class FeedbackFlowErr(id: Long,
 }
 
 class FeedbackFlowErrTable(_tableTag: Tag) extends BaseTable[FeedbackFlowErr](_tableTag,"feedback_flow_error"){
-   def * = (id,batchId,streamId,flowId,sourceNamespace,sinkNamespace,dataType,errorPattern,
+   def * = (id,projectId,batchId,streamId,flowId,sourceNamespace,sinkNamespace,dataType,errorPattern,
           topics,errorCount,errorMaxWaterMarkTs,errorMinWaterMarkTs,errorInfo,dataInfo,feedbackTime)<> (FeedbackFlowErr.tupled, FeedbackFlowErr.unapply)
+  val projectId:Rep[Long]=column[Long]("project_id")
    val batchId:Rep[String]=column[String]("batch_id")
    val streamId:Rep[Long]=column[Long]("stream_id")
    val flowId:Rep[Long]=column[Long]("flow_id")
