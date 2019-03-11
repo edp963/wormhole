@@ -4,7 +4,7 @@ import edp.rider.rest.persistence.base.{BaseEntity, BaseTable}
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.Tag
 
-case class FeedbackErr(id: Long,
+case class FeedbackFlowErr(id: Long,
                        batchId: String,
                        streamId: Long,
                        flowId: Long,
@@ -24,9 +24,9 @@ case class FeedbackErr(id: Long,
   }
 }
 
-class FeedbackErrTable(_tableTag: Tag) extends BaseTable[FeedbackErr](_tableTag,"feedback_error"){
+class FeedbackFlowErrTable(_tableTag: Tag) extends BaseTable[FeedbackFlowErr](_tableTag,"feedback_flow_error"){
    def * = (id,batchId,streamId,flowId,sourceNamespace,sinkNamespace,dataType,errorPattern,
-          topics,errorCount,errorMaxWaterMarkTs,errorMinWaterMarkTs,errorInfo,dataInfo,feedbackTime)<> (FeedbackErr.tupled, FeedbackErr.unapply)
+          topics,errorCount,errorMaxWaterMarkTs,errorMinWaterMarkTs,errorInfo,dataInfo,feedbackTime)<> (FeedbackFlowErr.tupled, FeedbackFlowErr.unapply)
    val batchId:Rep[String]=column[String]("batch_id")
    val streamId:Rep[Long]=column[Long]("stream_id")
    val flowId:Rep[Long]=column[Long]("flow_id")

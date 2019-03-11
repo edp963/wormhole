@@ -2,7 +2,7 @@ package edp.rider.rest.persistence.dal
 
 import edp.rider.module.DbModule.db
 import edp.rider.rest.persistence.base.BaseDalImpl
-import edp.rider.rest.persistence.entities.{FeedbackErr, FeedbackErrTable}
+import edp.rider.rest.persistence.entities.{FeedbackFlowErr, FeedbackFlowErrTable}
 import edp.rider.rest.util.CommonUtils.{maxTimeOut, minTimeOut}
 import slick.lifted.TableQuery
 
@@ -10,8 +10,8 @@ import slick.jdbc.MySQLProfile.api._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class FeedbackErrDal(feedbackErrTable: TableQuery[FeedbackErrTable])
-  extends BaseDalImpl[FeedbackErrTable, FeedbackErr](feedbackErrTable){
+class FeedbackFlowErrDal(feedbackErrTable: TableQuery[FeedbackFlowErrTable])
+  extends BaseDalImpl[FeedbackFlowErrTable, FeedbackFlowErr](feedbackErrTable){
   def getSinkErrorMaxWatermark(streamId: Long, sourceNs: String, sinkNs: String): Future[Option[String]] = {
     super.findByFilter(str => str.streamId === streamId && str.sourceNamespace === sourceNs && str.sinkNamespace === sinkNs)
       .map[Option[String]](seq =>

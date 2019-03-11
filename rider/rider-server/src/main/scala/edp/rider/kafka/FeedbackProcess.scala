@@ -138,11 +138,11 @@ object FeedbackProcess extends RiderLogger {
             srcNamespace, sinkNamespaceValue.toString, errorCountValue.toString.toInt,
             errMaxWaterMarkTsValue.toString, errMinWaterMarkTsValue.toString,
             errorInfoValue, topics, curTs)*/
-          FeedbackErr(1,"1",streamIdValue.toString.toLong,flowIdValue.toString.toLong,srcNamespace,sinkNamespaceValue.toString,dataTypeValue.toString,"sparkx",topics,errorCountValue.toString.toInt,
+          FeedbackFlowErr(1,"1",streamIdValue.toString.toLong,flowIdValue.toString.toLong,srcNamespace,sinkNamespaceValue.toString,dataTypeValue.toString,"sparkx",topics,errorCountValue.toString.toInt,
             errMaxWaterMarkTsValue.toString,  errMinWaterMarkTsValue.toString,errorInfoValue,dataInfoValue,feedbackTimeValue.toString)
         })
       })
-      Await.result(modules.feedbackErrDal.insert(insertSeq), minTimeOut)
+      Await.result(modules.feedbackFlowErrDal.insert(insertSeq), minTimeOut)
     } catch {
       case ex: Exception =>
         riderLogger.error(s"process $FEEDBACK_SPARKX_FLOW_ERROR message $records failed", ex)
