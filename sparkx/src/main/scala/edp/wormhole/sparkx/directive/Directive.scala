@@ -56,9 +56,9 @@ trait Directive extends EdpLogging {
             case e: Throwable => logAlert("unsubscribeTopic error" + unsubscribeTopic, e)
           }
       }
-      val initialTopics = addTopicList.filter(topic => topic._1.topic_type == TopicType.INITIAL)
-      ConfMemoryStorage.initialTopicSet ++ initialTopics
-      ConfMemoryStorage.initialTopicSet -- delTopicList.map(_._1)
+      val initialTopics = addTopicList.filter(topic => topic._1.topic_type == TopicType.INITIAL).map(_._1.topic_name)
+      ConfMemoryStorage.initialTopicSet ++= initialTopics
+      ConfMemoryStorage.initialTopicSet --= delTopicList.map(_._1)
       val addTpMap = mutable.HashMap.empty[(String, Int), (Long, Long)]
       addTopicList.foreach(topic => {
         val topicName = topic._1.topic_name
