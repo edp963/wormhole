@@ -303,7 +303,7 @@ object StreamUtils extends RiderLogger {
     try {
       val directiveSeq = new ArrayBuffer[Directive]
       val zkConURL: String = RiderConfig.zk.address
-      (incrementTopicSeq ++:initialTopicSeq.get).filter(_.rate == 0).map(
+      (incrementTopicSeq ++:initialTopicSeq.getOrElse(mutable.ArraySeq.empty[PutTopicDirective])).filter(_.rate == 0).map(
         topic => sendUnsubscribeTopicDirective(streamId, topic.name, userId)
       )
       if(initialTopicSeq.nonEmpty)initialTopicSeq.get.filter(_.rate != 0).foreach({

@@ -430,6 +430,7 @@ object FlowUtils extends RiderLogger {
     try {
       autoDeleteTopic(userId, streamId)
       val sourceNsDatabase=autoRegisterTopic(streamId, streamName, sourceNs, tranConfig, userId)
+      val sourceIncrementTopic=if(sourceNsDatabase.nonEmpty)sourceNsDatabase.head.nsDatabase else ""
       val sourceNsObj = namespaceDal.getNamespaceByNs(sourceNs).get
       val umsInfoOpt =
         if (sourceNsObj.sourceSchema.nonEmpty)
@@ -453,7 +454,7 @@ object FlowUtils extends RiderLogger {
         riderLogger.info(s"sink ${sinkNs} sinkConfig: ${sinkConfigSet}")
         val tranConfigFinal = getTranConfig(tranConfig)
         //        val tuple = Seq(streamId, currentMicroSec, umsType, umsSchema, sourceNs, sinkNs, consumedProtocolSet, sinkConfigSet, tranConfigFinal)
-        val base64Tuple = Seq(streamId, flowId, sourceNsDatabase, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
+        val base64Tuple = Seq(streamId, flowId, sourceIncrementTopic, currentMicroSec, umsType, base64byte2s(umsSchema.toString.trim.getBytes), sinkNs, base64byte2s(consumedProtocolSet.trim.getBytes),
           base64byte2s(sinkConfigSet.trim.getBytes), base64byte2s(tranConfigFinal.trim.getBytes), RiderConfig.kerberos.enabled)
         val directiveFuture = directiveDal.insert(Directive(0, DIRECTIVE_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId))
         directiveFuture onComplete {
@@ -536,9 +537,9 @@ object FlowUtils extends RiderLogger {
                 directive.id
               }, ${
                 base64Tuple.head
-              }, "${
+              }, ${
                 base64Tuple(1)
-              }", "${
+              }, "${
                 base64Tuple(2)
               }", "${
                 base64Tuple(3)
@@ -573,7 +574,7 @@ object FlowUtils extends RiderLogger {
       }
       else if (functionType == "hdfslog") {
         //        val tuple = Seq(streamId, currentMillSec, sourceNs, "24", umsType, umsSchema)
-        val base64Tuple = Seq(streamId, flowId, currentMillSec, sourceNs, "24", umsType, base64byte2s(umsSchema.toString.trim.getBytes), sourceNsDatabase)
+        val base64Tuple = Seq(streamId, flowId, currentMillSec, sourceNs, "24", umsType, base64byte2s(umsSchema.toString.trim.getBytes), sourceIncrementTopic)
         val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_HDFSLOG_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
         val flow_start_ums =
@@ -664,7 +665,7 @@ object FlowUtils extends RiderLogger {
         //        riderLogger.info(s"user ${directive.createBy} send ${DIRECTIVE_HDFSLOG_FLOW_START.toString} directive to ${RiderConfig.zk.address} success.")
       } else if (functionType == "routing") {
         val (instance, db, _) = namespaceDal.getNsDetail(sinkNs)
-        val tuple = Seq(streamId, flowId, currentMillSec, umsType, sinkNs, instance.connUrl, db.nsDatabase, sourceNsDatabase)
+        val tuple = Seq(streamId, flowId, currentMillSec, umsType, sinkNs, instance.connUrl, db.nsDatabase, sourceIncrementTopic)
         val directive = Await.result(directiveDal.insert(Directive(0, DIRECTIVE_ROUTER_FLOW_START.toString, streamId, flowId, "", RiderConfig.zk.address, currentSec, userId)), minTimeOut)
         //        riderLogger.info(s"user ${directive.createBy} insert ${DIRECTIVE_HDFSLOG_FLOW_START.toString} success.")
         val flow_start_ums =
@@ -785,7 +786,7 @@ object FlowUtils extends RiderLogger {
     try {
       val streamJoinNs = getStreamJoinNamespaces(tranConfig)
       val nsSeq = (streamJoinNs += sourceNs).map(ns => namespaceDal.getNamespaceByNs(ns).get)
-      val nsTopics= new StringBuffer()
+      val nsTopics= mutable.ArrayBuffer.empty[NsDatabase]
       nsSeq.distinct.foreach(ns => {
         val topicSearch = Await.result(streamInTopicDal.findByFilter(rel => rel.streamId === streamId && rel.nsDatabaseId === ns.nsDatabaseId), minTimeOut)
         if (topicSearch.isEmpty) {
@@ -799,7 +800,7 @@ object FlowUtils extends RiderLogger {
           val inTopicInsert = StreamInTopic(0, streamId, ns.nsDatabaseId, offset, RiderConfig.spark.topicDefaultRate,
             active = true, currentSec, userId, currentSec, userId)
           val inTopic = Await.result(streamInTopicDal.insert(inTopicInsert), minTimeOut)
-          nsTopics.append(database)
+          nsTopics += database
           sendTopicDirective(streamId, Seq(PutTopicDirective(database.nsDatabase, inTopic.partitionOffsets, inTopic.rate, None)),None, userId, false)
         }
       })
