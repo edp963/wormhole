@@ -32,6 +32,6 @@ case class FlowConfig(swiftsProcessConfig: Option[SwiftsProcessConfig],
                       sinkConfigStr: String,
                       consumptionDataType: Map[String, Boolean],
                       flowId: Long,
-                      sourceIncrementTopic: List[String],
+                      incrementTopics: List[String],
                       priorityId:Long) {
 }

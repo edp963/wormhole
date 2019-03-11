@@ -39,6 +39,7 @@ object OffsetPersistenceManager extends EdpLogging {
 
   val directiveList = new ConcurrentLinkedQueue[(Ums, Ums)]
 
+  val topicTypePath = "topictype"
   val rateRelativePath = "rate"
   val partitionRelativePath = "partition"
   val offsetRelativePath = "/offset"
@@ -112,11 +113,12 @@ object OffsetPersistenceManager extends EdpLogging {
       val topicName = UmsFieldType.umsFieldValue(umsTuple.tuple, subscribeTopic.schema.fields_get, "topic_name").toString
       val topicRate = UmsFieldType.umsFieldValue(umsTuple.tuple, subscribeTopic.schema.fields_get, "topic_rate").toString
       val topicPartition = UmsFieldType.umsFieldValue(umsTuple.tuple, subscribeTopic.schema.fields_get, "partitions_offset").toString
+      val topicType = UmsFieldType.umsFieldValue(umsTuple.tuple, subscribeTopic.schema.fields_get, "topic_type").toString
       val poc = topicPartition.split(",").map(tp => {
         val tpo = tp.split(":")
         PartitionOffsetConfig(tpo(0).toInt, tpo(1).toLong)
       })
-      sparkx.common.KafkaTopicConfig(topicName, topicRate.toInt, poc)
+      sparkx.common.KafkaTopicConfig(topicName, topicRate.toInt, poc, TopicType.topicType(topicType))
     })
   }
 
@@ -133,17 +135,18 @@ object OffsetPersistenceManager extends EdpLogging {
     getSubAndUnsubUms(topicStr)
   }
 
-  def readFromPersistence(zookeeperAddress: String, offsetPath: String): Seq[KafkaTopicConfig] = {
+  def readFromPersistence(zookeeperAddress: String, offsetPath: String): mutable.Seq[KafkaTopicConfig] = {
     val topicConfigList = ListBuffer.empty[KafkaTopicConfig]
     WormholeZkClient.getChildren(zookeeperAddress, offsetPath).toArray.foreach(topicNameRef => {
       val topicName = topicNameRef
       if (topicName != OffsetPersistenceManager.kafkaBaseConfigRelativePath && topicName != DirectiveOffsetWatch.watchRelativePath) {
         try {
+          val topicType = new String(WormholeZkClient.getData(zookeeperAddress, offsetPath + "/" + topicName + "/" + topicTypePath))
           val rateStr = new String(WormholeZkClient.getData(zookeeperAddress, offsetPath + "/" + topicName + "/" + rateRelativePath))
           val partitionNum = new String(WormholeZkClient.getData(zookeeperAddress, offsetPath + "/" + topicName + "/" + partitionRelativePath)).toInt
           val pocSeq: Seq[PartitionOffsetConfig] = for (i <- 0 until partitionNum) yield PartitionOffsetConfig(i, 0)
 
-          topicConfigList += sparkx.common.KafkaTopicConfig(topicName, rateStr.toInt, pocSeq)
+          topicConfigList += KafkaTopicConfig(topicName, rateStr.toInt, pocSeq, TopicType.topicType(topicType))
         } catch {
           case e: Throwable => logWarning("readFromPersistence topic " + topicName, e)
         }
@@ -154,6 +157,7 @@ object OffsetPersistenceManager extends EdpLogging {
 
   def persistTopic(topicConfigList: Seq[KafkaTopicConfig], offsetPath: String, zookeeperAddress: String): Unit = {
     topicConfigList.foreach(topic => {
+      WormholeZkClient.createAndSetData(zookeeperAddress, offsetPath + "/" + topic.topic_name + "/" + topicTypePath, topic.topic_type.toString.getBytes)
       WormholeZkClient.createAndSetData(zookeeperAddress, offsetPath + "/" + topic.topic_name + "/" + rateRelativePath, topic.topic_rate.toString.getBytes)
       WormholeZkClient.createAndSetData(zookeeperAddress, offsetPath + "/" + topic.topic_name + "/" + partitionRelativePath, topic.topic_partition.size.toString.getBytes)
     })

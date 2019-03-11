@@ -18,10 +18,10 @@
  * >>
  */
 
-package edp.wormhole.sparkx.directive
+package edp.wormhole.sparkx.router
 
-case class FlowDirectiveConfig(sourceNamespace: String, fullSinkNamespace: String, streamId: Long, directiveId: Long,
-                               swiftsStr: String, sinksStr: String, consumptionDataStr: String, dataType: String,
-                               dataParseStr: String, kerberos: Boolean, priorityId: Long) {
+case class RouterFlowConfig(brokers:String, topic:String, flowId:Long, incrementTopics:List[String]) {
+
+
 
 }

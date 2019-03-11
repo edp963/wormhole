@@ -87,8 +87,8 @@ object DirectiveFlowWatch extends EdpLogging {
       val (streamType, sourceNamespace, sinkNamespace) = getNamespaces(path)
       StreamType.streamType(streamType) match {
         case StreamType.BATCHFLOW => ConfMemoryStorage.cleanDataStorage(sourceNamespace, sinkNamespace)
-        case StreamType.HDFSLOG => HdfsMainProcess.directiveNamespaceRule.remove(sourceNamespace)
-        case StreamType.ROUTER => RouterMainProcess.removeFromRouterMap(sourceNamespace, sinkNamespace)
+        case StreamType.HDFSLOG => ConfMemoryStorage.removeFromHdfslogMap(sourceNamespace)
+        case StreamType.ROUTER => ConfMemoryStorage.removeFromRouterMap(sourceNamespace, sinkNamespace)
       }
     } catch {
       case e: Throwable => logAlert("flow remove error:", e)
