@@ -224,7 +224,7 @@ object RiderConfig {
     refactor,
     1,
     "wormhole_rider_group",
-    "wormhole_rider_group_consumer",
+    getStringConfig("kafka.consumer.group", "wormhole_rider_group_consumer"),
     getIntConfig("kafka.consumer.auto.commit.interval.ms", 120000),
     getIntConfig("kafka.consumer.batch.records", 1000),
     getFiniteDurationConfig("kafka.consumer.batch.duration", 30.seconds),

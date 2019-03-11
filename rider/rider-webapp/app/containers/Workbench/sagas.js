@@ -39,7 +39,6 @@ export function* getSourceNamespaces () {
     yield put(getError(err))
   }
 }
-
 export function* getSourceNamespacesWatcher () {
   yield fork(takeLatest, LOAD_SOURCE_NAMESPACES, getSourceNamespaces)
 }

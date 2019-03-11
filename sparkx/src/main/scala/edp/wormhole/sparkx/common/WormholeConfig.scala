@@ -21,6 +21,7 @@
 
 package edp.wormhole.sparkx.common
 
+import edp.wormhole.sparkx.common.TopicType.TopicType
 import edp.wormhole.util.config.KVConfig
 
 case class WormholeConfig(kafka_input: KafkaInputBaseConfig,
@@ -85,7 +86,8 @@ case class KafkaInputBaseConfig(`max.partition.fetch.bytes`: Int,
 
 case class KafkaTopicConfig(topic_name: String,
                             topic_rate: Int,
-                            topic_partition: Seq[PartitionOffsetConfig])
+                            topic_partition: Seq[PartitionOffsetConfig],
+                            topic_type: TopicType)
 
 case class PartitionOffsetConfig(partition_num: Int, offset: Long)
 
