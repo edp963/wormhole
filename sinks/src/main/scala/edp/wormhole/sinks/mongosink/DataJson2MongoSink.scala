@@ -121,6 +121,8 @@ class DataJson2MongoSink extends SinkProcessor{
       if (sinkProcessConfig.specialConfig.isDefined)
         JsonUtils.json2caseClass[MongoConfig](sinkProcessConfig.specialConfig.get)
       else MongoConfig()
+    var allCount = 0
+    var errorFlag = false
     try {
       SourceMutationType.sourceMutationType(sinkSpecificConfig.`mutation_type.get`) match {
         case INSERT_ONLY =>
@@ -141,7 +143,11 @@ class DataJson2MongoSink extends SinkProcessor{
     } catch {
       case e: Throwable =>
         logger.error("mongo json insert or update error", e)
+        allCount += tupleList.size
+        errorFlag = true
     } finally mongoClient.close()
+
+    if(errorFlag)throw new Exception("du json mongodb sink has error,count="+allCount)
 
   }
 
