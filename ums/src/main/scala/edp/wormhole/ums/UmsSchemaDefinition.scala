@@ -190,6 +190,15 @@ object UmsProtocolType extends Enumeration {
 
 
   def umsProtocolType(s: String) = UmsProtocolType.withName(s.toLowerCase)
+
+
+}
+
+object DataTypeEnum extends Enumeration {
+  type DataTypeEnum = Value
+
+  val UMS = Value("ums")
+  val UMS_EXTENSION = Value("ums_extendion")
 }
 
 

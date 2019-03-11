@@ -202,7 +202,7 @@ object SparkUtils extends EdpLogging {
     }
   }
 
-  def getTopicPartitionOffset(offsetInfo: ArrayBuffer[OffsetRange]): String = {
+  def getTopicPartitionOffset(offsetInfo: ArrayBuffer[OffsetRange]): JSONObject = {
     val startTopicPartitionOffsetJson = new JSONObject() //{topic,partition_offset(array)}
     offsetInfo.foreach(offsetRange => {
       val tmpJson = if (startTopicPartitionOffsetJson.containsKey(offsetRange.topic)) {
@@ -225,10 +225,6 @@ object SparkUtils extends EdpLogging {
       startTopicPartitionOffsetJson.put(offsetRange.topic,tmpJson)
     })
 
-    val resultJsonArray = new JSONArray()
-    startTopicPartitionOffsetJson.keySet().toArray().foreach(tpo=>{
-      resultJsonArray.add(startTopicPartitionOffsetJson.getJSONObject(tpo.toString))
-    })
-    resultJsonArray.toJSONString
+    startTopicPartitionOffsetJson
   }
 }
