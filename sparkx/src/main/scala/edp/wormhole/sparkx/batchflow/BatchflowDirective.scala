@@ -158,7 +158,9 @@ object BatchflowDirective extends Directive {
 
 
     ConfMemoryStorage.registerStreamLookupNamespaceMap(flowDirectiveConfig.sourceNamespace, flowDirectiveConfig.fullSinkNamespace, swiftsProcessConfig)
-    ConfMemoryStorage.registerFlowConfigMap(flowDirectiveConfig.sourceNamespace, flowDirectiveConfig.fullSinkNamespace, FlowConfig(swiftsProcessConfig, sinkProcessConfig, flowDirectiveConfig.directiveId, swiftsStrCache, flowDirectiveConfig.sinksStr, consumptionDataMap.toMap, 0, null, flowDirectiveConfig.priorityId))
+    ConfMemoryStorage.registerFlowConfigMap(flowDirectiveConfig.sourceNamespace, flowDirectiveConfig.fullSinkNamespace,
+      FlowConfig(swiftsProcessConfig, sinkProcessConfig, flowDirectiveConfig.directiveId, swiftsStrCache,
+        flowDirectiveConfig.sinksStr, consumptionDataMap.toMap, 0, flowDirectiveConfig.incrementTopics, flowDirectiveConfig.priorityId))
 
 
     ConnectionMemoryStorage.registerDataStoreConnectionsMap(flowDirectiveConfig.fullSinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
@@ -189,8 +191,10 @@ object BatchflowDirective extends Directive {
       val kerberos = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "kerberos").toString.toBoolean
       val tmpPriorityIdStr = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "priority_id")
       val priorityId = if (tmpPriorityIdStr == null) directiveId else tmpPriorityIdStr.toString.toLong
+      val sourceIncrementTopicList = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "source_increment_topic").toString.split(",").toList
 
-      val flowDirectiveConfig = FlowDirectiveConfig(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos, priorityId)
+
+      val flowDirectiveConfig = FlowDirectiveConfig(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos, priorityId,sourceIncrementTopicList)
 
       registerFlowStartDirective(flowDirectiveConfig)
     } catch {
