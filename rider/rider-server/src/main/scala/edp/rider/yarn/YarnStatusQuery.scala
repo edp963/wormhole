@@ -128,7 +128,7 @@ object YarnStatusQuery extends RiderLogger {
     //val queueName = RiderConfig.flink.yarnQueueName
     if (rmUrl != "") {
       val url = s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&startedTimeBegin=$fromTimeLong&applicationTypes=spark,apache%20flink"
-      riderLogger.info(s"Spark Application refresh yarn rest url: $url")
+      //riderLogger.info(s"Spark Application refresh yarn rest url: $url")
       queryAppListOnYarn(url, appNames)
     } else Map.empty[String, AppResult]
   }
@@ -223,19 +223,6 @@ object YarnStatusQuery extends RiderLogger {
     }
   }
 
-  def getJobManagerAddressOnYarn(appId: String): String = {
-    val activeRm = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)
-    val url = s"http://$activeRm/proxy/$appId/jars"
-    try {
-      val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
-      val json = JsonParser.apply(response.body).toString()
-      JSON.parseObject(json).getString("address").split("//")(1).trim
-    } catch {
-      case ex: Exception =>
-        riderLogger.error(s"Get Flink JobManager address failed by request url $url", ex)
-        throw ex
-    }
-  }
 
   def getFlinkJobStatusOnYarn(appIds: Seq[String]): Map[String, FlinkJobStatus] = {
     val activeRm = getActiveResourceManager(RiderConfig.spark.rm1Url, RiderConfig.spark.rm2Url)

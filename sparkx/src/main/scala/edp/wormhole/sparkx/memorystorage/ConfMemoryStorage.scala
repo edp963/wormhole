@@ -26,6 +26,9 @@ import java.lang.reflect.Method
 import edp.wormhole.common.json.FieldInfo
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.sinks.utils.SinkCommonUtils.firstTimeAfterSecond
+import edp.wormhole.sparkx.hdfslog.HdfsLogFlowConfig
+import edp.wormhole.sparkx.router.RouterFlowConfig
+import edp.wormhole.sparkx.router.RouterMainProcess.logAlert
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
 import edp.wormhole.ums.UmsField
@@ -36,21 +39,23 @@ import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.mutable
-//import org.apache.spark.rdd.RDD
-
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 object ConfMemoryStorage extends Serializable with EdpLogging {
 
-  //[sourceNs,([sinkNs,(brokers,topic)],ums/json)]
-  val routerMap = mutable.HashMap.empty[String, (mutable.HashMap[String, (String, String)], String)]
+  //[sourceNs,([sinkNs,(brokers,topic,flowId,incrementTopic)],ums/json)]
+  val routerMap = mutable.HashMap.empty[String, (mutable.HashMap[String, RouterFlowConfig], String)]
 
   //[connectionNamespace(Namespace 3 fields),(connectionUrl,username,password,kvconfig)]
   val dataStoreConnectionsMap = mutable.HashMap.empty[String, ConnectionConfig]
 
+  //Map[namespace(7fields),(json schema info1, json schema info2,flat data,flowid,incrementTopics)]
+  val hdfslogMap = mutable.HashMap.empty[String, HdfsLogFlowConfig]
+
   //[lookupNamespace,Seq[sourceNamespace,sinkNamespace]
   val lookup2SourceSinkNamespaceMap = mutable.HashMap.empty[String, mutable.HashSet[(String, String)]]
 
+  val initialTopicSet = mutable.HashSet.empty[String]
 
   // (SwiftsProcessConfig, SinkProcessConfig, directiveId, swiftsConfigStr,sinkConfigStr,consumption_data_type,ums/json)]]???
   //[sourceNamespace, [sinkNamespace, FlowConfig]]
@@ -180,6 +185,25 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
     }
   }
 
+  def removeFromRouterMap(sourceNamespace: String, sinkNamespace: String): Unit = {
+    synchronized {
+      if (ConfMemoryStorage.routerMap.contains(sourceNamespace) && ConfMemoryStorage.routerMap(sourceNamespace)._1.contains(sinkNamespace)) {
+        ConfMemoryStorage.routerMap(sourceNamespace)._1.remove(sinkNamespace)
+        if (ConfMemoryStorage.routerMap(sourceNamespace)._1.isEmpty) {
+          ConfMemoryStorage.routerMap.remove(sourceNamespace)
+        }
+      }
+    }
+  }
+
+  def removeFromHdfslogMap(sourceNamespace: String): Unit = {
+    synchronized {
+      if (ConfMemoryStorage.hdfslogMap.contains(sourceNamespace)) {
+        ConfMemoryStorage.hdfslogMap.remove(sourceNamespace)
+      }
+    }
+  }
+
   def cleanStreamLookup(sourceNamespace: String, sinkNamespace: String): Unit = {
     lookup2SourceSinkNamespaceMap.foreach(kv => {
       if (kv._2.contains(sourceNamespace, sinkNamespace)) kv._2.remove((sourceNamespace, sinkNamespace))
@@ -201,7 +225,7 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
       if (flowConfigMap.contains(sourceNamespace)) flowConfigMap(sourceNamespace) += (sinkNamespace -> flowConfig)
       else flowConfigMap(sourceNamespace) = mutable.LinkedHashMap(sinkNamespace -> flowConfig)
 
-      val tmpLinkedHashMap = mutable.LinkedHashMap(flowConfigMap(sourceNamespace).toSeq.sortBy(_._2.directiveId): _*)
+      val tmpLinkedHashMap = mutable.LinkedHashMap(flowConfigMap(sourceNamespace).toSeq.sortBy(_._2.priorityId): _*)
       flowConfigMap(sourceNamespace) = tmpLinkedHashMap
       //flowConfigMap  = mutable.LinkedHashMap(flowConfigMap.toSeq.sortBy(_._2.last._2._3): _*)
     }
@@ -356,4 +380,8 @@ object ConfMemoryStorage extends Serializable with EdpLogging {
   def getRouterKeys: Set[String] = routerMap.keySet.toSet
 
   def getRouterMap = routerMap.toMap
+
+  def getHdfslogMap = hdfslogMap.toMap
+
+  def getDefaultMap = flowConfigMap.toMap
 }
