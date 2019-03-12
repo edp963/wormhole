@@ -73,23 +73,18 @@ class SwiftsProcess(dataStream: DataStream[Row],
   }
 
   private def doFlinkSql(transformedStream: DataStream[Row], sql: String, index: Int): DataStream[Row] = {
-    var table: Table = getKeyByStream(transformedStream).toTable(tableEnv, buildExpression(): _*)
-    table.printSchema()
-
-    val projectClause = sql.substring(0, sql.toLowerCase.lastIndexOf(" from ")).trim
-    val namespaceTable = exceptionConfig.sourceNamespace.split("\\.").apply(3)
-    val fromClause = sql.substring(sql.toLowerCase.lastIndexOf(" from ")).trim
-    val whereClause = fromClause.substring(fromClause.indexOf(namespaceTable) + namespaceTable.length).trim
-    val newSql =s"""$projectClause FROM $table $whereClause"""
-    println(newSql)
-
+    var resultDataStream: DataStream[Row] = null
     try {
-      table = tableEnv.sqlQuery(newSql)
+      val namespaceTable = exceptionConfig.sourceNamespace.split("\\.").apply(3)
+      val projectClause = sql.substring(0, sql.toLowerCase.indexOf(" from ")).trim
+      tableEnv.registerDataStream(namespaceTable, getKeyByStream(transformedStream), buildExpression(): _*)
+      val table = tableEnv.sqlQuery(sql)
       table.printSchema()
       val key = s"swifts$index"
       val value = FlinkSchemaUtils.getSchemaMapFromTable(table.getSchema, projectClause, FlinkSchemaUtils.udfSchemaMap.toMap, specialConfigObj)
       preSchemaMap = value
       FlinkSchemaUtils.setSwiftsSchema(key, value)
+      resultDataStream=covertTable2Stream(table)
     } catch {
       case e: Throwable =>
         logger.error("in doFlinkSql table query", e)
@@ -97,13 +92,13 @@ class SwiftsProcess(dataStream: DataStream[Row],
 //        val feedbackInfo = UmsProtocolUtils.feedbackFlinkxFlowError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
 //        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig).doExceptionProcess(feedbackInfo)
     }
-    covertTable2Stream(table)
+    resultDataStream
   }
 
   private def getKeyByStream(transformedStream: DataStream[Row]): DataStream[Row] = {
     if (null != specialConfigObj && specialConfigObj.containsKey(FlinkxSwiftsConstants.KEY_BY_FIELDS)) {
       val streamKeyByFieldsIndex = specialConfigObj.getString(FlinkxSwiftsConstants.KEY_BY_FIELDS).split(",").map(preSchemaMap(_)._2)
-     println("in key by stream")
+      println("in key by stream")
       transformedStream.keyBy(streamKeyByFieldsIndex: _*)
     }
     else transformedStream
@@ -221,7 +216,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
     //resultDataStream.print()
     //logger.info(resultDataStream.dataType.toString + "in doLookup")
     val exceptionStream: DataStream[String] = resultDataStreamSeq.getSideOutput(lookupTag)
-    exceptionStream.map(new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig))
+    exceptionStream.map(new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config, exceptionConfig))
 
     resultDataStream
   }
