@@ -21,10 +21,7 @@ class ExceptionProcess(exceptionProcessMethod: ExceptionProcessMethod, config: W
         throw new Throwable("process error")
       case ExceptionProcessMethod.FEEDBACK =>
         WormholeKafkaProducer.init(config.kafka_output.brokers, config.kafka_output.config)
-        FlinkxUtils.setFlowErrorMessage(config.kafka_input.kafka_topics.map(_.topic_name),
-          null, config, exceptionConfig.sourceNamespace, exceptionConfig.sinkNamespace, -1,
-          feedbackFlowFlinkxError, UUID.randomUUID().toString, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
-          exceptionConfig.flowId,exceptionConfig.streamId, ErrorPattern.FlowError)
+        FlinkxUtils.sendFlowErrorMessage(feedbackFlowFlinkxError,  config, exceptionConfig.flowId)
       case _ =>
         logger.info("exception process method is: " + exceptionProcessMethod)
     }
