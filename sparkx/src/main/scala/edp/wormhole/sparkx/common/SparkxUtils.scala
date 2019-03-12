@@ -26,7 +26,6 @@ import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
-import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
 import edp.wormhole.util.DateUtils
@@ -40,7 +39,8 @@ import org.apache.spark.streaming.kafka010.OffsetRange
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-object SparkxUtils extends EdpLogging{
+object SparkxUtils {
+  private lazy val logger = Logger.getLogger(this.getClass)
 
   def setFlowErrorMessage(incrementTopicList:List[String],
                           topicPartitionOffset:JSONObject,
@@ -53,29 +53,22 @@ object SparkxUtils extends EdpLogging{
                           protocolType: String,
                           flowId:Long,
                           errorPattern:String): Unit ={
-    try {
-      logInfo("flowId:" + flowId)
-      val ts: String = null
-      val tmpJsonArray = new JSONArray()
-      val sourceTopicSet = mutable.HashSet.empty[String]
-      sourceTopicSet ++ incrementTopicList
-      sourceTopicSet ++ ConfMemoryStorage.initialTopicSet
-      sourceTopicSet.foreach(topic => {
-        tmpJsonArray.add(topicPartitionOffset.getJSONObject(topic))
-      })
+    val ts: String = null
+    val tmpJsonArray = new JSONArray()
+    val sourceTopicSet = mutable.HashSet.empty[String]
+    sourceTopicSet ++ incrementTopicList
+    sourceTopicSet ++ ConfMemoryStorage.initialTopicSet
+    sourceTopicSet.foreach(topic=>{
+      tmpJsonArray.add(topicPartitionOffset.getJSONObject(topic))
+    })
 
-      logInfo("setFlowErrorMessage:" + topicPartitionOffset.toJSONString)
-
-      WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name,
-        FeedbackPriority.feedbackPriority, UmsProtocolUtils.feedbackFlowError(sourceNamespace,
-          config.spark_config.stream_id, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
-          UmsWatermark(ts), errorCount, errorMsg, batchId, tmpJsonArray.toJSONString, protocolType,
-          flowId, errorPattern),
-        Some(UmsProtocolType.FEEDBACK_SPARKX_FLOW_ERROR + "." + config.spark_config.stream_id),
-        config.kafka_output.brokers)
-    }catch {
-      case e:Throwable=>logError("send error msg:",e)
-    }
+    WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name,
+      FeedbackPriority.feedbackPriority, UmsProtocolUtils.feedbackFlowError(sourceNamespace,
+        config.spark_config.stream_id, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
+        UmsWatermark(ts), errorCount, errorMsg, batchId, tmpJsonArray.toJSONString,protocolType,
+        flowId,errorPattern),
+      Some(UmsProtocolType.FEEDBACK_FLOW_ERROR + "." + flowId),
+      config.kafka_output.brokers)
   }
 
   def getFieldContentByTypeForSql(row: Row, schema: Array[StructField], i: Int): Any = {
@@ -101,7 +94,7 @@ object SparkxUtils extends EdpLogging{
     //    val topicConfigMap = mutable.HashMap.empty[String, ListBuffer[PartitionOffsetConfig]]
 
     offsetInfo.foreach { offsetRange =>
-      logInfo(s"----------- $offsetRange")
+      logger.info(s"----------- $offsetRange")
       //      val topicName = offsetRange.topic
       //      val partition = offsetRange.partition
       //      val offset = offsetRange.untilOffset
