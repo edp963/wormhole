@@ -12,6 +12,7 @@ case class PartitionResult(index:Int,
                            namespace: String,
                            minTs: String,
                            maxTs: String,
-                           allCount: Int) {
+                           allCount: Int,
+                           flowId:Long) {
 
 }
