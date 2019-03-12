@@ -211,7 +211,10 @@ trait UmsProtocolUtils {
                         errorCount: Int,
                         errorInfo: String,
                         batchId: String,
-                        topicPartitionOffset: String) = toJsonCompact(Ums(
+                        topicPartitionOffset: String,
+                        dataType: String,
+                        flowId: Long,
+                        errorPattern: String) = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.FEEDBACK_SPARKX_FLOW_ERROR),
     schema = UmsSchema(sourceNamespace, Some(Seq(
       UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
@@ -222,7 +225,10 @@ trait UmsProtocolUtils {
       UmsField("error_count", UmsFieldType.INT),
       UmsField("error_info", UmsFieldType.STRING),
       UmsField("batch_id", UmsFieldType.STRING),
-      UmsField("topics", UmsFieldType.STRING)))),
+      UmsField("topics", UmsFieldType.STRING),
+      UmsField("data_type", UmsFieldType.STRING),
+      UmsField("flow_id", UmsFieldType.LONG),
+      UmsField("error_pattern", UmsFieldType.STRING)))),
     payload = Some(Seq(UmsTuple(Seq(
       DateUtils.dt2string(timeNow, dtFormat),
       sinkNamespace,
@@ -232,7 +238,10 @@ trait UmsProtocolUtils {
       errorCount.toString,
       errorInfo,
       batchId,
-      topicPartitionOffset))))))
+      topicPartitionOffset,
+      dataType,
+      flowId.toString,
+      errorPattern))))))
 
   // feedback_sparkx_flow_stats
   def feedbackFlowStats(sourceNamespace: String,

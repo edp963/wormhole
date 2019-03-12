@@ -21,14 +21,14 @@ package edp.wormhole.sparkx.common
 
 import java.sql.Timestamp
 
-import edp.wormhole.common._
+import com.alibaba.fastjson.{JSONArray, JSONObject}
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
+import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
 import edp.wormhole.util.DateUtils
-import edp.wormhole.util.DateUtils.currentDateTime
 import org.apache.log4j.Logger
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
@@ -37,10 +37,39 @@ import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.streaming.kafka010.OffsetRange
 
 import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.ArrayBuffer
 
-object WormholeUtils {
+object SparkxUtils {
   private lazy val logger = Logger.getLogger(this.getClass)
+
+  def setFlowErrorMessage(incrementTopicList:List[String],
+                          topicPartitionOffset:JSONObject,
+                          config: WormholeConfig,
+                          sourceNamespace:String,
+                          sinkNamespace:String,
+                          errorCount:Int,
+                          errorMsg:String,
+                          batchId:String,
+                          protocolType: String,
+                          flowId:Long,
+                          errorPattern:String): Unit ={
+    val ts: String = null
+    val tmpJsonArray = new JSONArray()
+    val sourceTopicSet = mutable.HashSet.empty[String]
+    sourceTopicSet ++ incrementTopicList
+    sourceTopicSet ++ ConfMemoryStorage.initialTopicSet
+    sourceTopicSet.foreach(topic=>{
+      tmpJsonArray.add(topicPartitionOffset.getJSONObject(topic))
+    })
+
+    WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name,
+      FeedbackPriority.feedbackPriority, UmsProtocolUtils.feedbackFlowError(sourceNamespace,
+        config.spark_config.stream_id, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
+        UmsWatermark(ts), errorCount, errorMsg, batchId, tmpJsonArray.toJSONString,protocolType,
+        flowId,errorPattern),
+      Some(UmsProtocolType.FEEDBACK_SPARKX_FLOW_ERROR + "." + config.spark_config.stream_id),
+      config.kafka_output.brokers)
+  }
 
   def getFieldContentByTypeForSql(row: Row, schema: Array[StructField], i: Int): Any = {
     if (schema(i).dataType.toString.equals("StringType") || schema(i).dataType.toString.equals("DateType") || schema(i).dataType.toString.equals("TimestampType")) {
