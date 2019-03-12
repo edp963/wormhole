@@ -23,14 +23,14 @@ package edp.wormhole.sparkx.router
 
 import java.util.UUID
 
-import edp.wormhole.common.feedback.FeedbackPriority
+import com.alibaba.fastjson.JSONObject
+import edp.wormhole.common.feedback.ErrorPattern
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.common._
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
-import edp.wormhole.ums.{UmsCommonUtils, UmsFeedbackStatus, UmsProtocolType, UmsProtocolUtils}
-import edp.wormhole.util.DateUtils
+import edp.wormhole.ums._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
@@ -44,23 +44,19 @@ object RouterMainProcess extends EdpLogging {
   def process(stream: WormholeDirectKafkaInputDStream[String, String], config: WormholeConfig, session: SparkSession, appId: String, kafkaInput: KafkaInputConfig): Unit = {
     var zookeeperFlag = false
     stream.foreachRDD((streamRdd: RDD[ConsumerRecord[String, String]]) => {
-      val startTime = System.currentTimeMillis()
       val batchId = UUID.randomUUID().toString
       val offsetInfo: ArrayBuffer[OffsetRange] = new ArrayBuffer[OffsetRange]
       streamRdd.asInstanceOf[HasOffsetRanges].offsetRanges.copyToBuffer(offsetInfo)
       val topicPartitionOffset = SparkUtils.getTopicPartitionOffset(offsetInfo)
+      val routerMap = ConfMemoryStorage.getRouterMap
       try {
         logInfo("start foreachRDD")
         if (SparkUtils.isLocalMode(config.spark_config.master)) logWarning("rdd count ===> " + streamRdd.count())
 
-        //        val rddTs = System.currentTimeMillis
-
         logInfo("start doDirectiveTopic")
-        //        val directiveTs = System.currentTimeMillis
         RouterDirective.doDirectiveTopic(config, stream)
 
         logInfo("start Repartition")
-        //        val mainDataTs = System.currentTimeMillis
 
         val routerKeys = ConfMemoryStorage.getRouterKeys
 
@@ -69,65 +65,88 @@ object RouterMainProcess extends EdpLogging {
             (UmsCommonUtils.checkAndGetKey(row.key, row.value), row.value)
           }).repartition(config.rdd_partition_number)
           else streamRdd.map(row => (row.key, row.value))
-        dataRepartitionRdd.cache()
 
-        val routerMap = ConfMemoryStorage.getRouterMap
-
-        val allCount = dataRepartitionRdd.count()
-
-        dataRepartitionRdd.foreachPartition { partition =>
+        val errorFlows = dataRepartitionRdd.mapPartitions { partition =>
           routerMap.foreach { case (_, (map, _)) =>
-            map.foreach { case (_, (kafkaBroker, _)) => {
-              WormholeKafkaProducer.init(kafkaBroker, None, config.kerberos)
-            }
+            map.foreach { case (_, routerFlowConfig) =>
+              WormholeKafkaProducer.init(routerFlowConfig.brokers, None, config.kerberos)
             }
           }
-          partition.foreach { case (key, value) => {
 
+          //flowid,protocoltype,matchsourcenamespace,sinknamespace,errormsg,errorpattern,incrementTopicList
+          val flowErrorList = mutable.ListBuffer.empty[FlowErrorInfo]
+
+          partition.foreach { case (key, value) =>
+            val keys: Array[String] = key.split("\\.")
+            val (protocolType, sourceNamespace) = if (keys.length > 7) (keys(0).toLowerCase, keys.slice(1, 8).mkString(".")) else (keys(0).toLowerCase, "")
             val sinkNamespaceMap = mutable.HashMap.empty[String, String]
 
-            val keys: Array[String] = key.split("\\.")
-            val (protocolType, namespace) = if (keys.length > 7) (keys(0).toLowerCase, keys.slice(1, 8).mkString(".")) else (keys(0).toLowerCase, "")
-            val matchNamespace = (namespace.split("\\.").take(4).mkString(".") + ".*.*.*").toLowerCase()
+            val matchNamespace = (sourceNamespace.split("\\.").take(4).mkString(".") + ".*.*.*").toLowerCase()
             if (ConfMemoryStorage.existNamespace(routerKeys, matchNamespace)) {
-              if (routerMap(matchNamespace)._2 == "ums") {
-                logInfo("start process namespace: " + matchNamespace)
-                val messageIndex = value.lastIndexOf(namespace)
-                val prefix = value.substring(0, messageIndex)
-                val suffix = value.substring(messageIndex + namespace.length)
-                routerMap(matchNamespace)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
-                  if (!sinkNamespaceMap.contains(sinkNamespace)) sinkNamespaceMap(sinkNamespace) = getNewSinkNamespace(keys, sinkNamespace)
-
-                  val newSinkNamespace = sinkNamespaceMap(sinkNamespace)
-
-                  val messageBuf = new StringBuilder
-                  messageBuf ++= prefix ++= newSinkNamespace ++= suffix
-                  val kafkaMessage = messageBuf.toString
-                  WormholeKafkaProducer.sendMessage(kafkaTopic, kafkaMessage, Some(protocolType + "." + newSinkNamespace + "..." + UUID.randomUUID().toString), kafkaBroker)
+              try {
+                if (routerMap(matchNamespace)._2 == "ums") {
+                  logInfo("start process namespace: " + matchNamespace)
+                  val messageIndex = value.lastIndexOf(sourceNamespace)
+                  val prefix = value.substring(0, messageIndex)
+                  val suffix = value.substring(messageIndex + sourceNamespace.length)
+                  routerMap(matchNamespace)._1.foreach { case (sinkNamespace, routerFlowConfig) =>
+                    try {
+                      if (!sinkNamespaceMap.contains(sinkNamespace)) sinkNamespaceMap(sinkNamespace) = getNewSinkNamespace(keys, sinkNamespace)
+                      val newSinkNamespace = sinkNamespaceMap(sinkNamespace)
+                      val messageBuf = new StringBuilder
+                      messageBuf ++= prefix ++= newSinkNamespace ++= suffix
+                      val kafkaMessage = messageBuf.toString
+                      WormholeKafkaProducer.sendMessage(routerFlowConfig.topic, kafkaMessage, Some(protocolType + "." + newSinkNamespace + "..." + UUID.randomUUID().toString), routerFlowConfig.brokers)
+                    } catch {
+                      case e: Throwable =>
+                        logAlert(value, e)
+                        flowErrorList.append(FlowErrorInfo(routerFlowConfig.flowId, protocolType, matchNamespace, sinkNamespace, e.getMessage, ErrorPattern.FlowError, routerFlowConfig.incrementTopics, 1))
+                    }
+                  }
+                } else {
+                  routerMap(matchNamespace)._1.foreach { case (sinkNamespace, routerFlowConfig) =>
+                    WormholeKafkaProducer.sendMessage(routerFlowConfig.topic, value, Some(protocolType + "." + sinkNamespace + "..." + UUID.randomUUID().toString), routerFlowConfig.brokers)
+                  }
                 }
-              } else {
-                routerMap(matchNamespace)._1.foreach { case (sinkNamespace, (kafkaBroker, kafkaTopic)) =>
-                  WormholeKafkaProducer.sendMessage(kafkaTopic, value, Some(protocolType + "." + sinkNamespace + "..." + UUID.randomUUID().toString), kafkaBroker)
-                }
+              } catch {
+                case e: Throwable =>
+                  logAlert(value, e)
+                  routerMap(matchNamespace)._1.foreach { case (sinkNamespace, routerFlowConfig) =>
+                    flowErrorList.append(FlowErrorInfo(routerFlowConfig.flowId, protocolType, matchNamespace, sinkNamespace, e.getMessage, ErrorPattern.FlowError, routerFlowConfig.incrementTopics, 1))
+                  }
               }
             }
           }
-          }
+          flowErrorList.toIterator
+        }.collect()
+
+        if (errorFlows.nonEmpty) {
+          val flowIdSet = mutable.HashSet.empty[Long]
+          errorFlows.foreach(flowErrorInfo => {
+            if (!flowIdSet.contains(flowErrorInfo.flowId)) {
+              try {
+                flowIdSet.add(flowErrorInfo.flowId)
+                SparkxUtils.setFlowErrorMessage(flowErrorInfo.incrementTopicList,
+                  topicPartitionOffset, config, flowErrorInfo.matchSourceNamespace, flowErrorInfo.sinkNamespace, flowErrorInfo.count,
+                  flowErrorInfo.errorMsg, batchId, flowErrorInfo.protocolType, flowErrorInfo.flowId, flowErrorInfo.errorPattern)
+              } catch {
+                case e: Throwable =>
+                  logError("setFlowErrorMessage", e)
+              }
+            }
+          })
         }
-
-        dataRepartitionRdd.unpersist()
-
-//        val endTime = System.currentTimeMillis()
-//        WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
-//          UmsProtocolUtils.feedbackFlowStats("*.*.*.*.*.*.*", UmsProtocolType.DATA_INCREMENT_DATA.toString, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, "kafka.*.*.*.*.*.*", topicPartitionOffset,
-//            allCount.toInt, startTime, startTime, startTime, startTime, startTime, startTime, endTime.toString), Some(UmsProtocolType.FEEDBACK_SPARKX_FLOW_STATS + "." + config.spark_config.stream_id), config.kafka_output.brokers)
-
-        //        WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
       } catch {
         case e: Throwable =>
           logAlert("batch error", e)
-          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, DateUtils.currentDateTime, UmsFeedbackStatus.FAIL, e.getMessage, batchId, topicPartitionOffset), Some(UmsProtocolType.FEEDBACK_STREAM_BATCH_ERROR + "." + config.spark_config.stream_id), config.kafka_output.brokers)
-        //          WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
+          routerMap.foreach { case (sourceNamespace, outV) =>
+            outV._1.foreach { case (sinkNamespace, routerFlowConfig) =>
+              SparkxUtils.setFlowErrorMessage(routerFlowConfig.incrementTopics,
+                topicPartitionOffset: JSONObject, config, sourceNamespace, sinkNamespace, 1,
+                e.getMessage, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
+                routerFlowConfig.flowId, ErrorPattern.StreamError)
+            }
+          }
       }
       stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
       if (!zookeeperFlag) {
@@ -137,21 +156,12 @@ object RouterMainProcess extends EdpLogging {
         WormholeZkClient.createPath(config.zookeeper_address, config.zookeeper_path + "/" + config.spark_config.stream_id + "/" + appId)
         zookeeperFlag = true
       }
-    })
+    }
+
+    )
   }
 
-  def removeFromRouterMap(sourceNamespace: String, sinkNamespace: String): Unit = {
-    synchronized {
-      if (ConfMemoryStorage.routerMap.contains(sourceNamespace) && ConfMemoryStorage.routerMap(sourceNamespace)._1.contains(sinkNamespace)) {
-        ConfMemoryStorage.routerMap(sourceNamespace)._1.remove(sinkNamespace)
-        if (ConfMemoryStorage.routerMap(sourceNamespace)._1.isEmpty) {
-          ConfMemoryStorage.routerMap.remove(sourceNamespace)
-        }
-      } else {
-        logAlert("router from " + sourceNamespace + " to " + sinkNamespace + " does not exist")
-      }
-    }
-  }
+
 
   def getNewSinkNamespace(keys: Array[String], sinkNamespace: String): String = {
     val sinkNsGrp = sinkNamespace.split("\\.")

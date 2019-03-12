@@ -22,7 +22,7 @@ package edp.wormhole.sparkx.swifts.custom
 
 import com.alibaba.fastjson.JSON
 import edp.wormhole.dbdriver.redis.JedisConnection
-import edp.wormhole.sparkx.common.{SparkSchemaUtils, WormholeUtils}
+import edp.wormhole.sparkx.common.{SparkSchemaUtils, SparkxUtils}
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsFieldType.umsFieldType
 import edp.wormhole.util.config.{ConnectionConfig, KVConfig}

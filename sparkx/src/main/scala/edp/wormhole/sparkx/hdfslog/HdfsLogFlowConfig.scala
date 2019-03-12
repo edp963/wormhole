@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,27 +18,15 @@
  * >>
  */
 
+package edp.wormhole.sparkx.hdfslog
 
-package edp.rider.schedule
+import edp.wormhole.common.json.FieldInfo
+import edp.wormhole.ums.UmsField
 
-import akka.actor.Actor
-import edp.rider.common.{HistoryDelete, RiderLogger, Stop, RefreshYarn}
+import scala.collection.mutable.ArrayBuffer
 
-class SchedulerActor extends Actor with RiderLogger {
+case class HdfsLogFlowConfig(dataType:String, fieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)], schemaField: Seq[UmsField],flowId:Long,incrementTopics:List[String],hourDuration:Int) {
 
 
-  override def receive = {
-    case HistoryDelete =>
-      ScheduledTask.deleteHistory
-      riderLogger.info(s"Rider delete feedback data timer scheduler ${new java.util.Date().toString} start")
 
-    case RefreshYarn =>
-      ScheduledTask.updateStreamStatusByYarn
-      //riderLogger.info(s"Rider update stream status by yarn app status ${new java.util.Date().toString} start")
-
-    case Stop =>
-      super.postStop()
-  }
 }
-
-
