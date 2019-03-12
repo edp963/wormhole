@@ -25,7 +25,13 @@ import edp.wormhole.ums.UmsField
 
 import scala.collection.mutable.ArrayBuffer
 
-case class HdfsLogFlowConfig(dataType:String, fieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)], schemaField: Seq[UmsField],flowId:Long,incrementTopics:List[String],hourDuration:Int) {
+case class HdfsLogFlowConfig(dataType:String,
+                             fieldsInfo: Seq[FieldInfo],
+                             twoFieldsArr: ArrayBuffer[(String, String)],
+                             schemaField: Seq[UmsField],
+                             flowId:Long,
+                             incrementTopics:List[String],
+                             hourDuration:Int) {
 
 
 

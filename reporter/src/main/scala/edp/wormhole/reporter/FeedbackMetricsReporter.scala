@@ -18,6 +18,7 @@ class FeedbackMetricsReporter extends AbstractReporter with Scheduled {
   private lazy val sourceNamespace = new StringBuffer()
   private lazy val sinkNamespace = new StringBuffer()
   private lazy val streamId = new StringBuffer()
+  private lazy val flowId = new StringBuffer()
   private lazy val topic = new StringBuffer()
   private lazy val kerberos = new StringBuffer()
   private lazy val brokers = new StringBuffer()
@@ -27,6 +28,7 @@ class FeedbackMetricsReporter extends AbstractReporter with Scheduled {
     sourceNamespace.append(config.getString("sourceNamespace", ""))
     sinkNamespace.append(config.getString("sinkNamespace", ""))
     streamId.append(config.getString("streamId", ""))
+    flowId.append(config.getString("flowId", ""))
     topic.append(config.getString("topic", ""))
     brokers.append(config.getString("brokers", ""))
     kerberos.append(config.getString("kerberos", ""))
@@ -52,7 +54,10 @@ class FeedbackMetricsReporter extends AbstractReporter with Scheduled {
         Thread.currentThread.setContextClassLoader(null) //当kafkaProducer在单独线程里时，会存在由于classLoader加载问题，导致的StringSerilizer加载异常问题，故这里做此操作
         WormholeKafkaProducer.init(brokers.toString, None, kerberos.toString.toBoolean)
         WormholeKafkaProducer.sendMessage(topic.toString, FeedbackPriority.feedbackPriority,
-          UmsProtocolUtils.feedbackFlowStats(sourceNamespace.toString, protocolType, DateUtils.currentDateTime, streamId.toString.toLong, batchId, sinkNamespace.toString, topics, payloadSize.toInt, txt2Long(firstUmsTs), txt2Long(firstUmsTs), txt2Long(firstUmsTs), txt2Long(firstUmsTs), txt2Long(lastUmsTs), txt2Long(lastUmsTs), lastUmsTs), Some(UmsProtocolType.FEEDBACK_SPARKX_FLOW_STATS + "." + streamId), brokers.toString)
+          UmsProtocolUtils.feedbackFlowStats(sourceNamespace.toString, protocolType, DateUtils.currentDateTime, streamId.toString.toLong,
+            batchId, sinkNamespace.toString, topics, payloadSize.toInt, txt2Long(firstUmsTs), txt2Long(firstUmsTs),
+            txt2Long(firstUmsTs), txt2Long(firstUmsTs), txt2Long(lastUmsTs), txt2Long(lastUmsTs), lastUmsTs, flowId.toString.toLong),
+          Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flowId), brokers.toString)
         this.counters.keySet.iterator.next.dec(payloadSize)
       }
     }
