@@ -73,7 +73,7 @@ object CustomerUtils {
       if (!otherSinkOrigin.containsKey("kerberos") && sinkProcessConfig.specialConfig.isDefined) {
         val sinkSpecificConfig =  JSON.parseObject(sinkProcessConfig.specialConfig.getOrElse("{}"))
         if(sinkSpecificConfig.containsKey("kerberos")) {
-          otherSinkOrigin.put("kerberos", sinkSpecificConfig.getString("kerberos"))
+          otherSinkOrigin.put("kerberos", sinkSpecificConfig.getString("kerberos").toBoolean)
         }
       }
 
