@@ -215,7 +215,7 @@ trait UmsProtocolUtils {
                         dataType: String,
                         flowId: Long,
                         errorPattern: String) = toJsonCompact(Ums(
-    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_SPARKX_FLOW_ERROR),
+    protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_ERROR),
     schema = UmsSchema(sourceNamespace, Some(Seq(
       UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
       UmsField("sink_namespace", UmsFieldType.STRING),
