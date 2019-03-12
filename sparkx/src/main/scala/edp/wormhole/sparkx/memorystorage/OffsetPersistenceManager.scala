@@ -141,9 +141,9 @@ object OffsetPersistenceManager extends EdpLogging {
       val topicName = topicNameRef
       if (topicName != OffsetPersistenceManager.kafkaBaseConfigRelativePath && topicName != DirectiveOffsetWatch.watchRelativePath) {
         try {
-          val topicTypePath = offsetPath + "/" + topicName + "/" + topicTypePath
-          val topicType = if(WormholeZkClient.checkExist(zookeeperAddress,topicTypePath))
-            new String(WormholeZkClient.getData(zookeeperAddress, topicTypePath))
+          val topicTypeFullPath:String = s"${offsetPath}/${topicName}/${topicTypePath}"
+          val topicType = if(WormholeZkClient.checkExist(zookeeperAddress,topicTypeFullPath))
+            new String(WormholeZkClient.getData(zookeeperAddress, topicTypeFullPath))
           else TopicType.INITIAL.toString
 
           val rateStr = new String(WormholeZkClient.getData(zookeeperAddress, offsetPath + "/" + topicName + "/" + rateRelativePath))

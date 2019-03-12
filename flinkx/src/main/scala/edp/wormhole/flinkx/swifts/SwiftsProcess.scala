@@ -20,13 +20,16 @@
 
 package edp.wormhole.flinkx.swifts
 
+import java.util.UUID
+
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
+import edp.wormhole.common.feedback.ErrorPattern
+import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, FlinkxUtils, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
 import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput, PatternOutputFilter}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
-import edp.wormhole.ums.{UmsProtocolUtils, UmsSysField}
+import edp.wormhole.ums.{UmsProtocolType, UmsProtocolUtils, UmsSysField}
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.time.Time
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -90,9 +93,9 @@ class SwiftsProcess(dataStream: DataStream[Row],
     } catch {
       case e: Throwable =>
         logger.error("in doFlinkSql table query", e)
-        println("in doFlinkSql table query" + e)
-        val feedbackInfo = UmsProtocolUtils.feedbackFlinkxFlowError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
-        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig).doExceptionProcess(feedbackInfo)
+        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config, exceptionConfig).doExceptionProcess(e.getMessage)
+//        val feedbackInfo = UmsProtocolUtils.feedbackFlinkxFlowError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
+//        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig).doExceptionProcess(feedbackInfo)
     }
     covertTable2Stream(table)
   }
@@ -169,8 +172,17 @@ class SwiftsProcess(dataStream: DataStream[Row],
     } catch {
       case e: Throwable =>
         logger.error("doCEP error in swifts process", e)
-        val feedbackInfo = UmsProtocolUtils.feedbackFlinkxFlowError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), "", e.getMessage)
-        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig).doExceptionProcess(feedbackInfo)
+        val errorMsg = FlinkxUtils.getFlowErrorMessage(null,
+          exceptionConfig.sourceNamespace,
+          exceptionConfig.sinkNamespace,
+          1,
+          e.getMessage,
+          UUID.randomUUID().toString,
+          UmsProtocolType.DATA_INCREMENT_DATA.toString,
+          exceptionConfig.flowId,
+          exceptionConfig.streamId,
+          ErrorPattern.FlowError)
+        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config,exceptionConfig).doExceptionProcess(errorMsg)
     }
     resultDataStream
   }
