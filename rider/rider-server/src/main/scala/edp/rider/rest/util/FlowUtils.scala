@@ -1019,8 +1019,6 @@ object FlowUtils extends RiderLogger {
   }
 
   def generateFlinkFlowStartSh(appId: String, flow: Flow): String = {
-    val address = getJobManagerAddressOnYarn(appId)
-    riderLogger.info(s"Flow ${flow.id} JobManager address: $address")
     val config1 = getWhFlinkConfig(flow)
     val config2 = getFlinkFlowConfig(flow)
     val logPath = getLogPath(getFlowName(flow.id, flow.sourceNs, flow.sinkNs))
@@ -1028,7 +1026,7 @@ object FlowUtils extends RiderLogger {
     s"""
        |ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host}
        |${RiderConfig.flink.homePath}/bin/flink run
-       |-m $address ${RiderConfig.flink.jarPath} '${config1}' '${config2}'
+       |-yid $appId -yqu ${RiderConfig.flink.yarnQueueName} ${RiderConfig.flink.jarPath} '${config1}' '${config2}'
        |> $logPath 2>&1
      """.stripMargin.replaceAll("\n", " ").trim
   }
