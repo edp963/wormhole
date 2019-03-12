@@ -113,9 +113,9 @@ object BatchflowMainProcess extends EdpLogging {
         case e: Throwable =>
           logAlert("batch error", e)
 
-//          String, mutable.LinkedHashMap[String, FlowConfig]
+          //          String, mutable.LinkedHashMap[String, FlowConfig]
           ConfMemoryStorage.getDefaultMap.foreach { case (sourceNamespace, sinks) =>
-            sinks.foreach{case (sinkNamespace,flowConfig)=>
+            sinks.foreach { case (sinkNamespace, flowConfig) =>
               SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
                 topicPartitionOffset, config, sourceNamespace, sinkNamespace, -1,
                 e.getMessage, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
@@ -275,9 +275,9 @@ object BatchflowMainProcess extends EdpLogging {
             logInfo(uuid + ",do flow,matchSourceNamespace:" + matchSourceNamespace + ",sinkNamespace:" + sinkNamespace)
             val swiftsTs = System.currentTimeMillis
             ConfMemoryStorage.setEventTs(matchSourceNamespace, sinkNamespace, minTs)
-//            val (swiftsProcessConfig: Option[SwiftsProcessConfig], sinkProcessConfig, _, _, _, _) = flow._2
+            //            val (swiftsProcessConfig: Option[SwiftsProcessConfig], sinkProcessConfig, _, _, _, _) = flow._2
             val swiftsProcessConfig: Option[SwiftsProcessConfig] = flow._2.swiftsProcessConfig
-            val sinkProcessConfig:SinkProcessConfig = flow._2.sinkProcessConfig
+            val sinkProcessConfig: SinkProcessConfig = flow._2.sinkProcessConfig
             logInfo(uuid + ",start swiftsProcess")
 
             var sinkFields: Seq[UmsField] = schema._2._1
@@ -287,7 +287,7 @@ object BatchflowMainProcess extends EdpLogging {
 
             if (swiftsProcessConfig.nonEmpty && swiftsProcessConfig.get.swiftsSql.nonEmpty) {
 
-              val (returnUmsFields, tuplesRDD, unionDf) = swiftsProcess(protocolType,flowConfig,swiftsProcessConfig, uuid, session, sourceTupleRDD, config, sourceNamespace, sinkNamespace, minTs, maxTs, count, sinkFields, batchId, topicPartitionOffset)
+              val (returnUmsFields, tuplesRDD, unionDf) = swiftsProcess(protocolType, flowConfig, swiftsProcessConfig, uuid, session, sourceTupleRDD, config, sourceNamespace, sinkNamespace, minTs, maxTs, count, sinkFields, batchId, topicPartitionOffset)
               sinkFields = returnUmsFields
               sinkRDD = tuplesRDD
               afterUnionDf = unionDf
@@ -299,12 +299,12 @@ object BatchflowMainProcess extends EdpLogging {
                 validityAndSinkProcess(protocolType, sourceNamespace, sinkNamespace, session, sinkRDD, sinkFields, afterUnionDf, swiftsProcessConfig, sinkProcessConfig, config, minTs, maxTs, uuid) //,jsonUmsSysFields)
               }
               catch {
-                case e: Throwable =>
+                case e: Throwable =>{
                   logAlert("sink,sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + ",count=" + count, e)
-
                   SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
                     topicPartitionOffset, config, sourceNamespace, sinkNamespace, count,
                     e.getMessage, batchId, protocolType.toString, flowConfig.flowId, ErrorPattern.FlowError)
+                }
               }
             } else logWarning("sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + "there is nothing to sinkProcess")
 
