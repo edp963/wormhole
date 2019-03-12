@@ -67,7 +67,7 @@ object SparkxUtils {
         config.spark_config.stream_id, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
         UmsWatermark(ts), errorCount, errorMsg, batchId, tmpJsonArray.toJSONString,protocolType,
         flowId,errorPattern),
-      Some(UmsProtocolType.FEEDBACK_SPARKX_FLOW_ERROR + "." + config.spark_config.stream_id),
+      Some(UmsProtocolType.FEEDBACK_FLOW_ERROR + "." + flowId),
       config.kafka_output.brokers)
   }
 
