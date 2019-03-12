@@ -58,7 +58,7 @@ object FlinkxUtils {
         streamId, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
         UmsWatermark(ts), errorCount, errorMsg, batchId, null,protocolType,
         flowId,errorPattern),
-      Some(UmsProtocolType.FEEDBACK_SPARKX_FLOW_ERROR + "." + streamId),
+      Some(UmsProtocolType.FEEDBACK_FLOW_ERROR + "." + flowId),
       config.kafka_output.brokers)
   }
 
