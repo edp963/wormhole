@@ -78,7 +78,7 @@ object RiderStarter extends App with RiderLogger {
       riderLogger.info(s"WormholeServer Consumer started")
 
       val schedulerActor: ActorRef = system.actorOf(Props[SchedulerActor])
-      system.scheduler.schedule(20.minute, 1.days, schedulerActor, HistoryDelete)
+      system.scheduler.schedule(1.minute, 1.days, schedulerActor, HistoryDelete)
       riderLogger.info(s"Wormhole Scheduler started")
 
     case Failure(e) =>
