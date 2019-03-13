@@ -2,7 +2,7 @@ package edp.wormhole.sinks.customersink
 
 import java.lang.reflect.Method
 
-import com.alibaba.fastjson.JSONObject
+import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.ums.UmsFieldType.UmsFieldType
 import edp.wormhole.util.JsonUtils
@@ -63,13 +63,19 @@ object CustomerUtils {
           otherRetrySecondsRe
         }
         else sinkProcessConfig.retrySeconds
+
       val otherKerberos =
         if (otherSinkOrigin.containsKey("kerberos")) {
-          val otherKerberosRe = otherSinkOrigin.getString("kerberos").toBoolean
-          otherSinkOrigin.remove("kerberos")
-          otherKerberosRe
+          otherSinkOrigin.getString("kerberos").toBoolean
+          //otherSinkOrigin.remove("kerberos")
+        } else sinkProcessConfig.kerberos
+
+      if (!otherSinkOrigin.containsKey("kerberos") && sinkProcessConfig.specialConfig.isDefined) {
+        val sinkSpecificConfig =  JSON.parseObject(sinkProcessConfig.specialConfig.getOrElse("{}"))
+        if(sinkSpecificConfig.containsKey("kerberos")) {
+          otherSinkOrigin.put("kerberos", sinkSpecificConfig.getString("kerberos").toBoolean)
         }
-        else sinkProcessConfig.kerberos
+      }
 
       val otherSinkConnection =
         if (otherSinkOrigin.containsKey("sink_connection")) {

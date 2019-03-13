@@ -50,6 +50,16 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     projectSeq.map(project => (project.id, project.name)).toMap
   }
 
+  def updateStreamStatusByYarn(): Unit = {
+    val streamSeq = getStreamSeq(None, None)
+    val streamMap = streamSeq.map(stream => (stream.id, (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime)))).toMap
+    val refreshStreamSeq = getYarnAppStatus(streamSeq)
+    val updateStreamSeq = refreshStreamSeq.filter(stream => {
+      if (streamMap(stream.id) == (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime))) false else true
+    })
+    updateByRefresh(updateStreamSeq)
+  }
+
   def refreshStreamStatus(streamId: Long): Option[Stream] = {
     refreshStreamStatus(streamIdsOpt = Option(Seq(streamId))).headOption
   }

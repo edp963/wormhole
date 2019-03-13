@@ -21,7 +21,7 @@
 
 package edp.wormhole.sparkx.swifts.transform
 
-import edp.wormhole.sparkx.common.WormholeUtils
+import edp.wormhole.sparkx.common.SparkxUtils
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.swifts.SwiftsConstants
 import org.apache.spark.sql._
@@ -105,7 +105,7 @@ object SqlBinding extends EdpLogging {
       val lookupFieldsLength = lookupTableFields.length
       val fieldContent = sourceTableFields.map(fieldName => {
         val index = row.fieldIndex(fieldName)
-        WormholeUtils.getFieldContentByTypeForSql(row, schema, index)
+        SparkxUtils.getFieldContentByTypeForSql(row, schema, index)
       }).mkString(",")
       if (lookupFieldsLength == 1) fieldContent
       else "(" + fieldContent + ")"

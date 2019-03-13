@@ -341,6 +341,7 @@ export class Workbench extends React.Component {
       // }
     }
     const jobSourceNsSys = selectedOptions[selectedOptions.length - 1].nsSys
+    this.setState({jobSourceNsSys})
     if (this.state.jobDiffType === 'backfill') {
       this.setState({ backfillSinkNsValue: value.join('.'), jobSourceNsSys })
     } else if (this.state.jobDiffType === 'default') {
@@ -749,10 +750,11 @@ export class Workbench extends React.Component {
         const jobSpecialConfigVal = resultFinal.tranConfig !== ''
           ? JSON.stringify(JSON.parse(resultFinal.tranConfig).swifts_specific_config)
           : ''
-
+        this.setState({jobSourceNsSys: sourceNsArr[0]})
         this.workbenchJobForm.setFieldsValue({
           sourceDataSystem: sourceNsArr[0],
           sourceNamespace: [sourceNsArr[1], sourceNsArr[2], sourceNsArr[3]],
+          sourceNamespaceVersion: sourceNsArr[4],
           sinkDataSystem: sinkNsArr[0],
           sinkNamespace: [sinkNsArr[1], sinkNsArr[2], sinkNsArr[3]],
 
@@ -2044,9 +2046,9 @@ export class Workbench extends React.Component {
       desc: ''
     }
 
+    const sourceDataInfo = [jobSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], values.sourceNamespaceVersion, '*', '*'].join('.')
     if (jobMode === 'add') {
       // source data system 选择log后，根据接口返回的nsSys值，拼接 sourceDataInfo
-      const sourceDataInfo = [jobSourceNsSys, values.sourceNamespace[0], values.sourceNamespace[1], values.sourceNamespace[2], values.sourceNamespaceVersion, '*', '*'].join('.')
       const sinkDataInfo = jobDiffType === 'backfill' ? sourceDataInfo : [values.sinkDataSystem, values.sinkNamespace[0], values.sinkNamespace[1], values.sinkNamespace[2], '*', '*', '*'].join('.')
 
       const submitJobData = {
@@ -2063,7 +2065,10 @@ export class Workbench extends React.Component {
         this.hideJobSubmit()
       })
     } else if (jobMode === 'edit') {
-      this.props.onEditJob(Object.assign(singleJobResult, jobSparkConfigValues, requestCommon, {
+      const sourceNsData = {
+        sourceNs: sourceDataInfo
+      }
+      this.props.onEditJob(Object.assign(singleJobResult, jobSparkConfigValues, requestCommon, sourceNsData, {
         sourceConfig: `{"protocol":"${values.protocol}"}`
       }), () => {
         message.success(locale === 'en' ? 'Job is modified successfully!' : 'Job 修改成功！', 3)

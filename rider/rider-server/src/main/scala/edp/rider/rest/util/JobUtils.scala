@@ -261,7 +261,8 @@ object JobUtils extends RiderLogger {
   def getDisableAction(job: Job): String = {
     val projectNsSeq = modules.relProjectNsDal.getNsByProjectId(job.projectId)
     val nsSeq = new ListBuffer[String]
-    nsSeq += job.sourceNs
+    val sorceNsSeq = job.sourceNs.split("\\.")
+    nsSeq += sorceNsSeq(0) + "." + sorceNsSeq(1) + "." + sorceNsSeq(2) + "." + sorceNsSeq(3) + ".*" + ".*" + ".*"
     nsSeq += job.sinkNs
     var flag = true
     for (i <- nsSeq.indices) {

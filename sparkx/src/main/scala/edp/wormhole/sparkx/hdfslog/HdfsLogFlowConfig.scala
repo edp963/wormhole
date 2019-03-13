@@ -18,10 +18,21 @@
  * >>
  */
 
-package edp.wormhole.sparkx.directive
+package edp.wormhole.sparkx.hdfslog
 
-case class FlowDirectiveConfig(sourceNamespace: String, fullSinkNamespace: String, streamId: Long, directiveId: Long,
-                               swiftsStr: String, sinksStr: String, consumptionDataStr: String, dataType: String,
-                               dataParseStr: String, kerberos: Boolean, priorityId: Long,incrementTopics:List[String]) {
+import edp.wormhole.common.json.FieldInfo
+import edp.wormhole.ums.UmsField
+
+import scala.collection.mutable.ArrayBuffer
+
+case class HdfsLogFlowConfig(dataType:String,
+                             fieldsInfo: Seq[FieldInfo],
+                             twoFieldsArr: ArrayBuffer[(String, String)],
+                             schemaField: Seq[UmsField],
+                             flowId:Long,
+                             incrementTopics:List[String],
+                             hourDuration:Int) {
+
+
 
 }
