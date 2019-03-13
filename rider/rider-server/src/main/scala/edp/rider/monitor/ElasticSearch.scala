@@ -28,7 +28,7 @@ import akka.http.scaladsl.unmarshalling._
 import akka.util.ByteString
 import edp.rider.RiderStarter._
 import edp.rider.common.{RiderConfig, RiderEs, RiderLogger}
-import edp.rider.rest.persistence.entities.{Interval, MonitorInfo, MonitorInfoES}
+import edp.rider.rest.persistence.entities.{Interval, MonitorInfo}
 import edp.rider.rest.util.CommonUtils
 import edp.wormhole.util.JsonUtils
 import org.json4s.JsonAST.{JNothing, JNull}
@@ -205,8 +205,8 @@ object ElasticSearch extends RiderLogger {
           val value = JsonUtils.getJValue(jvalue, s"_source")
           val interval = JsonUtils.getJValue(value, s"interval")
 
-          val result = if (interval != JNothing) JsonUtils.json2caseClass[MonitorInfo](JsonUtils.jValue2json(value))
-          else changeMonitorInfoEsToMonitorInfo(JsonUtils.json2caseClass[MonitorInfoES](JsonUtils.jValue2json(value)))
+          val result = JsonUtils.json2caseClass[MonitorInfo](JsonUtils.jValue2json(value))
+         //if (interval != JNothing)  else changeMonitorInfoEsToMonitorInfo(JsonUtils.json2caseClass[MonitorInfoES](JsonUtils.jValue2json(value)))
 
           list += result
         })
@@ -215,17 +215,6 @@ object ElasticSearch extends RiderLogger {
       }
       (response._1, list)
     } else (false, list)
-  }
-
-  def changeMonitorInfoEsToMonitorInfo(monitor: MonitorInfoES) = {
-    MonitorInfo(0, monitor.statsId, monitor.umsTs, monitor.projectId, monitor.streamId, monitor.streamName,
-      monitor.flowId, monitor.flowNamespace, monitor.rddCount, monitor.topics, monitor.throughput,
-      monitor.dataGeneratedTs, monitor.rddTs, monitor.directiveTs, monitor.DataProcessTs, monitor.swiftsTs,
-      monitor.sinkTs, monitor.doneTs,
-      Interval(monitor.intervalDataProcessToDataums, monitor.intervalDataProcessToRdd,
-        monitor.intervalDataProcessToSwifts, monitor.intervalDataProcessToSink,
-        monitor.intervalDataProcessToDone, monitor.intervalDataumsToDone, monitor.intervalRddToDone,
-        monitor.intervalSwiftsToSink, monitor.intervalSinkToDone))
   }
 
   def deleteEsHistory(fromDate: String, endDate: String): Int = {

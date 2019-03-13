@@ -36,7 +36,7 @@
         "nullable": false
       },
       {
-        "name": "increment",  //add (increment/initial)
+        "name": "topic_type",  //add (increment/initial)
          "type": "string",
         "nullable": false
       }
