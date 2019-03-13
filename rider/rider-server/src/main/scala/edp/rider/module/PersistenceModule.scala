@@ -83,11 +83,12 @@ trait PersistenceModule {
   val udfDal: UdfDal
   val relProjectUdfDal: RelProjectUdfDal
   val relStreamUdfDal: RelStreamUdfDal
-
+  val feedbackStreamErrDal: FeedbackStreamErrorDal
+  val feedbackFlowErrDal: FeedbackFlowErrDal
   val feedbackHeartbeatDal: FeedbackHeartbeatDal
   val feedbackOffsetDal: FeedbackOffsetDal
   val feedbackDirectiveDal: BaseDal[FeedbackDirectiveTable, FeedbackDirective]
-  val feedbackFlowErrDal: FeedbackFlowErrDal
+  val feedbackErrDal: FeedbackErrDal
   val monitorInfoDal: MonitorInfoDal
 
   val instanceQuery: TableQuery[InstanceTable] = TableQuery[InstanceTable]
@@ -110,11 +111,12 @@ trait PersistenceModule {
   val udfQuery = TableQuery[UdfTable]
   val relProjectUdfQuery = TableQuery[RelProjectUdfTable]
   val relStreamUdfQuery = TableQuery[RelStreamUdfTable]
-
+  val feedbackStreamErrQuery = TableQuery[FeedbackStreamErrTable]
+  val feedbackFlowErrQuery = TableQuery[FeedbackFlowErrTable]
   val feedbackHeartBeatQuery = TableQuery[FeedbackHeartbeatTable]
   val feedbackOffsetQuery = TableQuery[FeedbackOffsetTable]
   val feedbackDirectiveQuery = TableQuery[FeedbackDirectiveTable]
-  val feedbackFlowErrQuery = TableQuery[FeedbackFlowErrTable]
+  val feedbackErrQuery = TableQuery[FeedbackErrTable]
   val monitorInfoQuery = TableQuery[MonitorInfoTable]
 
 }
@@ -142,10 +144,11 @@ trait PersistenceModuleImpl extends PersistenceModule {
   override lazy val jobDal = new JobDal(jobQuery, projectQuery)
   override lazy val udfDal = new UdfDal(udfQuery, relProjectUdfDal, relStreamUdfDal, projectDal, streamDal)
   override lazy val relProjectUdfDal = new RelProjectUdfDal(udfQuery, projectQuery, relProjectUdfQuery)
-
+  override lazy val feedbackStreamErrDal = new FeedbackStreamErrorDal(feedbackStreamErrQuery, streamDal)
+  override lazy val feedbackFlowErrDal = new FeedbackFlowErrDal(feedbackFlowErrQuery, streamDal, flowDal)
   override lazy val feedbackHeartbeatDal = new FeedbackHeartbeatDal(feedbackHeartBeatQuery, streamDal)
   override lazy val feedbackOffsetDal = new FeedbackOffsetDal(feedbackOffsetQuery)
   override lazy val feedbackDirectiveDal = new BaseDalImpl[FeedbackDirectiveTable, FeedbackDirective](feedbackDirectiveQuery)
-  override lazy val feedbackFlowErrDal= new FeedbackFlowErrDal(feedbackFlowErrQuery)
+  override lazy val feedbackErrDal= new FeedbackErrDal(feedbackErrQuery)
   override lazy val monitorInfoDal = new MonitorInfoDal(monitorInfoQuery, streamDal, flowDal)
 }

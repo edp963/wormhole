@@ -145,12 +145,12 @@ object FeedbackProcess extends RiderLogger {
             srcNamespace, sinkNamespaceValue.toString, errorCountValue.toString.toInt,
             errMaxWaterMarkTsValue.toString, errMinWaterMarkTsValue.toString,
             errorInfoValue, topics, curTs)*/
-          FeedbackFlowErr(1,CacheMap.getProjectIdByStreamId(streamIdValue.toString.toLong).getOrElse(0L),"1",streamIdValue.toString.toLong,flowIdValue.toString.toLong,srcNamespace,sinkNamespaceValue.toString,dataTypeValue.toString,errorPatternValue.toString,topics,errorCountValue.toString.toInt,
+          FeedbackErr(1,CacheMap.getProjectIdByStreamId(streamIdValue.toString.toLong).getOrElse(0L),"1",streamIdValue.toString.toLong,flowIdValue.toString.toLong,srcNamespace,sinkNamespaceValue.toString,dataTypeValue.toString,errorPatternValue.toString,topics,errorCountValue.toString.toInt,
             if(errMaxWaterMarkTsValue==null)DateUtils.currentyyyyMMddHHmmss.toString else errMaxWaterMarkTsValue.toString,  if(errMaxWaterMarkTsValue==null)DateUtils.currentyyyyMMddHHmmss.toString else errMinWaterMarkTsValue.toString,errorInfoValue,dataInfoValue,feedbackTimeValue.toString,DateUtils.currentyyyyMMddHHmmss.toString)
         })
       })
       riderLogger.info(s"insert error list:$insertSeq")
-      Await.result(modules.feedbackFlowErrDal.insert(insertSeq), minTimeOut)
+      Await.result(modules.feedbackErrDal.insert(insertSeq), minTimeOut)
     } catch {
       case ex: Exception =>
         riderLogger.error(s"process $FEEDBACK_SPARKX_FLOW_ERROR message $records failed", ex)
