@@ -64,7 +64,7 @@ class PatternCondition(schemaMap: Map[String, (TypeInformation[_], Int)],excepti
           exceptionConfig.sourceNamespace,
           exceptionConfig.sinkNamespace,
           1,
-          e.getMessage,
+          e,
           UUID.randomUUID().toString,
           UmsProtocolType.DATA_INCREMENT_DATA.toString,
           exceptionConfig.flowId,

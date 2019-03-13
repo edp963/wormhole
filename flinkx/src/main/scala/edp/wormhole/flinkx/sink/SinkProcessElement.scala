@@ -56,7 +56,7 @@ class SinkProcessElement(schemaMapWithUmsType: Map[String, (Int, UmsFieldType, B
           exceptionConfig.sourceNamespace,
           exceptionConfig.sinkNamespace,
           1,
-          ex.getMessage,
+          ex,
           UUID.randomUUID().toString,
           UmsProtocolType.DATA_INCREMENT_DATA.toString,
           exceptionConfig.flowId,

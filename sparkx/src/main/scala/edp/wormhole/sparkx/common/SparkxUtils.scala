@@ -47,7 +47,7 @@ object SparkxUtils extends EdpLogging{
                           sourceNamespace:String,
                           sinkNamespace:String,
                           errorCount:Int,
-                          errorMsg:String,
+                          error:Throwable,
                           batchId:String,
                           protocolType: String,
                           flowId:Long,
@@ -63,6 +63,7 @@ object SparkxUtils extends EdpLogging{
     })
     logInfo(s"incrementTopicList:${incrementTopicList},initialTopicSet:${ConfMemoryStorage.initialTopicSet},sourceTopicSet:${sourceTopicSet},tmpJsonArray:${tmpJsonArray}")
 
+    val errorMsg = if(error!=null)org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace(error) else null
     WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name,
       FeedbackPriority.feedbackPriority, UmsProtocolUtils.feedbackFlowError(sourceNamespace,
         config.spark_config.stream_id, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
@@ -70,6 +71,16 @@ object SparkxUtils extends EdpLogging{
         flowId,errorPattern),
       Some(UmsProtocolType.FEEDBACK_FLOW_ERROR + "." + flowId),
       config.kafka_output.brokers)
+  }
+
+  def unpersistDataFrame(df: DataFrame): Unit ={
+    if(df!=null){
+      try{
+        df.unpersist()
+      }catch{
+        case e:Throwable=>logWarning("unpersistDataFrame",e)
+      }
+    }
   }
 
   def getFieldContentByTypeForSql(row: Row, schema: Array[StructField], i: Int): Any = {
