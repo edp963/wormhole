@@ -397,7 +397,6 @@ object FlowUtils extends RiderLogger {
   }
 
   def getDisableActions(flow: Flow, projectNsSeq: Seq[String]): String = {
-
     val nsSeq = new ListBuffer[String]
     nsSeq += flow.sourceNs
     nsSeq += flow.sinkNs
@@ -802,6 +801,11 @@ object FlowUtils extends RiderLogger {
           val inTopic = Await.result(streamInTopicDal.insert(inTopicInsert), minTimeOut)
           nsTopics += database
           sendTopicDirective(streamId, Seq(PutTopicDirective(database.nsDatabase, inTopic.partitionOffsets, inTopic.rate, None)),None, userId, false)
+        }else{
+          topicSearch.foreach(ns =>{
+            val database = Await.result(databaseDal.findByFilter(_.id === ns.nsDatabaseId), minTimeOut).head
+            nsTopics += database
+          })
         }
       })
       nsTopics

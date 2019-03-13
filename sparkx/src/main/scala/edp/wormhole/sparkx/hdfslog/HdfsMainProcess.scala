@@ -496,8 +496,10 @@ object HdfsMainProcess extends EdpLogging {
       }
     } catch {
       case e: Throwable =>
-        logAlert("batch error", e)
+        logAlert("batch error:"+org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace(e)+"\n"+e.getLocalizedMessage+"\n"+e.toString)
+     //   logAlert("batch error",e)
         valid = false
+        throw e
     } finally {
       try {
         if (inputError != null)
