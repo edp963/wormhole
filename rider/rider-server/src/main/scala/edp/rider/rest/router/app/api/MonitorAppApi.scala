@@ -38,7 +38,7 @@ import edp.wormhole.util.JsonUtils
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
-class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamDal, jobDal: JobDal, feedbackErrDal: FeedbackFlowErrDal, feedbackOffsetDal: FeedbackOffsetDal, monitorInfoDal: MonitorInfoDal) extends BaseAppApiImpl(flowDal) with RiderLogger with JsonSerializer {
+class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamDal, jobDal: JobDal, feedbackErrDal: FeedbackErrDal, feedbackOffsetDal: FeedbackOffsetDal, monitorInfoDal: MonitorInfoDal) extends BaseAppApiImpl(flowDal) with RiderLogger with JsonSerializer {
 
   def getFlowHealthByIdRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows" / LongNumber / "health") {
     (projectId, streamId, flowId) =>
