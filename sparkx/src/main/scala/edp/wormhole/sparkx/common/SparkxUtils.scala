@@ -72,6 +72,16 @@ object SparkxUtils extends EdpLogging{
       config.kafka_output.brokers)
   }
 
+  def unpersistDataFrame(df: DataFrame): Unit ={
+    if(df!=null){
+      try{
+        df.unpersist()
+      }catch{
+        case e:Throwable=>logWarning("unpersistDataFrame",e)
+      }
+    }
+  }
+
   def getFieldContentByTypeForSql(row: Row, schema: Array[StructField], i: Int): Any = {
     if (schema(i).dataType.toString.equals("StringType") || schema(i).dataType.toString.equals("DateType") || schema(i).dataType.toString.equals("TimestampType")) {
       //if (row.get(i) == null) "''"  // join fields cannot be null
