@@ -63,7 +63,10 @@ object SparkxUtils extends EdpLogging{
     })
     logInfo(s"incrementTopicList:${incrementTopicList},initialTopicSet:${ConfMemoryStorage.initialTopicSet},sourceTopicSet:${sourceTopicSet},tmpJsonArray:${tmpJsonArray}")
 
-    val errorMsg = if(error!=null)org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace(error) else null
+    val errorMsg = if(error!=null){
+      val first = if(error.getStackTrace!=null&&error.getStackTrace.nonEmpty) error.getStackTrace.head.toString else ""
+      error.toString + "\n" + first
+    } else null
     WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name,
       FeedbackPriority.feedbackPriority, UmsProtocolUtils.feedbackFlowError(sourceNamespace,
         config.spark_config.stream_id, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
