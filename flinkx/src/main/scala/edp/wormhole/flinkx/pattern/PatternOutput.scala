@@ -43,7 +43,6 @@ import scala.math.Ordering
 
 class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[_], Int)]) extends java.io.Serializable {
 
-  private var aggRowchemaMap: Map[String, (TypeInformation[_], Int)] = _
   private lazy val logger = LoggerFactory.getLogger(this.getClass)
   private lazy val outputType = output.getString(TYPE.toString)
   private lazy val outputFieldList: Array[String] =
@@ -63,12 +62,10 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
 
 
   def getOutput(patternStream: PatternStream[Row], patternGenerator: PatternGenerator, keyByFields: String): DataStream[(Boolean, Row)] = {
-    val patternNameList: Seq[String] = patternGenerator.outputPatternNameList
     var flag = true
     val out = patternStream.select(patternSelectFun => {
       try {
-        val eventSeq = for (name <- patternNameList)
-          yield patternSelectFun(name)
+        val eventSeq = patternSelectFun.values
         OutputType.outputType(outputType) match {
           case AGG => buildRow(eventSeq, keyByFields)
           case FILTERED_ROW => filteredRow(eventSeq)
@@ -122,7 +119,7 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
     *
     **/
 
-  private def buildRow(input: Seq[Iterable[Row]], keyByFields: String) = {
+  private def buildRow(input: Iterable[Iterable[Row]], keyByFields: String) = {
     val outputFieldSize: Int = outputFieldList.length
     val keyByFieldsArray = if (keyByFields != null && keyByFields != "") keyByFields.split(",")
     else null
@@ -163,11 +160,7 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
   }
 
 
-  private def getNewSchemaMap = {
-    schemaMap.zipWithIndex
-  }
-
-  private def filteredRow(input: Seq[Iterable[Row]]) = {
+  private def filteredRow(input: Iterable[Iterable[Row]]) = {
     val functionType = outputFieldList.head.split(":").last
     Functions.functions(functionType) match {
       case HEAD => input.head.head
@@ -178,7 +171,7 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
     }
   }
 
-  private def maxRow(input: Seq[Iterable[Row]]) = {
+  private def maxRow(input: Iterable[Iterable[Row]]) = {
     val fieldNameOfMaxRow = outputFieldList.head.split(":").head
     val (fieldType, fieldIndex) = schemaMap(fieldNameOfMaxRow)
     fieldType match {
@@ -195,7 +188,7 @@ class PatternOutput(output: JSONObject, schemaMap: Map[String, (TypeInformation[
   }
 
 
-  private def minRow(input: Seq[Iterable[Row]]) = {
+  private def minRow(input: Iterable[Iterable[Row]]) = {
     val fieldNameOfMinRow = outputFieldList.head.split(":").head
     val (fieldType, fieldIndex) = schemaMap(fieldNameOfMinRow)
     fieldType match {

@@ -33,7 +33,7 @@ import edp.wormhole.util.DateUtils
 import scala.language.existentials
 import scala.math.{BigDecimal, Ordering}
 
-class PatternAggregation(input: Seq[Iterable[Row]], fieldName: String, schemaMap: Map[String, (TypeInformation[_], Int)]) {
+class PatternAggregation(input: Iterable[Iterable[Row]], fieldName: String, schemaMap: Map[String, (TypeInformation[_], Int)]) {
   private lazy val (fieldType, fieldIndex) = schemaMap(fieldName)
 
   def aggregationMatch(functionType: String) = {
