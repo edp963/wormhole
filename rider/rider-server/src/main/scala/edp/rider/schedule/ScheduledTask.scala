@@ -61,4 +61,13 @@ object ScheduledTask extends RiderLogger {
         riderLogger.error(s"failed to delete feedback history data", e)
     }
   }
+
+  def updateStreamStatusByYarn: Unit ={
+    try {
+      modules.streamDal.updateStreamStatusByYarn()
+    } catch {
+      case e: Exception =>
+        riderLogger.error(s"failed to update stream status by yarn app status", e)
+    }
+  }
 }

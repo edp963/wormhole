@@ -6,4 +6,6 @@ case object FeedbackWatch
 
 case object HistoryDelete
 
+case object RefreshYarn
+
 case object Stop

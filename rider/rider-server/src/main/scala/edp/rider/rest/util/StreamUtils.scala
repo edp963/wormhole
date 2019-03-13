@@ -94,7 +94,7 @@ object StreamUtils extends RiderLogger {
       s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/cluster/app/$appId/"
   }
 
-  def getStatus(action: String, streams: Seq[Stream]): Seq[Stream] = {
+  def getYarnAppStatus(streams: Seq[Stream]) = {
     val fromTime =
       if (streams.nonEmpty && streams.exists(_.startedTime.getOrElse("") != ""))
         streams.filter(_.startedTime.getOrElse("") != "").map(_.startedTime).min.getOrElse("")
@@ -107,13 +107,9 @@ object StreamUtils extends RiderLogger {
         val startedTime = if (stream.startedTime.getOrElse("") == "") null else stream.startedTime.get
         val stoppedTime = if (stream.stoppedTime.getOrElse("") == "") null else stream.stoppedTime.get
         val appInfo = {
-          if (action == "start") AppInfo("", "starting", currentSec, null)
-          else if (action == "stop") AppInfo("", "stopping", startedTime, stoppedTime)
-          else {
             val endAction =
               if (dbStatus == STARTING.toString) "refresh_log"
               else "refresh_spark"
-
             val sparkStatus: AppInfo = endAction match {
               case "refresh_spark" =>
                 getAppStatusByRest(appInfoMap, stream.sparkAppid.getOrElse(""), stream.name, stream.status, startedTime, stoppedTime)
@@ -180,8 +176,22 @@ object StreamUtils extends RiderLogger {
                 case _ => AppInfo(sparkStatus.appId, dbStatus, startedTime, stoppedTime)
               }
               resStatus
-            }
           }
+        }
+        stream.updateFromSpark(appInfo)
+      })
+  }
+
+
+  def getStatus(action: String, streams: Seq[Stream]): Seq[Stream] = {
+    streams.map(
+      stream => {
+        val startedTime = if (stream.startedTime.getOrElse("") == "") null else stream.startedTime.get
+        val stoppedTime = if (stream.stoppedTime.getOrElse("") == "") null else stream.stoppedTime.get
+        val appInfo = {
+          if (action == "start") AppInfo("", "starting", currentSec, null)
+          else if (action == "stop") AppInfo("", "stopping", startedTime, stoppedTime)
+          else AppInfo(stream.sparkAppid.getOrElse(""), stream.status, startedTime,stoppedTime )
         }
         stream.updateFromSpark(appInfo)
       })

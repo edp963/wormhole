@@ -312,8 +312,11 @@ object BatchflowMainProcess extends EdpLogging {
             val doneTs = System.currentTimeMillis
             processedSourceNamespace.add(sourceNamespace)
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
-              UmsProtocolUtils.feedbackFlowStats(sourceNamespace, protocolType.toString, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, sinkNamespace, topicPartitionOffset.toJSONString,
-                count, DateUtils.dt2date(maxTs.split("\\+")(0).replace("T", " ")).getTime, rddTs, directiveTs, mainDataTs, swiftsTs, sinkTs, doneTs.toString), Some(UmsProtocolType.FEEDBACK_SPARKX_FLOW_STATS + "." + config.spark_config.stream_id), config.kafka_output.brokers)
+              UmsProtocolUtils.feedbackFlowStats(sourceNamespace, protocolType.toString, DateUtils.currentDateTime,
+                config.spark_config.stream_id, batchId, sinkNamespace, topicPartitionOffset.toJSONString,
+                count, DateUtils.dt2date(maxTs.split("\\+")(0).replace("T", " ")).getTime,
+                rddTs, directiveTs, mainDataTs, swiftsTs, sinkTs, doneTs.toString,flow._2.flowId),
+              Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flow._2.flowId), config.kafka_output.brokers)
           }
         }
         )
@@ -671,17 +674,19 @@ object BatchflowMainProcess extends EdpLogging {
             //              WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
             //                WormholeUms.feedbackDataIncrementTermination(namespace, umsTs, config.spark_config.stream_id), Some(UmsProtocolType.FEEDBACK_DATA_INCREMENT_TERMINATION + "." + config.spark_config.stream_id), config.kafka_output.brokers)
             case UmsProtocolType.DATA_INCREMENT_HEARTBEAT =>
-
               val matchSourceNamespace = ConfMemoryStorage.getMatchSourceNamespaceRule(namespace)
               if (matchSourceNamespace != null) {
                 val sinkNamespaceMap = ConfMemoryStorage.getFlowConfigMap(matchSourceNamespace)
                 sinkNamespaceMap.foreach {
-                  case (sinkNamespace, _) =>
+                  case (sinkNamespace, flowConfig) =>
                     if (!processedSourceNamespace(namespace)) {
                       val currentTs = System.currentTimeMillis()
                       WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
-                        UmsProtocolUtils.feedbackFlowStats(namespace, UmsProtocolType.DATA_INCREMENT_DATA.toString, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, sinkNamespace, topics,
-                          0, DateUtils.dt2date(umsTs).getTime, currentTs, currentTs, currentTs, currentTs, currentTs, currentTs.toString), Some(UmsProtocolType.FEEDBACK_SPARKX_FLOW_STATS + "." + config.spark_config.stream_id), config.kafka_output.brokers)
+                        UmsProtocolUtils.feedbackFlowStats(namespace, UmsProtocolType.DATA_INCREMENT_DATA.toString,
+                          DateUtils.currentDateTime, config.spark_config.stream_id, batchId, sinkNamespace, topics,
+                          0, DateUtils.dt2date(umsTs).getTime, currentTs, currentTs, currentTs, currentTs, currentTs,
+                          currentTs.toString,flowConfig.flowId), Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flowConfig.flowId),
+                        config.kafka_output.brokers)
                     }
                 }
               }

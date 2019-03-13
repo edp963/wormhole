@@ -177,16 +177,21 @@ object UmsProtocolType extends Enumeration {
   val FEEDBACK_DATA_INCREMENT_TERMINATION = Value("feedback_data_increment_termination")
   val FEEDBACK_FLOW_START_DIRECTIVE = Value("feedback_flow_start_directive")
   val FEEDBACK_FLOW_ERROR = Value("feedback_flow_error")
+  val FEEDBACK_FLOW_STATS = Value("feedback_flow_stats")
 
   @Deprecated
-  val FEEDBACK_DIRECTIVE = Value("feedback_directive")
-  val FEEDBACK_SPARKX_FLOW_ERROR = Value("feedback_sparkx_flow_error")
-  val FEEDBACK_FLOW_SPARKX_ERROR = Value("feedback_flow_sparkx_error")
   val FEEDBACK_SPARKX_FLOW_STATS = Value("feedback_sparkx_flow_stats")
+  @Deprecated
+  val FEEDBACK_DIRECTIVE = Value("feedback_directive")
+  @Deprecated
+  val FEEDBACK_SPARKX_FLOW_ERROR = Value("feedback_sparkx_flow_error")
+  @Deprecated
+  val FEEDBACK_FLOW_SPARKX_ERROR = Value("feedback_flow_sparkx_error")
+  @Deprecated
   val FEEDBACK_FLINKX_FLOW_ERROR = Value("feedback_flinkx_flow_error")
-
-  val FEEDBACK_FLOW_STATS = Value("feedback_flow_stats")
+  @Deprecated
   val FEEDBACK_STREAM_BATCH_ERROR = Value("feedback_stream_batch_error")
+  @Deprecated
   val FEEDBACK_STREAM_TOPIC_OFFSET = Value("feedback_stream_topic_offset")
 
 
