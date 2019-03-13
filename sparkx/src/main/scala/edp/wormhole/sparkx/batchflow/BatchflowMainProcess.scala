@@ -118,7 +118,7 @@ object BatchflowMainProcess extends EdpLogging {
             sinks.foreach{case (sinkNamespace,flowConfig)=>
               SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
                 topicPartitionOffset, config, sourceNamespace, sinkNamespace, -1,
-                e.getMessage, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
+                e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
                 flowConfig.flowId, ErrorPattern.StreamError)
             }
           }
@@ -304,7 +304,7 @@ object BatchflowMainProcess extends EdpLogging {
 
                   SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
                     topicPartitionOffset, config, sourceNamespace, sinkNamespace, count,
-                    e.getMessage, batchId, protocolType.toString, flowConfig.flowId, ErrorPattern.FlowError)
+                    e, batchId, protocolType.toString, flowConfig.flowId, ErrorPattern.FlowError)
               }
             } else logWarning("sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + "there is nothing to sinkProcess")
 
@@ -402,7 +402,7 @@ object BatchflowMainProcess extends EdpLogging {
         logAlert(uuid + ",swifts,sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + ",count=" + count, e)
         SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
           topicPartitionOffset, config, sourceNamespace, sinkNamespace, count,
-          e.getMessage, batchId, protocolType.toString, flowConfig.flowId, ErrorPattern.FlowError)
+          e, batchId, protocolType.toString, flowConfig.flowId, ErrorPattern.FlowError)
         (null, null, afterUnionDf)
     }
   }

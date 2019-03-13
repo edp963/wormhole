@@ -24,7 +24,7 @@ class PatternOutputFilter(exceptionConfig: ExceptionConfig, config: WormholeFlin
         exceptionConfig.sourceNamespace,
         exceptionConfig.sinkNamespace,
         1,
-        "",
+        null,
         UUID.randomUUID().toString,
         UmsProtocolType.DATA_INCREMENT_DATA.toString,
         exceptionConfig.flowId,

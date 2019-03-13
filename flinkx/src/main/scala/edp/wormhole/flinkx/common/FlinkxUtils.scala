@@ -47,7 +47,7 @@ object FlinkxUtils {
                           sourceNamespace: String,
                           sinkNamespace: String,
                           errorCount: Int,
-                          errorMsg: String,
+                          error: Throwable,
                           batchId: String,
                           protocolType: String,
                           flowId: Long,
@@ -55,6 +55,7 @@ object FlinkxUtils {
                           errorPattern: String): String = {
     val ts: String = null
 
+    val errorMsg = if(error!=null)org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace(error) else null
     UmsProtocolUtils.feedbackFlowError(sourceNamespace,
       streamId, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
       UmsWatermark(ts), errorCount, errorMsg, batchId, null, protocolType,
