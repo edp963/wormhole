@@ -114,7 +114,6 @@ object FeedbackProcess extends RiderLogger {
         val fields = record.schema.fields_get
 //        val curTs = currentMillSec
         record.payload_get.map(tuple => {
-          val feedbackTimeValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "feedbak_time")
           val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
           val flowIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "flow_id")
           val dataTypeValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_type")
@@ -134,12 +133,20 @@ object FeedbackProcess extends RiderLogger {
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics") != null)
               UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics").toString
             else null
+          val feedbackTimeValue =
+            if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_") != null)
+               UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
+            else DateUtils.currentyyyyMMddHHmmss
+          val errorPatternValue=
+            if(UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_pattern")!=null)
+              UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_pattern")
+            else ""
 /*          FeedbackFlowErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
             srcNamespace, sinkNamespaceValue.toString, errorCountValue.toString.toInt,
             errMaxWaterMarkTsValue.toString, errMinWaterMarkTsValue.toString,
             errorInfoValue, topics, curTs)*/
-          FeedbackFlowErr(1,CacheMap.getProjectIdByStreamId(streamIdValue.toString.toLong).getOrElse(0L),"1",streamIdValue.toString.toLong,flowIdValue.toString.toLong,srcNamespace,sinkNamespaceValue.toString,dataTypeValue.toString,"sparkx",topics,errorCountValue.toString.toInt,
-            errMaxWaterMarkTsValue.toString,  errMinWaterMarkTsValue.toString,errorInfoValue,dataInfoValue,feedbackTimeValue.toString)
+          FeedbackFlowErr(1,CacheMap.getProjectIdByStreamId(streamIdValue.toString.toLong).getOrElse(0L),"1",streamIdValue.toString.toLong,flowIdValue.toString.toLong,srcNamespace,sinkNamespaceValue.toString,dataTypeValue.toString,errorPatternValue.toString,topics,errorCountValue.toString.toInt,
+            if(errMaxWaterMarkTsValue==null)DateUtils.currentyyyyMMddHHmmss.toString else errMaxWaterMarkTsValue.toString,  if(errMaxWaterMarkTsValue==null)DateUtils.currentyyyyMMddHHmmss.toString else errMinWaterMarkTsValue.toString,errorInfoValue,dataInfoValue,feedbackTimeValue.toString,DateUtils.currentyyyyMMddHHmmss.toString)
         })
       })
       riderLogger.info(s"insert error list:$insertSeq")

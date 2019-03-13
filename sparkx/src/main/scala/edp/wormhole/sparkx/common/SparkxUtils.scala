@@ -56,8 +56,8 @@ object SparkxUtils extends EdpLogging{
     val ts: String = null
     val tmpJsonArray = new JSONArray()
     val sourceTopicSet = mutable.HashSet.empty[String]
-    sourceTopicSet ++ incrementTopicList
-    sourceTopicSet ++ ConfMemoryStorage.initialTopicSet
+    sourceTopicSet ++= incrementTopicList
+    sourceTopicSet ++= ConfMemoryStorage.initialTopicSet
     sourceTopicSet.foreach(topic=>{
       tmpJsonArray.add(topicPartitionOffset.getJSONObject(topic))
     })
