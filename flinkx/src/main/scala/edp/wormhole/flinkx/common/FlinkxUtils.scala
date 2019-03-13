@@ -55,7 +55,10 @@ object FlinkxUtils {
                           errorPattern: String): String = {
     val ts: String = null
 
-    val errorMsg = if(error!=null)org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace(error) else null
+    val errorMsg = if(error!=null){
+      val first = if(error.getStackTrace!=null&&error.getStackTrace.nonEmpty) error.getStackTrace.head.toString else ""
+      error.toString + "\n" + first
+    } else null
     UmsProtocolUtils.feedbackFlowError(sourceNamespace,
       streamId, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
       UmsWatermark(ts), errorCount, errorMsg, batchId, null, protocolType,

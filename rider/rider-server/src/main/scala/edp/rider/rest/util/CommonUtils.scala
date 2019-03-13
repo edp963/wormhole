@@ -46,7 +46,7 @@ object CommonUtils extends RiderLogger {
 
   def minTimeOut = 120.seconds
 
-  def maxTimeOut = 600.seconds
+  def maxTimeOut = 5.minute
 
   def streamSubmitTimeout = 120.seconds
 

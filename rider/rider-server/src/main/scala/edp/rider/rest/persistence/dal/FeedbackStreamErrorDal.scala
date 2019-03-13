@@ -30,11 +30,12 @@ import slick.lifted.TableQuery
 
 import scala.concurrent.Await
 
-class FeedbackHeartbeatDal(heartbeatTable: TableQuery[FeedbackHeartbeatTable], streamDal: StreamDal) extends BaseDalImpl[FeedbackHeartbeatTable, FeedbackHeartbeat](heartbeatTable) {
+class FeedbackStreamErrorDal(streamErrorTable: TableQuery[FeedbackStreamErrTable], streamDal: StreamDal) extends BaseDalImpl[FeedbackStreamErrTable, FeedbackStreamErr](streamErrorTable) {
+
 
   def deleteHistory(pastNdays: String) = {
     val deleteMaxId = Await.result(
-      db.run(heartbeatTable.withFilter(_.feedbackTime <= pastNdays).map(_.id).max.result).mapTo[Option[Long]], minTimeOut)
+      db.run(streamErrorTable.withFilter(_.feedbackTime <= pastNdays).map(_.id).max.result).mapTo[Option[Long]], minTimeOut)
     if (deleteMaxId.nonEmpty) Await.result(super.deleteByFilter(_.id <= deleteMaxId), maxTimeOut)
   }
 }
