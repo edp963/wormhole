@@ -23,7 +23,6 @@ package edp.rider.rest.persistence.dal
 
 import edp.rider.RiderStarter.modules._
 import edp.rider.common.{FlowStatus, RiderLogger, StreamStatus, StreamType}
-import edp.rider.kafka.CacheMap
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
@@ -258,7 +257,6 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
       }
       riderLogger.info(s"delete flow ${flow.id}: $flow")
       Await.result(super.deleteById(flow.id), minTimeOut)
-      CacheMap.flowCacheMapRefresh
     })
     riderLogger.info(s"user $userId delete flow ${
       flowSeq.map(_.id).mkString(",")

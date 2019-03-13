@@ -507,16 +507,17 @@ CREATE TABLE IF NOT EXISTS `feedback_flow_stats` (
 CREATE TABLE IF NOT EXISTS `feedback_error` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `batch_id` VARCHAR(32) NOT NULL,
-  `stream_id` BIGIN NOT NULL,
+  `stream_id` BIGINT NOT NULL,
   `flow_id` BIGINT NOT NULL,
   `source_ns` VARCHAR(1000) NOT NULL,
   `sink_ns` VARCHAR(1000) NOT NULL,
-  `data_type` VARCHAR(32) NOT NULL,
+  `data_type` VARCHAR(60) NOT NULL,
   `error_pattern` VARCHAR(32) NOT NULL,
-  `topics` VARCHAR(2000) NOT NULL,
+  `topics` VARCHAR(2000) NULL,
   `error_count` INT NULL,
   `error_max_watermark_ts` DATETIME NULL,
   `error_min_watermark_ts` DATETIME NULL,
+  `data_info` TEXT NULL,
   `error_info` TEXT NULL,
   `feedback_time` DATETIME NOT NULL DEFAULT '1970-01-01 08:00:01',
   `create_time` DATETIME NOT NULL DEFAULT '1970-01-01 08:00:01',
@@ -525,3 +526,4 @@ CREATE TABLE IF NOT EXISTS `feedback_error` (
   KEY `flowId` (`flow_id`)
 )ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+alter table `feedback_error` add column `project_id` BIGINT NOT NULL after `id`;

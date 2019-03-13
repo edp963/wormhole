@@ -21,6 +21,8 @@
 
 package edp.rider.kafka
 
+import java.util.Date
+
 import edp.rider.RiderStarter.modules
 import edp.rider.common.FlowStatus._
 import edp.rider.common.{RiderConfig, RiderLogger}
@@ -104,16 +106,17 @@ object FeedbackProcess extends RiderLogger {
     })
   }
 
-  def doSparkxFlowError(records: List[Ums]): Unit = {
+  def doFeedbackError(records: List[Ums]): Unit = {
     try {
       val insertSeq = records.flatMap(record => {
-        val protocolType = record.protocol.`type`.toString
+//        val protocolType = record.protocol.`type`.toString
         val srcNamespace: String = record.schema.namespace.toLowerCase
         val fields = record.schema.fields_get
-        val curTs = currentMillSec
+//        val curTs = currentMillSec
         record.payload_get.map(tuple => {
-          val umsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
           val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
+          val flowIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "flow_id")
+          val dataTypeValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_type")
           val sinkNamespaceValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace")
           val errMaxWaterMarkTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_max_watermark_ts")
           val errMinWaterMarkTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_min_watermark_ts")
@@ -122,25 +125,39 @@ object FeedbackProcess extends RiderLogger {
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info") != null)
               UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_info").toString
             else ""
+          val dataInfoValue =
+            if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_info") != null)
+              UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_info").toString
+            else ""
           val topics =
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics") != null)
               UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics").toString
             else null
-
-          FeedbackFlowErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
+          val feedbackTimeValue =
+            if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_") != null)
+               UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
+            else DateUtils.currentyyyyMMddHHmmss
+          val errorPatternValue=
+            if(UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_pattern")!=null)
+              UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_pattern")
+            else ""
+/*          FeedbackFlowErr(1, protocolType.toString, umsTsValue.toString, streamIdValue.toString.toLong,
             srcNamespace, sinkNamespaceValue.toString, errorCountValue.toString.toInt,
             errMaxWaterMarkTsValue.toString, errMinWaterMarkTsValue.toString,
-            errorInfoValue, topics, curTs)
+            errorInfoValue, topics, curTs)*/
+          FeedbackErr(1,CacheMap.getProjectIdByStreamId(streamIdValue.toString.toLong).getOrElse(0L),"1",streamIdValue.toString.toLong,flowIdValue.toString.toLong,srcNamespace,sinkNamespaceValue.toString,dataTypeValue.toString,errorPatternValue.toString,topics,errorCountValue.toString.toInt,
+            if(errMaxWaterMarkTsValue==null)DateUtils.currentyyyyMMddHHmmss.toString else errMaxWaterMarkTsValue.toString,  if(errMaxWaterMarkTsValue==null)DateUtils.currentyyyyMMddHHmmss.toString else errMinWaterMarkTsValue.toString,errorInfoValue,dataInfoValue,feedbackTimeValue.toString,DateUtils.currentyyyyMMddHHmmss.toString)
         })
       })
-      Await.result(modules.feedbackFlowErrDal.insert(insertSeq), minTimeOut)
+      riderLogger.info(s"insert error list:$insertSeq")
+      Await.result(modules.feedbackErrDal.insert(insertSeq), minTimeOut)
     } catch {
       case ex: Exception =>
         riderLogger.error(s"process $FEEDBACK_SPARKX_FLOW_ERROR message $records failed", ex)
     }
   }
 
-  def doStreamBatchError(records: List[Ums]): Unit = {
+/*  def doStreamBatchError(records: List[Ums]): Unit = {
     try {
       val insertSeq = records.flatMap(record => {
         val protocolType = record.protocol.`type`.toString
@@ -159,11 +176,11 @@ object FeedbackProcess extends RiderLogger {
             statusValue.toString, resultDescValue.toString, topics, curTs)
         })
       })
-      Await.result(modules.feedbackStreamErrDal.insert(insertSeq), minTimeOut)
+      Await.result(modules.feedbackErrDal.insert(insertSeq), minTimeOut)
     } catch {
       case ex: Exception => riderLogger.error(s"process $FEEDBACK_STREAM_BATCH_ERROR message $records failed", ex)
     }
-  }
+  }*/
 
   @Deprecated
   def doFeedbackStreamTopicOffset(message: Ums): Unit = {
@@ -201,35 +218,31 @@ object FeedbackProcess extends RiderLogger {
         val fields = record.schema.fields_get
         var throughput: Long = 0
         record.payload_get.map(tuple => {
-          val umsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
           val streamIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "stream_id")
+          val flowIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "flow_id")
           val batchIdValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "batch_id")
+          val dataTypeValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_type")
           val topics = UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics")
           val sinkNamespaceValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace").toString
           val rddCountValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_count").toString.toInt
+          val feedbackTime =  UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
           //todo 兼容0.6.0及之前版本stream feedback数据
           val cdcTsValue =
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_generated_ts") != null)
               UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_generated_ts").toString.toLong
             else UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_genereated_ts").toString.toLong
           val rddTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_generated_ts").toString.toLong
-          val directiveTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "directive_process_start_ts").toString.toLong
-          val mainDataTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_process_start_ts").toString.toLong
+         val mainDataTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_process_start_ts").toString.toLong
           val swiftsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "swifts_start_ts").toString.toLong
           val sinkTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_start_ts").toString.toLong
           val doneTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "done_ts").toString.toLong
 
           val riderSinkNamespace = if (sinkNamespaceValue.toString == "") riderNamespace else namespaceRiderString(sinkNamespaceValue.toString)
-          val flowName = s"${
-            riderNamespace
-          }_$riderSinkNamespace"
+
           val interval_data_process_dataums = (mainDataTsValue.toString.toLong - cdcTsValue.toString.toLong) / 1000
           val interval_data_process_rdd = (rddTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
-          val interval_data_process_swifts = (swiftsTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
-          val interval_data_process_sink = (sinkTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
           val interval_data_process_done = (doneTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
-
-          val interval_data_ums_done = (doneTsValue.toString.toLong - cdcTsValue.toString.toLong) / 1000
+          val interval_rdd_swifts = (swiftsTsValue.toString.toLong - rddTsValue.toString.toLong) / 1000
           val interval_rdd_done = (doneTsValue.toString.toLong - rddTsValue.toString.toLong) / 1000
           val interval_data_swifts_sink = (sinkTsValue.toString.toLong - swiftsTsValue.toString.toLong) / 1000
           val interval_data_sink_done = (doneTsValue.toString.toLong - sinkTsValue.toString.toLong) / 1000
@@ -239,19 +252,17 @@ object FeedbackProcess extends RiderLogger {
           } else throughput = rddCountValue.toString.toInt / interval_rdd_done
 
           val monitorInfo = MonitorInfo(0L, batchIdValue.toString,
-            string2EsDateString(umsTsValue.toString),
-            CacheMap.getProjectId(streamIdValue.toString.toLong), streamIdValue.toString.toLong,
-            CacheMap.getStreamName(streamIdValue.toString.toLong), CacheMap.getFlowId(flowName), flowName,
+            streamIdValue.toString.toLong,flowIdValue.toString.toLong,
+            riderNamespace,riderSinkNamespace,dataTypeValue.toString,
             rddCountValue.toString.toInt, if (topics == null) "" else topics.toString, throughput,
             string2EsDateString(DateUtils.dt2string(cdcTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(rddTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
-            string2EsDateString(DateUtils.dt2string(directiveTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(mainDataTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(swiftsTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(sinkTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(doneTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
-            Interval(interval_data_process_dataums, interval_data_process_rdd, interval_data_process_swifts, interval_data_process_sink, interval_data_process_done,
-              interval_data_ums_done, interval_rdd_done, interval_data_swifts_sink, interval_data_sink_done))
+            Interval(interval_data_process_dataums, interval_data_process_rdd, interval_rdd_swifts,  interval_data_process_done,
+                interval_data_swifts_sink, interval_data_sink_done),feedbackTime.toString)
           monitorInfo
         })
       })

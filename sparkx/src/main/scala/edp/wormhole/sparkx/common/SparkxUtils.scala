@@ -56,8 +56,8 @@ object SparkxUtils extends EdpLogging{
     val ts: String = null
     val tmpJsonArray = new JSONArray()
     val sourceTopicSet = mutable.HashSet.empty[String]
-    sourceTopicSet ++ incrementTopicList
-    sourceTopicSet ++ ConfMemoryStorage.initialTopicSet
+    sourceTopicSet ++= incrementTopicList
+    sourceTopicSet ++= ConfMemoryStorage.initialTopicSet
     sourceTopicSet.foreach(topic=>{
       tmpJsonArray.add(topicPartitionOffset.getJSONObject(topic))
     })
@@ -142,7 +142,6 @@ object SparkxUtils extends EdpLogging{
   }
 
   /*def dataParse(jsonStr: String, allFieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)]): Seq[UmsTuple] = {
-
     val jsonParse = JSON.parseObject(jsonStr)
     val fieldNameSeq = twoFieldsArr.map(_._1)
 //    val outFieldNameSeq=allFieldsInfo.map(_.name)
@@ -256,7 +255,6 @@ object SparkxUtils extends EdpLogging{
               }
               else record.append(jsonValue.getString(name))
             }
-
           }
           subFieldsInfo.foreach(subField=>
             arrayProcess(subField, content)
@@ -309,8 +307,6 @@ object SparkxUtils extends EdpLogging{
     }
     resultSeq
   }
-
-
   def dataTypeProcess(dataType: String): String = {
     //    var result=dataType
     val typeArr: Array[String] = dataType.split("")
@@ -318,14 +314,12 @@ object SparkxUtils extends EdpLogging{
     if (typeArr.slice(arrLen - 5, arrLen).mkString("") == "array" && dataType != "jsonarray") "simplearray"
     else dataType
   }
-
   def convertLongTimestamp(timestampStr: String) = {
     if (timestampStr.substring(0,2)=="20") {
       dt2timestamp(timestampStr)
     }
     else {
       val timestampLong = (timestampStr+"000000").substring(0,16).toLong
-
       dt2timestamp(timestampLong)
     }
   }*/

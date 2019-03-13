@@ -38,7 +38,7 @@ import edp.wormhole.util.JsonUtils
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
-class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamDal, jobDal: JobDal, feedbackFlowErrDal: FeedbackFlowErrDal, feedbackOffsetDal: FeedbackOffsetDal, monitorInfoDal: MonitorInfoDal) extends BaseAppApiImpl(flowDal) with RiderLogger with JsonSerializer {
+class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamDal, jobDal: JobDal, feedbackErrDal: FeedbackErrDal, feedbackOffsetDal: FeedbackOffsetDal, monitorInfoDal: MonitorInfoDal) extends BaseAppApiImpl(flowDal) with RiderLogger with JsonSerializer {
 
   def getFlowHealthByIdRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows" / LongNumber / "health") {
     (projectId, streamId, flowId) =>
@@ -67,9 +67,9 @@ class MonitorAppApi(flowDal: FlowDal, projectDal: ProjectDal, streamDal: StreamD
                       try {
                         flowDal.updateStatusByFeedback(flowStream.id, flowStream.status)
                         val maxWatermark =
-                          Await.result(feedbackFlowErrDal.getSinkErrorMaxWatermark(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse("")
-                        val minWatermark = Await.result(feedbackFlowErrDal.getSinkErrorMinWatermark(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse("")
-                        val errorCount = Await.result(feedbackFlowErrDal.getSinkErrorCount(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse(0L)
+                          Await.result(feedbackErrDal.getSinkErrorMaxWatermark(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse("")
+                        val minWatermark = Await.result(feedbackErrDal.getSinkErrorMinWatermark(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse("")
+                        val errorCount = Await.result(feedbackErrDal.getSinkErrorCount(streamId, flowStream.sourceNs, flowStream.sinkNs), maxTimeOut).getOrElse(0L)
                         val fLatestWatermark = if (RiderConfig.monitor.databaseType.trim.equalsIgnoreCase("es")) ElasticSearch.queryESFlowMax(projectId, streamId, flowId, "dataGeneratedTs")._2
                         else Await.result(monitorInfoDal.queryESFlowLastestTs(projectId, streamId, flowId), maxTimeOut).getOrElse("")
                         val hdfsFlow = flowDal.getByNsOnly(flowStream.sourceNs, flowStream.sourceNs)

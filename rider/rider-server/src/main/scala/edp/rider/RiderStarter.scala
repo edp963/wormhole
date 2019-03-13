@@ -59,10 +59,10 @@ object RiderStarter extends App with RiderLogger {
     case Success(_) =>
       riderLogger.info(s"WormholeServer http://${RiderConfig.riderServer.host}:${RiderConfig.riderServer.port}/.")
 
+      CacheMap.init
+
       if (Await.result(modules.userDal.findByFilter(_.email === RiderConfig.riderServer.adminUser), minTimeOut).isEmpty)
         Await.result(modules.userDal.insert(User(0, RiderConfig.riderServer.adminUser, RiderConfig.riderServer.adminPwd, RiderConfig.riderServer.adminUser, "admin", RiderConfig.riderServer.defaultLanguage, active = true, currentSec, 1, currentSec, 1)), minTimeOut)
-
-      CacheMap.cacheMapInit
 
       if (RiderConfig.monitor.databaseType.equalsIgnoreCase("es"))
         ElasticSearch.initial(RiderConfig.es)
