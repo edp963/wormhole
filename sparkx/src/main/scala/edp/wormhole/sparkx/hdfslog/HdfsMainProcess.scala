@@ -140,7 +140,7 @@ object HdfsMainProcess extends EdpLogging {
             } catch {
               case e: Throwable =>
                 logAlert("sink,sourceNamespace=" + namespace + ", count = " + tmpCount, e)
-                flowErrorList.append(FlowErrorInfo(flowConfig.flowId, protocol, namespace, namespace, e.getMessage, ErrorPattern.FlowError,
+                flowErrorList.append(FlowErrorInfo(flowConfig.flowId, protocol, namespace, namespace, e, ErrorPattern.FlowError,
                   flowConfig.incrementTopics, -1))
             }
           }
@@ -175,7 +175,7 @@ object HdfsMainProcess extends EdpLogging {
                 flowIdSet.add(flowErrorInfo.flowId)
                 SparkxUtils.setFlowErrorMessage(flowErrorInfo.incrementTopicList,
                   topicPartitionOffset, config, flowErrorInfo.matchSourceNamespace, flowErrorInfo.sinkNamespace, flowErrorInfo.count,
-                  flowErrorInfo.errorMsg, batchId, flowErrorInfo.protocolType, flowErrorInfo.flowId, flowErrorInfo.errorPattern)
+                  flowErrorInfo.error, batchId, flowErrorInfo.protocolType, flowErrorInfo.flowId, flowErrorInfo.errorPattern)
               } catch {
                 case e: Throwable =>
                   logError("setFlowErrorMessage", e)
@@ -214,7 +214,7 @@ object HdfsMainProcess extends EdpLogging {
           hdfslogMap.foreach { case (sourceNamespace, flowConfig) =>
             SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
               topicPartitionOffset, config, sourceNamespace, sourceNamespace, -1,
-              e.getMessage, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
+              e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
               flowConfig.flowId, ErrorPattern.StreamError)
 
           }
@@ -496,10 +496,8 @@ object HdfsMainProcess extends EdpLogging {
       }
     } catch {
       case e: Throwable =>
-        logAlert("batch error:"+org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace(e)+"\n"+e.getLocalizedMessage+"\n"+e.toString)
-     //   logAlert("batch error",e)
+        logAlert("batch error", e)
         valid = false
-        throw e
     } finally {
       try {
         if (inputError != null)
@@ -551,5 +549,3 @@ object HdfsMainProcess extends EdpLogging {
     }
   }
 }
-
-
