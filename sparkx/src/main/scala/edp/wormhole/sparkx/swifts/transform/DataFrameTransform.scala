@@ -287,7 +287,7 @@ object DataFrameTransform extends EdpLogging {
       case e: Throwable =>
         logError("getMapDf", e)
         session.sqlContext.dropTempTable(tmpTableName)
-        null.asInstanceOf[DataFrame]
+        throw e
     }
   }
 

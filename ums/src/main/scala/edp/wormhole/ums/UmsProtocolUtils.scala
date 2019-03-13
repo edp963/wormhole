@@ -21,12 +21,11 @@
 
 package edp.wormhole.ums
 
+import edp.wormhole.ums.UmsFeedbackStatus.UmsFeedbackStatus
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums.UmsSchemaUtils._
-import org.joda.time.DateTime
-import edp.wormhole.ums.UmsFeedbackStatus.UmsFeedbackStatus
-import edp.wormhole.util.config.WormholeDefault
 import edp.wormhole.util.{DateUtils, DtFormat}
+import org.joda.time.DateTime
 
 object UmsProtocolUtils extends UmsProtocolUtils
 
@@ -201,7 +200,7 @@ trait UmsProtocolUtils {
       DateUtils.dt2string(timeNow, dtFormat),
       directiveId.toString, status.toString, streamId.toString, resultDesc))))))
 
-  // feedback_sparkx_flow_error
+  // feedback_flow_error
   def feedbackFlowError(sourceNamespace: String,
                         streamId: Long,
                         timeNow: DateTime,
@@ -236,10 +235,10 @@ trait UmsProtocolUtils {
       DateUtils.dt2string(maxWatermark.ts, dtFormat),
       DateUtils.dt2string(minWatermark.ts, dtFormat),
       errorCount.toString,
-      errorInfo,
+      s""""${errorInfo}"""",
       batchId,
       topicPartitionOffset,
-      dataType,
+      s""""${dataType}"""",
       flowId.toString,
       errorPattern))))))
 
