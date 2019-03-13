@@ -100,7 +100,7 @@ object RouterMainProcess extends EdpLogging {
                     } catch {
                       case e: Throwable =>
                         logAlert(value, e)
-                        flowErrorList.append(FlowErrorInfo(routerFlowConfig.flowId, protocolType, matchNamespace, sinkNamespace, e.getMessage, ErrorPattern.FlowError, routerFlowConfig.incrementTopics, 1))
+                        flowErrorList.append(FlowErrorInfo(routerFlowConfig.flowId, protocolType, matchNamespace, sinkNamespace, e, ErrorPattern.FlowError, routerFlowConfig.incrementTopics, 1))
                     }
                   }
                 } else {
@@ -112,7 +112,7 @@ object RouterMainProcess extends EdpLogging {
                 case e: Throwable =>
                   logAlert(value, e)
                   routerMap(matchNamespace)._1.foreach { case (sinkNamespace, routerFlowConfig) =>
-                    flowErrorList.append(FlowErrorInfo(routerFlowConfig.flowId, protocolType, matchNamespace, sinkNamespace, e.getMessage, ErrorPattern.FlowError, routerFlowConfig.incrementTopics, 1))
+                    flowErrorList.append(FlowErrorInfo(routerFlowConfig.flowId, protocolType, matchNamespace, sinkNamespace, e, ErrorPattern.FlowError, routerFlowConfig.incrementTopics, 1))
                   }
               }
             }
@@ -128,7 +128,7 @@ object RouterMainProcess extends EdpLogging {
                 flowIdSet.add(flowErrorInfo.flowId)
                 SparkxUtils.setFlowErrorMessage(flowErrorInfo.incrementTopicList,
                   topicPartitionOffset, config, flowErrorInfo.matchSourceNamespace, flowErrorInfo.sinkNamespace, flowErrorInfo.count,
-                  flowErrorInfo.errorMsg, batchId, flowErrorInfo.protocolType, flowErrorInfo.flowId, flowErrorInfo.errorPattern)
+                  flowErrorInfo.error, batchId, flowErrorInfo.protocolType, flowErrorInfo.flowId, flowErrorInfo.errorPattern)
               } catch {
                 case e: Throwable =>
                   logError("setFlowErrorMessage", e)
@@ -143,7 +143,7 @@ object RouterMainProcess extends EdpLogging {
             outV._1.foreach { case (sinkNamespace, routerFlowConfig) =>
               SparkxUtils.setFlowErrorMessage(routerFlowConfig.incrementTopics,
                 topicPartitionOffset: JSONObject, config, sourceNamespace, sinkNamespace, 1,
-                e.getMessage, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
+                e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
                 routerFlowConfig.flowId, ErrorPattern.StreamError)
             }
           }
