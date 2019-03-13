@@ -10,8 +10,8 @@ import slick.jdbc.MySQLProfile.api._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class FeedbackFlowErrDal(feedbackErrTable: TableQuery[FeedbackFlowErrTable])
-  extends BaseDalImpl[FeedbackFlowErrTable, FeedbackFlowErr](feedbackErrTable){
+class FeedbackFlowErrDal(feedbackFlowErrTable: TableQuery[FeedbackFlowErrTable])
+  extends BaseDalImpl[FeedbackFlowErrTable, FeedbackFlowErr](feedbackFlowErrTable){
   def getSinkErrorMaxWatermark(streamId: Long, sourceNs: String, sinkNs: String): Future[Option[String]] = {
     super.findByFilter(str => str.streamId === streamId && str.sourceNamespace === sourceNs && str.sinkNamespace === sinkNs)
       .map[Option[String]](seq =>
