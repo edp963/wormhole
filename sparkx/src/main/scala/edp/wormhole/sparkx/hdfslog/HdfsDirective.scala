@@ -23,8 +23,9 @@ package edp.wormhole.sparkx.hdfslog
 
 import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.sparkx.directive.Directive
+import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.ums.UmsProtocolUtils.feedbackDirective
-import edp.wormhole.ums.{Ums, UmsFeedbackStatus, UmsFieldType}
+import edp.wormhole.ums.{DataTypeEnum, Ums, UmsFeedbackStatus, UmsFieldType}
 import edp.wormhole.util.DateUtils
 
 object HdfsDirective extends Directive {
@@ -37,13 +38,17 @@ object HdfsDirective extends Directive {
     val namespace_rule = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "namespace_rule").toString.toLowerCase
     val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
     val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
+    val flowId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "flow_id").toString.toLong
+    val sourceIncrementTopicList = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "source_increment_topic").toString.split(",").toList
+    val hourDuration = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "hour_duration").toString.toLowerCase.toInt
     try {
-      if (dataParseStr != null) {
-        val parseResult: RegularJsonSchema = JsonSourceConf.parse(dataParseStr)
-        HdfsMainProcess.jsonSourceMap(namespace_rule) = (parseResult.fieldsInfo, parseResult.twoFieldsArr, parseResult.schemaField)
-      }
-      val hour_duration = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "hour_duration").toString.toLowerCase.toInt
-      HdfsMainProcess.directiveNamespaceRule(namespace_rule) = hour_duration
+      val parseResult: RegularJsonSchema = if (dataParseStr != null) {
+        JsonSourceConf.parse(dataParseStr)
+      } else RegularJsonSchema(null,null,null)
+      ConfMemoryStorage.hdfslogMap(namespace_rule) = HdfsLogFlowConfig(DataTypeEnum.UMS_EXTENSION.toString, parseResult.fieldsInfo, parseResult.twoFieldsArr,
+        parseResult.schemaField, flowId, sourceIncrementTopicList, hourDuration)
+
+      //      HdfsMainProcess.directiveNamespaceRule(namespace_rule) = hour_duration
       feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, "")
 
     } catch {

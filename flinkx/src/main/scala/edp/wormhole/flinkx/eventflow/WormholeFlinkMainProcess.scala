@@ -103,8 +103,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     } catch {
       case e: Throwable =>
         logger.error("swifts and sink:", e)
-        val feedbackFlowFlinkxError = UmsProtocolUtils.feedbackFlinkxFlowError(sourceNamespace, streamId, flowId, sinkNamespace, DateUtils.currentDateTime, "", e.getMessage)
-        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config, exceptionConfig).doExceptionProcess(feedbackFlowFlinkxError)
+        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config, exceptionConfig).doExceptionProcess(e.getMessage)
     }
     env.execute(config.flow_name)
   }
@@ -189,6 +188,7 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
     mConfig.setString("metrics.reporter.feedbackState.sourceNamespace", sourceNamespace)
     mConfig.setString("metrics.reporter.feedbackState.sinkNamespace", sinkNamespace)
     mConfig.setString("metrics.reporter.feedbackState.streamId", streamId.toString)
+    mConfig.setString("metrics.reporter.feedbackState.flowId", flowId.toString)
     mConfig.setString("metrics.reporter.feedbackState.topic", config.kafka_output.feedback_topic_name)
     mConfig.setString("metrics.reporter.feedbackState.kerberos", config.kerberos.toString)
     mConfig.setString("metrics.reporter.feedbackState.brokers", config.kafka_output.brokers)

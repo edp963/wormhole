@@ -92,8 +92,11 @@ object FlinkSchemaUtils extends java.io.Serializable {
   }
 
   def getSchemaMapFromTable(tableSchema: TableSchema, projectClause: String, udfSchemaMap: Map[String, TypeInformation[_]], specialConfigObj: JSONObject): Map[String, (TypeInformation[_], Int)] = {
-    println("in getSchemaMapFromTable *******************")
+    logger.debug("in getSchemaMapFromTable *******************")
+    logger.debug("projectClause: " + projectClause)
     val fieldString = projectClause.substring(6)
+    logger.debug("fieldString: " + fieldString)
+
     val nameMap = mutable.HashMap.empty[String, String]
     var s = ""
     var num = 0
@@ -116,13 +119,13 @@ object FlinkSchemaUtils extends java.io.Serializable {
       val newName = s.trim.substring(s.indexOf("as") + 2).trim
       nameMap += newName -> udfName
     }
-    logger.info("nameMap:" + nameMap.toString())
+    logger.debug("nameMap:" + nameMap.toString())
 
     val resultSchemaMap = mutable.HashMap.empty[String, (TypeInformation[_], Int)]
     var index = 0
     var udfIndexCur = 0
     tableSchema.getFieldNames.foreach(s => {
-      logger.info(s"field $index in table $s")
+      logger.debug(s"field $index in table $s")
       if (tableSchema.getFieldType(s).get.toString.contains("java.lang.Object") && udfSchemaMap.contains(nameMap(s))) {
         resultSchemaMap += s -> (udfSchemaMap(nameMap(s)), index)
         udfIndexCur += 1
@@ -139,7 +142,6 @@ object FlinkSchemaUtils extends java.io.Serializable {
   }
 
   def getSchemaMapFromArray(fieldNames: Array[String], fieldTypes: Array[TypeInformation[_]]): Map[String, (TypeInformation[_], Int)] = {
-    println("in getSchemaMapFromArray &&&&&&&&&&&&&&&&&&")
     val resultSchemaMap = mutable.HashMap.empty[String, (TypeInformation[_], Int)]
     for (i <- fieldNames.indices) {
       resultSchemaMap += fieldNames(i) -> (fieldTypes(i), i)
@@ -189,23 +191,23 @@ object FlinkSchemaUtils extends java.io.Serializable {
           val it = records.iterator()
           while (it.hasNext && !correctData) {
             val r: ConsumerRecord[String, String] = it.next()
-            println(r.offset() + " offset")
+            logger.debug(r.offset() + " offset")
             val (key, value) = (r.key(), r.value())
-            println("key is " + key)
+            logger.debug("key is " + key)
             val key2Verify = UmsCommonUtils.checkAndGetKey(key, value)
-            println("key2Verify " + key2Verify)
+            logger.debug("key2Verify " + key2Verify)
             correctData = isCorrectRecord(key2Verify, value, sourceNamespace)
             if (correctData) {
-              println(s"the true value $value")
+              logger.debug(s"the true value $value")
               val ums = UmsCommonUtils.json2Ums(value)
               if (ums.payload.isEmpty || ums.schema.fields.isEmpty || !matchNamespace(ums.schema.namespace, sourceNamespace)) {
-                println("ums is not correct")
+                logger.debug("ums is not correct")
                 correctData = false
               }
               else record = ums.schema
             }
           }
-        } else logger.info("continue")
+        } else logger.debug("continue")
       }
     } catch {
       case e: Throwable => logger.error("findJsonSchema", e)
@@ -223,7 +225,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
     if ((umsProtocolType == DATA_INITIAL_DATA || umsProtocolType == DATA_INCREMENT_DATA || umsProtocolType == DATA_BATCH_DATA) && matchNamespace(namespace, sourceNamespace)) {
       true
     } else {
-      logger.info("continue")
+      logger.debug("continue")
       false
     }
   }
@@ -231,15 +233,15 @@ object FlinkSchemaUtils extends java.io.Serializable {
 
   def matchNamespace(dataNamespace: String, sourceNamespace: String): Boolean = {
     val dataNamespacePart = dataNamespace.split("\\.")
-    println("the dataNamespace is " + dataNamespace)
+    logger.debug("the dataNamespace is " + dataNamespace)
     val sourceNamespacePart = sourceNamespace.split("\\.")
-    println("the sourceNamespace is " + sourceNamespace)
+    logger.debug("the sourceNamespace is " + sourceNamespace)
     var compareNum = 4
     if (sourceNamespacePart(4) == "*") compareNum = 4
     else if (sourceNamespacePart(5) == "*") compareNum = 5
     else if (sourceNamespacePart(6) == "*") compareNum = 6
     else compareNum = 7
-    println("the final compareNum is " + compareNum)
+    logger.debug("the final compareNum is " + compareNum)
     dataNamespacePart.slice(0, compareNum).mkString("") == sourceNamespacePart.slice(0, compareNum).mkString("")
   }
 
@@ -305,7 +307,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
       case _ => value.asInstanceOf[Double]
     }
     case Types.BOOLEAN => value.asInstanceOf[Boolean]
-    case Types.SQL_DATE => if (value.isInstanceOf[Timestamp])  "'" + DateUtils.dt2sqlDate(value.asInstanceOf[Timestamp]) + "'" else "'" + DateUtils.dt2sqlDate(value.asInstanceOf[Date]) + "'"
+    case Types.SQL_DATE => if (value.isInstanceOf[Timestamp]) "'" + DateUtils.dt2sqlDate(value.asInstanceOf[Timestamp]) + "'" else "'" + DateUtils.dt2sqlDate(value.asInstanceOf[Date]) + "'"
     case Types.SQL_TIMESTAMP => "'" + value.asInstanceOf[Timestamp] + "'"
     case Types.DECIMAL => new java.math.BigDecimal(value.asInstanceOf[java.math.BigDecimal].toPlainString.trim).stripTrailingZeros()
     case _ => throw new UnsupportedOperationException(s"Unknown Type: $flinkType")

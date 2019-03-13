@@ -19,10 +19,14 @@
  */
 package edp.wormhole.flinkx.swifts
 
-import edp.wormhole.flinkx.common.ExceptionConfig
+import java.util.UUID
+
+import com.alibaba.fastjson.JSONObject
+import edp.wormhole.common.feedback.ErrorPattern
+import edp.wormhole.flinkx.common.{ExceptionConfig, FlinkxUtils}
 import edp.wormhole.flinkx.swifts.custom.{LookupHbaseHelper, LookupKuduHelper, LookupRedisHelper}
 import edp.wormhole.flinkx.util.FeedbackUtils
-import edp.wormhole.ums.{UmsDataSystem, UmsProtocolUtils}
+import edp.wormhole.ums.{UmsDataSystem, UmsProtocolType, UmsProtocolUtils}
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -36,7 +40,12 @@ import org.slf4j.{Logger, LoggerFactory}
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-class LookupProcessElement(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (TypeInformation[_], Int)], dbOutPutSchemaMap: Map[String, (String, String, Int)], dataStoreConnectionsMap: Map[String, ConnectionConfig], exceptionConfig: ExceptionConfig, lookupTag: OutputTag[String]) extends ProcessFunction[Row, Seq[Row]] with java.io.Serializable{
+class LookupProcessElement(swiftsSql: SwiftsSql,
+                           preSchemaMap: Map[String, (TypeInformation[_], Int)],
+                           dbOutPutSchemaMap: Map[String, (String, String, Int)],
+                           dataStoreConnectionsMap: Map[String, ConnectionConfig],
+                           exceptionConfig: ExceptionConfig,
+                           lookupTag: OutputTag[String]) extends ProcessFunction[Row, Seq[Row]] with java.io.Serializable{
   //private val outputTag = OutputTag[String]("lookupException")
   private val sourceTableFields: Array[String] = if (swiftsSql.sourceTableFields.isDefined) swiftsSql.sourceTableFields.get else null
   private val lookupTableFields = if (swiftsSql.lookupTableFields.isDefined) swiftsSql.lookupTableFields.get else null
@@ -90,7 +99,18 @@ class LookupProcessElement(swiftsSql: SwiftsSql, preSchemaMap: Map[String, (Type
         }
         val dataInfo = "{" + dataInfoIt.mkString(",") + "}"
 
-        ctx.output(lookupTag, UmsProtocolUtils.feedbackFlinkxFlowError(exceptionConfig.sourceNamespace, exceptionConfig.streamId, exceptionConfig.flowId, exceptionConfig.sinkNamespace, new DateTime(), dataInfo, ex.getMessage))
+        val errorMsg = FlinkxUtils.getFlowErrorMessage(dataInfo,
+          exceptionConfig.sourceNamespace,
+          exceptionConfig.sinkNamespace,
+          1,
+          ex,
+          UUID.randomUUID().toString,
+          UmsProtocolType.DATA_INCREMENT_DATA.toString,
+          exceptionConfig.flowId,
+          exceptionConfig.streamId,
+          ErrorPattern.FlowError)
+
+        ctx.output(lookupTag, errorMsg)
     }
   }
 }

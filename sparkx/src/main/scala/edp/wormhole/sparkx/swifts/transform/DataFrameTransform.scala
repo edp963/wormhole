@@ -24,7 +24,7 @@ package edp.wormhole.sparkx.swifts.transform
 import java.sql.{Connection, ResultSet, SQLTransientConnectionException}
 
 import edp.wormhole.dbdriver.dbpool.DbConnection
-import edp.wormhole.sparkx.common.WormholeUtils
+import edp.wormhole.sparkx.common.SparkxUtils
 import edp.wormhole.sparkx.common.SparkSchemaUtils._
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.swifts.SqlOptType
@@ -79,7 +79,7 @@ object DataFrameTransform extends EdpLogging {
       val lookupFieldsLength = lookupTableFields.length
       val fieldContent = sourceTableFields.map(fieldName => {
         val index = row.fieldIndex(fieldName)
-        val value = WormholeUtils.getFieldContentByTypeForSql(row, schema, index)
+        val value = SparkxUtils.getFieldContentByTypeForSql(row, schema, index)
         if (value != null) value else "N/A"
       }).mkString(",")
       if (!fieldContent.contains("N/A")) {
@@ -287,7 +287,7 @@ object DataFrameTransform extends EdpLogging {
       case e: Throwable =>
         logError("getMapDf", e)
         session.sqlContext.dropTempTable(tmpTableName)
-        null.asInstanceOf[DataFrame]
+        throw e
     }
   }
 

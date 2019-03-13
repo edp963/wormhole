@@ -25,13 +25,14 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
-import edp.wormhole.common.feedback.FeedbackPriority
+import edp.wormhole.common.feedback.{ErrorPattern, FeedbackPriority}
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.externalclient.hadoop.HdfsUtils
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sinks.utils.SinkCommonUtils._
 import edp.wormhole.sparkx.common._
+import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsSchemaUtils._
 import edp.wormhole.ums.UmsSysField._
@@ -51,12 +52,12 @@ import scala.util.control.NonFatal
 //metaContent  currentyyyyMMddHHmmss0740_0_20171108181403252_20171106171538333_20171111171538333
 //              文件编号_0/1(写完/未写完)_createtime_minUmsts_maxUmsts
 object HdfsMainProcess extends EdpLogging {
-  val namespace2FileStore = mutable.HashMap.empty[(String, String), mutable.HashMap[String, mutable.HashMap[Int, (String, Int, String)]]]
+
   // Map[(protocoltype,namespace(accurate to table)), HashMap["right", HashMap[index,(filename, size, metaContent)]]]
-  val directiveNamespaceRule = mutable.HashMap.empty[String, Int]
+  val namespace2FileStore = mutable.HashMap.empty[(String, String), mutable.HashMap[String, mutable.HashMap[Int, (String, Int, String)]]]
+
   //[namespace, hour]
-  val jsonSourceMap = mutable.HashMap.empty[String, (Seq[FieldInfo], ArrayBuffer[(String, String)], Seq[UmsField])]
-  //Map[namespace(7fields),(json schema info1, json schema info2,flat data)]
+  //  val directiveNamespaceRule = mutable.HashMap.empty[String, Int]
 
   val fileMaxSize = 128
   val metadata = "metadata_"
@@ -69,6 +70,7 @@ object HdfsMainProcess extends EdpLogging {
       val offsetInfo: ArrayBuffer[OffsetRange] = new ArrayBuffer[OffsetRange]
       streamRdd.asInstanceOf[HasOffsetRanges].offsetRanges.copyToBuffer(offsetInfo)
       val topicPartitionOffset = SparkUtils.getTopicPartitionOffset(offsetInfo)
+      val hdfslogMap: Map[String, HdfsLogFlowConfig] = ConfMemoryStorage.getHdfslogMap
 
       try {
         val rddTs = System.currentTimeMillis
@@ -93,29 +95,31 @@ object HdfsMainProcess extends EdpLogging {
         } else streamTransformedRdd
 
         val namespace2FileMap: Map[(String, String), mutable.HashMap[String, mutable.HashMap[Int, (String, Int, String)]]] = namespace2FileStore.toMap
-        val validNameSpaceMap: Map[String, Int] = directiveNamespaceRule.toMap //validNamespaceMap is NOT real namespace, has *
-        logInfo("validNameSpaceMap:" + validNameSpaceMap)
-        val jsonInfoMap: Map[String, (Seq[FieldInfo], ArrayBuffer[(String, String)], Seq[UmsField])] = jsonSourceMap.toMap
+        //        val validNameSpaceMap: Map[String, Int] = directiveNamespaceRule.toMap //validNamespaceMap is NOT real namespace, has *
+        //        logInfo("validNameSpaceMap:" + validNameSpaceMap)
+
         val mainDataTs = System.currentTimeMillis
         val partitionResultRdd = dataParRdd.mapPartitionsWithIndex { case (index, partition) =>
           // partition: ((protocol,namespace), message.value)
           val resultList = ListBuffer.empty[PartitionResult]
-          val namespaceMap = mutable.HashMap.empty[(String, String), Int]
+          val namespaceMap = mutable.HashMap.empty[(String, String), HdfsLogFlowConfig]
+          val flowErrorList = mutable.ListBuffer.empty[FlowErrorInfo]
           //real namespace, do not have *
           val dataList = partition.toList
-          dataList.foreach(data => {
-            val result: Map[String, Int] = checkValidNamespace(data._1._2, validNameSpaceMap)
-            if (result.nonEmpty && (data._1._1 == UmsProtocolType.DATA_INITIAL_DATA.toString || data._1._1 == UmsProtocolType.DATA_INCREMENT_DATA.toString)) {
-              val (_, hour) = result.head
-              if (!namespaceMap.contains((UmsProtocolType.DATA_INITIAL_DATA.toString, data._1._2)))
-                namespaceMap((UmsProtocolType.DATA_INITIAL_DATA.toString, data._1._2)) = hour
-              if (!namespaceMap.contains((UmsProtocolType.DATA_INCREMENT_DATA.toString, data._1._2)))
-                namespaceMap((UmsProtocolType.DATA_INCREMENT_DATA.toString, data._1._2)) = hour
+          dataList.foreach { case ((protocolType, sourceNamespace), _) =>
+            val result: Map[String, HdfsLogFlowConfig] = checkValidNamespace(sourceNamespace, hdfslogMap)
+            if (result.nonEmpty && (protocolType == UmsProtocolType.DATA_INITIAL_DATA.toString ||
+              protocolType == UmsProtocolType.DATA_INCREMENT_DATA.toString)) {
+              val (_, flowConfig) = result.head
+              if (!namespaceMap.contains((UmsProtocolType.DATA_INITIAL_DATA.toString, sourceNamespace)))
+                namespaceMap((UmsProtocolType.DATA_INITIAL_DATA.toString, sourceNamespace)) = flowConfig
+              if (!namespaceMap.contains((UmsProtocolType.DATA_INCREMENT_DATA.toString, sourceNamespace)))
+                namespaceMap((UmsProtocolType.DATA_INCREMENT_DATA.toString, sourceNamespace)) = flowConfig
             }
-          })
+          }
           logInfo("check namespace ok. all data num=" + dataList.size + ",namespaceMap=" + namespaceMap)
 
-          namespaceMap.foreach { case ((protocol, namespace), hour) =>
+          namespaceMap.foreach { case ((protocol, namespace), flowConfig) =>
             val namespaceDataList = ListBuffer.empty[String]
             dataList.foreach(data => {
               if (data._1._1 == protocol && data._1._2 == namespace) namespaceDataList.append(data._2)
@@ -126,8 +130,8 @@ object HdfsMainProcess extends EdpLogging {
             var tmpCount = 0
             try {
               if (namespaceDataList.nonEmpty) {
-                val tmpResult: PartitionResult =
-                  doMainData(protocol, namespace, namespaceDataList, config, hour, namespace2FileMap, config.zookeeper_path, jsonInfoMap, index)
+                val tmpResult: PartitionResult = doMainData(protocol, namespace, namespaceDataList, config, flowConfig.hourDuration,
+                  namespace2FileMap, config.zookeeper_path, hdfslogMap, index)
                 tmpMinTs = tmpResult.minTs
                 tmpMaxTs = tmpResult.maxTs
                 tmpCount = tmpResult.allCount
@@ -136,20 +140,17 @@ object HdfsMainProcess extends EdpLogging {
             } catch {
               case e: Throwable =>
                 logAlert("sink,sourceNamespace=" + namespace + ", count = " + tmpCount, e)
-                WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name,
-                  FeedbackPriority.feedbackPriority,
-                  UmsProtocolUtils.feedbackFlowError(namespace, config.spark_config.stream_id,
-                    DateUtils.currentDateTime, namespace, UmsWatermark(tmpMinTs), UmsWatermark(tmpMaxTs), tmpCount,
-                    "", batchId, topicPartitionOffset),
-                  Some(UmsProtocolType.FEEDBACK_SPARKX_FLOW_ERROR + "." + config.spark_config.stream_id),
-                  config.kafka_output.brokers)
+                flowErrorList.append(FlowErrorInfo(flowConfig.flowId, protocol, namespace, namespace, e, ErrorPattern.FlowError,
+                  flowConfig.incrementTopics, -1))
             }
           }
-          resultList.toIterator
+          val res = ListBuffer.empty[(ListBuffer[PartitionResult], ListBuffer[FlowErrorInfo])]
+          res.append((resultList, flowErrorList))
+          res.toIterator
         }.cache
 
-        val writeResult: Array[PartitionResult] = partitionResultRdd.collect
-        writeResult.foreach(eachResult => {
+        val writeResult: Array[(ListBuffer[PartitionResult], ListBuffer[FlowErrorInfo])] = partitionResultRdd.collect
+        writeResult.head._1.foreach(eachResult => {
           if (!namespace2FileStore.contains((eachResult.protocol, eachResult.namespace))) {
             namespace2FileStore((eachResult.protocol, eachResult.namespace)) = mutable.HashMap.empty[String, mutable.HashMap[Int, (String, Int, String)]]
           }
@@ -166,14 +167,31 @@ object HdfsMainProcess extends EdpLogging {
             namespace2FileStore((eachResult.protocol, eachResult.namespace))("right")(eachResult.index) = (eachResult.correctFileName, eachResult.correctCount, eachResult.correctMetaContent)
         })
 
-        val statsProtocolNamespace: Set[(String, String)] = writeResult.map(r => {
-          (r.protocol, r.namespace)
+        if (writeResult.head._2.nonEmpty) {
+          val flowIdSet = mutable.HashSet.empty[Long]
+          writeResult.head._2.foreach(flowErrorInfo => {
+            if (!flowIdSet.contains(flowErrorInfo.flowId)) {
+              try {
+                flowIdSet.add(flowErrorInfo.flowId)
+                SparkxUtils.setFlowErrorMessage(flowErrorInfo.incrementTopicList,
+                  topicPartitionOffset, config, flowErrorInfo.matchSourceNamespace, flowErrorInfo.sinkNamespace, flowErrorInfo.count,
+                  flowErrorInfo.error, batchId, flowErrorInfo.protocolType, flowErrorInfo.flowId, flowErrorInfo.errorPattern)
+              } catch {
+                case e: Throwable =>
+                  logError("setFlowErrorMessage", e)
+              }
+            }
+          })
+        }
+
+        val statsProtocolNamespace: Set[(String, String, Long)] = writeResult.head._1.map(r => {
+          (r.protocol, r.namespace, r.flowId)
         }).toSet
 
-        statsProtocolNamespace.foreach { case (protocol, namespace) =>
+        statsProtocolNamespace.foreach { case (protocol, namespace, flowId) =>
           var count = 0
           var cdcTs = 0L
-          writeResult.foreach(r => {
+          writeResult.head._1.foreach(r => {
             if (protocol == r.protocol && namespace == r.namespace) {
               count += r.allCount
               val tmpMaxTs = if (!r.maxTs.trim.equals("")) DateUtils.dt2date(r.maxTs).getTime else 0L
@@ -183,17 +201,23 @@ object HdfsMainProcess extends EdpLogging {
           val doneTs = System.currentTimeMillis
           if (count > 0 && cdcTs > 0)
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
-              UmsProtocolUtils.feedbackFlowStats(namespace, protocol, DateUtils.currentDateTime, config.spark_config.stream_id, batchId, namespace, topicPartitionOffset,
-                count, cdcTs, rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs.toString), Some(UmsProtocolType.FEEDBACK_SPARKX_FLOW_STATS + "." + config.spark_config.stream_id), config.kafka_output.brokers)
+              UmsProtocolUtils.feedbackFlowStats(namespace, protocol, DateUtils.currentDateTime, config.spark_config.stream_id,
+                batchId, namespace, topicPartitionOffset.toJSONString,
+                count, cdcTs, rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs.toString, flowId),
+              Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flowId), config.kafka_output.brokers)
 
         }
         partitionResultRdd.unpersist()
-        //        WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
       } catch {
         case e: Throwable =>
           logAlert("batch error", e)
-          WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority, UmsProtocolUtils.feedbackStreamBatchError(config.spark_config.stream_id, DateUtils.currentDateTime, UmsFeedbackStatus.FAIL, e.getMessage, batchId, topicPartitionOffset), Some(UmsProtocolType.FEEDBACK_STREAM_BATCH_ERROR + "." + config.spark_config.stream_id), config.kafka_output.brokers)
-        //          WormholeUtils.sendTopicPartitionOffset(offsetInfo, config.kafka_output.feedback_topic_name, config, batchId)
+          hdfslogMap.foreach { case (sourceNamespace, flowConfig) =>
+            SparkxUtils.setFlowErrorMessage(flowConfig.incrementTopics,
+              topicPartitionOffset, config, sourceNamespace, sourceNamespace, -1,
+              e, batchId, UmsProtocolType.DATA_BATCH_DATA.toString + "," + UmsProtocolType.DATA_INCREMENT_DATA.toString + "," + UmsProtocolType.DATA_INITIAL_DATA.toString,
+              flowConfig.flowId, ErrorPattern.StreamError)
+
+          }
       }
       stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetInfo.toArray)
       if (!zookeeperFlag) {
@@ -229,13 +253,13 @@ object HdfsMainProcess extends EdpLogging {
     (metaContent, dataName)
   }
 
-  private def getMinMaxTs(message: String, namespace: String, jsonInfoMap: Map[String, (Seq[FieldInfo], ArrayBuffer[(String, String)], Seq[UmsField])]) = {
+  private def getMinMaxTs(message: String, namespace: String, hdfslogMap: Map[String, HdfsLogFlowConfig]) = {
     var currentUmsTsMin: String = ""
     var currentUmsTsMax: String = ""
-    if (jsonInfoMap.contains(namespace)) {
-      val mapValue: (Seq[FieldInfo], ArrayBuffer[(String, String)], Seq[UmsField]) = jsonInfoMap(namespace)
-      val value: Seq[UmsTuple] = JsonParseUtils.dataParse(message, mapValue._1, mapValue._2)
-      val schema = mapValue._3
+    if (hdfslogMap.contains(namespace)) {
+      val mapValue = hdfslogMap(namespace)
+      val value: Seq[UmsTuple] = JsonParseUtils.dataParse(message, mapValue.fieldsInfo, mapValue.twoFieldsArr)
+      val schema = mapValue.schemaField
       val umsTsIndex = schema.map(_.name).indexOf(TS.toString)
       value.foreach(tuple => {
         val umsTs = tuple.tuple(umsTsIndex)
@@ -297,7 +321,7 @@ object HdfsMainProcess extends EdpLogging {
                          hour: Int,
                          namespace2FileMap: Map[(String, String), mutable.HashMap[String, mutable.HashMap[Int, (String, Int, String)]]],
                          zookeeperPath: String,
-                         jsonInfoMap: Map[String, (Seq[FieldInfo], ArrayBuffer[(String, String)], Seq[UmsField])],
+                         hdfslogMap: Map[String, HdfsLogFlowConfig],
                          index: Int): PartitionResult = {
     var valid = true
     val namespaceSplit = namespace.split("\\.")
@@ -353,7 +377,7 @@ object HdfsMainProcess extends EdpLogging {
         var minTs: String = null
         var maxTs: String = null
         try {
-          val timePair = getMinMaxTs(data, namespace, jsonInfoMap)
+          val timePair = getMinMaxTs(data, namespace, hdfslogMap)
           minTs = timePair._1
           maxTs = timePair._2
         } catch {
@@ -485,8 +509,10 @@ object HdfsMainProcess extends EdpLogging {
           logWarning("close", e)
       }
     }
+    val flowId = if (hdfslogMap.contains(namespace)) hdfslogMap(namespace).flowId else -1
 
-    PartitionResult(index, valid, errorFileName, errorCurrentSize, currentErrorMetaContent, correctFileName, correctCurrentSize, currentCorrectMetaContent, protocol, namespace, finalMinTs, finalMaxTs, count)
+    PartitionResult(index, valid, errorFileName, errorCurrentSize, currentErrorMetaContent, correctFileName,
+      correctCurrentSize, currentCorrectMetaContent, protocol, namespace, finalMinTs, finalMaxTs, count, flowId)
   }
 
   def setMetaDataFinished(metaName: String, currentMetaContent: String, configuration: Configuration, minTs: String, finalMinTs: String, finalMaxTs: String): Unit = {
@@ -516,7 +542,7 @@ object HdfsMainProcess extends EdpLogging {
   }
 
 
-  def checkValidNamespace(namespace: String, validNameSpaceMap: Map[String, Int]): Map[String, Int] = {
+  def checkValidNamespace(namespace: String, validNameSpaceMap: Map[String, HdfsLogFlowConfig]): Map[String, HdfsLogFlowConfig] = {
     validNameSpaceMap.filter { case (rule, _) =>
       val namespaceLowerCase = namespace.toLowerCase
       matchNameSpace(rule, namespaceLowerCase)
