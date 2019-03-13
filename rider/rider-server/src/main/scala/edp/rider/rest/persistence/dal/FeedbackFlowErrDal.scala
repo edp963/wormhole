@@ -34,8 +34,8 @@ class FeedbackFlowErrDal(feedbackErrTable: TableQuery[FeedbackFlowErrTable])
   }
 
   def deleteHistory(pastNdays: String) = {
-    val deleteSeq = Await.result(db.run(feedbackErrTable.withFilter(_.feedbackTime <= pastNdays)
-      .map(_.id).result).mapTo[Seq[Long]], minTimeOut)
-    if (deleteSeq.nonEmpty) Await.result(super.deleteByFilter(_.id.toString <= deleteSeq.max.toString), maxTimeOut)
+    val deleteMaxId = Await.result(
+      db.run(feedbackFlowErrTable.withFilter(_.feedbackTime <= pastNdays).map(_.id).max.result).mapTo[Option[Long]], minTimeOut)
+    if (deleteMaxId.nonEmpty) Await.result(super.deleteByFilter(_.id <= deleteMaxId), maxTimeOut)
   }
 }
