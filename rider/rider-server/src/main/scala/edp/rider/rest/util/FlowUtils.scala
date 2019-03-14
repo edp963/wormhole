@@ -638,9 +638,9 @@ object FlowUtils extends RiderLogger {
             directive.id
           }, ${
             base64Tuple.head
-          }, "${
+          }, ${
             base64Tuple(1)
-          }", "${
+          }, "${
             base64Tuple(2)
           }", "${
             base64Tuple(3)
@@ -725,7 +725,7 @@ object FlowUtils extends RiderLogger {
              |  },
              |  "payload": [
              |    {
-             |      "tuple": [${directive.id}, ${tuple.head}, "${tuple(1)}", "${tuple(2)}", "${tuple(3)}","${tuple(4)}", "${tuple(5)}", "${tuple(6)}","${tuple(7)}"]
+             |      "tuple": [${directive.id}, ${tuple.head}, ${tuple(1)}, "${tuple(2)}", "${tuple(3)}","${tuple(4)}", "${tuple(5)}", "${tuple(6)}","${tuple(7)}"]
              |    }
              |  ]
              |}
