@@ -49,7 +49,7 @@ object HdfsDirective extends Directive {
         parseResult.schemaField, flowId, sourceIncrementTopicList, hourDuration)
 
       //      HdfsMainProcess.directiveNamespaceRule(namespace_rule) = hour_duration
-      feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, "")
+      feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, flowId, "")
 
     } catch {
       case e: Throwable =>
