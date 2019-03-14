@@ -45,8 +45,7 @@ object HdfsDirective extends Directive {
       val parseResult: RegularJsonSchema = if (dataParseStr != null) {
         JsonSourceConf.parse(dataParseStr)
       } else RegularJsonSchema(null,null,null)
-      ConfMemoryStorage.hdfslogMap(namespace_rule) = HdfsLogFlowConfig(DataTypeEnum.UMS_EXTENSION.toString, parseResult.fieldsInfo, parseResult.twoFieldsArr,
-        parseResult.schemaField, flowId, sourceIncrementTopicList, hourDuration)
+      ConfMemoryStorage.hdfslogMap(namespace_rule) = HdfsLogFlowConfig(DataTypeEnum.UMS_EXTENSION.toString, parseResult, flowId, sourceIncrementTopicList, hourDuration)
 
       //      HdfsMainProcess.directiveNamespaceRule(namespace_rule) = hour_duration
       feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, flowId, "")
