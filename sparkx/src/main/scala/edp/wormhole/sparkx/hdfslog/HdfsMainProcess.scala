@@ -259,7 +259,7 @@ object HdfsMainProcess extends EdpLogging {
     val validMap: Map[String, HdfsLogFlowConfig] = checkValidNamespace(namespace,hdfslogMap)
 //    if (hdfslogMap.contains(namespace)) {
 //      val mapValue = hdfslogMap(namespace)
-    if(validMap != null && validMap.nonEmpty && validMap.head._2.jsonSchema.fieldsInfo.nonEmpty){
+    if(validMap != null && validMap.nonEmpty && validMap.head._2.dataType==DataTypeEnum.UMS_EXTENSION.toString){
       val mapValue = validMap.head._2
       val value: Seq[UmsTuple] = JsonParseUtils.dataParse(message, mapValue.jsonSchema.fieldsInfo, mapValue.jsonSchema.twoFieldsArr)
       val schema = mapValue.jsonSchema.schemaField
