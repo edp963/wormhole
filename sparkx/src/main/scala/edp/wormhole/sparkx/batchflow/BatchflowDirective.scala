@@ -160,12 +160,12 @@ object BatchflowDirective extends Directive {
     ConfMemoryStorage.registerStreamLookupNamespaceMap(flowDirectiveConfig.sourceNamespace, flowDirectiveConfig.fullSinkNamespace, swiftsProcessConfig)
     ConfMemoryStorage.registerFlowConfigMap(flowDirectiveConfig.sourceNamespace, flowDirectiveConfig.fullSinkNamespace,
       FlowConfig(swiftsProcessConfig, sinkProcessConfig, flowDirectiveConfig.directiveId, swiftsStrCache,
-        flowDirectiveConfig.sinksStr, consumptionDataMap.toMap, 0, flowDirectiveConfig.incrementTopics, flowDirectiveConfig.priorityId))
+        flowDirectiveConfig.sinksStr, consumptionDataMap.toMap, flowDirectiveConfig.flowId, flowDirectiveConfig.incrementTopics, flowDirectiveConfig.priorityId))
 
 
     ConnectionMemoryStorage.registerDataStoreConnectionsMap(flowDirectiveConfig.fullSinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
 
-    feedbackDirective(DateUtils.currentDateTime, flowDirectiveConfig.directiveId, UmsFeedbackStatus.SUCCESS, flowDirectiveConfig.streamId, "")
+    feedbackDirective(DateUtils.currentDateTime, flowDirectiveConfig.directiveId, UmsFeedbackStatus.SUCCESS, flowDirectiveConfig.streamId, flowDirectiveConfig.flowId, "")
   }
 
   override def flowStartProcess(ums: Ums): String = {
@@ -192,9 +192,9 @@ object BatchflowDirective extends Directive {
       val tmpPriorityIdStr = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "priority_id")
       val priorityId = if (tmpPriorityIdStr == null) directiveId else tmpPriorityIdStr.toString.toLong
       val sourceIncrementTopicList = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "source_increment_topic").toString.split(",").toList
+      val flowId=UmsFieldType.umsFieldValue(tuple.tuple, schemas, "flow_id").toString.toLong
 
-
-      val flowDirectiveConfig = FlowDirectiveConfig(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos, priorityId,sourceIncrementTopicList)
+      val flowDirectiveConfig = FlowDirectiveConfig(sourceNamespace, fullSinkNamespace, streamId, flowId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos, priorityId,sourceIncrementTopicList)
 
       registerFlowStartDirective(flowDirectiveConfig)
     } catch {

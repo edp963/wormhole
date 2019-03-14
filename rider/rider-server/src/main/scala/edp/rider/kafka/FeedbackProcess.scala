@@ -232,7 +232,7 @@ object FeedbackProcess extends RiderLogger {
               UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_generated_ts").toString.toLong
             else UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_genereated_ts").toString.toLong
           val rddTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_generated_ts").toString.toLong
-         val mainDataTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_process_start_ts").toString.toLong
+          val mainDataTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_process_start_ts").toString.toLong
           val swiftsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "swifts_start_ts").toString.toLong
           val sinkTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_start_ts").toString.toLong
           val doneTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "done_ts").toString.toLong
@@ -251,7 +251,7 @@ object FeedbackProcess extends RiderLogger {
             throughput = rddCountValue.toString.toInt
           } else throughput = rddCountValue.toString.toInt / interval_rdd_done
 
-          val monitorInfo = MonitorInfo(0L, batchIdValue.toString,
+          val monitorInfo = MonitorInfo(0L, CacheMap.getProjectIdByStreamId(streamIdValue.toString.toLong).getOrElse(0L),batchIdValue.toString,
             streamIdValue.toString.toLong,flowIdValue.toString.toLong,
             riderNamespace,riderSinkNamespace,dataTypeValue.toString,
             rddCountValue.toString.toInt, if (topics == null) "" else topics.toString, throughput,

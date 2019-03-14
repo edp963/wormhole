@@ -248,7 +248,7 @@ object ElasticSearch extends RiderLogger {
       riderLogger.info(s"ES index $url already exists")
     } else {
       riderLogger.info(s"createEsIndex url $url $body")
-      syncToES(body, url, HttpMethods.PUT)
+      syncToES(body, url, HttpMethods.POST)
     }
   }
 

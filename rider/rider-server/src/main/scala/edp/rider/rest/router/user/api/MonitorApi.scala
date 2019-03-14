@@ -42,10 +42,10 @@ class MonitorApi(flowDal: FlowDal, streamDal: StreamDal, monitorInfoDal: Monitor
                           ElasticSearch.compactPostBody(projectId, 0, flowId,
                             dateFormat.format(new Date(timeSpan.startTime)),
                             dateFormat.format(new Date(timeSpan.endTime))))._2
-                    else Await.result(monitorInfoDal.findByFilter(monitor =>
-                       monitor.flowId === flowId
-                        && dateFormat.parse(monitor.feedbackTime.toString).getTime >= new Date(timeSpan.startTime).getTime
-                        && dateFormat.parse(monitor.feedbackTime.toString).getTime <= new Date(timeSpan.endTime).getTime), minTimeOut)
+                      else Await.result(monitorInfoDal.findByFilter(monitor =>
+                         monitor.flowId === flowId
+                          && dateFormat.parse(monitor.feedbackTime.toString).getTime >= new Date(timeSpan.startTime).getTime
+                          && dateFormat.parse(monitor.feedbackTime.toString).getTime <= new Date(timeSpan.endTime).getTime), minTimeOut)
                     Option(monitorInfoOpt) match {
                       case Some(monitorSeq) =>
                         val flowMonitorInfo = fillSparkFlowMetricsByMonitor(monitorSeq.asInstanceOf[Seq[MonitorInfo]])
