@@ -240,7 +240,7 @@ object FeedbackProcess extends RiderLogger {
           val riderSinkNamespace = if (sinkNamespaceValue.toString == "") riderNamespace else namespaceRiderString(sinkNamespaceValue.toString)
 
           val interval_data_process_dataums = (mainDataTsValue.toString.toLong - cdcTsValue.toString.toLong) / 1000
-          val interval_data_process_rdd = (mainDataTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
+          val interval_data_process_rdd = (rddTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
           val interval_data_process_done = (doneTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
           val interval_rdd_swifts = (swiftsTsValue.toString.toLong - rddTsValue.toString.toLong) / 1000
           val interval_rdd_done = (doneTsValue.toString.toLong - rddTsValue.toString.toLong) / 1000
