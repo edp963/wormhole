@@ -8,6 +8,9 @@
   "mappings": {
     "#ESINDEX#": {
       "properties": {
+        "projectId": {
+          "type": "long"
+        },
         "batchId": {
           "type": "keyword"
         },
