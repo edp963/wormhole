@@ -176,6 +176,7 @@ object BatchflowDirective extends Directive {
 
     val streamId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "stream_id").toString.toLong
     val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
+    val flowId=UmsFieldType.umsFieldValue(tuple.tuple, schemas, "flow_id").toString.toLong
     try {
       val swiftsEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "swifts")
 
@@ -192,7 +193,7 @@ object BatchflowDirective extends Directive {
       val tmpPriorityIdStr = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "priority_id")
       val priorityId = if (tmpPriorityIdStr == null) directiveId else tmpPriorityIdStr.toString.toLong
       val sourceIncrementTopicList = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "source_increment_topic").toString.split(",").toList
-      val flowId=UmsFieldType.umsFieldValue(tuple.tuple, schemas, "flow_id").toString.toLong
+
 
       val flowDirectiveConfig = FlowDirectiveConfig(sourceNamespace, fullSinkNamespace, streamId, flowId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos, priorityId,sourceIncrementTopicList)
 
@@ -200,7 +201,7 @@ object BatchflowDirective extends Directive {
     } catch {
       case e: Throwable =>
         logAlert("registerFlowStartDirective,sourceNamespace:" + sourceNamespace, e)
-        feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, e.getMessage)
+        feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId,flowId, e.getMessage)
     }
   }
 }
