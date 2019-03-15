@@ -24,7 +24,7 @@
             },
             {
               "range":{
-                "createTime":{
+                "feedbackTime":{
                   "ge": "#START_TIME#",
                   "le": "#END_TIME#"
                 }
@@ -37,7 +37,7 @@
   },
   "sort": [
     {
-      "createTime": {
+      "feedbackTime": {
         "order": "asc"
       }
     }
