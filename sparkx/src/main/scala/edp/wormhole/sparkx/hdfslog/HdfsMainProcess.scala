@@ -26,7 +26,7 @@ import java.nio.charset.StandardCharsets
 import java.util.UUID
 
 import edp.wormhole.common.feedback.{ErrorPattern, FeedbackPriority}
-import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
+import edp.wormhole.common.json.JsonParseUtils
 import edp.wormhole.externalclient.hadoop.HdfsUtils
 import edp.wormhole.externalclient.zookeeper.WormholeZkClient
 import edp.wormhole.kafka.WormholeKafkaProducer
@@ -256,10 +256,13 @@ object HdfsMainProcess extends EdpLogging {
   private def getMinMaxTs(message: String, namespace: String, hdfslogMap: Map[String, HdfsLogFlowConfig]) = {
     var currentUmsTsMin: String = ""
     var currentUmsTsMax: String = ""
-    if (hdfslogMap.contains(namespace)) {
-      val mapValue = hdfslogMap(namespace)
-      val value: Seq[UmsTuple] = JsonParseUtils.dataParse(message, mapValue.fieldsInfo, mapValue.twoFieldsArr)
-      val schema = mapValue.schemaField
+    val validMap: Map[String, HdfsLogFlowConfig] = checkValidNamespace(namespace,hdfslogMap)
+//    if (hdfslogMap.contains(namespace)) {
+//      val mapValue = hdfslogMap(namespace)
+    if(validMap != null && validMap.nonEmpty && validMap.head._2.dataType==DataTypeEnum.UMS_EXTENSION.toString){
+      val mapValue = validMap.head._2
+      val value: Seq[UmsTuple] = JsonParseUtils.dataParse(message, mapValue.jsonSchema.fieldsInfo, mapValue.jsonSchema.twoFieldsArr)
+      val schema = mapValue.jsonSchema.schemaField
       val umsTsIndex = schema.map(_.name).indexOf(TS.toString)
       value.foreach(tuple => {
         val umsTs = tuple.tuple(umsTsIndex)
@@ -509,7 +512,9 @@ object HdfsMainProcess extends EdpLogging {
           logWarning("close", e)
       }
     }
-    val flowId = if (hdfslogMap.contains(namespace)) hdfslogMap(namespace).flowId else -1
+//    val flowId = if (hdfslogMap.contains(namespace)) hdfslogMap(namespace).flowId else -1
+    val vaildMap: Map[String, HdfsLogFlowConfig] = checkValidNamespace(namespace,hdfslogMap)
+    val flowId = if(vaildMap != null&&vaildMap.nonEmpty) vaildMap.head._2.flowId else -1
 
     PartitionResult(index, valid, errorFileName, errorCurrentSize, currentErrorMetaContent, correctFileName,
       correctCurrentSize, currentCorrectMetaContent, protocol, namespace, finalMinTs, finalMaxTs, count, flowId)
