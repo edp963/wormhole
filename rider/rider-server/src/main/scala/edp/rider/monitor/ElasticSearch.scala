@@ -198,6 +198,7 @@ object ElasticSearch extends RiderLogger {
       val url = getESUrl + "_search"
       riderLogger.debug(s"queryESStreamMonitor url $url $postBody")
       val response = syncToES(postBody, url, HttpMethods.POST, CommonUtils.minTimeOut)
+      riderLogger.info(s"response:$response")
       if (response._1) {
         val tuple = JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits").children
         implicit val json4sFormats: Formats = DefaultFormats
@@ -299,6 +300,7 @@ object ElasticSearch extends RiderLogger {
       entity = HttpEntity.apply(ContentTypes.`application/json`, ByteString(postBody))
     ).addCredentials(BasicHttpCredentials(RiderConfig.es.user, RiderConfig.es.pwd))
     val response = Await.result(Http().singleRequest(httpRequest), timeOut)
+    riderLogger.info(s"response status:${response.status},type:${response.entity.contentType}")
     try {
       response.status match {
         case StatusCodes.OK if (response.entity.contentType == ContentTypes.`application/json`) =>
@@ -312,6 +314,8 @@ object ElasticSearch extends RiderLogger {
                   } else {
                     tc = true
                   }
+                }else{
+                   tc=true
                 }
             }, Duration.Inf)
         case _ => {
