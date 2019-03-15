@@ -240,15 +240,15 @@ object ElasticSearch extends RiderLogger {
   }
 
   def createEsIndex() = {
-    val body = ReadJsonFile.getMessageFromJson(JsonFileType.ESCREATEINDEX).replace("#ESINDEX#", s"${RiderConfig.es.wormholeIndex}")
-    val url = getESTypeUrl
+    val body = ReadJsonFile.getMessageFromJson(JsonFileType.ESCREATEINDEX).replace("#ESTYPE#", s"${RiderConfig.es.wormholeType}")
+    val url = getESIndexUrl
     val existsResponse = syncToES("", url, HttpMethods.GET)
     //    riderLogger.info(s" query index exists response $existsResponse")
     if (existsResponse._1) {
       riderLogger.info(s"ES index $url already exists")
     } else {
       riderLogger.info(s"createEsIndex url $url $body")
-      syncToES(body, url, HttpMethods.POST)
+      syncToES(body, url, HttpMethods.PUT)
     }
   }
 
