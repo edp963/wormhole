@@ -31,7 +31,6 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.FlowUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
-import edp.rider.yarn.YarnStatusQuery.getSparkJobStatus
 import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.wormhole._
 import edp.wormhole.ums.UmsDataSystem
@@ -221,13 +220,13 @@ object JobUtils extends RiderLogger {
   }
 
   def refreshJob(id: Long) = {
-    val job = Await.result(modules.jobDal.findById(id), minTimeOut).head
-    val appInfo = getSparkJobStatus(job)
+    Await.result(modules.jobDal.findById(id), minTimeOut).head
+    /*val appInfo = getSparkJobStatus(job)
     modules.jobDal.updateJobStatus(job.id, appInfo, job.logPath.getOrElse(""))
     val startedTime = if (appInfo.startedTime != null) Some(appInfo.startedTime) else Some("")
     val stoppedTime = if (appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
     Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
-      job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.userTimeInfo)
+      job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.userTimeInfo)*/
   }
 
   def killJob(id: Long): String = {

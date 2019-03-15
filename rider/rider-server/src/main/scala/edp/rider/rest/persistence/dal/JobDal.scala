@@ -25,7 +25,8 @@ import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
-import edp.rider.common.AppInfo
+import edp.rider.common.{AppInfo, AppResult}
+import edp.rider.yarn.YarnStatusQuery
 import edp.wormhole.util.JsonUtils
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
@@ -86,5 +87,17 @@ class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTab
       }
     )
     (usedCores, usedMemory, jobResources)
+  }
+
+  def updateJobStatusByYarn(): Unit = {
+    val jobs = getAllJobs
+    if (jobs != null && jobs.nonEmpty) {
+      val jobsNameSet = jobs.map(_.name)
+      val jobList = jobs.filter(_.startedTime.isDefined)
+      val minStartTime = if (jobList.isEmpty) "" else jobList.map(_.startedTime.get).sorted.head
+      //check null to option None todo
+      val allAppStatus: Map[String, AppResult] = YarnStatusQuery.getAllAppStatus(minStartTime, jobsNameSet)
+      YarnStatusQuery.getSparkAllJobStatus(jobList, allAppStatus)
+    }
   }
 }
