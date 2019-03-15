@@ -49,7 +49,7 @@ object RouterDirective extends Directive {
       } else {
         routerMap(sourceNamespace) = (mutable.HashMap(sinkNamespace -> RouterFlowConfig(target_kafka_broker, kafka_topic,flowId,sourceIncrementTopicList)), data_type)
       }
-      feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, flowId, "")
+      feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, "")
     }
   }
 

@@ -36,6 +36,7 @@ object HdfsDirective extends Directive {
     val streamId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "stream_id").toString.toLong
     val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
     val namespace_rule = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "namespace_rule").toString.toLowerCase
+    val data_type = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_type").toString.toLowerCase
     val dataParseEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "data_parse")
     val dataParseStr = if (dataParseEncoded != null && !dataParseEncoded.toString.isEmpty) new String(new sun.misc.BASE64Decoder().decodeBuffer(dataParseEncoded.toString)) else null
     val flowId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "flow_id").toString.toLong
@@ -45,8 +46,7 @@ object HdfsDirective extends Directive {
       val parseResult: RegularJsonSchema = if (dataParseStr != null) {
         JsonSourceConf.parse(dataParseStr)
       } else RegularJsonSchema(null,null,null)
-      ConfMemoryStorage.hdfslogMap(namespace_rule) = HdfsLogFlowConfig(DataTypeEnum.UMS_EXTENSION.toString, parseResult.fieldsInfo, parseResult.twoFieldsArr,
-        parseResult.schemaField, flowId, sourceIncrementTopicList, hourDuration)
+      ConfMemoryStorage.hdfslogMap(namespace_rule) = HdfsLogFlowConfig(data_type, parseResult, flowId, sourceIncrementTopicList, hourDuration)
 
       //      HdfsMainProcess.directiveNamespaceRule(namespace_rule) = hour_duration
       feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, flowId, "")

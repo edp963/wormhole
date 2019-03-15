@@ -262,7 +262,7 @@ object FeedbackProcess extends RiderLogger {
             string2EsDateString(DateUtils.dt2string(sinkTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             string2EsDateString(DateUtils.dt2string(doneTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
             Interval(interval_data_process_dataums, interval_data_process_rdd, interval_rdd_swifts,  interval_data_process_done,
-                interval_data_swifts_sink, interval_data_sink_done),feedbackTime.toString)
+                interval_data_swifts_sink, interval_data_sink_done),feedbackTime.toString+"+08:00")
           monitorInfo
         })
       })

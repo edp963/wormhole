@@ -20,15 +20,13 @@
 
 package edp.wormhole.sparkx.hdfslog
 
-import edp.wormhole.common.json.FieldInfo
-import edp.wormhole.ums.UmsField
-
-import scala.collection.mutable.ArrayBuffer
+import edp.wormhole.common.json.RegularJsonSchema
 
 case class HdfsLogFlowConfig(dataType:String,
-                             fieldsInfo: Seq[FieldInfo],
-                             twoFieldsArr: ArrayBuffer[(String, String)],
-                             schemaField: Seq[UmsField],
+//                             fieldsInfo: Seq[FieldInfo],
+//                             twoFieldsArr: ArrayBuffer[(String, String)],
+//                             schemaField: Seq[UmsField],
+                             jsonSchema: RegularJsonSchema,
                              flowId:Long,
                              incrementTopics:List[String],
                              hourDuration:Int) {
