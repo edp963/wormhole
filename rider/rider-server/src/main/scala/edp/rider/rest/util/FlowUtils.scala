@@ -538,9 +538,9 @@ object FlowUtils extends RiderLogger {
                 base64Tuple.head
               }, ${
                 base64Tuple(1)
-              }, ${
-                base64Tuple(2)
               }, "${
+                base64Tuple(2)
+              }", "${
                 base64Tuple(3)
               }", "${
                 base64Tuple(4)
