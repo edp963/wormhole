@@ -188,7 +188,6 @@ trait UmsProtocolUtils {
                         directiveId: Long,
                         status: UmsFeedbackStatus,
                         streamId: Long,
-                        flowId: Long,
                         resultDesc: String): String = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_START_DIRECTIVE),
     schema = UmsSchema("", Some(Seq(
@@ -200,7 +199,7 @@ trait UmsProtocolUtils {
       UmsField("result_desc", UmsFieldType.STRING)))),
     payload = Some(Seq(UmsTuple(Seq(
       DateUtils.dt2string(timeNow, dtFormat),
-      directiveId.toString, status.toString, streamId.toString, flowId.toString, resultDesc))))))
+      directiveId.toString, status.toString, streamId.toString, resultDesc))))))
 
   // feedback_flow_error
   def feedbackFlowError(sourceNamespace: String,

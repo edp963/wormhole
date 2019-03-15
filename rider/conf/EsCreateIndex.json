@@ -2,11 +2,11 @@
   "settings": {
     "index": {
       "number_of_shards": 5,
-      "number_of_replicas": 3
+      "number_of_replicas": 1
     }
   },
   "mappings": {
-    "#ESINDEX#": {
+    "#ESTYPE#": {
       "properties": {
         "projectId": {
           "type": "long"
@@ -30,7 +30,7 @@
           "type": "keyword"
         },
         "topics": {
-          "type": "nested"
+          "type": "keyword"
         },
         "rddCount": {
           "type": "long"
