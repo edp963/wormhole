@@ -39,20 +39,20 @@ import scalaj.http.{Http, HttpResponse}
 
 object YarnStatusQuery extends RiderLogger {
 
-  def getSparkAllJobStatus(jobs: Seq[Job], map: Map[String, AppResult], projectName: String) = jobs.map(job => {
+  def getSparkAllJobStatus(jobs: Seq[Job], map: Map[String, AppResult]): Unit = jobs.map(job => {
     val appInfo = mappingSparkJobStatus(job, map)
     modules.jobDal.updateJobStatus(job.id, appInfo, job.logPath.getOrElse(""))
     //    val startedTime = if (appInfo.startedTime != null) Some(appInfo.startedTime) else Some("")
     //    val stoppedTime = if (appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
-    val newJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
+    /*val newJob = Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
       job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, appInfo.appState, Some(appInfo.appId), job.logPath, Option(appInfo.startedTime), Option(appInfo.finishedTime), job.userTimeInfo)
-    FullJobInfo(newJob, projectName, getDisableAction(newJob))
+    FullJobInfo(newJob, projectName, getDisableAction(newJob))*/
   })
 
 
-  def getSparkList(job: Job) = {
+  /*def getSparkList(job: Job) = {
     if (job.startedTime.getOrElse("") != "") getAllAppStatus(job.startedTime.get, Seq(job.name)) else Map.empty[String, AppResult]
-  }
+  }*/
 
   def mappingSparkJobStatus(job: Job, sparkList: Map[String, AppResult]) = {
     val startedTime = job.startedTime.orNull
@@ -94,10 +94,10 @@ object YarnStatusQuery extends RiderLogger {
     result
   }
 
-  def getSparkJobStatus(job: Job): AppInfo = {
+  /*def getSparkJobStatus(job: Job): AppInfo = {
     val sparkList = getSparkList(job)
     mappingSparkJobStatus(job, sparkList)
-  }
+  }*/
 
   def getAllAppStatus(fromTime: String, appNames: Seq[String]): Map[String, AppResult] = {
     getAllYarnAppStatus(fromTime, appNames)
