@@ -27,6 +27,7 @@ import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.module._
 import edp.rider.monitor.ElasticSearch
 import edp.rider.rest.util.CommonUtils
+import edp.rider.yarn.YarnStatusQuery
 import edp.wormhole.util.{DateUtils, DtFormat}
 
 object ScheduledTask extends RiderLogger {
@@ -62,9 +63,9 @@ object ScheduledTask extends RiderLogger {
     }
   }
 
-  def updateStreamStatusByYarn: Unit ={
+  def updateAllStatusByYarn: Unit ={
     try {
-      modules.streamDal.updateStreamStatusByYarn()
+      YarnStatusQuery.updateStatusByYarn
     } catch {
       case e: Exception =>
         riderLogger.error(s"failed to update stream status by yarn app status", e)
