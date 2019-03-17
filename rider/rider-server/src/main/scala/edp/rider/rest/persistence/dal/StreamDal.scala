@@ -50,13 +50,22 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     projectSeq.map(project => (project.id, project.name)).toMap
   }
 
-  def updateStreamStatusByYarn(streams: Seq[Stream], appInfoMap: Map[String, AppResult]): Unit = {
+  def updateStreamStatusByYarn(streams: Seq[Stream], appInfoMap: Map[String, AppResult]): Map[Long, StreamInfo] = {
+    val streamInfoMapRe = mutable.HashMap.empty[Long, StreamInfo]
+    val streamInfoMap = streams.map(stream => (stream.id, StreamInfo(stream.name, stream.sparkAppid, stream.streamType, stream.functionType, stream.status))).toMap
     val streamMap = streams.map(stream => (stream.id, (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime)))).toMap
     val refreshStreamSeq = getStreamYarnAppStatus(streams, appInfoMap)
     val updateStreamSeq = refreshStreamSeq.filter(stream => {
-      if (streamMap(stream.id) == (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime))) false else true
+      if (streamMap(stream.id) == (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime))) {
+        streamInfoMapRe(stream.id) = streamInfoMap(stream.id)
+        false
+      } else {
+        streamInfoMapRe(stream.id) = StreamInfo(stream.name, stream.sparkAppid, stream.streamType, stream.functionType, stream.status)
+        true
+      }
     })
     updateByRefresh(updateStreamSeq)
+    streamInfoMapRe.toMap
   }
 
   def refreshStreamStatus(streamId: Long): Option[Stream] = {

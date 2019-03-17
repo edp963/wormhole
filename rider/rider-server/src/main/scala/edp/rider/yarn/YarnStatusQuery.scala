@@ -26,7 +26,9 @@ import edp.rider.RiderStarter.modules
 import edp.rider.RiderStarter.modules._
 import edp.rider.common._
 import edp.rider.rest.persistence.entities
-import edp.rider.rest.persistence.entities.{FlinkJobStatus, FullJobInfo, Job, Stream}
+import edp.rider.rest.persistence.entities.{FlinkJobStatus, FlowStream, FullJobInfo, Job, Stream, StreamInfo}
+import edp.rider.rest.util.CommonUtils.minTimeOut
+import edp.rider.rest.util.FlowUtils
 import edp.rider.rest.util.JobUtils.getDisableAction
 import edp.rider.rest.util.StreamUtils.getStreamTime
 import edp.rider.yarn.YarnClientLog._
@@ -52,8 +54,9 @@ object YarnStatusQuery extends RiderLogger {
     val fromTime = getYarnFromTime(streams, jobs)
     val appInfoMap: Map[String, AppResult] = if (fromTime == "") Map.empty[String, AppResult] else getAllYarnAppStatus(fromTime, nameSet)
 
-    streamDal.updateStreamStatusByYarn(streams, appInfoMap)
+    val streamMap = streamDal.updateStreamStatusByYarn(streams, appInfoMap)
     jobDal.updateJobStatusByYarn(jobs, appInfoMap)
+    flowDal.updateFlowStatusByYarn(streamMap)
   }
 
   def getYarnFromTime(streams: Seq[Stream], jobs: Seq[Job]): String = {
@@ -79,7 +82,7 @@ object YarnStatusQuery extends RiderLogger {
     //val queueName = RiderConfig.flink.yarnQueueName
     if (rmUrl != "") {
       val url = s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&startedTimeBegin=$fromTimeLong&applicationTypes=spark,apache%20flink"
-      //riderLogger.info(s"Spark Application refresh yarn rest url: $url")
+      riderLogger.info(s"Spark Application refresh yarn rest url: $url")
       queryAppListOnYarn(url, appNames)
     } else Map.empty[String, AppResult]
   }
@@ -130,6 +133,7 @@ object YarnStatusQuery extends RiderLogger {
           }
         }
       }
+      riderLogger.info(s"Spark Application refresh yarn rest api response resultMap: $resultMap")
       resultMap.toMap
     } catch {
       case ex: Exception =>
