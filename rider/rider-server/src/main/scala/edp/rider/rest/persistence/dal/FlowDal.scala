@@ -41,21 +41,14 @@ import scala.concurrent.{Await, Future}
 class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTable], projectTable: TableQuery[ProjectTable], streamDal: StreamDal, inTopicDal: StreamInTopicDal, flowInTopicDal: FlowInTopicDal, flowUdfTopicDal: FlowUserDefinedTopicDal)
   extends BaseDalImpl[FlowTable, Flow](flowTable) with RiderLogger {
 
-  def updateFlowStatusByYarn(streamMap: Map[Long, StreamInfo]) {
-    defaultGetAll(_.active === true, "refresh", streamMap)
-  }
-
-  def defaultGetAll[C: CanBeQueryCondition](f: (FlowTable) => C, action: String = "refresh", streamInfoMap: Map[Long, StreamInfo] = null): Future[Seq[FlowStream]] = {
+  def defaultGetAll[C: CanBeQueryCondition](f: (FlowTable) => C, action: String = "refresh"): Future[Seq[FlowStream]] = {
     val flows = Await.result(super.findByFilter(f), minTimeOut)
 
     val streamIds = flows.map(_.streamId).distinct
 
-    val streamMap: Map[Long, StreamInfo] =
-      if(streamInfoMap == null) {
-        streamDal.refreshStreamStatus(None, Some(streamIds))
-          .map(stream => (stream.id, StreamInfo(stream.name, stream.sparkAppid, stream.streamType, stream.functionType, stream.status)))
-          .toMap[Long, StreamInfo]
-      } else streamInfoMap
+    val streamMap = streamDal.refreshStreamStatus(None, Some(streamIds))
+      .map(stream => (stream.id, StreamInfo(stream.name, stream.sparkAppid, stream.streamType, stream.functionType, stream.status)))
+      .toMap[Long, StreamInfo]
 
     val flowStreams = FlowUtils.getFlowStatusByYarn(flows.map(flow => FlowStream(flow.id, flow.flowName, flow.projectId, flow.streamId, flow.sourceNs, flow.sinkNs, flow.parallelism, flow.consumedProtocol,
       flow.sinkConfig, flow.tranConfig, flow.tableKeys, flow.desc, flow.status, flow.startedTime, flow.stoppedTime, flow.logPath, flow.active, flow.createTime,
