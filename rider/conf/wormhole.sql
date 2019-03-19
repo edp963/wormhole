@@ -504,6 +504,8 @@ CREATE TABLE IF NOT EXISTS `feedback_flow_stats` (
   KEY `flowId` (`flow_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+alter table `feedback_flow_stats` add column `project_id` BIGINT NOT NULL after `id`;
+
 CREATE TABLE IF NOT EXISTS `feedback_error` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `batch_id` VARCHAR(32) NOT NULL,

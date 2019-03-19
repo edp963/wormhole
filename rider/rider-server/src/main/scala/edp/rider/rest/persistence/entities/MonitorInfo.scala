@@ -30,6 +30,7 @@ import scala.collection.mutable.ListBuffer
 
 case class MonitorInfo(
                         id: Long,
+                        projectId: Long,
                         batchId: String,
                         streamId: Long,
                         flowId: Long,
@@ -94,13 +95,14 @@ case class Interval(intervalDataProcessToDataums: Long,
                     intervalSinkToDone: Long)
 
 class MonitorInfoTable(_tableTag: Tag) extends BaseTable[MonitorInfo](_tableTag, "feedback_flow_stats") {
-  def * = (id, batchId,streamId, flowId,sourceNamespace,sinkNamespace,dataType,rddCount,
+  def * = (id, projectId,batchId,streamId, flowId,sourceNamespace,sinkNamespace,dataType,rddCount,
     topics, throughput, dataGeneratedTs, rddTs, DataProcessTs, swiftsTs, sinkTs, doneTs,
     interval,feedbackTime) <> ((MonitorInfo.apply _).tupled, MonitorInfo.unapply)
 
   def interval = (intervalDataProcessToDataums, intervalDataProcessToRdd, intervalRddToSwifts,
     intervalDataProcessToDone, intervalSwiftsToSink, intervalSinkToDone) <> ((Interval.apply _).tupled, Interval.unapply)
 
+  val projectId: Rep[Long] = column[Long]("project_id")
   val streamId: Rep[Long] = column[Long]("stream_id")
   val batchId: Rep[String] = column[String]("batch_id")
   val flowId: Rep[Long] = column[Long]("flow_id")
