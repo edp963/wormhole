@@ -201,8 +201,23 @@ object YarnStatusQuery extends RiderLogger {
     appIds.foreach {
       appId =>
         val url = s"http://$activeRm/proxy/$appId/jobs/overview"
+
+        var retryNum = 0
+        var response: HttpResponse[String] = HttpResponse("", 200, null)
+        while(retryNum < 3) {
+          try{
+            response = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
+            riderLogger.info(s"Get Flink job status request url $url retry num $retryNum")
+            retryNum = 3
+          } catch {
+            case ex: Exception =>
+              retryNum = retryNum + 1
+              riderLogger.error(s"Get Flink job status failed by request url $url retry num $retryNum", ex)
+              if(retryNum >= 3) throw ex
+          }
+        }
+
         try {
-          val response: HttpResponse[String] = Http(url).header("Accept", "application/json").timeout(10000, 1000).asString
           val json = JsonParser.apply(response.body).toString()
           val jobs = JSON.parseObject(json).getJSONArray("jobs")
           for (i <- 0 until jobs.size) {
