@@ -173,7 +173,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                     case Success(dbOpt) =>
                       riderLogger.info(s"user ${session.userId} select database where id is ${simple.nsDatabaseId} success.")
                       dbOpt match {
-                        case Some(db) =>
+                        case Some(_) =>
                           val nsSeq = new ArrayBuffer[Namespace]
                           simple.nsTables.map(nsTable => {
                             nsSeq += Namespace(0, simple.nsSys.trim, simple.nsInstance.trim, simple.nsDatabase.trim, nsTable.table.trim, "*", "*", "*", nsTable.key,
@@ -281,7 +281,11 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                   complete(OK, getHeader(403, session))
                 }
                 else {
-                  val umsFinal = if (ums.jsonSample.isEmpty) null else ums
+                  val umsFinal =
+                    if (ums.jsonSample.isEmpty || ums.jsonSample == null || ums.jsonSample.getOrElse("null") == "null")
+                      null
+                    else
+                      ums
                   onComplete(namespaceDal.updateUmsInfo(id, umsFinal, session.userId).mapTo[Int]) {
                     case Success(_) =>
                       riderLogger.info(s"user ${session.userId} update namespace source schema success.")
@@ -309,7 +313,10 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
                   complete(OK, getHeader(403, session))
                 }
                 else {
-                  val schemaFinal = if(schema.jsonSample.isEmpty) null else schema
+                  val schemaFinal =
+                    if (schema.jsonSample.isEmpty || schema.jsonSample == null || schema.jsonSample.getOrElse("null") == "null")
+                      null
+                    else schema
                   onComplete(namespaceDal.updateSinkInfo(id, schemaFinal, session.userId).mapTo[Int]) {
                     case Success(_) =>
                       riderLogger.info(s"user ${session.userId} update namespace sink schema success.")
@@ -365,9 +372,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
   }
 
 
-  private def getNsRoute(session: SessionClass, visible: Boolean): Route
-
-  = {
+  private def getNsRoute(session: SessionClass, visible: Boolean): Route = {
     onComplete(relProjectNsDal.getNamespaceAdmin(_.active === visible).mapTo[Seq[NamespaceAdmin]]) {
       case Success(res) =>
         riderLogger.info(s"user ${session.userId} select all namespaces success.")
@@ -389,7 +394,7 @@ class NamespaceAdminApi(namespaceDal: NamespaceDal, databaseDal: NsDatabaseDal, 
           riderLogger.info(s"user ${session.userId} insertOrUpdate dbus table success.")
           val (insertSeq, updateSeq) = namespaceDal.generateNamespaceSeqByDbus(dbusUpsert, session)
           onComplete(namespaceDal.insert(insertSeq).mapTo[Seq[Namespace]]) {
-            case Success(result) =>
+            case Success(_) =>
               riderLogger.info(s"user ${session.userId} insert dbus namespaces success.")
               namespaceDal.updateNs(updateSeq)
               riderLogger.info(s"user ${session.userId} update dbus namespaces success.")
