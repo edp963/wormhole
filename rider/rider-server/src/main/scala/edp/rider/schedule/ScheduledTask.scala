@@ -68,7 +68,7 @@ object ScheduledTask extends RiderLogger {
       YarnStatusQuery.updateStatusByYarn
     } catch {
       case e: Exception =>
-        Thread.sleep(RiderConfig.refreshInterval*1000)
+        //Thread.sleep(RiderConfig.refreshInterval*1000)
         riderLogger.error(s"failed to update stream status by yarn app status", e)
     }
   }
