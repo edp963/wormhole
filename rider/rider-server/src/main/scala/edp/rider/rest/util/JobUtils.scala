@@ -31,9 +31,10 @@ import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.FlowUtils._
 import edp.rider.rest.util.NamespaceUtils._
 import edp.rider.rest.util.NsDatabaseUtils._
-import edp.rider.yarn.YarnStatusQuery.getSparkJobStatus
 import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.wormhole._
+import edp.rider.yarn.YarnClientLog.getAppStatusByLog
+import edp.rider.yarn.YarnStatusQuery.getAppStatusByRest
 import edp.wormhole.ums.UmsDataSystem
 import edp.wormhole.util.JsonUtils._
 import edp.wormhole.util.CommonUtils._
@@ -221,13 +222,13 @@ object JobUtils extends RiderLogger {
   }
 
   def refreshJob(id: Long) = {
-    val job = Await.result(modules.jobDal.findById(id), minTimeOut).head
-    val appInfo = getSparkJobStatus(job)
+    Await.result(modules.jobDal.findById(id), minTimeOut).head
+    /*val appInfo = getSparkJobStatus(job)
     modules.jobDal.updateJobStatus(job.id, appInfo, job.logPath.getOrElse(""))
     val startedTime = if (appInfo.startedTime != null) Some(appInfo.startedTime) else Some("")
     val stoppedTime = if (appInfo.finishedTime != null) Some(appInfo.finishedTime) else Some("")
     Job(job.id, job.name, job.projectId, job.sourceNs, job.sinkNs, job.jobType, job.sparkConfig, job.startConfig, job.eventTsStart, job.eventTsEnd, job.sourceConfig,
-      job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.userTimeInfo)
+      job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.userTimeInfo)*/
   }
 
   def killJob(id: Long): String = {
@@ -352,5 +353,45 @@ object JobUtils extends RiderLogger {
       configuration.set(s"dfs.client.failover.proxy.provider.$clusterName","org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
     }
     configuration
+  }
+
+  def mappingSparkJobStatus(job: Job, sparkList: Map[String, AppResult]) = {
+    val startedTime = job.startedTime.orNull
+    val stoppedTime = job.stoppedTime.orNull
+    val appInfo = getAppStatusByRest(sparkList, job.sparkAppid.getOrElse(""), job.name, job.status, startedTime, stoppedTime)
+    val result = job.status match {
+      case "starting" =>
+        val logInfo = getAppStatusByLog(job.name, job.status, job.logPath.getOrElse(""))
+        AppInfo(logInfo._1, logInfo._2, appInfo.startedTime, appInfo.finishedTime)
+      case "waiting" =>
+        appInfo.appState.toUpperCase match {
+          case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
+          case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
+          case "WAITING" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
+          case "KILLED" | "FINISHED" | "FAILED" => AppInfo(appInfo.appId, "failed", appInfo.startedTime, appInfo.finishedTime)
+          case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
+        }
+      case "running" =>
+        appInfo.appState.toUpperCase match {
+          case "RUNNING" => AppInfo(appInfo.appId, "running", appInfo.startedTime, appInfo.finishedTime)
+          case "ACCEPTED" => AppInfo(appInfo.appId, "waiting", appInfo.startedTime, appInfo.finishedTime)
+          case "KILLED" | "FAILED" | "FINISHED" => AppInfo(appInfo.appId, "failed", appInfo.startedTime, appInfo.finishedTime)
+          case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
+        }
+      case "stopping" =>
+        appInfo.appState.toUpperCase match {
+          case "STOPPING" => AppInfo(appInfo.appId, "stopping", appInfo.startedTime, appInfo.finishedTime)
+          case "KILLED" | "FAILED" | "FINISHED" => AppInfo(appInfo.appId, "stopped", appInfo.startedTime, appInfo.finishedTime)
+          case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
+          case _ => AppInfo(appInfo.appId, "stopping", appInfo.startedTime, appInfo.finishedTime)
+        }
+      case "stopped" =>
+        appInfo.appState.toUpperCase match {
+          case "DONE" => AppInfo(appInfo.appId, "done", appInfo.startedTime, appInfo.finishedTime)
+          case _ => AppInfo(job.sparkAppid.getOrElse(""), "stopped", startedTime, stoppedTime)
+        }
+      case _ => AppInfo(job.sparkAppid.getOrElse(""), job.status, startedTime, stoppedTime)
+    }
+    result
   }
 }

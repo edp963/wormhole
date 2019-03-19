@@ -94,13 +94,7 @@ object StreamUtils extends RiderLogger {
       s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/cluster/app/$appId/"
   }
 
-  def getYarnAppStatus(streams: Seq[Stream]) = {
-    val fromTime =
-      if (streams.nonEmpty && streams.exists(_.startedTime.getOrElse("") != ""))
-        streams.filter(_.startedTime.getOrElse("") != "").map(_.startedTime).min.getOrElse("")
-      else ""
-    val appInfoMap = if (fromTime == "") Map.empty[String, AppResult] else getAllYarnAppStatus(fromTime, streams.map(_.name))
-
+  def getStreamYarnAppStatus(streams: Seq[Stream], appInfoMap: Map[String, AppResult]) = {
     streams.map(
       stream => {
         val dbStatus = stream.status

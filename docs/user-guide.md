@@ -246,7 +246,10 @@ Spark SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 
 - 选择要关联的其他 Source Namespace，可关联多个 Source Namespace
 - Stream Join SQL 处理过程中会将没有关联上的数据保存到 HDFS 上，data retention time 代表数据的有效期
-- select 语句规则同 Lookup SQL，如select joinTable_file1 as  newfile1, joinTable_file2 as  newfile2from joinTable where (joinTable_file1, joinTable_file2) in (sourceNamespace.file1, sourceNamespace.file2);
+- SQL语法为Spark SQL，SQL语句中的表名写Namespace中的表名即可。如:
+```
+select a.id, a.degree, b.sex from table1 a,table2 b where a.id > 1 and a.bid=b.id;
+```
 
 #### Flink Flow Transformation
 
