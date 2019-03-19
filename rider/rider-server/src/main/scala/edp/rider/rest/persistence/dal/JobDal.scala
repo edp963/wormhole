@@ -21,11 +21,16 @@
 
 package edp.rider.rest.persistence.dal
 
+import edp.rider.RiderStarter.modules
 import edp.rider.module.DbModule._
 import edp.rider.rest.persistence.base.BaseDalImpl
 import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
-import edp.rider.common.AppInfo
+import edp.rider.common.{AppInfo, AppResult}
+import edp.rider.rest.util.JobUtils
+import edp.rider.yarn.YarnClientLog.getAppStatusByLog
+import edp.rider.yarn.YarnStatusQuery
+import edp.rider.yarn.YarnStatusQuery.getAppStatusByRest
 import edp.wormhole.util.JsonUtils
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.TableQuery
@@ -86,5 +91,14 @@ class JobDal(jobTable: TableQuery[JobTable], projectTable: TableQuery[ProjectTab
       }
     )
     (usedCores, usedMemory, jobResources)
+  }
+
+  def updateJobStatusByYarn(jobs: Seq[Job], appInfoMap: Map[String, AppResult]): Unit = {
+    if (jobs != null && jobs.nonEmpty) {
+      jobs.map(job => {
+        val appInfo = JobUtils.mappingSparkJobStatus(job, appInfoMap)
+        modules.jobDal.updateJobStatus(job.id, appInfo, job.logPath.getOrElse(""))
+      })
+    }
   }
 }
