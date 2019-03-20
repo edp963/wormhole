@@ -119,12 +119,12 @@ class NamespaceDal(namespaceTable: TableQuery[NamespaceTable],
   }
 
   def updateUmsInfo(id: Long, umsInfo: SourceSchema, user: Long): Future[Int] = {
-    val schema = Option(caseClass2json[SourceSchema](umsInfo))
+    val schema = if (umsInfo == null) null else Option(caseClass2json[SourceSchema](umsInfo))
     db.run(namespaceTable.filter(_.id === id).map(ns => (ns.umsInfo, ns.updateTime, ns.updateBy)).update(schema, currentSec, user)).mapTo[Int]
   }
 
   def updateSinkInfo(id: Long, sinkInfo: SinkSchema, user: Long): Future[Int] = {
-    val schema = Option(caseClass2json[SinkSchema](sinkInfo))
+    val schema = if (sinkInfo == null) null else Option(caseClass2json[SinkSchema](sinkInfo))
     db.run(namespaceTable.filter(_.id === id).map(ns => (ns.sinkInfo, ns.updateTime, ns.updateBy)).update(schema, currentSec, user)).mapTo[Int]
   }
 
