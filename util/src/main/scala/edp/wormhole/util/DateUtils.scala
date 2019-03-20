@@ -251,7 +251,7 @@ trait DateUtils {
 
   private def yyyyMMddHHmmssToDate(yyyyMMddHHmmss: String): Date = if (yyyyMMddHHmmss == null) null else getDateFormat(DtFormat.TS_NOD_SEC.toString).parse(yyyyMMddHHmmss)
 
-  private def yyyyMMddHHmmssmlsToDate(yyyyMMddHHmmssmls: String): Date = if (yyyyMMddHHmmssmls == null) null else getDateFormat(DtFormat.TS_NOD_MILLISEC.toString).parse(yyyyMMddHHmmssmls)
+  def yyyyMMddHHmmssmlsToDate(yyyyMMddHHmmssmls: String): Date = if (yyyyMMddHHmmssmls == null) null else getDateFormat(DtFormat.TS_NOD_MILLISEC.toString).parse(yyyyMMddHHmmssmls)
 
   def yyyyMMddHHmmssToDateTime(yyyyMMddHHmmss: String): DateTime = if (yyyyMMddHHmmss == null) null else new DateTime(yyyyMMddHHmmssToDate(yyyyMMddHHmmss))
 
