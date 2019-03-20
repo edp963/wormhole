@@ -392,6 +392,11 @@ object JobUtils extends RiderLogger {
         }
       case _ => AppInfo(job.sparkAppid.getOrElse(""), job.status, startedTime, stoppedTime)
     }
-    result
+      result
+  }
+
+  def getJobTime(time: Option[String]) = {
+    val timeValue = time.getOrElse("")
+    if (timeValue.nonEmpty) timeValue.split("\\.")(0) else null
   }
 }
