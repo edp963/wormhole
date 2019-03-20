@@ -222,7 +222,7 @@ Lookup SQL 可以关联流下其他系统数据，如 RDBS/Hbase/Redis/Elasticse
 select id as id1,name as name1,address,age from eurus_user where (id,name) in (${id},${name});
 ```
 
-（2）主流上的字段名用namespace.fileName进行标注，例如
+（2）主流上的字段名用namespace.filedName进行标注，例如
 
 ```
 select id as id1, name as name1, address, age from eurus_user where (id, name) in (kafka.edp_kafka.udftest.udftable.id, kafka.edp_kafka.udftest.udftable.name);
