@@ -222,7 +222,7 @@ Lookup SQL 可以关联流下其他系统数据，如 RDBS/Hbase/Redis/Elasticse
 select id as id1,name as name1,address,age from eurus_user where (id,name) in (${id},${name});
 ```
 
-（2）主流上的字段名用namespace.fileName进行标注，例如
+（2）主流上的字段名用namespace.filedName进行标注，例如
 
 ```
 select id as id1, name as name1, address, age from eurus_user where (id, name) in (kafka.edp_kafka.udftest.udftable.id, kafka.edp_kafka.udftest.udftable.name);
@@ -246,10 +246,8 @@ Spark SQL 用于处理 Source Namespace 数据，from 后面直接接表名即�
 
 - 选择要关联的其他 Source Namespace，可关联多个 Source Namespace
 - Stream Join SQL 处理过程中会将没有关联上的数据保存到 HDFS 上，data retention time 代表数据的有效期
-- SQL语法为Spark SQL，SQL语句中的表名写Namespace中的表名即可。如:
-```
-select a.id, a.degree, b.sex from table1 a,table2 b where a.id > 1 and a.bid=b.id;
-```
+- select 语句规则同 Lookup SQL
+
 
 #### Flink Flow Transformation
 
