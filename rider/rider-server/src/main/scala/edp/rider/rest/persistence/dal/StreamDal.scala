@@ -181,8 +181,8 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   def updateByRefresh(streams: Seq[Stream]): Seq[Int] = {
     streams.map(stream =>
       Await.result(db.run(streamTable.filter(_.id === stream.id)
-        .map(stream => (stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime))
-        .update(stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime)).mapTo[Int], minTimeOut))
+        .map(stream => (stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.updateTime))
+        .update(stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.updateTime)).mapTo[Int], minTimeOut))
   }
 
   def getResource(projectId: Long): Future[Resource] = {
