@@ -227,25 +227,27 @@ object FeedbackProcess extends RiderLogger {
           val rddCountValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_count").toString.toInt
           val feedbackTime =  UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
           //todo 兼容0.6.0及之前版本stream feedback数据
-          val cdcTsValue =
+          val cdcTsValue:Date =
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_generated_ts") != null)
-              UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_generated_ts").toString.toLong
-            else UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_genereated_ts").toString.toLong
-          val rddTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_generated_ts").toString.toLong
-          val mainDataTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_process_start_ts").toString.toLong
-          val swiftsTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "swifts_start_ts").toString.toLong
-          val sinkTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_start_ts").toString.toLong
-          val doneTsValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "done_ts").toString.toLong
+              DateUtils.yyyyMMddHHmmssmlsToDate(UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_generated_ts").toString)
+            else DateUtils.yyyyMMddHHmmssmlsToDate(UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_genereated_ts").toString)
+          val rddTsValue = {
+            DateUtils.yyyyMMddHHmmssmlsToDate(UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_generated_ts").toString)
+          }
+          val mainDataTsValue = DateUtils.yyyyMMddHHmmssmlsToDate(UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_process_start_ts").toString)
+          val swiftsTsValue = DateUtils.yyyyMMddHHmmssmlsToDate(UmsFieldType.umsFieldValue(tuple.tuple, fields, "swifts_start_ts").toString)
+          val sinkTsValue = DateUtils.yyyyMMddHHmmssmlsToDate(UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_start_ts").toString)
+          val doneTsValue = DateUtils.yyyyMMddHHmmssmlsToDate(UmsFieldType.umsFieldValue(tuple.tuple, fields, "done_ts").toString)
 
           val riderSinkNamespace = if (sinkNamespaceValue.toString == "") riderNamespace else namespaceRiderString(sinkNamespaceValue.toString)
 
-          val interval_data_process_dataums = (mainDataTsValue.toString.toLong - cdcTsValue.toString.toLong) / 1000
-          val interval_data_process_rdd = (rddTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
-          val interval_data_process_done = (doneTsValue.toString.toLong - mainDataTsValue.toString.toLong) / 1000
-          val interval_rdd_swifts = (swiftsTsValue.toString.toLong - rddTsValue.toString.toLong) / 1000
-          val interval_rdd_done = (doneTsValue.toString.toLong - rddTsValue.toString.toLong) / 1000
-          val interval_data_swifts_sink = (sinkTsValue.toString.toLong - swiftsTsValue.toString.toLong) / 1000
-          val interval_data_sink_done = (doneTsValue.toString.toLong - sinkTsValue.toString.toLong) / 1000
+          val interval_data_process_dataums = (mainDataTsValue.getTime - cdcTsValue.getTime) / 1000
+          val interval_data_process_rdd = (rddTsValue.getTime - mainDataTsValue.getTime) / 1000
+          val interval_data_process_done = (doneTsValue.getTime - mainDataTsValue.getTime) / 1000
+          val interval_rdd_swifts = (swiftsTsValue.getTime - rddTsValue.getTime) / 1000
+          val interval_rdd_done = (doneTsValue.getTime - rddTsValue.getTime) / 1000
+          val interval_data_swifts_sink = (sinkTsValue.getTime - swiftsTsValue.getTime) / 1000
+          val interval_data_sink_done = (doneTsValue.getTime - sinkTsValue.getTime) / 1000
 
           if (interval_rdd_done == 0L) {
             throughput = rddCountValue.toString.toInt
@@ -255,12 +257,12 @@ object FeedbackProcess extends RiderLogger {
             streamIdValue.toString.toLong,flowIdValue.toString.toLong,
             riderNamespace,riderSinkNamespace,dataTypeValue.toString,
             rddCountValue.toString.toInt, if (topics == null) "" else topics.toString, throughput,
-            string2EsDateString(DateUtils.dt2string(cdcTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
-            string2EsDateString(DateUtils.dt2string(rddTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
-            string2EsDateString(DateUtils.dt2string(mainDataTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
-            string2EsDateString(DateUtils.dt2string(swiftsTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
-            string2EsDateString(DateUtils.dt2string(sinkTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
-            string2EsDateString(DateUtils.dt2string(doneTsValue.toString.toLong * 1000, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(cdcTsValue, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(rddTsValue, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(mainDataTsValue, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(swiftsTsValue, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(sinkTsValue, DtFormat.TS_DASH_MICROSEC)),
+            string2EsDateString(DateUtils.dt2string(doneTsValue, DtFormat.TS_DASH_MICROSEC)),
             Interval(interval_data_process_dataums, interval_data_process_rdd, interval_rdd_swifts,  interval_data_process_done,
                 interval_data_swifts_sink, interval_data_sink_done),feedbackTime.toString+"+08:00")
           monitorInfo
