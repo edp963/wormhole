@@ -46,9 +46,9 @@ object YarnStatusQuery extends RiderLogger {
 
   def updateStatusByYarn(): Unit = {
     val streams: Seq[Stream] = streamDal.getStreamSeq(None, None)
-    val streamsNameSet = if(streams != null && streams.nonEmpty) streams.map(_.name) else null
+    val streamsNameSet = if(streams != null && streams.nonEmpty) streams.map(_.name) else Seq()
     val jobs = jobDal.getAllJobs
-    val jobsNameSet = if(jobs != null && jobs.nonEmpty) jobs.map(_.name) else null
+    val jobsNameSet = if(jobs != null && jobs.nonEmpty) jobs.map(_.name) else Seq()
 
     val nameSet = streamsNameSet ++ jobsNameSet
     val fromTime = getYarnFromTime(streams, jobs)
