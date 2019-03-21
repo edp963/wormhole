@@ -285,7 +285,7 @@ object KuduConnection extends Serializable {
             (f, value)
           }).toMap
           val keysStr = queryResult(keyName)._1.toString
-          if (queryResultMap.contains(keysStr)) {
+          if (!queryResultMap.contains(keysStr)) {
             val tmpList = ListBuffer.empty[Map[String, (Any, String)]]
             tmpList.append(queryResult)
             queryResultMap(keysStr) = tmpList
@@ -421,7 +421,7 @@ object KuduConnection extends Serializable {
           }
           (f, value)
         }).toMap
-        if (queryResultMap.contains(keysStr)) {
+        if (!queryResultMap.contains(keysStr)) {
           val tmpList = ListBuffer.empty[Map[String, (Any, String)]]
           tmpList.append(queryResult)
           queryResultMap(keysStr) = tmpList
