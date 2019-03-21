@@ -127,15 +127,14 @@ object LookupKudu extends EdpLogging {
 
   def getFieldsArray(fields: String): Array[(String, String)] = {
     fields.split(",").map(f => {
-      val fields = f.split(":")
-      val sourceName = fields(0).trim
-      val fields1trim = fields(1).trim
-      if (fields1trim.toLowerCase.contains(" as ")) {
-        val asIndex = fields1trim.toLowerCase.indexOf(" as ")
-        val newName = fields1trim.substring(asIndex + 4).trim
+      val field = f.toLowerCase.trim
+      if (field.contains(" as ")) {
+        val asIndex = field.indexOf(" as ")
+        val sourceName = field.substring(0,asIndex).trim
+        val newName = field.substring(asIndex + 4).trim
         (sourceName, newName)
       } else {
-        (sourceName, sourceName)
+        (field, field)
       }
     })
   }
