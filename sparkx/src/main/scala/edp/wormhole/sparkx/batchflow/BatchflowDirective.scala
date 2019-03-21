@@ -21,7 +21,7 @@
 
 package edp.wormhole.sparkx.batchflow
 
-import com.alibaba.fastjson.JSON
+import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.InputDataProtocolBaseType
 import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
@@ -119,6 +119,10 @@ object BatchflowDirective extends Directive {
     val sink_process_class_fullname = sinks.getString("sink_process_class_fullname").trim
     val sink_retry_times = sinks.getString("sink_retry_times").trim.toLowerCase.toInt
     val sink_retry_seconds = sinks.getString("sink_retry_seconds").trim.toLowerCase.toInt
+    val sinkSpecificConfigJson:JSONObject = if(sink_specific_config.nonEmpty) JSON.parseObject(sink_specific_config.get) else null
+    val sinkUid:Boolean = if(sinkSpecificConfigJson!=null&&sinkSpecificConfigJson.containsKey("sink_uid"))
+      sinkSpecificConfigJson.getBoolean("sink_uid")
+    else false
     val sink_output = if (sinks.containsKey("sink_output") && sinks.getString("sink_output").trim.nonEmpty) {
       var tmpOutput = sinks.getString("sink_output").trim.toLowerCase.split(",").map(_.trim).mkString(",")
       if (flowDirectiveConfig.dataType == "ums" && tmpOutput.nonEmpty) {
@@ -130,6 +134,9 @@ object BatchflowDirective extends Directive {
         }
         if (tmpOutput.indexOf(UmsSysField.OP.toString) < 0) {
           tmpOutput = tmpOutput + "," + UmsSysField.OP.toString
+        }
+        if (sinkUid && tmpOutput.indexOf(UmsSysField.UID.toString) < 0) {
+          tmpOutput = tmpOutput + "," + UmsSysField.UID.toString
         }
       }
       tmpOutput
