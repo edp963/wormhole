@@ -21,14 +21,18 @@
 
 package edp.wormhole.publicinterface.sinks
 
-case class SinkProcessConfig(sinkOutput:String,
+import com.alibaba.fastjson.{JSON, JSONObject}
+
+
+case class SinkProcessConfig(sinkOutput: String,
                              tableKeys: Option[String],
                              specialConfig: Option[String],
-                             jsonSchema:Option[String],
+                             jsonSchema: Option[String],
                              classFullname: String,
                              retryTimes: Int,
                              retrySeconds: Int,
-                             kerberos:Boolean=false){
-  lazy val tableKeyList = if (tableKeys.isEmpty || tableKeys.get == null) Nil else tableKeys.get.split(",").map(_.trim.toLowerCase).toList
+                             kerberos: Boolean = false) {
+  lazy val tableKeyList: List[String] = if (tableKeys.isEmpty || tableKeys.get == null) Nil else tableKeys.get.split(",").map(_.trim.toLowerCase).toList
+  lazy val specialConfigJson: JSONObject = if (specialConfig.isEmpty || specialConfig.get == null) null else JSON.parseObject(specialConfig.get)
 }
 

@@ -37,7 +37,7 @@ import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsSchemaUtils._
 import edp.wormhole.ums.UmsSysField._
 import edp.wormhole.ums._
-import edp.wormhole.util.DateUtils
+import edp.wormhole.util.{DateUtils, DtFormat}
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.rdd.RDD
@@ -73,9 +73,9 @@ object HdfsMainProcess extends EdpLogging {
       val hdfslogMap: Map[String, HdfsLogFlowConfig] = ConfMemoryStorage.getHdfslogMap
 
       try {
-        val rddTs = System.currentTimeMillis
+        val rddTs = DateUtils.currentyyyyMMddHHmmssmls
         if (SparkUtils.isLocalMode(config.spark_config.master)) logWarning("rdd count ===> " + streamRdd.count())
-        val directiveTs = System.currentTimeMillis
+        val directiveTs = DateUtils.currentyyyyMMddHHmmssmls
         HdfsDirective.doDirectiveTopic(config, stream)
 
         val streamTransformedRdd: RDD[((String, String), String)] = streamRdd.map(message => {
@@ -98,7 +98,7 @@ object HdfsMainProcess extends EdpLogging {
         //        val validNameSpaceMap: Map[String, Int] = directiveNamespaceRule.toMap //validNamespaceMap is NOT real namespace, has *
         //        logInfo("validNameSpaceMap:" + validNameSpaceMap)
 
-        val mainDataTs = System.currentTimeMillis
+        val mainDataTs = DateUtils.currentyyyyMMddHHmmssmls
         val partitionResultRdd = dataParRdd.mapPartitionsWithIndex { case (index, partition) =>
           // partition: ((protocol,namespace), message.value)
           val resultList = ListBuffer.empty[PartitionResult]
@@ -203,7 +203,7 @@ object HdfsMainProcess extends EdpLogging {
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
               UmsProtocolUtils.feedbackFlowStats(namespace, protocol, DateUtils.currentDateTime, config.spark_config.stream_id,
                 batchId, namespace, topicPartitionOffset.toJSONString,
-                count, cdcTs, rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs.toString, flowId),
+                count, DateUtils.dt2string(cdcTs,DtFormat.TS_DASH_MILLISEC), rddTs, directiveTs, mainDataTs, mainDataTs, mainDataTs, doneTs.toString, flowId),
               Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flowId), config.kafka_output.brokers)
 
         }
