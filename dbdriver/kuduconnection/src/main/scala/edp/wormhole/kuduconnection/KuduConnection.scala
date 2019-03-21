@@ -297,7 +297,7 @@ object KuduConnection extends Serializable {
       }
     } catch {
       case e: Throwable =>
-        logger.error("doQueryByKeyListInBatch", e)
+        logger.error("doQueryMultiByKeyListInBatch", e)
         throw e
     } finally {
       closeClient(client)
@@ -496,7 +496,7 @@ object KuduConnection extends Serializable {
 
     } catch {
       case e: Throwable =>
-        logger.error("doQueryByKeyListInBatch", e)
+        logger.error("doWrite", e)
         throw e
     } finally {
       closeClient(client)
