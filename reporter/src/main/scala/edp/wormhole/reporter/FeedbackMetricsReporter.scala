@@ -5,7 +5,7 @@ import java.util.UUID
 import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.ums.{UmsProtocolType, UmsProtocolUtils}
-import edp.wormhole.util.DateUtils
+import edp.wormhole.util.{DateUtils, DtFormat}
 import org.apache.flink.metrics.MetricConfig
 import org.apache.flink.metrics.reporter.{AbstractReporter, Scheduled}
 import org.apache.log4j.Logger
@@ -53,18 +53,16 @@ class FeedbackMetricsReporter extends AbstractReporter with Scheduled {
         val batchId = UUID.randomUUID().toString
         Thread.currentThread.setContextClassLoader(null) //当kafkaProducer在单独线程里时，会存在由于classLoader加载问题，导致的StringSerilizer加载异常问题，故这里做此操作
         WormholeKafkaProducer.init(brokers.toString, None, kerberos.toString.toBoolean)
+        val firtstUmsTsStr = DateUtils.dt2string(firstUmsTs.toLong,DtFormat.TS_DASH_MILLISEC)
+        val lastUmsTsStr = DateUtils.dt2string(lastUmsTs.toLong,DtFormat.TS_DASH_MILLISEC)
         WormholeKafkaProducer.sendMessage(topic.toString, FeedbackPriority.feedbackPriority,
           UmsProtocolUtils.feedbackFlowStats(sourceNamespace.toString, protocolType, DateUtils.currentDateTime, streamId.toString.toLong,
-            batchId, sinkNamespace.toString, topics, payloadSize.toInt, txt2Long(firstUmsTs), txt2Long(firstUmsTs),
-            txt2Long(firstUmsTs), txt2Long(firstUmsTs), txt2Long(lastUmsTs), txt2Long(lastUmsTs), lastUmsTs, flowId.toString.toLong),
+            batchId, sinkNamespace.toString, topics, payloadSize.toInt, firtstUmsTsStr, firtstUmsTsStr,
+            firtstUmsTsStr, firtstUmsTsStr, lastUmsTsStr, lastUmsTsStr, lastUmsTs, flowId.toString.toLong),
           Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flowId), brokers.toString)
         this.counters.keySet.iterator.next.dec(payloadSize)
       }
     }
-  }
-
-  def txt2Long(str: String): Long = {
-    return java.lang.Long.parseLong(str)
   }
 
   override def filterCharacters(str: String): String = {
