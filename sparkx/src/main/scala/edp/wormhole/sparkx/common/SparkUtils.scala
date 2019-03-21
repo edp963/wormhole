@@ -22,6 +22,7 @@
 package edp.wormhole.sparkx.common
 
 import com.alibaba.fastjson.{JSONArray, JSONObject}
+import edp.wormhole.publicinterface.sinks.SinkProcessConfig
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums
 import edp.wormhole.ums.{UmsField, UmsFieldType, UmsSysField}
@@ -88,7 +89,9 @@ object SparkUtils extends EdpLogging {
 
   }
 
-  def getSchemaMap(sinkFields: Seq[UmsField], outputField: String): (Map[String, (Int, UmsFieldType, Boolean)], Map[String, (Int, UmsFieldType, Boolean)], Option[Map[String, String]]) = {
+  def getSchemaMap(sinkFields: Seq[UmsField], sinkProcessConfig: SinkProcessConfig):
+  (Map[String, (Int, UmsFieldType, Boolean)], Map[String, (Int, UmsFieldType, Boolean)], Option[Map[String, String]]) = {
+    val outputField = sinkProcessConfig.sinkOutput
     val schemaArr: Seq[(String, (Int, UmsFieldType, Boolean))] = sinkFields.zipWithIndex.map(t => (t._1.name.toLowerCase, (t._2, t._1.`type`, t._1.nullable.get)))
     val tmpSchema: Map[String, (Int, UmsFieldType, Boolean)] = schemaArr.toMap
     if (outputField.nonEmpty) {
@@ -118,8 +121,13 @@ object SparkUtils extends EdpLogging {
         (t._1, (index, t._2._2, t._2._3))
       }).toMap, tmpSchema, if (renameMap.isEmpty) None else Some(renameMap.toMap))
     } else {
+      val sinkUid:Boolean = if(sinkProcessConfig.specialConfigJson!=null&&sinkProcessConfig.specialConfigJson.containsKey("sinkUid"))
+        sinkProcessConfig.specialConfigJson.getBoolean("sinkUid")
+      else false
+      val tmpSchemaArr = if(sinkUid) schemaArr.filter(_._1 != UmsSysField.UID.toString)
+      else schemaArr
       var index = -1
-      (schemaArr.filter(_._1 != UmsSysField.UID.toString).map(t => {
+      (tmpSchemaArr.map(t => {
         index += 1
         (t._1, (index, t._2._2, t._2._3))
       }).toMap, tmpSchema, None)
