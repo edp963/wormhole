@@ -63,7 +63,7 @@ object YarnStatusQuery extends RiderLogger {
   def getYarnFromTime(streams: Seq[Stream], jobs: Seq[Job]): String = {
     val jobFromTime =
       if(jobs != null && jobs.nonEmpty && jobs.exists(_.startedTime.getOrElse("") != ""))
-        jobs.filter(_.startedTime.isDefined).map(_.startedTime).min.getOrElse("")
+        jobs.filter(_.startedTime.getOrElse("") != "").map(_.startedTime).min.getOrElse("")
       else ""
 
     val streamFromTime =
@@ -71,7 +71,10 @@ object YarnStatusQuery extends RiderLogger {
         streams.filter(_.startedTime.getOrElse("") != "").map(_.startedTime).min.getOrElse("")
       else ""
 
-    if(streamFromTime > jobFromTime) jobFromTime else streamFromTime
+    if(jobFromTime == "") streamFromTime
+    else if(streamFromTime == "") jobFromTime
+    else if(streamFromTime > jobFromTime) jobFromTime
+    else streamFromTime
   }
 
   def getAllYarnAppStatus(fromTime: String, appNames: Seq[String]): Map[String, AppResult] = {
@@ -83,7 +86,7 @@ object YarnStatusQuery extends RiderLogger {
     //val queueName = RiderConfig.flink.yarnQueueName
     if (rmUrl != "") {
       val url = s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/ws/v1/cluster/apps?states=accepted,running,killed,failed,finished&startedTimeBegin=$fromTimeLong&applicationTypes=spark,apache%20flink"
-      //riderLogger.info(s"Spark Application refresh yarn rest url: $url")
+      riderLogger.info(s"Spark Application refresh yarn rest url: $url")
       queryAppListOnYarn(url, appNames)
     } else Map.empty[String, AppResult]
   }
