@@ -157,7 +157,7 @@ trait UmsProtocolUtils {
   def feedbackDataIncrementTermination(sourceNamespace: String, time: String, streamID: Long) = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.FEEDBACK_DATA_INCREMENT_TERMINATION),
     schema = UmsSchema(sourceNamespace, Some(Seq(
-      UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
+      UmsField(UmsSysField.TS.toString, UmsFieldType.DATETIME),
       UmsField("stream_id", UmsFieldType.LONG)))),
     payload = Some(Seq(UmsTuple(Seq(
       time,
@@ -167,7 +167,7 @@ trait UmsProtocolUtils {
   def feedbackDataIncrementHeartbeat(sourceNamespace: String, time: String, streamID: Long) = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.FEEDBACK_DATA_INCREMENT_HEARTBEAT),
     schema = UmsSchema(sourceNamespace, Some(Seq(
-      UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
+      UmsField(UmsSysField.TS.toString, UmsFieldType.DATETIME),
       UmsField("stream_id", UmsFieldType.LONG)))),
     payload = Some(Seq(UmsTuple(Seq(
       time,
@@ -177,7 +177,7 @@ trait UmsProtocolUtils {
   def feedbackDataBatchTermination(sourceNamespace: String, time: String, streamID: Long) = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.FEEDBACK_DATA_BATCH_TERMINATION),
     schema = UmsSchema(sourceNamespace, Some(Seq(
-      UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
+      UmsField(UmsSysField.TS.toString, UmsFieldType.DATETIME),
       UmsField("stream_id", UmsFieldType.LONG)))),
     payload = Some(Seq(UmsTuple(Seq(
       time,
@@ -192,7 +192,7 @@ trait UmsProtocolUtils {
                         resultDesc: String): String = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_START_DIRECTIVE),
     schema = UmsSchema("", Some(Seq(
-      UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
+      UmsField(UmsSysField.TS.toString, UmsFieldType.DATETIME),
       UmsField("directive_id", UmsFieldType.LONG),
       UmsField("status", UmsFieldType.STRING),
       UmsField("stream_id", UmsFieldType.LONG),
@@ -218,7 +218,7 @@ trait UmsProtocolUtils {
                         errorPattern: String) = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_ERROR),
     schema = UmsSchema(sourceNamespace, Some(Seq(
-      UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
+      UmsField(UmsSysField.TS.toString, UmsFieldType.DATETIME),
       UmsField("sink_namespace", UmsFieldType.STRING),
       UmsField("stream_id", UmsFieldType.LONG),
       UmsField("error_max_watermark_ts", UmsFieldType.STRING),
@@ -253,30 +253,30 @@ trait UmsProtocolUtils {
                         sinkNamespace: String,
                         topics: String,
                         rddCount: Int,
-                        cdcTs: Long,
-                        rddTs: Long,
-                        directiveTs: Long,
-                        mainDataTs: Long,
-                        swiftsTs: Long,
-                        sinkTs: Long,
+                        cdcTs: String,
+                        rddTs: String,
+                        directiveTs: String,
+                        mainDataTs: String,
+                        swiftsTs: String,
+                        sinkTs: String,
                         doneTs: String,
                         flowId:Long) = toJsonCompact(Ums(
     protocol = UmsProtocol(UmsProtocolType.FEEDBACK_FLOW_STATS),
     schema = UmsSchema(sourceNamespace, Some(Seq(
       UmsField("data_type", UmsFieldType.STRING),
-      UmsField(UmsSysField.TS.toString, UmsFieldType.STRING),
+      UmsField(UmsSysField.TS.toString, UmsFieldType.DATETIME),
       UmsField("stream_id", UmsFieldType.STRING),
       UmsField("batch_id", UmsFieldType.STRING),
       UmsField("sink_namespace", UmsFieldType.STRING),
       UmsField("topics", UmsFieldType.STRING),
       UmsField("rdd_count", UmsFieldType.INT),
-      UmsField("data_generated_ts", UmsFieldType.LONG),
-      UmsField("rdd_generated_ts", UmsFieldType.LONG),
-      UmsField("directive_process_start_ts", UmsFieldType.LONG),
-      UmsField("data_process_start_ts", UmsFieldType.LONG),
-      UmsField("swifts_start_ts", UmsFieldType.LONG),
-      UmsField("sink_start_ts", UmsFieldType.LONG),
-      UmsField("done_ts", UmsFieldType.LONG),
+      UmsField("data_generated_ts", UmsFieldType.DATETIME),
+      UmsField("rdd_generated_ts", UmsFieldType.DATETIME),
+      UmsField("directive_process_start_ts", UmsFieldType.DATETIME),
+      UmsField("data_process_start_ts", UmsFieldType.DATETIME),
+      UmsField("swifts_start_ts", UmsFieldType.DATETIME),
+      UmsField("sink_start_ts", UmsFieldType.DATETIME),
+      UmsField("done_ts", UmsFieldType.DATETIME),
       UmsField("flow_id", UmsFieldType.LONG)
     ))),
     payload = Some(Seq(UmsTuple(Seq(
@@ -287,12 +287,12 @@ trait UmsProtocolUtils {
       sinkNamespace,
       topics,
       rddCount.toString,
-      cdcTs.toString,
-      rddTs.toString,
-      directiveTs.toString,
-      mainDataTs.toString,
-      swiftsTs.toString,
-      sinkTs.toString,
+      cdcTs,
+      rddTs,
+      directiveTs,
+      mainDataTs,
+      swiftsTs,
+      sinkTs,
       doneTs,
       flowId.toString
     ))))))
