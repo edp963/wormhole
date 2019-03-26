@@ -1265,6 +1265,8 @@ object FlowUtils extends RiderLogger {
               else flowStream.status
             val yarnFlow = if (!flowYarnMap.contains(flowName) && FlowStatus.withName(logStatus) == FlowStatus.STOPPING) {
               FlinkFlowStatus(FlowStatus.STOPPED.toString, flowStream.startedTime, flowStream.stoppedTime)
+            } else if(!flowYarnMap.contains(flowName) && FlowStatus.withName(logStatus) == FlowStatus.RUNNING) {
+              FlinkFlowStatus(FlowStatus.FAILED.toString, flowStream.startedTime, flowStream.stoppedTime)
             } else if (flowYarnMap.contains(flowName) && flowStream.startedTime.orNull != null && yyyyMMddHHmmss(flowYarnMap(flowName).startTime) > yyyyMMddHHmmss(flowStream.startedTime.get)) {
               getFlowStatusByYarnAndLog(FlinkFlowStatus(logStatus, flowStream.startedTime, flowStream.stoppedTime), flowYarnMap(flowName))
             } else FlinkFlowStatus(logStatus, flowStream.startedTime, flowStream.stoppedTime)
