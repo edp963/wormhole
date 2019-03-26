@@ -134,8 +134,8 @@ Flink中支持的Stream类型只有default，支持异构sink，包括Kafka/RDBS
 
 Sink Namespace 对应的物理表需要提前创建，表的 Schema 中是否需要创建 UMS 系统字段 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_active_（int 类型）`，根据以下策略判断须增加的字段：
 
-- 源数据为 UMS 类型，则 Sink 表中需添加三个字段
-- 源数据为 UMS_Extension 类型，若源数据 Schema 中配置了 `ums_ts_` 字段，Sink 表中须增加 `ums_ts_` 字段；若源数据 Schema 中配置了 `ums_ts_, ums_id_` 字段，Sink 表中须增加 `ums_ts_, ums_id_` 字段；若源数据 Schema 中配置了 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_op_（string 类型）` 字段，Sink 表中须增加 `ums_id_, ums_ts_, ums_active_` 字段。（注意：如果只配置了 `ums_ts_` 字段，向 Sink 表中写数据时只能选择 insert only 类型）
+- 源数据为 UMS 类型，为实现幂等更新和最终一致性，流处理的最后结果会保留上述三个字段，Sink 表中必须添加上述三个字段
+- 源数据为 UMS_Extension 类型，以用户配置的SQL及Result Fields为准
 
 ### Table Keys
 
@@ -152,6 +152,11 @@ Sink Config 项配置与所选系统类型相关，点击配置按钮后页面�
 #### 配置数据插入方式（只增加or增删改）
 
 其中 "mutation_type" 的值有 "i" 和 "iud"，代表向 Sink 表中插数据时使用只增原则或增删改原则。如果为 "iud"，源数据中须有 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_op_（string 类型）` 字段，Sink 表中都须有 `ums_id_（long 类型）, ums_ts_（datetime 类型）, ums_active_（int 类型）` 字段。若不配置此项，默认为 "iud"
+
+**注意事项：**
+
+- 源数据为 UMS_Extension 类型时，若"mutation_type"为"iud"，源schema中必须配置与ums三个系统字段的映射，并且SQL中须显示选出这三个系统字段
+
 
 #### 分表幂等
 
