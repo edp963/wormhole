@@ -60,6 +60,7 @@ class StreamDal(streamTable: TableQuery[StreamTable],
         true
       }
     })
+    //riderLogger.info(s"updateStreamSeq ${updateStreamSeq}")
     updateByRefresh(updateStreamSeq)
   }
 
