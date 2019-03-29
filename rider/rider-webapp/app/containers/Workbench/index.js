@@ -129,8 +129,15 @@ export class Workbench extends React.Component {
       transConnectClass: 'hide',
       flowTransNsData: [],
       hasPattern: true,
-      outputType: 'agg',
-
+      outputType: 'detail',
+      outputFieldList: [
+        // {
+        //   function_type: 'max',
+        //   field_name: '1',
+        //   alias_name: '1',
+        //   _id: 0
+        // }
+      ],
       step2SinkNamespace: '',
       step2SourceNamespace: '',
 
@@ -449,7 +456,7 @@ export class Workbench extends React.Component {
       etpStrategyConfirmValue: '',
       etpStrategyRequestValue: {},
       cepPropData: {},
-      outputType: 'agg',
+      outputType: 'detail',
       transformMode: '',
       flowSubPanelKey: 'spark'
     }, () => {
@@ -1279,7 +1286,7 @@ export class Workbench extends React.Component {
           etpStrategyConfirmValue: '',
           etpStrategyRequestValue: {},
           cepPropData: {},
-          outputType: 'agg',
+          outputType: 'detail',
           transformMode: '',
           flowSubPanelKey: value
         }, () => {
@@ -2493,14 +2500,21 @@ export class Workbench extends React.Component {
         transformValue: record.transformType
       }, () => {
         let cepFormData = typeof record.tranConfigInfoSql === 'string' && JSON.parse(record.tranConfigInfoSql.split(';')[0])
-        let outputText = ''
+        let outputFieldList = this.state.outputFieldList
         if (cepFormData.output) {
           if (cepFormData.output.type === 'agg' || cepFormData.output.type === 'filteredRow') {
-            outputText = cepFormData.output && cepFormData.output.field_list
+            outputFieldList = cepFormData.output && cepFormData.output.field_list
+            outputFieldList.forEach((v, i) => {
+              if (!v._id) {
+                v._id = Date.now() - i
+              }
+            })
           }
         }
+        const outputType = cepFormData.output && cepFormData.output.type
         this.setState({
-          outputType: cepFormData.output && cepFormData.output.type,
+          outputType,
+          outputFieldList,
           transformModalVisible: true
         }, () => {
           this.flowTransformForm.setFieldsValue({
@@ -2508,7 +2522,6 @@ export class Workbench extends React.Component {
             strategy: cepFormData.strategy,
             keyBy: cepFormData.key_by_fields,
             output: cepFormData.output && cepFormData.output.type,
-            outputText,
             editTransformId: record.order,
             transformation: record.transformType
           })
@@ -2578,23 +2591,6 @@ export class Workbench extends React.Component {
           case 'transformClassName':
             this.flowTransformForm.setFieldsValue({ transformClassName: record.transformConfigInfo })
             break
-          // case 'cep':
-          //   let cepFormData = record.tranConfigInfoSql && JSON.parse(record.tranConfigInfoSql)
-          //   let outputText = ''
-          //   if (cepFormData.output) {
-          //     if (cepFormData.output.type === 'agg' || cepFormData.output.type === 'filteredRow') {
-          //       outputText = cepFormData.output && cepFormData.output.field_list
-          //     }
-          //   }
-          //   this.setState({cepPropData: this.state.flowFormTranTableSource[record.order - 1]})
-          //   this.flowTransformForm.setFieldsValue({
-          //     windowTime: cepFormData.max_interval_seconds || '',
-          //     strategy: cepFormData.strategy,
-          //     keyBy: cepFormData.key_by_fields,
-          //     output: cepFormData.output && cepFormData.output.type,
-          //     outputText
-          //   })
-          //   break
         }
       })
     }
@@ -2626,7 +2622,7 @@ export class Workbench extends React.Component {
     this.setState({
       transformMode: 'add',
       transformValue: '',
-      outputType: 'agg',
+      outputType: 'detail',
       cepPropData: {}
     }, () => {
       this.setState({transformModalVisible: true}, () => {
@@ -2948,7 +2944,38 @@ export class Workbench extends React.Component {
             break
           case 'cep':
             let windowTime = values.windowTime == null ? -1 : values.windowTime
-            let outputText = values.outputText == null ? '' : `${values.outputText}`
+            let outputFieldList = []
+            if (values.output === 'agg') {
+              const rowKeysMap = {}
+              Object.keys(values).forEach(v => {
+                if (!v.includes('outputAggSelect') && !v.includes('outputAggFieldName') && !v.includes('outputAggRename')) return
+                const flag = v.split('_')[1]
+                if (!rowKeysMap[flag]) {
+                  rowKeysMap[flag] = {}
+                }
+                if (v.includes('outputAggSelect')) {
+                  // selects[v] = values[v]
+                  rowKeysMap[flag].function_type = values[v]
+                }
+                if (v.includes('outputAggFieldName')) {
+                  // fieldNames[v] = values[v]
+                  rowKeysMap[flag].field_name = values[v]
+                }
+                if (v.includes('outputAggRename')) {
+                  // renames[v] = values[v]
+                  rowKeysMap[flag].alias_name = values[v]
+                }
+              })
+              Object.keys(rowKeysMap).forEach(v => {
+                outputFieldList.push(rowKeysMap[v])
+              })
+            } else if (values.output === 'filteredRow') {
+              let obj = {
+                function_type: values[`outputFilteredRowSelect`],
+                field_name: values[`outputFilteredRowSelectFieldName`] || ''
+              }
+              outputFieldList.push(obj)
+            }
             if (flowPatternCepDataSource && flowPatternCepDataSource.length === 0) {
               this.setState({hasPattern: false})
               return
@@ -2962,7 +2989,7 @@ export class Workbench extends React.Component {
               max_interval_seconds: windowTime,
               output: {
                 type: values.output,
-                field_list: outputText
+                field_list: outputFieldList
               },
               strategy: values.strategy,
               pattern_seq: partterSeq
@@ -3562,7 +3589,8 @@ export class Workbench extends React.Component {
       flowFormTranTableSource, jobFormTranTableSource, namespaceClassHide, userClassHide,
       udfClassHide, flowSpecialConfigModalVisible, transformModalVisible, sinkConfigModalVisible,
       etpStrategyModalVisible, streamConfigModalVisible, sparkConfigModalVisible,
-      jobSinkConfigModalVisible, jobTransModalVisible, jobSpecialConfigModalVisible, pipelineStreamId, cepPropData, transformMode, hasPattern, outputType
+      jobSinkConfigModalVisible, jobTransModalVisible, jobSpecialConfigModalVisible, pipelineStreamId, cepPropData, transformMode, hasPattern,
+      outputType, outputFieldList
     } = this.state
     const { streams, projectNamespaces, streamSubmitLoading, locale } = this.props
 
@@ -3705,6 +3733,7 @@ export class Workbench extends React.Component {
                         transformMode={transformMode}
                         hasPattern={hasPattern}
                         outputType={outputType}
+                        outputFieldList={outputFieldList}
                     />
                     </Modal>
                     {/* Flow Sink Config Modal */}
