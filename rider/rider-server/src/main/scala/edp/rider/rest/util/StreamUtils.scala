@@ -94,13 +94,7 @@ object StreamUtils extends RiderLogger {
       s"http://${rmUrl.stripPrefix("http://").stripSuffix("/")}/cluster/app/$appId/"
   }
 
-  def getYarnAppStatus(streams: Seq[Stream]) = {
-    val fromTime =
-      if (streams.nonEmpty && streams.exists(_.startedTime.getOrElse("") != ""))
-        streams.filter(_.startedTime.getOrElse("") != "").map(_.startedTime).min.getOrElse("")
-      else ""
-    val appInfoMap = if (fromTime == "") Map.empty[String, AppResult] else getAllYarnAppStatus(fromTime, streams.map(_.name))
-
+  def getStreamYarnAppStatus(streams: Seq[Stream], appInfoMap: Map[String, AppResult]) = {
     streams.map(
       stream => {
         val dbStatus = stream.status
@@ -615,8 +609,10 @@ object StreamUtils extends RiderLogger {
 
   def getLogPath(appName: String) = s"${RiderConfig.spark.clientLogRootPath}/$appName-${CommonUtils.currentNodSec}.log"
 
-  def getStreamTime(time: Option[String]) =
-    if (time.nonEmpty) time.get.split("\\.")(0) else null
+  def getStreamTime(time: Option[String]) = {
+    val timeValue = time.getOrElse("")
+    if (timeValue.nonEmpty) timeValue.split("\\.")(0) else null
+  }
 
   def getDefaultJvmConf: RiderJVMConfig = {
     lazy val driverConf = RiderConfig.spark.driverExtraConf
