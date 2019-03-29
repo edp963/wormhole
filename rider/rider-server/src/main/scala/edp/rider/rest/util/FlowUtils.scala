@@ -34,6 +34,7 @@ import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.yarn.YarnClientLog
 import edp.rider.yarn.YarnStatusQuery._
 import edp.rider.zookeeper.PushDirective
+import edp.wormhole.kafka.WormholeGetOffsetUtils
 import edp.wormhole.kafka.WormholeGetOffsetUtils._
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.util.CommonUtils._
@@ -1264,6 +1265,8 @@ object FlowUtils extends RiderLogger {
               else flowStream.status
             val yarnFlow = if (!flowYarnMap.contains(flowName) && FlowStatus.withName(logStatus) == FlowStatus.STOPPING) {
               FlinkFlowStatus(FlowStatus.STOPPED.toString, flowStream.startedTime, flowStream.stoppedTime)
+            } else if(!flowYarnMap.contains(flowName) && FlowStatus.withName(logStatus) == FlowStatus.RUNNING) {
+              FlinkFlowStatus(FlowStatus.FAILED.toString, flowStream.startedTime, flowStream.stoppedTime)
             } else if (flowYarnMap.contains(flowName) && flowStream.startedTime.orNull != null && yyyyMMddHHmmss(flowYarnMap(flowName).startTime) > yyyyMMddHHmmss(flowStream.startedTime.get)) {
               getFlowStatusByYarnAndLog(FlinkFlowStatus(logStatus, flowStream.startedTime, flowStream.stoppedTime), flowYarnMap(flowName))
             } else FlinkFlowStatus(logStatus, flowStream.startedTime, flowStream.stoppedTime)
@@ -1445,8 +1448,10 @@ object FlowUtils extends RiderLogger {
         .filter(_.name == db.nsDatabase).head.consumedLatestOffset
       val driftStreamOffset = streamDal.getStreamTopicsMap(driftStream.id, driftStream.name).autoRegisteredTopics
         .filter(_.name == db.nsDatabase).head.consumedLatestOffset
-      val offset = if (preStreamOffset < driftStreamOffset) preStreamOffset
-      else driftStreamOffset
+//      val offset = if (preStreamOffset < driftStreamOffset) preStreamOffset
+//      else driftStreamOffset
+      val activeTopicOffset=WormholeGetOffsetUtils.getEarliestOffset(nsDetail._1.connUrl,db.nsDatabase,RiderConfig.kerberos.enabled)
+      val offset=getMinStreamOffsets(activeTopicOffset,preStreamOffset,driftStreamOffset).toString
       (offset,
         s"it's available to drift, ${preFlowStream.streamName} stream consumed topic ${db.nsDatabase} offset is $preStreamOffset, ${driftStream.name} stream consumed offset is $driftStreamOffset, ${driftStream.name} stream ${db.nsDatabase} offset will be update to $offset. The final offset depends on the actual operation time!!!")
     } else {
@@ -1454,6 +1459,24 @@ object FlowUtils extends RiderLogger {
         .filter(_.name == db.nsDatabase).head.consumedLatestOffset
       (offset, s"it's available to drift, ${driftStream.name} stream will add new topic ${db.nsDatabase} with $offset offset. The final offset depends on the actual operation time!!!")
     }
+  }
+
+  def getMinStreamOffsets(topicBeginOffset:String,streamOffset:String,driftStreamOffset:String)={
+     if(streamOffset.contains(",")){
+       val streamOffsetSeq=streamOffset.split(",").seq
+       val driftStreamOffsetSeq=driftStreamOffset.split(",").seq
+       val topicBeginOffsetSeq=topicBeginOffset.split(",").seq
+       for(i <- 0 until streamOffsetSeq.size){
+         getMinStreamOffset(topicBeginOffsetSeq(i),streamOffsetSeq(i),driftStreamOffsetSeq(i))
+       }.mkString(",")
+     }else getMinStreamOffset(topicBeginOffset,streamOffset,driftStreamOffset)
+  }
+
+  def getMinStreamOffset(topicBeginOffset:String,streamOffset:String,driftStreamOffset:String)={
+    if(topicBeginOffset<streamOffset && topicBeginOffset<driftStreamOffset){
+      if(streamOffset<driftStreamOffset) streamOffset
+      else driftStreamOffset
+    }else topicBeginOffset
   }
 
   def topicOffsetDrift(streamId: Long, db: NsDatabase, offset: String, rate: Int, userId: Long): Unit = {

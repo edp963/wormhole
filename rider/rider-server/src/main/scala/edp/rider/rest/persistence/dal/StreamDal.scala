@@ -50,13 +50,17 @@ class StreamDal(streamTable: TableQuery[StreamTable],
     projectSeq.map(project => (project.id, project.name)).toMap
   }
 
-  def updateStreamStatusByYarn(): Unit = {
-    val streamSeq = getStreamSeq(None, None)
-    val streamMap = streamSeq.map(stream => (stream.id, (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime)))).toMap
-    val refreshStreamSeq = getYarnAppStatus(streamSeq)
+  def updateStreamStatusByYarn(streams: Seq[Stream], appInfoMap: Map[String, AppResult]): Unit = {
+    val streamMap = streams.map(stream => (stream.id, (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime)))).toMap
+    val refreshStreamSeq = getStreamYarnAppStatus(streams, appInfoMap)
     val updateStreamSeq = refreshStreamSeq.filter(stream => {
-      if (streamMap(stream.id) == (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime))) false else true
+      if (streamMap(stream.id) == (stream.sparkAppid, stream.status, getStreamTime(stream.startedTime), getStreamTime(stream.stoppedTime))) {
+        false
+      } else {
+        true
+      }
     })
+    //riderLogger.info(s"updateStreamSeq ${updateStreamSeq}")
     updateByRefresh(updateStreamSeq)
   }
 
@@ -178,8 +182,8 @@ class StreamDal(streamTable: TableQuery[StreamTable],
   def updateByRefresh(streams: Seq[Stream]): Seq[Int] = {
     streams.map(stream =>
       Await.result(db.run(streamTable.filter(_.id === stream.id)
-        .map(stream => (stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime))
-        .update(stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime)).mapTo[Int], minTimeOut))
+        .map(stream => (stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.updateTime))
+        .update(stream.status, stream.sparkAppid, stream.startedTime, stream.stoppedTime, stream.updateTime)).mapTo[Int], minTimeOut))
   }
 
   def getResource(projectId: Long): Future[Resource] = {

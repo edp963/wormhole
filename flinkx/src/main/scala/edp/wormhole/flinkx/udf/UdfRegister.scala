@@ -1,11 +1,7 @@
 package edp.wormhole.flinkx.udf
 
-import java.lang.reflect.Method
-import java.net.{URL, URLClassLoader}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
-import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.table.api.scala.StreamTableEnvironment
-import scala.collection.mutable
 
 
 object UdfRegister {
