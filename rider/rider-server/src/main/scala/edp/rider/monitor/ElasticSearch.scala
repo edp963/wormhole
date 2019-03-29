@@ -28,7 +28,7 @@ import akka.http.scaladsl.unmarshalling._
 import akka.util.ByteString
 import edp.rider.RiderStarter._
 import edp.rider.common.{RiderConfig, RiderEs, RiderLogger}
-import edp.rider.rest.persistence.entities.{Interval, MonitorInfo, MonitorInfoES}
+import edp.rider.rest.persistence.entities.{Interval, MonitorInfo}
 import edp.rider.rest.util.CommonUtils
 import edp.wormhole.util.JsonUtils
 import org.json4s.JsonAST.{JNothing, JNull}
@@ -198,6 +198,7 @@ object ElasticSearch extends RiderLogger {
       val url = getESUrl + "_search"
       riderLogger.debug(s"queryESStreamMonitor url $url $postBody")
       val response = syncToES(postBody, url, HttpMethods.POST, CommonUtils.minTimeOut)
+      riderLogger.info(s"response:$response")
       if (response._1) {
         val tuple = JsonUtils.getJValue(JsonUtils.getJValue(response._2, "hits"), "hits").children
         implicit val json4sFormats: Formats = DefaultFormats
@@ -205,8 +206,8 @@ object ElasticSearch extends RiderLogger {
           val value = JsonUtils.getJValue(jvalue, s"_source")
           val interval = JsonUtils.getJValue(value, s"interval")
 
-          val result = if (interval != JNothing) JsonUtils.json2caseClass[MonitorInfo](JsonUtils.jValue2json(value))
-          else changeMonitorInfoEsToMonitorInfo(JsonUtils.json2caseClass[MonitorInfoES](JsonUtils.jValue2json(value)))
+          val result = JsonUtils.json2caseClass[MonitorInfo](JsonUtils.jValue2json(value))
+         //if (interval != JNothing)  else changeMonitorInfoEsToMonitorInfo(JsonUtils.json2caseClass[MonitorInfoES](JsonUtils.jValue2json(value)))
 
           list += result
         })
@@ -215,17 +216,6 @@ object ElasticSearch extends RiderLogger {
       }
       (response._1, list)
     } else (false, list)
-  }
-
-  def changeMonitorInfoEsToMonitorInfo(monitor: MonitorInfoES) = {
-    MonitorInfo(0, monitor.statsId, monitor.umsTs, monitor.projectId, monitor.streamId, monitor.streamName,
-      monitor.flowId, monitor.flowNamespace, monitor.rddCount, monitor.topics, monitor.throughput,
-      monitor.dataGeneratedTs, monitor.rddTs, monitor.directiveTs, monitor.DataProcessTs, monitor.swiftsTs,
-      monitor.sinkTs, monitor.doneTs,
-      Interval(monitor.intervalDataProcessToDataums, monitor.intervalDataProcessToRdd,
-        monitor.intervalDataProcessToSwifts, monitor.intervalDataProcessToSink,
-        monitor.intervalDataProcessToDone, monitor.intervalDataumsToDone, monitor.intervalRddToDone,
-        monitor.intervalSwiftsToSink, monitor.intervalSinkToDone))
   }
 
   def deleteEsHistory(fromDate: String, endDate: String): Int = {
@@ -251,8 +241,8 @@ object ElasticSearch extends RiderLogger {
   }
 
   def createEsIndex() = {
-    val body = ReadJsonFile.getMessageFromJson(JsonFileType.ESCREATEINDEX).replace("#ESINDEX#", s"${RiderConfig.es.wormholeIndex}")
-    val url = getESTypeUrl
+    val body = ReadJsonFile.getMessageFromJson(JsonFileType.ESCREATEINDEX).replace("#ESTYPE#", s"${RiderConfig.es.wormholeType}")
+    val url = getESIndexUrl
     val existsResponse = syncToES("", url, HttpMethods.GET)
     //    riderLogger.info(s" query index exists response $existsResponse")
     if (existsResponse._1) {
@@ -310,6 +300,7 @@ object ElasticSearch extends RiderLogger {
       entity = HttpEntity.apply(ContentTypes.`application/json`, ByteString(postBody))
     ).addCredentials(BasicHttpCredentials(RiderConfig.es.user, RiderConfig.es.pwd))
     val response = Await.result(Http().singleRequest(httpRequest), timeOut)
+    riderLogger.info(s"response status:${response.status},type:${response.entity.contentType}")
     try {
       response.status match {
         case StatusCodes.OK if (response.entity.contentType == ContentTypes.`application/json`) =>
@@ -323,6 +314,8 @@ object ElasticSearch extends RiderLogger {
                   } else {
                     tc = true
                   }
+                }else{
+                   tc=true
                 }
             }, Duration.Inf)
         case _ => {

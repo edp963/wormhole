@@ -196,12 +196,10 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                         if (jobs != null && jobs.nonEmpty) {
                           riderLogger.info(s"user ${session.userId} refresh project $projectId, and job in it is not null and not empty.")
                           val projectName = jobDal.adminGetRow(projectId)
-                          val jobsNameSet = jobs.map(_.name)
-                          val jobList = jobs.filter(_.startedTime.isDefined)
-                          val minStartTime = if (jobList.isEmpty) "" else jobList.map(_.startedTime.get).sorted.head
                           //check null to option None todo
-                          val allAppStatus = YarnStatusQuery.getAllAppStatus(minStartTime, jobsNameSet)
-                          val rst: Seq[FullJobInfo] = YarnStatusQuery.getSparkAllJobStatus(jobs, allAppStatus, projectName)
+                          val rst: Seq[FullJobInfo] = jobs.map(job => {
+                            FullJobInfo(job, projectName, getDisableAction(job))
+                          })
                           complete(OK, ResponseJson[Seq[FullJobInfo]](getHeader(200, session), rst.sortBy(_.job.id)))
                         } else {
                           riderLogger.info(s"user ${session.userId} refresh project $projectId, but no jobs in project.")

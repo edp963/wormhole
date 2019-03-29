@@ -21,7 +21,7 @@
 
 package edp.wormhole.sparkx.batchflow
 
-import com.alibaba.fastjson.JSON
+import com.alibaba.fastjson.{JSON, JSONObject}
 import edp.wormhole.common.InputDataProtocolBaseType
 import edp.wormhole.common.json.{JsonSourceConf, RegularJsonSchema}
 import edp.wormhole.publicinterface.sinks.SinkProcessConfig
@@ -119,6 +119,10 @@ object BatchflowDirective extends Directive {
     val sink_process_class_fullname = sinks.getString("sink_process_class_fullname").trim
     val sink_retry_times = sinks.getString("sink_retry_times").trim.toLowerCase.toInt
     val sink_retry_seconds = sinks.getString("sink_retry_seconds").trim.toLowerCase.toInt
+    val sinkSpecificConfigJson:JSONObject = if(sink_specific_config.nonEmpty) JSON.parseObject(sink_specific_config.get) else null
+    val sinkUid:Boolean = if(sinkSpecificConfigJson!=null&&sinkSpecificConfigJson.containsKey("sink_uid"))
+      sinkSpecificConfigJson.getBoolean("sink_uid")
+    else false
     val sink_output = if (sinks.containsKey("sink_output") && sinks.getString("sink_output").trim.nonEmpty) {
       var tmpOutput = sinks.getString("sink_output").trim.toLowerCase.split(",").map(_.trim).mkString(",")
       if (flowDirectiveConfig.dataType == "ums" && tmpOutput.nonEmpty) {
@@ -130,6 +134,9 @@ object BatchflowDirective extends Directive {
         }
         if (tmpOutput.indexOf(UmsSysField.OP.toString) < 0) {
           tmpOutput = tmpOutput + "," + UmsSysField.OP.toString
+        }
+        if (sinkUid && tmpOutput.indexOf(UmsSysField.UID.toString) < 0) {
+          tmpOutput = tmpOutput + "," + UmsSysField.UID.toString
         }
       }
       tmpOutput
@@ -160,12 +167,12 @@ object BatchflowDirective extends Directive {
     ConfMemoryStorage.registerStreamLookupNamespaceMap(flowDirectiveConfig.sourceNamespace, flowDirectiveConfig.fullSinkNamespace, swiftsProcessConfig)
     ConfMemoryStorage.registerFlowConfigMap(flowDirectiveConfig.sourceNamespace, flowDirectiveConfig.fullSinkNamespace,
       FlowConfig(swiftsProcessConfig, sinkProcessConfig, flowDirectiveConfig.directiveId, swiftsStrCache,
-        flowDirectiveConfig.sinksStr, consumptionDataMap.toMap, 0, flowDirectiveConfig.incrementTopics, flowDirectiveConfig.priorityId))
+        flowDirectiveConfig.sinksStr, consumptionDataMap.toMap, flowDirectiveConfig.flowId, flowDirectiveConfig.incrementTopics, flowDirectiveConfig.priorityId))
 
 
     ConnectionMemoryStorage.registerDataStoreConnectionsMap(flowDirectiveConfig.fullSinkNamespace, sink_connection_url, sink_connection_username, sink_connection_password, parameters)
 
-    feedbackDirective(DateUtils.currentDateTime, flowDirectiveConfig.directiveId, UmsFeedbackStatus.SUCCESS, flowDirectiveConfig.streamId, "")
+    feedbackDirective(DateUtils.currentDateTime, flowDirectiveConfig.directiveId, UmsFeedbackStatus.SUCCESS, flowDirectiveConfig.streamId, flowDirectiveConfig.flowId, "")
   }
 
   override def flowStartProcess(ums: Ums): String = {
@@ -176,6 +183,7 @@ object BatchflowDirective extends Directive {
 
     val streamId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "stream_id").toString.toLong
     val directiveId = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "directive_id").toString.toLong
+    val flowId=UmsFieldType.umsFieldValue(tuple.tuple, schemas, "flow_id").toString.toLong
     try {
       val swiftsEncoded = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "swifts")
 
@@ -194,13 +202,13 @@ object BatchflowDirective extends Directive {
       val sourceIncrementTopicList = UmsFieldType.umsFieldValue(tuple.tuple, schemas, "source_increment_topic").toString.split(",").toList
 
 
-      val flowDirectiveConfig = FlowDirectiveConfig(sourceNamespace, fullSinkNamespace, streamId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos, priorityId,sourceIncrementTopicList)
+      val flowDirectiveConfig = FlowDirectiveConfig(sourceNamespace, fullSinkNamespace, streamId, flowId, directiveId, swiftsStr, sinksStr, consumptionDataStr, dataType, dataParseStr, kerberos, priorityId,sourceIncrementTopicList)
 
       registerFlowStartDirective(flowDirectiveConfig)
     } catch {
       case e: Throwable =>
         logAlert("registerFlowStartDirective,sourceNamespace:" + sourceNamespace, e)
-        feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId, e.getMessage)
+        feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.FAIL, streamId,flowId, e.getMessage)
     }
   }
 }
