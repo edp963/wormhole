@@ -209,7 +209,7 @@ object KuduConnection extends Serializable {
               case Type.STRING => (if (result.isNull(f)) null else result.getString(f), UmsFieldType.STRING.toString)
               case Type.BOOL => (if (result.isNull(f)) null else result.getBoolean(f), UmsFieldType.BOOLEAN.toString)
               case Type.BINARY => (if (result.isNull(f)) null else result.getBinary(f), UmsFieldType.BINARY.toString)
-              case Type.DECIMAL => (if (result.isNull(f)) null.asInstanceOf[String] else result.getDecimal(f), UmsFieldType.DECIMAL.toString)
+              case Type.DECIMAL => (if (result.isNull(f)) null.asInstanceOf[java.math.BigDecimal] else result.getDecimal(f), UmsFieldType.DECIMAL.toString)
               case Type.DOUBLE => (if (result.isNull(f)) null else result.getDouble(f), UmsFieldType.DOUBLE.toString)
               case Type.INT8 | Type.INT16 | Type.INT32 => (if (result.isNull(f)) null else result.getInt(f), UmsFieldType.INT.toString)
               case Type.FLOAT => (if (result.isNull(f)) null else result.getFloat(f), UmsFieldType.FLOAT.toString)
@@ -447,7 +447,7 @@ object KuduConnection extends Serializable {
           }
         case UmsFieldType.BOOLEAN => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addBoolean(fieldName, fieldContent.toBoolean)
         case UmsFieldType.BINARY => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addBinary(fieldName, fieldContent.getBytes())
-        case UmsFieldType.DECIMAL => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addDecimal(fieldName, new java.math.BigDecimal(fieldContent))
+        case UmsFieldType.DECIMAL => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addDecimal(fieldName, new java.math.BigDecimal(fieldContent).stripTrailingZeros())
         case UmsFieldType.DOUBLE => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addDouble(fieldName, fieldContent.toDouble)
         case UmsFieldType.INT => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addInt(fieldName, fieldContent.toInt)
         case UmsFieldType.FLOAT => if (fieldContent == null || fieldContent.trim.isEmpty) row.isNull(fieldName) else row.addFloat(fieldName, fieldContent.toFloat)
