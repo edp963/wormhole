@@ -96,10 +96,11 @@ class RiderConsumer extends Actor with RiderLogger {
 
   private def processMessage(records: Seq[ConsumerRecord[String, String]]): Unit = {
     try {
-      val sparkxFlowErrorBuffer = new ListBuffer[Ums]
-      val sparkxStreamErrorBuffer = new ListBuffer[Ums]
+//      val sparkxFlowErrorBuffer = new ListBuffer[Ums]
+//     // val sparkxStreamErrorBuffer = new ListBuffer[Ums]
       val sparkxFlowStatsBuffer = new ListBuffer[Ums]
-      val flinkxFlowErrorBuffer = new ListBuffer[Ums]
+//      val flinkxFlowErrorBuffer = new ListBuffer[Ums]
+      val feedbackErrorBuffer = new ListBuffer[Ums]
       val feedbackFlowStartBuffer = new ListBuffer[Ums]
 
       records.foreach(record => {
@@ -107,24 +108,20 @@ class RiderConsumer extends Actor with RiderLogger {
           val ums = json2Ums(record.value())
           if (ums != null) {
             val key = ums.protocol.`type`.toString
-            if (key.startsWith(FEEDBACK_SPARKX_FLOW_ERROR.toString)
-              || key.startsWith(FEEDBACK_FLOW_ERROR.toString) || key.startsWith(FEEDBACK_FLOW_SPARKX_ERROR.toString)) {
-              sparkxFlowErrorBuffer.append(ums)
-            } else if (key.startsWith(FEEDBACK_STREAM_BATCH_ERROR.toString)) {
-              sparkxStreamErrorBuffer.append(ums)
-            } else if (key.startsWith(FEEDBACK_SPARKX_FLOW_STATS.toString)) {
+            if(key.endsWith("_error"))riderLogger.info(s"feedback key:$key")
+            if(key.startsWith(FEEDBACK_FLOW_ERROR.toString)){
+              feedbackErrorBuffer.append(ums)
+            }else if (key.startsWith(FEEDBACK_FLOW_STATS.toString)) {
               sparkxFlowStatsBuffer.append(ums)
-            } else if (key.startsWith(FEEDBACK_FLINKX_FLOW_ERROR.toString)) {
-              flinkxFlowErrorBuffer.append(ums)
-            } else if (key.startsWith(FEEDBACK_DIRECTIVE.toString)) {
+            }  else if (key.startsWith(FEEDBACK_DIRECTIVE.toString)) {
               feedbackFlowStartBuffer.append(ums)
             }
           }
         }
       })
 
-      doSparkxFlowError(sparkxFlowErrorBuffer.toList)
-      doStreamBatchError(sparkxStreamErrorBuffer.toList)
+      doFeedbackError(feedbackErrorBuffer.toList)
+      //doStreamBatchError(sparkxStreamErrorBuffer.toList)
       doSparkxFlowStats(sparkxFlowStatsBuffer.toList)
       doFeedbackDirective(feedbackFlowStartBuffer.toList)
 

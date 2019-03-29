@@ -33,33 +33,36 @@ object FlinkxUtils {
 
   private lazy val logger = Logger.getLogger(this.getClass)
 
-  def setFlowErrorMessage(incrementTopicList:Seq[String],
-                          topicPartitionOffset:JSONObject,
-                          config: WormholeFlinkxConfig,
-                          sourceNamespace:String,
-                          sinkNamespace:String,
-                          errorCount:Int,
-                          errorMsg:String,
-                          batchId:String,
-                          protocolType: String,
-                          flowId:Long,
-                          streamId:Long,
-                          errorPattern:String): Unit ={
-    val ts: String = null
-    val tmpJsonArray = new JSONArray()
-    val sourceTopicSet = mutable.HashSet.empty[String]
-    sourceTopicSet ++ incrementTopicList
-    sourceTopicSet.foreach(topic=>{
-      tmpJsonArray.add(topicPartitionOffset.getJSONObject(topic))
-    })
+  def sendFlowErrorMessage(msg: String,
+                           config: WormholeFlinkxConfig,
+                           flowId: Long): Unit = {
 
     WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name,
-      FeedbackPriority.feedbackPriority, UmsProtocolUtils.feedbackFlowError(sourceNamespace,
-        streamId, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
-        UmsWatermark(ts), errorCount, errorMsg, batchId, null,protocolType,
-        flowId,errorPattern),
+      FeedbackPriority.feedbackPriority, msg,
       Some(UmsProtocolType.FEEDBACK_FLOW_ERROR + "." + flowId),
       config.kafka_output.brokers)
+  }
+
+  def getFlowErrorMessage(dataInfo:String,
+                          sourceNamespace: String,
+                          sinkNamespace: String,
+                          errorCount: Int,
+                          error: Throwable,
+                          batchId: String,
+                          protocolType: String,
+                          flowId: Long,
+                          streamId: Long,
+                          errorPattern: String): String = {
+    val ts: String = null
+
+    val errorMsg = if(error!=null){
+      val first = if(error.getStackTrace!=null&&error.getStackTrace.nonEmpty) error.getStackTrace.head.toString else ""
+      error.toString + "\n" + first
+    } else null
+    UmsProtocolUtils.feedbackFlowError(sourceNamespace,
+      streamId, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
+      UmsWatermark(ts), errorCount, errorMsg, batchId, null, protocolType,
+      flowId, errorPattern)
   }
 
 }

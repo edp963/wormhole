@@ -23,8 +23,7 @@ package edp.wormhole.sparkx.swifts.transform
 
 import java.util.UUID
 
-import com.alibaba.fastjson.JSON
-import edp.wormhole.sparkx.common.WormholeConfig
+import edp.wormhole.sparkx.common.{SparkxUtils, WormholeConfig}
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkx.swifts.custom.{LookupHbase, LookupKudu, LookupRedis}
@@ -32,7 +31,6 @@ import edp.wormhole.sparkxinterface.swifts.SwiftsSpecialProcessConfig
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
 import edp.wormhole.ums.UmsDataSystem
 import edp.wormhole.util.JsonUtils
-import edp.wormhole.util.JsonUtils.caseClass2json
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.spark.sql._
 
@@ -45,7 +43,7 @@ object SwiftsTransform extends EdpLogging {
     val swiftsLogic = ConfMemoryStorage.getSwiftsLogic(matchSourceNamespace, sinkNamespace)
     val swiftsSqlArr = swiftsLogic.swiftsSql
     val dataSetShow = swiftsLogic.datasetShow
-    val batchSize = (if(swiftsLogic.specialConfig.isDefined && !swiftsLogic.specialConfig.get.isEmpty) JsonUtils.json2caseClass[SwiftsSpecialProcessConfig](swiftsLogic.specialConfig.get) else new SwiftsSpecialProcessConfig()).batchSize
+    val batchSize = (if (swiftsLogic.specialConfig.isDefined && !swiftsLogic.specialConfig.get.isEmpty) JsonUtils.json2caseClass[SwiftsSpecialProcessConfig](swiftsLogic.specialConfig.get) else new SwiftsSpecialProcessConfig()).batchSize
     val dataSetShowNum = if (dataSetShow.get) swiftsLogic.datasetShowNum.get else -1
     var currentDf = df
     var cacheDf = df
@@ -59,75 +57,84 @@ object SwiftsTransform extends EdpLogging {
         val sourceTableFields = if (operate.sourceTableFields.isDefined) operate.sourceTableFields.get else null
         val lookupTableFields = if (operate.lookupTableFields.isDefined) operate.lookupTableFields.get else null
         val sql = operate.sql.trim
-        SqlOptType.toSqlOptType(operate.optType) match {
-          case SqlOptType.CUSTOM_CLASS =>
-            val (obj, method) = ConfMemoryStorage.getSwiftsTransformReflectValue(operate.sql)
-            currentDf = method.invoke(obj, session, currentDf, swiftsLogic).asInstanceOf[DataFrame]
-          case SqlOptType.JOIN | SqlOptType.LEFT_JOIN | SqlOptType.RIGHT_JOIN =>
-            if (ConfMemoryStorage.existStreamLookup(matchSourceNamespace, sinkNamespace, lookupNamespace)) {
-              // lookup Namespace is also match rule format .*.*
-              val path = config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/" + config.spark_config.stream_id + "/" + matchSourceNamespace.replaceAll("\\*", "-") + "/" + sinkNamespace + "/streamLookupNamespace"
-              val (tableNameArrMD5, allTableReady) = DataframeObtain.createDfAndViewFromParquet(matchSourceNamespace, lookupNamespace, sinkNamespace, session, path)
-              if (allTableReady) {
-                try {
-                  tmpTableNameList ++= tableNameArrMD5
-                  val newSql = SqlBinding.getSlidingUnionSql(session, currentDf, sourceTableFields, lookupTableFields, sql)
-                  logInfo(uuid + ",lookupStreamMap JOIN newSql@:" + newSql)
-                  val df1 = session.sql(newSql)
-                  currentDf = DataframeObtain.getJoinDf(currentDf, session, operate, df1)
-                } catch {
-                  case e: Throwable =>
-                    logError("getJoinDf", e)
-                    tmpTableNameList.foreach(name => session.sqlContext.dropTempTable(name))
-                    throw e
+        try {
+          SqlOptType.toSqlOptType(operate.optType) match {
+            case SqlOptType.CUSTOM_CLASS =>
+              val (obj, method) = ConfMemoryStorage.getSwiftsTransformReflectValue(operate.sql)
+              currentDf = method.invoke(obj, session, currentDf, swiftsLogic).asInstanceOf[DataFrame]
+            case SqlOptType.JOIN | SqlOptType.LEFT_JOIN | SqlOptType.RIGHT_JOIN =>
+              if (ConfMemoryStorage.existStreamLookup(matchSourceNamespace, sinkNamespace, lookupNamespace)) {
+                // lookup Namespace is also match rule format .*.*
+                val path = config.stream_hdfs_address.get + "/" + "swiftsparquet" + "/" + config.spark_config.stream_id + "/" + matchSourceNamespace.replaceAll("\\*", "-") + "/" + sinkNamespace + "/streamLookupNamespace"
+                val (tableNameArrMD5, allTableReady) = DataframeObtain.createDfAndViewFromParquet(matchSourceNamespace, lookupNamespace, sinkNamespace, session, path)
+                if (allTableReady) {
+                  try {
+                    tmpTableNameList ++= tableNameArrMD5
+                    val newSql = SqlBinding.getSlidingUnionSql(session, currentDf, sourceTableFields, lookupTableFields, sql)
+                    logInfo(uuid + ",lookupStreamMap JOIN newSql@:" + newSql)
+                    val df1 = session.sql(newSql)
+                    currentDf = DataframeObtain.getJoinDf(currentDf, session, operate, df1)
+                  } catch {
+                    case e: Throwable =>
+                      logError("getJoinDf", e)
+                      tmpTableNameList.foreach(name => session.sqlContext.dropTempTable(name))
+                      throw e
+                  }
+                } else {
+                  return df // return original dataframe
                 }
               } else {
-                return df // return original dataframe
+                //select id as newid,name,age,degree as degree1 from customer where  swifts_join_fields_values
+                val schema = operate.fields.get
+                logInfo("schema::" + schema)
+                val connectionConfig = ConnectionMemoryStorage.getDataStoreConnectionsMap(lookupNamespace)
+                val lookupNameSpaceArr: Array[String] = lookupNamespace.split("\\.")
+                assert(lookupNameSpaceArr.length == 3, "lookup namespace is invalid in pattern list sql")
+                //  val jsonSchema = JsonSchemaObtain.getJsonSchema(schema)
+                UmsDataSystem.dataSystem(lookupNameSpaceArr(0).toLowerCase()) match {
+                  case UmsDataSystem.CASSANDRA =>
+                    currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.CASSANDRA,Some(batchSize))
+                  case UmsDataSystem.ORACLE =>
+                    currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.ORACLE,Some(batchSize))
+                  case UmsDataSystem.HBASE =>
+                    currentDf = LookupHbase.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig)
+                  case UmsDataSystem.REDIS =>
+                    currentDf = LookupRedis.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig)
+                  case UmsDataSystem.KUDU =>
+                    currentDf = LookupKudu.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig, Some(batchSize))
+                  case _ =>
+                    currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.MYSQL, Some(batchSize))
+                }
               }
-            } else {
-              //select id as newid,name,age,degree as degree1 from customer where  swifts_join_fields_values
+            case SqlOptType.SPARK_SQL =>
+              val tmpTableName = "a" + UUID.randomUUID().toString.replaceAll("-", "")
+              currentDf = DataFrameTransform.getMapDf(session, sql + " ", sourceNamespace, uuid, currentDf, dataSetShow.get, dataSetShowNum, tmpTableName) //to solve no where clause bug. select a, b from table;
+              tmpTableNameList += tmpTableName
+            case SqlOptType.UNION =>
+              val columns = sourceTableFields.map(name => new Column(name))
+              currentDf = currentDf.repartition(config.rdd_partition_number, columns: _*)
               val schema = operate.fields.get
-              logInfo("schema::" + schema)
               val connectionConfig = ConnectionMemoryStorage.getDataStoreConnectionsMap(lookupNamespace)
-              val lookupNameSpaceArr: Array[String] = lookupNamespace.split("\\.")
-              assert(lookupNameSpaceArr.length == 3, "lookup namespace is invalid in pattern list sql")
-              //  val jsonSchema = JsonSchemaObtain.getJsonSchema(schema)
+              val lookupNameSpaceArr = lookupNamespace.split("\\.")
+              assert(lookupNameSpaceArr.size == 3, "lookup namespace is invalid in pattern list sql")
+              //       val jsonSchema = JsonSchemaObtain.getJsonSchema(schema)
               UmsDataSystem.dataSystem(lookupNameSpaceArr(0).toLowerCase()) match {
                 case UmsDataSystem.CASSANDRA =>
-                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.CASSANDRA)
+                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.CASSANDRA,Some(batchSize))
                 case UmsDataSystem.ORACLE =>
-                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.ORACLE)
-                case UmsDataSystem.HBASE =>
-                  currentDf = LookupHbase.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig)
-                case UmsDataSystem.REDIS =>
-                  currentDf = LookupRedis.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig)
+                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.ORACLE,Some(batchSize))
                 case UmsDataSystem.KUDU =>
-                  currentDf = LookupKudu.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig,Some(batchSize))
+                  currentDf = DataFrameTransform.getKUDUUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate,Some(batchSize))
                 case _ =>
                   currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.MYSQL,Some(batchSize))
               }
-            }
-          case SqlOptType.SPARK_SQL =>
-            val tmpTableName = "a" + UUID.randomUUID().toString.replaceAll("-", "")
-            currentDf = DataFrameTransform.getMapDf(session, sql + " ", sourceNamespace, uuid, currentDf, dataSetShow.get, dataSetShowNum, tmpTableName) //to solve no where clause bug. select a, b from table;
-            tmpTableNameList += tmpTableName
-          case SqlOptType.UNION =>
-            val columns = sourceTableFields.map(name => new Column(name))
-            currentDf = currentDf.repartition(config.rdd_partition_number, columns: _*)
-            val schema = operate.fields.get
-            val connectionConfig = ConnectionMemoryStorage.getDataStoreConnectionsMap(lookupNamespace)
-            val lookupNameSpaceArr = lookupNamespace.split("\\.")
-            assert(lookupNameSpaceArr.size == 3, "lookup namespace is invalid in pattern list sql")
-            //       val jsonSchema = JsonSchemaObtain.getJsonSchema(schema)
-            UmsDataSystem.dataSystem(lookupNameSpaceArr(0).toLowerCase()) match {
-              case UmsDataSystem.CASSANDRA =>
-                currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.CASSANDRA)
-              case UmsDataSystem.ORACLE =>
-                currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.ORACLE)
-              case _ =>
-                currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.MYSQL)
-            }
-          case _ => logWarning(uuid + ",operate.optType:" + operate.optType + " is not supported")
+            case _ => logWarning(uuid + ",operate.optType:" + operate.optType + " is not supported")
+          }
+        } catch {
+          case e1: Throwable =>
+            logAlert("transform", e1)
+            SparkxUtils.unpersistDataFrame(currentDf)
+            throw e1
         }
 
         currentDf.cache()
@@ -140,7 +147,8 @@ object SwiftsTransform extends EdpLogging {
           tmpTableNameList.clear()
         }
 
-      })
+      }
+      )
       cacheDf.unpersist()
     }
     currentDf

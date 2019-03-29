@@ -16,21 +16,21 @@ class MonitorInfoDal (monitorInfoTable: TableQuery[MonitorInfoTable],
                       flowDal: FlowDal) extends BaseDalImpl[MonitorInfoTable, MonitorInfo](monitorInfoTable){
 
   def queryESFlowLastestTs(projectId: Long, streamId: Long, flowId: Long): Future[Option[String]] = {
-      super.findByFilter(str=>str.projectId===projectId && str.streamId===streamId && str.flowId ===flowId)
+      super.findByFilter(str=> str.streamId===streamId && str.flowId ===flowId)
         .map[Option[String]](seq =>
         if (seq.isEmpty) None
         else Some(seq.map(_.dataGeneratedTs).max))
   }
 
   def queryESStreamLastestTs(projectId: Long, streamId: Long): Future[Option[String]] = {
-    super.findByFilter(str=>str.projectId===projectId && str.streamId===streamId)
+    super.findByFilter(str=> str.streamId===streamId)
       .map[Option[String]](seq =>
       if (seq.isEmpty) None
       else Some(seq.map(_.dataGeneratedTs).max))
   }
 
   def deleteHistory(pastNdays: String)={
-    val ignoreIds = new ListBuffer[String]
+    val ignoreIds = new ListBuffer[Long]
     val existSeq = Await.result(super.findAll, maxTimeOut).map(
       monitorInfo => StreamMonitorInfo(monitorInfo.streamId, monitorInfo.flowNamespace)
     ).distinct
@@ -42,11 +42,11 @@ class MonitorInfoDal (monitorInfoTable: TableQuery[MonitorInfoTable],
         val maxMonitorInfo = Await.result(
           db.run(monitorInfoTable
             .filter(table => table.streamId === monitorInfo.streamId &&
-              table.flowNamespace === monitorInfo.flowNs)
+              table.flowNamespace == monitorInfo.flowNs)
             .sortBy(_.doneTs).take(1).result), minTimeOut)
-        if (maxMonitorInfo.nonEmpty) ignoreIds += maxMonitorInfo.head.statsId
+        if (maxMonitorInfo.nonEmpty) ignoreIds += maxMonitorInfo.head.id
       })
-    val deleteSeq =Await.result(db.run(monitorInfoTable.withFilter(_.doneTs<=pastNdays).map(_.statsId).result).mapTo[Seq[String]],maxTimeOut)
-    if(!deleteSeq.isEmpty)Await.result(super.deleteByFilter(monitorInfo => monitorInfo.statsId <= deleteSeq.max && !monitorInfo.statsId.inSet(ignoreIds)), maxTimeOut)
+    val deleteSeq =Await.result(db.run(monitorInfoTable.withFilter(_.doneTs<=pastNdays).map(_.id).result).mapTo[Seq[Long]],maxTimeOut)
+    if(!deleteSeq.isEmpty)Await.result(super.deleteByFilter(monitorInfo => monitorInfo.id <= deleteSeq.max && !monitorInfo.id.inSet(ignoreIds)), maxTimeOut)
   }
 }

@@ -26,10 +26,10 @@ import edp.wormhole.common.feedback.FeedbackPriority
 import edp.wormhole.common.json.{FieldInfo, JsonParseUtils}
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.sparkx.memorystorage.ConfMemoryStorage
+import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
 import edp.wormhole.util.DateUtils
-import org.apache.log4j.Logger
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StructField
@@ -39,8 +39,7 @@ import org.apache.spark.streaming.kafka010.OffsetRange
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-object SparkxUtils {
-  private lazy val logger = Logger.getLogger(this.getClass)
+object SparkxUtils extends EdpLogging{
 
   def setFlowErrorMessage(incrementTopicList:List[String],
                           topicPartitionOffset:JSONObject,
@@ -48,20 +47,26 @@ object SparkxUtils {
                           sourceNamespace:String,
                           sinkNamespace:String,
                           errorCount:Int,
-                          errorMsg:String,
+                          error:Throwable,
                           batchId:String,
                           protocolType: String,
                           flowId:Long,
                           errorPattern:String): Unit ={
+
     val ts: String = null
     val tmpJsonArray = new JSONArray()
     val sourceTopicSet = mutable.HashSet.empty[String]
-    sourceTopicSet ++ incrementTopicList
-    sourceTopicSet ++ ConfMemoryStorage.initialTopicSet
+    sourceTopicSet ++= incrementTopicList
+    sourceTopicSet ++= ConfMemoryStorage.initialTopicSet
     sourceTopicSet.foreach(topic=>{
       tmpJsonArray.add(topicPartitionOffset.getJSONObject(topic))
     })
+    logInfo(s"incrementTopicList:${incrementTopicList},initialTopicSet:${ConfMemoryStorage.initialTopicSet},sourceTopicSet:${sourceTopicSet},tmpJsonArray:${tmpJsonArray}")
 
+    val errorMsg = if(error!=null){
+      val first = if(error.getStackTrace!=null&&error.getStackTrace.nonEmpty) error.getStackTrace.head.toString else ""
+      error.toString + "\n" + first
+    } else null
     WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name,
       FeedbackPriority.feedbackPriority, UmsProtocolUtils.feedbackFlowError(sourceNamespace,
         config.spark_config.stream_id, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
@@ -69,6 +74,16 @@ object SparkxUtils {
         flowId,errorPattern),
       Some(UmsProtocolType.FEEDBACK_FLOW_ERROR + "." + flowId),
       config.kafka_output.brokers)
+  }
+
+  def unpersistDataFrame(df: DataFrame): Unit ={
+    if(df!=null){
+      try{
+        df.unpersist()
+      }catch{
+        case e:Throwable=>logWarning("unpersistDataFrame",e)
+      }
+    }
   }
 
   def getFieldContentByTypeForSql(row: Row, schema: Array[StructField], i: Int): Any = {
@@ -94,7 +109,7 @@ object SparkxUtils {
     //    val topicConfigMap = mutable.HashMap.empty[String, ListBuffer[PartitionOffsetConfig]]
 
     offsetInfo.foreach { offsetRange =>
-      logger.info(s"----------- $offsetRange")
+      logInfo(s"----------- $offsetRange")
       //      val topicName = offsetRange.topic
       //      val partition = offsetRange.partition
       //      val offset = offsetRange.untilOffset
@@ -127,7 +142,6 @@ object SparkxUtils {
   }
 
   /*def dataParse(jsonStr: String, allFieldsInfo: Seq[FieldInfo], twoFieldsArr: ArrayBuffer[(String, String)]): Seq[UmsTuple] = {
-
     val jsonParse = JSON.parseObject(jsonStr)
     val fieldNameSeq = twoFieldsArr.map(_._1)
 //    val outFieldNameSeq=allFieldsInfo.map(_.name)
@@ -241,7 +255,6 @@ object SparkxUtils {
               }
               else record.append(jsonValue.getString(name))
             }
-
           }
           subFieldsInfo.foreach(subField=>
             arrayProcess(subField, content)
@@ -294,8 +307,6 @@ object SparkxUtils {
     }
     resultSeq
   }
-
-
   def dataTypeProcess(dataType: String): String = {
     //    var result=dataType
     val typeArr: Array[String] = dataType.split("")
@@ -303,14 +314,12 @@ object SparkxUtils {
     if (typeArr.slice(arrLen - 5, arrLen).mkString("") == "array" && dataType != "jsonarray") "simplearray"
     else dataType
   }
-
   def convertLongTimestamp(timestampStr: String) = {
     if (timestampStr.substring(0,2)=="20") {
       dt2timestamp(timestampStr)
     }
     else {
       val timestampLong = (timestampStr+"000000").substring(0,16).toLong
-
       dt2timestamp(timestampLong)
     }
   }*/

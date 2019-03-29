@@ -33,8 +33,8 @@ import scala.concurrent.Await
 class FeedbackHeartbeatDal(heartbeatTable: TableQuery[FeedbackHeartbeatTable], streamDal: StreamDal) extends BaseDalImpl[FeedbackHeartbeatTable, FeedbackHeartbeat](heartbeatTable) {
 
   def deleteHistory(pastNdays: String) = {
-    val deleteSeq = Await.result(db.run(heartbeatTable.withFilter(_.feedbackTime <= pastNdays)
-      .map(_.id).result).mapTo[Seq[Long]], minTimeOut)
-    if (deleteSeq.nonEmpty) Await.result(super.deleteByFilter(_.id <= deleteSeq.max), maxTimeOut)
+    val deleteMaxId = Await.result(
+      db.run(heartbeatTable.withFilter(_.feedbackTime <= pastNdays).map(_.id).max.result).mapTo[Option[Long]], minTimeOut)
+    if (deleteMaxId.nonEmpty) Await.result(super.deleteByFilter(_.id <= deleteMaxId), maxTimeOut)
   }
 }
