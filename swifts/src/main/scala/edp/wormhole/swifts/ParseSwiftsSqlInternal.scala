@@ -49,7 +49,8 @@ object ParseSwiftsSqlInternal {
     val sqlStr = sqlStrEle.substring(sqlStrEle.indexOf("=") + 1).trim
     val (sql, lookupFields, valuesFields) = getFieldsAndSql(sourceNamespace, sqlStr, unionNamespace)
     var sqlSecondPart = sql.substring(sql.trim.toLowerCase.indexOf("select ") + 7)
-    val selectSqlFields = sql.substring(0, sql.trim.toLowerCase.indexOf(" from "))
+    val fromIndex = sql.trim.toLowerCase.indexOf(" from ")
+    val selectSqlFields = sql.substring(0, fromIndex)
       .toLowerCase.split(",").map(field => {
       (field.trim, true)
     }).toMap
@@ -65,13 +66,16 @@ object ParseSwiftsSqlInternal {
 
     sqlSecondPart = "select " + sqlSecondPart
     val lookupNSArr: Array[String] = unionNamespace.split("\\.")
-    UmsDataSystem.dataSystem(lookupNSArr(0).toLowerCase()) match {
+    val connectionConfig = ConnectionMemoryStorage.getDataStoreConnectionConfig(unionNamespace)
+    val selectSchema = UmsDataSystem.dataSystem(lookupNSArr(0).toLowerCase()) match {
       case UmsDataSystem.CASSANDRA =>
         sqlSecondPart = getCassandraSql(sql, lookupNSArr(2))
+        getRmdbSchema(sqlSecondPart, connectionConfig)
+      case  UmsDataSystem.KUDU =>
+        ""
       case _ =>
+        getRmdbSchema(sqlSecondPart, connectionConfig)
     }
-    val connectionConfig = ConnectionMemoryStorage.getDataStoreConnectionConfig(unionNamespace)
-    val selectSchema = getRmdbSchema(sqlSecondPart, connectionConfig)
 
     val selectFieldsList = getIndependentFieldsFromSql(sqlSecondPart)
     val selectFieldsSet = selectFieldsList.map(fieldName => {
@@ -82,6 +86,8 @@ object ParseSwiftsSqlInternal {
         fieldName.split(" ")(0).toLowerCase
       }
     }).toSet
+
+
     lookupFields.foreach(field => {
       val name = field.split(" ")(0).toLowerCase
       if (!selectFieldsSet.contains(name)) throw new Exception("select fields must contains lookup fields(where in fields)  ")
