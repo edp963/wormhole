@@ -122,7 +122,8 @@ export function flowTransformationDadaHide () {
     { value: 'mongodb', icon: 'icon-mongodb', style: {fontSize: '26px'} },
     { value: 'phoenix', text: 'Phoenix' },
     { value: 'es', icon: 'icon-elastic', style: {fontSize: '24px'} },
-    { value: 'greenplum', text: 'Greenplum' }
+    { value: 'greenplum', text: 'Greenplum' },
+    { value: 'kudu', text: 'Kudu' }
   ]
   return transformData
 }
