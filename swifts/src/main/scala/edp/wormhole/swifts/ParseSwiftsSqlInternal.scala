@@ -47,7 +47,7 @@ object ParseSwiftsSqlInternal {
                dataType: String): SwiftsSql = {
     val unionNamespace = sqlStrEle.substring(sqlStrEle.indexOf(" with ") + 5, sqlStrEle.indexOf("=")).trim
     val sqlStr = sqlStrEle.substring(sqlStrEle.indexOf("=") + 1).trim
-    val (sql, lookupFields, valuesFields) = getFieldsAndSql(sourceNamespace, sqlStr, unionNamespace)
+    val (sql, lookupFields: Array[String], valuesFields) = getFieldsAndSql(sourceNamespace, sqlStr, unionNamespace)
     var sqlSecondPart = sql.substring(sql.trim.toLowerCase.indexOf("select ") + 7)
     val fromIndex = sql.trim.toLowerCase.indexOf(" from ")
     val selectSqlFields = sql.substring(0, fromIndex)
@@ -72,7 +72,7 @@ object ParseSwiftsSqlInternal {
         sqlSecondPart = getCassandraSql(sql, lookupNSArr(2))
         getRmdbSchema(sqlSecondPart, connectionConfig)
       case  UmsDataSystem.KUDU =>
-        ""
+        getKuduSchema(sqlSecondPart+ sql.trim.toLowerCase.substring(fromIndex), connectionConfig, unionNamespace)
       case _ =>
         getRmdbSchema(sqlSecondPart, connectionConfig)
     }
