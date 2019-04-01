@@ -26,13 +26,13 @@ import java.sql.{Connection, ResultSet, SQLTransientConnectionException}
 import edp.wormhole.dbdriver.dbpool.DbConnection
 import edp.wormhole.kuduconnection.KuduConnection
 import edp.wormhole.sparkx.common.SparkSchemaUtils._
-import edp.wormhole.sparkx.common.{SparkSchemaUtils, SparkxUtils}
+import edp.wormhole.sparkx.common.{SparkSchemaUtils, SparkUtils, SparkxUtils}
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkx.swifts.custom.LookupKudu.getFieldsArray
 import edp.wormhole.swifts.SqlOptType
-import edp.wormhole.ums.UmsFieldType._
+import edp.wormhole.ums.UmsFieldType.{UmsFieldType, _}
 import edp.wormhole.ums.{UmsDataSystem, UmsFieldType, UmsOpType, UmsSysField}
-import edp.wormhole.util.CommonUtils
+import edp.wormhole.util.{CommonUtils, DateUtils}
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.kudu.client.KuduTable
@@ -45,7 +45,15 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 object DataFrameTransform extends EdpLogging {
-  def getKUDUUnionDf(session: SparkSession, currentDf: DataFrame, sourceTableFields: Array[String], lookupTableFields: Array[String], sql: String, connectionConfig: ConnectionConfig, schemaStr: String, operate: SwiftsSql, batchSize: Option[Int] = None): DataFrame = {
+  def getKUDUUnionDf(session: SparkSession,
+                     currentDf: DataFrame,
+                     sourceTableFields: Array[String],
+                     lookupTableFields: Array[String],
+                     sql: String,
+                     connectionConfig: ConnectionConfig,
+                     schemaStr: String,
+                     operate: SwiftsSql,
+                     batchSize: Option[Int] = None): DataFrame = {
     val database = operate.lookupNamespace.get.split("\\.")(2)
     val fromIndex = operate.sql.indexOf(" from ")
     val afterFromSql = operate.sql.substring(fromIndex + 6).trim
@@ -60,9 +68,15 @@ object DataFrameTransform extends EdpLogging {
     val resultSchema = currentDf.schema
 
     val joinedRow: RDD[Row] = currentDf.rdd.mapPartitions(partition => {
+      KuduConnection.initKuduConfig(connectionConfig)
+      val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
+      val table: KuduTable = client.openTable(tableName)
+
       val originalDatas: ListBuffer[Row] = partition.to[ListBuffer]
       val resultDatas: ListBuffer[Row] = originalDatas
-      val selectFieldNewNameArray: Seq[String] = getFieldsArray(operate.fields.get).map(_._1).toList
+      val fieldsNameArray = getFieldsArray(operate.fields.get)
+      val selectFieldOriginalNameArray: Seq[String] = fieldsNameArray.map(_._1).toList
+      val original2AsNameMap: Map[String, String] = fieldsNameArray.map(tuple=>(tuple._2,tuple._1)).toMap
 
       val sourceFieldNameArray = operate.sourceTableFields.get
       val lookupFieldNameArray = operate.lookupTableFields.get
@@ -82,10 +96,10 @@ object DataFrameTransform extends EdpLogging {
           }).filter((keys: Seq[String]) => {
             !keys.contains(null)
           })
-          val dataMapFromDb = KuduConnection.doQueryMultiByKeyListInBatch(tableName, database, connectionConfig.connectionUrl,
-            lookupFieldNameArray.head, tupleList, keySchemaMap.toMap, selectFieldNewNameArray)
+          val dataMapFromDb = KuduConnection.doQueryMultiByKeyListInBatch(tmpTableName, database, connectionConfig.connectionUrl,
+            lookupFieldNameArray.head, tupleList, keySchemaMap.toMap, selectFieldOriginalNameArray)
 
-          getUnionResult(resultDatas, dataMapFromDb, sourceTableFields, resultSchema)
+          getKuduUnionResult(resultDatas, dataMapFromDb, sourceTableFields, resultSchema, original2AsNameMap)
         })
       } else {
         originalDatas.map(row => {
@@ -97,9 +111,9 @@ object DataFrameTransform extends EdpLogging {
             key != null
           })
           val dataMapFromDb = KuduConnection.doQueryMultiByKey(operate.lookupTableFields.get, tuple.toList, tableSchemaInKudu,
-            client, table, selectFieldNewNameArray)
+            client, table, selectFieldOriginalNameArray)
 
-          getUnionResult(resultDatas, dataMapFromDb, sourceTableFields, resultSchema)
+          getKuduUnionResult(resultDatas, dataMapFromDb, sourceTableFields, resultSchema, original2AsNameMap)
         })
       }
       resultDatas.toIterator
@@ -222,7 +236,11 @@ object DataFrameTransform extends EdpLogging {
     }
   }
 
-  def getUnionResult(originalData: ListBuffer[Row], dataMapFromDb: mutable.HashMap[String, ListBuffer[Array[String]]], sourceTableFields: Array[String], dbOutPutSchemaMap: Map[String, (String, Int)], resultSchema: StructType): ListBuffer[Row] = {
+  def getUnionResult(originalData: ListBuffer[Row],
+                     dataMapFromDb: mutable.HashMap[String, ListBuffer[Array[String]]],
+                     sourceTableFields: Array[String],
+                     dbOutPutSchemaMap: Map[String, (String, Int)],
+                     resultSchema: StructType): ListBuffer[Row] = {
     val resultData: ListBuffer[Row] = originalData
     val originalSchemaArr = resultSchema.fieldNames.map(name => (name, resultSchema.apply(resultSchema.fieldIndex(name)).dataType)) //order is same every time?
     if (dataMapFromDb != null)
@@ -249,24 +267,43 @@ object DataFrameTransform extends EdpLogging {
     resultData
   }
 
-  def getUnionResult(originalData: ListBuffer[Row],
+  def getKuduUnionResult(originalData: ListBuffer[Row],
                      dataMapFromDb: mutable.Map[String, ListBuffer[Map[String, (Any, String)]]],
                      sourceTableFields: Array[String],
-                     resultSchema: StructType): ListBuffer[Row] = {
+                     resultSchema: StructType,
+                     original2AsNameMap:Map[String,String]): ListBuffer[Row] = {
     val resultData: ListBuffer[Row] = originalData
     val originalSchemaArr: Array[(String, DataType)] = resultSchema.fieldNames.map(name => (name.toLowerCase, resultSchema.apply(resultSchema.fieldIndex(name)).dataType)) //order is same every time?
     if (dataMapFromDb != null)
       dataMapFromDb.foreach { case (_, tupleLists) =>
         tupleLists.foreach(tupleMap => {
           val outputArray = ListBuffer.empty[Any]
-          originalSchemaArr.foreach { case (name, _) =>
-            val tmpValue: (Any, String) = tupleMap(name)
+          originalSchemaArr.foreach { case (name, originalType) =>
             if (UmsSysField.OP.toString == name)
               outputArray.append(
-                SparkSchemaUtils.s2sparkValue(UmsOpType.INSERT.toString, umsFieldType(tmpValue._2)))
-            else
-            outputArray.append(
-              SparkSchemaUtils.s2sparkValue(if (tmpValue._1 == null) null else tmpValue._1.toString, umsFieldType(tmpValue._2)))
+                SparkSchemaUtils.s2sparkValue(UmsOpType.INSERT.toString, UmsFieldType.STRING))
+            else{
+              val asName = original2AsNameMap(name)
+              val tmpValue: (Any, String) = tupleMap(asName)
+              logInfo(s"asNameMap:($name,$asName),originalType:$originalType,originalVal:$tmpValue")
+              val (fieldValue, fieldType )= if(originalType.toString=="DateTimeType" ||originalType.toString=="TimestampType"){
+                val v = tmpValue._1.toString
+                val newValue = if(v.length==26){
+                  v.toLong*1000
+                }else if(v.length==19){
+                  v.toLong*1000*1000
+                }else{
+                  v.toLong
+                }
+                (DateUtils.yyyyMMddHHmmss(newValue),UmsFieldType.DATETIME)
+              }else{
+                (tmpValue._1.toString,umsFieldType(tmpValue._2))
+              }
+              logInfo(s"fieldValue:$fieldValue fieldType:$fieldType")
+              outputArray.append(
+                SparkSchemaUtils.s2sparkValue(if (tmpValue._1 == null) null else fieldValue, fieldType))
+            }
+
           }
           resultData.append(new GenericRowWithSchema(outputArray.toArray, resultSchema))
         })
