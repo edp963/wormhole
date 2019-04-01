@@ -37,7 +37,6 @@ import edp.wormhole.flinkx.util.{FlinkxTimestampExtractor, UmsFlowStartUtils, Wo
 import edp.wormhole.kafka.WormholeKafkaProducer
 import edp.wormhole.ums.UmsProtocolType.UmsProtocolType
 import edp.wormhole.ums._
-import edp.wormhole.util.DateUtils
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -92,8 +91,6 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
 
     val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase, initialTs)
     val watermarkStream = assignTimestamp(inputStream, immutableSourceSchemaMap)
-
-    watermarkStream.print()
     try {
       val swiftsTs = System.currentTimeMillis
 
