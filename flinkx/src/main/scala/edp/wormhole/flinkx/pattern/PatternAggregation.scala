@@ -36,7 +36,7 @@ import scala.math.{BigDecimal, Ordering}
 class PatternAggregation(input: Iterable[Iterable[Row]], fieldName: String, schemaMap: Map[String, (TypeInformation[_], Int)]) {
   private lazy val (fieldType, fieldIndex) = schemaMap(fieldName)
 
-  def aggregationMatch(functionType: String) = {
+  def aggregationFunction(functionType: String) = {
     Functions.functions(functionType) match {
       case AVG => avg()
       case SUM => sum()
