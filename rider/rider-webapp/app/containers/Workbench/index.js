@@ -2805,7 +2805,7 @@ export class Workbench extends React.Component {
    */
   onTransformModalOk = () => {
     const { transformMode, transformSinkNamespaceArray, flowPatternCepDataSource } = this.state
-    this.flowTransformForm.validateFieldsAndScroll((err, values) => {
+    this.flowTransformForm.validateFieldsAndScroll({force: true}, (err, values) => {
       if (!err) {
         let transformConfigInfoString = ''
         let tranConfigInfoSqlString = ''
@@ -2954,15 +2954,12 @@ export class Workbench extends React.Component {
                   rowKeysMap[flag] = {}
                 }
                 if (v.includes('outputAggSelect')) {
-                  // selects[v] = values[v]
                   rowKeysMap[flag].function_type = values[v]
                 }
                 if (v.includes('outputAggFieldName')) {
-                  // fieldNames[v] = values[v]
                   rowKeysMap[flag].field_name = values[v]
                 }
                 if (v.includes('outputAggRename')) {
-                  // renames[v] = values[v]
                   rowKeysMap[flag].alias_name = values[v]
                 }
               })
