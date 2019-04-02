@@ -111,7 +111,7 @@ class RiderConsumer extends Actor with RiderLogger {
             if(key.endsWith("_error"))riderLogger.info(s"feedback key:$key")
             if(key.startsWith(FEEDBACK_FLOW_ERROR.toString)){
               feedbackErrorBuffer.append(ums)
-            }else if (key.startsWith(FEEDBACK_FLOW_STATS.toString)) {
+            }else if (key.startsWith(FEEDBACK_FLOW_STATS.toString)||key.startsWith(FEEDBACK_SPARKX_FLOW_STATS)) {
               sparkxFlowStatsBuffer.append(ums)
             }  else if (key.startsWith(FEEDBACK_DIRECTIVE.toString)) {
               feedbackFlowStartBuffer.append(ums)
