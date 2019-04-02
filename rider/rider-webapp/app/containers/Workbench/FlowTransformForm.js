@@ -712,20 +712,45 @@ export class FlowTransformForm extends React.Component {
         <Col span={7} offset={1} className={`${flinkTransformTypeClassNames[2]} ${!outputHiddens[1] ? 'hide' : ''}`}>
           <FormItem label="Field Name" {...{ labelCol: { span: 8 }, wrapperCol: { span: 10 } }}>
             {getFieldDecorator(`outputAggFieldName_${v._id}`, {
-              rules: [{
-                required: true,
-                message: operateLanguageFillIn('fieldname', 'Field Name')
-              }],
+              required: true,
               hidden: !outputHiddens[1] || flinkTransformTypeHiddens[2],
               initialValue: v.field_name
             })(
               <Input />
-                )}
+            )}
           </FormItem>
         </Col>
         <Col span={8} className={`${flinkTransformTypeClassNames[2]} ${!outputHiddens[1] ? 'hide' : ''}`}>
           <FormItem label="Rename" {...{ labelCol: { span: 4 }, wrapperCol: { span: 8 } }}>
             {getFieldDecorator(`outputAggRename_${v._id}`, {
+              rules: [{
+                validator: (rule, value, callback) => {
+                  const formValues = this.props.form.getFieldsValue()
+                  const fieldNameArr = []
+                  const hasRepeatValue = Object.keys(formValues).some(v => {
+                    if (v.includes('outputAggFieldName')) {
+                      const value = formValues[v]
+                      if (value === '') return false
+                      const hasRepeatValue = fieldNameArr.some(m => m === value)
+                      if (hasRepeatValue) {
+                        return hasRepeatValue
+                      } else {
+                        fieldNameArr.push(formValues[v])
+                      }
+                    }
+                  })
+                  if (hasRepeatValue) {
+                    if (value !== '') {
+                      callback()
+                    }
+                    const errMsg = '存在重复的Field Name,需填写此项'
+                    rule.message = errMsg
+                    callback(errMsg)
+                  } else {
+                    callback()
+                  }
+                }
+              }],
               hidden: !outputHiddens[1] || flinkTransformTypeHiddens[2],
               initialValue: v.alias_name
             })(
