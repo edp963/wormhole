@@ -172,11 +172,18 @@ object SqlProcessor {
   }
 
   def getInsertSql(sourceMutationType: SourceMutationType, dataSys: UmsDataSystem, tableName: String, systemRenameMap: Map[String, String],
-                   allFieldNames: Seq[String]): String = {
+                   allFieldNames: Seq[String], oracleSequenceConfig: Option[(String, String)]): String = {
     val columnNames = getSqlField(allFieldNames, systemRenameMap, UmsOpType.INSERT, dataSys)
     val oracleColumnNames = getSqlField(allFieldNames, systemRenameMap, UmsOpType.INSERT, dataSys)
     val sql = dataSys match {
       case UmsDataSystem.MYSQL => s"INSERT INTO `$tableName` ($columnNames) VALUES " + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
+      case UmsDataSystem.ORACLE =>
+        if (oracleSequenceConfig.nonEmpty) {
+          val fieldName = oracleSequenceConfig.get._1
+          val sequenceName = oracleSequenceConfig.get._2 + ".NEXTVAL"
+          s"""INSERT INTO ${tableName.toUpperCase} ($fieldName,$oracleColumnNames) VALUES """ + (1 to allFieldNames.size).map(_ => "?").mkString("(" + sequenceName + " ,", ",", ")")
+        } else
+          s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames) VALUES """ + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
       case _ => s"""INSERT INTO ${tableName.toUpperCase} ($oracleColumnNames) VALUES """ + (1 to allFieldNames.size).map(_ => "?").mkString("(", ",", ")")
     }
 
