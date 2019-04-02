@@ -172,7 +172,7 @@ object SqlProcessor {
   }
 
   def getInsertSql(sourceMutationType: SourceMutationType, dataSys: UmsDataSystem, tableName: String, systemRenameMap: Map[String, String],
-                   allFieldNames: Seq[String], oracleSequenceConfig: Option[(String, String)]): String = {
+                   allFieldNames: Seq[String], oracleSequenceConfig: Option[(String, String)]=None): String = {
     val columnNames = getSqlField(allFieldNames, systemRenameMap, UmsOpType.INSERT, dataSys)
     val oracleColumnNames = getSqlField(allFieldNames, systemRenameMap, UmsOpType.INSERT, dataSys)
     val sql = dataSys match {
