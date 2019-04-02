@@ -288,7 +288,7 @@ object DataFrameTransform extends EdpLogging {
               logInfo(s"asNameMap:($name,$asName),originalType:$originalType,originalVal:$tmpValue")
               val (fieldValue, fieldType )= if(originalType.toString=="DateTimeType" ||originalType.toString=="TimestampType"){
                 val v = tmpValue._1.toString
-                val newValue = if(v.length==26){
+                val newValue = if(v.length==13){
                   v.toLong*1000
                 }else if(v.length==19){
                   v.toLong*1000*1000
