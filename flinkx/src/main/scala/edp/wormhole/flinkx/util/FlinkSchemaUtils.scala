@@ -149,25 +149,8 @@ object FlinkSchemaUtils extends java.io.Serializable {
     resultSchemaMap.toMap
   }
 
-  def getOutputFieldNames(outputFieldList: Array[String], keyByFields: String, systemFieldArray: Array[String]): Array[String] = {
-    val outputFieldSize: Int = outputFieldList.length
-    val outputFieldNames = for (i <- 0 until outputFieldSize)
-      yield outputFieldList(i).split(":").head
-    if (keyByFields != null && keyByFields.nonEmpty)
-      systemFieldArray ++ keyByFields.split(",") ++ outputFieldNames
-    else
-      systemFieldArray ++ outputFieldNames
-  }
 
-  def getSystemFields(schemaMap: Map[String, (TypeInformation[_], Int)]): Array[String] = {
-    val systemFieldsListBuffer: ListBuffer[String] = mutable.ListBuffer.empty[String]
-    if (schemaMap.contains(UmsSysField.ID.toString)) systemFieldsListBuffer.append(UmsSysField.ID.toString)
-    if (schemaMap.contains(UmsSysField.TS.toString)) systemFieldsListBuffer.append(UmsSysField.TS.toString)
-    if (schemaMap.contains(UmsSysField.OP.toString)) systemFieldsListBuffer.append(UmsSysField.OP.toString)
-    systemFieldsListBuffer.toArray
-  }
-
-  def getOutPutFieldTypes(fieldNames: Array[String], schemaMap: Map[String, (TypeInformation[_], Int)]): Array[TypeInformation[_]] = {
+  def getFieldTypes(fieldNames: Array[String], schemaMap: Map[String, (TypeInformation[_], Int)]): Array[TypeInformation[_]] = {
     fieldNames.map(field => {
       schemaMap(field)._1
     })
@@ -295,7 +278,7 @@ object FlinkSchemaUtils extends java.io.Serializable {
 
   def object2TrueValue(flinkType: TypeInformation[_], value: Any): Any = if (value == null) null
   else flinkType match {
-    case Types.STRING => "'" + value.asInstanceOf[String].trim + "'"
+    case Types.STRING =>  value.asInstanceOf[String].trim
     case Types.INT => value.asInstanceOf[Int]
     case Types.LONG => value match {
       case _: Int => value.asInstanceOf[Int].toLong
@@ -307,8 +290,11 @@ object FlinkSchemaUtils extends java.io.Serializable {
       case _ => value.asInstanceOf[Double]
     }
     case Types.BOOLEAN => value.asInstanceOf[Boolean]
-    case Types.SQL_DATE => if (value.isInstanceOf[Timestamp]) "'" + DateUtils.dt2sqlDate(value.asInstanceOf[Timestamp]) + "'" else "'" + DateUtils.dt2sqlDate(value.asInstanceOf[Date]) + "'"
-    case Types.SQL_TIMESTAMP => "'" + value.asInstanceOf[Timestamp] + "'"
+    case Types.SQL_DATE => value match {
+      case _:Timestamp => DateUtils.dt2sqlDate(value.asInstanceOf[Timestamp])
+      case _=>DateUtils.dt2sqlDate(value.asInstanceOf[Date])
+    }
+    case Types.SQL_TIMESTAMP => value.asInstanceOf[Timestamp]
     case Types.DECIMAL => new java.math.BigDecimal(value.asInstanceOf[java.math.BigDecimal].toPlainString.trim).stripTrailingZeros()
     case _ => throw new UnsupportedOperationException(s"Unknown Type: $flinkType")
   }
@@ -327,25 +313,13 @@ object FlinkSchemaUtils extends java.io.Serializable {
     case _ => throw new UnsupportedOperationException(s"Unknown Type: $flinkType")
   }
 
-  def getRelValue(fieldIndex: Int, value: String, schemaMap: Map[String, (TypeInformation[_], Int)]): Any = if (value == null) null
-  else {
-    val fieldNames = getFieldNamesFromSchema(schemaMap)
-    val flinkTypes = fieldNames.map(field => schemaMap(field)._1)
-    flinkTypes(fieldIndex) match {
-      case Types.STRING => value.trim
-      case Types.INT => value.trim.toInt
-      case Types.LONG => value.trim.toLong
-      case Types.FLOAT => value.trim.toFloat
-      case Types.DOUBLE => value.trim.toDouble
-      case Types.BOOLEAN => value.trim.toBoolean
-      case Types.SQL_DATE => DateUtils.dt2sqlDate(value.trim)
-      case Types.SQL_TIMESTAMP => DateUtils.dt2timestamp(value.trim)
-      case Types.DECIMAL => new java.math.BigDecimal(value.trim).stripTrailingZeros()
-      case _ => throw new UnsupportedOperationException(s"Unknown Type: ${
-        flinkTypes(fieldIndex)
-      }")
+  def getRelValue(fieldIndex: Int, value: String, schemaMap: Map[String, (TypeInformation[_], Int)]): Any =
+    if (value == null) null
+    else {
+      val fieldNames = getFieldNamesFromSchema(schemaMap)
+      val flinkTypes = fieldNames.map(field => schemaMap(field)._1)
+      s2TrueValue(flinkTypes(fieldIndex), value)
     }
-  }
 
   def checkOtherData(protocolType: String): Boolean = {
     protocolType.startsWith("directive_") || protocolType.endsWith("_heartbeat") || protocolType.endsWith("_termination")

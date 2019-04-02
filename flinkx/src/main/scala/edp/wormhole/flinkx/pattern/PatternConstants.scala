@@ -20,6 +20,8 @@
 
 package edp.wormhole.flinkx.pattern
 
+import edp.wormhole.flinkx.pattern.OutputType.Value
+
 object JsonFieldName extends Enumeration {
   type JsonFieldName = Value
 
@@ -116,6 +118,8 @@ object Quantifier extends Enumeration {
   val TIMES = Value("times")
   val TIMESORMORE = Value("timesormore")
   val ONEORMORE=Value("oneormore")
+  val TIMESGREEDY=Value("timesgreedy")
+  val TIMESOPTIONAL=Value("timesoptional")
 
 
   def quantifier(s: String) = Quantifier.withName(s.toLowerCase())
@@ -126,9 +130,10 @@ object Output extends Enumeration {
   type Output = Value
 
   val TYPE = Value("type")
-  val FIELDLIST = Value("field_list")
-  val FUNCTIONTYPE = Value("function_type")
-  val FIELDNAME = Value("field_name")
+  val FIELD_LIST = Value("field_list")
+  val FUNCTION_TYPE = Value("function_type")
+  val FIELD_NAME = Value("field_name")
+  val ALIAS_NAME = Value("alias_name")
 
   def output(s: String) = Output.withName(s.toLowerCase())
 }
@@ -155,6 +160,17 @@ object OutputType extends Enumeration {
   val DETAIL = Value("detail")
 
   def outputType(s: String) = OutputType.withName(s.toLowerCase())
+}
+
+object FieldType extends Enumeration{
+  type FieldType = Value
+
+  val SYSTEM_FIELD = Value("system_field")
+  val KEY_BY_FIELD = Value("key_by_field")
+  val AGG_FIELD = Value("agg_field")
+
+  def fieldType(s: String) = FieldType.withName(s.toLowerCase())
+
 }
 
 
