@@ -297,7 +297,13 @@ object DataFrameTransform extends EdpLogging {
                 }
                 (DateUtils.yyyyMMddHHmmss(newValue),UmsFieldType.DATETIME)
               }else{
-                (tmpValue._1.toString,umsFieldType(tmpValue._2))
+                val newTmpValue=umsFieldType(tmpValue._2) match {
+                  case STRING => if(tmpValue._1==null) "" else tmpValue._1.toString
+                  case INT | LONG |  FLOAT | DOUBLE | DECIMAL | BINARY => if(tmpValue._1==null) "0" else tmpValue._1.toString
+                  case DATE| DATETIME =>if(tmpValue._1==null) DateUtils.currentyyyyMMddHHmmss else tmpValue._1.toString
+                  case BOOLEAN => if(tmpValue._1==null) "false" else tmpValue._1.toString
+                }
+                (newTmpValue,umsFieldType(tmpValue._2))
               }
               logInfo(s"fieldValue:$fieldValue fieldType:$fieldType")
               outputArray.append(
