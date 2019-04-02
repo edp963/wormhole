@@ -7,20 +7,21 @@ import edp.wormhole.util.{DateUtils, JsonUtils}
 import edp.wormhole.util.config.ConnectionConfig
 import org.apache.log4j.Logger
 
-class Data2CustomerSink extends SinkProcessor{
+class Data2CustomerSink extends SinkProcessor {
   private lazy val logger = Logger.getLogger(this.getClass)
+
   override def process(sourceNamespace: String,
-                         sinkNamespace: String,
-                         sinkProcessConfig: SinkProcessConfig,
-                         schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
-                         tupleList: Seq[Seq[String]],
-                         connectionConfig: ConnectionConfig): Unit = {
+                       sinkNamespace: String,
+                       sinkProcessConfig: SinkProcessConfig,
+                       schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)],
+                       tupleList: Seq[Seq[String]],
+                       connectionConfig: ConnectionConfig): Unit = {
     logger.info("process data to customer sink")
 
     sinkProcessConfig.specialConfig match {
       case Some(specialConfig) =>
         val specialConfigJson = JSON.parseObject(specialConfig)
-        if(specialConfigJson.containsKey("other_sinks_config")) {
+        if (specialConfigJson.containsKey("other_sinks_config")) {
           val otherSinksConfig = specialConfigJson.getJSONObject("other_sinks_config")
           var sinksConfig = Seq[ActorCase]()
 
@@ -45,19 +46,33 @@ class Data2CustomerSink extends SinkProcessor{
             }
           }
 
+          var errorFlag = false
           if (sinkParallel) {
             sinksConfig.par.foreach(sinkConfig => {
               logger.info(s"sink ${sinkConfig.sinkClassFullClass} foreach test: ${DateUtils.currentyyyyMMddHHmmss}")
               val (sinkObject, sinkMethod) = CustomerUtils.getObjectAndMethod(sinkConfig.sinkClassFullClass)
-              sinkMethod.invoke(sinkObject, sinkConfig.sourceNamespace, sinkConfig.sinkNamespace, sinkConfig.sinkProcessConfig, sinkConfig.schemaMap, sinkConfig.tupleList, sinkConfig.connectionConfig)
+              try {
+                sinkMethod.invoke(sinkObject, sinkConfig.sourceNamespace, sinkConfig.sinkNamespace, sinkConfig.sinkProcessConfig, sinkConfig.schemaMap, sinkConfig.tupleList, sinkConfig.connectionConfig)
+              } catch {
+                case e: Throwable =>
+                  logger.info(s"sink ${sinkConfig.sinkClassFullClass} error", e)
+                  errorFlag = true
+              }
             })
           } else {
             sinksConfig.foreach(sinkConfig => {
               logger.info(s"sink ${sinkConfig.sinkClassFullClass} foreach test: ${DateUtils.currentyyyyMMddHHmmss}")
               val (sinkObject, sinkMethod) = CustomerUtils.getObjectAndMethod(sinkConfig.sinkClassFullClass)
-              sinkMethod.invoke(sinkObject, sinkConfig.sourceNamespace, sinkConfig.sinkNamespace, sinkConfig.sinkProcessConfig, sinkConfig.schemaMap, sinkConfig.tupleList, sinkConfig.connectionConfig)
+              try {
+                sinkMethod.invoke(sinkObject, sinkConfig.sourceNamespace, sinkConfig.sinkNamespace, sinkConfig.sinkProcessConfig, sinkConfig.schemaMap, sinkConfig.tupleList, sinkConfig.connectionConfig)
+              } catch {
+                case e: Throwable =>
+                  logger.info(s"sink ${sinkConfig.sinkClassFullClass} error", e)
+                  errorFlag = true
+              }
             })
           }
+          if(errorFlag) throw new Exception("do data to customer sink error")
         }
       case None => None
     }
