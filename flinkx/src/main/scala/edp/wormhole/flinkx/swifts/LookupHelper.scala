@@ -30,6 +30,7 @@ import edp.wormhole.util.CommonUtils
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.typeinfo.TypeInformation
+import org.apache.flink.table.api.Types
 import org.apache.flink.types.Row
 import org.apache.log4j.Logger
 
@@ -145,8 +146,11 @@ object LookupHelper extends java.io.Serializable {
                       sourceTableFields: Array[String],
                       preSchemaMap: Map[String, (TypeInformation[_], Int)]): Array[Any] = {
     val fieldContent = sourceTableFields.map(fieldName => {
-      val value = FlinkSchemaUtils.object2TrueValue(preSchemaMap(fieldName.trim)._1, row.getField(preSchemaMap(fieldName.trim)._2))
-      if (value != null) value else "N/A"
+      var value = FlinkSchemaUtils.object2TrueValue(preSchemaMap(fieldName.trim)._1, row.getField(preSchemaMap(fieldName.trim)._2))
+      value =if (value != null) value else "N/A"
+      if (preSchemaMap(fieldName)._1 == Types.STRING || preSchemaMap(fieldName)._1 == Types.SQL_TIMESTAMP || preSchemaMap(fieldName)._1 == Types.SQL_DATE)
+        "'" + value + "'"
+      else value
     })
     if (!fieldContent.contains("N/A")) {
       fieldContent

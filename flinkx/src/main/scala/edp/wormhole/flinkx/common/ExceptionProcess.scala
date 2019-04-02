@@ -1,11 +1,7 @@
 package edp.wormhole.flinkx.common
 
-import java.util.UUID
-
-import edp.wormhole.common.feedback.ErrorPattern
 import edp.wormhole.flinkx.common.ExceptionProcessMethod.ExceptionProcessMethod
 import edp.wormhole.kafka.WormholeKafkaProducer
-import edp.wormhole.ums.UmsProtocolType
 import org.apache.flink.api.common.functions.RichMapFunction
 import org.apache.log4j.Logger
 
