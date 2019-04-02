@@ -62,7 +62,7 @@ class ParseSwiftsSql(sqlStr: String, sourceNamespace: String, sinkNamespace: Str
         ParseSwiftsSqlInternal.getFlinkSql(sqlStrEleTrim, dataType, sourceNamespace,sourceSchemaFieldSet)
       } else {
         logger.info("optType:" + sqlStrEleTrim + " is not supported")
-        throw new Exception("wong operation data type:" + sqlStrEleTrim)
+        throw new Exception("wrong operation data type:" + sqlStrEleTrim)
       }
     })
     )
