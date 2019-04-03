@@ -54,6 +54,7 @@ object DataFrameTransform extends EdpLogging {
                      schemaStr: String,
                      operate: SwiftsSql,
                      batchSize: Option[Int] = None): DataFrame = {
+    logInfo("getKUDUUnionDf,batchSize="+batchSize)
     val database = operate.lookupNamespace.get.split("\\.")(2)
     val fromIndex = operate.sql.indexOf(" from ")
     val afterFromSql = operate.sql.substring(fromIndex + 6).trim
@@ -68,12 +69,15 @@ object DataFrameTransform extends EdpLogging {
     val resultSchema = currentDf.schema
 
     val joinedRow: RDD[Row] = currentDf.rdd.mapPartitions(partition => {
+
       KuduConnection.initKuduConfig(connectionConfig)
       val client = KuduConnection.getKuduClient(connectionConfig.connectionUrl)
       val table: KuduTable = client.openTable(tableName)
 
       val originalDatas: ListBuffer[Row] = partition.to[ListBuffer]
-      val resultDatas: ListBuffer[Row] = originalDatas
+      logInfo("getKUDUUnionDf,originalDatas.size="+originalDatas.size)
+      val resultDatas: ListBuffer[Row] = ListBuffer.empty[Row]
+      originalDatas.foreach(resultDatas.append(_))
       val fieldsNameArray = getFieldsArray(operate.fields.get)
       val selectFieldOriginalNameArray: Seq[String] = fieldsNameArray.map(_._1).toList
       val original2AsNameMap: Map[String, String] = fieldsNameArray.map(tuple=>(tuple._2,tuple._1)).toMap
@@ -86,6 +90,7 @@ object DataFrameTransform extends EdpLogging {
         keySchemaMap(lookupFieldNameArray.head) = (0, keyType, true)
 
         originalDatas.grouped(batchSize.get).foreach((subList: mutable.Seq[Row]) => {
+          logInfo("getKUDUUnionDf,originalDatas.grouped(batchSize.get).foreach,subList.size="+subList.size)
           val tupleList: mutable.Seq[List[String]] = subList.map(row => {
             sourceFieldNameArray.toList.map(field => {
               val tmpKey = row.get(row.fieldIndex(field))
@@ -271,8 +276,9 @@ object DataFrameTransform extends EdpLogging {
                      dataMapFromDb: mutable.Map[String, ListBuffer[Map[String, (Any, String)]]],
                      sourceTableFields: Array[String],
                      resultSchema: StructType,
-                     original2AsNameMap:Map[String,String]): ListBuffer[Row] = {
-    val resultData: ListBuffer[Row] = originalData
+                     original2AsNameMap:Map[String,String]) = {
+    logInfo("getKuduUnionResult,dataMapFromDb.size="+dataMapFromDb.size+",originalData.size"+originalData.size)
+//    val resultData: ListBuffer[Row] = originalData
     val originalSchemaArr: Array[(String, DataType)] = resultSchema.fieldNames.map(name => (name.toLowerCase, resultSchema.apply(resultSchema.fieldIndex(name)).dataType)) //order is same every time?
     if (dataMapFromDb != null)
       dataMapFromDb.foreach { case (_, tupleLists) =>
@@ -285,7 +291,7 @@ object DataFrameTransform extends EdpLogging {
             else{
               val asName = original2AsNameMap(name)
               val tmpValue: (Any, String) = tupleMap(asName)
-              logInfo(s"asNameMap:($name,$asName),originalType:$originalType,originalVal:$tmpValue")
+//              logInfo(s"asNameMap:($name,$asName),originalType:$originalType,originalVal:$tmpValue")
               val (fieldValue, fieldType )= if(originalType.toString=="DateTimeType" ||originalType.toString=="TimestampType"){
                 val v = tmpValue._1.toString
                 val newValue = if(v.length==13){
@@ -311,10 +317,10 @@ object DataFrameTransform extends EdpLogging {
             }
 
           }
-          resultData.append(new GenericRowWithSchema(outputArray.toArray, resultSchema))
+          originalData.append(new GenericRowWithSchema(outputArray.toArray, resultSchema))
         })
       }
-    resultData
+//    originalData
   }
 
   def getLeftJoinResult(originalData: ListBuffer[Row], dataMapFromDb: mutable.HashMap[String, ListBuffer[Array[String]]], sourceTableFields: Array[String], dbOutPutSchemaMap: Map[String, (String, Int)], resultSchema: StructType): Iterator[Row] = {
