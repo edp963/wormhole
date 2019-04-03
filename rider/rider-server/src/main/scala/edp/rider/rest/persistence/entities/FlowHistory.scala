@@ -47,8 +47,7 @@ case class FlowHistory(id: Long,
                 createTime: String,
                 createBy: Long,
                 updateTime: String,
-                updateBy: Long,
-                action: String) extends BaseEntity {
+                updateBy: Long) extends BaseEntity {
   override def copyWithId(id: Long): this.type = {
     copy(id = id).asInstanceOf[this.type]
   }
@@ -56,7 +55,7 @@ case class FlowHistory(id: Long,
 
 
 class FlowHistoryTable(_tableTag: Tag) extends BaseTable[FlowHistory](_tableTag, "flow_history") {
-  def * = (id, flowId, flowName, projectId, streamId, sourceNs, sinkNs, parallelism, consumedProtocol, sinkConfig, tranConfig, tableKeys, desc, status, startedTime, stoppedTime, logPath, active, createTime, createBy, updateTime, updateBy, action) <> (Flow.tupled, Flow.unapply)
+  def * = (id, flowId, flowName, projectId, streamId, sourceNs, sinkNs, parallelism, consumedProtocol, sinkConfig, tranConfig, tableKeys, desc, status, startedTime, stoppedTime, logPath, active, createTime, createBy, updateTime, updateBy) <> (FlowHistory.tupled, FlowHistory.unapply)
 
   val flowId: Rep[Long] = column[Long]("flow_id")
   val flowName: Rep[String] = column[String]("flow_name", O.Length(200, varying = true))
@@ -89,8 +88,8 @@ class FlowHistoryTable(_tableTag: Tag) extends BaseTable[FlowHistory](_tableTag,
   val logPath: Rep[Option[String]] = column[Option[String]]("log_path", O.Length(2000, varying = true), O.Default(None))
 
   /** Uniqueness Index over (sourceNsId,sinkNsId,streamId,projectId) (database name flow_UNIQUE) */
-  val index1 = index("flow_UNIQUE", (sourceNs, sinkNs), unique = true)
+  //val index1 = index("flow_UNIQUE", (sourceNs, sinkNs), unique = true)
 
-  val action: Rep[String] = column[String]("action", O.Length(20, varying = true))
+  //val action: Rep[String] = column[String]("action", O.Length(20, varying = true))
 }
 
