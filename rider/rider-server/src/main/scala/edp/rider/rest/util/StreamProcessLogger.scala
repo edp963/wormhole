@@ -10,6 +10,6 @@ class StreamProcessLogger extends ProcessLogger with RiderLogger{
 
   override def out(s: => String): Unit = { riderLogger.info(s"read process out stream : $s") }
 
-  override def err(s: => String): Unit = { riderLogger.info(s"read process out stream : $s") }
+  override def err(s: => String): Unit = { riderLogger.info(s"read process err stream : $s") }
 
 }
