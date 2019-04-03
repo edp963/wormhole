@@ -91,17 +91,11 @@ class WormholeFlinkMainProcess(config: WormholeFlinkxConfig, umsFlowStart: Ums) 
 
     val inputStream: DataStream[Row] = createKafkaStream(env, umsFlowStart.schema.namespace.toLowerCase, initialTs)
     val watermarkStream = assignTimestamp(inputStream, immutableSourceSchemaMap)
-    try {
-      val swiftsTs = System.currentTimeMillis
 
-      val (stream, schemaMap) = new SwiftsProcess(watermarkStream, exceptionConfig, tableEnv, swiftsSql, swiftsSpecialConfig, timeCharacteristic, config).process()
-      SinkProcess.doProcess(stream, umsFlowStart, schemaMap, config, initialTs, swiftsTs, exceptionConfig)
-      //      WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), Some(UmsProtocolType.FEEDBACK_DIRECTIVE+"."+streamId), config.kafka_output.brokers)
-    } catch {
-      case e: Throwable =>
-        logger.error("swifts and sink:", e)
-        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config, exceptionConfig).doExceptionProcess(e.getMessage)
-    }
+    val swiftsTs = System.currentTimeMillis
+    val (stream, schemaMap) = new SwiftsProcess(watermarkStream, exceptionConfig, tableEnv, swiftsSql, swiftsSpecialConfig, timeCharacteristic, config).process()
+    SinkProcess.doProcess(stream, umsFlowStart, schemaMap, config, initialTs, swiftsTs, exceptionConfig)
+    //      WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.FeedbackPriority1, feedbackDirective(DateUtils.currentDateTime, directiveId, UmsFeedbackStatus.SUCCESS, streamId, ""), Some(UmsProtocolType.FEEDBACK_DIRECTIVE+"."+streamId), config.kafka_output.brokers)
     env.execute(config.flow_name)
   }
 

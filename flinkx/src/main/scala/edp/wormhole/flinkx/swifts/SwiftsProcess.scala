@@ -20,16 +20,13 @@
 
 package edp.wormhole.flinkx.swifts
 
-import java.util.UUID
-
 import com.alibaba.fastjson.{JSON, JSONObject}
-import edp.wormhole.common.feedback.ErrorPattern
-import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, FlinkxUtils, WormholeFlinkxConfig}
+import edp.wormhole.flinkx.common.{ExceptionConfig, ExceptionProcess, WormholeFlinkxConfig}
 import edp.wormhole.flinkx.pattern.JsonFieldName.{KEYBYFILEDS, OUTPUT}
 import edp.wormhole.flinkx.pattern.{OutputType, PatternGenerator, PatternOutput, PatternOutputFilter}
 import edp.wormhole.flinkx.util.FlinkSchemaUtils
 import edp.wormhole.swifts.{ConnectionMemoryStorage, SqlOptType}
-import edp.wormhole.ums.{UmsProtocolType, UmsSysField}
+import edp.wormhole.ums.UmsSysField
 import edp.wormhole.util.swifts.SwiftsSql
 import org.apache.flink.api.common.time.Time
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -73,32 +70,14 @@ class SwiftsProcess(dataStream: DataStream[Row],
   private def doFlinkSql(transformedStream: DataStream[Row], sql: String, index: Int): DataStream[Row] = {
     var table: Table = getKeyByStream(transformedStream).toTable(tableEnv, buildExpression(): _*)
     table.printSchema()
-
     val projectClause = sql.substring(0, sql.toLowerCase.indexOf(" from ")).trim
     val namespaceTable = exceptionConfig.sourceNamespace.split("\\.")(3)
     val newSql = sql.replace(s" $namespaceTable ", s" $table ")
-    logger.info(newSql+"@@@@@@@@@@@@@the new sql")
-
-    try {
-      table = tableEnv.sqlQuery(newSql)
-      table.printSchema()
-      val value = FlinkSchemaUtils.getSchemaMapFromTable(table.getSchema, projectClause, FlinkSchemaUtils.udfSchemaMap.toMap, specialConfigObj)
-      preSchemaMap = value
-    } catch {
-      case e: Throwable =>
-        logger.error("in doFlinkSql table query", e)
-        val errorMsg = FlinkxUtils.getFlowErrorMessage(null,
-          exceptionConfig.sourceNamespace,
-          exceptionConfig.sinkNamespace,
-          1,
-          e,
-          UUID.randomUUID().toString,
-          UmsProtocolType.DATA_INCREMENT_DATA.toString,
-          exceptionConfig.flowId,
-          exceptionConfig.streamId,
-          ErrorPattern.FlowError)
-        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config, exceptionConfig).doExceptionProcess(errorMsg)
-    }
+    logger.info(newSql + "@@@@@@@@@@@@@the new sql")
+    table = tableEnv.sqlQuery(newSql)
+    table.printSchema()
+    val value = FlinkSchemaUtils.getSchemaMapFromTable(table.getSchema, projectClause, FlinkSchemaUtils.udfSchemaMap.toMap, specialConfigObj)
+    preSchemaMap = value
     covertTable2Stream(table)
   }
 
@@ -150,38 +129,20 @@ class SwiftsProcess(dataStream: DataStream[Row],
 
   private def doCEP(transformedStream: DataStream[Row], sql: String, index: Int): DataStream[Row] = {
     var resultDataStream: DataStream[Row] = null
-    try {
-      val patternSeq = JSON.parseObject(sql)
-      val patternGenerator = new PatternGenerator(patternSeq, preSchemaMap, exceptionConfig, config)
-      val pattern = patternGenerator.getPattern
-
-      val keyByFields = patternSeq.getString(KEYBYFILEDS.toString).trim
-      val patternStream = if (keyByFields != null && keyByFields.nonEmpty) {
-        val keyArray = keyByFields.split(",").map(key => preSchemaMap(key)._2)
-        CEP.pattern(transformedStream.keyBy(keyArray: _*), pattern)
-      } else CEP.pattern(transformedStream, pattern)
-
-      val patternOutput = new PatternOutput(patternSeq.getJSONObject(OUTPUT.toString), preSchemaMap)
-      val patternOutputStreamType: (Array[String], Array[TypeInformation[_]]) = patternOutput.getPatternOutputRowType(keyByFields)
-      setSwiftsSchemaWithCEP(patternOutput, index, keyByFields)
-      val patternOutputStream: DataStream[(Boolean, Row)] = patternOutput.getOutput(patternStream, patternGenerator, keyByFields)
-      resultDataStream = filterException(patternOutputStream, patternOutputStreamType)
-      logger.info(resultDataStream.dataType.toString + "in  doCep")
-    } catch {
-      case e: Throwable =>
-        logger.error("doCEP error in swifts process", e)
-        val errorMsg = FlinkxUtils.getFlowErrorMessage(null,
-          exceptionConfig.sourceNamespace,
-          exceptionConfig.sinkNamespace,
-          1,
-          e,
-          UUID.randomUUID().toString,
-          UmsProtocolType.DATA_INCREMENT_DATA.toString,
-          exceptionConfig.flowId,
-          exceptionConfig.streamId,
-          ErrorPattern.FlowError)
-        new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config, exceptionConfig).doExceptionProcess(errorMsg)
-    }
+    val patternSeq = JSON.parseObject(sql)
+    val patternGenerator = new PatternGenerator(patternSeq, preSchemaMap, exceptionConfig, config)
+    val pattern = patternGenerator.getPattern
+    val keyByFields = patternSeq.getString(KEYBYFILEDS.toString).trim
+    val patternStream = if (keyByFields != null && keyByFields.nonEmpty) {
+      val keyArray = keyByFields.split(",").map(key => preSchemaMap(key)._2)
+      CEP.pattern(transformedStream.keyBy(keyArray: _*), pattern)
+    } else CEP.pattern(transformedStream, pattern)
+    val patternOutput = new PatternOutput(patternSeq.getJSONObject(OUTPUT.toString), preSchemaMap)
+    val patternOutputStreamType: (Array[String], Array[TypeInformation[_]]) = patternOutput.getPatternOutputRowType(keyByFields)
+    setSwiftsSchemaWithCEP(patternOutput, index, keyByFields)
+    val patternOutputStream: DataStream[(Boolean, Row)] = patternOutput.getOutput(patternStream, patternGenerator, keyByFields)
+    resultDataStream = filterException(patternOutputStream, patternOutputStreamType)
+    logger.info(resultDataStream.dataType.toString + "in  doCep")
     resultDataStream
   }
 
