@@ -184,12 +184,13 @@ object SubmitYarnJob extends App with RiderLogger {
       submitPre + "/bin/spark-submit " + finalCommand
   }
 
-  // ./bin/yarn-session.sh -n 2 -tm 1024 -s 4 -jm 1024 -nm flinktest
+  //ssh -p22 user@host ./bin/yarn-session.sh -n 2 -tm 1024 -s 4 -jm 1024 -nm flinktest
 
   def generateFlinkStreamStartSh(stream: Stream): String = {
     val resourceConfig = JsonUtils.json2caseClass[FlinkResourceConfig](stream.startConfig)
     val logPath = getLogPath(stream.name)
     s"""
+       |ssh -p${RiderConfig.spark.sshPort} ${RiderConfig.spark.user}@${RiderConfig.riderServer.host}
        |${RiderConfig.flink.homePath}/bin/yarn-session.sh
        |-n ${resourceConfig.taskManagersNumber}
        |-tm ${resourceConfig.perTaskManagerMemoryGB * 1024}
