@@ -28,14 +28,13 @@ import edp.rider.rest.util.CommonUtils
 import edp.rider.rest.util.CommonUtils._
 import slick.lifted.{CanBeQueryCondition, TableQuery}
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 
-class FlowHistoryDal(flowHistoryTable: TableQuery[FlowHistoryTable], flowTable: TableQuery[FlowTable], flowDal: FlowDal)
+class FlowHistoryDal(flowHistoryTable: TableQuery[FlowHistoryTable])
   extends BaseDalImpl[FlowHistoryTable, FlowHistory](flowHistoryTable) with RiderLogger {
 
-  def getAll[C: CanBeQueryCondition](f: (FlowHistoryTable) => C): Future[Seq[FlowHistory]] = {
+  def getAll[C: CanBeQueryCondition](f: FlowHistoryTable => C): Future[Seq[FlowHistory]] = {
     try {
       Future(Await.result(super.findByFilter(f), minTimeOut))
     } catch {
@@ -45,20 +44,19 @@ class FlowHistoryDal(flowHistoryTable: TableQuery[FlowHistoryTable], flowTable: 
     }
   }
 
-  def insertOrAbort(flows: Seq[Flow], action: String): Seq[FlowHistory] = {
+  def insert(flows: Seq[Flow], action: String, userId: Long): Unit = {
     try {
       val flowHistories = flows.map(flow => {
         new FlowHistory(0, flow.id, flow.flowName, flow.projectId, flow.streamId, flow.sourceNs,
           flow.sinkNs, flow.parallelism, flow.consumedProtocol, flow.sinkConfig, flow.tranConfig,
           flow.tableKeys, flow.desc, flow.status, flow.startedTime, flow.stoppedTime, flow.logPath,
-          flow.active, flow.createTime, flow.createBy, flow.updateTime, flow.updateBy, action)
+          flow.active, flow.createTime, flow.createBy, currentSec, userId, action)
       })
-      val flowHistoryInsertSeq = new ListBuffer[FlowHistory]
-      flowHistoryInsertSeq = Await.result(insert(flowHistories), CommonUtils.minTimeOut)
-
+      Await.result(insert(flowHistories), CommonUtils.minTimeOut)
     } catch {
       case ex: Exception =>
-        riderLogger.error(s"flow insert or abort failed", ex)
-        throw ex
+        val flowIds = flows.map(flow => flow.id).mkString(",")
+        riderLogger.error(s"flows $flowIds insert into flowHistory failed", ex)
     }
+  }
 }
