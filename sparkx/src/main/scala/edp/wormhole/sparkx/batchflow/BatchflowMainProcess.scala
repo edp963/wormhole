@@ -310,12 +310,12 @@ object BatchflowMainProcess extends EdpLogging {
             } else logWarning("sourceNamespace=" + sourceNamespace + ",sinkNamespace=" + sinkNamespace + "there is nothing to sinkProcess")
 
             if (afterUnionDf != null) afterUnionDf.unpersist()
-            val doneTs = System.currentTimeMillis
+            val doneTs = DateUtils.dt2string(DateUtils.currentDateTime,DtFormat.TS_DASH_MILLISEC)
             processedSourceNamespace.add(sourceNamespace)
             WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name, FeedbackPriority.feedbackPriority,
               UmsProtocolUtils.feedbackFlowStats(sourceNamespace, protocolType.toString, DateUtils.currentDateTime,
                 config.spark_config.stream_id, batchId, sinkNamespace, topicPartitionOffset.toJSONString,
-                count, maxTs,rddTs, directiveTs, mainDataTs, swiftsTs, sinkTs, doneTs.toString,flow._2.flowId),
+                count, maxTs,rddTs, directiveTs, mainDataTs, swiftsTs, sinkTs, doneTs,flow._2.flowId),
               Some(UmsProtocolType.FEEDBACK_FLOW_STATS + "." + flow._2.flowId), config.kafka_output.brokers)
           }
         }
