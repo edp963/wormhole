@@ -232,7 +232,7 @@ object FeedbackProcess extends RiderLogger {
           val topics = UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics")
           val sinkNamespaceValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace").toString
           val rddCountValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_count").toString.toInt
-          val feedbackTime = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
+          val feedbackTime = DateUtils.dt2string(UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").asInstanceOf[DateTime],DtFormat.TS_DASH_MICROSEC)
           //todo 兼容0.6.0及之前版本stream feedback数据
           val cdcTsValue: Date =
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_generated_ts") != null)
