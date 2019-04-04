@@ -38,7 +38,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 
-class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTable], projectTable: TableQuery[ProjectTable], streamDal: StreamDal, inTopicDal: StreamInTopicDal, flowInTopicDal: FlowInTopicDal, flowUdfTopicDal: FlowUserDefinedTopicDal)
+class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTable], projectTable: TableQuery[ProjectTable], streamDal: StreamDal, inTopicDal: StreamInTopicDal, flowInTopicDal: FlowInTopicDal, flowUdfTopicDal: FlowUserDefinedTopicDal, flowHistoryDal: FlowHistoryDal)
   extends BaseDalImpl[FlowTable, Flow](flowTable) with RiderLogger {
 
   def defaultGetAll[C: CanBeQueryCondition](f: (FlowTable) => C, action: String = "refresh"): Future[Seq[FlowStream]] = {
@@ -256,6 +256,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
         Await.result(flowUdfTopicDal.deleteByFilter(_.flowId === flow.id), minTimeOut)
       }
       riderLogger.info(s"delete flow ${flow.id}: $flow")
+      flowHistoryDal.insert(flowDal.getFlowsByIds(Seq(flow.id)), "delete", userId)
       Await.result(super.deleteById(flow.id), minTimeOut)
     })
     riderLogger.info(s"user $userId delete flow ${
@@ -334,4 +335,7 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
     db.run(flowTable.filter(flow => flow.id === flowId).map(_.streamId).update(streamId))
   }
 
+  def getFlowsByIds(flowIds: Seq[Long]): Seq[Flow] = {
+    Await.result(db.run(flowTable.filter(_.id inSet flowIds).result).mapTo[Seq[Flow]], minTimeOut)
+  }
 }

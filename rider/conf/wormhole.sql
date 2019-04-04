@@ -236,6 +236,32 @@ alter table `flow` add column `flow_name` VARCHAR(200) NOT NULL;
 alter table `flow` add column `table_keys` VARCHAR(100) NULL;
 alter table `flow` add column `desc` VARCHAR(1000) NULL;
 
+CREATE TABLE IF NOT EXISTS `flow_history` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `flow_id` BIGINT NOT NULL,
+  `flow_name` VARCHAR(200) NOT NULL,
+  `project_id` BIGINT NOT NULL,
+  `stream_id` BIGINT NOT NULL,
+  `source_ns` VARCHAR(200) NOT NULL,
+  `sink_ns` VARCHAR(200) NOT NULL,
+  `parallelism` INT NULL,
+  `consumed_protocol` VARCHAR(100) NOT NULL,
+  `sink_config` VARCHAR(5000) NOT NULL,
+  `tran_config` LONGTEXT NULL,
+  `table_keys` VARCHAR(100) NULL,
+  `desc` VARCHAR(1000) NULL,
+  `status` VARCHAR(200) NOT NULL,
+  `started_time` TIMESTAMP NULL,
+  `stopped_time` TIMESTAMP NULL,
+  `log_path` VARCHAR(2000) NULL,
+  `active` TINYINT(1) NOT NULL,
+  `create_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `create_by` BIGINT NOT NULL,
+  `update_time` TIMESTAMP NOT NULL DEFAULT '1970-01-01 08:00:01',
+  `update_by` BIGINT NOT NULL,
+  PRIMARY KEY (`id`))
+ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `directive` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `protocol_type` VARCHAR(200) NOT NULL,
