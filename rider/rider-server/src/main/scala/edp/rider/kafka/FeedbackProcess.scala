@@ -33,6 +33,7 @@ import edp.rider.rest.util.CommonUtils._
 import edp.wormhole.ums.UmsProtocolType._
 import edp.wormhole.ums._
 import edp.wormhole.util.{DateUtils, DtFormat}
+import org.joda.time.DateTime
 
 import scala.concurrent.Await
 
@@ -135,7 +136,7 @@ object FeedbackProcess extends RiderLogger {
             else null
           val feedbackTimeValue =
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_") != null)
-              UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
+              DateUtils.dt2string(UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").asInstanceOf[DateTime],DtFormat.TS_DASH_SEC)
             else DateUtils.currentyyyyMMddHHmmss
           val errorPatternValue =
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "error_pattern") != null)
@@ -151,7 +152,7 @@ object FeedbackProcess extends RiderLogger {
             if (errMaxWaterMarkTsValue == null) DateUtils.currentyyyyMMddHHmmss.toString
             else errMaxWaterMarkTsValue.toString, if (errMaxWaterMarkTsValue == null)
               DateUtils.currentyyyyMMddHHmmss.toString else errMinWaterMarkTsValue.toString,
-            errorInfoValue, dataInfoValue, feedbackTimeValue.toString, DateUtils.currentyyyyMMddHHmmss.toString)
+            errorInfoValue, dataInfoValue, feedbackTimeValue, DateUtils.currentyyyyMMddHHmmss.toString)
         })
       })
       riderLogger.info(s"insert error list:$insertSeq")
@@ -231,7 +232,7 @@ object FeedbackProcess extends RiderLogger {
           val topics = UmsFieldType.umsFieldValue(tuple.tuple, fields, "topics")
           val sinkNamespaceValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "sink_namespace").toString
           val rddCountValue = UmsFieldType.umsFieldValue(tuple.tuple, fields, "rdd_count").toString.toInt
-          val feedbackTime = UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_")
+          val feedbackTime = DateUtils.dt2string(UmsFieldType.umsFieldValue(tuple.tuple, fields, "ums_ts_").asInstanceOf[DateTime],DtFormat.TS_DASH_MICROSEC)
           //todo 兼容0.6.0及之前版本stream feedback数据
           val cdcTsValue: Date =
             if (UmsFieldType.umsFieldValue(tuple.tuple, fields, "data_generated_ts") != null)
