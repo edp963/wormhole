@@ -98,7 +98,7 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
       val ums = UmsSchemaUtils.toUms(umsStr)
       ums.payload_get.map(dataRow => {
         val row: Option[Row] = SparkUtils.umsToSparkRowWrapper(ums.schema.namespace, ums.schema.fields_get, dataRow.tuple)
-        row.get
+        row.getOrElse(Row.empty)
       })
     } catch {
       case e: Exception =>
