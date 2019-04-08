@@ -226,7 +226,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
 
                       //                      val stream = Await.result(streamDal.findById(streamId), minTimeOut).head
                       //                      val existFlow = Await.result(flowDal.findById(flow.id), minTimeOut).head
-
+                      flowHistoryDal.insert(flowDal.getFlowsByIds(Seq(flow.id)), "update", session.userId)
                       onComplete(flowDal.update(updateFlow).mapTo[Int]) {
                         case Success(_) =>
                           //                          if (streamId != flow.streamId)
