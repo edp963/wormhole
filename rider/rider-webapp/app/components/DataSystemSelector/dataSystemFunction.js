@@ -36,8 +36,7 @@ export function loadDataSystemData () {
     { value: 'vertica', icon: 'icon-vertica', style: {fontSize: '45px'} },
     { value: 'parquet', text: 'Parquet' },
     { value: 'kudu', text: 'Kudu' },
-    { value: 'greenplum', text: 'Greenplum' },
-    { value: 'hdfslog', text: 'Hdfslog' }
+    { value: 'greenplum', text: 'Greenplum' }
   ]
   return dataSystemData
 }
