@@ -272,58 +272,67 @@ export class NamespaceForm extends React.Component {
             </FormItem>
           </Col>
 
-          <span>
-            <Col span={6} className="ns-add-table-label-class">
-              <FormItem label={namespaceTableMsg} style={{ marginRight: '-2px' }}>
-                {getFieldDecorator('nsTables', {})(
-                  <Input className="hide" />
+          {namespaceDSValue !== 'hdfslog' ? (
+            <span>
+              <span>
+                <Col span={6} className="ns-add-table-label-class">
+                  <FormItem label={namespaceTableMsg} style={{ marginRight: '-2px' }}>
+                    {getFieldDecorator('nsTables', {})(
+                      <Input className="hide" />
+                    )}
+                  </FormItem>
+                </Col>
+                <Col span={7}>
+                  <FormItem label="" style={{ marginLeft: '2px' }}>
+                    {getFieldDecorator('nsSingleTableName', {})(
+                      <Input
+                        placeholder={namespaceTablePlace}
+                        onChange={(e) => this.props.onInitNsNameInputValue(e.target.value)}
+                        disabled={disabledOrNot}
+                      />
+                    )}
+                  </FormItem>
+                </Col>
+                <Col span={7}>
+                  <FormItem label="">
+                    {getFieldDecorator('nsSingleKeyValue', {})(
+                      <Input
+                        placeholder={namespaceKeyPlaceholder}
+                        onChange={(e) => this.props.onInitNsKeyInputValue(e.target.value)}
+                        disabled={namespaceDSValue === 'redis'}
+                      />
+                    )}
+                  </FormItem>
+                </Col>
+                <Col span={1} style={{width: '2.7%'}}></Col>
+                <Col span={2} className={addTableClass}>
+                  <Tooltip title={<FormattedMessage {...messages.nsModalAddTable} />}>
+                    <Button shape="circle" type="ghost" style={{ borderColor: '#cfcfcf', marginTop: '2px' }} onClick={onAddTable} disabled={addBtnDisabled}>
+                      <i className="iconfont icon-jia"></i>
+                    </Button>
+                  </Tooltip>
+                </Col>
+              </span>
+              <Col span={6} className={addTableClassTable}></Col>
+              <Col span={17} className="ns-add-table-class" style={{ paddingLeft: '2px' }}>
+                <Table
+                  className={`${addTableClassTable} ns-add-table`}
+                  dataSource={namespaceTableSource}
+                  columns={columns}
+                  // showHeader={false}
+                  pagination={pagination}
+                  bordered
+                />
+              </Col>
+            </span>) : (<Col span={24}>
+              <FormItem label={namespaceTableMsg} {...itemStyle}>
+                {getFieldDecorator('nsTables', {
+                  initialValue: '*'
+                })(
+                  <Input disabled />
                 )}
               </FormItem>
-            </Col>
-
-            <Col span={7}>
-              <FormItem label="" style={{ marginLeft: '2px' }}>
-                {getFieldDecorator('nsSingleTableName', {})(
-                  <Input
-                    placeholder={namespaceTablePlace}
-                    onChange={(e) => this.props.onInitNsNameInputValue(e.target.value)}
-                    disabled={disabledOrNot}
-                  />
-                )}
-              </FormItem>
-            </Col>
-            <Col span={7}>
-              <FormItem label="">
-                {getFieldDecorator('nsSingleKeyValue', {})(
-                  <Input
-                    placeholder={namespaceKeyPlaceholder}
-                    onChange={(e) => this.props.onInitNsKeyInputValue(e.target.value)}
-                    disabled={namespaceDSValue === 'redis'}
-                  />
-                )}
-              </FormItem>
-            </Col>
-            <Col span={1} style={{width: '2.7%'}}></Col>
-            <Col span={2} className={addTableClass}>
-              <Tooltip title={<FormattedMessage {...messages.nsModalAddTable} />}>
-                <Button shape="circle" type="ghost" style={{ borderColor: '#cfcfcf', marginTop: '2px' }} onClick={onAddTable} disabled={addBtnDisabled}>
-                  <i className="iconfont icon-jia"></i>
-                </Button>
-              </Tooltip>
-            </Col>
-          </span>
-
-          <Col span={6} className={addTableClassTable}></Col>
-          <Col span={17} className="ns-add-table-class" style={{ paddingLeft: '2px' }}>
-            <Table
-              className={`${addTableClassTable} ns-add-table`}
-              dataSource={namespaceTableSource}
-              columns={columns}
-              // showHeader={false}
-              pagination={pagination}
-              bordered
-            />
-          </Col>
+            </Col>)}
         </Row>
       </Form>
     )
