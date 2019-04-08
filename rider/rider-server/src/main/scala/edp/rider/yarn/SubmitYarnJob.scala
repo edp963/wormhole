@@ -22,6 +22,7 @@ package edp.rider.yarn
 
 import edp.rider.common.{RiderConfig, RiderLogger}
 import edp.rider.rest.persistence.entities.{FlinkResourceConfig, StartConfig, Stream}
+import edp.rider.rest.util.StreamProcessLogger
 import edp.rider.rest.util.StreamUtils.getLogPath
 import edp.wormhole.util.JsonUtils
 
@@ -59,7 +60,11 @@ object SubmitYarnJob extends App with RiderLogger {
         }
       })
     }
-    else Process(command).run()
+    else {
+      val streamProcessLogger = new StreamProcessLogger()
+      riderLogger.info(s"run shell command is: $command")
+      Process(command).run(streamProcessLogger)
+    }
   }
 
   //  def commandGetJobInfo(streamName: String) = {
