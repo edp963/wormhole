@@ -113,7 +113,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
         rowWithMessageFlag.setField(columnNames.length, tuple._1)
         rowWithMessageFlag
       })(Types.ROW(columnNamesWithMessageFlag, columnTypesWithMessageFlag))
-      logger.info(resultDataStream.dataType.toString + "in  doFlinkSql")
+      println(resultDataStream.dataType.toString + "in  doFlinkSql")
       resultDataStream
     } else {
       table.toRetractStream[Row](getQueryConfig).filter(_._1).map(_._2)(Types.ROW(columnNames, columnTypes))
@@ -142,7 +142,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
     setSwiftsSchemaWithCEP(patternOutput, index, keyByFields)
     val patternOutputStream: DataStream[(Boolean, Row)] = patternOutput.getOutput(patternStream, patternGenerator, keyByFields)
     resultDataStream = filterException(patternOutputStream, patternOutputStreamType)
-    logger.info(resultDataStream.dataType.toString + "in  doCep")
+    println(resultDataStream.dataType.toString + "in  doCep")
     resultDataStream
   }
 
@@ -165,7 +165,7 @@ class SwiftsProcess(dataStream: DataStream[Row],
     val resultDataStreamSeq = transformedStream.process(new LookupProcessElement(element, preSchemaMap, LookupHelper.getDbOutPutSchemaMap(element), ConnectionMemoryStorage.getDataStoreConnectionsMap, exceptionConfig, lookupTag))
     val resultDataStream = resultDataStreamSeq.flatMap(o => o)(Types.ROW(fieldNames, fieldTypes))
     preSchemaMap = lookupSchemaMap
-    logger.info(resultDataStream.dataType.toString + "in doLookup")
+    println(resultDataStream.dataType.toString + "in doLookup")
     val exceptionStream: DataStream[String] = resultDataStreamSeq.getSideOutput(lookupTag)
     exceptionStream.map(new ExceptionProcess(exceptionConfig.exceptionProcessMethod, config, exceptionConfig))
     resultDataStream
