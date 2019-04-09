@@ -22,6 +22,7 @@ import { takeLatest, takeEvery } from 'redux-saga'
 import { call, fork, put } from 'redux-saga/effects'
 import {
   LOAD_USER_STREAMS,
+  LOAD_FLOW_LIST,
   LOAD_ADMIN_ALL_STREAMS,
   LOAD_ADMIN_SINGLE_STREAM,
   LOAD_STREAM_DETAIL,
@@ -46,6 +47,7 @@ import {
 
 import {
   userStreamsLoaded,
+  flowListLoaded,
   adminAllStreamsLoaded,
   adminSingleStreamLoaded,
   streamDetailLoaded,
@@ -84,6 +86,20 @@ export function* getUserStreams ({ payload }) {
 
 export function* getUserStreamsWatcher () {
   yield fork(takeLatest, LOAD_USER_STREAMS, getUserStreams)
+}
+
+export function* getFlowList ({ payload }) {
+  try {
+    const flows = yield call(request, `${api.projectStream}/${payload.projectId}/flows`)
+    yield put(flowListLoaded(flows.payload))
+    payload.resolve()
+  } catch (err) {
+    notifySagasError(err, 'getFlowList')
+  }
+}
+
+export function* getFlowListWatcher () {
+  yield fork(takeLatest, LOAD_FLOW_LIST, getFlowList)
 }
 
 export function* getAdminAllStreams ({ payload }) {
@@ -449,6 +465,7 @@ export function* getYarnUiWatcher () {
 }
 export default [
   getUserStreamsWatcher,
+  getFlowListWatcher,
   getAdminAllFlowsWatcher,
   getAdminSingleFlowWatcher,
   getStreamDetailWatcher,
