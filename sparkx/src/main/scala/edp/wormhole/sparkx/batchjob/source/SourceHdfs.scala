@@ -58,6 +58,7 @@ class SourceHdfs extends ObtainSourceDataInterface with EdpLogging {
 
     if (filteredPathList.nonEmpty) {
       val strDS = session.read.textFile(filteredPathList: _*)
+        .repartition(session.sqlContext.getConf("spark.sql.shuffle.partitions").toInt)
       val umsStrRDD: RDD[String] = strDS.rdd.mapPartitions { lineIt =>
         var tmpContent = ""
         lineIt.map(line => {
