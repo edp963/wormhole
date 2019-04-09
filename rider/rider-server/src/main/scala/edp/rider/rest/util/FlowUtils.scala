@@ -528,6 +528,11 @@ object FlowUtils extends RiderLogger {
                  |"name": "kerberos",
                  |"type": "boolean",
                  |"nullable": true
+                 |},
+                 |{
+                 |"name": "priority_id",
+                 |"type": "long",
+                 |"nullable": true
                  |}
                  |]
                  |},
@@ -630,6 +635,11 @@ object FlowUtils extends RiderLogger {
              |"name": "source_increment_topic",
              |"type": "string",
              |"nullable": true
+             |},
+             |{
+             |"name": "priority_id",
+             |"type": "long",
+             |"nullable": true
              |}
              |]
              |},
@@ -721,6 +731,11 @@ object FlowUtils extends RiderLogger {
              |        "name": "source_increment_topic",
              |        "type": "string",
              |        "nullable": false
+             |      },
+             |      {
+             |        "name": "priority_id",
+             |        "type": "long",
+             |        "nullable": true
              |      }
              |    ]
              |  },
