@@ -27,6 +27,11 @@ const selectStreams = () => createSelector(
   (streamState) => streamState.get('streams')
 )
 
+const selectFlows = () => createSelector(
+  selectStream(),
+  (streamState) => streamState.get('flows')
+)
+
 const selectStreamSubmitLoading = () => createSelector(
   selectStream(),
   (streamState) => streamState.get('streamSubmitLoading')
@@ -40,6 +45,7 @@ const selectStreamStartModalLoading = () => createSelector(
 export {
   selectStream,
   selectStreams,
+  selectFlows,
   selectStreamSubmitLoading,
   selectStreamStartModalLoading
 }

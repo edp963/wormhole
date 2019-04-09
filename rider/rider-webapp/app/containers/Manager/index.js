@@ -21,6 +21,8 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
+import {SortableContainer, SortableElement} from 'react-sortable-hoc'
+import arrayMove from 'array-move'
 import {createStructuredSelector} from 'reselect'
 import Helmet from 'react-helmet'
 import { FormattedMessage } from 'react-intl'
@@ -42,13 +44,13 @@ import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
 import {
-  loadUserStreams, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
+  loadUserStreams, loadFlowList, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
   deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset, loadUdfs, jumpStreamToFlowFilter,
   loadYarnUi
 } from './action'
 import { changeTabs } from '../Workbench/action'
 import { loadSingleUdf } from '../Udf/action'
-import { selectStreams, selectStreamStartModalLoading } from './selectors'
+import { selectStreams, selectFlows, selectStreamStartModalLoading } from './selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
 import { selectRoleType } from '../App/selectors'
 
@@ -67,6 +69,10 @@ export class Manager extends React.Component {
       originStreams: [],
       currentStreams: [],
       selectedRowKeys: [],
+
+      currentFlows: [],
+      priorityModalVisible: false,
+      priorityDialogConfirmLoading: false,
 
       editModalVisible: false,
       logsModalVisible: false,
@@ -817,16 +823,54 @@ export class Manager extends React.Component {
   getStartFormDataFromSub = (userDefinedTopics) => {
     this.setState({ userDefinedTopics })
   }
+
   jumpToFlowFilter = (streamId) => () => {
     this.props.jumpStreamToFlowFilter(streamId)
     this.props.onChangeTabs('flow')
   }
+
+  setPriority = (record, action) => (e) => {
+    this.setState({
+      priorityModalVisible: true
+    })
+
+    const projectId = record.projectId
+    const streamId = record.id
+    this.loadFlowData(projectId, streamId)
+  }
+
+  loadFlowData = (projectId, streamId) => {
+    this.props.onLoadFlowList(projectId, streamId, () => {
+      const { flows } = this.props
+      const flowList = flows.filter(item => item.streamId === streamId)
+      this.setState({ currentFlows: flowList.slice() })
+    })
+  }
+
+  submitPriority = () => {}
+
+  closePriorityDialog = () => {
+    this.setState({
+      priorityModalVisible: false,
+      priorityDialogConfirmLoading: false,
+      currentFlows: []
+    })
+  }
+
+  onSortEnd = ({oldIndex, newIndex}) => {
+    this.setState(({currentFlows}) => ({
+      currentFlows: arrayMove(currentFlows, oldIndex, newIndex)
+    }))
+
+    console.log(this.state.currentFlows)
+  }
+
   render () {
     const {
       refreshStreamLoading, refreshStreamText, showStreamdetails, logsModalVisible,
       logsContent, refreshLogLoading, refreshLogText, logsProjectId, logsStreamId,
       streamStartFormData, actionType, autoRegisteredTopics, userDefinedTopics,
-      startUdfVals, renewUdfVals, currentUdfVal, currentStreams
+      startUdfVals, renewUdfVals, currentUdfVal, currentStreams, priorityModalVisible, priorityDialogConfirmLoading
     } = this.state
     const { className, onShowAddStream, onShowEditStream, streamClassHide, streamStartModalLoading, roleType } = this.props
 
@@ -1116,8 +1160,14 @@ export class Manager extends React.Component {
           const sureStopFormat = <FormattedMessage {...messages.streamSureStop} />
           const modifyFormat = <FormattedMessage {...messages.streamModify} />
           const streamYarnLink = <FormattedMessage {...messages.streamYarnLink} />
+          const streamSetPriority = <FormattedMessage {...messages.streamSetPriority} />
 
           const { disableActions, hideActions } = record
+
+          let strSetPriority = <Tooltip title={streamSetPriority}>
+            <Button icon="bars" shape="circle" type="ghost" onClick={this.setPriority(record, 'setPriority')}></Button>
+          </Tooltip>
+
           let strDelete = disableActions.includes('delete')
             ? (
               <Tooltip title={deleteFormat}>
@@ -1184,6 +1234,7 @@ export class Manager extends React.Component {
               <Tooltip title={modifyFormat}>
                 <Button icon="edit" shape="circle" type="ghost" onClick={onShowEditStream(record)}></Button>
               </Tooltip>
+              {strSetPriority}
               <Tooltip title={startFormat}>
                 {strStart}
               </Tooltip>
@@ -1359,6 +1410,22 @@ export class Manager extends React.Component {
       ? <FormattedMessage {...messages.streamTableStart} />
       : <FormattedMessage {...messages.streamTableRenew} />
 
+    const priorityTitle = <FormattedMessage {...messages.streamSetPriority} />
+
+    const SortableItem = SortableElement(({value}) => <div className="sort-item">{value.flowName}</div>)
+
+    const SortableList = SortableContainer(({items}) => (
+      <div className="set-priority">
+        {items.map((value, index) => (
+          <SortableItem key={`item-${index}`} index={index} value={value} />
+        ))}
+      </div>
+    ))
+
+    const priorityContent = priorityModalVisible ? (
+      this.state.currentFlows.length ? <SortableList items={this.state.currentFlows} onSortEnd={this.onSortEnd} /> : (<p className="text-center">暂无</p>)
+    ) : ''
+
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>
         {helmetHide}
@@ -1422,6 +1489,17 @@ export class Manager extends React.Component {
         </Modal>
 
         <Modal
+          title={priorityTitle}
+          visible={priorityModalVisible}
+          wrapClassName="ant-modal-large"
+          onCancel={this.closePriorityDialog}
+          onOk={this.submitPriority}
+          confirmLoading={priorityDialogConfirmLoading}
+        >
+          {priorityContent}
+        </Modal>
+
+        <Modal
           title="Logs"
           visible={logsModalVisible}
           onCancel={this.handleLogsCancel}
@@ -1449,6 +1527,7 @@ Manager.propTypes = {
   projectIdGeted: PropTypes.string,
   streamClassHide: PropTypes.string,
   onLoadUserStreams: PropTypes.func,
+  onLoadFlowList: PropTypes.func,
   onLoadAdminSingleStream: PropTypes.func,
   onLoadAdminAllStreams: PropTypes.func,
   onShowAddStream: PropTypes.func,
@@ -1467,12 +1546,14 @@ Manager.propTypes = {
   onLoadUdfs: PropTypes.func,
   jumpStreamToFlowFilter: PropTypes.func,
   onChangeTabs: PropTypes.func,
-  onLoadYarnUi: PropTypes.func
+  onLoadYarnUi: PropTypes.func,
+  flows: PropTypes.array
 }
 
 export function mapDispatchToProps (dispatch) {
   return {
     onLoadUserStreams: (projectId, resolve) => dispatch(loadUserStreams(projectId, resolve)),
+    onLoadFlowList: (projectId, streamId, resolve) => dispatch(loadFlowList(projectId, streamId, resolve)),
     onLoadAdminAllStreams: (resolve) => dispatch(loadAdminAllStreams(resolve)),
     onLoadAdminSingleStream: (projectId, resolve) => dispatch(loadAdminSingleStream(projectId, resolve)),
     onOperateStream: (projectId, id, action, resolve, reject) => dispatch(operateStream(projectId, id, action, resolve, reject)),
@@ -1492,6 +1573,7 @@ export function mapDispatchToProps (dispatch) {
 
 const mapStateToProps = createStructuredSelector({
   streams: selectStreams(),
+  flows: selectFlows() || [],
   streamStartModalLoading: selectStreamStartModalLoading(),
   roleType: selectRoleType(),
   locale: selectLocale()

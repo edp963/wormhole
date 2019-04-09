@@ -21,6 +21,8 @@
 import {
   LOAD_USER_STREAMS,
   LOAD_USER_STREAMS_SUCCESS,
+  LOAD_FLOW_LIST,
+  LOAD_FLOW_LIST_SUCCESS,
   LOAD_ADMIN_ALL_STREAMS,
   LOAD_ADMIN_ALL_STREAMS_SUCCESS,
   LOAD_ADMIN_SINGLE_STREAM,
@@ -67,11 +69,16 @@ const initialState = fromJS({
 
 function streamReducer (state = initialState, { type, payload }) {
   const streams = state.get('streams')
+
   switch (type) {
     case LOAD_USER_STREAMS:
       return state
     case LOAD_USER_STREAMS_SUCCESS:
       return state.set('streams', payload.streams)
+    case LOAD_FLOW_LIST:
+      return state
+    case LOAD_FLOW_LIST_SUCCESS:
+      return state.set('flows', payload.flows)
     case LOAD_ADMIN_ALL_STREAMS:
       return state.set('error', false)
     case LOAD_ADMIN_ALL_STREAMS_SUCCESS:

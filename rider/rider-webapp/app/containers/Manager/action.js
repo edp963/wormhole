@@ -21,6 +21,8 @@
 import {
   LOAD_USER_STREAMS,
   LOAD_USER_STREAMS_SUCCESS,
+  LOAD_FLOW_LIST,
+  LOAD_FLOW_LIST_SUCCESS,
   LOAD_ADMIN_ALL_STREAMS,
   LOAD_ADMIN_ALL_STREAMS_SUCCESS,
   LOAD_ADMIN_SINGLE_STREAM,
@@ -78,6 +80,26 @@ export function userStreamsLoaded (streams) {
     type: LOAD_USER_STREAMS_SUCCESS,
     payload: {
       streams
+    }
+  }
+}
+
+export function loadFlowList (projectId, streamId, resolve) {
+  return {
+    type: LOAD_FLOW_LIST,
+    payload: {
+      projectId,
+      streamId,
+      resolve
+    }
+  }
+}
+
+export function flowListLoaded (flows) {
+  return {
+    type: LOAD_FLOW_LIST_SUCCESS,
+    payload: {
+      flows
     }
   }
 }
