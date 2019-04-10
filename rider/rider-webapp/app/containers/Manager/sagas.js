@@ -22,6 +22,8 @@ import { takeLatest, takeEvery } from 'redux-saga'
 import { call, fork, put } from 'redux-saga/effects'
 import {
   LOAD_USER_STREAMS,
+  LOAD_FLOW_LIST,
+  SET_FLOW_PRIORITY,
   LOAD_ADMIN_ALL_STREAMS,
   LOAD_ADMIN_SINGLE_STREAM,
   LOAD_STREAM_DETAIL,
@@ -46,6 +48,8 @@ import {
 
 import {
   userStreamsLoaded,
+  flowListLoaded,
+  flowListOfPrioritySubmited,
   adminAllStreamsLoaded,
   adminSingleStreamLoaded,
   streamDetailLoaded,
@@ -84,6 +88,43 @@ export function* getUserStreams ({ payload }) {
 
 export function* getUserStreamsWatcher () {
   yield fork(takeLatest, LOAD_USER_STREAMS, getUserStreams)
+}
+
+export function* getFlowList ({ payload }) {
+  try {
+    const flows = yield call(request, `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/flows/order`)
+    yield put(flowListLoaded(flows.payload.flowPrioritySeq))
+    payload.resolve()
+  } catch (err) {
+    notifySagasError(err, 'getFlowList')
+  }
+}
+
+export function* getFlowListWatcher () {
+  yield fork(takeLatest, LOAD_FLOW_LIST, getFlowList)
+}
+
+export function* setPriority ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'put',
+      url: `${api.projectStream}/${payload.projectId}/streams/${payload.streamId}/flows/order`,
+      data: payload.flows
+    })
+    if (result.header && result.header.code !== 200) {
+      yield put(streamOperatedError(result.msg))
+      payload.reject(result.msg)
+    } else if (result.header && result.header.code === 200) {
+      yield put(flowListOfPrioritySubmited(result.payload))
+      payload.resolve()
+    }
+  } catch (err) {
+    notifySagasError(err, 'setPriority')
+  }
+}
+
+export function* setPriorityWathcer () {
+  yield fork(takeEvery, SET_FLOW_PRIORITY, setPriority)
 }
 
 export function* getAdminAllStreams ({ payload }) {
@@ -449,6 +490,8 @@ export function* getYarnUiWatcher () {
 }
 export default [
   getUserStreamsWatcher,
+  getFlowListWatcher,
+  setPriorityWathcer,
   getAdminAllFlowsWatcher,
   getAdminSingleFlowWatcher,
   getStreamDetailWatcher,

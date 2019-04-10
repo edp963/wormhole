@@ -26,6 +26,7 @@
   "rider.app.table.sure.renew": "Confirm to renew?",
   "rider.app.table.exists": "Exists",
   "rider.app.help": "Help",
+  "rider.app.table.priority.action": "Set flow priority",
 
   "rider.components.Navigator.edit.password": "Change Password",
   "rider.components.Navigator.new.password": "New Password",
