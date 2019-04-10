@@ -231,21 +231,25 @@ object JobUtils extends RiderLogger {
       job.sinkConfig, job.tranConfig, job.tableKeys, job.desc, appInfo.appState, Some(appInfo.appId), job.logPath, startedTime, stoppedTime, job.userTimeInfo)*/
   }
 
-  def killJob(id: Long): String = {
+  def killJob(id: Long): (String, Boolean) = {
     try {
       val job = refreshJob(id)
       try {
-        if (job.status == "running" || job.status == "waiting") {
+        if (job.status == "running" || job.status == "waiting" || job.status == "stopping") {
           val command = s"yarn application -kill ${job.sparkAppid.get}"
           riderLogger.info(s"stop job command: $command")
-          runYarnKillCommand(command)
-          modules.jobDal.updateJobStatus(job.id, "stopping")
-          "stopping"
+          val stopSuccess = runYarnKillCommand(command)
+          if(stopSuccess) {
+            modules.jobDal.updateJobStatus(job.id, "stopping")
+            ("stopping", true)
+          } else {
+            (job.status, false)
+          }
         } else if (job.status == "failed") {
           modules.jobDal.updateJobStatus(job.id, "stopped")
-          "stopped"
+          ("stopped", true)
         }
-        else job.status
+        else (job.status, true)
       }
       catch {
         case ex: Exception =>

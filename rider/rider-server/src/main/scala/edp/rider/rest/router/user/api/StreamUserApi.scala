@@ -298,10 +298,12 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
               if (session.projectIdList.contains(id)) {
                 val stream = Await.result(streamDal.findById(streamId), minTimeOut).get
                 if (checkAction(stream.streamType, STOP.toString, stream.status)) {
-                  val status = stopStream(stream.id, stream.streamType, stream.sparkAppid, stream.status)
-                  riderLogger.info(s"user ${
-                    session.userId
-                  } stop stream $streamId success.")
+                  val (status, stopSuccess) = stopStream(stream.id, stream.streamType, stream.sparkAppid, stream.status)
+                  if(!stopSuccess) {
+                    riderLogger.info(s"user ${session.userId} stop stream $streamId failed.")
+                    complete(OK, getHeader(400, s"stop is failed", session))
+                  }
+                  riderLogger.info(s"user ${session.userId} stop stream $streamId success.")
                   onComplete(streamDal.updateByStatus(streamId, status, session.userId, stream.logPath.get).mapTo[Int]) {
                     case Success(_) =>
                       val streamDetail = streamDal.getBriefDetail(Some(id), Some(Seq(streamId))).head
@@ -513,9 +515,10 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                         complete(OK, getHeader(412, s"please delete flow ${flows.map(_.id).mkString(",")} first", session))
                       } else {
                         removeStreamDirective(streamId, session.userId)
-                        if (streamDetail.stream.sparkAppid.getOrElse("") != "") {
-                          runYarnKillCommand("yarn application -kill " + streamDetail.stream.sparkAppid.get)
-                          riderLogger.info(s"user ${session.userId} stop stream $streamId success")
+                        if (streamDetail.stream.sparkAppid.getOrElse("") != "" && (streamDetail.stream.status == StreamStatus.RUNNING.toString || streamDetail.stream.status == StreamStatus.WAITING.toString || streamDetail.stream.status == StreamStatus.STOPPING.toString)) {
+                          val stopSuccess = runYarnKillCommand("yarn application -kill " + streamDetail.stream.sparkAppid.get)
+                          riderLogger.info(s"user ${session.userId} stop stream $streamId ${stopSuccess.toString}")
+                          if(!stopSuccess) complete(OK, getHeader(400, s"stop stream failed can't delete", session))
                         }
                         Await.result(streamDal.deleteById(streamId), minTimeOut)
                         Await.result(inTopicDal.deleteByFilter(_.streamId === streamId), minTimeOut)

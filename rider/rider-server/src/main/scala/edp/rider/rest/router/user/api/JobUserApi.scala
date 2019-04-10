@@ -255,13 +255,15 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                   riderLogger.warn(s"user ${session.userId} job $jobId status is ${job.get.status}, can't stop now.")
                   complete(OK, getHeader(406, s"job $jobId status is starting, can't stop now.", session))
                 } else {
-                  val status: String = killJob(jobId)
-                  riderLogger.info(s"user ${session.userId} stop job $jobId success.")
-                  val projectName = jobDal.adminGetRow(projectId)
-                  val jobGet = job.get
-                  val updateJob = Job(jobGet.id, jobGet.name, jobGet.projectId, jobGet.sourceNs, jobGet.sinkNs, jobGet.jobType, jobGet.sparkConfig, jobGet.startConfig, jobGet.eventTsStart, jobGet.eventTsEnd,
-                    jobGet.sourceConfig, jobGet.sinkConfig, jobGet.tranConfig, jobGet.tableKeys, jobGet.desc, status, jobGet.sparkAppid, jobGet.logPath, jobGet.startedTime, jobGet.stoppedTime, jobGet.userTimeInfo)
-                  complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(updateJob))))
+                  val (status, stopSuccess) = killJob(jobId)
+                  riderLogger.info(s"user ${session.userId} stop job $jobId ${stopSuccess.toString}.")
+                  if(stopSuccess) {
+                    val projectName = jobDal.adminGetRow(projectId)
+                    val jobGet = job.get
+                    val updateJob = Job(jobGet.id, jobGet.name, jobGet.projectId, jobGet.sourceNs, jobGet.sinkNs, jobGet.jobType, jobGet.sparkConfig, jobGet.startConfig, jobGet.eventTsStart, jobGet.eventTsEnd,
+                      jobGet.sourceConfig, jobGet.sinkConfig, jobGet.tranConfig, jobGet.tableKeys, jobGet.desc, status, jobGet.sparkAppid, jobGet.logPath, jobGet.startedTime, jobGet.stoppedTime, jobGet.userTimeInfo)
+                    complete(OK, ResponseJson[FullJobInfo](getHeader(200, session), FullJobInfo(updateJob, projectName, getDisableAction(updateJob))))
+                  } else complete(OK, getHeader(400, s"job $jobId stop failed.", session))
                 }
               } catch {
                 case ex: Exception =>
@@ -293,9 +295,11 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                       riderLogger.warn(s"user ${session.userId} job $jobId status is ${job.status}, can't stop now.")
                       complete(OK, getHeader(406, s"job $jobId status is starting, can't stop now.", session))
                     } else {
-                      if (job.sparkAppid.getOrElse("") != "") {
-                        runYarnKillCommand("yarn application -kill " + job.sparkAppid.get)
-                        riderLogger.info(s"user ${session.userId} stop job ${jobId} success")
+                      if (job.sparkAppid.getOrElse("") != "" && (job.status == JobStatus.RUNNING.toString || job.status == JobStatus.WAITING.toString || job.status == JobStatus.STOPPING.toString)) {
+                        val stopSuccess = runYarnKillCommand("yarn application -kill " + job.sparkAppid.get)
+                        riderLogger.info(s"user ${session.userId} stop job ${jobId} ${stopSuccess.toString}")
+                        if(!stopSuccess)
+                          complete(OK, getHeader(400, s"job stop failed, can not delete", session))
                       }
 
                       onComplete(jobDal.deleteById(jobId)) {
