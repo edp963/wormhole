@@ -11,7 +11,7 @@ import edp.rider.rest.util.JobUtils.{getDisableAction, killJob}
 import edp.rider.rest.util.ResponseUtils.{getHeader, _}
 import edp.rider.rest.util.StreamUtils.genStreamNameByProjectName
 import edp.rider.rest.util.{AuthorizationProvider, JobUtils, NamespaceUtils, StreamUtils}
-import edp.rider.yarn.SubmitYarnJob.runShellCommand
+import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.yarn.{YarnClientLog, YarnStatusQuery}
 import edp.wormhole.util.JsonUtils
 import slick.jdbc.MySQLProfile.api._
@@ -294,7 +294,7 @@ class JobUserApi(jobDal: JobDal, projectDal: ProjectDal, streamDal: StreamDal) e
                       complete(OK, getHeader(406, s"job $jobId status is starting, can't stop now.", session))
                     } else {
                       if (job.sparkAppid.getOrElse("") != "") {
-                        runShellCommand("yarn application -kill " + job.sparkAppid.get)
+                        runYarnKillCommand("yarn application -kill " + job.sparkAppid.get)
                         riderLogger.info(s"user ${session.userId} stop job ${jobId} success")
                       }
 

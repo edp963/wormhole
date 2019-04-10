@@ -34,7 +34,7 @@ import edp.rider.rest.util.ResponseUtils.{getHeader, _}
 import edp.rider.rest.util.StreamUtils._
 import edp.rider.rest.util.{AuthorizationProvider, StreamUtils}
 import edp.wormhole.kafka.WormholeGetOffsetUtils._
-import edp.rider.yarn.SubmitYarnJob.runShellCommand
+import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.yarn.YarnClientLog
 import edp.rider.zookeeper.PushDirective
 import edp.wormhole.util.JsonUtils
@@ -514,7 +514,7 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                       } else {
                         removeStreamDirective(streamId, session.userId)
                         if (streamDetail.stream.sparkAppid.getOrElse("") != "") {
-                          runShellCommand("yarn application -kill " + streamDetail.stream.sparkAppid.get)
+                          runYarnKillCommand("yarn application -kill " + streamDetail.stream.sparkAppid.get)
                           riderLogger.info(s"user ${session.userId} stop stream $streamId success")
                         }
                         Await.result(streamDal.deleteById(streamId), minTimeOut)
