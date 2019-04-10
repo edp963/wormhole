@@ -238,7 +238,7 @@ object JobUtils extends RiderLogger {
         if (job.status == "running" || job.status == "waiting") {
           val command = s"yarn application -kill ${job.sparkAppid.get}"
           riderLogger.info(s"stop job command: $command")
-          runShellCommand(command)
+          runYarnKillCommand(command)
           modules.jobDal.updateJobStatus(job.id, "stopping")
           "stopping"
         } else if (job.status == "failed") {
