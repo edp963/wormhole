@@ -34,7 +34,8 @@ import io.swagger.annotations.{ApiResponses, _}
 class StreamUserRoutes(modules: ConfigurationModule with PersistenceModule with BusinessModule with RoutesModuleImpl) extends Directives with JsonSerializer {
   lazy val routes: Route = getStreamByAllRoute ~ putStreamRoute ~ postStreamRoute ~ renewRoute ~
     getStreamById ~ getLogByStreamId ~ stop ~ startRoute ~ deleteStream ~ getSparkConf ~ getTopics ~ getJvmConf ~
-    postUserDefinedTopic ~ getUdfs ~ postTopicsOffset ~ getDefaultConfig ~ getYarnUi
+    postUserDefinedTopic ~ getUdfs ~ postTopicsOffset ~ getDefaultConfig ~ getYarnUi ~ getFlowPrioritiesByStreamId ~
+    updateFlowOrder
   //  ~ deleteUserDefinedTopic
 
   lazy val basePath = "projects"
