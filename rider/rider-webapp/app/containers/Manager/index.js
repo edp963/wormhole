@@ -40,17 +40,18 @@ import Tooltip from 'antd/lib/tooltip'
 import Tag from 'antd/lib/tag'
 import Modal from 'antd/lib/modal'
 import message from 'antd/lib/message'
+import Spin from 'antd/lib/spin'
 import DatePicker from 'antd/lib/date-picker'
 const { RangePicker } = DatePicker
 
 import {
-  loadUserStreams, loadFlowList, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
+  loadUserStreams, loadFlowList, submitFlowListOfPriority, loadAdminSingleStream, loadAdminAllStreams, operateStream, startOrRenewStream,
   deleteStream, loadStreamDetail, loadLogsInfo, loadAdminLogsInfo, loadLastestOffset, loadUdfs, jumpStreamToFlowFilter,
   loadYarnUi
 } from './action'
 import { changeTabs } from '../Workbench/action'
 import { loadSingleUdf } from '../Udf/action'
-import { selectStreams, selectFlows, selectStreamStartModalLoading } from './selectors'
+import { selectStreams, selectFlows, selectFlowsLoading, selectStreamStartModalLoading, selectFlowsPriorityConfirmLoading } from './selectors'
 import { selectLocale } from '../LanguageProvider/selectors'
 import { selectRoleType } from '../App/selectors'
 
@@ -72,7 +73,6 @@ export class Manager extends React.Component {
 
       currentFlows: [],
       priorityModalVisible: false,
-      priorityDialogConfirmLoading: false,
 
       editModalVisible: false,
       logsModalVisible: false,
@@ -831,7 +831,8 @@ export class Manager extends React.Component {
 
   setPriority = (record, action) => (e) => {
     this.setState({
-      priorityModalVisible: true
+      priorityModalVisible: true,
+      streamIdGeted: record.id
     })
 
     const projectId = record.projectId
@@ -842,17 +843,35 @@ export class Manager extends React.Component {
   loadFlowData = (projectId, streamId) => {
     this.props.onLoadFlowList(projectId, streamId, () => {
       const { flows } = this.props
-      const flowList = flows.filter(item => item.streamId === streamId)
-      this.setState({ currentFlows: flowList.slice() })
+      this.setState({ currentFlows: flows.slice() })
     })
   }
 
-  submitPriority = () => {}
+  submitPriority = () => {
+    const { locale } = this.props
+    if (!this.state.currentFlows.length) {
+      const msg = locale === 'en' ? 'No flow, no priority can be set' : '无flow，不能设置优先级'
+      message.error(msg)
+      return
+    }
+
+    const { projectIdGeted } = this.props
+    const { streamIdGeted } = this.state
+    const flowList = this.state.currentFlows.map((item, xi) => ({
+      id: item.id,
+      flowName: item.flowName,
+      priorityId: xi + 1
+    }))
+    this.props.onSubmitFlowListOfPriority(projectIdGeted, streamIdGeted, 'setPriority', { flowPrioritySeq: flowList }, () => {
+      const msg = locale === 'en' ? 'success' : '优先级设置成功'
+      message.success(msg)
+      this.closePriorityDialog()
+    })
+  }
 
   closePriorityDialog = () => {
     this.setState({
       priorityModalVisible: false,
-      priorityDialogConfirmLoading: false,
       currentFlows: []
     })
   }
@@ -861,8 +880,6 @@ export class Manager extends React.Component {
     this.setState(({currentFlows}) => ({
       currentFlows: arrayMove(currentFlows, oldIndex, newIndex)
     }))
-
-    console.log(this.state.currentFlows)
   }
 
   render () {
@@ -870,9 +887,9 @@ export class Manager extends React.Component {
       refreshStreamLoading, refreshStreamText, showStreamdetails, logsModalVisible,
       logsContent, refreshLogLoading, refreshLogText, logsProjectId, logsStreamId,
       streamStartFormData, actionType, autoRegisteredTopics, userDefinedTopics,
-      startUdfVals, renewUdfVals, currentUdfVal, currentStreams, priorityModalVisible, priorityDialogConfirmLoading
+      startUdfVals, renewUdfVals, currentUdfVal, currentStreams, priorityModalVisible
     } = this.state
-    const { className, onShowAddStream, onShowEditStream, streamClassHide, streamStartModalLoading, roleType } = this.props
+    const { className, onShowAddStream, onShowEditStream, streamClassHide, streamStartModalLoading, flowsPriorityConfirmLoading, roleType } = this.props
 
     let {
       sortedInfo,
@@ -1423,7 +1440,7 @@ export class Manager extends React.Component {
     ))
 
     const priorityContent = priorityModalVisible ? (
-      this.state.currentFlows.length ? <SortableList items={this.state.currentFlows} onSortEnd={this.onSortEnd} /> : (<p className="text-center">暂无</p>)
+      this.props.flowsLoading ? <div className="loading"><Spin /></div> : this.state.currentFlows.length ? <SortableList items={this.state.currentFlows} onSortEnd={this.onSortEnd} /> : (<p className="text-center">暂无</p>)
     ) : ''
 
     return (
@@ -1494,7 +1511,12 @@ export class Manager extends React.Component {
           wrapClassName="ant-modal-large"
           onCancel={this.closePriorityDialog}
           onOk={this.submitPriority}
-          confirmLoading={priorityDialogConfirmLoading}
+          footer={[
+            <Button key="cancel" size="large" onClick={this.closePriorityDialog}>取消</Button>,
+            <Button key="submit" type="primary" size="large" loading={flowsPriorityConfirmLoading} onClick={this.submitPriority}>
+              保存
+            </Button>
+          ]}
         >
           {priorityContent}
         </Modal>
@@ -1528,6 +1550,7 @@ Manager.propTypes = {
   streamClassHide: PropTypes.string,
   onLoadUserStreams: PropTypes.func,
   onLoadFlowList: PropTypes.func,
+  onSubmitFlowListOfPriority: PropTypes.func,
   onLoadAdminSingleStream: PropTypes.func,
   onLoadAdminAllStreams: PropTypes.func,
   onShowAddStream: PropTypes.func,
@@ -1547,13 +1570,16 @@ Manager.propTypes = {
   jumpStreamToFlowFilter: PropTypes.func,
   onChangeTabs: PropTypes.func,
   onLoadYarnUi: PropTypes.func,
-  flows: PropTypes.array
+  flows: PropTypes.array,
+  flowsLoading: PropTypes.bool,
+  flowsPriorityConfirmLoading: PropTypes.bool
 }
 
 export function mapDispatchToProps (dispatch) {
   return {
     onLoadUserStreams: (projectId, resolve) => dispatch(loadUserStreams(projectId, resolve)),
     onLoadFlowList: (projectId, streamId, resolve) => dispatch(loadFlowList(projectId, streamId, resolve)),
+    onSubmitFlowListOfPriority: (projectId, streamId, action, flows, resolve, reject) => dispatch(submitFlowListOfPriority(projectId, streamId, action, flows, resolve, reject)),
     onLoadAdminAllStreams: (resolve) => dispatch(loadAdminAllStreams(resolve)),
     onLoadAdminSingleStream: (projectId, resolve) => dispatch(loadAdminSingleStream(projectId, resolve)),
     onOperateStream: (projectId, id, action, resolve, reject) => dispatch(operateStream(projectId, id, action, resolve, reject)),
@@ -1573,7 +1599,9 @@ export function mapDispatchToProps (dispatch) {
 
 const mapStateToProps = createStructuredSelector({
   streams: selectStreams(),
-  flows: selectFlows() || [],
+  flows: selectFlows(),
+  flowsLoading: selectFlowsLoading(),
+  flowsPriorityConfirmLoading: selectFlowsPriorityConfirmLoading(),
   streamStartModalLoading: selectStreamStartModalLoading(),
   roleType: selectRoleType(),
   locale: selectLocale()
