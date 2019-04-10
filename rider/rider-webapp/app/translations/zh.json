@@ -26,6 +26,7 @@
   "rider.app.table.sure.renew": "确定生效吗？",
   "rider.app.table.exists": "存在",
   "rider.app.help": "帮助",
+  "rider.app.table.priority.action": "设置flow优先级",
 
   "rider.components.Navigator.edit.password": "修改密码",
   "rider.components.Navigator.new.password": "新密码",
