@@ -31,7 +31,7 @@ import edp.rider.rest.persistence.entities._
 import edp.rider.rest.util.CommonUtils._
 import edp.rider.rest.util.UdfUtils.sendUdfDirective
 import edp.rider.wormhole.{BatchFlowConfig, KafkaInputBaseConfig, KafkaOutputConfig, SparkConfig}
-import edp.rider.yarn.SubmitYarnJob.{generateSparkStreamStartSh, runShellCommand}
+import edp.rider.yarn.SubmitYarnJob._
 import edp.rider.yarn.YarnStatusQuery.{getActiveResourceManager, getAllYarnAppStatus, getAppStatusByRest}
 import edp.rider.yarn.{SubmitYarnJob, YarnClientLog}
 import edp.rider.zookeeper.PushDirective
@@ -559,21 +559,26 @@ object StreamUtils extends RiderLogger {
     seq
   }
 
-  def stopStream(streamId: Long, streamType: String, sparkAppid: Option[String], status: String): String = {
+  def stopStream(streamId: Long, streamType: String, sparkAppid: Option[String], status: String): (String, Boolean) = {
     if (status == RUNNING.toString || status == WAITING.toString || status == STOPPING.toString) {
       if (sparkAppid.getOrElse("") != "") {
         val cmdStr = "yarn application -kill " + sparkAppid.get
         riderLogger.info(s"stop stream command: $cmdStr")
-        runShellCommand(cmdStr)
-        FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPING.toString)
-        STOPPING.toString
+        val stopSuccess = runYarnKillCommand(cmdStr)
+        if(stopSuccess) {
+          FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPING.toString)
+          (STOPPING.toString, true)
+        } else {
+          FlowUtils.updateStatusByStreamStop(streamId, streamType, status)
+          (status, false)
+        }
       } else {
         FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPED.toString)
-        STOPPED.toString
+        (STOPPED.toString, true)
       }
     } else {
       FlowUtils.updateStatusByStreamStop(streamId, streamType, STOPPED.toString)
-      STOPPED.toString
+      (STOPPED.toString, true)
     }
   }
 
