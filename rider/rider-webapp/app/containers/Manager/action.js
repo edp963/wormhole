@@ -23,6 +23,8 @@ import {
   LOAD_USER_STREAMS_SUCCESS,
   LOAD_FLOW_LIST,
   LOAD_FLOW_LIST_SUCCESS,
+  SET_FLOW_PRIORITY,
+  SET_FLOW_PRIORITY_SUCCESS,
   LOAD_ADMIN_ALL_STREAMS,
   LOAD_ADMIN_ALL_STREAMS_SUCCESS,
   LOAD_ADMIN_SINGLE_STREAM,
@@ -100,6 +102,29 @@ export function flowListLoaded (flows) {
     type: LOAD_FLOW_LIST_SUCCESS,
     payload: {
       flows
+    }
+  }
+}
+
+export function submitFlowListOfPriority (projectId, streamId, action, flows, resolve, reject) {
+  return {
+    type: SET_FLOW_PRIORITY,
+    payload: {
+      projectId,
+      streamId,
+      action,
+      flows,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function flowListOfPrioritySubmited (result) {
+  return {
+    type: SET_FLOW_PRIORITY_SUCCESS,
+    payload: {
+      result
     }
   }
 }
