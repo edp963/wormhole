@@ -876,12 +876,12 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
              } else {
                if (session.projectIdList.contains(id)) {
                  Await.result(flowDal.findByFilter(flow=>flow.active === true && flow.streamId === streamId),minTimeOut) match {
-                   case flowSeq=>
-                     val flowPrioritySeq=flowSeq.map(flow => new FlowPriority(flow.id,flow.flowName,flow.priorityId)).seq
-                     complete(OK,ResponseJson[FlowPriorities](getHeader(200, session),new FlowPriorities(flowPrioritySeq)))
-                   case _ =>
+                   case Seq() =>
                      riderLogger.info(s"user ${session.userId} get flow of stream $streamId failed caused by there is no flow existing in the stream.")
                      complete(OK, setFailedResponse(session, "there is no flow existing in the stream."))
+                   case Seq(flowSeq @_*) =>
+                     val flowPrioritySeq=flowSeq.map(flow => new FlowPriority(flow.id,flow.flowName,flow.priorityId)).seq
+                     complete(OK,ResponseJson[FlowPriorities](getHeader(200, session),new FlowPriorities(flowPrioritySeq)))
                  }
                } else {
                  riderLogger.error(s"user ${
