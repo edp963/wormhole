@@ -197,6 +197,7 @@ object StreamUtils extends RiderLogger {
     else s"wormhole_${projectName}_$name"
 
   def getStreamConfig(stream: Stream) = {
+    val startConfig = json2caseClass[StartConfig](stream.startConfig)
     val launchConfig = json2caseClass[LaunchConfig](stream.launchConfig)
     val kafkaUrl = getKafkaByStreamId(stream.id)
     val config =
@@ -204,7 +205,7 @@ object StreamUtils extends RiderLogger {
         case Some(_) =>
           BatchFlowConfig(KafkaInputBaseConfig(stream.name, launchConfig.durations.toInt, kafkaUrl, launchConfig.maxRecords.toInt * 1024 * 1024, RiderConfig.spark.kafkaSessionTimeOut, RiderConfig.spark.kafkaGroupMaxSessionTimeOut),
             KafkaOutputConfig(RiderConfig.consumer.feedbackTopic, RiderConfig.consumer.brokers),
-            SparkConfig(stream.id, stream.name, "yarn-cluster", launchConfig.partitions.toInt),
+            SparkConfig(stream.id, stream.name, "yarn-cluster", startConfig.executorNums * startConfig.perExecutorCores),
             launchConfig.partitions.toInt, RiderConfig.zk.address, RiderConfig.zk.path, false,
             RiderConfig.spark.remoteHdfsRoot, RiderConfig.kerberos.enabled, RiderConfig.spark.remoteHdfsNamenodeHosts, RiderConfig.spark.remoteHdfsNamenodeIds)
         case None =>
