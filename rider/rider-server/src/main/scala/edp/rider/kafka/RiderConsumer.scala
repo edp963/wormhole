@@ -108,7 +108,6 @@ class RiderConsumer extends Actor with RiderLogger {
           val ums = json2Ums(record.value())
           if (ums != null) {
             val key = ums.protocol.`type`.toString
-            if(key.endsWith("_error"))riderLogger.info(s"feedback key:$key")
             if(key.startsWith(FEEDBACK_FLOW_ERROR.toString)){
               feedbackErrorBuffer.append(ums)
             }else if (key.startsWith(FEEDBACK_FLOW_STATS.toString)) {

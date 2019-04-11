@@ -70,14 +70,12 @@ object WormholeGetOffsetUtils {
       val consumer = new KafkaConsumer[String, String](props)
       val offsetSeq = new ListBuffer[String]()
       val topicMap = consumer.listTopics()
-      logger.info(s"topicMap:$topicMap")
       if (!topicMap.isEmpty && topicMap.containsKey(topic) && topicMap.get(topic) != null && topicMap.get(topic).size() > 0) {
         val it = topicMap.get(topic).iterator()
         while (it.hasNext) {
           val partition = it.next
           try {
             val topicAndPartition = new TopicPartition(topic, partition.partition())
-            logger.info(s"topicPartition:$topicAndPartition")
             val map = time match {
               case -1 => consumer.endOffsets(util.Arrays.asList(topicAndPartition))
               case _ => consumer.beginningOffsets(util.Arrays.asList(topicAndPartition))
