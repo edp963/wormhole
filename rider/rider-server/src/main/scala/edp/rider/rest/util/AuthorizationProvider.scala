@@ -117,7 +117,7 @@ object AuthorizationProvider extends ConfigurationModuleImpl with PersistenceMod
   def validateToken(token: String): Future[Option[SessionClass]] = {
     try {
       val session = JwtSupport.decodeToken(token)
-      riderLogger.info("token validate success.")
+//      riderLogger.info("token validate success.")
       Future.successful(Some(session))
     } catch {
       case ex: Exception =>
