@@ -155,7 +155,6 @@ object FeedbackProcess extends RiderLogger {
             errorInfoValue, dataInfoValue, feedbackTimeValue, DateUtils.currentyyyyMMddHHmmss.toString)
         })
       })
-      riderLogger.info(s"insert error list:$insertSeq")
       Await.result(modules.feedbackErrDal.insert(insertSeq), minTimeOut)
     } catch {
       case ex: Exception =>
@@ -250,9 +249,9 @@ object FeedbackProcess extends RiderLogger {
                 val riderSinkNamespace = if (sinkNamespaceValue.toString == "") riderNamespace else namespaceRiderString(sinkNamespaceValue.toString)
 
                 val interval_data_process_dataums = (mainDataTsValue.getTime - cdcTsValue.getTime) / 1000
-                val interval_data_process_rdd = (rddTsValue.getTime - mainDataTsValue.getTime) / 1000
-                val interval_data_process_done = (doneTsValue.getTime - mainDataTsValue.getTime) / 1000
-                val interval_rdd_swifts = (swiftsTsValue.getTime - rddTsValue.getTime) / 1000
+                val interval_data_process_rdd = (mainDataTsValue.getTime - rddTsValue.getTime) / 1000
+                val interval_data_process_done = (doneTsValue.getTime - rddTsValue.getTime) / 1000
+                val interval_rdd_swifts = (swiftsTsValue.getTime - mainDataTsValue.getTime) / 1000
                 val interval_rdd_done = (doneTsValue.getTime - rddTsValue.getTime) / 1000
                 val interval_data_swifts_sink = (sinkTsValue.getTime - swiftsTsValue.getTime) / 1000
                 val interval_data_sink_done = (doneTsValue.getTime - sinkTsValue.getTime) / 1000

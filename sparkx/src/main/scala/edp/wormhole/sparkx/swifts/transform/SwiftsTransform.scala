@@ -43,7 +43,11 @@ object SwiftsTransform extends EdpLogging {
     val swiftsLogic = ConfMemoryStorage.getSwiftsLogic(matchSourceNamespace, sinkNamespace)
     val swiftsSqlArr = swiftsLogic.swiftsSql
     val dataSetShow = swiftsLogic.datasetShow
-    val batchSize = (if (swiftsLogic.specialConfig.isDefined && !swiftsLogic.specialConfig.get.isEmpty) JsonUtils.json2caseClass[SwiftsSpecialProcessConfig](swiftsLogic.specialConfig.get) else new SwiftsSpecialProcessConfig()).batchSize
+    val batchSize =
+      (if (swiftsLogic.specialConfig.isDefined && !swiftsLogic.specialConfig.get.isEmpty)
+        JsonUtils.json2caseClass[SwiftsSpecialProcessConfig](swiftsLogic.specialConfig.get)
+      else new SwiftsSpecialProcessConfig()).batchSize
+
     val dataSetShowNum = if (dataSetShow.get) swiftsLogic.datasetShowNum.get else -1
     var currentDf = df
     var cacheDf = df
@@ -93,9 +97,9 @@ object SwiftsTransform extends EdpLogging {
                 //  val jsonSchema = JsonSchemaObtain.getJsonSchema(schema)
                 UmsDataSystem.dataSystem(lookupNameSpaceArr(0).toLowerCase()) match {
                   case UmsDataSystem.CASSANDRA =>
-                    currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.CASSANDRA,Some(batchSize))
+                    currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.CASSANDRA, Some(batchSize))
                   case UmsDataSystem.ORACLE =>
-                    currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.ORACLE,Some(batchSize))
+                    currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.ORACLE, Some(batchSize))
                   case UmsDataSystem.HBASE =>
                     currentDf = LookupHbase.transform(session, currentDf, operate, sourceNamespace, sinkNamespace, connectionConfig)
                   case UmsDataSystem.REDIS =>
@@ -120,13 +124,13 @@ object SwiftsTransform extends EdpLogging {
               //       val jsonSchema = JsonSchemaObtain.getJsonSchema(schema)
               UmsDataSystem.dataSystem(lookupNameSpaceArr(0).toLowerCase()) match {
                 case UmsDataSystem.CASSANDRA =>
-                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.CASSANDRA,Some(batchSize))
+                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.CASSANDRA, Some(batchSize))
                 case UmsDataSystem.ORACLE =>
-                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.ORACLE,Some(batchSize))
+                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.ORACLE, Some(batchSize))
                 case UmsDataSystem.KUDU =>
-                  currentDf = DataFrameTransform.getKUDUUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate,Some(batchSize))
+                  currentDf = DataFrameTransform.getKUDUUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, Some(batchSize))
                 case _ =>
-                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.MYSQL,Some(batchSize))
+                  currentDf = DataFrameTransform.getDbJoinOrUnionDf(session, currentDf, sourceTableFields, lookupTableFields, sql, connectionConfig, schema, operate, UmsDataSystem.MYSQL, Some(batchSize))
               }
             case _ => logWarning(uuid + ",operate.optType:" + operate.optType + " is not supported")
           }

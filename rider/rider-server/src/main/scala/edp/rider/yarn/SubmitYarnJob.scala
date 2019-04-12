@@ -21,7 +21,7 @@
 package edp.rider.yarn
 
 import edp.rider.common.{RiderConfig, RiderLogger}
-import edp.rider.rest.persistence.entities.{FlinkResourceConfig, StartConfig, Stream}
+import edp.rider.rest.persistence.entities.{FlinkResourceConfig, SparkConfig, StartConfig, Stream}
 import edp.rider.rest.util.StreamProcessLogger
 import edp.rider.rest.util.StreamUtils.getLogPath
 import edp.wormhole.util.JsonUtils
@@ -60,11 +60,47 @@ object SubmitYarnJob extends App with RiderLogger {
         }
       })
     }
-    else {
-      val streamProcessLogger = new StreamProcessLogger()
-      riderLogger.info(s"run shell command is: $command")
-      Process(command).run(streamProcessLogger)
+    else Process(command).run()
+  }
+
+  def runShellCommandBlock(command: String) = {
+    val commandRe = Process(command).!
+    riderLogger.info(s"run shell command is: $command, result is $commandRe")
+    commandRe
+  }
+
+  def runYarnKillCommand(command: String): Boolean = {
+    /*
+    val killCommand = s"kinit -kt ${RiderConfig.kerberos.sparkKeyTab} ${RiderConfig.kerberos.sparkPrincipal}"
+    runShellCommandBlock(killCommand)
+    runShellCommand(command)
+     */
+    try {
+      var killSuccess = runYarnKillCommandOnce(command)
+      if (!killSuccess) {
+        if (RiderConfig.kerberos.enabled) {
+          val killCommand = s"kinit -kt ${RiderConfig.kerberos.sparkKeyTab} ${RiderConfig.kerberos.sparkPrincipal}"
+          runShellCommandBlock(killCommand)
+        }
+        killSuccess = runYarnKillCommandOnce(command)
+      }
+      riderLogger.info(s"yarn kill command is: $command, result is $killSuccess")
+      killSuccess
+    } catch {
+      case ex: Exception => {
+        riderLogger.error(s"run shell command $command failed,", ex)
+        false
+      }
     }
+  }
+
+  def runYarnKillCommandOnce(command: String): Boolean = {
+    val process = Runtime.getRuntime.exec(command)
+    val killSuccess =
+      if (RiderConfig.kerberos.enabled) new StreamProcessLogger(process.getErrorStream).parseKillErrorStream()
+      else true
+    riderLogger.info(s"run shell command is: $command, result is $killSuccess")
+    killSuccess
   }
 
   //  def commandGetJobInfo(streamName: String) = {
