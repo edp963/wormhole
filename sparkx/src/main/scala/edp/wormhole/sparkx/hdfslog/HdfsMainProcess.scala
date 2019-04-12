@@ -73,9 +73,9 @@ object HdfsMainProcess extends EdpLogging {
       val hdfslogMap: Map[String, HdfsLogFlowConfig] = ConfMemoryStorage.getHdfslogMap
 
       try {
-        val rddTs = DateUtils.currentyyyyMMddHHmmssmls
+        val rddTs = DateUtils.dt2string(DateUtils.currentDateTime,DtFormat.TS_DASH_MILLISEC)
         if (SparkUtils.isLocalMode(config.spark_config.master)) logWarning("rdd count ===> " + streamRdd.count())
-        val directiveTs = DateUtils.currentyyyyMMddHHmmssmls
+        val directiveTs = DateUtils.dt2string(DateUtils.currentDateTime,DtFormat.TS_DASH_MILLISEC)
         HdfsDirective.doDirectiveTopic(config, stream)
 
         val streamTransformedRdd: RDD[((String, String), String)] = streamRdd.map(message => {
@@ -98,7 +98,7 @@ object HdfsMainProcess extends EdpLogging {
         //        val validNameSpaceMap: Map[String, Int] = directiveNamespaceRule.toMap //validNamespaceMap is NOT real namespace, has *
         //        logInfo("validNameSpaceMap:" + validNameSpaceMap)
 
-        val mainDataTs = DateUtils.currentyyyyMMddHHmmssmls
+        val mainDataTs = DateUtils.dt2string(DateUtils.currentDateTime,DtFormat.TS_DASH_MILLISEC)
         val partitionResultRdd = dataParRdd.mapPartitionsWithIndex { case (index, partition) =>
           // partition: ((protocol,namespace), message.value)
           val resultList = ListBuffer.empty[PartitionResult]

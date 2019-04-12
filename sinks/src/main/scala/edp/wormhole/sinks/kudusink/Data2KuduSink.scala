@@ -12,8 +12,9 @@ import org.apache.log4j.Logger
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-class Data2KuduSink extends SinkProcessor  {
+class Data2KuduSink extends SinkProcessor {
   private lazy val logger = Logger.getLogger(this.getClass)
+
   override def process(sourceNamespace: String,
                        sinkNamespace: String,
                        sinkProcessConfig: SinkProcessConfig,
@@ -23,7 +24,7 @@ class Data2KuduSink extends SinkProcessor  {
     KuduConnection.initKuduConfig(connectionConfig)
     val namespace = UmsNamespace(sinkNamespace)
     val tableName: String = namespace.table
-    val database=namespace.database
+    val database = namespace.database
 
     var allErrorsCount = 0
 
@@ -37,12 +38,17 @@ class Data2KuduSink extends SinkProcessor  {
       val tupleList: Seq[Seq[String]] = payload.toList
       try {
         if (sinkSpecificConfig.`mutation_type.get` == SourceMutationType.I_U_D.toString) {
-          val keys2UmsIdMap: mutable.Map[String, Map[String, (Any,String)]] =
-            if(tableKeys.length==1) KuduConnection.doQueryByKeyListInBatch(tableName,database, connectionConfig.connectionUrl, tableKeys.head, tupleList, schemaMap , List ( tableKeys.head,UmsSysField.ID.toString ))
-            else KuduConnection.doQueryByKeyList(tableName,database, connectionConfig.connectionUrl, tableKeys, tupleList, schemaMap, List { UmsSysField.ID.toString })
+          val keys2UmsIdMap: mutable.Map[String, Map[String, (Any, String)]] =
+            if (tableKeys.length == 1)
+              KuduConnection.doQueryByKeyListInBatch(tableName, database, connectionConfig.connectionUrl,
+                tableKeys.head, tupleList, schemaMap, List(tableKeys.head, UmsSysField.ID.toString),
+                sinkSpecificConfig.`query_batch_size.get`)
+            else KuduConnection.doQueryByKeyList(tableName, database, connectionConfig.connectionUrl, tableKeys, tupleList, schemaMap, List {
+              UmsSysField.ID.toString
+            })
           val insertList = ListBuffer.empty[Seq[String]]
           val updateList = ListBuffer.empty[Seq[String]]
-          if (keys2UmsIdMap==null||keys2UmsIdMap.isEmpty) insertList ++= tupleList
+          if (keys2UmsIdMap == null || keys2UmsIdMap.isEmpty) insertList ++= tupleList
           else {
             tupleList.foreach(tuple => {
               val keysStr = tableKeys.map(keyName => {
@@ -57,35 +63,35 @@ class Data2KuduSink extends SinkProcessor  {
           }
 
           if (insertList.nonEmpty) {
-            val errorsCount = KuduConnection.doInset(tableName,database, connectionConfig.connectionUrl, schemaMap, insertList)
+            val errorsCount = KuduConnection.doInset(tableName, database, connectionConfig.connectionUrl, schemaMap, insertList)
             if (errorsCount > 0) {
-              allErrorsCount = allErrorsCount +errorsCount
+              allErrorsCount = allErrorsCount + errorsCount
               logger.error("do sink error,count=" + errorsCount)
             }
           }
           if (updateList.nonEmpty) {
-            val errorsCount = KuduConnection.doUpdate(tableName,database, connectionConfig.connectionUrl, schemaMap, updateList)
+            val errorsCount = KuduConnection.doUpdate(tableName, database, connectionConfig.connectionUrl, schemaMap, updateList)
             if (errorsCount > 0) {
-              allErrorsCount = allErrorsCount +errorsCount
+              allErrorsCount = allErrorsCount + errorsCount
               logger.error("do sink error,count=" + errorsCount)
             }
           }
         } else if (tupleList.nonEmpty) {
-          val errorsCount = KuduConnection.doInset(tableName,database, connectionConfig.connectionUrl, schemaMap, tupleList)
+          val errorsCount = KuduConnection.doInset(tableName, database, connectionConfig.connectionUrl, schemaMap, tupleList)
           if (errorsCount > 0) {
-            allErrorsCount = allErrorsCount +errorsCount
+            allErrorsCount = allErrorsCount + errorsCount
             logger.error("do sink error,count=" + errorsCount)
           }
         }
 
       } catch {
         case e: Throwable =>
-          allErrorsCount = allErrorsCount +tupleList.size
+          allErrorsCount = allErrorsCount + tupleList.size
           logger.error("do sink error,count=" + tupleList.size, e)
       }
     })
 
-    if(allErrorsCount>0) throw new Exception("du kudu sink has error,count="+allErrorsCount)
+    if (allErrorsCount > 0) throw new Exception("du kudu sink has error,count=" + allErrorsCount)
 
   }
 
