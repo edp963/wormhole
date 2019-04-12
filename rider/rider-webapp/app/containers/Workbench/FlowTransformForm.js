@@ -700,8 +700,8 @@ export class FlowTransformForm extends React.Component {
               initialValue: v.function_type
             })(
               <Select>
-                <Select.Option value="avg">avg</Select.Option>
-                <Select.Option value="count">count</Select.Option>
+                <Select.Option value="avg">Avg</Select.Option>
+                <Select.Option value="count">Count</Select.Option>
                 <Select.Option value="min">Min</Select.Option>
                 <Select.Option value="max">Max</Select.Option>
                 <Select.Option value="sum">Sum</Select.Option>

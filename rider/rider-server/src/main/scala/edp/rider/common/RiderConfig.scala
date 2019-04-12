@@ -294,7 +294,7 @@ object RiderConfig {
     s"${RiderConfig.riderRootPath}/conf/sparkx.log4j.properties",
     wormholeJarPath,
     wormholeKafka08JarPath, kafka08StreamNames, sparkxInterfaceJarPath,
-    consumer.heartbeatTopic, 2, 1, 3, 2, 1, 30, 2, 10, 100, 600,
+    consumer.heartbeatTopic, 2, 1, 3, 2, 1, 30, 2, 10, 100, 5000,
     streamDefaultDriverJvmConfig, streamDefaultExecutorJvmConfig, streamDefaultSparkConfig, alert, metricsConfPath, alertEmails)
 
   lazy val es =

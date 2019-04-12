@@ -21,8 +21,6 @@
 
 package edp.wormhole.sparkx.batchjob.transform
 
-import java.util.UUID
-
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkxinterface.swifts.SwiftsProcessConfig
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -30,12 +28,9 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 object Transform extends EdpLogging {
   def process(session: SparkSession, inputDf: DataFrame, actions: Array[String], specialConfig: Option[String]): DataFrame = {
     val tableName = "increment"
-    //inputDf.persist(StorageLevel.MEMORY_AND_DISK_SER)
     var currentDf = inputDf
-    //    var cacheDf = inputDf
-    //    var firstInLoop = true
 
-    actions.foreach { case action =>
+    actions.foreach {  action =>
       val equalMarkPosition = action.indexOf("=")
       val processingType = action.substring(0, equalMarkPosition).trim
       val content = action.substring(equalMarkPosition + 1).trim
@@ -52,12 +47,7 @@ object Transform extends EdpLogging {
           currentDf = transformMethod.invoke(reflectObject, session, currentDf, SwiftsProcessConfig(specialConfig = specialConfig)).asInstanceOf[DataFrame]
         case _ => logInfo("unsupported processing type, e.g. spark_sql, custom_class.")
       }
-      //      currentDf.persist(StorageLevel.MEMORY_AND_DISK_SER)
-      //      logInfo("currentDf.count:" + currentDf.count())
-      //      if (firstInLoop) firstInLoop = false else cacheDf.unpersist()
-      //      cacheDf = currentDf
     }
-    //    cacheDf.unpersist()
     currentDf
   }
 }

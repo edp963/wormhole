@@ -101,9 +101,10 @@ class JobAppApi(jobDal: JobDal, projectDal: ProjectDal) extends BaseAppApiImpl(j
                   riderLogger.warn(s"user ${session.userId} job $jobId status is ${job.head.status}, can't stop now.")
                   complete(OK, getHeader(403, s"job $jobId status is starting, can't stop now.", null))
                 } else {
-                  val status = killJob(jobId)
-                  riderLogger.info(s"user ${session.userId} stop job $jobId success.")
-                  complete(OK, ResponseJson[AppJobResponse](getHeader(200, null), AppJobResponse(jobId, status)))
+                  val (status, stopSuccess) = killJob(jobId)
+                  riderLogger.info(s"user ${session.userId} stop job $jobId ${stopSuccess.toString}.")
+                  if(stopSuccess) complete(OK, ResponseJson[AppJobResponse](getHeader(200, null), AppJobResponse(jobId, status)))
+                  else complete(OK, getHeader(400, s"job $jobId status stop failed.", null))
                 }
               } catch {
                 case ex: Exception =>
