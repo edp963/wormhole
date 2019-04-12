@@ -26,15 +26,15 @@ import java.sql.{Connection, ResultSet, SQLTransientConnectionException}
 import edp.wormhole.dbdriver.dbpool.DbConnection
 import edp.wormhole.kuduconnection.KuduConnection
 import edp.wormhole.sparkx.common.SparkSchemaUtils._
-import edp.wormhole.sparkx.common.{SparkSchemaUtils, SparkUtils, SparkxUtils}
+import edp.wormhole.sparkx.common.{SparkSchemaUtils, SparkxUtils}
 import edp.wormhole.sparkx.spark.log.EdpLogging
 import edp.wormhole.sparkx.swifts.custom.LookupKudu.getFieldsArray
 import edp.wormhole.swifts.SqlOptType
 import edp.wormhole.ums.UmsFieldType.{UmsFieldType, _}
 import edp.wormhole.ums.{UmsDataSystem, UmsFieldType, UmsOpType, UmsSysField}
-import edp.wormhole.util.{CommonUtils, DateUtils}
 import edp.wormhole.util.config.ConnectionConfig
 import edp.wormhole.util.swifts.SwiftsSql
+import edp.wormhole.util.{CommonUtils, DateUtils}
 import org.apache.kudu.client.KuduTable
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
@@ -102,7 +102,7 @@ object DataFrameTransform extends EdpLogging {
             !keys.contains(null)
           })
           val dataMapFromDb = KuduConnection.doQueryMultiByKeyListInBatch(tmpTableName, database, connectionConfig.connectionUrl,
-            lookupFieldNameArray.head, tupleList, keySchemaMap.toMap, selectFieldOriginalNameArray)
+            lookupFieldNameArray.head, tupleList, keySchemaMap.toMap, selectFieldOriginalNameArray, batchSize.get)
 
           getKuduUnionResult(resultDatas, dataMapFromDb, sourceTableFields, resultSchema, original2AsNameMap)
         })
