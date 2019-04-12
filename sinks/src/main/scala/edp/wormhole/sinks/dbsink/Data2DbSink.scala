@@ -118,7 +118,7 @@ class Data2DbSink extends SinkProcessor{
     sourceMutationType match {
       case SourceMutationType.INSERT_ONLY =>
       logger.info("INSERT_ONLY: " + sinkSpecificConfig.`mutation_type.get`)
-      val insertSql = SqlProcessor.getInsertSql(sourceMutationType, dataSys, tableName, systemRenameMap, allFieldNames)
+      val insertSql = SqlProcessor.getInsertSql(sourceMutationType, dataSys, tableName, systemRenameMap, allFieldNames,sinkSpecificConfig.oracle_sequence_config)
       val errorList = SqlProcessor.executeProcess(tupleList, insertSql, batchSize, UmsOpType.INSERT, sourceMutationType, connectionConfig, allFieldNames,
       renameSchema, systemRenameMap, tableKeyNames, sysIdName)
       (errorList.length,SourceMutationType.INSERT_ONLY)
@@ -172,7 +172,7 @@ class Data2DbSink extends SinkProcessor{
       val (insertList, updateList) = SqlProcessor.splitInsertAndUpdate(rsKeyUmsIdMap, keysTupleMap, tableKeyNames, sysIdName, renameSchema)
 
       logger.info("insertList all:" + insertList.size)
-      val insertSql = SqlProcessor.getInsertSql(sourceMutationType, dataSys, tableName, systemRenameMap, allFieldNames)
+      val insertSql = SqlProcessor.getInsertSql(sourceMutationType, dataSys, tableName, systemRenameMap, allFieldNames,sinkSpecificConfig.oracle_sequence_config)
       val insertErrorTupleList = SqlProcessor.executeProcess(insertList, insertSql, batchSize, UmsOpType.INSERT, sourceMutationType, connectionConfig, allFieldNames,
       renameSchema, systemRenameMap, tableKeyNames, sysIdName)
       logger.info("updateList all:" + updateList.size)
