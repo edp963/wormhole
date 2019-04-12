@@ -11,7 +11,7 @@ class StreamProcessLogger(inputStream: InputStream) extends RiderLogger{
     try {
       var line = streamBuffer.readLine
       while (line != null && lineNum < 10) {
-        riderLogger.info(s"read runtime error stream : $line")
+//        riderLogger.info(s"read runtime error stream : $line")
         if (line.toLowerCase.contains("Failed to find any Kerberos tgt".toLowerCase)) {
           streamBuffer.close()
           return false
