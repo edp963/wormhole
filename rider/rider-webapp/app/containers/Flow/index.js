@@ -1825,7 +1825,7 @@ export class Flow extends React.Component {
           }
           let strErrorList = (
             <Tooltip title={errorListFormat}>
-              <Button icon="bar-chart" shape="circle" type="ghost" onClick={this.onShowErrorList(record)}></Button>
+              <Button icon="exception" shape="circle" type="ghost" onClick={this.onShowErrorList(record)}></Button>
             </Tooltip>
           )
           let strStop = record.disableActions.includes('stop')
