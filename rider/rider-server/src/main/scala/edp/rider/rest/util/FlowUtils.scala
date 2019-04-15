@@ -570,7 +570,7 @@ object FlowUtils extends RiderLogger {
                  |}
                  |]
                  |}
-        """.stripMargin.replaceAll("\n", "")
+        """.stripMargin.replaceAll("\n", "").replaceAll("\r","")
             riderLogger.info(s"user ${
               directive.createBy
             } send flow $flowId start directive: $flow_start_ums")
@@ -673,7 +673,7 @@ object FlowUtils extends RiderLogger {
              |}
              |]
              |}
-        """.stripMargin.replaceAll("\n", "")
+        """.stripMargin.replaceAll("\n", "").replaceAll("\r","")
         riderLogger.info(s"user ${
           directive.createBy
         } send flow $flowId start directive: $flow_start_ums")
@@ -752,7 +752,7 @@ object FlowUtils extends RiderLogger {
              |  ]
              |}
              |
-        """.stripMargin.replaceAll("\n", "")
+        """.stripMargin.replaceAll("\n", "").replaceAll("\r","")
         riderLogger.info(s"user ${
           directive.createBy
         } send flow $flowId start directive: $flow_start_ums")
