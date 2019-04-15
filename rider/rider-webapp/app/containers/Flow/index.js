@@ -785,9 +785,6 @@ export class Flow extends React.Component {
   refreshPerformance = (performanceMenuRefreshChosen = this.state.performanceMenuRefreshChosen) => {
     const { projectIdGeted } = this.props
     const { chosenFlowId } = this.state
-    const now = new Date().getTime()
-    const endTime = now
-    const startTime = now - this.state.performanceMenuChosen.value
     if (performanceMenuRefreshChosen.value === 'off') {
       if (this.state.refreshTimer) {
         clearInterval(this.state.refreshTimer)
@@ -798,6 +795,9 @@ export class Flow extends React.Component {
         clearInterval(this.state.refreshTimer)
       }
       let timer = setInterval(() => {
+        const now = new Date().getTime()
+        const endTime = now
+        const startTime = now - this.state.performanceMenuChosen.value
         this.performanceResolve(projectIdGeted, chosenFlowId, startTime, endTime)
       }, performanceMenuRefreshChosen.value)
       this.setState({refreshTimer: timer})
