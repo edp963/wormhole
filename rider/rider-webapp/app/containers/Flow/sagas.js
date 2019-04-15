@@ -54,7 +54,9 @@ import {
   LOAD_DRIFT_LIST,
   POST_DRIFT,
   VERIFY_DRIFT,
-  LOAD_FLOW_PERFORMANCE
+  LOAD_FLOW_PERFORMANCE,
+  LOAD_RECHARGE_HISTORY,
+  COMFIRM_RECHARGE
 } from './constants'
 
 import {
@@ -97,7 +99,9 @@ import {
   postUserTopicLoaded,
   deleteUserTopicLoaded,
   adminLogsInfoLoaded,
-  logsInfoLoaded
+  logsInfoLoaded,
+  rechargeHistoryLoaded,
+  confirmReChangeLoaded
 } from './action'
 
 import request from '../../utils/request'
@@ -785,6 +789,35 @@ export function* searchPerformance ({ payload }) {
 export function* postPerformanceWatcher () {
   yield fork(takeLatest, LOAD_FLOW_PERFORMANCE, searchPerformance)
 }
+
+export function* getRechargeHistory ({ payload }) {
+  try {
+    const flows = yield call(request, `${api.projectUserList}/${payload.projectId}/flows/${payload.id}/xx`)
+    yield put(rechargeHistoryLoaded(flows.payload))
+    payload.resolve()
+  } catch (err) {
+    yield put(flowsLoadingError(err))
+  }
+}
+
+export function* getRechargeHistoryWatcher () {
+  yield fork(takeLatest, LOAD_RECHARGE_HISTORY, getRechargeHistory)
+}
+
+export function* reChangeConfirm ({ payload }) {
+  try {
+    const flows = yield call(request, `${api.projectUserList}/${payload.projectId}/flows/${payload.id}/xx`)
+    yield put(confirmReChangeLoaded(flows.payload))
+    payload.resolve()
+  } catch (err) {
+    yield put(flowOperatedError(err))
+  }
+}
+
+export function* reChangeConfirmWatcher () {
+  yield fork(takeLatest, COMFIRM_RECHARGE, reChangeConfirm)
+}
+
 export default [
   getAdminAllFlowsWatcher,
   getUserAllFlowsWatcher,
@@ -820,5 +853,7 @@ export default [
   getDriftListWatcher,
   postDriftWatcher,
   verifyDriftWatcher,
-  postPerformanceWatcher
+  postPerformanceWatcher,
+  getRechargeHistoryWatcher,
+  reChangeConfirmWatcher
 ]
