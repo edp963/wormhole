@@ -26,6 +26,7 @@ import { createStructuredSelector } from 'reselect'
 import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
 import Popover from 'antd/lib/popover'
+import Tooltip from 'antd/lib/tooltip'
 
 import { selectLocale } from '../../LanguageProvider/selectors'
 import recharge from './recharge'
@@ -104,7 +105,9 @@ export class FlowRecharge extends React.Component {
         trigger="click"
         visible={this.state.visible}
         onVisibleChange={this.handleReChangeVisible(record)}>
-        <Button icon="file-text" shape="circle" type="ghost" ></Button>
+        <Tooltip title={title}>
+          <Button icon="file-text" shape="circle" type="ghost" ></Button>
+        </Tooltip>
       </Popover>
     )
   }
