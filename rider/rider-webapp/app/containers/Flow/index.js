@@ -44,6 +44,7 @@ import Popover from 'antd/lib/popover'
 import DatePicker from 'antd/lib/date-picker'
 import Select from 'antd/lib/select'
 import Form from 'antd/lib/form'
+import FlowErrorList from './errorModule/errorList'
 const FormItem = Form.Item
 const Option = Select.Option
 const { RangePicker } = DatePicker
@@ -236,7 +237,9 @@ export class Flow extends React.Component {
       recordsChartOpt: {},
       latencyChartOpt: {},
       refreshTimer: null,
-      performanceModelTitle: 'performance'
+      performanceModelTitle: 'performance',
+      errorListVisible: false,
+      errorListModelTitle: 'Error List'
     }
   }
 
@@ -751,6 +754,16 @@ export class Flow extends React.Component {
       chosenFlowId: flowId
     }, () => {
       this.refreshPerformance()
+    })
+  }
+  onShowErrorList = (record) => (e) => {
+    this.setState({
+      errorListVisible: true
+    })
+  }
+  closeErrorListModal = () => {
+    this.setState({
+      errorListVisible: false
     })
   }
   closePerformanceDialog = () => {
@@ -1345,7 +1358,7 @@ export class Flow extends React.Component {
     const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails, logsModalVisible,
       logsProjectId, logsFlowId, refreshLogLoading, refreshLogText, logsContent, selectedRowKeys,
       driftModalVisible, driftList, driftDialogConfirmLoading, driftVerifyTxt, driftVerifyStatus,
-      performanceModalVisible } = this.state
+      performanceModalVisible, errorListVisible } = this.state
     let { sortedInfo, filteredInfo, startModalVisible, flowStartFormData, autoRegisteredTopics, userDefinedTopics, startUdfVals, renewUdfVals, currentUdfVal, actionType } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
@@ -1756,6 +1769,7 @@ export class Flow extends React.Component {
           const sureRenewFormat = <FormattedMessage {...messages.flowSureRenew} />
           const driftFormat = <FormattedMessage {...messages.flowTableDrift} />
           const chartFormat = <FormattedMessage {...messages.flowTableChart} />
+          const errorListFormat = <FormattedMessage {...messages.flowErrorList} />
 
           let strLog = ''
           if (record.streamType === 'flink') {
@@ -1809,6 +1823,11 @@ export class Flow extends React.Component {
                 </Button>
               </Tooltip>
           }
+          let strErrorList = (
+            <Tooltip title={errorListFormat}>
+              <Button icon="bar-chart" shape="circle" type="ghost" onClick={this.onShowErrorList(record)}></Button>
+            </Tooltip>
+          )
           let strStop = record.disableActions.includes('stop')
             ? (
               <Tooltip title={stopFormat}>
@@ -1876,6 +1895,7 @@ export class Flow extends React.Component {
               {strDrift}
               {strLog}
               {strChart}
+              {strErrorList}
             </span>
           )
         }
@@ -2084,6 +2104,9 @@ export class Flow extends React.Component {
           <Line style={{height: '250px'}} id="latency" options={this.state.latencyChartOpt} />
         </div>
       ) : ''
+    const errorListComp = errorListVisible ? (
+      <FlowErrorList />
+    ) : ''
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>
         {helmetHide}
@@ -2196,7 +2219,6 @@ export class Flow extends React.Component {
             </FormItem>
           </Form>
         </Modal>
-        {/* NOTE: performance */}
         <Modal
           title={this.state.performanceModelTitle}
           visible={performanceModalVisible}
@@ -2222,6 +2244,16 @@ export class Flow extends React.Component {
             logsFlowId={logsFlowId}
             ref={(f) => { this.streamLogs = f }}
           />
+        </Modal>
+        <Modal
+          title={this.state.errorListModelTitle}
+          visible={errorListVisible}
+          onCancel={this.closeErrorListModal}
+          footer={null}
+          width="98%"
+          style={{top: '30px'}}
+        >
+          {errorListComp}
         </Modal>
       </div>
     )
