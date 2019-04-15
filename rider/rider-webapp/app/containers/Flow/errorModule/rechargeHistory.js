@@ -29,31 +29,28 @@ import Popover from 'antd/lib/popover'
 import Tooltip from 'antd/lib/tooltip'
 
 import { selectLocale } from '../../LanguageProvider/selectors'
-import recharge from './recharge'
 
-export class FlowRecharge extends React.Component {
+import { loadRechargeHistory } from '../action'
+
+export class FlowRechargeHistory extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
       visible: false,
-      typeOfOpTopics: 'increase',
       rechargeList: []
     }
-  }
-
-  handleReChangeVal = (e) => {
-    this.setState({ typeOfOpTopics: e.target.value })
   }
 
   handleReChangeVisible = (record) => (visible) => {
     this.setState({
       visible
     })
-  }
 
-  confirmReChange = () => {
-    console.log(this.state.typeOfOpTopics)
-    this.closeReChange()
+    if (visible) {
+      const { projectIdGeted, record } = this.props
+      console.log(this.props)
+      this.props.onGetRechargeList(projectIdGeted, record.id, (result) => {})
+    }
   }
 
   closeReChange = () => {
@@ -113,15 +110,17 @@ export class FlowRecharge extends React.Component {
   }
 }
 
-FlowRecharge.propTypes = {
+FlowRechargeHistory.propTypes = {
   locale: PropTypes.string,
   title: PropTypes.object,
-  record: PropTypes.any
+  record: PropTypes.any,
+  projectIdGeted: PropTypes.string,
+  onGetRechargeList: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
   return {
-    // onLoadAdminAllFlows: (resolve) => dispatch(loadAdminAllFlows(resolve))
+    onGetRechargeList: (projectId, id, resolve) => dispatch(loadRechargeHistory(projectId, id, resolve))
   }
 }
 
@@ -129,4 +128,4 @@ const mapStateToProps = createStructuredSelector({
   locale: selectLocale()
 })
 
-export default connect(mapStateToProps, mapDispatchToProps)(FlowRecharge)
+export default connect(mapStateToProps, mapDispatchToProps)(FlowRechargeHistory)
