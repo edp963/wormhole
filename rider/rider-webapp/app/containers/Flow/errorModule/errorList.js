@@ -144,14 +144,10 @@ export class FlowErrorList extends React.Component {
           const backfillHistoryTxt = <FormattedMessage {...messages.errorListBackfillData} />
 
           let backfillBtn = (
-            <Tooltip title={backfillTxt}>
-              <Recharge title={backfillTxt} record={record} />
-            </Tooltip>
+            <Recharge title={backfillTxt} record={record} />
           )
           let backfillHistoryBtn = (
-            <Tooltip title={backfillHistoryTxt}>
-              <RechargeHistory title={backfillTxt} record={record} />
-            </Tooltip>
+            <RechargeHistory title={backfillHistoryTxt} record={record} />
           )
           FlowActionSelect = (
             <span>
