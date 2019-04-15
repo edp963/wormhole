@@ -338,4 +338,8 @@ class FlowDal(flowTable: TableQuery[FlowTable], streamTable: TableQuery[StreamTa
   def getFlowsByIds(flowIds: Seq[Long]): Seq[Flow] = {
     Await.result(db.run(flowTable.filter(_.id inSet flowIds).result).mapTo[Seq[Flow]], minTimeOut)
   }
+
+  def updatePriority(flowId: Long, priorityId: Long): Future[Int] = {
+    db.run(flowTable.filter(flow => flow.id === flowId).map(_.priorityId).update(priorityId))
+  }
 }
