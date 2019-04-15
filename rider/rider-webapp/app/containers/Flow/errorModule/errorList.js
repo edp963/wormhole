@@ -22,20 +22,44 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
-// import { FormattedMessage } from 'react-intl'
-// import messages from './messages'
+import { FormattedMessage } from 'react-intl'
+import messages from '../messages'
 
 import Table from 'antd/lib/table'
-import messages from '../messages'
-import { FormattedMessage } from 'react-intl'
-import { Button } from 'antd/lib/radio'
-import { Tooltip } from 'antd'
-// import { selectLocale } from '../LanguageProvider/selectors'
+import Button from 'antd/lib/button'
+import Tooltip from 'antd/lib/tooltip'
+import Recharge from './recharge'
+import RechargeHistory from './rechargeHistory'
+
+import { selectRoleType } from '../../App/selectors'
+import { selectLocale } from '../../LanguageProvider/selectors'
+
 export class FlowErrorList extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      currentErrors: []
+      currentErrors: [
+        {
+          'batchId': '04yzmerp',
+          'createTime': '2019-03-27 11:38:05',
+          'dataType': 'inital',
+          'errorCount': 21,
+          'errorInfo': 'error',
+          'errorMaxWatermarkTs': '2019-03-20 16:17:18',
+          'errorMinWatermarkTs': '2019-03-20 16:17:18',
+          'errorPattern': 'flow',
+          'feedbackTime': '2019-03-20 16:17:18',
+          'flowId': 35,
+          'id': 1903,
+          'projectId': 1,
+          'sinkNs': 'oracle.oracle01.db.table.v2.dbpar01.tablepar03',
+          'sinkTable': 'oracle.oracle01.db.table.v2.dbpar01.tablepar03',
+          'sourceNs': 'oracle.oracle01.db.table.v2.dbpar01.tablepar01',
+          'sourceTable': 'oracle.oracle01.db.table.v2.dbpar01.tablepar01',
+          'streamId': 42,
+          'topics': '[{"topic_name":"wormhole_feedback_new","topic_type": "increment", "partition_offset":[{"partition_num":0,"from_offset":10000,"until_offset":20000}]'
+        }
+      ]
     }
   }
 
@@ -50,8 +74,13 @@ export class FlowErrorList extends React.Component {
     // 频繁使用的组件，手动清除数据，避免出现闪现上一条数据
     // this.props.onChuckAwayFlow()
   }
+
+  handleFlowChange = (pagination, filters, sorter) => {}
+
   render () {
-    const { roleType } = this.props
+    const {
+      roleType, locale
+    } = this.props
     const { currentErrors } = this.state
     const columns = [{
       title: 'batchId',
@@ -113,14 +142,15 @@ export class FlowErrorList extends React.Component {
         } else if (roleType === 'user') {
           const backfillTxt = <FormattedMessage {...messages.errorListBackfillData} />
           const backfillHistoryTxt = <FormattedMessage {...messages.errorListBackfillData} />
+
           let backfillBtn = (
             <Tooltip title={backfillTxt}>
-              <Button icon="bar-chart" shape="circle" type="ghost" ></Button>
+              <Recharge title={backfillTxt} record={record} />
             </Tooltip>
           )
           let backfillHistoryBtn = (
             <Tooltip title={backfillHistoryTxt}>
-              <Button icon="bar-chart" shape="circle" type="ghost" ></Button>
+              <RechargeHistory title={backfillTxt} record={record} />
             </Tooltip>
           )
           FlowActionSelect = (
@@ -155,6 +185,7 @@ export class FlowErrorList extends React.Component {
           onChange={this.handleFlowChange}
           pagination={pagination}
           className="ri-workbench-table-container"
+          rowKey="id"
           bordered>
         </Table>
         {/* {flowStartForm} */}
@@ -164,7 +195,8 @@ export class FlowErrorList extends React.Component {
 }
 
 FlowErrorList.propTypes = {
-  roleType: PropTypes.string
+  roleType: PropTypes.string,
+  locale: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -175,6 +207,8 @@ export function mapDispatchToProps (dispatch) {
 
 const mapStateToProps = createStructuredSelector({
   // flows: selectFlows(),
+  roleType: selectRoleType(),
+  locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(FlowErrorList)
