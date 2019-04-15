@@ -177,7 +177,7 @@ function streamReducer (state = initialState, { type, payload }) {
         .set('streams', streams.slice())
         .set('streamStartModalLoading', false)
     case OPERATE_STREAMS_ERROR:
-      return state.set('streamStartModalLoading', false)
+      return state.set('streamStartModalLoading', false).set('flowsLoading', false).set('flowsPriorityConfirmLoading', false)
     case LOAD_LASTEST_OFFSET:
       return state
     case LOAD_LASTEST_OFFSET_SUCCESS:
