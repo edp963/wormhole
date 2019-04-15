@@ -207,7 +207,7 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
   def putRoute(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows") {
     (projectId, streamId) =>
       put {
-        entity(as[Flow]) {
+        entity(as[FlowUpdateInfo]) {
           flow =>
             authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
               session =>

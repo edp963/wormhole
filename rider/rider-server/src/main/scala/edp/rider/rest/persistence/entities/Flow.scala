@@ -170,6 +170,32 @@ case class FlowStreamAdminInfo(id: Long,
                                hideActions: String,
                                msg: String)
 
+case class FlowUpdateInfo(id: Long,
+                          flowName: String,
+                          projectId: Long,
+                          streamId: Long,
+                          sourceNs: String,
+                          sinkNs: String,
+                          parallelism: Option[Int],
+                          consumedProtocol: String,
+                          sinkConfig: Option[String],
+                          tranConfig: Option[String],
+                          tableKeys: Option[String],
+                          desc: Option[String] = None,
+                          status: String,
+                          startedTime: Option[String],
+                          stoppedTime: Option[String],
+                          logPath: Option[String],
+                          active: Boolean,
+                          createTime: String,
+                          createBy: Long,
+                          updateTime: String,
+                          updateBy: Long) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
+
 case class FlowAdminAllInfo(id: Long,
                             flowName: String,
                             projectId: Long,
