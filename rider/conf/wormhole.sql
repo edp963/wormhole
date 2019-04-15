@@ -235,6 +235,7 @@ alter table `flow` add column `log_path` VARCHAR(2000) NULL after `stopped_time`
 alter table `flow` add column `flow_name` VARCHAR(200) NOT NULL;
 alter table `flow` add column `table_keys` VARCHAR(100) NULL;
 alter table `flow` add column `desc` VARCHAR(1000) NULL;
+alter table `flow` add column `priority_id` BIGINT NULL;
 
 CREATE TABLE IF NOT EXISTS `flow_history` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
