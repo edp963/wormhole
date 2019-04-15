@@ -96,7 +96,7 @@ class FlowUserRoutes(modules: ConfigurationModule with PersistenceModule with Bu
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "projectId", value = "project id", required = true, dataType = "integer", paramType = "path"),
     new ApiImplicitParam(name = "streamId", value = "stream id", required = true, dataType = "integer", paramType = "path"),
-    new ApiImplicitParam(name = "flow", value = "Flow Object", required = true, dataType = "edp.rider.rest.persistence.entities.Flow", paramType = "body")
+    new ApiImplicitParam(name = "flow", value = "Flow Object", required = true, dataType = "edp.rider.rest.persistence.entities.FlowUpdateInfo", paramType = "body")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "OK"),
