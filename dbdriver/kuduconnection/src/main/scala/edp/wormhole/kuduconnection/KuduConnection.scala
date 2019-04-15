@@ -144,8 +144,9 @@ object KuduConnection extends Serializable {
                        queryFieldsName: Seq[String]): mutable.HashMap[String, Map[String, (Any, String)]] = {
     logger.info("doQueryByKeyList:" + kuduConfigurationMap(url) + ":::" + tableName)
     val queryResultMap = mutable.HashMap.empty[String, Map[String, (Any, String)]]
-    val client: KuduClient = getKuduClient(url)
+    var client: KuduClient = null
     try {
+      client = getKuduClient(url)
       val newTableName = getTableName(tableName, database)
       val table: KuduTable = client.openTable(newTableName)
       val fieldTypeMap: mutable.Map[String, Type] = getAllFieldsKuduTypeMap(table)
@@ -172,8 +173,9 @@ object KuduConnection extends Serializable {
                               queryFieldsName: Seq[String], batchSize: Int): mutable.HashMap[String, Map[String, (Any, String)]] = {
     logger.info("doQueryByKeyListInBatch:" + kuduConfigurationMap(url) + ":::" + tableName)
     val queryResultMap = mutable.HashMap.empty[String, Map[String, (Any, String)]]
-    val client: KuduClient = getKuduClient(url)
+    var client: KuduClient = null
     try {
+      client = getKuduClient(url)
       val newTableName = getTableName(tableName, database)
       val table: KuduTable = client.openTable(newTableName)
       val fieldTypeMap: mutable.Map[String, Type] = getAllFieldsKuduTypeMap(table)
@@ -476,8 +478,9 @@ object KuduConnection extends Serializable {
   def doWrite(tableName: String, database: String, url: String, schemaMap: collection.Map[String, (Int, UmsFieldType, Boolean)], fieldsContent: Seq[Seq[String]], optType: String): Int = {
     logger.info("doWrite:" + kuduConfigurationMap + ":::" + tableName)
     var errorsCount = 0
-    val client: KuduClient = getKuduClient(url)
+    var client: KuduClient = null
     try {
+      client = getKuduClient(url)
       val newTableName = getTableName(tableName, database)
       val table: KuduTable = client.openTable(newTableName)
       val session = getSession(url, client)
