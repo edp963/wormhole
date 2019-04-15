@@ -27,6 +27,7 @@ import Button from 'antd/lib/button'
 import Radio from 'antd/lib/radio'
 import Form from 'antd/lib/form'
 import Popover from 'antd/lib/popover'
+import Tooltip from 'antd/lib/tooltip'
 const FormItem = Form.Item
 
 import { selectLocale } from '../../LanguageProvider/selectors'
@@ -95,7 +96,9 @@ export class FlowRecharge extends React.Component {
         trigger="click"
         visible={this.state.visible}
         onVisibleChange={this.handleReChangeVisible(record)}>
-        <Button icon="retweet" shape="circle" type="ghost"></Button>
+        <Tooltip title={title}>
+          <Button icon="retweet" shape="circle" type="ghost"></Button>
+        </Tooltip>
       </Popover>
     )
   }
