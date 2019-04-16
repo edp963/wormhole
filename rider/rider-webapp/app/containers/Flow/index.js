@@ -1363,6 +1363,8 @@ export class Flow extends React.Component {
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
 
+    const { projectIdGeted } = this.props
+
     const columns = [{
       title: 'ID',
       dataIndex: 'id',
@@ -2105,7 +2107,7 @@ export class Flow extends React.Component {
         </div>
       ) : ''
     const errorListComp = errorListVisible ? (
-      <FlowErrorList />
+      <FlowErrorList projectIdGeted={projectIdGeted} />
     ) : ''
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>

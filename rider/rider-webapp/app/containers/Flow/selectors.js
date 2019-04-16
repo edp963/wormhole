@@ -46,11 +46,18 @@ const selectStreamFilterId = () => createSelector(
   selectStream(),
   (streamState) => streamState.get('streamFilterId')
 )
+
+const selectConfirmRechargeLoading = () => createSelector(
+  selectFlow(),
+  (streamState) => streamState.get('confirmRechargeLoading')
+)
+
 export {
   selectFlow,
   selectFlows,
   selectError,
   selectFlowSubmitLoading,
   selectFlowStartModalLoading,
-  selectStreamFilterId
+  selectStreamFilterId,
+  selectConfirmRechargeLoading
 }
