@@ -27,9 +27,13 @@ import Button from 'antd/lib/button'
 import Radio from 'antd/lib/radio'
 import Form from 'antd/lib/form'
 import Popover from 'antd/lib/popover'
+import Tooltip from 'antd/lib/tooltip'
+import message from 'antd/lib/message'
 const FormItem = Form.Item
 
 import { selectLocale } from '../../LanguageProvider/selectors'
+import { confirmReChange } from '../action'
+import { selectConfirmRechargeLoading } from '../selectors'
 
 export class FlowRecharge extends React.Component {
   constructor (props) {
@@ -52,7 +56,12 @@ export class FlowRecharge extends React.Component {
 
   confirmReChange = () => {
     console.log(this.state.typeOfOpTopics)
-    this.closeReChange()
+    const { locale, projectIdGeted, record } = this.props
+    this.props.onConfirmReChange(projectIdGeted, record.id, 'recharge', { }, () => {
+      const msg = locale === 'en' ? 'success' : '回灌成功'
+      message.success(msg)
+      this.closeReChange()
+    })
   }
 
   closeReChange = () => {
@@ -63,7 +72,7 @@ export class FlowRecharge extends React.Component {
 
   render () {
     const {
-      locale, title, record
+      locale, title, record, confirmRechargeLoading
     } = this.props
 
     const rechargeOpContent = (
@@ -82,7 +91,7 @@ export class FlowRecharge extends React.Component {
         </Form>
         <div className="recharge-btn">
           <Button style={{ marginRight: '8px' }} onClick={this.closeReChange}>取消</Button>
-          <Button type="primary" onClick={this.confirmReChange}>确定</Button>
+          <Button type="primary" onClick={this.confirmReChange} loading={confirmRechargeLoading}>确定</Button>
         </div>
       </div>
     )
@@ -95,7 +104,9 @@ export class FlowRecharge extends React.Component {
         trigger="click"
         visible={this.state.visible}
         onVisibleChange={this.handleReChangeVisible(record)}>
-        <Button icon="retweet" shape="circle" type="ghost"></Button>
+        <Tooltip title={title}>
+          <Button icon="retweet" shape="circle" type="ghost"></Button>
+        </Tooltip>
       </Popover>
     )
   }
@@ -104,17 +115,21 @@ export class FlowRecharge extends React.Component {
 FlowRecharge.propTypes = {
   locale: PropTypes.string,
   title: PropTypes.object,
-  record: PropTypes.any
+  record: PropTypes.any,
+  projectIdGeted: PropTypes.string,
+  onConfirmReChange: PropTypes.func,
+  confirmRechargeLoading: PropTypes.bool
 }
 
 export function mapDispatchToProps (dispatch) {
   return {
-    // onLoadAdminAllFlows: (resolve) => dispatch(loadAdminAllFlows(resolve))
+    onConfirmReChange: (projectIdGeted, id, resolve, reject) => dispatch(confirmReChange(resolve, reject))
   }
 }
 
 const mapStateToProps = createStructuredSelector({
-  locale: selectLocale()
+  locale: selectLocale(),
+  confirmRechargeLoading: selectConfirmRechargeLoading()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(FlowRecharge)

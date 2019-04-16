@@ -78,9 +78,10 @@ export class FlowErrorList extends React.Component {
 
   render () {
     const {
-      roleType
+      roleType, locale, projectIdGeted
     } = this.props
     const { currentErrors } = this.state
+
     const columns = [{
       title: 'batchId',
       dataIndex: 'batchId',
@@ -156,17 +157,13 @@ export class FlowErrorList extends React.Component {
           FlowActionSelect = ''
         } else if (roleType === 'user') {
           const backfillTxt = <FormattedMessage {...messages.errorListBackfillData} />
-          const backfillHistoryTxt = <FormattedMessage {...messages.errorListBackfillData} />
+          const backfillHistoryTxt = <FormattedMessage {...messages.errorListBackfillHistory} />
 
           let backfillBtn = (
-            <Tooltip title={backfillTxt}>
-              <Recharge title={backfillTxt} record={record} />
-            </Tooltip>
+            <Recharge title={backfillTxt} projectIdGeted={projectIdGeted} record={record} />
           )
           let backfillHistoryBtn = (
-            <Tooltip title={backfillHistoryTxt}>
-              <RechargeHistory title={backfillTxt} record={record} />
-            </Tooltip>
+            <RechargeHistory title={backfillHistoryTxt} projectIdGeted={projectIdGeted} record={record} />
           )
           FlowActionSelect = (
             <span>
@@ -210,7 +207,9 @@ export class FlowErrorList extends React.Component {
 }
 
 FlowErrorList.propTypes = {
-  roleType: PropTypes.string
+  roleType: PropTypes.string,
+  locale: PropTypes.string,
+  projectIdGeted: PropTypes.string
 }
 
 export function mapDispatchToProps (dispatch) {
