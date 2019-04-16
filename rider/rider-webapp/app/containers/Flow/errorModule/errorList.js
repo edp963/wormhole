@@ -26,7 +26,6 @@ import { FormattedMessage } from 'react-intl'
 import messages from '../messages'
 
 import Table from 'antd/lib/table'
-import Button from 'antd/lib/button'
 import Tooltip from 'antd/lib/tooltip'
 import Recharge from './recharge'
 import RechargeHistory from './rechargeHistory'
@@ -104,7 +103,23 @@ export class FlowErrorList extends React.Component {
       title: 'topics',
       dataIndex: 'topics',
       key: 'topics',
-      className: 'text-align-center'
+      className: 'text-align-center',
+      render: (text, record) => {
+        let comp = ''
+        let textLen = text.length
+        if (textLen > 5) {
+          comp = (
+            <Tooltip title={text} overlayStyle={{wordBreak: 'break-all'}}>
+              <span>{text.slice(0, 5)}...</span>
+            </Tooltip>
+          )
+        } else {
+          comp = (
+            <span>{text}</span>
+          )
+        }
+        return comp
+      }
     }, {
       title: '错误条数',
       dataIndex: 'errorNum',
@@ -175,7 +190,7 @@ export class FlowErrorList extends React.Component {
     //   )
     //   : ''
     return (
-      <div>
+      <div style={{height: '80vh'}}>
         <Table
           dataSource={currentErrors}
           columns={columns}
