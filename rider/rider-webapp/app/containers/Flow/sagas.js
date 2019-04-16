@@ -793,9 +793,7 @@ export function* postPerformanceWatcher () {
 export function* getRechargeHistory ({ payload }) {
   try {
     const result = yield call(request, `${api.projectUserList}/${payload.projectId}/errors/${payload.id}/log`)
-    if (result.header && result.header.code === 200) {
-      yield put(confirmReChangeLoaded(result.payload))
-    }
+    yield put(confirmReChangeLoaded(result.payload))
     payload.resolve(result.payload)
   } catch (err) {
     yield put(flowsLoadingError(err))
