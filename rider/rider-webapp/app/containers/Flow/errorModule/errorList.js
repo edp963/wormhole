@@ -78,7 +78,7 @@ export class FlowErrorList extends React.Component {
 
   render () {
     const {
-      roleType, locale, projectIdGeted
+      roleType, projectIdGeted
     } = this.props
     const { currentErrors } = this.state
 
@@ -107,10 +107,10 @@ export class FlowErrorList extends React.Component {
       render: (text, record) => {
         let comp = ''
         let textLen = text.length
-        if (textLen > 5) {
+        if (textLen > 20) {
           comp = (
             <Tooltip title={text} overlayStyle={{wordBreak: 'break-all'}}>
-              <span>{text.slice(0, 5)}...</span>
+              <span>{text.slice(0, 20)}...</span>
             </Tooltip>
           )
         } else {
@@ -208,7 +208,7 @@ export class FlowErrorList extends React.Component {
 
 FlowErrorList.propTypes = {
   roleType: PropTypes.string,
-  locale: PropTypes.string,
+  // locale: PropTypes.string,
   projectIdGeted: PropTypes.string
 }
 
