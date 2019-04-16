@@ -556,3 +556,14 @@ CREATE TABLE IF NOT EXISTS `feedback_error` (
 )ENGINE = InnoDB CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 alter table `feedback_error` add column `project_id` BIGINT NOT NULL after `id`;
+
+CREATE TABLE IF NOT EXISTS `recharge_result_log` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `error_id` bigint(20) DEFAULT NULL,
+  `detail` text,
+  `creator` varchar(100) DEFAULT NULL,
+  `create_time` datetime DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
+  `rst` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
