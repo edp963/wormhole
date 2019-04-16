@@ -29,9 +29,9 @@ import Popover from 'antd/lib/popover'
 import Tooltip from 'antd/lib/tooltip'
 
 // import { selectLocale } from '../../LanguageProvider/selectors'
-// import recharge from './recharge'
 
 import { loadRechargeHistory } from '../action'
+import { selectRechargeHistory } from '../selectors'
 
 export class FlowRechargeHistory extends React.Component {
   constructor (props) {
@@ -49,8 +49,10 @@ export class FlowRechargeHistory extends React.Component {
 
     if (visible) {
       const { projectIdGeted, record } = this.props
-      console.log(this.props)
-      this.props.onGetRechargeList(projectIdGeted, record.id, (result) => {})
+      this.props.onGetRechargeList(projectIdGeted, record.id, (result) => {
+        const { rechargeHistoryList } = this.props
+        this.setState({ rechargeList: rechargeHistoryList.slice() })
+      })
     }
   }
 
@@ -97,7 +99,7 @@ export class FlowRechargeHistory extends React.Component {
 
     return (
       <Popover
-        placement="left"
+        placement="bottomRight"
         content={rechargeOpContent}
         title={title}
         trigger="click"
@@ -112,9 +114,10 @@ export class FlowRechargeHistory extends React.Component {
 }
 
 FlowRechargeHistory.propTypes = {
-  locale: PropTypes.string,
+  // locale: PropTypes.string,
   title: PropTypes.object,
   record: PropTypes.any,
+  rechargeHistoryList: PropTypes.array,
   projectIdGeted: PropTypes.string,
   onGetRechargeList: PropTypes.func
 }
@@ -126,7 +129,7 @@ export function mapDispatchToProps (dispatch) {
 }
 
 const mapStateToProps = createStructuredSelector({
-  // locale: selectLocale()
+  rechargeHistoryList: selectRechargeHistory()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(FlowRechargeHistory)
