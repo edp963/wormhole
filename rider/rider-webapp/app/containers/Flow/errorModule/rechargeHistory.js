@@ -27,8 +27,8 @@ import Table from 'antd/lib/table'
 import Button from 'antd/lib/button'
 import Popover from 'antd/lib/popover'
 
-import { selectLocale } from '../../LanguageProvider/selectors'
-import recharge from './recharge'
+// import { selectLocale } from '../../LanguageProvider/selectors'
+// import recharge from './recharge'
 
 export class FlowRecharge extends React.Component {
   constructor (props) {
@@ -63,7 +63,7 @@ export class FlowRecharge extends React.Component {
 
   render () {
     const {
-      locale, title, record
+       title, record
     } = this.props
 
     const { rechargeList } = this.state
@@ -111,7 +111,7 @@ export class FlowRecharge extends React.Component {
 }
 
 FlowRecharge.propTypes = {
-  locale: PropTypes.string,
+  // locale: PropTypes.string,
   title: PropTypes.object,
   record: PropTypes.any
 }
@@ -123,7 +123,7 @@ export function mapDispatchToProps (dispatch) {
 }
 
 const mapStateToProps = createStructuredSelector({
-  locale: selectLocale()
+  // locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(FlowRecharge)
