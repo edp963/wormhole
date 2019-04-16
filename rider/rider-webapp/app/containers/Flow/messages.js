@@ -44,5 +44,8 @@ export default defineMessages({
   streamModalRate: { id: 'rider.containers.Stream.modal.rate' },
   streamModalApply: { id: 'rider.containers.Stream.modal.apply' },
   streamModalApplyAll: { id: 'rider.containers.Stream.modal.apply.all' },
-  streamSureStart: { id: 'rider.app.table.sure.start' }
+  streamSureStart: { id: 'rider.app.table.sure.start' },
+  flowErrorList: { id: 'rider.app.table.error.list.action' },
+  errorListBackfillData: { id: 'rider.app.table.error.list.backfill.data.action' },
+  errorListBackfillHistory: { id: 'rider.app.table.error.list.backfill.history.action' }
 })
