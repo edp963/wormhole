@@ -154,14 +154,15 @@ class FlowUserApi(flowDal: FlowDal, streamDal: StreamDal, flowUdfDal: FlowUdfDal
                   if (session.projectIdList.contains(projectId)) {
                     val checkFormat = FlowUtils.checkConfigFormat(simple.sinkConfig.getOrElse(""), simple.tranConfig.getOrElse(""))
                     if (checkFormat._1) {
+                      val flowPriority = Await.result(flowDal.findByFilter(flow => flow.active===true && flow.streamId === simple.streamId),minTimeOut).seq.maxBy(flow=>flow.priorityId).priorityId+1
                       val flowInsertSeq =
                         if (Await.result(streamDal.findById(streamId), minTimeOut).head.functionType != "hdfslog")
-                          Seq(Flow(0, simple.flowName, simple.projectId, simple.streamId, 0L,simple.sourceNs.trim, simple.sinkNs.trim, simple.parallelism, simple.consumedProtocol.trim, simple.sinkConfig,
+                          Seq(Flow(0, simple.flowName, simple.projectId, simple.streamId, flowPriority,simple.sourceNs.trim, simple.sinkNs.trim, simple.parallelism, simple.consumedProtocol.trim, simple.sinkConfig,
                             simple.tranConfig, simple.tableKeys, simple.desc, "new", None, None, None, active = true, currentSec, session.userId, currentSec, session.userId))
                         else
                           FlowUtils.flowMatch(projectId, streamId, simple.sourceNs).map(
                             sourceNs =>
-                              Flow(0, simple.flowName, simple.projectId, simple.streamId, 0L, sourceNs, sourceNs, simple.parallelism, simple.consumedProtocol, simple.sinkConfig,
+                              Flow(0, simple.flowName, simple.projectId, simple.streamId, flowPriority, sourceNs, sourceNs, simple.parallelism, simple.consumedProtocol, simple.sinkConfig,
                                 simple.tranConfig, simple.tableKeys, simple.desc, "new", None, None, None, active = true, currentSec, session.userId, currentSec, session.userId)
                           )
                       try {
