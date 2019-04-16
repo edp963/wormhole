@@ -70,7 +70,7 @@ object SparkxUtils extends EdpLogging{
     WormholeKafkaProducer.sendMessage(config.kafka_output.feedback_topic_name,
       FeedbackPriority.feedbackPriority, UmsProtocolUtils.feedbackFlowError(sourceNamespace,
         config.spark_config.stream_id, DateUtils.currentDateTime, sinkNamespace, UmsWatermark(ts),
-        UmsWatermark(ts), errorCount, errorMsg, batchId, tmpJsonArray.toJSONString,protocolType,
+        UmsWatermark(ts), errorCount, errorMsg, batchId, tmpJsonArray.toJSONString,protocolType.replaceAll("\"",""),
         flowId,errorPattern),
       Some(UmsProtocolType.FEEDBACK_FLOW_ERROR + "." + flowId),
       config.kafka_output.brokers)

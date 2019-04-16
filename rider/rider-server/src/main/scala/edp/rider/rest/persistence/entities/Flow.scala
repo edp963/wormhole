@@ -256,6 +256,8 @@ case class FlowHealth(flowStatus: String,
 
 case class Sql(sql: String)
 
+case class RechargeType(protocolType: String)
+
 case class FlowPriority(id: Long, flowName: String, priorityId: Long)
 
 case class FlowPriorities(flowPrioritySeq: Seq[FlowPriority])
