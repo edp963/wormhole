@@ -864,12 +864,13 @@ export function rechargeHistoryLoaded (list) {
   }
 }
 
-export function confirmReChange (projectId, id, resolve, reject) {
+export function confirmReChange (projectId, id, protocolType, resolve, reject) {
   return {
     type: COMFIRM_RECHARGE,
     payload: {
       projectId,
       id,
+      protocolType,
       resolve,
       reject
     }

@@ -792,9 +792,11 @@ export function* postPerformanceWatcher () {
 
 export function* getRechargeHistory ({ payload }) {
   try {
-    const flows = yield call(request, `${api.projectUserList}/${payload.projectId}/flows/${payload.id}/xx`)
-    yield put(rechargeHistoryLoaded(flows.payload))
-    payload.resolve()
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/errors/${payload.id}/log`)
+    if (result.header && result.header.code === 200) {
+      yield put(confirmReChangeLoaded(result.payload))
+    }
+    payload.resolve(result.payload)
   } catch (err) {
     yield put(flowsLoadingError(err))
   }
@@ -806,11 +808,20 @@ export function* getRechargeHistoryWatcher () {
 
 export function* reChangeConfirm ({ payload }) {
   try {
-    const flows = yield call(request, `${api.projectUserList}/${payload.projectId}/flows/${payload.id}/xx`)
-    yield put(confirmReChangeLoaded(flows.payload))
-    payload.resolve()
+    const result = yield call(request, {
+      method: 'post',
+      url: `${api.projectUserList}/${payload.projectId}/errors/${payload.id}/backfill`,
+      data: {protocolType: payload.protocolType}
+    })
+    if (result.header && result.header.code === 200) {
+      yield put(confirmReChangeLoaded(result.payload))
+      payload.resolve(result.payload)
+    } else {
+      yield put(operateFlowError(result.msg, payload.reject))
+      payload.reject(result.payload)
+    }
   } catch (err) {
-    yield put(flowOperatedError(err))
+    notifySagasError(err, 'reChangeConfirm')
   }
 }
 
