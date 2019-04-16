@@ -28,7 +28,8 @@ import Button from 'antd/lib/button'
 import Popover from 'antd/lib/popover'
 import Tooltip from 'antd/lib/tooltip'
 
-import { selectLocale } from '../../LanguageProvider/selectors'
+// import { selectLocale } from '../../LanguageProvider/selectors'
+// import recharge from './recharge'
 
 import { loadRechargeHistory } from '../action'
 
@@ -61,7 +62,7 @@ export class FlowRechargeHistory extends React.Component {
 
   render () {
     const {
-      locale, title, record
+       title, record
     } = this.props
 
     const { rechargeList } = this.state
@@ -125,7 +126,7 @@ export function mapDispatchToProps (dispatch) {
 }
 
 const mapStateToProps = createStructuredSelector({
-  locale: selectLocale()
+  // locale: selectLocale()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(FlowRechargeHistory)
