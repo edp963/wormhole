@@ -168,7 +168,7 @@ function flowReducer (state = initialState, { type, payload }) {
         }
       }
     case OPERATE_FLOW_ERROR:
-      return state
+      return state.set('confirmRechargeLoading', false)
     case LOAD_FLOW_DETAIL:
       return state
     case LOAD_FLOW_DETAIL_SUCCESS:
