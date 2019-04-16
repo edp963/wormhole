@@ -55,9 +55,9 @@ export class FlowRecharge extends React.Component {
   }
 
   confirmReChange = () => {
-    console.log(this.state.typeOfOpTopics)
     const { locale, projectIdGeted, record } = this.props
-    this.props.onConfirmReChange(projectIdGeted, record.id, 'recharge', { }, () => {
+    const { typeOfOpTopics } = this.state
+    this.props.onConfirmReChange(projectIdGeted, record.id, typeOfOpTopics, () => {
       const msg = locale === 'en' ? 'success' : '回灌成功'
       message.success(msg)
       this.closeReChange()
@@ -98,7 +98,7 @@ export class FlowRecharge extends React.Component {
 
     return (
       <Popover
-        placement="left"
+        placement="bottomRight"
         content={rechargeOpContent}
         title={title}
         trigger="click"
@@ -123,7 +123,7 @@ FlowRecharge.propTypes = {
 
 export function mapDispatchToProps (dispatch) {
   return {
-    onConfirmReChange: (projectIdGeted, id, resolve, reject) => dispatch(confirmReChange(resolve, reject))
+    onConfirmReChange: (projectIdGeted, id, protocolType, resolve, reject) => dispatch(confirmReChange(projectIdGeted, id, protocolType, resolve, reject))
   }
 }
 
