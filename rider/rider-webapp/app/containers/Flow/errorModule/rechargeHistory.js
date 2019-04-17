@@ -28,9 +28,10 @@ import Button from 'antd/lib/button'
 import Popover from 'antd/lib/popover'
 import Tooltip from 'antd/lib/tooltip'
 
-import { selectLocale } from '../../LanguageProvider/selectors'
+// import { selectLocale } from '../../LanguageProvider/selectors'
 
 import { loadRechargeHistory } from '../action'
+import { selectRechargeHistory } from '../selectors'
 
 export class FlowRechargeHistory extends React.Component {
   constructor (props) {
@@ -48,8 +49,10 @@ export class FlowRechargeHistory extends React.Component {
 
     if (visible) {
       const { projectIdGeted, record } = this.props
-      console.log(this.props)
-      this.props.onGetRechargeList(projectIdGeted, record.id, (result) => {})
+      this.props.onGetRechargeList(projectIdGeted, record.id, (result) => {
+        const { rechargeHistoryList } = this.props
+        this.setState({ rechargeList: rechargeHistoryList.slice() })
+      })
     }
   }
 
@@ -61,7 +64,7 @@ export class FlowRechargeHistory extends React.Component {
 
   render () {
     const {
-      locale, title, record
+       title, record
     } = this.props
 
     const { rechargeList } = this.state
@@ -86,6 +89,7 @@ export class FlowRechargeHistory extends React.Component {
           columns={columns}
           className="ri-workbench-table-container"
           rowKey="id"
+          scroll={{ y: 300 }}
           bordered
         />
         <div className="recharge-btn">
@@ -96,7 +100,7 @@ export class FlowRechargeHistory extends React.Component {
 
     return (
       <Popover
-        placement="left"
+        placement="bottomRight"
         content={rechargeOpContent}
         title={title}
         trigger="click"
@@ -111,9 +115,10 @@ export class FlowRechargeHistory extends React.Component {
 }
 
 FlowRechargeHistory.propTypes = {
-  locale: PropTypes.string,
+  // locale: PropTypes.string,
   title: PropTypes.object,
   record: PropTypes.any,
+  rechargeHistoryList: PropTypes.array,
   projectIdGeted: PropTypes.string,
   onGetRechargeList: PropTypes.func
 }
@@ -125,7 +130,7 @@ export function mapDispatchToProps (dispatch) {
 }
 
 const mapStateToProps = createStructuredSelector({
-  locale: selectLocale()
+  rechargeHistoryList: selectRechargeHistory()
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(FlowRechargeHistory)
