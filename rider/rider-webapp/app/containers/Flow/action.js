@@ -96,7 +96,8 @@ import {
   LOAD_RECHARGE_HISTORY,
   LOAD_RECHARGE_HISTORY_SUCCESS,
   COMFIRM_RECHARGE,
-  COMFIRM_RECHARGE_SUCCESS
+  COMFIRM_RECHARGE_SUCCESS,
+  LOAD_FLOW_ERROR_LIST
 } from './constants'
 
 export function loadAdminAllFlows (resolve) {
@@ -882,6 +883,16 @@ export function confirmReChangeLoaded (result) {
     type: COMFIRM_RECHARGE_SUCCESS,
     payload: {
       result
+    }
+  }
+}
+export function getErrorList (projectId, flowId, resolve) {
+  return {
+    type: LOAD_FLOW_ERROR_LIST,
+    payload: {
+      projectId,
+      flowId,
+      resolve
     }
   }
 }
