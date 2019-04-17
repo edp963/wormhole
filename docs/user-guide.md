@@ -375,7 +375,7 @@ Java程序：
 
 - 继承 并实现 wormhole/interface/flinkxinterface module 下的 edp.wormhole.flinkxinterface.UdafInterface 接口。
 
-- 编译打包，将带有 Dependencies 的 Jar 包放置在 $FLINK_HOME/bin 目录下
+- 编译打包，将带有 Dependencies 的 Jar 包放置在 $FLINK_HOME/lib 目录下
 
 - 页面配置时，在admin用户下进行注册。
 

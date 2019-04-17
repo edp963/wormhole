@@ -89,6 +89,7 @@ export class FlowRechargeHistory extends React.Component {
           columns={columns}
           className="ri-workbench-table-container"
           rowKey="id"
+          scroll={{ y: 300 }}
           bordered
         />
         <div className="recharge-btn">
