@@ -123,18 +123,18 @@ export class FlowErrorList extends React.Component {
       }
     }, {
       title: '错误条数',
-      dataIndex: 'errorNum',
-      key: 'errorNum',
+      dataIndex: 'errorCount',
+      key: 'errorCount',
       className: 'text-align-center'
     }, {
       title: 'errorMinWatermark',
-      dataIndex: 'errorMinWatermark',
-      key: 'errorMinWatermark',
+      dataIndex: 'errorMinWaterMarkTs',
+      key: 'errorMinWaterMarkTs',
       className: 'text-align-center'
     }, {
       title: 'errorMaxWatermark',
-      dataIndex: 'errorMaxWatermark',
-      key: 'errorMaxWatermark',
+      dataIndex: 'errorMaxWaterMarkTs',
+      key: 'errorMaxWaterMarkTs',
       className: 'text-align-center'
     }, {
       title: '错误信息',
@@ -160,8 +160,8 @@ export class FlowErrorList extends React.Component {
     },
     {
       title: '错误时间',
-      dataIndex: 'errorTime',
-      key: 'errorTime',
+      dataIndex: 'feedbackTime',
+      key: 'feedbackTime',
       className: 'text-align-center'
     },
     {
