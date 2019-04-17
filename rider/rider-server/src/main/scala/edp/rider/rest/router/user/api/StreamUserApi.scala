@@ -27,7 +27,7 @@ import edp.rider.RiderStarter.modules._
 import edp.rider.common.Action._
 import edp.rider.common.{RiderConfig, RiderLogger, StreamStatus, StreamType}
 import edp.rider.rest.persistence.dal._
-import edp.rider.rest.persistence.entities._
+import edp.rider.rest.persistence.entities.{FlowPriorities, _}
 import edp.rider.rest.router.{JsonSerializer, ResponseJson, ResponseSeqJson, SessionClass}
 import edp.rider.rest.util.CommonUtils.{currentSec, minTimeOut}
 import edp.rider.rest.util.ResponseUtils.{getHeader, _}
@@ -863,6 +863,62 @@ class StreamUserApi(jobDal: JobDal, streamDal: StreamDal, projectDal: ProjectDal
                   } doesn't have permission to access the project $id.")
                   complete(OK, setFailedResponse(session, "Insufficient Permission"))
                 }
+              }
+          }
+        }
+    }
+
+   def getFlowPrioritiesByStreamId(route: String): Route= path(route / LongNumber / "streams" / LongNumber / "flows" / "order") {
+     (id, streamId) =>
+       get{
+         authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+           session =>
+             if (session.roleType != "user") {
+               riderLogger.warn(s"${session.userId} has no permission to access it.")
+               complete(OK, getHeader(403, session))
+             } else {
+               if (session.projectIdList.contains(id)) {
+                 Await.result(flowDal.findByFilter(flow=>flow.active === true && flow.streamId === streamId),minTimeOut) match {
+                   case Seq() =>
+                     riderLogger.info(s"user ${session.userId} get flow of stream $streamId failed caused by there is no flow existing in the stream.")
+                     complete(OK, setFailedResponse(session, "there is no flow existing in the stream."))
+                   case Seq(flowSeq @_*) =>
+                     val flowPrioritySeq=flowSeq.map(flow => new FlowPriority(flow.id,flow.flowName,flow.priorityId)).seq
+                     complete(OK,ResponseJson[FlowPriorities](getHeader(200, session),new FlowPriorities(flowPrioritySeq)))
+                 }
+               } else {
+                 riderLogger.error(s"user ${
+                   session.userId
+                 } doesn't have permission to access the project $id.")
+                 complete(OK, setFailedResponse(session, "Insufficient Permission"))
+               }
+             }
+         }
+       }
+   }
+
+    def updateFlowOrder(route: String): Route = path(route / LongNumber / "streams" / LongNumber / "flows" / "order") {
+      (id, streamId) =>
+        put{
+          entity(as[FlowPriorities]){
+            flowPriorities=>
+              authenticateOAuth2Async[SessionClass]("rider", AuthorizationProvider.authorize) {
+                session =>
+                  if (session.roleType != "user") {
+                    riderLogger.warn(s"${session.userId} has no permission to access it.")
+                    complete(OK, getHeader(403, session))
+                  } else {
+                    if (session.projectIdList.contains(id)) {
+                         flowPriorities.flowPrioritySeq.foreach(flowPriority=>
+                             flowDal.updatePriority(flowPriority.id,flowPriority.priorityId))
+                         complete(OK,setSuccessResponse(session))
+                    } else {
+                      riderLogger.error(s"user ${
+                        session.userId
+                      } doesn't have permission to access the project $id.")
+                      complete(OK, setFailedResponse(session, "Insufficient Permission"))
+                    }
+                  }
               }
           }
         }

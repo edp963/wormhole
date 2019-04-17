@@ -92,7 +92,11 @@ import {
   LOAD_DRIFT_LIST,
   POST_DRIFT,
   VERIFY_DRIFT,
-  LOAD_FLOW_PERFORMANCE
+  LOAD_FLOW_PERFORMANCE,
+  LOAD_RECHARGE_HISTORY,
+  LOAD_RECHARGE_HISTORY_SUCCESS,
+  COMFIRM_RECHARGE,
+  COMFIRM_RECHARGE_SUCCESS
 } from './constants'
 
 export function loadAdminAllFlows (resolve) {
@@ -836,6 +840,48 @@ export function postFlowPerformance (projectId, flowId, startTime, endTime, reso
       startTime,
       endTime,
       resolve
+    }
+  }
+}
+
+export function loadRechargeHistory (projectId, id, resolve) {
+  return {
+    type: LOAD_RECHARGE_HISTORY,
+    payload: {
+      projectId,
+      id,
+      resolve
+    }
+  }
+}
+
+export function rechargeHistoryLoaded (list) {
+  return {
+    type: LOAD_RECHARGE_HISTORY_SUCCESS,
+    payload: {
+      list
+    }
+  }
+}
+
+export function confirmReChange (projectId, id, protocolType, resolve, reject) {
+  return {
+    type: COMFIRM_RECHARGE,
+    payload: {
+      projectId,
+      id,
+      protocolType,
+      resolve,
+      reject
+    }
+  }
+}
+
+export function confirmReChangeLoaded (result) {
+  return {
+    type: COMFIRM_RECHARGE_SUCCESS,
+    payload: {
+      result
     }
   }
 }
