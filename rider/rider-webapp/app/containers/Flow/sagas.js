@@ -56,7 +56,8 @@ import {
   VERIFY_DRIFT,
   LOAD_FLOW_PERFORMANCE,
   LOAD_RECHARGE_HISTORY,
-  COMFIRM_RECHARGE
+  COMFIRM_RECHARGE,
+  LOAD_FLOW_ERROR_LIST
 } from './constants'
 
 import {
@@ -100,7 +101,7 @@ import {
   deleteUserTopicLoaded,
   adminLogsInfoLoaded,
   logsInfoLoaded,
-  rechargeHistoryLoaded,
+  // rechargeHistoryLoaded,
   confirmReChangeLoaded
 } from './action'
 
@@ -827,6 +828,26 @@ export function* reChangeConfirmWatcher () {
   yield fork(takeLatest, COMFIRM_RECHARGE, reChangeConfirm)
 }
 
+export function* getErrorList ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'get',
+      url: `${api.projectUserList}/${payload.projectId}/flows/${payload.flowId}/errors`
+    })
+    if (result.header && result.header.code === 200) {
+      payload.resolve(result.payload)
+    } else {
+      payload.reject(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'getErrorList')
+  }
+}
+
+export function* getErrorListWatcher () {
+  yield fork(takeLatest, LOAD_FLOW_ERROR_LIST, getErrorList)
+}
+
 export default [
   getAdminAllFlowsWatcher,
   getUserAllFlowsWatcher,
@@ -864,5 +885,6 @@ export default [
   verifyDriftWatcher,
   postPerformanceWatcher,
   getRechargeHistoryWatcher,
-  reChangeConfirmWatcher
+  reChangeConfirmWatcher,
+  getErrorListWatcher
 ]

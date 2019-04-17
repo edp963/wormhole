@@ -37,28 +37,29 @@ export class FlowErrorList extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      currentErrors: [
-        {
-          'batchId': '04yzmerp',
-          'createTime': '2019-03-27 11:38:05',
-          'dataType': 'inital',
-          'errorCount': 21,
-          'errorInfo': 'error',
-          'errorMaxWatermarkTs': '2019-03-20 16:17:18',
-          'errorMinWatermarkTs': '2019-03-20 16:17:18',
-          'errorPattern': 'flow',
-          'feedbackTime': '2019-03-20 16:17:18',
-          'flowId': 35,
-          'id': 1903,
-          'projectId': 1,
-          'sinkNs': 'oracle.oracle01.db.table.v2.dbpar01.tablepar03',
-          'sinkTable': 'oracle.oracle01.db.table.v2.dbpar01.tablepar03',
-          'sourceNs': 'oracle.oracle01.db.table.v2.dbpar01.tablepar01',
-          'sourceTable': 'oracle.oracle01.db.table.v2.dbpar01.tablepar01',
-          'streamId': 42,
-          'topics': '[{"topic_name":"wormhole_feedback_new","topic_type": "increment", "partition_offset":[{"partition_num":0,"from_offset":10000,"until_offset":20000}]'
-        }
-      ]
+      currentErrors: []
+      // currentErrors: [
+      //   {
+      //     'batchId': '04yzmerp',
+      //     'createTime': '2019-03-27 11:38:05',
+      //     'dataType': 'inital',
+      //     'errorCount': 21,
+      //     'errorInfo': 'error',
+      //     'errorMaxWatermarkTs': '2019-03-20 16:17:18',
+      //     'errorMinWatermarkTs': '2019-03-20 16:17:18',
+      //     'errorPattern': 'flow',
+      //     'feedbackTime': '2019-03-20 16:17:18',
+      //     'flowId': 35,
+      //     'id': 1903,
+      //     'projectId': 1,
+      //     'sinkNs': 'oracle.oracle01.db.table.v2.dbpar01.tablepar03',
+      //     'sinkTable': 'oracle.oracle01.db.table.v2.dbpar01.tablepar03',
+      //     'sourceNs': 'oracle.oracle01.db.table.v2.dbpar01.tablepar01',
+      //     'sourceTable': 'oracle.oracle01.db.table.v2.dbpar01.tablepar01',
+      //     'streamId': 42,
+      //     'topics': '[{"topic_name":"wormhole_feedback_new","topic_type": "increment", "partition_offset":[{"partition_num":0,"from_offset":10000,"until_offset":20000}]'
+      //   }
+      // ]
     }
   }
 
@@ -78,9 +79,9 @@ export class FlowErrorList extends React.Component {
 
   render () {
     const {
-      roleType, locale, projectIdGeted
+      roleType, projectIdGeted, data
     } = this.props
-    const { currentErrors } = this.state
+    // const { currentErrors } = this.state
 
     const columns = [{
       title: 'batchId',
@@ -107,10 +108,10 @@ export class FlowErrorList extends React.Component {
       render: (text, record) => {
         let comp = ''
         let textLen = text.length
-        if (textLen > 5) {
+        if (textLen > 20) {
           comp = (
             <Tooltip title={text} overlayStyle={{wordBreak: 'break-all'}}>
-              <span>{text.slice(0, 5)}...</span>
+              <span>{text.slice(0, 20)}...</span>
             </Tooltip>
           )
         } else {
@@ -139,7 +140,23 @@ export class FlowErrorList extends React.Component {
       title: '错误信息',
       dataIndex: 'errorInfo',
       key: 'errorInfo',
-      className: 'text-align-center'
+      className: 'text-align-center',
+      render: (text, record) => {
+        let comp = ''
+        let textLen = text.length
+        if (textLen > 20) {
+          comp = (
+            <Tooltip title={text} overlayStyle={{wordBreak: 'break-all', height: '300px'}} placement="left">
+              <span>{text.slice(0, 20)}...</span>
+            </Tooltip>
+          )
+        } else {
+          comp = (
+            <span>{text}</span>
+          )
+        }
+        return comp
+      }
     },
     {
       title: '错误时间',
@@ -192,7 +209,7 @@ export class FlowErrorList extends React.Component {
     return (
       <div style={{height: '80vh'}}>
         <Table
-          dataSource={currentErrors}
+          dataSource={data}
           columns={columns}
           onChange={this.handleFlowChange}
           pagination={pagination}
@@ -208,13 +225,14 @@ export class FlowErrorList extends React.Component {
 
 FlowErrorList.propTypes = {
   roleType: PropTypes.string,
-  locale: PropTypes.string,
-  projectIdGeted: PropTypes.string
+  // locale: PropTypes.string,
+  projectIdGeted: PropTypes.string,
+  data: PropTypes.array
 }
 
 export function mapDispatchToProps (dispatch) {
   return {
-    // onLoadAdminAllFlows: (resolve) => dispatch(loadAdminAllFlows(resolve))
+    // onLoadErrorList: (resolve) => dispatch(getErrorList(resolve))
   }
 }
 
