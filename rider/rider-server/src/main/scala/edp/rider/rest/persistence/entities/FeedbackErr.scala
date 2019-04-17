@@ -26,6 +26,24 @@ case class FeedbackErr(id: Long,
   }
 }
 
+case class SimpleFeedbackErr(id: Long,
+                             projectId:Long,
+                             batchId: String,
+                             streamId: Long,
+                             flowName: String,
+                             sourceNamespace: String,
+                             sinkNamespace: String,
+                             dataType: String,
+                             errorPattern: String,
+                             topics: String,
+                             errorCount: Int,
+                             errorMaxWaterMarkTs: String,
+                             errorMinWaterMarkTs: String,
+                             errorInfo: String,
+                             dataInfo: String,
+                             feedbackTime: String,
+                             createTime: String)
+
 case class FeedbackErrPartition(`partition_num`:Int,`from_offset`:Long,`until_offset`:Long){
   lazy val num=`partition_num`
   lazy val from=`from_offset`
@@ -49,6 +67,13 @@ case class RechargeResultLog(id: Long,
     copy(id = id).asInstanceOf[this.type]
   }
 }
+
+case class FeedbackPartitionResult(topic: String,
+                                   partition: Int,
+                                   startTime: String,
+                                   endTime: String,
+                                   count: Int,
+                                   success: Boolean)
 
 class RechargeResultLogTable(_tableTag: Tag) extends BaseTable[RechargeResultLog](_tableTag,"recharge_result_log"){
   def * = (id,errorId,detail,creator,createTime,updateTime,rst) <> (RechargeResultLog.tupled, RechargeResultLog.unapply)
