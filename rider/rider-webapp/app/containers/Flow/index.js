@@ -56,7 +56,7 @@ import {
   loadAdminAllFlows, loadUserAllFlows, loadAdminSingleFlow, operateUserFlow, editLogForm,
   saveForm, checkOutForm, loadSourceLogDetail, loadSourceSinkDetail, loadSinkWriteRrrorDetail,
   loadSourceInput, loadFlowDetail, chuckAwayFlow, loadLastestOffset, loadUdfs, startFlinkFlow, stopFlinkFlow, loadAdminLogsInfo, loadLogsInfo,
-  loadDriftList, postDriftList, verifyDrift, postFlowPerformance
+  loadDriftList, postDriftList, verifyDrift, postFlowPerformance, getErrorList
 } from './action'
 import { jumpStreamToFlowFilter } from '../Manager/action'
 import { loadSingleUdf } from '../Udf/action'
@@ -239,7 +239,8 @@ export class Flow extends React.Component {
       refreshTimer: null,
       performanceModelTitle: 'performance',
       errorListVisible: false,
-      errorListModelTitle: 'Error List'
+      errorListModelTitle: 'Error List',
+      flowErrorList: []
     }
   }
 
@@ -757,6 +758,7 @@ export class Flow extends React.Component {
     })
   }
   onShowErrorList = (record) => (e) => {
+    this.getFlowErrorList(record.id)
     this.setState({
       errorListVisible: true
     })
@@ -1353,12 +1355,21 @@ export class Flow extends React.Component {
       this.onSearch('streamId', 'searchTextStreamId', 'filterDropdownVisibleStreamId')()
     })
   }
+
+  getFlowErrorList = (flowId) => {
+    const { projectIdGeted } = this.props
+    this.props.onLoadErrorList(projectIdGeted, flowId, (result) => {
+      this.setState({
+        flowErrorList: result
+      })
+    })
+  }
   render () {
     const { className, onShowAddFlow, onShowEditFlow, flowClassHide, roleType, flowStartModalLoading } = this.props
     const { flowId, refreshFlowText, refreshFlowLoading, currentFlows, modalVisible, timeModalVisible, showFlowDetails, logsModalVisible,
       logsProjectId, logsFlowId, refreshLogLoading, refreshLogText, logsContent, selectedRowKeys,
       driftModalVisible, driftList, driftDialogConfirmLoading, driftVerifyTxt, driftVerifyStatus,
-      performanceModalVisible, errorListVisible } = this.state
+      performanceModalVisible, errorListVisible, flowErrorList } = this.state
     let { sortedInfo, filteredInfo, startModalVisible, flowStartFormData, autoRegisteredTopics, userDefinedTopics, startUdfVals, renewUdfVals, currentUdfVal, actionType } = this.state
     sortedInfo = sortedInfo || {}
     filteredInfo = filteredInfo || {}
@@ -2107,7 +2118,7 @@ export class Flow extends React.Component {
         </div>
       ) : ''
     const errorListComp = errorListVisible ? (
-      <FlowErrorList projectIdGeted={projectIdGeted} />
+      <FlowErrorList data={flowErrorList} projectIdGeted={projectIdGeted} />
     ) : ''
     return (
       <div className={`ri-workbench-table ri-common-block ${className}`}>
@@ -2302,7 +2313,8 @@ Flow.propTypes = {
   onSubmitDrift: PropTypes.func,
   onVerifyDrift: PropTypes.func,
   onSearchFlowPerformance: PropTypes.func,
-  jumpStreamToFlowFilter: PropTypes.func
+  jumpStreamToFlowFilter: PropTypes.func,
+  onLoadErrorList: PropTypes.func
 }
 
 export function mapDispatchToProps (dispatch) {
@@ -2332,7 +2344,8 @@ export function mapDispatchToProps (dispatch) {
     onSubmitDrift: (projectId, flowId, streamId, resolve) => dispatch(postDriftList(projectId, flowId, streamId, resolve)),
     onVerifyDrift: (projectId, flowId, streamId, resolve) => dispatch(verifyDrift(projectId, flowId, streamId, resolve)),
     onSearchFlowPerformance: (projectId, flowId, startTime, endTime, resolve) => dispatch(postFlowPerformance(projectId, flowId, startTime, endTime, resolve)),
-    jumpStreamToFlowFilter: (streamFilterId) => dispatch(jumpStreamToFlowFilter(streamFilterId))
+    jumpStreamToFlowFilter: (streamFilterId) => dispatch(jumpStreamToFlowFilter(streamFilterId)),
+    onLoadErrorList: (project, flowId, resolve) => dispatch(getErrorList(project, flowId, resolve))
   }
 }
 

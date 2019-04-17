@@ -52,6 +52,11 @@ const selectConfirmRechargeLoading = () => createSelector(
   (streamState) => streamState.get('confirmRechargeLoading')
 )
 
+const selectRechargeHistory = () => createSelector(
+  selectFlow(),
+  (streamState) => streamState.get('list')
+)
+
 export {
   selectFlow,
   selectFlows,
@@ -59,5 +64,6 @@ export {
   selectFlowSubmitLoading,
   selectFlowStartModalLoading,
   selectStreamFilterId,
-  selectConfirmRechargeLoading
+  selectConfirmRechargeLoading,
+  selectRechargeHistory
 }
