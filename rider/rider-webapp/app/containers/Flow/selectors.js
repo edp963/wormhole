@@ -54,7 +54,7 @@ const selectConfirmRechargeLoading = () => createSelector(
 
 const selectRechargeHistory = () => createSelector(
   selectFlow(),
-  (streamState) => streamState.get('list')
+  (streamState) => streamState.get('rechargeHistoryList')
 )
 
 export {

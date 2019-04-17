@@ -255,7 +255,7 @@ function flowReducer (state = initialState, { type, payload }) {
     case LOAD_RECHARGE_HISTORY:
       return state.set('rechargeHistoryLoading', true)
     case LOAD_RECHARGE_HISTORY_SUCCESS:
-      return state.set('list', payload.list).set('rechargeHistoryLoading', false)
+      return state.set('rechargeHistoryList', payload.list).set('rechargeHistoryLoading', false)
     case COMFIRM_RECHARGE:
       return state.set('confirmRechargeLoading', true)
     case COMFIRM_RECHARGE_SUCCESS:
