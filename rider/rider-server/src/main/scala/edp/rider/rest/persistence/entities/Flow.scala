@@ -30,6 +30,7 @@ case class Flow(id: Long,
                 flowName: String,
                 projectId: Long,
                 streamId: Long,
+                priorityId: Long,
                 sourceNs: String,
                 sinkNs: String,
                 parallelism: Option[Int],
@@ -169,6 +170,32 @@ case class FlowStreamAdminInfo(id: Long,
                                hideActions: String,
                                msg: String)
 
+case class FlowUpdateInfo(id: Long,
+                          flowName: String,
+                          projectId: Long,
+                          streamId: Long,
+                          sourceNs: String,
+                          sinkNs: String,
+                          parallelism: Option[Int],
+                          consumedProtocol: String,
+                          sinkConfig: Option[String],
+                          tranConfig: Option[String],
+                          tableKeys: Option[String],
+                          desc: Option[String] = None,
+                          status: String,
+                          startedTime: Option[String],
+                          stoppedTime: Option[String],
+                          logPath: Option[String],
+                          active: Boolean,
+                          createTime: String,
+                          createBy: Long,
+                          updateTime: String,
+                          updateBy: Long) extends BaseEntity {
+  override def copyWithId(id: Long): this.type = {
+    copy(id = id).asInstanceOf[this.type]
+  }
+}
+
 case class FlowAdminAllInfo(id: Long,
                             flowName: String,
                             projectId: Long,
@@ -229,6 +256,12 @@ case class FlowHealth(flowStatus: String,
 
 case class Sql(sql: String)
 
+case class RechargeType(protocolType: String)
+
+case class FlowPriority(id: Long, flowName: String, priorityId: Long)
+
+case class FlowPriorities(flowPrioritySeq: Seq[FlowPriority])
+
 case class DeleteTopic(ids: Seq[Long], topics: Seq[String])
 
 case class FlowDirective(udfInfo: Seq[Long], topicInfo: PutFlowTopic)
@@ -274,13 +307,15 @@ case class DriftFlowResponse(id: Long,
                              msg: String)
 
 class FlowTable(_tableTag: Tag) extends BaseTable[Flow](_tableTag, "flow") {
-  def * = (id, flowName, projectId, streamId, sourceNs, sinkNs, parallelism, consumedProtocol, sinkConfig, tranConfig, tableKeys, desc, status, startedTime, stoppedTime, logPath, active, createTime, createBy, updateTime, updateBy) <> (Flow.tupled, Flow.unapply)
+  def * = (id, flowName, projectId, streamId, priorityId, sourceNs, sinkNs, parallelism, consumedProtocol, sinkConfig, tranConfig, tableKeys, desc, status, startedTime, stoppedTime, logPath, active, createTime, createBy, updateTime, updateBy) <> (Flow.tupled, Flow.unapply)
 
   val flowName: Rep[String] = column[String]("flow_name", O.Length(200, varying = true))
   /** Database column project_id SqlType(BIGINT) */
   val projectId: Rep[Long] = column[Long]("project_id")
   /** Database column stream_id SqlType(BIGINT) */
   val streamId: Rep[Long] = column[Long]("stream_id")
+  /** Database column priority_id SqlType(BIGINT) */
+  val priorityId: Rep[Long] = column[Long]("priority_id")
   /** Database column source_ns SqlType(VARCHAR), Length(200,true) */
   val sourceNs: Rep[String] = column[String]("source_ns", O.Length(200, varying = true))
   /** Database column sink_ns SqlType(VARCHAR), Length(200,true) */

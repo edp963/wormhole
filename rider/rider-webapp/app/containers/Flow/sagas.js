@@ -54,7 +54,9 @@ import {
   LOAD_DRIFT_LIST,
   POST_DRIFT,
   VERIFY_DRIFT,
-  LOAD_FLOW_PERFORMANCE
+  LOAD_FLOW_PERFORMANCE,
+  LOAD_RECHARGE_HISTORY,
+  COMFIRM_RECHARGE
 } from './constants'
 
 import {
@@ -97,7 +99,9 @@ import {
   postUserTopicLoaded,
   deleteUserTopicLoaded,
   adminLogsInfoLoaded,
-  logsInfoLoaded
+  logsInfoLoaded,
+  rechargeHistoryLoaded,
+  confirmReChangeLoaded
 } from './action'
 
 import request from '../../utils/request'
@@ -785,6 +789,44 @@ export function* searchPerformance ({ payload }) {
 export function* postPerformanceWatcher () {
   yield fork(takeLatest, LOAD_FLOW_PERFORMANCE, searchPerformance)
 }
+
+export function* getRechargeHistory ({ payload }) {
+  try {
+    const result = yield call(request, `${api.projectUserList}/${payload.projectId}/errors/${payload.id}/log`)
+    yield put(confirmReChangeLoaded(result.payload))
+    payload.resolve(result.payload)
+  } catch (err) {
+    yield put(flowsLoadingError(err))
+  }
+}
+
+export function* getRechargeHistoryWatcher () {
+  yield fork(takeLatest, LOAD_RECHARGE_HISTORY, getRechargeHistory)
+}
+
+export function* reChangeConfirm ({ payload }) {
+  try {
+    const result = yield call(request, {
+      method: 'post',
+      url: `${api.projectUserList}/${payload.projectId}/errors/${payload.id}/backfill`,
+      data: {protocolType: payload.protocolType}
+    })
+    if (result.header && result.header.code === 200) {
+      yield put(confirmReChangeLoaded(result.payload))
+      payload.resolve(result.payload)
+    } else {
+      yield put(operateFlowError(result.msg, payload.reject))
+      payload.reject(result.payload)
+    }
+  } catch (err) {
+    notifySagasError(err, 'reChangeConfirm')
+  }
+}
+
+export function* reChangeConfirmWatcher () {
+  yield fork(takeLatest, COMFIRM_RECHARGE, reChangeConfirm)
+}
+
 export default [
   getAdminAllFlowsWatcher,
   getUserAllFlowsWatcher,
@@ -820,5 +862,7 @@ export default [
   getDriftListWatcher,
   postDriftWatcher,
   verifyDriftWatcher,
-  postPerformanceWatcher
+  postPerformanceWatcher,
+  getRechargeHistoryWatcher,
+  reChangeConfirmWatcher
 ]
