@@ -72,13 +72,24 @@ export class FlowRechargeHistory extends React.Component {
     const columns = [
       {
         title: '回灌时间',
+        dataIndex: 'createTime',
         key: 'createTime',
+        width: 200,
         className: 'text-align-center'
       },
       {
         title: '回灌详情',
+        dataIndex: 'detail',
         key: 'detail',
         className: 'text-align-center'
+      },
+      {
+        title: '回灌结果',
+        dataIndex: 'rst',
+        key: 'rst',
+        width: 100,
+        className: 'text-align-center',
+        render: (text, record) => record.rst === 1 ? '成功' : '失败'
       }
     ]
 
